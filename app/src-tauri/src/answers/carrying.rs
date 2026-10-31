@@ -279,6 +279,18 @@ pub(crate) fn imported(
     body: &str,
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid)> {
+    let signed_as = signing(&session.state);
+    imported_as(session, body, folder, false, signed_as)
+}
+
+/// A guest copy carries the name of whoever wrote it instead of the person's, as a duplicate of theirs does.
+pub(crate) fn imported_as(
+    session: &mut Session,
+    body: &str,
+    folder: Option<tisty_core::model::FolderId>,
+    guest: bool,
+    by: Option<String>,
+) -> Answer<(tisty_core::docs::Doc, ulid::Ulid)> {
     if let Some(at) = folder {
         landing(session, at)?;
     }
@@ -293,15 +305,14 @@ pub(crate) fn imported(
             .filter(|one| one.folder == folder)
             .map(|one| one.order.as_str()),
     );
-    let signed_as = signing(&session.state);
     let id = ulid::Ulid::generate();
     session.commit(Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
             wrote: None,
-            guest: false,
+            guest,
             made: None,
-            by: signed_as.clone(),
+            by,
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said::of(body)),

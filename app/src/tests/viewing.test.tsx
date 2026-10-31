@@ -61,7 +61,13 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   message: () => Promise.resolve(),
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: () => Promise.resolve() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  revealItemInDir: () => Promise.resolve(),
+  openUrl: (url: string) => {
+    ipc.calls.push({ cmd: "open_url", args: { url } });
+    return Promise.resolve();
+  },
+}));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
@@ -159,6 +165,23 @@ describe("the viewer", () => {
 
     expect(await screen.findByText(t("viewBigTitle").replace("{name}", "grande.md"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewRetry") })).toBeTruthy();
+  });
+
+  it("sends a share Tisty could not open to the browser, saying why", async () => {
+    const link = "https://tisty.cl/oVD0Idz0#llave";
+    ipc.shown = {
+      kind: "missed",
+      name: "Tisty Share",
+      place: "Tisty Share",
+      path: link,
+      refusal: { code: "shareOpenGated" },
+    } satisfies Showing;
+    render(<Viewing />);
+
+    expect(await screen.findByText(t("shareOpenGated"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("viewReveal") })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("viewBrowse") }));
+    expect(asked("open_url")).toEqual([{ cmd: "open_url", args: { url: link } }]);
   });
 
   it("draws a widget on a stage with its widths to try", async () => {

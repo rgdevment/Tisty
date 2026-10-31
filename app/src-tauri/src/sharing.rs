@@ -20,6 +20,8 @@ const PATIENCE: std::time::Duration = std::time::Duration::from_secs(30);
 pub(crate) struct Said {
     pub(crate) status: u16,
     pub(crate) body: Vec<u8>,
+    /// The `Tisty-Revoked` the server sends with a document, for the reader to weigh the signature by.
+    pub(crate) revoked: Option<String>,
 }
 
 /// One request as the API takes it, so the same client speaks to a server or, in its tests, to the API itself.
@@ -71,10 +73,16 @@ impl Wire for Net {
         }
         let answer = request.send().map_err(|_| Refusal::of("shareOffline"))?;
         let status = answer.status().as_u16();
+        let revoked = answer
+            .headers()
+            .get("Tisty-Revoked")
+            .and_then(|one| one.to_str().ok())
+            .map(str::to_owned);
         let body = answer.bytes().map_err(|_| Refusal::of("shareOffline"))?;
         Ok(Said {
             status,
             body: body.to_vec(),
+            revoked,
         })
     }
 }
@@ -142,7 +150,7 @@ fn done(said: Said) -> Result<(), Refusal> {
     }
 }
 
-fn get(wire: &impl Wire, path: String, token: Option<&str>) -> Result<Said, Refusal> {
+pub(crate) fn get(wire: &impl Wire, path: String, token: Option<&str>) -> Result<Said, Refusal> {
     wire.send(Asking {
         method: "GET",
         path,

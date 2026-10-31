@@ -175,6 +175,22 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
     })
 }
 
+/// What Tisty knows of a document read through a share link: its size, and that it is someone else's to share.
+pub(crate) fn received_facts(bytes: u64) -> Facts {
+    Facts {
+        made: None,
+        wrote: None,
+        bytes,
+        pages: 0,
+        author: None,
+        editor: None,
+        born: None,
+        signed_as: None,
+        edited_as: None,
+        shareable: super::shares::Shareable::NotMine,
+    }
+}
+
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
     at.ok()?
         .duration_since(std::time::UNIX_EPOCH)

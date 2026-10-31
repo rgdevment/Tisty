@@ -12,11 +12,21 @@ interface Props {
   name: string;
   place: string;
   onReveal?: () => void;
+  /** For a share Tisty could not show, the link opened where its reader can ask for a password. */
+  onBrowse?: () => void;
   onRetry: () => void;
   onEdit?: () => void;
 }
 
-export default function Problem({ trouble, name, place, onReveal, onRetry, onEdit }: Props) {
+export default function Problem({
+  trouble,
+  name,
+  place,
+  onReveal,
+  onBrowse,
+  onRetry,
+  onEdit,
+}: Props) {
   const empty = trouble.kind === "empty";
   const title = empty
     ? t("viewEmptyTitle")
@@ -47,6 +57,11 @@ export default function Problem({ trouble, name, place, onReveal, onRetry, onEdi
               {onReveal && (
                 <button type="button" className={button} onClick={onReveal}>
                   {t("viewReveal")}
+                </button>
+              )}
+              {onBrowse && (
+                <button type="button" className={button} onClick={onBrowse}>
+                  {t("viewBrowse")}
                 </button>
               )}
               <button type="button" className={tinted} onClick={onRetry}>

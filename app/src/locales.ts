@@ -426,6 +426,7 @@ const en = {
   viewCopied: "Copied",
   viewDuplicate: "Duplicate",
   viewReveal: "Show in folder",
+  viewBrowse: "Open in the browser",
   viewRetry: "Try again",
   previewBack: "← Back to the document",
   viewClose: "Close",
@@ -650,6 +651,13 @@ const en = {
   shareRefused: "Tisty Share did not take it ({name}).",
   shareAlready: "This document is already shared.",
   shareFailed: "Tisty Share did not answer as expected. Try again in a moment.",
+  shareOpenGated:
+    "This document asks for a password, which Tisty does not ask for yet. Open it in the browser.",
+  shareOpenGone:
+    "This link no longer leads to a document: it ran out or its author stopped sharing it.",
+  shareOpenClosed: "Its author put this document away, or reports closed it.",
+  shareOpenUnsigned:
+    "This document does not carry a signature that matches its link, so Tisty does not show it.",
   shareTooBig: "This document is larger than Tisty Share takes.",
   shareSlow: "Tisty Share asks this computer to wait a little before trying again.",
   shareUnsigned:
@@ -3163,6 +3171,7 @@ const es: Catalog = {
   viewCopied: "Copiado",
   viewDuplicate: "Duplicar",
   viewReveal: "Mostrar en la carpeta",
+  viewBrowse: "Abrir en el navegador",
   viewRetry: "Reintentar",
   previewBack: "← Volver al documento",
   viewClose: "Cerrar",
@@ -3388,6 +3397,13 @@ const es: Catalog = {
   shareRefused: "Tisty Share no lo aceptó ({name}).",
   shareAlready: "Este documento ya está compartido.",
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
+  shareOpenGated:
+    "Este documento pide una clave, que Tisty todavía no pide. Ábrelo en el navegador.",
+  shareOpenGone:
+    "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
+  shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",
+  shareOpenUnsigned:
+    "Este documento no trae una firma que corresponda a su link, así que Tisty no lo muestra.",
   shareTooBig: "Este documento es más grande de lo que acepta Tisty Share.",
   shareSlow: "Tisty Share pide a este equipo esperar un poco antes de volver a intentarlo.",
   shareUnsigned:

@@ -83,9 +83,15 @@ impl Wire for Here {
                 now: T0,
             },
         ));
+        let revoked = said
+            .headers
+            .iter()
+            .find(|(name, _)| *name == "Tisty-Revoked")
+            .map(|(_, value)| value.clone());
         Ok(Said {
             status: said.status,
             body: said.body,
+            revoked,
         })
     }
 }
@@ -222,4 +228,49 @@ fn a_document_over_the_server_s_limits_says_it_is_too_big() {
 
     let refused = share(&here, SERVER, &long, &Chosen::default(), &voucher(), None).unwrap_err();
     assert_eq!(refused.code, "shareTooBig");
+}
+
+/// Run by hand after a Tisty Share deploy: a share goes up to tisty.cl, comes down whole behind its password, and stops.
+/// With `TISTY_SHARE_KEEP=1` it goes up without a password, stays up and prints its link, to be opened in a browser.
+#[test]
+#[ignore = "reaches tisty.cl"]
+fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
+    let wire = Net::to(SERVER).unwrap();
+    let key = ShareKey::from_bytes(&[5; 32]);
+    let since = jiff::Timestamp::now() - jiff::SignedDuration::from_hours(24);
+    let certificate = Seed::from_bytes(&[8; 32])
+        .root()
+        .certify(&key.public(), since);
+    let voucher = (key, certificate);
+    let keep = std::env::var("TISTY_SHARE_KEEP").is_ok();
+    let password = (!keep).then_some("perro azul");
+    let chosen = Chosen {
+        password: password.map(str::to_owned),
+        editable: false,
+        idle_days: Some(7),
+    };
+    let text = "# Prueba de Tisty Share\n\nEscrito desde la prueba que llega a tisty.cl.";
+    let shared = share(&wire, SERVER, text, &chosen, &voucher, Some("Prueba")).unwrap();
+
+    let said = info(&wire, &shared).unwrap();
+    assert_eq!(said.gated, !keep);
+    assert!(!said.paused && !said.blocked);
+    let mut asking =
+        reqwest::blocking::Client::new().get(format!("{SERVER}{API}docs/{}", shared.link));
+    if let Some(password) = password {
+        asking = asking.header("Tisty-Password", URL_SAFE_NO_PAD.encode(password));
+    }
+    let read = asking.send().unwrap();
+    assert_eq!(read.status().as_u16(), 200);
+    let envelope = Envelope::read(read.bytes().unwrap().to_vec(), &Limits::default()).unwrap();
+    let opened = envelope::open(&LinkKey::from_text(&shared.key).unwrap(), &envelope, &[]).unwrap();
+    assert_eq!(opened.text.as_str(), text);
+    assert!(matches!(opened.wrote, Some(Verdict::Holds { .. })));
+
+    if keep {
+        println!("{}", links(&shared).0);
+        return;
+    }
+    stop(&wire, &shared).unwrap();
+    assert!(already_gone(&info(&wire, &shared).unwrap_err()));
 }

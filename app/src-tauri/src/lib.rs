@@ -22,6 +22,7 @@ mod pathing;
 mod pdf;
 mod quick_keys;
 mod reaching;
+mod received;
 mod refusing;
 mod report;
 #[cfg(windows)]
@@ -866,14 +867,18 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());
-    app.state::<viewing::Views>().started(&mut wanted);
+    let mut shares = received::links(&argv);
+    app.state::<viewing::Views>()
+        .started(&mut wanted, &mut shares);
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
         viewing::show(app.handle(), wanted);
+        viewing::show_shares(app.handle(), shares);
         return Ok(());
     }
-    opened(app.handle(), !wanted.is_empty())?;
+    opened(app.handle(), !wanted.is_empty() || !shares.is_empty())?;
     viewing::show(app.handle(), wanted);
+    viewing::show_shares(app.handle(), shares);
     Ok(())
 }
 
