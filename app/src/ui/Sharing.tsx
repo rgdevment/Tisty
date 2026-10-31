@@ -22,7 +22,6 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [gated, setGated] = useState(false);
   const [password, setPassword] = useState("");
   const [editable, setEditable] = useState(false);
-  const [signed, setSigned] = useState(true);
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const passwordId = useId();
@@ -37,7 +36,6 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     shareDoc(file, {
       password: gated ? password : null,
       editable,
-      signed,
       idleDays: idle === IDLE_DAYS[0] ? null : idle,
     })
       .then((card) => {
@@ -109,18 +107,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
           <p className="text-[11.5px] leading-relaxed text-faint">{t("shareEditWhy")}</p>
         </fieldset>
 
-        <label className="flex items-start justify-between gap-3">
-          <span className="flex flex-col">
-            <span className="text-[13px] font-medium">{t("shareSign")}</span>
-            <span className="text-[11.5px] text-faint">{t("shareSignWhy")}</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={signed}
-            onChange={(e) => setSigned(e.target.checked)}
-            className="mt-1"
-          />
-        </label>
+        <p className="flex flex-col">
+          <span className="text-[13px] font-medium">{t("shareSign")}</span>
+          <span className="text-[11.5px] text-faint">{t("shareSignWhy")}</span>
+        </p>
 
         <div className="flex items-center justify-between gap-3">
           <label htmlFor={idleId} className="text-[13px] font-medium">

@@ -592,6 +592,9 @@ const en = {
   besideShared: "Shared",
   sharedNot: "Not shared",
   sharedNotMine: "Not yours",
+  sharedNoKey: "Needs your key",
+  sharedNoKeyWhy:
+    "Everything shared goes signed with your key, and this computer has none yet. Set up your identity in the settings to share.",
   sharedNotMineWhy:
     "This document is someone else's, so this copy cannot be shared. Only its author can share it: ask them for the link.",
   sharedWhy:
@@ -608,8 +611,9 @@ const en = {
   shareReadOnly: "Read only",
   shareCanEdit: "Can edit",
   shareEditWhy: "With Tisty they open it there and edit it; without Tisty they read it on the web.",
-  shareSign: "Sign with my key",
-  shareSignWhy: "Whoever opens it sees it is yours and that nobody altered it.",
+  shareSign: "Signed with your key",
+  shareSignWhy:
+    "Everything shared goes signed: whoever opens it sees it is yours and that nobody altered it.",
   shareEnds: "Expires",
   shareEndsIdle: "After {name} days without activity",
   shareGo: "Share and copy the link",
@@ -633,7 +637,7 @@ const en = {
   shareNotMine:
     "This document is someone else's: only its author can share it. Ask them for the link.",
   shareNoKey:
-    "This computer has no key of yours to sign with yet: share it unsigned, or set up your identity first.",
+    "Everything shared goes signed, and this computer has no key of yours yet: set up your identity first.",
   previewPdf: "Preview the PDF",
   saveAsMarkdown: "Save a copy as Markdown…",
   aboutPaper: "About this document",
@@ -3305,6 +3309,9 @@ const es: Catalog = {
   besideShared: "Compartido",
   sharedNot: "Sin compartir",
   sharedNotMine: "No es tuyo",
+  sharedNoKey: "Falta tu llave",
+  sharedNoKeyWhy:
+    "Todo lo compartido va firmado con tu llave, y este equipo todavía no tiene una. Configura tu identidad en los ajustes para compartir.",
   sharedNotMineWhy:
     "Este documento es de otra persona, así que esta copia no se puede compartir. Solo quien lo escribió puede compartirlo: pídele el link.",
   sharedWhy:
@@ -3321,8 +3328,9 @@ const es: Catalog = {
   shareReadOnly: "Solo leer",
   shareCanEdit: "Puede editar",
   shareEditWhy: "Con Tisty lo abre ahí y lo edita; sin Tisty, lo lee en la web.",
-  shareSign: "Firmar con mi llave",
-  shareSignWhy: "Quien lo abra verá que es tuyo y que nadie lo alteró.",
+  shareSign: "Firmado con tu llave",
+  shareSignWhy:
+    "Todo lo compartido va firmado: quien lo abra verá que es tuyo y que nadie lo alteró.",
   shareEnds: "Caduca",
   shareEndsIdle: "A los {name} días sin actividad",
   shareGo: "Compartir y copiar el link",
@@ -3346,7 +3354,7 @@ const es: Catalog = {
   shareNotMine:
     "Este documento es de otra persona: solo quien lo escribió puede compartirlo. Pídele el link.",
   shareNoKey:
-    "Este equipo todavía no tiene una llave tuya para firmar: compártelo sin firma o configura tu identidad primero.",
+    "Todo lo compartido va firmado, y este equipo todavía no tiene una llave tuya: configura tu identidad primero.",
   previewPdf: "Vista previa del PDF",
   saveAsMarkdown: "Guardar una copia en Markdown…",
   aboutPaper: "Sobre este documento",

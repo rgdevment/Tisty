@@ -103,6 +103,15 @@ impl Persons {
             .max_by_key(|one| one.since)
     }
 
+    /// Everyone who ever vouched for a key this machine named, taken back or not: what it made then was theirs.
+    pub fn ever_vouched(&self, device: &DeviceId) -> Vec<Person> {
+        let named = self.named_by(device);
+        self.vouches()
+            .filter(|one| named.contains(&one.share))
+            .map(|one| one.person)
+            .collect()
+    }
+
     /// Two roots on one key only happen when a person began again; the later signature is the one asked.
     pub fn person(&self, device: &DeviceId) -> Option<Person> {
         self.newest(device, None).map(|one| one.person)

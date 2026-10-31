@@ -21,7 +21,6 @@ fn shared(version: u64) -> Shared {
         admin: "admin-token".into(),
         editable: false,
         gated: false,
-        signed: true,
         version,
     }
 }
@@ -91,7 +90,7 @@ fn a_share_travels_in_the_log_with_only_what_it_says() {
     })
     .unwrap();
     assert_eq!(line["op"], "share.doc");
-    assert_eq!(line["d"]["signed"], true);
+    assert_eq!(line["d"]["version"], 1);
     assert!(line["d"].get("editable").is_none());
     assert!(line["d"].get("gated").is_none());
 }

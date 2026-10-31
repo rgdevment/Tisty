@@ -9,7 +9,6 @@ const CARD = {
   read: "https://tisty.cl/k7Qm2xPa#llave",
   edit: null,
   gated: false,
-  signed: true,
   version: 1,
   info: null,
 };
@@ -30,7 +29,7 @@ beforeEach(() => {
 });
 
 describe("the share dialog", () => {
-  it("shares to read only, signed and for the server's own time unless asked otherwise", async () => {
+  it("shares to read only and for the server's own time unless asked otherwise, always signed", async () => {
     const onShared = vi.fn();
     render(
       <Sharing
@@ -46,7 +45,7 @@ describe("the share dialog", () => {
     expect(asked("share_doc")).toEqual([
       {
         file: "notas.md",
-        chosen: { password: null, editable: false, signed: true, idleDays: null },
+        chosen: { password: null, editable: false, idleDays: null },
       },
     ]);
   });
@@ -71,7 +70,7 @@ describe("the share dialog", () => {
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
     expect(asked("share_doc")[0]).toEqual({
       file: "notas.md",
-      chosen: { password: "ñandú", editable: true, signed: true, idleDays: 7 },
+      chosen: { password: "ñandú", editable: true, idleDays: 7 },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
   });

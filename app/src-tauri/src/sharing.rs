@@ -86,7 +86,6 @@ pub(crate) struct Chosen {
     pub(crate) password: Option<String>,
     /// Whether the edit link is handed out (decision 67).
     pub(crate) editable: bool,
-    pub(crate) signed: bool,
     /// Days without activity before it goes, when shorter than the server's (decision 50).
     pub(crate) idle_days: Option<u32>,
 }
@@ -166,13 +165,13 @@ fn managed(wire: &impl Wire, shared: &Shared, what: serde_json::Value) -> Result
     })?)
 }
 
-/// Shares a document's words for the first time: reserves its links, seals it and puts its first version up.
+/// Shares a document's words for the first time: reserves its links, seals and signs it and puts its first version up.
 pub(crate) fn share(
     wire: &impl Wire,
     server: &str,
     text: &str,
     chosen: &Chosen,
-    by: Option<&Voucher>,
+    (key, certificate): &Voucher,
 ) -> Result<Shared, Refusal> {
     let limits: Limits = answered(get(wire, "limits".into(), None)?)?;
     let work = worked(wire, json!({ "for": "reserve" }))?;
@@ -183,8 +182,9 @@ pub(crate) fn share(
         work: Some(work),
         body: Vec::new(),
     })?)?;
-    let key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
-    let signer = by.map(|(key, certificate)| Signer { key, certificate });
+    let link_key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
+    // Everything shared is signed: the key is the only identity there is, since any alias can be taken.
+    let signer = Signer { key, certificate };
     let draft = Draft {
         id: &reserved.id,
         version: 1,
@@ -192,7 +192,7 @@ pub(crate) fn share(
         text,
         pictures: &[],
     };
-    let sealed = envelope::seal(&key, &draft, signer.as_ref(), &limits)
+    let sealed = envelope::seal(&link_key, &draft, Some(&signer), &limits)
         .map_err(|why| Refusal::about("shareRefused", format!("{why:?}")))?;
     let work = worked(
         wire,
@@ -213,12 +213,11 @@ pub(crate) fn share(
     let shared = Shared {
         server: server.to_owned(),
         link: reserved.id,
-        key: key.to_text().to_string(),
+        key: link_key.to_text().to_string(),
         edit: reserved.edit,
         admin: reserved.admin,
         editable: chosen.editable,
         gated: chosen.password.is_some(),
-        signed: signer.is_some(),
         version: 1,
     };
     if let Some(password) = &chosen.password {

@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::net::{IpAddr, Ipv4Addr};
 
 use tisty_share_proto::envelope::{Envelope, LinkKey};
+use tisty_share_proto::identity::{ShareKey, Verdict};
+use tisty_share_proto::seed::Seed;
 use tisty_share_server::guard::Work;
 use tisty_share_server::keys::Slowness;
 use tisty_share_server::memory::Memory;
@@ -12,6 +14,16 @@ use tisty_share_worker::api::{Asked, answer};
 use super::*;
 
 const T0: i64 = 1_800_000_000;
+
+/// A machine's key and the certificate its person gave it, as `vouched_by` hands them over.
+fn voucher() -> Voucher {
+    let key = ShareKey::from_bytes(&[3; 32]);
+    let since = jiff::Timestamp::from_second(T0 - 86_400).unwrap();
+    let certificate = Seed::from_bytes(&[7; 32])
+        .root()
+        .certify(&key.public(), since);
+    (key, certificate)
+}
 
 /// The server's API in memory, with little work so the tests run quickly.
 struct Here {
@@ -84,11 +96,11 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
         SERVER,
         "# Hola\n\nUn texto.",
         &Chosen::default(),
-        None,
+        &voucher(),
     )
     .unwrap();
     assert_eq!(shared.version, 1);
-    assert!(!shared.editable && !shared.gated && !shared.signed);
+    assert!(!shared.editable && !shared.gated);
 
     let (status, body) = here.read(&shared.link, None);
     assert_eq!(status, 200);
@@ -96,6 +108,9 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
     let key = LinkKey::from_text(&shared.key).unwrap();
     let opened = envelope::open(&key, &envelope, &[]).unwrap();
     assert_eq!(opened.text.as_str(), "# Hola\n\nUn texto.");
+    let me = Seed::from_bytes(&[7; 32]).root().person();
+    assert!(matches!(opened.wrote, Some(Verdict::Holds { person, .. }) if person == me));
+    assert!(matches!(opened.sent, Some(Verdict::Holds { person, .. }) if person == me));
 
     let (read, edit) = links(&shared);
     assert_eq!(
@@ -115,7 +130,6 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         admin: "admin".into(),
         editable: true,
         gated: false,
-        signed: false,
         version: 1,
     };
     assert_eq!(
@@ -133,10 +147,9 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
     let chosen = Chosen {
         password: Some("ñandú".into()),
         editable: true,
-        signed: false,
         idle_days: Some(7),
     };
-    let shared = share(&here, SERVER, "Hola", &chosen, None).unwrap();
+    let shared = share(&here, SERVER, "Hola", &chosen, &voucher()).unwrap();
     assert!(shared.gated && shared.editable);
 
     assert_eq!(here.read(&shared.link, None).0, 401);
@@ -150,7 +163,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
 #[test]
 fn stopping_leaves_the_link_leading_nowhere() {
     let here = Here::new();
-    let shared = share(&here, SERVER, "Hola", &Chosen::default(), None).unwrap();
+    let shared = share(&here, SERVER, "Hola", &Chosen::default(), &voucher()).unwrap();
     stop(&here, &shared).unwrap();
     assert_eq!(here.read(&shared.link, None).0, 404);
     let refused = info(&here, &shared).unwrap_err();

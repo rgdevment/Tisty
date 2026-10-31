@@ -324,8 +324,6 @@ pub struct Shared {
     pub editable: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub gated: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub signed: bool,
     /// The last version this store put up.
     pub version: u64,
 }

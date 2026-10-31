@@ -626,12 +626,16 @@ impl Session {
                 .map(|one| one.order.as_str()),
         );
         let twin = ulid::Ulid::generate();
-        let signed_as = signing(&self.state);
+        // A copy of someone else's document is still theirs, or duplicating it would make it mine to share (decision 68).
+        let (guest, signed_as) = match kept.guest || !self.state.mine(&kept) {
+            true => (kept.guest, kept.by.clone()),
+            false => (false, signing(&self.state)),
+        };
         self.commit(Op::DocAdd {
             id: twin,
             d: tisty_core::event::DocAdd {
                 wrote: None,
-                guest: false,
+                guest,
                 made: None,
                 by: signed_as.clone(),
                 file: made.id.clone(),
@@ -665,13 +669,12 @@ impl Session {
                     .filter(|one| one.page_of == Some(twin))
                     .map(|one| one.order.as_str()),
             );
-            let signed_as = signing(&self.state);
             let leaf_id = ulid::Ulid::generate();
             self.commit(Op::DocAdd {
                 id: leaf_id,
                 d: tisty_core::event::DocAdd {
                     wrote: None,
-                    guest: false,
+                    guest,
                     made: None,
                     by: signed_as.clone(),
                     file: leaf.id,

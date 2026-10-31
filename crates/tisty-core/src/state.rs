@@ -1142,6 +1142,24 @@ impl State {
         }
     }
 
+    /// What goes out as mine rests on the key that vouched for the machine that made it, since any alias can be taken (decision 69).
+    pub fn mine_to_share(
+        &self,
+        kept: &crate::model::Kept,
+        me: &tisty_share_proto::identity::Person,
+    ) -> bool {
+        if kept.guest {
+            return false;
+        }
+        let makers = kept
+            .made_by
+            .as_ref()
+            .map(|device| self.persons.ever_vouched(device))
+            .unwrap_or_default();
+        // Any root can vouch for any machine, so the key narrows what the alias says and never widens it.
+        self.mine(kept) && (makers.is_empty() || makers.contains(me))
+    }
+
     pub fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))

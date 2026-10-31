@@ -7,7 +7,7 @@ import Beside from "../ui/Beside";
 
 const ipc = vi.hoisted(() => ({
   card: null as unknown,
-  facts: { bytes: 7, pages: 0, mine: true } as unknown,
+  facts: { bytes: 7, pages: 0, shareable: "yes" } as unknown,
   asked: [] as string[],
 }));
 
@@ -205,7 +205,7 @@ describe("the shared row", () => {
 
   it("offers nothing on someone else's document, and says why", async () => {
     ipc.card = null;
-    ipc.facts = { bytes: 7, pages: 0, author: "Tisty", mine: false };
+    ipc.facts = { bytes: 7, pages: 0, author: "Tisty", shareable: "notMine" };
     panel(headed(2));
     await waitFor(() =>
       expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNotMine")),
@@ -213,7 +213,20 @@ describe("the shared row", () => {
     await press("shared");
     expect(screen.getByText(t("sharedNotMineWhy"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
-    ipc.facts = { bytes: 7, pages: 0, mine: true };
+    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
+  });
+
+  it("asks for a key before sharing, since nothing goes out unsigned", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, shareable: "noKey" };
+    panel(headed(2));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNoKey")),
+    );
+    await press("shared");
+    expect(screen.getByText(t("sharedNoKeyWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
   });
 
   it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {
@@ -221,7 +234,6 @@ describe("the shared row", () => {
       read: "https://tisty.cl/k7Qm2xPa#llave",
       edit: "https://tisty.cl/k7Qm2xPa#llave.token",
       gated: true,
-      signed: true,
       version: 2,
       info: {
         latest: 2,

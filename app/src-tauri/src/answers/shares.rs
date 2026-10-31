@@ -5,8 +5,38 @@ use tisty_core::Op;
 use tisty_core::event::Shared;
 use tisty_core::model::DocId;
 
+use crate::handed::Voucher;
 use crate::sharing::{self, Chosen, Info, Net};
 use crate::{Answer, Refusal, Session, held};
+
+/// Whether a document can go out from here, which its «Shared» row says before anything is asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Shareable {
+    Yes,
+    /// Someone else's: only its author shares it (decisions 68 and 69).
+    NotMine,
+    /// What is shared is always signed, and this machine has no key a person vouches for yet.
+    NoKey,
+}
+
+// The key this machine signs with and the person it answers for; without both nothing is shared.
+fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Person)> {
+    let device = &session.config.device_id;
+    let voucher = crate::handed::vouched_by(&session.paths, device, &session.state.persons)?;
+    let me = session.state.persons.person(device)?;
+    Some((voucher, me))
+}
+
+pub(crate) fn shareable(session: &Session, kept: &tisty_core::model::Kept) -> Shareable {
+    match sharer(session) {
+        Some((_, me)) if session.state.mine_to_share(kept, &me) => Shareable::Yes,
+        Some(_) => Shareable::NotMine,
+        // With no key to go by, the alias still tells a guest's copy or a stranger's document apart.
+        None if session.state.mine(kept) => Shareable::NoKey,
+        None => Shareable::NotMine,
+    }
+}
 
 /// What the «Shared» card shows: the links to hand out, and how it stands when the server could be asked.
 #[derive(Debug, Serialize)]
@@ -15,7 +45,6 @@ pub struct Card {
     read: String,
     edit: Option<String>,
     gated: bool,
-    signed: bool,
     version: u64,
     /// None when the server could not be reached; the links still work without it.
     info: Option<Info>,
@@ -27,7 +56,6 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
         read,
         edit,
         gated: shared.gated,
-        signed: shared.signed,
         version: shared.version,
         info,
     }
@@ -63,35 +91,25 @@ pub async fn share_doc(
         if session.state.shares.contains_key(&doc) {
             return Err(Refusal::of("shareAlready"));
         }
-        // Only what is one's own goes out under one's link and key; what came from someone else is theirs to share.
-        if !session
+        let kept = session
             .state
             .docs
             .get(&doc)
-            .is_some_and(|kept| session.state.mine(kept))
-        {
-            return Err(Refusal::of("shareNotMine"));
+            .ok_or(Refusal::of("noSuchDoc"))?;
+        // Only what is one's own goes out under one's link and key; what came from someone else is theirs to share.
+        match shareable(&session, kept) {
+            Shareable::Yes => {}
+            Shareable::NotMine => return Err(Refusal::of("shareNotMine")),
+            Shareable::NoKey => return Err(Refusal::of("shareNoKey")),
         }
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        let voucher = chosen.signed.then(|| {
-            crate::handed::vouched_by(
-                &session.paths,
-                &session.config.device_id,
-                &session.state.persons,
-            )
-        });
+        let (voucher, _) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
         (doc, text, voucher)
-    };
-    // Asked to sign with no key a person vouches for, it says so rather than going out unsigned.
-    let voucher = match voucher {
-        Some(None) => return Err(Refusal::of("shareNoKey")),
-        Some(Some(one)) => Some(one),
-        None => None,
     };
     let shared = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
-        sharing::share(&wire, sharing::SERVER, &text, &chosen, voucher.as_ref())
+        sharing::share(&wire, sharing::SERVER, &text, &chosen, &voucher)
     })
     .await?;
     held(&session)

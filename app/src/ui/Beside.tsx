@@ -122,8 +122,10 @@ const sharedPanel = (
   asked: { onShare: () => void; onStop: () => void },
 ): Panel => {
   // Someone else's document is not offered at all (decision 68); until its facts arrive nothing is offered either.
-  if (!card && facts && !facts.mine)
+  if (!card && facts?.shareable === "notMine")
     return { kind: "shared", gist: t("sharedNotMine"), said: t("sharedNotMineWhy") };
+  if (!card && facts?.shareable === "noKey")
+    return { kind: "shared", gist: t("sharedNoKey"), said: t("sharedNoKeyWhy") };
   if (!card)
     return {
       kind: "shared",

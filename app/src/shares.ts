@@ -1,10 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/** What the person chose in «Share»: a password, the edit link, a signature and a shorter life. */
+/** What the person chose in «Share»: a password, the edit link and a shorter life; it is always signed. */
 export interface ShareChosen {
   password: string | null;
   editable: boolean;
-  signed: boolean;
   idleDays: number | null;
 }
 
@@ -22,7 +21,6 @@ export interface ShareCard {
   read: string;
   edit: string | null;
   gated: boolean;
-  signed: boolean;
   version: number;
   info: ShareInfo | null;
 }
