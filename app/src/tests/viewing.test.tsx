@@ -226,7 +226,10 @@ describe("reading in the viewer", () => {
     await screen.findByText("notas.md");
 
     const sheets = () => screen.getByRole("button", { name: t("sheetsShown") });
-    expect(sheets().getAttribute("aria-pressed")).toBe("false");
+    // The column draws its rows once the document's facts arrive, which a slow run reaches after the title.
+    expect(
+      (await screen.findByRole("button", { name: t("sheetsShown") })).getAttribute("aria-pressed"),
+    ).toBe("false");
     await userEvent.click(sheets());
     await userEvent.click(await screen.findByRole("button", { name: t("sheetsAcross") }));
     await waitFor(() => expect(sheets().getAttribute("aria-pressed")).toBe("true"));
