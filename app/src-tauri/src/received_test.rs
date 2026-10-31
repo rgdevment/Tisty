@@ -126,6 +126,7 @@ fn a_shared_document_opens_here_with_its_title_and_the_name_it_was_signed_with()
         &here,
         sharing::SERVER,
         text,
+        &[],
         &Chosen::default(),
         &voucher(),
         Some("Ana"),
@@ -144,7 +145,16 @@ fn a_share_behind_a_password_or_gone_is_told_as_such() {
         password: Some("perro azul".into()),
         ..Chosen::default()
     };
-    let shared = sharing::share(&here, sharing::SERVER, "# x", &chosen, &voucher(), None).unwrap();
+    let shared = sharing::share(
+        &here,
+        sharing::SERVER,
+        "# x",
+        &[],
+        &chosen,
+        &voucher(),
+        None,
+    )
+    .unwrap();
     assert_eq!(
         fetched(&here, &link_of(&shared)).unwrap_err().code,
         "shareOpenGated"
@@ -169,6 +179,7 @@ fn an_envelope_nobody_signed_is_not_shown() {
         &here,
         sharing::SERVER,
         "# x",
+        &[],
         &Chosen::default(),
         &voucher(),
         None,

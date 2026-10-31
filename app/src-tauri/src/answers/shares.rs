@@ -200,7 +200,7 @@ pub async fn share_doc(
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let (doc, text, voucher, revoked, name) = {
+    let (doc, text, voucher, revoked, name, data) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
@@ -236,9 +236,13 @@ pub async fn share_doc(
             voucher,
             sharing::taken_back_by(&session.state.persons, &me),
             name,
+            session.paths.data().to_path_buf(),
         )
     };
     let (shared, info) = apart(move || {
+        let (text, pictures) = sharing::pictured(&text, |target| {
+            std::fs::read(tisty_core::attach::resolve(target, &data).ok()?).ok()
+        });
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
@@ -246,6 +250,7 @@ pub async fn share_doc(
             &wire,
             sharing::SERVER,
             &text,
+            &pictures,
             &chosen,
             &voucher,
             name.as_deref(),

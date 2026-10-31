@@ -103,6 +103,7 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
         &here,
         SERVER,
         "# Hola\n\nUn texto.",
+        &[],
         &Chosen::default(),
         &voucher(),
         Some("Ana Pérez"),
@@ -163,7 +164,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         idle_days: Some(7),
         seen: None,
     };
-    let shared = share(&here, SERVER, "Hola", &chosen, &voucher(), None).unwrap();
+    let shared = share(&here, SERVER, "Hola", &[], &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
 
     assert_eq!(here.read(&shared.link, None).0, 401);
@@ -177,7 +178,16 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
 #[test]
 fn stopping_leaves_the_link_leading_nowhere() {
     let here = Here::new();
-    let shared = share(&here, SERVER, "Hola", &Chosen::default(), &voucher(), None).unwrap();
+    let shared = share(
+        &here,
+        SERVER,
+        "Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
     stop(&here, &shared).unwrap();
     assert_eq!(here.read(&shared.link, None).0, 404);
     let refused = info(&here, &shared).unwrap_err();
@@ -193,7 +203,16 @@ fn a_key_taken_back_reaches_the_server_and_shares_nothing_more() {
     let taken = Seed::from_bytes(&[7; 32]).root().revoke(&key.public(), at);
     revoke(&here, &[taken.clone(), taken]).unwrap();
 
-    let refused = share(&here, SERVER, "Hola", &Chosen::default(), &voucher(), None).unwrap_err();
+    let refused = share(
+        &here,
+        SERVER,
+        "Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap_err();
     assert_eq!(refused.code, "shareUnsigned");
 }
 
@@ -237,7 +256,16 @@ fn a_share_that_could_not_take_its_password_does_not_stay_up() {
         password: Some("clave".into()),
         ..Chosen::default()
     };
-    let refused = share(&Ungated(&here), SERVER, "Hola", &chosen, &voucher(), None).unwrap_err();
+    let refused = share(
+        &Ungated(&here),
+        SERVER,
+        "Hola",
+        &[],
+        &chosen,
+        &voucher(),
+        None,
+    )
+    .unwrap_err();
     assert_eq!(refused.code, "shareOffline");
 
     assert_eq!(here.share.borrow().store.envelopes(), 0);
@@ -264,6 +292,7 @@ fn an_upload_whose_answer_was_lost_does_not_stay_up() {
         &Unanswered(&here),
         SERVER,
         "Hola",
+        &[],
         &Chosen::default(),
         &voucher(),
         None,
@@ -279,7 +308,16 @@ fn a_document_over_the_server_s_limits_says_it_is_too_big() {
     let here = Here::new();
     let long = "a".repeat(Limits::default().text as usize + 1);
 
-    let refused = share(&here, SERVER, &long, &Chosen::default(), &voucher(), None).unwrap_err();
+    let refused = share(
+        &here,
+        SERVER,
+        &long,
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap_err();
     assert_eq!(refused.code, "shareTooBig");
 }
 
@@ -304,7 +342,7 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
         seen: None,
     };
     let text = "# Prueba de Tisty Share\n\nEscrito desde la prueba que llega a tisty.cl.";
-    let shared = share(&wire, SERVER, text, &chosen, &voucher, Some("Prueba")).unwrap();
+    let shared = share(&wire, SERVER, text, &[], &chosen, &voucher, Some("Prueba")).unwrap();
 
     let said = info(&wire, &shared).unwrap();
     assert_eq!(said.gated, !keep);
@@ -327,4 +365,56 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
     }
     stop(&wire, &shared).unwrap();
     assert!(already_gone(&info(&wire, &shared).unwrap_err()));
+}
+
+fn png(side: u32) -> Vec<u8> {
+    let mut bytes = std::io::Cursor::new(Vec::new());
+    image::RgbImage::from_pixel(side, side, image::Rgb([200, 30, 30]))
+        .write_to(&mut bytes, image::ImageFormat::Png)
+        .unwrap();
+    bytes.into_inner()
+}
+
+#[test]
+fn the_pictures_the_words_name_go_in_the_envelope_and_the_rest_stay_as_written() {
+    let text = "# Viaje\n\n![Playa](attachments/playa-a1b2c3d4.png)\n\n![Otra vez](attachments/playa-a1b2c3d4.png)\n\n![Plano](attachments/plano-b2c3d4e5.pdf)\n\n![Web](https://example.com/x.png)\n\n```md\n![En código](attachments/playa-a1b2c3d4.png)\n```\n";
+    let read = |target: &str| match target {
+        "attachments/playa-a1b2c3d4.png" => Some(png(20)),
+        "attachments/plano-b2c3d4e5.pdf" => Some(b"%PDF-1.7".to_vec()),
+        _ => None,
+    };
+    let (said, pictures) = pictured(text, read);
+
+    // The same picture named twice travels once.
+    assert_eq!(pictures.len(), 1);
+    assert_eq!(said.matches("tisty:picture/0").count(), 2);
+    assert!(said.contains("![Plano](attachments/plano-b2c3d4e5.pdf)"));
+    assert!(said.contains("![Web](https://example.com/x.png)"));
+    assert!(said.contains("![En código](attachments/playa-a1b2c3d4.png)"));
+}
+
+#[test]
+fn a_shared_document_carries_its_pictures_to_whoever_opens_it() {
+    let here = Here::new();
+    let (text, pictures) = pictured(
+        "# Viaje\n\n![Playa](attachments/playa-a1b2c3d4.png)\n",
+        |_| Some(png(20)),
+    );
+    let shared = share(
+        &here,
+        SERVER,
+        &text,
+        &pictures,
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+
+    let (status, body) = here.read(&shared.link, None);
+    assert_eq!(status, 200);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let opened = envelope::open(&LinkKey::from_text(&shared.key).unwrap(), &envelope, &[]).unwrap();
+    assert_eq!(opened.pictures.len(), 1);
+    assert!(opened.text.contains("![Playa](tisty:picture/0)"));
 }

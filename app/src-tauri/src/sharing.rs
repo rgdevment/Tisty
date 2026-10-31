@@ -3,7 +3,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::Shared;
-use tisty_share_proto::envelope::{self, Draft, LinkKey, Refused as Unsealed, Signer};
+use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
@@ -193,11 +193,67 @@ fn managed(wire: &impl Wire, shared: &Shared, what: serde_json::Value) -> Result
     })?)
 }
 
+/// Where a picture the words name sits in an envelope, which the reader turns back into the picture (decision 79).
+const PICTURE: &str = "tisty:picture/";
+
+/// The words with each picture they name from the attachments put in its place in the envelope, and those pictures
+/// written again, so nothing but the pixels travels. What is no picture, or sits in code, stays as it was.
+pub(crate) fn pictured(
+    text: &str,
+    read: impl Fn(&str) -> Option<Vec<u8>>,
+) -> (String, Vec<(Kind, Vec<u8>)>) {
+    let code = tisty_core::beside::written_as_code(text);
+    let mut said = String::with_capacity(text.len());
+    let mut pictures: Vec<(Kind, Vec<u8>)> = Vec::new();
+    let mut placed: Vec<String> = Vec::new();
+    let mut rest = 0;
+    let mut from = 0;
+    while let Some(found) = text[from..].find("![") {
+        let at = from + found;
+        from = at + 2;
+        if code.get(at).copied().unwrap_or(false) {
+            continue;
+        }
+        let Some(opens) = text[at..].find("](").map(|one| at + one + 2) else {
+            break;
+        };
+        let Some(closes) = text[opens..].find(')').map(|one| opens + one) else {
+            break;
+        };
+        let target = text[opens..closes].split_whitespace().next().unwrap_or("");
+        if !tisty_core::attach::names_an_attachment(target) {
+            continue;
+        }
+        let place = match placed.iter().position(|one| one == target) {
+            Some(place) => place,
+            None => {
+                let made = read(target).and_then(|bytes| {
+                    tisty_share_proto::pictures::recompressed(&bytes, &Limits::default()).ok()
+                });
+                let Some(made) = made else {
+                    continue;
+                };
+                pictures.push(made);
+                placed.push(target.to_owned());
+                placed.len() - 1
+            }
+        };
+        let ends = opens + target.len();
+        said.push_str(&text[rest..opens]);
+        said.push_str(&format!("{PICTURE}{place}"));
+        rest = ends;
+        from = closes;
+    }
+    said.push_str(&text[rest..]);
+    (said, pictures)
+}
+
 /// Shares a document's words for the first time: reserves its links, seals and signs it and puts its first version up.
 pub(crate) fn share(
     wire: &impl Wire,
     server: &str,
     text: &str,
+    pictures: &[(Kind, Vec<u8>)],
     chosen: &Chosen,
     (key, certificate): &Voucher,
     name: Option<&str>,
@@ -219,12 +275,16 @@ pub(crate) fn share(
         at: jiff::Timestamp::now(),
         name,
     };
+    let pictures: Vec<(Kind, &[u8])> = pictures
+        .iter()
+        .map(|(kind, bytes)| (*kind, bytes.as_slice()))
+        .collect();
     let draft = Draft {
         id: &reserved.id,
         version: 1,
         from: None,
         text,
-        pictures: &[],
+        pictures: &pictures,
     };
     let sealed =
         envelope::seal(&link_key, &draft, Some(&signer), &limits).map_err(|why| match why {
