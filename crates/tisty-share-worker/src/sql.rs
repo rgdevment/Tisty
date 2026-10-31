@@ -35,9 +35,9 @@ pub const FILE: &str = "INSERT INTO reports (id, until, body) VALUES (?1, ?2, ?3
 pub const REPORTS: &str = "SELECT body FROM reports WHERE id = ?1 AND until >= ?2 ORDER BY rowid";
 
 /// The first word a root said on a key stands; the same one said again writes nothing.
-pub const REVOKE: &str = "INSERT INTO revocations (share, root, body) VALUES (?1, ?2, ?3)      ON CONFLICT (share, root) DO NOTHING";
+pub const REVOKE: &str = "INSERT INTO revocations (share, root, body) VALUES (?1, ?2, ?3) ON CONFLICT (share, root) DO NOTHING";
 
-pub const REVOCATIONS: &str = "SELECT body FROM revocations WHERE share = ?1 ORDER BY root";
+pub const REVOCATION: &str = "SELECT body FROM revocations WHERE share = ?1 AND root = ?2";
 
 /// A few thousand rows of each at a time, so one run stays inside what D1 lets a query take.
 pub const LAPSE: [&str; 3] = [

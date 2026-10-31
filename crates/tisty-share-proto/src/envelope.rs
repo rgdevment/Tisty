@@ -528,9 +528,10 @@ impl Envelope {
         &self.bytes[self.parts[at].clone()]
     }
 
-    /// The key that says it sent these bytes, unchecked, so a server can look for what took it back.
-    pub fn sender_key(&self) -> Option<crate::VerifyingKey> {
-        crate::identity::public_key(&self.sent.as_ref()?.certificate.share)
+    /// The key that says it sent these bytes and the root that says it vouched for it, unchecked,
+    /// so a server can look for what that root took back.
+    pub fn sender_vouched(&self) -> Option<crate::identity::Vouched> {
+        self.sent.as_ref()?.certificate.unchecked()
     }
 
     /// Who sent these sealed bytes, checked without the key: what the server can say about an upload.

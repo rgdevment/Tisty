@@ -9,7 +9,7 @@ use zeroize::Zeroizing;
 
 use crate::guard::{self, Act, Allowance, Work};
 use crate::keys::{self, Randomness, Slowness};
-use crate::store::{Doc, Fault, Kept, Saved, Store};
+use crate::store::{Doc, Fault, Kept, Saved, Sender, Store};
 
 const DAY: i64 = 24 * 60 * 60;
 /// A read writes down activity at most this often: days decide an expiry, and every write costs a store.
@@ -319,7 +319,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if manifest.id != doc.id {
             return Err(Refused::Misaddressed);
         }
-        let by = envelope.sender_key().map(|key| key.to_bytes());
+        let by = envelope.sender_vouched().map(|vouched| Sender {
+            share: vouched.share.to_bytes(),
+            root: vouched.person.to_bytes(),
+        });
         let revoked = self.revoked(by.as_ref()).await?;
         if !matches!(envelope.sender(&revoked), Some(Verdict::Holds { .. })) {
             return Err(Refused::Unsigned);

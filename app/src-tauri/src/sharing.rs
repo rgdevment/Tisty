@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::Shared;
 use tisty_share_proto::envelope::{self, Draft, LinkKey, Signer};
-use tisty_share_proto::identity::Revocation;
+use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
 
@@ -262,8 +262,9 @@ pub(crate) fn already_gone(refused: &Refusal) -> bool {
 
 /// Hands the server a root's word taking keys back, so readers stop seeing what they signed as holding (decision 73).
 pub(crate) fn revoke(wire: &impl Wire, revoked: &[Revocation]) -> Result<(), Refusal> {
-    for one in revoked {
-        let body = serde_json::to_vec(one).map_err(|_| Refusal::of("internal"))?;
+    // Many at once, so taking back a machine never costs the place its allowance.
+    for some in revoked.chunks(REVOCATIONS_AT_ONCE) {
+        let body = serde_json::to_vec(some).map_err(|_| Refusal::of("internal"))?;
         done(wire.send(Asking {
             method: "POST",
             path: "revocations".into(),

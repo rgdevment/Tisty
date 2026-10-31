@@ -437,7 +437,7 @@ fn a_revocation_anyone_carries_reaches_every_reader_of_what_that_key_sent() {
     let shared = world.shared();
     let taken = taken_back(T0);
     let mut asked_ = asked("POST", "/api/v1/revocations");
-    asked_.body = serde_json::to_vec(&taken).unwrap();
+    asked_.body = serde_json::to_vec(&[&taken]).unwrap();
     assert_eq!(world.answer(asked_).status, 204);
 
     let read = world.answer(asked("GET", &format!("/api/v1/docs/{}", shared.id)));

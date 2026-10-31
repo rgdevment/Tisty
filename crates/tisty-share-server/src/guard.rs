@@ -42,7 +42,7 @@ impl Act {
 
     /// A network is many readers behind one address, so reading too much only waits out the hour.
     fn escalates(self) -> bool {
-        !matches!(self, Act::Read | Act::Poll)
+        !matches!(self, Act::Read | Act::Poll | Act::Revoke)
     }
 }
 

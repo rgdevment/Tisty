@@ -98,6 +98,10 @@ impl Person {
         encoded(self.0.as_bytes())
     }
 
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0.to_bytes()
+    }
+
     /// 66 bits, in four groups of five digits that two people can read to each other.
     pub fn fingerprint(&self) -> String {
         let digest = hashed(FINGERPRINT, self.0.as_bytes());
@@ -168,6 +172,9 @@ impl Certificate {
 }
 
 /// A root taking back a share key, for a machine lost or a key that leaked.
+/// As many revocations as one request to a server carries: a person takes back a handful of machines in a lifetime.
+pub const REVOCATIONS_AT_ONCE: usize = 64;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Revocation {
     pub root: String,

@@ -227,9 +227,11 @@ impl Store for Cloud {
         Ok(())
     }
 
-    async fn revocations(&self, share: &str) -> Result<Vec<Revocation>, Fault> {
-        let held: Vec<Body> = self.all(sql::REVOCATIONS, &[share.into()]).await?;
-        held.iter().map(|held| parsed(&held.body)).collect()
+    async fn revocation(&self, share: &str, root: &str) -> Result<Option<Revocation>, Fault> {
+        let held: Option<Body> = self
+            .first(sql::REVOCATION, &[share.into(), root.into()])
+            .await?;
+        held.map(|held| parsed(&held.body)).transpose()
     }
 
     async fn lapse(&self, now: i64) -> Result<(), Fault> {

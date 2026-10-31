@@ -141,14 +141,12 @@ impl Store for Memory {
         Ok(())
     }
 
-    async fn revocations(&self, share: &str) -> Result<Vec<Revocation>, Fault> {
+    async fn revocation(&self, share: &str, root: &str) -> Result<Option<Revocation>, Fault> {
         Ok(self
             .revocations
             .borrow()
-            .iter()
-            .filter(|((of, _), _)| of == share)
-            .map(|(_, record)| record.clone())
-            .collect())
+            .get(&(share.to_owned(), root.to_owned()))
+            .cloned())
     }
 
     async fn lapse(&self, now: i64) -> Result<(), Fault> {

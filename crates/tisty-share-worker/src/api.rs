@@ -238,8 +238,8 @@ async fn routed<S: Store, R: Randomness>(
             Ok(plain(204, "text/plain", Vec::new()))
         }
         ("POST", ["revocations"]) => {
-            let revocation: Revocation = read(&asked.body)?;
-            share.revoke(&revocation, caller, now).await?;
+            let revocations: Vec<Revocation> = read(&asked.body)?;
+            share.revoke(&revocations, caller, now).await?;
             Ok(plain(204, "text/plain", Vec::new()))
         }
         ("POST", ["docs", id, "appeal"]) => {
