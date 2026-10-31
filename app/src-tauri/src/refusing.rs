@@ -218,6 +218,7 @@ const REFUSALS: &[&str] = &[
     "stillPacking",
     "aliasTooLong",
     "nameTooLong",
+    "nameUnfit",
     "tooBig",
     "noSuchIcon",
     "noSuchColour",
