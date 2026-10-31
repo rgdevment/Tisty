@@ -332,7 +332,11 @@ fn what_reads_as_a_credential_is_told() {
     assert_eq!(linked[0].why, "a link with a password written into it");
 
     assert_eq!(told("-----BEGIN PRIVATE KEY-----\nMIIEow\n").len(), 1);
-    assert_eq!(secrets_in(&[0x30, 0x82, 0x0A, 0x00]).len(), 1);
+    assert_eq!(
+        secrets_in(&[0x30, 0x82, 0x0A, 0x00, 0x02, 0x01, 0x00]).len(),
+        1
+    );
+    assert!(secrets_in(&[0x30, 0x82, 0x0A, 0x00, 0x30, 0x82, 0x09]).is_empty());
 }
 
 #[test]
@@ -703,4 +707,21 @@ fn a_certificate_alone_is_no_key_itself() {
     assert!(a_key_itself(certificate.as_bytes()).is_none());
     let deep = "notes\n\n-----BEGIN EC PRIVATE KEY-----\nMHcCAQEE\n";
     assert_eq!(a_key_itself(deep.as_bytes()).map(|one| one.line), Some(3));
+}
+
+#[test]
+fn an_aws_key_id_of_letters_alone_is_still_a_key_in_prose() {
+    let id = ["AKIA", "IOSFODNNABCDEFGH"].concat();
+    assert_eq!(
+        secrets_in(format!("The key id is {id}, keep it safe.").as_bytes()).len(),
+        1
+    );
+    assert!(
+        secrets_in(
+            b"PUBLICKEY=AbC123dEf456gHi789
+Turnkey: Ready2Go99x
+"
+        )
+        .is_empty()
+    );
 }

@@ -196,4 +196,19 @@ describe("the share dialog", () => {
     await act(async () => answer({ secrets: [], signsAs: "Ana" }));
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
   });
+
+  it("says nothing about the name when the look could not be made", async () => {
+    ipc.pending = Promise.reject(new Error("unreadable"));
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
+    expect(screen.queryByText(new RegExp(t("shareSignsAlone")))).toBeNull();
+  });
 });

@@ -63,14 +63,13 @@ title: x
 ```
 ghp_16C7e42F292c6912E7710c838347Ae178B4a
 ";
-    assert_eq!(heading_over(text, 12).as_deref(), Some("Staging"));
-    assert_eq!(heading_over(text, 3), None);
+    assert_eq!(headings_over(text)[11].as_deref(), Some("Staging"));
+    assert_eq!(headings_over(text)[2], None);
     assert_eq!(
-        heading_over(
+        headings_over(
             "#hashtag
-token",
-            2
-        ),
+token"
+        )[1],
         None
     );
 }
@@ -78,13 +77,14 @@ token",
 #[test]
 fn a_rule_at_the_top_is_no_properties_and_hides_no_heading() {
     let text = "---\n# Servers\n\nwhere they live\n---\nghp_16C7e42F292c6912E7710c838347Ae178B4a\n";
-    assert_eq!(heading_over(text, 6).as_deref(), Some("Servers"));
+    assert_eq!(headings_over(text)[5].as_deref(), Some("Servers"));
     assert_eq!(
         properties_end("---\ntitle: x\ntags: [a]\n---\n# Body\n"),
         Some(4)
     );
     assert_eq!(properties_end("---\n---\n"), None);
     assert_eq!(properties_end("---\ntitle: x\n"), None);
+    assert_eq!(properties_end("---\n# Servers\n---\n"), None);
 }
 
 #[test]

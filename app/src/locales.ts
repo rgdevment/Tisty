@@ -632,7 +632,7 @@ const en = {
   shareSecretsMore: "and {name} more",
   shareSignsAs: "It goes as «{name}».",
   shareSignsAlone:
-    "It goes with your key alone: your name and alias need at least as many letters as digits.",
+    "It goes with your key alone: neither your name nor your alias can sign it as written.",
   shareLinkRead: "Link to read",
   shareLinkEdit: "Link to edit",
   shareLinkEditNote: "it edits only in Tisty",
@@ -3369,7 +3369,7 @@ const es: Catalog = {
   shareSecretsMore: "y {name} más",
   shareSignsAs: "Va como «{name}».",
   shareSignsAlone:
-    "Va solo con tu llave: tu nombre y tu alias necesitan al menos tantas letras como números.",
+    "Va solo con tu llave: ni tu nombre ni tu alias sirven para firmar tal como están.",
   shareLinkRead: "Link para leer",
   shareLinkEdit: "Link para editar",
   shareLinkEditNote: "solo edita en Tisty",

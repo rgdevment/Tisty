@@ -105,24 +105,29 @@ pub struct Secret {
 }
 
 fn secrets(text: &str) -> Vec<Secret> {
+    let over = headings_over(text);
     tisty_core::agent::secrets_in(text.as_bytes())
         .into_iter()
         .map(|one| Secret {
             line: one.line,
             named: one.named,
-            under: heading_over(text, one.line),
+            under: over.get(one.line.saturating_sub(1)).cloned().flatten(),
         })
         .collect()
 }
 
-// The last heading before a line, past the properties and outside fenced code, where a `#` is a comment.
-fn heading_over(text: &str, line: usize) -> Option<String> {
+// The heading over each line in one pass, past the properties and outside fenced code, where a `#` is a comment.
+fn headings_over(text: &str) -> Vec<Option<String>> {
     let skipped = properties_end(text).unwrap_or(0);
-    let lines = text.lines().take(line.saturating_sub(1)).skip(skipped);
     let mut fenced = false;
     let mut heading = None;
-    for one in lines {
+    let mut over = Vec::new();
+    for (at, one) in text.lines().enumerate() {
+        over.push(heading.clone());
         let one = one.trim_start();
+        if at < skipped {
+            continue;
+        }
         if one.starts_with("```") || one.starts_with("~~~") {
             fenced = !fenced;
             continue;
@@ -136,7 +141,7 @@ fn heading_over(text: &str, line: usize) -> Option<String> {
             heading = Some(said.to_owned());
         }
     }
-    heading
+    over
 }
 
 // Lines the properties take, only when the first `---` closes over lines that read `key: value`; a rule is no properties.
@@ -146,14 +151,15 @@ fn properties_end(text: &str) -> Option<usize> {
         return None;
     }
     let inside = lines.position(|one| one.trim_end() == "---")?;
+    let a_property = |one: &str| {
+        one.split_once(':')
+            .is_some_and(|(key, _)| !key.is_empty() && !key.contains(' '))
+    };
     let said = text.lines().skip(1).take(inside);
-    let properties = said.clone().any(|one| !one.trim().is_empty())
+    let properties = said.clone().any(a_property)
         && said
             .filter(|one| !one.trim().is_empty() && !one.starts_with([' ', '-', '#']))
-            .all(|one| {
-                one.split_once(':')
-                    .is_some_and(|(key, _)| !key.contains(' '))
-            });
+            .all(a_property);
     properties.then_some(inside + 2)
 }
 

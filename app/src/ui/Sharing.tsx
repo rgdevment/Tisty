@@ -28,7 +28,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
-  const [signsAs, setSignsAs] = useState<string | null>(null);
+  // Undefined until the look answers, so a look that failed says nothing about the name rather than something false.
+  const [signsAs, setSignsAs] = useState<string | null | undefined>(undefined);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
@@ -41,6 +42,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     let live = true;
     setLooked(false);
     setSecrets([]);
+    setSignsAs(undefined);
     shareLook(file)
       .then((look) => {
         if (!live) return;
@@ -159,7 +161,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
         <p className="flex flex-col">
           <span className="text-[13px] font-medium">{t("shareSign")}</span>
           <span className="text-[11.5px] text-faint">
-            {looked && (signsAs ? fill("shareSignsAs", signsAs) : t("shareSignsAlone"))}{" "}
+            {signsAs === undefined
+              ? ""
+              : signsAs
+                ? fill("shareSignsAs", signsAs)
+                : t("shareSignsAlone")}{" "}
             {t("shareSignWhy")}
           </span>
         </p>

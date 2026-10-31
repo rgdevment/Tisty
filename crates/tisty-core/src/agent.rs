@@ -389,7 +389,18 @@ fn a_name(key: &str) -> Option<&str> {
 
 // Words that end in KEY and keep nothing, which a whole document says far more often than a file of settings does.
 const NOT_A_KEY: &[&str] = &[
-    "HOTKEY", "MONKEY", "TURKEY", "DONKEY", "JOCKEY", "HOCKEY", "WHISKEY",
+    "HOTKEY",
+    "MONKEY",
+    "TURKEY",
+    "DONKEY",
+    "JOCKEY",
+    "HOCKEY",
+    "WHISKEY",
+    "LACKEY",
+    "TURNKEY",
+    "LATCHKEY",
+    "PUBKEY",
+    "PUBLICKEY",
 ];
 
 fn sounds_like_a_credential(name: &str) -> bool {
@@ -496,7 +507,13 @@ fn told_within(line: &str) -> Option<(bool, &str, &'static str)> {
         .find_map(|word| {
             let named = KNOWN_STARTS.iter().find(|one| word.starts_with(**one))?;
             // In prose a prefix also opens names like npm_config_user_agent and placeholders like sk_test_XXXX.
-            mixed(&word[named.len()..]).then_some(*named)
+            let rest = &word[named.len()..];
+            let first = rest.chars().next();
+            let placeholder = rest.chars().all(|one| Some(one) == first);
+            let identifier = rest
+                .chars()
+                .all(|one| one.is_ascii_lowercase() || one == '_');
+            (!placeholder && !identifier).then_some(*named)
         })
         .map(|named| (true, named, "a value carrying a provider's key prefix"))
 }
@@ -553,6 +570,11 @@ fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
     ))
 }
 
+// A key or a PKCS#12 opens its sequence with a version number; a certificate opens it with another sequence, and is public.
+fn der_key(head: &[u8]) -> bool {
+    head.starts_with(&[0x30, 0x82]) && head.get(4) == Some(&0x02)
+}
+
 // Only the line that opens a private key: a certificate is public, and words about keys are only words.
 fn opens_a_private_key(line: &str) -> bool {
     line.contains("-----BEGIN") && line.contains("PRIVATE KEY")
@@ -564,7 +586,7 @@ pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
         named: String::new(),
         why,
     };
-    if head.starts_with(&[0x30, 0x82]) {
+    if der_key(head) {
         return Some(told(1, "a DER-encoded key"));
     }
     let text = String::from_utf8_lossy(head);
