@@ -1166,6 +1166,18 @@ impl State {
         self.mine(kept) && (makers.is_empty() || makers.contains(me))
     }
 
+    /// Whether a copy of this document is still someone else's: by the key once the person has one, else by the alias.
+    pub fn theirs(
+        &self,
+        kept: &crate::model::Kept,
+        me: Option<&tisty_share_proto::identity::Person>,
+    ) -> bool {
+        match me {
+            Some(me) => !self.mine_to_share(kept, me),
+            None => kept.guest || !self.mine(kept),
+        }
+    }
+
     pub fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))

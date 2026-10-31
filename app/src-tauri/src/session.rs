@@ -628,11 +628,7 @@ impl Session {
         let twin = ulid::Ulid::generate();
         // A copy of someone else's document is still theirs, or duplicating it would make it mine to share (decision 68).
         let me = self.state.persons.person(&self.config.device_id);
-        let theirs = match me {
-            Some(me) => !self.state.mine_to_share(&kept, &me),
-            None => kept.guest || !self.state.mine(&kept),
-        };
-        let (guest, signed_as) = match theirs {
+        let (guest, signed_as) = match self.state.theirs(&kept, me.as_ref()) {
             true => (kept.guest, kept.by.clone()),
             false => (false, signing(&self.state)),
         };

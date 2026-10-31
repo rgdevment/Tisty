@@ -1168,3 +1168,20 @@ fn a_machine_that_said_its_root_answers_to_it_even_before_that_root_vouched_for_
         vec![seed().root().person()]
     );
 }
+
+#[test]
+fn a_copy_of_a_document_with_my_alias_made_by_another_person_s_machine_stays_theirs() {
+    let mut two = Two::new();
+    let (_room, _stranger) = stranger_in(&mut two);
+    let (doc, own) = (ulid::Ulid::generate(), ulid::Ulid::generate());
+    two.wrote("dev_a", vec![signing_as("ana")], 140);
+    two.wrote("dev_c", vec![written(doc, "ana")], 150);
+    two.wrote("dev_a", vec![written(own, "ana")], 150);
+    let state = two.state();
+    let me = seed().root().person();
+
+    assert!(state.theirs(&state.docs[&doc], Some(&me)));
+    assert!(!state.theirs(&state.docs[&own], Some(&me)));
+    // Before the person has a key, only the alias can tell, and it says mine.
+    assert!(!state.theirs(&state.docs[&doc], None));
+}
