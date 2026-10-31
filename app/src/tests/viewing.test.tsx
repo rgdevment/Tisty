@@ -119,9 +119,9 @@ describe("the viewer", () => {
 
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewIndex") }));
     expect(await screen.findByText(t("outline"))).toBeTruthy();
-    expect(screen.getByRole("group", { name: t("leafIs") })).toBeTruthy();
+    expect(await screen.findByRole("group", { name: t("leafIs") })).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Facts,
   fields,
@@ -36,6 +36,20 @@ export const trailed = (folders: Folded[], at: string | null): Folded[] => {
 
 // An outline this short leaves room, so the details open with the document.
 const SHORT_OUTLINE = 6;
+// How long the words rest before the column counts them again.
+const SETTLES = 300;
+// Within this of the menu closing, a press on its button is the same press, not a new one.
+const REOPENS = 400;
+
+// Typing changes the words on every key; the column follows once they rest, and at once for another document.
+const useSettled = <T,>(now: T, key: string): T => {
+  const [held, setHeld] = useState({ key, now });
+  useEffect(() => {
+    const resting = setTimeout(() => setHeld({ key, now }), SETTLES);
+    return () => clearTimeout(resting);
+  }, [now, key]);
+  return held.key === key ? held.now : now;
+};
 
 interface Props {
   title: string;
@@ -174,13 +188,17 @@ const useShared = (paper: string) => {
 };
 
 export default function Beside(props: Props) {
-  const { paper, kept, heads, pages, up, onPage, trail = [], onFolder } = props;
+  const { paper, kept, pages, up, trail = [] } = props;
+  const heads = useSettled(props.heads, paper);
+  const body = useSettled(props.body, paper);
   const outline = heads.filter((one) => one.level > 0);
   const short = outline.length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
   const [out, setOut] = useState<{ x: number; y: number } | null>(null);
   const [card, setCard] = useShared(paper);
   const [sharing, setSharing] = useState(false);
+  // Pressing the button closes the open menu as a press outside it; the click that follows must not open it again.
+  const shutAt = useRef(0);
 
   useEffect(() => {
     let gone = false;
@@ -194,60 +212,101 @@ export default function Beside(props: Props) {
     };
   }, [paper, kept]);
 
-  const details = useFacts(props, facts);
+  const details = useFacts({ ...props, body, heads }, facts);
   const ways: Choice[] = [
     ...waysOut(false, props.making),
     { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: props.onCopy },
     { key: "save", icon: "⇩", label: t("saveAsMarkdown"), onPick: props.onTakeOut },
   ];
   const sheets = props.sheets ?? false;
-  const { onSheets, onLandscape } = props;
-  const panels: Panel[] = [
-    {
-      kind: "title",
-      title: props.title || t("untitledDoc"),
-      trail: [
-        { key: "all", label: t("everyPaper"), onPick: () => onFolder?.(null) },
-        ...trail.map((one) => ({ key: one.id, label: one.name, onPick: () => onFolder?.(one.id) })),
-      ],
-      onApart: props.onApart,
-      onShut: props.onShut,
-    },
-    {
-      kind: "paper",
-      leaf: props.leaf,
-      onLeaf: props.onLeaf,
-      sheets: onSheets && { on: sheets, onTurn: onSheets },
-      landscape:
-        sheets && onLandscape ? { on: props.landscape ?? false, onTurn: onLandscape } : undefined,
-      exporting: props.making,
-      onExport: (at) => {
-        const box = at.getBoundingClientRect();
-        setOut((was) => (was ? null : { x: box.right - 230, y: box.bottom + 4 }));
+  // The column is drawn again only when what it shows changes, so its presses ask for the window's latest.
+  const latest = useRef(props);
+  latest.current = props;
+  const canSheets = props.onSheets !== undefined;
+  const canTurn = props.onLandscape !== undefined;
+  // Arrays a render makes anew are compared by what they say, or every key pressed would draw the column again.
+  const trailSaid = trail.map((one) => `${one.id}:${one.name}`).join("|");
+  const pagesSaid = pages.map((one) => `${one.id}:${one.file}:${one.title}`).join("|");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the presses read the window's latest through `latest`, and arrays by what they say
+  const panels = useMemo(
+    (): Panel[] => [
+      {
+        kind: "title",
+        title: props.title || t("untitledDoc"),
+        trail: [
+          { key: "all", label: t("everyPaper"), onPick: () => latest.current.onFolder?.(null) },
+          ...trail.map((one) => ({
+            key: one.id,
+            label: one.name,
+            onPick: () => latest.current.onFolder?.(one.id),
+          })),
+        ],
+        onApart: () => latest.current.onApart(),
+        onShut: () => latest.current.onShut(),
       },
-    },
-    {
-      kind: "index",
+      {
+        kind: "paper",
+        leaf: props.leaf,
+        onLeaf: (one) => latest.current.onLeaf(one),
+        sheets: canSheets
+          ? { on: sheets, onTurn: (on) => latest.current.onSheets?.(on) }
+          : undefined,
+        landscape:
+          sheets && canTurn
+            ? {
+                on: props.landscape ?? false,
+                onTurn: (turned) => latest.current.onLandscape?.(turned),
+              }
+            : undefined,
+        exporting: props.making,
+        onExport: (at) => {
+          if (performance.now() - shutAt.current < REOPENS) return;
+          const box = at.getBoundingClientRect();
+          setOut((was) => (was ? null : { x: box.right - 230, y: box.bottom + 4 }));
+        },
+      },
+      {
+        kind: "index",
+        heads,
+        book: {
+          up: up && { title: up.title, onPick: () => latest.current.onPage?.(up) },
+          said: held(pages.length),
+          pages: pages.map((one) => leafOf(one, paper, (doc) => latest.current.onPage?.(doc))),
+        },
+      },
+      { kind: "details", facts: details, open: short },
+      sharedPanel(card, facts, {
+        onShare: () => {
+          void Promise.resolve(latest.current.onKeep?.())
+            .catch(() => {})
+            .finally(() => setSharing(true));
+        },
+        onStop: () =>
+          shareStop(paper)
+            .then(() => setCard(null))
+            .catch(latest.current.onError),
+      }),
+    ],
+    [
+      props.title,
+      trailSaid,
+      props.leaf,
+      canSheets,
+      canTurn,
+      sheets,
+      props.landscape,
+      props.making,
       heads,
-      book: {
-        up: up && { title: up.title, onPick: () => onPage?.(up) },
-        said: held(pages.length),
-        pages: pages.map((one) => leafOf(one, paper, onPage)),
-      },
-    },
-    { kind: "details", facts: details, open: short },
-    sharedPanel(card, facts, {
-      onShare: () => {
-        void Promise.resolve(props.onKeep?.())
-          .catch(() => {})
-          .finally(() => setSharing(true));
-      },
-      onStop: () =>
-        shareStop(paper)
-          .then(() => setCard(null))
-          .catch(props.onError),
-    }),
-  ];
+      up?.id,
+      up?.title,
+      pagesSaid,
+      paper,
+      details,
+      short,
+      card,
+      facts,
+    ],
+  );
 
   return (
     <aside
@@ -256,7 +315,17 @@ export default function Beside(props: Props) {
       className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col"
     >
       <SidePanels key={paper} panels={panels} className="min-h-0 flex-1" />
-      {out && <Menu at={out} choices={ways} label={t("exportIt")} onClose={() => setOut(null)} />}
+      {out && (
+        <Menu
+          at={out}
+          choices={ways}
+          label={t("exportIt")}
+          onClose={() => {
+            shutAt.current = performance.now();
+            setOut(null);
+          }}
+        />
+      )}
       {sharing && (
         <Sharing
           file={paper}
