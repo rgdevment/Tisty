@@ -39,6 +39,8 @@ impl Here {
                 upload: 4,
                 per_megabyte: 1,
                 report: 4,
+                password: 4,
+                password_most: 8,
                 lasts: 10 * 60,
             },
             ..Policy::default()
