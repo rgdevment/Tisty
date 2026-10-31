@@ -42,6 +42,8 @@ export type ReadWord =
   | "signedRevokedSaid"
   | "signedSentBy"
   | "signedOn"
+  | "signedPrint"
+  | "signedPrintSaid"
   | "signedTitle"
   | "signedUnreadable"
   | "signedUnreadableSaid"

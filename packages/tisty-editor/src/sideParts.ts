@@ -58,11 +58,18 @@ export type Line = {
   readonly tone?: string;
   /** Open when it is first drawn, until the reader chooses. */
   readonly open?: boolean;
+  /** A second line under the gist, shown folded or not, with what it is said as a title. */
+  readonly under?: { readonly text: string; readonly title: string };
 };
 
 export const rowed = (page: Document, line: Line, fill?: (into: HTMLElement) => void) => {
   const label = made(page, "strong", "side-row-label", line.label);
   const gist = made(page, "span", `side-gist${line.tone ? ` is-${line.tone}` : ""}`, line.gist);
+  if (line.under) {
+    const under = made(page, "code", "side-under", line.under.text);
+    under.title = line.under.title;
+    gist.append(under);
+  }
   if (!fill) {
     const still = made(page, "div", "side-row");
     still.append(label, gist);

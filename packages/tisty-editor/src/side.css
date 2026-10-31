@@ -368,6 +368,14 @@ details[open] > .side-row-head::after {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.side-under {
+  display: block;
+  margin-top: 4px;
+  color: var(--tisty-ink);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
 .side-gist.is-good {
   color: var(--tisty-hue-green);
 }

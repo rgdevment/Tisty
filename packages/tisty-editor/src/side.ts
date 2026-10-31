@@ -51,12 +51,13 @@ export type Facts = {
 
 export type Seal = {
   readonly verdict: "holds" | "revoked" | "refused" | "unreadable" | "unsigned";
-  readonly who?: string;
   /** The name or alias the writer chose to sign with, which only their key vouches for. */
   readonly name?: string;
   /** When they signed, already said in the reader's language. */
   readonly signedOn?: string;
+  /** The writer's key as people can read it to each other: the one thing a name cannot copy. */
   readonly fingerprint?: string;
+  /** The uploader's fingerprint, only when someone other than the writer sent it. */
   readonly sender?: string;
 };
 

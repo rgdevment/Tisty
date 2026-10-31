@@ -78,19 +78,25 @@ const VERDICT = {
   unreadable: ["signedUnreadable", "signedUnreadableSaid", "bad"],
 } as const;
 
-// Folded until asked: whose key, its print and what it says; a body nobody signed has nothing more to show.
+// The name and the whole print are always in sight, since a name anyone can take and only the print says whose key it is;
+// what it means and how to check it wait in the fold.
 const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   if (seal.verdict === "unsigned")
     return rowed(page, { key: "seal", label: say("signedTitle"), gist: say("signedNone") });
   const [short, long, tone] = VERDICT[seal.verdict];
-  const gist = [seal.name, seal.who, say(short)].filter(Boolean).join(" · ");
-  return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone }, (into) => {
+  const gist = [seal.name, say(short)].filter(Boolean).join(" · ");
+  const under = seal.fingerprint
+    ? { text: seal.fingerprint, title: say("signedPrint") }
+    : undefined;
+  return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone, under }, (into) => {
     into.append(made(page, "p", "side-said", say(long)));
+    if (seal.fingerprint) into.append(made(page, "p", "side-said", say("signedPrintSaid")));
     if (seal.signedOn)
       into.append(made(page, "p", "side-said", `${say("signedOn")} ${seal.signedOn}`));
-    if (seal.fingerprint) into.append(made(page, "code", "side-print", seal.fingerprint));
-    if (seal.sender)
-      into.append(made(page, "p", "side-said", `${say("signedSentBy")} ${seal.sender}`));
+    if (seal.sender) {
+      into.append(made(page, "p", "side-said", say("signedSentBy")));
+      into.append(made(page, "code", "side-print", seal.sender));
+    }
   });
 };
 

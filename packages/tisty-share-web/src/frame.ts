@@ -50,11 +50,10 @@ export const sealOf = (about: About, language: string): Seal => {
   const sent = about.sent && "suffix" in about.sent ? about.sent : undefined;
   return {
     verdict: signed.is,
-    who: writer?.suffix,
     name: writer?.name,
     signedOn: writer?.signed === undefined ? undefined : day(writer.signed, language),
     fingerprint: writer?.fingerprint,
-    sender: sent && sent.fingerprint !== writer?.fingerprint ? sent.suffix : undefined,
+    sender: sent && sent.fingerprint !== writer?.fingerprint ? sent.fingerprint : undefined,
   };
 };
 

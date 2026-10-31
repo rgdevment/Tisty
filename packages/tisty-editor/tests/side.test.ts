@@ -86,7 +86,7 @@ describe("the panels beside a sheet", () => {
     expect(text(side, ".side-gist")).toEqual(["paperEmpty"]);
   });
 
-  it("folds the signature, opens it with its print, and has nothing to open when nobody signed", () => {
+  it("shows the signed name and the whole print unfolded, and has nothing to open when nobody signed", () => {
     const side = host();
     const signed = (seal: Extract<Panel, { kind: "seal" }>["seal"]): Panel[] => [
       { kind: "seal", seal },
@@ -94,18 +94,31 @@ describe("the panels beside a sheet", () => {
     sided(
       side,
       say,
-      signed({ verdict: "holds", who: "rgdevment", fingerprint: "AB:CD", sender: "otro" }),
+      signed({
+        verdict: "holds",
+        name: "Mario",
+        fingerprint: "12345 67890 12345 67890",
+        sender: "99999 88888 77777 66666",
+      }),
     );
     const row = side.querySelector<HTMLDetailsElement>("details[data-row=seal]");
     expect(row?.open).toBe(false);
-    expect(text(side, ".side-gist.is-good")).toEqual(["rgdevment · signedHolds"]);
-    expect(text(side, ".side-said")).toEqual(["signedHoldsSaid", "signedSentBy otro"]);
-    expect(text(side, ".side-print")).toEqual(["AB:CD"]);
+    const gist = side.querySelector(".side-gist.is-good");
+    expect(gist?.firstChild?.textContent).toBe("Mario · signedHolds");
+    const under = side.querySelector<HTMLElement>("summary .side-under");
+    expect(under?.textContent).toBe("12345 67890 12345 67890");
+    expect(under?.title).toBe("signedPrint");
+    expect(text(side, ".side-said")).toEqual([
+      "signedHoldsSaid",
+      "signedPrintSaid",
+      "signedSentBy",
+    ]);
+    expect(text(side, ".side-print")).toEqual(["99999 88888 77777 66666"]);
     row?.querySelector("summary")?.click();
     if (row) row.open = true;
-    sided(side, say, signed({ verdict: "revoked", who: "rgdevment" }));
+    sided(side, say, signed({ verdict: "revoked", name: "Mario" }));
     expect(side.querySelector<HTMLDetailsElement>("details[data-row=seal]")?.open).toBe(true);
-    expect(text(side, ".side-gist.is-warn")).toEqual(["rgdevment · signedRevoked"]);
+    expect(text(side, ".side-gist.is-warn")).toEqual(["Mario · signedRevoked"]);
     sided(side, say, signed({ verdict: "unreadable" }));
     expect(text(side, ".side-gist.is-bad")).toEqual(["signedUnreadable"]);
     sided(side, say, signed({ verdict: "unsigned" }));

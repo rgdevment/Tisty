@@ -38,10 +38,9 @@ describe("when it was shared", () => {
 });
 
 describe("the seal", () => {
-  it("names who wrote it and their fingerprint", () => {
+  it("names the writer by their whole fingerprint, never by the short suffix anyone can forge", () => {
     expect(sealOf({ wrote: mario, sent: mario }, "es")).toEqual({
       verdict: "holds",
-      who: "r8f1",
       fingerprint: mario.fingerprint,
       sender: undefined,
     });
@@ -52,13 +51,13 @@ describe("the seal", () => {
     expect(sealOf({ wrote: named, sent: { ...ana, name: "Ana" } as Signed }, "es")).toMatchObject({
       name: "Mario Hidalgo",
       signedOn: day(NOW, "es"),
-      sender: "k7qp",
+      sender: ana.fingerprint,
     });
     expect(sealOf({ wrote: mario }, "es")).toMatchObject({ name: undefined, signedOn: undefined });
   });
 
   it("names who uploaded it only when it was someone else", () => {
-    expect(sealOf({ wrote: mario, sent: ana }, "es").sender).toBe("k7qp");
+    expect(sealOf({ wrote: mario, sent: ana }, "es").sender).toBe(ana.fingerprint);
   });
 
   it("says when nobody signed it, or the signature does not hold", () => {
@@ -66,7 +65,7 @@ describe("the seal", () => {
     expect(sealOf({ sent: ana }, "es")).toEqual({ verdict: "unsigned" });
     expect(sealOf({ wrote: { is: "refused" } }, "es")).toMatchObject({
       verdict: "refused",
-      who: undefined,
+      fingerprint: undefined,
     });
   });
 });
