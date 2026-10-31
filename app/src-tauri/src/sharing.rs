@@ -235,13 +235,6 @@ pub(crate) fn share(
             "bytes": sealed.as_bytes().len(),
         }),
     )?;
-    done(wire.send(Asking {
-        method: "PUT",
-        path: format!("docs/{}", reserved.id),
-        token: Some(&reserved.edit),
-        work: Some(work),
-        body: sealed.into_bytes(),
-    })?)?;
     let shared = Shared {
         server: server.to_owned(),
         link: reserved.id,
@@ -252,6 +245,20 @@ pub(crate) fn share(
         gated: chosen.password.is_some(),
         version: 1,
     };
+    let uploaded = wire
+        .send(Asking {
+            method: "PUT",
+            path: format!("docs/{}", shared.link),
+            token: Some(&shared.edit),
+            work: Some(work),
+            body: sealed.into_bytes(),
+        })
+        .and_then(done);
+    if let Err(refused) = uploaded {
+        // An answer lost on the way back may still have left it up, and a link nobody kept is a link nobody can stop.
+        let _ = stop(wire, &shared);
+        return Err(refused);
+    }
     if let Err(refused) = guarded(wire, &shared, chosen) {
         // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
         let _ = stop(wire, &shared);

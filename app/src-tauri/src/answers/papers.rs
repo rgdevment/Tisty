@@ -804,15 +804,26 @@ fn other_version_kept(
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
-    let signed_as = signing(&session.state);
+    // The other version of someone else's document is still theirs, as a duplicate of it is (decision 68).
+    let me = session.state.persons.person(&session.config.device_id);
+    let theirs = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .filter(|kept| session.state.theirs(kept, me.as_ref()));
+    let (guest, by) = match theirs {
+        Some(kept) => (true, kept.by.clone()),
+        None => (false, signing(&session.state)),
+    };
     session
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
                 wrote: None,
-                guest: false,
+                guest,
                 made: None,
-                by: signed_as.clone(),
+                by,
                 file: file.clone(),
                 folder,
                 order,

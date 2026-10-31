@@ -242,6 +242,37 @@ fn a_share_that_could_not_take_its_password_does_not_stay_up() {
     assert_eq!(here.share.borrow().store.envelopes(), 0);
 }
 
+/// The server takes the upload, and its answer is lost on the way back.
+struct Unanswered<'a>(&'a Here);
+
+impl Wire for Unanswered<'_> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        let put = asked.method == "PUT";
+        let said = self.0.send(asked)?;
+        match put {
+            true => Err(Refusal::of("shareOffline")),
+            false => Ok(said),
+        }
+    }
+}
+
+#[test]
+fn an_upload_whose_answer_was_lost_does_not_stay_up() {
+    let here = Here::new();
+    let refused = share(
+        &Unanswered(&here),
+        SERVER,
+        "Hola",
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap_err();
+    assert_eq!(refused.code, "shareOffline");
+
+    assert_eq!(here.share.borrow().store.envelopes(), 0);
+}
+
 #[test]
 fn a_document_over_the_server_s_limits_says_it_is_too_big() {
     let here = Here::new();

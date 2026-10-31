@@ -285,7 +285,10 @@ pub async fn share_card(
                 .is_some_and(|now| now.link == shared.link)
             {
                 session
-                    .commit(Op::ShareStop { id: doc })
+                    .commit(Op::ShareStop {
+                        id: doc,
+                        link: shared.link,
+                    })
                     .map_err(Refusal::from)?;
             }
             Ok(None)
@@ -304,6 +307,7 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
     let Some(shared) = shared else {
         return Ok(());
     };
+    let link = shared.link.clone();
     let gone = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;
     // A share the server already let go of is stopped all the same.
     match gone {
@@ -311,8 +315,46 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         _ => {}
     }
     held(&session)
-        .commit(Op::ShareStop { id: doc })
+        .commit(Op::ShareStop { id: doc, link })
         .map_err(Refusal::from)
+}
+
+/// Stops in the background every share nothing in Tisty leads to any more, and forgets each one the server let go of.
+pub(crate) fn let_loose_go(app: tauri::AppHandle) {
+    use tauri::Manager;
+    tauri::async_runtime::spawn(async move {
+        let session = app.state::<Mutex<Session>>();
+        let loose = held(&session).state.loose_shares();
+        if loose.is_empty() {
+            return;
+        }
+        let stopped = apart(move || {
+            Ok(loose
+                .into_iter()
+                .filter(|(_, shared)| {
+                    match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
+                        Ok(()) => true,
+                        Err(refused) => sharing::already_gone(&refused),
+                    }
+                })
+                .map(|(id, shared)| Op::ShareStop {
+                    id,
+                    link: shared.link,
+                })
+                .collect::<Vec<_>>())
+        })
+        .await;
+        if let Ok(ops) = stopped
+            && !ops.is_empty()
+            && let Err(e) = held(&session).commit_all(ops)
+        {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::WINDOW,
+                "shares nothing leads to were stopped but could not be forgotten",
+                &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+            );
+        }
+    });
 }
 
 #[cfg(test)]

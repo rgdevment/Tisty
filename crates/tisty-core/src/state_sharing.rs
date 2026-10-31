@@ -42,6 +42,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
             "dev_b",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 3,
             },
         ),
@@ -50,6 +51,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
             "dev_a",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 2,
             },
         ),
@@ -72,12 +74,20 @@ fn stopping_forgets_the_links_and_a_version_after_it_brings_nothing_back() {
                 d: shared(1),
             },
         ),
-        by(2, "dev_a", Op::ShareStop { id: doc }),
+        by(
+            2,
+            "dev_a",
+            Op::ShareStop {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+            },
+        ),
         by(
             3,
             "dev_b",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 2,
             },
         ),
@@ -95,9 +105,13 @@ fn sharing_is_optional_for_an_older_tisty_and_undo_steps_over_it() {
         },
         Op::ShareVersion {
             id: doc,
+            link: "k7Qm2xPa".into(),
             version: 2,
         },
-        Op::ShareStop { id: doc },
+        Op::ShareStop {
+            id: doc,
+            link: "k7Qm2xPa".into(),
+        },
     ] {
         assert!(op.is_optional(), "{op:?}");
         assert!(op.settles(), "{op:?}");
@@ -138,13 +152,86 @@ fn every_share_op_is_written_to_the_log_and_read_back_as_it_was() {
         },
         Op::ShareVersion {
             id: doc,
+            link: "k7Qm2xPa".into(),
             version: 2,
         },
-        Op::ShareStop { id: doc },
+        Op::ShareStop {
+            id: doc,
+            link: "k7Qm2xPa".into(),
+        },
     ] {
         let said = store.append(op.clone()).unwrap();
         let line = serde_json::to_string(&said).unwrap();
         let back: Event = serde_json::from_str(&line).unwrap();
         assert_eq!(back.op, op);
     }
+}
+
+#[test]
+fn a_stop_for_an_older_link_leaves_the_newer_share_alone() {
+    let doc = Ulid::generate();
+    let newer = crate::event::Shared {
+        link: "n3werLnk".into(),
+        ..shared(1)
+    };
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_b", Op::ShareDoc { id: doc, d: newer }),
+        // A machine that had not heard of the newer one stops the old link after it.
+        by(
+            3,
+            "dev_a",
+            Op::ShareStop {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+            },
+        ),
+        by(
+            4,
+            "dev_a",
+            Op::ShareVersion {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+                version: 9,
+            },
+        ),
+    ]);
+    let kept = state.shares.get(&doc).expect("the newer share is kept");
+    assert_eq!(kept.link, "n3werLnk");
+    assert_eq!(kept.version, 1);
+    assert!(state.replaced.is_empty());
+}
+
+#[test]
+fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
+    let doc = Ulid::generate();
+    let newer = crate::event::Shared {
+        link: "n3werLnk".into(),
+        ..shared(1)
+    };
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_b", Op::ShareDoc { id: doc, d: newer }),
+    ]);
+    let loose: Vec<String> = state
+        .loose_shares()
+        .into_iter()
+        .map(|(_, one)| one.link)
+        .collect();
+    // A share whose document has not arrived yet is not loose: it may come from another machine later.
+    assert_eq!(loose, ["k7Qm2xPa"]);
 }
