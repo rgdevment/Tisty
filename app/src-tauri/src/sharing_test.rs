@@ -97,6 +97,7 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
         "# Hola\n\nUn texto.",
         &Chosen::default(),
         &voucher(),
+        Some("Ana Pérez"),
     )
     .unwrap();
     assert_eq!(shared.version, 1);
@@ -111,6 +112,10 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
     let me = Seed::from_bytes(&[7; 32]).root().person();
     assert!(matches!(opened.wrote, Some(Verdict::Holds { person, .. }) if person == me));
     assert!(matches!(opened.sent, Some(Verdict::Holds { person, .. }) if person == me));
+    assert_eq!(
+        opened.written.and_then(|one| one.name).as_deref(),
+        Some("Ana Pérez")
+    );
 
     let (read, edit) = links(&shared);
     assert_eq!(
@@ -149,7 +154,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         editable: true,
         idle_days: Some(7),
     };
-    let shared = share(&here, SERVER, "Hola", &chosen, &voucher()).unwrap();
+    let shared = share(&here, SERVER, "Hola", &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
 
     assert_eq!(here.read(&shared.link, None).0, 401);
@@ -163,7 +168,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
 #[test]
 fn stopping_leaves_the_link_leading_nowhere() {
     let here = Here::new();
-    let shared = share(&here, SERVER, "Hola", &Chosen::default(), &voucher()).unwrap();
+    let shared = share(&here, SERVER, "Hola", &Chosen::default(), &voucher(), None).unwrap();
     stop(&here, &shared).unwrap();
     assert_eq!(here.read(&shared.link, None).0, 404);
     let refused = info(&here, &shared).unwrap_err();
@@ -179,6 +184,6 @@ fn a_key_taken_back_reaches_the_server_and_shares_nothing_more() {
     let taken = Seed::from_bytes(&[7; 32]).root().revoke(&key.public(), at);
     revoke(&here, &[taken.clone(), taken]).unwrap();
 
-    let refused = share(&here, SERVER, "Hola", &Chosen::default(), &voucher()).unwrap_err();
+    let refused = share(&here, SERVER, "Hola", &Chosen::default(), &voucher(), None).unwrap_err();
     assert_eq!(refused.code, "shareUnsigned");
 }

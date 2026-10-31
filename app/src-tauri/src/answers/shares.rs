@@ -100,7 +100,7 @@ pub async fn share_doc(
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let (doc, text, voucher, revoked) = {
+    let (doc, text, voucher, revoked, name) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
@@ -120,13 +120,23 @@ pub async fn share_doc(
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        (doc, text, voucher, taken_back_by(&session, &me))
+        // The name the person signs with, or else their alias; with neither, the key speaks alone.
+        let signed = &session.state.signed;
+        let name = signed.name.clone().or_else(|| signed.alias.clone());
+        (doc, text, voucher, taken_back_by(&session, &me), name)
     };
     let shared = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
-        sharing::share(&wire, sharing::SERVER, &text, &chosen, &voucher)
+        sharing::share(
+            &wire,
+            sharing::SERVER,
+            &text,
+            &chosen,
+            &voucher,
+            name.as_deref(),
+        )
     })
     .await?;
     held(&session)

@@ -177,6 +177,7 @@ pub(crate) fn share(
     text: &str,
     chosen: &Chosen,
     (key, certificate): &Voucher,
+    name: Option<&str>,
 ) -> Result<Shared, Refusal> {
     let limits: Limits = answered(get(wire, "limits".into(), None)?)?;
     let work = worked(wire, json!({ "for": "reserve" }))?;
@@ -189,7 +190,12 @@ pub(crate) fn share(
     })?)?;
     let link_key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
     // Everything shared is signed: the key is the only identity there is, since any alias can be taken.
-    let signer = Signer { key, certificate };
+    let signer = Signer {
+        key,
+        certificate,
+        at: jiff::Timestamp::now(),
+        name,
+    };
     let draft = Draft {
         id: &reserved.id,
         version: 1,
