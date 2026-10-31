@@ -125,27 +125,41 @@ pub async fn share_doc(
         let name = signed.name.clone().or_else(|| signed.alias.clone());
         (doc, text, voucher, taken_back_by(&session, &me), name)
     };
-    let shared = apart(move || {
+    let (shared, info) = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
-        sharing::share(
+        let shared = sharing::share(
             &wire,
             sharing::SERVER,
             &text,
             &chosen,
             &voucher,
             name.as_deref(),
-        )
+        )?;
+        let info = sharing::info(&wire, &shared).ok();
+        Ok((shared, info))
     })
     .await?;
-    held(&session)
-        .commit(Op::ShareDoc {
-            id: doc,
-            d: shared.clone(),
-        })
-        .map_err(Refusal::from)?;
-    Ok(card(&shared, None))
+    let committed = {
+        let mut session = held(&session);
+        // A second press or another window may have shared it while this one was on the way.
+        match session.state.shares.contains_key(&doc) {
+            true => Err(Refusal::of("shareAlready")),
+            false => session
+                .commit(Op::ShareDoc {
+                    id: doc,
+                    d: shared.clone(),
+                })
+                .map_err(Refusal::from),
+        }
+    };
+    if let Err(refused) = committed {
+        // A link nobody can see is a link nobody can stop, so it goes.
+        let _ = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;
+        return Err(refused);
+    }
+    Ok(card(&shared, info))
 }
 
 #[tauri::command]
@@ -161,10 +175,21 @@ pub async fn share_card(
         return Ok(None);
     };
     let asked = shared.clone();
-    let info = apart(move || sharing::info(&Net::to(&asked.server)?, &asked))
-        .await
-        .ok();
-    Ok(Some(card(&shared, info)))
+    let info = apart(move || sharing::info(&Net::to(&asked.server)?, &asked)).await;
+    match info {
+        // It ran out or was stopped from another machine: the store forgets it, and the row offers to share again.
+        Err(refused) if sharing::already_gone(&refused) => {
+            let doc = {
+                let session = held(&session);
+                doc_of(&session, &file)?
+            };
+            held(&session)
+                .commit(Op::ShareStop { id: doc })
+                .map_err(Refusal::from)?;
+            Ok(None)
+        }
+        info => Ok(Some(card(&shared, info.ok()))),
+    }
 }
 
 #[tauri::command]

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { copied } from "../core";
 import { fill, t } from "../locales";
 import { type ShareCard, shareDoc } from "../shares";
@@ -24,6 +24,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [editable, setEditable] = useState(false);
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
+  // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
+  const going = useRef(false);
   const passwordId = useId();
   const idleId = useId();
 
@@ -31,7 +33,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
 
   const go = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!ready) return;
+    if (!ready || going.current) return;
+    going.current = true;
     setBusy(true);
     shareDoc(file, {
       password: gated ? password : null,
@@ -43,6 +46,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
         onShared(card);
       })
       .catch((problem) => {
+        going.current = false;
         setBusy(false);
         onError(problem);
       });

@@ -50,6 +50,24 @@ describe("the share dialog", () => {
     ]);
   });
 
+  it("shares once however quickly it is pressed again", async () => {
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    const form = screen
+      .getByRole("button", { name: t("shareGo") })
+      .closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
+  });
+
   it("asks for a password before sharing with one, and hands out the edit link only when asked", async () => {
     render(
       <Sharing

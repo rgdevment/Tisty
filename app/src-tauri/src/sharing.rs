@@ -115,18 +115,19 @@ fn refused(said: &Said) -> Refusal {
         .ok()
         .and_then(|value| value["refused"].as_str().map(str::to_owned))
         .unwrap_or_else(|| said.status.to_string());
-    // The one no the person can act on: this machine's key was taken back or never held.
-    if word == "unsigned" {
-        return Refusal::of("shareUnsigned");
+    match word.as_str() {
+        // The one no the person can act on: this machine's key was taken back or never held.
+        "unsigned" => Refusal::of("shareUnsigned"),
+        "slow" => Refusal::of("shareSlow"),
+        _ => Refusal::about("shareRefused", word),
     }
-    Refusal::about("shareRefused", word)
 }
 
 fn answered<T: for<'de> Deserialize<'de>>(said: Said) -> Result<T, Refusal> {
     if !(200..300).contains(&said.status) {
         return Err(refused(&said));
     }
-    serde_json::from_slice(&said.body).map_err(|_| Refusal::of("shareRefused"))
+    serde_json::from_slice(&said.body).map_err(|_| Refusal::of("shareFailed"))
 }
 
 fn done(said: Said) -> Result<(), Refusal> {
@@ -156,7 +157,7 @@ fn worked(wire: &impl Wire, ask: serde_json::Value) -> Result<String, Refusal> {
         body: ask.to_string().into_bytes(),
     })?;
     let challenge: Challenge = answered(said)?;
-    let proof = work::solve(&challenge).ok_or(Refusal::of("shareRefused"))?;
+    let proof = work::solve(&challenge).ok_or(Refusal::of("shareFailed"))?;
     serde_json::to_string(&proof).map_err(|_| Refusal::of("internal"))
 }
 
@@ -204,7 +205,7 @@ pub(crate) fn share(
         pictures: &[],
     };
     let sealed = envelope::seal(&link_key, &draft, Some(&signer), &limits)
-        .map_err(|why| Refusal::about("shareRefused", format!("{why:?}")))?;
+        .map_err(|_| Refusal::of("shareFailed"))?;
     let work = worked(
         wire,
         json!({
@@ -231,14 +232,24 @@ pub(crate) fn share(
         gated: chosen.password.is_some(),
         version: 1,
     };
+    if let Err(refused) = guarded(wire, &shared, chosen) {
+        // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
+        let _ = stop(wire, &shared);
+        return Err(refused);
+    }
+    Ok(shared)
+}
+
+/// The password and the shorter life the person chose, set once the first version is up.
+fn guarded(wire: &impl Wire, shared: &Shared, chosen: &Chosen) -> Result<(), Refusal> {
     if let Some(password) = &chosen.password {
-        managed(wire, &shared, json!({ "do": "password", "with": password }))?;
+        managed(wire, shared, json!({ "do": "password", "with": password }))?;
     }
     if let Some(days) = chosen.idle_days {
         let seconds = i64::from(days) * 86_400;
-        managed(wire, &shared, json!({ "do": "idle", "with": seconds }))?;
+        managed(wire, shared, json!({ "do": "idle", "with": seconds }))?;
     }
-    Ok(shared)
+    Ok(())
 }
 
 /// How it stands on the server: its reads, when it ends, and whether it is paused or blocked.

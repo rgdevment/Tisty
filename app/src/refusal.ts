@@ -237,6 +237,8 @@ const KNOWN = [
   "shareOffline",
   "shareRefused",
   "shareAlready",
+  "shareFailed",
+  "shareSlow",
   "shareUnsigned",
   "shareNotMine",
   "shareNoKey",

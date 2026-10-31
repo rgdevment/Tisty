@@ -187,3 +187,28 @@ fn a_key_taken_back_reaches_the_server_and_shares_nothing_more() {
     let refused = share(&here, SERVER, "Hola", &Chosen::default(), &voucher(), None).unwrap_err();
     assert_eq!(refused.code, "shareUnsigned");
 }
+
+/// The server as it is, except that it never takes a password.
+struct Ungated<'a>(&'a Here);
+
+impl Wire for Ungated<'_> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        if asked.path.ends_with("/manage") && asked.body.starts_with(b"{\"do\":\"password\"") {
+            return Err(Refusal::of("shareOffline"));
+        }
+        self.0.send(asked)
+    }
+}
+
+#[test]
+fn a_share_that_could_not_take_its_password_does_not_stay_up() {
+    let here = Here::new();
+    let chosen = Chosen {
+        password: Some("clave".into()),
+        ..Chosen::default()
+    };
+    let refused = share(&Ungated(&here), SERVER, "Hola", &chosen, &voucher(), None).unwrap_err();
+    assert_eq!(refused.code, "shareOffline");
+
+    assert_eq!(here.share.borrow().store.envelopes(), 0);
+}
