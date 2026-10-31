@@ -25,6 +25,24 @@ const strays = (of: RegExp, allowed: string[]): string[] =>
       .map((one) => `${name}: ${one}`),
   );
 
+// The column beside a sheet is drawn by the editor's package from its own stylesheet, which the window loads.
+const SIDE = "../packages/tisty-editor/src/side.css";
+const PX = { TYPE: ["21", "13", "12.5", "11.5", "10.5", "10", "9"], CORNERS: ["6", "10", "999"] };
+
+describe("the column's own sheet keeps to the house's scale", () => {
+  const sheet = readFileSync(SIDE, "utf8");
+  const off = (of: RegExp, allowed: string[]) =>
+    [...sheet.matchAll(of)].map((hit) => hit[1]).filter((one) => !allowed.includes(one));
+
+  it("sets type at the house's sizes", () => {
+    expect(off(/font-size:\s*([0-9.]+)px/g, PX.TYPE)).toEqual([]);
+  });
+
+  it("rounds corners the house's ways", () => {
+    expect(off(/border-radius:\s*([0-9.]+)px/g, PX.CORNERS)).toEqual([]);
+  });
+});
+
 describe("the house keeps one scale", () => {
   it("sets type at one of the six sizes, and no other", () => {
     expect(strays(/\btext-\[([0-9.]+)px\]/g, TYPE)).toEqual([]);

@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { identityPhrase, identityShown, type Identity as Shown } from "../core";
+import { useCallback, useEffect, useId, useState } from "react";
+import {
+  identityBegin,
+  identityPhrase,
+  identityRecover,
+  identityShown,
+  type Identity as Shown,
+} from "../identity";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Card, { type Which, type Word } from "./Card";
@@ -52,6 +58,20 @@ export default function Identity({
       .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
   };
 
+  // Sharing needs a key even with no cloud, so the phrase can be born here and not only while encrypting it.
+  const begin = () => {
+    identityBegin()
+      .then((phrase) => setWords(phrase.split(" ")))
+      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
+  };
+
+  const failed = (e: unknown) => fail({ card: "identity", text: saidPlainly(e) });
+  const typed = () => {
+    look();
+    onPhrased?.();
+    tell({ card: "identity", text: t("phraseTyped") });
+  };
+
   const born = shown !== null && (shown.held || shown.elsewhere);
 
   return (
@@ -88,11 +108,83 @@ export default function Identity({
           </p>
         )}
         {shown && !born && (
-          <p className="text-[12.5px] leading-relaxed text-soft">{t("identityUnborn")}</p>
+          <>
+            <p className="text-[12.5px] leading-relaxed text-soft">{t("identityUnborn")}</p>
+            <button type="button" disabled={held} onClick={begin} className={`mt-3 ${strong}`}>
+              {t("identityCreate")}
+            </button>
+            <PhraseTyped held={held} onTyped={typed} onFail={failed} />
+          </>
         )}
         {shown && born && <Born shown={shown} held={held} onSee={see} onSync={onSync} />}
+        {shown?.elsewhere && <PhraseTyped held={held} onTyped={typed} onFail={failed} />}
       </Card>
     </>
+  );
+}
+
+// The phrase typed on another computer of the person's, or again after its key was taken back, gives this one its key.
+function PhraseTyped({
+  held,
+  onTyped,
+  onFail,
+}: {
+  held: boolean;
+  onTyped: () => void;
+  onFail: (problem: unknown) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [said, setSaid] = useState("");
+  const [going, setGoing] = useState(false);
+  const fieldId = useId();
+  if (!open)
+    return (
+      <button
+        type="button"
+        disabled={held}
+        onClick={() => setOpen(true)}
+        className={`mt-3 ml-2 ${mild}`}
+      >
+        {t("phraseTypeOpen")}
+      </button>
+    );
+  const send = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (going || !said.trim()) return;
+    setGoing(true);
+    identityRecover(said.trim())
+      .then(() => {
+        setSaid("");
+        setOpen(false);
+        onTyped();
+      })
+      .catch(onFail)
+      .finally(() => setGoing(false));
+  };
+  return (
+    <form onSubmit={send} className="mt-3 flex flex-col gap-2">
+      <label htmlFor={fieldId} className="text-[11.5px] text-faint">
+        {t("phraseTypeHow")}
+      </label>
+      <textarea
+        id={fieldId}
+        value={said}
+        onChange={(e) => setSaid(e.target.value)}
+        rows={3}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        className="rounded-[10px] border border-line bg-bg px-2.5 py-2 font-mono text-[12.5px]"
+      />
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={() => setOpen(false)} className={mild}>
+          {t("cancel")}
+        </button>
+        <button type="submit" disabled={held || going || !said.trim()} className={strong}>
+          {t("phraseTypeGo")}
+        </button>
+      </div>
+    </form>
   );
 }
 

@@ -24,7 +24,6 @@ const choice =
 export default function Sharing({ file, title, onShared, onClose, onError }: Props) {
   const [gated, setGated] = useState(false);
   const [password, setPassword] = useState("");
-  const [editable, setEditable] = useState(false);
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
@@ -70,7 +69,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setBusy(true);
     shareDoc(file, {
       password: gated ? password : null,
-      editable,
+      // Only reading for now: editing a share from Tisty comes later, and an edit link must not promise it (decision 67).
+      editable: false,
       idleDays: idle === IDLE_DAYS[0] ? null : idle,
       seen,
     })
@@ -144,28 +144,6 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
               />
             </div>
           )}
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareWhat")}</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-[10px] bg-hover p-1">
-            {[false, true].map((one) => (
-              <label
-                key={String(one)}
-                className="flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md text-[12.5px] has-[:checked]:bg-bg has-[:checked]:font-semibold has-[:checked]:shadow-lift"
-              >
-                <input
-                  type="radio"
-                  name="what"
-                  className="sr-only"
-                  checked={editable === one}
-                  onChange={() => setEditable(one)}
-                />
-                {t(one ? "shareCanEdit" : "shareReadOnly")}
-              </label>
-            ))}
-          </div>
-          <p className="text-[11.5px] leading-relaxed text-faint">{t("shareEditWhy")}</p>
         </fieldset>
 
         <p className="flex flex-col">

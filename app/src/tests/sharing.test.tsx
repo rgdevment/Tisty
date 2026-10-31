@@ -86,7 +86,7 @@ describe("the share dialog", () => {
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
   });
 
-  it("asks for a password before sharing with one, and hands out the edit link only when asked", async () => {
+  it("asks for a password before sharing with one, and hands out no edit link yet", async () => {
     render(
       <Sharing
         file="notas.md"
@@ -100,13 +100,14 @@ describe("the share dialog", () => {
     const go = await screen.findByRole("button", { name: t("shareGo") });
     expect(go).toHaveProperty("disabled", true);
     await userEvent.type(screen.getByLabelText(t("sharePassword")), "ñandú");
-    await userEvent.click(screen.getByRole("radio", { name: t("shareCanEdit") }));
+    // No edit link is offered until a share can be edited from Tisty.
+    expect(screen.queryByRole("radio", { name: t("shareCanEdit") })).toBeNull();
     fireEvent.change(screen.getByLabelText(t("shareEnds")), { target: { value: "7" } });
     await userEvent.click(go);
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
     expect(asked("share_doc")[0]).toEqual({
       file: "notas.md",
-      chosen: { password: "ñandú", editable: true, idleDays: 7 },
+      chosen: { password: "ñandú", editable: false, idleDays: 7 },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
   });

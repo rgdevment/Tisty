@@ -10,7 +10,7 @@ import {
 } from "tisty-editor/read";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
-import { weigh } from "../format";
+import { dayOf, weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { type ShareCard, shareCard, shareStop } from "../shares";
@@ -124,7 +124,7 @@ const gistOf = (card: ShareCard | null): string => {
     info && (info.reads === 1 ? t("sharedReadsOne") : fill("sharedReads", String(info.reads)));
   return [
     t(card.gated ? "sharedGated" : "sharedUnlisted"),
-    info ? fill("sharedEnds", dated(info.ends)) : "",
+    info ? fill("sharedEnds", dayOf(new Date(info.ends * 1000).toISOString())) : "",
     reads ?? "",
   ]
     .filter(Boolean)
@@ -159,13 +159,15 @@ const sharedPanel = (
       url: card.edit,
       note: t("shareLinkEditNote"),
     });
+  // The server refuses everything but a look on a blocked document, so stopping it is not offered.
+  const blocked = card.info?.blocked ?? false;
   return {
     kind: "shared",
     gist: gistOf(card),
-    tone: card.info?.blocked ? "bad" : card.info?.paused ? "warn" : "good",
-    said: card.info ? t("shareAdminKept") : t("sharedOffline"),
-    links,
-    acts: [{ key: "stop", label: t("shareStop"), onPick: asked.onStop }],
+    tone: !card.info ? undefined : blocked ? "bad" : card.info.paused ? "warn" : "good",
+    said: blocked ? t("sharedBlockedWhy") : card.info ? t("shareAdminKept") : t("sharedOffline"),
+    links: blocked ? [] : links,
+    acts: blocked ? [] : [{ key: "stop", label: t("shareStop"), onPick: asked.onStop }],
   };
 };
 
