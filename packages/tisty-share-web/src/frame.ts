@@ -4,7 +4,14 @@ import { ago, day } from "./when";
 import { filled } from "./words";
 
 export type Signed =
-  | { readonly is: "holds" | "revoked"; readonly fingerprint: string; readonly suffix: string }
+  | {
+      readonly is: "holds" | "revoked";
+      readonly fingerprint: string;
+      readonly suffix: string;
+      /** The name and the moment the writer signed with, which their key vouches for; an uploader's has neither. */
+      readonly name?: string;
+      readonly signed?: number;
+    }
   | { readonly is: "refused" | "unreadable" };
 
 export type About = {
@@ -36,7 +43,7 @@ export const whenOf = (
 
 // Who wrote it is what the reader asks; who uploaded it is said too, but only when it was someone else.
 // The uploader never stands in for the writer: a body with no signature of its own is nobody's.
-export const sealOf = (about: About): Seal => {
+export const sealOf = (about: About, language: string): Seal => {
   const signed = about.wrote;
   if (!signed) return { verdict: "unsigned" };
   const writer = "suffix" in signed ? signed : undefined;
@@ -44,6 +51,8 @@ export const sealOf = (about: About): Seal => {
   return {
     verdict: signed.is,
     who: writer?.suffix,
+    name: writer?.name,
+    signedOn: writer?.signed === undefined ? undefined : day(writer.signed, language),
     fingerprint: writer?.fingerprint,
     sender: sent && sent.fingerprint !== writer?.fingerprint ? sent.suffix : undefined,
   };

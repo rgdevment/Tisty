@@ -3,7 +3,7 @@ use tisty_share_proto::envelope::{Draft, Kind, LinkKey, Refused, Signer, seal};
 use tisty_share_proto::identity::{Root, ShareKey};
 use tisty_share_proto::limits::Limits;
 
-use super::{About, Shown, Signed, Unread, shown};
+use super::{About, Said, Shown, Signed, Unread, shown};
 
 const TEXT: &str = "---\ntitle: Docker en WSL2\ntags: [guía, docker]\n---\n\n# Antes de empezar\n\nAbre una terminal.\n\n![La consola](tisty:picture/0)\n";
 
@@ -76,21 +76,32 @@ fn hands_back_its_pictures_in_order() {
 }
 
 #[test]
-fn names_who_signed_it() {
+fn names_who_signed_it_with_the_name_and_moment_they_signed() {
     let root = Root::from_bytes(&[7; 32]);
     let share = ShareKey::from_bytes(&[8; 32]);
     let certificate = root.certify(&share.public(), Timestamp::from_second(1_000).unwrap());
     let signer = Signer {
         key: &share,
         certificate: &certificate,
+        at: Timestamp::from_second(2_000).unwrap(),
+        name: Some("Ana Pérez"),
     };
     let page = read(sealed(TEXT, &[], Some(&signer))).unwrap();
     let holds = Signed::Holds {
         fingerprint: root.person().fingerprint(),
         suffix: root.person().suffix(),
         since: 1_000,
+        written: Said {
+            name: Some("Ana Pérez".into()),
+            signed: Some(2_000),
+        },
     };
     assert_eq!(page.about.wrote, Some(holds));
+    let sent = serde_json::to_value(&page.about.sent).unwrap();
+    assert!(sent.get("name").is_none() && sent.get("signed").is_none());
+    let wrote = serde_json::to_value(&page.about.wrote).unwrap();
+    assert_eq!(wrote["name"], "Ana Pérez");
+    assert_eq!(wrote["signed"], 2_000);
 }
 
 #[test]
@@ -187,6 +198,8 @@ fn says_a_key_taken_back_and_believes_only_what_its_root_signed() {
     let signer = Signer {
         key: &share,
         certificate: &certificate,
+        at: Timestamp::from_second(2_000).unwrap(),
+        name: None,
     };
     let envelope = sealed(TEXT, &[], Some(&signer));
     let taken = root.revoke(&share.public(), Timestamp::from_second(2_000).unwrap());

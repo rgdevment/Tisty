@@ -5,7 +5,7 @@ import type { View } from "../src/drawn";
 import { wordsFor } from "../src/words";
 
 const say = wordsFor(true);
-const words = { sheet: (word: string) => word, page: say };
+const words = { sheet: (word: string) => word, page: say, language: "es" };
 const LINK = "https://tisty.cl/AbCd1234#llave";
 const LINKS = { opened: `${LINK}.token`, read: LINK };
 

@@ -160,6 +160,7 @@ const SPANISH_SHEET: Record<ReadWord, string> = {
   signedRevoked: "llave revocada",
   signedRevokedSaid: "La llave que lo firmó fue revocada: no se puede saber si lo firmó su dueño.",
   signedSentBy: "Subido por",
+  signedOn: "Firmado el",
   signedTitle: "Firma",
   signedUnreadable: "ilegible",
   signedUnreadableSaid: "La firma no se pudo leer.",
@@ -234,6 +235,7 @@ const ENGLISH_SHEET: Record<ReadWord, string> = {
   signedRevokedSaid:
     "The key that signed it was revoked: it cannot be told whether its owner signed it.",
   signedSentBy: "Uploaded by",
+  signedOn: "Signed on",
   signedTitle: "Signature",
   signedUnreadable: "unreadable",
   signedUnreadableSaid: "The signature could not be read.",

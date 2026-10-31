@@ -18,7 +18,11 @@ export type Asked = {
   readonly onShut: () => void;
 };
 
-export type Words = { readonly sheet: Say; readonly page: (word: string) => string };
+export type Words = {
+  readonly sheet: Say;
+  readonly page: (word: string) => string;
+  readonly language: string;
+};
 
 /** The address as it was opened, which Tisty takes whole, and the link to read, which is what is passed on. */
 export type Links = { readonly opened: string; readonly read: string };
@@ -60,7 +64,7 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, links: Links): Pa
     },
     { kind: "index", heads: now.heads },
     { kind: "details", facts: { body: now.text, fields: fields(now.text) } },
-    { kind: "seal", seal: sealOf(now.about) },
+    { kind: "seal", seal: sealOf(now.about, words.language) },
     {
       kind: "acts",
       acts: [

@@ -223,7 +223,7 @@ const shown = async (password?: string) => {
       panelsOf(
         { title, text: found.text, about: found.about, view, raw, heads },
         { onView, onRaw, onShut: () => besideShown(false) },
-        { sheet: sheetSays.say, page: say },
+        { sheet: sheetSays.say, page: say, language },
         { opened: location.href, read: readLinkOf(location.origin, found.link) },
       ),
     );

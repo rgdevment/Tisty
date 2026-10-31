@@ -83,9 +83,11 @@ const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   if (seal.verdict === "unsigned")
     return rowed(page, { key: "seal", label: say("signedTitle"), gist: say("signedNone") });
   const [short, long, tone] = VERDICT[seal.verdict];
-  const gist = [seal.who, say(short)].filter(Boolean).join(" · ");
+  const gist = [seal.name, seal.who, say(short)].filter(Boolean).join(" · ");
   return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone }, (into) => {
     into.append(made(page, "p", "side-said", say(long)));
+    if (seal.signedOn)
+      into.append(made(page, "p", "side-said", `${say("signedOn")} ${seal.signedOn}`));
     if (seal.fingerprint) into.append(made(page, "code", "side-print", seal.fingerprint));
     if (seal.sender)
       into.append(made(page, "p", "side-said", `${say("signedSentBy")} ${seal.sender}`));

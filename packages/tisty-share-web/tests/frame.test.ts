@@ -9,6 +9,7 @@ import {
   tistyOf,
   whenOf,
 } from "../src/frame";
+import { day } from "../src/when";
 import { wordsFor } from "../src/words";
 
 const say = wordsFor(true);
@@ -38,7 +39,7 @@ describe("when it was shared", () => {
 
 describe("the seal", () => {
   it("names who wrote it and their fingerprint", () => {
-    expect(sealOf({ wrote: mario, sent: mario })).toEqual({
+    expect(sealOf({ wrote: mario, sent: mario }, "es")).toEqual({
       verdict: "holds",
       who: "r8f1",
       fingerprint: mario.fingerprint,
@@ -46,14 +47,24 @@ describe("the seal", () => {
     });
   });
 
+  it("shows the name and the day the writer signed with, never the uploader's", () => {
+    const named: Signed = { ...mario, name: "Mario Hidalgo", signed: NOW } as Signed;
+    expect(sealOf({ wrote: named, sent: { ...ana, name: "Ana" } as Signed }, "es")).toMatchObject({
+      name: "Mario Hidalgo",
+      signedOn: day(NOW, "es"),
+      sender: "k7qp",
+    });
+    expect(sealOf({ wrote: mario }, "es")).toMatchObject({ name: undefined, signedOn: undefined });
+  });
+
   it("names who uploaded it only when it was someone else", () => {
-    expect(sealOf({ wrote: mario, sent: ana }).sender).toBe("k7qp");
+    expect(sealOf({ wrote: mario, sent: ana }, "es").sender).toBe("k7qp");
   });
 
   it("says when nobody signed it, or the signature does not hold", () => {
-    expect(sealOf({})).toEqual({ verdict: "unsigned" });
-    expect(sealOf({ sent: ana })).toEqual({ verdict: "unsigned" });
-    expect(sealOf({ wrote: { is: "refused" } })).toMatchObject({
+    expect(sealOf({}, "es")).toEqual({ verdict: "unsigned" });
+    expect(sealOf({ sent: ana }, "es")).toEqual({ verdict: "unsigned" });
+    expect(sealOf({ wrote: { is: "refused" } }, "es")).toMatchObject({
       verdict: "refused",
       who: undefined,
     });

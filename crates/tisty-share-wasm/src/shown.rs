@@ -1,5 +1,5 @@
 use serde::Serialize;
-use tisty_share_proto::envelope::{Envelope, Kind, LinkKey, Refused, open};
+use tisty_share_proto::envelope::{Envelope, Kind, LinkKey, Refused, Written, open};
 use tisty_share_proto::identity::{Revocation, Verdict};
 use tisty_share_proto::limits::Limits;
 use zeroize::Zeroizing;
@@ -31,15 +31,37 @@ pub enum Signed {
         fingerprint: String,
         suffix: String,
         since: i64,
+        #[serde(flatten)]
+        written: Said,
     },
     /// The key was taken back, so nothing it signed can be told from a thief's.
     Revoked {
         fingerprint: String,
         suffix: String,
         at: i64,
+        #[serde(flatten)]
+        written: Said,
     },
     Refused,
     Unreadable,
+}
+
+/// What the writer signed beside the words: the name they chose and when; an uploader's signature says neither.
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+pub struct Said {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signed: Option<i64>,
+}
+
+impl From<Option<Written>> for Said {
+    fn from(written: Option<Written>) -> Self {
+        written.map_or_else(Self::default, |one| Self {
+            name: one.name,
+            signed: Some(one.at.as_second()),
+        })
+    }
 }
 
 /// Why a link could not be read, as one word the page translates.
@@ -92,8 +114,8 @@ pub fn shown(
         title: tisty_markdown::front::title(&opened.text),
         tags: tisty_markdown::front::tags(&opened.text),
         version: opened.manifest.version,
-        wrote: opened.wrote.map(signed),
-        sent: opened.sent.map(signed),
+        wrote: opened.wrote.map(|one| signed(one, opened.written.into())),
+        sent: opened.sent.map(|one| signed(one, Said::default())),
     };
     Ok(Shown {
         text: opened.text,
@@ -130,17 +152,19 @@ fn roomier(server: Limits) -> Limits {
     }
 }
 
-fn signed(verdict: Verdict) -> Signed {
+fn signed(verdict: Verdict, written: Said) -> Signed {
     match verdict {
         Verdict::Holds { person, since } => Signed::Holds {
             fingerprint: person.fingerprint(),
             suffix: person.suffix(),
             since: since.as_second(),
+            written,
         },
         Verdict::Revoked { person, at } => Signed::Revoked {
             fingerprint: person.fingerprint(),
             suffix: person.suffix(),
             at: at.as_second(),
+            written,
         },
         Verdict::Refused => Signed::Refused,
         Verdict::Unreadable => Signed::Unreadable,
