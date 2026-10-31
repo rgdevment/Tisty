@@ -14,7 +14,8 @@ struct Door {
 
 impl Door {
     fn new() -> Self {
-        let home = tempfile::tempdir().unwrap();
+        // A copied binary run from %TEMP% looks like a dropper to antivirus heuristics; target is where builds are trusted.
+        let home = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap();
         let binary = home
             .path()
             .join("bin")
