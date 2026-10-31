@@ -118,14 +118,20 @@ const gistOf = (card: ShareCard | null): string => {
 // The «Shared» row: an offer to share, or the links to hand out and a way to stop.
 const sharedPanel = (
   card: ShareCard | null,
+  facts: DocFacts | null,
   asked: { onShare: () => void; onStop: () => void },
 ): Panel => {
+  // Someone else's document is not offered at all (decision 68); until its facts arrive nothing is offered either.
+  if (!card && facts && !facts.mine)
+    return { kind: "shared", gist: t("sharedNotMine"), said: t("sharedNotMineWhy") };
   if (!card)
     return {
       kind: "shared",
       gist: t("sharedNot"),
       said: t("sharedWhy"),
-      acts: [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }],
+      acts: facts
+        ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
+        : undefined,
     };
   const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
   if (card.edit)
@@ -226,7 +232,7 @@ export default function Beside(props: Props) {
       },
     },
     { kind: "details", facts: details, open: short },
-    sharedPanel(card, {
+    sharedPanel(card, facts, {
       onShare: () => setSharing(true),
       onStop: () =>
         shareStop(paper)

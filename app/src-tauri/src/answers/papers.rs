@@ -153,6 +153,8 @@ pub struct Facts {
     born: Option<String>,
     signed_as: Option<String>,
     edited_as: Option<String>,
+    /// Whether it is this person's to share (decision 68).
+    mine: bool,
 }
 
 /// A file from outside Tisty tells only what the disk knows of it; no log names its author.
@@ -169,6 +171,7 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
         born: None,
         signed_as: None,
         edited_as: None,
+        mine: false,
     })
 }
 
@@ -419,6 +422,7 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         born,
         signed_as,
         edited_as,
+        mine: kept.is_some_and(|one| session.state.mine(one)),
     })
 }
 

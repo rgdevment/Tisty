@@ -1237,6 +1237,7 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
+  mine: boolean;
 }
 
 export const ALIAS_AT_MOST = 40;

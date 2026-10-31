@@ -1,15 +1,20 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
 import Beside from "../ui/Beside";
 
-const ipc = vi.hoisted(() => ({ card: null as unknown, asked: [] as string[] }));
+const ipc = vi.hoisted(() => ({
+  card: null as unknown,
+  facts: { bytes: 7, pages: 0, mine: true } as unknown,
+  asked: [] as string[],
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     ipc.asked.push(cmd);
+    if (cmd === "doc_facts") return Promise.resolve(ipc.facts);
     return Promise.resolve(cmd === "share_card" ? ipc.card : null);
   },
 }));
@@ -47,7 +52,11 @@ const panel = (heads: Head[], more: { onCopy?: () => void } = {}) => render(besi
 // A row of the column: its details element, and a press on its summary as the person makes it.
 const row = (key: string) =>
   document.querySelector(`details[data-row=${key}]`) as HTMLDetailsElement;
-const press = (key: string) => userEvent.click(row(key).querySelector("summary") as HTMLElement);
+// The document's facts arrive after the first draw and draw the column again, so a press waits for them.
+const press = async (key: string) => {
+  await act(async () => {});
+  await userEvent.click(row(key).querySelector("summary") as HTMLElement);
+};
 
 describe("the document's column", () => {
   it("opens the details with a document whose outline is short", () => {
@@ -191,7 +200,20 @@ describe("the shared row", () => {
     ipc.card = null;
     panel(headed(2));
     await press("shared");
-    expect(screen.getByRole("button", { name: t("shareIt") })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: t("shareIt") })).toBeTruthy();
+  });
+
+  it("offers nothing on someone else's document, and says why", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, author: "Tisty", mine: false };
+    panel(headed(2));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNotMine")),
+    );
+    await press("shared");
+    expect(screen.getByText(t("sharedNotMineWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+    ipc.facts = { bytes: 7, pages: 0, mine: true };
   });
 
   it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {

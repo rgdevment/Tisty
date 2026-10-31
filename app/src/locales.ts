@@ -591,6 +591,9 @@ const en = {
   besidePageOf: "A page of",
   besideShared: "Shared",
   sharedNot: "Not shared",
+  sharedNotMine: "Not yours",
+  sharedNotMineWhy:
+    "This document is someone else's, so this copy cannot be shared. Only its author can share it: ask them for the link.",
   sharedWhy:
     "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end, with no account.",
   shareIt: "Share…",
@@ -3301,6 +3304,9 @@ const es: Catalog = {
   besidePageOf: "Es página de",
   besideShared: "Compartido",
   sharedNot: "Sin compartir",
+  sharedNotMine: "No es tuyo",
+  sharedNotMineWhy:
+    "Este documento es de otra persona, así que esta copia no se puede compartir. Solo quien lo escribió puede compartirlo: pídele el link.",
   sharedWhy:
     "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas.",
   shareIt: "Compartir…",
