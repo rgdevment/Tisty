@@ -63,6 +63,9 @@
     "typed-rest-client": {
       "qs": "^6.15.2"
     },
+    "@stryker-mutator/core": {
+      "minimatch": "^11.0.1"
+    },
     "katex": "$katex"
   },
   "description": "Notes, documents and tasks, all local. No subscription, no telemetry",
