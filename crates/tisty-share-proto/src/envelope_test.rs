@@ -767,6 +767,8 @@ fn a_name_is_a_readable_line_of_at_most_eighty_characters_with_nothing_unseen() 
         "\u{200B}",
         "Ana\u{202E}zeréP",
         "\u{3164}",
+        "Ana\u{2028}Pérez",
+        "12345 67890 12345 67890",
         "Ana\u{E0041}",
         long.as_str(),
     ] {

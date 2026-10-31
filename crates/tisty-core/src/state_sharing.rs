@@ -37,8 +37,22 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
                 d: shared(1),
             },
         ),
-        by(2, "dev_b", Op::ShareVersion { id: doc, v: 3 }),
-        by(3, "dev_a", Op::ShareVersion { id: doc, v: 2 }),
+        by(
+            2,
+            "dev_b",
+            Op::ShareVersion {
+                id: doc,
+                version: 3,
+            },
+        ),
+        by(
+            3,
+            "dev_a",
+            Op::ShareVersion {
+                id: doc,
+                version: 2,
+            },
+        ),
     ]);
     let kept = state.shares.get(&doc).expect("the share is kept");
     assert_eq!(kept.version, 3);
@@ -59,7 +73,14 @@ fn stopping_forgets_the_links_and_a_version_after_it_brings_nothing_back() {
             },
         ),
         by(2, "dev_a", Op::ShareStop { id: doc }),
-        by(3, "dev_b", Op::ShareVersion { id: doc, v: 2 }),
+        by(
+            3,
+            "dev_b",
+            Op::ShareVersion {
+                id: doc,
+                version: 2,
+            },
+        ),
     ]);
     assert!(state.shares.is_empty());
 }
@@ -72,7 +93,10 @@ fn sharing_is_optional_for_an_older_tisty_and_undo_steps_over_it() {
             id: doc,
             d: shared(1),
         },
-        Op::ShareVersion { id: doc, v: 2 },
+        Op::ShareVersion {
+            id: doc,
+            version: 2,
+        },
         Op::ShareStop { id: doc },
     ] {
         assert!(op.is_optional(), "{op:?}");
@@ -100,4 +124,27 @@ fn name_of(op: &Op) -> String {
         .as_str()
         .unwrap()
         .to_owned()
+}
+
+#[test]
+fn every_share_op_is_written_to_the_log_and_read_back_as_it_was() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = crate::store::Store::open(dir.path(), DeviceId("dev_a".into())).unwrap();
+    let doc = Ulid::generate();
+    for op in [
+        Op::ShareDoc {
+            id: doc,
+            d: shared(1),
+        },
+        Op::ShareVersion {
+            id: doc,
+            version: 2,
+        },
+        Op::ShareStop { id: doc },
+    ] {
+        let said = store.append(op.clone()).unwrap();
+        let line = serde_json::to_string(&said).unwrap();
+        let back: Event = serde_json::from_str(&line).unwrap();
+        assert_eq!(back.op, op);
+    }
 }

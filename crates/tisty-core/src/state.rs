@@ -98,9 +98,9 @@ impl State {
                 self.shares.insert(*id, d.clone());
             }
             // Two machines can each put a version up; the store remembers the highest.
-            Op::ShareVersion { id, v } => {
+            Op::ShareVersion { id, version } => {
                 if let Some(shared) = self.shares.get_mut(id) {
-                    shared.version = shared.version.max(*v);
+                    shared.version = shared.version.max(*version);
                 }
             }
             Op::ShareStop { id } => {

@@ -438,7 +438,10 @@ impl Cache {
                     | crate::Op::ShareStop { .. }
             )
         });
-        if !only_shares || self.meta("fingerprint").is_none_or(|one| one.is_empty()) {
+        if events.is_empty()
+            || !only_shares
+            || self.meta("fingerprint").is_none_or(|one| one.is_empty())
+        {
             return Ok(0);
         }
         self.db.execute(

@@ -307,7 +307,8 @@ pub enum Op {
     #[serde(rename = "share.doc")]
     ShareDoc { id: DocId, d: Shared },
     #[serde(rename = "share.version")]
-    ShareVersion { id: DocId, v: u64 },
+    /// Named apart from the event's own `v`, since an op is written flat into its event.
+    ShareVersion { id: DocId, version: u64 },
     #[serde(rename = "share.stop")]
     ShareStop { id: DocId },
 }

@@ -117,6 +117,7 @@ fn refused(said: &Said) -> Refusal {
     match word.as_deref() {
         // The one no the person can act on: this machine's key was taken back or never held.
         Some("unsigned") => Refusal::of("shareUnsigned"),
+        Some("too_long" | "envelope") => Refusal::of("shareTooBig"),
         Some("slow") => Refusal::of("shareSlow"),
         // The server's own trouble, or no word at all: nothing the person can do but try again.
         Some("store" | "crowded" | "work_refused" | "no_randomness") | None => {
@@ -277,7 +278,7 @@ pub(crate) fn already_gone(refused: &Refusal) -> bool {
 
 /// Hands the server a root's word taking keys back, so readers stop seeing what they signed as holding (decision 73).
 pub(crate) fn revoke(wire: &impl Wire, revoked: &[Revocation]) -> Result<(), Refusal> {
-    // Many at once, so taking back a machine never costs the place its allowance.
+    // A few at once, so even a person who took back many machines asks the server only a few times.
     for some in revoked.chunks(REVOCATIONS_AT_ONCE) {
         let body = serde_json::to_vec(some).map_err(|_| Refusal::of("internal"))?;
         done(wire.send(Asking {

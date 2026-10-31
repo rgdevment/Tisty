@@ -238,6 +238,7 @@ const KNOWN = [
   "shareRefused",
   "shareAlready",
   "shareFailed",
+  "shareTooBig",
   "shareSlow",
   "shareUnsigned",
   "shareNotMine",
