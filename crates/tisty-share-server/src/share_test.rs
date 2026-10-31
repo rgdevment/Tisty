@@ -620,6 +620,98 @@ fn a_network_that_knows_the_password_reads_on_without_work_or_counts() {
 }
 
 #[test]
+fn a_known_network_that_guesses_still_waits_and_a_new_password_is_known_nowhere() {
+    let mut world = World::with(Policy {
+        guessed: 1,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0)
+            .is_ok()
+    );
+    for _ in 0..world.share.policy.misses {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), HERE, T0),
+            Err(Refused::PasswordWrong)
+        );
+    }
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("perro azul"), HERE, T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+
+    // After the owner changes the password, even a network that knew the old one pays the work again.
+    let later = T0 + world.share.policy.locked;
+    world
+        .manage(
+            &reserved,
+            Manage::Password(Some("gato pardo".into())),
+            later,
+        )
+        .unwrap();
+    assert_eq!(
+        world.read_from(&reserved.id, Some("gato pardo"), HERE, later),
+        Err(Refused::WorkAsked)
+    );
+}
+
+#[test]
+fn a_reader_who_knows_the_password_is_not_held_back_by_a_guesser_in_its_block() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), in_block(500), T0)
+            .is_ok()
+    );
+    for net in 0..world.share.policy.misses_wide as u16 {
+        let _ = world.read_from(&reserved.id, Some("gato"), in_block(net), T0);
+    }
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), in_block(500), T0)
+            .is_ok()
+    );
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("perro azul"), in_block(501), T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+}
+
+#[test]
+fn a_heavily_guessed_day_gives_a_block_a_fifth_too() {
+    let mut world = World::with(Policy {
+        guessed: 1_000,
+        guessed_most: 1,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    let _ = world.read_from(&reserved.id, Some("gato"), there(1), T0);
+    let fifth = world.share.policy.misses_wide / 5;
+    for net in 0..fifth as u16 {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), in_block(net), T0),
+            Err(Refused::PasswordWrong)
+        );
+    }
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("gato"), in_block(fifth as u16), T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+}
+
+#[test]
 fn a_network_already_waiting_spends_no_proof() {
     let mut world = World::with(Policy {
         guessed: 1,

@@ -59,6 +59,10 @@ type Solve = (challenge: string) => Promise<string | undefined>;
 
 const ENDS = new Set(["missing", "gone", "paused", "blocked"]);
 
+// Too many reads from this network is a wait, which the reader is told rather than a plain «try again».
+const worded = (refusal: Refusal) =>
+  refusal.refused === "slow" ? "password_locked" : "work_refused";
+
 // The server's challenge for one step, worked in the page: the proof, or why there is none.
 const worked = async (
   asking: object,
@@ -100,7 +104,7 @@ export const fetched = async (
   if (!("refused" in first) || first.refused !== "work_asked" || !solve) return first;
   const work = await worked({ for: "password", id }, solve, ask);
   // Only a document gone or put away ends the reading; any other trouble with the work asks for the password again.
-  if (typeof work !== "string") return ENDS.has(work.refused) ? work : { refused: "work_refused" };
+  if (typeof work !== "string") return ENDS.has(work.refused) ? work : { refused: worded(work) };
   return sealedOf(id, ask, { ...headers, "Tisty-Work": work });
 };
 

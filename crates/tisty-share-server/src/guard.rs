@@ -363,7 +363,7 @@ fn keyed(secret: &[u8; 32], parts: &[&[u8]]) -> [u8; 32] {
     over.finalize().into_bytes().into()
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub(crate) fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 

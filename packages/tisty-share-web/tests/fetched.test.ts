@@ -151,10 +151,10 @@ describe("a password to a document guessed at from everywhere", () => {
     expect(asked).toHaveLength(2);
   });
 
-  it("asks for the password again when the challenge is refused for being too much", async () => {
+  it("asks for the password again, saying to wait, when the challenge is refused for being too much", async () => {
     const { ask } = server([workAsked(), new Response('{"refused":"slow"}', { status: 429 })]);
     expect(await fetched("k7Qm2xPa", ask, "perro azul", async () => "w")).toEqual({
-      refused: "work_refused",
+      refused: "password_locked",
     });
   });
 
