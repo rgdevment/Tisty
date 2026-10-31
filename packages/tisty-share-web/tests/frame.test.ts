@@ -48,11 +48,11 @@ describe("the seal", () => {
 
   it("names who uploaded it only when it was someone else", () => {
     expect(sealOf({ wrote: mario, sent: ana }).sender).toBe("k7qp");
-    expect(sealOf({ sent: ana })).toMatchObject({ verdict: "holds", who: "k7qp" });
   });
 
   it("says when nobody signed it, or the signature does not hold", () => {
     expect(sealOf({})).toEqual({ verdict: "unsigned" });
+    expect(sealOf({ sent: ana })).toEqual({ verdict: "unsigned" });
     expect(sealOf({ wrote: { is: "refused" } })).toMatchObject({
       verdict: "refused",
       who: undefined,

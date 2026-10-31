@@ -35,8 +35,9 @@ export const whenOf = (
     .join(" · ");
 
 // Who wrote it is what the reader asks; who uploaded it is said too, but only when it was someone else.
+// The uploader never stands in for the writer: a body with no signature of its own is nobody's.
 export const sealOf = (about: About): Seal => {
-  const signed = about.wrote ?? about.sent;
+  const signed = about.wrote;
   if (!signed) return { verdict: "unsigned" };
   const writer = "suffix" in signed ? signed : undefined;
   const sent = about.sent && "suffix" in about.sent ? about.sent : undefined;

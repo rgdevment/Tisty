@@ -74,7 +74,16 @@ describe("a refusal", () => {
   });
 
   it("of anything else is said on the page, a badly copied link and one still uploading too", () => {
-    for (const word of ["nolink", "unwritten", "paused", "blocked", "keyless", "locked", "down"])
+    for (const word of [
+      "nolink",
+      "unwritten",
+      "paused",
+      "blocked",
+      "keyless",
+      "locked",
+      "down",
+      "unsigned",
+    ])
       expect(answered(word), word).toEqual({ went: [], told: [word] });
   });
 

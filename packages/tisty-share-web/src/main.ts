@@ -84,9 +84,11 @@ const taken = (page: Page): Found => {
   }
 };
 
+// Every document is signed by whoever wrote it; one that is not never reaches the page (decision 70).
 const read = (sealed: Uint8Array, key: string, limits?: string): Found | string => {
   try {
-    return taken(open(sealed, key, limits));
+    const found = taken(open(sealed, key, limits));
+    return found.about.wrote ? found : "unsigned";
   } catch (error_) {
     return wordOf(error_);
   }

@@ -20,6 +20,8 @@ const SPANISH = {
   offline: "No se pudo llegar a Tisty Share. Revisa tu conexión y vuelve a intentarlo.",
   down: "Tisty Share no responde en este momento. Vuelve a intentarlo en unos minutos.",
   failed: "No se pudo abrir este documento.",
+  unsigned:
+    "Este documento llegó sin la firma de quien lo escribió, así que Tisty Share no lo muestra.",
   document: "Documento compartido",
   notices: "Licencias de terceros",
   gatelabel: "Clave",
@@ -76,6 +78,7 @@ const ENGLISH: Record<Word, string> = {
   offline: "Tisty Share could not be reached. Check your connection and try again.",
   down: "Tisty Share is not answering right now. Try again in a few minutes.",
   failed: "This document could not be opened.",
+  unsigned: "This document came without its author's signature, so Tisty Share does not show it.",
   document: "Shared document",
   notices: "Third-party licences",
   gatelabel: "Password",
