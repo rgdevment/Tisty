@@ -70,9 +70,7 @@ describe("the panels beside a shared document", () => {
     ]);
   });
 
-  it("opens in Tisty with the whole link, downloads the text as it is, and copies the link", async () => {
-    const made = vi.fn(() => "blob:texto");
-    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: made, revokeObjectURL: vi.fn() }));
+  it("opens in Tisty with the whole link, copies the text as it is, and copies the link", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const acts = of(panelsOf(now(), asking().asked, words, LINKS), "acts").acts;
@@ -81,11 +79,11 @@ describe("the panels beside a shared document", () => {
       main: true,
       href: `tisty://share?link=${encodeURIComponent(LINKS.opened)}`,
     });
-    expect(md.download).toBe("Guía.md");
-    const link = document.createElement("a");
-    link.href = "#";
-    md.onPick?.(link);
-    expect(link.href).toBe("blob:texto");
+    const copiedText = document.createElement("button");
+    md.onPick?.(copiedText);
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledWith(now().text);
+    expect(copiedText.textContent).toBe(say("copiedmd"));
     const button = document.createElement("button");
     copy.onPick?.(button);
     await Promise.resolve();

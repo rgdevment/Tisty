@@ -91,9 +91,5 @@ export const accessOf = (facts: Facts): string => (facts.gated ? "gated" : "unli
 export const endsOf = (facts: Facts, language: string): string =>
   facts.ends === undefined ? "" : day(facts.ends, language, "medium");
 
-// A name every system takes: the title without the characters some forbid, or the page's own word for it.
-export const fileOf = (title: string, fallback: string): string =>
-  `${title.replaceAll(/[\\/:*?"<>|]/g, "").trim() || fallback}.md`;
-
 // Tisty takes the whole link, key and all, from its own scheme; the browser hands it over only on a click.
 export const tistyOf = (link: string): string => `tisty://share?link=${encodeURIComponent(link)}`;

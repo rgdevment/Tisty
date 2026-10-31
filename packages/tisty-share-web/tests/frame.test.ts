@@ -3,7 +3,6 @@ import {
   accessOf,
   bylined,
   endsOf,
-  fileOf,
   type Signed,
   sealOf,
   tagged,
@@ -93,13 +92,6 @@ describe("the byline", () => {
   it("is left to the frame when the body has no title, or there is nothing to say", () => {
     expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"], "hoy")).toBe(false);
     expect(bylined(pageOf("<h1>Guía</h1>"), [], "")).toBe(false);
-  });
-});
-
-describe("the downloaded file", () => {
-  it("is named after the title, without what some systems forbid", () => {
-    expect(fileOf("Docker: guía/rápida?", "Documento")).toBe("Docker guíarápida.md");
-    expect(fileOf("  ", "Documento compartido")).toBe("Documento compartido.md");
   });
 });
 

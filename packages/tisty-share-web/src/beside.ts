@@ -1,6 +1,6 @@
 import { fields, type Head, type Panel, type Say } from "tisty-editor/read";
 import type { View } from "./drawn";
-import { type About, fileOf, sealOf, tistyOf } from "./frame";
+import { type About, sealOf, tistyOf } from "./frame";
 
 export type Now = {
   readonly title: string;
@@ -25,23 +25,17 @@ export type Links = { readonly opened: string; readonly read: string };
 
 const COPIED_MS = 2000;
 
-const copying = (link: string, page: Words["page"]) => (at: HTMLElement) => {
-  navigator.clipboard.writeText(link).then(
+// The button says it was copied for a moment, then goes back to what it offers.
+const copying = (what: string, said: string, done: string) => (at: HTMLElement) => {
+  navigator.clipboard.writeText(what).then(
     () => {
-      at.textContent = page("copied");
+      at.textContent = done;
       setTimeout(() => {
-        at.textContent = page("copy");
+        at.textContent = said;
       }, COPIED_MS);
     },
     () => undefined,
   );
-};
-
-// The file is made when it is asked for, so the page never holds the words twice until then.
-const downloading = (text: string) => (at: HTMLElement) => {
-  const link = at as HTMLAnchorElement;
-  if (link.href.startsWith("blob:")) URL.revokeObjectURL(link.href);
-  link.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
 };
 
 // The panels a reader of a shared document needs, from the same catalogue the window draws from.
@@ -73,12 +67,14 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, links: Links): Pa
         { key: "open", label: words.page("openin"), main: true, href: tistyOf(links.opened) },
         {
           key: "md",
-          label: words.page("download"),
-          href: "#",
-          download: fileOf(now.title, words.page("document")),
-          onPick: downloading(now.text),
+          label: words.page("copymd"),
+          onPick: copying(now.text, words.page("copymd"), words.page("copiedmd")),
         },
-        { key: "copy", label: words.page("copy"), onPick: copying(links.read, words.page) },
+        {
+          key: "copy",
+          label: words.page("copy"),
+          onPick: copying(links.read, words.page("copy"), words.page("copied")),
+        },
       ],
     },
   ];
