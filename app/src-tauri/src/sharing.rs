@@ -11,7 +11,7 @@ use tisty_share_proto::work::{self, Challenge};
 use crate::handed::Voucher;
 use crate::refusing::Refusal;
 
-/// Tisty Share as Tisty knows it out of the box; a person running their own server names it in the settings.
+/// Tisty Share as Tisty knows it; each share keeps the server it went to, so a later one can live elsewhere.
 pub(crate) const SERVER: &str = "https://tisty.cl";
 const API: &str = "/api/v1/";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(30);

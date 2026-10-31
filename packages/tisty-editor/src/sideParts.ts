@@ -94,3 +94,19 @@ export const listed = (
   }
   return list;
 };
+
+const COPIED_MS = 2000;
+
+/** Copies the text, and the press says so for a moment before it offers again. */
+export const copyFrom = (at: HTMLElement, text: string, offer: string, done: string) => {
+  const view = at.ownerDocument.defaultView;
+  view?.navigator.clipboard.writeText(text).then(
+    () => {
+      at.textContent = done;
+      view.setTimeout(() => {
+        at.textContent = offer;
+      }, COPIED_MS);
+    },
+    () => undefined,
+  );
+};

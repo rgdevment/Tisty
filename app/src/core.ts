@@ -1415,7 +1415,6 @@ export const folderAway = (id: string, away: boolean): Promise<void> =>
   invoke("folder_away", { id, away });
 export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
-
 export const docUnflag = (id: string): Promise<void> => invoke("doc_unflag", { id });
 export const docKeepCompacted = (id: string): Promise<void> => invoke("doc_keep_compacted", { id });
 export const docCompactedLast = (id: string): Promise<boolean> =>

@@ -1,6 +1,6 @@
 import type { Act, Facts, Link, More } from "./side";
 import { wordsIn } from "./side";
-import { listed, made, pressed, rowed } from "./sideParts";
+import { copyFrom, listed, made, pressed, rowed } from "./sideParts";
 import type { Say } from "./words";
 
 type Of<K extends More["kind"]> = Extract<More, { kind: K }>;
@@ -94,25 +94,15 @@ const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   });
 };
 
-const COPIED_MS = 2000;
-
 // The link is copied as it is shown, and the press says so for a moment.
 const copied = (page: Document, say: Say, link: Link) => {
   const part = made(page, "div", "side-link-row");
   const label = made(page, "span", "side-link-label", link.label);
   if (link.note) label.append(made(page, "span", "side-link-note", ` · ${link.note}`));
   const url = made(page, "code", "side-print side-link-url", link.url);
-  const copy = pressed(page, "side-act", say("viewCopy"), (at) => {
-    page.defaultView?.navigator.clipboard.writeText(link.url).then(
-      () => {
-        at.textContent = say("viewCopied");
-        page.defaultView?.setTimeout(() => {
-          at.textContent = say("viewCopy");
-        }, COPIED_MS);
-      },
-      () => undefined,
-    );
-  });
+  const copy = pressed(page, "side-act", say("viewCopy"), (at) =>
+    copyFrom(at, link.url, say("viewCopy"), say("viewCopied")),
+  );
   const line = made(page, "div", "side-link-line");
   line.append(url, copy);
   part.append(label, line);

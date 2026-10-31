@@ -1,4 +1,4 @@
-import { fields, type Head, type Panel, type Say } from "tisty-editor/read";
+import { copyFrom, fields, type Head, type Panel, type Say } from "tisty-editor/read";
 import type { View } from "./drawn";
 import { type About, sealOf, tistyOf } from "./frame";
 
@@ -27,20 +27,8 @@ export type Words = {
 /** The address as it was opened, which Tisty takes whole, and the link to read, which is what is passed on. */
 export type Links = { readonly opened: string; readonly read: string };
 
-const COPIED_MS = 2000;
-
-// The button says it was copied for a moment, then goes back to what it offers.
-const copying = (what: string, said: string, done: string) => (at: HTMLElement) => {
-  navigator.clipboard.writeText(what).then(
-    () => {
-      at.textContent = done;
-      setTimeout(() => {
-        at.textContent = said;
-      }, COPIED_MS);
-    },
-    () => undefined,
-  );
-};
+const copying = (what: string, said: string, done: string) => (at: HTMLElement) =>
+  copyFrom(at, what, said, done);
 
 // The panels a reader of a shared document needs, from the same catalogue the window draws from.
 export const panelsOf = (now: Now, asked: Asked, words: Words, links: Links): Panel[] => {
