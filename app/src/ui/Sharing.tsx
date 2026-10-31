@@ -12,7 +12,7 @@ interface Props {
   onError: (problem: unknown) => void;
 }
 
-// A few lines are enough to send the person looking; the rest are where those are.
+// A few are enough to send the person looking; the rest are only counted.
 const SECRETS_SHOWN = 3;
 
 // What is encrypted ends on its own after 30 idle days; the dialog only lets it end sooner (decisions 49 and 50).
@@ -28,6 +28,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
+  // Nothing goes out before the look is over, so the warning never comes after the press.
+  const [looked, setLooked] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
@@ -38,13 +40,14 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     let live = true;
     shareSecrets(file)
       .then((found) => live && setSecrets(found))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => live && setLooked(true));
     return () => {
       live = false;
     };
   }, [file]);
 
-  const ready = !busy && (!gated || password.trim() !== "");
+  const ready = looked && !busy && (!gated || password.trim() !== "");
 
   const go = (event: React.FormEvent) => {
     event.preventDefault();
@@ -80,10 +83,13 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             <ul className="text-[12px]">
               {secrets.slice(0, SECRETS_SHOWN).map((one) => (
                 <li key={one.line}>
-                  {fill("shareSecretAt", String(one.line))}
+                  {one.under ? fill("shareSecretUnder", one.under) : t("shareSecretTop")}
                   {one.named && <code className="ml-1.5 font-mono text-[11.5px]">{one.named}</code>}
                 </li>
               ))}
+              {secrets.length > SECRETS_SHOWN && (
+                <li>{fill("shareSecretsMore", String(secrets.length - SECRETS_SHOWN))}</li>
+              )}
             </ul>
             <span className="text-[11.5px] leading-relaxed text-soft">{t("shareSecretsWhy")}</span>
           </div>
@@ -180,7 +186,15 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             disabled={!ready}
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
           >
-            {t(busy ? "shareGoing" : secrets.length > 0 ? "shareGoAnyway" : "shareGo")}
+            {t(
+              busy
+                ? "shareGoing"
+                : !looked
+                  ? "shareLooking"
+                  : secrets.length > 0
+                    ? "shareGoAnyway"
+                    : "shareGo",
+            )}
           </button>
         </div>
       </form>

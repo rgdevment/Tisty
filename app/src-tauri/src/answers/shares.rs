@@ -100,6 +100,8 @@ pub struct Secret {
     line: usize,
     /// What the line calls it, when it calls it anything, such as `AWS_SECRET_ACCESS_KEY`.
     named: String,
+    /// The heading it sits under, since the page shows headings and no line numbers.
+    under: Option<String>,
 }
 
 fn secrets(text: &str) -> Vec<Secret> {
@@ -108,8 +110,35 @@ fn secrets(text: &str) -> Vec<Secret> {
         .map(|one| Secret {
             line: one.line,
             named: one.named,
+            under: heading_over(text, one.line),
         })
         .collect()
+}
+
+// The last heading before a line, past the properties and outside fenced code, where a `#` is a comment.
+fn heading_over(text: &str, line: usize) -> Option<String> {
+    let mut lines = text.lines().take(line.saturating_sub(1)).peekable();
+    if lines.next_if(|first| first.trim_end() == "---").is_some() {
+        lines.by_ref().find(|one| one.trim_end() == "---");
+    }
+    let mut fenced = false;
+    let mut heading = None;
+    for one in lines {
+        let one = one.trim_start();
+        if one.starts_with("```") || one.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        let marks = one.len() - one.trim_start_matches('#').len();
+        let said = one[marks..].strip_prefix(' ').map(str::trim);
+        if !fenced
+            && (1..=6).contains(&marks)
+            && let Some(said) = said.filter(|said| !said.is_empty())
+        {
+            heading = Some(said.to_owned());
+        }
+    }
+    heading
 }
 
 #[tauri::command]

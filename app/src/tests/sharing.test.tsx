@@ -5,7 +5,7 @@ import { fill, t } from "../locales";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: unknown }[],
-  secrets: [] as { line: number; named: string }[],
+  secrets: [] as { line: number; named: string; under: string | null }[],
 }));
 
 const CARD = {
@@ -45,7 +45,7 @@ describe("the share dialog", () => {
         onError={() => {}}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: t("shareGo") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     await waitFor(() => expect(onShared).toHaveBeenCalledWith(CARD));
     expect(asked("share_doc")).toEqual([
       {
@@ -65,9 +65,8 @@ describe("the share dialog", () => {
         onError={() => {}}
       />,
     );
-    const form = screen
-      .getByRole("button", { name: t("shareGo") })
-      .closest("form") as HTMLFormElement;
+    const go = await screen.findByRole("button", { name: t("shareGo") });
+    const form = go.closest("form") as HTMLFormElement;
     // Both in one go, before the dialog can redraw between them.
     act(() => {
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
@@ -87,7 +86,7 @@ describe("the share dialog", () => {
       />,
     );
     await userEvent.click(screen.getByRole("radio", { name: new RegExp(t("shareGated")) }));
-    const go = screen.getByRole("button", { name: t("shareGo") });
+    const go = await screen.findByRole("button", { name: t("shareGo") });
     expect(go).toHaveProperty("disabled", true);
     await userEvent.type(screen.getByLabelText(t("sharePassword")), "ñandú");
     await userEvent.click(screen.getByRole("radio", { name: t("shareCanEdit") }));
@@ -103,8 +102,10 @@ describe("the share dialog", () => {
 
   it("names the lines that read like a key and still shares when asked to", async () => {
     ipc.secrets = [
-      { line: 4, named: "AWS_SECRET_ACCESS_KEY" },
-      { line: 9, named: "" },
+      { line: 4, named: "AWS_SECRET_ACCESS_KEY", under: "Deploy" },
+      { line: 9, named: "", under: null },
+      { line: 12, named: "ghp_", under: "Deploy" },
+      { line: 15, named: "sk_live_", under: "Pagos" },
     ];
     const onShared = vi.fn();
     render(
@@ -120,8 +121,10 @@ describe("the share dialog", () => {
     const warning = await screen.findByRole("alert");
     const said = warning.textContent ?? "";
     expect(said).toContain(t("shareSecrets"));
-    expect(said).toContain(`${fill("shareSecretAt", "4")}AWS_SECRET_ACCESS_KEY`);
-    expect(said).toContain(fill("shareSecretAt", "9"));
+    expect(said).toContain(`${fill("shareSecretUnder", "Deploy")}AWS_SECRET_ACCESS_KEY`);
+    expect(said).toContain(t("shareSecretTop"));
+    expect(said).toContain(fill("shareSecretsMore", "1"));
+    expect(said).not.toContain("sk_live_");
     expect(asked("share_secrets")).toEqual([{ file: "deploy.md" }]);
 
     await userEvent.click(screen.getByRole("button", { name: t("shareGoAnyway") }));
@@ -138,8 +141,11 @@ describe("the share dialog", () => {
         onError={() => {}}
       />,
     );
+    // Nothing goes out while the document is still being looked over.
+    const looking = screen.getByRole("button", { name: t("shareLooking") }) as HTMLButtonElement;
+    expect(looking.disabled).toBe(true);
     await waitFor(() => expect(asked("share_secrets")).toHaveLength(1));
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByRole("button", { name: t("shareGo") })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
   });
 });

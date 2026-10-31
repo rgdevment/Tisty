@@ -29,6 +29,7 @@ export interface ShareCard {
 export interface ShareSecret {
   line: number;
   named: string;
+  under: string | null;
 }
 
 export const shareSecrets = (file: string): Promise<ShareSecret[]> =>

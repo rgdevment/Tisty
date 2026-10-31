@@ -317,6 +317,8 @@ const SOUNDS_LIKE: &[&str] = &[
     "AUTH",
     "SIGNATURE",
     "KEY",
+    "CLAVE",
+    "CONTRASEÑA",
 ];
 
 const KNOWN_STARTS: &[&str] = &[
@@ -376,17 +378,45 @@ fn bared(said: &str) -> &str {
 
 fn a_name(key: &str) -> Option<&str> {
     let name = key.trim().rsplit([' ', '\t']).next()?.trim();
-    let name = name.trim_start_matches(['"', '\'', '`']);
+    // Markdown's bold wraps a name as often as a quote does.
+    let name = name.trim_matches('*').trim_start_matches(['"', '\'', '`']);
     let plain = !name.is_empty()
         && name
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'));
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.'));
     plain.then_some(name)
 }
 
+// KEY alone, not inside HOTKEY or KEYWORD, which a whole document says far more often than a file of settings does.
 fn sounds_like_a_credential(name: &str) -> bool {
-    let loud = name.to_ascii_uppercase();
-    SOUNDS_LIKE.iter().any(|one| loud.contains(one))
+    let loud = name.to_uppercase();
+    let words = words_of(name);
+    SOUNDS_LIKE.iter().any(|one| match *one {
+        "KEY" => words.iter().any(|word| word == "KEY"),
+        one => loud.contains(one),
+    })
+}
+
+/// The words of a name, split at its marks and where camelCase turns upper.
+fn words_of(name: &str) -> Vec<String> {
+    let mut words = vec![String::new()];
+    let mut was_lower = false;
+    for one in name.chars() {
+        if !one.is_alphanumeric() {
+            words.push(String::new());
+            was_lower = false;
+            continue;
+        }
+        if one.is_uppercase() && was_lower {
+            words.push(String::new());
+        }
+        was_lower = one.is_lowercase();
+        if let Some(word) = words.last_mut() {
+            word.extend(one.to_uppercase());
+        }
+    }
+    words.retain(|word| !word.is_empty());
+    words
 }
 
 fn stands_for_something_else(value: &str) -> bool {
@@ -446,6 +476,15 @@ fn told_alone(line: &str) -> Option<(bool, &str, &'static str)> {
             "a link with a password written into it",
         )
     })
+}
+
+// A provider's prefix gives a key away anywhere: in a sentence, a table cell or between backticks.
+fn told_within(line: &str) -> Option<(bool, &str, &'static str)> {
+    line.split_whitespace()
+        .map(|word| word.trim_matches(['`', '"', '\'', '*', '(', ')', '[', ']', ',', ';', '|']))
+        .filter(|word| word.len() >= SHORTEST_KNOWN)
+        .find_map(|word| KNOWN_STARTS.iter().find(|one| word.starts_with(**one)))
+        .map(|named| (true, *named, "a value carrying a provider's key prefix"))
 }
 
 fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
@@ -522,14 +561,21 @@ pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
 }
 
 pub fn secrets_in(head: &[u8]) -> Vec<Telling> {
-    if let Some(told) = a_key_itself(head) {
-        return vec![told];
+    if head.starts_with(&[0x30, 0x82]) {
+        return a_key_itself(head).into_iter().collect();
     }
     let text = String::from_utf8_lossy(head);
     let mut seen = Vec::new();
     let mut sure = false;
     for (at, line) in text.lines().enumerate() {
-        let Some((certain, name, why)) = told_by(line).or_else(|| told_alone(line)) else {
+        // Only the line that opens a private key is one: a certificate is public, and other lines still count.
+        let told = match line.contains("-----BEGIN") && line.contains("PRIVATE KEY") {
+            true => Some((true, "", "a PEM private key")),
+            false => told_by(line)
+                .or_else(|| told_alone(line))
+                .or_else(|| told_within(line)),
+        };
+        let Some((certain, name, why)) = told else {
             continue;
         };
         sure |= certain;

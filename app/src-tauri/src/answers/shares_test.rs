@@ -12,6 +12,7 @@ AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY
         found.contains(&Secret {
             line: 4,
             named: "AWS_SECRET_ACCESS_KEY".into(),
+            under: Some("Deploy".into()),
         }),
         "{found:?}"
     );
@@ -29,6 +30,7 @@ b3BlbnNzaC1rZXktdjEAAAAA
         [Secret {
             line: 2,
             named: String::new(),
+            under: None,
         }]
     );
 }
@@ -43,5 +45,32 @@ Use a password manager, and never reuse a token.
 "
         )
         .is_empty()
+    );
+}
+
+#[test]
+fn a_key_is_placed_under_its_heading_past_the_properties_and_code_comments() {
+    let text = "---
+title: x
+# not a heading
+---
+# Servers
+
+## Staging
+
+```sh
+# a comment
+```
+ghp_16C7e42F292c6912E7710c838347Ae178B4a
+";
+    assert_eq!(heading_over(text, 12).as_deref(), Some("Staging"));
+    assert_eq!(heading_over(text, 3), None);
+    assert_eq!(
+        heading_over(
+            "#hashtag
+token",
+            2
+        ),
+        None
     );
 }

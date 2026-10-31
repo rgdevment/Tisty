@@ -639,3 +639,36 @@ fn a_knock_left_unreadable_tells_nothing() {
     knock(&paths, Some("Codex")).unwrap();
     assert_eq!(knocked(&paths).unwrap().by.as_deref(), Some("Codex"));
 }
+
+#[test]
+fn a_certificate_in_a_document_hides_none_of_the_keys_beside_it() {
+    let text = "-----BEGIN CERTIFICATE-----\nMIIDdzCCAl+gAwIBAgIE\n-----END CERTIFICATE-----\n\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\n";
+    let found = secrets_in(text.as_bytes());
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].named, "AWS_SECRET_ACCESS_KEY");
+    assert!(
+        secrets_in(b"-----BEGIN PUBLIC KEY-----\nMIIBIjAN\n\nkeep the private key offline\n")
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_document_says_its_keys_in_markdown_and_in_spanish_too() {
+    // Put together here, so the forge's own secret scanning never takes the made-up key for a real one.
+    let paying = ["sk", "live", "51HyXoTqLmNpQrStUvWxYz0123"].join("_");
+    let bold = secrets_in(format!("**API_KEY**: {paying}\n").as_bytes());
+    assert_eq!(bold[0].named, "API_KEY");
+    let spanish = secrets_in("Contraseña: Hunter2xQ9mZ\nClave: N0vi3mbreAzul7\n".as_bytes());
+    assert_eq!(spanish.len(), 2);
+    let within = secrets_in(format!("La de pagos es `{paying}`, no la compartas.\n").as_bytes());
+    assert_eq!(within[0].named, "sk_live_");
+}
+
+#[test]
+fn a_key_is_a_word_of_its_own_and_not_part_of_another() {
+    assert!(secrets_in(b"Hotkey: CtrlShiftK9\nKeyword: Foo123bar\n").is_empty());
+    assert_eq!(
+        secrets_in(b"SSH_KEY=AbC123dEf456gHi789\nsigningKey=Zz9Yy8Xx7Ww6Vv5\n").len(),
+        2
+    );
+}
