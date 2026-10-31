@@ -20,13 +20,16 @@ AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY
 
 #[test]
 fn a_private_key_is_named_by_where_it_begins() {
-    let text = "Notes
------BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAA
------END OPENSSH PRIVATE KEY-----
-";
+    // Put together here, so a secret scanner never takes the made-up key for a real one.
+    let text = [
+        "Notes",
+        "-----BEGIN OPENSSH PRIVATE KEY-----",
+        "not a key",
+        "",
+    ]
+    .join("\n");
     assert_eq!(
-        secrets(text),
+        secrets(&text),
         [Secret {
             line: 2,
             named: String::new(),

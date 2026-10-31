@@ -646,7 +646,7 @@ fn a_knock_left_unreadable_tells_nothing() {
 
 #[test]
 fn a_certificate_in_a_document_hides_none_of_the_keys_beside_it() {
-    let text = "-----BEGIN CERTIFICATE-----\nMIIDdzCCAl+gAwIBAgIE\n-----END CERTIFICATE-----\n\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\n";
+    let text = "-----BEGIN CERTIFICATE-----\nnot a certificate\n-----END CERTIFICATE-----\n\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\n";
     let found = secrets_in(text.as_bytes());
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].named, "AWS_SECRET_ACCESS_KEY");
@@ -702,10 +702,16 @@ fn a_prefix_in_prose_needs_a_token_after_it() {
 
 #[test]
 fn a_certificate_alone_is_no_key_itself() {
-    let certificate =
-        "-----BEGIN CERTIFICATE-----\nMIIDdzCCAl+gAwIBAgIE\n-----END CERTIFICATE-----\n";
+    let certificate = "-----BEGIN CERTIFICATE-----\nnot a certificate\n-----END CERTIFICATE-----\n";
     assert!(a_key_itself(certificate.as_bytes()).is_none());
-    let deep = "notes\n\n-----BEGIN EC PRIVATE KEY-----\nMHcCAQEE\n";
+    let deep = [
+        "notes",
+        "",
+        "-----BEGIN EC PRIVATE KEY-----",
+        "not a key",
+        "",
+    ]
+    .join("\n");
     assert_eq!(a_key_itself(deep.as_bytes()).map(|one| one.line), Some(3));
 }
 
