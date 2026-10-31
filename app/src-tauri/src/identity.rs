@@ -323,7 +323,11 @@ pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
     let seed = seed.filter(|seed| ours(seed, &session.state));
     let rooted = match seed {
         Some(seed) => person::rooted(&device, &session.state.persons, &seed.root().person()),
-        None => person::adopted(&device, &session.state.persons),
+        None => person::adopted(
+            &device,
+            &session.state.persons,
+            &person::machines(&session.state),
+        ),
     };
     if let Some(op) = rooted
         && let Err(e) = session.commit(op)

@@ -987,6 +987,11 @@ fn a_machine_nobody_vouched_for_has_only_its_alias_to_go_by() {
     assert!(!state.mine_to_share(&state.docs[&theirs], &me));
 }
 
+fn adopting(two: &Two) -> Option<Op> {
+    let state = two.state();
+    adopted(&device("dev_b"), &state.persons, &machines(&state))
+}
+
 /// Another person in the same store, with a machine of their own that typed their phrase.
 fn stranger_in(two: &mut Two) -> (tempfile::TempDir, Seed) {
     two.events.push(joined("dev_c", DeviceKind::Machine));
@@ -1006,20 +1011,20 @@ fn stranger_in(two: &mut Two) -> (tempfile::TempDir, Seed) {
 #[test]
 fn a_machine_without_the_phrase_takes_the_one_root_that_vouched_for_it() {
     let mut two = Two::new();
-    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    let op = adopting(&two).unwrap();
     two.wrote("dev_b", vec![op], 125);
 
     assert_eq!(
         two.state().persons.root_of(&device("dev_b")),
         Some(seed().root().person())
     );
-    assert!(adopted(&device("dev_b"), &two.state().persons).is_none());
+    assert!(adopting(&two).is_none());
 }
 
 #[test]
 fn another_root_vouching_for_my_machine_never_makes_it_sign_as_them() {
     let mut two = Two::new();
-    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    let op = adopting(&two).unwrap();
     two.wrote("dev_b", vec![op], 125);
     let (_room, stranger) = stranger_in(&mut two);
     let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
@@ -1085,13 +1090,13 @@ fn a_machine_two_roots_vouched_for_waits_for_the_phrase() {
         140,
     );
 
-    assert!(adopted(&device("dev_b"), &two.state().persons).is_none());
+    assert!(adopting(&two).is_none());
 }
 
 #[test]
 fn a_root_does_not_vouch_for_a_machine_that_answers_to_another() {
     let mut two = Two::new();
-    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    let op = adopting(&two).unwrap();
     two.wrote("dev_b", vec![op], 125);
     let (_room, stranger) = stranger_in(&mut two);
     let state = two.state();
@@ -1103,7 +1108,7 @@ fn a_root_does_not_vouch_for_a_machine_that_answers_to_another() {
 #[test]
 fn what_my_machine_made_is_not_shared_by_a_root_that_vouched_for_it_uninvited() {
     let mut two = Two::new();
-    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    let op = adopting(&two).unwrap();
     two.wrote("dev_b", vec![op], 125);
     let (_room, stranger) = stranger_in(&mut two);
     let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
@@ -1123,4 +1128,43 @@ fn what_my_machine_made_is_not_shared_by_a_root_that_vouched_for_it_uninvited() 
 
     assert!(state.mine_to_share(&state.docs[&doc], &seed().root().person()));
     assert!(!state.mine_to_share(&state.docs[&doc], &stranger.root().person()));
+}
+
+#[test]
+fn a_root_only_a_certificate_names_is_not_taken_by_a_new_machine() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_d", DeviceKind::Machine));
+    let (_room, fourth) = room();
+    let op = introduced(&fourth, &device("dev_d"), &two.state().persons).unwrap();
+    two.wrote("dev_d", vec![op], 130);
+    let key = mine(&fourth, &device("dev_d")).unwrap().public();
+    let stranger = Seed::from_bytes(&[9; 32]);
+    two.wrote(
+        "dev_b",
+        vec![Op::ShareCertified {
+            c: stranger.root().certify(&key, at(135)),
+        }],
+        135,
+    );
+    let state = two.state();
+
+    assert!(adopted(&device("dev_d"), &state.persons, &machines(&state)).is_none());
+}
+
+#[test]
+fn a_machine_that_said_its_root_answers_to_it_even_before_that_root_vouched_for_it() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_d", DeviceKind::Machine));
+    two.wrote(
+        "dev_d",
+        vec![Op::ShareRoot {
+            r: seed().root().person().shown(),
+        }],
+        130,
+    );
+
+    assert_eq!(
+        two.state().persons.answers_to(&device("dev_d")),
+        vec![seed().root().person()]
+    );
 }

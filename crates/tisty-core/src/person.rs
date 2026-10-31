@@ -124,19 +124,17 @@ impl Persons {
         Person::read(self.roots.get(device)?)
     }
 
-    /// Whom what a machine made belongs to: the root it answers to, or, from a machine that never said,
+    /// Whom what a machine made belongs to: the root it said it answers to, or, from a machine that never said,
     /// everyone who ever vouched for one of its keys, taken back or not.
     pub fn answers_to(&self, device: &DeviceId) -> Vec<Person> {
+        if let Some(said) = self.root_of(device) {
+            return vec![said];
+        }
         let named = self.named_by(device);
-        let said = self.root_of(device);
-        let mut roots: Vec<Person> = self
-            .vouches()
+        self.vouches()
             .filter(|one| named.contains(&one.share))
-            .filter(|one| said.is_none_or(|root| one.person == root))
             .map(|one| one.person)
-            .collect();
-        roots.dedup();
-        roots
+            .collect()
     }
 
     /// A machine signs as the root it answers to; one that never said goes by the newest certificate.
@@ -302,20 +300,25 @@ pub fn rooted(device: &DeviceId, persons: &Persons, root: &Person) -> Option<Op>
     (persons.root_of(device) != Some(*root)).then(|| Op::ShareRoot { r: root.shown() })
 }
 
-/// A machine without the phrase takes the root that vouched for its key, but only when one alone did:
-/// two at once is someone else claiming it, and it waits for the phrase to be typed there.
-pub fn adopted(device: &DeviceId, persons: &Persons) -> Option<Op> {
+/// A machine without the phrase takes the store's one person as its root, once that root vouched for its key.
+/// A root only a certificate names could be anyone's; two persons in one store type the phrase on each machine.
+pub fn adopted(device: &DeviceId, persons: &Persons, seated: &BTreeSet<DeviceId>) -> Option<Op> {
     if persons.roots.contains_key(device) {
         return None;
     }
+    let mut said = persons
+        .roots
+        .iter()
+        .filter(|(one, _)| *one != device && seated.contains(*one))
+        .filter_map(|(_, root)| Person::read(root));
+    let first = said.next()?;
+    if !said.all(|other| other == first) {
+        return None;
+    }
     let key = persons.current(device)?;
-    let mut vouching = persons
+    persons
         .vouches()
-        .filter(|one| one.share == key && persons.stands(one))
-        .map(|one| one.person);
-    let first = vouching.next()?;
-    vouching
-        .all(|other| other == first)
+        .any(|one| one.share == key && one.person == first && persons.stands(&one))
         .then(|| Op::ShareRoot { r: first.shown() })
 }
 
