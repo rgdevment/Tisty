@@ -34,6 +34,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [seen, setSeen] = useState<string | null>(null);
   // Bumped when the words changed between the look and the press, so they are looked through again.
   const [round, setRound] = useState(0);
+  const [changed, setChanged] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
@@ -82,6 +83,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
         going.current = false;
         setBusy(false);
         if ((problem as { code?: string } | null)?.code === "shareChanged") {
+          setChanged(true);
           setRound((now) => now + 1);
           return;
         }
@@ -93,6 +95,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     <Modal title={t("shareTitle")} onClose={busy ? undefined : onClose} wide>
       <p className="-mt-2 mb-4 truncate text-[12.5px] text-soft">{title}</p>
       <form onSubmit={go} className="flex flex-col gap-5">
+        {changed && (
+          <p role="status" className="text-[12.5px] text-soft">
+            {t("shareChanged")}
+          </p>
+        )}
         {secrets.length > 0 && (
           <div
             role="alert"

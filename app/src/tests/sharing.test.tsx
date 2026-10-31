@@ -234,6 +234,7 @@ describe("the share dialog", () => {
     );
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    expect(await screen.findByText(t("shareChanged"))).toBeTruthy();
     expect(onShared).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));

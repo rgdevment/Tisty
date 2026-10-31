@@ -659,7 +659,9 @@ const en = {
     "This document asks for a password, which Tisty does not ask for yet. Open it in the browser.",
   shareOpenGone:
     "This link no longer leads to a document: it ran out or its author stopped sharing it.",
-  shareOpenClosed: "Its author put this document away, or reports closed it.",
+  shareOpenClosed: "Its author paused this document, or reports closed it.",
+  shareOpenRevoked:
+    "Its writer took back the key that signed it, so Tisty does not show it as theirs. Open it in the browser to see why.",
   shareOpenUnsigned:
     "This document does not carry a signature that matches its link, so Tisty does not show it.",
   shareChanged: "The document changed while you chose, so it was looked over again.",
@@ -3417,6 +3419,8 @@ const es: Catalog = {
   shareOpenGone:
     "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
   shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",
+  shareOpenRevoked:
+    "Quien lo escribió retiró la llave con que lo firmó, así que Tisty no lo muestra como suyo. Ábrelo en el navegador para ver por qué.",
   shareOpenUnsigned:
     "Este documento no trae una firma que corresponda a su link, así que Tisty no lo muestra.",
   shareChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",

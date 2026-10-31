@@ -340,17 +340,31 @@ pub(crate) fn let_loose_go(app: tauri::AppHandle) {
     use tauri::Manager;
     tauri::async_runtime::spawn(async move {
         let session = app.state::<Mutex<Session>>();
-        let loose = held(&session).state.loose_shares();
-        if loose.is_empty() {
+        let (gone, replaced) = {
+            let session = held(&session);
+            (session.state.gone_shares(), session.state.replaced.clone())
+        };
+        if gone.is_empty() && replaced.is_empty() {
             return;
         }
         let stopped = apart(move || {
-            Ok(loose
+            // A share another took the place of may still be read by whoever got its link, so only an unread one goes.
+            let unread = replaced.into_iter().filter(|(_, shared)| {
+                Net::to(&shared.server)
+                    .and_then(|wire| sharing::info(&wire, shared))
+                    .is_ok_and(|info| info.reads == 0)
+            });
+            Ok(gone
                 .into_iter()
+                .chain(unread)
                 .filter(|(_, shared)| {
                     match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
                         Ok(()) => true,
-                        Err(refused) => sharing::already_gone(&refused),
+                        // Closed by reports, the server never lets it be stopped, and asking again only costs.
+                        Err(refused) => {
+                            sharing::already_gone(&refused)
+                                || refused.name.as_deref() == Some("blocked")
+                        }
                     }
                 })
                 .map(|(id, shared)| Op::ShareStop {

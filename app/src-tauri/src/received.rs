@@ -79,11 +79,11 @@ pub fn fetched(wire: &impl Wire, link: &Link) -> Result<Received, Refusal> {
         Envelope::read(said.body, &Limits::default()).map_err(|_| Refusal::of("shareFailed"))?;
     let opened = envelope::open(&key, &envelope, &taken_back(said.revoked.as_deref()))
         .map_err(|_| Refusal::of("shareOpenUnsigned"))?;
-    if !matches!(
-        opened.wrote,
-        Some(Verdict::Holds { .. } | Verdict::Revoked { .. })
-    ) {
-        return Err(Refusal::of("shareOpenUnsigned"));
+    match opened.wrote {
+        Some(Verdict::Holds { .. }) => {}
+        // Its writer took that key back: the web says so beside it, and here it would read as theirs.
+        Some(Verdict::Revoked { .. }) => return Err(Refusal::of("shareOpenRevoked")),
+        _ => return Err(Refusal::of("shareOpenUnsigned")),
     }
     let body = opened.text.to_string();
     Ok(Received {

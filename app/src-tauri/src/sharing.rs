@@ -203,6 +203,7 @@ pub(crate) fn pictured(
     read: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> (String, Vec<(Kind, Vec<u8>)>) {
     let code = tisty_core::beside::written_as_code(text);
+    let in_code = |at: usize| code.get(at).copied().unwrap_or(false);
     let mut said = String::with_capacity(text.len());
     let mut pictures: Vec<(Kind, Vec<u8>)> = Vec::new();
     let mut placed: Vec<String> = Vec::new();
@@ -211,16 +212,19 @@ pub(crate) fn pictured(
     while let Some(found) = text[from..].find("![") {
         let at = from + found;
         from = at + 2;
-        if code.get(at).copied().unwrap_or(false) {
+        let Some((opens, closes)) = destination(text, at) else {
+            continue;
+        };
+        if in_code(at) || in_code(opens) {
             continue;
         }
-        let Some(opens) = text[at..].find("](").map(|one| at + one + 2) else {
-            break;
-        };
-        let Some(closes) = text[opens..].find(')').map(|one| opens + one) else {
-            break;
-        };
-        let target = text[opens..closes].split_whitespace().next().unwrap_or("");
+        let inner = &text[opens..closes];
+        let starts = opens + (inner.len() - inner.trim_start_matches([' ', '\t']).len());
+        let written = text[starts..closes]
+            .split([' ', '\t'])
+            .next()
+            .unwrap_or_default();
+        let target = written.trim_start_matches('<').trim_end_matches('>');
         if !tisty_core::attach::names_an_attachment(target) {
             continue;
         }
@@ -238,14 +242,37 @@ pub(crate) fn pictured(
                 placed.len() - 1
             }
         };
-        let ends = opens + target.len();
-        said.push_str(&text[rest..opens]);
+        said.push_str(&text[rest..starts]);
         said.push_str(&format!("{PICTURE}{place}"));
-        rest = ends;
+        rest = starts + written.len();
         from = closes;
     }
     said.push_str(&text[rest..]);
     (said, pictures)
+}
+
+// The `(` and `)` of an image's destination: right after the `]` that closes its alt text, all on one line.
+fn destination(text: &str, image: usize) -> Option<(usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut depth = 0usize;
+    let mut at = image + 2;
+    loop {
+        match bytes.get(at)? {
+            b'\n' => return None,
+            b'\\' => at += 1,
+            b'[' => depth += 1,
+            b']' if depth == 0 => break,
+            b']' => depth -= 1,
+            _ => {}
+        }
+        at += 1;
+    }
+    if bytes.get(at + 1) != Some(&b'(') {
+        return None;
+    }
+    let opens = at + 2;
+    let closes = opens + text[opens..].find([')', '\n'])?;
+    (bytes[closes] == b')').then_some((opens, closes))
 }
 
 /// Shares a document's words for the first time: reserves its links, seals and signs it and puts its first version up.

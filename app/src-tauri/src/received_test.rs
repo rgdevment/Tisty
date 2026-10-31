@@ -195,3 +195,27 @@ fn an_envelope_nobody_signed_is_not_shown() {
         "shareOpenUnsigned"
     );
 }
+
+#[test]
+fn a_share_whose_key_was_taken_back_is_not_shown_as_its_writer_s() {
+    let here = Here::new();
+    let shared = sharing::share(
+        &here,
+        sharing::SERVER,
+        "# x",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    let (key, _) = voucher();
+    let at = jiff::Timestamp::from_second(T0).unwrap();
+    let taken = Seed::from_bytes(&[7; 32]).root().revoke(&key.public(), at);
+    sharing::revoke(&here, &[taken]).unwrap();
+
+    assert_eq!(
+        fetched(&here, &link_of(&shared)).unwrap_err().code,
+        "shareOpenRevoked"
+    );
+}

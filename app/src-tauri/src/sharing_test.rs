@@ -418,3 +418,30 @@ fn a_shared_document_carries_its_pictures_to_whoever_opens_it() {
     assert_eq!(opened.pictures.len(), 1);
     assert!(opened.text.contains("![Playa](tisty:picture/0)"));
 }
+
+#[test]
+fn a_picture_named_with_spaces_or_angle_brackets_is_taken_and_a_stray_mark_is_not() {
+    let read = |target: &str| (target == "attachments/playa-a1b2c3d4.png").then(|| png(20));
+    let (said, pictures) = pictured("![a]( attachments/playa-a1b2c3d4.png )\n", read);
+    assert_eq!(said, "![a]( tisty:picture/0 )\n");
+    assert_eq!(pictures.len(), 1);
+    let (said, _) = pictured("![a](<attachments/playa-a1b2c3d4.png>)\n", read);
+    assert_eq!(said, "![a](tisty:picture/0)\n");
+    let (said, _) = pictured(
+        "![[nested] alt (with) marks](attachments/playa-a1b2c3d4.png)\n",
+        read,
+    );
+    assert_eq!(said, "![[nested] alt (with) marks](tisty:picture/0)\n");
+
+    // A `![` with no image after it never reaches a plain link or a picture in code further on.
+    let stray = "Say ![ and move on.\n\n[plano](attachments/playa-a1b2c3d4.png)\n\n```\n![x](attachments/playa-a1b2c3d4.png)\n```\n";
+    let (said, pictures) = pictured(stray, read);
+    assert_eq!(said, stray);
+    assert!(pictures.is_empty());
+    // Nor does an alt text that ends with the line.
+    let (said, _) = pictured("![a\n](attachments/playa-a1b2c3d4.png)", read);
+    assert_eq!(said, "![a\n](attachments/playa-a1b2c3d4.png)");
+    // Words beyond ASCII before and after stay whole.
+    let (said, _) = pictured("Ñandú ![ñ](attachments/playa-a1b2c3d4.png) €\n", read);
+    assert_eq!(said, "Ñandú ![ñ](tisty:picture/0) €\n");
+}

@@ -85,6 +85,11 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
     Ok(())
 }
 
+// A line from before stops and versions named their link speaks of the share there is.
+fn named(link: &str, share: &crate::event::Shared) -> bool {
+    link.is_empty() || share.link == link
+}
+
 impl State {
     fn shared(&mut self, event: &Event) {
         match &event.op {
@@ -105,12 +110,12 @@ impl State {
             }
             // Two machines can each put a version up; the store remembers the highest.
             Op::ShareVersion { id, link, version } => {
-                if let Some(shared) = self.shares.get_mut(id).filter(|one| one.link == *link) {
+                if let Some(shared) = self.shares.get_mut(id).filter(|one| named(link, one)) {
                     shared.version = shared.version.max(*version);
                 }
             }
             Op::ShareStop { id, link } => {
-                if self.shares.get(id).is_some_and(|one| one.link == *link) {
+                if self.shares.get(id).is_some_and(|one| named(link, one)) {
                     self.shares.remove(id);
                 }
                 self.replaced
@@ -120,15 +125,14 @@ impl State {
         }
     }
 
-    /// Shares nothing in Tisty leads to any more: replaced by another, or of a document deleted for good. Any machine stops them.
-    pub fn loose_shares(&self) -> Vec<(DocId, crate::event::Shared)> {
+    /// Shares of a document deleted for good, which nothing in Tisty leads to any more. Any machine stops them.
+    pub fn gone_shares(&self) -> Vec<(DocId, crate::event::Shared)> {
         // Deleted, not merely unheard of: a share can arrive from one machine before its document does from another.
-        let gone = self
-            .shares
+        self.shares
             .iter()
             .filter(|(id, _)| self.tombstones.contains(id))
-            .map(|(id, shared)| (*id, shared.clone()));
-        self.replaced.iter().cloned().chain(gone).collect()
+            .map(|(id, shared)| (*id, shared.clone()))
+            .collect()
     }
 
     pub fn replay(events: &[Event]) -> Self {

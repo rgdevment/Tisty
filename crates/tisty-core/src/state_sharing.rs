@@ -227,11 +227,68 @@ fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
         ),
         by(2, "dev_b", Op::ShareDoc { id: doc, d: newer }),
     ]);
-    let loose: Vec<String> = state
-        .loose_shares()
+    let replaced: Vec<&str> = state
+        .replaced
+        .iter()
+        .map(|(_, one)| one.link.as_str())
+        .collect();
+    assert_eq!(replaced, ["k7Qm2xPa"]);
+    // A share whose document has not arrived yet is not gone: it may come from another machine later.
+    assert!(state.gone_shares().is_empty());
+}
+
+#[test]
+fn a_share_of_a_document_deleted_for_good_is_gone() {
+    let doc = Ulid::generate();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::DocAdd {
+                id: doc,
+                d: Default::default(),
+            },
+        ),
+        by(
+            2,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(3, "dev_a", Op::DocDelete { id: doc }),
+    ]);
+    let gone: Vec<String> = state
+        .gone_shares()
         .into_iter()
         .map(|(_, one)| one.link)
         .collect();
-    // A share whose document has not arrived yet is not loose: it may come from another machine later.
-    assert_eq!(loose, ["k7Qm2xPa"]);
+    assert_eq!(gone, ["k7Qm2xPa"]);
+}
+
+#[test]
+fn a_stop_written_before_stops_named_their_link_still_reads_and_stops_the_share() {
+    let doc = Ulid::generate();
+    let line = format!(r#"{{"op":"share.stop","id":"{doc}"}}"#);
+    let op: Op = serde_json::from_str(&line).unwrap();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_a", op),
+    ]);
+    assert!(state.shares.is_empty());
+    // And a stop that names its link is written with it.
+    let said = serde_json::to_value(Op::ShareStop {
+        id: doc,
+        link: "k7Qm2xPa".into(),
+    })
+    .unwrap();
+    assert_eq!(said["link"], "k7Qm2xPa");
 }
