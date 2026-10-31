@@ -1,14 +1,16 @@
 use std::cell::{Cell, RefCell};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use jiff::Timestamp;
 use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Signer};
+use tisty_share_proto::identity::Revocation;
 use tisty_share_proto::work;
 
 use super::*;
 use crate::memory::Memory;
 use crate::moderation::{Category, Complaint, DETAIL_AT_MOST};
 use crate::store::Doc;
-use crate::testing::{Counting, done, vouched};
+use crate::testing::{Counting, done, taken_back, vouched};
 
 struct Empty;
 
@@ -1059,6 +1061,12 @@ impl Store for Faulty {
     async fn reports(&self, id: &str, now: i64) -> Result<Vec<crate::moderation::Report>, Fault> {
         self.inner.reports(id, now).await
     }
+    async fn revoke(&self, share: &str, root: &str, record: &Revocation) -> Result<(), Fault> {
+        self.inner.revoke(share, root, record).await
+    }
+    async fn revocations(&self, share: &str) -> Result<Vec<Revocation>, Fault> {
+        self.inner.revocations(share).await
+    }
     async fn lapse(&self, now: i64) -> Result<(), Fault> {
         if self.unlapsing.get() {
             return Err(Fault("the old counters would not go".into()));
@@ -1334,4 +1342,49 @@ fn a_reader_is_told_when_it_was_shared_and_written_when_it_ends_and_whether_it_a
         .unwrap();
     let gated = world.read_from(&reserved.id, Some("perro azul"), HERE, T0 + 2 * DAY);
     assert!(gated.unwrap().facts.gated);
+}
+
+#[test]
+fn a_key_taken_back_is_told_to_every_reader_and_sends_nothing_more() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    done(world.share.revoke(&taken_back(T0), HERE, T0)).unwrap();
+
+    let served = world.read(&reserved.id, T0).unwrap();
+    assert_eq!(served.revoked, vec![taken_back(T0)]);
+    let opened = Envelope::read(served.envelope, &Limits::default()).unwrap();
+    assert!(matches!(
+        opened.sender(&served.revoked),
+        Some(Verdict::Revoked { .. })
+    ));
+
+    let second = sealed(&reserved.id, 2, Some(1), "dos");
+    assert_eq!(
+        world.put(&reserved.id, &reserved.edit, second, T0),
+        Err(Refused::Unsigned)
+    );
+}
+
+#[test]
+fn a_revocation_that_does_not_hold_is_not_kept() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    let mut forged = taken_back(T0);
+    forged.at = Timestamp::from_second(T0 + 1).unwrap();
+
+    assert_eq!(
+        done(world.share.revoke(&forged, HERE, T0)),
+        Err(Refused::Unsigned)
+    );
+    assert!(world.read(&reserved.id, T0).unwrap().revoked.is_empty());
+}
+
+#[test]
+fn the_same_revocation_carried_twice_is_kept_once() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    done(world.share.revoke(&taken_back(T0), HERE, T0)).unwrap();
+    done(world.share.revoke(&taken_back(T0), there(2), T0)).unwrap();
+
+    assert_eq!(world.read(&reserved.id, T0).unwrap().revoked.len(), 1);
 }

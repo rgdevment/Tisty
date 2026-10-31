@@ -3,7 +3,7 @@
 use std::pin::pin;
 use std::task::{Context, Poll, Waker};
 
-use tisty_share_proto::identity::{Certificate, Root, ShareKey};
+use tisty_share_proto::identity::{Certificate, Revocation, Root, ShareKey};
 
 use crate::keys::Randomness;
 
@@ -13,6 +13,13 @@ pub fn vouched() -> (ShareKey, Certificate) {
     let certificate =
         Root::from_bytes(&[1; 32]).certify(&machine.public(), jiff::Timestamp::UNIX_EPOCH);
     (machine, certificate)
+}
+
+/// The same person taking that machine's key back.
+pub fn taken_back(at: i64) -> Revocation {
+    let (machine, _) = vouched();
+    let at = jiff::Timestamp::from_second(at).unwrap_or(jiff::Timestamp::UNIX_EPOCH);
+    Root::from_bytes(&[1; 32]).revoke(&machine.public(), at)
 }
 
 /// The memory store never waits, so one poll finishes any of the server's work.

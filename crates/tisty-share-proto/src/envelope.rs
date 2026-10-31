@@ -456,6 +456,11 @@ impl Envelope {
         &self.bytes[self.parts[at].clone()]
     }
 
+    /// The key that says it sent these bytes, unchecked, so a server can look for what took it back.
+    pub fn sender_key(&self) -> Option<crate::VerifyingKey> {
+        crate::identity::public_key(&self.sent.as_ref()?.certificate.share)
+    }
+
     /// Who sent these sealed bytes, checked without the key: what the server can say about an upload.
     pub fn sender(&self, revoked: &[Revocation]) -> Option<Verdict> {
         self.sent
