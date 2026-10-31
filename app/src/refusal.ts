@@ -186,6 +186,7 @@ const KNOWN = [
   "stillPacking",
   "aliasTooLong",
   "nameTooLong",
+  "nameUnfit",
   "tooBig",
   "deleteRefused",
   "alreadyKept",
