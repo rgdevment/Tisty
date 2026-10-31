@@ -8,6 +8,8 @@ export interface Identity {
   confirmed: boolean;
   alias: string | null;
   machines: { id: string; name: string; here: boolean; ours: boolean }[];
+  /** The phrase began again on another computer, and this one still signs as before. */
+  moved: boolean;
 }
 
 export const identityShown = (): Promise<Identity> => invoke("identity_shown");

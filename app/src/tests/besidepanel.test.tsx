@@ -235,6 +235,18 @@ describe("the shared row", () => {
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
   });
 
+  it("waits for the new phrase when it began again on another computer", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, shareable: "moved" };
+    panel(headed(2));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedMoved")),
+    );
+    await press("shared");
+    expect(screen.getByText(t("sharedMovedWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+  });
+
   it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {
     ipc.card = {
       read: "https://tisty.cl/k7Qm2xPa#llave",

@@ -598,6 +598,11 @@ const en = {
   sharedNot: "Not shared",
   sharedNotMine: "Not yours",
   sharedNoKey: "Needs your key",
+  sharedMoved: "Needs your new phrase",
+  shareMoved:
+    "You began again with a new phrase on another computer. Type it in Settings › Your identity to share from here.",
+  sharedMovedWhy:
+    "You began again with a new phrase on another computer, and this one still signs as before. Type the new phrase in Settings › Your identity to share from here.",
   sharedNoKeyWhy:
     "Everything shared goes signed with your key, and this computer has none yet. Create your phrase in Settings › Your identity to share.",
   sharedNotMineWhy:
@@ -2227,6 +2232,8 @@ const en = {
   identityUnborn:
     "Your identity is born when you create your 24-word phrase. You need it to share documents and to encrypt your cloud.",
   identityCreate: "Create my phrase",
+  identityMoved:
+    "You began again with a new phrase on another computer. Type it here, so this one signs as you again.",
   phraseTypeOpen: "I already have my phrase",
   phraseTypeHow: "Type your 24 words, separated by spaces, in English or Spanish.",
   phraseTypeGo: "Give this computer its key",
@@ -3354,6 +3361,11 @@ const es: Catalog = {
   sharedNot: "Sin compartir",
   sharedNotMine: "No es tuyo",
   sharedNoKey: "Falta tu llave",
+  sharedMoved: "Falta tu frase nueva",
+  shareMoved:
+    "Empezaste de nuevo con otra frase en otro equipo. Escríbela en Configuración › Tu identidad para compartir desde aquí.",
+  sharedMovedWhy:
+    "Empezaste de nuevo con otra frase en otro equipo, y este todavía firma como antes. Escribe la frase nueva en Configuración › Tu identidad para compartir desde aquí.",
   sharedNoKeyWhy:
     "Todo lo compartido va firmado con tu llave, y este equipo todavía no tiene una. Crea tu frase en Configuración › Tu identidad para compartir.",
   sharedNotMineWhy:
@@ -4991,6 +5003,8 @@ const es: Catalog = {
   identityUnborn:
     "Tu identidad nace cuando creas tu frase de 24 palabras. La necesitas para compartir documentos y para cifrar tu nube.",
   identityCreate: "Crear mi frase",
+  identityMoved:
+    "Empezaste de nuevo con otra frase en otro equipo. Escríbela aquí, para que este vuelva a firmar como tú.",
   phraseTypeOpen: "Ya tengo mi frase",
   phraseTypeHow: "Escribe tus 24 palabras, separadas por espacios, en español o en inglés.",
   phraseTypeGo: "Darle a este equipo su llave",

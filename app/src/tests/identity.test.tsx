@@ -46,6 +46,7 @@ const held: Shown = {
     { id: "dev_here", name: "MacBook", here: true, ours: true },
     { id: "dev_office", name: "Office PC", here: false, ours: false },
   ],
+  moved: false,
 };
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
@@ -86,6 +87,14 @@ describe("your identity", () => {
 
     expect(await screen.findByText(/born when you create your 24-word phrase/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "See the phrase" })).toBeNull();
+  });
+
+  it("says the phrase began again elsewhere, and takes the new one here", async () => {
+    ipc.shown = { ...held, moved: true };
+    render(<Shell />);
+
+    expect(await screen.findByText(/You began again with a new phrase/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "I already have my phrase" })).toBeTruthy();
   });
 
   it("creates the phrase here, without a cloud to encrypt", async () => {

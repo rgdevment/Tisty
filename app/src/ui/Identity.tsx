@@ -116,8 +116,15 @@ export default function Identity({
             <PhraseTyped held={held} onTyped={typed} onFail={failed} />
           </>
         )}
+        {shown?.moved && (
+          <p role="status" className="text-[12.5px] leading-relaxed text-hue-amber">
+            {t("identityMoved")}
+          </p>
+        )}
         {shown && born && <Born shown={shown} held={held} onSee={see} onSync={onSync} />}
-        {shown?.elsewhere && <PhraseTyped held={held} onTyped={typed} onFail={failed} />}
+        {(shown?.elsewhere || shown?.moved) && (
+          <PhraseTyped held={held} onTyped={typed} onFail={failed} />
+        )}
       </Card>
     </>
   );
