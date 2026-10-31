@@ -7,7 +7,7 @@ use tisty_share_server::guard::{Allowance, Work};
 use tisty_share_server::keys::Slowness;
 use tisty_share_server::memory::Memory;
 use tisty_share_server::share::Policy;
-use tisty_share_server::testing::{Counting, done, taken_back, vouched};
+use tisty_share_server::testing::{Counting, SIGNED_AT, done, taken_back, vouched};
 
 use super::*;
 
@@ -41,6 +41,8 @@ fn sealed(id: &str, version: u64, from: Option<u64>) -> Vec<u8> {
     let signer = Signer {
         key: &machine,
         certificate: &certificate,
+        at: SIGNED_AT,
+        name: None,
     };
     envelope::seal(
         &LinkKey::from_bytes(&[9; 32]),

@@ -60,6 +60,8 @@ fn sealed(id: &str, version: u64, from: Option<u64>, text: &str) -> Vec<u8> {
     let signer = Signer {
         key: &machine,
         certificate: &certificate,
+        at: Timestamp::from_second(T0).unwrap(),
+        name: None,
     };
     envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
         .unwrap()
@@ -273,6 +275,8 @@ fn a_signed_envelope_is_taken_with_its_signature() {
     let signer = Signer {
         key: &machine,
         certificate: &certificate,
+        at: Timestamp::from_second(T0).unwrap(),
+        name: None,
     };
     let draft = Draft {
         id: &reserved.id,
@@ -657,6 +661,8 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
     let signer = Signer {
         key: &machine,
         certificate: &certificate,
+        at: Timestamp::from_second(T0).unwrap(),
+        name: None,
     };
     let heavy = envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
         .unwrap()
