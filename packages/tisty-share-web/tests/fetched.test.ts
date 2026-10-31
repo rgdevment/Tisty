@@ -151,6 +151,28 @@ describe("a password to a document guessed at from everywhere", () => {
     expect(asked).toHaveLength(2);
   });
 
+  it("asks for the password again when the challenge is refused for being too much", async () => {
+    const { ask } = server([workAsked(), new Response('{"refused":"slow"}', { status: 429 })]);
+    expect(await fetched("k7Qm2xPa", ask, "perro azul", async () => "w")).toEqual({
+      refused: "work_refused",
+    });
+  });
+
+  it("ends the reading when the document went away meanwhile", async () => {
+    const { ask } = server([workAsked(), new Response('{"refused":"paused"}', { status: 423 })]);
+    expect(await fetched("k7Qm2xPa", ask, "perro azul", async () => "w")).toEqual({
+      refused: "paused",
+    });
+  });
+
+  it("never sends an empty proof", async () => {
+    const { asked, ask } = server([workAsked(), new Response("{}")]);
+    expect(await fetched("k7Qm2xPa", ask, "perro azul", async () => "")).toEqual({
+      refused: "work_refused",
+    });
+    expect(asked).toHaveLength(2);
+  });
+
   it("is told as it came when the page has no way to work", async () => {
     const { ask } = server([workAsked()]);
     expect(await fetched("k7Qm2xPa", ask, "perro azul")).toEqual({ refused: "work_asked" });

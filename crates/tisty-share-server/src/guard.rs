@@ -14,6 +14,7 @@ const DAY: i64 = 24 * HOUR;
 const CHALLENGE: &[u8] = b"tisty-share.challenge.v1\0";
 const WHO_TODAY: &[u8] = b"tisty-share.who.day.v1\0";
 const WHO: &[u8] = b"tisty-share.who.v1\0";
+const WHO_WIDE: &[u8] = b"tisty-share.who.wide.v1\0";
 
 /// What a caller is about to do, each with its own hourly allowance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -210,6 +211,21 @@ pub fn today(secret: &[u8; 32], ip: IpAddr, now: i64) -> String {
         secret,
         &[WHO_TODAY, &day.to_be_bytes(), &network(ip)],
     ))
+}
+
+/// Today's name for a caller's IPv6 /48, where one holder has thousands of networks; an IPv4 caller has none.
+pub fn today_wide(secret: &[u8; 32], ip: IpAddr, now: i64) -> Option<String> {
+    let IpAddr::V6(six) = ip else {
+        return None;
+    };
+    if six.to_ipv4_mapped().is_some() {
+        return None;
+    }
+    let day = now.div_euclid(DAY);
+    Some(hex(&keyed(
+        secret,
+        &[WHO_WIDE, &day.to_be_bytes(), &six.octets()[..6]],
+    )))
 }
 
 /// A name that holds across days but not past `period`, kept only while a wait or a report needs it (decisions 41 and 42).

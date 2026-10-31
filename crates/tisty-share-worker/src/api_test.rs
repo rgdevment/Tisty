@@ -373,6 +373,17 @@ fn a_document_guessed_at_asks_work_beside_the_password_and_takes_it_in_its_heade
 }
 
 #[test]
+fn a_work_header_that_is_no_proof_never_spoils_a_read() {
+    let mut world = World::new();
+    let shared = world.shared();
+    let mut odd = asked("GET", &format!("/api/v1/docs/{}", shared.id));
+    odd.work = Some("not a proof".into());
+    let answer = world.answer(odd);
+    assert_eq!(answer.status, 200);
+    assert_eq!(answer.body, shared.first);
+}
+
+#[test]
 fn a_password_beyond_latin_1_travels_as_its_utf_8_and_a_garbled_one_is_unreadable() {
     let mut world = World::new();
     let shared = world.shared();

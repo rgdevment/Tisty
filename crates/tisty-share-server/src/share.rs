@@ -27,11 +27,15 @@ pub struct Policy {
     pub trash: i64,
     /// Seconds a reserved id waits for its first version.
     pub reserved: i64,
-    /// Wrong passwords one place may say to one document in `locked` seconds; past them, that place waits the rest.
+    /// Wrong passwords one network may say to one document in `locked` seconds; past them, that network waits the rest.
     pub misses: u64,
+    /// The same for a whole IPv6 /48, which holds 65,536 networks of its own.
+    pub misses_wide: u64,
     pub locked: i64,
     /// Wrong passwords a document hears in a day from everywhere before every try costs work (decision 76).
     pub guessed: u64,
+    /// Past these in a day, every network and block gets a fifth of its tries, so spreading out buys a guesser little.
+    pub guessed_most: u64,
     pub slowness: Slowness,
     pub allowance: Allowance,
     pub work: Work,
@@ -53,8 +57,10 @@ impl Default for Policy {
             trash: 30 * DAY,
             reserved: 60 * 60,
             misses: 5,
+            misses_wide: 20,
             locked: 15 * 60,
             guessed: 50,
+            guessed_most: 1_000,
             slowness: Slowness::default(),
             allowance: Allowance::default(),
             work: Work::default(),
@@ -621,64 +627,6 @@ impl<S: Store, R: Randomness> Share<S, R> {
         }
     }
 
-    /// A wrong password counts against the place that said it, so a guesser never locks the readers out (decision 76).
-    async fn let_in(
-        &self,
-        doc: &Doc,
-        password: Option<&str>,
-        proof: Option<&Proof>,
-        caller: IpAddr,
-        now: i64,
-    ) -> Result<(), Refused> {
-        let Some(gate) = doc.gate.as_ref() else {
-            return Ok(());
-        };
-        let Some(password) = password else {
-            return Err(Refused::PasswordAsked);
-        };
-        let needed = self.password_work(&doc.id, now).await?;
-        if needed > 0 {
-            let ask = Ask::Password { id: &doc.id };
-            self.worked(&ask, proof.ok_or(Refused::WorkAsked)?, needed, now)
-                .await?;
-        }
-        let (tries, rights, until) = self.tries(&doc.id, caller, now);
-        // Counted before the password is weighed, so guesses sent together cannot all slip in under the limit.
-        let tried = self.store.count(&tries, 1, until, now).await?;
-        // The right ones are looked up only past the limit, so a reader who knows the password costs two counts and no look.
-        if tried > self.policy.misses
-            && tried.saturating_sub(self.store.counted(&rights, now).await?) > self.policy.misses
-        {
-            return Err(Refused::PasswordLocked { until });
-        }
-        if keys::opens(gate, password) {
-            self.store.count(&rights, 1, until, now).await?;
-            return Ok(());
-        }
-        let (guessed, today_ends) = guessed_today(&doc.id, now);
-        self.store.count(&guessed, 1, today_ends, now).await?;
-        Err(Refused::PasswordWrong)
-    }
-
-    /// One place's tries and right passwords on one document in this stretch of `locked` seconds, and when it ends.
-    fn tries(&self, id: &str, caller: IpAddr, now: i64) -> (String, String, i64) {
-        let locked = self.policy.locked.max(1);
-        let stretch = now.div_euclid(locked);
-        let who = guard::today(&self.secret, caller, now);
-        (
-            format!("tries:{id}:{who}:{stretch}"),
-            format!("rights:{id}:{who}:{stretch}"),
-            (stretch + 1) * locked,
-        )
-    }
-
-    /// The work a password costs on this document today: none until it was guessed at enough.
-    async fn password_work(&self, id: &str, now: i64) -> Result<u8, Refused> {
-        let (guessed, _) = guessed_today(id, now);
-        let misses = self.store.counted(&guessed, now).await?;
-        Ok(self.policy.work.for_password(misses, self.policy.guessed))
-    }
-
     /// Reads the document again and applies `change` until it saves, for what must not be lost to a race.
     pub(crate) async fn retried(
         &self,
@@ -726,12 +674,6 @@ fn open_to_read(doc: &Doc) -> Result<(), Refused> {
         return Err(Refused::Paused);
     }
     Ok(())
-}
-
-/// Wrong passwords a document heard today from everywhere, and when the day ends.
-fn guessed_today(id: &str, now: i64) -> (String, i64) {
-    let day = now.div_euclid(DAY);
-    (format!("guessed:{id}:{day}"), (day + 1) * DAY)
 }
 
 /// Activity pushes the end back; a paused or blocked document keeps the end it was given.

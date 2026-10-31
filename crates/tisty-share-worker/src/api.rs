@@ -210,12 +210,11 @@ async fn routed<S: Store, R: Randomness>(
         }
         ("GET", ["docs", id]) => {
             let password = asked.password.as_deref().map(password_of).transpose()?;
-            // Work rides along only once a document asked for it, so its absence is no refusal here.
+            // Work matters only once a document asked for it, so a header that is no proof is read as none.
             let proof = asked
                 .work
                 .as_deref()
-                .map(|work| proof(Some(work)))
-                .transpose()?;
+                .and_then(|work| serde_json::from_str::<Proof>(work).ok());
             let served = share
                 .read(id, password.as_deref(), proof.as_ref(), caller, now)
                 .await?;

@@ -150,9 +150,13 @@ impl World {
         id: &str,
         password: &str,
         proof: &Proof,
+        caller: IpAddr,
         now: i64,
     ) -> Result<Served, Refused> {
-        done(self.share.read(id, Some(password), Some(proof), HERE, now))
+        done(
+            self.share
+                .read(id, Some(password), Some(proof), caller, now),
+        )
     }
 
     fn manage(&mut self, reserved: &Reserved, what: Manage, now: i64) -> Result<(), Refused> {
@@ -418,12 +422,12 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
     let proof = world.proof(ask, T0);
     assert!(
         world
-            .read_worked(&reserved.id, "perro azul", &proof, T0)
+            .read_worked(&reserved.id, "perro azul", &proof, HERE, T0)
             .is_ok()
     );
     // A proof answers once, and only for the document it was asked for.
     assert_eq!(
-        world.read_worked(&reserved.id, "perro azul", &proof, T0),
+        world.read_worked(&reserved.id, "perro azul", &proof, there(20), T0),
         Err(Refused::WorkRefused)
     );
     let other = world.shared(T0);
@@ -432,7 +436,7 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
         .unwrap();
     let elsewhere = world.proof(Ask::Password { id: &other.id }, T0);
     assert_eq!(
-        world.read_worked(&reserved.id, "perro azul", &elsewhere, T0),
+        world.read_worked(&reserved.id, "perro azul", &elsewhere, there(21), T0),
         Err(Refused::WorkRefused)
     );
 
@@ -449,7 +453,7 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
         );
         let proof = world.proof(ask, T0);
         assert_eq!(
-            world.read_worked(&reserved.id, "gato", &proof, T0),
+            world.read_worked(&reserved.id, "gato", &proof, there(place), T0),
             Err(Refused::PasswordWrong)
         );
     }
@@ -528,6 +532,122 @@ fn a_gate_still_carries_what_the_worker_before_it_needs_to_read_it() {
     let written = serde_json::to_value(&gate).unwrap();
     assert_eq!(written["missed"], 0);
     assert!(written.get("locked_until").is_some());
+}
+
+/// One IPv6 /64 out of the same /48, as a holder of the block hands them out.
+fn in_block(net: u16) -> IpAddr {
+    IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 7, net, 0, 0, 0, 1))
+}
+
+#[test]
+fn a_block_of_networks_shares_one_allowance_of_wrong_passwords() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    let wide = world.share.policy.misses_wide;
+    for net in 0..wide as u16 {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), in_block(net), T0),
+            Err(Refused::PasswordWrong)
+        );
+    }
+    // A fresh /64 of the same /48 waits too; a network outside it does not.
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("perro azul"), in_block(999), T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), there(1), T0)
+            .is_ok()
+    );
+}
+
+#[test]
+fn a_document_guessed_at_past_the_day_s_most_gives_each_network_a_fifth() {
+    let mut world = World::with(Policy {
+        guessed: 1_000,
+        guessed_most: 3,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    for place in 1..=3 {
+        let _ = world.read_from(&reserved.id, Some("gato"), there(place), T0);
+    }
+    assert_eq!(
+        world.read_from(&reserved.id, Some("gato"), there(9), T0),
+        Err(Refused::PasswordWrong)
+    );
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("gato"), there(9), T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+}
+
+#[test]
+fn a_network_that_knows_the_password_reads_on_without_work_or_counts() {
+    let mut world = World::with(Policy {
+        guessed: 2,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0)
+            .is_ok()
+    );
+    for place in 1..=2 {
+        let _ = world.read_from(&reserved.id, Some("gato"), there(place), T0);
+    }
+    // The document now asks for work, but not of a network that already opened it today.
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0 + 60)
+            .is_ok()
+    );
+    assert_eq!(
+        world.read_from(&reserved.id, Some("perro azul"), there(5), T0 + 60),
+        Err(Refused::WorkAsked)
+    );
+}
+
+#[test]
+fn a_network_already_waiting_spends_no_proof() {
+    let mut world = World::with(Policy {
+        guessed: 1,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    let ask = Ask::Password { id: &reserved.id };
+    assert_eq!(
+        world.read_from(&reserved.id, Some("gato"), there(1), T0),
+        Err(Refused::PasswordWrong)
+    );
+    for _ in 0..world.share.policy.misses {
+        let proof = world.proof(ask, T0);
+        let _ = world.read_worked(&reserved.id, "gato", &proof, there(2), T0);
+    }
+    let proof = world.proof(ask, T0);
+    assert!(matches!(
+        world.read_worked(&reserved.id, "perro azul", &proof, there(2), T0),
+        Err(Refused::PasswordLocked { .. })
+    ));
+    assert!(
+        world
+            .read_worked(&reserved.id, "perro azul", &proof, there(3), T0)
+            .is_ok()
+    );
 }
 
 #[test]
