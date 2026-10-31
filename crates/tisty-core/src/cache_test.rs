@@ -1274,6 +1274,44 @@ fn who_the_person_is_comes_back_from_the_cache() {
 }
 
 #[test]
+fn a_shared_document_s_links_come_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let mut state = State::default();
+    state.shares.insert(
+        ulid::Ulid::generate(),
+        crate::event::Shared {
+            server: "https://tisty.cl".into(),
+            link: "k7Qm2xPa".into(),
+            key: "llave".into(),
+            edit: "edit".into(),
+            admin: "admin".into(),
+            editable: true,
+            gated: false,
+            version: 2,
+        },
+    );
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(back.shares, state.shares, "a share's links were lost");
+}
+
+#[test]
+fn a_cache_written_before_shares_were_kept_is_built_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    cache.store(&State::default(), "print").unwrap();
+    cache
+        .db
+        .execute("DELETE FROM meta WHERE key = 'shares'", [])
+        .unwrap();
+
+    assert!(cache.load("print", true).is_none());
+}
+
+#[test]
 fn the_version_each_machine_runs_comes_back_from_the_cache() {
     let dir = tempfile::tempdir().unwrap();
     let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");

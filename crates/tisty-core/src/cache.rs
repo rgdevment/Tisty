@@ -215,6 +215,8 @@ impl Cache {
         state.sealed = serde_json::from_str(&self.meta("sealed")?).ok()?;
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
+        // A cache from before shares were kept says nothing of them, so it is built again rather than read as none.
+        state.shares = serde_json::from_str(&self.meta("shares")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -379,7 +381,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('shares', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -400,6 +402,7 @@ impl Cache {
                     serde_json::to_string(&state.sealed_at).unwrap_or_default(),
                     serde_json::to_string(&state.sealed).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
+                    serde_json::to_string(&state.shares).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -855,6 +858,9 @@ fn reached(
                 | crate::Op::ShareRoot { .. }
                 | crate::Op::ShareCertified { .. }
                 | crate::Op::ShareRevoked { .. }
+                | crate::Op::ShareDoc { .. }
+                | crate::Op::ShareVersion { .. }
+                | crate::Op::ShareStop { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.
                 | crate::Op::DocDelete { .. }
                 | crate::Op::DocArchive { .. }
