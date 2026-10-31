@@ -86,9 +86,14 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
 impl State {
     fn shared(&mut self, event: &Event) {
         match &event.op {
-            Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
+            Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. } => {
                 self.persons.took(event, &self.assistants, &self.devices);
             }
+            // A share's links and tokens are the person's word, which an assistant does not speak.
+            _ if self.assistants.contains(&event.device) => {}
             Op::ShareDoc { id, d } => {
                 self.shares.insert(*id, d.clone());
             }
@@ -474,6 +479,7 @@ impl State {
             }
             Op::StoresJoined { d } => self.stores_joined(d),
             Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { .. }
             | Op::ShareDoc { .. }
@@ -1154,7 +1160,7 @@ impl State {
         let makers = kept
             .made_by
             .as_ref()
-            .map(|device| self.persons.ever_vouched(device))
+            .map(|device| self.persons.answers_to(device))
             .unwrap_or_default();
         // Any root can vouch for any machine, so the key narrows what the alias says and never widens it.
         self.mine(kept) && (makers.is_empty() || makers.contains(me))

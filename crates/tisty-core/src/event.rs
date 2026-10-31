@@ -145,6 +145,7 @@ impl Event {
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { .. }
             | Op::ShareDoc { .. }

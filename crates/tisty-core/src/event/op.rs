@@ -91,6 +91,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.release",
     "cloud.sealed",
     "share.key",
+    "share.root",
     "share.certified",
     "share.revoked",
     "share.doc",
@@ -286,6 +287,9 @@ pub enum Op {
     /// A machine's own word for the key it signs shared documents with; nobody else's counts.
     #[serde(rename = "share.key")]
     ShareKey { p: String },
+    /// A machine's own word for the person it answers to; a certificate from any other root speaks for nobody here.
+    #[serde(rename = "share.root")]
+    ShareRoot { r: String },
     #[serde(rename = "share.certified")]
     ShareCertified {
         c: tisty_share_proto::identity::Certificate,
@@ -395,6 +399,7 @@ impl Op {
                 | Op::DeviceRelease { .. }
                 | Op::CloudSealed { .. }
                 | Op::ShareKey { .. }
+                | Op::ShareRoot { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
                 | Op::ShareDoc { .. }
@@ -416,6 +421,7 @@ impl Op {
             self,
             Op::Signed { .. }
                 | Op::ShareKey { .. }
+                | Op::ShareRoot { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
                 | Op::ShareDoc { .. }
@@ -500,6 +506,7 @@ impl Op {
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { .. }
             | Op::ShareDoc { .. }
@@ -649,6 +656,7 @@ impl Op {
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { .. }
             | Op::ShareDoc { .. }
