@@ -1185,23 +1185,3 @@ fn a_copy_of_a_document_with_my_alias_made_by_another_person_s_machine_stays_the
     // Before the person has a key, only the alias can tell, and it says mine.
     assert!(!state.theirs(&state.docs[&doc], None));
 }
-
-#[test]
-fn a_root_left_for_a_new_phrase_leaves_the_other_machines_behind_until_they_take_it() {
-    let mut two = Two::new();
-    let old = seed().root().person().shown();
-    let new = Seed::from_bytes(&[9; 32]).root().person().shown();
-    two.wrote("dev_a", vec![Op::ShareRoot { r: old.clone() }], 130);
-    two.wrote("dev_b", vec![Op::ShareRoot { r: old.clone() }], 131);
-    assert!(!two.state().persons.left_behind(&device("dev_b")));
-
-    // The phrase begins again on one machine: the other still signs as the old root.
-    two.wrote("dev_a", vec![Op::ShareRoot { r: new.clone() }], 140);
-    let state = two.state();
-    assert!(state.persons.left_behind(&device("dev_b")));
-    assert!(!state.persons.left_behind(&device("dev_a")));
-
-    // Typed there too, nobody is left behind.
-    two.wrote("dev_b", vec![Op::ShareRoot { r: new }], 150);
-    assert!(!two.state().persons.left_behind(&device("dev_b")));
-}

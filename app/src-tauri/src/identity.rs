@@ -394,8 +394,6 @@ pub struct Shown {
     pub confirmed: bool,
     pub alias: Option<String>,
     pub machines: Vec<Machine>,
-    /// The phrase began again on another machine, so this one waits for the new phrase.
-    pub moved: bool,
 }
 
 #[derive(Serialize)]
@@ -514,7 +512,6 @@ pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown
         fingerprint,
         suffix: person.map(|one| one.suffix()),
         alias: signed.alias.clone().or_else(|| signed.name.clone()),
-        moved: session.state.persons.left_behind(&session.config.device_id),
         machines: person::machines(&session.state)
             .into_iter()
             .filter(|device| !session.state.dropped.contains(device))

@@ -142,8 +142,6 @@ const sharedPanel = (
     return { kind: "shared", gist: t("sharedNotMine"), said: t("sharedNotMineWhy") };
   if (!card && facts?.shareable === "noKey")
     return { kind: "shared", gist: t("sharedNoKey"), said: t("sharedNoKeyWhy") };
-  if (!card && facts?.shareable === "moved")
-    return { kind: "shared", gist: t("sharedMoved"), said: t("sharedMovedWhy") };
   if (!card)
     return {
       kind: "shared",

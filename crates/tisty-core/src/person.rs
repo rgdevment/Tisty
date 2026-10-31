@@ -27,9 +27,6 @@ pub struct Persons {
     /// The root each machine said it answers to, in its own word: the last one it said.
     #[serde(default)]
     pub roots: BTreeMap<DeviceId, String>,
-    /// A root a machine left for another, which only its own person does: the phrase began again there (decision 78).
-    #[serde(default)]
-    pub moved: BTreeMap<String, String>,
 }
 
 impl Persons {
@@ -54,13 +51,7 @@ impl Persons {
                 }
             }
             Op::ShareRoot { r } if seated && Person::read(r).is_some() => {
-                if let Some(was) = self.roots.insert(event.device.clone(), r.clone())
-                    && was != *r
-                {
-                    self.moved.insert(was, r.clone());
-                }
-                // Coming back to a root it left undoes that leaving.
-                self.moved.remove(r);
+                self.roots.insert(event.device.clone(), r.clone());
             }
             // The root's signature is the authority here, whoever carried the line.
             Op::ShareCertified { c }
@@ -131,13 +122,6 @@ impl Persons {
     /// The root a machine said it answers to; any other root can vouch for its key, and that says nothing.
     pub fn root_of(&self, device: &DeviceId) -> Option<Person> {
         Person::read(self.roots.get(device)?)
-    }
-
-    /// Whether the root this machine answers to was left on another of the person's machines for a new one.
-    pub fn left_behind(&self, device: &DeviceId) -> bool {
-        self.roots
-            .get(device)
-            .is_some_and(|root| self.moved.contains_key(root))
     }
 
     /// Whom what a machine made belongs to: the root it said it answers to, or, from a machine that never said,

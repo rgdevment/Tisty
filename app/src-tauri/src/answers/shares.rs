@@ -18,8 +18,6 @@ pub enum Shareable {
     NotMine,
     /// What is shared is always signed, and this machine has no key a person vouches for yet.
     NoKey,
-    /// The person began again with a new phrase on another machine; this one still signs as before (decision 78).
-    Moved,
 }
 
 // The key this machine signs with and the person it answers for; without both nothing is shared.
@@ -31,9 +29,6 @@ fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Pe
 }
 
 pub(crate) fn shareable(session: &Session, kept: &tisty_core::model::Kept) -> Shareable {
-    if session.state.persons.left_behind(&session.config.device_id) {
-        return Shareable::Moved;
-    }
     match sharer(session) {
         Some((_, me)) if session.state.mine_to_share(kept, &me) => Shareable::Yes,
         Some(_) => Shareable::NotMine,
@@ -216,7 +211,6 @@ pub async fn share_doc(
             Shareable::Yes => {}
             Shareable::NotMine => return Err(Refusal::of("shareNotMine")),
             Shareable::NoKey => return Err(Refusal::of("shareNoKey")),
-            Shareable::Moved => return Err(Refusal::of("shareMoved")),
         }
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
