@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Identity as Shown } from "../core";
+import type { Identity as Shown } from "../identity";
 import type { Word } from "../ui/Card";
 import Identity from "../ui/Identity";
 import SettingsNav from "../ui/SettingsNav";
@@ -23,7 +23,8 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === ipc.refuse) return Promise.reject({ code: "identityNone" });
     if (cmd === "identity_shown") return Promise.resolve(ipc.shown);
-    if (cmd === "identity_phrase") return Promise.resolve(WORDS.join(" "));
+    if (cmd === "identity_phrase" || cmd === "identity_begin")
+      return Promise.resolve(WORDS.join(" "));
     if (cmd === "identity_confirm") return Promise.resolve(ipc.wrong);
     if (cmd === "page_pdf") return Promise.resolve([37, 80, 68, 70]);
     return Promise.resolve(null);
@@ -83,8 +84,35 @@ describe("your identity", () => {
     ipc.shown = { ...held, held: false, fingerprint: null, machines: [] };
     render(<Shell />);
 
-    expect(await screen.findByText(/born the first time you encrypt/)).toBeTruthy();
+    expect(await screen.findByText(/born when you create your 24-word phrase/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "See the phrase" })).toBeNull();
+  });
+
+  it("creates the phrase here, without a cloud to encrypt", async () => {
+    ipc.shown = { ...held, held: false, fingerprint: null, machines: [] };
+    render(<Shell />);
+
+    const create = await screen.findByRole("button", { name: "Create my phrase" });
+    // Born by the press, so the identity looked at again has its fingerprint.
+    ipc.shown = held;
+    await userEvent.click(create);
+    expect(ipc.calls.some((one) => one.cmd === "identity_begin")).toBe(true);
+    // The new phrase is shown at once, to be written down and confirmed.
+    expect(await screen.findByText("word24")).toBeTruthy();
+  });
+
+  it("takes the phrase typed on another computer, and gives this one its key", async () => {
+    ipc.shown = { ...held, held: false, fingerprint: null, machines: [] };
+    render(<Shell />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "I already have my phrase" }));
+    await userEvent.type(screen.getByLabelText(/Type your 24 words/), WORDS.join(" "));
+    await userEvent.click(screen.getByRole("button", { name: "Give this computer its key" }));
+    await waitFor(() =>
+      expect(ipc.calls.find((one) => one.cmd === "identity_recover")?.args).toEqual({
+        said: WORDS.join(" "),
+      }),
+    );
   });
 
   it("shows the fingerprint, the name, the phrase's standing and whose computers they are", async () => {

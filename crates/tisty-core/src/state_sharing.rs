@@ -42,6 +42,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
             "dev_b",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 3,
             },
         ),
@@ -50,6 +51,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
             "dev_a",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 2,
             },
         ),
@@ -72,12 +74,20 @@ fn stopping_forgets_the_links_and_a_version_after_it_brings_nothing_back() {
                 d: shared(1),
             },
         ),
-        by(2, "dev_a", Op::ShareStop { id: doc }),
+        by(
+            2,
+            "dev_a",
+            Op::ShareStop {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+            },
+        ),
         by(
             3,
             "dev_b",
             Op::ShareVersion {
                 id: doc,
+                link: "k7Qm2xPa".into(),
                 version: 2,
             },
         ),
@@ -95,9 +105,13 @@ fn sharing_is_optional_for_an_older_tisty_and_undo_steps_over_it() {
         },
         Op::ShareVersion {
             id: doc,
+            link: "k7Qm2xPa".into(),
             version: 2,
         },
-        Op::ShareStop { id: doc },
+        Op::ShareStop {
+            id: doc,
+            link: "k7Qm2xPa".into(),
+        },
     ] {
         assert!(op.is_optional(), "{op:?}");
         assert!(op.settles(), "{op:?}");
@@ -138,13 +152,143 @@ fn every_share_op_is_written_to_the_log_and_read_back_as_it_was() {
         },
         Op::ShareVersion {
             id: doc,
+            link: "k7Qm2xPa".into(),
             version: 2,
         },
-        Op::ShareStop { id: doc },
+        Op::ShareStop {
+            id: doc,
+            link: "k7Qm2xPa".into(),
+        },
     ] {
         let said = store.append(op.clone()).unwrap();
         let line = serde_json::to_string(&said).unwrap();
         let back: Event = serde_json::from_str(&line).unwrap();
         assert_eq!(back.op, op);
     }
+}
+
+#[test]
+fn a_stop_for_an_older_link_leaves_the_newer_share_alone() {
+    let doc = Ulid::generate();
+    let newer = crate::event::Shared {
+        link: "n3werLnk".into(),
+        ..shared(1)
+    };
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_b", Op::ShareDoc { id: doc, d: newer }),
+        // A machine that had not heard of the newer one stops the old link after it.
+        by(
+            3,
+            "dev_a",
+            Op::ShareStop {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+            },
+        ),
+        by(
+            4,
+            "dev_a",
+            Op::ShareVersion {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+                version: 9,
+            },
+        ),
+    ]);
+    let kept = state.shares.get(&doc).expect("the newer share is kept");
+    assert_eq!(kept.link, "n3werLnk");
+    assert_eq!(kept.version, 1);
+    assert!(state.replaced.is_empty());
+}
+
+#[test]
+fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
+    let doc = Ulid::generate();
+    let newer = crate::event::Shared {
+        link: "n3werLnk".into(),
+        ..shared(1)
+    };
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_b", Op::ShareDoc { id: doc, d: newer }),
+    ]);
+    let replaced: Vec<&str> = state
+        .replaced
+        .iter()
+        .map(|one| one.share.link.as_str())
+        .collect();
+    assert_eq!(replaced, ["k7Qm2xPa"]);
+    // A share whose document has not arrived yet is not gone: it may come from another machine later.
+    assert!(state.gone_shares().is_empty());
+}
+
+#[test]
+fn a_share_of_a_document_deleted_for_good_is_gone() {
+    let doc = Ulid::generate();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::DocAdd {
+                id: doc,
+                d: Default::default(),
+            },
+        ),
+        by(
+            2,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(3, "dev_a", Op::DocDelete { id: doc }),
+    ]);
+    let gone: Vec<String> = state
+        .gone_shares()
+        .into_iter()
+        .map(|(_, one)| one.link)
+        .collect();
+    assert_eq!(gone, ["k7Qm2xPa"]);
+}
+
+#[test]
+fn a_stop_written_before_stops_named_their_link_still_reads_and_stops_the_share() {
+    let doc = Ulid::generate();
+    let line = format!(r#"{{"op":"share.stop","id":"{doc}"}}"#);
+    let op: Op = serde_json::from_str(&line).unwrap();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(2, "dev_a", op),
+    ]);
+    assert!(state.shares.is_empty());
+    // And a stop that names its link is written with it.
+    let said = serde_json::to_value(Op::ShareStop {
+        id: doc,
+        link: "k7Qm2xPa".into(),
+    })
+    .unwrap();
+    assert_eq!(said["link"], "k7Qm2xPa");
 }

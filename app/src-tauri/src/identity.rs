@@ -309,6 +309,17 @@ pub async fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<
 }
 
 pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
+    vouched_round(session, seed);
+    // Keys taken back here, by a removal, by a round or by beginning again, all reach Tisty Share (decision 73).
+    if let Some(me) = session.state.persons.person(&session.config.device_id) {
+        let revoked = crate::sharing::taken_back_by(&session.state.persons, &me);
+        if !revoked.is_empty() {
+            crate::sharing::revoke_untold(session.paths.cache().to_path_buf(), revoked);
+        }
+    }
+}
+
+fn vouched_round(session: &mut Session, seed: Option<&Seed>) {
     let device = session.config.device_id.clone();
     if !session.state.persons.names_a_person() || !session.state.devices.contains(&device) {
         return;

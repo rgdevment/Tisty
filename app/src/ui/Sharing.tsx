@@ -24,7 +24,6 @@ const choice =
 export default function Sharing({ file, title, onShared, onClose, onError }: Props) {
   const [gated, setGated] = useState(false);
   const [password, setPassword] = useState("");
-  const [editable, setEditable] = useState(false);
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
@@ -32,6 +31,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [signsAs, setSignsAs] = useState<string | null | undefined>(undefined);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
+  const [seen, setSeen] = useState<string | null>(null);
+  // Bumped when the words changed between the look and the press, so they are looked through again.
+  const [round, setRound] = useState(0);
+  const [changed, setChanged] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
@@ -43,18 +46,20 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setLooked(false);
     setSecrets([]);
     setSignsAs(undefined);
+    setSeen(null);
     shareLook(file)
       .then((look) => {
         if (!live) return;
         setSecrets(look.secrets);
         setSignsAs(look.signsAs);
+        setSeen(look.seen);
       })
       .catch(() => {})
       .finally(() => live && setLooked(true));
     return () => {
       live = false;
     };
-  }, [file]);
+  }, [file, round]);
 
   const ready = looked && !busy && (!gated || password.trim() !== "");
 
@@ -65,8 +70,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setBusy(true);
     shareDoc(file, {
       password: gated ? password : null,
-      editable,
+      // Only reading for now: editing a share from Tisty comes later, and an edit link must not promise it (decision 67).
+      editable: false,
       idleDays: idle === IDLE_DAYS[0] ? null : idle,
+      seen,
     })
       .then((card) => {
         copied(card.read).catch(() => {});
@@ -75,6 +82,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       .catch((problem) => {
         going.current = false;
         setBusy(false);
+        if ((problem as { code?: string } | null)?.code === "shareChanged") {
+          setChanged(true);
+          setRound((now) => now + 1);
+          return;
+        }
         onError(problem);
       });
   };
@@ -83,6 +95,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     <Modal title={t("shareTitle")} onClose={busy ? undefined : onClose} wide>
       <p className="-mt-2 mb-4 truncate text-[12.5px] text-soft">{title}</p>
       <form onSubmit={go} className="flex flex-col gap-5">
+        {changed && (
+          <p role="status" className="text-[12.5px] text-soft">
+            {t("shareChanged")}
+          </p>
+        )}
         {secrets.length > 0 && (
           <div
             role="alert"
@@ -134,28 +151,6 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
               />
             </div>
           )}
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareWhat")}</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-[10px] bg-hover p-1">
-            {[false, true].map((one) => (
-              <label
-                key={String(one)}
-                className="flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md text-[12.5px] has-[:checked]:bg-bg has-[:checked]:font-semibold has-[:checked]:shadow-lift"
-              >
-                <input
-                  type="radio"
-                  name="what"
-                  className="sr-only"
-                  checked={editable === one}
-                  onChange={() => setEditable(one)}
-                />
-                {t(one ? "shareCanEdit" : "shareReadOnly")}
-              </label>
-            ))}
-          </div>
-          <p className="text-[11.5px] leading-relaxed text-faint">{t("shareEditWhy")}</p>
         </fieldset>
 
         <p className="flex flex-col">
