@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
 import Beside from "../ui/Beside";
 
@@ -10,6 +10,11 @@ const ipc = vi.hoisted(() => ({
   facts: { bytes: 7, pages: 0, shareable: "yes" } as unknown,
   asked: [] as string[],
 }));
+
+// Reset before each test, so one that fails halfway does not leave its facts to the next.
+beforeEach(() => {
+  ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
+});
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
@@ -69,10 +74,11 @@ describe("the document's column", () => {
     expect(row("details").open).toBe(false);
   });
 
-  it("folds the details once a long outline arrives after the page is drawn", () => {
+  it("folds the details once a long outline arrives after the page is drawn", async () => {
     const view = panel([]);
     view.rerender(beside(headed(12)));
-    expect(row("details").open).toBe(false);
+    // The outline is followed once the words rest, not on every key.
+    await waitFor(() => expect(row("details").open).toBe(false));
   });
 
   it("leaves what the person opened alone when the outline grows", async () => {
@@ -104,10 +110,12 @@ describe("the document's column", () => {
 describe("the export button", () => {
   it("closes its menu when pressed again", async () => {
     panel(headed(2));
-    const button = screen.getByRole("button", { name: t("exportIt") });
-    await userEvent.click(button);
+    // Asked for afresh each time: the column may have drawn the button again between the presses.
+    const button = () => screen.getByRole("button", { name: t("exportIt") });
+    await userEvent.click(button());
     expect(screen.queryByRole("menu")).toBeTruthy();
-    await userEvent.click(button);
+    expect(button().isConnected).toBe(true);
+    await userEvent.click(button());
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
@@ -213,7 +221,6 @@ describe("the shared row", () => {
     await press("shared");
     expect(screen.getByText(t("sharedNotMineWhy"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
-    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
   });
 
   it("asks for a key before sharing, since nothing goes out unsigned", async () => {
@@ -226,7 +233,6 @@ describe("the shared row", () => {
     await press("shared");
     expect(screen.getByText(t("sharedNoKeyWhy"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
-    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
   });
 
   it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {

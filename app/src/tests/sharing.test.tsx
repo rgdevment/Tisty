@@ -8,6 +8,7 @@ const ipc = vi.hoisted(() => ({
   secrets: [] as { line: number; named: string; under: string | null }[],
   signsAs: "Ana" as string | null,
   pending: undefined as Promise<unknown> | undefined,
+  changed: false,
 }));
 
 const CARD = {
@@ -21,6 +22,10 @@ const CARD = {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     ipc.calls.push({ cmd, args });
+    if (cmd === "share_doc" && ipc.changed) {
+      ipc.changed = false;
+      return Promise.reject({ code: "shareChanged" });
+    }
     if (cmd === "share_look")
       return ipc.pending ?? Promise.resolve({ secrets: ipc.secrets, signsAs: ipc.signsAs });
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
@@ -36,6 +41,7 @@ beforeEach(() => {
   ipc.secrets = [];
   ipc.signsAs = "Ana";
   ipc.pending = undefined;
+  ipc.changed = false;
 });
 
 describe("the share dialog", () => {
@@ -80,7 +86,7 @@ describe("the share dialog", () => {
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
   });
 
-  it("asks for a password before sharing with one, and hands out the edit link only when asked", async () => {
+  it("asks for a password before sharing with one, and hands out no edit link yet", async () => {
     render(
       <Sharing
         file="notas.md"
@@ -94,13 +100,14 @@ describe("the share dialog", () => {
     const go = await screen.findByRole("button", { name: t("shareGo") });
     expect(go).toHaveProperty("disabled", true);
     await userEvent.type(screen.getByLabelText(t("sharePassword")), "ñandú");
-    await userEvent.click(screen.getByRole("radio", { name: t("shareCanEdit") }));
+    // No edit link is offered until a share can be edited from Tisty.
+    expect(screen.queryByRole("radio", { name: t("shareCanEdit") })).toBeNull();
     fireEvent.change(screen.getByLabelText(t("shareEnds")), { target: { value: "7" } });
     await userEvent.click(go);
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
     expect(asked("share_doc")[0]).toEqual({
       file: "notas.md",
-      chosen: { password: "ñandú", editable: true, idleDays: 7 },
+      chosen: { password: "ñandú", editable: false, idleDays: 7 },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
   });
@@ -210,5 +217,27 @@ describe("the share dialog", () => {
     );
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
     expect(screen.queryByText(new RegExp(t("shareSignsAlone")))).toBeNull();
+  });
+
+  it("looks the words over again when they changed after the look, and shares nothing meanwhile", async () => {
+    ipc.changed = true;
+    const onShared = vi.fn();
+    const onError = vi.fn();
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={onShared}
+        onClose={() => {}}
+        onError={onError}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    expect(await screen.findByText(t("shareChanged"))).toBeTruthy();
+    expect(onShared).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(onShared).toHaveBeenCalled());
   });
 });

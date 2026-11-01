@@ -402,7 +402,7 @@ describe("what the column offers for the document", () => {
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^export$/i }));
 
     expect(screen.getByRole("menuitem", { name: /Export to PDF/ })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: /Save a copy as Markdown/ })).toBeTruthy();

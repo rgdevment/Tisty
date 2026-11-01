@@ -5,6 +5,8 @@ export interface ShareChosen {
   password: string | null;
   editable: boolean;
   idleDays: number | null;
+  /** The print of what the dialog looked through, so nothing saved since goes out unseen. */
+  seen?: string | null;
 }
 
 /** How a share stands on the server, when it could be asked. */
@@ -35,6 +37,7 @@ export interface ShareSecret {
 /** What «Share» says before anything goes out; `signsAs` is null when the key signs alone. */
 export interface ShareLook {
   secrets: ShareSecret[];
+  seen: string;
   signsAs: string | null;
 }
 

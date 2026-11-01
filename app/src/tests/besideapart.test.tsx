@@ -29,7 +29,7 @@ describe("a document opened in a window of its own", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: t("viewDocApart") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewDocApart") }));
 
     expect(onApart).toHaveBeenCalledTimes(1);
   });

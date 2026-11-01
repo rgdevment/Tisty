@@ -47,6 +47,8 @@ pub struct State {
     pub persons: crate::person::Persons,
     /// Each document shared from this store, as the last word on it left it.
     pub shares: BTreeMap<DocId, crate::event::Shared>,
+    /// Shares another took the place of, from two machines sharing one document at once, kept so any machine can stop them.
+    pub replaced: Vec<Replaced>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -83,6 +85,19 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
     Ok(())
 }
 
+/// A share another took the place of, and when that happened.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Replaced {
+    pub id: DocId,
+    pub share: crate::event::Shared,
+    pub at: jiff::Timestamp,
+}
+
+// A line from before stops and versions named their link speaks of the share there is.
+fn named(link: &str, share: &crate::event::Shared) -> bool {
+    link.is_empty() || share.link == link
+}
+
 impl State {
     fn shared(&mut self, event: &Event) {
         match &event.op {
@@ -95,19 +110,41 @@ impl State {
             // A share's links and tokens are the person's word, which an assistant does not speak.
             _ if self.assistants.contains(&event.device) => {}
             Op::ShareDoc { id, d } => {
-                self.shares.insert(*id, d.clone());
+                if let Some(was) = self.shares.insert(*id, d.clone())
+                    && was.link != d.link
+                {
+                    self.replaced.push(Replaced {
+                        id: *id,
+                        share: was,
+                        at: event.timestamp,
+                    });
+                }
             }
             // Two machines can each put a version up; the store remembers the highest.
-            Op::ShareVersion { id, version } => {
-                if let Some(shared) = self.shares.get_mut(id) {
+            Op::ShareVersion { id, link, version } => {
+                if let Some(shared) = self.shares.get_mut(id).filter(|one| named(link, one)) {
                     shared.version = shared.version.max(*version);
                 }
             }
-            Op::ShareStop { id } => {
-                self.shares.remove(id);
+            Op::ShareStop { id, link } => {
+                if self.shares.get(id).is_some_and(|one| named(link, one)) {
+                    self.shares.remove(id);
+                }
+                self.replaced
+                    .retain(|one| !(one.id == *id && one.share.link == *link));
             }
             _ => {}
         }
+    }
+
+    /// Shares of a document deleted for good, which nothing in Tisty leads to any more. Any machine stops them.
+    pub fn gone_shares(&self) -> Vec<(DocId, crate::event::Shared)> {
+        // Deleted, not merely unheard of: a share can arrive from one machine before its document does from another.
+        self.shares
+            .iter()
+            .filter(|(id, _)| self.tombstones.contains(id))
+            .map(|(id, shared)| (*id, shared.clone()))
+            .collect()
     }
 
     pub fn replay(events: &[Event]) -> Self {

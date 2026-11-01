@@ -10,7 +10,8 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 22;
+// Raised past the 1.40 cache, so going back to it and forward again rebuilds rather than reads its stale shares.
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 23;
 
 pub struct Cache {
     db: Connection,
@@ -217,6 +218,7 @@ impl Cache {
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         // A cache from before shares were kept says nothing of them, so it is built again rather than read as none.
         state.shares = serde_json::from_str(&self.meta("shares")?).ok()?;
+        state.replaced = serde_json::from_str(&self.meta("replaced")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -381,7 +383,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('shares', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('shares', ?), ('replaced', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -403,6 +405,7 @@ impl Cache {
                     serde_json::to_string(&state.sealed).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
                     serde_json::to_string(&state.shares).unwrap_or_default(),
+                    serde_json::to_string(&state.replaced).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -420,10 +423,11 @@ impl Cache {
     // Small enough to write whole on every step, so neither costs the cache a rebuild.
     fn heard_up(&self, state: &State) -> rusqlite::Result<usize> {
         self.db.execute(
-            "INSERT OR REPLACE INTO meta VALUES ('heard', ?), ('shares', ?)",
+            "INSERT OR REPLACE INTO meta VALUES ('heard', ?), ('shares', ?), ('replaced', ?)",
             rusqlite::params![
                 serde_json::to_string(&state.heard).unwrap_or_default(),
                 serde_json::to_string(&state.shares).unwrap_or_default(),
+                serde_json::to_string(&state.replaced).unwrap_or_default(),
             ],
         )
     }

@@ -426,6 +426,7 @@ const en = {
   viewCopied: "Copied",
   viewDuplicate: "Duplicate",
   viewReveal: "Show in folder",
+  viewBrowse: "Open in the browser",
   viewRetry: "Try again",
   previewBack: "← Back to the document",
   viewClose: "Close",
@@ -598,18 +599,19 @@ const en = {
   sharedNotMine: "Not yours",
   sharedNoKey: "Needs your key",
   sharedNoKeyWhy:
-    "Everything shared goes signed with your key, and this computer has none yet. Set up your identity in the settings to share.",
+    "Everything shared goes signed with your key, and this computer has none yet. Create your phrase in Settings › Your identity to share.",
   sharedNotMineWhy:
     "This document is someone else's, so this copy cannot be shared. Only its author can share it: ask them for the link.",
   sharedWhy:
-    "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end, with no account.",
+    "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end, with no account. The link shows it as it was when you shared it; later changes stay here.",
   shareIt: "Share…",
   shareTitle: "Share document",
   shareWho: "Who can open it",
   shareUnlisted: "Unlisted",
   shareUnlistedWhy: "Only whoever has the link.",
   shareGated: "With a password",
-  shareGatedWhy: "Besides the link, it asks for a password.",
+  shareGatedWhy:
+    "Besides the link, it asks for a password. Tisty does not keep it: send it apart from the link and keep it yourself.",
   sharePassword: "Password",
   shareWhat: "What whoever gets it can do",
   shareReadOnly: "Read only",
@@ -617,14 +619,14 @@ const en = {
   shareEditWhy: "With Tisty they open it there and edit it; without Tisty they read it on the web.",
   shareSign: "Signed with your key",
   shareSignWhy:
-    "Everything shared goes signed: whoever opens it sees it is yours and that nobody altered it.",
+    "Everything shared goes signed: whoever opens it can check it comes from your key and that nobody altered it.",
   shareEnds: "Expires",
   shareEndsIdle: "After {name} days without activity",
   shareGo: "Share and copy the link",
   shareGoAnyway: "Share anyway",
   shareLooking: "Looking it over…",
   shareGoing: "Sharing…",
-  shareSecrets: "This document seems to hold a key or a password",
+  shareSecrets: "This document seems to hold a secret key or a password",
   shareSecretsWhy:
     "Anyone with the link could read it, and what was read cannot be taken back. Take it out before sharing, or share anyway if it is only an example.",
   shareSecretUnder: "Under «{name}»",
@@ -632,11 +634,12 @@ const en = {
   shareSecretsMore: "and {name} more",
   shareSignsAs: "It goes as «{name}».",
   shareSignsAlone:
-    "It goes with your key alone: neither your name nor your alias can sign it as written.",
+    "Your name does not go with it, only your key's fingerprint: neither your name nor your alias can sign as written.",
   shareLinkRead: "Link to read",
   shareLinkEdit: "Link to edit",
   shareLinkEditNote: "it edits only in Tisty",
-  shareAdminKept: "The link to manage it stays in your Tisty and travels with your data.",
+  shareAdminKept:
+    "The link to manage it stays in your Tisty and travels with your data. The link shows it as it was when you shared it; later changes stay here.",
   shareStop: "Stop sharing",
   sharedUnlisted: "Unlisted",
   sharedGated: "With a password",
@@ -645,15 +648,27 @@ const en = {
   sharedReadsOne: "1 read",
   sharedPaused: "Paused",
   sharedBlocked: "Blocked after reports",
-  sharedOffline: "Tisty Share could not be reached; the links still work.",
+  sharedOffline: "Tisty Share could not be reached, so its reads and end date are not shown.",
+  sharedBlockedWhy:
+    "People who read it reported it, so Tisty Share closed the link. Nobody can open it, and it can no longer be stopped from here.",
   shareOffline: "Tisty Share could not be reached. Check your connection and try again.",
-  shareRefused: "Tisty Share did not take it ({name}).",
+  shareRefused: "Tisty Share did not accept it. Try again in a moment.",
   shareAlready: "This document is already shared.",
   shareFailed: "Tisty Share did not answer as expected. Try again in a moment.",
+  shareOpenGated:
+    "This document asks for a password, which Tisty does not ask for yet. Open it in the browser.",
+  shareOpenGone:
+    "This link no longer leads to a document: it ran out or its author stopped sharing it.",
+  shareOpenClosed: "Its author paused this document, or reports closed it.",
+  shareOpenRevoked:
+    "Its writer took back the key that signed it, so Tisty does not show it as theirs. Open it in the browser to see why.",
+  shareOpenUnsigned:
+    "This document does not carry a signature that matches its link, so Tisty does not show it.",
+  shareChanged: "The document changed while you chose, so it was looked over again.",
   shareTooBig: "This document is larger than Tisty Share takes.",
   shareSlow: "Tisty Share asks this computer to wait a little before trying again.",
   shareUnsigned:
-    "Tisty Share did not take this computer's signature: its key was taken back. Type your phrase here to give it a new one.",
+    "Tisty Share did not take this computer's signature: its key was taken back. Type your phrase in Settings › Your identity to give it a new one.",
   shareNotMine:
     "This document is someone else's: only its author can share it. Ask them for the link.",
   shareNoKey:
@@ -2212,7 +2227,12 @@ const en = {
   identityWhat:
     "With it you encrypt your cloud and sign what you share with Tisty Share. It is born with your 24-word phrase.",
   identityUnborn:
-    "Your identity is born the first time you encrypt your cloud or share something with Tisty Share.",
+    "Your identity is born when you create your 24-word phrase. You need it to share documents and to encrypt your cloud.",
+  identityCreate: "Create my phrase",
+  phraseTypeOpen: "I already have my phrase",
+  phraseTypeHow: "Type your 24 words, separated by spaces, in English or Spanish.",
+  phraseTypeGo: "Give this computer its key",
+  phraseTyped: "This computer now has your key.",
   identityAway:
     "Your identity lives on another of your computers, and this one does not keep its phrase yet.",
   identityPrint: "Your fingerprint. If someone asks you to prove it's you, compare them.",
@@ -2290,14 +2310,14 @@ const en = {
     "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: we do not know what you write or what you share.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nWe never upload anything to any service. There is no telemetry behind this either.",
   aliasTooLong: "An alias holds up to {name} characters",
   signName: "Name to sign with",
-  signNameShort: "How you appear on your PDFs.",
+  signNameShort: "How you appear on your PDFs and on what you share.",
   signNameNone: "your name",
   signNameWhy:
     "Your alias is the short name your documents carry inside Tisty and when you share them with other Tisty users.\n\nThe name to sign with is how you want to appear on paper: your full name, or however you sign your work. It goes on a PDF's card, in place of your alias, only when you choose to add the card.\n\nA document that says author: in its properties keeps that author instead.",
   signNameKept: "Your PDFs are signed {name}",
   signNameGone: "Your PDFs use your alias again",
   nameTooLong: "A name holds up to {name} characters",
-  nameUnfit: "A name has at least as many letters as digits, and nothing hidden",
+  nameUnfit: "A name needs at least as many letters as numbers, and no invisible characters.",
   bandNotices: "Notices",
   bandOutside: "Outside this window",
   lookNow: "Check for updates",
@@ -3163,6 +3183,7 @@ const es: Catalog = {
   viewCopied: "Copiado",
   viewDuplicate: "Duplicar",
   viewReveal: "Mostrar en la carpeta",
+  viewBrowse: "Abrir en el navegador",
   viewRetry: "Reintentar",
   previewBack: "← Volver al documento",
   viewClose: "Cerrar",
@@ -3336,18 +3357,19 @@ const es: Catalog = {
   sharedNotMine: "No es tuyo",
   sharedNoKey: "Falta tu llave",
   sharedNoKeyWhy:
-    "Todo lo compartido va firmado con tu llave, y este equipo todavía no tiene una. Configura tu identidad en los ajustes para compartir.",
+    "Todo lo compartido va firmado con tu llave, y este equipo todavía no tiene una. Crea tu frase en Configuración › Tu identidad para compartir.",
   sharedNotMineWhy:
     "Este documento es de otra persona, así que esta copia no se puede compartir. Solo quien lo escribió puede compartirlo: pídele el link.",
   sharedWhy:
-    "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas.",
+    "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas. El link lo muestra como estaba al compartirlo; los cambios posteriores quedan aquí.",
   shareIt: "Compartir…",
   shareTitle: "Compartir documento",
   shareWho: "Quién puede abrirlo",
   shareUnlisted: "No listado",
   shareUnlistedWhy: "Solo quien tenga el link.",
   shareGated: "Con clave",
-  shareGatedWhy: "Además del link, pide una clave.",
+  shareGatedWhy:
+    "Además del link, pide una clave. Tisty no la guarda: envíala aparte del link y guárdala tú.",
   sharePassword: "Clave",
   shareWhat: "Qué puede hacer quien lo recibe",
   shareReadOnly: "Solo leer",
@@ -3355,14 +3377,14 @@ const es: Catalog = {
   shareEditWhy: "Con Tisty lo abre ahí y lo edita; sin Tisty, lo lee en la web.",
   shareSign: "Firmado con tu llave",
   shareSignWhy:
-    "Todo lo compartido va firmado: quien lo abra verá que es tuyo y que nadie lo alteró.",
+    "Todo lo compartido va firmado: quien lo abra puede comprobar que viene de tu llave y que nadie lo alteró.",
   shareEnds: "Caduca",
   shareEndsIdle: "A los {name} días sin actividad",
   shareGo: "Compartir y copiar el link",
   shareGoAnyway: "Compartir de todos modos",
   shareLooking: "Revisando…",
   shareGoing: "Compartiendo…",
-  shareSecrets: "Este documento parece tener una clave o una contraseña",
+  shareSecrets: "Este documento parece tener una clave secreta o una contraseña",
   shareSecretsWhy:
     "Cualquiera con el link podría leerla, y lo que ya se leyó no se puede retirar. Quítala antes de compartir, o comparte de todos modos si es solo un ejemplo.",
   shareSecretUnder: "Bajo «{name}»",
@@ -3370,11 +3392,12 @@ const es: Catalog = {
   shareSecretsMore: "y {name} más",
   shareSignsAs: "Va como «{name}».",
   shareSignsAlone:
-    "Va solo con tu llave: ni tu nombre ni tu alias sirven para firmar tal como están.",
+    "Tu nombre no va con él, solo la huella de tu llave: ni tu nombre ni tu alias sirven para firmar tal como están.",
   shareLinkRead: "Link para leer",
   shareLinkEdit: "Link para editar",
   shareLinkEditNote: "solo edita en Tisty",
-  shareAdminKept: "El link para administrarlo queda en tu Tisty y viaja con tus datos.",
+  shareAdminKept:
+    "El link para administrarlo queda en tu Tisty y viaja con tus datos. El link lo muestra como estaba al compartirlo; los cambios posteriores quedan aquí.",
   shareStop: "Dejar de compartir",
   sharedUnlisted: "No listado",
   sharedGated: "Con clave",
@@ -3383,15 +3406,28 @@ const es: Catalog = {
   sharedReadsOne: "1 lectura",
   sharedPaused: "En pausa",
   sharedBlocked: "Bloqueado por denuncias",
-  sharedOffline: "No se pudo llegar a Tisty Share; los links siguen funcionando.",
+  sharedOffline:
+    "No se pudo llegar a Tisty Share, así que no se ven sus lecturas ni su fecha de fin.",
+  sharedBlockedWhy:
+    "Quienes lo leyeron lo denunciaron, así que Tisty Share cerró el link. Nadie puede abrirlo, y ya no se puede detener desde aquí.",
   shareOffline: "No se pudo llegar a Tisty Share. Revisa tu conexión e inténtalo de nuevo.",
-  shareRefused: "Tisty Share no lo aceptó ({name}).",
+  shareRefused: "Tisty Share no lo aceptó. Vuelve a intentarlo en un momento.",
   shareAlready: "Este documento ya está compartido.",
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
+  shareOpenGated:
+    "Este documento pide una clave, que Tisty todavía no pide. Ábrelo en el navegador.",
+  shareOpenGone:
+    "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
+  shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",
+  shareOpenRevoked:
+    "Quien lo escribió retiró la llave con que lo firmó, así que Tisty no lo muestra como suyo. Ábrelo en el navegador para ver por qué.",
+  shareOpenUnsigned:
+    "Este documento no trae una firma que corresponda a su link, así que Tisty no lo muestra.",
+  shareChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTooBig: "Este documento es más grande de lo que acepta Tisty Share.",
   shareSlow: "Tisty Share pide a este equipo esperar un poco antes de volver a intentarlo.",
   shareUnsigned:
-    "Tisty Share no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase aquí para darle una nueva.",
+    "Tisty Share no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase en Configuración › Tu identidad para darle una nueva.",
   shareNotMine:
     "Este documento es de otra persona: solo quien lo escribió puede compartirlo. Pídele el link.",
   shareNoKey:
@@ -4957,7 +4993,12 @@ const es: Catalog = {
   identityWhat:
     "Con ella cifras tu nube y firmas lo que compartes con Tisty Share. Nace con tu frase de 24 palabras.",
   identityUnborn:
-    "Tu identidad nace la primera vez que cifras tu nube o compartes algo con Tisty Share.",
+    "Tu identidad nace cuando creas tu frase de 24 palabras. La necesitas para compartir documentos y para cifrar tu nube.",
+  identityCreate: "Crear mi frase",
+  phraseTypeOpen: "Ya tengo mi frase",
+  phraseTypeHow: "Escribe tus 24 palabras, separadas por espacios, en español o en inglés.",
+  phraseTypeGo: "Darle a este equipo su llave",
+  phraseTyped: "Este equipo ya tiene tu llave.",
   identityAway: "Tu identidad está en otro de tus equipos, y este todavía no guarda su frase.",
   identityPrint: "Tu huella. Si alguien te pide comprobar que eres tú, compárenla.",
   identityName: "Nombre",
@@ -5034,14 +5075,14 @@ const es: Catalog = {
     "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: nosotros no sabemos lo que escribes ni lo que compartes.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNunca subimos nada a ningún servicio. Tampoco hay telemetría detrás.",
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   signName: "Nombre para firmar",
-  signNameShort: "Cómo apareces en tus PDF.",
+  signNameShort: "Cómo apareces en tus PDF y en lo que compartes.",
   signNameNone: "tu nombre",
   signNameWhy:
     "El alias es el nombre corto que llevan tus documentos dentro de Tisty y cuando los compartes con otras personas que usan Tisty.\n\nEl nombre para firmar es cómo quieres aparecer en papel: tu nombre completo o como firmes tu trabajo. Va en la ficha del PDF, en lugar del alias, solo cuando eliges añadir la ficha.\n\nSi un documento dice author: en sus propiedades, manda ese autor.",
   signNameKept: "Tus PDF se firman como {name}",
   signNameGone: "Tus PDF vuelven a usar tu alias",
   nameTooLong: "Un nombre admite hasta {name} caracteres",
-  nameUnfit: "Un nombre lleva al menos tantas letras como números, y nada oculto",
+  nameUnfit: "Un nombre necesita al menos tantas letras como números, y ningún carácter invisible.",
   bandNotices: "Avisos",
   bandOutside: "Fuera de esta ventana",
   lookNow: "Buscar actualizaciones",

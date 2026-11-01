@@ -187,3 +187,30 @@ fn a_copy_of_someone_elses_document_is_still_theirs() {
     assert_eq!(twin.by.as_deref(), Some("Tisty"));
     assert!(!session.state.mine(twin));
 }
+
+#[test]
+fn a_copy_of_a_document_someone_else_signed_is_a_guest_copy_even_when_it_was_not_one() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# Suyo")
+        .unwrap();
+    let theirs = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id: theirs,
+            d: tisty_core::event::DocAdd {
+                by: Some("Otra persona".into()),
+                file: made.id,
+                order: "a0".into(),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+
+    let copy = session.copy_doc(&theirs.to_string()).unwrap();
+    let twin = &session.state.docs[&twin_of(&session, &copy)];
+
+    // Made on this machine, the copy would otherwise read as mine to share.
+    assert!(twin.guest);
+    assert_eq!(twin.by.as_deref(), Some("Otra persona"));
+}

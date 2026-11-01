@@ -22,6 +22,7 @@ mod pathing;
 mod pdf;
 mod quick_keys;
 mod reaching;
+mod received;
 mod refusing;
 mod report;
 #[cfg(windows)]
@@ -866,14 +867,18 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());
-    app.state::<viewing::Views>().started(&mut wanted);
+    let mut shares = received::links(&argv);
+    app.state::<viewing::Views>()
+        .started(&mut wanted, &mut shares);
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
         viewing::show(app.handle(), wanted);
+        viewing::show_shares(app.handle(), shares);
         return Ok(());
     }
-    opened(app.handle(), !wanted.is_empty())?;
+    opened(app.handle(), !wanted.is_empty() || !shares.is_empty())?;
     viewing::show(app.handle(), wanted);
+    viewing::show_shares(app.handle(), shares);
     Ok(())
 }
 
@@ -982,6 +987,8 @@ pub(crate) fn opened(
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
     answers::papers::tags_once(app.clone());
+    // A machine with no cloud never runs a round, and the shares of what it deleted must still go.
+    answers::shares::let_loose_go(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     tray::follow_bar(app.clone());
@@ -1402,6 +1409,7 @@ pub fn run() {
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
+        .manage(answers::shares::Loosening::default())
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())

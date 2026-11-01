@@ -1,7 +1,8 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { escaped } from "tisty-editor/read";
-import { identityConfirm, keepFile, pagePdf } from "../core";
+import { keepFile, pagePdf } from "../core";
+import { identityConfirm } from "../identity";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Modal from "./Modal";

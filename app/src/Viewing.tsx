@@ -1,5 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PAPERS } from "tisty-editor/read";
 import {
@@ -15,7 +15,7 @@ import {
 import { paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
-import { saidPlainly } from "./refusal";
+import { plainly, saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
@@ -48,10 +48,13 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   }
 };
 
-const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
+// A share link Tisty could not open says why in its own words, and its link can still go to the browser.
+const troubleOf = (refusal: { code: string; name?: string }, shared: boolean): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
-    : { kind: "unreadable" };
+    : shared
+      ? { kind: "other", said: plainly(refusal) }
+      : { kind: "unreadable" };
 
 // A diagram's window is its own thing: none of the reader's state is set up for it.
 export default function Viewing() {
@@ -135,7 +138,13 @@ function Reading({
   const paper = shown?.kind === "doc" ? shown.paper : null;
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
-  const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
+  // A share is named by its title, which has no extension to drop.
+  const named =
+    shown?.kind === "file"
+      ? shown.shared
+        ? shown.name
+        : shown.name.replace(/\.[^.]+$/, "")
+      : (paper?.title ?? "");
   const pdf = usePdf({
     ready: reading,
     body,
@@ -309,10 +318,11 @@ function Reading({
       )}
       {shown?.kind === "missed" && (
         <Problem
-          trouble={troubleOf(shown.refusal)}
+          trouble={troubleOf(shown.refusal, shown.shared)}
           name={shown.name}
           place={shown.place}
-          onReveal={() => void revealItemInDir(shown.path).catch(fail)}
+          onReveal={shown.shared ? undefined : () => void revealItemInDir(shown.path).catch(fail)}
+          onBrowse={shown.shared ? () => void openUrl(shown.path).catch(fail) : undefined}
           onRetry={look}
         />
       )}

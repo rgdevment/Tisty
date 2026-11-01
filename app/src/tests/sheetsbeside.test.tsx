@@ -42,13 +42,13 @@ describe("the sheets a document is read on", () => {
     const onSheets = vi.fn();
     const off = panel(false, onSheets);
     expect(screen.queryByRole("button", { name: t("sheetsAcross") })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: t("sheetsShown") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("sheetsShown") }));
     expect(onSheets).toHaveBeenCalledWith(true);
     off.unmount();
 
     const onLandscape = vi.fn();
     panel(true, vi.fn(), onLandscape);
-    await userEvent.click(screen.getByRole("button", { name: t("sheetsAcross") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("sheetsAcross") }));
     expect(onLandscape).toHaveBeenCalledWith(true);
   });
 

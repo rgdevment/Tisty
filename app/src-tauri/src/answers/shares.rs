@@ -28,21 +28,6 @@ fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Pe
     Some((voucher, me))
 }
 
-// Every key this person took back, the root's own signed word on each.
-fn taken_back_by(
-    session: &Session,
-    me: &tisty_share_proto::identity::Person,
-) -> Vec<tisty_share_proto::identity::Revocation> {
-    session
-        .state
-        .persons
-        .revocations
-        .iter()
-        .filter(|one| one.unchecked().is_some_and(|(person, _)| person == *me))
-        .cloned()
-        .collect()
-}
-
 pub(crate) fn shareable(session: &Session, kept: &tisty_core::model::Kept) -> Shareable {
     match sharer(session) {
         Some((_, me)) if session.state.mine_to_share(kept, &me) => Shareable::Yes,
@@ -168,6 +153,8 @@ fn properties_end(text: &str) -> Option<usize> {
 #[serde(rename_all = "camelCase")]
 pub struct Look {
     secrets: Vec<Secret>,
+    /// The print of what was looked through, handed back with the share.
+    seen: String,
     /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
     signs_as: Option<String>,
 }
@@ -195,6 +182,7 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         Ok(Look {
             secrets: secrets(&text),
+            seen: sharing::print_of(&text),
             signs_as,
         })
     })
@@ -207,7 +195,7 @@ pub async fn share_doc(
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let (doc, text, voucher, revoked, name) = {
+    let (doc, text, voucher, revoked, name, data) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
@@ -226,11 +214,28 @@ pub async fn share_doc(
         }
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        // Saved after the dialog looked, the words could hold a key nobody was warned of.
+        if chosen
+            .seen
+            .as_ref()
+            .is_some_and(|seen| *seen != sharing::print_of(&text))
+        {
+            return Err(Refusal::of("shareChanged"));
+        }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
         let name = signing_name(&session.state.signed);
-        (doc, text, voucher, taken_back_by(&session, &me), name)
+        (
+            doc,
+            text,
+            voucher,
+            sharing::taken_back_by(&session.state.persons, &me),
+            name,
+            session.paths.data().to_path_buf(),
+        )
     };
     let (shared, info) = apart(move || {
+        let (text, pictures) =
+            sharing::pictured(&text, |target| sharing::attachment(target, &data));
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
@@ -238,6 +243,7 @@ pub async fn share_doc(
             &wire,
             sharing::SERVER,
             &text,
+            &pictures,
             &chosen,
             &voucher,
             name.as_deref(),
@@ -294,7 +300,10 @@ pub async fn share_card(
                 .is_some_and(|now| now.link == shared.link)
             {
                 session
-                    .commit(Op::ShareStop { id: doc })
+                    .commit(Op::ShareStop {
+                        id: doc,
+                        link: shared.link,
+                    })
                     .map_err(Refusal::from)?;
             }
             Ok(None)
@@ -313,6 +322,7 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
     let Some(shared) = shared else {
         return Ok(());
     };
+    let link = shared.link.clone();
     let gone = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;
     // A share the server already let go of is stopped all the same.
     match gone {
@@ -320,8 +330,93 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         _ => {}
     }
     held(&session)
-        .commit(Op::ShareStop { id: doc })
+        .commit(Op::ShareStop { id: doc, link })
         .map_err(Refusal::from)
+}
+
+/// Set while loose shares are being let go of, which the start and every round ask for.
+#[derive(Default)]
+pub struct Loosening(std::sync::atomic::AtomicBool);
+
+// Cleared however the run ends, so one that failed halfway never keeps the next from starting.
+struct Loosened<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for Loosened<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+// A replaced link may be the one just sent, so its reader gets a week to open it before an unread one is stopped.
+const UNREAD_FOR: jiff::SignedDuration = jiff::SignedDuration::from_hours(7 * 24);
+
+/// Stops in the background every share nothing in Tisty leads to any more, and forgets each one the server let go of.
+pub(crate) fn let_loose_go(app: tauri::AppHandle) {
+    use tauri::Manager;
+    tauri::async_runtime::spawn(async move {
+        let loosening = app.state::<Loosening>();
+        // One at a time, or two would stop the same shares and both write that they did.
+        if loosening.0.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
+        let _running = Loosened(&loosening.0);
+        loosened(&app).await;
+    });
+}
+
+async fn loosened(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let session = app.state::<Mutex<Session>>();
+    let (gone, replaced) = {
+        let session = held(&session);
+        (session.state.gone_shares(), session.state.replaced.clone())
+    };
+    if gone.is_empty() && replaced.is_empty() {
+        return;
+    }
+    let now = jiff::Timestamp::now();
+    let stopped = apart(move || {
+        // Only an unread replaced share goes, and one the server let go of is forgotten rather than asked after again.
+        let unread = replaced
+            .into_iter()
+            .filter(|one| now.duration_since(one.at) >= UNREAD_FOR)
+            .filter(|one| {
+                match Net::to(&one.share.server).and_then(|wire| sharing::info(&wire, &one.share)) {
+                    Ok(info) => info.reads == 0,
+                    Err(refused) => sharing::already_gone(&refused),
+                }
+            })
+            .map(|one| (one.id, one.share));
+        Ok(gone
+            .into_iter()
+            .chain(unread)
+            .filter(|(_, shared)| {
+                match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
+                    Ok(()) => true,
+                    // Closed by reports, the server never lets it be stopped, and asking again only costs.
+                    Err(refused) => {
+                        sharing::already_gone(&refused)
+                            || refused.name.as_deref() == Some("blocked")
+                    }
+                }
+            })
+            .map(|(id, shared)| Op::ShareStop {
+                id,
+                link: shared.link,
+            })
+            .collect::<Vec<_>>())
+    })
+    .await;
+    if let Ok(ops) = stopped
+        && !ops.is_empty()
+        && let Err(e) = held(&session).commit_all(ops)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::WINDOW,
+            "shares nothing leads to were stopped but could not be forgotten",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
 }
 
 #[cfg(test)]

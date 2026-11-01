@@ -308,9 +308,20 @@ pub enum Op {
     ShareDoc { id: DocId, d: Shared },
     #[serde(rename = "share.version")]
     /// Named apart from the event's own `v`, since an op is written flat into its event.
-    ShareVersion { id: DocId, version: u64 },
+    ShareVersion {
+        id: DocId,
+        /// Empty on a line from before links were named, which speaks of whatever share there is.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        link: String,
+        version: u64,
+    },
+    /// Names the link it stops, so a machine that had not heard of a newer share never forgets that one.
     #[serde(rename = "share.stop")]
-    ShareStop { id: DocId },
+    ShareStop {
+        id: DocId,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        link: String,
+    },
 }
 
 /// One shared document's place on a Tisty Share server and the secrets that open it there.

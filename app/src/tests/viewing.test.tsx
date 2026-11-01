@@ -61,7 +61,13 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   message: () => Promise.resolve(),
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: () => Promise.resolve() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  revealItemInDir: () => Promise.resolve(),
+  openUrl: (url: string) => {
+    ipc.calls.push({ cmd: "open_url", args: { url } });
+    return Promise.resolve();
+  },
+}));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
@@ -78,6 +84,7 @@ const file: Showing = {
   place: "Descargas",
   path: "C:\\Descargas\\notas.md",
   body: "# Notas\n\nUn texto.\n\n## Más\n",
+  shared: false,
 };
 
 URL.createObjectURL = () => "blob:pdf";
@@ -113,9 +120,9 @@ describe("the viewer", () => {
 
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewIndex") }));
     expect(await screen.findByText(t("outline"))).toBeTruthy();
-    expect(screen.getByRole("group", { name: t("leafIs") })).toBeTruthy();
+    expect(await screen.findByRole("group", { name: t("leafIs") })).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
 
@@ -154,11 +161,30 @@ describe("the viewer", () => {
       place: "Descargas",
       path: "C:\\Descargas\\grande.md",
       refusal: { code: "documentTooBig", name: "500 KB" },
+      shared: false,
     } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByText(t("viewBigTitle").replace("{name}", "grande.md"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewRetry") })).toBeTruthy();
+  });
+
+  it("sends a share Tisty could not open to the browser, saying why", async () => {
+    const link = "https://tisty.cl/oVD0Idz0#llave";
+    ipc.shown = {
+      kind: "missed",
+      name: "Tisty Share",
+      place: "Tisty Share",
+      path: link,
+      refusal: { code: "shareOpenGated" },
+      shared: true,
+    } satisfies Showing;
+    render(<Viewing />);
+
+    expect(await screen.findByText(t("shareOpenGated"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("viewReveal") })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("viewBrowse") }));
+    expect(asked("open_url")).toEqual([{ cmd: "open_url", args: { url: link } }]);
   });
 
   it("draws a widget on a stage with its widths to try", async () => {
