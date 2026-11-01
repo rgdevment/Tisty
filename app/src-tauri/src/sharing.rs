@@ -379,13 +379,40 @@ pub(crate) fn share(
 /// The password and the shorter life the person chose, set once the first version is up.
 fn guarded(wire: &impl Wire, shared: &Shared, chosen: &Chosen) -> Result<(), Refusal> {
     if let Some(password) = &chosen.password {
-        managed(wire, shared, json!({ "do": "password", "with": password }))?;
+        let with = Some(password.clone());
+        changed(wire, shared, &Change::Password { with })?;
     }
     if let Some(days) = chosen.idle_days {
-        let seconds = i64::from(days) * 86_400;
-        managed(wire, shared, json!({ "do": "idle", "with": seconds }))?;
+        changed(wire, shared, &Change::Idle { days })?;
     }
     Ok(())
+}
+
+/// What the owner changes on a share already up, from its row in the column.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "do")]
+pub(crate) enum Change {
+    /// A new password, or none to open it with the link alone.
+    Password {
+        with: Option<String>,
+    },
+    /// Days without activity before it goes; the server keeps it within its own.
+    Idle {
+        days: u32,
+    },
+    /// Nobody can open it until it is resumed, and the server forgets it after its trash days (decision 51).
+    Pause,
+    Resume,
+}
+
+pub(crate) fn changed(wire: &impl Wire, shared: &Shared, change: &Change) -> Result<(), Refusal> {
+    let what = match change {
+        Change::Password { with } => json!({ "do": "password", "with": with }),
+        Change::Idle { days } => json!({ "do": "idle", "with": i64::from(*days) * 86_400 }),
+        Change::Pause => json!({ "do": "pause" }),
+        Change::Resume => json!({ "do": "restore" }),
+    };
+    managed(wire, shared, what)
 }
 
 /// How it stands on the server: its reads, when it ends, and whether it is paused or blocked.

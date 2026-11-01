@@ -16,7 +16,7 @@ interface Props {
 const SECRETS_SHOWN = 3;
 
 // What is encrypted ends on its own after 30 idle days; the dialog only lets it end sooner (decisions 49 and 50).
-const IDLE_DAYS = [30, 14, 7];
+export const IDLE_DAYS = [30, 14, 7];
 
 const choice =
   "flex cursor-pointer gap-2.5 rounded-[10px] border px-3.5 py-2.5 has-[:checked]:border-accent has-[:checked]:bg-accent-soft";

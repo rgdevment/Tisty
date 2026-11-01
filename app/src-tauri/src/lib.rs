@@ -1378,6 +1378,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shares::share_look,
         answers::shares::share_card,
         answers::shares::share_stop,
+        answers::shares::share_change,
         desktop::parted,
         viewing::view_shown,
         viewing::ics_waiting,

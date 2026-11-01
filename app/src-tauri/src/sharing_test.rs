@@ -86,6 +86,38 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
 }
 
 #[test]
+fn a_share_already_up_takes_a_new_password_a_shorter_life_and_a_pause() {
+    let here = Here::new();
+    let shared = share(
+        &here,
+        SERVER,
+        "Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+
+    let with = Some("ñandú".into());
+    changed(&here, &shared, &Change::Password { with }).unwrap();
+    assert_eq!(here.read(&shared.link, None).0, 401);
+    assert_eq!(here.read(&shared.link, Some("ñandú")).0, 200);
+    changed(&here, &shared, &Change::Password { with: None }).unwrap();
+    assert_eq!(here.read(&shared.link, None).0, 200);
+
+    changed(&here, &shared, &Change::Idle { days: 7 }).unwrap();
+    assert!(info(&here, &shared).unwrap().ends <= T0 + 7 * 86_400);
+
+    changed(&here, &shared, &Change::Pause).unwrap();
+    assert!(info(&here, &shared).unwrap().paused);
+    assert_ne!(here.read(&shared.link, None).0, 200);
+    changed(&here, &shared, &Change::Resume).unwrap();
+    assert!(!info(&here, &shared).unwrap().paused);
+    assert_eq!(here.read(&shared.link, None).0, 200);
+}
+
+#[test]
 fn stopping_leaves_the_link_leading_nowhere() {
     let here = Here::new();
     let shared = share(

@@ -47,3 +47,13 @@ export const shareDoc = (file: string, chosen: ShareChosen): Promise<ShareCard> 
 export const shareCard = (file: string): Promise<ShareCard | null> =>
   invoke("share_card", { file });
 export const shareStop = (file: string): Promise<void> => invoke("share_stop", { file });
+
+/** One change to a share already up; a password of null opens it with the link alone. */
+export type ShareChange =
+  | { do: "password"; with: string | null }
+  | { do: "idle"; days: number }
+  | { do: "pause" }
+  | { do: "resume" };
+
+export const shareChange = (file: string, change: ShareChange): Promise<ShareCard> =>
+  invoke("share_change", { file, change });

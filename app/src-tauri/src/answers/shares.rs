@@ -6,7 +6,7 @@ use tisty_core::event::Shared;
 use tisty_core::model::DocId;
 
 use crate::handed::Voucher;
-use crate::sharing::{self, Chosen, Info, Net};
+use crate::sharing::{self, Change, Chosen, Info, Net};
 use crate::{Answer, Refusal, Session, held};
 
 /// Whether a document can go out from here, which its «Shared» row says before anything is asked.
@@ -310,6 +310,52 @@ pub async fn share_card(
         }
         info => Ok(Some(card(&shared, info.ok()))),
     }
+}
+
+/// Changes a share already up, and hands back its row as it stands after.
+#[tauri::command]
+pub async fn share_change(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    change: sharing::Change,
+) -> Answer<Card> {
+    let (doc, shared) = {
+        let session = held(&session);
+        let doc = doc_of(&session, &file)?;
+        let shared = session.state.shares.get(&doc).cloned();
+        (doc, shared.ok_or(Refusal::of("shareOpenGone"))?)
+    };
+    let asked = shared.clone();
+    let wanted = change.clone();
+    let info = apart(move || {
+        let wire = Net::to(&asked.server)?;
+        sharing::changed(&wire, &asked, &wanted)?;
+        Ok(sharing::info(&wire, &asked).ok())
+    })
+    .await?;
+    let Change::Password { with } = change else {
+        return Ok(card(&shared, info));
+    };
+    // Whether it asks for a password travels with the links, so every machine's row says the same.
+    let now = Shared {
+        gated: with.is_some(),
+        ..shared
+    };
+    let mut session = held(&session);
+    if session
+        .state
+        .shares
+        .get(&doc)
+        .is_some_and(|one| one.link == now.link)
+    {
+        session
+            .commit(Op::ShareDoc {
+                id: doc,
+                d: now.clone(),
+            })
+            .map_err(Refusal::from)?;
+    }
+    Ok(card(&now, info))
 }
 
 #[tauri::command]
