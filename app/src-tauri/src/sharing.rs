@@ -331,6 +331,7 @@ pub(crate) fn share(
         version: 1,
         still: false,
         taken: false,
+        print: String::new(),
     };
     let first = Words {
         text,
@@ -362,8 +363,12 @@ pub(crate) struct Words<'a> {
 /// Puts the words up as the version after the one this store last saw, and says which it became (decision 48).
 /// One put up since by anyone is never written over: the server says `behind`, and its words are brought first.
 pub(crate) fn update(wire: &impl Wire, shared: &Shared, words: &Words) -> Result<u64, Refusal> {
+    let next = shared
+        .version
+        .checked_add(1)
+        .ok_or(Refusal::of("shareFailed"))?;
     put_up(wire, shared, Some(shared.version), words)?;
-    Ok(shared.version + 1)
+    Ok(next)
 }
 
 /// Whether the server turned an upload away because a newer version is there.

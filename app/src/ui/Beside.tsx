@@ -132,8 +132,8 @@ const gistOf = (card: ShareCard | null): string => {
     .join(" · ");
 };
 
-// The row warns this long before an idle share runs out, with no notice of its own (decision 50).
-const ENDS_SOON = 7 * 86_400;
+// Shorter than the shortest life the dialog offers, so no share reads as ending from the moment it is made (decision 50).
+const ENDS_SOON = 3 * 86_400;
 
 const dayOfSeconds = (at: number) => dayOf(new Date(at * 1000).toISOString());
 

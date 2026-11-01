@@ -674,8 +674,10 @@ fn received_kept(
     }
     let (made, id) =
         crate::answers::carrying::imported_as(&mut session, &body, None, true, got.signer.clone())?;
-    // Kept through an edit link, the copy stays tied to the share, so what is saved here goes up to it (decision 9).
-    if let Some(edit) = &link.edit {
+    // An edit link ties one copy to its share, when this machine can sign what goes up to it (decision 9).
+    let held_already = session.state.shares.values().any(|one| one.link == link.id);
+    let signs = crate::answers::shares::can_sign(&session);
+    if let Some(edit) = link.edit.as_ref().filter(|_| signs && !held_already) {
         session
             .commit(tisty_core::Op::ShareDoc {
                 id,
@@ -690,6 +692,7 @@ fn received_kept(
                     version: got.version,
                     still: false,
                     taken: true,
+                    print: String::new(),
                 },
             })
             .map_err(Refusal::from)?;

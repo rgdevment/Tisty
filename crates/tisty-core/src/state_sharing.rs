@@ -24,6 +24,7 @@ fn shared(version: u64) -> Shared {
         version,
         still: false,
         taken: false,
+        print: String::new(),
     }
 }
 
@@ -46,6 +47,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
                 id: doc,
                 link: "k7Qm2xPa".into(),
                 version: 3,
+                print: String::new(),
             },
         ),
         by(
@@ -55,6 +57,7 @@ fn a_shared_document_keeps_its_links_and_the_highest_version_either_machine_put_
                 id: doc,
                 link: "k7Qm2xPa".into(),
                 version: 2,
+                print: String::new(),
             },
         ),
     ]);
@@ -91,6 +94,7 @@ fn stopping_forgets_the_links_and_a_version_after_it_brings_nothing_back() {
                 id: doc,
                 link: "k7Qm2xPa".into(),
                 version: 2,
+                print: String::new(),
             },
         ),
     ]);
@@ -109,6 +113,7 @@ fn sharing_is_optional_for_an_older_tisty_and_undo_steps_over_it() {
             id: doc,
             link: "k7Qm2xPa".into(),
             version: 2,
+            print: String::new(),
         },
         Op::ShareStop {
             id: doc,
@@ -156,6 +161,7 @@ fn every_share_op_is_written_to_the_log_and_read_back_as_it_was() {
             id: doc,
             link: "k7Qm2xPa".into(),
             version: 2,
+            print: String::new(),
         },
         Op::ShareStop {
             id: doc,
@@ -202,6 +208,7 @@ fn a_stop_for_an_older_link_leaves_the_newer_share_alone() {
                 id: doc,
                 link: "k7Qm2xPa".into(),
                 version: 9,
+                print: String::new(),
             },
         ),
     ]);
@@ -293,4 +300,56 @@ fn a_stop_written_before_stops_named_their_link_still_reads_and_stops_the_share(
     })
     .unwrap();
     assert_eq!(said["link"], "k7Qm2xPa");
+}
+
+#[test]
+fn the_same_share_said_again_never_takes_its_version_or_its_print_back() {
+    let doc = Ulid::generate();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(1),
+            },
+        ),
+        by(
+            2,
+            "dev_b",
+            Op::ShareVersion {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+                version: 3,
+                print: "tres".into(),
+            },
+        ),
+        // A machine that had not heard of version 3 changes the password, saying the share as it knew it.
+        by(
+            3,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: crate::event::Shared {
+                    gated: true,
+                    ..shared(1)
+                },
+            },
+        ),
+        // Someone else's version moves the number on and leaves the print of the person's own words.
+        by(
+            4,
+            "dev_a",
+            Op::ShareVersion {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+                version: 4,
+                print: String::new(),
+            },
+        ),
+    ]);
+    let kept = &state.shares[&doc];
+    assert!(kept.gated);
+    assert_eq!(kept.version, 4);
+    assert_eq!(kept.print, "tres");
 }

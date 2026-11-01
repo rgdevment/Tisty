@@ -106,6 +106,7 @@ fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
     let taken = Shared {
         admin: String::new(),
         taken: true,
+        print: String::new(),
         ..shared.clone()
     };
     let words = Words {
@@ -141,6 +142,7 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         version: 1,
         still: false,
         taken: false,
+        print: String::new(),
     };
     assert_eq!(
         links(&shared),

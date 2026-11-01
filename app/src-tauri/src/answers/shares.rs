@@ -21,6 +21,11 @@ pub enum Shareable {
 }
 
 // The key this machine signs with and the person it answers for; without both nothing is shared.
+/// Whether this machine holds a key its person vouches for, which everything that goes up is signed with.
+pub(crate) fn can_sign(session: &Session) -> bool {
+    sharer(session).is_some()
+}
+
 pub(super) fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Person)> {
     let device = &session.config.device_id;
     let voucher = crate::handed::vouched_by(&session.paths, device, &session.state.persons)?;
@@ -242,6 +247,7 @@ pub async fn share_doc(
         )
     };
     let (shared, info) = apart(move || {
+        let print = sharing::print_of(&text);
         let (text, pictures) =
             sharing::pictured(&text, |target| sharing::attachment(target, &data));
         let wire = Net::to(sharing::SERVER)?;
@@ -257,7 +263,7 @@ pub async fn share_doc(
             name.as_deref(),
         )?;
         let info = sharing::info(&wire, &shared).ok();
-        Ok((shared, info))
+        Ok((Shared { print, ..shared }, info))
     })
     .await?;
     let committed = {

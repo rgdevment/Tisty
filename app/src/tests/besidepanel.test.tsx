@@ -295,8 +295,8 @@ describe("the shared row", () => {
     expect(row("shared").textContent).toContain(t("sharedPausedWhy").split("{name}")[0]);
   });
 
-  it("warns a week before an idle share runs out", async () => {
-    const ends = Math.floor(Date.now() / 1000) + 3 * 86_400;
+  it("warns days before an idle share runs out, and not from the start of a short one", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 2 * 86_400;
     ipc.card = {
       read: "https://tisty.cl/k7Qm2xPa#llave",
       edit: null,

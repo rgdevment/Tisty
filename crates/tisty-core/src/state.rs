@@ -110,6 +110,14 @@ impl State {
             // A share's links and tokens are the person's word, which an assistant does not speak.
             _ if self.assistants.contains(&event.device) => {}
             Op::ShareDoc { id, d } => {
+                let mut d = d.clone();
+                // The same share said again, for its password or its stillness, never takes its version back.
+                if let Some(was) = self.shares.get(id).filter(|was| was.link == d.link)
+                    && was.version > d.version
+                {
+                    d.version = was.version;
+                    d.print = was.print.clone();
+                }
                 if let Some(was) = self.shares.insert(*id, d.clone())
                     && was.link != d.link
                 {
@@ -121,9 +129,19 @@ impl State {
                 }
             }
             // Two machines can each put a version up; the store remembers the highest.
-            Op::ShareVersion { id, link, version } => {
-                if let Some(shared) = self.shares.get_mut(id).filter(|one| named(link, one)) {
-                    shared.version = shared.version.max(*version);
+            Op::ShareVersion {
+                id,
+                link,
+                version,
+                print,
+            } => {
+                if let Some(shared) = self.shares.get_mut(id).filter(|one| named(link, one))
+                    && *version > shared.version
+                {
+                    shared.version = *version;
+                    if !print.is_empty() {
+                        shared.print = print.clone();
+                    }
                 }
             }
             Op::ShareStop { id, link } => {

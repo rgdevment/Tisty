@@ -314,6 +314,9 @@ pub enum Op {
         #[serde(default, skip_serializing_if = "String::is_empty")]
         link: String,
         version: u64,
+        /// The print of the person's own words put up as it; empty when the version is someone else's.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        print: String,
     },
     /// Names the link it stops, so a machine that had not heard of a newer share never forgets that one.
     #[serde(rename = "share.stop")]
@@ -348,6 +351,9 @@ pub struct Shared {
     /// Someone else's share this store edits through their edit link: it holds no token to manage it (decision 9).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub taken: bool,
+    /// The print of the words the person last put up, so words saved and not yet up are owed (decision 83).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub print: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
