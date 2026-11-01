@@ -491,6 +491,7 @@ export type Showing =
   | { kind: "widget"; lent: Lent; from: Viewed | null }
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
+export const viewUnlock = (password: string): Promise<void> => invoke("view_unlock", { password });
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed & Left> =>
   invoke("view_import", { open });

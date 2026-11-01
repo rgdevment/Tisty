@@ -1,9 +1,14 @@
-use tisty_share_proto::envelope::{self, Envelope, LinkKey};
+use std::path::Path;
+
+use tisty_share_proto::envelope::{self, Envelope, Kind, LinkKey};
 use tisty_share_proto::identity::{Revocation, Verdict};
 use tisty_share_proto::limits::Limits;
 
 use crate::refusing::Refusal;
-use crate::sharing::{self, Wire};
+use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+
+use crate::sharing::{self, Asking, Said, Wire};
 
 /// A Tisty Share link Tisty was asked to open: `tisty://share?link=…`, as the reader's «Open in Tisty» hands it over.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,6 +32,8 @@ pub struct Received {
     pub body: String,
     /// The name its writer signed with, when they chose one.
     pub signer: Option<String>,
+    /// The pictures the words name as `tisty:picture/N`, in their order in the envelope.
+    pub pictures: Vec<(Kind, Vec<u8>)>,
 }
 
 // Whatever reaches Tisty from outside is a third party's word: only a link to Tisty Share's own server is fetched.
@@ -66,11 +73,40 @@ pub fn links(argv: &[String]) -> Vec<Link> {
     argv.iter().skip(1).filter_map(|one| asked(one)).collect()
 }
 
+fn read(
+    wire: &impl Wire,
+    link: &Link,
+    password: Option<String>,
+    work: Option<String>,
+) -> Result<Said, Refusal> {
+    wire.send(Asking {
+        method: "GET",
+        path: format!("docs/{}", link.id),
+        token: None,
+        work,
+        password,
+        body: Vec::new(),
+    })
+}
+
 /// Fetches it and opens it with its key; what its writer did not sign, or signed for another link, is not shown.
-pub fn fetched(wire: &impl Wire, link: &Link) -> Result<Received, Refusal> {
-    let said = sharing::get(wire, format!("docs/{}", link.id), None)?;
+pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<Received, Refusal> {
+    let password = password.map(|one| URL_SAFE_NO_PAD.encode(one));
+    let mut said = read(wire, link, password.clone(), None)?;
+    // A document guessed at asks for a little work beside the password, done once and only then (decision 76).
+    if said.status == 428 && password.is_some() {
+        let work = sharing::worked(
+            wire,
+            serde_json::json!({ "for": "password", "id": link.id }),
+        )?;
+        said = read(wire, link, password, Some(work))?;
+    }
+    let word = sharing::refused(&said).name;
     match said.status {
         200..=299 => {}
+        401 if word.as_deref() == Some("password_wrong") => {
+            return Err(Refusal::of("shareOpenWrong"));
+        }
         401 | 428 => return Err(Refusal::of("shareOpenGated")),
         404 | 410 => return Err(Refusal::of("shareOpenGone")),
         429 => return Err(Refusal::of("shareSlow")),
@@ -92,8 +128,44 @@ pub fn fetched(wire: &impl Wire, link: &Link) -> Result<Received, Refusal> {
     Ok(Received {
         title: tisty_core::docs::titled(&body),
         signer: opened.written.and_then(|one| one.name),
+        pictures: opened
+            .pictures
+            .iter()
+            .map(|(kind, bytes)| (*kind, bytes.to_vec()))
+            .collect(),
         body,
     })
+}
+
+/// The words with each picture kept among the attachments and named by its file there, and the lines saying they came.
+pub fn kept_pictures(got: &Received, data: &Path, scratch: &Path) -> (String, Vec<tisty_core::Op>) {
+    let mut body = got.body.clone();
+    let mut told = Vec::new();
+    // Last first, so `tisty:picture/1` is never taken for the start of `tisty:picture/10`.
+    for (at, (kind, bytes)) in got.pictures.iter().enumerate().rev() {
+        let from = scratch.join(format!("picture-{at}.{}", extension(*kind)));
+        if std::fs::write(&from, bytes).is_err() {
+            continue;
+        }
+        let kept = tisty_core::attach::keep(&from, data, tisty_core::attach::COPIED_IN_DOC);
+        let _ = std::fs::remove_file(&from);
+        let Ok(kept) = kept else {
+            continue;
+        };
+        told.push(kept.told(tisty_core::attach::Via::Imported));
+        let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
+        body = body.replace(&format!("{}{at}", sharing::PICTURE), leaf);
+    }
+    (body, told)
+}
+
+fn extension(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Jpeg => "jpg",
+        Kind::Webp => "webp",
+        Kind::Gif => "gif",
+        _ => "png",
+    }
 }
 
 // Only what a root signed is believed, as the web reader does: the server can leave a revocation out, never make one up.

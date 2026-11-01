@@ -37,6 +37,8 @@ pub(crate) struct Asking<'a> {
     pub(crate) token: Option<&'a str>,
     /// The proof of work, as JSON.
     pub(crate) work: Option<String>,
+    /// A reader's password as its UTF-8 in base64url, which the server takes only in `Tisty-Password`.
+    pub(crate) password: Option<String>,
     pub(crate) body: Vec<u8>,
 }
 
@@ -70,6 +72,9 @@ impl Wire for Net {
         }
         if let Some(work) = asked.work {
             request = request.header("Tisty-Work", work);
+        }
+        if let Some(password) = asked.password {
+            request = request.header("Tisty-Password", password);
         }
         let answer = request.send().map_err(|_| Refusal::of("shareOffline"))?;
         let status = answer.status().as_u16();
@@ -127,7 +132,7 @@ struct Reserved {
 }
 
 /// A server's no, said as a refusal the window words: its own word rides along as the name.
-fn refused(said: &Said) -> Refusal {
+pub(crate) fn refused(said: &Said) -> Refusal {
     let word = serde_json::from_slice::<serde_json::Value>(&said.body)
         .ok()
         .and_then(|value| value["refused"].as_str().map(str::to_owned));
@@ -165,17 +170,19 @@ pub(crate) fn get(wire: &impl Wire, path: String, token: Option<&str>) -> Result
         path,
         token,
         work: None,
+        password: None,
         body: Vec::new(),
     })
 }
 
 // Each piece of work answers one ask only, so it is asked for right before it is spent.
-fn worked(wire: &impl Wire, ask: serde_json::Value) -> Result<String, Refusal> {
+pub(crate) fn worked(wire: &impl Wire, ask: serde_json::Value) -> Result<String, Refusal> {
     let said = wire.send(Asking {
         method: "POST",
         path: "challenge".into(),
         token: None,
         work: None,
+        password: None,
         body: ask.to_string().into_bytes(),
     })?;
     let challenge: Challenge = answered(said)?;
@@ -189,12 +196,13 @@ fn managed(wire: &impl Wire, shared: &Shared, what: serde_json::Value) -> Result
         path: format!("docs/{}/manage", shared.link),
         token: Some(&shared.admin),
         work: None,
+        password: None,
         body: what.to_string().into_bytes(),
     })?)
 }
 
 /// Where a picture the words name sits in an envelope, which the reader turns back into the picture (decision 79).
-const PICTURE: &str = "tisty:picture/";
+pub(crate) const PICTURE: &str = "tisty:picture/";
 
 /// The words with each picture they name from the attachments put in its place in the envelope, and those pictures
 /// written again, so nothing but the pixels travels. What is no picture, or sits in code, stays as it was.
@@ -305,6 +313,7 @@ pub(crate) fn share(
         path: "docs".into(),
         token: None,
         work: Some(work),
+        password: None,
         body: Vec::new(),
     })?)?;
     let link_key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
@@ -360,6 +369,7 @@ pub(crate) fn share(
             path: format!("docs/{}", shared.link),
             token: Some(&shared.edit),
             work: Some(work),
+            password: None,
             body: sealed.into_bytes(),
         })
         .and_then(done);
@@ -444,6 +454,7 @@ pub(crate) fn revoke(wire: &impl Wire, revoked: &[Revocation]) -> Result<(), Ref
             path: "revocations".into(),
             token: None,
             work: None,
+            password: None,
             body,
         })?)?;
     }

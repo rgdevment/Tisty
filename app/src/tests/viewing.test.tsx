@@ -7,6 +7,7 @@ import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
 const ipc = vi.hoisted(() => ({
+  unlock: null as unknown,
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   shown: null as unknown,
   facts: null as unknown,
@@ -17,6 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
+    if (cmd === "view_unlock") return ipc.unlock ? Promise.reject(ipc.unlock) : Promise.resolve();
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
     if (cmd === "widget_lend") return Promise.resolve("w1");
@@ -185,6 +187,37 @@ describe("the viewer", () => {
     expect(screen.queryByRole("button", { name: t("viewReveal") })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: t("viewBrowse") }));
     expect(asked("open_url")).toEqual([{ cmd: "open_url", args: { url: link } }]);
+  });
+
+  it("says what a share's pictures show until a copy keeps them", async () => {
+    ipc.shown = {
+      ...file,
+      name: "Playa",
+      path: "https://tisty.cl/oVD0Idz0#llave",
+      body: "# Playa\n\n![la ola](tisty:picture/0)\n",
+      shared: true,
+    } satisfies Showing;
+    render(<Viewing />);
+
+    expect(await screen.findByText(t("viewSharedPictures"))).toBeTruthy();
+  });
+
+  it("asks for the password of a share behind one, and says when it is not the one", async () => {
+    ipc.shown = {
+      kind: "missed",
+      name: "Tisty Share",
+      place: "Tisty Share",
+      path: "https://tisty.cl/oVD0Idz0#llave",
+      refusal: { code: "shareOpenGated" },
+      shared: true,
+    } satisfies Showing;
+    ipc.unlock = { code: "shareOpenWrong" };
+    render(<Viewing />);
+
+    await userEvent.type(await screen.findByLabelText(t("sharePassword")), "otra");
+    await userEvent.click(screen.getByRole("button", { name: t("viewUnlock") }));
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", t("shareOpenWrong"));
+    expect(asked("view_unlock")[0].args).toEqual({ password: "otra" });
   });
 
   it("draws a widget on a stage with its widths to try", async () => {

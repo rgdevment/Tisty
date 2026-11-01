@@ -462,7 +462,7 @@ fn shared_showing(
     let got = match got {
         Some(got) => Ok(got),
         None => crate::sharing::Net::to(crate::sharing::SERVER)
-            .and_then(|wire| crate::received::fetched(&wire, &link)),
+            .and_then(|wire| crate::received::fetched(&wire, &link, None)),
     };
     match got {
         Ok(got) => {
@@ -495,6 +495,29 @@ fn shared_showing(
             shared: true,
         },
     }
+}
+
+/// Opens the share this window shows with the password its reader typed; the window then asks for it again.
+#[tauri::command(async)]
+pub fn view_unlock(
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+    password: String,
+) -> Answer<()> {
+    let Shown::Shared { link, .. } = shown_in(&views, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    let got = crate::sharing::Net::to(crate::sharing::SERVER)
+        .and_then(|wire| crate::received::fetched(&wire, &link, Some(&password)))?;
+    reshow(
+        &views,
+        window.label(),
+        Shown::Shared {
+            link,
+            got: Some(got),
+        },
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -609,13 +632,13 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
 fn received_kept(app: &AppHandle, got: &crate::received::Received) -> Answer<Paper> {
     let session = session_of(app)?;
     let mut session = held(&session);
-    let (made, id) = crate::answers::carrying::imported_as(
-        &mut session,
-        &got.body,
-        None,
-        true,
-        got.signer.clone(),
-    )?;
+    let (data, scratch) = (session.paths.data(), session.paths.cache());
+    let (body, told) = crate::received::kept_pictures(got, data, scratch);
+    if !told.is_empty() {
+        session.commit_all(told).map_err(Refusal::from)?;
+    }
+    let (made, id) =
+        crate::answers::carrying::imported_as(&mut session, &body, None, true, got.signer.clone())?;
     Ok(Paper {
         id: id.to_string(),
         file: made.id,

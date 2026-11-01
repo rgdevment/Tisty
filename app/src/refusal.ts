@@ -245,6 +245,7 @@ const KNOWN = [
   "shareOpenClosed",
   "shareOpenUnsigned",
   "shareOpenRevoked",
+  "shareOpenWrong",
   "shareChanged",
   "shareSlow",
   "shareUnsigned",

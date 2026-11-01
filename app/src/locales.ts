@@ -427,6 +427,9 @@ const en = {
   viewDuplicate: "Duplicate",
   viewReveal: "Show in folder",
   viewBrowse: "Open in the browser",
+  viewUnlock: "Open",
+  viewSharedPictures: "Its pictures show once you keep a copy in Tisty.",
+  viewUnlocking: "Opening…",
   viewRetry: "Try again",
   previewBack: "← Back to the document",
   viewClose: "Close",
@@ -667,7 +670,8 @@ const en = {
   shareAlready: "This document is already shared.",
   shareFailed: "Tisty Share did not answer as expected. Try again in a moment.",
   shareOpenGated:
-    "This document asks for a password, which Tisty does not ask for yet. Open it in the browser.",
+    "This document asks for a password. Whoever shared it gave it to you apart from the link.",
+  shareOpenWrong: "That is not its password. Check it with whoever shared it.",
   shareOpenGone:
     "This link no longer leads to a document: it ran out or its author stopped sharing it.",
   shareOpenClosed: "Its author paused this document, or reports closed it.",
@@ -3195,6 +3199,9 @@ const es: Catalog = {
   viewDuplicate: "Duplicar",
   viewReveal: "Mostrar en la carpeta",
   viewBrowse: "Abrir en el navegador",
+  viewUnlock: "Abrir",
+  viewSharedPictures: "Sus imágenes se ven al guardar una copia en Tisty.",
+  viewUnlocking: "Abriendo…",
   viewRetry: "Reintentar",
   previewBack: "← Volver al documento",
   viewClose: "Cerrar",
@@ -3436,8 +3443,8 @@ const es: Catalog = {
   shareRefused: "Tisty Share no lo aceptó. Vuelve a intentarlo en un momento.",
   shareAlready: "Este documento ya está compartido.",
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
-  shareOpenGated:
-    "Este documento pide una clave, que Tisty todavía no pide. Ábrelo en el navegador.",
+  shareOpenGated: "Este documento pide una clave. Quien lo compartió te la dio aparte del link.",
+  shareOpenWrong: "Esa no es su clave. Confírmala con quien lo compartió.",
   shareOpenGone:
     "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
   shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",

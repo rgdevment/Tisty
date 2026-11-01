@@ -4,7 +4,7 @@ use tisty_share_proto::seed::Seed;
 
 use super::*;
 
-use super::here::{Here, T0, voucher};
+use super::here::{Here, T0, png, voucher};
 
 #[test]
 fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
@@ -307,14 +307,6 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
     }
     stop(&wire, &shared).unwrap();
     assert!(already_gone(&info(&wire, &shared).unwrap_err()));
-}
-
-fn png(side: u32) -> Vec<u8> {
-    let mut bytes = std::io::Cursor::new(Vec::new());
-    image::RgbImage::from_pixel(side, side, image::Rgb([200, 30, 30]))
-        .write_to(&mut bytes, image::ImageFormat::Png)
-        .unwrap();
-    bytes.into_inner()
 }
 
 #[test]
