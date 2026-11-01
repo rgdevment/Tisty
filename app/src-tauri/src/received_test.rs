@@ -20,9 +20,14 @@ fn only_a_link_to_tisty_share_s_own_server_is_taken() {
     // The edit token stays behind: Tisty only reads a share for now.
     let editing = asked(&opening(&format!("https://tisty.cl/oVD0Idz0#{KEY}.token"))).unwrap();
     assert_eq!(editing.key, KEY);
+    // Read on www, it is the same server, and the link to read stays the plain one.
+    let www = asked(&opening(&format!("https://www.tisty.cl/oVD0Idz0#{KEY}"))).unwrap();
+    assert_eq!(www.read(), format!("https://tisty.cl/oVD0Idz0#{KEY}"));
 
     for wrong in [
         opening(&format!("https://evil.example/oVD0Idz0#{KEY}")),
+        opening(&format!("https://wwwtisty.cl/oVD0Idz0#{KEY}")),
+        opening(&format!("https://www.evil.tisty.cl/oVD0Idz0#{KEY}")),
         opening(&format!("http://tisty.cl/oVD0Idz0#{KEY}")),
         opening(&format!("https://tisty.cl:8443/oVD0Idz0#{KEY}")),
         opening(&format!("https://tisty.cl/../admin#{KEY}")),

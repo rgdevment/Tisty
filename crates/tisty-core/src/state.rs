@@ -48,7 +48,7 @@ pub struct State {
     /// Each document shared from this store, as the last word on it left it.
     pub shares: BTreeMap<DocId, crate::event::Shared>,
     /// Shares another took the place of, from two machines sharing one document at once, kept so any machine can stop them.
-    pub replaced: Vec<(DocId, crate::event::Shared)>,
+    pub replaced: Vec<Replaced>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -85,6 +85,14 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
     Ok(())
 }
 
+/// A share another took the place of, and when that happened.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Replaced {
+    pub id: DocId,
+    pub share: crate::event::Shared,
+    pub at: jiff::Timestamp,
+}
+
 // A line from before stops and versions named their link speaks of the share there is.
 fn named(link: &str, share: &crate::event::Shared) -> bool {
     link.is_empty() || share.link == link
@@ -105,7 +113,11 @@ impl State {
                 if let Some(was) = self.shares.insert(*id, d.clone())
                     && was.link != d.link
                 {
-                    self.replaced.push((*id, was));
+                    self.replaced.push(Replaced {
+                        id: *id,
+                        share: was,
+                        at: event.timestamp,
+                    });
                 }
             }
             // Two machines can each put a version up; the store remembers the highest.
@@ -119,7 +131,7 @@ impl State {
                     self.shares.remove(id);
                 }
                 self.replaced
-                    .retain(|(was, one)| !(was == id && one.link == *link));
+                    .retain(|one| !(one.id == *id && one.share.link == *link));
             }
             _ => {}
         }

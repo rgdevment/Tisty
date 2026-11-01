@@ -230,7 +230,7 @@ fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
     let replaced: Vec<&str> = state
         .replaced
         .iter()
-        .map(|(_, one)| one.link.as_str())
+        .map(|one| one.share.link.as_str())
         .collect();
     assert_eq!(replaced, ["k7Qm2xPa"]);
     // A share whose document has not arrived yet is not gone: it may come from another machine later.

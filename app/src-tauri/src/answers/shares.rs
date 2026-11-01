@@ -338,17 +338,29 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
 #[derive(Default)]
 pub struct Loosening(std::sync::atomic::AtomicBool);
 
+// Cleared however the run ends, so one that failed halfway never keeps the next from starting.
+struct Loosened<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for Loosened<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+// A replaced link may be the one just sent, so its reader gets a week to open it before an unread one is stopped.
+const UNREAD_FOR: jiff::SignedDuration = jiff::SignedDuration::from_hours(7 * 24);
+
 /// Stops in the background every share nothing in Tisty leads to any more, and forgets each one the server let go of.
 pub(crate) fn let_loose_go(app: tauri::AppHandle) {
-    use std::sync::atomic::Ordering;
     use tauri::Manager;
     tauri::async_runtime::spawn(async move {
+        let loosening = app.state::<Loosening>();
         // One at a time, or two would stop the same shares and both write that they did.
-        if app.state::<Loosening>().0.swap(true, Ordering::SeqCst) {
+        if loosening.0.swap(true, std::sync::atomic::Ordering::SeqCst) {
             return;
         }
+        let _running = Loosened(&loosening.0);
         loosened(&app).await;
-        app.state::<Loosening>().0.store(false, Ordering::SeqCst);
     });
 }
 
@@ -362,15 +374,19 @@ async fn loosened(app: &tauri::AppHandle) {
     if gone.is_empty() && replaced.is_empty() {
         return;
     }
+    let now = jiff::Timestamp::now();
     let stopped = apart(move || {
-        // A share another took the place of may still be read by whoever got its link, so only an unread one goes;
-        // one the server already let go of is forgotten, or it would be asked after on every round.
-        let unread = replaced.into_iter().filter(|(_, shared)| {
-            match Net::to(&shared.server).and_then(|wire| sharing::info(&wire, shared)) {
-                Ok(info) => info.reads == 0,
-                Err(refused) => sharing::already_gone(&refused),
-            }
-        });
+        // Only an unread replaced share goes, and one the server let go of is forgotten rather than asked after again.
+        let unread = replaced
+            .into_iter()
+            .filter(|one| now.duration_since(one.at) >= UNREAD_FOR)
+            .filter(|one| {
+                match Net::to(&one.share.server).and_then(|wire| sharing::info(&wire, &one.share)) {
+                    Ok(info) => info.reads == 0,
+                    Err(refused) => sharing::already_gone(&refused),
+                }
+            })
+            .map(|one| (one.id, one.share));
         Ok(gone
             .into_iter()
             .chain(unread)

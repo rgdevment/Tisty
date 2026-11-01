@@ -45,10 +45,12 @@ pub fn asked(said: &str) -> Option<Link> {
     }
     let shared = url::Url::parse(&shared).ok()?;
     let server = url::Url::parse(sharing::SERVER).ok()?;
-    if shared.scheme() != "https"
-        || shared.host_str() != server.host_str()
-        || shared.port().is_some()
-    {
+    let host = server.host_str()?;
+    // The same server answers on www, and the web hands over the address it was read at.
+    let ours = shared
+        .host_str()
+        .is_some_and(|one| one == host || one.strip_prefix("www.") == Some(host));
+    if shared.scheme() != "https" || !ours || shared.port().is_some() {
         return None;
     }
     let id = shared.path().strip_prefix('/')?;
@@ -71,6 +73,7 @@ pub fn fetched(wire: &impl Wire, link: &Link) -> Result<Received, Refusal> {
         200..=299 => {}
         401 | 428 => return Err(Refusal::of("shareOpenGated")),
         404 | 410 => return Err(Refusal::of("shareOpenGone")),
+        429 => return Err(Refusal::of("shareSlow")),
         423 | 451 => return Err(Refusal::of("shareOpenClosed")),
         _ => return Err(Refusal::of("shareFailed")),
     }

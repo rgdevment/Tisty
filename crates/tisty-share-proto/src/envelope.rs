@@ -492,8 +492,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             inner.at,
             inner.name.as_deref(),
         );
-        // Words signed for another link are someone carrying them elsewhere, never the writer sharing them here; and the
-        // server tells only of the keys taken back that sent an envelope, so words another key wrote would be weighed blind.
+        // The server tells only the sender's revocations, so words another key wrote, or signed for another link, never hold.
         let verdict = match (inner.id == manifest.id, &envelope.sent) {
             (false, _) => Verdict::Refused,
             (true, Some(sent)) if !same_key(&sent.certificate, &inner.signed.certificate) => {
