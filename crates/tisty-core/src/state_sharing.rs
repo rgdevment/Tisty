@@ -23,6 +23,7 @@ fn shared(version: u64) -> Shared {
         gated: false,
         version,
         still: false,
+        taken: false,
     }
 }
 

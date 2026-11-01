@@ -14,8 +14,10 @@ use crate::sharing::{self, Asking, Said, Wire};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
     pub id: String,
-    /// The key after the `#`; an edit token after it is left behind, since Tisty only reads a share for now.
+    /// The key after the `#`.
     pub key: String,
+    /// The edit token after the key and a dot, when the link was handed out to edit (decision 66).
+    pub edit: Option<String>,
 }
 
 impl Link {
@@ -39,6 +41,8 @@ pub struct Received {
     /// The fingerprint of the key that wrote it, and whether this machine met it before.
     pub print: String,
     pub known: bool,
+    /// Whether it took a password to open.
+    pub gated: bool,
 }
 
 // Whatever reaches Tisty from outside is a third party's word: only a link to Tisty Share's own server is fetched.
@@ -67,11 +71,22 @@ pub fn asked(said: &str) -> Option<Link> {
     }
     let id = shared.path().strip_prefix('/')?;
     let fair = (6..=32).contains(&id.len()) && id.chars().all(|one| one.is_ascii_alphanumeric());
-    let key = shared.fragment()?.split('.').next()?;
-    (fair && LinkKey::from_text(key).is_some()).then(|| Link {
+    let mut parts = shared.fragment()?.split('.');
+    let key = parts.next()?;
+    let edit = parts.next().filter(|one| tokened(one)).map(str::to_owned);
+    (fair && parts.next().is_none() && LinkKey::from_text(key).is_some()).then(|| Link {
         id: id.to_owned(),
         key: key.to_owned(),
+        edit,
     })
+}
+
+// A token the server minted is base64url; anything else in its place is no token at all.
+fn tokened(said: &str) -> bool {
+    (16..=64).contains(&said.len())
+        && said
+            .bytes()
+            .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
 }
 
 pub fn links(argv: &[String]) -> Vec<Link> {
@@ -96,6 +111,7 @@ fn read(
 
 /// Fetches it and opens it with its key; what its writer did not sign, or signed for another link, is not shown.
 pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<Received, Refusal> {
+    let gated = password.is_some();
     let password = password.map(|one| URL_SAFE_NO_PAD.encode(one));
     let mut said = read(wire, link, password.clone(), None)?;
     // A document guessed at asks for a little work beside the password, done once and only then (decision 76).
@@ -118,7 +134,12 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
         423 | 451 => return Err(Refusal::of("shareOpenClosed")),
         _ => return Err(Refusal::of("shareFailed")),
     }
-    let key = LinkKey::from_text(&link.key).ok_or(Refusal::of("shareOpenUnsigned"))?;
+    opened_from(said, &link.key).map(|got| Received { gated, ..got })
+}
+
+/// One version's envelope opened with the link's key: what its writer signed, or a refusal saying why not.
+pub fn opened_from(said: Said, key: &str) -> Result<Received, Refusal> {
+    let key = LinkKey::from_text(key).ok_or(Refusal::of("shareOpenUnsigned"))?;
     let envelope =
         Envelope::read(said.body, &Limits::default()).map_err(|_| Refusal::of("shareFailed"))?;
     let opened = envelope::open(&key, &envelope, &taken_back(said.revoked.as_deref()))
@@ -141,6 +162,7 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
         version: opened.manifest.version,
         print,
         known: false,
+        gated: false,
         body,
     })
 }

@@ -20,6 +20,17 @@ fn only_a_link_to_tisty_share_s_own_server_is_taken() {
     // The edit token stays behind: Tisty only reads a share for now.
     let editing = asked(&opening(&format!("https://tisty.cl/oVD0Idz0#{KEY}.token"))).unwrap();
     assert_eq!(editing.key, KEY);
+    assert_eq!(
+        editing.edit, None,
+        "a token is what the server mints, not any word"
+    );
+    let token = "Yq3vR8kLmN2pQ7sT9wXz4bC6dF1gH5jK0aE8uI3oP7r";
+    let editing = asked(&opening(&format!(
+        "https://tisty.cl/oVD0Idz0#{KEY}.{token}"
+    )))
+    .unwrap();
+    assert_eq!(editing.edit.as_deref(), Some(token));
+    assert_eq!(editing.read(), format!("https://tisty.cl/oVD0Idz0#{KEY}"));
     // Read on www, it is the same server, and the link to read stays the plain one.
     let www = asked(&opening(&format!("https://www.tisty.cl/oVD0Idz0#{KEY}"))).unwrap();
     assert_eq!(www.read(), format!("https://tisty.cl/oVD0Idz0#{KEY}"));
@@ -47,6 +58,7 @@ fn link_of(shared: &tisty_core::event::Shared) -> Link {
     Link {
         id: shared.link.clone(),
         key: shared.key.clone(),
+        edit: None,
     }
 }
 
@@ -110,6 +122,7 @@ fn a_share_behind_a_password_or_gone_is_told_as_such() {
     let nowhere = Link {
         id: "nadaaqui".into(),
         key: KEY.into(),
+        edit: None,
     };
     assert_eq!(
         fetched(&here, &nowhere, None).unwrap_err().code,
@@ -134,6 +147,7 @@ fn an_envelope_nobody_signed_is_not_shown() {
     let other = Link {
         id: shared.link.clone(),
         key: LinkKey::from_bytes(&[1; 32]).to_text().to_string(),
+        edit: None,
     };
     assert_eq!(
         fetched(&here, &other, None).unwrap_err().code,
@@ -216,6 +230,7 @@ fn read_at(version: u64, print: &str) -> Received {
         version,
         print: print.into(),
         known: false,
+        gated: false,
     }
 }
 
@@ -225,6 +240,7 @@ fn an_older_version_than_one_read_here_is_refused_and_a_key_met_before_is_known(
     let link = Link {
         id: "oVD0Idz0".into(),
         key: KEY.into(),
+        edit: None,
     };
     let first = seen_here(cache.path(), &link, None, read_at(2, "48210 93755")).unwrap();
     assert!(!first.known);
@@ -244,6 +260,7 @@ fn an_older_version_than_one_read_here_is_refused_and_a_key_met_before_is_known(
     let other = Link {
         id: "k7Qm2xPa".into(),
         key: KEY.into(),
+        edit: None,
     };
     assert!(
         seen_here(cache.path(), &other, Some("11111"), read_at(1, "11111"))

@@ -1413,7 +1413,7 @@ pub fn run() {
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(answers::shares::Loosening::default())
-        .manage(answers::shares::Following::default())
+        .manage(answers::versions::Following::default())
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())

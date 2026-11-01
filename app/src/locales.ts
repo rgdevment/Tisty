@@ -621,7 +621,12 @@ const en = {
   shareWhat: "What whoever gets it can do",
   shareReadOnly: "Read only",
   shareCanEdit: "Can edit",
-  shareEditWhy: "With Tisty they open it there and edit it; without Tisty they read it on the web.",
+  shareEditWhy:
+    "With Tisty they open it there and edit it, and what each of you saves reaches the other; without Tisty they read it on the web.",
+  sharedTaken: "You edit it through its link",
+  sharedTakenWhy:
+    "Someone else shared it with you to edit. What you save goes up to their link; when they change it too, their version comes beside yours.",
+  shareStopEditing: "Stop editing it",
   shareSign: "Signed with your key",
   shareSignWhy:
     "Everything shared goes signed: whoever opens it can check it comes from your key and that nobody altered it.",
@@ -3401,7 +3406,12 @@ const es: Catalog = {
   shareWhat: "Qué puede hacer quien lo recibe",
   shareReadOnly: "Solo leer",
   shareCanEdit: "Puede editar",
-  shareEditWhy: "Con Tisty lo abre ahí y lo edita; sin Tisty, lo lee en la web.",
+  shareEditWhy:
+    "Con Tisty lo abre ahí y lo edita, y lo que cada uno guarda le llega al otro; sin Tisty, lo lee en la web.",
+  sharedTaken: "Lo editas desde su link",
+  sharedTakenWhy:
+    "Otra persona te lo compartió para editarlo. Lo que guardas sube a su link; si también lo cambia, su versión queda junto a la tuya.",
+  shareStopEditing: "Dejar de editarlo",
   shareSign: "Firmado con tu llave",
   shareSignWhy:
     "Todo lo compartido va firmado: quien lo abra puede comprobar que viene de tu llave y que nadie lo alteró.",

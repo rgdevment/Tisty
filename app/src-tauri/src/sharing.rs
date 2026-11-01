@@ -326,6 +326,7 @@ pub(crate) fn share(
         gated: chosen.password.is_some(),
         version: 1,
         still: false,
+        taken: false,
     };
     let first = Words {
         text,
@@ -354,21 +355,42 @@ pub(crate) struct Words<'a> {
     pub(crate) name: Option<&'a str>,
 }
 
-/// Puts the words up as the version after the one this store last put up, and says which it became (decision 48).
+/// Puts the words up as the version after the one this store last saw, and says which it became (decision 48).
+/// One put up since by anyone is never written over: the server says `behind`, and its words are brought first.
 pub(crate) fn update(wire: &impl Wire, shared: &Shared, words: &Words) -> Result<u64, Refusal> {
-    match put_up(wire, shared, Some(shared.version), words) {
-        Ok(()) => Ok(shared.version + 1),
-        // Another of the person's machines put one up since: this one follows it, as the newer words.
-        Err(refused) if refused.name.as_deref() == Some("behind") => {
-            let latest = info(wire, shared)?.latest.unwrap_or(shared.version);
-            let ahead = Shared {
-                version: latest,
-                ..shared.clone()
-            };
-            put_up(wire, &ahead, Some(latest), words)?;
-            Ok(latest + 1)
-        }
-        Err(refused) => Err(refused),
+    put_up(wire, shared, Some(shared.version), words)?;
+    Ok(shared.version + 1)
+}
+
+/// Whether the server turned an upload away because a newer version is there.
+pub(crate) fn behind(refused: &Refusal) -> bool {
+    refused.name.as_deref() == Some("behind")
+}
+
+/// The newest version's number, asked with the edit token, which a share behind a password needs.
+pub(crate) fn latest(wire: &impl Wire, shared: &Shared) -> Result<Option<u64>, Refusal> {
+    #[derive(Deserialize)]
+    struct Latest {
+        latest: Option<u64>,
+    }
+    let said: Latest = answered(get(
+        wire,
+        format!("docs/{}/latest", shared.link),
+        Some(&shared.edit),
+    )?)?;
+    Ok(said.latest)
+}
+
+/// One version as the server keeps it, sealed, brought with the edit token so no password is asked.
+pub(crate) fn version(wire: &impl Wire, shared: &Shared, number: u64) -> Result<Said, Refusal> {
+    let said = get(
+        wire,
+        format!("docs/{}/versions/{number}", shared.link),
+        Some(&shared.edit),
+    )?;
+    match (200..300).contains(&said.status) {
+        true => Ok(said),
+        false => Err(refused(&said)),
     }
 }
 

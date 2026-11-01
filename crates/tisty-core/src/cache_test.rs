@@ -1290,6 +1290,7 @@ fn a_shared_document_s_links_come_back_from_the_cache() {
             gated: false,
             version: 2,
             still: false,
+            taken: false,
         },
     );
 
@@ -1316,6 +1317,7 @@ fn a_share_made_since_the_cache_was_written_is_carried_into_it_without_a_rebuild
         gated: false,
         version: 1,
         still: false,
+        taken: false,
     };
     let said = store
         .append(Op::ShareDoc {

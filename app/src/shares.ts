@@ -26,6 +26,8 @@ export interface ShareCard {
   version: number;
   /** Kept as it was shared rather than following what is saved. */
   still: boolean;
+  /** Someone else's share, edited here through their edit link. */
+  taken?: boolean;
   info: ShareInfo | null;
 }
 

@@ -587,8 +587,11 @@ pub fn view_import(
             }
             (paper, left)
         }
-        Shown::Shared { got: Some(got), .. } => {
-            let paper = received_kept(&app, &got)?;
+        Shown::Shared {
+            link,
+            got: Some(got),
+        } => {
+            let paper = received_kept(&app, &link, &got)?;
             if let Ok(mut held) = views.shown.lock() {
                 held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
             }
@@ -657,7 +660,11 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
 }
 
 // What came through someone else's link is kept as a guest copy under their name, so it is never shared again as one's own.
-fn received_kept(app: &AppHandle, got: &crate::received::Received) -> Answer<Paper> {
+fn received_kept(
+    app: &AppHandle,
+    link: &crate::received::Link,
+    got: &crate::received::Received,
+) -> Answer<Paper> {
     let session = session_of(app)?;
     let mut session = held(&session);
     let (data, scratch) = (session.paths.data(), session.paths.cache());
@@ -667,6 +674,26 @@ fn received_kept(app: &AppHandle, got: &crate::received::Received) -> Answer<Pap
     }
     let (made, id) =
         crate::answers::carrying::imported_as(&mut session, &body, None, true, got.signer.clone())?;
+    // Kept through an edit link, the copy stays tied to the share, so what is saved here goes up to it (decision 9).
+    if let Some(edit) = &link.edit {
+        session
+            .commit(tisty_core::Op::ShareDoc {
+                id,
+                d: tisty_core::event::Shared {
+                    server: crate::sharing::SERVER.to_owned(),
+                    link: link.id.clone(),
+                    key: link.key.clone(),
+                    edit: edit.clone(),
+                    admin: String::new(),
+                    editable: true,
+                    gated: got.gated,
+                    version: got.version,
+                    still: false,
+                    taken: true,
+                },
+            })
+            .map_err(Refusal::from)?;
+    }
     Ok(Paper {
         id: id.to_string(),
         file: made.id,

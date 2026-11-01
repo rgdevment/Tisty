@@ -345,6 +345,9 @@ pub struct Shared {
     /// Kept as it was shared rather than following what is saved (decision 48).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub still: bool,
+    /// Someone else's share this store edits through their edit link: it holds no token to manage it (decision 9).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub taken: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

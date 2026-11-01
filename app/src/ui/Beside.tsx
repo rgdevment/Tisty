@@ -181,6 +181,15 @@ const sharedPanel = (
         ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
         : undefined,
     };
+  // Someone else's share edited here: its link to read, and a way to stop editing it; theirs to manage.
+  if (card.taken)
+    return {
+      kind: "shared",
+      gist: t("sharedTaken"),
+      said: t("sharedTakenWhy"),
+      links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
+      acts: [{ key: "stop", label: t("shareStopEditing"), onPick: asked.onStop }],
+    };
   const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
   if (card.edit)
     links.push({

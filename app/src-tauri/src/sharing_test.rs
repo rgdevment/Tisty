@@ -57,7 +57,7 @@ fn read_back(here: &Here, shared: &Shared) -> String {
 }
 
 #[test]
-fn saved_words_go_up_as_the_next_version_even_after_another_machine_put_one_up() {
+fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
     let here = Here::new();
     let voucher = voucher();
     let shared = share(
@@ -79,10 +79,53 @@ fn saved_words_go_up_as_the_next_version_even_after_another_machine_put_one_up()
 
     assert_eq!(update(&here, &shared, &words("Dos")).unwrap(), 2);
     assert_eq!(read_back(&here, &shared), "Dos");
-    // This machine still thinks it put up version 1, as one that had not heard of the other would.
-    assert_eq!(update(&here, &shared, &words("Tres")).unwrap(), 3);
-    assert_eq!(read_back(&here, &shared), "Tres");
-    assert_eq!(info(&here, &shared).unwrap().latest, Some(3));
+    // This store still thinks it put up version 1, as one that had not heard of version 2 would.
+    let refused = update(&here, &shared, &words("Tres")).unwrap_err();
+    assert!(behind(&refused), "{refused:?}");
+    assert_eq!(read_back(&here, &shared), "Dos");
+    assert_eq!(latest(&here, &shared).unwrap(), Some(2));
+}
+
+#[test]
+fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
+    let here = Here::new();
+    let chosen = Chosen {
+        editable: true,
+        ..Chosen::default()
+    };
+    let owner = voucher();
+    let shared = share(&here, SERVER, "Uno", &[], &chosen, &owner, Some("Ana")).unwrap();
+
+    // Someone else's Tisty holds the read key and the edit token, and nothing to manage it.
+    let key = ShareKey::from_bytes(&[9; 32]);
+    let since = jiff::Timestamp::from_second(T0 - 86_400).unwrap();
+    let certificate = Seed::from_bytes(&[8; 32])
+        .root()
+        .certify(&key.public(), since);
+    let editor = (key, certificate);
+    let taken = Shared {
+        admin: String::new(),
+        taken: true,
+        ..shared.clone()
+    };
+    let words = Words {
+        text: "Uno y dos",
+        pictures: &[],
+        voucher: &editor,
+        name: Some("Bea"),
+    };
+    assert_eq!(update(&here, &taken, &words).unwrap(), 2);
+
+    // The owner's Tisty finds it, and it is Bea's, signed by Bea's key.
+    assert_eq!(latest(&here, &shared).unwrap(), Some(2));
+    let got =
+        crate::received::opened_from(version(&here, &shared, 2).unwrap(), &shared.key).unwrap();
+    assert_eq!(got.body, "Uno y dos");
+    assert_eq!(got.signer.as_deref(), Some("Bea"));
+    assert_eq!(
+        got.print,
+        Seed::from_bytes(&[8; 32]).root().person().fingerprint()
+    );
 }
 
 #[test]
@@ -97,6 +140,7 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         gated: false,
         version: 1,
         still: false,
+        taken: false,
     };
     assert_eq!(
         links(&shared),
