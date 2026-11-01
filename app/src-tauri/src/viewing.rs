@@ -678,6 +678,10 @@ fn received_kept(
     let held_already = session.state.shares.values().any(|one| one.link == link.id);
     let signs = crate::answers::shares::can_sign(&session);
     if let Some(edit) = link.edit.as_ref().filter(|_| signs && !held_already) {
+        // The words as kept here count as up, so the copy is not put straight back as a version of its own.
+        let kept_print = tisty_core::docs::read(&session.paths.docs(), &made.id)
+            .map(|kept| crate::sharing::print_of(&kept))
+            .unwrap_or_default();
         session
             .commit(tisty_core::Op::ShareDoc {
                 id,
@@ -692,7 +696,7 @@ fn received_kept(
                     version: got.version,
                     still: false,
                     taken: true,
-                    print: String::new(),
+                    print: kept_print,
                 },
             })
             .map_err(Refusal::from)?;

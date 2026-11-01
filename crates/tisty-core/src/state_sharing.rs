@@ -353,3 +353,39 @@ fn the_same_share_said_again_never_takes_its_version_or_its_print_back() {
     assert_eq!(kept.version, 4);
     assert_eq!(kept.print, "tres");
 }
+
+#[test]
+fn a_print_that_arrives_after_its_version_is_kept_and_an_empty_one_never_wipes_it() {
+    let doc = Ulid::generate();
+    let state = State::replay(&[
+        by(
+            1,
+            "dev_a",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(2),
+            },
+        ),
+        // Another machine passed version 2 over first; the print of the person's own words comes after.
+        by(
+            2,
+            "dev_b",
+            Op::ShareVersion {
+                id: doc,
+                link: "k7Qm2xPa".into(),
+                version: 2,
+                print: "dos".into(),
+            },
+        ),
+        // An older Tisty says the share again without a print.
+        by(
+            3,
+            "dev_c",
+            Op::ShareDoc {
+                id: doc,
+                d: shared(2),
+            },
+        ),
+    ]);
+    assert_eq!(state.shares[&doc].print, "dos");
+}

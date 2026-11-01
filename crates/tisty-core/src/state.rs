@@ -113,7 +113,7 @@ impl State {
                 let mut d = d.clone();
                 // The same share said again, for its password or its stillness, never takes its version back.
                 if let Some(was) = self.shares.get(id).filter(|was| was.link == d.link)
-                    && was.version > d.version
+                    && (was.version > d.version || (was.version == d.version && d.print.is_empty()))
                 {
                     d.version = was.version;
                     d.print = was.print.clone();
@@ -135,8 +135,9 @@ impl State {
                 version,
                 print,
             } => {
+                // One version is taken once by the server, so its print may arrive with it or after it.
                 if let Some(shared) = self.shares.get_mut(id).filter(|one| named(link, one))
-                    && *version > shared.version
+                    && *version >= shared.version
                 {
                     shared.version = *version;
                     if !print.is_empty() {
