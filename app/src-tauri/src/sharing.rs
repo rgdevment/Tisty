@@ -12,7 +12,11 @@ use crate::handed::Voucher;
 use crate::refusing::Refusal;
 
 /// Tisty Share as Tisty knows it; each share keeps the server it went to, so a later one can live elsewhere.
-pub(crate) const SERVER: &str = "https://tisty.cl";
+/// A build can name another with `TISTY_SHARE_SERVER`, so losing the domain costs one release and no code.
+pub(crate) const SERVER: &str = match option_env!("TISTY_SHARE_SERVER") {
+    Some(server) => server,
+    None => "https://tisty.cl",
+};
 const API: &str = "/api/v1/";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(30);
 
