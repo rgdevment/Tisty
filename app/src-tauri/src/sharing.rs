@@ -253,6 +253,11 @@ pub(crate) fn pictured(
     (said, pictures)
 }
 
+/// The bytes of an attachment the words name, read where the store keeps them; called off the window's thread.
+pub(crate) fn attachment(target: &str, data: &std::path::Path) -> Option<Vec<u8>> {
+    std::fs::read(tisty_core::attach::resolve(target, data).ok()?).ok()
+}
+
 // The `(` and `)` of an image's destination: right after the `]` that closes its alt text, all on one line.
 fn destination(text: &str, image: usize) -> Option<(usize, usize)> {
     let bytes = text.as_bytes();
@@ -495,6 +500,10 @@ pub(crate) fn links(shared: &Shared) -> (String, Option<String>) {
     let edit = shared.editable.then(|| format!("{read}.{}", shared.edit));
     (read, edit)
 }
+
+#[cfg(test)]
+#[path = "sharing_here.rs"]
+pub(crate) mod here;
 
 #[cfg(test)]
 #[path = "sharing_test.rs"]

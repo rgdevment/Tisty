@@ -1,19 +1,9 @@
-use std::cell::RefCell;
-use std::net::{IpAddr, Ipv4Addr};
-
-use tisty_share_proto::identity::ShareKey;
 use tisty_share_proto::seed::Seed;
-use tisty_share_server::guard::Work;
-use tisty_share_server::keys::Slowness;
-use tisty_share_server::memory::Memory;
-use tisty_share_server::share::{Policy, Share};
-use tisty_share_server::testing::{Counting, done};
-use tisty_share_worker::api::{Asked, answer};
 
 use super::*;
-use crate::sharing::{Asking, Chosen, Said};
+use crate::sharing::Chosen;
+use crate::sharing::here::{Here, T0, voucher};
 
-const T0: i64 = 1_800_000_000;
 const KEY: &str = "_YQqHycdmpMvpG7q2Gmd3IjAeSc_Rbn-RvCb7NuqEB8";
 
 fn opening(link: &str) -> String {
@@ -46,69 +36,6 @@ fn only_a_link_to_tisty_share_s_own_server_is_taken() {
     ] {
         assert_eq!(asked(&wrong), None, "{wrong}");
     }
-}
-
-/// The server's API in memory, as the share tests meet it.
-struct Here {
-    share: RefCell<Share<Memory, Counting>>,
-}
-
-impl Here {
-    fn new() -> Self {
-        let policy = Policy {
-            slowness: Slowness { log_n: 4, r: 8 },
-            work: Work {
-                reserve: 4,
-                upload: 4,
-                per_megabyte: 1,
-                report: 4,
-                password: 4,
-                password_most: 8,
-                lasts: 10 * 60,
-            },
-            ..Policy::default()
-        };
-        Self {
-            share: RefCell::new(Share::new(Memory::default(), Counting(0), policy, [5; 32])),
-        }
-    }
-}
-
-impl Wire for Here {
-    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
-        let said = done(answer(
-            &mut self.share.borrow_mut(),
-            Asked {
-                method: asked.method.into(),
-                path: format!("/api/v1/{}", asked.path),
-                token: asked.token.map(str::to_owned),
-                password: None,
-                work: asked.work,
-                body: asked.body,
-                caller: IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)),
-                now: T0,
-            },
-        ));
-        let revoked = said
-            .headers
-            .iter()
-            .find(|(name, _)| *name == "Tisty-Revoked")
-            .map(|(_, value)| value.clone());
-        Ok(Said {
-            status: said.status,
-            body: said.body,
-            revoked,
-        })
-    }
-}
-
-fn voucher() -> crate::handed::Voucher {
-    let key = ShareKey::from_bytes(&[3; 32]);
-    let since = jiff::Timestamp::from_second(T0 - 86_400).unwrap();
-    let certificate = Seed::from_bytes(&[7; 32])
-        .root()
-        .certify(&key.public(), since);
-    (key, certificate)
 }
 
 fn link_of(shared: &tisty_core::event::Shared) -> Link {

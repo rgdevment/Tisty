@@ -234,9 +234,8 @@ pub async fn share_doc(
         )
     };
     let (shared, info) = apart(move || {
-        let (text, pictures) = sharing::pictured(&text, |target| {
-            std::fs::read(tisty_core::attach::resolve(target, &data).ok()?).ok()
-        });
+        let (text, pictures) =
+            sharing::pictured(&text, |target| sharing::attachment(target, &data));
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
