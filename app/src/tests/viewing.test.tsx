@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
@@ -196,10 +196,14 @@ describe("the viewer", () => {
       path: "https://tisty.cl/oVD0Idz0#llave",
       body: "# Playa\n\n![la ola](tisty:picture/0)\n",
       shared: true,
+      print: "48210 93755",
+      known: false,
     } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByText(t("viewSharedPictures"))).toBeTruthy();
+    // Its writer's key is new here, so the fingerprint is shown to compare.
+    expect(screen.getByText(fill("viewSharedNewPrint", "48210 93755"))).toBeTruthy();
   });
 
   it("asks for the password of a share behind one, and says when it is not the one", async () => {

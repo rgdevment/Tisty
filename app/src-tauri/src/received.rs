@@ -34,6 +34,11 @@ pub struct Received {
     pub signer: Option<String>,
     /// The pictures the words name as `tisty:picture/N`, in their order in the envelope.
     pub pictures: Vec<(Kind, Vec<u8>)>,
+    /// Which version of the share this is, so an older one is never taken for it (decision 9).
+    pub version: u64,
+    /// The fingerprint of the key that wrote it, and whether this machine met it before.
+    pub print: String,
+    pub known: bool,
 }
 
 // Whatever reaches Tisty from outside is a third party's word: only a link to Tisty Share's own server is fetched.
@@ -118,12 +123,12 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
         Envelope::read(said.body, &Limits::default()).map_err(|_| Refusal::of("shareFailed"))?;
     let opened = envelope::open(&key, &envelope, &taken_back(said.revoked.as_deref()))
         .map_err(|_| Refusal::of("shareOpenUnsigned"))?;
-    match opened.wrote {
-        Some(Verdict::Holds { .. }) => {}
+    let print = match &opened.wrote {
+        Some(Verdict::Holds { person, .. }) => person.fingerprint(),
         // Its writer took that key back: the web says so beside it, and here it would read as theirs.
         Some(Verdict::Revoked { .. }) => return Err(Refusal::of("shareOpenRevoked")),
         _ => return Err(Refusal::of("shareOpenUnsigned")),
-    }
+    };
     let body = opened.text.to_string();
     Ok(Received {
         title: tisty_core::docs::titled(&body),
@@ -133,8 +138,49 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
             .iter()
             .map(|(kind, bytes)| (*kind, bytes.to_vec()))
             .collect(),
+        version: opened.manifest.version,
+        print,
+        known: false,
         body,
     })
+}
+
+const SEEN: &str = "shares-seen.json";
+
+/// What this machine read through links: the highest version of each, and the fingerprints of whoever wrote them.
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+struct Seen {
+    versions: std::collections::BTreeMap<String, u64>,
+    prints: std::collections::BTreeSet<String>,
+}
+
+/// Refuses a version older than one this machine read already, and says whether the writer's key was met before.
+pub fn seen_here(
+    cache: &Path,
+    link: &Link,
+    mine: Option<&str>,
+    mut got: Received,
+) -> Result<Received, Refusal> {
+    let at = cache.join(SEEN);
+    let mut seen: Seen = std::fs::read(&at)
+        .ok()
+        .and_then(|said| serde_json::from_slice(&said).ok())
+        .unwrap_or_default();
+    // A server that went wrong, or was made to, could serve an older version signed all the same (decision 9).
+    if seen
+        .versions
+        .get(&link.id)
+        .is_some_and(|highest| got.version < *highest)
+    {
+        return Err(Refusal::of("shareOpenOlder"));
+    }
+    got.known = seen.prints.contains(&got.print) || mine == Some(got.print.as_str());
+    seen.versions.insert(link.id.clone(), got.version);
+    seen.prints.insert(got.print.clone());
+    if let Ok(said) = serde_json::to_vec(&seen) {
+        let _ = std::fs::write(at, said);
+    }
+    Ok(got)
 }
 
 /// The words with each picture kept among the attachments and named by its file there, and the lines saying they came.

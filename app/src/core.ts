@@ -477,7 +477,17 @@ export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take
 export type Lent = { source: string } | { reference: string };
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
-  | { kind: "file"; name: string; place: string; path: string; body: string; shared: boolean }
+  | {
+      kind: "file";
+      name: string;
+      place: string;
+      path: string;
+      body: string;
+      shared: boolean;
+      /** A share's writer's fingerprint, and whether this machine met it before. */
+      print?: string;
+      known?: boolean;
+    }
   | {
       kind: "missed";
       name: string;

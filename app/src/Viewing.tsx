@@ -282,6 +282,11 @@ function Reading({
           </button>
         </div>
       )}
+      {shared && shown.print && !shown.known && (
+        <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
+          {fill("viewSharedNewPrint", shown.print)}
+        </p>
+      )}
       {awaiting && (
         <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
           {t("viewSharedPictures")}

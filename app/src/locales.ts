@@ -429,6 +429,8 @@ const en = {
   viewBrowse: "Open in the browser",
   viewUnlock: "Open",
   viewSharedPictures: "Its pictures show once you keep a copy in Tisty.",
+  viewSharedNewPrint:
+    "This is the first time this computer sees its writer's fingerprint, {name}. Compare it with whoever shared it.",
   viewUnlocking: "Opening…",
   viewRetry: "Try again",
   previewBack: "← Back to the document",
@@ -675,6 +677,8 @@ const en = {
   shareOpenGated:
     "This document asks for a password. Whoever shared it gave it to you apart from the link.",
   shareOpenWrong: "That is not its password. Check it with whoever shared it.",
+  shareOpenOlder:
+    "Tisty Share served an older version than one this computer already read, so Tisty does not show it.",
   shareOpenGone:
     "This link no longer leads to a document: it ran out or its author stopped sharing it.",
   shareOpenClosed: "Its author paused this document, or reports closed it.",
@@ -3204,6 +3208,8 @@ const es: Catalog = {
   viewBrowse: "Abrir en el navegador",
   viewUnlock: "Abrir",
   viewSharedPictures: "Sus imágenes se ven al guardar una copia en Tisty.",
+  viewSharedNewPrint:
+    "Es la primera vez que este equipo ve la huella de quien lo escribió, {name}. Compárala con quien lo compartió.",
   viewUnlocking: "Abriendo…",
   viewRetry: "Reintentar",
   previewBack: "← Volver al documento",
@@ -3452,6 +3458,8 @@ const es: Catalog = {
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
   shareOpenGated: "Este documento pide una clave. Quien lo compartió te la dio aparte del link.",
   shareOpenWrong: "Esa no es su clave. Confírmala con quien lo compartió.",
+  shareOpenOlder:
+    "Tisty Share entregó una versión más antigua que una que este equipo ya leyó, así que Tisty no la muestra.",
   shareOpenGone:
     "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
   shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",

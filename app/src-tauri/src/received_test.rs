@@ -206,3 +206,48 @@ fn a_share_s_pictures_are_kept_among_the_attachments_of_its_copy() {
     }
     assert!(body.contains("\"Dos\")"));
 }
+
+fn read_at(version: u64, print: &str) -> Received {
+    Received {
+        title: "Compras".into(),
+        body: "# Compras".into(),
+        signer: None,
+        pictures: Vec::new(),
+        version,
+        print: print.into(),
+        known: false,
+    }
+}
+
+#[test]
+fn an_older_version_than_one_read_here_is_refused_and_a_key_met_before_is_known() {
+    let cache = tempfile::tempdir().unwrap();
+    let link = Link {
+        id: "oVD0Idz0".into(),
+        key: KEY.into(),
+    };
+    let first = seen_here(cache.path(), &link, None, read_at(2, "48210 93755")).unwrap();
+    assert!(!first.known);
+    // A server that serves an older version, signed or not, is not believed.
+    assert_eq!(
+        seen_here(cache.path(), &link, None, read_at(1, "48210 93755"))
+            .unwrap_err()
+            .code,
+        "shareOpenOlder"
+    );
+    assert!(
+        seen_here(cache.path(), &link, None, read_at(3, "48210 93755"))
+            .unwrap()
+            .known
+    );
+    // One's own key is known from the start.
+    let other = Link {
+        id: "k7Qm2xPa".into(),
+        key: KEY.into(),
+    };
+    assert!(
+        seen_here(cache.path(), &other, Some("11111"), read_at(1, "11111"))
+            .unwrap()
+            .known
+    );
+}

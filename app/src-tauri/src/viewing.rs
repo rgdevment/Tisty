@@ -53,6 +53,10 @@ pub enum Showing {
         path: String,
         body: String,
         shared: bool,
+        /// A share's writer's fingerprint, and whether this machine met it before.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        print: Option<String>,
+        known: bool,
     },
     Missed {
         name: String,
@@ -431,6 +435,8 @@ pub fn view_shown(
                 path: at.display().to_string(),
                 body,
                 shared: false,
+                print: None,
+                known: false,
             },
             Err(refusal) => Showing::Missed {
                 name: named(&at),
@@ -449,11 +455,32 @@ pub fn view_shown(
             paper: drawn.paper,
             source: drawn.was,
         },
-        Shown::Shared { link, got } => shared_showing(&views, window.label(), link, got),
+        Shown::Shared { link, got } => shared_showing(&app, &views, window.label(), link, got),
     })
 }
 
+// Fetched with its password if it has one, and weighed against what this machine read before.
+fn received_here(
+    app: &AppHandle,
+    link: &crate::received::Link,
+    password: Option<&str>,
+) -> Answer<crate::received::Received> {
+    let got = crate::sharing::Net::to(crate::sharing::SERVER)
+        .and_then(|wire| crate::received::fetched(&wire, link, password))?;
+    let (cache, mine) = {
+        let session = session_of(app)?;
+        let session = held(&session);
+        let me = session.state.persons.person(&session.config.device_id);
+        (
+            session.paths.cache().to_path_buf(),
+            me.map(|one| one.fingerprint()),
+        )
+    };
+    crate::received::seen_here(&cache, link, mine.as_deref(), got)
+}
+
 fn shared_showing(
+    app: &AppHandle,
     views: &Views,
     label: &str,
     link: crate::received::Link,
@@ -461,8 +488,7 @@ fn shared_showing(
 ) -> Showing {
     let got = match got {
         Some(got) => Ok(got),
-        None => crate::sharing::Net::to(crate::sharing::SERVER)
-            .and_then(|wire| crate::received::fetched(&wire, &link, None)),
+        None => received_here(app, &link, None),
     };
     match got {
         Ok(got) => {
@@ -476,6 +502,8 @@ fn shared_showing(
                 path: link.read(),
                 body: got.body.clone(),
                 shared: true,
+                print: Some(got.print.clone()),
+                known: got.known,
             };
             reshow(
                 views,
@@ -500,6 +528,7 @@ fn shared_showing(
 /// Opens the share this window shows with the password its reader typed; the window then asks for it again.
 #[tauri::command(async)]
 pub fn view_unlock(
+    app: AppHandle,
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
     password: String,
@@ -507,8 +536,7 @@ pub fn view_unlock(
     let Shown::Shared { link, .. } = shown_in(&views, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
-    let got = crate::sharing::Net::to(crate::sharing::SERVER)
-        .and_then(|wire| crate::received::fetched(&wire, &link, Some(&password)))?;
+    let got = received_here(&app, &link, Some(&password))?;
     reshow(
         &views,
         window.label(),
