@@ -46,6 +46,8 @@ pub struct Card {
     edit: Option<String>,
     gated: bool,
     version: u64,
+    /// Kept as it was shared rather than following what is saved.
+    still: bool,
     /// None when the server could not be reached; the links still work without it.
     info: Option<Info>,
 }
@@ -57,6 +59,7 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
         edit,
         gated: shared.gated,
         version: shared.version,
+        still: shared.still,
         info,
     }
 }
@@ -378,6 +381,135 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
     held(&session)
         .commit(Op::ShareStop { id: doc, link })
         .map_err(Refusal::from)
+}
+
+/// Each shared document's saves, counted, so only the last of a burst goes up.
+#[derive(Default)]
+pub struct Following(std::sync::Mutex<std::collections::HashMap<String, u64>>);
+
+// Saved words go up once the person stops this long, so a burst of saves is one version within the server's allowance.
+const QUIET: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Whether this file is shared and follows what is saved, asked by whoever just saved it.
+pub(crate) fn follows(session: &Session, file: &str) -> bool {
+    doc_of(session, file)
+        .ok()
+        .and_then(|doc| session.state.shares.get(&doc))
+        .is_some_and(|one| !one.still)
+}
+
+/// Puts a shared document's saved words up as a new version once its saves rest (decision 48).
+pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
+    use tauri::Manager;
+    let mine = {
+        let following = app.state::<Following>();
+        let mut counts = following.0.lock().unwrap_or_else(|e| e.into_inner());
+        let count = counts.entry(file.to_owned()).or_default();
+        *count += 1;
+        *count
+    };
+    let (app, file) = (app.clone(), file.to_owned());
+    std::thread::spawn(move || {
+        std::thread::sleep(QUIET);
+        let following = app.state::<Following>();
+        let last = following
+            .0
+            .lock()
+            .ok()
+            .and_then(|counts| counts.get(&file).copied());
+        if last == Some(mine) {
+            tauri::async_runtime::block_on(followed(&app, &file));
+        }
+    });
+}
+
+async fn followed(app: &tauri::AppHandle, file: &str) {
+    use tauri::Manager;
+    let session = app.state::<Mutex<Session>>();
+    let gathered = {
+        let session = held(&session);
+        let doc = doc_of(&session, file).ok();
+        let shared = doc.and_then(|doc| session.state.shares.get(&doc).cloned());
+        let text = tisty_core::docs::read(&session.paths.docs(), file).ok();
+        match (doc, shared.filter(|one| !one.still), text, sharer(&session)) {
+            (Some(doc), Some(shared), Some(text), Some((voucher, _))) => Some((
+                doc,
+                shared,
+                text,
+                voucher,
+                signing_name(&session.state.signed),
+                session.paths.data().to_path_buf(),
+            )),
+            _ => None,
+        }
+    };
+    let Some((doc, shared, text, voucher, name, data)) = gathered else {
+        return;
+    };
+    let link = shared.link.clone();
+    let up = apart(move || {
+        let (text, pictures) =
+            sharing::pictured(&text, |target| sharing::attachment(target, &data));
+        let words = sharing::Words {
+            text: &text,
+            pictures: &pictures,
+            voucher: &voucher,
+            name: name.as_deref(),
+        };
+        sharing::update(&Net::to(&shared.server)?, &shared, &words)
+    })
+    .await;
+    let done = up.and_then(|version| {
+        held(&session)
+            .commit(Op::ShareVersion {
+                id: doc,
+                link,
+                version,
+            })
+            .map_err(Refusal::from)
+    });
+    if let Err(refused) = done {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::WINDOW,
+            "a shared document's saved words did not go up; the next save tries again",
+            &[(
+                "why",
+                tisty_core::witness::Fact::Why(refused.code.to_string()),
+            )],
+        );
+    }
+}
+
+/// Keeps a share as it was shared, or lets it follow what is saved again, putting the words up at once when it does.
+#[tauri::command]
+pub async fn share_still(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    still: bool,
+) -> Answer<Card> {
+    let now = {
+        let mut session = held(&session);
+        let doc = doc_of(&session, &file)?;
+        let shared = session.state.shares.get(&doc).cloned();
+        let now = Shared {
+            still,
+            ..shared.ok_or(Refusal::of("shareOpenGone"))?
+        };
+        session
+            .commit(Op::ShareDoc {
+                id: doc,
+                d: now.clone(),
+            })
+            .map_err(Refusal::from)?;
+        now
+    };
+    if !still {
+        follow(&app, &file);
+    }
+    let asked = now.clone();
+    let info = apart(move || sharing::info(&Net::to(&asked.server)?, &asked)).await;
+    Ok(card(&now, info.ok()))
 }
 
 /// Set while loose shares are being let go of, which the start and every round ask for.

@@ -303,10 +303,9 @@ pub(crate) fn share(
     text: &str,
     pictures: &[(Kind, Vec<u8>)],
     chosen: &Chosen,
-    (key, certificate): &Voucher,
+    voucher: &Voucher,
     name: Option<&str>,
 ) -> Result<Shared, Refusal> {
-    let limits: Limits = answered(get(wire, "limits".into(), None)?)?;
     let work = worked(wire, json!({ "for": "reserve" }))?;
     let reserved: Reserved = answered(wire.send(Asking {
         method: "POST",
@@ -317,22 +316,89 @@ pub(crate) fn share(
         body: Vec::new(),
     })?)?;
     let link_key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
+    let shared = Shared {
+        server: server.to_owned(),
+        link: reserved.id,
+        key: link_key.to_text().to_string(),
+        edit: reserved.edit,
+        admin: reserved.admin,
+        editable: chosen.editable,
+        gated: chosen.password.is_some(),
+        version: 1,
+        still: false,
+    };
+    let first = Words {
+        text,
+        pictures,
+        voucher,
+        name,
+    };
+    if let Err(refused) = put_up(wire, &shared, None, &first) {
+        // An answer lost on the way back may still have left it up, and a link nobody kept is a link nobody can stop.
+        let _ = stop(wire, &shared);
+        return Err(refused);
+    }
+    if let Err(refused) = guarded(wire, &shared, chosen) {
+        // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
+        let _ = stop(wire, &shared);
+        return Err(refused);
+    }
+    Ok(shared)
+}
+
+/// What goes up as a version: the words, their pictures, and who signs them.
+pub(crate) struct Words<'a> {
+    pub(crate) text: &'a str,
+    pub(crate) pictures: &'a [(Kind, Vec<u8>)],
+    pub(crate) voucher: &'a Voucher,
+    pub(crate) name: Option<&'a str>,
+}
+
+/// Puts the words up as the version after the one this store last put up, and says which it became (decision 48).
+pub(crate) fn update(wire: &impl Wire, shared: &Shared, words: &Words) -> Result<u64, Refusal> {
+    match put_up(wire, shared, Some(shared.version), words) {
+        Ok(()) => Ok(shared.version + 1),
+        // Another of the person's machines put one up since: this one follows it, as the newer words.
+        Err(refused) if refused.name.as_deref() == Some("behind") => {
+            let latest = info(wire, shared)?.latest.unwrap_or(shared.version);
+            let ahead = Shared {
+                version: latest,
+                ..shared.clone()
+            };
+            put_up(wire, &ahead, Some(latest), words)?;
+            Ok(latest + 1)
+        }
+        Err(refused) => Err(refused),
+    }
+}
+
+// Seals the words with the link's own key against the server's limits, signs them and puts them up after `from`.
+fn put_up(
+    wire: &impl Wire,
+    shared: &Shared,
+    from: Option<u64>,
+    words: &Words,
+) -> Result<(), Refusal> {
+    let limits: Limits = answered(get(wire, "limits".into(), None)?)?;
+    let link_key = LinkKey::from_text(&shared.key).ok_or(Refusal::of("internal"))?;
+    let (key, certificate) = words.voucher;
     // Everything shared is signed: the key is the only identity there is, since any alias can be taken.
     let signer = Signer {
         key,
         certificate,
         at: jiff::Timestamp::now(),
-        name,
+        name: words.name,
     };
-    let pictures: Vec<(Kind, &[u8])> = pictures
+    let pictures: Vec<(Kind, &[u8])> = words
+        .pictures
         .iter()
         .map(|(kind, bytes)| (*kind, bytes.as_slice()))
         .collect();
     let draft = Draft {
-        id: &reserved.id,
-        version: 1,
-        from: None,
-        text,
+        id: &shared.link,
+        version: from.map_or(1, |one| one + 1),
+        from,
+        text: words.text,
         pictures: &pictures,
     };
     let sealed =
@@ -348,42 +414,20 @@ pub(crate) fn share(
         wire,
         json!({
             "for": "upload",
-            "id": reserved.id,
+            "id": shared.link,
             "digest": URL_SAFE_NO_PAD.encode(sealed.digest()),
             "bytes": sealed.as_bytes().len(),
         }),
     )?;
-    let shared = Shared {
-        server: server.to_owned(),
-        link: reserved.id,
-        key: link_key.to_text().to_string(),
-        edit: reserved.edit,
-        admin: reserved.admin,
-        editable: chosen.editable,
-        gated: chosen.password.is_some(),
-        version: 1,
-    };
-    let uploaded = wire
-        .send(Asking {
-            method: "PUT",
-            path: format!("docs/{}", shared.link),
-            token: Some(&shared.edit),
-            work: Some(work),
-            password: None,
-            body: sealed.into_bytes(),
-        })
-        .and_then(done);
-    if let Err(refused) = uploaded {
-        // An answer lost on the way back may still have left it up, and a link nobody kept is a link nobody can stop.
-        let _ = stop(wire, &shared);
-        return Err(refused);
-    }
-    if let Err(refused) = guarded(wire, &shared, chosen) {
-        // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
-        let _ = stop(wire, &shared);
-        return Err(refused);
-    }
-    Ok(shared)
+    wire.send(Asking {
+        method: "PUT",
+        path: format!("docs/{}", shared.link),
+        token: Some(&shared.edit),
+        work: Some(work),
+        password: None,
+        body: sealed.into_bytes(),
+    })
+    .and_then(done)
 }
 
 /// The password and the shorter life the person chose, set once the first version is up.

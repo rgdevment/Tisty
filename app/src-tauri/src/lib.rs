@@ -1379,6 +1379,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shares::share_card,
         answers::shares::share_stop,
         answers::shares::share_change,
+        answers::shares::share_still,
         desktop::parted,
         viewing::view_shown,
         viewing::view_unlock,
@@ -1412,6 +1413,7 @@ pub fn run() {
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(answers::shares::Loosening::default())
+        .manage(answers::shares::Following::default())
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())

@@ -13,7 +13,7 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { dayOf, weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
-import { type ShareCard, shareCard, shareChange, shareStop } from "../shares";
+import { type ShareCard, shareCard, shareChange, shareStill, shareStop } from "../shares";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
 import ShareSettings from "./ShareSettings";
@@ -145,7 +145,7 @@ const saidOf = (card: ShareCard): string => {
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  return t("shareAdminKept");
+  return `${t(card.still ? "sharedStill" : "sharedFollows")} ${t("shareAdminKept")}`;
 };
 
 const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {
@@ -163,6 +163,7 @@ const sharedPanel = (
     onShare: () => void;
     onSettings: () => void;
     onPause: (paused: boolean) => void;
+    onStill: (still: boolean) => void;
     onStop: () => void;
   },
 ): Panel => {
@@ -195,6 +196,11 @@ const sharedPanel = (
   const changes = card.info
     ? [
         { key: "settings", label: t("shareSettings"), onPick: asked.onSettings },
+        {
+          key: "still",
+          label: t(card.still ? "shareFollowIt" : "shareStillIt"),
+          onPick: () => asked.onStill(!card.still),
+        },
         {
           key: "pause",
           label: t(paused ? "shareResume" : "sharePause"),
@@ -326,6 +332,7 @@ export default function Beside(props: Props) {
             .finally(() => setSharing(true));
         },
         onSettings: () => setSettings(true),
+        onStill: (still) => shareStill(paper, still).then(setCard).catch(latest.current.onError),
         onPause: (pausing) =>
           shareChange(paper, { do: pausing ? "pause" : "resume" })
             .then(setCard)

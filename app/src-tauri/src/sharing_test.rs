@@ -44,6 +44,47 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
     assert_eq!(edit, None);
 }
 
+// What the link opens now, read as anyone with it would.
+fn read_back(here: &Here, shared: &Shared) -> String {
+    let (status, body) = here.read(&shared.link, None);
+    assert_eq!(status, 200);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let key = LinkKey::from_text(&shared.key).unwrap();
+    envelope::open(&key, &envelope, &[])
+        .unwrap()
+        .text
+        .to_string()
+}
+
+#[test]
+fn saved_words_go_up_as_the_next_version_even_after_another_machine_put_one_up() {
+    let here = Here::new();
+    let voucher = voucher();
+    let shared = share(
+        &here,
+        SERVER,
+        "Uno",
+        &[],
+        &Chosen::default(),
+        &voucher,
+        None,
+    )
+    .unwrap();
+    let words = |text| Words {
+        text,
+        pictures: &[],
+        voucher: &voucher,
+        name: None,
+    };
+
+    assert_eq!(update(&here, &shared, &words("Dos")).unwrap(), 2);
+    assert_eq!(read_back(&here, &shared), "Dos");
+    // This machine still thinks it put up version 1, as one that had not heard of the other would.
+    assert_eq!(update(&here, &shared, &words("Tres")).unwrap(), 3);
+    assert_eq!(read_back(&here, &shared), "Tres");
+    assert_eq!(info(&here, &shared).unwrap().latest, Some(3));
+}
+
 #[test]
 fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
     let shared = Shared {
@@ -55,6 +96,7 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         editable: true,
         gated: false,
         version: 1,
+        still: false,
     };
     assert_eq!(
         links(&shared),

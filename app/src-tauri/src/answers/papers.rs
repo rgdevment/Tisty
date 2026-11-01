@@ -1230,6 +1230,7 @@ pub struct Kept {
 
 #[tauri::command(async)]
 pub fn doc_write(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
@@ -1264,6 +1265,9 @@ pub fn doc_write(
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
+    if super::shares::follows(&session, &id) {
+        super::shares::follow(&app, &id);
+    }
     Ok(Kept { id, title, print })
 }
 

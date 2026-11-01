@@ -606,7 +606,7 @@ const en = {
   sharedNotMineWhy:
     "This document is someone else's, so this copy cannot be shared. Only its author can share it: ask them for the link.",
   sharedWhy:
-    "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end, with no account. The link shows it as it was when you shared it; later changes stay here.",
+    "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end, with no account. The link shows what you save, a couple of minutes after you stop writing.",
   shareIt: "Share…",
   shareTitle: "Share document",
   shareWho: "Who can open it",
@@ -641,8 +641,11 @@ const en = {
   shareLinkRead: "Link to read",
   shareLinkEdit: "Link to edit",
   shareLinkEditNote: "it edits only in Tisty",
-  shareAdminKept:
-    "The link to manage it stays in your Tisty and travels with your data. The link shows it as it was when you shared it; later changes stay here.",
+  shareAdminKept: "The link to manage it stays in your Tisty and travels with your data.",
+  sharedFollows: "The link shows what you save, a couple of minutes after you stop writing.",
+  sharedStill: "The link shows it as it is now; what you save stays here.",
+  shareStillIt: "Keep the link as it is now",
+  shareFollowIt: "Let the link show what I save",
   shareStop: "Stop sharing",
   shareSettings: "Password and expiry…",
   shareSettingsTitle: "Password and expiry",
@@ -3379,7 +3382,7 @@ const es: Catalog = {
   sharedNotMineWhy:
     "Este documento es de otra persona, así que esta copia no se puede compartir. Solo quien lo escribió puede compartirlo: pídele el link.",
   sharedWhy:
-    "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas. El link lo muestra como estaba al compartirlo; los cambios posteriores quedan aquí.",
+    "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas. El link muestra lo que guardas, un par de minutos después de que dejas de escribir.",
   shareIt: "Compartir…",
   shareTitle: "Compartir documento",
   shareWho: "Quién puede abrirlo",
@@ -3414,8 +3417,12 @@ const es: Catalog = {
   shareLinkRead: "Link para leer",
   shareLinkEdit: "Link para editar",
   shareLinkEditNote: "solo edita en Tisty",
-  shareAdminKept:
-    "El link para administrarlo queda en tu Tisty y viaja con tus datos. El link lo muestra como estaba al compartirlo; los cambios posteriores quedan aquí.",
+  shareAdminKept: "El link para administrarlo queda en tu Tisty y viaja con tus datos.",
+  sharedFollows:
+    "El link muestra lo que guardas, un par de minutos después de que dejas de escribir.",
+  sharedStill: "El link lo muestra como está ahora; lo que guardes queda aquí.",
+  shareStillIt: "Dejar el link como está ahora",
+  shareFollowIt: "Que el link muestre lo que guardo",
   shareStop: "Dejar de compartir",
   shareSettings: "Clave y caducidad…",
   shareSettingsTitle: "Clave y caducidad",

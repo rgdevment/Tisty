@@ -18,9 +18,13 @@ beforeEach(() => {
 });
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: { change?: { do: string } }) => {
+  invoke: (cmd: string, args?: { change?: { do: string }; still?: boolean }) => {
     ipc.asked.push(cmd);
     if (cmd === "doc_facts") return Promise.resolve(ipc.facts);
+    if (cmd === "share_still") {
+      const card = ipc.card as Record<string, unknown>;
+      return Promise.resolve({ ...card, still: (args as { still?: boolean })?.still });
+    }
     if (cmd === "share_change") {
       ipc.changes.push(args?.change);
       const card = ipc.card as { info: { paused: boolean } };
@@ -329,5 +333,24 @@ describe("the shared row", () => {
         { do: "idle", days: 7 },
       ]),
     );
+  });
+
+  it("keeps the link as it is now, or lets it show what is saved again", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      still: false,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).toContain(t("sharedFollows"));
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("shareStillIt") }));
+    expect(await screen.findByRole("button", { name: t("shareFollowIt") })).toBeTruthy();
+    expect(row("shared").textContent).toContain(t("sharedStill"));
   });
 });

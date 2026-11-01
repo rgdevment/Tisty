@@ -24,6 +24,8 @@ export interface ShareCard {
   edit: string | null;
   gated: boolean;
   version: number;
+  /** Kept as it was shared rather than following what is saved. */
+  still: boolean;
   info: ShareInfo | null;
 }
 
@@ -57,3 +59,5 @@ export type ShareChange =
 
 export const shareChange = (file: string, change: ShareChange): Promise<ShareCard> =>
   invoke("share_change", { file, change });
+export const shareStill = (file: string, still: boolean): Promise<ShareCard> =>
+  invoke("share_still", { file, still });

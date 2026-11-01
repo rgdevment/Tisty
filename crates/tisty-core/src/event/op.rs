@@ -342,6 +342,9 @@ pub struct Shared {
     pub gated: bool,
     /// The last version this store put up.
     pub version: u64,
+    /// Kept as it was shared rather than following what is saved (decision 48).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub still: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
