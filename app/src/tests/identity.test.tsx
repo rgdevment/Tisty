@@ -92,8 +92,13 @@ describe("your identity", () => {
     ipc.shown = { ...held, held: false, fingerprint: null, machines: [] };
     render(<Shell />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "Create my phrase" }));
+    const create = await screen.findByRole("button", { name: "Create my phrase" });
+    // Born by the press, so the identity looked at again has its fingerprint.
+    ipc.shown = held;
+    await userEvent.click(create);
     expect(ipc.calls.some((one) => one.cmd === "identity_begin")).toBe(true);
+    // The new phrase is shown at once, to be written down and confirmed.
+    expect(await screen.findByText("word24")).toBeTruthy();
   });
 
   it("takes the phrase typed on another computer, and gives this one its key", async () => {

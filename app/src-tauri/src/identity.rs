@@ -313,7 +313,9 @@ pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
     // Keys taken back here, by a removal, by a round or by beginning again, all reach Tisty Share (decision 73).
     if let Some(me) = session.state.persons.person(&session.config.device_id) {
         let revoked = crate::sharing::taken_back_by(&session.state.persons, &me);
-        crate::sharing::revoke_untold(session.paths.cache().to_path_buf(), revoked);
+        if !revoked.is_empty() {
+            crate::sharing::revoke_untold(session.paths.cache().to_path_buf(), revoked);
+        }
     }
 }
 

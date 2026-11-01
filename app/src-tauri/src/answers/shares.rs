@@ -335,56 +335,73 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         .map_err(Refusal::from)
 }
 
+/// Set while loose shares are being let go of, which the start and every round ask for.
+#[derive(Default)]
+pub struct Loosening(std::sync::atomic::AtomicBool);
+
 /// Stops in the background every share nothing in Tisty leads to any more, and forgets each one the server let go of.
 pub(crate) fn let_loose_go(app: tauri::AppHandle) {
+    use std::sync::atomic::Ordering;
     use tauri::Manager;
     tauri::async_runtime::spawn(async move {
-        let session = app.state::<Mutex<Session>>();
-        let (gone, replaced) = {
-            let session = held(&session);
-            (session.state.gone_shares(), session.state.replaced.clone())
-        };
-        if gone.is_empty() && replaced.is_empty() {
+        // One at a time, or two would stop the same shares and both write that they did.
+        if app.state::<Loosening>().0.swap(true, Ordering::SeqCst) {
             return;
         }
-        let stopped = apart(move || {
-            // A share another took the place of may still be read by whoever got its link, so only an unread one goes.
-            let unread = replaced.into_iter().filter(|(_, shared)| {
-                Net::to(&shared.server)
-                    .and_then(|wire| sharing::info(&wire, shared))
-                    .is_ok_and(|info| info.reads == 0)
-            });
-            Ok(gone
-                .into_iter()
-                .chain(unread)
-                .filter(|(_, shared)| {
-                    match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
-                        Ok(()) => true,
-                        // Closed by reports, the server never lets it be stopped, and asking again only costs.
-                        Err(refused) => {
-                            sharing::already_gone(&refused)
-                                || refused.name.as_deref() == Some("blocked")
-                        }
-                    }
-                })
-                .map(|(id, shared)| Op::ShareStop {
-                    id,
-                    link: shared.link,
-                })
-                .collect::<Vec<_>>())
-        })
-        .await;
-        if let Ok(ops) = stopped
-            && !ops.is_empty()
-            && let Err(e) = held(&session).commit_all(ops)
-        {
-            tisty_core::witness::warn(
-                tisty_core::witness::channel::WINDOW,
-                "shares nothing leads to were stopped but could not be forgotten",
-                &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
-            );
-        }
+        loosened(&app).await;
+        app.state::<Loosening>().0.store(false, Ordering::SeqCst);
     });
+}
+
+async fn loosened(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let session = app.state::<Mutex<Session>>();
+    let (gone, replaced) = {
+        let session = held(&session);
+        (session.state.gone_shares(), session.state.replaced.clone())
+    };
+    if gone.is_empty() && replaced.is_empty() {
+        return;
+    }
+    let stopped = apart(move || {
+        // A share another took the place of may still be read by whoever got its link, so only an unread one goes;
+        // one the server already let go of is forgotten, or it would be asked after on every round.
+        let unread = replaced.into_iter().filter(|(_, shared)| {
+            match Net::to(&shared.server).and_then(|wire| sharing::info(&wire, shared)) {
+                Ok(info) => info.reads == 0,
+                Err(refused) => sharing::already_gone(&refused),
+            }
+        });
+        Ok(gone
+            .into_iter()
+            .chain(unread)
+            .filter(|(_, shared)| {
+                match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
+                    Ok(()) => true,
+                    // Closed by reports, the server never lets it be stopped, and asking again only costs.
+                    Err(refused) => {
+                        sharing::already_gone(&refused)
+                            || refused.name.as_deref() == Some("blocked")
+                    }
+                }
+            })
+            .map(|(id, shared)| Op::ShareStop {
+                id,
+                link: shared.link,
+            })
+            .collect::<Vec<_>>())
+    })
+    .await;
+    if let Ok(ops) = stopped
+        && !ops.is_empty()
+        && let Err(e) = held(&session).commit_all(ops)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::WINDOW,
+            "shares nothing leads to were stopped but could not be forgotten",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
 }
 
 #[cfg(test)]

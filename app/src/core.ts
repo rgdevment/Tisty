@@ -477,13 +477,15 @@ export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take
 export type Lent = { source: string } | { reference: string };
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
-  | { kind: "file"; name: string; place: string; path: string; body: string }
+  | { kind: "file"; name: string; place: string; path: string; body: string; shared: boolean }
   | {
       kind: "missed";
       name: string;
       place: string;
       path: string;
       refusal: { code: string; name?: string };
+      /** Came through a Tisty Share link: `path` is that link. */
+      shared: boolean;
     }
   | { kind: "doc"; paper: Viewed; body: string }
   | { kind: "widget"; lent: Lent; from: Viewed | null }

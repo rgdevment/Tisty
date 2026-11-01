@@ -220,10 +220,12 @@ pub(crate) fn pictured(
         }
         let inner = &text[opens..closes];
         let starts = opens + (inner.len() - inner.trim_start_matches([' ', '\t']).len());
-        let written = text[starts..closes]
-            .split([' ', '\t'])
-            .next()
-            .unwrap_or_default();
+        let named = &text[starts..closes];
+        // Within `<…>` a destination may hold spaces; bare, the first space ends it.
+        let written = match named.strip_prefix('<').and_then(|inside| inside.find('>')) {
+            Some(ends) => &named[..ends + 2],
+            None => named.split([' ', '\t']).next().unwrap_or_default(),
+        };
         let target = written.trim_start_matches('<').trim_end_matches('>');
         if !tisty_core::attach::names_an_attachment(target) {
             continue;
@@ -271,7 +273,13 @@ fn destination(text: &str, image: usize) -> Option<(usize, usize)> {
         return None;
     }
     let opens = at + 2;
-    let closes = opens + text[opens..].find([')', '\n'])?;
+    // Within `<…>` a `)` is part of the name, so the destination closes only after the `>`.
+    let named = opens + (text[opens..].len() - text[opens..].trim_start_matches([' ', '\t']).len());
+    let after = match bytes.get(named) {
+        Some(b'<') => named + text[named..].find(['>', '\n'])?,
+        _ => opens,
+    };
+    let closes = after + text[after..].find([')', '\n'])?;
     (bytes[closes] == b')').then_some((opens, closes))
 }
 
@@ -456,11 +464,12 @@ fn heard(cache: &std::path::Path, revoked: &[Revocation]) {
 
 /// Tells the server in the background what it has not heard; what does not reach it is tried again the next round.
 pub(crate) fn revoke_untold(cache: std::path::PathBuf, revoked: Vec<Revocation>) {
-    let revoked = untold(&cache, revoked);
-    if revoked.is_empty() {
-        return;
-    }
+    // The told list is read off the caller's thread, which may be holding the session.
     tauri::async_runtime::spawn_blocking(move || {
+        let revoked = untold(&cache, revoked);
+        if revoked.is_empty() {
+            return;
+        }
         match Net::to(SERVER).and_then(|wire| revoke(&wire, &revoked)) {
             Ok(()) => heard(&cache, &revoked),
             Err(refused) => tisty_core::witness::note(

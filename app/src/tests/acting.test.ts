@@ -33,6 +33,7 @@ const file: Showing = {
   place: "Descargas",
   path: "C:\\a.md",
   body: "# A",
+  shared: false,
 };
 const doc: Showing = {
   kind: "doc",
@@ -134,6 +135,7 @@ describe("the viewer's menu", () => {
       place: "Descargas",
       path: "C:\\a.md",
       refusal: { code: "cannotRead" },
+      shared: false,
     });
     const all = choicesFor(a);
 

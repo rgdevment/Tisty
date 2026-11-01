@@ -59,10 +59,17 @@ export default function Identity({
   };
 
   // Sharing needs a key even with no cloud, so the phrase can be born here and not only while encrypting it.
+  const [beginning, setBeginning] = useState(false);
   const begin = () => {
+    setBeginning(true);
     identityBegin()
-      .then((phrase) => setWords(phrase.split(" ")))
-      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
+      .then((phrase) => {
+        setWords(phrase.split(" "));
+        // The phrase is shown beside its fingerprint, which only the identity born with it has.
+        look();
+      })
+      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }))
+      .finally(() => setBeginning(false));
   };
 
   const failed = (e: unknown) => fail({ card: "identity", text: saidPlainly(e) });
@@ -110,7 +117,12 @@ export default function Identity({
         {shown && !born && (
           <>
             <p className="text-[12.5px] leading-relaxed text-soft">{t("identityUnborn")}</p>
-            <button type="button" disabled={held} onClick={begin} className={`mt-3 ${strong}`}>
+            <button
+              type="button"
+              disabled={held || beginning}
+              onClick={begin}
+              className={`mt-3 ${strong}`}
+            >
               {t("identityCreate")}
             </button>
             <PhraseTyped held={held} onTyped={typed} onFail={failed} />

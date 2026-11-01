@@ -49,12 +49,10 @@ const remembered = (): { side: boolean; leaf: Paper } => {
 };
 
 // A share link Tisty could not open says why in its own words, and its link can still go to the browser.
-const SHARED = "https://";
-
-const troubleOf = (refusal: { code: string; name?: string }, path: string): Trouble =>
+const troubleOf = (refusal: { code: string; name?: string }, shared: boolean): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
-    : path.startsWith(SHARED)
+    : shared
       ? { kind: "other", said: plainly(refusal) }
       : { kind: "unreadable" };
 
@@ -140,7 +138,13 @@ function Reading({
   const paper = shown?.kind === "doc" ? shown.paper : null;
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
-  const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
+  // A share is named by its title, which has no extension to drop.
+  const named =
+    shown?.kind === "file"
+      ? shown.shared
+        ? shown.name
+        : shown.name.replace(/\.[^.]+$/, "")
+      : (paper?.title ?? "");
   const pdf = usePdf({
     ready: reading,
     body,
@@ -314,17 +318,11 @@ function Reading({
       )}
       {shown?.kind === "missed" && (
         <Problem
-          trouble={troubleOf(shown.refusal, shown.path)}
+          trouble={troubleOf(shown.refusal, shown.shared)}
           name={shown.name}
           place={shown.place}
-          onReveal={
-            shown.path.startsWith(SHARED)
-              ? undefined
-              : () => void revealItemInDir(shown.path).catch(fail)
-          }
-          onBrowse={
-            shown.path.startsWith(SHARED) ? () => void openUrl(shown.path).catch(fail) : undefined
-          }
+          onReveal={shown.shared ? undefined : () => void revealItemInDir(shown.path).catch(fail)}
+          onBrowse={shown.shared ? () => void openUrl(shown.path).catch(fail) : undefined}
           onRetry={look}
         />
       )}

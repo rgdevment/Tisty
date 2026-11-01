@@ -46,17 +46,20 @@ pub enum Shown {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
+    /// `shared` when it came through a Tisty Share link, whose `path` is that link and `name` a title, not a file's.
     File {
         name: String,
         place: String,
         path: String,
         body: String,
+        shared: bool,
     },
     Missed {
         name: String,
         place: String,
         path: String,
         refusal: Refusal,
+        shared: bool,
     },
     Doc {
         paper: Paper,
@@ -427,12 +430,14 @@ pub fn view_shown(
                 place: place_of(&at),
                 path: at.display().to_string(),
                 body,
+                shared: false,
             },
             Err(refusal) => Showing::Missed {
                 name: named(&at),
                 place: place_of(&at),
                 path: at.display().to_string(),
                 refusal,
+                shared: false,
             },
         },
         Shown::Doc(paper) => Showing::Doc {
@@ -470,6 +475,7 @@ fn shared_showing(
                 place,
                 path: link.read(),
                 body: got.body.clone(),
+                shared: true,
             };
             reshow(
                 views,
@@ -486,6 +492,7 @@ fn shared_showing(
             place: "Tisty Share".into(),
             path: link.read(),
             refusal,
+            shared: true,
         },
     }
 }

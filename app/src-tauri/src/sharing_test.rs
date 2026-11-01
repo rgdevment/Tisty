@@ -427,6 +427,17 @@ fn a_picture_named_with_spaces_or_angle_brackets_is_taken_and_a_stray_mark_is_no
     assert_eq!(pictures.len(), 1);
     let (said, _) = pictured("![a](<attachments/playa-a1b2c3d4.png>)\n", read);
     assert_eq!(said, "![a](tisty:picture/0)\n");
+    let spaced = |target: &str| (target == "attachments/mi playa-a1b2c3d4.png").then(|| png(20));
+    let (said, pictures) = pictured(
+        "![a](<attachments/mi playa-a1b2c3d4.png> \"Playa\")\n",
+        spaced,
+    );
+    assert_eq!(said, "![a](tisty:picture/0 \"Playa\")\n");
+    assert_eq!(pictures.len(), 1);
+    let bracketed = |target: &str| (target == "attachments/foto (1)-a1b2c3d4.png").then(|| png(20));
+    let (said, pictures) = pictured("![a](<attachments/foto (1)-a1b2c3d4.png>)\n", bracketed);
+    assert_eq!(said, "![a](tisty:picture/0)\n");
+    assert_eq!(pictures.len(), 1);
     let (said, _) = pictured(
         "![[nested] alt (with) marks](attachments/playa-a1b2c3d4.png)\n",
         read,

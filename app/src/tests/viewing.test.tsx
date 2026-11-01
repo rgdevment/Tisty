@@ -84,6 +84,7 @@ const file: Showing = {
   place: "Descargas",
   path: "C:\\Descargas\\notas.md",
   body: "# Notas\n\nUn texto.\n\n## Más\n",
+  shared: false,
 };
 
 URL.createObjectURL = () => "blob:pdf";
@@ -160,6 +161,7 @@ describe("the viewer", () => {
       place: "Descargas",
       path: "C:\\Descargas\\grande.md",
       refusal: { code: "documentTooBig", name: "500 KB" },
+      shared: false,
     } satisfies Showing;
     render(<Viewing />);
 
@@ -175,6 +177,7 @@ describe("the viewer", () => {
       place: "Tisty Share",
       path: link,
       refusal: { code: "shareOpenGated" },
+      shared: true,
     } satisfies Showing;
     render(<Viewing />);
 

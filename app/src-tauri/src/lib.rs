@@ -987,6 +987,8 @@ pub(crate) fn opened(
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
     answers::papers::tags_once(app.clone());
+    // A machine with no cloud never runs a round, and the shares of what it deleted must still go.
+    answers::shares::let_loose_go(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     tray::follow_bar(app.clone());
@@ -1407,6 +1409,7 @@ pub fn run() {
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
+        .manage(answers::shares::Loosening::default())
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())
