@@ -8,6 +8,8 @@ const ipc = vi.hoisted(() => ({
   secrets: [] as { line: number; named: string; under: string | null }[],
   name: "Ana Pérez" as string | null,
   alias: "ana" as string | null,
+  pages: 0,
+  cited: 0,
   pending: undefined as Promise<unknown> | undefined,
   changed: false,
 }));
@@ -29,7 +31,14 @@ vi.mock("@tauri-apps/api/core", () => ({
     }
     if (cmd === "share_look")
       return (
-        ipc.pending ?? Promise.resolve({ secrets: ipc.secrets, name: ipc.name, alias: ipc.alias })
+        ipc.pending ??
+        Promise.resolve({
+          secrets: ipc.secrets,
+          name: ipc.name,
+          alias: ipc.alias,
+          pages: ipc.pages,
+          cited: ipc.cited,
+        })
       );
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
   },
@@ -44,6 +53,8 @@ beforeEach(() => {
   ipc.secrets = [];
   ipc.name = "Ana Pérez";
   ipc.alias = "ana";
+  ipc.pages = 0;
+  ipc.cited = 0;
   ipc.pending = undefined;
   ipc.changed = false;
 });
@@ -65,7 +76,14 @@ describe("the share dialog", () => {
     expect(asked("share_doc")).toEqual([
       {
         file: "notas.md",
-        chosen: { password: null, editable: false, idleDays: null, signs: "alias", still: false },
+        chosen: {
+          password: null,
+          editable: false,
+          idleDays: null,
+          signs: "alias",
+          still: false,
+          cites: false,
+        },
       },
     ]);
   });
@@ -111,7 +129,14 @@ describe("the share dialog", () => {
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
     expect(asked("share_doc")[0]).toEqual({
       file: "notas.md",
-      chosen: { password: "ñandú", editable: true, idleDays: 7, signs: "alias", still: false },
+      chosen: {
+        password: "ñandú",
+        editable: true,
+        idleDays: 7,
+        signs: "alias",
+        still: false,
+        cites: false,
+      },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
   });
@@ -267,5 +292,41 @@ describe("the share dialog", () => {
     expect(onError).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     await waitFor(() => expect(onShared).toHaveBeenCalled());
+  });
+
+  it("says its pages go with it and shares what it cites only when asked", async () => {
+    ipc.pages = 3;
+    ipc.cited = 2;
+    render(
+      <Sharing
+        file="guia.md"
+        title="Guía"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    expect(await screen.findByText(fill("sharePages", "3"))).toBeTruthy();
+    const cites = screen.getByRole("checkbox", { name: fill("shareCites", "2") });
+    expect((cites as HTMLInputElement).checked).toBe(false);
+    await userEvent.click(cites);
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
+    expect(asked("share_doc")[0]).toMatchObject({ chosen: { cites: true } });
+  });
+
+  it("says nothing of pages or citations when it has none", async () => {
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    await screen.findByRole("button", { name: t("shareGo") });
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByText(t("shareCitesWhy"))).toBeNull();
   });
 });

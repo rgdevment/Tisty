@@ -89,6 +89,17 @@ pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
 
 async fn followed(app: &tauri::AppHandle, file: &str) {
     use tauri::Manager;
+    // What the words reach now goes up before them, so their envelope can name it.
+    if let Err(refused) = super::citing::kept_up(app, file).await {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::WINDOW,
+            "what a shared document cites could not be kept up; the next round tries again",
+            &[(
+                "why",
+                tisty_core::witness::Fact::Why(refused.code.to_string()),
+            )],
+        );
+    }
     let session = app.state::<Mutex<Session>>();
     let gathered = {
         let session = held(&session);
@@ -98,6 +109,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         match (doc, shared.filter(|one| !one.still), text) {
             (Some(doc), Some(shared), Some(text)) => Some((
                 doc,
+                super::citing::cited_in(&text, &super::citing::held_with(&session, doc)),
                 text,
                 sharer(&session),
                 signing_name(&session.state.signed, shared.signs),
@@ -107,10 +119,10 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
             _ => None,
         }
     };
-    let Some((doc, text, voucher, name, shared, data)) = gathered else {
+    let Some((doc, cited, text, voucher, name, shared, data)) = gathered else {
         return;
     };
-    let print = sharing::print_of(&text);
+    let print = super::citing::printed(&text, &cited);
     // Words already up, from here or another of the person's machines, are not put up again.
     if print == shared.print {
         return;
@@ -140,7 +152,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
                     sharing::pictured(&text, |target| sharing::attachment(target, &data));
                 let words = sharing::Words {
                     text: &text,
-                    cited: &[],
+                    cited: &cited,
                     pictures: &pictures,
                     voucher: &voucher,
                     name: name.as_deref(),

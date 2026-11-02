@@ -145,7 +145,10 @@ const saidOf = (card: ShareCard): string => {
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  return `${t(card.still ? "sharedStill" : "sharedFollows")} ${t("shareAdminKept")}`;
+  const holds = card.holds
+    ? ` ${card.holds === 1 ? t("sharedHoldsOne") : fill("sharedHolds", String(card.holds))}`
+    : "";
+  return `${t(card.still ? "sharedStill" : "sharedFollows")}${holds} ${t("shareAdminKept")}`;
 };
 
 const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {
@@ -189,6 +192,14 @@ const sharedPanel = (
       said: t("sharedTakenWhy"),
       links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
       acts: [{ key: "stop", label: t("shareStopEditing"), onPick: asked.onStop }],
+    };
+  // Held through another share, it lives, changes and goes with that one, so there is nothing to manage here.
+  if (card.held)
+    return {
+      kind: "shared",
+      gist: t("sharedHeld"),
+      said: t("sharedHeldWhy"),
+      links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
     };
   const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
   if (card.edit)

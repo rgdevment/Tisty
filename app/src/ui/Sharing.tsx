@@ -40,6 +40,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   // The alias first, so a full name only goes out when the person picks it.
   const [signs, setSigns] = useState<ShareSigns>("alias");
   const [still, setStill] = useState(false);
+  const [cites, setCites] = useState(false);
+  const [reach, setReach] = useState({ pages: 0, cited: 0 });
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
   const [seen, setSeen] = useState<string | null>(null);
@@ -57,12 +59,14 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setLooked(false);
     setSecrets([]);
     setNames(undefined);
+    setReach({ pages: 0, cited: 0 });
     setSeen(null);
     shareLook(file)
       .then((look) => {
         if (!live) return;
         setSecrets(look.secrets);
         setNames({ name: look.name, alias: look.alias });
+        setReach({ pages: look.pages, cited: look.cited });
         setSigns((now) => (now === "alias" && !look.alias ? "key" : now));
         setSeen(look.seen);
       })
@@ -87,6 +91,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       seen,
       signs,
       still,
+      cites: cites && reach.cited > 0,
     })
       .then((card) => {
         copied(card.read).catch(() => {});
@@ -211,6 +216,27 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             {t(still ? "sharedStill" : "sharedFollows")}
           </p>
         </fieldset>
+
+        {(reach.pages > 0 || reach.cited > 0) && (
+          <div className="flex flex-col gap-1.5">
+            {reach.pages > 0 && (
+              <p className="text-[12.5px]">
+                {reach.pages === 1 ? t("sharePagesOne") : fill("sharePages", String(reach.pages))}
+              </p>
+            )}
+            {reach.cited > 0 && (
+              <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+                <input
+                  type="checkbox"
+                  checked={cites}
+                  onChange={(e) => setCites(e.target.checked)}
+                />
+                {reach.cited === 1 ? t("shareCitesOne") : fill("shareCites", String(reach.cited))}
+              </label>
+            )}
+            <p className="text-[11.5px] leading-relaxed text-faint">{t("shareCitesWhy")}</p>
+          </div>
+        )}
 
         <fieldset className="flex flex-col gap-1.5">
           <legend className="mb-2 text-[12.5px] font-semibold">{t("shareSign")}</legend>

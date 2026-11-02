@@ -5,6 +5,7 @@ use tisty_core::Op;
 use tisty_core::event::{Shared, Signs};
 use tisty_core::model::DocId;
 
+use super::citing;
 use crate::handed::Voucher;
 use crate::sharing::{self, Change, Chosen, Info, Net};
 use crate::{Answer, Refusal, Session, held};
@@ -55,6 +56,10 @@ pub struct Card {
     still: bool,
     /// Someone else's share, edited here through their edit link.
     taken: bool,
+    /// Shared only because another share holds it, which it lives and goes with (decision 64).
+    held: bool,
+    /// How many documents go with it, its pages and what it cites.
+    holds: usize,
     /// None when the server could not be reached; the links still work without it.
     info: Option<Info>,
 }
@@ -68,6 +73,8 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
         version: shared.version,
         still: shared.still,
         taken: shared.taken,
+        held: shared.held,
+        holds: shared.holds.len(),
         info,
     }
 }
@@ -171,6 +178,9 @@ pub struct Look {
     /// Each one only when it is fit to sign, so the dialog offers what can go and the key alone otherwise.
     name: Option<String>,
     alias: Option<String>,
+    /// Its pages, which always go with it, and the other documents it cites, which go when chosen (decision 64).
+    pages: usize,
+    cited: usize,
 }
 
 // The name a share goes out with, as chosen, held to what an envelope takes.
@@ -191,11 +201,21 @@ fn fit(one: &Option<String>) -> Option<String> {
 
 #[tauri::command]
 pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
-    let (docs, name, alias) = {
+    let (docs, name, alias, pages, cited) = {
         let session = held(&session);
-        doc_of(&session, &file)?;
+        let doc = doc_of(&session, &file)?;
         let signed = &session.state.signed;
-        (session.paths.docs(), fit(&signed.name), fit(&signed.alias))
+        let pages = citing::reached(&session, doc, false).map_or(0, |all| all.len());
+        // Past what one share holds it is refused when shared, so the dialog counts one more than may go.
+        let all =
+            citing::reached(&session, doc, true).map_or(citing::CITED_AT_MOST + 1, |all| all.len());
+        (
+            session.paths.docs(),
+            fit(&signed.name),
+            fit(&signed.alias),
+            pages,
+            all.saturating_sub(pages),
+        )
     };
     // A long document takes a moment to read and look through, so neither holds the window or the session.
     apart(move || {
@@ -206,6 +226,8 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
             seen: sharing::print_of(&text),
             name,
             alias,
+            pages,
+            cited,
         })
     })
     .await
@@ -217,7 +239,7 @@ pub async fn share_doc(
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let (doc, text, voucher, revoked, name, data) = {
+    let (doc, text, voucher, revoked, name, data, going) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
@@ -246,6 +268,7 @@ pub async fn share_doc(
         }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
         let name = signing_name(&session.state.signed, chosen.signs);
+        let going = citing::going_of(&session, citing::reached(&session, doc, chosen.cites)?);
         (
             doc,
             text,
@@ -253,26 +276,41 @@ pub async fn share_doc(
             sharing::taken_back_by(&session.state.persons, &me),
             name,
             session.paths.data().to_path_buf(),
+            going,
         )
     };
-    let (shared, info) = apart(move || {
-        let print = sharing::print_of(&text);
-        let (text, pictures) =
-            sharing::pictured(&text, |target| sharing::attachment(target, &data));
+    let (shared, members, info) = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
-        let shared = sharing::share(
-            &wire,
-            sharing::SERVER,
-            &text,
-            &pictures,
-            &chosen,
-            &voucher,
-            name.as_deref(),
-        )?;
-        let info = sharing::info(&wire, &shared).ok();
-        Ok((Shared { print, ..shared }, info))
+        let root = sharing::reserve(&wire, sharing::SERVER, &chosen)?;
+        let signing = citing::Signing {
+            voucher,
+            name,
+            data,
+        };
+        // What it cites goes up first, so its own envelope can name each with the key that opens it.
+        let members = citing::took_up(&wire, &root, &going, &signing).inspect_err(|_| {
+            let _ = sharing::stop(&wire, &root);
+        })?;
+        let cited = citing::cited_in(&text, &members);
+        let (words, pictures) =
+            sharing::pictured(&text, |target| sharing::attachment(target, &signing.data));
+        let first = sharing::Words {
+            text: &words,
+            cited: &cited,
+            pictures: &pictures,
+            voucher: &signing.voucher,
+            name: signing.name.as_deref(),
+        };
+        sharing::first_up(&wire, &root, &first, &chosen)?;
+        let info = sharing::info(&wire, &root).ok();
+        let shared = Shared {
+            print: citing::printed(&text, &cited),
+            holds: members.iter().map(|(one, _)| one.doc).collect(),
+            ..root
+        };
+        Ok((shared, members, info))
     })
     .await?;
     let committed = {
@@ -280,12 +318,21 @@ pub async fn share_doc(
         // A second press or another window may have shared it while this one was on the way.
         match session.state.shares.contains_key(&doc) {
             true => Err(Refusal::of("shareAlready")),
-            false => session
-                .commit(Op::ShareDoc {
+            false => {
+                let mut ops: Vec<Op> = members
+                    .into_iter()
+                    .filter(|(one, _)| !session.state.shares.contains_key(&one.doc))
+                    .map(|(one, shared)| Op::ShareDoc {
+                        id: one.doc,
+                        d: shared,
+                    })
+                    .collect();
+                ops.push(Op::ShareDoc {
                     id: doc,
                     d: shared.clone(),
-                })
-                .map_err(Refusal::from),
+                });
+                session.commit_all(ops).map_err(Refusal::from)
+            }
         }
     };
     if let Err(refused) = committed {
@@ -359,6 +406,10 @@ pub async fn share_change(
     if shared.taken {
         return Err(Refusal::of("notAllowed"));
     }
+    // A reader reaches it through the share that holds it, which already asked for any password.
+    if shared.held && matches!(change, sharing::Change::Password { .. }) {
+        return Err(Refusal::of("shareHeld"));
+    }
     let asked = shared.clone();
     let wanted = change.clone();
     let info = apart(move || {
@@ -403,6 +454,7 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         return Ok(());
     };
     let link = shared.link.clone();
+    let shared_was = shared.clone();
     // Someone else's share stays up for them; this store only stops editing it.
     let gone = match shared.taken {
         true => Ok(()),
@@ -413,9 +465,11 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         Err(refused) if !sharing::already_gone(&refused) => return Err(refused),
         _ => {}
     }
-    held(&session)
-        .commit(Op::ShareStop { id: doc, link })
-        .map_err(Refusal::from)
+    let mut session = held(&session);
+    // What went only through it went with it on the server, so this store forgets those too.
+    let mut ops = citing::let_go_of(&session, doc, &shared_was, &[]);
+    ops.push(Op::ShareStop { id: doc, link });
+    session.commit_all(ops).map_err(Refusal::from)
 }
 
 /// Keeps a share as it was shared, or lets it follow what is saved again, putting the words up at once when it does.

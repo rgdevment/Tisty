@@ -147,6 +147,9 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         taken: false,
         print: String::new(),
         signs: Default::default(),
+        holds: Vec::new(),
+        held: false,
+        cites: false,
     };
     assert_eq!(
         links(&shared),
@@ -167,6 +170,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         seen: None,
         signs: tisty_core::event::Signs::Key,
         still: true,
+        cites: false,
     };
     let shared = share(&here, SERVER, "Hola", &[], &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
