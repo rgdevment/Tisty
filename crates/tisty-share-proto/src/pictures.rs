@@ -10,7 +10,7 @@ use crate::envelope::{Kind, Refused};
 use crate::limits::Limits;
 
 /// A page is read a few hundred pixels wide; anything past this is only weight.
-const SIDE_AT_MOST: u32 = 2048;
+const SIDE_AT_MOST: u32 = 1600;
 const QUALITY: u8 = 82;
 /// Each try keeps three quarters of the side, so six reach about a sixth of where it began.
 const TRIES: usize = 6;
@@ -108,7 +108,8 @@ fn as_png(picture: &DynamicImage) -> Result<Vec<u8>, Refused> {
     picture
         .write_with_encoder(PngEncoder::new_with_quality(
             &mut out,
-            CompressionType::Default,
+            // The writer's machine pays the slower compression once, so every reader downloads less.
+            CompressionType::Best,
             FilterType::Adaptive,
         ))
         .map_err(|_| Refused::NotAPicture)?;
