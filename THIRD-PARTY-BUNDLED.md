@@ -138,7 +138,7 @@ written once with the crates that carry it.
 | `iconv-lite` | 0.6.3 | MIT |
 | `import-meta-resolve` | 4.2.0 | MIT |
 | `internmap` | 1.0.1 | ISC |
-| `katex` | 0.19.0 | MIT |
+| `katex` | 0.19.1 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `lodash-es` | 4.18.1 | MIT |
@@ -310,7 +310,7 @@ written once with the crates that carry it.
 | `keyring-core` | 1.0.1 | MIT OR Apache-2.0 |
 | `kstring` | 2.0.5 | MIT OR Apache-2.0 |
 | `libc` | 0.2.191 | MIT OR Apache-2.0 |
-| `libsqlite3-sys` | 0.38.2 | MIT |
+| `libsqlite3-sys` | 0.39.1 | MIT |
 | `litemap` | 0.8.3 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
 | `log` | 0.4.34 | MIT OR Apache-2.0 |
@@ -383,7 +383,7 @@ written once with the crates that carry it.
 | `rfd` | 0.16.0 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `roxmltree` | 0.21.2 | MIT OR Apache-2.0 |
-| `rusqlite` | 0.40.2 | MIT |
+| `rusqlite` | 0.41.1 | MIT |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustix` | 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | `rustls` | 0.23.46 | Apache-2.0 OR ISC OR MIT |
