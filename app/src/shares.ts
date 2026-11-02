@@ -12,6 +12,8 @@ export interface ShareChosen {
   seen?: string | null;
   signs?: ShareSigns;
   still?: boolean;
+  /** What it cites besides its pages goes too, each in its own envelope. */
+  cites?: boolean;
 }
 
 /** How a share stands on the server, when it could be asked. */
@@ -33,6 +35,10 @@ export interface ShareCard {
   still: boolean;
   /** Someone else's share, edited here through their edit link. */
   taken?: boolean;
+  /** Shared only because another share holds it, which it lives and goes with. */
+  held?: boolean;
+  /** How many documents go with it, its pages and what it cites. */
+  holds?: number;
   info: ShareInfo | null;
 }
 
@@ -49,6 +55,9 @@ export interface ShareLook {
   seen: string;
   name: string | null;
   alias: string | null;
+  /** Its pages, which always go with it, and the other documents it cites, which go when chosen. */
+  pages: number;
+  cited: number;
 }
 
 export const shareLook = (file: string): Promise<ShareLook> => invoke("share_look", { file });
