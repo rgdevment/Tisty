@@ -39,6 +39,7 @@ import { saidPlainly } from "../refusal";
 import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
+import { chooseTongue, tonguesOf, twinOf } from "../tongues";
 import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -51,6 +52,7 @@ import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./p
 import Ribbon, { Onward } from "./Ribbon";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
+import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
@@ -566,6 +568,28 @@ export default function Docs({
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
+  const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);
+  // Another language opens at the heading the reader stood under, counted, since its words differ.
+  const landing = useRef<{ file: string; at: number } | null>(null);
+  const toTongue = (tongue: Filed) => {
+    if (!own) return;
+    const anchor = tongue.tongue?.[0];
+    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
+    const there = twinOf(known, own, tongue);
+    landing.current = { file: there.file, at: standingHead() };
+    setHeads([]);
+    onDoc?.(there.file);
+  };
+  useEffect(() => {
+    const want = landing.current;
+    const reached = heads.filter((one) => one.level > 0);
+    if (!want || want.file !== open?.file || !reached.length) return;
+    landing.current = null;
+    if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
+  }, [heads, open?.file]);
+  const spoken = tongues.length > 0 && (
+    <Tongues tongues={tongues} here={(above ?? own)?.id ?? ""} onOpen={toTongue} />
+  );
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
   const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
   const [blurbs] = useState(blurbing);
@@ -839,14 +863,22 @@ export default function Docs({
                 onDoc={onDoc}
                 onTag={onTag}
                 above={
-                  above && (
+                  above ? (
                     <Ribbon
                       of={above}
                       sisters={sisters}
                       told={aboveTold}
                       here={open.file}
                       onOpen={(doc) => onDoc?.(doc.file)}
-                    />
+                    >
+                      {spoken}
+                    </Ribbon>
+                  ) : (
+                    spoken && (
+                      <nav aria-label={t("tonguesOf")} className="ribbon">
+                        {spoken}
+                      </nav>
+                    )
                   )
                 }
                 below={

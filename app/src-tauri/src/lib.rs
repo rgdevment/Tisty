@@ -172,9 +172,10 @@ fn search(
     }
     let total = found.len();
     let tasks: Vec<Task> = found.into_iter().take(MOST).cloned().collect();
-    let papers = session
+    let sighted = session
         .corpus
-        .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id))
+        .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id));
+    let papers = answers::tongues::once_each(&session.state, sighted, |one| &one.id)
         .into_iter()
         .map(|one| Paper {
             archived: listed.get(&one.id).copied().unwrap_or(false),

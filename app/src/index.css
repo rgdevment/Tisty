@@ -451,6 +451,32 @@ label[for] {
   border-start-start-radius: 0;
   border-start-end-radius: 0;
 }
+.tongues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: auto;
+}
+.tongue {
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--tisty-soft);
+}
+.tongue:hover:not(:disabled) {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.tongue.on {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+  font-weight: 600;
+}
+.tongue:disabled {
+  opacity: 0.5;
+}
+.ribbon-arrows + .tongues {
+  margin-left: 8px;
+}
 .ribbon-back {
   display: flex;
   min-width: 0;

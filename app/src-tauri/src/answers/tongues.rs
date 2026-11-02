@@ -133,6 +133,28 @@ pub fn standing(state: &State) -> BTreeMap<DocId, (String, usize)> {
         .collect()
 }
 
+/// Each group found once: the first of its languages the words turned up in stands for it.
+pub fn once_each<T>(state: &State, found: Vec<T>, file: impl Fn(&T) -> &str) -> Vec<T> {
+    let anchors: BTreeMap<&str, DocId> = state
+        .families()
+        .into_iter()
+        .flat_map(|(anchor, tongues)| {
+            tongues
+                .into_iter()
+                .map(move |one| (one.file.as_str(), anchor))
+        })
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    found
+        .into_iter()
+        .filter(|one| {
+            anchors
+                .get(file(one))
+                .is_none_or(|anchor| seen.insert(*anchor))
+        })
+        .collect()
+}
+
 /// The languages beside a document that leaves its folder, which go along with it.
 pub fn following(state: &State, id: DocId, folder: Option<FolderId>) -> Vec<Op> {
     let leaving = state.docs.get(&id).is_some_and(|one| one.folder != folder);

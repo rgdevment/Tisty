@@ -1233,6 +1233,10 @@ export interface Filed {
   flagged?: Marked | null;
   compacted?: Compaction | null;
   folderWas?: string[] | null;
+  /// The language its body says it is in.
+  lang?: string | null;
+  /// The anchor of the languages it is one of, and its place among them.
+  tongue?: [string, number] | null;
 }
 
 export interface Papers {
@@ -1479,7 +1483,6 @@ export const docOrder = (id: string, body: string): Promise<boolean> =>
 export const docPage = (id: string, pageOf?: string): Promise<void> =>
   invoke("doc_page", { id, pageOf });
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
-
 export const docAdopt = (file: string): Promise<Doc> => invoke("doc_adopt", { file });
 export const docLetGo = (file: string): Promise<void> => invoke("doc_let_go", { file });
 

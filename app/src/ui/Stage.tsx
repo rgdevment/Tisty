@@ -5,6 +5,7 @@ import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
 import { sure } from "../sure";
+import { shown } from "../tongues";
 import { title } from "../views";
 import About from "./About";
 import Board from "./Board";
@@ -79,7 +80,7 @@ export default function Stage() {
     <Folder
       folder={standing ?? null}
       folders={papers.folders}
-      docs={papers.docs}
+      docs={shown(papers.docs)}
       onOpen={(doc) => setChosen({ named: "docs", doc: doc.file })}
       onHere={(folder) => setHere(folder ?? null)}
       onMenu={folderMenu}

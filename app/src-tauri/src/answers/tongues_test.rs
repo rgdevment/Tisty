@@ -189,3 +189,17 @@ fn putting_one_language_away_puts_away_the_ones_beside_it() {
     assert!(!session.state.docs.contains_key(&es));
     assert!(!session.state.docs.contains_key(&en));
 }
+
+#[test]
+fn a_search_finds_each_group_once_in_the_language_the_words_turned_up_in() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(&mut session, "---\nlang: es\n---\n# Paseos\n", None);
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let alone = wrote(&mut session, "# Otro\n", None);
+    let file = |id: DocId| session.state.docs[&id].file.clone();
+    let found = vec![en.id.clone(), file(es), file(alone)];
+
+    let once = super::once_each(&session.state, found, |one| one.as_str());
+
+    assert_eq!(once, vec![en.id, file(alone)]);
+}
