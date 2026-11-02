@@ -369,3 +369,45 @@ fn every_language_shown_on_its_own_is_found_in_one_pass_and_one_alone_is_not() {
     );
     assert!(pair.apart_in_tongues(other));
 }
+
+#[test]
+fn joining_moves_a_document_and_the_languages_beside_it_to_the_others_folder() {
+    let (es, en, fr, de) = (
+        Ulid::generate(),
+        Ulid::generate(),
+        Ulid::generate(),
+        Ulid::generate(),
+    );
+    let there = Ulid::generate();
+    let mut far = written(1, es, ES);
+    if let Op::DocAdd { d, .. } = &mut far.op {
+        d.folder = Some(there);
+    }
+    let mut state = State::replay(&[
+        far,
+        written(2, en, EN),
+        written(3, fr, "---\nlang: fr\n---\n# Promenades\n"),
+        written(4, de, "---\nlang: de\n---\n# Spazierg\u{e4}nge\n"),
+        joined(5, fr, Some(en)),
+    ]);
+    assert!(state.tongue_taken(es, "es") && !state.tongue_taken(es, "en"));
+    assert!(state.joining(fr, en).is_empty(), "already one of them");
+
+    for op in state.joining(en, es) {
+        state.apply(&at(10, op));
+    }
+
+    assert_eq!(state.docs[&en].folder, Some(there));
+    assert_eq!(
+        state.docs[&fr].folder,
+        Some(there),
+        "its languages came along"
+    );
+    assert_eq!(state.tongues_of(de).len(), 0);
+    assert!(state.parting(de).is_empty(), "nothing to part from");
+    let mut all = ids(&state.tongues_of(es));
+    all.sort();
+    let mut want = vec![es, en, fr];
+    want.sort();
+    assert_eq!(all, want);
+}

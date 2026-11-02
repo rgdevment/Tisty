@@ -5016,3 +5016,101 @@ fn joining_and_parting_languages_goes_through_tongue_doc() {
         "{read}"
     );
 }
+
+#[test]
+fn tongue_doc_says_what_it_needs_before_it_joins_anything() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Red\n\nde nodos.", None);
+    let bare = served.wrote("# Sin idioma\n\nnada dicho.", None);
+    let page = served.wrote("# Hoja", Some(&es));
+    let en = served.wrote("# Network\n\nof nodes.", None);
+
+    assert!(
+        served
+            .refused("tongue_doc", serde_json::json!({}))
+            .contains("`doc`")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "Inglés" })
+            )
+            .contains("not a language tag")
+    );
+    assert!(
+        served
+            .refused("tongue_doc", serde_json::json!({ "doc": page, "of": es }))
+            .contains("is a page")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": bare, "lang": "en" })
+            )
+            .contains("says no language yet")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "es" })
+            )
+            .contains("already has a document in es")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": "nada-0001", "of": es })
+            )
+            .contains("no document here")
+    );
+    served.bolt(&en);
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "en" })
+            )
+            .contains("locked")
+    );
+    assert_eq!(
+        served.body_of(&en),
+        "# Network\n\nof nodes.\n",
+        "nothing written on a refusal"
+    );
+}
+
+#[test]
+fn a_translation_needs_a_language_on_both_sides() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
+    let bare = served.wrote("# Sin idioma\n\nnada dicho.", None);
+
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es })
+            )
+            .contains("say which language")
+    );
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": bare, "lang": "en" })
+            )
+            .contains("says no language yet")
+    );
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "x1" })
+            )
+            .contains("not a language tag")
+    );
+}

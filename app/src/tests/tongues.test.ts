@@ -1,8 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
-import { chooseTongue, preferred, shown, tongueName, tonguesOf, twinOf } from "../tongues";
+import {
+  chooseTongue,
+  docDress,
+  preferred,
+  shown,
+  tongueName,
+  tonguesOf,
+  twinOf,
+} from "../tongues";
 
 vi.mock("../locales", () => ({ locale: () => "es" }));
+
+const invoked: [string, unknown][] = [];
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, args: unknown) => {
+    invoked.push([cmd, args]);
+    return Promise.resolve();
+  },
+}));
 
 const doc = (id: string, more: Partial<Filed> = {}): Filed => ({
   id,
@@ -61,5 +77,15 @@ describe("languages of a document", () => {
   it("names a language in its own words", () => {
     expect(tongueName("es")).toBe("Español");
     expect(tongueName("en")).toBe("English");
+  });
+});
+
+describe("laying out every language alike", () => {
+  it("hands the paper, the sheets and their turn to the core", async () => {
+    await docDress("es", "letter", true, false);
+    expect(invoked.at(-1)).toEqual([
+      "doc_dress",
+      { id: "es", paper: "letter", sheets: true, landscape: false },
+    ]);
   });
 });

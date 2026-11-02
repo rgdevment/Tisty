@@ -157,25 +157,11 @@ pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, R
     if up.lang.is_none() {
         return Err(unsaid(&state, &of));
     }
-    let said = match (lang, kept.lang.clone()) {
-        (Some(lang), was) if was.as_deref() != Some(lang.as_str()) => {
-            if state.shut(kept.id) {
-                return Err(Refused::Tool(format!(
-                    "{} is locked, so its language cannot be written.",
-                    doc_named(&state, &which)
-                )));
-            }
-            let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), &which, |was| {
-                Some(tisty_markdown::front::with_field(was, "lang", &lang))
-            })
-            .map_err(hitch)?;
-            if let Some(whole) = whole {
-                retold(&state, &mut store, &which, &whole)?;
-            }
-            lang
-        }
-        (Some(lang), _) => lang,
-        (None, Some(was)) => was,
+    // Judged whole before anything is written, so a refusal leaves the document as it was.
+    let (said, unwritten) = match (lang, kept.lang.clone()) {
+        (Some(lang), was) if was.as_deref() != Some(lang.as_str()) => (lang, true),
+        (Some(lang), _) => (lang, false),
+        (None, Some(was)) => (was, false),
         (None, None) => {
             return Err(Refused::Tool(format!(
                 "{} says no language. Send `lang` with the one it is in.",
@@ -185,6 +171,21 @@ pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     if state.tongue_taken(up.id, &said) {
         return Err(taken(&state, &of, &said));
+    }
+    if unwritten {
+        if state.shut(kept.id) {
+            return Err(Refused::Tool(format!(
+                "{} is locked, so its language cannot be written.",
+                doc_named(&state, &which)
+            )));
+        }
+        let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), &which, |was| {
+            Some(tisty_markdown::front::with_field(was, "lang", &said))
+        })
+        .map_err(hitch)?;
+        if let Some(whole) = whole {
+            retold(&state, &mut store, &which, &whole)?;
+        }
     }
     let ops = state.joining(kept.id, up.id);
     if !ops.is_empty() {
