@@ -111,12 +111,7 @@ pub fn shown(
     };
     let envelope = Envelope::read(envelope, &limits).map_err(Unread::Envelope)?;
     let opened = open(&key, &envelope, &taken_back(revoked)).map_err(Unread::Envelope)?;
-    // Nobody shared before Tisty sent the page with the words, so a version without it is not one Tisty sealed.
-    let html = opened
-        .html
-        .as_deref()
-        .map(|drawn| drawn.to_string())
-        .ok_or(Unread::Envelope(Refused::Damaged))?;
+    let html = opened.html.to_string();
     let about = About {
         title: tisty_markdown::front::title(&opened.text),
         tags: tisty_markdown::front::tags(&opened.text),

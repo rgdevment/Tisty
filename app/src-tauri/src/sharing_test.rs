@@ -56,22 +56,22 @@ fn read_back(here: &Here, shared: &Shared) -> String {
         .to_string()
 }
 
-// What the link opens now, with the page Tisty drew for it, if any.
-fn drawn_back(here: &Here, shared: &Shared) -> Option<String> {
+// What the link opens now, with the page Tisty drew for it.
+fn drawn_back(here: &Here, shared: &Shared) -> String {
     let (_, body) = here.read(&shared.link, None);
     let envelope = Envelope::read(body, &Limits::default()).unwrap();
     let key = LinkKey::from_text(&shared.key).unwrap();
     envelope::open(&key, &envelope, &[])
         .unwrap()
         .html
-        .map(|html| html.to_string())
+        .to_string()
 }
 
 #[test]
 fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
     let here = Here::new();
     let voucher = voucher();
-    let drawn = |text| Some(tisty_markdown::html(&tisty_markdown::read(text)));
+    let drawn = |text| tisty_markdown::html(&tisty_markdown::read(text));
     let first = "# Hola
 
 | a | b |

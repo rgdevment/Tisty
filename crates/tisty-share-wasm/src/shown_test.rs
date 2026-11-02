@@ -26,7 +26,7 @@ fn sealed(text: &str, pictures: &[(Kind, &[u8])], by: Option<&Signer>) -> Vec<u8
         from: Some(3),
         text,
         cited: &[],
-        html: Some(&drawn),
+        html: &drawn,
         pictures,
     };
     seal(&key(1), &draft, by, &Limits::default())
@@ -47,24 +47,6 @@ fn shows_the_page_tisty_drew_without_drawing_it() {
     let page = read(sealed(TEXT, &[], None)).unwrap();
     assert_eq!(page.html, drawn(TEXT));
     assert!(page.html.contains("Antes de empezar"));
-}
-
-#[test]
-fn a_version_sealed_without_its_page_is_not_shown() {
-    let draft = Draft {
-        id: "k7Qm2xPa",
-        version: 4,
-        from: Some(3),
-        text: TEXT,
-        cited: &[],
-        html: None,
-        pictures: &[],
-    };
-    let envelope = seal(&key(1), &draft, None, &Limits::default())
-        .unwrap()
-        .into_bytes();
-    let refused = read(envelope).err();
-    assert_eq!(refused.as_ref().map(Unread::word), Some("damaged"));
 }
 
 #[test]
@@ -175,7 +157,7 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
         from: None,
         text: &long,
         cited: &[],
-        html: Some("<p>a</p>"),
+        html: "<p>a</p>",
         pictures: &[],
     };
     let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
@@ -265,7 +247,7 @@ fn hands_the_reader_what_the_words_cite_with_the_keys_that_open_them() {
         from: None,
         text,
         cited: &cited,
-        html: Some(&page),
+        html: &page,
         pictures: &[],
     };
     let sealed = seal(&key(1), &draft, None, &Limits::default())

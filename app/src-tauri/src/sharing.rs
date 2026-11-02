@@ -483,7 +483,7 @@ fn put_up(
         from,
         text: words.text,
         cited: words.cited,
-        html: Some(&html),
+        html: &html,
         pictures: &pictures,
     };
     let sealed =
