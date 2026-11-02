@@ -51,11 +51,16 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
       .catch(h.fail);
   const join = (other: Filed, lang?: string, theirs?: string) =>
     docTongue(doc.id, other.id, lang, theirs).then(h.changed).catch(h.fail);
+  // Its languages stand in one folder, so the others are looked for beside it and one folder up.
+  const above = h.papers.folders.find((one) => one.id === doc.folder)?.parent;
+  const near = (folder: string | null) =>
+    folder === (doc.folder ?? null) || (above !== undefined && folder === above);
   const others = h.papers.docs.filter(
     (one) =>
       one.id !== doc.id &&
       !one.pageOf &&
       !one.away &&
+      near(one.folder ?? null) &&
       (!doc.tongue || one.tongue?.[0] !== doc.tongue[0]),
   );
   return [

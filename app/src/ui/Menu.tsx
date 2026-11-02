@@ -23,20 +23,30 @@ interface Props {
   onClose: () => void;
 }
 
+const EDGE = 6;
+const TALLEST = 0.8;
+
 export default function Menu({ at, choices, label, up, keeps, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
-  const [where, setWhere] = useState(at);
+  const [where, setWhere] = useState<{ x: number; y: number; tall?: number }>(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
   const showing = deeper ?? { label, choices };
   const live = showing.choices.filter((one) => !one.off);
 
+  // Down when it fits below, up when it fits above, and only past what the window holds does it scroll.
   useLayoutEffect(() => {
-    const box = card.current?.getBoundingClientRect();
-    if (!box) return;
-    const y = up ? at.y - box.height : at.y;
+    const own = card.current;
+    if (!own) return;
+    const box = own.getBoundingClientRect();
+    const room = window.innerHeight - EDGE * 2;
+    const tall = Math.min(own.scrollHeight, Math.round(window.innerHeight * TALLEST));
+    const below = at.y + tall <= window.innerHeight - EDGE;
+    const above = at.y - tall >= EDGE;
+    const y = (up || !below) && above ? at.y - tall : at.y;
     setWhere({
-      x: Math.max(6, Math.min(at.x, window.innerWidth - box.width - 6)),
-      y: Math.max(6, Math.min(y, window.innerHeight - box.height - 6)),
+      x: Math.max(EDGE, Math.min(at.x, window.innerWidth - box.width - EDGE)),
+      y: Math.max(EDGE, Math.min(y, window.innerHeight - tall - EDGE)),
+      tall: Math.min(tall, room),
     });
   }, [at, deeper, up]);
 
@@ -86,7 +96,7 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
       role="menu"
       aria-label={showing.label}
       data-keeps-writing={keeps ? "" : undefined}
-      style={{ left: where.x, top: where.y }}
+      style={{ left: where.x, top: where.y, maxHeight: where.tall }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation();
@@ -102,7 +112,7 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="scroller fixed z-[70] max-h-[min(420px,80vh)] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
+      className="scroller fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
     >
       {deeper && (
         <button
