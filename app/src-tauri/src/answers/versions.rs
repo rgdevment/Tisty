@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::Mutex;
+use std::sync::{Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use tisty_core::Op;
@@ -40,8 +40,8 @@ impl Following {
 
     /// Takes room for this many new links and uploads in the hour, all of it or none.
     pub(crate) fn spend(&self, reserves: usize, uploads: usize) -> bool {
-        let mut sent = self.sent.lock().unwrap_or_else(|e| e.into_inner());
-        let mut reserved = self.reserved.lock().unwrap_or_else(|e| e.into_inner());
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
         let now = Instant::now();
         for spent in [&mut *sent, &mut *reserved] {
             while spent
@@ -61,8 +61,8 @@ impl Following {
 
     /// Gives back room taken for what never reached the server, so a failure does not hold the hour.
     pub(crate) fn refund(&self, reserves: usize, uploads: usize) {
-        let mut sent = self.sent.lock().unwrap_or_else(|e| e.into_inner());
-        let mut reserved = self.reserved.lock().unwrap_or_else(|e| e.into_inner());
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
         let keep = sent.len().saturating_sub(uploads);
         sent.truncate(keep);
         let keep = reserved.len().saturating_sub(reserves);
@@ -71,7 +71,7 @@ impl Following {
 
     /// One document goes up once at a time, so two rounds never reserve what it cites twice.
     pub(crate) fn alone(&self, file: &str) -> Option<Alone<'_>> {
-        let mut going = self.going.lock().unwrap_or_else(|e| e.into_inner());
+        let mut going = self.going.lock().unwrap_or_else(PoisonError::into_inner);
         going.insert(file.to_owned()).then(|| Alone {
             following: self,
             file: file.to_owned(),
@@ -82,12 +82,12 @@ impl Following {
     fn unpaced(&self) {
         self.sent
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(PoisonError::into_inner)
             .pop_back();
     }
 
     fn resting(&self, file: &str) -> bool {
-        let saves = self.saves.lock().unwrap_or_else(|e| e.into_inner());
+        let saves = self.saves.lock().unwrap_or_else(PoisonError::into_inner);
         saves.get(file).is_none_or(|(_, at)| at.elapsed() >= QUIET)
     }
 }
@@ -103,7 +103,7 @@ impl Drop for Alone<'_> {
             .following
             .going
             .lock()
-            .unwrap_or_else(|e| e.into_inner());
+            .unwrap_or_else(PoisonError::into_inner);
         going.remove(&self.file);
     }
 }
@@ -121,7 +121,10 @@ pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
     use tauri::Manager;
     let mine = {
         let following = app.state::<Following>();
-        let mut saves = following.saves.lock().unwrap_or_else(|e| e.into_inner());
+        let mut saves = following
+            .saves
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         let (count, at) = saves.entry(file.to_owned()).or_insert((0, Instant::now()));
         *count += 1;
         *at = Instant::now();

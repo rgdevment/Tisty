@@ -145,10 +145,13 @@ const saidOf = (card: ShareCard): string => {
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  const holds = card.holds
-    ? ` ${card.holds === 1 ? t("sharedHoldsOne") : fill("sharedHolds", String(card.holds))}`
-    : "";
-  return `${t(card.still ? "sharedStill" : "sharedFollows")}${holds} ${t("shareAdminKept")}`;
+  return `${t(card.still ? "sharedStill" : "sharedFollows")}${carriedOf(card)} ${t("shareAdminKept")}`;
+};
+
+// How many documents go with it, said only when some do.
+const carriedOf = (card: ShareCard): string => {
+  if (!card.holds) return "";
+  return ` ${card.holds === 1 ? t("sharedHoldsOne") : fill("sharedHolds", String(card.holds))}`;
 };
 
 const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {

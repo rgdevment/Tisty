@@ -369,7 +369,7 @@ const reader = async (root: Read) => {
   await show(null, 0);
   night.addEventListener("change", () => {
     themed();
-    queued(draw);
+    void queued(draw);
   });
 };
 
