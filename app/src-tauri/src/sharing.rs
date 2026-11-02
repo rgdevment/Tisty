@@ -481,6 +481,7 @@ fn put_up(
         from,
         text: words.text,
         cited: words.cited,
+        html: None,
         pictures: &pictures,
     };
     let sealed =

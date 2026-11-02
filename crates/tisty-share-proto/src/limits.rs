@@ -9,6 +9,8 @@ use crate::envelope::Kind;
 pub struct Limits {
     /// Bytes of text a version may carry.
     pub text: u64,
+    /// Bytes of the page Tisty drew from that text, which runs longer than the words (decision 91).
+    pub html: u64,
     /// Bytes each picture may weigh.
     pub picture: u64,
     /// How many pictures a version may carry; none turns pictures off.
@@ -25,6 +27,7 @@ impl Default for Limits {
     fn default() -> Self {
         Self {
             text: 512 * 1024,
+            html: 1024 * 1024,
             picture: 512 * 1024,
             pictures: 10,
             all_pictures: 2 * 1024 * 1024,
