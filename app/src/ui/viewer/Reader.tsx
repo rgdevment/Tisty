@@ -195,6 +195,7 @@ export default function Reader(props: Readonly<Props>) {
         ) : (
           <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
             <Page
+              viewing
               body={body}
               label={title}
               stranger={stranger}

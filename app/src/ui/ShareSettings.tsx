@@ -1,8 +1,8 @@
 import { useId, useState } from "react";
-import { fill, t } from "../locales";
+import { t } from "../locales";
 import { type ShareCard, type ShareChange, shareChange } from "../shares";
 import Modal from "./Modal";
-import { IDLE_DAYS } from "./Sharing";
+import { endsAfter, IDLE_DAYS } from "./Sharing";
 
 interface Props {
   file: string;
@@ -110,7 +110,7 @@ export default function ShareSettings({ file, card, onChanged, onClose, onError 
             <option value="">{t("shareEndsAsIs")}</option>
             {IDLE_DAYS.map((days) => (
               <option key={days} value={days}>
-                {fill("shareEndsIdle", String(days))}
+                {endsAfter(days)}
               </option>
             ))}
           </select>

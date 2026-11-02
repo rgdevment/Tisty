@@ -338,8 +338,8 @@ describe("the shared row", () => {
     expect(row("shared").textContent).toContain(t("sharedPausedWhy").split("{name}")[0]);
   });
 
-  it("warns days before an idle share runs out, and not from the start of a short one", async () => {
-    const ends = Math.floor(Date.now() / 1000) + 2 * 86_400;
+  it("warns hours before an idle share runs out, and not from the start of a short one", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 6 * 3_600;
     ipc.card = {
       read: "https://tisty.cl/k7Qm2xPa#llave",
       edit: null,
@@ -350,6 +350,20 @@ describe("the shared row", () => {
     panel(headed(2));
     await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
     expect(row("shared").textContent).toContain(t("sharedEndsSoon").split("{name}")[0]);
+  });
+
+  it("does not warn a share made for a day the moment it is made", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).not.toContain(t("sharedEndsSoon").split("{name}")[0]);
   });
 
   it("puts a password on a share already up and shortens its life", async () => {
