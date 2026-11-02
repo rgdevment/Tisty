@@ -98,16 +98,16 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         match (doc, shared.filter(|one| !one.still), text) {
             (Some(doc), Some(shared), Some(text)) => Some((
                 doc,
-                shared,
                 text,
                 sharer(&session),
-                signing_name(&session.state.signed),
+                signing_name(&session.state.signed, shared.signs),
+                shared,
                 session.paths.data().to_path_buf(),
             )),
             _ => None,
         }
     };
-    let Some((doc, shared, text, voucher, name, data)) = gathered else {
+    let Some((doc, text, voucher, name, shared, data)) = gathered else {
         return;
     };
     let print = sharing::print_of(&text);

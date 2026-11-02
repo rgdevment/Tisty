@@ -697,6 +697,8 @@ fn received_kept(
                     still: false,
                     taken: true,
                     print: kept_print,
+                    // Nobody chose a name for it, so the editor's alias goes rather than their full name.
+                    signs: tisty_core::event::Signs::Alias,
                 },
             })
             .map_err(Refusal::from)?;

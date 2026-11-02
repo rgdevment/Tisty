@@ -2,7 +2,7 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tisty_core::event::Shared;
+use tisty_core::event::{Shared, Signs};
 use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
@@ -109,6 +109,12 @@ pub(crate) struct Chosen {
     /// The print of the words the dialog looked through for keys, so what goes out is what was looked at.
     #[serde(default)]
     pub(crate) seen: Option<String>,
+    /// The name it goes out signed with (decision 89).
+    #[serde(default)]
+    pub(crate) signs: Signs,
+    /// Kept as it is now rather than following what is saved (decision 48).
+    #[serde(default)]
+    pub(crate) still: bool,
 }
 
 /// A print of a text, to tell whether it changed between two reads of it.
@@ -329,9 +335,10 @@ pub(crate) fn share(
         editable: chosen.editable,
         gated: chosen.password.is_some(),
         version: 1,
-        still: false,
+        still: chosen.still,
         taken: false,
         print: String::new(),
+        signs: chosen.signs,
     };
     let first = Words {
         text,

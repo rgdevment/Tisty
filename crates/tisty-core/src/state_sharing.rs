@@ -25,6 +25,7 @@ fn shared(version: u64) -> Shared {
         still: false,
         taken: false,
         print: String::new(),
+        signs: Default::default(),
     }
 }
 
@@ -388,4 +389,18 @@ fn a_print_that_arrives_after_its_version_is_kept_and_an_empty_one_never_wipes_i
         ),
     ]);
     assert_eq!(state.shares[&doc].print, "dos");
+}
+
+#[test]
+fn a_share_from_before_the_choice_of_name_signs_as_it_did_and_writes_nothing_new() {
+    let said = serde_json::to_value(shared(1)).unwrap();
+    assert!(said.get("signs").is_none());
+    let back: Shared = serde_json::from_value(said).unwrap();
+    assert_eq!(back.signs, crate::event::Signs::Name);
+    let chosen = Shared {
+        signs: crate::event::Signs::Alias,
+        ..shared(1)
+    };
+    let said = serde_json::to_value(&chosen).unwrap();
+    assert_eq!(said["signs"], "alias");
 }

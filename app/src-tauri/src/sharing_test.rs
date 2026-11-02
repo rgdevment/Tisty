@@ -107,6 +107,7 @@ fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
         admin: String::new(),
         taken: true,
         print: String::new(),
+        signs: Default::default(),
         ..shared.clone()
     };
     let words = Words {
@@ -143,6 +144,7 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         still: false,
         taken: false,
         print: String::new(),
+        signs: Default::default(),
     };
     assert_eq!(
         links(&shared),
@@ -161,9 +163,14 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         editable: true,
         idle_days: Some(7),
         seen: None,
+        signs: tisty_core::event::Signs::Key,
+        still: true,
     };
     let shared = share(&here, SERVER, "Hola", &[], &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
+    // What else was chosen stays with the share, so every later version keeps to it.
+    assert!(shared.still);
+    assert_eq!(shared.signs, tisty_core::event::Signs::Key);
 
     assert_eq!(here.read(&shared.link, None).0, 401);
     assert_eq!(here.read(&shared.link, Some("ñandú")).0, 200);
@@ -369,7 +376,7 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
         password: password.map(str::to_owned),
         editable: false,
         idle_days: Some(7),
-        seen: None,
+        ..Chosen::default()
     };
     let text = "# Prueba de Tisty Share\n\nEscrito desde la prueba que llega a tisty.cl.";
     let shared = share(&wire, SERVER, text, &[], &chosen, &voucher, Some("Prueba")).unwrap();

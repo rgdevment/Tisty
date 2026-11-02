@@ -1,12 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/** What the person chose in «Share»: a password, the edit link and a shorter life; it is always signed. */
+/** The name a share goes out signed with; the key signs it whichever is chosen. */
+export type ShareSigns = "name" | "alias" | "key";
+
+/** What the person chose in «Share»: a password, the edit link, a shorter life, the name and whether it follows saves. */
 export interface ShareChosen {
   password: string | null;
   editable: boolean;
   idleDays: number | null;
   /** The print of what the dialog looked through, so nothing saved since goes out unseen. */
   seen?: string | null;
+  signs?: ShareSigns;
+  still?: boolean;
 }
 
 /** How a share stands on the server, when it could be asked. */
@@ -38,11 +43,12 @@ export interface ShareSecret {
   under: string | null;
 }
 
-/** What «Share» says before anything goes out; `signsAs` is null when the key signs alone. */
+/** What «Share» says before anything goes out; a name or alias is null when it cannot sign as written. */
 export interface ShareLook {
   secrets: ShareSecret[];
   seen: string;
-  signsAs: string | null;
+  name: string | null;
+  alias: string | null;
 }
 
 export const shareLook = (file: string): Promise<ShareLook> => invoke("share_look", { file });

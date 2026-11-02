@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_core::Op;
-use tisty_core::event::Shared;
+use tisty_core::event::{Shared, Signs};
 use tisty_core::model::DocId;
 
 use crate::handed::Voucher;
@@ -168,26 +168,34 @@ pub struct Look {
     secrets: Vec<Secret>,
     /// The print of what was looked through, handed back with the share.
     seen: String,
-    /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
-    signs_as: Option<String>,
+    /// Each one only when it is fit to sign, so the dialog offers what can go and the key alone otherwise.
+    name: Option<String>,
+    alias: Option<String>,
 }
 
-// The name the person signs with, or else their alias, held to what an envelope takes.
-pub(super) fn signing_name(signed: &tisty_core::event::Signature) -> Option<String> {
-    [&signed.name, &signed.alias]
-        .into_iter()
-        .flatten()
-        .map(|one| one.trim())
-        .find(|one| tisty_share_proto::envelope::named_well(one))
+// The name a share goes out with, as chosen, held to what an envelope takes.
+pub(super) fn signing_name(signed: &tisty_core::event::Signature, signs: Signs) -> Option<String> {
+    match signs {
+        Signs::Name => fit(&signed.name).or_else(|| fit(&signed.alias)),
+        Signs::Alias => fit(&signed.alias),
+        Signs::Key => None,
+    }
+}
+
+fn fit(one: &Option<String>) -> Option<String> {
+    one.as_deref()
+        .map(str::trim)
+        .filter(|one| tisty_share_proto::envelope::named_well(one))
         .map(str::to_owned)
 }
 
 #[tauri::command]
 pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
-    let (docs, signs_as) = {
+    let (docs, name, alias) = {
         let session = held(&session);
         doc_of(&session, &file)?;
-        (session.paths.docs(), signing_name(&session.state.signed))
+        let signed = &session.state.signed;
+        (session.paths.docs(), fit(&signed.name), fit(&signed.alias))
     };
     // A long document takes a moment to read and look through, so neither holds the window or the session.
     apart(move || {
@@ -196,7 +204,8 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
         Ok(Look {
             secrets: secrets(&text),
             seen: sharing::print_of(&text),
-            signs_as,
+            name,
+            alias,
         })
     })
     .await
@@ -236,7 +245,7 @@ pub async fn share_doc(
             return Err(Refusal::of("shareChanged"));
         }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        let name = signing_name(&session.state.signed);
+        let name = signing_name(&session.state.signed, chosen.signs);
         (
             doc,
             text,
