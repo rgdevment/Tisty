@@ -235,6 +235,7 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
 
 #[tauri::command]
 pub async fn share_doc(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     following: tauri::State<'_, super::versions::Following>,
     file: String,
@@ -280,12 +281,21 @@ pub async fn share_doc(
             going,
         )
     };
+    // Never beside a round that keeps what shares cite in step, so the two never reserve one document twice.
+    let Some(_alone) = following.alone(super::versions::CITING) else {
+        return Err(Refusal::of("shareSlow"));
+    };
     // The share and each new document it takes along spend a new link and an upload of the server's hour.
-    let new = 1 + citing::fresh_in(&going);
-    if !following.spend(new, new) {
+    let fresh = citing::fresh_in(&going);
+    if !following.spend(1 + fresh, 1 + fresh) {
         return Err(Refusal::of("shareSlow"));
     }
-    let (shared, members, info) = apart(move || {
+    let rewritten: Vec<String> = going
+        .iter()
+        .filter(|one| one.was.is_some())
+        .map(|one| one.citable.file.clone())
+        .collect();
+    let shared_up = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
         let _ = sharing::revoke(&wire, &revoked);
@@ -296,7 +306,7 @@ pub async fn share_doc(
             data,
         };
         // What it cites goes up first, so its own envelope can name each with the key that opens it.
-        let members = citing::took_up(&wire, &root, &going, &signing).inspect_err(|_| {
+        let members = citing::took_up(&wire, &root, &going, &signing, fresh).inspect_err(|_| {
             let _ = sharing::stop(&wire, &root);
         })?;
         let cited = citing::cited_in(&text, &members);
@@ -318,7 +328,9 @@ pub async fn share_doc(
         };
         Ok((shared, members, info))
     })
-    .await?;
+    .await;
+    let (shared, members, info) =
+        shared_up.inspect_err(|_| following.refund(1 + fresh, 1 + fresh))?;
     let committed = {
         let mut session = held(&session);
         // A second press or another window may have shared it while this one was on the way.
@@ -327,7 +339,10 @@ pub async fn share_doc(
             false => {
                 let mut ops: Vec<Op> = members
                     .into_iter()
-                    .filter(|(one, _)| !session.state.shares.contains_key(&one.doc))
+                    .filter(|(one, shared)| {
+                        session.state.shares.get(&one.doc).map(|was| &was.link)
+                            != Some(&shared.link)
+                    })
                     .map(|(one, shared)| Op::ShareDoc {
                         id: one.doc,
                         d: shared,
@@ -345,6 +360,10 @@ pub async fn share_doc(
         // A link nobody can see is a link nobody can stop, so it goes.
         let _ = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;
         return Err(refused);
+    }
+    // What it holds beside things already shared changed where those lead, so their envelopes go up again.
+    for file in rewritten {
+        super::versions::follow(&app, &file);
     }
     Ok(card(&shared, info))
 }
@@ -462,18 +481,27 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
     let link = shared.link.clone();
     let shared_was = shared.clone();
     // Someone else's share stays up for them; this store only stops editing it.
-    let gone = match shared.taken {
-        true => Ok(()),
-        false => apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await,
+    let kept = match shared.taken {
+        true => Ok(false),
+        false => {
+            apart(move || {
+                let wire = Net::to(&shared.server)?;
+                sharing::stop(&wire, &shared)?;
+                // Still held by a share that cites it, the server keeps it for that one rather than letting it go.
+                Ok(sharing::info(&wire, &shared).is_ok())
+            })
+            .await
+        }
     };
     // A share the server already let go of is stopped all the same.
-    match gone {
+    let kept = match kept {
         Err(refused) if !sharing::already_gone(&refused) => return Err(refused),
-        _ => {}
-    }
+        Err(_) => false,
+        Ok(kept) => kept,
+    };
     let mut session = held(&session);
-    // Still cited by another share, the server keeps it for that one: it stays here as going only through it.
-    if citing::held_here(&session, doc) {
+    // The server kept it for a share that cites it: it stays here as going only through that one.
+    if kept {
         let held_only = Shared {
             held: true,
             ..shared_was

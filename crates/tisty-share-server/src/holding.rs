@@ -21,7 +21,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
         lives: bool,
         now: i64,
     ) -> Result<(), Refused> {
-        let held = self.live(id, now).await?;
+        // Told apart from the holder being gone, so a Tisty shares this one anew rather than everything again.
+        let held = match self.live(id, now).await {
+            Err(Refused::Missing | Refused::Gone) => return Err(Refused::CitedGone),
+            other => other?,
+        };
         // Only its owner hands it over: an edit link would let whoever was given one take it up and let it go, and so end it.
         if keys::hashed(admin) != held.admin || id == holder.id || !holder.holders.is_empty() {
             return Err(Refused::Forbidden);
@@ -72,9 +76,20 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if doc.holders.is_empty() {
             return Ok(false);
         }
+        // Paused and then stopped, nobody could restore it, so its holders' readers would find it paused for good.
         doc.own = None;
+        doc.paused = None;
         self.saved(doc).await?;
         Ok(true)
+    }
+
+    /// The end its owner is told: its own while it has one, else the furthest its holders give it, never the sweep's far one.
+    pub(crate) async fn told_end(&self, doc: &Doc, now: i64) -> i64 {
+        match (doc.holders.is_empty(), doc.own) {
+            (true, _) => doc.ends,
+            (false, Some(own)) => own,
+            (false, None) => self.held_up(doc, now).await.unwrap_or(doc.ends),
+        }
     }
 
     /// Everything a document held or was held by forgets it before it goes, so nothing it held outlives it unseen.

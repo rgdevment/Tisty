@@ -2062,3 +2062,29 @@ fn a_reader_and_an_owner_are_told_the_end_a_held_document_really_has() {
     let info = done(world.share.info(&cited.id, &cited.admin, T0 + DAY)).unwrap();
     assert_eq!(info.ends, world.doc(&cited.id).own.unwrap());
 }
+
+#[test]
+fn a_share_asked_to_hold_one_that_went_says_so_apart_from_going_itself() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&cited, Manage::Delete, T0).unwrap();
+    assert_eq!(
+        world.manage(&root, hold(&cited, false), T0),
+        Err(Refused::CitedGone)
+    );
+}
+
+#[test]
+fn a_held_document_paused_and_then_stopped_reads_again_through_its_holder() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, true), T0).unwrap();
+    world.manage(&cited, Manage::Pause, T0 + HOUR).unwrap();
+    world.manage(&cited, Manage::Delete, T0 + 2 * HOUR).unwrap();
+    assert!(world.read(&cited.id, T0 + 3 * HOUR).is_ok());
+    // Its owner is told the end its holder gives it, never the sweep's far one.
+    let info = done(world.share.info(&cited.id, &cited.admin, T0 + 3 * HOUR)).unwrap();
+    assert_eq!(info.ends, world.doc(&root.id).ends);
+}

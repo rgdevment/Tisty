@@ -50,7 +50,7 @@ fn a_share_puts_up_what_it_cites_holds_it_and_names_each_with_its_key() {
         ),
         going("notas.md", "Notas", None, "Unas notas"),
     ];
-    let members = took_up(&here, &root, &going, &signing()).unwrap();
+    let members = took_up(&here, &root, &going, &signing(), 10).unwrap();
     assert_eq!(members.len(), 2);
     assert!(members.iter().all(|(_, shared)| shared.held));
 
@@ -104,7 +104,7 @@ fn a_document_shared_on_its_own_is_held_as_it_is_and_never_shared_again() {
     sharing::first_up(&here, &own, &words, &Chosen::default()).unwrap();
     let mut one = going("mio.md", "Mío", None, "Mío");
     one.was = Some(own.clone());
-    let members = took_up(&here, &root, &[one], &signing()).unwrap();
+    let members = took_up(&here, &root, &[one], &signing(), 10).unwrap();
     assert_eq!(members[0].1.link, own.link);
 
     // Let go, it keeps the life it had on its own.
@@ -122,7 +122,9 @@ fn a_share_that_could_not_put_up_what_it_cites_leaves_none_of_it_behind() {
         going("a.md", "A", None, "A"),
         going("b.md", "B", None, &huge),
     ];
-    assert!(took_up(&here, &root, &going, &signing()).is_err());
+    assert!(took_up(&here, &root, &going, &signing(), 10).is_err());
+    // What went up and was held before the failure is let go and stopped, never left alive through the holder.
+    assert_eq!(here.share.borrow().store.envelopes(), 0);
     let holds = done(here.share.borrow().store.doc(&root.link))
         .unwrap()
         .unwrap()
@@ -252,4 +254,30 @@ fn a_document_two_shares_hold_leads_only_where_both_lead_and_goes_only_when_neit
         }]
     );
     assert!(held_here(&session, page) && !held_here(&session, open));
+}
+
+#[test]
+fn a_share_never_reserves_past_the_room_its_hour_has_left() {
+    let here = Here::new();
+    let root = sharing::reserve(&here, SERVER, &Chosen::default()).unwrap();
+    let going = [going("a.md", "A", None, "A"), going("b.md", "B", None, "B")];
+    let refused = took_up(&here, &root, &going, &signing(), 1).unwrap_err();
+    assert_eq!(refused.code, "shareSlow");
+    assert_eq!(here.share.borrow().store.envelopes(), 0);
+}
+
+#[test]
+fn a_document_the_server_let_go_of_is_shared_anew_and_the_rest_held_as_they_are() {
+    let here = Here::new();
+    let root = sharing::reserve(&here, SERVER, &Chosen::default()).unwrap();
+    let lost = sharing::reserve(&here, SERVER, &Chosen::default()).unwrap();
+    sharing::stop(&here, &lost).unwrap();
+    let mut one = going("perdido.md", "Perdido", None, "Otra vez");
+    one.was = Some(Shared {
+        held: true,
+        ..lost.clone()
+    });
+    let members = took_up(&here, &root, &[one], &signing(), 1).unwrap();
+    assert_ne!(members[0].1.link, lost.link);
+    assert_eq!(opened(&here, &members[0].1).text.as_str(), "Otra vez");
 }

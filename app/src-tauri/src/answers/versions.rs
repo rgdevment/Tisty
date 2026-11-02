@@ -29,6 +29,9 @@ const RESERVES_AN_HOUR: usize = 15;
 
 const HOUR: Duration = Duration::from_secs(3600);
 
+/// What `alone` takes for the round that keeps what shares cite in step, which only one runs at a time.
+pub(crate) const CITING: &str = "\0citing";
+
 impl Following {
     // Every document counts toward one allowance; what is not sent now stays owed for the next round.
     fn paced(&self) -> bool {
@@ -56,8 +59,18 @@ impl Following {
         true
     }
 
-    // One document goes up once at a time, so two rounds never reserve what it cites twice.
-    fn alone(&self, file: &str) -> Option<Alone<'_>> {
+    /// Gives back room taken for what never reached the server, so a failure does not hold the hour.
+    pub(crate) fn refund(&self, reserves: usize, uploads: usize) {
+        let mut sent = self.sent.lock().unwrap_or_else(|e| e.into_inner());
+        let mut reserved = self.reserved.lock().unwrap_or_else(|e| e.into_inner());
+        let keep = sent.len().saturating_sub(uploads);
+        sent.truncate(keep);
+        let keep = reserved.len().saturating_sub(reserves);
+        reserved.truncate(keep);
+    }
+
+    /// One document goes up once at a time, so two rounds never reserve what it cites twice.
+    pub(crate) fn alone(&self, file: &str) -> Option<Alone<'_>> {
         let mut going = self.going.lock().unwrap_or_else(|e| e.into_inner());
         going.insert(file.to_owned()).then(|| Alone {
             following: self,
@@ -79,7 +92,7 @@ impl Following {
     }
 }
 
-struct Alone<'a> {
+pub(crate) struct Alone<'a> {
     following: &'a Following,
     file: String,
 }
@@ -139,6 +152,10 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
     };
     // What the words reach now goes up before them, so their envelope can name it.
     if let Err(refused) = super::citing::kept_up(app, file).await {
+        // The hour or another round was in the way: these words try again once it rests, rather than at the next save.
+        if refused.code == "shareSlow" {
+            follow(app, file);
+        }
         tisty_core::witness::note(
             tisty_core::witness::channel::WINDOW,
             "what a shared document cites could not be kept up; the next round tries again",
@@ -197,7 +214,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
             let up = apart(move || {
                 let wire = Net::to(&asked.server)?;
                 let cited = match asked.taken {
-                    true => super::citing::kept_from(&wire, &asked, &text),
+                    true => super::citing::kept_from(&wire, &asked, &text)?,
                     false => cited,
                 };
                 let (text, pictures) =

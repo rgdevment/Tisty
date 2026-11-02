@@ -79,6 +79,9 @@ impl Default for Policy {
 pub enum Refused {
     #[error("there is no such document")]
     Missing,
+    /// The document a share was asked to hold is no longer there; the share itself is (decision 90).
+    #[error("the document to hold is no longer shared")]
+    CitedGone,
     /// It existed and is gone: expired, deleted or emptied from the trash.
     #[error("this document is no longer shared")]
     Gone,
@@ -512,17 +515,18 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(Served {
             version,
             envelope,
-            facts: Facts::of(&doc, own_end(&doc)),
+            facts: Facts::of(&doc, self.told_end(&doc, now).await),
             revoked: self.revoked(kept.by.as_ref()).await?,
         })
     }
 
     pub async fn info(&self, id: &str, admin: &str, now: i64) -> Result<Info, Refused> {
         let doc = self.owned(id, admin, now).await?;
+        let ends = self.told_end(&doc, now).await;
         Ok(Info {
             latest: doc.latest(),
             reads: doc.reads,
-            ends: own_end(&doc),
+            ends,
             paused: doc.paused.is_some(),
             blocked: doc.blocked.is_some(),
             gated: doc.gate.is_some(),
@@ -725,14 +729,6 @@ impl<S: Store, R: Randomness> Share<S, R> {
                     .and_then(|held| held.latest()),
             }),
         }
-    }
-}
-
-/// The end its owner is told: its own while it has one, never the far one a held document shows the sweep.
-fn own_end(doc: &Doc) -> i64 {
-    match doc.holders.is_empty() {
-        true => doc.ends,
-        false => doc.own.unwrap_or(doc.ends),
     }
 }
 

@@ -132,18 +132,23 @@ pub(crate) fn held_with(session: &Session, doc: DocId) -> Vec<(Citable, Shared)>
 
 /// What someone else's share cited in the version an edit through its link is written on, for the cards still in the words:
 /// its owner chose what goes with it, and an editor keeps that rather than dropping every card.
-pub(crate) fn kept_from(wire: &impl sharing::Wire, shared: &Shared, text: &str) -> Vec<Cited> {
+/// One that cannot be read is refused rather than taken as citing nothing, so a blip never drops every card for every reader.
+pub(crate) fn kept_from(
+    wire: &impl sharing::Wire,
+    shared: &Shared,
+    text: &str,
+) -> Answer<Vec<Cited>> {
     let cards = tisty_core::refs::papers(text);
-    sharing::version(wire, shared, shared.version)
-        .ok()
-        .and_then(|said| crate::received::opened_from(said, &shared.key).ok())
-        .map(|got| {
-            got.cited
-                .into_iter()
-                .filter(|one| cards.contains(&one.doc))
-                .collect()
-        })
-        .unwrap_or_default()
+    if cards.is_empty() {
+        return Ok(Vec::new());
+    }
+    let said = sharing::version(wire, shared, shared.version)?;
+    let got = crate::received::opened_from(said, &shared.key)?;
+    Ok(got
+        .cited
+        .into_iter()
+        .filter(|one| cards.contains(&one.doc))
+        .collect())
 }
 
 /// Whether one of this store's shares holds `doc`, which then never holds anything itself.
@@ -182,11 +187,13 @@ pub(crate) struct Signing {
 
 /// Has the holder hold what is shared already, then shares and holds each document not shared yet.
 /// Hands back every one held with its share, the new ones marked as held only through it; on a failure the new ones go again.
+/// `room` is how many new links the hour still allows it, so what the server let go of never reserves past it.
 pub(crate) fn took_up(
     wire: &impl sharing::Wire,
     holder: &Shared,
     going: &[Going],
     signing: &Signing,
+    room: usize,
 ) -> Answer<Vec<(Citable, Shared)>> {
     let mut members: Vec<(Citable, Shared)> = Vec::with_capacity(going.len());
     let mut fresh: Vec<&Going> = Vec::new();
@@ -199,12 +206,15 @@ pub(crate) fn took_up(
         match sharing::hold(wire, holder, was, !was.held) {
             Ok(()) => members.push((one.citable.clone(), was.clone())),
             // The server let it go while this store still names it, so it is shared anew.
-            Err(refused) if sharing::already_gone(&refused) => fresh.push(one),
+            Err(refused) if sharing::refused_as(&refused, &["cited_gone"]) => fresh.push(one),
             // Blocked or held by too many: its card reads as not shared rather than stopping the rest.
             Err(refused)
                 if sharing::refused_as(&refused, &["blocked", "too_long", "forbidden"]) => {}
             Err(refused) => return Err(refused),
         }
+    }
+    if fresh.len() > room {
+        return Err(Refusal::of("shareSlow"));
     }
     let mut reserved: Vec<(Citable, Shared)> = Vec::with_capacity(fresh.len());
     for one in &fresh {
@@ -216,12 +226,12 @@ pub(crate) fn took_up(
                     ..shared
                 },
             )),
-            Err(refused) => return Err(stopped(wire, &reserved, refused)),
+            Err(refused) => return Err(stopped(wire, holder, &reserved, refused)),
         }
     }
     let listed: Vec<(Citable, Shared)> = members.iter().chain(&reserved).cloned().collect();
     if let Err(refused) = put_new(wire, holder, &fresh, &mut reserved, &listed, signing) {
-        return Err(stopped(wire, &reserved, refused));
+        return Err(stopped(wire, holder, &reserved, refused));
     }
     members.extend(reserved);
     Ok(members)
@@ -265,9 +275,16 @@ fn put_new(
     Ok(())
 }
 
-// A link nobody keeps is a link nobody can stop, so what was reserved here goes when the rest fails.
-fn stopped(wire: &impl sharing::Wire, reserved: &[(Citable, Shared)], refused: Refusal) -> Refusal {
+// A link nobody keeps is a link nobody can stop, so what was reserved here goes when the rest fails;
+// let go of first, since one its holder still holds would only lose its own life and stay up unseen.
+fn stopped(
+    wire: &impl sharing::Wire,
+    holder: &Shared,
+    reserved: &[(Citable, Shared)],
+    refused: Refusal,
+) -> Refusal {
     for (_, shared) in reserved {
+        let _ = sharing::release(wire, holder, &shared.link);
         let _ = sharing::stop(wire, shared);
     }
     refused
@@ -378,23 +395,31 @@ pub(crate) async fn kept_up(app: &tauri::AppHandle, file: &str) -> Answer<()> {
             name: super::shares::signing_name(&session.state.signed, shared.signs),
             data: session.paths.data().to_path_buf(),
         };
-        (
-            doc,
-            shared,
-            holds,
-            going_of(&session, new),
-            dropped,
-            signing,
-        )
+        let going = going_of(&session, new);
+        let rewritten: Vec<String> = going
+            .iter()
+            .filter(|one| one.was.is_some())
+            .map(|one| one.citable.file.clone())
+            .chain(
+                shared
+                    .holds
+                    .iter()
+                    .filter(|one| !holds.contains(one))
+                    .filter_map(|one| session.state.docs.get(one).map(|it| it.file.clone())),
+            )
+            .collect();
+        (doc, shared, holds, going, dropped, signing, rewritten)
     };
-    let (doc, shared, holds, going, dropped, signing) = gathered;
+    let (doc, shared, holds, going, dropped, signing, rewritten) = gathered;
     let before = shared.holds.clone();
+    let following = app.state::<super::versions::Following>();
+    // One round at a time across every share, so two never reserve the same new document twice.
+    let Some(_alone) = following.alone(super::versions::CITING) else {
+        return Err(Refusal::of("shareSlow"));
+    };
     // Reserves and first versions count against the server's hour as any upload does, so a burst waits for the next round.
     let fresh = fresh_in(&going);
-    if !app
-        .state::<super::versions::Following>()
-        .spend(fresh, fresh)
-    {
+    if !following.spend(fresh, fresh) {
         return Err(Refusal::of("shareSlow"));
     }
     let members = apart(move || {
@@ -406,17 +431,25 @@ pub(crate) async fn kept_up(app: &tauri::AppHandle, file: &str) -> Answer<()> {
                 _ => {}
             }
         }
-        took_up(&wire, &shared, &going, &signing)
+        took_up(&wire, &shared, &going, &signing, fresh)
     })
-    .await?;
+    .await
+    .inspect_err(|_| following.refund(fresh, fresh))?;
     // What the server would not let it hold stays out, and is asked for again with the next save.
     let holds: Vec<DocId> = holds
         .into_iter()
         .filter(|one| before.contains(one) || members.iter().any(|(it, _)| it.doc == *one))
         .collect();
-    let mut session = held(&session);
-    let ops = settled(&session, doc, holds, members);
-    session.commit_all(ops).map_err(Refusal::from)
+    {
+        let mut session = held(&session);
+        let ops = settled(&session, doc, holds, members);
+        session.commit_all(ops).map_err(Refusal::from)?;
+    }
+    // What each one held beside it leads to changed, so its own envelope goes up again with the list it now has.
+    for file in rewritten {
+        super::versions::follow(app, &file);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
