@@ -314,6 +314,9 @@ pub enum Op {
         #[serde(default, skip_serializing_if = "String::is_empty")]
         link: String,
         version: u64,
+        /// The print of the person's own words put up as it; empty when the version is someone else's.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        print: String,
     },
     /// Names the link it stops, so a machine that had not heard of a newer share never forgets that one.
     #[serde(rename = "share.stop")]
@@ -342,6 +345,36 @@ pub struct Shared {
     pub gated: bool,
     /// The last version this store put up.
     pub version: u64,
+    /// Kept as it was shared rather than following what is saved (decision 48).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub still: bool,
+    /// Someone else's share this store edits through their edit link: it holds no token to manage it (decision 9).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub taken: bool,
+    /// The print of the words the person last put up, so words saved and not yet up are owed (decision 83).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub print: String,
+    /// What the person chose to sign it with, which every version keeps (decision 89).
+    #[serde(default, skip_serializing_if = "Signs::is_name")]
+    pub signs: Signs,
+}
+
+/// The name a share goes out signed with; the key signs it whichever is chosen.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Signs {
+    /// The name to sign with, or the alias when there is none, as every share did before the choice.
+    #[default]
+    Name,
+    Alias,
+    /// Only the key's fingerprint.
+    Key,
+}
+
+impl Signs {
+    fn is_name(&self) -> bool {
+        *self == Signs::Name
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

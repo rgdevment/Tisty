@@ -91,19 +91,32 @@ fn a_rule_at_the_top_is_no_properties_and_hides_no_heading() {
 }
 
 #[test]
-fn a_share_signs_with_the_first_name_fit_to_sign() {
+fn a_share_signs_with_the_name_chosen_when_it_is_fit_to_sign() {
+    use tisty_core::event::Signs;
     let signature = |name: Option<&str>, alias: Option<&str>| tisty_core::event::Signature {
         name: name.map(str::to_owned),
         alias: alias.map(str::to_owned),
         ..Default::default()
     };
+    let both = signature(Some("Ana Pérez"), Some("ana"));
     assert_eq!(
-        signing_name(&signature(Some("Ana"), Some("ana"))).as_deref(),
-        Some("Ana")
+        signing_name(&both, Signs::Name).as_deref(),
+        Some("Ana Pérez")
     );
+    assert_eq!(signing_name(&both, Signs::Alias).as_deref(), Some("ana"));
+    assert_eq!(signing_name(&both, Signs::Key), None);
+    // A share from before the choice keeps going as it did: the name, or else the alias.
     assert_eq!(
-        signing_name(&signature(Some("12345"), Some("ana"))).as_deref(),
+        signing_name(&signature(Some("12345"), Some("ana")), Signs::Name).as_deref(),
         Some("ana")
     );
-    assert_eq!(signing_name(&signature(None, Some("1234"))), None);
+    // The alias never stands in for a full name the person did not choose, nor the other way round.
+    assert_eq!(
+        signing_name(&signature(Some("Ana Pérez"), Some("1234")), Signs::Alias),
+        None
+    );
+    assert_eq!(
+        signing_name(&signature(None, Some("1234")), Signs::Name),
+        None
+    );
 }

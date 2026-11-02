@@ -477,7 +477,17 @@ export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take
 export type Lent = { source: string } | { reference: string };
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
-  | { kind: "file"; name: string; place: string; path: string; body: string; shared: boolean }
+  | {
+      kind: "file";
+      name: string;
+      place: string;
+      path: string;
+      body: string;
+      shared: boolean;
+      /** A share's writer's fingerprint, and whether this machine met it before. */
+      print?: string;
+      known?: boolean;
+    }
   | {
       kind: "missed";
       name: string;
@@ -491,6 +501,7 @@ export type Showing =
   | { kind: "widget"; lent: Lent; from: Viewed | null }
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
+export const viewUnlock = (password: string): Promise<void> => invoke("view_unlock", { password });
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed & Left> =>
   invoke("view_import", { open });

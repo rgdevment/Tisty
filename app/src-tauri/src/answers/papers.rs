@@ -767,7 +767,7 @@ pub async fn settle_paper(
 }
 
 // Asked again about the same arrival, keeping both must not leave one more copy each time.
-fn other_version_kept(
+pub(super) fn other_version_kept(
     session: &mut Session,
     id: &str,
     body: String,
@@ -1230,6 +1230,7 @@ pub struct Kept {
 
 #[tauri::command(async)]
 pub fn doc_write(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
@@ -1264,6 +1265,9 @@ pub fn doc_write(
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
+    if super::versions::follows(&session, &id) {
+        super::versions::follow(&app, &id);
+    }
     Ok(Kept { id, title, print })
 }
 

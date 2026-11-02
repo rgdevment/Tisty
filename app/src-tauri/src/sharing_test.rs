@@ -4,7 +4,7 @@ use tisty_share_proto::seed::Seed;
 
 use super::*;
 
-use super::here::{Here, T0, voucher};
+use super::here::{Here, T0, png, voucher};
 
 #[test]
 fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
@@ -44,6 +44,92 @@ fn a_shared_document_reads_back_with_the_key_in_its_link_and_nowhere_else() {
     assert_eq!(edit, None);
 }
 
+// What the link opens now, read as anyone with it would.
+fn read_back(here: &Here, shared: &Shared) -> String {
+    let (status, body) = here.read(&shared.link, None);
+    assert_eq!(status, 200);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let key = LinkKey::from_text(&shared.key).unwrap();
+    envelope::open(&key, &envelope, &[])
+        .unwrap()
+        .text
+        .to_string()
+}
+
+#[test]
+fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
+    let here = Here::new();
+    let voucher = voucher();
+    let shared = share(
+        &here,
+        SERVER,
+        "Uno",
+        &[],
+        &Chosen::default(),
+        &voucher,
+        None,
+    )
+    .unwrap();
+    let words = |text| Words {
+        text,
+        pictures: &[],
+        voucher: &voucher,
+        name: None,
+    };
+
+    assert_eq!(update(&here, &shared, &words("Dos")).unwrap(), 2);
+    assert_eq!(read_back(&here, &shared), "Dos");
+    // This store still thinks it put up version 1, as one that had not heard of version 2 would.
+    let refused = update(&here, &shared, &words("Tres")).unwrap_err();
+    assert!(behind(&refused), "{refused:?}");
+    assert_eq!(read_back(&here, &shared), "Dos");
+    assert_eq!(latest(&here, &shared).unwrap(), Some(2));
+}
+
+#[test]
+fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
+    let here = Here::new();
+    let chosen = Chosen {
+        editable: true,
+        ..Chosen::default()
+    };
+    let owner = voucher();
+    let shared = share(&here, SERVER, "Uno", &[], &chosen, &owner, Some("Ana")).unwrap();
+
+    // Someone else's Tisty holds the read key and the edit token, and nothing to manage it.
+    let key = ShareKey::from_bytes(&[9; 32]);
+    let since = jiff::Timestamp::from_second(T0 - 86_400).unwrap();
+    let certificate = Seed::from_bytes(&[8; 32])
+        .root()
+        .certify(&key.public(), since);
+    let editor = (key, certificate);
+    let taken = Shared {
+        admin: String::new(),
+        taken: true,
+        print: String::new(),
+        signs: Default::default(),
+        ..shared.clone()
+    };
+    let words = Words {
+        text: "Uno y dos",
+        pictures: &[],
+        voucher: &editor,
+        name: Some("Bea"),
+    };
+    assert_eq!(update(&here, &taken, &words).unwrap(), 2);
+
+    // The owner's Tisty finds it, and it is Bea's, signed by Bea's key.
+    assert_eq!(latest(&here, &shared).unwrap(), Some(2));
+    let got =
+        crate::received::opened_from(version(&here, &shared, 2).unwrap(), &shared.key).unwrap();
+    assert_eq!(got.body, "Uno y dos");
+    assert_eq!(got.signer.as_deref(), Some("Bea"));
+    assert_eq!(
+        got.print,
+        Seed::from_bytes(&[8; 32]).root().person().fingerprint()
+    );
+}
+
 #[test]
 fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
     let shared = Shared {
@@ -55,6 +141,10 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         editable: true,
         gated: false,
         version: 1,
+        still: false,
+        taken: false,
+        print: String::new(),
+        signs: Default::default(),
     };
     assert_eq!(
         links(&shared),
@@ -73,9 +163,14 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         editable: true,
         idle_days: Some(7),
         seen: None,
+        signs: tisty_core::event::Signs::Key,
+        still: true,
     };
     let shared = share(&here, SERVER, "Hola", &[], &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
+    // What else was chosen stays with the share, so every later version keeps to it.
+    assert!(shared.still);
+    assert_eq!(shared.signs, tisty_core::event::Signs::Key);
 
     assert_eq!(here.read(&shared.link, None).0, 401);
     assert_eq!(here.read(&shared.link, Some("ñandú")).0, 200);
@@ -83,6 +178,38 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
     assert!(told.gated);
     assert_eq!(told.latest, Some(1));
     assert!(told.ends <= T0 + 7 * 86_400);
+}
+
+#[test]
+fn a_share_already_up_takes_a_new_password_a_shorter_life_and_a_pause() {
+    let here = Here::new();
+    let shared = share(
+        &here,
+        SERVER,
+        "Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+
+    let with = Some("ñandú".into());
+    changed(&here, &shared, &Change::Password { with }).unwrap();
+    assert_eq!(here.read(&shared.link, None).0, 401);
+    assert_eq!(here.read(&shared.link, Some("ñandú")).0, 200);
+    changed(&here, &shared, &Change::Password { with: None }).unwrap();
+    assert_eq!(here.read(&shared.link, None).0, 200);
+
+    changed(&here, &shared, &Change::Idle { days: 7 }).unwrap();
+    assert!(info(&here, &shared).unwrap().ends <= T0 + 7 * 86_400);
+
+    changed(&here, &shared, &Change::Pause).unwrap();
+    assert!(info(&here, &shared).unwrap().paused);
+    assert_ne!(here.read(&shared.link, None).0, 200);
+    changed(&here, &shared, &Change::Resume).unwrap();
+    assert!(!info(&here, &shared).unwrap().paused);
+    assert_eq!(here.read(&shared.link, None).0, 200);
 }
 
 #[test]
@@ -249,7 +376,7 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
         password: password.map(str::to_owned),
         editable: false,
         idle_days: Some(7),
-        seen: None,
+        ..Chosen::default()
     };
     let text = "# Prueba de Tisty Share\n\nEscrito desde la prueba que llega a tisty.cl.";
     let shared = share(&wire, SERVER, text, &[], &chosen, &voucher, Some("Prueba")).unwrap();
@@ -275,14 +402,6 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
     }
     stop(&wire, &shared).unwrap();
     assert!(already_gone(&info(&wire, &shared).unwrap_err()));
-}
-
-fn png(side: u32) -> Vec<u8> {
-    let mut bytes = std::io::Cursor::new(Vec::new());
-    image::RgbImage::from_pixel(side, side, image::Rgb([200, 30, 30]))
-        .write_to(&mut bytes, image::ImageFormat::Png)
-        .unwrap();
-    bytes.into_inner()
 }
 
 #[test]

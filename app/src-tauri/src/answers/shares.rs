@@ -2,11 +2,11 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_core::Op;
-use tisty_core::event::Shared;
+use tisty_core::event::{Shared, Signs};
 use tisty_core::model::DocId;
 
 use crate::handed::Voucher;
-use crate::sharing::{self, Chosen, Info, Net};
+use crate::sharing::{self, Change, Chosen, Info, Net};
 use crate::{Answer, Refusal, Session, held};
 
 /// Whether a document can go out from here, which its «Shared» row says before anything is asked.
@@ -21,7 +21,12 @@ pub enum Shareable {
 }
 
 // The key this machine signs with and the person it answers for; without both nothing is shared.
-fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Person)> {
+/// Whether this machine holds a key its person vouches for, which everything that goes up is signed with.
+pub(crate) fn can_sign(session: &Session) -> bool {
+    sharer(session).is_some()
+}
+
+pub(super) fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Person)> {
     let device = &session.config.device_id;
     let voucher = crate::handed::vouched_by(&session.paths, device, &session.state.persons)?;
     let me = session.state.persons.person(device)?;
@@ -46,6 +51,10 @@ pub struct Card {
     edit: Option<String>,
     gated: bool,
     version: u64,
+    /// Kept as it was shared rather than following what is saved.
+    still: bool,
+    /// Someone else's share, edited here through their edit link.
+    taken: bool,
     /// None when the server could not be reached; the links still work without it.
     info: Option<Info>,
 }
@@ -57,12 +66,14 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
         edit,
         gated: shared.gated,
         version: shared.version,
+        still: shared.still,
+        taken: shared.taken,
         info,
     }
 }
 
 // The window knows a document by its file, as it reads and writes it.
-fn doc_of(session: &Session, file: &str) -> Answer<DocId> {
+pub(super) fn doc_of(session: &Session, file: &str) -> Answer<DocId> {
     session
         .state
         .docs
@@ -73,7 +84,9 @@ fn doc_of(session: &Session, file: &str) -> Answer<DocId> {
 }
 
 // The network is slow and the work takes a moment, so neither holds the window or the session.
-async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'static) -> Answer<T> {
+pub(super) async fn apart<T: Send + 'static>(
+    work: impl FnOnce() -> Answer<T> + Send + 'static,
+) -> Answer<T> {
     tauri::async_runtime::spawn_blocking(work)
         .await
         .map_err(|_| Refusal::of("internal"))?
@@ -155,26 +168,34 @@ pub struct Look {
     secrets: Vec<Secret>,
     /// The print of what was looked through, handed back with the share.
     seen: String,
-    /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
-    signs_as: Option<String>,
+    /// Each one only when it is fit to sign, so the dialog offers what can go and the key alone otherwise.
+    name: Option<String>,
+    alias: Option<String>,
 }
 
-// The name the person signs with, or else their alias, held to what an envelope takes.
-fn signing_name(signed: &tisty_core::event::Signature) -> Option<String> {
-    [&signed.name, &signed.alias]
-        .into_iter()
-        .flatten()
-        .map(|one| one.trim())
-        .find(|one| tisty_share_proto::envelope::named_well(one))
+// The name a share goes out with, as chosen, held to what an envelope takes.
+pub(super) fn signing_name(signed: &tisty_core::event::Signature, signs: Signs) -> Option<String> {
+    match signs {
+        Signs::Name => fit(&signed.name).or_else(|| fit(&signed.alias)),
+        Signs::Alias => fit(&signed.alias),
+        Signs::Key => None,
+    }
+}
+
+fn fit(one: &Option<String>) -> Option<String> {
+    one.as_deref()
+        .map(str::trim)
+        .filter(|one| tisty_share_proto::envelope::named_well(one))
         .map(str::to_owned)
 }
 
 #[tauri::command]
 pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
-    let (docs, signs_as) = {
+    let (docs, name, alias) = {
         let session = held(&session);
         doc_of(&session, &file)?;
-        (session.paths.docs(), signing_name(&session.state.signed))
+        let signed = &session.state.signed;
+        (session.paths.docs(), fit(&signed.name), fit(&signed.alias))
     };
     // A long document takes a moment to read and look through, so neither holds the window or the session.
     apart(move || {
@@ -183,7 +204,8 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
         Ok(Look {
             secrets: secrets(&text),
             seen: sharing::print_of(&text),
-            signs_as,
+            name,
+            alias,
         })
     })
     .await
@@ -223,7 +245,7 @@ pub async fn share_doc(
             return Err(Refusal::of("shareChanged"));
         }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        let name = signing_name(&session.state.signed);
+        let name = signing_name(&session.state.signed, chosen.signs);
         (
             doc,
             text,
@@ -234,6 +256,7 @@ pub async fn share_doc(
         )
     };
     let (shared, info) = apart(move || {
+        let print = sharing::print_of(&text);
         let (text, pictures) =
             sharing::pictured(&text, |target| sharing::attachment(target, &data));
         let wire = Net::to(sharing::SERVER)?;
@@ -249,7 +272,7 @@ pub async fn share_doc(
             name.as_deref(),
         )?;
         let info = sharing::info(&wire, &shared).ok();
-        Ok((shared, info))
+        Ok((Shared { print, ..shared }, info))
     })
     .await?;
     let committed = {
@@ -275,9 +298,12 @@ pub async fn share_doc(
 
 #[tauri::command]
 pub async fn share_card(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
 ) -> Answer<Option<Card>> {
+    // Looking at a share is when its newer versions are most wanted, so they are brought first.
+    let _ = super::versions::brought(&app, &file).await;
     let shared = {
         let session = held(&session);
         session.state.shares.get(&doc_of(&session, &file)?).cloned()
@@ -285,6 +311,10 @@ pub async fn share_card(
     let Some(shared) = shared else {
         return Ok(None);
     };
+    // Someone else's share has no token to manage it, so there is nothing more to ask the server.
+    if shared.taken {
+        return Ok(Some(card(&shared, None)));
+    }
     let asked = shared.clone();
     let info = apart(move || sharing::info(&Net::to(&asked.server)?, &asked)).await;
     match info {
@@ -312,6 +342,56 @@ pub async fn share_card(
     }
 }
 
+/// Changes a share already up, and hands back its row as it stands after.
+#[tauri::command]
+pub async fn share_change(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    change: sharing::Change,
+) -> Answer<Card> {
+    let (doc, shared) = {
+        let session = held(&session);
+        let doc = doc_of(&session, &file)?;
+        let shared = session.state.shares.get(&doc).cloned();
+        (doc, shared.ok_or(Refusal::of("shareOpenGone"))?)
+    };
+    // Only whoever shared it holds the token that changes it.
+    if shared.taken {
+        return Err(Refusal::of("notAllowed"));
+    }
+    let asked = shared.clone();
+    let wanted = change.clone();
+    let info = apart(move || {
+        let wire = Net::to(&asked.server)?;
+        sharing::changed(&wire, &asked, &wanted)?;
+        Ok(sharing::info(&wire, &asked).ok())
+    })
+    .await?;
+    let Change::Password { with } = change else {
+        return Ok(card(&shared, info));
+    };
+    // Whether it asks for a password travels with the links, so every machine's row says the same.
+    let now = Shared {
+        gated: with.is_some(),
+        ..shared
+    };
+    let mut session = held(&session);
+    if session
+        .state
+        .shares
+        .get(&doc)
+        .is_some_and(|one| one.link == now.link)
+    {
+        session
+            .commit(Op::ShareDoc {
+                id: doc,
+                d: now.clone(),
+            })
+            .map_err(Refusal::from)?;
+    }
+    Ok(card(&now, info))
+}
+
 #[tauri::command]
 pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
     let (doc, shared) = {
@@ -323,7 +403,11 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         return Ok(());
     };
     let link = shared.link.clone();
-    let gone = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;
+    // Someone else's share stays up for them; this store only stops editing it.
+    let gone = match shared.taken {
+        true => Ok(()),
+        false => apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await,
+    };
     // A share the server already let go of is stopped all the same.
     match gone {
         Err(refused) if !sharing::already_gone(&refused) => return Err(refused),
@@ -332,6 +416,38 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
     held(&session)
         .commit(Op::ShareStop { id: doc, link })
         .map_err(Refusal::from)
+}
+
+/// Keeps a share as it was shared, or lets it follow what is saved again, putting the words up at once when it does.
+#[tauri::command]
+pub async fn share_still(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    still: bool,
+) -> Answer<Card> {
+    let now = {
+        let mut session = held(&session);
+        let doc = doc_of(&session, &file)?;
+        let shared = session.state.shares.get(&doc).cloned();
+        let now = Shared {
+            still,
+            ..shared.ok_or(Refusal::of("shareOpenGone"))?
+        };
+        session
+            .commit(Op::ShareDoc {
+                id: doc,
+                d: now.clone(),
+            })
+            .map_err(Refusal::from)?;
+        now
+    };
+    if !still {
+        super::versions::follow(&app, &file);
+    }
+    let asked = now.clone();
+    let info = apart(move || sharing::info(&Net::to(&asked.server)?, &asked)).await;
+    Ok(card(&now, info.ok()))
 }
 
 /// Set while loose shares are being let go of, which the start and every round ask for.
@@ -361,6 +477,7 @@ pub(crate) fn let_loose_go(app: tauri::AppHandle) {
         }
         let _running = Loosened(&loosening.0);
         loosened(&app).await;
+        super::versions::brought_all(&app).await;
     });
 }
 
@@ -379,8 +496,12 @@ async fn loosened(app: &tauri::AppHandle) {
         // Only an unread replaced share goes, and one the server let go of is forgotten rather than asked after again.
         let unread = replaced
             .into_iter()
-            .filter(|one| now.duration_since(one.at) >= UNREAD_FOR)
+            .filter(|one| one.share.taken || now.duration_since(one.at) >= UNREAD_FOR)
             .filter(|one| {
+                // Someone else's link is theirs to stop: this store only forgets it.
+                if one.share.taken {
+                    return true;
+                }
                 match Net::to(&one.share.server).and_then(|wire| sharing::info(&wire, &one.share)) {
                     Ok(info) => info.reads == 0,
                     Err(refused) => sharing::already_gone(&refused),
@@ -391,6 +512,9 @@ async fn loosened(app: &tauri::AppHandle) {
             .into_iter()
             .chain(unread)
             .filter(|(_, shared)| {
+                if shared.taken {
+                    return true;
+                }
                 match Net::to(&shared.server).and_then(|wire| sharing::stop(&wire, shared)) {
                     Ok(()) => true,
                     // Closed by reports, the server never lets it be stopped, and asking again only costs.
