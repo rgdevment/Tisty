@@ -165,7 +165,7 @@ describe("a refusal for a cited document", () => {
   });
 });
 
-const steps = () => ({ pushState: vi.fn(), back: vi.fn() });
+const steps = () => ({ pushState: vi.fn(), back: vi.fn(), go: vi.fn() });
 
 describe("the way through cited documents", () => {
   it("starts at the shared document, with nowhere to go back to", () => {
@@ -218,14 +218,18 @@ describe("the way through cited documents", () => {
     walk.went(GUIDE);
     walk.popped({ at: 0 });
     walk.went(PAGE);
-    walk.popped({ at: 2 });
+    walk.popped({ at: 1 });
     expect(show).toHaveBeenLastCalledWith(PAGE, 1);
   });
 
-  it("falls back to the shared document for a step a reload forgot", () => {
+  it("takes a step a reload forgot straight back to the shared document's own entry", () => {
     const show = vi.fn();
-    const walk = walking<Cited | null>(null, steps(), show);
-    for (const state of [{ at: 3 }, { at: -1 }, { at: "1" }, "x"]) walk.popped(state);
+    const history = steps();
+    const walk = walking<Cited | null>(null, history, show);
+    walk.popped({ at: 3 });
+    expect(history.go).toHaveBeenCalledWith(-3);
+    expect(show).not.toHaveBeenCalled();
+    for (const state of [{ at: -1 }, { at: "1" }, "x"]) walk.popped(state);
     expect(show.mock.calls.every(([one, at]) => one === null && at === 0)).toBe(true);
   });
 

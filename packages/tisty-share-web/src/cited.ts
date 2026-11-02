@@ -97,7 +97,7 @@ export const citedOpening = <T>(
     return typeof found === "string" ? citedWord(found) : found;
   });
 
-type Steps = Pick<History, "pushState" | "back">;
+type Steps = Pick<History, "pushState" | "back" | "go">;
 
 const atOf = (state: unknown): number => {
   const at = (state as { at?: unknown } | null)?.at;
@@ -119,9 +119,14 @@ export const walking = <T>(root: T, steps: Steps, show: (one: T, at: number) => 
       show(next, at);
     },
     back: () => steps.back(),
-    // A step from before a reload is gone from memory, so it falls back to the deepest one still known.
+    // A step from before a reload is gone from memory, so the reader goes straight to the shared document's own entry.
     popped: (state: unknown) => {
-      at = Math.min(atOf(state), trail.length - 1);
+      const asked = atOf(state);
+      if (asked > trail.length - 1) {
+        steps.go(-asked);
+        return;
+      }
+      at = asked;
       show(trail[at], at);
     },
   };

@@ -8,14 +8,15 @@ use super::shares::{apart, doc_of, sharer, signing_name};
 use crate::sharing::{self, Net};
 use crate::{Answer, Refusal, Session, held};
 
-/// Each shared document's saves, counted and timed so only the last of a burst goes up, when uploads and reserves went,
-/// and which documents are going up right now.
+/// Shared documents' saves and the server's hour as this machine spends it, so uploads keep within what it allows.
 #[derive(Default)]
 pub struct Following {
     saves: Mutex<HashMap<String, (u64, Instant)>>,
     sent: Mutex<VecDeque<Instant>>,
     reserved: Mutex<VecDeque<Instant>>,
     going: Mutex<HashSet<String>>,
+    /// For each share whose holds last matched its words, the print of the cards those words had then.
+    kept: Mutex<HashMap<String, String>>,
 }
 
 // Saved words go up once the person stops this long, so a burst of saves is one version within the server's allowance.
@@ -42,15 +43,7 @@ impl Following {
     pub(crate) fn spend(&self, reserves: usize, uploads: usize) -> bool {
         let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
         let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
-        let now = Instant::now();
-        for spent in [&mut *sent, &mut *reserved] {
-            while spent
-                .front()
-                .is_some_and(|at| now.duration_since(*at) > HOUR)
-            {
-                spent.pop_front();
-            }
-        }
+        let now = pruned(&mut sent, &mut reserved);
         if sent.len() + uploads > UPLOADS_AN_HOUR || reserved.len() + reserves > RESERVES_AN_HOUR {
             return false;
         }
@@ -59,7 +52,23 @@ impl Following {
         true
     }
 
-    /// Gives back room taken for what never reached the server, so a failure does not hold the hour.
+    /// Takes `fixed` new links with an upload each and up to `wanted` more the hour has room for: how many more, or none if `fixed` does not fit.
+    pub(crate) fn take(&self, fixed: usize, wanted: usize) -> Option<usize> {
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
+        let now = pruned(&mut sent, &mut reserved);
+        let room = (UPLOADS_AN_HOUR.saturating_sub(sent.len()))
+            .min(RESERVES_AN_HOUR.saturating_sub(reserved.len()));
+        if fixed > room {
+            return None;
+        }
+        let more = wanted.min(room - fixed);
+        sent.extend(std::iter::repeat_n(now, fixed + more));
+        reserved.extend(std::iter::repeat_n(now, fixed + more));
+        Some(more)
+    }
+
+    /// Gives back room taken for what never reached the server; what reached it the server counts, so it stays spent.
     pub(crate) fn refund(&self, reserves: usize, uploads: usize) {
         let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
         let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
@@ -78,6 +87,28 @@ impl Following {
         })
     }
 
+    /// Whether a share's words still have the cards they had when its holds last matched them, so nothing needs walking.
+    pub(crate) fn unchanged(&self, file: &str, cards: &str) -> bool {
+        let kept = self.kept.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.get(file).is_some_and(|was| was == cards)
+    }
+
+    pub(crate) fn settled(&self, file: &str, cards: Option<String>) {
+        let mut kept = self.kept.lock().unwrap_or_else(PoisonError::into_inner);
+        match cards {
+            Some(cards) => kept.insert(file.to_owned(), cards),
+            None => kept.remove(file),
+        };
+    }
+
+    /// A held document changed its own cards, which could reach something new, so every share walks again.
+    pub(crate) fn unsettled(&self) {
+        self.kept
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
+    }
+
     // A try that never reached the server, or that it turned away, spends nothing of its allowance.
     fn unpaced(&self) {
         self.sent
@@ -90,6 +121,34 @@ impl Following {
         let saves = self.saves.lock().unwrap_or_else(PoisonError::into_inner);
         saves.get(file).is_none_or(|(_, at)| at.elapsed() >= QUIET)
     }
+}
+
+// What went more than an hour ago no longer counts against it.
+fn pruned(sent: &mut VecDeque<Instant>, reserved: &mut VecDeque<Instant>) -> Instant {
+    let now = Instant::now();
+    for spent in [sent, reserved] {
+        while spent
+            .front()
+            .is_some_and(|at| now.duration_since(*at) > HOUR)
+        {
+            spent.pop_front();
+        }
+    }
+    now
+}
+
+/// Waits up to a minute for a turn another round holds, so a press is not refused for a round running in the background.
+pub(crate) async fn waited<'a>(following: &'a Following, key: &str) -> Option<Alone<'a>> {
+    for _ in 0..240 {
+        if let Some(alone) = following.alone(key) {
+            return Some(alone);
+        }
+        let _ = tauri::async_runtime::spawn_blocking(|| {
+            std::thread::sleep(Duration::from_millis(250));
+        })
+        .await;
+    }
+    None
 }
 
 pub(crate) struct Alone<'a> {

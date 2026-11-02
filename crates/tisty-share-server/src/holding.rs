@@ -11,8 +11,7 @@ pub const HOLDERS_AT_MOST: usize = 16;
 pub const HELD: i64 = 253_402_300_799;
 
 impl<S: Store, R: Randomness> Share<S, R> {
-    /// The holder takes up a document it cites, proven its owner's by that document's management link (decision 64).
-    /// A share that holds is never held, and one that is held never holds, so no ring keeps itself alive.
+    /// The holder takes up a document it cites, proven its owner's by its management link; no ring of holders keeps itself alive (decision 64).
     pub(crate) async fn hold(
         &self,
         holder: &mut Doc,
@@ -108,8 +107,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(self.store.forget(&doc.id).await?)
     }
 
-    /// A held document reads while one of its holders does, or while its own life lasts (decision 64),
-    /// and says the end a reader is told: the furthest of theirs and its own, never the sweep's far one.
+    /// A held document reads while a holder does or its own life lasts, and the end a reader is told is the furthest of those (decision 64).
     pub(crate) async fn held_up(&self, doc: &Doc, now: i64) -> Result<i64, Refused> {
         if doc.holders.is_empty() {
             return Ok(doc.ends);

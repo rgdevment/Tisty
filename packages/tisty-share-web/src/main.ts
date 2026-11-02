@@ -361,6 +361,8 @@ const reader = async (root: Read) => {
   };
   // The page puts each step back where the reader left it, once its document is drawn again.
   history.scrollRestoration = "manual";
+  // A reload opens the shared document, so this entry becomes its own rather than a step memory no longer holds.
+  history.replaceState({ at: 0 }, "");
   back.addEventListener("click", () => walk.back());
   addEventListener("popstate", ({ state }) => {
     ys[walk.at()] = scrollY;
