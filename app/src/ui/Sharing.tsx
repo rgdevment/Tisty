@@ -22,8 +22,11 @@ interface Props {
 // A few are enough to send the person looking; the rest are only counted.
 const SECRETS_SHOWN = 3;
 
-// What is encrypted ends on its own after 30 idle days; the dialog only lets it end sooner (decisions 49 and 50).
-export const IDLE_DAYS = [30, 14, 7];
+// The server keeps one at most 30 idle days; a day by default lets what nobody opens go soon (decisions 49 and 50).
+export const IDLE_DAYS = [1, 3, 7, 15];
+
+export const endsAfter = (days: number) =>
+  days === 1 ? t("shareEndsIdleDay") : fill("shareEndsIdle", String(days));
 
 const choice =
   "flex cursor-pointer gap-2.5 rounded-[10px] border px-3.5 py-2.5 has-[:checked]:border-accent has-[:checked]:bg-accent-soft";
@@ -87,7 +90,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     shareDoc(file, {
       password: gated ? password : null,
       editable,
-      idleDays: idle === IDLE_DAYS[0] ? null : idle,
+      idleDays: idle,
       seen,
       signs,
       still,
@@ -277,7 +280,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
           >
             {IDLE_DAYS.map((days) => (
               <option key={days} value={days}>
-                {fill("shareEndsIdle", String(days))}
+                {endsAfter(days)}
               </option>
             ))}
           </select>

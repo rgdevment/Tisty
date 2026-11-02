@@ -60,7 +60,7 @@ beforeEach(() => {
 });
 
 describe("the share dialog", () => {
-  it("shares to read only, following saves, under the alias and for the server's own time unless asked otherwise", async () => {
+  it("shares to read only, following saves, under the alias and for a day unless asked otherwise", async () => {
     const onShared = vi.fn();
     render(
       <Sharing
@@ -79,7 +79,7 @@ describe("the share dialog", () => {
         chosen: {
           password: null,
           editable: false,
-          idleDays: null,
+          idleDays: 1,
           signs: "alias",
           still: false,
           cites: false,
