@@ -74,6 +74,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     label: "view-0",
+    show: () => Promise.resolve(),
     minimize: () => Promise.resolve(),
     toggleMaximize: () => Promise.resolve(),
     close: () => Promise.resolve(),

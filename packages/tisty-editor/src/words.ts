@@ -2,6 +2,7 @@
 export type ReadWord =
   | "viewCopy"
   | "viewCopied"
+  | "viewOpen"
   | "besidePageOf"
   | "docFlagged"
   | "exportIt"

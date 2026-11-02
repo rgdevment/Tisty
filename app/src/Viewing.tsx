@@ -20,6 +20,7 @@ import { plainly, saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
+import Quill from "./ui/Quill";
 import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
@@ -70,17 +71,30 @@ export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
-  const look = useCallback(
+  // One look at a time: a second press, or a second mount in development, never fetches a share twice.
+  const asking = useRef(false);
+  const look = useCallback(() => {
+    if (asking.current) return;
+    asking.current = true;
+    void viewShown()
+      .then((one) => {
+        setShown(one);
+        setTrouble(null);
+      })
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => {
+        asking.current = false;
+      });
+  }, []);
+  useEffect(look, [look]);
+  // Built hidden, so its first frame is this page rather than a bare window the system paints black.
+  useEffect(
     () =>
-      void viewShown()
-        .then((one) => {
-          setShown(one);
-          setTrouble(null);
-        })
-        .catch((e) => setTrouble(saidPlainly(e))),
+      void getCurrentWindow()
+        .show()
+        .catch(() => {}),
     [],
   );
-  useEffect(look, [look]);
 
   if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
   return <Reading shown={shown} trouble={trouble} look={look} />;
@@ -328,6 +342,7 @@ function Reading({
           }
         />
       )}
+      {!shown && !trouble && <Quill said={t("viewOpening")} />}
       {shown?.kind === "file" && !body.trim() && (
         <Problem
           trouble={{ kind: "empty" }}

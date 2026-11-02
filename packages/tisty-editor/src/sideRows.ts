@@ -1,4 +1,4 @@
-import type { Act, Facts, Link, More } from "./side";
+import type { Act, Facts, Link, More, Toggle } from "./side";
 import { wordsIn } from "./side";
 import { copyFrom, listed, made, pressed, rowed } from "./sideParts";
 import type { Say } from "./words";
@@ -111,12 +111,37 @@ const copied = (page: Document, say: Say, link: Link) => {
   );
   const line = made(page, "div", "side-link-line");
   line.append(url, copy);
+  if (link.onOpen) line.append(pressed(page, "side-act", say("viewOpen"), () => link.onOpen?.()));
   part.append(label, line);
   return part;
 };
 
+const ticked = (page: Document, toggle: Toggle) => {
+  const row = made(page, "div", "side-toggle-row");
+  const label = made(page, "label", "side-toggle");
+  const box = page.createElement("input");
+  box.type = "checkbox";
+  box.checked = toggle.on;
+  box.addEventListener("change", () => toggle.onTurn(box.checked));
+  label.append(box, made(page, "span", "", toggle.label));
+  row.append(label);
+  // Outside the label, so asking what it does never ticks it; a press opens it too, where there is no pointer to hover.
+  if (toggle.help) {
+    const help = made(page, "span", "side-help", "?");
+    help.tabIndex = 0;
+    help.dataset.help = toggle.help;
+    help.setAttribute("role", "img");
+    help.setAttribute("aria-label", toggle.help);
+    box.setAttribute("aria-description", toggle.help);
+    help.addEventListener("click", () => help.classList.toggle("is-open"));
+    help.addEventListener("blur", () => help.classList.remove("is-open"));
+    row.append(help);
+  }
+  return row;
+};
+
 const shared = (page: Document, say: Say, panel: Of<"shared">) => {
-  const { said, links = [], acts = [] } = panel;
+  const { said, links = [], toggle, acts = [] } = panel;
   const line = {
     key: "shared",
     label: say("besideShared"),
@@ -125,10 +150,11 @@ const shared = (page: Document, say: Say, panel: Of<"shared">) => {
     open: panel.open,
   };
   const fill =
-    said || links.length || acts.length
+    said || links.length || toggle || acts.length
       ? (into: HTMLElement) => {
-          if (said) into.append(made(page, "p", "side-said", said));
           for (const link of links) into.append(copied(page, say, link));
+          if (toggle) into.append(ticked(page, toggle));
+          if (said) into.append(made(page, "p", "side-said", said));
           if (acts.length) {
             const row = made(page, "div", "side-acts is-inside");
             for (const act of acts) row.append(acted(page, act));
@@ -140,7 +166,7 @@ const shared = (page: Document, say: Say, panel: Of<"shared">) => {
 };
 
 const acted = (page: Document, act: Act) => {
-  const className = `side-act${act.main ? " is-main" : ""}`;
+  const className = `side-act${act.main ? " is-main" : ""}${act.danger ? " is-danger" : ""}`;
   if (!act.href) return pressed(page, className, act.label, (at) => act.onPick?.(at));
   const link = made(page, "a", className, act.label);
   link.href = act.href;

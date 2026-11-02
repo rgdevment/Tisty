@@ -335,9 +335,17 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
     .transparent(true)
     .shadow(true)
     .center()
+    // Shown by its page once drawn: a transparent window the system shows first is painted black meanwhile.
+    .visible(false)
     .build();
     match made {
         Ok(window) => {
+            // Should the page never say so, the window is not left hidden for good.
+            let late = window.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                let _ = late.show();
+            });
             crate::tray::docked(app, true);
             let gone = app.clone();
             let named = label.clone();
@@ -421,13 +429,11 @@ pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
     })
 }
 
-#[tauri::command(async)]
-pub fn view_shown(
-    app: AppHandle,
-    window: tauri::WebviewWindow,
-    views: tauri::State<'_, Views>,
-) -> Answer<Showing> {
-    Ok(match shown_in(&views, window.label())? {
+#[tauri::command]
+pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Showing> {
+    let label = window.label().to_owned();
+    let shown = shown_in(&app.state::<Views>(), &label)?;
+    Ok(match shown {
         Shown::File(at) => match crate::answers::carrying::read_outside(&at) {
             Ok(body) => Showing::File {
                 name: named(&at),
@@ -455,7 +461,13 @@ pub fn view_shown(
             paper: drawn.paper,
             source: drawn.was,
         },
-        Shown::Shared { link, got } => shared_showing(&app, &views, window.label(), link, got),
+        // The network is slow and blocking, so it is waited on off the runtime that serves every window.
+        Shown::Shared { link, got } => {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || shared_showing(&app, &label, link, got))
+                .await
+                .map_err(|_| Refusal::of("internal"))?
+        }
     })
 }
 
@@ -479,9 +491,9 @@ fn received_here(
     crate::received::seen_here(&cache, link, mine.as_deref(), got)
 }
 
+// Runs on the blocking pool, where a blocking client may be built and dropped.
 fn shared_showing(
     app: &AppHandle,
-    views: &Views,
     label: &str,
     link: crate::received::Link,
     got: Option<crate::received::Received>,
@@ -506,7 +518,7 @@ fn shared_showing(
                 known: got.known,
             };
             reshow(
-                views,
+                &app.state::<Views>(),
                 label,
                 Shown::Shared {
                     link,
@@ -526,26 +538,30 @@ fn shared_showing(
 }
 
 /// Opens the share this window shows with the password its reader typed; the window then asks for it again.
-#[tauri::command(async)]
-pub fn view_unlock(
+#[tauri::command]
+pub async fn view_unlock(
     app: AppHandle,
     window: tauri::WebviewWindow,
-    views: tauri::State<'_, Views>,
     password: String,
 ) -> Answer<()> {
-    let Shown::Shared { link, .. } = shown_in(&views, window.label())? else {
+    let label = window.label().to_owned();
+    let Shown::Shared { link, .. } = shown_in(&app.state::<Views>(), &label)? else {
         return Err(Refusal::of("notAllowed"));
     };
-    let got = received_here(&app, &link, Some(&password))?;
-    reshow(
-        &views,
-        window.label(),
-        Shown::Shared {
-            link,
-            got: Some(got),
-        },
-    );
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        let got = received_here(&app, &link, Some(&password))?;
+        reshow(
+            &app.state::<Views>(),
+            &label,
+            Shown::Shared {
+                link,
+                got: Some(got),
+            },
+        );
+        Ok(())
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
 }
 
 #[tauri::command]

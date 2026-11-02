@@ -203,7 +203,7 @@ describe("the share dialog", () => {
     await userEvent.click(
       await screen.findByRole("radio", { name: fill("shareSignName", "Ana Pérez") }),
     );
-    await userEvent.click(screen.getByRole("radio", { name: t("shareKeepsStill") }));
+    await userEvent.click(screen.getByRole("checkbox", { name: t("shareSynced") }));
     expect(screen.getByText(t("sharedStill"))).toBeTruthy();
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
@@ -326,7 +326,12 @@ describe("the share dialog", () => {
       />,
     );
     await screen.findByRole("button", { name: t("shareGo") });
-    expect(screen.queryByRole("checkbox")).toBeNull();
+    // Only the choice to keep it in sync, never one about what it cites.
+    expect(
+      screen
+        .getAllByRole("checkbox")
+        .map((one) => one.getAttribute("aria-label") ?? one.parentElement?.textContent),
+    ).toEqual([t("shareSynced")]);
     expect(screen.queryByText(t("shareCitesWhy"))).toBeNull();
   });
 });
