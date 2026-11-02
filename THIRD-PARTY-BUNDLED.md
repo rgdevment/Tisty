@@ -138,7 +138,7 @@ written once with the crates that carry it.
 | `iconv-lite` | 0.6.3 | MIT |
 | `import-meta-resolve` | 4.2.0 | MIT |
 | `internmap` | 1.0.1 | ISC |
-| `katex` | 0.19.0 | MIT |
+| `katex` | 0.19.1 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `lodash-es` | 4.18.1 | MIT |
