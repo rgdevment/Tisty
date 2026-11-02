@@ -67,12 +67,23 @@ export type Link = {
   readonly label: string;
   readonly url: string;
   readonly note?: string;
+  /** Offered beside «Copy» where the host can open the link, as a reader does. */
+  readonly onOpen?: () => void;
+};
+
+/** A choice that stays on or off, said as a box to tick rather than as a press that flips it. */
+export type Toggle = {
+  readonly label: string;
+  readonly on: boolean;
+  readonly onTurn: (on: boolean) => void;
 };
 
 export type Act = {
   readonly key: string;
   readonly label: string;
   readonly main?: boolean;
+  /** Undoes what was shared or made, so it stands on its own row and reads as such. */
+  readonly danger?: boolean;
   readonly href?: string;
   readonly download?: string;
   readonly onPick?: (at: HTMLElement) => void;
@@ -107,6 +118,7 @@ export type Panel =
       readonly tone?: "good" | "warn" | "bad";
       readonly said?: string;
       readonly links?: readonly Link[];
+      readonly toggle?: Toggle;
       readonly acts?: readonly Act[];
       readonly open?: boolean;
     }

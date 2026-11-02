@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Facts,
@@ -187,24 +188,26 @@ const sharedPanel = (
         ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
         : undefined,
     };
+  // The link to read opens in the browser, as whoever gets it will see it.
+  const read: Link = {
+    key: "read",
+    label: t("shareLinkRead"),
+    url: card.read,
+    onOpen: () => void openUrl(card.read).catch(() => {}),
+  };
   // Someone else's share edited here: its link to read, and a way to stop editing it; theirs to manage.
   if (card.taken)
     return {
       kind: "shared",
       gist: t("sharedTaken"),
       said: t("sharedTakenWhy"),
-      links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
-      acts: [{ key: "stop", label: t("shareStopEditing"), onPick: asked.onStop }],
+      links: [read],
+      acts: [{ key: "stop", label: t("shareStopEditing"), danger: true, onPick: asked.onStop }],
     };
   // Held through another share, it lives, changes and goes with that one, so there is nothing to manage here.
   if (card.held)
-    return {
-      kind: "shared",
-      gist: t("sharedHeld"),
-      said: t("sharedHeldWhy"),
-      links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
-    };
-  const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
+    return { kind: "shared", gist: t("sharedHeld"), said: t("sharedHeldWhy"), links: [read] };
+  const links: Link[] = [read];
   if (card.edit)
     links.push({
       key: "edit",
@@ -220,11 +223,6 @@ const sharedPanel = (
     ? [
         { key: "settings", label: t("shareSettings"), onPick: asked.onSettings },
         {
-          key: "still",
-          label: t(card.still ? "shareFollowIt" : "shareStillIt"),
-          onPick: () => asked.onStill(!card.still),
-        },
-        {
           key: "pause",
           label: t(paused ? "shareResume" : "sharePause"),
           onPick: () => asked.onPause(!paused),
@@ -237,7 +235,13 @@ const sharedPanel = (
     tone: toneOf(card),
     said: saidOf(card),
     links: blocked ? [] : links,
-    acts: blocked ? [] : [...changes, { key: "stop", label: t("shareStop"), onPick: asked.onStop }],
+    // Keeping it in sync is a choice that stays, so it reads as one, as it does when sharing.
+    toggle: blocked
+      ? undefined
+      : { label: t("shareSynced"), on: !card.still, onTurn: (on) => asked.onStill(!on) },
+    acts: blocked
+      ? []
+      : [...changes, { key: "stop", label: t("shareStop"), danger: true, onPick: asked.onStop }],
   };
 };
 

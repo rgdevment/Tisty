@@ -42,6 +42,7 @@ export {
   type Panel,
   type Seal,
   sided,
+  type Toggle,
   wordsIn,
 } from "./side";
 export { copyFrom } from "./sideParts";

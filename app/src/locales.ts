@@ -424,6 +424,7 @@ const en = {
   viewCopyMd: "Copy as Markdown",
   viewCopy: "Copy",
   viewCopied: "Copied",
+  viewOpen: "Open",
   viewDuplicate: "Duplicate",
   viewReveal: "Show in folder",
   viewBrowse: "Open in the browser",
@@ -667,8 +668,6 @@ const en = {
     "In sync: every change you save reaches whoever has the link, a couple of minutes after you stop writing.",
   sharedStill:
     "Not in sync: the link shows it as it is now, and what you save from here on stays only in your Tisty.",
-  shareStillIt: "Stop syncing",
-  shareFollowIt: "Sync again",
   shareStop: "Stop sharing",
   shareSettings: "Password and expiry…",
   shareSettingsTitle: "Password and expiry",
@@ -3227,6 +3226,7 @@ const es: Catalog = {
   viewCopyMd: "Copiar como Markdown",
   viewCopy: "Copiar",
   viewCopied: "Copiado",
+  viewOpen: "Abrir",
   viewDuplicate: "Duplicar",
   viewReveal: "Mostrar en la carpeta",
   viewBrowse: "Abrir en el navegador",
@@ -3471,8 +3471,6 @@ const es: Catalog = {
     "Sincronizado: cada cambio que guardes le llega a quien tenga el link, un par de minutos después de que dejes de escribir.",
   sharedStill:
     "Sin sincronizar: el link lo muestra como está ahora, y lo que guardes desde aquí queda solo en tu Tisty.",
-  shareStillIt: "Dejar de sincronizar",
-  shareFollowIt: "Volver a sincronizar",
   shareStop: "Dejar de compartir",
   shareSettings: "Clave y caducidad…",
   shareSettingsTitle: "Clave y caducidad",

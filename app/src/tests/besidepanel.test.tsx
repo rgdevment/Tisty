@@ -17,6 +17,15 @@ beforeEach(() => {
   ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
 });
 
+const opened = vi.hoisted(() => ({ urls: [] as string[] }));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: (url: string) => {
+    opened.urls.push(url);
+    return Promise.resolve();
+  },
+}));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: { change?: { do: string }; still?: boolean }) => {
     ipc.asked.push(cmd);
@@ -383,8 +392,30 @@ describe("the shared row", () => {
     await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
     expect(row("shared").textContent).toContain(t("sharedFollows"));
     await press("shared");
-    await userEvent.click(screen.getByRole("button", { name: t("shareStillIt") }));
-    expect(await screen.findByRole("button", { name: t("shareFollowIt") })).toBeTruthy();
-    expect(row("shared").textContent).toContain(t("sharedStill"));
+    const synced = screen.getByRole("checkbox", { name: t("shareSynced") }) as HTMLInputElement;
+    expect(synced.checked).toBe(true);
+    await userEvent.click(synced);
+    await waitFor(() => expect(row("shared").textContent).toContain(t("sharedStill")));
+    expect(
+      (screen.getByRole("checkbox", { name: t("shareSynced") }) as HTMLInputElement).checked,
+    ).toBe(false);
+  });
+
+  it("opens the link to read in the browser, and keeps stopping apart from the rest", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      still: false,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("viewOpen") }));
+    expect(opened.urls).toEqual(["https://tisty.cl/k7Qm2xPa#llave"]);
+    expect(screen.getByRole("button", { name: t("shareStop") }).className).toContain("is-danger");
   });
 });

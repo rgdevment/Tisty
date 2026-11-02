@@ -28,7 +28,6 @@ const SPANISH = {
   forged:
     "La firma de este documento no corresponde a lo que dice o a este link, así que Tisty Share no lo muestra.",
   document: "Documento compartido",
-  notices: "Licencias de terceros",
   gatelabel: "Clave",
   gateopen: "Abrir",
   shared: "Compartido el {}",
@@ -94,7 +93,6 @@ const ENGLISH: Record<Word, string> = {
   forged:
     "This document's signature does not match what it says or this link, so Tisty Share does not show it.",
   document: "Shared document",
-  notices: "Third-party licences",
   gatelabel: "Password",
   gateopen: "Open",
   shared: "Shared on {}",
@@ -190,6 +188,7 @@ const SPANISH_SHEET: Record<ReadWord, string> = {
   viewSource: "Ver como Markdown",
   viewCopy: "Copiar",
   viewCopied: "Copiado",
+  viewOpen: "Abrir",
   besidePageOf: "Es página de",
   docFlagged: "Marcado como viejo",
   exportIt: "Exportar",
@@ -268,6 +267,7 @@ const ENGLISH_SHEET: Record<ReadWord, string> = {
   viewSource: "View as Markdown",
   viewCopy: "Copy",
   viewCopied: "Copied",
+  viewOpen: "Open",
   besidePageOf: "A page of",
   docFlagged: "Marked as old",
   exportIt: "Export",
