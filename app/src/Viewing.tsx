@@ -11,6 +11,7 @@ import {
   viewGo,
   viewImport,
   viewShown,
+  viewUnlock,
 } from "./core";
 import { paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
@@ -47,6 +48,14 @@ const remembered = (): { side: boolean; leaf: Paper } => {
     return { side, leaf: "a4" };
   }
 };
+
+// A share's pictures ride in its envelope and come with the copy kept here, so until then each says what it shows.
+const UNPICTURED = /!\[([^\]\n]*)\]\(\s*<?tisty:picture\/\d+>?[^)\n]*\)/g;
+const unpictured = (body: string): string =>
+  body.replace(UNPICTURED, (_, alt: string) => `*🖼 ${alt}*`);
+
+// A share behind a password is asked for it here, and asked again when the one given was not it.
+const LOCKED = new Set(["shareOpenGated", "shareOpenWrong"]);
 
 // A share link Tisty could not open says why in its own words, and its link can still go to the browser.
 const troubleOf = (refusal: { code: string; name?: string }, shared: boolean): Trouble =>
@@ -127,7 +136,9 @@ function Reading({
       gone = true;
     };
   }, [reading, shown]);
-  const body = reading ? shown.body : "";
+  const shared = reading && shown.kind === "file" && shown.shared;
+  const body = reading ? (shared ? unpictured(shown.body) : shown.body) : "";
+  const awaiting = shared && body !== shown.body;
   const which =
     shown?.kind === "doc" ? shown.paper.file : shown?.kind === "file" ? shown.path : null;
   const shape = useSheets(which, body);
@@ -271,6 +282,16 @@ function Reading({
           </button>
         </div>
       )}
+      {shared && shown.print && !shown.known && (
+        <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
+          {fill("viewSharedNewPrint", shown.print)}
+        </p>
+      )}
+      {awaiting && (
+        <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
+          {t("viewSharedPictures")}
+        </p>
+      )}
       {note && (
         <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-urgent" role="alert">
           {note}
@@ -324,6 +345,11 @@ function Reading({
           onReveal={shown.shared ? undefined : () => void revealItemInDir(shown.path).catch(fail)}
           onBrowse={shown.shared ? () => void openUrl(shown.path).catch(fail) : undefined}
           onRetry={look}
+          onPassword={
+            shown.shared && LOCKED.has(shown.refusal.code)
+              ? (password) => viewUnlock(password).then(look)
+              : undefined
+          }
         />
       )}
       {shown?.kind === "widget" && (

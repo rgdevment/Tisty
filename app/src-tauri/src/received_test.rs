@@ -2,7 +2,7 @@ use tisty_share_proto::seed::Seed;
 
 use super::*;
 use crate::sharing::Chosen;
-use crate::sharing::here::{Here, T0, voucher};
+use crate::sharing::here::{Here, T0, png, voucher};
 
 const KEY: &str = "_YQqHycdmpMvpG7q2Gmd3IjAeSc_Rbn-RvCb7NuqEB8";
 
@@ -20,6 +20,17 @@ fn only_a_link_to_tisty_share_s_own_server_is_taken() {
     // The edit token stays behind: Tisty only reads a share for now.
     let editing = asked(&opening(&format!("https://tisty.cl/oVD0Idz0#{KEY}.token"))).unwrap();
     assert_eq!(editing.key, KEY);
+    assert_eq!(
+        editing.edit, None,
+        "a token is what the server mints, not any word"
+    );
+    let token = "Yq3vR8kLmN2pQ7sT9wXz4bC6dF1gH5jK0aE8uI3oP7r";
+    let editing = asked(&opening(&format!(
+        "https://tisty.cl/oVD0Idz0#{KEY}.{token}"
+    )))
+    .unwrap();
+    assert_eq!(editing.edit.as_deref(), Some(token));
+    assert_eq!(editing.read(), format!("https://tisty.cl/oVD0Idz0#{KEY}"));
     // Read on www, it is the same server, and the link to read stays the plain one.
     let www = asked(&opening(&format!("https://www.tisty.cl/oVD0Idz0#{KEY}"))).unwrap();
     assert_eq!(www.read(), format!("https://tisty.cl/oVD0Idz0#{KEY}"));
@@ -47,6 +58,7 @@ fn link_of(shared: &tisty_core::event::Shared) -> Link {
     Link {
         id: shared.link.clone(),
         key: shared.key.clone(),
+        edit: None,
     }
 }
 
@@ -64,7 +76,7 @@ fn a_shared_document_opens_here_with_its_title_and_the_name_it_was_signed_with()
         Some("Ana"),
     )
     .unwrap();
-    let got = fetched(&here, &link_of(&shared)).unwrap();
+    let got = fetched(&here, &link_of(&shared), None).unwrap();
     assert_eq!(got.title, "Compras");
     assert_eq!(got.body, text);
     assert_eq!(got.signer.as_deref(), Some("Ana"));
@@ -88,20 +100,34 @@ fn a_share_behind_a_password_or_gone_is_told_as_such() {
     )
     .unwrap();
     assert_eq!(
-        fetched(&here, &link_of(&shared)).unwrap_err().code,
+        fetched(&here, &link_of(&shared), None).unwrap_err().code,
         "shareOpenGated"
+    );
+    // Tisty asks for the password itself, and says when it is not the one.
+    let link = link_of(&shared);
+    assert_eq!(
+        fetched(&here, &link, Some("otra")).unwrap_err().code,
+        "shareOpenWrong"
+    );
+    assert_eq!(
+        fetched(&here, &link, Some("perro azul")).unwrap().body,
+        "# x"
     );
 
     sharing::stop(&here, &shared).unwrap();
     assert_eq!(
-        fetched(&here, &link_of(&shared)).unwrap_err().code,
+        fetched(&here, &link_of(&shared), None).unwrap_err().code,
         "shareOpenGone"
     );
     let nowhere = Link {
         id: "nadaaqui".into(),
         key: KEY.into(),
+        edit: None,
     };
-    assert_eq!(fetched(&here, &nowhere).unwrap_err().code, "shareOpenGone");
+    assert_eq!(
+        fetched(&here, &nowhere, None).unwrap_err().code,
+        "shareOpenGone"
+    );
 }
 
 #[test]
@@ -121,9 +147,10 @@ fn an_envelope_nobody_signed_is_not_shown() {
     let other = Link {
         id: shared.link.clone(),
         key: LinkKey::from_bytes(&[1; 32]).to_text().to_string(),
+        edit: None,
     };
     assert_eq!(
-        fetched(&here, &other).unwrap_err().code,
+        fetched(&here, &other, None).unwrap_err().code,
         "shareOpenUnsigned"
     );
 }
@@ -147,7 +174,97 @@ fn a_share_whose_key_was_taken_back_is_not_shown_as_its_writer_s() {
     sharing::revoke(&here, &[taken]).unwrap();
 
     assert_eq!(
-        fetched(&here, &link_of(&shared)).unwrap_err().code,
+        fetched(&here, &link_of(&shared), None).unwrap_err().code,
         "shareOpenRevoked"
+    );
+}
+
+#[test]
+fn a_share_s_pictures_are_kept_among_the_attachments_of_its_copy() {
+    let here = Here::new();
+    let pictures = vec![(Kind::Png, png(20)), (Kind::Png, png(30))];
+    let text = "# Playa
+
+![uno](tisty:picture/0)
+
+![dos](tisty:picture/1 \"Dos\")
+";
+    let shared = sharing::share(
+        &here,
+        sharing::SERVER,
+        text,
+        &pictures,
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    let got = fetched(&here, &link_of(&shared), None).unwrap();
+    assert_eq!(got.pictures.len(), 2);
+
+    let data = tempfile::tempdir().unwrap();
+    let scratch = tempfile::tempdir().unwrap();
+    let (body, told) = kept_pictures(&got, data.path(), scratch.path());
+    assert_eq!(told.len(), 2);
+    assert!(!body.contains("tisty:picture/"), "{body}");
+    for leaf in body
+        .split("](")
+        .skip(1)
+        .map(|one| one.split([')', ' ']).next().unwrap())
+    {
+        assert!(tisty_core::attach::names_an_attachment(leaf), "{leaf}");
+        assert!(
+            data.path().join("attachments").join(leaf).is_file(),
+            "{leaf}"
+        );
+    }
+    assert!(body.contains("\"Dos\")"));
+}
+
+fn read_at(version: u64, print: &str) -> Received {
+    Received {
+        title: "Compras".into(),
+        body: "# Compras".into(),
+        signer: None,
+        pictures: Vec::new(),
+        version,
+        print: print.into(),
+        known: false,
+        gated: false,
+    }
+}
+
+#[test]
+fn an_older_version_than_one_read_here_is_refused_and_a_key_met_before_is_known() {
+    let cache = tempfile::tempdir().unwrap();
+    let link = Link {
+        id: "oVD0Idz0".into(),
+        key: KEY.into(),
+        edit: None,
+    };
+    let first = seen_here(cache.path(), &link, None, read_at(2, "48210 93755")).unwrap();
+    assert!(!first.known);
+    // A server that serves an older version, signed or not, is not believed.
+    assert_eq!(
+        seen_here(cache.path(), &link, None, read_at(1, "48210 93755"))
+            .unwrap_err()
+            .code,
+        "shareOpenOlder"
+    );
+    assert!(
+        seen_here(cache.path(), &link, None, read_at(3, "48210 93755"))
+            .unwrap()
+            .known
+    );
+    // One's own key is known from the start.
+    let other = Link {
+        id: "k7Qm2xPa".into(),
+        key: KEY.into(),
+        edit: None,
+    };
+    assert!(
+        seen_here(cache.path(), &other, Some("11111"), read_at(1, "11111"))
+            .unwrap()
+            .known
     );
 }
