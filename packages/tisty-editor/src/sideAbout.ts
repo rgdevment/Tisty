@@ -1,6 +1,6 @@
 import { glyph } from "./cards";
 import { offered, type Paper } from "./paper";
-import type { About, Book } from "./side";
+import type { About, Book, Tongue } from "./side";
 import { made, pressed, toggle, tooled } from "./sideParts";
 import type { ReadWord, Say } from "./words";
 
@@ -23,6 +23,19 @@ const trailed = (page: Document, panel: Of<"title">) => {
   return line;
 };
 
+const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) => {
+  const row = made(page, "div", "side-leaves side-tongues");
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", say("tonguesOf"));
+  for (const one of tongues) {
+    const button = pressed(page, "side-leaf", one.label, () => !one.on && one.onPick());
+    button.setAttribute("lang", one.lang);
+    button.setAttribute("aria-pressed", String(one.on));
+    row.append(button);
+  }
+  return row;
+};
+
 const titled = (page: Document, say: Say, panel: Of<"title">) => {
   const head = made(page, "header", "side-title-row");
   const line = made(page, "div", "side-title-line");
@@ -33,6 +46,7 @@ const titled = (page: Document, say: Say, panel: Of<"title">) => {
   if (onShut) line.append(tooled(page, "side-shut", say("besideShut"), onShut, "✕"));
   head.append(line);
   if (panel.under || panel.trail?.length) head.append(trailed(page, panel));
+  if (panel.tongues?.length) head.append(tongued(page, say, panel.tongues));
   return head;
 };
 

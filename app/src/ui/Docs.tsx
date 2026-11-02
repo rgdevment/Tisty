@@ -1187,6 +1187,8 @@ export default function Docs({
           }
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
+          tongues={tongues}
+          onTongue={toTongue}
           onFolder={onFolder}
           onCopy={() => {
             asPlain(open.file)
