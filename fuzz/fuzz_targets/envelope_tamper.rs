@@ -81,6 +81,11 @@ fuzz_target!(|input: Input| {
     assert_eq!(opened.text.as_str(), input.text);
     assert_eq!(opened.cited, cited);
     assert_eq!(opened.pictures.len(), pictures.len());
+    assert_eq!(opened.html.as_deref().map(String::as_str), draft.html);
+    assert_eq!(
+        matches!(opened.wrote, Some(Verdict::Holds { .. })),
+        input.signed
+    );
 
     let at = input.at % bytes.len();
     if input.cut {

@@ -21,6 +21,8 @@ pub const ROOT: &str = "/api/v1/";
 /// Room beside what its limits let it carry: the manifest and its index (16 KB), both signatures (4 KB), the list of
 /// what it cites (64 KB) and every part's tag.
 const ENVELOPE_OVERHEAD: u64 = 96 * 1024;
+/// What each picture adds beside its bytes: its tag, its hash in the index and its hash in the writer's signature.
+const PICTURE_OVERHEAD: u64 = 16 + 32 + 48;
 
 /// Said on every answer: nothing private is cached or indexed (decision 63), and the browser keeps to HTTPS.
 const ALWAYS: [(&str, &str); 6] = [
@@ -133,6 +135,7 @@ pub fn ceiling(limits: &Limits) -> u64 {
         .text
         .saturating_add(limits.html)
         .saturating_add(limits.all_pictures)
+        .saturating_add(limits.pictures.saturating_mul(PICTURE_OVERHEAD))
         .saturating_add(ENVELOPE_OVERHEAD)
 }
 

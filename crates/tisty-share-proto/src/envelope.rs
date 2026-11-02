@@ -14,6 +14,8 @@ use crate::limits::Limits;
 
 /// A signature, its certificate and their names fit well inside this.
 const SIGNATURE_AT_MOST: usize = 2 * 1024;
+// One picture's hash as the inner signature lists it: 43 characters, quotes and a comma, with room to spare.
+const HASHED_PICTURE: usize = 48;
 /// What any server could ask for stays far below; only reading the format is held here, never a quota.
 const MANIFEST_AT_MOST: usize = 16 * 1024;
 const ID_AT_MOST: usize = 64;
@@ -170,6 +172,8 @@ pub enum Refused {
     Damaged,
     #[error("the text is over what this server takes")]
     TextTooBig,
+    #[error("the drawn page is over what this server takes")]
+    HtmlTooBig,
     #[error("a picture is over what this server takes")]
     PictureTooBig,
     #[error("there are more pictures than this server takes")]
@@ -209,6 +213,14 @@ impl Manifest {
 
     fn parts_hold(&self, limits: &Limits) -> Result<(), Refused> {
         let (text, rest) = self.parts.split_first().ok_or(Refused::Damaged)?;
+        let hashed = match self.v {
+            RENDERED => self
+                .parts
+                .iter()
+                .filter(|one| one.kind.is_picture())
+                .count(),
+            _ => 0,
+        };
         if text.kind != Kind::Text || text.size < TAG as u64 {
             return Err(Refused::Damaged);
         }
@@ -217,7 +229,9 @@ impl Manifest {
         }
         let rest = match rest.split_first() {
             Some((signature, rest)) if signature.kind == Kind::Signature => {
-                if signature.size < TAG as u64 || signature.plain() > SIGNATURE_AT_MOST as u64 {
+                if signature.size < TAG as u64
+                    || signature.plain() > (SIGNATURE_AT_MOST + HASHED_PICTURE * hashed) as u64
+                {
                     return Err(Refused::Damaged);
                 }
                 rest
@@ -241,7 +255,7 @@ impl Manifest {
                     return Err(Refused::Damaged);
                 }
                 if html.plain() > limits.html {
-                    return Err(Refused::TextTooBig);
+                    return Err(Refused::HtmlTooBig);
                 }
                 pictures
             }
@@ -389,7 +403,7 @@ fn named_id(id: &str) -> bool {
 
 /// The list as it is sealed: none at all when nothing is cited, so such an envelope is what it always was.
 #[cfg(feature = "mint")]
-fn cited_bytes(cited: &[Cited]) -> Result<Option<Vec<u8>>, Refused> {
+fn cited_bytes(cited: &[Cited]) -> Result<Option<Zeroizing<Vec<u8>>>, Refused> {
     if cited.is_empty() {
         return Ok(None);
     }
@@ -397,7 +411,7 @@ fn cited_bytes(cited: &[Cited]) -> Result<Option<Vec<u8>>, Refused> {
         return Err(Refused::Damaged);
     }
     serde_json::to_vec(cited)
-        .map(Some)
+        .map(|said| Some(Zeroizing::new(said)))
         .map_err(|_| Refused::Damaged)
 }
 
@@ -452,10 +466,9 @@ pub fn seal(
 ) -> Result<Envelope, Refused> {
     check_draft(draft)?;
     let cited = cited_bytes(draft.cited)?;
-    let inner = by
-        .map(|signer| wrote(signer, draft, cited.as_deref()))
-        .transpose()?;
-    sealed_with(key, draft, inner.as_deref(), cited.as_deref(), by, limits)
+    let cited = cited.as_ref().map(|said| said.as_slice());
+    let inner = by.map(|signer| wrote(signer, draft, cited)).transpose()?;
+    sealed_with(key, draft, inner.as_deref(), cited, by, limits)
 }
 
 /// Seals the words with an inner signature already made, which only `seal` and the tests that forge one make.
@@ -516,7 +529,8 @@ fn sealed_with(
     let last = plain.len() - 1;
     let mut sealed_parts = Vec::with_capacity(plain.len());
     for (at, (_, said)) in plain.iter().enumerate() {
-        let mut sealed = Zeroizing::new(said.to_vec());
+        let mut sealed = Zeroizing::new(Vec::with_capacity(said.len() + TAG));
+        sealed.extend_from_slice(said);
         cipher
             .encrypt_in_place(
                 &nonced(&head, at as u32, at == last).into(),
@@ -611,7 +625,8 @@ fn wrote(signer: &Signer, draft: &Draft, cited: Option<&[u8]>) -> Result<Vec<u8>
         None => Vec::new(),
     };
     let covered = match draft.html {
-        Some(html) => drawn_content(draft.text, cited, html, draft.pictures, &pictures),
+        Some(html) => drawn_content(draft.text, cited, html, draft.pictures, &pictures)
+            .ok_or(Refused::Unsigned)?,
         None => content(draft.text, cited, draft.pictures),
     };
     let said = vouched_words(&covered, draft.id, signer.at, signer.name);
@@ -654,7 +669,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             .map_err(|_| Refused::Locked)?;
         plain.push(bytes);
     }
-    let text = Zeroizing::new(String::from_utf8(plain[0].to_vec()).map_err(|_| Refused::Damaged)?);
+    let text = Zeroizing::new(worded(&plain[0])?);
     let cited_bytes = manifest.cited_at().map(|at| plain[at].as_slice());
     let cited: Vec<Cited> = match cited_bytes {
         Some(bytes) => serde_json::from_slice(bytes).map_err(|_| Refused::Damaged)?,
@@ -667,9 +682,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
         return Err(Refused::Damaged);
     }
     let html = match manifest.html_at() {
-        Some(at) => Some(Zeroizing::new(
-            String::from_utf8(plain[at].to_vec()).map_err(|_| Refused::Damaged)?,
-        )),
+        Some(at) => Some(Zeroizing::new(worded(&plain[at])?)),
         None => None,
     };
     let first_picture = manifest.first_picture();
@@ -692,18 +705,19 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             .collect();
         let covered = match &html {
             Some(html) => drawn_content(&text, cited_bytes, html, &shown, &inner.pictures),
-            None => content(&text, cited_bytes, &shown),
+            None => Some(content(&text, cited_bytes, &shown)),
         };
-        let said = vouched_words(&covered, &inner.id, inner.at, inner.name.as_deref());
+        let said = covered
+            .map(|covered| vouched_words(&covered, &inner.id, inner.at, inner.name.as_deref()));
         // Each picture must be the one the writer hashed, which holds them apart from the words they signed.
         let pictured = html.is_none() || pictures_hold(&shown, &inner.pictures);
         // The server tells only the sender's revocations, so words another key wrote, or signed for another link, never hold.
-        let verdict = match (inner.id == manifest.id && pictured, &envelope.sent) {
-            (false, _) => Verdict::Refused,
-            (true, Some(sent)) if !same_key(&sent.certificate, &inner.signed.certificate) => {
+        let verdict = match (said, inner.id == manifest.id && pictured, &envelope.sent) {
+            (None, _, _) | (_, false, _) => Verdict::Refused,
+            (_, true, Some(sent)) if !same_key(&sent.certificate, &inner.signed.certificate) => {
                 Verdict::Refused
             }
-            (true, _) => check(&inner.signed, WROTE, &said, revoked),
+            (Some(said), true, _) => check(&inner.signed, WROTE, &said, revoked),
         };
         let written = Written {
             at: inner.at,
@@ -1023,7 +1037,10 @@ fn drawn_content(
     html: &str,
     pictures: &[(Kind, &[u8])],
     hashes: &[String],
-) -> Vec<u8> {
+) -> Option<Vec<u8>> {
+    if pictures.len() != hashes.len() {
+        return None;
+    }
     let mut over = Sha256::new();
     over.update(WRITTEN);
     over.update(b"drawn");
@@ -1039,11 +1056,19 @@ fn drawn_content(
     }
     over.update((hashes.len() as u64).to_be_bytes());
     for ((kind, _), hash) in pictures.iter().zip(hashes) {
-        over.update(kind.media().as_bytes());
-        over.update((hash.len() as u64).to_be_bytes());
-        over.update(hash.as_bytes());
+        for said in [kind.media(), hash] {
+            over.update((said.len() as u64).to_be_bytes());
+            over.update(said.as_bytes());
+        }
     }
-    over.finalize().to_vec()
+    Some(over.finalize().to_vec())
+}
+
+// Checked before it is copied, so words that are not text never leave a copy behind.
+fn worded(plain: &[u8]) -> Result<String, Refused> {
+    std::str::from_utf8(plain)
+        .map(str::to_owned)
+        .map_err(|_| Refused::Damaged)
 }
 
 // Each picture hashes to what the writer listed, and there are as many as the list says.

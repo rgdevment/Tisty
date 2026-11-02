@@ -84,6 +84,7 @@ impl Unread {
             // Over Tisty's own limits, which the server's may be wider than.
             Self::Envelope(
                 Refused::TextTooBig
+                | Refused::HtmlTooBig
                 | Refused::PictureTooBig
                 | Refused::TooManyPictures
                 | Refused::PicturesTooBig
