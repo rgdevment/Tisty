@@ -133,6 +133,14 @@ opt-level = 2
 lto = "thin"
 strip = true
 
+# The share page's wasm is downloaded by every reader, so it is built for size, whole-program, with nothing to unwind.
+[profile.share-wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
 # Stripping takes the externref table wasm-bindgen 0.2.129 needs for its catch wrappers; wasm-opt shrinks the wasm after.
 [profile.release.package.tisty-share-worker]
 strip = false

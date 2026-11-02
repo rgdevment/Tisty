@@ -141,7 +141,7 @@ export const webPage = async (
   );
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   iconed(page);
-  coloredAll(page);
+  await coloredAll(page);
   await diagrams(page, false, () => true);
   unlinked(page);
   if (sheet) papered(page, sheet);

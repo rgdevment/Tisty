@@ -1,6 +1,11 @@
-import { common, createLowlight } from "lowlight";
+type Lowlight = ReturnType<typeof import("lowlight").createLowlight>;
 
-const lowlight = createLowlight(common);
+let engine: Promise<Lowlight> | undefined;
+// The grammars weigh more than the rest of what draws a page, so they come only for a page with code to colour.
+const lowlit = (): Promise<Lowlight> =>
+  (engine ??= import("lowlight").then(({ common, createLowlight }) => createLowlight(common)));
+
+const CODES = "figure.code > pre > code[class]";
 const FRAME_MS = 12;
 const PAINTED_AT_MOST = 64 * 1024;
 
@@ -20,7 +25,7 @@ const grown = (page: Document, node: Lit): Node => {
   return span;
 };
 
-const painted = (page: Document, code: HTMLElement) => {
+const painted = (lowlight: Lowlight, page: Document, code: HTMLElement) => {
   const tongue = /language-(\S+)/.exec(code.className)?.[1];
   const said = code.textContent ?? "";
   if (!tongue || !lowlight.registered(tongue) || said.length > PAINTED_AT_MOST) return;
@@ -29,18 +34,22 @@ const painted = (page: Document, code: HTMLElement) => {
   code.replaceChildren(...nodes);
 };
 
-export const coloredAll = (page: Document) => {
-  for (const code of page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"))
-    painted(page, code);
+export const coloredAll = async (page: Document) => {
+  const codes = page.querySelectorAll<HTMLElement>(CODES);
+  if (codes.length === 0) return;
+  const lowlight = await lowlit();
+  for (const code of codes) painted(lowlight, page, code);
 };
 
-export const colored = (page: Document, live: () => boolean) => {
-  const codes = Array.from(page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"));
+export const colored = async (page: Document, live: () => boolean) => {
+  const codes = Array.from(page.querySelectorAll<HTMLElement>(CODES));
+  if (codes.length === 0) return;
+  const lowlight = await lowlit();
   const step = (from: number) => {
     const until = performance.now() + FRAME_MS;
     let at = from;
     while (live() && at < codes.length && performance.now() < until) {
-      painted(page, codes[at]);
+      painted(lowlight, page, codes[at]);
       at += 1;
     }
     if (live() && at < codes.length) requestAnimationFrame(() => step(at));
