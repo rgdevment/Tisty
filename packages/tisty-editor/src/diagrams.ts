@@ -1,5 +1,4 @@
 import type { MermaidConfig } from "mermaid";
-import { grounded } from "tisty-diagrams/read";
 
 type Mermaid = typeof import("mermaid")["default"];
 type Studio = typeof import("tisty-diagrams/read");
@@ -176,5 +175,10 @@ export const diagramShot = (figure: Element): string | null => {
   const box = svg.viewBox?.baseVal;
   const size = box?.width ? { wide: box.width, tall: box.height } : { wide: 800, tall: 600 };
   const ground = getComputedStyle(figure).getPropertyValue("--tisty-sheet").trim() || "#232326";
-  return `data:image/svg+xml,${encodeURIComponent(grounded(svg.outerHTML, size, ground))}`;
+  // The ground is painted on the drawing itself, so the studio never loads only to frame a picture.
+  const shot = svg.cloneNode(true) as SVGSVGElement;
+  shot.setAttribute("width", String(size.wide));
+  shot.setAttribute("height", String(size.tall));
+  shot.style.backgroundColor = ground;
+  return `data:image/svg+xml,${encodeURIComponent(shot.outerHTML)}`;
 };

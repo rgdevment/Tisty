@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { glyph, piece } from "tisty-editor/read";
+import { drawnGlyph, markup, piece } from "tisty-editor/read";
 import { keptHere, type Lent, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
@@ -141,7 +141,7 @@ const filed = (page: Document, img: Element, at: string, live: () => boolean, as
   card.setAttribute("href", at);
   card.dataset.family = kin;
   const tile = piece(page, "card-tile");
-  tile.append(glyph(page, GLYPH[kin] ?? "page"));
+  tile.append(drawnGlyph(page, markup(GLYPH[kin] ?? "page") ?? ""));
   const meta = piece(page, "card-meta");
   const kindIs = piece(page, "kind", labelled(kind));
   meta.append(kindIs);
