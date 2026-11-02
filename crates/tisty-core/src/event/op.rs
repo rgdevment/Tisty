@@ -357,6 +357,15 @@ pub struct Shared {
     /// What the person chose to sign it with, which every version keeps (decision 89).
     #[serde(default, skip_serializing_if = "Signs::is_name")]
     pub signs: Signs,
+    /// The documents it holds on the server, its pages and what it cites, each shared in its own envelope (decision 64).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub holds: Vec<DocId>,
+    /// Shared only because another share holds it, so it goes when nothing holds it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub held: bool,
+    /// The person chose to share what it cites besides its pages, which every save keeps up.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub cites: bool,
 }
 
 /// The name a share goes out signed with; the key signs it whichever is chosen.

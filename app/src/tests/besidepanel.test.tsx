@@ -276,6 +276,40 @@ describe("the shared row", () => {
     );
   });
 
+  it("shows a document held by another share as going with it, with nothing to manage", async () => {
+    ipc.card = {
+      read: "https://tisty.cl/pag2Xa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      still: false,
+      held: true,
+      info: null,
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/pag2Xa#llave");
+    expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedHeld"));
+    await press("shared");
+    expect(screen.queryByRole("button", { name: t("shareStop") })).toBeNull();
+    expect(screen.queryByRole("button", { name: t("shareSettings") })).toBeNull();
+  });
+
+  it("says how many documents a share holds besides itself", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      still: false,
+      holds: 3,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).toContain(fill("sharedHolds", "3"));
+  });
+
   it("pauses a share and resumes it, saying when a paused one goes", async () => {
     const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
     ipc.card = {

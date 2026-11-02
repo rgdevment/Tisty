@@ -652,6 +652,17 @@ const en = {
   shareLinkEditNote: "it edits only in Tisty",
   shareAdminKept: "The link to manage it stays in your Tisty and travels with your data.",
   shareKeeps: "When you save it later",
+  sharePages: "Its {name} pages go with it, each in its own envelope.",
+  sharePagesOne: "Its page goes with it, in its own envelope.",
+  shareCites: "Share the {name} documents it cites too",
+  shareCitesOne: "Share the document it cites too",
+  shareCitesWhy:
+    "Whoever opens the link opens them from it, on the same page. They live as long as this share and go with it; what is not shared reads as plain text.",
+  sharedHeld: "Goes with another share",
+  sharedHeldWhy:
+    "It is shared because a document you shared cites it: it opens from that one, changes when you save and goes when that one does.",
+  sharedHolds: "{name} documents it cites go with it.",
+  sharedHoldsOne: "A document it cites goes with it.",
   shareKeepsFollow: "The link updates",
   shareKeepsStill: "The link stays as now",
   sharedFollows: "The link shows what you save, a couple of minutes after you stop writing.",
@@ -683,6 +694,9 @@ const en = {
   shareOffline: "Tisty Share could not be reached. Check your connection and try again.",
   shareRefused: "Tisty Share did not accept it. Try again in a moment.",
   shareAlready: "This document is already shared.",
+  shareTooManyCited:
+    "It cites more documents than one share can take along. Share it without what it cites, or split it.",
+  shareHeld: "It opens through the share that cites it, which is where a password goes.",
   shareFailed: "Tisty Share did not answer as expected. Try again in a moment.",
   shareOpenGated:
     "This document asks for a password. Whoever shared it gave it to you apart from the link.",
@@ -3442,6 +3456,17 @@ const es: Catalog = {
   shareLinkEditNote: "solo edita en Tisty",
   shareAdminKept: "El link para administrarlo queda en tu Tisty y viaja con tus datos.",
   shareKeeps: "Cuando lo guardes después",
+  sharePages: "Van también sus {name} páginas, cada una en su propio sobre.",
+  sharePagesOne: "Va también su página, en su propio sobre.",
+  shareCites: "Compartir también los {name} documentos que cita",
+  shareCitesOne: "Compartir también el documento que cita",
+  shareCitesWhy:
+    "Quien abra el link los abre desde él, en la misma página. Viven mientras viva este compartido y se van con él; lo que no se comparte se ve como texto.",
+  sharedHeld: "Va con otro compartido",
+  sharedHeldWhy:
+    "Está compartido porque lo cita un documento que compartiste: se abre desde ese, cambia cuando guardas y se va cuando ese se va.",
+  sharedHolds: "Van con él {name} documentos que cita.",
+  sharedHoldsOne: "Va con él un documento que cita.",
   shareKeepsFollow: "El link se actualiza",
   shareKeepsStill: "El link queda como ahora",
   sharedFollows:
@@ -3475,6 +3500,9 @@ const es: Catalog = {
   shareOffline: "No se pudo llegar a Tisty Share. Revisa tu conexión e inténtalo de nuevo.",
   shareRefused: "Tisty Share no lo aceptó. Vuelve a intentarlo en un momento.",
   shareAlready: "Este documento ya está compartido.",
+  shareTooManyCited:
+    "Cita más documentos de los que un compartido puede llevar. Compártelo sin lo que cita, o divídelo.",
+  shareHeld: "Se abre desde el compartido que lo cita, que es donde va la clave.",
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
   shareOpenGated: "Este documento pide una clave. Quien lo compartió te la dio aparte del link.",
   shareOpenWrong: "Esa no es su clave. Confírmala con quien lo compartió.",

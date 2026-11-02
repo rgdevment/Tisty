@@ -3,7 +3,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::{Shared, Signs};
-use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
+use tisty_share_proto::envelope::{self, Cited, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
@@ -115,6 +115,9 @@ pub(crate) struct Chosen {
     /// Kept as it is now rather than following what is saved (decision 48).
     #[serde(default)]
     pub(crate) still: bool,
+    /// What it cites besides its pages goes too, each in its own envelope (decision 64).
+    #[serde(default)]
+    pub(crate) cites: bool,
 }
 
 /// A print of a text, to tell whether it changed between two reads of it.
@@ -306,7 +309,8 @@ fn destination(text: &str, image: usize) -> Option<(usize, usize)> {
     (bytes[closes] == b')').then_some((opens, closes))
 }
 
-/// Shares a document's words for the first time: reserves its links, seals and signs it and puts its first version up.
+/// Shares a document's words for the first time, as Tisty did before what it cites went with it.
+#[cfg(test)]
 pub(crate) fn share(
     wire: &impl Wire,
     server: &str,
@@ -316,6 +320,20 @@ pub(crate) fn share(
     voucher: &Voucher,
     name: Option<&str>,
 ) -> Result<Shared, Refusal> {
+    let shared = reserve(wire, server, chosen)?;
+    let first = Words {
+        text,
+        cited: &[],
+        pictures,
+        voucher,
+        name,
+    };
+    first_up(wire, &shared, &first, chosen)?;
+    Ok(shared)
+}
+
+/// Reserves a document's links and mints the key that will seal it, so what cites it can name it before it is up.
+pub(crate) fn reserve(wire: &impl Wire, server: &str, chosen: &Chosen) -> Result<Shared, Refusal> {
     let work = worked(wire, json!({ "for": "reserve" }))?;
     let reserved: Reserved = answered(wire.send(Asking {
         method: "POST",
@@ -326,7 +344,7 @@ pub(crate) fn share(
         body: Vec::new(),
     })?)?;
     let link_key = LinkKey::minted().ok_or(Refusal::of("internal"))?;
-    let shared = Shared {
+    Ok(Shared {
         server: server.to_owned(),
         link: reserved.id,
         key: link_key.to_text().to_string(),
@@ -339,29 +357,52 @@ pub(crate) fn share(
         taken: false,
         print: String::new(),
         signs: chosen.signs,
-    };
-    let first = Words {
-        text,
-        pictures,
-        voucher,
-        name,
-    };
-    if let Err(refused) = put_up(wire, &shared, None, &first) {
-        // An answer lost on the way back may still have left it up, and a link nobody kept is a link nobody can stop.
-        let _ = stop(wire, &shared);
-        return Err(refused);
-    }
-    if let Err(refused) = guarded(wire, &shared, chosen) {
-        // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
-        let _ = stop(wire, &shared);
-        return Err(refused);
-    }
-    Ok(shared)
+        holds: Vec::new(),
+        held: false,
+        cites: chosen.cites,
+    })
 }
 
-/// What goes up as a version: the words, their pictures, and who signs them.
+/// Puts a reserved document's first version up with what was chosen for it, or lets its links go.
+pub(crate) fn first_up(
+    wire: &impl Wire,
+    shared: &Shared,
+    words: &Words,
+    chosen: &Chosen,
+) -> Result<(), Refusal> {
+    if let Err(refused) = put_up(wire, shared, None, words) {
+        // An answer lost on the way back may still have left it up, and a link nobody kept is a link nobody can stop.
+        let _ = stop(wire, shared);
+        return Err(refused);
+    }
+    if let Err(refused) = guarded(wire, shared, chosen) {
+        // Up without the password or the shorter life it was asked for is not what the person shared, so it goes.
+        let _ = stop(wire, shared);
+        return Err(refused);
+    }
+    Ok(())
+}
+
+/// The share takes up a document it cites, so that one lives as long as it does (decision 64).
+pub(crate) fn hold(
+    wire: &impl Wire,
+    holder: &Shared,
+    cited: &Shared,
+    lives: bool,
+) -> Result<(), Refusal> {
+    let with = json!({ "id": cited.link, "admin": cited.admin, "lives": lives });
+    managed(wire, holder, json!({ "do": "hold", "with": with }))
+}
+
+/// The share lets go of a document it no longer cites; one shared only through it goes on the server.
+pub(crate) fn release(wire: &impl Wire, holder: &Shared, link: &str) -> Result<(), Refusal> {
+    managed(wire, holder, json!({ "do": "release", "with": link }))
+}
+
+/// What goes up as a version: the words, the documents they lead to, their pictures, and who signs them.
 pub(crate) struct Words<'a> {
     pub(crate) text: &'a str,
+    pub(crate) cited: &'a [Cited],
     pub(crate) pictures: &'a [(Kind, Vec<u8>)],
     pub(crate) voucher: &'a Voucher,
     pub(crate) name: Option<&'a str>,
@@ -437,6 +478,7 @@ fn put_up(
         version: from.map_or(1, |one| one + 1),
         from,
         text: words.text,
+        cited: words.cited,
         pictures: &pictures,
     };
     let sealed =
@@ -519,6 +561,15 @@ pub(crate) fn info(wire: &impl Wire, shared: &Shared) -> Result<Info, Refusal> {
 /// Its links stop leading anywhere; the document itself stays as it is (decision 48).
 pub(crate) fn stop(wire: &impl Wire, shared: &Shared) -> Result<(), Refusal> {
     managed(wire, shared, json!({ "do": "delete" }))
+}
+
+/// The server turned it away for one of these reasons, by the name it gave.
+pub(crate) fn refused_as(refused: &Refusal, names: &[&str]) -> bool {
+    refused.code == "shareRefused"
+        && refused
+            .name
+            .as_deref()
+            .is_some_and(|name| names.contains(&name))
 }
 
 /// The server no longer holds it: it ran out, or was stopped from another machine.

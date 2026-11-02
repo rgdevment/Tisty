@@ -252,6 +252,8 @@ const KNOWN = [
   "shareUnsigned",
   "shareNotMine",
   "shareNoKey",
+  "shareTooManyCited",
+  "shareHeld",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

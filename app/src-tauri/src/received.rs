@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use tisty_share_proto::envelope::{self, Envelope, Kind, LinkKey};
+use tisty_share_proto::envelope::{self, Cited, Envelope, Kind, LinkKey};
 use tisty_share_proto::identity::{Revocation, Verdict};
 use tisty_share_proto::limits::Limits;
 
@@ -43,6 +43,8 @@ pub struct Received {
     pub known: bool,
     /// Whether it took a password to open.
     pub gated: bool,
+    /// What its words cite, each with the link and key that open it (decision 64).
+    pub cited: Vec<Cited>,
 }
 
 // Whatever reaches Tisty from outside is a third party's word: only a link to Tisty Share's own server is fetched.
@@ -163,6 +165,7 @@ pub fn opened_from(said: Said, key: &str) -> Result<Received, Refusal> {
         print,
         known: false,
         gated: false,
+        cited: opened.cited,
         body,
     })
 }

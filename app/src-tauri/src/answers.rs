@@ -2,6 +2,7 @@ pub mod agents;
 pub mod attaching;
 pub mod calendar;
 pub mod carrying;
+pub mod citing;
 pub mod clouding;
 pub mod freeing;
 pub mod helping;
