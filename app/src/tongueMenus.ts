@@ -1,6 +1,6 @@
 import type { Filed } from "./core";
 import type { Hands } from "./docMenus";
-import { locale, t } from "./locales";
+import { fill, locale, t } from "./locales";
 import { docTongue, docTranslate, tongueName, tonguesOf } from "./tongues";
 import type { Choice } from "./ui/Menu";
 
@@ -11,6 +11,9 @@ const languages = (but: readonly (string | null | undefined)[]): string[] => {
   const app = locale().split("-")[0];
   return [app, ...COMMON.filter((one) => one !== app)].filter((one) => !but.includes(one));
 };
+
+// Each question names the document it asks about, so it is never a guess which one.
+const asked = (doc: Filed) => fill("tongueOf", doc.title || t("untitledDoc"));
 
 const named = (lang: string, onPick: () => void, into?: Choice["into"]): Choice => ({
   key: lang,
@@ -72,9 +75,7 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
       into: {
         label: t("translateWhich"),
         choices: languages(said).map((lang) =>
-          saying(doc, t("tongueIsWhich"), [lang], (from) =>
-            named(lang, () => translate(lang, from)),
-          ),
+          saying(doc, asked(doc), [lang], (from) => named(lang, () => translate(lang, from))),
         ),
       },
     },
@@ -87,7 +88,7 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
         label: t("joinWhich"),
         choices: others.map((other) => {
           const theirs = (lang?: string): Choice =>
-            saying(other, t("theirTongueWhich"), [lang], (their) => ({
+            saying(other, asked(other), [lang], (their) => ({
               key: other.id,
               icon: "▤",
               label: other.title || t("untitledDoc"),
@@ -100,7 +101,7 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
                 icon: "▤",
                 label: other.title || t("untitledDoc"),
                 into: {
-                  label: t("tongueIsWhich"),
+                  label: asked(doc),
                   choices: languages([other.lang]).map((lang) => {
                     const next = theirs(lang);
                     return named(lang, () => next.onPick?.(), next.into);

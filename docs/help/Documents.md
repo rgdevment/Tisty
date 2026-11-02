@@ -79,7 +79,7 @@ A long document in parts — a year of minutes, a book by chapters — is one do
 A document can be told in several languages: each language is a document of its own, and Tisty shows them as one, in the language of the app, with a switch above the sheet that keeps your place.
 
 - **Translate into…**, in the document's menu, writes a copy of its words and pages in the language you pick, ready to translate section by section. If the document does not say its language yet, it asks.
-- **Join as a translation of…** puts two documents you already have together, and **Take out of its languages** parts them again.
+- **Join with its other language…** puts two documents you already have together, in either order: it asks each one's language by its name, and **Take out of its languages** parts them again.
 - The languages of a document stand in one folder, and move, rest and go together. Searching finds them once, open in the language the words turned up in.
 - Taking a document out writes `translationKey:` in its properties, and bringing it back in joins it to the others again.
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Filed, Folded } from "../core";
 import type { Hands } from "../docMenus";
+import { fill } from "../locales";
 import { tongueChoices } from "../tongueMenus";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve() }));
@@ -41,5 +42,20 @@ describe("joining as a translation", () => {
     const join = tongueChoices(docs[0], hands).find((one) => one.key === "joinTongues");
 
     expect(join?.into?.choices.map((one) => one.key)).toEqual(["rsrc-es", "projects-doc"]);
+  });
+
+  it("asks each document's language by its name, never as this one or that one", () => {
+    const en = { ...doc("Network", "rsrc"), lang: null };
+    const es = { ...doc("Red", "rsrc"), lang: null };
+    const hands = {
+      papers: { docs: [en, es], folders: [folder("rsrc", null)] },
+    } as unknown as Hands;
+
+    const join = tongueChoices(en, hands).find((one) => one.key === "joinTongues");
+    const red = join?.into?.choices[0];
+    const english = red?.into?.choices.find((one) => one.key === "en");
+
+    expect(red?.into?.label).toBe(fill("tongueOf", "Network"));
+    expect(english?.into?.label).toBe(fill("tongueOf", "Red"));
   });
 });
