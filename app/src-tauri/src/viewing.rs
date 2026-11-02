@@ -699,6 +699,9 @@ fn received_kept(
                     print: kept_print,
                     // Nobody chose a name for it, so the editor's alias goes rather than their full name.
                     signs: tisty_core::event::Signs::Alias,
+                    holds: Vec::new(),
+                    held: false,
+                    cites: false,
                 },
             })
             .map_err(Refusal::from)?;

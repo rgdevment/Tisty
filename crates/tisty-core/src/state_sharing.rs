@@ -26,6 +26,9 @@ fn shared(version: u64) -> Shared {
         taken: false,
         print: String::new(),
         signs: Default::default(),
+        holds: Vec::new(),
+        held: false,
+        cites: false,
     }
 }
 
