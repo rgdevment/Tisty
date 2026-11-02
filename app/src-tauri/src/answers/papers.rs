@@ -981,6 +981,8 @@ pub struct Filed {
     /// The anchor of the languages it is one of, and where it stands among them.
     #[serde(skip_serializing_if = "Option::is_none")]
     tongue: Option<(String, usize)>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    tongue_apart: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1117,6 +1119,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             folder_was: kept.folder_was.clone(),
             lang: kept.lang.clone(),
             tongue: tongues.get(&kept.id).cloned(),
+            tongue_apart: session.state.apart_in_tongues(kept.id),
         })
         .collect()
 }

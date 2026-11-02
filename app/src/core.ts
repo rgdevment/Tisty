@@ -1233,10 +1233,11 @@ export interface Filed {
   flagged?: Marked | null;
   compacted?: Compaction | null;
   folderWas?: string[] | null;
-  /// The language its body says it is in.
   lang?: string | null;
   /// The anchor of the languages it is one of, and its place among them.
   tongue?: [string, number] | null;
+  /// Joined to a group whose language it says is kept by another, so it shows on its own.
+  tongueApart?: boolean;
 }
 
 export interface Papers {

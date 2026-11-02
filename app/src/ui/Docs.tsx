@@ -873,11 +873,15 @@ export default function Docs({
                     >
                       {spoken}
                     </Ribbon>
+                  ) : spoken ? (
+                    <nav aria-label={t("tonguesOf")} className="ribbon">
+                      {spoken}
+                    </nav>
                   ) : (
-                    spoken && (
-                      <nav aria-label={t("tonguesOf")} className="ribbon">
-                        {spoken}
-                      </nav>
+                    own?.tongueApart && (
+                      <p role="note" className="ribbon">
+                        {t("tongueApart")}
+                      </p>
                     )
                   )
                 }
