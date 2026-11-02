@@ -12,7 +12,7 @@ use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::Proof;
 use tisty_share_server::keys::Randomness;
 use tisty_share_server::moderation::{Category, Complaint};
-use tisty_share_server::share::{Ask, Manage, Refused, Served, Share};
+use tisty_share_server::share::{Ask, Manage, Refused, Seen, Served, Share};
 use tisty_share_server::store::Store;
 
 /// Where the steps live, so the reading page can have the rest of the domain.
@@ -70,6 +70,8 @@ pub struct Answer {
     pub body: Vec<u8>,
     /// What failed in the store, for the host's log and never for the caller.
     pub fault: Option<String>,
+    /// What a read leaves to write down, for the host to write once the answer is out (`answer_first`).
+    pub seen: Option<Seen>,
 }
 
 /// Why a request gets no step, besides the server's own refusals.
@@ -149,8 +151,29 @@ pub fn broken(why: String) -> Answer {
     answer
 }
 
-/// A step's answer; the host has already held the body to `ceiling`, as it alone can before reading it.
+/// A step's answer with what a read leaves written down first, for a host that cannot wait past its answer.
 pub async fn answer<S: Store, R: Randomness>(share: &mut Share<S, R>, asked: Asked) -> Answer {
+    let mut answer = answer_first(share, asked).await;
+    if let Some(seen) = answer.seen.take() {
+        answer.fault = noted(share, seen).await;
+    }
+    answer
+}
+
+/// Writes down what a read left, saying what failed for the host's log; the reader already has their answer.
+pub async fn noted<S: Store, R: Randomness>(share: &Share<S, R>, seen: Seen) -> Option<String> {
+    share
+        .seen(seen)
+        .await
+        .err()
+        .map(|refused| format!("a read could not be written down: {refused}"))
+}
+
+/// A step's answer, leaving what a read writes down in `seen`; the host has already held the body to `ceiling`.
+pub async fn answer_first<S: Store, R: Randomness>(
+    share: &mut Share<S, R>,
+    asked: Asked,
+) -> Answer {
     let now = asked.now;
     let answer = match routed(share, asked).await {
         Ok(answer) => answer,
@@ -219,10 +242,12 @@ async fn routed<S: Store, R: Randomness>(
                 .work
                 .as_deref()
                 .and_then(|work| serde_json::from_str::<Proof>(work).ok());
-            let served = share
+            let (served, seen) = share
                 .read(id, password.as_deref(), proof.as_ref(), caller, now)
                 .await?;
-            Ok(envelope(served))
+            let mut answer = envelope(served);
+            answer.seen = Some(seen);
+            Ok(answer)
         }
         ("GET", ["docs", id, "latest"]) => {
             let latest = share.latest(id, token, caller, now).await?;
@@ -399,6 +424,7 @@ fn plain(status: u16, kind: &str, body: Vec<u8>) -> Answer {
         headers: vec![("Content-Type", kind.to_owned())],
         body,
         fault: None,
+        seen: None,
     }
 }
 

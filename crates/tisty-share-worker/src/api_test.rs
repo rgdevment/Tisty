@@ -486,3 +486,18 @@ fn a_revocation_anyone_carries_reaches_every_reader_of_what_that_key_sent() {
         serde_json::from_str(header(&read, "Tisty-Revoked").unwrap()).unwrap();
     assert_eq!(told, vec![taken]);
 }
+
+#[test]
+fn a_read_leaves_what_it_writes_down_for_after_the_answer() {
+    let mut world = World::new();
+    let shared = world.shared();
+    let reading = asked("GET", &format!("/api/v1/docs/{}", shared.id));
+    let first = done(answer_first(&mut world.share, reading.clone()));
+    assert_eq!(first.status, 200);
+    assert!(first.seen.is_some());
+
+    // A host that cannot wait past its answer gets it written down before.
+    let whole = world.answer(reading);
+    assert_eq!(whole.status, 200);
+    assert_eq!(whole.seen, None);
+}
