@@ -8,6 +8,7 @@ use tisty_share_proto::work::{Challenge, Proof};
 use zeroize::Zeroizing;
 
 use crate::guard::{self, Act, Allowance, Work};
+use crate::holding::ending_at;
 use crate::keys::{self, Randomness, Slowness};
 use crate::store::{Doc, Fault, Kept, Saved, Sender, Store};
 
@@ -178,6 +179,14 @@ pub enum Manage {
     Pause,
     Restore,
     Delete,
+    /// Holds a document this one cites, proven by its edit link; `lives` when it was shared on its own too (decision 64).
+    Hold {
+        id: String,
+        edit: String,
+        lives: bool,
+    },
+    /// Lets go of a document this one no longer cites.
+    Release(String),
 }
 
 /// What a sweep did: how many documents went, and those it could not take, for the host to tell.
@@ -317,6 +326,9 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 reads: 0,
                 written: None,
                 revision: 0,
+                holders: Vec::new(),
+                holds: Vec::new(),
+                own: None,
             };
             if self.store.save(&doc, None).await? == Saved::Done {
                 return Ok(Reserved { id, edit, admin });
@@ -419,6 +431,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         self.admit(caller, Act::Read, now).await?;
         let mut doc = self.live(id, now).await?;
         open_to_read(&doc)?;
+        self.held_up(&mut doc, now).await?;
         let kept = *doc.versions.last().ok_or(Refused::Unwritten)?;
         self.let_in(&doc, password, proof, caller, now).await?;
         let envelope = self
@@ -524,7 +537,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
             return Err(Refused::Blocked);
         }
         match what {
-            Manage::Delete => return Ok(self.store.forget(id).await?),
+            Manage::Delete => return self.forgotten(&doc).await,
+            Manage::Hold { id, edit, lives } => {
+                return self.hold(&mut doc, &id, &edit, lives, now).await;
+            }
+            Manage::Release(id) => return self.release(&mut doc, &id).await,
             Manage::Visit => touched(&mut doc, now),
             Manage::Password(None) => doc.gate = None,
             Manage::Password(Some(password)) => {
@@ -544,7 +561,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             // Paused, the idle clock stops and the trash's starts (decision 51).
             Manage::Pause => {
                 doc.paused = Some(now);
-                doc.ends = now + self.policy.trash;
+                ending_at(&mut doc, now + self.policy.trash);
             }
             Manage::Restore => {
                 doc.paused = None;
@@ -576,7 +593,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 continue;
             }
             tried += 1;
-            match self.store.forget(&id).await {
+            match self.forgotten_by_id(&id).await {
                 Ok(()) => swept.gone += 1,
                 Err(fault) => {
                     // Not waiting a day only means it is tried again sooner, so that failing stops nothing.
@@ -586,6 +603,18 @@ impl<S: Store, R: Randomness> Share<S, R> {
             }
         }
         Ok(swept)
+    }
+
+    /// A sweep's way to let one go, telling only of the store when it fails.
+    async fn forgotten_by_id(&self, id: &str) -> Result<(), Fault> {
+        let gone = match self.store.doc(id).await? {
+            Some(doc) => self.forgotten(&doc).await,
+            None => Ok(()),
+        };
+        gone.map_err(|refused| match refused {
+            Refused::Store(fault) => fault,
+            other => Fault(other.to_string()),
+        })
     }
 
     pub(crate) async fn admit(&self, caller: IpAddr, act: Act, now: i64) -> Result<(), Refused> {
@@ -636,7 +665,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             None => Err(Refused::Missing),
             Some(doc) if doc.ends < now => {
                 // Gone whether or not it can be let go of now; a sweep tries again and tells why.
-                let _ = self.store.forget(id).await;
+                let _ = self.forgotten(&doc).await;
                 Err(Refused::Gone)
             }
             Some(doc) => Ok(doc),
@@ -696,7 +725,7 @@ fn open_to_read(doc: &Doc) -> Result<(), Refused> {
 fn touched(doc: &mut Doc, now: i64) {
     doc.active = now;
     if doc.paused.is_none() && doc.blocked.is_none() {
-        doc.ends = now + doc.idle;
+        ending_at(doc, now + doc.idle);
     }
 }
 

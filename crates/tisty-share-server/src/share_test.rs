@@ -1711,6 +1711,9 @@ fn a_stored_document_missing_a_later_field_still_opens_and_one_missing_its_end_d
         reads: 0,
         written: None,
         revision: 0,
+        holders: Vec::new(),
+        holds: Vec::new(),
+        own: None,
     };
     let written: serde_json::Value = serde_json::to_value(&doc).unwrap();
     let without = |field: &str| {
@@ -1882,4 +1885,149 @@ fn carrying_too_many_revocations_waits_out_the_hour_and_blocks_nothing_else() {
         Err(Refused::Slow { .. })
     ));
     assert!(world.read(&reserved.id, T0).is_ok());
+}
+
+fn hold(cited: &Reserved, lives: bool) -> Manage {
+    Manage::Hold {
+        id: cited.id.clone(),
+        edit: cited.edit.to_string(),
+        lives,
+    }
+}
+
+#[test]
+fn a_cited_document_lives_as_long_as_the_share_that_holds_it_and_goes_with_it() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    assert_eq!(world.manage(&root, hold(&cited, false), T0), Ok(()));
+
+    // Never read, it outlives its own thirty idle days while the root is read.
+    let later = T0 + 40 * DAY;
+    assert!(world.read(&root.id, T0 + 20 * DAY).is_ok());
+    assert!(world.read(&cited.id, later).is_ok());
+    assert_eq!(world.doc(&root.id).holds, vec![cited.id.clone()]);
+
+    let gone = later + 31 * DAY;
+    done(world.share.sweep(gone)).unwrap();
+    assert_eq!(world.read(&root.id, gone), Err(Refused::Missing));
+    assert_eq!(world.read(&cited.id, gone), Err(Refused::Missing));
+}
+
+#[test]
+fn a_cited_document_shared_on_its_own_too_keeps_its_own_life_once_let_go() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, true), T0).unwrap();
+    assert_eq!(world.doc(&cited.id).ends, crate::holding::HELD);
+
+    // Read while held, its own life goes on too.
+    world.read(&cited.id, T0 + DAY).unwrap();
+    world.manage(&root, Manage::Delete, T0 + 2 * DAY).unwrap();
+    assert_eq!(
+        world.doc(&cited.id).ends,
+        T0 + DAY + world.share.policy.idle
+    );
+    assert!(world.doc(&cited.id).holders.is_empty());
+    assert!(world.read(&cited.id, T0 + 3 * DAY).is_ok());
+}
+
+#[test]
+fn a_cited_document_does_not_read_while_every_share_holding_it_is_paused() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, false), T0).unwrap();
+
+    world.manage(&root, Manage::Pause, T0 + HOUR).unwrap();
+    assert_eq!(world.read(&cited.id, T0 + 2 * HOUR), Err(Refused::Paused));
+    world.manage(&root, Manage::Restore, T0 + 3 * HOUR).unwrap();
+    assert!(world.read(&cited.id, T0 + 4 * HOUR).is_ok());
+}
+
+#[test]
+fn only_its_edit_link_lets_a_share_hold_a_document_and_no_ring_holds_itself() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    let other = world.shared(T0);
+    let forged = Manage::Hold {
+        id: cited.id.clone(),
+        edit: root.edit.to_string(),
+        lives: false,
+    };
+    assert_eq!(world.manage(&root, forged, T0), Err(Refused::Forbidden));
+    assert!(world.doc(&root.id).holds.is_empty());
+
+    world.manage(&root, hold(&cited, false), T0).unwrap();
+    // What is held never holds, and what holds is never held.
+    assert_eq!(
+        world.manage(&cited, hold(&other, false), T0),
+        Err(Refused::Forbidden)
+    );
+    assert_eq!(
+        world.manage(&other, hold(&root, false), T0),
+        Err(Refused::Forbidden)
+    );
+    assert_eq!(
+        world.manage(&root, hold(&root, false), T0),
+        Err(Refused::Forbidden)
+    );
+}
+
+#[test]
+fn a_document_two_shares_hold_goes_only_when_the_last_lets_go() {
+    let mut world = World::new();
+    let one = world.shared(T0);
+    let two = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&one, hold(&cited, false), T0).unwrap();
+    world.manage(&two, hold(&cited, false), T0).unwrap();
+    // Held twice by one share is held once.
+    world.manage(&two, hold(&cited, false), T0).unwrap();
+    assert_eq!(
+        world.doc(&cited.id).holders,
+        vec![one.id.clone(), two.id.clone()]
+    );
+
+    world
+        .manage(&one, Manage::Release(cited.id.clone()), T0 + HOUR)
+        .unwrap();
+    assert!(world.read(&cited.id, T0 + 2 * HOUR).is_ok());
+    assert!(world.doc(&one.id).holds.is_empty());
+    world
+        .manage(&two, Manage::Release(cited.id.clone()), T0 + 3 * HOUR)
+        .unwrap();
+    assert_eq!(world.read(&cited.id, T0 + 4 * HOUR), Err(Refused::Missing));
+}
+
+#[test]
+fn a_holder_that_went_without_letting_go_is_let_go_of_when_its_document_is_read() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, false), T0).unwrap();
+    // A store that failed midway: the root went, and the cited document never heard.
+    done(world.share.store.forget(&root.id)).unwrap();
+
+    assert_eq!(world.read(&cited.id, T0 + HOUR), Err(Refused::Gone));
+    assert_eq!(world.read(&cited.id, T0 + 2 * HOUR), Err(Refused::Missing));
+}
+
+#[test]
+fn a_tisty_asks_to_hold_and_to_let_go_in_the_shape_it_manages_with() {
+    let hold: Manage =
+        serde_json::from_str(r#"{"do":"hold","with":{"id":"nts9Qe","edit":"tok","lives":true}}"#)
+            .unwrap();
+    assert_eq!(
+        hold,
+        Manage::Hold {
+            id: "nts9Qe".into(),
+            edit: "tok".into(),
+            lives: true
+        }
+    );
+    let release: Manage = serde_json::from_str(r#"{"do":"release","with":"nts9Qe"}"#).unwrap();
+    assert_eq!(release, Manage::Release("nts9Qe".into()));
 }
