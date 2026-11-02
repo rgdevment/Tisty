@@ -119,6 +119,24 @@ fn a_server_that_takes_no_drawn_page_gets_the_words_alone() {
 }
 
 #[test]
+fn a_page_drawn_past_what_the_server_takes_leaves_the_words_to_go_alone() {
+    let here = Here::new();
+    here.share.borrow_mut().policy.limits.html = 8;
+    let shared = share(
+        &here,
+        SERVER,
+        "# Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(drawn_back(&here, &shared), None);
+    assert_eq!(read_back(&here, &shared), "# Hola");
+}
+
+#[test]
 fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
     let here = Here::new();
     let voucher = voucher();

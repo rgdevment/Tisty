@@ -18,8 +18,7 @@ use tisty_share_server::store::Store;
 /// Where the steps live, so the reading page can have the rest of the domain.
 pub const ROOT: &str = "/api/v1/";
 
-/// Room beside what its limits let it carry: the manifest and its index (16 KB), both signatures (4 KB), the list of
-/// what it cites (64 KB) and every part's tag.
+/// Room for the manifest (16 KB), both signatures (4 KB), what it cites (64 KB) and the tags of the words and the page.
 const ENVELOPE_OVERHEAD: u64 = 96 * 1024;
 /// What each picture adds beside its bytes: its tag, its hash in the index and its hash in the writer's signature.
 const PICTURE_OVERHEAD: u64 = 16 + 32 + 48;

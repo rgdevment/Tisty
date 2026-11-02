@@ -131,6 +131,19 @@ fn a_share_behind_a_password_or_gone_is_told_as_such() {
 }
 
 #[test]
+fn an_envelope_from_a_newer_tisty_asks_for_an_update() {
+    let mut body = b"\xffTSE".to_vec();
+    body.extend_from_slice(&[9, 0, 0, 0, 2, b'{', b'}']);
+    let said = Said {
+        status: 200,
+        body,
+        revoked: None,
+    };
+    let key = LinkKey::from_bytes(&[1; 32]).to_text().to_string();
+    assert_eq!(opened_from(said, &key).unwrap_err().code, "shareOpenNewer");
+}
+
+#[test]
 fn an_envelope_nobody_signed_is_not_shown() {
     let here = Here::new();
     let shared = sharing::share(
