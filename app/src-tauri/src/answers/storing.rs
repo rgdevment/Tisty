@@ -788,6 +788,8 @@ pub async fn sync_now(
             .map(|at| session.reach.home_of(at));
         (session.config.sync.clone(), home)
     };
+    // Once a round, even when it runs twice to adopt a cloud, so each loose share is asked after once.
+    crate::answers::shares::let_loose_go(app.clone());
     let mut done = carried_round(&app, &session, way.clone()).await;
     let (code, theirs) = held_apart(&done);
     if let Some(theirs) = super::joining::will_adopt(&session, None, code, theirs).await

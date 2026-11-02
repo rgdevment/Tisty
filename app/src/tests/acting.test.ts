@@ -5,7 +5,11 @@ import { darkNow } from "../ui/theming";
 import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "../ui/viewer/acting";
 
 const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args?: Record<string, unknown> }[] }));
-const shown = vi.hoisted(() => ({ revealed: [] as string[], copied: [] as string[] }));
+const shown = vi.hoisted(() => ({
+  revealed: [] as string[],
+  copied: [] as string[],
+  browsed: [] as string[],
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
@@ -17,6 +21,10 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/plugin-opener", () => ({
   revealItemInDir: (at: string) => {
     shown.revealed.push(at);
+    return Promise.resolve();
+  },
+  openUrl: (at: string) => {
+    shown.browsed.push(at);
     return Promise.resolve();
   },
 }));
@@ -33,6 +41,7 @@ const file: Showing = {
   place: "Descargas",
   path: "C:\\a.md",
   body: "# A",
+  shared: false,
 };
 const doc: Showing = {
   kind: "doc",
@@ -134,6 +143,7 @@ describe("the viewer's menu", () => {
       place: "Descargas",
       path: "C:\\a.md",
       refusal: { code: "cannotRead" },
+      shared: false,
     });
     const all = choicesFor(a);
 
@@ -141,6 +151,18 @@ describe("the viewer's menu", () => {
 
     expect(all.map((one) => one.key)).toEqual(["reveal", "retry"]);
     expect(a.look).toHaveBeenCalled();
+  });
+
+  it("sends a share to the browser, since it has no folder to show", () => {
+    shown.browsed = [];
+    const link = "https://tisty.cl/oVD0Idz0#llave";
+    const a = acts({ ...file, name: "Compras", path: link, shared: true });
+    const all = choicesFor(a);
+
+    expect(all.some((one) => one.key === "reveal")).toBe(false);
+    picked(all, t("viewBrowse"));
+    expect(shown.browsed).toEqual([link]);
+    expect(shown.revealed).toEqual([]);
   });
 
   it("offers a widget its code, its document and how it is drawn", async () => {

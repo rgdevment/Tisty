@@ -6,8 +6,10 @@ import { fill, t } from "../locales";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: unknown }[],
   secrets: [] as { line: number; named: string; under: string | null }[],
-  signsAs: "Ana" as string | null,
+  name: "Ana Pérez" as string | null,
+  alias: "ana" as string | null,
   pending: undefined as Promise<unknown> | undefined,
+  changed: false,
 }));
 
 const CARD = {
@@ -21,8 +23,14 @@ const CARD = {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     ipc.calls.push({ cmd, args });
+    if (cmd === "share_doc" && ipc.changed) {
+      ipc.changed = false;
+      return Promise.reject({ code: "shareChanged" });
+    }
     if (cmd === "share_look")
-      return ipc.pending ?? Promise.resolve({ secrets: ipc.secrets, signsAs: ipc.signsAs });
+      return (
+        ipc.pending ?? Promise.resolve({ secrets: ipc.secrets, name: ipc.name, alias: ipc.alias })
+      );
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
   },
 }));
@@ -34,12 +42,14 @@ const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd).map((o
 beforeEach(() => {
   ipc.calls = [];
   ipc.secrets = [];
-  ipc.signsAs = "Ana";
+  ipc.name = "Ana Pérez";
+  ipc.alias = "ana";
   ipc.pending = undefined;
+  ipc.changed = false;
 });
 
 describe("the share dialog", () => {
-  it("shares to read only and for the server's own time unless asked otherwise, always signed", async () => {
+  it("shares to read only, following saves, under the alias and for the server's own time unless asked otherwise", async () => {
     const onShared = vi.fn();
     render(
       <Sharing
@@ -55,7 +65,7 @@ describe("the share dialog", () => {
     expect(asked("share_doc")).toEqual([
       {
         file: "notas.md",
-        chosen: { password: null, editable: false, idleDays: null },
+        chosen: { password: null, editable: false, idleDays: null, signs: "alias", still: false },
       },
     ]);
   });
@@ -80,7 +90,7 @@ describe("the share dialog", () => {
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
   });
 
-  it("asks for a password before sharing with one, and hands out the edit link only when asked", async () => {
+  it("asks for a password before sharing with one, and hands out the edit link when asked", async () => {
     render(
       <Sharing
         file="notas.md"
@@ -94,13 +104,14 @@ describe("the share dialog", () => {
     const go = await screen.findByRole("button", { name: t("shareGo") });
     expect(go).toHaveProperty("disabled", true);
     await userEvent.type(screen.getByLabelText(t("sharePassword")), "ñandú");
+    // Reading only is the default; editing is chosen (decision 67).
     await userEvent.click(screen.getByRole("radio", { name: t("shareCanEdit") }));
     fireEvent.change(screen.getByLabelText(t("shareEnds")), { target: { value: "7" } });
     await userEvent.click(go);
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
     expect(asked("share_doc")[0]).toEqual({
       file: "notas.md",
-      chosen: { password: "ñandú", editable: true, idleDays: 7 },
+      chosen: { password: "ñandú", editable: true, idleDays: 7, signs: "alias", still: false },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
   });
@@ -154,7 +165,28 @@ describe("the share dialog", () => {
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
   });
 
-  it("says the name the share goes as, or that the key signs alone", async () => {
+  it("goes under the name or only the key when chosen, and stays as it is when asked", async () => {
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    await userEvent.click(
+      await screen.findByRole("radio", { name: fill("shareSignName", "Ana Pérez") }),
+    );
+    await userEvent.click(screen.getByRole("radio", { name: t("shareKeepsStill") }));
+    expect(screen.getByText(t("sharedStill"))).toBeTruthy();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
+    expect(asked("share_doc")[0]).toMatchObject({ chosen: { signs: "name", still: true } });
+  });
+
+  it("offers only the names fit to sign, and says when the key signs alone", async () => {
+    ipc.alias = null;
     const { unmount } = render(
       <Sharing
         file="notas.md"
@@ -164,9 +196,12 @@ describe("the share dialog", () => {
         onError={() => {}}
       />,
     );
-    expect(await screen.findByText(new RegExp(fill("shareSignsAs", "Ana")))).toBeTruthy();
+    // Without an alias the full name is still never picked for the person.
+    const keyOnly = await screen.findByRole("radio", { name: t("shareSignKey") });
+    expect((keyOnly as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByRole("radio", { name: /«ana»/ })).toBeNull();
     unmount();
-    ipc.signsAs = null;
+    ipc.name = null;
     render(
       <Sharing
         file="notas.md"
@@ -193,7 +228,7 @@ describe("the share dialog", () => {
     expect(
       (screen.getByRole("button", { name: t("shareLooking") }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    await act(async () => answer({ secrets: [], signsAs: "Ana" }));
+    await act(async () => answer({ secrets: [], name: null, alias: "ana" }));
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
   });
 
@@ -210,5 +245,27 @@ describe("the share dialog", () => {
     );
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
     expect(screen.queryByText(new RegExp(t("shareSignsAlone")))).toBeNull();
+  });
+
+  it("looks the words over again when they changed after the look, and shares nothing meanwhile", async () => {
+    ipc.changed = true;
+    const onShared = vi.fn();
+    const onError = vi.fn();
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={onShared}
+        onClose={() => {}}
+        onError={onError}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    expect(await screen.findByText(t("shareChanged"))).toBeTruthy();
+    expect(onShared).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(onShared).toHaveBeenCalled());
   });
 });

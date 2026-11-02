@@ -23,7 +23,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--tisty-hair);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--tisty-sheet);
   overflow: hidden;
 }
@@ -66,7 +66,7 @@
 .side-title {
   flex: 1 1 auto;
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -95,7 +95,7 @@
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--tisty-line);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 .side-leaf,
 .side-tool,
@@ -128,7 +128,7 @@
   padding: 0 6px;
   min-width: 34px;
   border: 1px solid var(--tisty-line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: none;
   color: var(--tisty-soft);
 }
@@ -151,7 +151,7 @@
 .side-label {
   margin: 0;
   padding: 0 6px 6px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -373,7 +373,7 @@ details[open] > .side-row-head::after {
   display: block;
   margin-top: 4px;
   color: var(--tisty-soft);
-  font-size: 12px;
+  font-size: 12.5px;
   white-space: normal;
 }
 .side-gist-print code {
@@ -450,7 +450,7 @@ details[open] > .side-row-head::after {
 .side-link-label {
   color: var(--tisty-ink);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .side-link-note {
   color: var(--tisty-faint);
@@ -490,7 +490,7 @@ details[open] > .side-row-head::after {
   min-height: 36px;
   padding: 0 12px;
   border: 1px solid var(--tisty-line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: none;
   font-size: 13px;
   text-decoration: none;

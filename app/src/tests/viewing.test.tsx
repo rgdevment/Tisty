@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
 const ipc = vi.hoisted(() => ({
+  unlock: null as unknown,
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   shown: null as unknown,
   facts: null as unknown,
@@ -17,6 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
+    if (cmd === "view_unlock") return ipc.unlock ? Promise.reject(ipc.unlock) : Promise.resolve();
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
     if (cmd === "widget_lend") return Promise.resolve("w1");
@@ -61,7 +63,13 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   message: () => Promise.resolve(),
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: () => Promise.resolve() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  revealItemInDir: () => Promise.resolve(),
+  openUrl: (url: string) => {
+    ipc.calls.push({ cmd: "open_url", args: { url } });
+    return Promise.resolve();
+  },
+}));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
@@ -78,6 +86,7 @@ const file: Showing = {
   place: "Descargas",
   path: "C:\\Descargas\\notas.md",
   body: "# Notas\n\nUn texto.\n\n## Más\n",
+  shared: false,
 };
 
 URL.createObjectURL = () => "blob:pdf";
@@ -113,9 +122,9 @@ describe("the viewer", () => {
 
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewIndex") }));
     expect(await screen.findByText(t("outline"))).toBeTruthy();
-    expect(screen.getByRole("group", { name: t("leafIs") })).toBeTruthy();
+    expect(await screen.findByRole("group", { name: t("leafIs") })).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
 
@@ -154,11 +163,65 @@ describe("the viewer", () => {
       place: "Descargas",
       path: "C:\\Descargas\\grande.md",
       refusal: { code: "documentTooBig", name: "500 KB" },
+      shared: false,
     } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByText(t("viewBigTitle").replace("{name}", "grande.md"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewRetry") })).toBeTruthy();
+  });
+
+  it("sends a share Tisty could not open to the browser, saying why", async () => {
+    const link = "https://tisty.cl/oVD0Idz0#llave";
+    ipc.shown = {
+      kind: "missed",
+      name: "Tisty Share",
+      place: "Tisty Share",
+      path: link,
+      refusal: { code: "shareOpenGated" },
+      shared: true,
+    } satisfies Showing;
+    render(<Viewing />);
+
+    expect(await screen.findByText(t("shareOpenGated"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("viewReveal") })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("viewBrowse") }));
+    expect(asked("open_url")).toEqual([{ cmd: "open_url", args: { url: link } }]);
+  });
+
+  it("says what a share's pictures show until a copy keeps them", async () => {
+    ipc.shown = {
+      ...file,
+      name: "Playa",
+      path: "https://tisty.cl/oVD0Idz0#llave",
+      body: "# Playa\n\n![la ola](tisty:picture/0)\n",
+      shared: true,
+      print: "48210 93755",
+      known: false,
+    } satisfies Showing;
+    render(<Viewing />);
+
+    expect(await screen.findByText(t("viewSharedPictures"))).toBeTruthy();
+    // Its writer's key is new here, so the fingerprint is shown to compare.
+    expect(screen.getByText(fill("viewSharedNewPrint", "48210 93755"))).toBeTruthy();
+  });
+
+  it("asks for the password of a share behind one, and says when it is not the one", async () => {
+    ipc.shown = {
+      kind: "missed",
+      name: "Tisty Share",
+      place: "Tisty Share",
+      path: "https://tisty.cl/oVD0Idz0#llave",
+      refusal: { code: "shareOpenGated" },
+      shared: true,
+    } satisfies Showing;
+    ipc.unlock = { code: "shareOpenWrong" };
+    render(<Viewing />);
+
+    await userEvent.type(await screen.findByLabelText(t("sharePassword")), "otra");
+    await userEvent.click(screen.getByRole("button", { name: t("viewUnlock") }));
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", t("shareOpenWrong"));
+    expect(asked("view_unlock")[0].args).toEqual({ password: "otra" });
   });
 
   it("draws a widget on a stage with its widths to try", async () => {

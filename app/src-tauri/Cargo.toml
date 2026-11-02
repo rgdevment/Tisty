@@ -47,7 +47,7 @@ tisty-google.workspace = true
 tisty-onedrive.workspace = true
 tisty-webdav.workspace = true
 tisty-core.workspace = true
-tisty-share-proto = { workspace = true, features = ["mint"] }
+tisty-share-proto = { workspace = true, features = ["mint", "pictures"] }
 tisty-help.workspace = true
 tisty-markdown = { workspace = true, features = ["default"] }
 tisty-nl.workspace = true
@@ -78,6 +78,8 @@ percent-encoding = "2"
 
 [dev-dependencies]
 tempfile.workspace = true
+# The pictures a shared document carries are made in the tests as Tisty would find them in its attachments.
+image.workspace = true
 # Sharing is tried against the server's own API, in memory, as the Worker serves it.
 tisty-share-server = { workspace = true, features = ["testing"] }
 tisty-share-worker.workspace = true

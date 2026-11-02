@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
 import Beside from "../ui/Beside";
 
@@ -9,12 +9,28 @@ const ipc = vi.hoisted(() => ({
   card: null as unknown,
   facts: { bytes: 7, pages: 0, shareable: "yes" } as unknown,
   asked: [] as string[],
+  changes: [] as unknown[],
 }));
 
+// Reset before each test, so one that fails halfway does not leave its facts to the next.
+beforeEach(() => {
+  ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
+});
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: { change?: { do: string }; still?: boolean }) => {
     ipc.asked.push(cmd);
     if (cmd === "doc_facts") return Promise.resolve(ipc.facts);
+    if (cmd === "share_still") {
+      const card = ipc.card as Record<string, unknown>;
+      return Promise.resolve({ ...card, still: (args as { still?: boolean })?.still });
+    }
+    if (cmd === "share_change") {
+      ipc.changes.push(args?.change);
+      const card = ipc.card as { info: { paused: boolean } };
+      const paused = args?.change?.do === "pause";
+      return Promise.resolve({ ...card, info: { ...card.info, paused } });
+    }
     return Promise.resolve(cmd === "share_card" ? ipc.card : null);
   },
 }));
@@ -69,10 +85,11 @@ describe("the document's column", () => {
     expect(row("details").open).toBe(false);
   });
 
-  it("folds the details once a long outline arrives after the page is drawn", () => {
+  it("folds the details once a long outline arrives after the page is drawn", async () => {
     const view = panel([]);
     view.rerender(beside(headed(12)));
-    expect(row("details").open).toBe(false);
+    // The outline is followed once the words rest, not on every key.
+    await waitFor(() => expect(row("details").open).toBe(false));
   });
 
   it("leaves what the person opened alone when the outline grows", async () => {
@@ -104,10 +121,12 @@ describe("the document's column", () => {
 describe("the export button", () => {
   it("closes its menu when pressed again", async () => {
     panel(headed(2));
-    const button = screen.getByRole("button", { name: t("exportIt") });
-    await userEvent.click(button);
+    // Asked for afresh each time: the column may have drawn the button again between the presses.
+    const button = () => screen.getByRole("button", { name: t("exportIt") });
+    await userEvent.click(button());
     expect(screen.queryByRole("menu")).toBeTruthy();
-    await userEvent.click(button);
+    expect(button().isConnected).toBe(true);
+    await userEvent.click(button());
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
@@ -213,7 +232,6 @@ describe("the shared row", () => {
     await press("shared");
     expect(screen.getByText(t("sharedNotMineWhy"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
-    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
   });
 
   it("asks for a key before sharing, since nothing goes out unsigned", async () => {
@@ -226,7 +244,6 @@ describe("the shared row", () => {
     await press("shared");
     expect(screen.getByText(t("sharedNoKeyWhy"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
-    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
   });
 
   it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {
@@ -257,5 +274,83 @@ describe("the shared row", () => {
     await waitFor(() =>
       expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNot")),
     );
+  });
+
+  it("pauses a share and resumes it, saying when a paused one goes", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    ipc.changes = [];
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("sharePause") }));
+    await waitFor(() => expect(ipc.changes).toEqual([{ do: "pause" }]));
+    expect(await screen.findByRole("button", { name: t("shareResume") })).toBeTruthy();
+    expect(row("shared").textContent).toContain(t("sharedPausedWhy").split("{name}")[0]);
+  });
+
+  it("warns days before an idle share runs out, and not from the start of a short one", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 2 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).toContain(t("sharedEndsSoon").split("{name}")[0]);
+  });
+
+  it("puts a password on a share already up and shortens its life", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    ipc.changes = [];
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("shareSettings") }));
+    await userEvent.click(await screen.findByRole("radio", { name: new RegExp(t("shareGated")) }));
+    await userEvent.type(screen.getByLabelText(t("sharePassword")), "ñandú");
+    await userEvent.selectOptions(screen.getByLabelText(t("shareEnds")), "7");
+    await userEvent.click(screen.getByRole("button", { name: t("saveIt") }));
+    await waitFor(() =>
+      expect(ipc.changes).toEqual([
+        { do: "password", with: "ñandú" },
+        { do: "idle", days: 7 },
+      ]),
+    );
+  });
+
+  it("keeps the link as it is now, or lets it show what is saved again", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      still: false,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).toContain(t("sharedFollows"));
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("shareStillIt") }));
+    expect(await screen.findByRole("button", { name: t("shareFollowIt") })).toBeTruthy();
+    expect(row("shared").textContent).toContain(t("sharedStill"));
   });
 });

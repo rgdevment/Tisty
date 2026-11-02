@@ -2,9 +2,6 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
 import { unstuck } from "../coming";
 import {
-  identityBegin,
-  identityPhrase,
-  identityShown,
   type ReadSoFar,
   type SealRoom,
   type SealShown,
@@ -17,6 +14,7 @@ import {
   sealingWipe,
 } from "../core";
 import { numbered, weigh } from "../format";
+import { identityBegin, identityPhrase, identityShown } from "../identity";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";

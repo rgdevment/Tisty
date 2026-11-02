@@ -175,6 +175,22 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
     })
 }
 
+/// What Tisty knows of a document read through a share link: its size, and that it is someone else's to share.
+pub(crate) fn received_facts(bytes: u64) -> Facts {
+    Facts {
+        made: None,
+        wrote: None,
+        bytes,
+        pages: 0,
+        author: None,
+        editor: None,
+        born: None,
+        signed_as: None,
+        edited_as: None,
+        shareable: super::shares::Shareable::NotMine,
+    }
+}
+
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
     at.ok()?
         .duration_since(std::time::UNIX_EPOCH)
@@ -751,7 +767,7 @@ pub async fn settle_paper(
 }
 
 // Asked again about the same arrival, keeping both must not leave one more copy each time.
-fn other_version_kept(
+pub(super) fn other_version_kept(
     session: &mut Session,
     id: &str,
     body: String,
@@ -788,15 +804,26 @@ fn other_version_kept(
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
-    let signed_as = signing(&session.state);
+    // The other version of someone else's document is still theirs, as a duplicate of it is (decision 68).
+    let me = session.state.persons.person(&session.config.device_id);
+    let theirs = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .filter(|kept| session.state.theirs(kept, me.as_ref()));
+    let (guest, by) = match theirs {
+        Some(kept) => (true, kept.by.clone()),
+        None => (false, signing(&session.state)),
+    };
     session
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
                 wrote: None,
-                guest: false,
+                guest,
                 made: None,
-                by: signed_as.clone(),
+                by,
                 file: file.clone(),
                 folder,
                 order,
@@ -1203,6 +1230,7 @@ pub struct Kept {
 
 #[tauri::command(async)]
 pub fn doc_write(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
@@ -1237,6 +1265,9 @@ pub fn doc_write(
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
+    if super::versions::follows(&session, &id) {
+        super::versions::follow(&app, &id);
+    }
     Ok(Kept { id, title, print })
 }
 

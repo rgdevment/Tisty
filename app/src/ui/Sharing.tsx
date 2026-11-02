@@ -1,7 +1,14 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { copied } from "../core";
 import { fill, t } from "../locales";
-import { type ShareCard, type ShareSecret, shareDoc, shareLook } from "../shares";
+import {
+  type ShareCard,
+  type ShareLook,
+  type ShareSecret,
+  type ShareSigns,
+  shareDoc,
+  shareLook,
+} from "../shares";
 import Modal from "./Modal";
 
 interface Props {
@@ -16,7 +23,7 @@ interface Props {
 const SECRETS_SHOWN = 3;
 
 // What is encrypted ends on its own after 30 idle days; the dialog only lets it end sooner (decisions 49 and 50).
-const IDLE_DAYS = [30, 14, 7];
+export const IDLE_DAYS = [30, 14, 7];
 
 const choice =
   "flex cursor-pointer gap-2.5 rounded-[10px] border px-3.5 py-2.5 has-[:checked]:border-accent has-[:checked]:bg-accent-soft";
@@ -28,10 +35,17 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
-  // Undefined until the look answers, so a look that failed says nothing about the name rather than something false.
-  const [signsAs, setSignsAs] = useState<string | null | undefined>(undefined);
+  // Undefined until the look answers, so a look that failed offers no name rather than a false one.
+  const [names, setNames] = useState<Pick<ShareLook, "name" | "alias"> | undefined>(undefined);
+  // The alias first, so a full name only goes out when the person picks it.
+  const [signs, setSigns] = useState<ShareSigns>("alias");
+  const [still, setStill] = useState(false);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
+  const [seen, setSeen] = useState<string | null>(null);
+  // Bumped when the words changed between the look and the press, so they are looked through again.
+  const [round, setRound] = useState(0);
+  const [changed, setChanged] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
@@ -42,19 +56,22 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     let live = true;
     setLooked(false);
     setSecrets([]);
-    setSignsAs(undefined);
+    setNames(undefined);
+    setSeen(null);
     shareLook(file)
       .then((look) => {
         if (!live) return;
         setSecrets(look.secrets);
-        setSignsAs(look.signsAs);
+        setNames({ name: look.name, alias: look.alias });
+        setSigns((now) => (now === "alias" && !look.alias ? "key" : now));
+        setSeen(look.seen);
       })
       .catch(() => {})
       .finally(() => live && setLooked(true));
     return () => {
       live = false;
     };
-  }, [file]);
+  }, [file, round]);
 
   const ready = looked && !busy && (!gated || password.trim() !== "");
 
@@ -67,6 +84,9 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       password: gated ? password : null,
       editable,
       idleDays: idle === IDLE_DAYS[0] ? null : idle,
+      seen,
+      signs,
+      still,
     })
       .then((card) => {
         copied(card.read).catch(() => {});
@@ -75,6 +95,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       .catch((problem) => {
         going.current = false;
         setBusy(false);
+        if ((problem as { code?: string } | null)?.code === "shareChanged") {
+          setChanged(true);
+          setRound((now) => now + 1);
+          return;
+        }
         onError(problem);
       });
   };
@@ -83,6 +108,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     <Modal title={t("shareTitle")} onClose={busy ? undefined : onClose} wide>
       <p className="-mt-2 mb-4 truncate text-[12.5px] text-soft">{title}</p>
       <form onSubmit={go} className="flex flex-col gap-5">
+        {changed && (
+          <p role="status" className="text-[12.5px] text-soft">
+            {t("shareChanged")}
+          </p>
+        )}
         {secrets.length > 0 && (
           <div
             role="alert"
@@ -158,17 +188,70 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
           <p className="text-[11.5px] leading-relaxed text-faint">{t("shareEditWhy")}</p>
         </fieldset>
 
-        <p className="flex flex-col">
-          <span className="text-[13px] font-medium">{t("shareSign")}</span>
-          <span className="text-[11.5px] text-faint">
-            {signsAs === undefined
-              ? ""
-              : signsAs
-                ? fill("shareSignsAs", signsAs)
-                : t("shareSignsAlone")}{" "}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareKeeps")}</legend>
+          <div className="grid grid-cols-2 gap-1 rounded-[10px] bg-hover p-1">
+            {[false, true].map((one) => (
+              <label
+                key={String(one)}
+                className="flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md text-[12.5px] has-[:checked]:bg-bg has-[:checked]:font-semibold has-[:checked]:shadow-lift"
+              >
+                <input
+                  type="radio"
+                  name="keeps"
+                  className="sr-only"
+                  checked={still === one}
+                  onChange={() => setStill(one)}
+                />
+                {t(one ? "shareKeepsStill" : "shareKeepsFollow")}
+              </label>
+            ))}
+          </div>
+          <p className="text-[11.5px] leading-relaxed text-faint">
+            {t(still ? "sharedStill" : "sharedFollows")}
+          </p>
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareSign")}</legend>
+          {names?.alias && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+              <input
+                type="radio"
+                name="signs"
+                checked={signs === "alias"}
+                onChange={() => setSigns("alias")}
+              />
+              {fill("shareSignAlias", names.alias)}
+            </label>
+          )}
+          {names?.name && names.name !== names.alias && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+              <input
+                type="radio"
+                name="signs"
+                checked={signs === "name"}
+                onChange={() => setSigns("name")}
+              />
+              {fill("shareSignName", names.name)}
+            </label>
+          )}
+          {(names?.alias || names?.name) && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+              <input
+                type="radio"
+                name="signs"
+                checked={signs === "key"}
+                onChange={() => setSigns("key")}
+              />
+              {t("shareSignKey")}
+            </label>
+          )}
+          <p className="text-[11.5px] leading-relaxed text-faint">
+            {names && !names.alias && !names.name && `${t("shareSignsAlone")} `}
             {t("shareSignWhy")}
-          </span>
-        </p>
+          </p>
+        </fieldset>
 
         <div className="flex items-center justify-between gap-3">
           <label htmlFor={idleId} className="text-[13px] font-medium">

@@ -25,5 +25,6 @@ pub mod task_docs;
 pub mod tasks;
 pub mod twinning;
 pub mod updating;
+pub mod versions;
 pub mod vouching;
 pub mod wired;
