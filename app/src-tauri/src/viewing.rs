@@ -53,6 +53,10 @@ pub enum Showing {
         path: String,
         body: String,
         shared: bool,
+        /// A share's writer's fingerprint, and whether this machine met it before.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        print: Option<String>,
+        known: bool,
     },
     Missed {
         name: String,
@@ -431,6 +435,8 @@ pub fn view_shown(
                 path: at.display().to_string(),
                 body,
                 shared: false,
+                print: None,
+                known: false,
             },
             Err(refusal) => Showing::Missed {
                 name: named(&at),
@@ -449,11 +455,32 @@ pub fn view_shown(
             paper: drawn.paper,
             source: drawn.was,
         },
-        Shown::Shared { link, got } => shared_showing(&views, window.label(), link, got),
+        Shown::Shared { link, got } => shared_showing(&app, &views, window.label(), link, got),
     })
 }
 
+// Fetched with its password if it has one, and weighed against what this machine read before.
+fn received_here(
+    app: &AppHandle,
+    link: &crate::received::Link,
+    password: Option<&str>,
+) -> Answer<crate::received::Received> {
+    let got = crate::sharing::Net::to(crate::sharing::SERVER)
+        .and_then(|wire| crate::received::fetched(&wire, link, password))?;
+    let (cache, mine) = {
+        let session = session_of(app)?;
+        let session = held(&session);
+        let me = session.state.persons.person(&session.config.device_id);
+        (
+            session.paths.cache().to_path_buf(),
+            me.map(|one| one.fingerprint()),
+        )
+    };
+    crate::received::seen_here(&cache, link, mine.as_deref(), got)
+}
+
 fn shared_showing(
+    app: &AppHandle,
     views: &Views,
     label: &str,
     link: crate::received::Link,
@@ -461,8 +488,7 @@ fn shared_showing(
 ) -> Showing {
     let got = match got {
         Some(got) => Ok(got),
-        None => crate::sharing::Net::to(crate::sharing::SERVER)
-            .and_then(|wire| crate::received::fetched(&wire, &link)),
+        None => received_here(app, &link, None),
     };
     match got {
         Ok(got) => {
@@ -476,6 +502,8 @@ fn shared_showing(
                 path: link.read(),
                 body: got.body.clone(),
                 shared: true,
+                print: Some(got.print.clone()),
+                known: got.known,
             };
             reshow(
                 views,
@@ -495,6 +523,29 @@ fn shared_showing(
             shared: true,
         },
     }
+}
+
+/// Opens the share this window shows with the password its reader typed; the window then asks for it again.
+#[tauri::command(async)]
+pub fn view_unlock(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+    password: String,
+) -> Answer<()> {
+    let Shown::Shared { link, .. } = shown_in(&views, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    let got = received_here(&app, &link, Some(&password))?;
+    reshow(
+        &views,
+        window.label(),
+        Shown::Shared {
+            link,
+            got: Some(got),
+        },
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -536,8 +587,11 @@ pub fn view_import(
             }
             (paper, left)
         }
-        Shown::Shared { got: Some(got), .. } => {
-            let paper = received_kept(&app, &got)?;
+        Shown::Shared {
+            link,
+            got: Some(got),
+        } => {
+            let paper = received_kept(&app, &link, &got)?;
             if let Ok(mut held) = views.shown.lock() {
                 held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
             }
@@ -606,16 +660,49 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
 }
 
 // What came through someone else's link is kept as a guest copy under their name, so it is never shared again as one's own.
-fn received_kept(app: &AppHandle, got: &crate::received::Received) -> Answer<Paper> {
+fn received_kept(
+    app: &AppHandle,
+    link: &crate::received::Link,
+    got: &crate::received::Received,
+) -> Answer<Paper> {
     let session = session_of(app)?;
     let mut session = held(&session);
-    let (made, id) = crate::answers::carrying::imported_as(
-        &mut session,
-        &got.body,
-        None,
-        true,
-        got.signer.clone(),
-    )?;
+    let (data, scratch) = (session.paths.data(), session.paths.cache());
+    let (body, told) = crate::received::kept_pictures(got, data, scratch);
+    if !told.is_empty() {
+        session.commit_all(told).map_err(Refusal::from)?;
+    }
+    let (made, id) =
+        crate::answers::carrying::imported_as(&mut session, &body, None, true, got.signer.clone())?;
+    // An edit link ties one copy to its share, when this machine can sign what goes up to it (decision 9).
+    let held_already = session.state.shares.values().any(|one| one.link == link.id);
+    let signs = crate::answers::shares::can_sign(&session);
+    if let Some(edit) = link.edit.as_ref().filter(|_| signs && !held_already) {
+        // The words as kept here count as up, so the copy is not put straight back as a version of its own.
+        let kept_print = tisty_core::docs::read(&session.paths.docs(), &made.id)
+            .map(|kept| crate::sharing::print_of(&kept))
+            .unwrap_or_default();
+        session
+            .commit(tisty_core::Op::ShareDoc {
+                id,
+                d: tisty_core::event::Shared {
+                    server: crate::sharing::SERVER.to_owned(),
+                    link: link.id.clone(),
+                    key: link.key.clone(),
+                    edit: edit.clone(),
+                    admin: String::new(),
+                    editable: true,
+                    gated: got.gated,
+                    version: got.version,
+                    still: false,
+                    taken: true,
+                    print: kept_print,
+                    // Nobody chose a name for it, so the editor's alias goes rather than their full name.
+                    signs: tisty_core::event::Signs::Alias,
+                },
+            })
+            .map_err(Refusal::from)?;
+    }
     Ok(Paper {
         id: id.to_string(),
         file: made.id,

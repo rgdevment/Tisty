@@ -13,9 +13,10 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { dayOf, weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
-import { type ShareCard, shareCard, shareStop } from "../shares";
+import { type ShareCard, shareCard, shareChange, shareStill, shareStop } from "../shares";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
+import ShareSettings from "./ShareSettings";
 import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
 import { often } from "./tagging";
@@ -124,18 +125,47 @@ const gistOf = (card: ShareCard | null): string => {
     info && (info.reads === 1 ? t("sharedReadsOne") : fill("sharedReads", String(info.reads)));
   return [
     t(card.gated ? "sharedGated" : "sharedUnlisted"),
-    info ? fill("sharedEnds", dayOf(new Date(info.ends * 1000).toISOString())) : "",
+    info ? fill("sharedEnds", dayOfSeconds(info.ends)) : "",
     reads ?? "",
   ]
     .filter(Boolean)
     .join(" · ");
 };
 
-// The «Shared» row: an offer to share, or the links to hand out and a way to stop.
+// Shorter than the shortest life the dialog offers, so no share reads as ending from the moment it is made (decision 50).
+const ENDS_SOON = 3 * 86_400;
+
+const dayOfSeconds = (at: number) => dayOf(new Date(at * 1000).toISOString());
+
+// What the row says under its gist: why it is blocked or paused, when it runs out soon, or where its links live.
+const saidOf = (card: ShareCard): string => {
+  const info = card.info;
+  if (!info) return t("sharedOffline");
+  if (info.blocked) return t("sharedBlockedWhy");
+  if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
+  if (info.ends - Date.now() / 1000 < ENDS_SOON)
+    return fill("sharedEndsSoon", dayOfSeconds(info.ends));
+  return `${t(card.still ? "sharedStill" : "sharedFollows")} ${t("shareAdminKept")}`;
+};
+
+const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {
+  const info = card.info;
+  if (!info) return undefined;
+  if (info.blocked) return "bad";
+  return info.paused || info.ends - Date.now() / 1000 < ENDS_SOON ? "warn" : "good";
+};
+
+// The «Shared» row: an offer to share, or the links to hand out and ways to change or stop it.
 const sharedPanel = (
   card: ShareCard | null,
   facts: DocFacts | null,
-  asked: { onShare: () => void; onStop: () => void },
+  asked: {
+    onShare: () => void;
+    onSettings: () => void;
+    onPause: (paused: boolean) => void;
+    onStill: (still: boolean) => void;
+    onStop: () => void;
+  },
 ): Panel => {
   // Someone else's document is not offered at all (decision 68); until its facts arrive nothing is offered either.
   if (!card && facts?.shareable === "notMine")
@@ -151,6 +181,15 @@ const sharedPanel = (
         ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
         : undefined,
     };
+  // Someone else's share edited here: its link to read, and a way to stop editing it; theirs to manage.
+  if (card.taken)
+    return {
+      kind: "shared",
+      gist: t("sharedTaken"),
+      said: t("sharedTakenWhy"),
+      links: [{ key: "read", label: t("shareLinkRead"), url: card.read }],
+      acts: [{ key: "stop", label: t("shareStopEditing"), onPick: asked.onStop }],
+    };
   const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
   if (card.edit)
     links.push({
@@ -159,15 +198,32 @@ const sharedPanel = (
       url: card.edit,
       note: t("shareLinkEditNote"),
     });
-  // The server refuses everything but a look on a blocked document, so stopping it is not offered.
+  // The server refuses everything but a look on a blocked document, so nothing is offered on one.
   const blocked = card.info?.blocked ?? false;
+  const paused = card.info?.paused ?? false;
+  // Unreached, the server cannot be asked to change anything, so only stopping stays.
+  const changes = card.info
+    ? [
+        { key: "settings", label: t("shareSettings"), onPick: asked.onSettings },
+        {
+          key: "still",
+          label: t(card.still ? "shareFollowIt" : "shareStillIt"),
+          onPick: () => asked.onStill(!card.still),
+        },
+        {
+          key: "pause",
+          label: t(paused ? "shareResume" : "sharePause"),
+          onPick: () => asked.onPause(!paused),
+        },
+      ]
+    : [];
   return {
     kind: "shared",
     gist: gistOf(card),
-    tone: !card.info ? undefined : blocked ? "bad" : card.info.paused ? "warn" : "good",
-    said: blocked ? t("sharedBlockedWhy") : card.info ? t("shareAdminKept") : t("sharedOffline"),
+    tone: toneOf(card),
+    said: saidOf(card),
     links: blocked ? [] : links,
-    acts: blocked ? [] : [{ key: "stop", label: t("shareStop"), onPick: asked.onStop }],
+    acts: blocked ? [] : [...changes, { key: "stop", label: t("shareStop"), onPick: asked.onStop }],
   };
 };
 
@@ -199,6 +255,7 @@ export default function Beside(props: Props) {
   const [out, setOut] = useState<{ x: number; y: number } | null>(null);
   const [card, setCard] = useShared(paper);
   const [sharing, setSharing] = useState(false);
+  const [settings, setSettings] = useState(false);
   // Pressing the button closes the open menu as a press outside it; the click that follows must not open it again.
   const shutAt = useRef(0);
 
@@ -283,6 +340,12 @@ export default function Beside(props: Props) {
             .catch(() => {})
             .finally(() => setSharing(true));
         },
+        onSettings: () => setSettings(true),
+        onStill: (still) => shareStill(paper, still).then(setCard).catch(latest.current.onError),
+        onPause: (pausing) =>
+          shareChange(paper, { do: pausing ? "pause" : "resume" })
+            .then(setCard)
+            .catch(latest.current.onError),
         onStop: () =>
           shareStop(paper)
             .then(() => setCard(null))
@@ -337,6 +400,18 @@ export default function Beside(props: Props) {
             setSharing(false);
           }}
           onClose={() => setSharing(false)}
+          onError={props.onError}
+        />
+      )}
+      {settings && card && (
+        <ShareSettings
+          file={paper}
+          card={card}
+          onChanged={(now) => {
+            setCard(now);
+            setSettings(false);
+          }}
+          onClose={() => setSettings(false)}
           onError={props.onError}
         />
       )}

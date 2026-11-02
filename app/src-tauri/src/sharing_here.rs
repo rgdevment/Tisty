@@ -28,6 +28,15 @@ pub(crate) fn voucher() -> Voucher {
     (key, certificate)
 }
 
+/// A small picture, as Tisty finds one among its attachments.
+pub(crate) fn png(side: u32) -> Vec<u8> {
+    let mut bytes = std::io::Cursor::new(Vec::new());
+    image::RgbImage::from_pixel(side, side, image::Rgb([200, 30, 30]))
+        .write_to(&mut bytes, image::ImageFormat::Png)
+        .unwrap();
+    bytes.into_inner()
+}
+
 /// The server's API in memory, with little work so the tests run quickly.
 pub(crate) struct Here {
     pub(crate) share: RefCell<Share<Memory, Counting>>,
@@ -79,7 +88,7 @@ impl Wire for Here {
                 method: asked.method.into(),
                 path: format!("{API}{}", asked.path),
                 token: asked.token.map(str::to_owned),
-                password: None,
+                password: asked.password,
                 work: asked.work,
                 body: asked.body,
                 caller: IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)),
