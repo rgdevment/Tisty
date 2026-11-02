@@ -140,6 +140,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
                     sharing::pictured(&text, |target| sharing::attachment(target, &data));
                 let words = sharing::Words {
                     text: &text,
+                    cited: &[],
                     pictures: &pictures,
                     voucher: &voucher,
                     name: name.as_deref(),

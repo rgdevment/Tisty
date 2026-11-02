@@ -72,6 +72,7 @@ fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
     .unwrap();
     let words = |text| Words {
         text,
+        cited: &[],
         pictures: &[],
         voucher: &voucher,
         name: None,
@@ -112,6 +113,7 @@ fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
     };
     let words = Words {
         text: "Uno y dos",
+        cited: &[],
         pictures: &[],
         voucher: &editor,
         name: Some("Bea"),

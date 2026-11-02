@@ -3,7 +3,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::{Shared, Signs};
-use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
+use tisty_share_proto::envelope::{self, Cited, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
@@ -342,6 +342,7 @@ pub(crate) fn share(
     };
     let first = Words {
         text,
+        cited: &[],
         pictures,
         voucher,
         name,
@@ -359,9 +360,10 @@ pub(crate) fn share(
     Ok(shared)
 }
 
-/// What goes up as a version: the words, their pictures, and who signs them.
+/// What goes up as a version: the words, the documents they lead to, their pictures, and who signs them.
 pub(crate) struct Words<'a> {
     pub(crate) text: &'a str,
+    pub(crate) cited: &'a [Cited],
     pub(crate) pictures: &'a [(Kind, Vec<u8>)],
     pub(crate) voucher: &'a Voucher,
     pub(crate) name: Option<&'a str>,
@@ -437,6 +439,7 @@ fn put_up(
         version: from.map_or(1, |one| one + 1),
         from,
         text: words.text,
+        cited: words.cited,
         pictures: &pictures,
     };
     let sealed =
