@@ -101,28 +101,10 @@ fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
 }
 
 #[test]
-fn a_server_that_takes_no_drawn_page_gets_the_words_alone() {
-    let here = Here::new();
-    here.share.borrow_mut().policy.limits.html = 0;
-    let shared = share(
-        &here,
-        SERVER,
-        "# Hola",
-        &[],
-        &Chosen::default(),
-        &voucher(),
-        None,
-    )
-    .unwrap();
-    assert_eq!(drawn_back(&here, &shared), None);
-    assert_eq!(read_back(&here, &shared), "# Hola");
-}
-
-#[test]
-fn a_page_drawn_past_what_the_server_takes_leaves_the_words_to_go_alone() {
+fn a_page_drawn_past_what_the_server_takes_is_too_big_to_share() {
     let here = Here::new();
     here.share.borrow_mut().policy.limits.html = 8;
-    let shared = share(
+    let refused = share(
         &here,
         SERVER,
         "# Hola",
@@ -131,9 +113,8 @@ fn a_page_drawn_past_what_the_server_takes_leaves_the_words_to_go_alone() {
         &voucher(),
         None,
     )
-    .unwrap();
-    assert_eq!(drawn_back(&here, &shared), None);
-    assert_eq!(read_back(&here, &shared), "# Hola");
+    .unwrap_err();
+    assert_eq!(refused.code, "shareTooBig");
 }
 
 #[test]

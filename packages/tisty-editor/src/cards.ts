@@ -1,4 +1,4 @@
-import { markup } from "./glyphs";
+import { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";
 import type { Say } from "./words";
 
 export type Carded =
@@ -23,14 +23,16 @@ export const piece = (page: Document, kind: string, said = "") => {
   return one;
 };
 
-export const glyph = (page: Document, name: string) => {
+export const drawnGlyph = (page: Document, paths: string) => {
   const drawn = page.createElementNS("http://www.w3.org/2000/svg", "svg");
   drawn.setAttribute("class", "glyph");
   drawn.setAttribute("viewBox", "0 0 24 24");
   drawn.setAttribute("aria-hidden", "true");
-  drawn.innerHTML = markup(name) ?? "";
+  drawn.innerHTML = paths;
   return drawn;
 };
+
+export const glyph = (page: Document, name: SheetGlyph) => drawnGlyph(page, SHEET_GLYPHS[name]);
 
 const GLYPH = { doc: "page", page: "book", away: "archive", self: "page", gone: "page" } as const;
 

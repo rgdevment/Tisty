@@ -31,7 +31,7 @@ export type Read = { readonly kept: (() => void)[]; readonly drawn: Promise<void
 export const readAs = (page: Document, reading: Reading): Read => {
   const { say, live } = reading;
   saidKinds(page, (kind) => say(`said${kind}` as ReadWord));
-  iconed(page);
+  const icons = iconed(page);
   staged(page);
   celled(page, {
     today: today(),
@@ -45,7 +45,10 @@ export const readAs = (page: Document, reading: Reading): Read => {
   if (reading.cards) carded(page, { ...reading.cards, say }, live);
   if (reading.parts) partCarded(page, { part: reading.parts, say });
   if (reading.sites) webCarded(page, say, live, reading.sites.glimpses);
-  const drawn = diagrams(page, page.documentElement.classList.contains("dark"), live);
+  const drawn = Promise.all([
+    icons,
+    diagrams(page, page.documentElement.classList.contains("dark"), live),
+  ]).then(() => {});
   // Code the grammars could not reach for stays as written.
   colored(page, live).catch(() => {});
   return { kept, drawn };
