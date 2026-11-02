@@ -83,7 +83,7 @@ describe("languages of a document", () => {
 describe("laying out every language alike", () => {
   it("hands the paper, the sheets and their turn to the core", async () => {
     await docDress("es", "letter", true, false);
-    expect(invoked.at(-1)).toEqual([
+    expect(invoked[invoked.length - 1]).toEqual([
       "doc_dress",
       { id: "es", paper: "letter", sheets: true, landscape: false },
     ]);
