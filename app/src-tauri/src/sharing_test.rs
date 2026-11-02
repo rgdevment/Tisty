@@ -56,6 +56,68 @@ fn read_back(here: &Here, shared: &Shared) -> String {
         .to_string()
 }
 
+// What the link opens now, with the page Tisty drew for it, if any.
+fn drawn_back(here: &Here, shared: &Shared) -> Option<String> {
+    let (_, body) = here.read(&shared.link, None);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let key = LinkKey::from_text(&shared.key).unwrap();
+    envelope::open(&key, &envelope, &[])
+        .unwrap()
+        .html
+        .map(|html| html.to_string())
+}
+
+#[test]
+fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
+    let here = Here::new();
+    let voucher = voucher();
+    let drawn = |text| Some(tisty_markdown::html(&tisty_markdown::read(text)));
+    let first = "# Hola
+
+| a | b |
+|---|---|
+| 1 | 2 |";
+    let shared = share(
+        &here,
+        SERVER,
+        first,
+        &[],
+        &Chosen::default(),
+        &voucher,
+        None,
+    )
+    .unwrap();
+    assert_eq!(drawn_back(&here, &shared), drawn(first));
+
+    let words = Words {
+        text: "## Dos",
+        cited: &[],
+        pictures: &[],
+        voucher: &voucher,
+        name: None,
+    };
+    update(&here, &shared, &words).unwrap();
+    assert_eq!(drawn_back(&here, &shared), drawn("## Dos"));
+}
+
+#[test]
+fn a_server_that_takes_no_drawn_page_gets_the_words_alone() {
+    let here = Here::new();
+    here.share.borrow_mut().policy.limits.html = 0;
+    let shared = share(
+        &here,
+        SERVER,
+        "# Hola",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(drawn_back(&here, &shared), None);
+    assert_eq!(read_back(&here, &shared), "# Hola");
+}
+
 #[test]
 fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
     let here = Here::new();

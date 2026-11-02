@@ -475,19 +475,22 @@ fn put_up(
         .iter()
         .map(|(kind, bytes)| (*kind, bytes.as_slice()))
         .collect();
+    // Drawn once per version so the web only shows it (decision 91); a server from before drawn pages gets the words alone.
+    let html = (limits.html > 0).then(|| tisty_markdown::html(&tisty_markdown::read(words.text)));
     let draft = Draft {
         id: &shared.link,
         version: from.map_or(1, |one| one + 1),
         from,
         text: words.text,
         cited: words.cited,
-        html: None,
+        html: html.as_deref(),
         pictures: &pictures,
     };
     let sealed =
         envelope::seal(&link_key, &draft, Some(&signer), &limits).map_err(|why| match why {
             // Sealed against the server's own limits, so a document over them is told here, never by the server.
             Unsealed::TextTooBig
+            | Unsealed::HtmlTooBig
             | Unsealed::PictureTooBig
             | Unsealed::PicturesTooBig
             | Unsealed::TooManyPictures => Refusal::of("shareTooBig"),
