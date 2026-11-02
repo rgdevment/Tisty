@@ -587,6 +587,7 @@ export default function Docs({
     landing.current = null;
     if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
   }, [heads, open?.file]);
+  // The panel names the languages when it is open; the bar above the sheet does when it is not.
   const spoken = tongues.length > 0 && (
     <Tongues tongues={tongues} here={(above ?? own)?.id ?? ""} onOpen={toTongue} />
   );
@@ -871,9 +872,9 @@ export default function Docs({
                       here={open.file}
                       onOpen={(doc) => onDoc?.(doc.file)}
                     >
-                      {spoken}
+                      {!beside && spoken}
                     </Ribbon>
-                  ) : spoken ? (
+                  ) : spoken && !beside ? (
                     <nav aria-label={t("tonguesOf")} className="ribbon">
                       {spoken}
                     </nav>
