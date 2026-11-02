@@ -134,6 +134,7 @@ impl Room {
                 file: made.id.clone(),
                 order,
                 said: Some(Said {
+                    lang: None,
                     title: made.title.clone(),
                     bytes: None,
                     tags: Some(Vec::new()),
@@ -887,6 +888,7 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
     there.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -1671,6 +1673,7 @@ lo suyo",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -1719,6 +1722,7 @@ lo mio",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -2128,6 +2132,7 @@ soy el largo",
                 file: file.into(),
                 order: order::last_of(here.state.docs.values().map(|one| one.order.as_str())),
                 said: Some(Said {
+                    lang: None,
                     title: docs::titled(body),
                     bytes: None,
                     tags: Some(Vec::new()),

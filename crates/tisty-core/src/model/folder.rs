@@ -138,6 +138,15 @@ pub struct Kept {
     pub folder_was: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_of: Option<crate::model::TaskId>,
+    /// The language its body says it is in.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// The anchor of the languages it is one of; the anchor itself names none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translation_of: Option<DocId>,
+    /// When it joined them, which decides who keeps a language two of them say.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub joined: Option<jiff::Timestamp>,
 }
 
 #[cfg(test)]

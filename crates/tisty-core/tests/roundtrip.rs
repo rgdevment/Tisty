@@ -388,6 +388,9 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
     );
     assert!(
         !tisty_core::event::Said::of(&read).news_for(&tisty_core::model::Kept {
+            joined: None,
+            lang: None,
+            translation_of: None,
             id: ulid::Ulid::generate(),
             file: made.id.clone(),
             order: "a0".into(),

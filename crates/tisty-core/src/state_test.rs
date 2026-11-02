@@ -2253,6 +2253,7 @@ fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
                     file: "dev0-0001".into(),
                     order: "a0".into(),
                     said: Some(crate::event::Said {
+                        lang: None,
                         title: "Acta".into(),
                         bytes: None,
                         tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
@@ -3144,6 +3145,7 @@ fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
             Op::DocSaid {
                 id: one,
                 d: crate::event::Said {
+                    lang: None,
                     title: "gcp".into(),
                     bytes: None,
                     tags: Some(vec![tag.clone()]),
@@ -4880,6 +4882,7 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
         Op::DocSaid {
             id: owned,
             d: crate::event::Said {
+                lang: None,
                 title: "gcp".into(),
                 bytes: None,
                 tags: Some(vec![tag.clone()]),

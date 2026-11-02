@@ -1041,6 +1041,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         tags: Some(kept.tags.clone()),
                         by: None,
                         print: None,
+                        lang: None,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {

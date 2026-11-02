@@ -372,6 +372,9 @@ impl State {
             if let Some(tags) = &d.tags {
                 kept.tags = crate::tagging::worth_keeping(tags);
             }
+            if let Some(lang) = &d.lang {
+                kept.lang = lang.clone();
+            }
             kept.wrote = Some(event.timestamp);
             kept.wrote_by = Some(event.device.clone());
             // A note with no hand on it says nothing about whose it was, which is not
@@ -460,8 +463,43 @@ impl State {
                 compacted: None,
                 folder_was: None,
                 task_of: d.task_of,
+                lang: d.said.as_ref().and_then(|one| one.lang.clone()).flatten(),
+                translation_of: None,
+                joined: None,
             },
         );
+    }
+
+    pub(crate) fn doc_tongued(&mut self, event: &Event, id: &DocId, d: &crate::event::Tongue) {
+        let bare = |one: &Kept| one.page_of.is_none() && one.task_of.is_none();
+        if !self.docs.get(id).is_some_and(bare) {
+            return;
+        }
+        // Joining a member joins its anchor, so a group is only ever one level deep.
+        let anchor = d.of.map(|of| {
+            self.docs
+                .get(&of)
+                .and_then(|one| one.translation_of)
+                .unwrap_or(of)
+        });
+        if anchor == Some(*id)
+            || anchor.is_some_and(|one| self.docs.get(&one).is_some_and(|up| !bare(up)))
+        {
+            return;
+        }
+        // An anchor joining another brings its own languages along.
+        if let Some(anchor) = anchor {
+            for one in self.docs.values_mut() {
+                if one.translation_of == Some(*id) {
+                    one.translation_of = Some(anchor);
+                    one.joined = Some(event.timestamp);
+                }
+            }
+        }
+        if let Some(kept) = self.docs.get_mut(id) {
+            kept.translation_of = anchor;
+            kept.joined = anchor.map(|_| event.timestamp);
+        }
     }
 
     pub(crate) fn doc_moved(&mut self, id: &DocId, d: &Filed) {

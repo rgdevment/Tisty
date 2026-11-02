@@ -146,6 +146,9 @@ fn what_a_document_says_of_itself_carries_them() {
 #[test]
 fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
     let kept = crate::model::Kept {
+        joined: None,
+        lang: None,
+        translation_of: None,
         born_by: None,
         guest: false,
         made: None,
@@ -173,6 +176,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
     };
 
     let same = crate::event::Said {
+        lang: None,
         title: "Alquiler".into(),
         bytes: Some(31),
         tags: Some(vec![Tag::new("legal").unwrap()]),

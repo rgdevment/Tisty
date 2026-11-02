@@ -109,6 +109,45 @@ pub fn tags(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// The language the body says it is in, as a tag in its usual case: `es`, `pt-BR`, `zh-Hant`.
+pub fn lang(text: &str) -> Option<String> {
+    fields(text)
+        .into_iter()
+        .find(|one| one.key.eq_ignore_ascii_case("lang"))
+        .and_then(|one| one.values.into_iter().next())
+        .and_then(|one| tagged(&one))
+}
+
+// Only language, script and region: what a person picks a language by, and nothing a typo slips through.
+pub fn tagged(said: &str) -> Option<String> {
+    let mut parts = said.trim().split(['-', '_']);
+    let language = parts.next().filter(|one| {
+        (2..=3).contains(&one.len()) && one.chars().all(|c| c.is_ascii_alphabetic())
+    })?;
+    let mut out = language.to_ascii_lowercase();
+    let mut script = false;
+    let mut region = false;
+    for part in parts {
+        let letters = part.chars().all(|c| c.is_ascii_alphabetic());
+        let digits = part.chars().all(|c| c.is_ascii_digit());
+        if part.len() == 4 && letters && !script && !region {
+            let (first, rest) = part.split_at(1);
+            out.push_str(&format!(
+                "-{}{}",
+                first.to_ascii_uppercase(),
+                rest.to_ascii_lowercase()
+            ));
+            script = true;
+        } else if ((part.len() == 2 && letters) || (part.len() == 3 && digits)) && !region {
+            out.push_str(&format!("-{}", part.to_ascii_uppercase()));
+            region = true;
+        } else {
+            return None;
+        }
+    }
+    Some(out)
+}
+
 // One value may hold several tags, `a, b` or `#a #b`.
 pub fn words(values: &[String]) -> Vec<String> {
     values
