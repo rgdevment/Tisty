@@ -24,6 +24,7 @@ pub mod spoken;
 pub mod storing;
 pub mod task_docs;
 pub mod tasks;
+pub mod tongues;
 pub mod twinning;
 pub mod updating;
 pub mod versions;

@@ -37,6 +37,22 @@ impl State {
             .collect()
     }
 
+    /// The other languages that stand with it in its folder, which move, rest and go with it.
+    pub fn kin(&self, id: DocId) -> Vec<DocId> {
+        let Some(kept) = self.docs.get(&id) else {
+            return Vec::new();
+        };
+        let tongues = self.tongues_of(id);
+        if !tongues.iter().any(|one| one.id == id) {
+            return Vec::new();
+        }
+        tongues
+            .into_iter()
+            .filter(|one| one.id != id && one.folder == kept.folder)
+            .map(|one| one.id)
+            .collect()
+    }
+
     /// Joined to a group yet shown on its own: it says no language, or one an earlier member keeps.
     pub fn apart_in_tongues(&self, id: DocId) -> bool {
         let Some(kept) = self.docs.get(&id).filter(|one| grouping(one)) else {

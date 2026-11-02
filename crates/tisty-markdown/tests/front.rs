@@ -47,3 +47,23 @@ fn what_is_not_a_language_names_none() {
     }
     assert_eq!(front::lang("# lang: es"), None);
 }
+
+#[test]
+fn setting_a_property_rewrites_its_line_or_adds_it_last_and_leaves_the_rest() {
+    assert_eq!(
+        front::with_field("---\nlang: es\npaper: letter\n---\n# a\n", "lang", "en"),
+        "---\nlang: en\npaper: letter\n---\n# a\n"
+    );
+    assert_eq!(
+        front::with_field("---\npaper: letter\n---\n# a\n", "lang", "en"),
+        "---\npaper: letter\nlang: en\n---\n# a\n"
+    );
+    assert_eq!(
+        front::with_field("# a\n", "lang", "en"),
+        "---\nlang: en\n---\n# a\n"
+    );
+    assert_eq!(
+        front::with_field("\u{feff}# a\n", "lang", "en"),
+        "\u{feff}---\nlang: en\n---\n# a\n"
+    );
+}

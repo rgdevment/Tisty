@@ -267,3 +267,28 @@ fn undoing_a_join_takes_the_document_back_out() {
         }])
     );
 }
+
+#[test]
+fn the_languages_in_its_folder_go_with_it_and_one_elsewhere_stays_put() {
+    let (es, en, pt) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let elsewhere = Ulid::generate();
+    let mut moved = written(3, pt, "---\nlang: pt\n---\n# Passeios\n");
+    if let Op::DocAdd { d, .. } = &mut moved.op {
+        d.folder = Some(elsewhere);
+    }
+    let state = State::replay(&[
+        written(1, es, ES),
+        written(2, en, EN),
+        moved,
+        joined(4, en, Some(es)),
+        joined(5, pt, Some(es)),
+    ]);
+
+    assert_eq!(state.kin(es), vec![en]);
+    assert_eq!(state.kin(pt), Vec::<DocId>::new());
+    assert_eq!(
+        state.tongues_of(pt).len(),
+        3,
+        "the selector still reaches it"
+    );
+}

@@ -189,6 +189,38 @@ pub fn titled_as(front: &str, name: &str) -> Option<String> {
     done.then_some(out)
 }
 
+/// The text with one property set: its line rewritten where it stands, or added last, with a
+/// block made for it when the text has none. Nothing else in the block moves.
+pub fn with_field(text: &str, key: &str, value: &str) -> String {
+    let said = format!("{key}: {value}\n");
+    let Some(at) = span(text) else {
+        let skip = text.len() - text.trim_start_matches('\u{feff}').len();
+        return format!("{}---\n{said}---\n{}", &text[..skip], &text[skip..]);
+    };
+    let lines: Vec<&str> = text[at.clone()].split_inclusive('\n').collect();
+    let closing = lines.len() - 1;
+    let mut block = String::with_capacity(at.len() + said.len());
+    let mut done = false;
+    for (n, line) in lines.iter().enumerate() {
+        let keyed = n > 0
+            && n < closing
+            && !line.starts_with([' ', '\t'])
+            && line
+                .split_once(':')
+                .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key));
+        if keyed && !done {
+            block.push_str(&said);
+            done = true;
+            continue;
+        }
+        if n == closing && !done {
+            block.push_str(&said);
+        }
+        block.push_str(line);
+    }
+    format!("{}{block}{}", &text[..at.start], &text[at.end..])
+}
+
 fn listed(value: &str) -> Vec<String> {
     if value.is_empty() {
         return Vec::new();

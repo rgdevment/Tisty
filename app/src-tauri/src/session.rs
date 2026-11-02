@@ -581,6 +581,19 @@ impl Session {
     }
 
     pub fn copy_doc(&mut self, id: &str) -> Answer<tisty_core::docs::Doc> {
+        let copy = worded(&self.locale, "copy");
+        self.copy_doc_as(id, &|body| match body.trim().is_empty() {
+            true => body.to_string(),
+            false => tisty_core::docs::marked(body, &copy),
+        })
+    }
+
+    /// A copy of a document and its pages, its own words written as `told` says.
+    pub fn copy_doc_as(
+        &mut self,
+        id: &str,
+        told: &dyn Fn(&str) -> String,
+    ) -> Answer<tisty_core::docs::Doc> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
         let kept = self
             .state
@@ -605,10 +618,7 @@ impl Session {
         let root = self.paths.docs();
         let body =
             tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
-        let body = match body.trim().is_empty() {
-            true => body,
-            false => tisty_core::docs::marked(&body, &worded(&self.locale, "copy")),
-        };
+        let body = told(&body);
         let made = tisty_core::docs::create(&root, &self.config.device_id, &body)
             .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
 
@@ -731,6 +741,14 @@ impl Session {
 
     pub fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+        // The languages beside it are the same row to the person, so they go with it.
+        for one in self.state.kin(id) {
+            self.drop_one(one)?;
+        }
+        self.drop_one(id)
+    }
+
+    fn drop_one(&mut self, id: tisty_core::model::DocId) -> Answer<()> {
         let kept = self
             .state
             .docs
