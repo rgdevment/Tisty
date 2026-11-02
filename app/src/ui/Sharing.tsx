@@ -193,29 +193,15 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
           <p className="text-[11.5px] leading-relaxed text-faint">{t("shareEditWhy")}</p>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareKeeps")}</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-[10px] bg-hover p-1">
-            {[false, true].map((one) => (
-              <label
-                key={String(one)}
-                className="flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md text-[12.5px] has-[:checked]:bg-bg has-[:checked]:font-semibold has-[:checked]:shadow-lift"
-              >
-                <input
-                  type="radio"
-                  name="keeps"
-                  className="sr-only"
-                  checked={still === one}
-                  onChange={() => setStill(one)}
-                />
-                {t(one ? "shareKeepsStill" : "shareKeepsFollow")}
-              </label>
-            ))}
-          </div>
-          <p className="text-[11.5px] leading-relaxed text-faint">
+        <div className="flex flex-col gap-1">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium">
+            <input type="checkbox" checked={!still} onChange={(e) => setStill(!e.target.checked)} />
+            {t("shareSynced")}
+          </label>
+          <p className="pl-6 text-[11.5px] leading-relaxed text-faint">
             {t(still ? "sharedStill" : "sharedFollows")}
           </p>
-        </fieldset>
+        </div>
 
         {(reach.pages > 0 || reach.cited > 0) && (
           <div className="flex flex-col gap-1.5">

@@ -55,6 +55,8 @@ impl Net {
     pub(crate) fn to(server: &str) -> Result<Self, Refusal> {
         let client = reqwest::blocking::Client::builder()
             .timeout(PATIENCE)
+            // A server that never answers is told apart in seconds, not after the whole patience.
+            .connect_timeout(std::time::Duration::from_secs(8))
             .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| Refusal::of("shareOffline"))?;
