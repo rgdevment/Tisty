@@ -914,6 +914,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .collect::<Vec<_>>(),
     );
 
+    let spoken = papers::tongues::spoken(&state);
     let shown: Vec<Value> = shown_of
         .iter()
         .map(|one| {
@@ -930,7 +931,8 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if let Some(up) = one.page_of.and_then(|up| named_doc(&state, up)) {
                 kept_of.insert("page_of".into(), json!(up));
             }
-            papers::tongues::tongued_into(&state, one, &mut kept_of);
+            let tongues = spoken.get(&one.id).map_or(&[][..], Vec::as_slice);
+            papers::tongues::said_into(one, tongues, &mut kept_of);
             let pages = state.pages_of(one.id);
             if !pages.is_empty() {
                 kept_of.insert("pages".into(), json!(pages.len()));

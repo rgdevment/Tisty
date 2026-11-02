@@ -80,3 +80,14 @@ fn taking_a_property_out_leaves_the_rest_and_the_block_goes_with_its_last() {
     );
     assert_eq!(front::without_field("# a\n", "paper"), "# a\n");
 }
+
+#[test]
+fn a_property_taken_out_takes_its_listed_values_with_it() {
+    assert_eq!(
+        front::without_field(
+            "---\ntags: [a]\npaper:\n  - letter\nlang: es\n---\n# a\n",
+            "paper"
+        ),
+        "---\ntags: [a]\nlang: es\n---\n# a\n"
+    );
+}

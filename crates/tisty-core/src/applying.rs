@@ -500,9 +500,16 @@ impl State {
                 }
             }
         }
+        // Handed to another anchor of the same group, it keeps its place among the languages.
+        let staying = anchor.is_some_and(|one| {
+            let of = |kept: &Kept| kept.translation_of.unwrap_or(kept.id);
+            self.docs.get(&one).map(of) == self.docs.get(id).map(of)
+        });
         if let Some(kept) = self.docs.get_mut(id) {
             kept.translation_of = anchor;
-            kept.joined = anchor.map(|_| event.timestamp);
+            if !staying {
+                kept.joined = anchor.map(|_| event.timestamp);
+            }
         }
     }
 

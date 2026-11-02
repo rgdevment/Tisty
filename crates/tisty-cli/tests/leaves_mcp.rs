@@ -5114,3 +5114,28 @@ fn a_translation_needs_a_language_on_both_sides() {
             .contains("not a language tag")
     );
 }
+
+#[test]
+fn a_translation_is_never_a_page_and_the_listing_names_the_languages() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
+
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en", "page_of": es })
+            )
+            .contains("never a page")
+    );
+    served.said(
+        "write_doc",
+        serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en" }),
+    );
+    let listed = served.call("docs", serde_json::json!({}));
+    let docs = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    let paseos = docs.iter().find(|one| one["doc"] == es.as_str()).unwrap();
+    assert_eq!(paseos["languages"].as_array().unwrap().len(), 2, "{listed}");
+}

@@ -149,3 +149,26 @@ fn an_old_guide_someone_wrote_in_is_left_as_it_is() {
         mine
     );
 }
+
+#[test]
+fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths).unwrap();
+    let folder = lived_in(&mut session);
+    let en = old_guide(&mut session, folder, super::super::settings::GUIDE_EN);
+    super::spoken_again(&mut session);
+
+    let made = super::sown_beside(&mut session, "es", en, shipped).unwrap();
+
+    let es = session
+        .state
+        .papers()
+        .find(|one| one.file == made.id)
+        .unwrap();
+    assert_eq!(es.lang.as_deref(), Some("es"));
+    assert_eq!(es.folder, Some(folder));
+    assert_eq!(session.state.tongues_of(en).len(), 2);
+    assert_eq!(session.state.pages_of(es.id).len(), 3);
+}

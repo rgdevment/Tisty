@@ -411,3 +411,27 @@ fn joining_moves_a_document_and_the_languages_beside_it_to_the_others_folder() {
     want.sort();
     assert_eq!(all, want);
 }
+
+#[test]
+fn parting_the_anchor_keeps_who_holds_each_language() {
+    let (es, en, again) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let mut state = State::replay(&[
+        written(1, es, ES),
+        written(2, en, EN),
+        written(3, again, EN),
+        joined(4, en, Some(es)),
+        joined(5, again, Some(es)),
+    ]);
+    assert!(state.apart_in_tongues(again));
+
+    for op in state.parting(es) {
+        state.apply(&at(10, op));
+    }
+
+    assert!(state.tongues_of(es).is_empty());
+    assert!(
+        state.apart_in_tongues(again),
+        "the copy that was aside stays aside"
+    );
+    assert!(!state.apart_in_tongues(en));
+}

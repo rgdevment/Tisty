@@ -248,3 +248,33 @@ fn a_copy_keeps_the_properties_and_names_itself_where_the_title_comes_from() {
         "---\ntitle: \"Walks (copy)\"\n---\nRina.\n"
     );
 }
+
+#[test]
+fn a_copy_takes_no_key_that_would_join_it_to_other_languages() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    session.locale = Some("en".into());
+    let root = session.paths.docs();
+    let body = "---\nlang: es\ntranslationKey: k\n---\n# Paseos\n";
+    let made = tisty_core::docs::create(&root, &session.config.device_id, body).unwrap();
+    let id = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id,
+            d: tisty_core::event::DocAdd {
+                file: made.id,
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body)),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+
+    let copy = session.copy_doc(&id.to_string()).unwrap();
+
+    assert_eq!(
+        tisty_core::docs::read(&root, &copy.id).unwrap(),
+        "---\nlang: es\n---\n# Paseos (copy)\n"
+    );
+    assert_eq!(session.state.docs[&twin_of(&session, &copy)].key, None);
+}

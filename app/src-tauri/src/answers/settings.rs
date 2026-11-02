@@ -162,12 +162,35 @@ pub fn guide(
         .guide
         .clone()
         .and_then(|kept| session.state.papers().find(|one| one.file == kept))
-        .map(|one| (one.file.clone(), one.title.clone().unwrap_or_default()));
+        .map(|one| {
+            (
+                one.id,
+                one.file.clone(),
+                one.title.clone().unwrap_or_default(),
+            )
+        });
+    let reach = |one: &str| {
+        app.path()
+            .resolve(
+                format!("resources/guide/{one}"),
+                tauri::path::BaseDirectory::Resource,
+            )
+            .ok()
+    };
     let found = match (standing, own) {
-        (Some(kept), Some(true)) => guide_here_as(&session, &tisty_core::docs::titled(told))
-            .or_else(|| in_their_tongue(&session, &kept.0, tongue))
-            .or(Some(kept)),
-        (Some(kept), _) => Some(kept),
+        (Some((id, file, title)), Some(true)) => {
+            let here = guide_here_as(&session, &tisty_core::docs::titled(told))
+                .or_else(|| in_their_tongue(&session, &file, tongue));
+            match here {
+                Some(found) => Some(found),
+                // An older guide in another language gets this one beside it, as asking for it always did.
+                None if title != tisty_core::docs::titled(told) => {
+                    return super::guiding::sown_beside(&mut session, tongue, id, reach);
+                }
+                None => Some((file, title)),
+            }
+        }
+        (Some((_, file, title)), _) => Some((file, title)),
         (None, Some(true)) => guide_here_as(&session, &tisty_core::docs::titled(told)),
         (None, _) => guide_already_here(&session),
     };
@@ -176,14 +199,7 @@ pub fn guide(
         session.keep(|config| config.guide = Some(taken))?;
         return Ok(tisty_core::docs::Doc { id: file, title });
     }
-    super::guiding::sown(&mut session, tongue, called, |one| {
-        app.path()
-            .resolve(
-                format!("resources/guide/{one}"),
-                tauri::path::BaseDirectory::Resource,
-            )
-            .ok()
-    })
+    super::guiding::sown(&mut session, tongue, called, reach)
 }
 
 // The same guide in the person's language, when the one kept is another of its languages.

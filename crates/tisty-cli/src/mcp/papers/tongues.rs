@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
+
 use serde_json::{Map, Value, json};
-use tisty_core::model::Kept;
+use tisty_core::model::{DocId, Kept};
 use tisty_core::{Paths, State};
 
 use super::writing::written_doc;
@@ -10,10 +12,27 @@ use super::super::{Refused, doc_named, hitch, opened, retold};
 
 /// The languages a document is told in, for an assistant to read the one it needs.
 pub(in crate::mcp) fn tongued_into(state: &State, kept: &Kept, into: &mut Map<String, Value>) {
+    said_into(kept, &state.tongues_of(kept.id), into);
+}
+
+/// Every group's languages as a listing names them, worked out once for the whole list.
+pub(in crate::mcp) fn spoken(state: &State) -> BTreeMap<DocId, Vec<&Kept>> {
+    state
+        .families()
+        .into_values()
+        .flat_map(|tongues| {
+            tongues
+                .iter()
+                .map(|one| (one.id, tongues.clone()))
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+pub(in crate::mcp) fn said_into(kept: &Kept, tongues: &[&Kept], into: &mut Map<String, Value>) {
     if let Some(lang) = &kept.lang {
         into.insert("lang".into(), json!(lang));
     }
-    let tongues = state.tongues_of(kept.id);
     if !tongues.is_empty() {
         let listed: Vec<Value> = tongues
             .iter()
@@ -76,6 +95,12 @@ pub(in crate::mcp) fn translation_written(
     args: &Value,
     of: &str,
 ) -> Result<Value, Refused> {
+    if text(args, "page_of").is_some() {
+        return Err(Refused::Tool(
+            "a translation is a document of its own, never a page: leave `page_of` out, and its pages are translated one by one."
+                .into(),
+        ));
+    }
     let (state, _) = opened(paths)?;
     let up = found(&state, of)?;
     let Some(body) = text(args, "body") else {
@@ -120,9 +145,14 @@ pub(in crate::mcp) fn translation_written(
     ) else {
         return Ok(written);
     };
-    store
-        .append_batch(state.joining(kept.id, up.id))
-        .map_err(hitch)?;
+    // Already written, so a join that fails says so rather than inviting a second copy.
+    if let Err(why) = store.append_batch(state.joining(kept.id, up.id)) {
+        return Err(Refused::Tool(format!(
+            "{} was written, but it could not be joined to {} ({why}). Join it with `tongue_doc`; do not write it again.",
+            doc_named(&state, &file),
+            doc_named(&state, of)
+        )));
+    }
     Ok(told(
         format!(
             "Wrote {} in {lang}, one of the languages of {}. The person sees them as one document and switches between them.",

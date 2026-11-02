@@ -35,32 +35,7 @@ pub fn sown(
 ) -> Answer<tisty_core::docs::Doc> {
     let mut spoken: Vec<&Spoken> = SPOKEN.iter().collect();
     spoken.sort_by_key(|one| one.tongue != first);
-    let data = session.paths.data().to_path_buf();
-
-    let mut told_of = Vec::new();
-    let mut kept_at = Vec::new();
-    let mut named: Vec<Vec<(String, String)>> = Vec::new();
-    for one in &spoken {
-        let mut here = Vec::new();
-        for shot in ATTACHED {
-            let Some(at) = from(one.tongue)
-                .map(|dir| dir.join(shot))
-                .filter(|at| at.is_file())
-            else {
-                continue;
-            };
-            let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
-                .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-            // The same picture in both languages is kept once and named alike.
-            if !kept_at.contains(&kept.at) {
-                told_of.push(kept.told(tisty_core::attach::Via::Guide));
-                kept_at.push(kept.at.clone());
-            }
-            let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
-            here.push((shot.to_string(), leaf.to_string()));
-        }
-        named.push(here);
-    }
+    let (mut told_of, named) = pictured(session, &spoken, &from)?;
 
     let folder = ulid::Ulid::generate();
     let order = tisty_core::order::last_of(
@@ -102,6 +77,68 @@ pub fn sown(
     Ok(cover.clone())
 }
 
+/// The guide in one more language, beside the one already here and joined to it.
+pub fn sown_beside(
+    session: &mut Session,
+    tongue: &str,
+    beside: DocId,
+    from: impl Fn(&str) -> Option<PathBuf>,
+) -> Answer<tisty_core::docs::Doc> {
+    let one = SPOKEN
+        .iter()
+        .find(|one| one.tongue == tongue)
+        .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    let folder = session
+        .state
+        .docs
+        .get(&beside)
+        .and_then(|one| one.folder)
+        .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    let (told_of, named) = pictured(session, &[one], &from)?;
+    session.commit_all(told_of)?;
+    let (cover, made) = one_language(session, one, &named[0], folder)?;
+    let ops = session.state.joining(cover, beside);
+    session.commit_all(ops)?;
+    let written = made.id.clone();
+    session.keep(|c| c.guide = Some(written))?;
+    Ok(made)
+}
+
+// The pictures each language names, kept once when two languages show the same one.
+type Pictured = (Vec<Op>, Vec<Vec<(String, String)>>);
+
+fn pictured(
+    session: &Session,
+    spoken: &[&Spoken],
+    from: &impl Fn(&str) -> Option<PathBuf>,
+) -> Answer<Pictured> {
+    let data = session.paths.data().to_path_buf();
+    let mut told_of = Vec::new();
+    let mut kept_at = Vec::new();
+    let mut named = Vec::new();
+    for one in spoken {
+        let mut here = Vec::new();
+        for shot in ATTACHED {
+            let Some(at) = from(one.tongue)
+                .map(|dir| dir.join(shot))
+                .filter(|at| at.is_file())
+            else {
+                continue;
+            };
+            let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
+                .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+            if !kept_at.contains(&kept.at) {
+                told_of.push(kept.told(tisty_core::attach::Via::Guide));
+                kept_at.push(kept.at.clone());
+            }
+            let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
+            here.push((shot.to_string(), leaf.to_string()));
+        }
+        named.push(here);
+    }
+    Ok((told_of, named))
+}
+
 /// Old guides nobody wrote in say their language and join; a store that still reads as new is left so.
 pub fn spoken_again(session: &mut Session) {
     let root = session.paths.docs();
@@ -126,7 +163,18 @@ pub fn spoken_again(session: &mut Session) {
             .get(id)
             .is_some_and(|one| one.lang.is_none() && one.wrote == one.made)
     };
-    let apart = covers.len() > 1 && session.state.tongues_of(covers[0].0).is_empty();
+    let saying = |id: &DocId| {
+        unsaid(id)
+            || session
+                .state
+                .docs
+                .get(id)
+                .is_some_and(|one| one.lang.is_some())
+    };
+    // Two that can never say their language are never joined, so they are no reason to look.
+    let apart = covers.len() > 1
+        && session.state.tongues_of(covers[0].0).is_empty()
+        && covers.iter().all(|(id, _)| saying(id));
     // Reading the whole log to know the store is new is paid only when an old guide is there.
     if !covers.iter().any(|(id, _)| unsaid(id)) && !apart
         || tisty_core::untouched::untouched(&session.paths.store(), &root)

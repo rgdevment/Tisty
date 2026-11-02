@@ -583,9 +583,14 @@ impl Session {
 
     pub fn copy_doc(&mut self, id: &str) -> Answer<tisty_core::docs::Doc> {
         let copy = worded(&self.locale, "copy");
-        self.copy_doc_as(id, &|body| match body.trim().is_empty() {
-            true => body.to_string(),
-            false => tisty_core::docs::marked(body, &copy),
+        self.copy_doc_as(id, &|body| {
+            // A copy is no translation, so it takes no key that would join it to the other languages.
+            let body =
+                tisty_markdown::front::without_field(body, tisty_core::tongues::TRANSLATION_KEY);
+            match body.trim().is_empty() {
+                true => body,
+                false => tisty_core::docs::marked(&body, &copy),
+            }
         })
     }
 

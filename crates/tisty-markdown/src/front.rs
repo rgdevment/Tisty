@@ -227,14 +227,19 @@ pub fn without_field(text: &str, key: &str) -> String {
     };
     let lines: Vec<&str> = text[at.clone()].split_inclusive('\n').collect();
     let closing = lines.len() - 1;
+    // A key's indented lines below it are its values, so they go with it.
+    let mut dropping = false;
     let kept: Vec<&str> = lines[1..closing]
         .iter()
         .copied()
         .filter(|line| {
-            line.starts_with([' ', '\t'])
-                || !line
-                    .split_once(':')
-                    .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key))
+            if line.starts_with([' ', '\t']) && !line.trim().is_empty() {
+                return !dropping;
+            }
+            dropping = line
+                .split_once(':')
+                .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key));
+            !dropping
         })
         .collect();
     let rest = &text[at.end..];

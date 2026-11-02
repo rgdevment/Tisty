@@ -36,7 +36,8 @@ pub fn translated(
     }
     let anchor = session.state.anchor_of(&kept);
     let made = session.copy_doc_as(id, &|body| {
-        tisty_markdown::front::with_field(body, "lang", &lang)
+        let body = tisty_markdown::front::without_field(body, tisty_core::tongues::TRANSLATION_KEY);
+        tisty_markdown::front::with_field(&body, "lang", &lang)
     })?;
     let twin = session
         .state
