@@ -1,7 +1,12 @@
 import type { MermaidConfig } from "mermaid";
-import { grounded, PALETTES, pictureOf, svgOf } from "tisty-diagrams/read";
+import { grounded } from "tisty-diagrams/read";
 
 type Mermaid = typeof import("mermaid")["default"];
+type Studio = typeof import("tisty-diagrams/read");
+
+let studio: Promise<Studio> | null = null;
+// The window's own drawing weighs as much as the rest of the page, so it comes only for a page with a diagram.
+const studioNow = (): Promise<Studio> => (studio ??= import("tisty-diagrams/read"));
 
 const AT_MOST = 32 * 1024;
 // Laying out runs on the window's own thread, and a short fence can still name thousands of links.
@@ -85,20 +90,25 @@ export const drawing = (
   if (ready !== undefined) return Promise.resolve(ready);
   if (!source.trim() || source.length > AT_MOST || parts(source) > MOST_PARTS)
     return Promise.resolve(null);
-  // What the window draws is shown as the window draws it, with its places, its shapes and its margin.
-  const own = pictureOf(source);
-  if (own) {
-    const drawn = svgOf(own, PALETTES[dark ? "dark" : "light"], null, fontNow()).replace(
-      "<svg ",
-      `<svg style="max-width:${own.size.wide}px" `,
-    );
-    keep(key, drawn);
-    return Promise.resolve(drawn);
-  }
   const turn = turns.then(async () => {
     const again = kept(key);
     if (again !== undefined) return again;
     if (!still()) return null;
+    // What the window draws is shown as the window draws it, with its places, its shapes and its margin.
+    const own = await studioNow()
+      .then(({ PALETTES, pictureOf, svgOf }) => {
+        const picture = pictureOf(source);
+        if (!picture) return undefined;
+        return svgOf(picture, PALETTES[dark ? "dark" : "light"], null, fontNow()).replace(
+          "<svg ",
+          `<svg style="max-width:${picture.size.wide}px" `,
+        );
+      })
+      .catch(() => undefined);
+    if (own !== undefined) {
+      keep(key, own);
+      return own;
+    }
     const mermaid = await mermaidNow().catch(() => null);
     if (!mermaid) return null;
     mermaid.initialize(settings(dark));
