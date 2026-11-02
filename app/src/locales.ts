@@ -702,6 +702,7 @@ const en = {
   shareOpenWrong: "That is not its password. Check it with whoever shared it.",
   shareOpenOlder:
     "Tisty Share served an older version than one this computer already read, so Tisty does not show it.",
+  shareOpenNewer: "This was shared from a newer Tisty. Update Tisty to open it.",
   shareOpenGone:
     "This link no longer leads to a document: it ran out or its author stopped sharing it.",
   shareOpenClosed: "Its author paused this document, or reports closed it.",
@@ -3505,6 +3506,7 @@ const es: Catalog = {
   shareOpenWrong: "Esa no es su clave. Confírmala con quien lo compartió.",
   shareOpenOlder:
     "Tisty Share entregó una versión más antigua que una que este equipo ya leyó, así que Tisty no la muestra.",
+  shareOpenNewer: "Esto se compartió desde un Tisty más nuevo. Actualiza Tisty para abrirlo.",
   shareOpenGone:
     "Este link ya no lleva a un documento: caducó o quien lo compartió dejó de compartirlo.",
   shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",

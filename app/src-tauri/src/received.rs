@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use tisty_share_proto::envelope::{self, Cited, Envelope, Kind, LinkKey};
+use tisty_share_proto::envelope::{self, Cited, Envelope, Kind, LinkKey, Refused as Unread};
 use tisty_share_proto::identity::{Revocation, Verdict};
 use tisty_share_proto::limits::Limits;
 
@@ -142,8 +142,10 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
 /// One version's envelope opened with the link's key: what its writer signed, or a refusal saying why not.
 pub fn opened_from(said: Said, key: &str) -> Result<Received, Refusal> {
     let key = LinkKey::from_text(key).ok_or(Refusal::of("shareOpenUnsigned"))?;
-    let envelope =
-        Envelope::read(said.body, &Limits::default()).map_err(|_| Refusal::of("shareFailed"))?;
+    let envelope = Envelope::read(said.body, &Limits::default()).map_err(|why| match why {
+        Unread::Newer => Refusal::of("shareOpenNewer"),
+        _ => Refusal::of("shareFailed"),
+    })?;
     let opened = envelope::open(&key, &envelope, &taken_back(said.revoked.as_deref()))
         .map_err(|_| Refusal::of("shareOpenUnsigned"))?;
     let print = match &opened.wrote {
