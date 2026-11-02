@@ -11,6 +11,7 @@ type Props = {
   readonly stranger: boolean;
   readonly tall: boolean;
   readonly untitled?: boolean;
+  readonly viewing?: boolean;
   readonly shaping?: boolean;
   readonly hidden: boolean;
   readonly wide?: number;
@@ -19,6 +20,9 @@ type Props = {
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
 };
+
+// Windows keeps arrows on even the thin bar, so the viewer draws its own there.
+const ARROWED = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
 // The words change in place, and what the last ones left on the sheet itself goes with them.
 const freshen = (sheet: Element, html: string) => {
@@ -53,6 +57,7 @@ export default function Frame(props: Readonly<Props>) {
     wide,
     zoom,
     untitled = false,
+    viewing = false,
     shaping = false,
   } = props;
   const shaped = useRef(shaping);
@@ -109,6 +114,7 @@ export default function Frame(props: Readonly<Props>) {
       sheet.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
+      page.documentElement.classList.toggle("own-bar", viewing && ARROWED);
       page.documentElement.classList.toggle("shaping", shaped.current);
       dressedAsWindow(page);
       fitted(page, said.current.wide, said.current.zoom);
@@ -145,7 +151,7 @@ export default function Frame(props: Readonly<Props>) {
       held.removeEventListener("load", loaded);
       undressed();
     };
-  }, [stranger, tall, untitled]);
+  }, [stranger, tall, untitled, viewing]);
 
   // Every drawing is dressed anew before it is painted, even one drawn the same: what it leans on may have changed.
   useLayoutEffect(() => swap.current(html), [html, turn]);
