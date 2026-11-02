@@ -51,4 +51,5 @@ export { charsAt, spanned } from "./spans";
 export { staged, stepLine, steppedTitle } from "./stages";
 export { asking, BOXES, type TableAct, tablesIn } from "./tables";
 export { type Glimpse, type Glimpses, hosting, webCarded } from "./webCards";
+export { weighed } from "./weighed";
 export type { ReadWord, Say } from "./words";

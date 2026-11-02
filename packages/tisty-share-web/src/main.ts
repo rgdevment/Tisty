@@ -251,7 +251,7 @@ const reader = async (root: Read) => {
       side,
       sheetSays.say,
       panelsOf(
-        { title, text: now.text, about: now.about, view, raw, heads },
+        { title, text: now.text, about: now.about, facts: now.facts, view, raw, heads },
         { onView, onRaw, onShut: () => besideShown(false) },
         { sheet: sheetSays.say, page: say, language },
         { opened: now === root ? location.href : read, read },
