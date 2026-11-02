@@ -147,6 +147,9 @@ pub struct Kept {
     /// When it joined them, which decides who keeps a language two of them say.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub joined: Option<jiff::Timestamp>,
+    /// The `translationKey:` it came in with, so a language brought in later finds it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
 }
 
 #[cfg(test)]

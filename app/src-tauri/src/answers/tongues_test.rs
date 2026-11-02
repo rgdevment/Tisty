@@ -234,3 +234,45 @@ fn the_paper_a_document_is_laid_on_is_the_same_in_its_other_languages() {
     .unwrap();
     assert_eq!(body_of(&session, en), "---\nlang: en\n---\n# Paseos\n");
 }
+
+#[test]
+fn a_group_with_one_language_locked_is_not_deleted_in_part() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(&mut session, "---\nlang: es\n---\n# Paseos\n", None);
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let en = id_of(&session, &en.id);
+    let pt = translated(&mut session, &es.to_string(), "pt", None).unwrap();
+    let pt = id_of(&session, &pt.id);
+    session.commit(Op::DocLock { id: pt }).unwrap();
+
+    assert_eq!(
+        session.drop_doc(&es.to_string()).unwrap_err().code,
+        "documentLocked"
+    );
+    for one in [es, en, pt] {
+        assert!(
+            session.state.docs.contains_key(&one),
+            "nothing goes unless all can"
+        );
+    }
+}
+
+#[test]
+fn a_refused_join_leaves_both_documents_as_they_were() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(&mut session, "# Red\n", None);
+    let other = wrote(&mut session, "# Network\n", None);
+
+    let refused = tongued(
+        &mut session,
+        &other.to_string(),
+        Some(es.to_string()),
+        Some("es".into()),
+        Some("es".into()),
+    )
+    .unwrap_err();
+
+    assert_eq!(refused.code, "tongueTaken");
+    assert_eq!(body_of(&session, es), "# Red\n");
+    assert_eq!(body_of(&session, other), "# Network\n");
+}

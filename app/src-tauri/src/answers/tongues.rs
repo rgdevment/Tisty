@@ -7,8 +7,7 @@ use tisty_core::{Op, State};
 use crate::{Answer, Refusal, Session, blamed, doc_out, held};
 use tisty_core::witness::channel;
 
-/// A copy of the document in another language, joined to its languages: its words copied whole
-/// so it can be translated section by section, its pages with it.
+/// A copy of a document and its pages in another language, joined to it, ready to translate.
 #[tauri::command]
 pub fn doc_translate(
     session: tauri::State<'_, Mutex<Session>>,
@@ -28,9 +27,12 @@ pub fn translated(
     let doc: DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let lang = language(lang)?;
     let kept = joinable(&session.state, doc)?;
-    let said = said_in(session, &kept, from)?;
+    let (said, unwritten) = said_of(&session.state, &kept, from)?;
     if said == lang || session.state.tongue_taken(doc, &lang) {
         return Err(Refusal::of("tongueTaken"));
+    }
+    if unwritten {
+        write_lang(session, &kept, &said)?;
     }
     let anchor = session.state.anchor_of(&kept);
     let made = session.copy_doc_as(id, &|body| {
@@ -81,18 +83,24 @@ pub fn tongued(
     if session.state.anchor_of(&up) == session.state.anchor_of(&kept) {
         return Ok(());
     }
-    said_in(session, &up, of_lang)?;
-    let said = said_in(session, &kept, lang)?;
-    if session.state.tongue_taken(of, &said) {
+    // Everything is judged before a word is written, so a refusal leaves both as they were.
+    let (theirs, theirs_unwritten) = said_of(&session.state, &up, of_lang)?;
+    let (said, unwritten) = said_of(&session.state, &kept, lang)?;
+    if said == theirs || session.state.tongue_taken(of, &said) {
         return Err(Refusal::of("tongueTaken"));
+    }
+    if theirs_unwritten {
+        write_lang(session, &up, &theirs)?;
+    }
+    if unwritten {
+        write_lang(session, &kept, &said)?;
     }
     let ops = session.state.joining(doc, of);
     session.commit_all(ops)?;
     Ok(())
 }
 
-/// The paper, the sheets and their turn, the same in every language of a document: they are how
-/// the document is laid out, not what one language says.
+/// Paper, sheets and their turn are how a document is laid out, so every language shares them.
 #[tauri::command]
 pub fn doc_dress(
     session: tauri::State<'_, Mutex<Session>>,
@@ -237,30 +245,30 @@ fn joinable(state: &State, id: DocId) -> Answer<Kept> {
     Ok(kept)
 }
 
-// The language a document says, written into it first when the person named one it did not say.
-fn said_in(session: &mut Session, kept: &Kept, named: Option<String>) -> Answer<String> {
+// The language a document says, or the one named for it and whether it still has to be written.
+fn said_of(state: &State, kept: &Kept, named: Option<String>) -> Answer<(String, bool)> {
     let named = named.map(|one| language(&one)).transpose()?;
     match (named, kept.lang.clone()) {
-        (None, Some(said)) => Ok(said),
+        (None, Some(said)) => Ok((said, false)),
         (None, None) => Err(Refusal::of("tongueUnsaid")),
-        (Some(named), said) if said.as_deref() == Some(named.as_str()) => Ok(named),
-        (Some(named), _) => {
-            if session.state.shut(kept.id) {
-                return Err(Refusal::of("documentLocked"));
-            }
-            let written = tisty_core::docs::amend(
-                &session.paths.docs(),
-                session.paths.data(),
-                &kept.file,
-                |was| Some(tisty_markdown::front::with_field(was, "lang", &named)),
-            )
-            .map_err(|e| blamed(channel::WINDOW, "a language could not be written", e))?;
-            let body = written.ok_or_else(|| Refusal::of("noSuchDoc"))?;
-            let hand = crate::signing(&session.state);
-            session.retell(&kept.file, &body, hand);
-            Ok(named)
-        }
+        (Some(named), said) if said.as_deref() == Some(named.as_str()) => Ok((named, false)),
+        (Some(_), _) if state.shut(kept.id) => Err(Refusal::of("documentLocked")),
+        (Some(named), _) => Ok((named, true)),
     }
+}
+
+fn write_lang(session: &mut Session, kept: &Kept, lang: &str) -> Answer<()> {
+    let written = tisty_core::docs::amend(
+        &session.paths.docs(),
+        session.paths.data(),
+        &kept.file,
+        |was| Some(tisty_markdown::front::with_field(was, "lang", lang)),
+    )
+    .map_err(|e| blamed(channel::WINDOW, "a language could not be written", e))?;
+    let body = written.ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    let hand = crate::signing(&session.state);
+    session.retell(&kept.file, &body, hand);
+    Ok(())
 }
 
 #[cfg(test)]

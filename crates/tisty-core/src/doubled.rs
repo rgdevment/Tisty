@@ -86,7 +86,7 @@ fn lists_named_alike(state: &State) -> Vec<Vec<ListId>> {
 }
 
 fn guides_twice(state: &State) -> Vec<DocId> {
-    let mut first: BTreeMap<String, DocId> = BTreeMap::new();
+    let mut first: BTreeMap<(String, Option<String>), DocId> = BTreeMap::new();
     let mut later = Vec::new();
     let mut guides: Vec<_> = state
         .docs
@@ -96,7 +96,12 @@ fn guides_twice(state: &State) -> Vec<DocId> {
     guides.sort_by(|a, b| a.made.cmp(&b.made).then(a.file.cmp(&b.file)));
     for one in guides {
         let title = crate::text::folded(one.title.as_deref().unwrap_or_default().trim());
-        match first.entry(title) {
+        // A translation keeps the title it was copied with: its language, or its book's, tells it apart.
+        let lang = match one.page_of.and_then(|up| state.docs.get(&up)) {
+            Some(up) => up.lang.clone(),
+            None => one.lang.clone(),
+        };
+        match first.entry((title, lang)) {
             std::collections::btree_map::Entry::Occupied(_) => later.push(one.id),
             std::collections::btree_map::Entry::Vacant(free) => {
                 free.insert(one.id);

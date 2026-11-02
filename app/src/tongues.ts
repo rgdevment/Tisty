@@ -69,6 +69,9 @@ export const preferred = (members: readonly Filed[], open?: string | null): File
 
 /// One row for each group of languages that stand together; the others step aside behind it.
 export const shown = (docs: readonly Filed[], open?: string | null): Filed[] => {
+  // A page open stands for its document, so the tree keeps the language it belongs to.
+  const page = docs.find((one) => one.file === open && one.pageOf);
+  const cover = page ? docs.find((one) => one.id === page.pageOf)?.file : open;
   const groups = new Map<string, Filed[]>();
   for (const one of docs) {
     if (!one.tongue) continue;
@@ -78,14 +81,13 @@ export const shown = (docs: readonly Filed[], open?: string | null): Filed[] => 
   const standing = new Set<string>();
   for (const members of groups.values()) {
     members.sort((a, b) => (a.tongue?.[1] ?? 0) - (b.tongue?.[1] ?? 0));
-    const one = preferred(members, open);
+    const one = preferred(members, cover);
     if (one) standing.add(one.id);
   }
   return docs.filter((one) => !one.tongue || standing.has(one.id));
 };
 
-/// Where a page stands in its own language, found in another: the page at the same place, or the
-/// document itself when that language has fewer pages.
+/// The page at the same place in another language, or that document when it has fewer pages.
 export const twinOf = (docs: readonly Filed[], here: Filed, tongue: Filed): Filed => {
   if (!here.pageOf) return tongue;
   const at = docs

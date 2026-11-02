@@ -326,7 +326,7 @@ pub(crate) fn imported_as(
         },
     })?;
     // A language brought back joins the group its key names.
-    if let Some(anchor) = session.state.keyed_to(&session.paths.docs(), body, id) {
+    if let Some(anchor) = session.state.keyed_to(body, id) {
         session.commit(Op::DocTongue {
             id,
             d: tisty_core::event::Tongue { of: Some(anchor) },

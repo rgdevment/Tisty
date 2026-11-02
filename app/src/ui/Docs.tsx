@@ -128,6 +128,8 @@ const listed = (chosen: string | string[] | null): string[] => {
   return chosen ? [chosen] : [];
 };
 
+const LANDING_MS = 3000;
+
 export default function Docs({
   open: asked,
   known,
@@ -576,7 +578,12 @@ export default function Docs({
     const anchor = tongue.tongue?.[0];
     if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
     const there = twinOf(known, own, tongue);
-    landing.current = { file: there.file, at: standingHead() };
+    const landed = { file: there.file, at: standingHead() };
+    landing.current = landed;
+    // A language with no headings yet never reaches the jump, so the wish lapses rather than waiting.
+    window.setTimeout(() => {
+      if (landing.current === landed) landing.current = null;
+    }, LANDING_MS);
     setHeads([]);
     onDoc?.(there.file);
   };

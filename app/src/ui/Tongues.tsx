@@ -34,8 +34,7 @@ export default function Tongues({ tongues, here, onOpen }: Props) {
   );
 }
 
-/// The heading the reader stands under, counted as the index counts them, so another language
-/// can open at the same one.
+/// The heading the reader stands under, counted as the index counts them, for another language.
 export const standingHead = (): number => {
   const sheet = document.querySelector<HTMLElement>(".scroller.gutter");
   const frame = sheet?.querySelector<HTMLIFrameElement>("iframe");

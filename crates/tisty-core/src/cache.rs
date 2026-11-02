@@ -11,7 +11,7 @@ use crate::{
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
 // Raised past the 1.40 cache, so going back to it and forward again rebuilds rather than reads its stale shares.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 24;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 25;
 
 pub struct Cache {
     db: Connection,

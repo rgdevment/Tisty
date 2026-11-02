@@ -375,6 +375,9 @@ impl State {
             if let Some(lang) = &d.lang {
                 kept.lang = lang.clone();
             }
+            if let Some(key) = &d.key {
+                kept.key = key.clone();
+            }
             kept.wrote = Some(event.timestamp);
             kept.wrote_by = Some(event.device.clone());
             // A note with no hand on it says nothing about whose it was, which is not
@@ -466,6 +469,7 @@ impl State {
                 lang: d.said.as_ref().and_then(|one| one.lang.clone()).flatten(),
                 translation_of: None,
                 joined: None,
+                key: d.said.as_ref().and_then(|one| one.key.clone()).flatten(),
             },
         );
     }

@@ -148,3 +148,36 @@ fn nothing_is_told_when_no_name_repeats() {
     list(&mut state, 2, "Personal", "b0");
     assert!(repeated(&state).is_empty());
 }
+
+#[test]
+fn a_translation_of_the_guide_is_not_taken_for_a_second_guide() {
+    let mut state = State::default();
+    guide(&mut state, 1, "a-0001", "Cómo funciona Tisty");
+    let copy = Ulid::generate();
+    state.apply(&ev(
+        2,
+        Op::DocAdd {
+            id: copy,
+            d: DocAdd {
+                guest: true,
+                made: Some(at(2)),
+                by: Some(GUIDE_BY.into()),
+                said: Some(Said::of("---\nlang: pt\n---\n# Cómo funciona Tisty\n")),
+                file: "a-0002".into(),
+                order: "a1".into(),
+                ..Default::default()
+            },
+        },
+    ));
+
+    assert!(
+        doubled(&state).is_empty(),
+        "the Portuguese copy keeps the Spanish title until it is translated"
+    );
+    guide(&mut state, 3, "b-0001", "Cómo funciona Tisty");
+    assert_eq!(
+        doubled(&state).len(),
+        1,
+        "a second guide in the same language still goes"
+    );
+}

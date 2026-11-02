@@ -828,7 +828,7 @@ const en = {
   notALanguage: "That is not a language Tisty knows how to name",
   pageHasNoTongue: "A page is in the language of its document",
   tongueApart:
-    "Another document already says this one's language among its languages, so it shows on its own. Take it out of its languages, or change its language in its properties.",
+    "It is joined to other languages but says none of its own, or one another of them already says, so it shows on its own. Take it out of its languages, or set its language in its properties.",
   dropThemSure:
     "Discard {name} tasks? They leave the open lists and stay in the archive, where you can open them again.",
   newFolderIn: "New folder in {name}",
@@ -3648,7 +3648,7 @@ const es: Catalog = {
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",
   pageHasNoTongue: "Una página está en el idioma de su documento",
   tongueApart:
-    "Otro documento de sus idiomas ya está en este idioma, así que este se muestra aparte. Sepáralo de sus idiomas o cambia su idioma en sus propiedades.",
+    "Está unido a otros idiomas, pero no dice el suyo o dice uno que ya tiene otro de ellos, así que se muestra aparte. Sepáralo de sus idiomas o pon su idioma en sus propiedades.",
   dropThemSure:
     "¿Descartar {name} tareas? Salen de las listas abiertas y se quedan en el archivo, donde puedes volver a abrirlas.",
   newFolderIn: "Nueva carpeta en {name}",

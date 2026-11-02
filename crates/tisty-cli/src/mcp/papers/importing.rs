@@ -166,7 +166,7 @@ fn joined_by_key(paths: &Paths, written: &Value, body: &str) -> Result<(), Refus
     else {
         return Ok(());
     };
-    if let Some(anchor) = state.keyed_to(&paths.docs(), body, id) {
+    if let Some(anchor) = state.keyed_to(body, id) {
         store
             .append(tisty_core::Op::DocTongue {
                 id,

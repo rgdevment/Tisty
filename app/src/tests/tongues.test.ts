@@ -31,6 +31,11 @@ describe("languages of a document", () => {
     expect(preferred([es, en])?.id).toBe("en");
   });
 
+  it("shows the language whose page is open", () => {
+    const page = doc("en1", { pageOf: "en" });
+    expect(shown([es, en, page], "f-en1").map((one) => one.id)).toEqual(["en", "en1"]);
+  });
+
   it("keeps apart a language that stands in another folder", () => {
     const moved = { ...en, folder: "elsewhere" };
     expect(shown([es, moved]).map((one) => one.id)).toEqual(["es", "en"]);

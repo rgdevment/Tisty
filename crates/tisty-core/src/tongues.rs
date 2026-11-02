@@ -1,19 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
 
 use crate::model::{DocId, Kept};
 use crate::state::State;
 
-/// One document told in several languages: each language is a document of its own, and the
-/// log holds them together around the anchor the others name (`doc.tongue`).
+// Each language is a document of its own; the log holds them around the anchor the others name.
 impl State {
     /// The document its group gathers around: itself when it names none.
     pub fn anchor_of(&self, kept: &Kept) -> DocId {
         kept.translation_of.unwrap_or(kept.id)
     }
 
-    /// The languages of the group a document is in, one document each, in the order they joined.
-    /// Empty when it stands alone, since one language is no choice to make.
+    /// The languages of its group in the order they joined; empty when it stands alone.
     pub fn tongues_of(&self, id: DocId) -> Vec<&Kept> {
         let Some(kept) = self.docs.get(&id).filter(|one| grouping(one)) else {
             return Vec::new();
@@ -60,9 +57,20 @@ impl State {
             return false;
         };
         let anchor = self.anchor_of(kept);
-        let grouped = kept.translation_of.is_some()
-            || self.papers().any(|one| one.translation_of == Some(anchor));
-        grouped && !self.tongues_of(id).iter().any(|one| one.id == id)
+        let members = self
+            .papers()
+            .filter(|one| grouping(one) && self.anchor_of(one) == anchor)
+            .collect();
+        left_apart(members).contains(&id)
+    }
+
+    /// Every document shown on its own although it is joined to others, worked out in one pass.
+    pub fn apart(&self) -> BTreeSet<DocId> {
+        let mut gathered: BTreeMap<DocId, Vec<&Kept>> = BTreeMap::new();
+        for one in self.papers().filter(|one| grouping(one)) {
+            gathered.entry(self.anchor_of(one)).or_default().push(one);
+        }
+        gathered.into_values().flat_map(left_apart).collect()
     }
 
     /// The page of another language that stands where this one does in its own document.
@@ -83,8 +91,7 @@ impl State {
         }
     }
 
-    /// What joins a document to the languages of another: it goes to their folder with the
-    /// languages beside it, since a group stands in one folder, and then names their anchor.
+    /// What joins a document to another's languages: it moves to their folder, since a group stands in one.
     pub fn joining(&self, id: DocId, of: DocId) -> Vec<crate::Op> {
         let (Some(kept), Some(up)) = (self.docs.get(&id), self.docs.get(&of)) else {
             return Vec::new();
@@ -117,8 +124,7 @@ impl State {
         ops
     }
 
-    /// What takes a document out of its languages; an anchor hands the others to the first of
-    /// them, so they stay together without it.
+    /// What takes a document out of its languages; an anchor hands the others to the first of them.
     pub fn parting(&self, id: DocId) -> Vec<crate::Op> {
         let out = |id: DocId, of: Option<DocId>| crate::Op::DocTongue {
             id,
@@ -163,9 +169,8 @@ impl State {
         }
     }
 
-    /// The anchor a body brought in joins: the document its key names, or one brought in earlier
-    /// under the same key. None when it names no key, or its language is already kept there.
-    pub fn keyed_to(&self, root: &Path, body: &str, but: DocId) -> Option<DocId> {
+    /// The anchor a body brought in joins: the one its key names, or one that came in under that key.
+    pub fn keyed_to(&self, body: &str, but: DocId) -> Option<DocId> {
         let key = key_of(body)?;
         let lang = tisty_markdown::front::lang(body)?;
         let named = key
@@ -176,10 +181,7 @@ impl State {
         let found = named.or_else(|| {
             self.papers()
                 .filter(|one| grouping(one) && one.id != but)
-                .find(|one| {
-                    crate::docs::read(root, &one.file)
-                        .is_ok_and(|was| key_of(&was) == Some(key.clone()))
-                })
+                .find(|one| one.key.as_deref() == Some(key.as_str()))
         })?;
         let kept: Vec<&Kept> = match self.tongues_of(found.id) {
             none if none.is_empty() => vec![found],
@@ -192,7 +194,7 @@ impl State {
     }
 }
 
-fn key_of(body: &str) -> Option<String> {
+pub(crate) fn key_of(body: &str) -> Option<String> {
     tisty_markdown::front::fields(body)
         .into_iter()
         .find(|one| one.key.eq_ignore_ascii_case(TRANSLATION_KEY))
@@ -221,6 +223,24 @@ fn kept_by_language(mut members: Vec<&Kept>) -> Vec<&Kept> {
         true => tongues,
         false => Vec::new(),
     }
+}
+
+// In a group of two or more, those that say no language or one an earlier member already says.
+fn left_apart(mut members: Vec<&Kept>) -> Vec<DocId> {
+    if members.len() < 2 {
+        return Vec::new();
+    }
+    members.sort_by_key(|one| (one.joined.or(one.made), one.id));
+    let mut said = BTreeSet::new();
+    members
+        .into_iter()
+        .filter(|one| {
+            !one.lang
+                .as_ref()
+                .is_some_and(|lang| said.insert(lang.clone()))
+        })
+        .map(|one| one.id)
+        .collect()
 }
 
 #[cfg(test)]

@@ -11,6 +11,7 @@ fn a_bare_folder_serialises_to_the_minimum() {
 #[test]
 fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
     let kept = Kept {
+        key: None,
         joined: None,
         lang: None,
         translation_of: None,

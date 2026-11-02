@@ -312,7 +312,6 @@ fn a_language_leaves_with_the_key_of_its_group_and_one_alone_with_none() {
 
 #[test]
 fn a_language_brought_back_joins_the_group_its_key_names_unless_that_language_is_kept() {
-    let tmp = tempfile::tempdir().unwrap();
     let (es, en, back) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
     let state = State::replay(&[
         written(1, es, ES),
@@ -322,22 +321,51 @@ fn a_language_brought_back_joins_the_group_its_key_names_unless_that_language_is
     let pt = format!("---\nlang: pt\ntranslationKey: {es}\n---\n# Passeios\n");
     let again = format!("---\nlang: en\ntranslationKey: {es}\n---\n# Walks\n");
 
-    assert_eq!(state.keyed_to(tmp.path(), &pt, back), Some(es));
-    assert_eq!(state.keyed_to(tmp.path(), &again, back), None);
-    assert_eq!(state.keyed_to(tmp.path(), "# Nada\n", back), None);
+    assert_eq!(state.keyed_to(&pt, back), Some(es));
+    assert_eq!(state.keyed_to(&again, back), None);
+    assert_eq!(state.keyed_to("# Nada\n", back), None);
 }
 
 #[test]
 fn languages_brought_in_elsewhere_find_each_other_by_their_key() {
-    let tmp = tempfile::tempdir().unwrap();
     let first = Ulid::generate();
     let es = "---\nlang: es\ntranslationKey: from-another-tisty\n---\n# Paseos\n";
-    std::fs::write(tmp.path().join("dev_a-0001.md"), es).unwrap();
     let state = State::replay(&[written(1, first, es)]);
     let en = "---\nlang: en\ntranslationKey: from-another-tisty\n---\n# Walks\n";
 
-    assert_eq!(
-        state.keyed_to(tmp.path(), en, Ulid::generate()),
-        Some(first)
+    assert_eq!(state.keyed_to(en, Ulid::generate()), Some(first));
+}
+
+#[test]
+fn every_language_shown_on_its_own_is_found_in_one_pass_and_one_alone_is_not() {
+    let (es, en, again, bare) = (
+        Ulid::generate(),
+        Ulid::generate(),
+        Ulid::generate(),
+        Ulid::generate(),
     );
+    let state = State::replay(&[
+        written(1, es, ES),
+        written(2, en, EN),
+        written(3, again, EN),
+        written(4, bare, "# Sin idioma\n"),
+        joined(5, en, Some(es)),
+        joined(6, again, Some(es)),
+        joined(7, bare, Some(es)),
+    ]);
+
+    assert_eq!(state.apart(), [again, bare].into_iter().collect());
+    assert!(state.apart_in_tongues(again) && !state.apart_in_tongues(es));
+
+    let (one, other) = (Ulid::generate(), Ulid::generate());
+    let pair = State::replay(&[
+        written(1, one, ES),
+        written(2, other, "# Sin idioma\n"),
+        joined(3, other, Some(one)),
+    ]);
+    assert!(
+        !pair.apart_in_tongues(one),
+        "the only language said is nobody's double"
+    );
+    assert!(pair.apart_in_tongues(other));
 }

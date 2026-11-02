@@ -742,14 +742,18 @@ impl Session {
 
     pub fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-        // The languages beside it are the same row to the person, so they go with it.
-        for one in self.state.kin(id) {
+        // The languages beside it are the same row, so they go with it, and none goes unless all can.
+        let all: Vec<_> = self.state.kin(id).into_iter().chain([id]).collect();
+        for one in &all {
+            self.droppable(*one)?;
+        }
+        for one in all {
             self.drop_one(one)?;
         }
-        self.drop_one(id)
+        Ok(())
     }
 
-    fn drop_one(&mut self, id: tisty_core::model::DocId) -> Answer<()> {
+    fn droppable(&self, id: tisty_core::model::DocId) -> Answer<()> {
         let kept = self
             .state
             .docs
@@ -765,6 +769,16 @@ impl Session {
                 false => "folderIsAway",
             }));
         }
+        Ok(())
+    }
+
+    fn drop_one(&mut self, id: tisty_core::model::DocId) -> Answer<()> {
+        self.droppable(id)?;
+        let kept = self
+            .state
+            .docs
+            .get(&id)
+            .ok_or_else(|| Refusal::of("noSuchDoc"))?;
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;

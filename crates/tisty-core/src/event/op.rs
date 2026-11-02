@@ -1044,6 +1044,9 @@ pub struct Said {
     /// Absent from a build that never read it; null when the body names no language.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub lang: Option<Option<String>>,
+    /// The `translationKey:` a body brought in names, by which its other languages find it.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub key: Option<Option<String>>,
 }
 
 impl Said {
@@ -1059,6 +1062,7 @@ impl Said {
             tags: Some(crate::tagging::tags_in(body)),
             by: None,
             lang: Some(tisty_markdown::front::lang(body)),
+            key: Some(crate::tongues::key_of(body)),
         }
     }
 
@@ -1072,6 +1076,7 @@ impl Said {
             || kept.bytes != self.bytes
             || self.tags.as_ref().is_some_and(|one| *one != kept.tags)
             || self.lang.as_ref().is_some_and(|one| *one != kept.lang)
+            || self.key.as_ref().is_some_and(|one| *one != kept.key)
             || (self.print.is_some() && self.print != kept.print)
     }
 }

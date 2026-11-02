@@ -189,8 +189,7 @@ pub fn titled_as(front: &str, name: &str) -> Option<String> {
     done.then_some(out)
 }
 
-/// The text with one property set: its line rewritten where it stands, or added last, with a
-/// block made for it when the text has none. Nothing else in the block moves.
+/// The text with one property set where it stands, or added last, in a block made when there is none.
 pub fn with_field(text: &str, key: &str, value: &str) -> String {
     let said = format!("{key}: {value}\n");
     let Some(at) = span(text) else {
