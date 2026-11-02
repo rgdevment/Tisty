@@ -67,3 +67,16 @@ fn setting_a_property_rewrites_its_line_or_adds_it_last_and_leaves_the_rest() {
         "\u{feff}---\nlang: en\n---\n# a\n"
     );
 }
+
+#[test]
+fn taking_a_property_out_leaves_the_rest_and_the_block_goes_with_its_last() {
+    assert_eq!(
+        front::without_field("---\nlang: es\npaper: letter\n---\n# a\n", "paper"),
+        "---\nlang: es\n---\n# a\n"
+    );
+    assert_eq!(
+        front::without_field("---\nsheets: on\n---\n\n# a\n", "sheets"),
+        "# a\n"
+    );
+    assert_eq!(front::without_field("# a\n", "paper"), "# a\n");
+}

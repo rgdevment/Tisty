@@ -8,6 +8,10 @@ export const docTranslate = (id: string, lang: string, from?: string): Promise<D
 export const docTongue = (id: string, of?: string, lang?: string, ofLang?: string): Promise<void> =>
   invoke("doc_tongue", { id, of, lang, ofLang });
 
+/// The paper its other languages are laid on follows the one just changed.
+export const docDress = (id: string, paper: string, sheets: boolean, landscape: boolean) =>
+  invoke<void>("doc_dress", { id, paper, sheets, landscape });
+
 const CHOSEN = "tisty.tongue.";
 
 // The reader's own choice, kept on this computer: which language a group opens in is nobody else's.

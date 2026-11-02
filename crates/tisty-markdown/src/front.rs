@@ -221,6 +221,40 @@ pub fn with_field(text: &str, key: &str, value: &str) -> String {
     format!("{}{block}{}", &text[..at.start], &text[at.end..])
 }
 
+/// The text with one property taken out, and the block with it when nothing else is left in it.
+pub fn without_field(text: &str, key: &str) -> String {
+    let Some(at) = span(text) else {
+        return text.to_string();
+    };
+    let lines: Vec<&str> = text[at.clone()].split_inclusive('\n').collect();
+    let closing = lines.len() - 1;
+    let kept: Vec<&str> = lines[1..closing]
+        .iter()
+        .copied()
+        .filter(|line| {
+            line.starts_with([' ', '\t'])
+                || !line
+                    .split_once(':')
+                    .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key))
+        })
+        .collect();
+    let rest = &text[at.end..];
+    if kept.iter().all(|line| line.trim().is_empty()) {
+        return format!(
+            "{}{}",
+            &text[..at.start],
+            rest.strip_prefix('\n').unwrap_or(rest)
+        );
+    }
+    format!(
+        "{}{}{}{}{rest}",
+        &text[..at.start],
+        lines[0],
+        kept.concat(),
+        lines[closing]
+    )
+}
+
 fn listed(value: &str) -> Vec<String> {
     if value.is_empty() {
         return Vec::new();

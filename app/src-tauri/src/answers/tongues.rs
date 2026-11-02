@@ -91,6 +91,70 @@ pub fn tongued(
     Ok(())
 }
 
+/// The paper, the sheets and their turn, the same in every language of a document: they are how
+/// the document is laid out, not what one language says.
+#[tauri::command]
+pub fn doc_dress(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    paper: Option<String>,
+    sheets: bool,
+    landscape: bool,
+) -> Answer<()> {
+    dressed(&mut held(&session), &id, paper, sheets, landscape)
+}
+
+pub fn dressed(
+    session: &mut Session,
+    id: &str,
+    paper: Option<String>,
+    sheets: bool,
+    landscape: bool,
+) -> Answer<()> {
+    let doc: DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let laid = [
+        ("paper", paper.filter(|one| one != "a4")),
+        ("sheets", sheets.then(|| "on".to_string())),
+        (
+            "orientation",
+            (sheets && landscape).then(|| "landscape".to_string()),
+        ),
+    ];
+    let others: Vec<(DocId, String)> = session
+        .state
+        .tongues_of(doc)
+        .into_iter()
+        .filter(|one| one.id != doc)
+        .map(|one| (one.id, one.file.clone()))
+        .collect();
+    for (other, file) in others {
+        if session.state.shut(other) || doc_out(&session.state, other).is_err() {
+            continue;
+        }
+        let written =
+            tisty_core::docs::amend(&session.paths.docs(), session.paths.data(), &file, |was| {
+                let now = laid
+                    .iter()
+                    .fold(was.to_string(), |body, (key, value)| match value {
+                        Some(value) => tisty_markdown::front::with_field(&body, key, value),
+                        None => tisty_markdown::front::without_field(&body, key),
+                    });
+                (now != was).then_some(now)
+            })
+            .map_err(|e| {
+                blamed(
+                    channel::WINDOW,
+                    "a language's paper could not be written",
+                    e,
+                )
+            })?;
+        if let Some(body) = written {
+            session.retell(&file, &body, None);
+        }
+    }
+    Ok(())
+}
+
 /// A document and the languages beside it, which the person sees as one row and acts on as one.
 pub fn with_kin(state: &State, id: DocId) -> impl Iterator<Item = DocId> {
     std::iter::once(id).chain(state.kin(id))

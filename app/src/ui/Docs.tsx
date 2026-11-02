@@ -39,7 +39,7 @@ import { saidPlainly } from "../refusal";
 import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
-import { chooseTongue, tonguesOf, twinOf } from "../tongues";
+import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
 import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -764,9 +764,20 @@ export default function Docs({
     });
   }, [nowAt]);
 
+  // How a document is laid out is the same in all its languages, so a change goes to each.
+  const dressAlike = (now: string) => {
+    if (!own || own.pageOf || tongues.length < 2) return;
+    const laid = laidIn(now);
+    docDress(own.id, laid.paper ?? "a4", laid.sheets, laid.landscape).catch((e) =>
+      onError(saidPlainly(e)),
+    );
+  };
+
   const reshape = (made: (now: string) => string) => {
     if (!open || bolted) return;
-    wrote(made(held.current?.id === open.file ? held.current.body : body));
+    const now = made(held.current?.id === open.file ? held.current.body : body);
+    wrote(now);
+    dressAlike(now);
   };
 
   const resize = (paper: Paper) => {
@@ -777,7 +788,9 @@ export default function Docs({
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
     if (bolted) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
-    wrote(withPaper(latest, paper));
+    const laid = withPaper(latest, paper);
+    wrote(laid);
+    dressAlike(laid);
   };
   const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;

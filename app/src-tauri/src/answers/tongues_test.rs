@@ -203,3 +203,34 @@ fn a_search_finds_each_group_once_in_the_language_the_words_turned_up_in() {
 
     assert_eq!(once, vec![en.id, file(alone)]);
 }
+
+#[test]
+fn the_paper_a_document_is_laid_on_is_the_same_in_its_other_languages() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(&mut session, "---\nlang: es\n---\n# Paseos\n", None);
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let en = id_of(&session, &en.id);
+
+    super::dressed(
+        &mut session,
+        &es.to_string(),
+        Some("folio".into()),
+        true,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        body_of(&session, en),
+        "---\nlang: en\npaper: folio\nsheets: on\n---\n# Paseos\n"
+    );
+
+    super::dressed(
+        &mut session,
+        &es.to_string(),
+        Some("a4".into()),
+        false,
+        false,
+    )
+    .unwrap();
+    assert_eq!(body_of(&session, en), "---\nlang: en\n---\n# Paseos\n");
+}
