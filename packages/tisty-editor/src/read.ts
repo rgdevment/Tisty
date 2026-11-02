@@ -1,4 +1,4 @@
-export { type Carded, type Cards, cardBox, carded, glyph, piece } from "./cards";
+export { type Carded, type Cards, cardBox, carded, drawnGlyph, glyph, piece } from "./cards";
 export { celled, hueOf, sayingDays, today } from "./cells";
 export { colored, coloredAll } from "./coloring";
 export { diagramShot, diagrams, drawing, sourceOf } from "./diagrams";

@@ -39,7 +39,7 @@ export default function Composed({
     const holder = box.current;
     if (!holder) return;
     holder.innerHTML = html;
-    iconed(holder);
+    void iconed(holder);
     saidKinds(holder, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
     setLong(false);
     let live = true;

@@ -140,7 +140,7 @@ export const webPage = async (
     `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${escaped(title)}</title>`,
   );
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
-  iconed(page);
+  await iconed(page);
   await coloredAll(page);
   await diagrams(page, false, () => true);
   unlinked(page);

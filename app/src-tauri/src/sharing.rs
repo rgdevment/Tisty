@@ -475,17 +475,15 @@ fn put_up(
         .iter()
         .map(|(kind, bytes)| (*kind, bytes.as_slice()))
         .collect();
-    // A server from before drawn pages, or a page past what it takes, gets the words alone, which the web still draws.
-    let html = (limits.html > 0)
-        .then(|| tisty_markdown::html(&tisty_markdown::read(words.text)))
-        .filter(|html| html.len() as u64 <= limits.html);
+    // The web shows only the page drawn here, so one past the server's limits is too big to share, not words alone.
+    let html = tisty_markdown::html(&tisty_markdown::read(words.text));
     let draft = Draft {
         id: &shared.link,
         version: from.map_or(1, |one| one + 1),
         from,
         text: words.text,
         cited: words.cited,
-        html: html.as_deref(),
+        html: Some(&html),
         pictures: &pictures,
     };
     let sealed =

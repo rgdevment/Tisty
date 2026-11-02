@@ -65,6 +65,7 @@ pub fn spread(cell: &Block) -> Option<Range<usize>> {
 }
 
 /// A cell's words as a reader sees them, marks aside.
+#[cfg(feature = "tables")]
 pub fn visible(cell: &Block, text: &str) -> String {
     worded(&Holds::Text, cell, text)
 }
