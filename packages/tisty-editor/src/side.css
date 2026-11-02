@@ -561,3 +561,116 @@ details[open] > .side-row-head::after {
   outline: 2px solid var(--tisty-accent);
   outline-offset: 1px;
 }
+
+/* A pen writing on a sheet while a document is on its way, in the window and on the web alike. */
+.quill {
+  width: min(55vw, 240px);
+  height: auto;
+}
+.leaf {
+  fill: var(--tisty-sheet);
+  stroke: var(--tisty-line);
+  stroke-width: 1.5;
+}
+.line {
+  fill: none;
+  stroke: var(--tisty-soft);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 76;
+  animation: 4s linear infinite;
+}
+.line.one {
+  animation-name: line-one;
+}
+.line.two {
+  animation-name: line-two;
+}
+.line.three {
+  animation-name: line-three;
+}
+.line.four {
+  stroke-dasharray: 48;
+  animation-name: line-four;
+}
+.pen {
+  offset-path: path("M42 54h76M42 78h76M42 102h76M42 126h48");
+  offset-rotate: 0deg;
+  animation: pen 4s linear infinite;
+}
+.pen-body {
+  fill: var(--tisty-ink);
+}
+.pen-nib {
+  fill: var(--tisty-hue-green);
+}
+/* Each line is written in its quarter, and the pen keeps to the line being written. */
+@keyframes line-one {
+  0% {
+    stroke-dashoffset: 76;
+  }
+  25%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes line-two {
+  0%,
+  25% {
+    stroke-dashoffset: 76;
+  }
+  50%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes line-three {
+  0%,
+  50% {
+    stroke-dashoffset: 76;
+  }
+  75%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes line-four {
+  0%,
+  75% {
+    stroke-dashoffset: 48;
+  }
+  95%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pen {
+  0% {
+    offset-distance: 0%;
+  }
+  25% {
+    offset-distance: 27.5%;
+  }
+  50% {
+    offset-distance: 55.1%;
+  }
+  75% {
+    offset-distance: 82.6%;
+  }
+  95%,
+  100% {
+    offset-distance: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .pen {
+    animation: none;
+  }
+  .line {
+    stroke-dashoffset: 0;
+  }
+  .pen {
+    offset-distance: 100%;
+  }
+}
