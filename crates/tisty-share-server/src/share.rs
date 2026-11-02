@@ -595,16 +595,20 @@ impl<S: Store, R: Randomness> Share<S, R> {
             .await?;
         let mut tried = 0;
         for id in ending {
-            if tried == self.policy.sweep {
+            if tried >= self.policy.sweep {
                 break;
             }
             let stuck = format!("stuck:{id}");
             if self.store.held(&stuck, now).await?.is_some() {
                 continue;
             }
+            // What it held is let go of in the same run, so each one counts against the run's room too.
             tried += 1;
             match self.forgotten_by_id(&id).await {
-                Ok(()) => swept.gone += 1,
+                Ok(held) => {
+                    tried += held;
+                    swept.gone += 1;
+                }
                 Err(fault) => {
                     // Not waiting a day only means it is tried again sooner, so that failing stops nothing.
                     let _ = self.store.hold(&stuck, now + DAY).await;
@@ -615,11 +619,14 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(swept)
     }
 
-    /// A sweep's way to let one go, telling only of the store when it fails.
-    async fn forgotten_by_id(&self, id: &str) -> Result<(), Fault> {
+    /// A sweep's way to let one go, saying how many it held and telling only of the store when it fails.
+    async fn forgotten_by_id(&self, id: &str) -> Result<usize, Fault> {
         let gone = match self.store.doc(id).await? {
-            Some(doc) => self.forgotten(&doc).await,
-            None => Ok(()),
+            Some(doc) => self
+                .forgotten(&doc)
+                .await
+                .map(|()| doc.holds.len() + doc.holders.len()),
+            None => Ok(0),
         };
         gone.map_err(|refused| match refused {
             Refused::Store(fault) => fault,
