@@ -1,5 +1,5 @@
-use std::collections::{HashMap, VecDeque};
-use std::sync::Mutex;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::{Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use tisty_core::Op;
@@ -8,11 +8,15 @@ use super::shares::{apart, doc_of, sharer, signing_name};
 use crate::sharing::{self, Net};
 use crate::{Answer, Refusal, Session, held};
 
-/// Each shared document's saves, counted and timed so only the last of a burst goes up, and when uploads went.
+/// Shared documents' saves and the server's hour as this machine spends it, so uploads keep within what it allows.
 #[derive(Default)]
 pub struct Following {
     saves: Mutex<HashMap<String, (u64, Instant)>>,
     sent: Mutex<VecDeque<Instant>>,
+    reserved: Mutex<VecDeque<Instant>>,
+    going: Mutex<HashSet<String>>,
+    /// For each share whose holds last matched its words, the print of the cards those words had then.
+    kept: Mutex<HashMap<String, String>>,
 }
 
 // Saved words go up once the person stops this long, so a burst of saves is one version within the server's allowance.
@@ -21,35 +25,145 @@ const QUIET: Duration = Duration::from_secs(120);
 // Below the server's 60 uploads an hour from one network, whose excess shuts that network out for hours or days.
 const UPLOADS_AN_HOUR: usize = 40;
 
+// Below the server's 20 new links an hour, which a share and what it cites spend together (decision 64).
+const RESERVES_AN_HOUR: usize = 15;
+
+const HOUR: Duration = Duration::from_secs(3600);
+
+/// What `alone` takes for the round that keeps what shares cite in step, which only one runs at a time.
+pub(crate) const CITING: &str = "\0citing";
+
 impl Following {
     // Every document counts toward one allowance; what is not sent now stays owed for the next round.
     fn paced(&self) -> bool {
-        let mut sent = self.sent.lock().unwrap_or_else(|e| e.into_inner());
-        let now = Instant::now();
-        while sent
-            .front()
-            .is_some_and(|at| now.duration_since(*at) > Duration::from_secs(3600))
-        {
-            sent.pop_front();
-        }
-        if sent.len() >= UPLOADS_AN_HOUR {
+        self.spend(0, 1)
+    }
+
+    /// Takes room for this many new links and uploads in the hour, all of it or none.
+    pub(crate) fn spend(&self, reserves: usize, uploads: usize) -> bool {
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
+        let now = pruned(&mut sent, &mut reserved);
+        if sent.len() + uploads > UPLOADS_AN_HOUR || reserved.len() + reserves > RESERVES_AN_HOUR {
             return false;
         }
-        sent.push_back(now);
+        sent.extend(std::iter::repeat_n(now, uploads));
+        reserved.extend(std::iter::repeat_n(now, reserves));
         true
+    }
+
+    /// Takes `fixed` new links with an upload each and up to `wanted` more the hour has room for: how many more, or none if `fixed` does not fit.
+    pub(crate) fn take(&self, fixed: usize, wanted: usize) -> Option<usize> {
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
+        let now = pruned(&mut sent, &mut reserved);
+        let room = (UPLOADS_AN_HOUR.saturating_sub(sent.len()))
+            .min(RESERVES_AN_HOUR.saturating_sub(reserved.len()));
+        if fixed > room {
+            return None;
+        }
+        let more = wanted.min(room - fixed);
+        sent.extend(std::iter::repeat_n(now, fixed + more));
+        reserved.extend(std::iter::repeat_n(now, fixed + more));
+        Some(more)
+    }
+
+    /// Gives back room taken for what never reached the server; what reached it the server counts, so it stays spent.
+    pub(crate) fn refund(&self, reserves: usize, uploads: usize) {
+        let mut sent = self.sent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut reserved = self.reserved.lock().unwrap_or_else(PoisonError::into_inner);
+        let keep = sent.len().saturating_sub(uploads);
+        sent.truncate(keep);
+        let keep = reserved.len().saturating_sub(reserves);
+        reserved.truncate(keep);
+    }
+
+    /// One document goes up once at a time, so two rounds never reserve what it cites twice.
+    pub(crate) fn alone(&self, file: &str) -> Option<Alone<'_>> {
+        let mut going = self.going.lock().unwrap_or_else(PoisonError::into_inner);
+        going.insert(file.to_owned()).then(|| Alone {
+            following: self,
+            file: file.to_owned(),
+        })
+    }
+
+    /// Whether a share's words still have the cards they had when its holds last matched them, so nothing needs walking.
+    pub(crate) fn unchanged(&self, file: &str, cards: &str) -> bool {
+        let kept = self.kept.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.get(file).is_some_and(|was| was == cards)
+    }
+
+    pub(crate) fn settled(&self, file: &str, cards: Option<String>) {
+        let mut kept = self.kept.lock().unwrap_or_else(PoisonError::into_inner);
+        match cards {
+            Some(cards) => kept.insert(file.to_owned(), cards),
+            None => kept.remove(file),
+        };
+    }
+
+    /// A held document changed its own cards, which could reach something new, so every share walks again.
+    pub(crate) fn unsettled(&self) {
+        self.kept
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
     }
 
     // A try that never reached the server, or that it turned away, spends nothing of its allowance.
     fn unpaced(&self) {
         self.sent
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(PoisonError::into_inner)
             .pop_back();
     }
 
     fn resting(&self, file: &str) -> bool {
-        let saves = self.saves.lock().unwrap_or_else(|e| e.into_inner());
+        let saves = self.saves.lock().unwrap_or_else(PoisonError::into_inner);
         saves.get(file).is_none_or(|(_, at)| at.elapsed() >= QUIET)
+    }
+}
+
+// What went more than an hour ago no longer counts against it.
+fn pruned(sent: &mut VecDeque<Instant>, reserved: &mut VecDeque<Instant>) -> Instant {
+    let now = Instant::now();
+    for spent in [sent, reserved] {
+        while spent
+            .front()
+            .is_some_and(|at| now.duration_since(*at) > HOUR)
+        {
+            spent.pop_front();
+        }
+    }
+    now
+}
+
+/// Waits up to a minute for a turn another round holds, so a press is not refused for a round running in the background.
+pub(crate) async fn waited<'a>(following: &'a Following, key: &str) -> Option<Alone<'a>> {
+    for _ in 0..240 {
+        if let Some(alone) = following.alone(key) {
+            return Some(alone);
+        }
+        let _ = tauri::async_runtime::spawn_blocking(|| {
+            std::thread::sleep(Duration::from_millis(250));
+        })
+        .await;
+    }
+    None
+}
+
+pub(crate) struct Alone<'a> {
+    following: &'a Following,
+    file: String,
+}
+
+impl Drop for Alone<'_> {
+    fn drop(&mut self) {
+        let mut going = self
+            .following
+            .going
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        going.remove(&self.file);
     }
 }
 
@@ -66,7 +180,10 @@ pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
     use tauri::Manager;
     let mine = {
         let following = app.state::<Following>();
-        let mut saves = following.saves.lock().unwrap_or_else(|e| e.into_inner());
+        let mut saves = following
+            .saves
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         let (count, at) = saves.entry(file.to_owned()).or_insert((0, Instant::now()));
         *count += 1;
         *at = Instant::now();
@@ -89,6 +206,27 @@ pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
 
 async fn followed(app: &tauri::AppHandle, file: &str) {
     use tauri::Manager;
+    let following = app.state::<Following>();
+    let Some(_alone) = following.alone(file) else {
+        // Still going up from the round before: these words wait for it and go next.
+        follow(app, file);
+        return;
+    };
+    // What the words reach now goes up before them, so their envelope can name it.
+    if let Err(refused) = super::citing::kept_up(app, file).await {
+        // The hour or another round was in the way: these words try again once it rests, rather than at the next save.
+        if refused.code == "shareSlow" {
+            follow(app, file);
+        }
+        tisty_core::witness::note(
+            tisty_core::witness::channel::WINDOW,
+            "what a shared document cites could not be kept up; the next round tries again",
+            &[(
+                "why",
+                tisty_core::witness::Fact::Why(refused.code.to_string()),
+            )],
+        );
+    }
     let session = app.state::<Mutex<Session>>();
     let gathered = {
         let session = held(&session);
@@ -98,6 +236,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         match (doc, shared.filter(|one| !one.still), text) {
             (Some(doc), Some(shared), Some(text)) => Some((
                 doc,
+                super::citing::cited_in(&text, &super::citing::held_with(&session, doc)),
                 text,
                 sharer(&session),
                 signing_name(&session.state.signed, shared.signs),
@@ -107,10 +246,10 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
             _ => None,
         }
     };
-    let Some((doc, text, voucher, name, shared, data)) = gathered else {
+    let Some((doc, cited, text, voucher, name, shared, data)) = gathered else {
         return;
     };
-    let print = sharing::print_of(&text);
+    let print = super::citing::printed(&text, &cited);
     // Words already up, from here or another of the person's machines, are not put up again.
     if print == shared.print {
         return;
@@ -125,7 +264,6 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         });
         return;
     }
-    let following = app.state::<Following>();
     let done = match voucher {
         None => Err(Refusal::of("shareNoKey")),
         Some(_) if !following.paced() => {
@@ -136,15 +274,21 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         Some((voucher, _)) => {
             let asked = shared.clone();
             let up = apart(move || {
+                let wire = Net::to(&asked.server)?;
+                let cited = match asked.taken {
+                    true => super::citing::kept_from(&wire, &asked, &text)?,
+                    false => cited,
+                };
                 let (text, pictures) =
                     sharing::pictured(&text, |target| sharing::attachment(target, &data));
                 let words = sharing::Words {
                     text: &text,
+                    cited: &cited,
                     pictures: &pictures,
                     voucher: &voucher,
                     name: name.as_deref(),
                 };
-                sharing::update(&Net::to(&asked.server)?, &asked, &words)
+                sharing::update(&wire, &asked, &words)
             })
             .await;
             match up {

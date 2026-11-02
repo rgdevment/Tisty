@@ -72,6 +72,7 @@ fn saved_words_go_up_as_the_next_version_and_never_over_one_put_up_since() {
     .unwrap();
     let words = |text| Words {
         text,
+        cited: &[],
         pictures: &[],
         voucher: &voucher,
         name: None,
@@ -112,6 +113,7 @@ fn whoever_has_the_edit_link_puts_a_version_up_signed_by_their_own_key() {
     };
     let words = Words {
         text: "Uno y dos",
+        cited: &[],
         pictures: &[],
         voucher: &editor,
         name: Some("Bea"),
@@ -145,6 +147,9 @@ fn the_edit_link_is_the_read_link_with_its_token_after_a_dot() {
         taken: false,
         print: String::new(),
         signs: Default::default(),
+        holds: Vec::new(),
+        held: false,
+        cites: false,
     };
     assert_eq!(
         links(&shared),
@@ -165,6 +170,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         seen: None,
         signs: tisty_core::event::Signs::Key,
         still: true,
+        cites: false,
     };
     let shared = share(&here, SERVER, "Hola", &[], &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
