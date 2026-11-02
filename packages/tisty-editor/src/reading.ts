@@ -46,6 +46,7 @@ export const readAs = (page: Document, reading: Reading): Read => {
   if (reading.parts) partCarded(page, { part: reading.parts, say });
   if (reading.sites) webCarded(page, say, live, reading.sites.glimpses);
   const drawn = diagrams(page, page.documentElement.classList.contains("dark"), live);
-  colored(page, live);
+  // Code the grammars could not reach for stays as written.
+  colored(page, live).catch(() => {});
   return { kept, drawn };
 };

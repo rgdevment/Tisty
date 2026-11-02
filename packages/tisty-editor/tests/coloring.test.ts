@@ -10,30 +10,30 @@ const code = (tongue: string, said: string) =>
   `<figure class="code"><pre><code class="language-${tongue}">${said}</code></pre></figure>`;
 
 describe("colouring code on the page", () => {
-  it("colours a language it knows and leaves the rest as written", () => {
+  it("colours a language it knows and leaves the rest as written", async () => {
     const drawn = page(`${code("ts", 'const a = "b";')}${code("nope", "x")}`);
-    coloredAll(drawn);
+    await coloredAll(drawn);
     const [known, odd] = Array.from(drawn.querySelectorAll("code"));
     expect(known.querySelector(".hljs-keyword")?.textContent).toBe("const");
     expect(known.textContent).toBe('const a = "b";');
     expect(odd.children).toHaveLength(0);
   });
 
-  it("leaves code with no language and code outside a figure alone", () => {
+  it("leaves code with no language and code outside a figure alone", async () => {
     const drawn = page(
       '<figure class="code"><pre><code>const a = 1;</code></pre></figure><pre><code class="language-ts">const b = 2;</code></pre>',
     );
-    coloredAll(drawn);
+    await coloredAll(drawn);
     for (const one of drawn.querySelectorAll("code")) expect(one.children).toHaveLength(0);
   });
 
-  it("leaves a block too long to colour as written", () => {
+  it("leaves a block too long to colour as written", async () => {
     const drawn = page(code("ts", `const a = 1;${" ".repeat(64 * 1024)}`));
-    coloredAll(drawn);
+    await coloredAll(drawn);
     expect(drawn.querySelector("code")?.children).toHaveLength(0);
   });
 
-  it("colours a little at a time, and stops once the page is gone", () => {
+  it("colours a little at a time, and stops once the page is gone", async () => {
     const frames: FrameRequestCallback[] = [];
     vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((then) => {
       frames.push(then);
@@ -46,7 +46,7 @@ describe("colouring code on the page", () => {
     });
     const drawn = page(`${code("ts", "const a = 1;")}${code("ts", "const b = 2;")}`);
     let live = true;
-    colored(drawn, () => live);
+    await colored(drawn, () => live);
     const [first, second] = Array.from(drawn.querySelectorAll("code"));
     expect(first.querySelector(".hljs-keyword")).not.toBeNull();
     expect(second.children).toHaveLength(0);
