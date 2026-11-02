@@ -10,7 +10,7 @@ use tisty_share_proto::identity::Revocation;
 use tisty_share_server::guard::{self, Act, Allowance};
 use tisty_share_server::keys::{Randomness, Slowness};
 use tisty_share_server::moderation::Report;
-use tisty_share_server::share::{Policy, Share};
+use tisty_share_server::share::{Policy, Seen, Share};
 use tisty_share_server::store::{Doc, Fault, Kept, Saved, Store};
 use worker::js_sys::{self, Function, Reflect, Uint8Array};
 use worker::wasm_bindgen::{JsCast, JsValue};
@@ -325,7 +325,10 @@ async fn body_within(request: &mut Request, ceiling: u64) -> worker::Result<Opti
     Ok(Some(body))
 }
 
-async fn served(mut request: Request, env: &Env) -> worker::Result<(api::Answer, [u64; 2])> {
+async fn served(
+    mut request: Request,
+    env: &Env,
+) -> worker::Result<(api::Answer, Option<Seen>, [u64; 2])> {
     let mut share = share(env)?;
     let headers = request.headers();
     // Cloudflare sets it on every request and a caller cannot, so the allowances rest on it.
@@ -340,7 +343,7 @@ async fn served(mut request: Request, env: &Env) -> worker::Result<(api::Answer,
     let work = headers.get("Tisty-Work")?;
     let ceiling = api::ceiling(&share.policy.limits);
     let Some(body) = body_within(&mut request, ceiling).await? else {
-        return Ok((api::oversized(), [0, 0]));
+        return Ok((api::oversized(), None, [0, 0]));
     };
     let asked = api::Asked {
         method: request.method().to_string(),
@@ -352,19 +355,12 @@ async fn served(mut request: Request, env: &Env) -> worker::Result<(api::Answer,
         caller,
         now: now(),
     };
-    let answer = api::answer_first(&mut share, asked).await;
-    Ok((answer, [share.store.on_d1.get(), share.store.on_r2.get()]))
-}
-
-// Rounded to tens of milliseconds, enough to see where a read waits and too coarse to tell a gate's branches apart.
-fn timing([on_d1, on_r2]: [u64; 2], total: u64) -> String {
-    let tens = |ms: u64| ms.div_ceil(10) * 10;
-    format!(
-        "d1;dur={}, r2;dur={}, total;dur={}",
-        tens(on_d1),
-        tens(on_r2),
-        tens(total)
-    )
+    let (answer, seen) = api::answer_first(&mut share, asked).await;
+    Ok((
+        answer,
+        seen,
+        [share.store.on_d1.get(), share.store.on_r2.get()],
+    ))
 }
 
 fn answered(answer: api::Answer) -> worker::Result<Response> {
@@ -394,11 +390,12 @@ fn deployed_as(env: &Env) -> Option<String> {
 #[event(fetch)]
 async fn fetch(request: Request, env: Env, ctx: Context) -> worker::Result<Response> {
     let began = Date::now().as_millis();
-    let (mut answer, waited) = served(request, &env)
+    let (mut answer, seen, waited) = served(request, &env)
         .await
-        .unwrap_or_else(|why| (api::broken(why.to_string()), [0, 0]));
+        .unwrap_or_else(|why| (api::broken(why.to_string()), None, [0, 0]));
+    let read = seen.is_some();
     // A read is written down once its reader has the envelope, so no write stands between them.
-    if let Some(seen) = answer.seen.take() {
+    if let Some(seen) = seen {
         let env = env.clone();
         ctx.wait_until(async move {
             let fault = match share(&env) {
@@ -413,7 +410,7 @@ async fn fetch(request: Request, env: Env, ctx: Context) -> worker::Result<Respo
     let total = Date::now().as_millis().saturating_sub(began);
     answer
         .headers
-        .push(("Server-Timing", timing(waited, total)));
+        .push(("Server-Timing", api::timing(read.then_some(waited), total)));
     // Said on every answer, so a deploy can tell its own version is the one answering.
     if let Some(tag) = deployed_as(&env) {
         answer.headers.push(("Tisty-Worker", tag));

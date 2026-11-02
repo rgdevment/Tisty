@@ -151,7 +151,7 @@ pub struct Served {
 }
 
 /// What a read leaves to be written down once its reader has the envelope: who read it today, and that it is in use.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Seen {
     id: String,
     caller: IpAddr,
@@ -434,8 +434,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(kept.version)
     }
 
-    /// What a reader gets: only ever the latest version, so nobody is served one already replaced; what the read
-    /// writes down comes apart, in `seen`, so no write stands between a reader and the envelope.
+    /// Only ever the latest version, so nobody is served one already replaced; what it writes down waits in `Seen`.
     pub async fn read(
         &mut self,
         id: &str,
@@ -459,19 +458,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
         .await;
         allowed?;
         let envelope = envelope?.ok_or_else(|| lost(id, &kept))?;
-        // Told as `seen` will leave it, so the reader hears the end this very read gives it.
-        let mut told = doc.clone();
-        if now - told.active >= ACTIVITY_GRAIN {
-            touched(&mut told, now, self.policy.idle);
-        }
-        let ends = match told.holders.is_empty() {
-            true => told.ends,
+        // Told as `seen` leaves it for a new reader; one back within the hour hears an end at most that hour ahead.
+        let ends = match doc.holders.is_empty() {
+            true => now + doc.idle.min(self.policy.idle),
             false => held.end,
         };
         let served = Served {
             version: kept.version,
             envelope,
-            facts: Facts::of(&told, ends),
+            facts: Facts::of(&doc, ends),
             revoked: revoked?,
         };
         let seen = Seen {
@@ -484,8 +479,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok((served, seen))
     }
 
-    /// Writes down what a read left: a new reader today is counted, activity pushes the end back, and holders that
-    /// went without letting go are let go of.
+    /// Counts a new reader today, pushes the end back and lets go of holders that went without letting go.
     pub async fn seen(&self, seen: Seen) -> Result<(), Refused> {
         let Seen {
             id,

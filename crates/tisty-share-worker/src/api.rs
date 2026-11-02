@@ -70,8 +70,6 @@ pub struct Answer {
     pub body: Vec<u8>,
     /// What failed in the store, for the host's log and never for the caller.
     pub fault: Option<String>,
-    /// What a read leaves to write down, for the host to write once the answer is out (`answer_first`).
-    pub seen: Option<Seen>,
 }
 
 /// Why a request gets no step, besides the server's own refusals.
@@ -153,8 +151,8 @@ pub fn broken(why: String) -> Answer {
 
 /// A step's answer with what a read leaves written down first, for a host that cannot wait past its answer.
 pub async fn answer<S: Store, R: Randomness>(share: &mut Share<S, R>, asked: Asked) -> Answer {
-    let mut answer = answer_first(share, asked).await;
-    if let Some(seen) = answer.seen.take() {
+    let (mut answer, seen) = answer_first(share, asked).await;
+    if let Some(seen) = seen {
         answer.fault = noted(share, seen).await;
     }
     answer
@@ -169,24 +167,26 @@ pub async fn noted<S: Store, R: Randomness>(share: &Share<S, R>, seen: Seen) -> 
         .map(|refused| format!("a read could not be written down: {refused}"))
 }
 
-/// A step's answer, leaving what a read writes down in `seen`; the host has already held the body to `ceiling`.
+/// A step's answer and what a read leaves to write down after it; the host has already held the body to `ceiling`.
 pub async fn answer_first<S: Store, R: Randomness>(
     share: &mut Share<S, R>,
     asked: Asked,
-) -> Answer {
+) -> (Answer, Option<Seen>) {
     let now = asked.now;
-    let answer = match routed(share, asked).await {
+    let mut seen = None;
+    let answer = match routed(share, asked, &mut seen).await {
         Ok(answer) => answer,
         Err(Turned::Refused(refused)) => refusal(&refused, now),
         Err(Turned::Unreadable) => said(400, json!({ "refused": "unreadable" })),
         Err(Turned::Unknown) => said(404, json!({ "refused": "unknown" })),
     };
-    finished(answer)
+    (finished(answer), seen)
 }
 
 async fn routed<S: Store, R: Randomness>(
     share: &mut Share<S, R>,
     asked: Asked,
+    seen: &mut Option<Seen>,
 ) -> Result<Answer, Turned> {
     if asked.method == "GET" && asked.path == "/robots.txt" {
         return Ok(plain(200, "text/plain; charset=utf-8", ROBOTS.into()));
@@ -242,12 +242,11 @@ async fn routed<S: Store, R: Randomness>(
                 .work
                 .as_deref()
                 .and_then(|work| serde_json::from_str::<Proof>(work).ok());
-            let (served, seen) = share
+            let (served, left) = share
                 .read(id, password.as_deref(), proof.as_ref(), caller, now)
                 .await?;
-            let mut answer = envelope(served);
-            answer.seen = Some(seen);
-            Ok(answer)
+            *seen = Some(left);
+            Ok(envelope(served))
         }
         ("GET", ["docs", id, "latest"]) => {
             let latest = share.latest(id, token, caller, now).await?;
@@ -424,7 +423,20 @@ fn plain(status: u16, kind: &str, body: Vec<u8>) -> Answer {
         headers: vec![("Content-Type", kind.to_owned())],
         body,
         fault: None,
-        seen: None,
+    }
+}
+
+/// Where a request waited, in tens of milliseconds; only a read served says on what, so no refusal tells its branch.
+pub fn timing(waited: Option<[u64; 2]>, total: u64) -> String {
+    let tens = |ms: u64| ms.div_ceil(10) * 10;
+    match waited {
+        Some([on_d1, on_r2]) => format!(
+            "d1;dur={}, r2;dur={}, total;dur={}",
+            tens(on_d1),
+            tens(on_r2),
+            tens(total)
+        ),
+        None => format!("total;dur={}", tens(total)),
     }
 }
 
