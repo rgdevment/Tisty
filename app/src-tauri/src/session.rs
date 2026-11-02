@@ -605,12 +605,9 @@ impl Session {
         let root = self.paths.docs();
         let body =
             tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
-        let body = match body.split_once('\n') {
-            Some((first, rest)) if !first.trim().is_empty() => {
-                format!("{first}{}\n{rest}", worded(&self.locale, "copy"))
-            }
-            _ if !body.trim().is_empty() => format!("{body}{}", worded(&self.locale, "copy")),
-            _ => body,
+        let body = match body.trim().is_empty() {
+            true => body,
+            false => tisty_core::docs::marked(&body, &worded(&self.locale, "copy")),
         };
         let made = tisty_core::docs::create(&root, &self.config.device_id, &body)
             .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;

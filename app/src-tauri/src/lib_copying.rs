@@ -214,3 +214,37 @@ fn a_copy_of_a_document_someone_else_signed_is_a_guest_copy_even_when_it_was_not
     assert!(twin.guest);
     assert_eq!(twin.by.as_deref(), Some("Otra persona"));
 }
+
+#[test]
+fn a_copy_keeps_the_properties_and_names_itself_where_the_title_comes_from() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    session.locale = Some("en".into());
+    let root = session.paths.docs();
+    let mut copied = |body: &str| {
+        let made = tisty_core::docs::create(&root, &session.config.device_id, body).unwrap();
+        let id = ulid::Ulid::generate();
+        session
+            .commit(Op::DocAdd {
+                id,
+                d: tisty_core::event::DocAdd {
+                    file: made.id,
+                    order: "a0".into(),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        let copy = session.copy_doc(&id.to_string()).unwrap();
+        tisty_core::docs::read(&root, &copy.id).unwrap()
+    };
+
+    assert_eq!(
+        copied("---\npaper: letter\n---\n# Walks\n\nRina.\n"),
+        "---\npaper: letter\n---\n# Walks (copy)\n\nRina.\n",
+        "the mark went onto the `---` and every property became words on the page"
+    );
+    assert_eq!(
+        copied("---\ntitle: Walks\n---\nRina.\n"),
+        "---\ntitle: \"Walks (copy)\"\n---\nRina.\n"
+    );
+}
