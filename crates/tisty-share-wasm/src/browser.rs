@@ -10,7 +10,7 @@ pub struct Page(Shown);
 #[wasm_bindgen]
 impl Page {
     #[wasm_bindgen(getter)]
-    pub fn html(&self) -> String {
+    pub fn html(&self) -> Option<String> {
         self.0.html.clone()
     }
 
@@ -59,6 +59,13 @@ pub fn open(
     shown(envelope, key, limits.as_deref(), revoked.as_deref())
         .map(Page)
         .map_err(|unread| JsError::new(unread.word()))
+}
+
+/// The page drawn from an older envelope's words, in the build that carries the engine.
+#[cfg(feature = "draw")]
+#[wasm_bindgen]
+pub fn drawn(text: &str) -> String {
+    crate::shown::drawn(text)
 }
 
 /// The proof a server's challenge asks for, as the JSON it takes in `Tisty-Work`.

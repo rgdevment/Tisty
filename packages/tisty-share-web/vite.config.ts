@@ -41,7 +41,10 @@ const wasmEarly: Plugin = {
   transformIndexHtml: {
     order: "post",
     handler(_html, context) {
-      const wasm = Object.keys(context.bundle ?? {}).find((name) => name.endsWith(".wasm"));
+      // Only the light wasm every link needs; the engine for older envelopes comes when one asks.
+      const wasm = Object.keys(context.bundle ?? {}).find((name) =>
+        /tisty_share_wasm_bg-[\w-]+\.wasm$/.test(name),
+      );
       if (!wasm) return [];
       return [
         {

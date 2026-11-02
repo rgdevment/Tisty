@@ -8,7 +8,8 @@ use zeroize::Zeroizing;
 pub struct Shown {
     /// The text as written, for the reader who downloads it.
     pub text: Zeroizing<String>,
-    pub html: String,
+    /// The page Tisty drew, or none for an envelope sealed before it sent one, which the page draws apart.
+    pub html: Option<String>,
     pub about: About,
     /// The documents the words lead to, each opened from its own link (decision 64).
     pub cited: Vec<Cited>,
@@ -110,7 +111,7 @@ pub fn shown(
     };
     let envelope = Envelope::read(envelope, &limits).map_err(Unread::Envelope)?;
     let opened = open(&key, &envelope, &taken_back(revoked)).map_err(Unread::Envelope)?;
-    let html = tisty_markdown::html(&tisty_markdown::read(&opened.text));
+    let html = opened.html.as_deref().map(|drawn| drawn.to_string());
     let about = About {
         title: tisty_markdown::front::title(&opened.text),
         tags: tisty_markdown::front::tags(&opened.text),
@@ -125,6 +126,12 @@ pub fn shown(
         cited: opened.cited,
         pictures: opened.pictures,
     })
+}
+
+/// The page drawn from words sealed before Tisty sent the page with them, as the app draws it.
+#[cfg(feature = "draw")]
+pub fn drawn(text: &str) -> String {
+    tisty_markdown::html(&tisty_markdown::read(text))
 }
 
 /// Only what a root signed is believed: the server can leave a revocation out, never make one up.

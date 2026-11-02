@@ -195,6 +195,9 @@ jobs:
       # What talks to D1 and R2 only exists on wasm, so it is linted there.
       - run: cargo clippy -p tisty-share-worker --target wasm32-unknown-unknown
       - run: cargo clippy -p tisty-share-wasm --target wasm32-unknown-unknown
+      # The build that draws an older envelope's page is loaded apart, so it is linted and tested apart too.
+      - run: cargo clippy -p tisty-share-wasm --features draw --target wasm32-unknown-unknown
+      - run: cargo test -p tisty-share-wasm --features draw
       # wasm-bindgen only fails once it reads the wasm, so the Worker is bundled as wrangler would bundle it.
       - name: The Worker bundles as wrangler deploys it
         working-directory: crates/tisty-share-worker
