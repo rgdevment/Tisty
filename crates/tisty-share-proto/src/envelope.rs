@@ -22,6 +22,8 @@ const MAGIC: &[u8; 4] = b"\xffTSE";
 /// Whatever changes the shape of the manifest or the signature is a new version, so an older reader says newer, not damaged.
 const VERSION: u8 = 1;
 const SAID: u32 = 1;
+/// A manifest that lists what its words cite, so an older Tisty says it is newer rather than damaged (decision 64).
+const CITING: u32 = 2;
 const PART: &[u8] = b"tisty-share.part.v1\0";
 const SEALED: &[u8] = b"tisty-share.sealed.v1\0";
 const WRITTEN: &[u8] = b"tisty-share.written.v1\0";
@@ -179,8 +181,8 @@ impl Manifest {
     /// Every rule a server can hold without the key, so the server and every Tisty refuse the same things.
     pub fn holds(&self, limits: &Limits) -> Result<(), Refused> {
         match self.v {
-            SAID => {}
-            newer if newer > SAID => return Err(Refused::Newer),
+            SAID | CITING => {}
+            newer if newer > CITING => return Err(Refused::Newer),
             _ => return Err(Refused::Damaged),
         }
         let named = named_id(&self.id);
@@ -211,7 +213,8 @@ impl Manifest {
         };
         let pictures = match rest.split_first() {
             Some((cited, pictures)) if cited.kind == Kind::Cited => {
-                if cited.size < TAG as u64 || cited.plain() > CITED_BYTES_AT_MOST {
+                let fits = cited.size >= TAG as u64 && cited.plain() <= CITED_BYTES_AT_MOST;
+                if !fits || self.v != CITING {
                     return Err(Refused::Damaged);
                 }
                 pictures
@@ -330,6 +333,7 @@ fn named_id(id: &str) -> bool {
 }
 
 /// The list as it is sealed: none at all when nothing is cited, so such an envelope is what it always was.
+#[cfg(feature = "mint")]
 fn cited_bytes(cited: &[Cited]) -> Result<Option<Vec<u8>>, Refused> {
     if cited.is_empty() {
         return Ok(None);
@@ -420,7 +424,7 @@ fn sealed_with(
             .map_err(|_| Refused::NoRandomness)?
     };
     let manifest = Manifest {
-        v: SAID,
+        v: if cited.is_some() { CITING } else { SAID },
         id: draft.id.to_owned(),
         version: draft.version,
         from: draft.from,

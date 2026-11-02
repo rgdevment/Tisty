@@ -1890,7 +1890,7 @@ fn carrying_too_many_revocations_waits_out_the_hour_and_blocks_nothing_else() {
 fn hold(cited: &Reserved, lives: bool) -> Manage {
     Manage::Hold {
         id: cited.id.clone(),
-        edit: cited.edit.to_string(),
+        admin: cited.admin.to_string(),
         lives,
     }
 }
@@ -1947,14 +1947,15 @@ fn a_cited_document_does_not_read_while_every_share_holding_it_is_paused() {
 }
 
 #[test]
-fn only_its_edit_link_lets_a_share_hold_a_document_and_no_ring_holds_itself() {
+fn only_its_management_link_lets_a_share_hold_a_document_and_no_ring_holds_itself() {
     let mut world = World::new();
     let root = world.shared(T0);
     let cited = world.shared(T0);
     let other = world.shared(T0);
+    // An edit link is handed to editors, so it never lets anyone take a document up and end it by letting go.
     let forged = Manage::Hold {
         id: cited.id.clone(),
-        edit: root.edit.to_string(),
+        admin: cited.edit.to_string(),
         lives: false,
     };
     assert_eq!(world.manage(&root, forged, T0), Err(Refused::Forbidden));
@@ -2018,16 +2019,46 @@ fn a_holder_that_went_without_letting_go_is_let_go_of_when_its_document_is_read(
 #[test]
 fn a_tisty_asks_to_hold_and_to_let_go_in_the_shape_it_manages_with() {
     let hold: Manage =
-        serde_json::from_str(r#"{"do":"hold","with":{"id":"nts9Qe","edit":"tok","lives":true}}"#)
+        serde_json::from_str(r#"{"do":"hold","with":{"id":"nts9Qe","admin":"tok","lives":true}}"#)
             .unwrap();
     assert_eq!(
         hold,
         Manage::Hold {
             id: "nts9Qe".into(),
-            edit: "tok".into(),
+            admin: "tok".into(),
             lives: true
         }
     );
     let release: Manage = serde_json::from_str(r#"{"do":"release","with":"nts9Qe"}"#).unwrap();
     assert_eq!(release, Manage::Release("nts9Qe".into()));
+}
+
+#[test]
+fn stopping_a_document_a_share_still_holds_leaves_it_to_that_share() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, true), T0).unwrap();
+
+    world.manage(&cited, Manage::Delete, T0 + HOUR).unwrap();
+    assert!(world.read(&cited.id, T0 + 2 * HOUR).is_ok());
+    assert_eq!(world.doc(&cited.id).own, None);
+    // With no life of its own left, it goes with the share that held it.
+    world.manage(&root, Manage::Delete, T0 + 3 * HOUR).unwrap();
+    assert_eq!(world.read(&cited.id, T0 + 4 * HOUR), Err(Refused::Missing));
+}
+
+#[test]
+fn a_reader_and_an_owner_are_told_the_end_a_held_document_really_has() {
+    let mut world = World::new();
+    let root = world.shared(T0);
+    let cited = world.shared(T0);
+    world.manage(&root, hold(&cited, true), T0).unwrap();
+
+    let read = world.read(&cited.id, T0 + DAY).unwrap();
+    // Read just now, the root's end is what keeps it, never the far end the sweep sees.
+    assert_eq!(read.facts.ends, world.doc(&root.id).ends);
+    assert!(read.facts.ends < crate::holding::HELD);
+    let info = done(world.share.info(&cited.id, &cited.admin, T0 + DAY)).unwrap();
+    assert_eq!(info.ends, world.doc(&cited.id).own.unwrap());
 }

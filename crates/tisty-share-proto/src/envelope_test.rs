@@ -871,6 +871,8 @@ fn what_the_words_cite_travels_sealed_between_the_signature_and_the_pictures() {
         kinds,
         vec![Kind::Text, Kind::Signature, Kind::Cited, Kind::Png]
     );
+    // A Tisty from before the list reads it as newer, never as damaged.
+    assert_eq!(arrived.manifest().v, CITING);
     // The server sees that something is cited, never what or under which key.
     assert!(!String::from_utf8_lossy(&sealed.to_bytes()).contains("pag2Xa"));
 
@@ -885,6 +887,7 @@ fn an_envelope_that_cites_nothing_is_what_it_always_was() {
     let sealed = sealed(&key(9), &draft("hola", &[]), None).unwrap();
     let arrived = read(&sealed.to_bytes()).unwrap();
     assert_eq!(arrived.manifest().parts.len(), 1);
+    assert_eq!(arrived.manifest().v, SAID);
     assert!(open(&key(9), &arrived, &[]).unwrap().cited.is_empty());
 }
 

@@ -231,6 +231,7 @@ fn read_at(version: u64, print: &str) -> Received {
         print: print.into(),
         known: false,
         gated: false,
+        cited: Vec::new(),
     }
 }
 

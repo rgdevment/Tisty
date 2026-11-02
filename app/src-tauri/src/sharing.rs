@@ -390,7 +390,7 @@ pub(crate) fn hold(
     cited: &Shared,
     lives: bool,
 ) -> Result<(), Refusal> {
-    let with = json!({ "id": cited.link, "edit": cited.edit, "lives": lives });
+    let with = json!({ "id": cited.link, "admin": cited.admin, "lives": lives });
     managed(wire, holder, json!({ "do": "hold", "with": with }))
 }
 
@@ -561,6 +561,15 @@ pub(crate) fn info(wire: &impl Wire, shared: &Shared) -> Result<Info, Refusal> {
 /// Its links stop leading anywhere; the document itself stays as it is (decision 48).
 pub(crate) fn stop(wire: &impl Wire, shared: &Shared) -> Result<(), Refusal> {
     managed(wire, shared, json!({ "do": "delete" }))
+}
+
+/// The server turned it away for one of these reasons, by the name it gave.
+pub(crate) fn refused_as(refused: &Refusal, names: &[&str]) -> bool {
+    refused.code == "shareRefused"
+        && refused
+            .name
+            .as_deref()
+            .is_some_and(|name| names.contains(&name))
 }
 
 /// The server no longer holds it: it ran out, or was stopped from another machine.

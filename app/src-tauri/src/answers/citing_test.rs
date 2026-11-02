@@ -6,6 +6,7 @@ use tisty_share_server::store::Store;
 use super::*;
 use crate::sharing::here::{Here, voucher};
 use crate::sharing::{Chosen, SERVER};
+use tisty_core::Op;
 
 fn going(file: &str, title: &str, page: Option<(u32, u32)>, text: &str) -> Going {
     Going {
@@ -166,4 +167,89 @@ fn words_name_only_what_goes_with_them_and_a_print_changes_with_what_they_cite()
 
 fn done<T>(work: impl std::future::Future<Output = T>) -> T {
     tisty_share_server::testing::done(work)
+}
+
+fn session() -> (tempfile::TempDir, Session) {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    (tmp, Session::at(paths).unwrap())
+}
+
+fn filed(session: &mut Session, body: &str) -> DocId {
+    let made =
+        tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body).unwrap();
+    let id = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id,
+            d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
+                said: None,
+                file: made.id.clone(),
+                order: made.id,
+                folder: None,
+                page_of: None,
+                task_of: None,
+            },
+        })
+        .unwrap();
+    id
+}
+
+fn shared_as(session: &mut Session, doc: DocId, link: &str, holds: Vec<DocId>, held: bool) {
+    let d = Shared {
+        server: SERVER.into(),
+        link: link.into(),
+        key: LinkKey::from_bytes(&[4; 32]).to_text().to_string(),
+        edit: "edit".into(),
+        admin: "admin".into(),
+        editable: false,
+        gated: false,
+        version: 1,
+        still: false,
+        taken: false,
+        print: String::new(),
+        signs: Default::default(),
+        holds,
+        held,
+        cites: false,
+    };
+    session.commit(Op::ShareDoc { id: doc, d }).unwrap();
+}
+
+#[test]
+fn a_document_two_shares_hold_leads_only_where_both_lead_and_goes_only_when_neither_holds_it() {
+    let (_tmp, mut session) = session();
+    let open = filed(&mut session, "# Abierto");
+    let gated = filed(&mut session, "# Con clave");
+    let page = filed(&mut session, "# Página");
+    let only_gated = filed(&mut session, "# Solo con clave");
+    shared_as(&mut session, open, "openAa", vec![page], false);
+    shared_as(&mut session, gated, "gateBb", vec![page, only_gated], false);
+    shared_as(&mut session, page, "pageCc", Vec::new(), true);
+    shared_as(&mut session, only_gated, "onlyDd", Vec::new(), true);
+
+    // The open share's readers reach the page, and never what only the gated share chose to take along.
+    let led: Vec<DocId> = held_with(&session, page)
+        .into_iter()
+        .map(|(one, _)| one.doc)
+        .collect();
+    assert_eq!(led, vec![page]);
+    assert_eq!(held_with(&session, gated).len(), 2);
+
+    // Stopped, the gated share forgets what went only through it; the page another share holds stays.
+    let was = session.state.shares[&gated].clone();
+    let ops = let_go_of(&session, gated, &was, &[]);
+    assert_eq!(
+        ops,
+        vec![Op::ShareStop {
+            id: only_gated,
+            link: "onlyDd".into()
+        }]
+    );
+    assert!(held_here(&session, page) && !held_here(&session, open));
 }

@@ -12,8 +12,8 @@ use crate::handed::Voucher;
 use crate::sharing::{self, Chosen, Net, Words};
 use crate::{Answer, Refusal, Session, held};
 
-/// Documents one share may hold, well within what a server lets an hour reserve and upload (decision 64).
-pub(crate) const CITED_AT_MOST: usize = 20;
+/// Documents one share may hold: with the share itself, well within the reserves a server allows an hour (decision 64).
+pub(crate) const CITED_AT_MOST: usize = 10;
 
 /// A document a share leads to, as the envelopes that cite it name it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,22 +104,46 @@ pub(crate) fn cited_in(text: &str, among: &[(Citable, Shared)]) -> Vec<Cited> {
         .collect()
 }
 
-/// The documents an envelope of `doc` may lead to: those its share holds, or those held beside it by the shares holding it.
+/// The documents an envelope of `doc` may lead to: those its share holds, or those every share holding it holds too,
+/// so a document two shares hold never hands one's readers what only the other chose to share.
 pub(crate) fn held_with(session: &Session, doc: DocId) -> Vec<(Citable, Shared)> {
     let shares = &session.state.shares;
-    let mut docs: BTreeSet<DocId> = shares
-        .get(&doc)
-        .map(|one| one.holds.iter().copied().collect())
-        .unwrap_or_default();
-    for holder in shares.values().filter(|one| one.holds.contains(&doc)) {
-        docs.extend(holder.holds.iter().copied());
-    }
+    let holders: Vec<&Shared> = shares
+        .values()
+        .filter(|one| one.holds.contains(&doc))
+        .collect();
+    let docs: Vec<DocId> = match (shares.get(&doc), holders.split_first()) {
+        (Some(own), _) if !own.holds.is_empty() => own.holds.clone(),
+        (_, Some((first, rest))) => first
+            .holds
+            .iter()
+            .filter(|one| rest.iter().all(|other| other.holds.contains(one)))
+            .copied()
+            .collect(),
+        _ => Vec::new(),
+    };
     docs.into_iter()
         .filter_map(|one| {
             let kept = session.state.docs.get(&one)?;
             Some((citable(session, kept), shares.get(&one)?.clone()))
         })
         .collect()
+}
+
+/// What someone else's share cited in the version an edit through its link is written on, for the cards still in the words:
+/// its owner chose what goes with it, and an editor keeps that rather than dropping every card.
+pub(crate) fn kept_from(wire: &impl sharing::Wire, shared: &Shared, text: &str) -> Vec<Cited> {
+    let cards = tisty_core::refs::papers(text);
+    sharing::version(wire, shared, shared.version)
+        .ok()
+        .and_then(|said| crate::received::opened_from(said, &shared.key).ok())
+        .map(|got| {
+            got.cited
+                .into_iter()
+                .filter(|one| cards.contains(&one.doc))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Whether one of this store's shares holds `doc`, which then never holds anything itself.
@@ -156,8 +180,8 @@ pub(crate) struct Signing {
     pub(crate) data: PathBuf,
 }
 
-/// Shares each document not shared yet, then has the holder hold them all; on a failure the new ones go again.
-/// Hands back every one with its share, the new ones marked as held only through it.
+/// Has the holder hold what is shared already, then shares and holds each document not shared yet.
+/// Hands back every one held with its share, the new ones marked as held only through it; on a failure the new ones go again.
 pub(crate) fn took_up(
     wire: &impl sharing::Wire,
     holder: &Shared,
@@ -165,23 +189,42 @@ pub(crate) fn took_up(
     signing: &Signing,
 ) -> Answer<Vec<(Citable, Shared)>> {
     let mut members: Vec<(Citable, Shared)> = Vec::with_capacity(going.len());
+    let mut fresh: Vec<&Going> = Vec::new();
+    // What is shared already is held first: a hold reserves nothing, so a refusal never costs a reserve.
     for one in going {
-        let shared = match &one.was {
-            Some(was) => was.clone(),
-            None => match sharing::reserve(wire, &holder.server, &chosen_for(holder)) {
-                Ok(reserved) => Shared {
-                    held: true,
-                    ..reserved
-                },
-                Err(refused) => return Err(let_go(wire, going, &members, refused)),
-            },
+        let Some(was) = &one.was else {
+            fresh.push(one);
+            continue;
         };
-        members.push((one.citable.clone(), shared));
+        match sharing::hold(wire, holder, was, !was.held) {
+            Ok(()) => members.push((one.citable.clone(), was.clone())),
+            // The server let it go while this store still names it, so it is shared anew.
+            Err(refused) if sharing::already_gone(&refused) => fresh.push(one),
+            // Blocked or held by too many: its card reads as not shared rather than stopping the rest.
+            Err(refused)
+                if sharing::refused_as(&refused, &["blocked", "too_long", "forbidden"]) => {}
+            Err(refused) => return Err(refused),
+        }
     }
-    match put_all(wire, holder, going, &mut members, signing) {
-        Ok(()) => Ok(members),
-        Err(refused) => Err(let_go(wire, going, &members, refused)),
+    let mut reserved: Vec<(Citable, Shared)> = Vec::with_capacity(fresh.len());
+    for one in &fresh {
+        match sharing::reserve(wire, &holder.server, &chosen_for(holder)) {
+            Ok(shared) => reserved.push((
+                one.citable.clone(),
+                Shared {
+                    held: true,
+                    ..shared
+                },
+            )),
+            Err(refused) => return Err(stopped(wire, &reserved, refused)),
+        }
     }
+    let listed: Vec<(Citable, Shared)> = members.iter().chain(&reserved).cloned().collect();
+    if let Err(refused) = put_new(wire, holder, &fresh, &mut reserved, &listed, signing) {
+        return Err(stopped(wire, &reserved, refused));
+    }
+    members.extend(reserved);
+    Ok(members)
 }
 
 // What goes only through its holder is signed and follows saves as its holder does, with nothing else asked of it.
@@ -193,19 +236,16 @@ fn chosen_for(holder: &Shared) -> Chosen {
     }
 }
 
-fn put_all(
+fn put_new(
     wire: &impl sharing::Wire,
     holder: &Shared,
-    going: &[Going],
-    members: &mut [(Citable, Shared)],
+    fresh: &[&Going],
+    reserved: &mut [(Citable, Shared)],
+    listed: &[(Citable, Shared)],
     signing: &Signing,
 ) -> Answer<()> {
-    let listed = members.to_vec();
-    for (one, (_, shared)) in going.iter().zip(members.iter_mut()) {
-        if one.was.is_some() {
-            continue;
-        }
-        let cited = cited_in(&one.text, &listed);
+    for (one, (_, shared)) in fresh.iter().zip(reserved.iter_mut()) {
+        let cited = cited_in(&one.text, listed);
         let (text, pictures) = sharing::pictured(&one.text, |target| {
             sharing::attachment(target, &signing.data)
         });
@@ -219,27 +259,23 @@ fn put_all(
         sharing::first_up(wire, shared, &words, &chosen_for(holder))?;
         shared.print = printed(&one.text, &cited);
     }
-    for (one, (_, shared)) in going.iter().zip(members.iter()) {
-        // One the person shared on its own keeps its own life too once let go (decision 64).
-        let lives = one.was.as_ref().is_some_and(|was| !was.held);
-        sharing::hold(wire, holder, shared, lives)?;
+    for (_, shared) in reserved.iter() {
+        sharing::hold(wire, holder, shared, false)?;
     }
     Ok(())
 }
 
 // A link nobody keeps is a link nobody can stop, so what was reserved here goes when the rest fails.
-fn let_go(
-    wire: &impl sharing::Wire,
-    going: &[Going],
-    members: &[(Citable, Shared)],
-    refused: Refusal,
-) -> Refusal {
-    for (one, (_, shared)) in going.iter().zip(members) {
-        if one.was.is_none() {
-            let _ = sharing::stop(wire, shared);
-        }
+fn stopped(wire: &impl sharing::Wire, reserved: &[(Citable, Shared)], refused: Refusal) -> Refusal {
+    for (_, shared) in reserved {
+        let _ = sharing::stop(wire, shared);
     }
     refused
+}
+
+/// How many of these must be reserved anew, which a server counts against its hour.
+pub(crate) fn fresh_in(going: &[Going]) -> usize {
+    going.iter().filter(|one| one.was.is_none()).count()
 }
 
 /// Each document about to go, with its share when it has one and the words it would carry otherwise.
@@ -261,9 +297,12 @@ pub(crate) fn settled(
     holds: Vec<DocId>,
     members: Vec<(Citable, Shared)>,
 ) -> Vec<Op> {
+    // A document shared anew, here for the first time or after the server let its old link go, is written down.
     let mut ops: Vec<Op> = members
         .into_iter()
-        .filter(|(one, _)| !session.state.shares.contains_key(&one.doc))
+        .filter(|(one, shared)| {
+            session.state.shares.get(&one.doc).map(|was| &was.link) != Some(&shared.link)
+        })
         .map(|(one, shared)| Op::ShareDoc {
             id: one.doc,
             d: shared,
@@ -349,15 +388,32 @@ pub(crate) async fn kept_up(app: &tauri::AppHandle, file: &str) -> Answer<()> {
         )
     };
     let (doc, shared, holds, going, dropped, signing) = gathered;
+    let before = shared.holds.clone();
+    // Reserves and first versions count against the server's hour as any upload does, so a burst waits for the next round.
+    let fresh = fresh_in(&going);
+    if !app
+        .state::<super::versions::Following>()
+        .spend(fresh, fresh)
+    {
+        return Err(Refusal::of("shareSlow"));
+    }
     let members = apart(move || {
         let wire = Net::to(&shared.server)?;
-        let members = took_up(&wire, &shared, &going, &signing)?;
+        // Let go of first, so a failure here leaves nothing new up that this store would not know of.
         for link in &dropped {
-            sharing::release(&wire, &shared, link)?;
+            match sharing::release(&wire, &shared, link) {
+                Err(refused) if !sharing::already_gone(&refused) => return Err(refused),
+                _ => {}
+            }
         }
-        Ok(members)
+        took_up(&wire, &shared, &going, &signing)
     })
     .await?;
+    // What the server would not let it hold stays out, and is asked for again with the next save.
+    let holds: Vec<DocId> = holds
+        .into_iter()
+        .filter(|one| before.contains(one) || members.iter().any(|(it, _)| it.doc == *one))
+        .collect();
     let mut session = held(&session);
     let ops = settled(&session, doc, holds, members);
     session.commit_all(ops).map_err(Refusal::from)

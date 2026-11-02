@@ -236,6 +236,7 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
 #[tauri::command]
 pub async fn share_doc(
     session: tauri::State<'_, Mutex<Session>>,
+    following: tauri::State<'_, super::versions::Following>,
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
@@ -279,6 +280,11 @@ pub async fn share_doc(
             going,
         )
     };
+    // The share and each new document it takes along spend a new link and an upload of the server's hour.
+    let new = 1 + citing::fresh_in(&going);
+    if !following.spend(new, new) {
+        return Err(Refusal::of("shareSlow"));
+    }
     let (shared, members, info) = apart(move || {
         let wire = Net::to(sharing::SERVER)?;
         // What this person took back may not have reached the server when it happened, so every share tells it again.
@@ -466,6 +472,19 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         _ => {}
     }
     let mut session = held(&session);
+    // Still cited by another share, the server keeps it for that one: it stays here as going only through it.
+    if citing::held_here(&session, doc) {
+        let held_only = Shared {
+            held: true,
+            ..shared_was
+        };
+        return session
+            .commit(Op::ShareDoc {
+                id: doc,
+                d: held_only,
+            })
+            .map_err(Refusal::from);
+    }
     // What went only through it went with it on the server, so this store forgets those too.
     let mut ops = citing::let_go_of(&session, doc, &shared_was, &[]);
     ops.push(Op::ShareStop { id: doc, link });

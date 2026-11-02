@@ -11,30 +11,26 @@ pub const HOLDERS_AT_MOST: usize = 16;
 pub const HELD: i64 = 253_402_300_799;
 
 impl<S: Store, R: Randomness> Share<S, R> {
-    /// The holder takes up a document it cites, proven its owner's by that document's edit link (decision 64).
+    /// The holder takes up a document it cites, proven its owner's by that document's management link (decision 64).
     /// A share that holds is never held, and one that is held never holds, so no ring keeps itself alive.
     pub(crate) async fn hold(
         &self,
         holder: &mut Doc,
         id: &str,
-        edit: &str,
+        admin: &str,
         lives: bool,
         now: i64,
     ) -> Result<(), Refused> {
-        let mut held = self.live(id, now).await?;
-        if keys::hashed(edit) != held.edit {
+        let held = self.live(id, now).await?;
+        // Only its owner hands it over: an edit link would let whoever was given one take it up and let it go, and so end it.
+        if keys::hashed(admin) != held.admin || id == holder.id || !holder.holders.is_empty() {
             return Err(Refused::Forbidden);
         }
-        if id == holder.id || !holder.holders.is_empty() || !held.holds.is_empty() {
-            return Err(Refused::Forbidden);
-        }
-        if held.blocked.is_some() {
-            return Err(Refused::Blocked);
-        }
+        holdable(&held, &holder.id)?;
         if held.holders.contains(&holder.id) {
             return Ok(());
         }
-        if holder.holds.len() >= CITED_AT_MOST || held.holders.len() >= HOLDERS_AT_MOST {
+        if holder.holds.len() >= CITED_AT_MOST {
             return Err(Refused::TooLong);
         }
         // The holder says it holds first: a holder naming one that does not hold back costs nothing, the other way round keeps it alive.
@@ -42,7 +38,13 @@ impl<S: Store, R: Randomness> Share<S, R> {
             holder.holds.push(id.to_owned());
         }
         self.saved(holder).await?;
+        let mut held = held;
         for _ in 0..4 {
+            // Read again after a race, so what another save changed is weighed anew.
+            holdable(&held, &holder.id)?;
+            if held.holders.contains(&holder.id) {
+                return Ok(());
+            }
             if held.holders.is_empty() {
                 held.own = lives.then_some(held.ends);
                 held.ends = HELD;
@@ -53,18 +55,26 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 Err(Refused::Behind { .. }) => held = self.live(id, now).await?,
                 Err(other) => return Err(other),
             }
-            if held.holders.contains(&holder.id) {
-                return Ok(());
-            }
         }
         Err(Refused::Behind { latest: None })
     }
 
     /// The holder lets go of what it cited; one with no life of its own goes once nothing holds it.
     pub(crate) async fn release(&self, holder: &mut Doc, id: &str) -> Result<(), Refused> {
+        // The document lets go first: a holder still naming it costs nothing, a document still naming the holder outlives it.
+        self.let_go(id, &holder.id).await?;
         holder.holds.retain(|one| one != id);
-        self.saved(holder).await?;
-        self.let_go(id, &holder.id).await
+        self.saved(holder).await
+    }
+
+    /// Its owner stops sharing a document something still holds: it keeps no life of its own, and lives on through its holders.
+    pub(crate) async fn given_up(&self, doc: &mut Doc) -> Result<bool, Refused> {
+        if doc.holders.is_empty() {
+            return Ok(false);
+        }
+        doc.own = None;
+        self.saved(doc).await?;
+        Ok(true)
     }
 
     /// Everything a document held or was held by forgets it before it goes, so nothing it held outlives it unseen.
@@ -83,18 +93,20 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(self.store.forget(&doc.id).await?)
     }
 
-    /// A held document reads while one of its holders does, or while its own life lasts (decision 64).
-    pub(crate) async fn held_up(&self, doc: &mut Doc, now: i64) -> Result<(), Refused> {
+    /// A held document reads while one of its holders does, or while its own life lasts (decision 64),
+    /// and says the end a reader is told: the furthest of theirs and its own, never the sweep's far one.
+    pub(crate) async fn held_up(&self, doc: &Doc, now: i64) -> Result<i64, Refused> {
         if doc.holders.is_empty() {
-            return Ok(());
+            return Ok(doc.ends);
         }
         let mut paused = false;
         let mut lost = Vec::new();
+        let mut ends = doc.own.filter(|end| *end >= now);
         for holder in &doc.holders {
             match self.store.doc(holder).await? {
                 Some(one) if one.ends < now => lost.push(holder.clone()),
                 Some(one) if one.paused.is_some() || one.blocked.is_some() => paused = true,
-                Some(_) => return Ok(()),
+                Some(one) => ends = ends.max(Some(one.ends)),
                 None => lost.push(holder.clone()),
             }
         }
@@ -102,12 +114,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
         for holder in &lost {
             self.let_go(&doc.id, holder).await?;
         }
-        if doc.own.is_some_and(|end| end >= now) {
-            return Ok(());
-        }
-        match paused {
-            true => Err(Refused::Paused),
-            false => Err(Refused::Gone),
+        match (ends, paused) {
+            (Some(end), _) => Ok(end),
+            (None, true) => Err(Refused::Paused),
+            (None, false) => Err(Refused::Gone),
         }
     }
 
@@ -155,6 +165,20 @@ impl<S: Store, R: Randomness> Share<S, R> {
         }
         Err(Refused::Behind { latest: None })
     }
+}
+
+// What keeps a document from being held, read again whenever a race makes it look anew.
+fn holdable(held: &Doc, holder: &str) -> Result<(), Refused> {
+    if !held.holds.is_empty() {
+        return Err(Refused::Forbidden);
+    }
+    if held.blocked.is_some() {
+        return Err(Refused::Blocked);
+    }
+    if held.holders.len() >= HOLDERS_AT_MOST && !held.holders.iter().any(|one| one == holder) {
+        return Err(Refused::TooLong);
+    }
+    Ok(())
 }
 
 /// The end of a document's own life: a held one keeps it apart, so its holders' life is what the sweep sees.

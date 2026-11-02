@@ -156,11 +156,11 @@ pub struct Facts {
 }
 
 impl Facts {
-    fn of(doc: &Doc) -> Self {
+    fn of(doc: &Doc, ends: i64) -> Self {
         Self {
             shared: doc.created,
             written: doc.written,
-            ends: doc.ends,
+            ends,
             gated: doc.gate.is_some(),
         }
     }
@@ -179,10 +179,10 @@ pub enum Manage {
     Pause,
     Restore,
     Delete,
-    /// Holds a document this one cites, proven by its edit link; `lives` when it was shared on its own too (decision 64).
+    /// Holds a document this one cites, proven by its management link; `lives` when it was shared on its own too (decision 64).
     Hold {
         id: String,
-        edit: String,
+        admin: String,
         lives: bool,
     },
     /// Lets go of a document this one no longer cites.
@@ -431,7 +431,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         self.admit(caller, Act::Read, now).await?;
         let mut doc = self.live(id, now).await?;
         open_to_read(&doc)?;
-        self.held_up(&mut doc, now).await?;
+        let held_end = self.held_up(&doc, now).await?;
         let kept = *doc.versions.last().ok_or(Refused::Unwritten)?;
         self.let_in(&doc, password, proof, caller, now).await?;
         let envelope = self
@@ -451,10 +451,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 Err(other) => return Err(other),
             }
         }
+        // Touched just now, its own end is the one to tell; held, it is the one its holders give it.
+        let ends = match doc.holders.is_empty() {
+            true => doc.ends,
+            false => held_end,
+        };
         Ok(Served {
             version: kept.version,
             envelope,
-            facts: Facts::of(&doc),
+            facts: Facts::of(&doc, ends),
             revoked: self.revoked(kept.by.as_ref()).await?,
         })
     }
@@ -507,7 +512,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(Served {
             version,
             envelope,
-            facts: Facts::of(&doc),
+            facts: Facts::of(&doc, own_end(&doc)),
             revoked: self.revoked(kept.by.as_ref()).await?,
         })
     }
@@ -517,7 +522,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(Info {
             latest: doc.latest(),
             reads: doc.reads,
-            ends: doc.ends,
+            ends: own_end(&doc),
             paused: doc.paused.is_some(),
             blocked: doc.blocked.is_some(),
             gated: doc.gate.is_some(),
@@ -537,9 +542,14 @@ impl<S: Store, R: Randomness> Share<S, R> {
             return Err(Refused::Blocked);
         }
         match what {
-            Manage::Delete => return self.forgotten(&doc).await,
-            Manage::Hold { id, edit, lives } => {
-                return self.hold(&mut doc, &id, &edit, lives, now).await;
+            Manage::Delete => {
+                if self.given_up(&mut doc).await? {
+                    return Ok(());
+                }
+                return self.forgotten(&doc).await;
+            }
+            Manage::Hold { id, admin, lives } => {
+                return self.hold(&mut doc, &id, &admin, lives, now).await;
             }
             Manage::Release(id) => return self.release(&mut doc, &id).await,
             Manage::Visit => touched(&mut doc, now),
@@ -708,6 +718,14 @@ impl<S: Store, R: Randomness> Share<S, R> {
                     .and_then(|held| held.latest()),
             }),
         }
+    }
+}
+
+/// The end its owner is told: its own while it has one, never the far one a held document shows the sweep.
+fn own_end(doc: &Doc) -> i64 {
+    match doc.holders.is_empty() {
+        true => doc.ends,
+        false => doc.own.unwrap_or(doc.ends),
     }
 }
 
