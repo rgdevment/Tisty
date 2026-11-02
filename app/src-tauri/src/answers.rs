@@ -5,6 +5,7 @@ pub mod carrying;
 pub mod citing;
 pub mod clouding;
 pub mod freeing;
+pub mod guiding;
 pub mod helping;
 pub mod joining;
 pub mod knocking;

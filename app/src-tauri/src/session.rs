@@ -118,6 +118,7 @@ impl Session {
             behind: false,
         };
         session.tidy_up(true);
+        crate::answers::guiding::spoken_again(&mut session);
         session.vouch_for_agent();
         if session.config.sync.is_some() {
             session.sow_if_due();

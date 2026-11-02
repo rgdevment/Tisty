@@ -1,3 +1,6 @@
+---
+lang: en
+---
 # How Tisty works
 
 Tisty is Opensource. You can read it yourself, build it, try it, or download the stable releases already out there. Nothing is hidden: all of it can be audited.
