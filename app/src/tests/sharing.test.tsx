@@ -71,6 +71,9 @@ describe("the share dialog", () => {
         onError={() => {}}
       />,
     );
+    const ends = screen.getByLabelText(t("shareEnds")) as HTMLSelectElement;
+    expect(ends.selectedOptions[0]?.textContent).toBe(t("shareEndsIdleDay"));
+    expect([...ends.options].map((one) => one.value)).toEqual(["1", "3", "7", "15"]);
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     await waitFor(() => expect(onShared).toHaveBeenCalledWith(CARD));
     expect(asked("share_doc")).toEqual([

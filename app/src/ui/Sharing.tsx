@@ -22,7 +22,7 @@ interface Props {
 // A few are enough to send the person looking; the rest are only counted.
 const SECRETS_SHOWN = 3;
 
-// The server keeps one at most 30 idle days; a day by default lets what nobody opens go soon (decisions 49 and 50).
+// The server keeps one at most 15 idle days; a day by default lets what nobody opens go soon (decisions 49 and 50).
 export const IDLE_DAYS = [1, 3, 7, 15];
 
 export const endsAfter = (days: number) =>
