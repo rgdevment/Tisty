@@ -74,6 +74,15 @@ El **⋯** de una tarjeta guarda una copia, muestra una página como archivo o l
 
 Un documento largo por partes (un año de actas, un libro por capítulos) es un solo documento con páginas. Mira [Páginas y PDF](Páginas-y-PDF).
 
+## Varios idiomas
+
+Un documento puede estar en varios idiomas: cada idioma es un documento propio, y Tisty los muestra como uno solo, en el idioma de la app, con un selector sobre la hoja que te deja en la misma sección.
+
+- **Traducir a…**, en el menú del documento, escribe una copia de su texto y sus páginas en el idioma que elijas, lista para traducir sección por sección. Si el documento todavía no dice su idioma, te lo pregunta.
+- **Unir como traducción de…** junta dos documentos que ya tienes, y **Separar de sus idiomas** los vuelve a separar.
+- Los idiomas de un documento están en una misma carpeta y se mueven, se archivan y se borran juntos. La búsqueda los encuentra una sola vez, abiertos en el idioma donde cayó la palabra.
+- Al exportar un documento, sus propiedades llevan `translationKey:`, y al volver a importarlo se une otra vez a los demás.
+
 ## Importar
 
 **Importar un documento**, en el árbol, toma un archivo `.md`, `.markdown`, `.txt`, `.html`, `.htm` o de Word (`.docx`) y lo trae, de a uno. Una página web o un documento de Word entra en el Markdown de Tisty, con sus títulos, listas, enlaces, tablas y colores (un color pasa al rotulador más cercano de la paleta), y las imágenes de un Word entran con él como adjuntos. Un `.tistyx` de otro Tisty se desempaca entero.

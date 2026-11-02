@@ -47,7 +47,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `outline_doc` | Qué hay en un documento: sus títulos y partes, y las señales de que pide orden: documentos con título parecido, títulos repetidos entre páginas y enlaces que no llevan a nada |
 | `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo) |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
-| `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo) |
+| `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento |
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, reescribir entera su sección de notas con `replace` |
 | `edit_doc` | Cambiar un pasaje de un documento |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
@@ -55,6 +55,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `folder` | Crear una carpeta |
 | `file_doc` | Poner uno o varios documentos en una carpeta |
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
+| `tongue_doc` | Unir un documento a los idiomas de otro, o separarlo de los suyos |
 | `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo |
 | `flag_doc` | Marcar uno o varios documentos para que los borres, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Una marca, nunca un borrado |
 | `import_doc` | Traer un archivo Markdown de este equipo como documento |
