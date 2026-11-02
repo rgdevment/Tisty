@@ -175,10 +175,19 @@ export const diagramShot = (figure: Element): string | null => {
   const box = svg.viewBox?.baseVal;
   const size = box?.width ? { wide: box.width, tall: box.height } : { wide: 800, tall: 600 };
   const ground = getComputedStyle(figure).getPropertyValue("--tisty-sheet").trim() || "#232326";
-  // The ground is painted on the drawing itself, so the studio never loads only to frame a picture.
+  // The ground goes in the drawing itself, under all of it, so the studio never loads only to frame a picture.
   const shot = svg.cloneNode(true) as SVGSVGElement;
   shot.setAttribute("width", String(size.wide));
   shot.setAttribute("height", String(size.tall));
-  shot.style.backgroundColor = ground;
+  const under = shot.ownerDocument.createElementNS("http://www.w3.org/2000/svg", "rect");
+  for (const [name, value] of [
+    ["x", box?.x ?? 0],
+    ["y", box?.y ?? 0],
+    ["width", size.wide],
+    ["height", size.tall],
+  ] as const)
+    under.setAttribute(name, String(value));
+  under.setAttribute("fill", ground);
+  shot.prepend(under);
   return `data:image/svg+xml,${encodeURIComponent(shot.outerHTML)}`;
 };

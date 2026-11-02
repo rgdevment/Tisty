@@ -1,5 +1,4 @@
-// What a link asks for before it shows anything, counted from dist/index.html after `vite build`, as Cloudflare
-// would send it (brotli, quality 4); a static import that drags something in fails here, not on a reader's phone.
+// What a link asks for before it shows anything, as Cloudflare sends it, so a static import fails here, not on a phone.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { brotliCompressSync, constants } from "node:zlib";

@@ -1,11 +1,13 @@
 import { isHue } from "./shell";
 
-// Each icon the text names is drawn from the glyphs carried here, so no page ever reaches out for one; the whole
-// set outweighs the rest of the sheet, so it comes only for a page that names an icon.
+// The whole set outweighs the rest of the sheet, so it comes only for a page that names an icon.
 export const iconed = async (page: Document | HTMLElement): Promise<void> => {
   const named = [...page.querySelectorAll<HTMLElement>("span.ico[data-ico]")];
   if (named.length === 0) return;
-  const { markup } = await import("./glyphs");
+  // A page whose icons could not be fetched still reads, without them.
+  const glyphs = await import("./glyphs").catch(() => null);
+  if (!glyphs) return;
+  const { markup } = glyphs;
   const made = "createElementNS" in page ? page : page.ownerDocument;
   for (const one of named) {
     const drawn = markup(one.dataset.ico ?? "");

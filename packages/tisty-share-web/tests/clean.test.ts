@@ -59,6 +59,26 @@ describe("a drawn page, cleaned", () => {
     expect(page).toBe('<a>a</a><a>b</a><a>c</a><a href="tisty:doc/x">d</a>');
   });
 
+  it("checks a whole inline value, within the sizes Tisty writes", () => {
+    const page = cleaned(
+      '<p style="width:1px:x(y)">a</p><p style="margin-left:-5000px">b</p><p style="font-size:9999px">c</p><p style="padding-left:-1em">d</p><math><mrow style="margin-left:-0.1667em"><mi>x</mi></mrow></math>',
+    );
+    expect(page).not.toMatch(/x\(y\)|5000|9999|-1em/);
+    expect(page).toContain('style="margin-left:-0.1667em"');
+  });
+
+  it("keeps only the data the engine writes, and no aria of the writer's own", () => {
+    const page = cleaned(
+      '<span data-ico="star" data-evil="1" aria-live="assertive" aria-describedby="password">a</span>',
+    );
+    expect(page).toBe('<span data-ico="star">a</span>');
+  });
+
+  it("never leads to another site through a link that names no scheme", () => {
+    const page = cleaned('<a href="//x.cl/a">a</a><a href="/\\x.cl">b</a><a href="#arriba">c</a>');
+    expect(page).toBe('<a>a</a><a>b</a><a href="#arriba">c</a>');
+  });
+
   it("asks no one outside the envelope for a picture", () => {
     const page = cleaned(
       '<img src="https://x.cl/t.png" alt="a"><img src="data:image/png;base64,AAAA" alt="b"><img src="tisty:picture/1" alt="c">',

@@ -133,7 +133,7 @@ describe("a diagram on a page", () => {
     const shot = decodeURIComponent(
       diagramShot(page.querySelector("figure.diagram") as Element) ?? "",
     );
-    expect(shot).toContain("background-color");
+    expect(shot).toContain("<rect");
     expect(shot).toContain("Night--&gt;Owl");
   });
 });

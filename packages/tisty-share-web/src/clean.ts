@@ -144,22 +144,47 @@ const ATTRIBUTES = [
   "stretchy",
   "symmetric",
   "voffset",
+  // The data the engine writes for the sheet to read; any other is the writer's own and goes.
+  "data-amiss",
+  "data-as",
+  "data-at",
+  "data-callout",
+  "data-currency",
+  "data-doc",
+  "data-done",
+  "data-hue",
+  "data-ico",
+  "data-key",
+  "data-pen",
+  "data-ref",
+  "data-tag",
+  "data-task",
+  "data-total",
+  "data-type",
 ];
 
-// The properties Tisty and its formulas write inline; none of them can lift a part out to lay it over the page.
-const STYLES = new Set([
-  "color",
-  "font-size",
-  "font-variant-caps",
-  "margin-left",
-  "math-shift",
-  "padding-left",
-  "padding-right",
-  "text-align",
-  "width",
-]);
-// A value of words, numbers and units only: no url(), nothing that asks for anything.
-const PLAIN = /^[#\w.%\s-]+$/;
+const LENGTH = /^(-?\d+(?:\.\d+)?)(px|em|rem|ex|%)$/;
+const LONGEST: Record<string, number> = { px: 2000, em: 20, rem: 20, ex: 40, "%": 300 };
+
+// As long as a sheet or a formula ever needs, and below zero only where a formula pulls a part back.
+const length = (value: string, back = false): boolean => {
+  const [, number, unit] = LENGTH.exec(value) ?? [];
+  const size = Number(number);
+  return unit !== undefined && (back || size >= 0) && Math.abs(size) <= (LONGEST[unit] ?? 0);
+};
+
+// Each property Tisty and its formulas write inline, with the values they write; none can lift a part off the page.
+const STYLES: Record<string, (value: string) => boolean> = {
+  color: (value) => /^#[\da-f]{3,8}$/i.test(value),
+  "font-size": (value) => length(value),
+  "font-variant-caps": (value) => value === "small-caps",
+  "margin-left": (value) => length(value, true),
+  "math-shift": (value) => value === "compact",
+  "padding-left": (value) => length(value),
+  "padding-right": (value) => length(value),
+  "text-align": (value) => /^(?:left|center|right)$/.test(value),
+  width: (value) => length(value),
+};
 const PICTURED = /^tisty:picture\/\d+$/;
 
 const styled = (said: string): boolean =>
@@ -168,8 +193,11 @@ const styled = (said: string): boolean =>
     .map((one) => one.trim())
     .filter(Boolean)
     .every((one) => {
-      const [property, value] = one.split(":").map((part) => part.trim());
-      return STYLES.has(property ?? "") && value !== undefined && PLAIN.test(value);
+      const at = one.indexOf(":");
+      const property = one.slice(0, at).trim();
+      return (
+        at > 0 && Object.hasOwn(STYLES, property) && STYLES[property](one.slice(at + 1).trim())
+      );
     });
 
 // A picture is only ever one the envelope carries, so the page never asks anyone else for one.
@@ -182,6 +210,9 @@ export const cleaned = (html: string): string =>
   purify.sanitize(html, {
     ALLOWED_TAGS: TAGS,
     ALLOWED_ATTR: ATTRIBUTES,
-    // DOMPurify's own shape, which also passes a value with no scheme at all, with the schemes cut to Tisty's.
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tisty):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOW_DATA_ATTR: false,
+    ALLOW_ARIA_ATTR: false,
+    // DOMPurify's own shape with the schemes cut to Tisty's; a value starting `//` would lead to another site.
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:https?|mailto|tisty):|(?![\\/]{2})[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   });
