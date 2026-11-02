@@ -390,12 +390,14 @@ describe("the shared row", () => {
     };
     panel(headed(2));
     await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
-    expect(row("shared").textContent).toContain(t("sharedFollows"));
+    // What the box does is told beside it, on a «?» rather than under it.
+    expect(row("shared").textContent).not.toContain(t("sharedFollows"));
     await press("shared");
     const synced = screen.getByRole("checkbox", { name: t("shareSynced") }) as HTMLInputElement;
     expect(synced.checked).toBe(true);
+    expect(screen.getByRole("img", { name: t("sharedFollows") }).title).toBe(t("sharedFollows"));
     await userEvent.click(synced);
-    await waitFor(() => expect(row("shared").textContent).toContain(t("sharedStill")));
+    await waitFor(() => expect(screen.getByRole("img", { name: t("sharedStill") })).toBeTruthy());
     expect(
       (screen.getByRole("checkbox", { name: t("shareSynced") }) as HTMLInputElement).checked,
     ).toBe(false);

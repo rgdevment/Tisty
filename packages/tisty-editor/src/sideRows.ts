@@ -117,13 +117,25 @@ const copied = (page: Document, say: Say, link: Link) => {
 };
 
 const ticked = (page: Document, toggle: Toggle) => {
+  const row = made(page, "div", "side-toggle-row");
   const label = made(page, "label", "side-toggle");
   const box = page.createElement("input");
   box.type = "checkbox";
   box.checked = toggle.on;
   box.addEventListener("change", () => toggle.onTurn(box.checked));
   label.append(box, made(page, "span", "", toggle.label));
-  return label;
+  row.append(label);
+  // Outside the label, so asking what it does never ticks it.
+  if (toggle.help) {
+    const help = made(page, "span", "side-help", "?");
+    help.tabIndex = 0;
+    help.title = toggle.help;
+    help.setAttribute("role", "img");
+    help.setAttribute("aria-label", toggle.help);
+    box.setAttribute("aria-description", toggle.help);
+    row.append(help);
+  }
+  return row;
 };
 
 const shared = (page: Document, say: Say, panel: Of<"shared">) => {

@@ -146,7 +146,8 @@ const saidOf = (card: ShareCard): string => {
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  return `${t(card.still ? "sharedStill" : "sharedFollows")}${carriedOf(card)} ${t("shareAdminKept")}`;
+  // Whether it follows saves is told beside its box, so only what goes with it and where its links live stay here.
+  return `${carriedOf(card)} ${t("shareAdminKept")}`.trim();
 };
 
 // How many documents go with it, said only when some do.
@@ -238,7 +239,12 @@ const sharedPanel = (
     // Keeping it in sync is a choice that stays, so it reads as one, as it does when sharing.
     toggle: blocked
       ? undefined
-      : { label: t("shareSynced"), on: !card.still, onTurn: (on) => asked.onStill(!on) },
+      : {
+          label: t("shareSynced"),
+          on: !card.still,
+          onTurn: (on) => asked.onStill(!on),
+          help: t(card.still ? "sharedStill" : "sharedFollows"),
+        },
     acts: blocked
       ? []
       : [...changes, { key: "stop", label: t("shareStop"), danger: true, onPick: asked.onStop }],

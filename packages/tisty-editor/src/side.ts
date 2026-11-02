@@ -76,6 +76,8 @@ export type Toggle = {
   readonly label: string;
   readonly on: boolean;
   readonly onTurn: (on: boolean) => void;
+  /** What ticking it does, behind a small «?» beside it rather than spelled out under it. */
+  readonly help?: string;
 };
 
 export type Act = {
