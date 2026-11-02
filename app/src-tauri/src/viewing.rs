@@ -465,8 +465,16 @@ fn received_here(
     link: &crate::received::Link,
     password: Option<&str>,
 ) -> Answer<crate::received::Received> {
-    let got = crate::sharing::Net::to(crate::sharing::SERVER)
-        .and_then(|wire| crate::received::fetched(&wire, link, password))?;
+    // Asked from the async runtime, where a blocking client may be neither built nor dropped, so it fetches on a thread of its own.
+    let got = std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                crate::sharing::Net::to(crate::sharing::SERVER)
+                    .and_then(|wire| crate::received::fetched(&wire, link, password))
+            })
+            .join()
+    })
+    .map_err(|_| Refusal::of("internal"))??;
     let (cache, mine) = {
         let session = session_of(app)?;
         let session = held(&session);
