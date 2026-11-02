@@ -125,14 +125,16 @@ const ticked = (page: Document, toggle: Toggle) => {
   box.addEventListener("change", () => toggle.onTurn(box.checked));
   label.append(box, made(page, "span", "", toggle.label));
   row.append(label);
-  // Outside the label, so asking what it does never ticks it.
+  // Outside the label, so asking what it does never ticks it; a press opens it too, where there is no pointer to hover.
   if (toggle.help) {
     const help = made(page, "span", "side-help", "?");
     help.tabIndex = 0;
-    help.title = toggle.help;
+    help.dataset.help = toggle.help;
     help.setAttribute("role", "img");
     help.setAttribute("aria-label", toggle.help);
     box.setAttribute("aria-description", toggle.help);
+    help.addEventListener("click", () => help.classList.toggle("is-open"));
+    help.addEventListener("blur", () => help.classList.remove("is-open"));
     row.append(help);
   }
   return row;

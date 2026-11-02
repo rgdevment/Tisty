@@ -505,6 +505,7 @@ details[open] > .side-row-head::after {
   color: var(--tisty-hue-red);
 }
 .side-toggle-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -528,6 +529,27 @@ details[open] > .side-row-head::after {
   font-weight: 600;
   color: var(--tisty-soft);
   cursor: help;
+}
+/* The webview shows no title tooltips, so the help is a bubble of its own, as wide as the row it explains. */
+.side-help:hover::after,
+.side-help:focus-visible::after,
+.side-help.is-open::after {
+  content: attr(data-help);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 8px 10px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 10px;
+  background: var(--tisty-sheet);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+  color: var(--tisty-ink);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  cursor: default;
 }
 .side-act.is-main {
   border-color: transparent;

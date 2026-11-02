@@ -395,7 +395,9 @@ describe("the shared row", () => {
     await press("shared");
     const synced = screen.getByRole("checkbox", { name: t("shareSynced") }) as HTMLInputElement;
     expect(synced.checked).toBe(true);
-    expect(screen.getByRole("img", { name: t("sharedFollows") }).title).toBe(t("sharedFollows"));
+    expect(screen.getByRole("img", { name: t("sharedFollows") }).dataset.help).toBe(
+      t("sharedFollows"),
+    );
     await userEvent.click(synced);
     await waitFor(() => expect(screen.getByRole("img", { name: t("sharedStill") })).toBeTruthy());
     expect(

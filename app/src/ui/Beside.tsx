@@ -146,8 +146,8 @@ const saidOf = (card: ShareCard): string => {
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  // Whether it follows saves is told beside its box, so only what goes with it and where its links live stay here.
-  return `${carriedOf(card)} ${t("shareAdminKept")}`.trim();
+  // Whether it follows saves is told beside its box, so only what goes with it is said here, when anything does.
+  return carriedOf(card).trim();
 };
 
 // How many documents go with it, said only when some do.
