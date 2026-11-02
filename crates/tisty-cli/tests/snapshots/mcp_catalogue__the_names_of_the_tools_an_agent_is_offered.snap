@@ -28,6 +28,7 @@ expression: names
   "flag_doc",
   "file_doc",
   "page_doc",
+  "tongue_doc",
   "folder",
   "read_doc",
   "catch_up",

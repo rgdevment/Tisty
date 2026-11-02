@@ -29,7 +29,7 @@ pub fn translated(
     let lang = language(lang)?;
     let kept = joinable(&session.state, doc)?;
     let said = said_in(session, &kept, from)?;
-    if said == lang || taken(&session.state, doc, &lang) {
+    if said == lang || session.state.tongue_taken(doc, &lang) {
         return Err(Refusal::of("tongueTaken"));
     }
     let anchor = session.state.anchor_of(&kept);
@@ -72,7 +72,7 @@ pub fn tongued(
     let doc: DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let kept = joinable(&session.state, doc)?;
     let Some(of) = of else {
-        let ops = parted(&session.state, &kept);
+        let ops = session.state.parting(kept.id);
         session.commit_all(ops)?;
         return Ok(());
     };
@@ -83,33 +83,10 @@ pub fn tongued(
     }
     said_in(session, &up, of_lang)?;
     let said = said_in(session, &kept, lang)?;
-    if taken(&session.state, of, &said) {
+    if session.state.tongue_taken(of, &said) {
         return Err(Refusal::of("tongueTaken"));
     }
-    let anchor = session.state.anchor_of(&up);
-    // The group stands in one folder, so what joins it goes where it is, with its own languages.
-    let mut ops: Vec<Op> = std::iter::once(doc)
-        .chain(session.state.kin(doc))
-        .filter(|one| {
-            session
-                .state
-                .docs
-                .get(one)
-                .is_some_and(|one| one.folder != up.folder)
-        })
-        .map(|id| Op::DocMove {
-            id,
-            d: tisty_core::event::Filed {
-                folder: Some(up.folder),
-                page_of: None,
-                order: None,
-            },
-        })
-        .collect();
-    ops.push(Op::DocTongue {
-        id: doc,
-        d: tisty_core::event::Tongue { of: Some(anchor) },
-    });
+    let ops = session.state.joining(doc, of);
     session.commit_all(ops)?;
     Ok(())
 }
@@ -196,14 +173,6 @@ fn joinable(state: &State, id: DocId) -> Answer<Kept> {
     Ok(kept)
 }
 
-fn taken(state: &State, id: DocId, lang: &str) -> bool {
-    let tongues = state.tongues_of(id);
-    match tongues.is_empty() {
-        true => state.docs.get(&id).and_then(|one| one.lang.as_deref()) == Some(lang),
-        false => tongues.iter().any(|one| one.lang.as_deref() == Some(lang)),
-    }
-}
-
 // The language a document says, written into it first when the person named one it did not say.
 fn said_in(session: &mut Session, kept: &Kept, named: Option<String>) -> Answer<String> {
     let named = named.map(|one| language(&one)).transpose()?;
@@ -228,28 +197,6 @@ fn said_in(session: &mut Session, kept: &Kept, named: Option<String>) -> Answer<
             Ok(named)
         }
     }
-}
-
-// Out of its languages; an anchor hands the others to the first of them so they stay together.
-fn parted(state: &State, kept: &Kept) -> Vec<Op> {
-    let out = |id: DocId, of: Option<DocId>| Op::DocTongue {
-        id,
-        d: tisty_core::event::Tongue { of },
-    };
-    if kept.translation_of.is_some() {
-        return vec![out(kept.id, None)];
-    }
-    let mut others = state
-        .papers()
-        .filter(|one| one.translation_of == Some(kept.id))
-        .collect::<Vec<_>>();
-    others.sort_by_key(|one| (one.joined.or(one.made), one.id));
-    let Some((next, rest)) = others.split_first() else {
-        return Vec::new();
-    };
-    std::iter::once(out(next.id, None))
-        .chain(rest.iter().map(|one| out(one.id, Some(next.id))))
-        .collect()
 }
 
 #[cfg(test)]

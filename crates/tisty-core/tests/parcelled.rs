@@ -2756,3 +2756,41 @@ fn a_parcel_an_older_tisty_wrote_lands_in_tistys_own_words() {
     let file = there.titled("Viejo").file.clone();
     assert_eq!(there.body(&file), "# Viejo\n\n==ojo=={green} y ++esto++\n");
 }
+
+#[test]
+fn a_document_in_two_languages_lands_in_two_languages_still_together() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let mut written = |body: &str| {
+        let (id, _) = here.doc(body, None, None);
+        here.tell(Op::DocSaid {
+            id,
+            d: Said::of(body),
+        });
+        id
+    };
+    let es = written("---\nlang: es\n---\n# Paseos\n");
+    let en = written("---\nlang: en\n---\n# Walks\n");
+    here.tell(Op::DocTongue {
+        id: en,
+        d: tisty_core::event::Tongue { of: Some(es) },
+    });
+    let box_at = room.path().join("both.tistyx");
+    let files: Vec<String> = [es, en]
+        .iter()
+        .map(|id| here.state.docs[id].file.clone())
+        .collect();
+
+    parcel::write(&here.paths, &here.state, &files, &box_at, &Along::default()).unwrap();
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let walks = there.titled("Walks").id;
+    let langs: Vec<Option<String>> = there
+        .state
+        .tongues_of(walks)
+        .iter()
+        .map(|one| one.lang.clone())
+        .collect();
+    assert_eq!(langs, vec![Some("es".to_string()), Some("en".to_string())]);
+}

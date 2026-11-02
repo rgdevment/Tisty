@@ -40,11 +40,15 @@ pub fn doc_export(
         })
         .unwrap_or_default();
     let beside = session.dest();
-    tisty_core::docs::with_pages(
+    // A language leaves carrying the key of its group, so it finds the others when it comes back.
+    let keyed = session.state.keyed(&id, &said);
+    tisty_core::docs::laid_out_from(
         session.paths.data(),
         &id,
+        &keyed,
         &pages,
         std::path::Path::new(&into),
+        None,
         beside.as_deref(),
     )
     .map_err(|e| {
@@ -321,6 +325,13 @@ pub(crate) fn imported_as(
             task_of: None,
         },
     })?;
+    // A language brought back joins the group its key names.
+    if let Some(anchor) = session.state.keyed_to(&session.paths.docs(), body, id) {
+        session.commit(Op::DocTongue {
+            id,
+            d: tisty_core::event::Tongue { of: Some(anchor) },
+        })?;
+    }
     Ok((made, id))
 }
 

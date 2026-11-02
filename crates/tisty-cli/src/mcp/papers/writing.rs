@@ -16,7 +16,12 @@ use super::super::{
 const READ_BACK_NOT_NEEDED: &str = " Its title, place and print are here: no need to read it back.";
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    written_doc(paths, args, None)
+    match text(args, "translation_of") {
+        Some(of) if text(args, "doc").is_none() => {
+            super::tongues::translation_written(paths, args, &of)
+        }
+        _ => written_doc(paths, args, None),
+    }
 }
 
 /// An import has judged the subject already, and the files it copied are told with the document.

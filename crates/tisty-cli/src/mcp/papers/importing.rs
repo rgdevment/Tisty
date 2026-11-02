@@ -99,6 +99,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             }
         })?;
 
+    joined_by_key(paths, &written, &whole)?;
     let changed = made.changed.join(", ");
     Ok(told(
         format!(
@@ -150,6 +151,30 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             other => other,
         },
     ))
+}
+
+// A language brought back joins the group its key names, as it does in the window.
+fn joined_by_key(paths: &Paths, written: &Value, body: &str) -> Result<(), Refused> {
+    let Some(file) = written["structuredContent"]["doc"].as_str() else {
+        return Ok(());
+    };
+    let (state, mut store) = opened(paths)?;
+    let Some(id) = state
+        .papers()
+        .find(|one| one.file == file)
+        .map(|one| one.id)
+    else {
+        return Ok(());
+    };
+    if let Some(anchor) = state.keyed_to(&paths.docs(), body, id) {
+        store
+            .append(tisty_core::Op::DocTongue {
+                id,
+                d: tisty_core::event::Tongue { of: Some(anchor) },
+            })
+            .map_err(hitch)?;
+    }
+    Ok(())
 }
 
 fn asked_with(args: &Value, body: &str) -> Value {

@@ -171,6 +171,9 @@ pub struct Paper {
     /// goes next, rather than turning native by passing through here.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub guest: bool,
+    /// The file of the anchor whose languages it is one of, when that one travels too.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translation_of: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -532,6 +535,11 @@ fn filled(
                 folder: one.folder.map(|at| at.to_string()),
                 page_of: one
                     .page_of
+                    .and_then(|up| state.docs.get(&up))
+                    .map(|up| up.file.clone())
+                    .filter(|up| held.contains(up.as_str())),
+                translation_of: one
+                    .translation_of
                     .and_then(|up| state.docs.get(&up))
                     .map(|up| up.file.clone())
                     .filter(|up| held.contains(up.as_str())),
@@ -968,6 +976,7 @@ fn taken_in(
     let mut named: BTreeMap<String, (String, DocId)> = BTreeMap::new();
     let mut ordered: Vec<(Option<FolderId>, String)> = Vec::new();
     let mut written: Vec<(String, String, usize)> = Vec::new();
+    let mut tongued: Vec<(Ulid, String)> = Vec::new();
 
     for paper in ordering(manifest) {
         let Ok(body) = crate::docs::read(&staged.join("docs"), &paper.file) else {
@@ -1075,6 +1084,18 @@ fn taken_in(
             0,
         );
         written.push((made.id, body, at));
+        if let Some(anchor) = paper.translation_of.clone() {
+            tongued.push((id, anchor));
+        }
+    }
+    // Every document is named by now, so a language finds its anchor wherever it sat in the parcel.
+    for (id, anchor) in tongued {
+        if let Some((_, of)) = named.get(&anchor) {
+            ops.push(Op::DocTongue {
+                id,
+                d: crate::event::Tongue { of: Some(*of) },
+            });
+        }
     }
 
     for (file, body, at) in written {

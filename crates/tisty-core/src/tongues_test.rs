@@ -292,3 +292,52 @@ fn the_languages_in_its_folder_go_with_it_and_one_elsewhere_stays_put() {
         "the selector still reaches it"
     );
 }
+
+#[test]
+fn a_language_leaves_with_the_key_of_its_group_and_one_alone_with_none() {
+    let (es, en, alone) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let state = State::replay(&[
+        written(1, es, ES),
+        written(2, en, EN),
+        written(3, alone, "# Solo\n"),
+        joined(4, en, Some(es)),
+    ]);
+
+    assert_eq!(
+        state.keyed("dev_a-0002", EN),
+        format!("---\nlang: en\ntranslationKey: {es}\n---\n# Walks\n")
+    );
+    assert_eq!(state.keyed("dev_a-0003", "# Solo\n"), "# Solo\n");
+}
+
+#[test]
+fn a_language_brought_back_joins_the_group_its_key_names_unless_that_language_is_kept() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (es, en, back) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let state = State::replay(&[
+        written(1, es, ES),
+        written(2, en, EN),
+        joined(3, en, Some(es)),
+    ]);
+    let pt = format!("---\nlang: pt\ntranslationKey: {es}\n---\n# Passeios\n");
+    let again = format!("---\nlang: en\ntranslationKey: {es}\n---\n# Walks\n");
+
+    assert_eq!(state.keyed_to(tmp.path(), &pt, back), Some(es));
+    assert_eq!(state.keyed_to(tmp.path(), &again, back), None);
+    assert_eq!(state.keyed_to(tmp.path(), "# Nada\n", back), None);
+}
+
+#[test]
+fn languages_brought_in_elsewhere_find_each_other_by_their_key() {
+    let tmp = tempfile::tempdir().unwrap();
+    let first = Ulid::generate();
+    let es = "---\nlang: es\ntranslationKey: from-another-tisty\n---\n# Paseos\n";
+    std::fs::write(tmp.path().join("dev_a-0001.md"), es).unwrap();
+    let state = State::replay(&[written(1, first, es)]);
+    let en = "---\nlang: en\ntranslationKey: from-another-tisty\n---\n# Walks\n";
+
+    assert_eq!(
+        state.keyed_to(tmp.path(), en, Ulid::generate()),
+        Some(first)
+    );
+}

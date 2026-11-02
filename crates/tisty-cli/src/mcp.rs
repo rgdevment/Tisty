@@ -256,6 +256,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "import_doc" => import_doc(paths, &args),
         "file_doc" => file_doc(paths, &args),
         "page_doc" => page_doc(paths, &args),
+        "tongue_doc" => papers::tongues::tongue_doc(paths, &args),
         "folder" => folder(paths, &args),
         "lists" => lists(paths),
         "tags" => tags(paths),
@@ -929,6 +930,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if let Some(up) = one.page_of.and_then(|up| named_doc(&state, up)) {
                 kept_of.insert("page_of".into(), json!(up));
             }
+            papers::tongues::tongued_into(&state, one, &mut kept_of);
             let pages = state.pages_of(one.id);
             if !pages.is_empty() {
                 kept_of.insert("pages".into(), json!(pages.len()));
