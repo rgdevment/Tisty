@@ -13,14 +13,10 @@ workspace = true
 # The page loads the cdylib; the rlib lets what it does be tested on the machine that builds it.
 crate-type = ["cdylib", "rlib"]
 
-[features]
-# The engine that draws a page from words, only for an envelope sealed before Tisty sent the page drawn (decision 91).
-draw = ["tisty-markdown/default"]
-
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
-# Without `draw` only the front matter is read, which needs nothing of the engine.
+# Only the front matter is read, which needs nothing of the engine.
 tisty-markdown.workspace = true
 tisty-share-proto.workspace = true
 zeroize.workspace = true

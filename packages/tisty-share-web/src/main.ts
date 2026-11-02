@@ -24,8 +24,6 @@ import { gated, refused, sheetWordsFor, spanish, wordsFor } from "./words";
 // What the link opened: the body, its front matter's title (which wins over the first line, as in Tisty) and the text.
 type Found = Opened & { readonly title: string; readonly text: string; readonly about: About };
 type Read = Found & { readonly facts: Facts; readonly link: Link };
-// An envelope sealed before Tisty sent the page drawn comes without it.
-type Taken = Omit<Found, "html"> & { readonly html: string | undefined };
 type Sealed = { readonly sealed: Uint8Array; readonly facts: Facts; readonly revoked?: string };
 
 const night = matchMedia("(prefers-color-scheme: dark)");
@@ -82,7 +80,7 @@ const wordOf = (refused: unknown): string =>
   refused instanceof Error ? refused.message : "failed";
 
 // The page holds the words and pictures in the clear, so it is let go on every way out.
-const taken = (page: Page): Taken => {
+const taken = (page: Page): Found => {
   try {
     const about = JSON.parse(page.about) as About;
     const pictures: Picture[] = Array.from({ length: page.pictures }, (_, at) => ({
@@ -109,7 +107,7 @@ const read = (
   key: string,
   revoked?: string,
   limits?: string,
-): Taken | string => {
+): Found | string => {
   try {
     const found = taken(open(sealed, key, revoked, limits));
     const wrote = found.about.wrote;
@@ -131,18 +129,8 @@ const unsealed = async (link: Link, answer: Sealed): Promise<Read | string> => {
         ? limits.refused
         : read(answer.sealed, link.key, answer.revoked, limits.limits);
   }
-  if (typeof found === "string") return found;
-  const html = found.html ?? (await drawnOlder(found.text));
-  if (html === undefined) return "offline";
-  return { ...found, html, facts: answer.facts, link };
+  return typeof found === "string" ? found : { ...found, facts: answer.facts, link };
 };
-
-// The engine that draws an older envelope's page is the heaviest piece there is, so only such an envelope asks for it.
-const drawnOlder = (text: string): Promise<string | undefined> =>
-  import("./older").then(
-    ({ drawnApart }) => drawnApart(text),
-    () => undefined,
-  );
 
 const opened = async (password?: string): Promise<Read | string> => {
   const link = linkOf(location.pathname, location.hash);

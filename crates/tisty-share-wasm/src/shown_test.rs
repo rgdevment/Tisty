@@ -42,19 +42,15 @@ fn drawn(text: &str) -> String {
     tisty_markdown::html(&tisty_markdown::read(text))
 }
 
-fn html(page: &Shown) -> &str {
-    page.html.as_deref().unwrap_or_default()
-}
-
 #[test]
 fn shows_the_page_tisty_drew_without_drawing_it() {
     let page = read(sealed(TEXT, &[], None)).unwrap();
-    assert_eq!(page.html, Some(drawn(TEXT)));
-    assert!(html(&page).contains("Antes de empezar"));
+    assert_eq!(page.html, drawn(TEXT));
+    assert!(page.html.contains("Antes de empezar"));
 }
 
 #[test]
-fn an_envelope_sealed_before_drawn_pages_leaves_its_words_to_be_drawn_apart() {
+fn a_version_sealed_without_its_page_is_not_shown() {
     let draft = Draft {
         id: "k7Qm2xPa",
         version: 4,
@@ -67,20 +63,8 @@ fn an_envelope_sealed_before_drawn_pages_leaves_its_words_to_be_drawn_apart() {
     let envelope = seal(&key(1), &draft, None, &Limits::default())
         .unwrap()
         .into_bytes();
-    let page = read(envelope).unwrap();
-    assert_eq!(page.html, None);
-    assert_eq!(page.text.as_str(), TEXT);
-    assert_eq!(page.about.title.as_deref(), Some("Docker en WSL2"));
-}
-
-// The page Tisty drew and the one drawn apart for an older envelope come from one call, so both read alike.
-#[cfg(feature = "draw")]
-#[test]
-fn the_engine_built_in_draws_as_tisty_does() {
-    for spanish in [true, false] {
-        let guide = tisty_markdown::reference(spanish);
-        assert_eq!(super::drawn(guide), drawn(guide));
-    }
+    let refused = read(envelope).err();
+    assert_eq!(refused.as_ref().map(Unread::word), Some("damaged"));
 }
 
 #[test]
@@ -191,7 +175,7 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
         from: None,
         text: &long,
         cited: &[],
-        html: None,
+        html: Some("<p>a</p>"),
         pictures: &[],
     };
     let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
@@ -205,7 +189,10 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
 #[test]
 fn a_picture_keeps_its_place_for_the_page_to_fill() {
     let page = read(sealed(TEXT, &[(Kind::Png, &png(40))], None)).unwrap();
-    assert!(html(&page).contains(r#"<img src="tisty:picture/0" alt="La consola""#));
+    assert!(
+        page.html
+            .contains(r#"<img src="tisty:picture/0" alt="La consola""#)
+    );
 }
 
 #[test]
@@ -221,7 +208,7 @@ fn every_part_of_the_tisty_language_comes_through_as_the_app_drew_it() {
     for spanish in [true, false] {
         let guide = tisty_markdown::reference(spanish);
         let page = read(sealed(guide, &[], None)).unwrap();
-        assert_eq!(page.html, Some(drawn(guide)));
+        assert_eq!(page.html, drawn(guide));
         assert_eq!(page.text.as_str(), guide);
     }
 }
@@ -287,5 +274,5 @@ fn hands_the_reader_what_the_words_cite_with_the_keys_that_open_them() {
     let page = read(sealed).unwrap();
     assert_eq!(page.cited, cited);
     // The card stays the sheet's to draw: the words still call it by its name in the store.
-    assert!(html(&page).contains("data-doc=\"guia-2\""));
+    assert!(page.html.contains("data-doc=\"guia-2\""));
 }
