@@ -37,14 +37,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if held.holders.contains(&holder.id) {
             return Ok(());
         }
-        if holder.holds.len() as u64 >= self.policy.limits.cited {
+        let named = holder.holds.iter().any(|one| one == id);
+        if !named && holder.holds.len() as u64 >= self.policy.limits.cited {
             return Err(Refused::TooLong);
         }
         if self.carried(holder, id, held.pictures()).await? > self.policy.limits.pictures {
             return Err(Refused::PicturesFull);
         }
         // The holder says it holds first: a holder naming one that does not hold back costs nothing, the other way round keeps it alive.
-        if !holder.holds.iter().any(|one| one == id) {
+        if !named {
             holder.holds.push(id.to_owned());
         }
         self.saved(holder).await?;
@@ -55,7 +56,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             if held.holders.contains(&holder.id) {
                 return Ok(());
             }
-            if held.holders.is_empty() {
+            if held.holders.is_empty() && !held.versions.is_empty() {
                 held.own = lives.then_some(held.ends);
                 held.ends = HELD;
             }

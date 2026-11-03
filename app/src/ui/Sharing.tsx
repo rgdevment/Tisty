@@ -52,6 +52,8 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [own, setOwn] = useState<ShareOwn[]>([]);
   const [level, setLevel] = useState<ShareLevel | null>(null);
   const [stopping, setStopping] = useState<string | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
+  const [refusedFull, setRefusedFull] = useState(false);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
   const [seen, setSeen] = useState<string | null>(null);
@@ -94,8 +96,9 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   }, [file, round]);
 
   const room = level ? Math.max(level.cited - reach.pages, 0) : reach.cited;
-  const citing = cites && reach.cited > 0;
-  const full = level !== null && own.length >= level.shares;
+  const offered = reach.cited > 0 && room > 0;
+  const citing = cites && offered;
+  const full = level !== null && (refusedFull || own.length >= level.shares);
   const paged = level !== null && reach.pages > level.cited;
   const pictures = pictured.own + (citing ? pictured.cited : 0);
   const crowded = level !== null && pictures > level.pictures;
@@ -105,9 +108,15 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const stop = (one: ShareOwn) => {
     setStopping(one.file);
     shareStop(one.file)
-      .then(() => setRound((now) => now + 1))
+      .then(() => {
+        setRefusedFull(false);
+        setRound((now) => now + 1);
+      })
       .catch(onError)
-      .finally(() => setStopping(null));
+      .finally(() => {
+        setStopping(null);
+        setAsking(null);
+      });
   };
 
   const go = (event: React.FormEvent) => {
@@ -131,8 +140,14 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       .catch((problem) => {
         going.current = false;
         setBusy(false);
-        if ((problem as { code?: string } | null)?.code === "shareChanged") {
+        const code = (problem as { code?: string } | null)?.code;
+        if (code === "shareChanged") {
           setChanged(true);
+          setRound((now) => now + 1);
+          return;
+        }
+        if (code === "shareFull") {
+          setRefusedFull(true);
           setRound((now) => now + 1);
           return;
         }
@@ -155,21 +170,47 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             className="flex flex-col gap-1.5 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
           >
             <span className="text-[13px] font-semibold text-hue-amber">
-              {fill("shareFullCount", String(own.length), String(level.shares))}
+              {fill("shareFullCount", String(own.length))}
             </span>
             <ul className="flex flex-col gap-1 text-[12.5px]">
               {own.map((one) => (
                 <li key={one.file} className="flex items-center justify-between gap-3">
-                  <span className="truncate">{one.title}</span>
-                  <button
-                    type="button"
-                    onClick={() => stop(one)}
-                    disabled={stopping !== null}
-                    aria-label={`${t("shareStop")}: ${one.title}`}
-                    className="h-7 shrink-0 rounded-md border border-line px-2.5 text-[11.5px] hover:bg-hover disabled:opacity-50"
-                  >
-                    {t("shareStop")}
-                  </button>
+                  {asking === one.file ? (
+                    <>
+                      <span>{fill("shareStopAsk", one.title)}</span>
+                      <span className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setAsking(null)}
+                          disabled={stopping !== null}
+                          className="h-7 rounded-md border border-line px-2.5 text-[11.5px] hover:bg-hover disabled:opacity-50"
+                        >
+                          {t("cancel")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => stop(one)}
+                          disabled={stopping !== null}
+                          className="h-7 rounded-md bg-hue-red px-2.5 text-[11.5px] font-semibold text-white disabled:opacity-50"
+                        >
+                          {t("shareStop")}
+                        </button>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="truncate">{one.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAsking(one.file)}
+                        disabled={stopping !== null}
+                        aria-label={`${t("shareStop")}: ${one.title}`}
+                        className="h-7 shrink-0 rounded-md border border-line px-2.5 text-[11.5px] hover:bg-hover disabled:opacity-50"
+                      >
+                        {t("shareStop")}
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -284,7 +325,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
                 {reach.pages === 1 ? t("sharePagesOne") : fill("sharePages", String(reach.pages))}
               </p>
             )}
-            {reach.cited > 0 && (
+            {offered && (
               <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
                 <input
                   type="checkbox"

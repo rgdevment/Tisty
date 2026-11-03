@@ -649,3 +649,49 @@ fn a_picture_named_with_spaces_or_angle_brackets_is_taken_and_a_stray_mark_is_no
     let (said, _) = pictured("Ñandú ![ñ](attachments/playa-a1b2c3d4.png) €\n", read);
     assert_eq!(said, "Ñandú ![ñ](tisty:picture/0) €\n");
 }
+
+struct Recording<'a> {
+    here: &'a Here,
+    sent: std::cell::Cell<usize>,
+}
+
+impl Wire for Recording<'_> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        self.sent.set(self.sent.get() + 1);
+        self.here.send(asked)
+    }
+}
+
+#[test]
+fn with_sharing_switched_off_nothing_goes_out_and_every_step_is_refused() {
+    let here = Here::new();
+    let off = Switched {
+        on: false,
+        wire: Recording {
+            here: &here,
+            sent: Default::default(),
+        },
+    };
+    let refused = reserve(&off, SERVER, &Chosen::default()).unwrap_err();
+    assert_eq!(refused.code, "shareOff");
+    assert_eq!(off.wire.sent.get(), 0);
+    assert_eq!(switched(false).unwrap_err().code, "shareOff");
+
+    let on = Switched {
+        on: true,
+        wire: off.wire,
+    };
+    assert!(reserve(&on, SERVER, &Chosen::default()).is_ok());
+    assert_eq!(on.wire.sent.get(), 2);
+    assert!(switched(true).is_ok());
+}
+
+#[test]
+fn a_build_shares_only_when_it_was_switched_on() {
+    assert_eq!(ON, option_env!("TISTY_SHARE") == Some("1"));
+    let argv = vec![
+        "tisty".to_owned(),
+        "tisty://share?link=https%3A%2F%2Ftisty.cl%2FoVD0Idz0%23_YQqHycdmpMvpG7q2Gmd3IjAeSc_Rbn-RvCb7NuqEB8".to_owned(),
+    ];
+    assert_eq!(crate::received::links(&argv).len(), usize::from(ON));
+}

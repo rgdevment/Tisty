@@ -9,9 +9,9 @@ use super::{
     Citable, Going, Reach, Signing, Spent, cited_at_most, cited_in, held_here, held_with,
     let_go_of, printed, reach_among, took_up,
 };
-use crate::Session;
 use crate::sharing::here::{Here, voucher};
 use crate::sharing::{self, Asking, Chosen, SERVER, Said, Wire, Words};
+use crate::{Refusal, Session};
 
 fn going(file: &str, title: &str, page: Option<(u32, u32)>, text: &str) -> Going {
     Going {
@@ -176,7 +176,7 @@ fn a_new_page_is_held_before_its_first_version_goes_up() {
 }
 
 #[test]
-fn what_a_share_cites_past_its_level_stays_out_and_reads_as_text() {
+fn what_a_share_cites_past_its_level_stays_out_of_what_it_takes() {
     let one = |file: &str| Citable {
         doc: ulid::Ulid::generate(),
         file: file.into(),
@@ -420,7 +420,7 @@ fn a_page_with_no_words_yet_is_named_by_its_file_and_past_an_envelope_s_list_is_
 }
 
 #[test]
-fn a_person_s_own_shares_are_those_neither_held_nor_taken_from_someone_else() {
+fn a_person_s_own_shares_are_those_with_a_life_of_their_own_and_not_taken_from_someone_else() {
     let (_tmp, mut session) = session();
     let one = filed(&mut session, "# Uno");
     let two = filed(&mut session, "# Dos");
@@ -443,7 +443,78 @@ fn a_person_s_own_shares_are_those_neither_held_nor_taken_from_someone_else() {
         .map(|(doc, _)| doc)
         .collect();
     own.sort();
-    let mut expected = vec![one, two];
+    let mut expected = vec![one, two, lives];
     expected.sort();
     assert_eq!(own, expected);
+}
+
+#[test]
+fn a_person_s_own_shares_leave_out_a_replaced_link_which_the_server_counts_until_it_is_stopped() {
+    let (_tmp, mut session) = session();
+    let one = filed(&mut session, "# Uno");
+    shared_as(&mut session, one, "firstAa", Vec::new(), false);
+    shared_as(&mut session, one, "secondBb", Vec::new(), false);
+    assert_eq!(session.state.replaced.len(), 1);
+    let own = crate::answers::shares::own_shares(&session);
+    assert_eq!(own.len(), 1);
+    assert_eq!(own[0].1.link, "secondBb");
+}
+
+#[test]
+fn a_blocked_or_gone_share_is_left_out_of_a_person_s_count_and_only_the_gone_one_forgotten() {
+    let here = Here::new();
+    let up = |text: &str| {
+        sharing::share(
+            &here,
+            SERVER,
+            text,
+            &[],
+            &Chosen::default(),
+            &voucher(),
+            None,
+        )
+        .unwrap()
+    };
+    let (blocked, gone) = (up("Uno"), up("Dos"));
+    let mut stored = done(here.share.borrow().store.doc(&blocked.link))
+        .unwrap()
+        .unwrap();
+    stored.blocked = Some(crate::sharing::here::T0);
+    let revision = stored.revision;
+    done(here.share.borrow().store.save(&stored, Some(revision))).unwrap();
+    sharing::stop(&here, &gone).unwrap();
+
+    let own = vec![
+        (ulid::Ulid::generate(), blocked),
+        (ulid::Ulid::generate(), gone.clone()),
+    ];
+    let standing = crate::answers::shares::standing_of(&here, &own);
+    assert_eq!(standing.blocked, vec![own[0].0]);
+    assert_eq!(standing.gone, vec![(own[1].0, gone.link)]);
+    assert_eq!(standing.counted(&own), 0);
+}
+
+#[test]
+fn a_save_turned_away_for_its_level_is_held_back_and_others_are_not() {
+    use crate::answers::versions::limiting;
+    let pictures = Refusal::about("sharePicturesFull", "2");
+    assert_eq!(
+        limiting(&pictures).map(|one| one.code),
+        Some("sharePicturesFull")
+    );
+    let pages = Refusal::about("shareTooManyCited", "2");
+    assert_eq!(
+        limiting(&pages).map(|one| one.code),
+        Some("shareTooManyCited")
+    );
+    assert!(limiting(&Refusal::of("shareOffline")).is_none());
+
+    let following = crate::answers::versions::Following::default();
+    following.held_back("a.md", limiting(&pictures));
+    assert_eq!(
+        following.held_back_of("a.md").and_then(|one| one.name),
+        Some("2".into())
+    );
+    following.held_back("a.md", None);
+    assert!(following.held_back_of("a.md").is_none());
 }

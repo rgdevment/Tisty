@@ -8,6 +8,8 @@ fn started() -> Connection {
         .unwrap();
     db.execute_batch(include_str!("../migrations/0002_revocations.sql"))
         .unwrap();
+    db.execute_batch(include_str!("../migrations/0003_owners.sql"))
+        .unwrap();
     db
 }
 
@@ -48,17 +50,17 @@ fn looking_at_a_counter_writes_nothing_and_a_lapsed_one_reads_as_none() {
 fn a_document_is_saved_first_once_and_after_only_on_its_revision() {
     let db = started();
     let insert = |body: &str| db.execute(INSERT_DOC, params!["abc", 0, 50, body]).unwrap();
-    assert_eq!(insert("first"), 1);
-    assert_eq!(insert("second"), 0);
+    assert_eq!(insert("[1]"), 1);
+    assert_eq!(insert("[2]"), 0);
 
     let update = |revision: i64, was: i64| {
-        db.execute(UPDATE_DOC, params!["abc", revision, 60, "later", was])
+        db.execute(UPDATE_DOC, params!["abc", revision, 60, "[3]", was])
             .unwrap()
     };
     assert_eq!(update(1, 0), 1);
     assert_eq!(update(1, 0), 0);
     let body: String = db.query_row(DOC, params!["abc"], |row| row.get(0)).unwrap();
-    assert_eq!(body, "later");
+    assert_eq!(body, "[3]");
 
     let ending = |now: i64| -> Vec<String> {
         let mut asked = db.prepare(ENDING).unwrap();
@@ -220,12 +222,34 @@ fn an_owner_s_shares_are_those_alive_written_and_held_by_nothing() {
         500,
         r#"{"owner":"o1","versions":[1],"paused":7,"blocked":null}"#,
     );
+    doc(
+        "i",
+        253_402_300_799,
+        r#"{"owner":"o1","versions":[1],"holders":["x"],"own":300}"#,
+    );
     let shares = |owner: &str, now: i64| -> i64 {
         db.query_row(SHARES_OF, params![owner, now], |row| row.get(0))
             .unwrap()
     };
-    assert_eq!(shares("o1", 100), 3);
-    assert_eq!(shares("o1", 101), 2);
+    assert_eq!(shares("o1", 100), 4);
+    assert_eq!(shares("o1", 101), 3);
+    assert_eq!(shares("o1", 301), 2);
     assert_eq!(shares("o2", 101), 1);
     assert_eq!(shares("o3", 0), 0);
+}
+
+#[test]
+fn an_owner_s_shares_are_found_through_the_index_on_their_owner() {
+    let db = started();
+    let plan: Vec<String> = db
+        .prepare(&format!("EXPLAIN QUERY PLAN {SHARES_OF}"))
+        .unwrap()
+        .query_map(params!["o1", 0], |row| row.get(3))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        plan.iter().any(|step| step.contains("docs_by_owner")),
+        "{plan:?}"
+    );
 }

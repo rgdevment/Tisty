@@ -40,6 +40,7 @@ export interface ShareCard {
   /** How many documents go with it, its pages and what it cites. */
   holds?: number;
   info: ShareInfo | null;
+  heldBack?: { code: string; name?: string } | null;
 }
 
 /** A line that reads like a key or a password, and what it calls it when it does. */

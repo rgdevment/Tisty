@@ -19,6 +19,10 @@ pub(crate) const SERVER: &str = match option_env!("TISTY_SHARE_SERVER") {
     Some(server) => server,
     None => "https://tisty.cl",
 };
+pub(crate) const ON: bool = match option_env!("TISTY_SHARE") {
+    Some(said) => matches!(said.as_bytes(), [b'1']),
+    None => false,
+};
 const API: &str = "/api/v1/";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(30);
 
@@ -48,7 +52,28 @@ pub(crate) struct Asking<'a> {
     pub(crate) body: Vec<u8>,
 }
 
-pub(crate) struct Net {
+pub(crate) fn switched(on: bool) -> Result<(), Refusal> {
+    match on {
+        true => Ok(()),
+        false => Err(Refusal::of("shareOff")),
+    }
+}
+
+pub(crate) struct Switched<W> {
+    pub(crate) on: bool,
+    pub(crate) wire: W,
+}
+
+impl<W: Wire> Wire for Switched<W> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        switched(self.on)?;
+        self.wire.send(asked)
+    }
+}
+
+pub(crate) type Net = Switched<Http>;
+
+pub(crate) struct Http {
     client: reqwest::blocking::Client,
     server: String,
 }
@@ -62,14 +87,17 @@ impl Net {
             .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| Refusal::of("shareOffline"))?;
-        Ok(Self {
-            client,
-            server: server.trim_end_matches('/').to_owned(),
+        Ok(Switched {
+            on: ON,
+            wire: Http {
+                client,
+                server: server.trim_end_matches('/').to_owned(),
+            },
         })
     }
 }
 
-impl Wire for Net {
+impl Wire for Http {
     fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
         let url = format!("{}{API}{}", self.server, asked.path);
         let method = reqwest::Method::from_bytes(asked.method.as_bytes())
@@ -725,6 +753,9 @@ fn heard(cache: &std::path::Path, revoked: &[Revocation]) {
 
 /// Tells the server in the background what it has not heard; what does not reach it is tried again the next round.
 pub(crate) fn revoke_untold(cache: std::path::PathBuf, revoked: Vec<Revocation>) {
+    if !ON {
+        return;
+    }
     // The told list is read off the caller's thread, which may be holding the session.
     tauri::async_runtime::spawn_blocking(move || {
         let revoked = untold(&cache, revoked);

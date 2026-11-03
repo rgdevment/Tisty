@@ -260,6 +260,7 @@ const KNOWN = [
   "shareTooManyCited",
   "shareFull",
   "sharePicturesFull",
+  "shareOff",
   "shareHeld",
 ] as const;
 

@@ -25,6 +25,7 @@ fn policy() -> Policy {
             report: 4,
             password: 4,
             password_most: 8,
+            reader: 4,
             lasts: 10 * 60,
         },
         ..Policy::default()
@@ -321,6 +322,26 @@ fn refusals_come_back_as_a_status_and_a_word() {
         (full.status, said(&full)),
         (409, json!({ "refused": "shares_full" }))
     );
+}
+
+#[test]
+fn a_new_reader_past_the_owner_s_day_is_asked_for_work_and_let_in_with_it() {
+    let mut world = World::with(Policy {
+        readers: 0,
+        ..policy()
+    });
+    let shared = world.shared();
+    let path = format!("/api/v1/docs/{}", shared.id);
+    let refused = world.answer(asked("GET", &path));
+    assert_eq!(
+        (refused.status, said(&refused)),
+        (428, json!({ "refused": "work_asked" }))
+    );
+    let work = world.work(json!({ "for": "reader", "id": shared.id }));
+    let mut worked = asked("GET", &path);
+    worked.work = Some(work);
+    assert_eq!(world.answer(worked).status, 200);
+    assert_eq!(world.answer(asked("GET", &path)).status, 200);
 }
 
 #[test]

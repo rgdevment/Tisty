@@ -95,6 +95,9 @@ enum Asking {
     Password {
         id: String,
     },
+    Reader {
+        id: String,
+    },
 }
 
 #[derive(Deserialize)]
@@ -204,6 +207,7 @@ async fn routed<S: Store, R: Randomness>(
                 Asking::Password { id } => {
                     share.challenge(Ask::Password { id }, caller, now).await?
                 }
+                Asking::Reader { id } => share.challenge(Ask::Reader { id }, caller, now).await?,
             };
             Ok(said(200, json!(challenge)))
         }

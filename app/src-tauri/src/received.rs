@@ -92,6 +92,9 @@ fn tokened(said: &str) -> bool {
 }
 
 pub fn links(argv: &[String]) -> Vec<Link> {
+    if !sharing::ON {
+        return Vec::new();
+    }
     argv.iter().skip(1).filter_map(|one| asked(one)).collect()
 }
 
@@ -117,11 +120,12 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
     let password = password.map(|one| URL_SAFE_NO_PAD.encode(one));
     let mut said = read(wire, link, password.clone(), None)?;
     // A document guessed at asks for a little work beside the password, done once and only then (decision 76).
-    if said.status == 428 && password.is_some() {
-        let work = sharing::worked(
-            wire,
-            serde_json::json!({ "for": "password", "id": link.id }),
-        )?;
+    if said.status == 428 {
+        let asking = match password {
+            Some(_) => "password",
+            None => "reader",
+        };
+        let work = sharing::worked(wire, serde_json::json!({ "for": asking, "id": link.id }))?;
         said = read(wire, link, password, Some(work))?;
     }
     let word = sharing::refused(&said).name;

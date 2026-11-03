@@ -667,7 +667,8 @@ un link anónimo y cifrado de punta a punta, al que llegas desde el botón
 promesas de arriba: qué guarda y para qué está en su propio
 [README](share/README.es.md), sus [términos](share/TERMINOS.md), su
 [política de privacidad](share/PRIVACIDAD.md) y su
-[política de seguridad](share/SEGURIDAD.md).
+[política de seguridad](share/SEGURIDAD.md). Todavía no está encendido en
+Tisty: hasta que lo esté, Tisty nunca le habla.
 
 ## Dos equipos, si tienes dos
 

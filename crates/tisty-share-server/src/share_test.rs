@@ -45,6 +45,7 @@ fn policy() -> Policy {
             report: 4,
             password: 4,
             password_most: 8,
+            reader: 4,
             lasts: 10 * 60,
         },
         ..Policy::default()
@@ -1503,6 +1504,7 @@ struct Faulty {
     stuck: RefCell<Option<String>>,
     /// Counters, marks and reports past their time that cannot be let go of.
     unlapsing: Cell<bool>,
+    racing: RefCell<Option<Doc>>,
 }
 
 impl Store for Faulty {
@@ -1512,6 +1514,11 @@ impl Store for Faulty {
     async fn save(&self, doc: &Doc, revision: Option<u64>) -> Result<Saved, Fault> {
         if self.lose.replace(false) {
             return Ok(Saved::Raced);
+        }
+        let rival = self.racing.borrow_mut().take();
+        if let Some(rival) = rival {
+            let was = self.inner.doc(&rival.id).await?.map(|one| one.revision);
+            self.inner.save(&rival, was).await?;
         }
         self.inner.save(doc, revision).await
     }
@@ -1599,6 +1606,7 @@ fn faulty() -> Share<Faulty, Counting> {
         limited: Cell::new(None),
         stuck: RefCell::new(None),
         unlapsing: Cell::new(false),
+        racing: RefCell::new(None),
     };
     Share::new(store, Counting(0), policy(), [5; 32])
 }

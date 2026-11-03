@@ -109,8 +109,11 @@ impl Store for Memory {
             .borrow()
             .values()
             .filter(|doc| doc.owner == owner)
-            .filter(|doc| doc.ends >= now && !doc.versions.is_empty() && doc.holders.is_empty())
-            .filter(|doc| doc.blocked.is_none())
+            .filter(|doc| !doc.versions.is_empty() && doc.blocked.is_none())
+            .filter(|doc| {
+                let alone = doc.holders.is_empty() && doc.ends >= now;
+                alone || doc.own.is_some_and(|own| own >= now)
+            })
             .count() as u64)
     }
 
