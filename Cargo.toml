@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "app/src-tauri"]
+exclude = ["crates/tisty-share-server", "crates/tisty-share-worker", "crates/tisty-share-wasm"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,8 +23,6 @@ tisty-core = { path = "crates/tisty-core" }
 tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-share-proto = { path = "crates/tisty-share-proto", default-features = false }
-tisty-share-server = { path = "crates/tisty-share-server" }
-tisty-share-worker = { path = "crates/tisty-share-worker" }
 tisty-sync = { path = "crates/tisty-sync" }
 # `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
 # build script refuses to run without both: the quick window asks to be
@@ -135,14 +134,3 @@ opt-level = 2
 lto = "thin"
 strip = true
 
-# The share page's wasm is downloaded by every reader, so it is built for size, whole-program, with nothing to unwind.
-[profile.share-wasm]
-inherits = "release"
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"
-
-# Stripping takes the externref table wasm-bindgen 0.2.129 needs for its catch wrappers; wasm-opt shrinks the wasm after.
-[profile.release.package.tisty-share-worker]
-strip = false

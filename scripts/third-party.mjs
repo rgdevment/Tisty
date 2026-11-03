@@ -122,9 +122,6 @@ const crates = () => {
         "tree",
         "--locked",
         "--workspace",
-        // Only the Share server builds it today; once the app depends on it, what it brings is listed through the app.
-        "--exclude",
-        "tisty-share-proto",
         "--edges",
         "normal,no-proc-macro",
         "--target",
