@@ -181,6 +181,10 @@ every_spawn_pins_its_language() {
 both_languages_carry_the_same_documents() {
   local pair one mark a b bad=0
   for pair in "README.md README.es.md" \
+    "share/README.md share/README.es.md" \
+    "share/TERMS.md share/TERMINOS.md" \
+    "share/PRIVACY.md share/PRIVACIDAD.md" \
+    "share/SECURITY.md share/SEGURIDAD.md" \
     "app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md"; do
     set -- $pair
     for one in "$1" "$2"; do
