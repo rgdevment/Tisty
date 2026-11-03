@@ -118,6 +118,7 @@ impl Session {
             behind: false,
         };
         session.tidy_up(true);
+        crate::answers::guiding::spoken_again(&mut session);
         session.vouch_for_agent();
         if session.config.sync.is_some() {
             session.sow_if_due();
@@ -581,6 +582,24 @@ impl Session {
     }
 
     pub fn copy_doc(&mut self, id: &str) -> Answer<tisty_core::docs::Doc> {
+        let copy = worded(&self.locale, "copy");
+        self.copy_doc_as(id, &|body| {
+            // A copy is no translation, so it takes no key that would join it to the other languages.
+            let body =
+                tisty_markdown::front::without_field(body, tisty_core::tongues::TRANSLATION_KEY);
+            match body.trim().is_empty() {
+                true => body,
+                false => tisty_core::docs::marked(&body, &copy),
+            }
+        })
+    }
+
+    /// A copy of a document and its pages, its own words written as `told` says.
+    pub fn copy_doc_as(
+        &mut self,
+        id: &str,
+        told: &dyn Fn(&str) -> String,
+    ) -> Answer<tisty_core::docs::Doc> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
         let kept = self
             .state
@@ -605,13 +624,7 @@ impl Session {
         let root = self.paths.docs();
         let body =
             tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
-        let body = match body.split_once('\n') {
-            Some((first, rest)) if !first.trim().is_empty() => {
-                format!("{first}{}\n{rest}", worded(&self.locale, "copy"))
-            }
-            _ if !body.trim().is_empty() => format!("{body}{}", worded(&self.locale, "copy")),
-            _ => body,
-        };
+        let body = told(&body);
         let made = tisty_core::docs::create(&root, &self.config.device_id, &body)
             .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
 
@@ -734,6 +747,18 @@ impl Session {
 
     pub fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+        // The languages beside it are the same row, so they go with it, and none goes unless all can.
+        let all: Vec<_> = self.state.kin(id).into_iter().chain([id]).collect();
+        for one in &all {
+            self.droppable(*one)?;
+        }
+        for one in all {
+            self.drop_one(one)?;
+        }
+        Ok(())
+    }
+
+    fn droppable(&self, id: tisty_core::model::DocId) -> Answer<()> {
         let kept = self
             .state
             .docs
@@ -749,6 +774,16 @@ impl Session {
                 false => "folderIsAway",
             }));
         }
+        Ok(())
+    }
+
+    fn drop_one(&mut self, id: tisty_core::model::DocId) -> Answer<()> {
+        self.droppable(id)?;
+        let kept = self
+            .state
+            .docs
+            .get(&id)
+            .ok_or_else(|| Refusal::of("noSuchDoc"))?;
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;

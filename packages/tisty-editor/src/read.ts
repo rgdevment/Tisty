@@ -43,6 +43,7 @@ export {
   type Seal,
   sided,
   type Toggle,
+  type Tongue,
   wordsIn,
 } from "./side";
 export { copyFrom } from "./sideParts";

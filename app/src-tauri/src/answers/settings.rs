@@ -10,9 +10,7 @@ pub const ATTACHED: &[&str] = &[
     "rina.jpg",
     "cartilla.pdf",
     "vet-card.pdf",
-    "ladrido.mp3",
     "bark.mp3",
-    "paseo.mp4",
     "walk.mp4",
     "paseos.csv",
     "walks.csv",
@@ -58,7 +56,6 @@ pub const NOTICES: &str = include_str!("../../../../THIRD-PARTY-BUNDLED.md");
 pub const LICENCES: &str = include_str!("../../../../THIRD-PARTY-LICENSES.md");
 
 use tauri::Manager;
-use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{Answer, HERE, Refusal, Session, desktop, held, herald, language, update};
@@ -153,177 +150,67 @@ pub fn guide(
     session: tauri::State<'_, Mutex<Session>>,
     own: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
-    let tongue = {
-        let session = held(&session);
-        let code = tisty_core::model::spoken(session.locale.as_deref());
-        if code.starts_with("es") { "es" } else { "en" }
-    };
+    let mut session = held(&session);
+    let code = tisty_core::model::spoken(session.locale.as_deref());
+    let tongue = if code.starts_with("es") { "es" } else { "en" };
     let [english, castilian] = tisty_core::untouched::GUIDE_FOLDERS;
     let called = if tongue == "es" { castilian } else { english };
     let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
-    let other = if tongue == "es" { GUIDE_EN } else { GUIDE_ES };
-    let leaves = if tongue == "es" {
-        GUIDE_PAGES_ES
-    } else {
-        GUIDE_PAGES_EN
+
+    let standing = session
+        .config
+        .guide
+        .clone()
+        .and_then(|kept| session.state.papers().find(|one| one.file == kept))
+        .map(|one| {
+            (
+                one.id,
+                one.file.clone(),
+                one.title.clone().unwrap_or_default(),
+            )
+        });
+    let reach = |one: &str| {
+        app.path()
+            .resolve(
+                format!("resources/guide/{one}"),
+                tauri::path::BaseDirectory::Resource,
+            )
+            .ok()
     };
-
-    let from = app
-        .path()
-        .resolve(
-            format!("resources/guide/{tongue}"),
-            tauri::path::BaseDirectory::Resource,
-        )
-        .ok();
-
-    let mut session = held(&session);
-
-    if let Some(kept) = session.config.guide.clone() {
-        let root = session.paths.docs();
-        let standing = session.state.docs.values().any(|one| one.file == kept);
-        if standing
-            && let Ok(body) = tisty_core::docs::read(&root, &kept)
-            && (own != Some(true)
-                || tisty_core::docs::titled(&body) != tisty_core::docs::titled(other))
-        {
-            return Ok(tisty_core::docs::Doc {
-                id: kept,
-                title: tisty_core::docs::titled(&body),
-            });
+    let found = match (standing, own) {
+        (Some((id, file, title)), Some(true)) => {
+            let here = guide_here_as(&session, &tisty_core::docs::titled(told))
+                .or_else(|| in_their_tongue(&session, &file, tongue));
+            match here {
+                Some(found) => Some(found),
+                // An older guide in another language gets this one beside it, as asking for it always did.
+                None if title != tisty_core::docs::titled(told) => {
+                    return super::guiding::sown_beside(&mut session, tongue, id, reach);
+                }
+                None => Some((file, title)),
+            }
         }
-    }
-
-    let found = match own {
-        Some(true) => guide_here_as(&session, &tisty_core::docs::titled(told)),
-        _ => guide_already_here(&session),
+        (Some((_, file, title)), _) => Some((file, title)),
+        (None, Some(true)) => guide_here_as(&session, &tisty_core::docs::titled(told)),
+        (None, _) => guide_already_here(&session),
     };
     if let Some((file, title)) = found {
         let taken = file.clone();
         session.keep(|config| config.guide = Some(taken))?;
         return Ok(tisty_core::docs::Doc { id: file, title });
     }
+    super::guiding::sown(&mut session, tongue, called, reach)
+}
 
-    let data = session.paths.data().to_path_buf();
-
-    let mut told_of = Vec::new();
-    let mut body = told.to_string();
-    let mut pages: Vec<(&str, String)> = leaves
-        .iter()
-        .map(|(named, one)| (*named, one.to_string()))
-        .collect();
-    for shot in ATTACHED {
-        let Some(at) = from
-            .as_ref()
-            .map(|dir| dir.join(shot))
-            .filter(|at| at.is_file())
-        else {
-            continue;
-        };
-        let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
-            .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        told_of.push(kept.told(tisty_core::attach::Via::Guide));
-        // A title after the path, as in `](walks.html "file")`, keeps the attachment drawn as a file.
-        let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
-        for (was, named) in [
-            (format!("]({shot})"), format!("]({leaf})")),
-            (format!("]({shot} \""), format!("]({leaf} \"")),
-        ] {
-            body = body.replace(&was, &named);
-            for (_, one) in pages.iter_mut() {
-                *one = one.replace(&was, &named);
-            }
-        }
-    }
-
-    let folder = ulid::Ulid::generate();
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .under(None)
-            .iter()
-            .map(|one| one.order.as_str()),
-    );
-    told_of.push(Op::FolderAdd {
-        id: folder,
-        d: tisty_core::event::FolderAdd {
-            name: called.to_string(),
-            order,
-            parent: None,
-            icon: None,
-            color: None,
-        },
-    });
-    session.commit_all(told_of)?;
-
-    let root = session.paths.docs();
-    let device = session.store.device().clone();
-    let mut leafed = Vec::new();
-    for (marker, one) in &pages {
-        let made = tisty_core::docs::create(&root, &device, one)
-            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-        body = body.replace(
-            &format!("]({marker})"),
-            &format!("]({}{})", tisty_core::refs::DOC, made.id),
-        );
-        leafed.push((made.id, one));
-    }
-    let made = tisty_core::docs::create(&root, &device, &body)
-        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-
-    let sorted = tisty_core::order::last_of(
-        session
-            .state
-            .docs
-            .values()
-            .filter(|one| one.folder == Some(folder))
-            .map(|one| one.order.as_str()),
-    );
-    session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: tisty_core::event::DocAdd {
-            wrote: None,
-            guest: true,
-            made: None,
-            by: Some(WRITTEN_BY.into()),
-            file: made.id.clone(),
-            order: sorted,
-            said: Some(tisty_core::event::Said::of(&body)),
-            folder: Some(folder),
-            page_of: None,
-            task_of: None,
-        },
-    })?;
-    let held = session
+// The same guide in the person's language, when the one kept is another of its languages.
+fn in_their_tongue(session: &Session, file: &str, tongue: &str) -> Option<(String, String)> {
+    let cover = session.state.papers().find(|one| one.file == file)?;
+    session
         .state
-        .docs
-        .values()
-        .find(|one| one.file == made.id)
-        .map(|one| one.id);
-    if let Some(up) = held {
-        let mut order = tisty_core::order::first();
-        for (file, one) in &leafed {
-            session.commit(Op::DocAdd {
-                id: ulid::Ulid::generate(),
-                d: tisty_core::event::DocAdd {
-                    wrote: None,
-                    guest: true,
-                    made: None,
-                    by: Some(WRITTEN_BY.into()),
-                    file: file.clone(),
-                    order: order.clone(),
-                    said: Some(tisty_core::event::Said::of(one)),
-                    folder: Some(folder),
-                    page_of: Some(up),
-                    task_of: None,
-                },
-            })?;
-            order = tisty_core::order::after(&order);
-        }
-    }
-    let written = made.id.clone();
-    session.keep(|c| c.guide = Some(written))?;
-
-    Ok(made)
+        .tongues_of(cover.id)
+        .into_iter()
+        .find(|one| one.lang.as_deref() == Some(tongue))
+        .map(|one| (one.file.clone(), one.title.clone().unwrap_or_default()))
 }
 
 #[tauri::command]

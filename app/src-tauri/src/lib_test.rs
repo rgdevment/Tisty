@@ -1226,12 +1226,14 @@ fn today_is_late_enough_to_end_on() {
 
 #[test]
 fn the_guide_travels_inside_the_binary_rather_than_beside_it() {
-    assert!(
-        answers::settings::GUIDE_ES.starts_with("# "),
+    assert_eq!(
+        tisty_markdown::front::lang(answers::settings::GUIDE_ES).as_deref(),
+        Some("es"),
         "la guia en espanol no viaja"
     );
-    assert!(
-        answers::settings::GUIDE_EN.starts_with("# "),
+    assert_eq!(
+        tisty_markdown::front::lang(answers::settings::GUIDE_EN).as_deref(),
+        Some("en"),
         "la guia en ingles no viaja"
     );
 }

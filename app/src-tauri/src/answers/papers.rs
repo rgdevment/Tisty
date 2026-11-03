@@ -40,7 +40,8 @@ pub fn doc_file(
     if before.is_some_and(|at| at == id) {
         return Err(Refusal::of("intoItself"));
     }
-    let ops = beside_docs(&session.state, id, folder, before);
+    let mut ops = beside_docs(&session.state, id, folder, before);
+    ops.extend(super::tongues::following(&session.state, id, folder));
     session.commit_all(ops)?;
     Ok(())
 }
@@ -462,11 +463,13 @@ pub fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: boo
         Some(_) => {}
     }
     doc_out(&session.state, id)?;
-    session.commit(if shut {
-        Op::DocLock { id }
-    } else {
-        Op::DocUnlock { id }
-    })?;
+    let ops = super::tongues::with_kin(&session.state, id)
+        .map(|id| match shut {
+            true => Op::DocLock { id },
+            false => Op::DocUnlock { id },
+        })
+        .collect();
+    session.commit_all(ops)?;
     Ok(())
 }
 
@@ -478,11 +481,13 @@ pub fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: boo
         return Err(Refusal::of("noSuchDoc"));
     }
     doc_out(&session.state, id)?;
-    session.commit(if away {
-        Op::DocArchive { id }
-    } else {
-        Op::DocUnarchive { id }
-    })?;
+    let ops = super::tongues::with_kin(&session.state, id)
+        .map(|id| match away {
+            true => Op::DocArchive { id },
+            false => Op::DocUnarchive { id },
+        })
+        .collect();
+    session.commit_all(ops)?;
     Ok(())
 }
 
@@ -971,6 +976,13 @@ pub struct Filed {
     compacted: Option<Compaction>,
     #[serde(skip_serializing_if = "Option::is_none")]
     folder_was: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lang: Option<String>,
+    /// The anchor of the languages it is one of, and where it stands among them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tongue: Option<(String, usize)>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    tongue_apart: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1041,6 +1053,8 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         tags: Some(kept.tags.clone()),
                         by: None,
                         print: None,
+                        lang: None,
+                        key: None,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -1071,6 +1085,8 @@ fn gathered(session: &Session) -> Vec<Filed> {
     let on_disk = tisty_core::docs::names(&session.paths.docs());
     let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.papers().collect();
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+    let tongues = super::tongues::standing(&session.state);
+    let apart = session.state.apart();
 
     kept_in_order
         .into_iter()
@@ -1103,6 +1119,9 @@ fn gathered(session: &Session) -> Vec<Filed> {
                 via: done.via.clone(),
             }),
             folder_was: kept.folder_was.clone(),
+            lang: kept.lang.clone(),
+            tongue: tongues.get(&kept.id).cloned(),
+            tongue_apart: apart.contains(&kept.id),
         })
         .collect()
 }

@@ -39,6 +39,7 @@ import { saidPlainly } from "../refusal";
 import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
+import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
 import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -51,6 +52,7 @@ import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./p
 import Ribbon, { Onward } from "./Ribbon";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
+import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
@@ -125,6 +127,8 @@ const listed = (chosen: string | string[] | null): string[] => {
   if (Array.isArray(chosen)) return chosen;
   return chosen ? [chosen] : [];
 };
+
+const LANDING_MS = 3000;
 
 export default function Docs({
   open: asked,
@@ -566,6 +570,34 @@ export default function Docs({
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
+  const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);
+  // Another language opens at the heading the reader stood under, counted, since its words differ.
+  const landing = useRef<{ file: string; at: number } | null>(null);
+  const toTongue = (tongue: Filed) => {
+    if (!own) return;
+    const anchor = tongue.tongue?.[0];
+    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
+    const there = twinOf(known, own, tongue);
+    const landed = { file: there.file, at: standingHead() };
+    landing.current = landed;
+    // A language with no headings yet never reaches the jump, so the wish lapses rather than waiting.
+    window.setTimeout(() => {
+      if (landing.current === landed) landing.current = null;
+    }, LANDING_MS);
+    setHeads([]);
+    onDoc?.(there.file);
+  };
+  useEffect(() => {
+    const want = landing.current;
+    const reached = heads.filter((one) => one.level > 0);
+    if (!want || want.file !== open?.file || !reached.length) return;
+    landing.current = null;
+    if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
+  }, [heads, open?.file]);
+  // The panel names the languages when it is open; the bar above the sheet does when it is not.
+  const spoken = tongues.length > 0 && (
+    <Tongues tongues={tongues} here={(above ?? own)?.id ?? ""} onOpen={toTongue} />
+  );
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
   const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
   const [blurbs] = useState(blurbing);
@@ -739,9 +771,20 @@ export default function Docs({
     });
   }, [nowAt]);
 
+  // How a document is laid out is the same in all its languages, so a change goes to each.
+  const dressAlike = (now: string) => {
+    if (!own || own.pageOf || tongues.length < 2) return;
+    const laid = laidIn(now);
+    docDress(own.id, laid.paper ?? "a4", laid.sheets, laid.landscape).catch((e) =>
+      onError(saidPlainly(e)),
+    );
+  };
+
   const reshape = (made: (now: string) => string) => {
     if (!open || bolted) return;
-    wrote(made(held.current?.id === open.file ? held.current.body : body));
+    const now = made(held.current?.id === open.file ? held.current.body : body);
+    wrote(now);
+    dressAlike(now);
   };
 
   const resize = (paper: Paper) => {
@@ -752,7 +795,9 @@ export default function Docs({
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
     if (bolted) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
-    wrote(withPaper(latest, paper));
+    const laid = withPaper(latest, paper);
+    wrote(laid);
+    dressAlike(laid);
   };
   const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
@@ -839,14 +884,26 @@ export default function Docs({
                 onDoc={onDoc}
                 onTag={onTag}
                 above={
-                  above && (
+                  above ? (
                     <Ribbon
                       of={above}
                       sisters={sisters}
                       told={aboveTold}
                       here={open.file}
                       onOpen={(doc) => onDoc?.(doc.file)}
-                    />
+                    >
+                      {!beside && spoken}
+                    </Ribbon>
+                  ) : spoken && !beside ? (
+                    <nav aria-label={t("tonguesOf")} className="ribbon">
+                      {spoken}
+                    </nav>
+                  ) : (
+                    own?.tongueApart && (
+                      <p role="note" className="ribbon">
+                        {t("tongueApart")}
+                      </p>
+                    )
                   )
                 }
                 below={
@@ -1151,6 +1208,8 @@ export default function Docs({
           }
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
+          tongues={tongues}
+          onTongue={toTongue}
           onFolder={onFolder}
           onCopy={() => {
             asPlain(open.file)

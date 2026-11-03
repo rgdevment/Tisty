@@ -119,6 +119,8 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
                 file: file.clone(),
                 order: "a1".into(),
                 said: Some(tisty_core::event::Said {
+                    key: None,
+                    lang: None,
                     title: tisty_core::docs::titled(crate::answers::settings::GUIDE_ES),
                     bytes: None,
                     tags: Some(Vec::new()),
@@ -163,6 +165,8 @@ fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
                 file: "notas-c3d4".into(),
                 order: "a1".into(),
                 said: Some(tisty_core::event::Said {
+                    key: None,
+                    lang: None,
                     title: "Mis notas".into(),
                     bytes: None,
                     tags: Some(Vec::new()),

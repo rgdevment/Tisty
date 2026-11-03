@@ -97,6 +97,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "share.doc",
     "share.version",
     "share.stop",
+    "doc.tongue",
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -219,6 +220,9 @@ pub enum Op {
 
     #[serde(rename = "doc.signed")]
     DocSigned { id: DocId, d: String },
+    /// Puts a document among the languages of another, or takes it out with `of: null`.
+    #[serde(rename = "doc.tongue")]
+    DocTongue { id: DocId, d: Tongue },
 
     #[serde(rename = "device.join")]
     DeviceJoin {
@@ -325,6 +329,12 @@ pub enum Op {
         #[serde(default, skip_serializing_if = "String::is_empty")]
         link: String,
     },
+}
+
+/// The document whose languages this one joins: the anchor of the group, never one of its members.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Tongue {
+    pub of: Option<DocId>,
 }
 
 /// One shared document's place on a Tisty Share server and the secrets that open it there.
@@ -489,6 +499,7 @@ impl Op {
                 | Op::DocUnflag { .. }
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
+                | Op::DocTongue { .. }
                 | Op::TaskPaged { .. }
                 | Op::StepSaid { .. }
                 | Op::StepUnsaid { .. }
@@ -546,6 +557,7 @@ impl Op {
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
+            Op::DocTongue { d, .. } => Op::DocTongue { id, d },
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
@@ -695,7 +707,8 @@ impl Op {
             | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocLock { id }
-            | Op::DocUnlock { id } => Some(*id),
+            | Op::DocUnlock { id }
+            | Op::DocTongue { id, .. } => Some(*id),
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
@@ -1028,6 +1041,12 @@ pub struct Said {
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub print: Option<String>,
+    /// Absent from a build that never read it; null when the body names no language.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub lang: Option<Option<String>>,
+    /// The `translationKey:` a body brought in names, by which its other languages find it.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub key: Option<Option<String>>,
 }
 
 impl Said {
@@ -1042,6 +1061,8 @@ impl Said {
             bytes: Some(settled.len() as u64),
             tags: Some(crate::tagging::tags_in(body)),
             by: None,
+            lang: Some(tisty_markdown::front::lang(body)),
+            key: Some(crate::tongues::key_of(body)),
         }
     }
 
@@ -1054,6 +1075,8 @@ impl Said {
         kept.title.as_deref() != Some(self.title.as_str())
             || kept.bytes != self.bytes
             || self.tags.as_ref().is_some_and(|one| *one != kept.tags)
+            || self.lang.as_ref().is_some_and(|one| *one != kept.lang)
+            || self.key.as_ref().is_some_and(|one| *one != kept.key)
             || (self.print.is_some() && self.print != kept.print)
     }
 }

@@ -61,6 +61,7 @@ pub mod task_docs;
 pub mod task_front;
 pub mod text;
 pub mod tidy;
+pub mod tongues;
 pub mod turned;
 pub mod undo;
 pub mod untouched;

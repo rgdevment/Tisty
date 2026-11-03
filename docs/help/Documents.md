@@ -74,6 +74,15 @@ The **⋯** on a card saves a copy, shows a page as a file or draws it live agai
 
 A long document in parts — a year of minutes, a book by chapters — is one document holding pages. See [Pages and PDF](Pages-and-PDF).
 
+## Several languages
+
+A document can be told in several languages: each language is a document of its own, and Tisty shows them as one, in the language of the app, with a switch above the sheet that keeps your place.
+
+- **Translate into…**, in the document's menu, writes a copy of its words and pages in the language you pick, ready to translate section by section. If the document does not say its language yet, it asks.
+- **Join with its other language…** puts two documents you already have together, in either order: it asks each one's language by its name, and **Take out of its languages** parts them again.
+- The languages of a document stand in one folder, and move, rest and go together. Searching finds them once, open in the language the words turned up in.
+- Taking a document out writes `translationKey:` in its properties, and bringing it back in joins it to the others again.
+
 ## Importing
 
 **Import a document** in the tree takes a `.md`, `.markdown`, `.txt`, `.html`, `.htm` or Word `.docx` file and brings it in, one at a time. A web page or a Word document comes in as Tisty Markdown, with its headings, lists, links, tables and colours (a colour becomes the nearest pen of the palette), and a Word document's pictures come in with it as attachments. A `.tistyx` from another Tisty unpacks whole.

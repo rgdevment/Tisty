@@ -86,9 +86,15 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 beside.as_deref(),
             )
         }
-        None => {
-            tisty_core::docs::with_pages(paths.data(), &which, &pages, &into, beside.as_deref())
-        }
+        None => tisty_core::docs::laid_out_from(
+            paths.data(),
+            &which,
+            &state.keyed(&which, &body),
+            &pages,
+            &into,
+            None,
+            beside.as_deref(),
+        ),
     }
     .map_err(hitch)?;
 
@@ -240,6 +246,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
         kept_of.insert("page_of".into(), json!(up));
     }
+    super::tongues::tongued_into(&state, kept, &mut kept_of);
     if !rows.is_empty() {
         kept_of.insert("pages".into(), json!(rows));
     }
@@ -409,6 +416,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
         kept_of.insert("page_of".into(), json!(up));
     }
+    super::tongues::tongued_into(&state, kept, &mut kept_of);
     if !pages.is_empty() {
         kept_of.insert("pages".into(), json!(pages));
         let held = state.pages_read(kept.id, &body);

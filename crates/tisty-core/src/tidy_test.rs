@@ -154,6 +154,10 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
         state.docs.insert(
             id,
             crate::model::Kept {
+                key: None,
+                joined: None,
+                lang: None,
+                translation_of: None,
                 born_by: None,
                 guest: false,
                 made: None,

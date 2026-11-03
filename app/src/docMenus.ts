@@ -17,6 +17,7 @@ import {
 import { deep, destinations } from "./folders";
 import { waysOut } from "./leaving";
 import { fill, t } from "./locales";
+import { tongueChoices } from "./tongueMenus";
 import type { Choice } from "./ui/Menu";
 
 export interface Hands {
@@ -201,6 +202,7 @@ export const docChoices = (doc: Filed, h: Hands): Choice[] => [
     off: !doc.pageOf || byAnother(doc),
     onPick: () => docPage(doc.id).then(h.changed).catch(h.fail),
   },
+  ...tongueChoices(doc, h),
   {
     key: "move",
     icon: "⇢",
