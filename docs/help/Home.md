@@ -49,7 +49,7 @@ Tisty has no AI inside, and none is coming. But it speaks [MCP](https://modelcon
 
 Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, formulas, widgets, code and pages, all kept as plain `.md` files any other editor reads. How each one is written is in the Tisty Markdown guide; the pages here are about the app.
 
-- [[Documents]] — folders, tags, attachments, import and export, and reading a Markdown file from outside.
+- [[Documents]] — folders, tags, several languages, attachments, import and export, and reading a Markdown file from outside.
 - [[The editor|Markdown-Editor]] — writing where you read, the bar, the `/` menu, tables and shortcuts.
 - [[Pages and PDF|Pages-and-PDF]] — a document in chapters, page breaks, and Tisty's own PDF.
 - [[Diagrams]] — the diagram window: a mind map, a schema, a freeform diagram or a class diagram drawn by hand, and exported as an image.
