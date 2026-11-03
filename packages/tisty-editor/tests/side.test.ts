@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { type Panel, sided, wordsIn } from "../src/side";
 import type { ReadWord } from "../src/words";
 
@@ -89,74 +89,6 @@ describe("the panels beside a sheet", () => {
     expect(side.textContent).not.toContain("paperEmpty");
   });
 
-  it("shows the signed name and the whole print unfolded, and has nothing to open when nobody signed", () => {
-    const side = host();
-    const signed = (seal: Extract<Panel, { kind: "seal" }>["seal"]): Panel[] => [
-      { kind: "seal", seal },
-    ];
-    sided(
-      side,
-      say,
-      signed({
-        verdict: "holds",
-        name: "Mario",
-        fingerprint: "12345 67890 12345 67890",
-        sender: "99999 88888 77777 66666",
-      }),
-    );
-    const row = side.querySelector<HTMLDetailsElement>("details[data-row=seal]");
-    expect(row?.open).toBe(false);
-    expect(text(side, ".side-gist.is-good")).toEqual([
-      "signedHolds · MariosignedPrint 12345 67890 12345 67890",
-    ]);
-    expect(text(side, "summary .side-gist-print code")).toEqual(["12345 67890 12345 67890"]);
-    expect(text(side, ".side-said")).toEqual([
-      "signedHoldsSaid",
-      "signedPrintSaid",
-      "signedSentBy",
-    ]);
-    expect(text(side, ".side-print")).toEqual(["99999 88888 77777 66666"]);
-    row?.querySelector("summary")?.click();
-    if (row) row.open = true;
-    sided(
-      side,
-      say,
-      signed({ verdict: "revoked", name: "Mario", fingerprint: "12345 67890 12345 67890" }),
-    );
-    expect(side.querySelector<HTMLDetailsElement>("details[data-row=seal]")?.open).toBe(true);
-    expect(text(side, ".side-gist.is-warn")).toEqual([
-      "signedRevoked · MariosignedPrint 12345 67890 12345 67890",
-    ]);
-    // A key taken back proves nothing by its print, so there is no advice to compare it.
-    expect(text(side, ".side-said")).toEqual(["signedRevokedSaid"]);
-    sided(side, say, signed({ verdict: "unreadable" }));
-    expect(text(side, ".side-gist.is-bad")).toEqual(["signedUnreadable"]);
-    sided(side, say, signed({ verdict: "unsigned" }));
-    expect(side.querySelector("details")).toBeNull();
-    expect(text(side, ".side-gist")).toEqual(["signedNone"]);
-  });
-
-  it("says how it is shared, and acts by link or by press", () => {
-    const side = host();
-    let pressed = 0;
-    sided(side, say, [
-      { kind: "shared", gist: "Pronto", said: "Podrás compartirlo con un link." },
-      { kind: "shared", gist: "Sin compartir" },
-      {
-        kind: "acts",
-        acts: [
-          { key: "md", label: "Descargar Markdown", href: "blob:x", download: "receta.md" },
-          { key: "open", label: "Abrir en Tisty", main: true, onPick: () => pressed++ },
-        ],
-      },
-    ]);
-    expect(text(side, "details .side-said")).toEqual(["Podrás compartirlo con un link."]);
-    expect(side.querySelectorAll("div.side-row")).toHaveLength(1);
-    expect(side.querySelector<HTMLAnchorElement>("a.side-act")?.download).toBe("receta.md");
-    side.querySelector<HTMLButtonElement>("button.side-act.is-main")?.click();
-    expect(pressed).toBe(1);
-  });
-
   it("walks the folders it sits in, opens apart, exports, and lists the book a page belongs to", () => {
     const side = host();
     const asked: string[] = [];
@@ -209,7 +141,7 @@ describe("the panels beside a sheet", () => {
     expect(asked).toEqual(["all", "f1", "apart", "export", "up", "uno"]);
   });
 
-  it("shows the properties and tags of the details, and keeps one row open at a time", () => {
+  it("shows the properties and tags of the details, and keeps the row as the reader left it", () => {
     const side = host();
     let fronted = 0;
     const panels: Panel[] = [
@@ -227,10 +159,11 @@ describe("the panels beside a sheet", () => {
           ],
         },
       },
-      { kind: "shared", gist: "Pronto", said: "Con un link." },
     ];
     sided(side, say, panels);
-    const [details, shared] = side.querySelectorAll<HTMLDetailsElement>("details[data-row]");
+    const details = side.querySelector<HTMLDetailsElement>(
+      "details[data-row]",
+    ) as HTMLDetailsElement;
     expect(details.open).toBe(true);
     expect(text(side, ".side-part .side-label")).toEqual(["frontNamed", "tags"]);
     expect(text(side, ".side-part .side-none")).toEqual(["frontOvergrown"]);
@@ -239,14 +172,10 @@ describe("the panels beside a sheet", () => {
     const [casa, nueva] = side.querySelectorAll<HTMLElement>(".side-tag");
     expect(casa.title).toBe("tagTimes 2");
     expect(nueva.querySelector(".side-times")).toBeNull();
-    shared.querySelector("summary")?.click();
-    shared.open = true;
-    shared.dispatchEvent(new Event("toggle"));
-    expect(details.open).toBe(false);
+    details.querySelector("summary")?.click();
+    details.open = false;
     sided(side, say, panels);
-    const [again, sharedAgain] = side.querySelectorAll<HTMLDetailsElement>("details[data-row]");
-    expect(sharedAgain.open).toBe(true);
-    expect(again.open).toBe(false);
+    expect(side.querySelector<HTMLDetailsElement>("details[data-row]")?.open).toBe(false);
   });
 
   it("keeps the outline where it was scrolled, and the keys where they were, when drawn again", () => {
@@ -291,47 +220,6 @@ describe("the panels beside a sheet", () => {
     sided(side, say, panels(4));
     expect(document.activeElement?.tagName).toBe("SUMMARY");
     expect(side.querySelector(".side-part")).toBeNull();
-    side.remove();
-  });
-
-  it("shows a share's links whole, copies each as shown, and offers what can be done with it", async () => {
-    const side = document.createElement("aside");
-    document.body.append(side);
-    const writeText = vi.fn(() => Promise.resolve());
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
-    let stopped = 0;
-    sided(side, say, [
-      {
-        kind: "shared",
-        gist: "No listado",
-        tone: "good",
-        said: "El link para administrarlo queda en tu Tisty.",
-        links: [
-          { key: "read", label: "Para leer", url: "https://tisty.cl/k7Qm2xPa#llave" },
-          {
-            key: "edit",
-            label: "Para editar",
-            url: "https://tisty.cl/k7Qm2xPa#llave.token",
-            note: "solo en Tisty",
-          },
-        ],
-        acts: [{ key: "stop", label: "Dejar de compartir", onPick: () => stopped++ }],
-      },
-    ]);
-    expect(text(side, ".side-gist.is-good")).toEqual(["No listado"]);
-    expect(text(side, ".side-link-url")).toEqual([
-      "https://tisty.cl/k7Qm2xPa#llave",
-      "https://tisty.cl/k7Qm2xPa#llave.token",
-    ]);
-    expect(text(side, ".side-link-note")).toEqual([" · solo en Tisty"]);
-    const [copy] = side.querySelectorAll<HTMLButtonElement>(".side-link-line .side-act");
-    copy.click();
-    await Promise.resolve();
-    expect(writeText).toHaveBeenCalledWith("https://tisty.cl/k7Qm2xPa#llave");
-    expect(copy.textContent).toBe("viewCopied");
-    side.querySelector<HTMLButtonElement>(".side-acts.is-inside .side-act")?.click();
-    expect(stopped).toBe(1);
-    vi.unstubAllGlobals();
     side.remove();
   });
 

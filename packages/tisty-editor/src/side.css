@@ -1,4 +1,4 @@
-/* The panel beside a sheet, the same in the window and on the web; it wears the sheet's tokens. */
+/* The panel beside a sheet; it wears the sheet's tokens. */
 .side {
   display: flex;
   flex-direction: column;
@@ -319,24 +319,6 @@
   text-align: right;
   overflow-wrap: anywhere;
 }
-.side-said {
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-.side-print {
-  display: inline-block;
-  margin-bottom: 8px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--tisty-hover);
-  color: var(--tisty-ink);
-  font:
-    12px / 1.5 ui-monospace,
-    "SF Mono",
-    Consolas,
-    monospace;
-  overflow-wrap: anywhere;
-}
 details.side-row {
   display: block;
   padding: 0;
@@ -368,27 +350,6 @@ details[open] > .side-row-head::after {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Its own line, wrapping between the groups of digits rather than losing the last ones. */
-.side-gist-print {
-  display: block;
-  margin-top: 4px;
-  color: var(--tisty-soft);
-  font-size: 12.5px;
-  white-space: normal;
-}
-.side-gist-print code {
-  color: var(--tisty-ink);
-  letter-spacing: 0.02em;
-}
-.side-gist.is-good {
-  color: var(--tisty-hue-green);
-}
-.side-gist.is-warn {
-  color: var(--tisty-hue-orange);
-}
-.side-gist.is-bad {
-  color: var(--tisty-hue-red);
-}
 .side-row-body {
   padding: 0 16px 14px;
   color: var(--tisty-soft);
@@ -400,81 +361,6 @@ details[open] > .side-row-head::after {
   padding: 0 6px;
   font-size: 12.5px;
   color: var(--tisty-faint);
-}
-.side-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-}
-.side-fact {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-.side-fact dt {
-  flex-shrink: 0;
-  color: var(--tisty-faint);
-}
-.side-fact dd {
-  margin: 0;
-  min-width: 0;
-  color: var(--tisty-ink);
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-.side-said {
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-.side-print {
-  display: inline-block;
-  margin-bottom: 8px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--tisty-hover);
-  color: var(--tisty-ink);
-  font:
-    12px / 1.5 ui-monospace,
-    "SF Mono",
-    Consolas,
-    monospace;
-  overflow-wrap: anywhere;
-}
-.side-link-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-.side-link-label {
-  color: var(--tisty-ink);
-  font-weight: 600;
-  font-size: 12.5px;
-}
-.side-link-note {
-  color: var(--tisty-faint);
-  font-weight: 400;
-}
-.side-link-line {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.side-link-url {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  user-select: all;
-}
-.side-link-line .side-act {
-  flex: 0 0 auto;
-}
-.side-acts.is-inside {
-  padding: 4px 0 0;
 }
 .side-acts {
   display: flex;
@@ -499,58 +385,6 @@ details[open] > .side-row-head::after {
 .side-act:hover {
   background: var(--tisty-hover);
 }
-/* What undoes a share stands alone on its row, so it is never pressed for the change beside it. */
-.side-act.is-danger {
-  flex-basis: 100%;
-  color: var(--tisty-hue-red);
-}
-.side-toggle-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.side-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.side-help {
-  display: inline-grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--tisty-line);
-  border-radius: 50%;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--tisty-soft);
-  cursor: help;
-}
-/* The webview shows no title tooltips, so the help is a bubble of its own, as wide as the row it explains. */
-.side-help:hover::after,
-.side-help:focus-visible::after,
-.side-help.is-open::after {
-  content: attr(data-help);
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 5;
-  padding: 8px 10px;
-  border: 1px solid var(--tisty-line);
-  border-radius: 10px;
-  background: var(--tisty-sheet);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
-  color: var(--tisty-ink);
-  font-size: 12.5px;
-  font-weight: 400;
-  line-height: 1.45;
-  cursor: default;
-}
 .side-act.is-main {
   border-color: transparent;
   background: var(--tisty-accent);
@@ -562,7 +396,7 @@ details[open] > .side-row-head::after {
   outline-offset: 1px;
 }
 
-/* A pen writing on a sheet while a document is on its way, in the window and on the web alike. */
+/* A pen writing on a sheet while a document is on its way. */
 .quill {
   width: min(55vw, 240px);
   height: auto;
