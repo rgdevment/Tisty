@@ -28,6 +28,8 @@ pub(crate) struct Said {
     pub(crate) body: Vec<u8>,
     /// The `Tisty-Revoked` the server sends with a document, for the reader to weigh the signature by.
     pub(crate) revoked: Option<String>,
+    /// Whether the cache in front of the server may have answered it, so the reader tells the read itself.
+    pub(crate) cached: bool,
 }
 
 /// One request as the API takes it, so the same client speaks to a server or, in its tests, to the API itself.
@@ -91,11 +93,17 @@ impl Wire for Net {
             .get("Tisty-Revoked")
             .and_then(|one| one.to_str().ok())
             .map(str::to_owned);
+        let cached = answer
+            .headers()
+            .get("Cache-Control")
+            .and_then(|one| one.to_str().ok())
+            .is_some_and(|one| one.starts_with("public"));
         let body = answer.bytes().map_err(|_| Refusal::of("shareOffline"))?;
         Ok(Said {
             status,
             body: body.to_vec(),
             revoked,
+            cached,
         })
     }
 }

@@ -9,6 +9,7 @@ use tisty_share_server::guard::Work;
 use tisty_share_server::keys::Slowness;
 use tisty_share_server::memory::Memory;
 use tisty_share_server::share::{Policy, Share};
+use tisty_share_server::store::Store;
 use tisty_share_server::testing::{Counting, done};
 use tisty_share_worker::api::{Asked, answer};
 
@@ -80,6 +81,16 @@ impl Here {
     }
 }
 
+impl Here {
+    /// Readers the server counted for a document, as its owner's card says them.
+    pub(crate) fn reads(&self, id: &str) -> u64 {
+        let share = self.share.borrow();
+        done(share.store.doc(id))
+            .unwrap()
+            .map_or(0, |doc| doc.reads)
+    }
+}
+
 impl Wire for Here {
     fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
         let said = done(answer(
@@ -95,15 +106,19 @@ impl Wire for Here {
                 now: T0,
             },
         ));
-        let revoked = said
-            .headers
-            .iter()
-            .find(|(name, _)| *name == "Tisty-Revoked")
-            .map(|(_, value)| value.clone());
+        let told = |asked: &str| {
+            said.headers
+                .iter()
+                .find(|(name, _)| *name == asked)
+                .map(|(_, value)| value.clone())
+        };
+        let revoked = told("Tisty-Revoked");
+        let cached = told("Cache-Control").is_some_and(|one| one.starts_with("public"));
         Ok(Said {
             status: said.status,
             body: said.body,
             revoked,
+            cached,
         })
     }
 }

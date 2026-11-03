@@ -136,7 +136,22 @@ pub fn fetched(wire: &impl Wire, link: &Link, password: Option<&str>) -> Result<
         423 | 451 => return Err(Refusal::of("shareOpenClosed")),
         _ => return Err(Refusal::of("shareFailed")),
     }
+    // A read the cache answered never reached the server, so it is told apart; a notice lost costs only a count.
+    if said.cached {
+        let _ = told(wire, link);
+    }
     opened_from(said, &link.key).map(|got| Received { gated, ..got })
+}
+
+fn told(wire: &impl Wire, link: &Link) -> Result<Said, Refusal> {
+    wire.send(Asking {
+        method: "POST",
+        path: format!("docs/{}/seen", link.id),
+        token: None,
+        work: None,
+        password: None,
+        body: Vec::new(),
+    })
 }
 
 /// One version's envelope opened with the link's key: what its writer signed, or a refusal saying why not.

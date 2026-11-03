@@ -80,6 +80,8 @@ fn a_shared_document_opens_here_with_its_title_and_the_name_it_was_signed_with()
     assert_eq!(got.title, "Compras");
     assert_eq!(got.body, text);
     assert_eq!(got.signer.as_deref(), Some("Ana"));
+    // With no password the cache may answer it, so Tisty tells the read and its writer still sees it counted.
+    assert_eq!(here.reads(&shared.link), 1);
 }
 
 #[test]
@@ -138,6 +140,7 @@ fn an_envelope_from_a_newer_tisty_asks_for_an_update() {
         status: 200,
         body,
         revoked: None,
+        cached: false,
     };
     let key = LinkKey::from_bytes(&[1; 32]).to_text().to_string();
     assert_eq!(opened_from(said, &key).unwrap_err().code, "shareOpenNewer");
