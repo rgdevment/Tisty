@@ -48,8 +48,9 @@ const tagged = (page: Document, say: Say, facts: Facts) => {
 
 const detailed = (page: Document, say: Say, panel: Of<"details">) => {
   const { facts } = panel;
-  const words = wordsIn(facts.body);
-  const long = words ? say("paperWords", `${words}`) : say("paperEmpty");
+  const words = facts.body === undefined ? undefined : wordsIn(facts.body);
+  const long =
+    words === undefined ? undefined : words ? say("paperWords", `${words}`) : say("paperEmpty");
   const gist = [long, facts.weighs].filter(Boolean).join(" · ");
   const line = { key: "details", label: say("besideDetails"), gist, open: panel.open };
   return rowed(page, line, (into) => {
