@@ -1,5 +1,6 @@
 import { useDesk } from "../desk";
 import { saidPlainly } from "../refusal";
+import { shown } from "../tongues";
 import Detail from "./Detail";
 import Door from "./Door";
 import Pulse from "./Pulse";
@@ -46,7 +47,7 @@ export default function Margins() {
           lists={data.lists}
           ahead={data.ahead ?? []}
           routines={data.routines ?? []}
-          papers={papers.docs.filter((one) => !one.pageOf).length}
+          papers={shown(papers.docs).filter((one) => !one.pageOf).length}
           onOpen={(id) => setSelected(id)}
           onList={(id) => {
             setSelected(undefined);

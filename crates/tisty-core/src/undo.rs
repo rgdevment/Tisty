@@ -103,6 +103,16 @@ fn parts_hung_again(before: &State, id: crate::model::TaskId) -> Vec<Op> {
     ops
 }
 
+// Back among the languages it was in before, or on its own again.
+fn untongued(id: crate::model::DocId, before: &State) -> Option<Op> {
+    Some(Op::DocTongue {
+        id,
+        d: crate::event::Tongue {
+            of: before.docs.get(&id)?.translation_of,
+        },
+    })
+}
+
 fn undoing(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
@@ -328,6 +338,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             })
         }
 
+        Op::DocTongue { id, .. } => untongued(*id, before),
         Op::DocSigned { .. } => None,
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),

@@ -247,6 +247,11 @@ year of minutes; `page_doc` and `write_doc` with `page_of` say how. A locked doc
 anything inside an archived folder, takes no writes at all, and only the person can lift either \
 from the window.
 
+A document told in several languages is one document per language, which the person sees as one \
+with a switch between them, and `languages` names them when you read one. Write a new language with \
+`write_doc` and `translation_of`, join two that exist with `tongue_doc`, and change each language \
+in its own document: they are never merged into one body.
+
 ## One living document per subject
 
 A document is named by its subject, never by a ticket, a date or a round («v2», «second \
@@ -445,7 +450,7 @@ impl Effect {
     }
 }
 
-pub(super) const EFFECTS: [(&str, Effect); 40] = [
+pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("propose", Effect::Adds),
     ("remind", Effect::Sets),
     ("describe", Effect::Replaces),
@@ -471,6 +476,7 @@ pub(super) const EFFECTS: [(&str, Effect); 40] = [
     ("flag_doc", Effect::Sets),
     ("file_doc", Effect::Sets),
     ("page_doc", Effect::Sets),
+    ("tongue_doc", Effect::Sets),
     ("folder", Effect::Sets),
     ("read_doc", Effect::Reads),
     ("catch_up", Effect::Reads),
@@ -814,6 +820,14 @@ pub(super) fn tools_without_hints() -> Value {
                                         line somewhere else. A page follows that document everywhere \
                                         and takes its folder, so `folder` is ignored, and it holds \
                                         no pages of its own"
+                    },
+                    "translation_of": {
+                        "type": "string",
+                        "description": "The id of a document this one says the same as, in another language. It is written as a document of its own beside that one, in its folder, and the person sees them as one document with a switch between their languages. Its language comes from `lang` or a `lang:` line in its properties, and that document has to say its own. One document per language: a language the group already has is refused"
+                    },
+                    "lang": {
+                        "type": "string",
+                        "description": "With `translation_of`: the language the body is in, as a tag like `es`, `en` or `pt-BR`, written into its properties"
                     }
                 },
                 "required": ["body"]
@@ -1144,6 +1158,28 @@ pub(super) fn tools_without_hints() -> Value {
                                         since there is no page there to name"
                     }
                 }
+            }))
+        },
+        {
+            "name": "tongue_doc",
+            "title": "Join a document to the languages of another, or take it out of its own",
+            "description": "A document told in several languages is several documents, one per language, that the person sees as one with a switch between them; `read_doc`, `outline_doc`, `docs` and `find` name them under `languages`. With `of`, this joins `doc` to the languages of that document, moving it into the same folder; both have to say their language, in a `lang:` line of their properties or, for `doc`, in `lang`, which is written there. Without `of`, it takes `doc` out of its languages and the others stay together. To write a new translation, `write_doc` with `translation_of` does it in one call. A page is in the language of its document and joins nothing.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "doc": {
+                        "type": "string",
+                        "description": "The id of the document to join or take out — an opaque name like `q7ntmzbm-0001`, not its title"
+                    },
+                    "of": {
+                        "type": "string",
+                        "description": "The id of a document whose languages it joins. Left out, it is taken out of its own"
+                    },
+                    "lang": {
+                        "type": "string",
+                        "description": "The language `doc` is in, as a tag like `es`, `en` or `pt-BR`, when its properties do not say it"
+                    }
+                },
+                "required": ["doc"]
             }))
         },
         {

@@ -394,6 +394,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "flag_doc",
             "file_doc",
             "page_doc",
+            "tongue_doc",
             "folder",
             "read_doc",
             "catch_up",

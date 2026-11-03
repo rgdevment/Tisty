@@ -8,6 +8,7 @@ pub(super) mod outward;
 pub(super) mod paging;
 pub(super) mod reading;
 pub(super) mod tabling;
+pub(super) mod tongues;
 pub(super) mod writing;
 
 use serde_json::{Value, json};

@@ -109,6 +109,45 @@ pub fn tags(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// The language the body says it is in, as a tag in its usual case: `es`, `pt-BR`, `zh-Hant`.
+pub fn lang(text: &str) -> Option<String> {
+    fields(text)
+        .into_iter()
+        .find(|one| one.key.eq_ignore_ascii_case("lang"))
+        .and_then(|one| one.values.into_iter().next())
+        .and_then(|one| tagged(&one))
+}
+
+// Only language, script and region: what a person picks a language by, and nothing a typo slips through.
+pub fn tagged(said: &str) -> Option<String> {
+    let mut parts = said.trim().split(['-', '_']);
+    let language = parts.next().filter(|one| {
+        (2..=3).contains(&one.len()) && one.chars().all(|c| c.is_ascii_alphabetic())
+    })?;
+    let mut out = language.to_ascii_lowercase();
+    let mut script = false;
+    let mut region = false;
+    for part in parts {
+        let letters = part.chars().all(|c| c.is_ascii_alphabetic());
+        let digits = part.chars().all(|c| c.is_ascii_digit());
+        if part.len() == 4 && letters && !script && !region {
+            let (first, rest) = part.split_at(1);
+            out.push_str(&format!(
+                "-{}{}",
+                first.to_ascii_uppercase(),
+                rest.to_ascii_lowercase()
+            ));
+            script = true;
+        } else if ((part.len() == 2 && letters) || (part.len() == 3 && digits)) && !region {
+            out.push_str(&format!("-{}", part.to_ascii_uppercase()));
+            region = true;
+        } else {
+            return None;
+        }
+    }
+    Some(out)
+}
+
 // One value may hold several tags, `a, b` or `#a #b`.
 pub fn words(values: &[String]) -> Vec<String> {
     values
@@ -148,6 +187,76 @@ pub fn titled_as(front: &str, name: &str) -> Option<String> {
         done = true;
     }
     done.then_some(out)
+}
+
+/// The text with one property set where it stands, or added last, in a block made when there is none.
+pub fn with_field(text: &str, key: &str, value: &str) -> String {
+    let said = format!("{key}: {value}\n");
+    let Some(at) = span(text) else {
+        let skip = text.len() - text.trim_start_matches('\u{feff}').len();
+        return format!("{}---\n{said}---\n{}", &text[..skip], &text[skip..]);
+    };
+    let lines: Vec<&str> = text[at.clone()].split_inclusive('\n').collect();
+    let closing = lines.len() - 1;
+    let mut block = String::with_capacity(at.len() + said.len());
+    let mut done = false;
+    for (n, line) in lines.iter().enumerate() {
+        let keyed = n > 0
+            && n < closing
+            && !line.starts_with([' ', '\t'])
+            && line
+                .split_once(':')
+                .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key));
+        if keyed && !done {
+            block.push_str(&said);
+            done = true;
+            continue;
+        }
+        if n == closing && !done {
+            block.push_str(&said);
+        }
+        block.push_str(line);
+    }
+    format!("{}{block}{}", &text[..at.start], &text[at.end..])
+}
+
+/// The text with one property taken out, and the block with it when nothing else is left in it.
+pub fn without_field(text: &str, key: &str) -> String {
+    let Some(at) = span(text) else {
+        return text.to_string();
+    };
+    let lines: Vec<&str> = text[at.clone()].split_inclusive('\n').collect();
+    let closing = lines.len() - 1;
+    // A key's indented lines below it are its values, so they go with it.
+    let mut dropping = false;
+    let kept: Vec<&str> = lines[1..closing]
+        .iter()
+        .copied()
+        .filter(|line| {
+            if line.starts_with([' ', '\t']) && !line.trim().is_empty() {
+                return !dropping;
+            }
+            dropping = line
+                .split_once(':')
+                .is_some_and(|(named, _)| named.trim().eq_ignore_ascii_case(key));
+            !dropping
+        })
+        .collect();
+    let rest = &text[at.end..];
+    if kept.iter().all(|line| line.trim().is_empty()) {
+        return format!(
+            "{}{}",
+            &text[..at.start],
+            rest.strip_prefix('\n').unwrap_or(rest)
+        );
+    }
+    format!(
+        "{}{}{}{}{rest}",
+        &text[..at.start],
+        lines[0],
+        kept.concat(),
+        lines[closing]
+    )
 }
 
 fn listed(value: &str) -> Vec<String> {

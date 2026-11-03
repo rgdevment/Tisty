@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Filed } from "../core";
 import { fill, t } from "../locales";
 
@@ -7,6 +8,7 @@ interface Props {
   told?: string[];
   here: string;
   onOpen: (doc: Filed) => void;
+  children?: ReactNode;
 }
 
 const named = (one: Filed) =>
@@ -14,7 +16,7 @@ const named = (one: Filed) =>
     ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
     : one.title || t("untitledDoc");
 
-export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
+export default function Ribbon({ of, sisters, told, here, onOpen, children }: Props) {
   const read = told
     ? told
         .map((file) => sisters.find((one) => one.file === file))
@@ -55,6 +57,7 @@ export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
           <span aria-hidden="true">›</span>
         </button>
       </span>
+      {children}
     </nav>
   );
 }

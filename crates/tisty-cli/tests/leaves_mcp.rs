@@ -4942,3 +4942,200 @@ fn a_passage_edited_inside_an_indented_block_keeps_its_line_breaks() {
     let body = served.body_of(&doc);
     assert!(body.contains("    A[Inicio:<br/>dos] --> B[Fin]"), "{body}");
 }
+
+#[test]
+fn a_translation_is_written_beside_its_document_and_both_name_their_languages() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Walks\n\nWith Rina.", "translation_of": es, "lang": "en" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let en = said["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(
+        served
+            .body_of(&en)
+            .starts_with("---\nlang: en\n---\n# Walks")
+    );
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": es }));
+    let languages = &read["result"]["structuredContent"]["languages"];
+    assert_eq!(languages[0]["lang"], "es", "{read}");
+    assert_eq!(languages[1]["doc"], en.as_str(), "{read}");
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Walks again", "translation_of": es, "lang": "en" }),
+    );
+    assert_eq!(
+        again["result"]["isError"], true,
+        "one document per language: {again}"
+    );
+}
+
+#[test]
+fn joining_and_parting_languages_goes_through_tongue_doc() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Red\n", None);
+    let en = served.wrote("# Network\n", None);
+
+    let refused = served.call("tongue_doc", serde_json::json!({ "doc": en, "of": es }));
+    assert_eq!(
+        refused["result"]["isError"], true,
+        "it has to say its language: {refused}"
+    );
+
+    let joined = served.call(
+        "tongue_doc",
+        serde_json::json!({ "doc": en, "of": es, "lang": "en" }),
+    );
+    assert!(
+        joined["result"]["isError"].as_bool() != Some(true),
+        "{joined}"
+    );
+    assert!(served.body_of(&en).starts_with("---\nlang: en\n---\n"));
+    let read = served.call("read_doc", serde_json::json!({ "doc": en }));
+    assert_eq!(
+        read["result"]["structuredContent"]["languages"][0]["doc"],
+        es.as_str()
+    );
+
+    let parted = served.call("tongue_doc", serde_json::json!({ "doc": en }));
+    assert!(
+        parted["result"]["isError"].as_bool() != Some(true),
+        "{parted}"
+    );
+    let read = served.call("read_doc", serde_json::json!({ "doc": en }));
+    assert!(
+        read["result"]["structuredContent"]["languages"].is_null(),
+        "{read}"
+    );
+}
+
+#[test]
+fn tongue_doc_says_what_it_needs_before_it_joins_anything() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Red\n\nde nodos.", None);
+    let bare = served.wrote("# Sin idioma\n\nnada dicho.", None);
+    let page = served.wrote("# Hoja", Some(&es));
+    let en = served.wrote("# Network\n\nof nodes.", None);
+
+    assert!(
+        served
+            .refused("tongue_doc", serde_json::json!({}))
+            .contains("`doc`")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "Inglés" })
+            )
+            .contains("not a language tag")
+    );
+    assert!(
+        served
+            .refused("tongue_doc", serde_json::json!({ "doc": page, "of": es }))
+            .contains("is a page")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": bare, "lang": "en" })
+            )
+            .contains("says no language yet")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "es" })
+            )
+            .contains("already has a document in es")
+    );
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": "nada-0001", "of": es })
+            )
+            .contains("no document here")
+    );
+    served.bolt(&en);
+    assert!(
+        served
+            .refused(
+                "tongue_doc",
+                serde_json::json!({ "doc": en, "of": es, "lang": "en" })
+            )
+            .contains("locked")
+    );
+    assert_eq!(
+        served.body_of(&en),
+        "# Network\n\nof nodes.\n",
+        "nothing written on a refusal"
+    );
+}
+
+#[test]
+fn a_translation_needs_a_language_on_both_sides() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
+    let bare = served.wrote("# Sin idioma\n\nnada dicho.", None);
+
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es })
+            )
+            .contains("say which language")
+    );
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": bare, "lang": "en" })
+            )
+            .contains("says no language yet")
+    );
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "x1" })
+            )
+            .contains("not a language tag")
+    );
+}
+
+#[test]
+fn a_translation_is_never_a_page_and_the_listing_names_the_languages() {
+    let served = Served::new();
+    let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
+
+    assert!(
+        served
+            .refused(
+                "write_doc",
+                serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en", "page_of": es })
+            )
+            .contains("never a page")
+    );
+    served.said(
+        "write_doc",
+        serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en" }),
+    );
+    let listed = served.call("docs", serde_json::json!({}));
+    let docs = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    let paseos = docs.iter().find(|one| one["doc"] == es.as_str()).unwrap();
+    assert_eq!(paseos["languages"].as_array().unwrap().len(), 2, "{listed}");
+}

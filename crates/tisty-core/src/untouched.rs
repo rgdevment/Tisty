@@ -159,6 +159,10 @@ impl Sown {
                 .is_some_and(|batch| self.guide_batches.contains(&batch)),
             Op::DocAdd { id, d } => self.paper_added(*id, d),
             Op::DocSaid { id, d } => self.paper_read(id, d),
+            // The guide comes in both languages, held together as it is sown.
+            Op::DocTongue { id, d } => {
+                self.papers.contains_key(id) && d.of.is_none_or(|of| self.papers.contains_key(&of))
+            }
             _ => false,
         }
     }

@@ -275,11 +275,11 @@ Un PDF:
 
 Un sonido:
 
-![Un ladrido](ladrido.mp3)
+![Un ladrido](bark.mp3)
 
 Un video:
 
-![Un paseo](paseo.mp4)
+![Un paseo](walk.mp4)
 
 Datos:
 

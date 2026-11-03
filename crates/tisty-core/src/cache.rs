@@ -11,7 +11,7 @@ use crate::{
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
 // Raised past the 1.40 cache, so going back to it and forward again rebuilds rather than reads its stale shares.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 23;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 25;
 
 pub struct Cache {
     db: Connection,
@@ -894,6 +894,8 @@ fn reached(
                 | crate::Op::DocUnarchive { .. }
                 | crate::Op::DocLock { .. }
                 | crate::Op::DocUnlock { .. }
+                // Joining brings the anchor's own languages along.
+                | crate::Op::DocTongue { .. }
         ) || matches!(&e.op, crate::Op::DocMove { id, d } if reaches_pages(state, id, d))
     }) {
         cache.invalidate();

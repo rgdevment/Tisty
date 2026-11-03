@@ -14,8 +14,11 @@ pub(super) fn by(state: &State, kept: &Kept) -> &'static str {
 }
 
 pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
+    // Its other languages say the same on purpose, and are no copy to look into.
+    let tongues = state.tongues_of(kept.id);
     let inside: Vec<&str> = std::iter::once(kept)
         .chain(pages.iter().copied())
+        .chain(tongues.iter().copied())
         .map(|one| one.file.as_str())
         .collect();
     let subjects: Vec<(String, &str)> = std::iter::once(kept)

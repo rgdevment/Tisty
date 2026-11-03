@@ -807,12 +807,27 @@ const en = {
     "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
+  dropTonguesSure:
+    "Delete «{name}» in all its languages ({other})? Each one, its pages and what they hold go for good. This cannot be undone. To keep the others, take this one out of its languages first.",
   pageOfSure:
     "Make «{name}» a page of «{other}»? If that document is the one open in the editor, a line naming the page goes at the end of its text, which is where it will sit; if it is not, the page waits in the index until you put it in. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
   pageOf: "Make it a page of…",
   pageOfWhich: "A page of which one",
   ownDoc: "Make it a document of its own",
+  tonguesOf: "Its languages",
+  translateTo: "Translate into…",
+  translateWhich: "Into which language",
+  tongueOf: "Language of «{name}»",
+  joinTongues: "Join with its other language…",
+  joinWhich: "The same document, in another language",
+  partTongues: "Take out of its languages",
+  tongueTaken: "That language is already one of its languages",
+  tongueUnsaid: "Say first which language it is in",
+  notALanguage: "That is not a language Tisty knows how to name",
+  pageHasNoTongue: "A page is in the language of its document",
+  tongueApart:
+    "It is joined to other languages but says none of its own, or one another of them already says, so it shows on its own. Take it out of its languages, or set its language in its properties.",
   dropThemSure:
     "Discard {name} tasks? They leave the open lists and stay in the archive, where you can open them again.",
   newFolderIn: "New folder in {name}",
@@ -3611,12 +3626,27 @@ const es: Catalog = {
     "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
+  dropTonguesSure:
+    "¿Borrar «{name}» en todos sus idiomas ({other})? Cada uno, sus páginas y lo que contienen se van para siempre. No se puede deshacer. Para conservar los demás, sepáralo primero de sus idiomas.",
   pageOfSure:
     "¿Hacer que «{name}» sea página de «{other}»? Si ese documento es el que tienes abierto en el editor, al final de su texto va una línea que la nombra, que es donde quedará; si no lo es, la página espera en el índice hasta que la pongas. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
   pageOf: "Convertir en página de…",
   pageOfWhich: "Página de cuál",
   ownDoc: "Convertir en documento propio",
+  tonguesOf: "Sus idiomas",
+  translateTo: "Traducir a…",
+  translateWhich: "A qué idioma",
+  tongueOf: "Idioma de «{name}»",
+  joinTongues: "Unir con su otro idioma…",
+  joinWhich: "El mismo documento, en otro idioma",
+  partTongues: "Separar de sus idiomas",
+  tongueTaken: "Ese idioma ya está entre sus idiomas",
+  tongueUnsaid: "Primero di en qué idioma está",
+  notALanguage: "Ese no es un idioma que Tisty sepa nombrar",
+  pageHasNoTongue: "Una página está en el idioma de su documento",
+  tongueApart:
+    "Está unido a otros idiomas, pero no dice el suyo o dice uno que ya tiene otro de ellos, así que se muestra aparte. Sepáralo de sus idiomas o pon su idioma en sus propiedades.",
   dropThemSure:
     "¿Descartar {name} tareas? Salen de las listas abiertas y se quedan en el archivo, donde puedes volver a abrirlas.",
   newFolderIn: "Nueva carpeta en {name}",

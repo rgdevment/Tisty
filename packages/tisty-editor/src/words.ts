@@ -14,6 +14,7 @@ export type ReadWord =
   | "tagTimes"
   | "tags"
   | "viewDocApart"
+  | "tonguesOf"
   | "besideDetails"
   | "besideShared"
   | "besideShut"

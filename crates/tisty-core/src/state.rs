@@ -462,6 +462,7 @@ impl State {
             Op::DocAdd { id, d } => self.doc_added(event, id, d),
             Op::DocSaid { id, d } => self.doc_said(event, id, d),
             Op::DocMove { id, d } => self.doc_moved(id, d),
+            Op::DocTongue { id, d } => self.doc_tongued(event, id, d),
             Op::DocDelete { id } => self.doc_deleted(id),
             Op::DocSigned { id, d } => self.doc_signed(id, d),
             Op::FolderArchive { id } => self.shelf(*id, true),

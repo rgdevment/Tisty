@@ -15,6 +15,7 @@ import { dayOf, weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { type ShareCard, shareCard, shareChange, shareStill, shareStop } from "../shares";
+import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
 import ShareSettings from "./ShareSettings";
@@ -77,6 +78,9 @@ interface Props {
   onApart: () => void;
   trail?: Folded[];
   onFolder?: (id: string | null) => void;
+  /** The languages the document is told in, the one open now marked. */
+  tongues?: readonly Filed[];
+  onTongue?: (tongue: Filed) => void;
   onError: (problem: unknown) => void;
   /** Saves what is still waiting in the editor, so what «Share» looks through is what it sends. */
   onKeep?: () => Promise<unknown> | undefined;
@@ -310,6 +314,7 @@ export default function Beside(props: Props) {
   // Arrays a render makes anew are compared by what they say, or every key pressed would draw the column again.
   const trailSaid = trail.map((one) => `${one.id}:${one.name}`).join("|");
   const pagesSaid = pages.map((one) => `${one.id}:${one.file}:${one.title}`).join("|");
+  const tonguesSaid = (props.tongues ?? []).map((one) => `${one.id}:${one.lang}`).join("|");
   // biome-ignore lint/correctness/useExhaustiveDependencies: the presses read the window's latest through `latest`, and arrays by what they say
   const panels = useMemo(
     (): Panel[] => [
@@ -324,6 +329,13 @@ export default function Beside(props: Props) {
             onPick: () => latest.current.onFolder?.(one.id),
           })),
         ],
+        tongues: (props.tongues ?? []).map((one) => ({
+          key: one.id,
+          label: tongueName(one.lang ?? ""),
+          lang: one.lang ?? "",
+          on: one.file === paper || one.id === up?.id,
+          onPick: () => latest.current.onTongue?.(one),
+        })),
         onApart: () => latest.current.onApart(),
         onShut: () => latest.current.onShut(),
       },
@@ -389,6 +401,7 @@ export default function Beside(props: Props) {
       up?.id,
       up?.title,
       pagesSaid,
+      tonguesSaid,
       paper,
       details,
       short,

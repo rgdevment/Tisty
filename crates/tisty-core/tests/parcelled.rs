@@ -134,6 +134,8 @@ impl Room {
                 file: made.id.clone(),
                 order,
                 said: Some(Said {
+                    key: None,
+                    lang: None,
                     title: made.title.clone(),
                     bytes: None,
                     tags: Some(Vec::new()),
@@ -887,6 +889,8 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
     there.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            key: None,
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -1671,6 +1675,8 @@ lo suyo",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            key: None,
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -1719,6 +1725,8 @@ lo mio",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            key: None,
+            lang: None,
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
@@ -2128,6 +2136,8 @@ soy el largo",
                 file: file.into(),
                 order: order::last_of(here.state.docs.values().map(|one| one.order.as_str())),
                 said: Some(Said {
+                    key: None,
+                    lang: None,
                     title: docs::titled(body),
                     bytes: None,
                     tags: Some(Vec::new()),
@@ -2750,4 +2760,77 @@ fn a_parcel_an_older_tisty_wrote_lands_in_tistys_own_words() {
 
     let file = there.titled("Viejo").file.clone();
     assert_eq!(there.body(&file), "# Viejo\n\n==ojo=={green} y ++esto++\n");
+}
+
+#[test]
+fn a_document_in_two_languages_lands_in_two_languages_still_together() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let mut written = |body: &str| {
+        let (id, _) = here.doc(body, None, None);
+        here.tell(Op::DocSaid {
+            id,
+            d: Said::of(body),
+        });
+        id
+    };
+    let es = written("---\nlang: es\n---\n# Paseos\n");
+    let en = written("---\nlang: en\n---\n# Walks\n");
+    here.tell(Op::DocTongue {
+        id: en,
+        d: tisty_core::event::Tongue { of: Some(es) },
+    });
+    let box_at = room.path().join("both.tistyx");
+    let files: Vec<String> = [es, en]
+        .iter()
+        .map(|id| here.state.docs[id].file.clone())
+        .collect();
+
+    parcel::write(&here.paths, &here.state, &files, &box_at, &Along::default()).unwrap();
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let walks = there.titled("Walks").id;
+    let langs: Vec<Option<String>> = there
+        .state
+        .tongues_of(walks)
+        .iter()
+        .map(|one| one.lang.clone())
+        .collect();
+    assert_eq!(langs, vec![Some("es".to_string()), Some("en".to_string())]);
+}
+
+#[test]
+fn two_languages_that_travel_without_their_anchor_land_still_together() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let mut written = |body: &str| {
+        let (id, _) = here.doc(body, None, None);
+        here.tell(Op::DocSaid {
+            id,
+            d: Said::of(body),
+        });
+        id
+    };
+    let es = written("---\nlang: es\n---\n# Paseos\n");
+    let en = written("---\nlang: en\n---\n# Walks\n");
+    let pt = written("---\nlang: pt\n---\n# Passeios\n");
+    for one in [en, pt] {
+        here.tell(Op::DocTongue {
+            id: one,
+            d: tisty_core::event::Tongue { of: Some(es) },
+        });
+    }
+    let box_at = room.path().join("two.tistyx");
+    let files: Vec<String> = [en, pt]
+        .iter()
+        .map(|id| here.state.docs[id].file.clone())
+        .collect();
+
+    parcel::write(&here.paths, &here.state, &files, &box_at, &Along::default()).unwrap();
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let walks = there.titled("Walks").id;
+    assert_eq!(there.state.tongues_of(walks).len(), 2);
 }

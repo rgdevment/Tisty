@@ -3,6 +3,7 @@ import type { Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
+import { shown } from "../tongues";
 import type { Chosen, Named } from "../views";
 import Coming from "./Coming";
 import Glyph from "./Glyph";
@@ -116,7 +117,7 @@ export default function Sidebar({
                 {!openDocs && <Glyph name="chevron" className="h-3 w-3 shrink-0 -rotate-90" />}
                 {t("docs")}
                 <span className="ml-auto text-[11.5px] font-normal">
-                  {papers.docs.filter((one) => !one.pageOf).length || ""}
+                  {shown(papers.docs).filter((one) => !one.pageOf).length || ""}
                 </span>
               </button>
               <button
@@ -135,7 +136,7 @@ export default function Sidebar({
 
             {openDocs && (
               <Tree
-                papers={papers}
+                papers={{ ...papers, docs: shown(papers.docs, chosen.doc) }}
                 open={chosen.doc}
                 here={here}
                 acting={acting}

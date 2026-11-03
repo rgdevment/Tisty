@@ -85,6 +85,8 @@ const SHIPPED_PAGE: &str = include_str!("../../../app/src-tauri/resources/guide/
 
 fn as_in_1_24_4(body: &str) -> Said {
     Said {
+        key: None,
+        lang: None,
         title: crate::docs::titled(body),
         bytes: None,
         tags: Some(Vec::new()),

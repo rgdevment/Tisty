@@ -4,7 +4,7 @@ pub use op::{
     ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, Held, KNOWN_OPS, ListAdd,
     LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged, Resolve, Said, Shared,
     Signature, Signs, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove,
-    TaskPatch,
+    TaskPatch, Tongue,
 };
 
 use serde::{Deserialize, Serialize};
@@ -121,6 +121,7 @@ impl Event {
             | Op::FolderUnarchive { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
+            | Op::DocTongue { id, .. }
             | Op::DocSaid { id, .. }
             | Op::DocDelete { id }
             | Op::DocSigned { id, .. }

@@ -25,6 +25,7 @@ import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
 import { dropAllAsked, goingWith } from "./tidying";
+import { tongueName, tonguesOf } from "./tongues";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -127,24 +128,36 @@ export function usePapers({
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  const dropDoc = (doc: Filed) =>
-    sure(
-      fill(
-        papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
-        doc.title || t("untitledDoc"),
-      ),
-    )
+  const dropDoc = (doc: Filed) => {
+    // The languages beside it are the same row, so they go with it, and the question says so.
+    const kin = tonguesOf(papers.docs, doc).filter(
+      (one) => one.folder === doc.folder && one.away === doc.away,
+    );
+    const asked =
+      kin.length > 1
+        ? fill(
+            "dropTonguesSure",
+            doc.title || t("untitledDoc"),
+            kin.map((one) => tongueName(one.lang ?? "")).join(", "),
+          )
+        : fill(
+            papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
+            doc.title || t("untitledDoc"),
+          );
+    return sure(asked)
       .then((yes) => {
         if (!yes) return;
-        const going = [
-          doc.file,
-          ...papers.docs.filter((one) => one.pageOf === doc.id).map((one) => one.file),
-        ];
+        const all = kin.length > 1 ? kin : [doc];
+        const going = all.flatMap((one) => [
+          one.file,
+          ...papers.docs.filter((page) => page.pageOf === one.id).map((page) => page.file),
+        ]);
         if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
         setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
         return docDrop(doc.id).then(papersChanged);
       })
       .catch((e) => setError(saidPlainly(e)));
+  };
 
   const dropDocs = async (all: Filed[]) => {
     const { going, pages } = goingWith(all, papers.docs);
