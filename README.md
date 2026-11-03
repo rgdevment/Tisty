@@ -647,7 +647,7 @@ not signed with a key compiled into the copy you already have.
 **Folio by Tisty** is a separate service for sharing a document by an
 anonymous, end-to-end encrypted link, with its own terms and policies in
 [its own repository](https://github.com/rgdevment/Folio-by-Tisty). Tisty does
-not share, and never talks to it.
+not share by link, and has no code that talks to it.
 
 ## Two Machines, If You Have Two
 

@@ -30,8 +30,8 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry, no remote server. Tisty talks to no service of ours, so nothing
-  you keep sits on our side to breach. Tisty makes one request of its own — a
+  telemetry, no remote server. Nothing you keep reaches a service of ours, so
+  nothing sits on our side to breach. Tisty makes one request of its own — a
   daily GET for a version manifest, carrying nothing but the version you are
   running — and two more only if you press the button that offers you an
   update. A copy from the Microsoft Store makes neither request: it asks Windows
