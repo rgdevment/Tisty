@@ -154,8 +154,6 @@ pub struct Facts {
     born: Option<String>,
     signed_as: Option<String>,
     edited_as: Option<String>,
-    /// Whether it can be shared from here (decisions 68 and 70).
-    shareable: super::shares::Shareable,
 }
 
 /// A file from outside Tisty tells only what the disk knows of it; no log names its author.
@@ -172,24 +170,7 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
         born: None,
         signed_as: None,
         edited_as: None,
-        shareable: super::shares::Shareable::NotMine,
     })
-}
-
-/// What Tisty knows of a document read through a share link: its size, and that it is someone else's to share.
-pub(crate) fn received_facts(bytes: u64) -> Facts {
-    Facts {
-        made: None,
-        wrote: None,
-        bytes,
-        pages: 0,
-        author: None,
-        editor: None,
-        born: None,
-        signed_as: None,
-        edited_as: None,
-        shareable: super::shares::Shareable::NotMine,
-    }
 }
 
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
@@ -447,9 +428,6 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         born,
         signed_as,
         edited_as,
-        shareable: kept.map_or(super::shares::Shareable::NotMine, |one| {
-            super::shares::shareable(&session, one)
-        }),
     })
 }
 
@@ -1249,7 +1227,6 @@ pub struct Kept {
 
 #[tauri::command(async)]
 pub fn doc_write(
-    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
@@ -1284,9 +1261,6 @@ pub fn doc_write(
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
-    if super::versions::follows(&session, &id) {
-        super::versions::follow(&app, &id);
-    }
     Ok(Kept { id, title, print })
 }
 
