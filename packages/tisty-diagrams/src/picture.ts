@@ -105,7 +105,7 @@ export const stroke = (d: string, color: string, width: number, dashed?: string,
   `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round"${dashed ? ` stroke-dasharray="${dashed}"` : ""}${ends.start ? ` marker-start="url(#${ends.start})"` : ""}${ends.end ? ` marker-end="url(#${ends.end})"` : ""}/>`;
 
 // A hollow head is filled with the sheet so the line does not show through it.
-const markers = (palette: Palette) =>
+const markers = (palette: Palette, named: string) =>
   [
     ["arrow", "M 0 0 L 10 5 L 0 10 z", palette.accent, palette.accent],
     ["open", "M 0 0 L 10 5 L 0 10", "none", palette.accent],
@@ -115,7 +115,7 @@ const markers = (palette: Palette) =>
   ]
     .map(
       ([id, d, fill, line]) =>
-        `<marker id="${id}" viewBox="-1 -1 12 12" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="${d}" fill="${fill}" stroke="${line}" stroke-width="1"/></marker>`,
+        `<marker id="${named}${id}" viewBox="-1 -1 12 12" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="${d}" fill="${fill}" stroke="${line}" stroke-width="1"/></marker>`,
     )
     .join("");
 
@@ -129,9 +129,17 @@ export const pill = (x: number, y: number, text: string, palette: Palette, ringe
   return `${boxed(rect, { fill: palette.desk, stroke: ringedWith, radius: 9 })}${writing({ x, y, text, size: 11, fill: palette.accent })}`;
 };
 
-export const svgOf = (picture: Picture, palette: Palette, ground: string | null, font: string) => {
+// A page holding several drawings names their markers apart: a line reaches the first marker of its name, even a hidden one.
+export const svgOf = (
+  picture: Picture,
+  palette: Palette,
+  ground: string | null,
+  font: string,
+  named = "",
+) => {
   const { wide, tall } = picture.size;
-  const head = `<defs>${markers(palette)}</defs>`;
+  const head = `<defs>${markers(palette, named)}</defs>`;
   const back = ground ? `<rect width="100%" height="100%" fill="${ground}"/>` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${at(wide)}" height="${at(tall)}" viewBox="0 0 ${at(wide)} ${at(tall)}" font-family="${escaped(font)}">${head}${back}${picture.drawn(palette)}</svg>`;
+  const drawn = picture.drawn(palette).replace(/marker-(start|end)="url\(#/g, `$&${named}`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${at(wide)}" height="${at(tall)}" viewBox="0 0 ${at(wide)} ${at(tall)}" font-family="${escaped(font)}">${head}${back}${drawn}</svg>`;
 };

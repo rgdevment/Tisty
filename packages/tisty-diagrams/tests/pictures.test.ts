@@ -37,6 +37,20 @@ describe("the picture of a diagram the window draws", () => {
     }
   });
 
+  it("names its markers apart when asked, and its lines follow them", () => {
+    const picture = pictureOf("flowchart TD\n  A --> B\n");
+    if (!picture) throw new Error("no picture");
+
+    const plain = svgOf(picture, PALETTES.light, null, "Inter");
+    const apart = svgOf(picture, PALETTES.light, null, "Inter", "one-");
+
+    expect(plain).toContain('<marker id="arrow"');
+    expect(plain).toContain('marker-end="url(#arrow)"');
+    expect(apart).toContain('<marker id="one-arrow"');
+    expect(apart).toContain('marker-end="url(#one-arrow)"');
+    expect(apart).not.toContain("url(#arrow)");
+  });
+
   it("brings a ground only when one is asked for, in the colours of the theme asked", () => {
     const picture = pictureOf("flowchart TD\n  A --> B\n");
     if (!picture) throw new Error("no picture");

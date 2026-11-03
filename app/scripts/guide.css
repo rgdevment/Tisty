@@ -51,8 +51,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Arial on Inter's measures, so the text hardly moves when Inter lands. */
+@font-face {
+  font-family: "Inter fallback";
+  src: local("Arial");
+  size-adjust: 107.4%;
+  ascent-override: 90.2%;
+  descent-override: 22.48%;
+  line-gap-override: 0%;
+}
 body {
-  font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family: "Inter Variable", "Inter fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 .top .brand,
 .page :is(h1, h2, h3, h4):not(figure *) {
@@ -183,8 +192,43 @@ html.dark .top .theme .sun {
   --pagefind-ui-border-radius: 12px;
   --pagefind-ui-font: inherit;
 }
-.search[hidden] {
+html:not(.js) .search {
   display: none;
+}
+/* Stands where Pagefind's own box will stand, at its measures, so nothing moves when it lands. */
+.search-waiting {
+  display: block;
+  width: 100%;
+  height: calc(64px * var(--pagefind-ui-scale));
+  padding: 0 calc(70px * var(--pagefind-ui-scale)) 0 calc(54px * var(--pagefind-ui-scale));
+  border: var(--pagefind-ui-border-width) solid var(--pagefind-ui-border);
+  border-radius: var(--pagefind-ui-border-radius);
+  box-sizing: border-box;
+  appearance: none;
+  background: var(--pagefind-ui-background);
+  color: var(--pagefind-ui-text);
+  font: inherit;
+  font-size: calc(21px * var(--pagefind-ui-scale));
+  font-weight: 700;
+}
+.search-waiting::placeholder {
+  opacity: 0.2;
+}
+.search:has(.search-waiting) {
+  position: relative;
+}
+.search:has(.search-waiting)::before {
+  content: "";
+  position: absolute;
+  top: calc(23px * var(--pagefind-ui-scale));
+  left: calc(20px * var(--pagefind-ui-scale));
+  z-index: 1;
+  width: calc(18px * var(--pagefind-ui-scale));
+  height: calc(18px * var(--pagefind-ui-scale));
+  background-color: var(--pagefind-ui-text);
+  opacity: 0.7;
+  pointer-events: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M12.75 11.25h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99 1.49-1.49-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z'/%3E%3C/svg%3E") center / 100% no-repeat;
 }
 .search .pagefind-ui__drawer {
   max-height: 55vh;
@@ -309,6 +353,10 @@ iframe.widget {
   width: 100%;
   height: 120px;
   border: 0;
+}
+html:not(.dark) .diagram-sheet[data-look="dark"],
+html.dark .diagram-sheet[data-look="light"] {
+  display: none;
 }
 
 @media (max-width: 860px) {
