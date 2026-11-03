@@ -1,6 +1,8 @@
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createServer as serving } from "node:http";
+import { tmpdir } from "node:os";
+import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { build as bundled, createServer } from "vite";
@@ -228,6 +230,105 @@ const llms = (built) => {
   return lines.join("\n");
 };
 
+const CHROMES = [
+  process.env.CHROME_BIN,
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+];
+const TYPES = { ".js": "text/javascript", ".woff2": "font/woff2" };
+
+const bodyOf = async (request) => {
+  const parts = [];
+  for await (const part of request) parts.push(part);
+  return Buffer.concat(parts).toString();
+};
+
+// Mermaid lays out only in a browser, so one draws each diagram here, once, in both looks.
+const drawnInChrome = (sources, files, page) =>
+  new Promise((done, failed) => {
+    const chrome = CHROMES.find((one) => one && existsSync(one));
+    if (!chrome) throw new Error("the guide's diagrams are drawn in Chrome: none found, name one in CHROME_BIN");
+    const profile = mkdtempSync(join(tmpdir(), "tisty-guide-"));
+    let browser = null;
+    let clock = null;
+    const server = serving(async (request, response) => {
+      const { pathname } = new URL(request.url, "http://localhost");
+      const file = join(files, pathname);
+      if (pathname === "/") response.writeHead(200, { "content-type": "text/html" }).end(page);
+      else if (pathname === "/sources") response.end(JSON.stringify(sources));
+      else if (pathname === "/drawn") {
+        const said = await bodyOf(request);
+        response.writeHead(204).end();
+        finish(() => done(new Map(JSON.parse(said).map((one) => [one.source, one]))));
+      } else if (existsSync(file) && statSync(file).isFile())
+        response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
+      else response.writeHead(404).end();
+    });
+    const finish = (settle) => {
+      clearTimeout(clock);
+      server.closeAllConnections();
+      server.close();
+      browser.removeAllListeners("exit");
+      browser.once("exit", () => {
+        rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
+        settle();
+      });
+      if (browser.exitCode !== null || !browser.kill()) browser.emit("exit");
+    };
+    server.listen(0, "127.0.0.1", () => {
+      // The page is this script's own, served from this machine, and a runner may not allow Chrome its sandbox.
+      const flags = ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--window-size=800,600", `--user-data-dir=${profile}`];
+      browser = spawn(chrome, [...flags, `http://127.0.0.1:${server.address().port}/`], { stdio: "ignore" });
+      browser.once("exit", () => finish(() => failed(new Error("Chrome closed before drawing the guide's diagrams"))));
+      clock = setTimeout(() => finish(() => failed(new Error("Chrome did not finish the guide's diagrams"))), 120_000);
+    });
+  });
+
+const waitingIn = (document) => [...document.querySelectorAll("figure.diagram > pre > code")];
+
+// Drawings repeat their markers' names, and a reference reaches the first in the page, which may be in the hidden look.
+const apart = (svg, mark) => {
+  const named = new Set(
+    [...svg.matchAll(/url\((?:["']|&quot;)?#([^"')&]+)|href="#([^"]+)"/g)].map((one) => one[1] ?? one[2]),
+  );
+  return svg.replace(/(\sid="|url\((?:["']|&quot;)?#|href="#)([^"')&]+)/g, (whole, before, name) =>
+    named.has(name) ? `${before}${name}-${mark}` : whole,
+  );
+};
+
+const sheetFor = (document, look, svg, at) => {
+  const sheet = document.createElement("div");
+  sheet.className = "diagram-sheet";
+  sheet.dataset.look = look;
+  // The example's source, written beside it, is what a search should find.
+  sheet.setAttribute("data-pagefind-ignore", "");
+  sheet.innerHTML = apart(svg, `${look}-${at}`);
+  return sheet;
+};
+
+// Each diagram goes into its page finished, in each look, so a reader downloads no drawing code.
+const drawDiagrams = async (pages, files, page) => {
+  const held = pages
+    .filter((one) => one.html.includes('class="diagram"'))
+    .map((one) => ({ one, document: new JSDOM(one.html).window.document }));
+  const sources = [...new Set(held.flatMap(({ document }) => waitingIn(document).map((code) => code.textContent)))];
+  const drawings = await drawnInChrome(sources, files, page);
+  const unreadable = sources.filter((one) => !drawings.get(one)?.light || !drawings.get(one)?.dark);
+  if (unreadable.length) throw new Error(`diagrams that draw nothing:\n${unreadable.join("\n---\n")}`);
+  for (const { one, document } of held) {
+    waitingIn(document).forEach((code, at) => {
+      const figure = code.closest("figure");
+      const { light, dark } = drawings.get(code.textContent);
+      figure.replaceChildren(sheetFor(document, "light", light, at), sheetFor(document, "dark", dark, at));
+      figure.classList.add("drawn");
+    });
+    one.html = document.querySelector("article").outerHTML;
+  }
+};
+
 const index = readFileSync(join(app, "src", "index.css"), "utf8");
 const light = /:root\s*\{[^}]*\}/.exec(index)[0];
 const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
@@ -263,7 +364,26 @@ html.dark figure.example,html.dark figure.widget{${dark}}
 `;
 const mark = readFileSync(join(app, "..", "assets", "icons", "tisty-light.svg"));
 const logoName = `tisty-light.${printOf(mark)}.svg`;
-const look = { style: css, logo: logoName };
+const font = faces.join("\n").match(/\/fonts\/inter-latin-wght-normal\.[^)]+/)[0];
+const look = { style: css, logo: logoName, font };
+const DRAWER = ".drawer";
+await bundled({
+  root: app,
+  configFile: false,
+  logLevel: "error",
+  resolve: { alias: packages },
+  build: {
+    outDir: join(out, DRAWER),
+    emptyOutDir: true,
+    lib: { entry: join(app, "src", "guide", "diagramming.ts"), formats: ["es"], fileName: () => "drawer.js" },
+  },
+});
+await drawDiagrams(
+  [...built.values()].flat(),
+  out,
+  `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body><script type="module" src="/${DRAWER}/drawer.js"></script></body></html>`,
+);
+rmSync(join(out, DRAWER), { recursive: true });
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
@@ -273,20 +393,8 @@ for (const language of LANGUAGES) {
   writeFileSync(join(into, "tisty.svg"), logo);
   writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
-// Mermaid draws only in a browser, so a page with a diagram brings the window's own drawer.
-await bundled({
-  root: app,
-  configFile: false,
-  logLevel: "error",
-  resolve: { alias: packages },
-  build: {
-    outDir: join(out, "diagrams"),
-    emptyOutDir: true,
-    lib: { entry: join(app, "src", "guide", "diagramming.ts"), formats: ["es"], fileName: () => "diagrams.js" },
-  },
-});
 writeFileSync(join(out, "404.html"), missing(look));
-writeFileSync(join(out, "_headers"), headers(logoName));
+writeFileSync(join(out, "_headers"), headers(logoName, built));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));

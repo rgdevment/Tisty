@@ -7,6 +7,7 @@ export const LANGUAGES = [
     dir: "",
     start: "Overview",
     topics: "Guide",
+    search: "Search",
     near: "Next and previous",
     home: "https://www.tisty.app/",
     meet: "Meet Tisty",
@@ -28,6 +29,7 @@ export const LANGUAGES = [
     dir: "es/",
     start: "Vista general",
     topics: "Guía",
+    search: "Buscar",
     near: "Anterior y siguiente",
     home: "https://www.tisty.app/es/",
     meet: "Conoce Tisty",
@@ -56,7 +58,7 @@ const told = (said) => escaped(said).replace(/"/g, "&quot;");
 const address = (language, page) =>
   `${SITE}${language.dir}${page.slug === "index" ? "" : page.slug}`;
 
-// It only remembers light or dark; every page reads without it, and only a page with a diagram needs another.
+// It only remembers light or dark; every page reads without it.
 export const THEME = `<script>(()=>{const r=document.documentElement;r.classList.add("js");let s=null;try{s=localStorage.getItem("tisty-guide-theme")}catch{}r.classList.toggle("dark",s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches)})()</script>`;
 const SWITCH = `(()=>{const d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('tisty-guide-theme',d?'dark':'light')}catch{}})()`;
 const MOON = `<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>`;
@@ -100,7 +102,7 @@ const heads = (language, page, title, other, twin) => {
 };
 
 // Plain HTML with its styles inside and relative links, so the same folder serves the web and the app.
-export const sheetOf = (built, language, page, { style, logo }) => {
+export const sheetOf = (built, language, page, { style, logo, font }) => {
   const { other, twin } = twinOf(built, language, page);
   const pages = built.get(language.code);
   const up = language.dir ? "../" : "";
@@ -132,6 +134,7 @@ export const sheetOf = (built, language, page, { style, logo }) => {
 <title>${escaped(title)}</title>
 ${heads(language, page, title, other, twin)}
 <link rel="icon" href="${up}${logo}" type="image/svg+xml">
+<link rel="preload" href="${font}" as="font" type="font/woff2" crossorigin>
 ${THEME}
 <style>${style}</style>
 ${AHEAD}
@@ -145,9 +148,9 @@ ${AHEAD}
 <button class="theme" type="button" aria-label="${language.dark}" title="${language.dark}" onclick="${SWITCH}">${MOON}${SUN}</button>
 </header>
 <div class="wrap">
-<nav class="topics" aria-label="${language.topics}"><div class="search" data-search hidden></div><ol>${listed}</ol></nav>
+<nav class="topics" aria-label="${language.topics}"><div class="search" data-search><input class="search-waiting" type="search" placeholder="${language.search}" aria-label="${language.search}"></div><ol>${listed}</ol></nav>
 <main data-pagefind-body>${page.html}<nav class="near" aria-label="${language.near}" data-pagefind-ignore>${near}</nav></main>
-</div>${SEARCH}${page.html.includes('class="widget"') ? HOSTS : ""}${page.html.includes('class="diagram"') ? `<script type="module" src="${up}diagrams/diagrams.js"></script>` : ""}
+</div>${SEARCH}${page.html.includes('class="widget"') ? HOSTS : ""}
 </body>
 </html>
 `;
@@ -189,13 +192,17 @@ ${urls.join("\n")}
 // Only where a widget lives: it hears how tall each one is and tells them light or dark.
 const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>document.querySelectorAll("iframe.widget");const tell=(w)=>w&&w.postMessage({tisty:"theme",dark:r.classList.contains("dark")},"*");addEventListener("message",(e)=>{if(!e.data||e.data.tisty!=="height")return;for(const f of frames())if(f.contentWindow===e.source){f.style.height=Math.min(Math.max(e.data.h,40),2000)+"px";tell(e.source)}});new MutationObserver(()=>{for(const f of frames())tell(f.contentWindow)}).observe(r,{attributes:true,attributeFilter:["class"]})})()</script>`;
 
-const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";code.onload=()=>{new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});box.hidden=false};document.head.append(sheet,code)})()</script>`;
+// Search weighs more than a page, so it comes when a reader reaches for the box, and keeps what they already typed.
+const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const waiting=box.querySelector("input");const landed=(one)=>new Promise((done)=>{one.onload=done});const load=async()=>{box.removeEventListener("pointerenter",load);box.removeEventListener("focusin",load);const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";const both=Promise.all([landed(sheet),landed(code)]);document.head.append(sheet,code);await both;const typed=waiting.value;const held=document.activeElement===waiting;waiting.remove();new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});const field=box.querySelector("input");if(!field)return;if(typed){field.value=typed;field.dispatchEvent(new Event("input",{bubbles:true}))}if(held)field.focus()};box.addEventListener("pointerenter",load);box.addEventListener("focusin",load)})()</script>`;
 
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
 
-// The logo's name carries its print, so it can be kept for a year; everything else for a day.
-export const headers = (logo) => `/${logo}
+// Each page is named because Pages joins the values of every rule that matches, and `/*` would also match the files below.
+const SHORT = "public, max-age=300, stale-while-revalidate=3600";
+
+// The logo's name carries its print, so it can be kept for a year; a picture for a day; a page a moment, as a release replaces it.
+export const headers = (logo, built) => `/${logo}
   Cache-Control: public, max-age=31536000, immutable
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
@@ -207,6 +214,11 @@ export const headers = (logo) => `/${logo}
   Cache-Control: public, max-age=86400
 /es/rina.jpg
   Cache-Control: public, max-age=86400
+${LANGUAGES.flatMap((language) =>
+  built
+    .get(language.code)
+    .map((page) => `/${language.dir}${page.slug === "index" ? "" : page.slug}\n  Cache-Control: ${SHORT}`),
+).join("\n")}
 `;
 
 export const robots = `User-agent: *\nAllow: /\n\nSitemap: ${SITE}sitemap.xml\n`;
