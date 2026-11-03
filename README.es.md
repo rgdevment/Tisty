@@ -660,11 +660,12 @@ al día mientras siga en marcha—: mira si existe una versión más nueva. No e
 nada. Si existe y presionas el botón que te la ofrece, vienen dos más — el
 archivo que nombra la versión y el instalador — y Tisty se niega a instalar nada
 que no esté firmado con una clave compilada dentro de la copia que ya tienes.
+Hay unas pocas más, listadas en [PRIVACY.md](PRIVACY.md).
 
 **Folio by Tisty** es un servicio aparte para compartir un documento con un
-link anónimo y cifrado de punta a punta, con sus propios términos y políticas
+enlace anónimo y cifrado de punta a punta, con sus propios términos y políticas
 en [su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Tisty
-no comparte por link, y no tiene código que le hable.
+no comparte por enlace, y no tiene código que le hable.
 
 ## Dos equipos, si tienes dos
 

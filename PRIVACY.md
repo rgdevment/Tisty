@@ -7,14 +7,15 @@
 Tisty does not collect anything and has no server to transmit to. No account,
 no telemetry, no analytics, no crash reporting.
 
-It makes **one** network request on its own — when it opens, and once a day
-after that: it downloads a small file to see whether a newer version exists.
-It sends nothing. Two more follow only if you press the button that offers you
-an update, one more only if you ask a link in a document for its preview, one
-more when you open the guide inside Tisty, and one per picture if you press
-**Download** above the help. Never otherwise. A copy installed from the
-Microsoft Store makes no update request: it asks Windows what the Store has,
-and the Store does the rest. All of them are described in full below.
+It makes **one** check on its own — when it opens, and once a day after that:
+it downloads a small file and its signature to see whether a newer version
+exists. It sends nothing. Two more requests follow only if you press the button
+that offers you an update, one or two only if you ask a link in a document for
+its preview (the page, then the picture it offers), one more when you open the
+guide inside Tisty, and one per picture if you press **Download** above the
+help. Never otherwise. A copy installed from the Microsoft Store makes no
+update request: it asks Windows what the Store has, and the Store does the
+rest. All of them are described in full below.
 
 Since version 1.30, Tisty can also sync through your own Google Drive, since
 1.31 through your own OneDrive, and since 1.32 through a WebDAV server of your
@@ -71,9 +72,9 @@ directly is the one way that changes this, and each provider is described in
 its own section below. Encrypting is offered only for those clouds, never for a
 folder.
 
-There is no option where Tisty hosts anything. There is no paid tier that
-changes this. **Nothing you keep reaches a server of ours**: the one site of
-ours Tisty ever asks is markdown.tisty.app, for the guide, and that request
+There is no option where Tisty hosts anything of yours. There is no paid tier
+that changes this. **Nothing you keep reaches a server of ours**: the one site
+of ours Tisty ever asks is markdown.tisty.app, for the guide, and that request
 carries nothing of yours. So there is nothing on our side to breach, subpoena,
 sell, or lose.
 
@@ -129,11 +130,13 @@ visible instead of making it for you.
   vouches for. Whether you confirmed the phrase, and the key of an encrypted
   cloud that another of your computers handed to this one, stay on this
   computer.
-- **An alias, if you write one** — it exists so that a document you share still
-  says who wrote it. It is optional, it lives in the log like everything else,
-  and so it reaches your other machines through the folder you sync and travels
-  inside any parcel you hand out. It goes out with the sync before you share
-  anything, which is why it should be a name you are content for others to read.
+- **An alias, if you write one** — it exists so that a document you hand over
+  in a parcel or a PDF still says who wrote it. It is optional, it lives in the
+  log like everything else, and so it reaches your other machines through the
+  folder you sync and travels inside any parcel you hand out. A PDF carries it
+  only if you add the card while exporting and have no name to sign with. It
+  goes out with the sync before you hand anything over, which is why it should
+  be a name you are content for others to read.
   A log only ever grows: an alias you write today can be changed tomorrow, but
   the old one stays written. Your real name and your address are **not** asked
   for anywhere, and the two fields reserved for them in the log are written by
@@ -194,7 +197,8 @@ defence, because the remedy barely exists.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below and,
   only if you connect Google Drive, OneDrive or a WebDAV server, the requests
-  that sync with it, and the hourly `cloud.json` check that rides along.
+  that sync with it, and the `cloud.json` check, at most once an hour, that
+  rides along.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -206,7 +210,7 @@ repository, and this section was written before the release that carries it.
 | | |
 | :--- | :--- |
 | **Why** | To tell you a newer Tisty exists |
-| **What it asks for** | `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json` |
+| **What it asks for** | `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json`, and its signature beside it, `release-manifest.json.sig` |
 | **Method** | GET. Nothing is uploaded |
 | **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
 | **How often** | When Tisty opens, and at most once a day for as long as it keeps running |
@@ -349,7 +353,7 @@ requests.
 | | |
 | :--- | :--- |
 | **Why** | To keep your machines in step through your Google Drive, without its desktop program installed |
-| **Who it talks to** | Google only: `accounts.google.com` and `oauth2.googleapis.com` to sign in, and `www.googleapis.com` for Drive. Never a server of ours |
+| **Who it talks to** | Google: `accounts.google.com` and `oauth2.googleapis.com` to sign in, and `www.googleapis.com` for Drive, plus, at most once an hour, the signed `cloud.json` on GitHub described under *The remote switch* below. Never a server of ours |
 | **What Google lets Tisty see** | The permission asked for is `drive.appdata`: Tisty sees and changes only its own hidden space in your Drive, which no other app and no Drive window shows. The rest of your Drive — your documents, your photos, what others share with you — stays out of its reach. If Google grants anything wider, Tisty gives the access back and stops. It also reads the address of the account you connected, to show you which one it is and to refuse to mix two accounts |
 | **What it sends** | The files of your store — the history, the documents and `tisty.toml` — into that hidden space of your Drive, as they are on your disk unless you encrypt your cloud (described below). They count against your Drive storage, and *Manage apps* in Drive's settings shows how much. Attachments go up too, but stay on the computer they were added on; on your other computers each one comes down only when you open it. When a machine stops syncing with a place, it leaves there a short signed note (`moved.json`) saying where it went — a folder's name or the cloud account's address — so your other machines stop instead of going on alone |
 | **What Google sees** | What any provider of a synced folder sees: the files above, their names and sizes, when they change, and the address and time of each request. Google already holds your account; Tisty adds nothing about you |
@@ -359,7 +363,7 @@ requests.
 | **Checking the way first** | Only while you are choosing Google Drive — connecting it, or moving to it — Tisty first checks that Google's API host answers: a single request to `https://www.googleapis.com/drive/v3/about`, with no account, no token and nothing of yours in it, which Google answers at once by turning a stranger away. It waits at most 5 seconds to reach it and 10 seconds in all, and goes through whatever proxy your system names, never around it. From how it ends, Tisty only tells you whether something on the way — a proxy, a filter at work, an antivirus — blocks Google or inspects secure connections, whether Google was only slow to answer, or whether Google itself is having trouble. It never runs on a round of syncing, and what it learns stays on your screen and in Tisty's own log on this computer. When a round of syncing cannot reach Google, Tisty reads how it failed the same way, sending nothing more, and keeps on this computer only that word — blocked, filtered or slow — with how many rounds in a row failed and since when, to warn you once it lasts: a second failed round in a row, or two minutes after the first. A connection cut halfway through a transfer keeps no word at all |
 | **How often** | Only while Tisty is running, including when it sits in the tray or started on its own at login; never once it is closed. It asks whether anything changed at most every few minutes, and less often while nothing does. There is no background service |
 | **Limits** | A daily allowance per computer — not per person — of 2,000,000 request units and 50 GB downloaded, so one copy cannot spend the shared quota Google grants this project. Attachments are capped at 25 MB per task and 650 MB inside a document, and nothing over 750 MB is taken in from the cloud. *Free up space* lets go of attachments you have not opened in a while; opening one again brings it back down and counts against the same allowance |
-| **The remote switch** | A small file, `cloud.json`, published beside the version manifest at `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json`, can lower those limits or pause syncing for a while on every copy, should the project's quota be at risk. It is signed with minisign against a key fixed in the program when it is built, read only up to 16 KiB, and an older one never replaces a newer one. It is fetched at most once an hour while you sync with Google Drive, OneDrive or a WebDAV server, sends nothing but the request itself, and carries numbers and nothing of yours |
+| **The remote switch** | A small file, `cloud.json`, published beside the version manifest at `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json`, can lower those limits or pause syncing for a while on every copy, should the project's quota be at risk. It is signed with minisign against a key fixed in the program when it is built, read only up to 16 KiB, and an older one never replaces a newer one. It is fetched at most once an hour while you sync with Google Drive, OneDrive or a WebDAV server, together with its signature, `cloud.json.sig`, following no redirect and giving up after 10 seconds; it sends nothing but the request itself, and carries numbers and nothing of yours. A copy built without that key, as one built from source may be, never asks for it and keeps the limits it ships with |
 | **What it never does** | Send your data to us or to anyone but Google, read a file in your Drive outside its own space, or write tokens and signed addresses into its own log |
 | **Leaving** | Choose *Only on this machine* or a folder through *Move to another place*. Tisty brings home what lives only in your Drive before it lets go of it, and leaves the copies there; disconnecting keeps them too. *Delete my copies in Google Drive for good* deletes them, since that space has no bin. In Drive's settings, under *Manage apps*, *Disconnect from Drive* only withdraws Tisty's access; *Delete hidden app data* deletes the copies as well. When a machine leaves a folder, it writes a short note in it, `README - Tisty.txt`, saying where its copies went and how to come back; it takes the note away when it chooses that folder again |
 
@@ -383,7 +387,7 @@ these requests.
 
 | | |
 | :--- | :--- |
-| **Who it talks to** | Microsoft only: `login.microsoftonline.com` to sign in, and `graph.microsoft.com` for OneDrive. Never a server of ours |
+| **Who it talks to** | Microsoft: `login.microsoftonline.com` to sign in, and `graph.microsoft.com` for OneDrive, plus, at most once an hour, the signed `cloud.json` on GitHub described under *The remote switch* for Google Drive. Never a server of ours |
 | **What Microsoft lets Tisty see** | The permissions asked for are `Files.ReadWrite.AppFolder`, `User.Read` and `offline_access`: Tisty sees and changes only its own folder, *Apps › Tisty* in your OneDrive, reads the address of the account to show you which one it is and to refuse to mix two accounts, and keeps the access between sessions. The rest of your OneDrive stays out of its reach. If Microsoft grants anything wider, Tisty refuses the sign-in |
 | **Where the copies are** | Unlike Google's hidden space, *Apps › Tisty* is a folder you can see in OneDrive. Leave it to Tisty: what you change there by hand is read as a change from another computer. Deleting it sends the copies to OneDrive's recycle bin, and *Delete my copies in OneDrive for good* does the same |
 | **How you allow it** | Only from the Tisty window. You sign in on Microsoft's own page in your browser; Tisty never sees your password. Tisty is a public client with no secret of its own. The access is kept exactly as Google's is, in the system keychain or, on Windows, sealed with DPAPI |
@@ -402,7 +406,7 @@ travel holds here too; what changes is below.
 
 | | |
 | :--- | :--- |
-| **Who it talks to** | The server at the address you type, and nothing else. Never a server of ours |
+| **Who it talks to** | The server at the address you type, plus, at most once an hour, the signed `cloud.json` on GitHub described under *The remote switch* for Google Drive. Never a server of ours |
 | **Where the copies are** | In a folder named `Tisty` that Tisty makes inside the folder your address points at. Nothing outside it is listed or touched. You can see it on your server; leave it to Tisty, since what you change there by hand is read as a change from another computer |
 | **What it sends** | The same files as to Google Drive, into that folder, and with every request your user and password, as HTTP Basic authentication. Attachments always stay on every computer as well, so *Free up space* is not offered |
 | **How the line is guarded** | Only `https://` is accepted, because the password travels with every request. Plain `http://` is refused, except to this very computer (`localhost` or a loopback address). The server's certificate is checked by the system as for any other secure connection, and Tisty never follows a redirect, which would carry the password to wherever it points. An address that carries a user or a password of its own is refused |
@@ -471,7 +475,7 @@ open it, and why closing it is one click.
 ## Children's privacy
 
 Tisty collects no personal information from anyone, of any age. There are no
-accounts and no registration, and nothing is sent to us.
+accounts and no registration, and nothing of yours is sent to us.
 
 ## Changes to this policy
 

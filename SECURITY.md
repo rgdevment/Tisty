@@ -36,7 +36,9 @@ report will never be dismissed for being inconvenient.
   running — and two more only if you press the button that offers you an
   update. A copy from the Microsoft Store makes neither request: it asks Windows
   what the Store has for it. It is written out in full in
-  [PRIVACY.md](PRIVACY.md), down to the headers.
+  [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few others — the
+  guide, the help's pictures, a link's preview, and the signed `cloud.json` at
+  most once an hour while you sync.
 - **A cloud account is reached only if you choose it.** Tisty can sync straight
   with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
   WebDAV server of your own since 1.32; Dropbox is reached only through a folder
@@ -88,7 +90,9 @@ report will never be dismissed for being inconvenient.
   them — or into a cloud of your own that it reaches itself. There is no
   Tisty-operated backend at any tier, and no transport of ours to attack: with a
   folder, the code that syncs reads and writes local paths, and with a cloud it
-  speaks only to that provider or that server.
+  speaks only to that provider or that server, plus, at most once an hour, the
+  signed `cloud.json` on GitHub described in [PRIVACY.md](PRIVACY.md) under *The
+  remote switch*. Never a server of ours.
 - **A cloud can be encrypted so that its provider cannot read it.** Since 1.36,
   what Tisty keeps in Google Drive, OneDrive or a WebDAV server can be sealed
   with a key that comes from a 24-word phrase only you hold. Neither the

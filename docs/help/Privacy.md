@@ -42,7 +42,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 ## The network requests Tisty makes
 
-**On its own, one:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows instead, and makes no request of its own.
+**On its own:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows instead, and makes no request of its own. While you sync with Google Drive, OneDrive or a WebDAV server, it also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours.
 
 **Only when you ask:**
 
@@ -50,7 +50,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 - **Bring the preview** on a [link card](https://markdown.tisty.app/links) asks that page once for its title and picture.
 - **The help** inside Tisty (the `?` at the foot of the sidebar) comes with your version and asks nothing. Its **Tisty's Markdown** guide (also `F1` while you write) reads it from [markdown.tisty.app](https://markdown.tisty.app), so it is always the latest; offline, it shows the copy that came with your version. Its pictures are downloaded from GitHub only when you press **Download** above the help.
 - **Clicking a link** opens your browser.
-- **Google Drive**, **OneDrive** or **your WebDAV server**, once you connect it from the window, is where Tisty sends and fetches your copies. While you sync with one of them, Tisty also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours. Assistants never touch the network.
+- **Google Drive**, **OneDrive** or **your WebDAV server**, once you connect it from the window, is where Tisty sends and fetches your copies. Assistants never touch the network.
 - **Checking a WebDAV server** — only when you connect it: Tisty signs in with what you typed and looks at its own folder there, and nothing else. Only `https://` is accepted, except to this very computer, and the password never travels to any other address.
 - **Checking the way to OneDrive** works the same as the check for Google Drive below, with one request to `graph.microsoft.com` that carries nothing of yours.
 - **Checking the way to Google Drive** — only while you connect Google Drive or move to it, Tisty sends one request to Google's API host, `www.googleapis.com`, with no account, no token and nothing of yours in it. It waits at most 10 seconds and goes through your system's proxy, never around it. It only lets Tisty tell you whether a proxy, a filter at work or an antivirus is in the way, or Google itself is having trouble. It never runs while syncing. When a round of syncing cannot reach Google, Tisty reads the failure the same way, sending nothing more, and keeps on this computer only a word for what stood in the way, how many rounds in a row failed and since when, to warn you once it lasts. A connection cut halfway through a transfer leaves no word at all.
