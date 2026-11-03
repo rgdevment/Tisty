@@ -8,6 +8,11 @@ routes = [
   { pattern = "www.tisty.cl", custom_domain = true },
 ]
 
+# Runs beside D1 and R2, both in eastern North America (ENAM): a read is a few queries in a row, each a trip
+# across a continent from the reader's own city, and only one when the Worker answers from there (decision 94 bis).
+[placement]
+region = "aws:us-east-1"
+
 # Every other path is the reading page (packages/tisty-share-web/dist), served free of the Worker's daily requests.
 [assets]
 directory = "../../packages/tisty-share-web/dist"
