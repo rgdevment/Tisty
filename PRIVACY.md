@@ -215,7 +215,7 @@ repository, and this section was written before the release that carries it.
 | **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
 | **How often** | When Tisty opens, and at most once a day for as long as it keeps running |
 | **Timeout** | 5 seconds |
-| **If it fails** | Nothing is said and nothing is retried: the next look is the next day, or the next time Tisty opens |
+| **If it fails** | Nothing is said. If the file or its signature cannot be fetched, nothing is retried: the next look is the next day, or the next time Tisty opens. If both arrive but do not verify — a cache on the way can hand back a stale pair — it asks for both once more with `?at=<now>` added, so no cache answers, and gives up there: one look makes at most four GETs |
 
 The file it downloads contains version numbers and nothing else — no address, so
 nothing that arrives from it can send you anywhere. It sits in a branch of its

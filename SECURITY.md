@@ -31,14 +31,14 @@ report will never be dismissed for being inconvenient.
 
 - **The data never leaves your machine unless you tell it to.** No account, no
   telemetry, no remote server. Nothing you keep reaches a service of ours, so
-  nothing sits on our side to breach. Tisty makes one request of its own — a
-  daily GET for a version manifest, carrying nothing but the version you are
-  running — and two more only if you press the button that offers you an
-  update. A copy from the Microsoft Store makes neither request: it asks Windows
-  what the Store has for it. It is written out in full in
-  [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few others — the
-  guide, the help's pictures, a link's preview, and the signed `cloud.json` at
-  most once an hour while you sync.
+  nothing sits on our side to breach. Tisty makes one check of its own — a
+  daily GET for a version manifest and one for its signature, carrying nothing
+  but the version you are running — and two more requests only if you press the
+  button that offers you an update. A copy from the Microsoft Store makes none
+  of them: it asks Windows what the Store has for it. It is written out in full
+  in [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few others —
+  the guide, the help's pictures, a link's preview, and the signed `cloud.json`
+  at most once an hour while you sync.
 - **A cloud account is reached only if you choose it.** Tisty can sync straight
   with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
   WebDAV server of your own since 1.32; Dropbox is reached only through a folder

@@ -638,12 +638,13 @@ you know, as [the section below](#two-machines-if-you-have-two) tells. Both are
 written out in [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md),
 including the parts that are not reassuring.
 
-Tisty makes **one** network request unasked — when it opens, and once a day
-after that: it checks whether a newer version exists. It sends nothing. If one
-does exist and you press the button that offers it, two more follow — the file
-naming the release, and the installer — and Tisty refuses to install anything
-not signed with a key compiled into the copy you already have. There are a few
-more, listed in [PRIVACY.md](PRIVACY.md).
+Tisty makes **one** check unasked — when it opens, and once a day after that:
+it downloads a small file and its signature to see whether a newer version
+exists. It sends nothing. If one does exist and you press the button that
+offers it, two more requests follow — the file naming the release, and the
+installer — and Tisty refuses to install anything not signed with a key
+compiled into the copy you already have. There are a few more, listed in
+[PRIVACY.md](PRIVACY.md).
 
 **Folio by Tisty** is a separate service for sharing a document by an
 anonymous, end-to-end encrypted link, with its own terms and policies in
