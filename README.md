@@ -312,6 +312,10 @@ Tisty it holds a good deal more than text:
 - **A book in pages.** A year of minutes, a manual by chapters, a dog's life told
   year by year: one document holding its pages, in the order the text names
   them, with an index at the end and arrows from one to the next.
+- **One document in several languages.** Each language is a file of its own,
+  and Tisty shows them as one row, opened in the app's language, with a switch
+  that takes you to another language at the same section. Moving, archiving
+  and deleting act on every language at once.
 - **Diagrams from a few lines.** A block that says `mermaid` draws flowcharts,
   sequences, pies, timelines, mind maps, Gantt charts and more with the official
   Mermaid, light or dark with the window and legible at any width. A double

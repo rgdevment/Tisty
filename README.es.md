@@ -319,6 +319,10 @@ editor— y en Tisty lleva bastante más que texto:
 - **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
   un perro contada año a año: un documento con sus páginas, en el orden en que
   el texto las nombra, con un índice al final y flechas de una a la siguiente.
+- **Un documento en varios idiomas.** Cada idioma es un archivo propio, y Tisty
+  los muestra como una sola fila, abierta en el idioma de la app, con un
+  selector que te lleva a otro idioma en la misma sección. Mover, archivar y
+  borrar actúan sobre todos los idiomas a la vez.
 - **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
   flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
   más con el Mermaid oficial, claros u oscuros según la ventana y legibles a
