@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "app/src-tauri"]
+exclude = ["crates/tisty-share-server", "crates/tisty-share-worker", "crates/tisty-share-wasm"]
 
 [workspace.package]
 version = "0.1.0"
