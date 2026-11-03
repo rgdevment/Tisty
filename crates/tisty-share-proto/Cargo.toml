@@ -33,3 +33,4 @@ zeroize.workspace = true
 [dev-dependencies]
 hkdf.workspace = true
 serde_json.workspace = true
+tisty-share-proto = { path = ".", features = ["mint"] }
