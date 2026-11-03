@@ -97,6 +97,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.tongue",
 ];
 
+pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum Op {

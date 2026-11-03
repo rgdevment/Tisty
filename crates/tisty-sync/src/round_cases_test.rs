@@ -1154,10 +1154,23 @@ fn links_a_development_build_kept_cross_the_folder_untouched(shared: &Shared) {
     assert_eq!(there, here);
     let kept = std::fs::read(&active).unwrap();
     assert!(kept.starts_with(&said));
-    assert_eq!(
-        std::fs::read(one.store.join(&other.device).join("active.tisty")).unwrap(),
-        kept
+    let carried = one.store.join(&other.device).join("active.tisty");
+    assert_eq!(std::fs::read(&carried).unwrap(), kept);
+
+    let there = shared.path().join(STORE).join(&other.device).join("active.tisty");
+    let mut forged = std::fs::read(&there).unwrap();
+    forged.extend_from_slice(
+        br#"{"v":18,"ts":"2026-11-02T10:00:00Z","by":"dev_b","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPJ","d":{"title":"unsigned","order":"a0"}}"#,
     );
+    forged.push(b'\n');
+    std::fs::write(&there, forged).unwrap();
+
+    let after = shared.carry(&one, Way::Pull, &[]).unwrap();
+
+    assert_eq!(after.unreadable, vec![other.device.clone()]);
+    assert_eq!(after.brought, 0);
+    assert!(!titles(&one.store).contains(&"unsigned".to_string()));
+    assert_eq!(std::fs::read(&carried).unwrap(), kept);
 }
 
 fn syncing_twice_over_carries_nothing_the_second_time(shared: &Shared) {

@@ -32,7 +32,7 @@ fn signed(root: &Path) -> Store {
         .signing_with(Some(key()))
 }
 
-fn holding_links(root: &Path) -> PathBuf {
+fn with_links(root: &Path) -> (PathBuf, Vec<u8>) {
     signed(root).append(task("before")).unwrap();
     let active = root.join("dev_a").join("active.tisty");
     let mut said = std::fs::read(&active).unwrap();
@@ -40,9 +40,53 @@ fn holding_links(root: &Path) -> PathBuf {
         said.extend_from_slice(line.as_bytes());
         said.push(b'\n');
     }
+    (active, said)
+}
+
+fn holding_links(root: &Path) -> PathBuf {
+    let (active, said) = with_links(root);
     std::fs::write(&active, said).unwrap();
     signed(root).append(task("after")).unwrap();
     active
+}
+
+fn ending_in_links(root: &Path) -> PathBuf {
+    let (active, mut said) = with_links(root);
+    let (before, _) = last_seal(&std::fs::read(&active).unwrap());
+    let closing = seal::Seal {
+        seg: before.seal.seg,
+        at: said.len() as u64,
+        tip: signing::tip_of(signing::NOTHING_BEFORE, &said),
+        n: 1 + LINKS.len() as u64,
+        closed: false,
+    };
+    said.extend_from_slice(seal::line(&key(), "dev_a", &closing).as_bytes());
+    std::fs::write(&active, said).unwrap();
+    active
+}
+
+fn last_seal(said: &[u8]) -> (Box<seal::Read>, usize) {
+    let cut = said[..said.len() - 1]
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .unwrap()
+        + 1;
+    let Line::Seal(read) = seal::read(&said[cut..]) else {
+        panic!("the last write ends in its seal");
+    };
+    (read, cut)
+}
+
+fn answers_for_every_byte(active: &Path, events: usize) {
+    let said = std::fs::read(active).unwrap();
+    let (read, cut) = last_seal(&said);
+    assert!(seal::holds(&key().verifying_key(), "dev_a", &read));
+    assert_eq!(read.seal.at, cut as u64);
+    assert_eq!(
+        read.seal.tip,
+        signing::tip_of(signing::NOTHING_BEFORE, &said[..cut])
+    );
+    assert_eq!(read.seal.n, events as u64);
 }
 
 fn titles(root: &Path) -> Vec<String> {
@@ -63,10 +107,9 @@ fn every_link_a_development_build_kept_is_still_a_name_this_build_never_reads() 
             "{line}"
         );
         let op = serde_json::from_str::<serde_json::Value>(line).unwrap()["op"].clone();
-        assert!(
-            !tisty_core::event::KNOWN_OPS.contains(&op.as_str().unwrap()),
-            "{op}"
-        );
+        let op = op.as_str().unwrap();
+        assert!(!tisty_core::event::KNOWN_OPS.contains(&op), "{op}");
+        assert!(tisty_core::event::RETIRED_OPS.contains(&op), "{op}");
     }
 }
 
@@ -78,23 +121,26 @@ fn a_log_holding_those_links_replays_and_its_seal_still_answers_for_every_byte()
 
     assert_eq!(titles(&root), ["after", "before"]);
     assert_eq!(check_device(&root.join("dev_a")).unwrap(), 2);
+    answers_for_every_byte(&active, 2 + LINKS.len());
+}
 
-    let said = std::fs::read(&active).unwrap();
-    let cut = said[..said.len() - 1]
-        .iter()
-        .rposition(|one| *one == b'\n')
-        .unwrap()
-        + 1;
-    let Line::Seal(read) = seal::read(&said[cut..]) else {
-        panic!("the last write ends in its seal");
-    };
-    assert!(seal::holds(&key().verifying_key(), "dev_a", &read));
-    assert_eq!(read.seal.at, cut as u64);
-    assert_eq!(
-        read.seal.tip,
-        signing::tip_of(signing::NOTHING_BEFORE, &said[..cut])
-    );
-    assert_eq!(read.seal.n, 2 + LINKS.len() as u64);
+#[test]
+fn a_store_whose_last_lines_are_those_links_projects_opens_and_writes_on() {
+    let room = tempfile::tempdir().unwrap();
+    let root = room.path().join("store");
+    let active = ending_in_links(&root);
+    let kept = std::fs::read(&active).unwrap();
+    answers_for_every_byte(&active, 1 + LINKS.len());
+    assert_eq!(check_device(&root.join("dev_a")).unwrap(), 1);
+
+    let state = tisty_core::cache::project(&root, &room.path().join("cache")).unwrap();
+    assert_eq!(state.tasks.len(), 1);
+    signed(&root).append(task("after")).unwrap();
+
+    assert!(std::fs::read(&active).unwrap().starts_with(&kept));
+    assert_eq!(check_device(&root.join("dev_a")).unwrap(), 2);
+    assert_eq!(titles(&root), ["after", "before"]);
+    answers_for_every_byte(&active, 2 + LINKS.len());
 }
 
 #[test]
