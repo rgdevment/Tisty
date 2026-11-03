@@ -19,6 +19,10 @@ pub(crate) const SERVER: &str = match option_env!("TISTY_SHARE_SERVER") {
     Some(server) => server,
     None => "https://tisty.cl",
 };
+pub(crate) const ON: bool = match option_env!("TISTY_SHARE") {
+    Some(said) => matches!(said.as_bytes(), [b'1']),
+    None => false,
+};
 const API: &str = "/api/v1/";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(30);
 
@@ -48,7 +52,28 @@ pub(crate) struct Asking<'a> {
     pub(crate) body: Vec<u8>,
 }
 
-pub(crate) struct Net {
+pub(crate) fn switched(on: bool) -> Result<(), Refusal> {
+    match on {
+        true => Ok(()),
+        false => Err(Refusal::of("shareOff")),
+    }
+}
+
+pub(crate) struct Switched<W> {
+    pub(crate) on: bool,
+    pub(crate) wire: W,
+}
+
+impl<W: Wire> Wire for Switched<W> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        switched(self.on)?;
+        self.wire.send(asked)
+    }
+}
+
+pub(crate) type Net = Switched<Http>;
+
+pub(crate) struct Http {
     client: reqwest::blocking::Client,
     server: String,
 }
@@ -62,14 +87,17 @@ impl Net {
             .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| Refusal::of("shareOffline"))?;
-        Ok(Self {
-            client,
-            server: server.trim_end_matches('/').to_owned(),
+        Ok(Switched {
+            on: ON,
+            wire: Http {
+                client,
+                server: server.trim_end_matches('/').to_owned(),
+            },
         })
     }
 }
 
-impl Wire for Net {
+impl Wire for Http {
     fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
         let url = format!("{}{API}{}", self.server, asked.path);
         let method = reqwest::Method::from_bytes(asked.method.as_bytes())
@@ -158,6 +186,10 @@ pub(crate) fn refused(said: &Said) -> Refusal {
         Some("unsigned") => Refusal::of("shareUnsigned"),
         Some("too_large") => Refusal::of("shareTooBig"),
         Some("slow") => Refusal::of("shareSlow"),
+        Some("shares_full") => Refusal::about("shareFull", Limits::default().shares.to_string()),
+        Some("pictures_full") => {
+            Refusal::about("sharePicturesFull", Limits::default().pictures.to_string())
+        }
         // The server's own trouble, or no word at all: nothing the person can do but try again.
         Some("store" | "crowded" | "work_refused" | "no_randomness") | None => {
             Refusal::of("shareFailed")
@@ -227,12 +259,57 @@ pub(crate) fn pictured(
     text: &str,
     read: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> (String, Vec<(Kind, Vec<u8>)>) {
-    let code = tisty_core::beside::written_as_code(text);
-    let in_code = |at: usize| code.get(at).copied().unwrap_or(false);
     let mut said = String::with_capacity(text.len());
     let mut pictures: Vec<(Kind, Vec<u8>)> = Vec::new();
     let mut placed: Vec<String> = Vec::new();
     let mut rest = 0;
+    each_picture(text, |named| {
+        let place = match placed.iter().position(|one| one == named.target) {
+            Some(place) => place,
+            None => {
+                let made = read(named.target).and_then(|bytes| {
+                    tisty_share_proto::pictures::recompressed(&bytes, &Limits::default()).ok()
+                });
+                let Some(made) = made else {
+                    return false;
+                };
+                pictures.push(made);
+                placed.push(named.target.to_owned());
+                placed.len() - 1
+            }
+        };
+        said.push_str(&text[rest..named.starts]);
+        said.push_str(&format!("{PICTURE}{place}"));
+        rest = named.starts + named.written.len();
+        true
+    });
+    said.push_str(&text[rest..]);
+    (said, pictures)
+}
+
+pub(crate) fn pictures_in(text: &str, read: impl Fn(&str) -> Option<Vec<u8>>) -> usize {
+    let mut counted: Vec<&str> = Vec::new();
+    each_picture(text, |named| {
+        let known = counted.contains(&named.target);
+        let picture = || read(named.target).and_then(|bytes| Kind::of_picture(&bytes));
+        let taken = known || picture().is_some();
+        if taken && !known {
+            counted.push(named.target);
+        }
+        taken
+    });
+    counted.len()
+}
+
+struct Named<'a> {
+    starts: usize,
+    written: &'a str,
+    target: &'a str,
+}
+
+fn each_picture<'a>(text: &'a str, mut taken: impl FnMut(Named<'a>) -> bool) {
+    let code = tisty_core::beside::written_as_code(text);
+    let in_code = |at: usize| code.get(at).copied().unwrap_or(false);
     let mut from = 0;
     while let Some(found) = text[from..].find("![") {
         let at = from + found;
@@ -255,27 +332,14 @@ pub(crate) fn pictured(
         if !tisty_core::attach::names_an_attachment(target) {
             continue;
         }
-        let place = match placed.iter().position(|one| one == target) {
-            Some(place) => place,
-            None => {
-                let made = read(target).and_then(|bytes| {
-                    tisty_share_proto::pictures::recompressed(&bytes, &Limits::default()).ok()
-                });
-                let Some(made) = made else {
-                    continue;
-                };
-                pictures.push(made);
-                placed.push(target.to_owned());
-                placed.len() - 1
-            }
-        };
-        said.push_str(&text[rest..starts]);
-        said.push_str(&format!("{PICTURE}{place}"));
-        rest = starts + written.len();
-        from = closes;
+        if taken(Named {
+            starts,
+            written,
+            target,
+        }) {
+            from = closes;
+        }
     }
-    said.push_str(&text[rest..]);
-    (said, pictures)
 }
 
 pub(crate) fn sized(html: &str, pictures: &[(Kind, Vec<u8>)]) -> String {
@@ -689,6 +753,9 @@ fn heard(cache: &std::path::Path, revoked: &[Revocation]) {
 
 /// Tells the server in the background what it has not heard; what does not reach it is tried again the next round.
 pub(crate) fn revoke_untold(cache: std::path::PathBuf, revoked: Vec<Revocation>) {
+    if !ON {
+        return;
+    }
     // The told list is read off the caller's thread, which may be holding the session.
     tauri::async_runtime::spawn_blocking(move || {
         let revoked = untold(&cache, revoked);

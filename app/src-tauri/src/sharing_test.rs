@@ -529,6 +529,35 @@ fn the_pictures_the_words_name_go_in_the_envelope_and_the_rest_stay_as_written()
 }
 
 #[test]
+fn the_pictures_a_share_carries_are_counted_as_its_envelope_would_carry_them() {
+    let text = "# Viaje\n\n![Playa](attachments/playa-a1b2c3d4.png)\n\n![Otra vez](attachments/playa-a1b2c3d4.png)\n\n![Faro](attachments/faro-c3d4e5f6.png)\n\n![Plano](attachments/plano-b2c3d4e5.pdf)\n\n```md\n![En código](attachments/muelle-d4e5f6a7.png)\n```\n";
+    let read = |target: &str| match target {
+        "attachments/plano-b2c3d4e5.pdf" => Some(b"%PDF-1.7".to_vec()),
+        _ => Some(png(20)),
+    };
+    assert_eq!(pictures_in(text, read), 2);
+    assert_eq!(pictures_in(text, |_| None), 0);
+}
+
+#[test]
+fn a_share_past_its_level_is_told_with_how_many_it_may_have() {
+    let said = |word: &str| Said {
+        status: 409,
+        body: serde_json::json!({ "refused": word })
+            .to_string()
+            .into_bytes(),
+        revoked: None,
+    };
+    let full = refused(&said("shares_full"));
+    assert_eq!((full.code, full.name.as_deref()), ("shareFull", Some("2")));
+    let pictured = refused(&said("pictures_full"));
+    assert_eq!(
+        (pictured.code, pictured.name.as_deref()),
+        ("sharePicturesFull", Some("2"))
+    );
+}
+
+#[test]
 fn a_shared_document_carries_its_pictures_to_whoever_opens_it() {
     let here = Here::new();
     let (text, pictures) = pictured(
@@ -619,4 +648,50 @@ fn a_picture_named_with_spaces_or_angle_brackets_is_taken_and_a_stray_mark_is_no
     // Words beyond ASCII before and after stay whole.
     let (said, _) = pictured("Ñandú ![ñ](attachments/playa-a1b2c3d4.png) €\n", read);
     assert_eq!(said, "Ñandú ![ñ](tisty:picture/0) €\n");
+}
+
+struct Recording<'a> {
+    here: &'a Here,
+    sent: std::cell::Cell<usize>,
+}
+
+impl Wire for Recording<'_> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, Refusal> {
+        self.sent.set(self.sent.get() + 1);
+        self.here.send(asked)
+    }
+}
+
+#[test]
+fn with_sharing_switched_off_nothing_goes_out_and_every_step_is_refused() {
+    let here = Here::new();
+    let off = Switched {
+        on: false,
+        wire: Recording {
+            here: &here,
+            sent: Default::default(),
+        },
+    };
+    let refused = reserve(&off, SERVER, &Chosen::default()).unwrap_err();
+    assert_eq!(refused.code, "shareOff");
+    assert_eq!(off.wire.sent.get(), 0);
+    assert_eq!(switched(false).unwrap_err().code, "shareOff");
+
+    let on = Switched {
+        on: true,
+        wire: off.wire,
+    };
+    assert!(reserve(&on, SERVER, &Chosen::default()).is_ok());
+    assert_eq!(on.wire.sent.get(), 2);
+    assert!(switched(true).is_ok());
+}
+
+#[test]
+fn a_build_shares_only_when_it_was_switched_on() {
+    assert_eq!(ON, option_env!("TISTY_SHARE") == Some("1"));
+    let argv = vec![
+        "tisty".to_owned(),
+        "tisty://share?link=https%3A%2F%2Ftisty.cl%2FoVD0Idz0%23_YQqHycdmpMvpG7q2Gmd3IjAeSc_Rbn-RvCb7NuqEB8".to_owned(),
+    ];
+    assert_eq!(crate::received::links(&argv).len(), usize::from(ON));
 }

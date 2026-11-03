@@ -6,12 +6,12 @@ use tisty_share_proto::limits::Limits;
 use tisty_share_server::store::Store;
 
 use super::{
-    CITED_AT_MOST, Citable, Going, Signing, Spent, cited_in, held_here, held_with, let_go_of,
-    printed, reach_among, took_up,
+    Citable, Going, Reach, Signing, Spent, cited_at_most, cited_in, held_here, held_with,
+    let_go_of, printed, reach_among, took_up,
 };
-use crate::Session;
 use crate::sharing::here::{Here, voucher};
-use crate::sharing::{self, Chosen, SERVER, Words};
+use crate::sharing::{self, Asking, Chosen, SERVER, Said, Wire, Words};
+use crate::{Refusal, Session};
 
 fn going(file: &str, title: &str, page: Option<(u32, u32)>, text: &str) -> Going {
     Going {
@@ -135,6 +135,61 @@ fn a_share_that_could_not_put_up_what_it_cites_leaves_none_of_it_behind() {
         .unwrap()
         .holds;
     assert!(holds.is_empty());
+}
+
+struct Recording<'a> {
+    here: &'a Here,
+    said: std::cell::RefCell<Vec<String>>,
+}
+
+impl Wire for Recording<'_> {
+    fn send(&self, asked: Asking<'_>) -> Result<Said, crate::Refusal> {
+        let body = String::from_utf8_lossy(&asked.body).into_owned();
+        self.said
+            .borrow_mut()
+            .push(format!("{} {} {body}", asked.method, asked.path));
+        self.here.send(asked)
+    }
+}
+
+#[test]
+fn a_new_page_is_held_before_its_first_version_goes_up() {
+    let here = Here::new();
+    let root = sharing::reserve(&here, SERVER, &Chosen::default()).unwrap();
+    let wire = Recording {
+        here: &here,
+        said: Default::default(),
+    };
+    let page = going("p.md", "P", Some((1, 1)), "Página");
+    let members = took_up(&wire, &root, &[page], &signing(), 10, &mut Spent::default()).unwrap();
+    let link = &members[0].1.link;
+    let said = wire.said.borrow();
+    let held = said
+        .iter()
+        .position(|one| one.contains("\"do\":\"hold\"") && one.contains(link.as_str()))
+        .unwrap();
+    let up = said
+        .iter()
+        .position(|one| one.starts_with(&format!("PUT docs/{link}")))
+        .unwrap();
+    assert!(held < up, "{said:?}");
+}
+
+#[test]
+fn what_a_share_cites_past_its_level_stays_out_of_what_it_takes() {
+    let one = |file: &str| Citable {
+        doc: ulid::Ulid::generate(),
+        file: file.into(),
+        title: file.into(),
+        page: None,
+    };
+    let reach = || Reach {
+        pages: vec![one("p.md")],
+        cited: vec![one("a.md"), one("b.md"), one("c.md")],
+    };
+    let files = |all: Vec<Citable>| all.into_iter().map(|it| it.file).collect::<Vec<_>>();
+    assert_eq!(files(reach().taken(false).unwrap()), ["p.md"]);
+    assert_eq!(files(reach().taken(true).unwrap()), ["p.md", "a.md"]);
 }
 
 #[test]
@@ -331,15 +386,17 @@ fn paged(session: &mut Session, pages: &[&str]) -> (DocId, Vec<DocId>) {
 }
 
 #[test]
-fn a_document_with_more_pages_than_one_round_takes_still_reaches_them_all() {
+fn a_document_reaches_every_page_one_share_takes_in_their_order() {
     let (_tmp, mut session) = session();
-    let bodies: Vec<String> = (1..=12).map(|n| format!("# Capítulo {n}")).collect();
+    let most = cited_at_most();
+    let bodies: Vec<String> = (1..=most).map(|n| format!("# Capítulo {n}")).collect();
     let pages: Vec<&str> = bodies.iter().map(String::as_str).collect();
     let (root, made) = paged(&mut session, &pages);
-    let reached = reach_among(&session, root, &|_| true).unwrap();
-    assert_eq!(reached.pages.len(), 12);
+    let reached = reach_among(&session, root, &|_| true);
+    assert_eq!(reached.pages.len(), most);
     assert_eq!(reached.pages[0].doc, made[0]);
-    assert_eq!(reached.pages[11].page, Some((12, 12)));
+    let last = u32::try_from(most).unwrap();
+    assert_eq!(reached.pages[most - 1].page, Some((last, last)));
     assert!(reached.cited.is_empty());
 }
 
@@ -347,14 +404,117 @@ fn a_document_with_more_pages_than_one_round_takes_still_reaches_them_all() {
 fn a_page_with_no_words_yet_is_named_by_its_file_and_past_an_envelope_s_list_is_refused() {
     let (_tmp, mut session) = session();
     let (root, made) = paged(&mut session, &[""]);
-    let page = &reach_among(&session, root, &|_| true).unwrap().pages[0];
+    let page = &reach_among(&session, root, &|_| true).pages[0];
     assert_eq!(page.title, session.state.docs[&made[0]].file);
 
-    let bodies: Vec<String> = (0..=CITED_AT_MOST).map(|n| format!("# {n}")).collect();
+    let bodies: Vec<String> = (0..=cited_at_most()).map(|n| format!("# {n}")).collect();
     let pages: Vec<&str> = bodies.iter().map(String::as_str).collect();
     let (book, _) = paged(&mut session, &pages);
     assert_eq!(
-        reach_among(&session, book, &|_| true).unwrap_err().code,
+        reach_among(&session, book, &|_| true)
+            .taken(false)
+            .unwrap_err()
+            .code,
         "shareTooManyCited"
     );
+}
+
+#[test]
+fn a_person_s_own_shares_are_those_with_a_life_of_their_own_and_not_taken_from_someone_else() {
+    let (_tmp, mut session) = session();
+    let one = filed(&mut session, "# Uno");
+    let two = filed(&mut session, "# Dos");
+    let page = filed(&mut session, "# Página");
+    let lives = filed(&mut session, "# Citado");
+    let theirs = filed(&mut session, "# Ajeno");
+    shared_as(&mut session, one, "oneAa", vec![page, lives], false);
+    shared_as(&mut session, two, "twoBb", Vec::new(), false);
+    shared_as(&mut session, page, "pageCc", Vec::new(), true);
+    shared_as(&mut session, lives, "livesDd", Vec::new(), false);
+    shared_as(&mut session, theirs, "theirsEe", Vec::new(), false);
+    let d = Shared {
+        taken: true,
+        ..session.state.shares[&theirs].clone()
+    };
+    session.commit(Op::ShareDoc { id: theirs, d }).unwrap();
+
+    let mut own: Vec<DocId> = crate::answers::shares::own_shares(&session)
+        .into_iter()
+        .map(|(doc, _)| doc)
+        .collect();
+    own.sort();
+    let mut expected = vec![one, two, lives];
+    expected.sort();
+    assert_eq!(own, expected);
+}
+
+#[test]
+fn a_person_s_own_shares_leave_out_a_replaced_link_which_the_server_counts_until_it_is_stopped() {
+    let (_tmp, mut session) = session();
+    let one = filed(&mut session, "# Uno");
+    shared_as(&mut session, one, "firstAa", Vec::new(), false);
+    shared_as(&mut session, one, "secondBb", Vec::new(), false);
+    assert_eq!(session.state.replaced.len(), 1);
+    let own = crate::answers::shares::own_shares(&session);
+    assert_eq!(own.len(), 1);
+    assert_eq!(own[0].1.link, "secondBb");
+}
+
+#[test]
+fn a_blocked_or_gone_share_is_left_out_of_a_person_s_count_and_only_the_gone_one_forgotten() {
+    let here = Here::new();
+    let up = |text: &str| {
+        sharing::share(
+            &here,
+            SERVER,
+            text,
+            &[],
+            &Chosen::default(),
+            &voucher(),
+            None,
+        )
+        .unwrap()
+    };
+    let (blocked, gone) = (up("Uno"), up("Dos"));
+    let mut stored = done(here.share.borrow().store.doc(&blocked.link))
+        .unwrap()
+        .unwrap();
+    stored.blocked = Some(crate::sharing::here::T0);
+    let revision = stored.revision;
+    done(here.share.borrow().store.save(&stored, Some(revision))).unwrap();
+    sharing::stop(&here, &gone).unwrap();
+
+    let own = vec![
+        (ulid::Ulid::generate(), blocked),
+        (ulid::Ulid::generate(), gone.clone()),
+    ];
+    let standing = crate::answers::shares::standing_of(&here, &own);
+    assert_eq!(standing.blocked, vec![own[0].0]);
+    assert_eq!(standing.gone, vec![(own[1].0, gone.link)]);
+    assert_eq!(standing.counted(&own), 0);
+}
+
+#[test]
+fn a_save_turned_away_for_its_level_is_held_back_and_others_are_not() {
+    use crate::answers::versions::limiting;
+    let pictures = Refusal::about("sharePicturesFull", "2");
+    assert_eq!(
+        limiting(&pictures).map(|one| one.code),
+        Some("sharePicturesFull")
+    );
+    let pages = Refusal::about("shareTooManyCited", "2");
+    assert_eq!(
+        limiting(&pages).map(|one| one.code),
+        Some("shareTooManyCited")
+    );
+    assert!(limiting(&Refusal::of("shareOffline")).is_none());
+
+    let following = crate::answers::versions::Following::default();
+    following.held_back("a.md", limiting(&pictures));
+    assert_eq!(
+        following.held_back_of("a.md").and_then(|one| one.name),
+        Some("2".into())
+    );
+    following.held_back("a.md", None);
+    assert!(following.held_back_of("a.md").is_none());
 }

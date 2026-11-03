@@ -231,6 +231,16 @@ describe("the shared row", () => {
     expect(await screen.findByRole("button", { name: t("shareIt") })).toBeTruthy();
   });
 
+  it("is not there at all while sharing is switched off in this build", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, shareable: "off" };
+    panel(headed(2));
+    await waitFor(() => expect(row("details")).toBeTruthy());
+    await act(async () => {});
+    expect(row("shared")).toBeNull();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+  });
+
   it("offers nothing on someone else's document, and says why", async () => {
     ipc.card = null;
     ipc.facts = { bytes: 7, pages: 0, author: "Tisty", shareable: "notMine" };
@@ -317,6 +327,23 @@ describe("the shared row", () => {
     panel(headed(2));
     await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
     expect(row("shared").textContent).toContain(fill("sharedHolds", "3"));
+  });
+
+  it("says why the latest changes are not in the link when the server held them back", async () => {
+    const ends = Math.floor(Date.now() / 1000) + 20 * 86_400;
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: null,
+      gated: false,
+      version: 1,
+      info: { latest: 1, reads: 0, ends, paused: false, blocked: false, gated: false },
+      heldBack: { code: "sharePicturesFull", name: "2" },
+    };
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave");
+    expect(row("shared").textContent).toContain(
+      fill("sharedHeldBack", fill("sharePicturesFull", "2")),
+    );
   });
 
   it("pauses a share and resumes it, saying when a paused one goes", async () => {

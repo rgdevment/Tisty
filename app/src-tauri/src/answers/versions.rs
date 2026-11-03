@@ -17,6 +17,7 @@ pub struct Following {
     going: Mutex<HashSet<String>>,
     /// For each share whose holds last matched its words, the print of the cards those words had then.
     kept: Mutex<HashMap<String, String>>,
+    held_back: Mutex<HashMap<String, Refusal>>,
 }
 
 // Saved words go up once the person stops this long, so a burst of saves is one version within the server's allowance.
@@ -117,6 +118,25 @@ impl Following {
             .pop_back();
     }
 
+    pub(crate) fn held_back(&self, file: &str, why: Option<Refusal>) {
+        let mut held_back = self
+            .held_back
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        match why {
+            Some(why) => held_back.insert(file.to_owned(), why),
+            None => held_back.remove(file),
+        };
+    }
+
+    pub(crate) fn held_back_of(&self, file: &str) -> Option<Refusal> {
+        let held_back = self
+            .held_back
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        held_back.get(file).cloned()
+    }
+
     fn resting(&self, file: &str) -> bool {
         let saves = self.saves.lock().unwrap_or_else(PoisonError::into_inner);
         saves.get(file).is_none_or(|(_, at)| at.elapsed() >= QUIET)
@@ -177,6 +197,9 @@ pub(crate) fn follows(session: &Session, file: &str) -> bool {
 
 /// Puts a shared document's saved words up as a new version once its saves rest (decision 48).
 pub(crate) fn follow(app: &tauri::AppHandle, file: &str) {
+    if !sharing::ON {
+        return;
+    }
     use tauri::Manager;
     let mine = {
         let following = app.state::<Following>();
@@ -213,7 +236,9 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
         return;
     };
     // What the words reach now goes up before them, so their envelope can name it.
-    if let Err(refused) = super::citing::kept_up(app, file).await {
+    let kept_up = super::citing::kept_up(app, file).await;
+    let limited = kept_up.as_ref().err().and_then(limiting);
+    if let Err(refused) = kept_up {
         // The hour or another round was in the way: these words try again once it rests, rather than at the next save.
         if refused.code == "shareSlow" {
             follow(app, file);
@@ -252,6 +277,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
     let print = super::citing::printed(&text, &cited);
     // Words already up, from here or another of the person's machines, are not put up again.
     if print == shared.print {
+        following.held_back(file, limited);
         return;
     }
     // A share from before prints were kept counts its words as up; what was owed then goes with the next save.
@@ -322,6 +348,7 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
             }
         }
     };
+    following.held_back(file, done.as_ref().err().and_then(limiting).or(limited));
     if let Err(refused) = done {
         tisty_core::witness::note(
             tisty_core::witness::channel::WINDOW,
@@ -332,6 +359,14 @@ async fn followed(app: &tauri::AppHandle, file: &str) {
             )],
         );
     }
+}
+
+pub(crate) fn limiting(refused: &Refusal) -> Option<Refusal> {
+    matches!(
+        refused.code,
+        "sharePicturesFull" | "shareTooManyCited" | "shareTooBig"
+    )
+    .then(|| refused.clone())
 }
 
 /// Brings the newest version someone else put up of a share this store holds, beside the person's own words (decision 9).
@@ -440,6 +475,9 @@ fn forbidden(refused: &Refusal) -> bool {
 
 /// At the start and with each round: brings every share's versions put up by others, and puts up what is owed.
 pub(crate) async fn brought_all(app: &tauri::AppHandle) {
+    if !sharing::ON {
+        return;
+    }
     use tauri::Manager;
     let following = app.state::<Following>();
     let files: Vec<String> = {

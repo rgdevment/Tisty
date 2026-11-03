@@ -695,7 +695,18 @@ const en = {
   shareRefused: "Tisty Share did not accept it. Try again in a moment.",
   shareAlready: "This document is already shared.",
   shareTooManyCited:
-    "It cites more documents than one share can take along. Share it without what it cites, or split it.",
+    "It has more pages than one share can take along: Tisty Share is free and non-profit, so for now one share takes up to {name} pages and cited documents. Join some of its pages together, or move some out of it, to share it.",
+  shareFull:
+    "Tisty Share is free and non-profit, so for now each person shares up to {name} documents privately at a time. Stop sharing one to share another.",
+  shareFullCount: "You already share {name} documents privately:",
+  shareOff: "Sharing is not available in this version of Tisty yet.",
+  shareStopAsk: "Stop sharing «{name}»? Its link stops working for everyone who has it.",
+  sharedHeldBack: "Your latest changes are not in the link yet. {name}",
+  sharePicturesFull:
+    "Tisty Share is free and non-profit, so for now one share carries up to {name} pictures, counting those of its pages and of what it cites. Take some out to share it.",
+  sharePicturesCount: "With its pages and what it cites, it carries {name} pictures.",
+  shareCitedPast:
+    "One share takes up to {name} pages and cited documents, so only {other} of these go; the rest read as plain text.",
   shareHeld: "It opens through the share that cites it, which is where a password goes.",
   shareFailed: "Tisty Share did not answer as expected. Try again in a moment.",
   shareOpenGated:
@@ -3516,7 +3527,19 @@ const es: Catalog = {
   shareRefused: "Tisty Share no lo aceptó. Vuelve a intentarlo en un momento.",
   shareAlready: "Este documento ya está compartido.",
   shareTooManyCited:
-    "Cita más documentos de los que un compartido puede llevar. Compártelo sin lo que cita, o divídelo.",
+    "Tiene más páginas de las que un compartido puede llevar: Tisty Share es gratuito y sin fines de lucro, así que por ahora cada compartido lleva hasta {name} páginas y documentos citados. Une algunas de sus páginas, o saca algunas del documento, para compartirlo.",
+  shareFull:
+    "Tisty Share es gratuito y sin fines de lucro, así que por ahora cada persona comparte en privado hasta {name} documentos a la vez. Deja de compartir uno para compartir otro.",
+  shareFullCount: "Ya compartes en privado {name} documentos:",
+  shareOff: "Compartir todavía no está disponible en esta versión de Tisty.",
+  shareStopAsk:
+    "¿Dejar de compartir «{name}»? Su link deja de funcionar para todos los que lo tienen.",
+  sharedHeldBack: "Tus últimos cambios todavía no están en el link. {name}",
+  sharePicturesFull:
+    "Tisty Share es gratuito y sin fines de lucro, así que por ahora cada compartido lleva hasta {name} imágenes, contando las de sus páginas y las de lo que cita. Quita algunas para compartirlo.",
+  sharePicturesCount: "Con sus páginas y lo que cita, lleva {name} imágenes.",
+  shareCitedPast:
+    "Un compartido lleva hasta {name} páginas y documentos citados, así que solo van {other} de estos; el resto se lee como texto.",
   shareHeld: "Se abre desde el compartido que lo cita, que es donde va la clave.",
   shareFailed: "Tisty Share no respondió como se esperaba. Vuelve a intentarlo en un momento.",
   shareOpenGated: "Este documento pide una clave. Quien lo compartió te la dio aparte del link.",
