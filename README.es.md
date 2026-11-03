@@ -661,14 +661,10 @@ nada. Si existe y presionas el botón que te la ofrece, vienen dos más — el
 archivo que nombra la versión y el instalador — y Tisty se niega a instalar nada
 que no esté firmado con una clave compilada dentro de la copia que ya tienes.
 
-**¿Conoces Tisty Share?** Es un servicio aparte para compartir un documento con
-un link anónimo y cifrado de punta a punta, al que llegas desde el botón
-*Compartir* de Tisty solo si tú lo eliges. Tiene un servidor y no hace las
-promesas de arriba: qué guarda y para qué está en su propio
-[README](share/README.es.md), sus [términos](share/TERMINOS.md), su
-[política de privacidad](share/PRIVACIDAD.md) y su
-[política de seguridad](share/SEGURIDAD.md). Todavía no está encendido en
-Tisty: hasta que lo esté, Tisty nunca le habla.
+**Folio by Tisty** es un servicio aparte para compartir un documento con un
+link anónimo y cifrado de punta a punta, con sus propios términos y políticas
+en [su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Tisty
+no comparte, y nunca le habla.
 
 ## Dos equipos, si tienes dos
 

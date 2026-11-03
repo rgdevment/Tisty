@@ -1,12 +1,11 @@
 # Privacy policy
 
-**Last updated:** October 26, 2026
+**Last updated:** November 3, 2026
 
 ## The short version
 
-Tisty does not collect anything, and nothing you write goes to a server of ours
-unless you share it by link. No account, no telemetry, no analytics, no crash
-reporting.
+Tisty does not collect anything and has no server to transmit to. No account,
+no telemetry, no analytics, no crash reporting.
 
 It makes **one** network request on its own — when it opens, and once a day
 after that: it downloads a small file to see whether a newer version exists.
@@ -27,11 +26,6 @@ Since 1.36, what Tisty keeps in any of those three can be encrypted with a
 24-word phrase only you hold, so the provider stores files it cannot read. That
 too runs only if you turn it on, and what it hides and what it does not is
 described below.
-
-Tisty can also share a document by link through Tisty Share, a separate service
-with a server we run. It talks to that server only for what you shared, after
-you press *Share*, and once more if you take a machine's key back; what it
-sends is described below, and what the service keeps is in its own policy.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -67,7 +61,6 @@ What you can choose, and what each implies:
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive |
-| **A document you share by link, through Tisty Share** | Whoever has the link, and whoever they pass it to. Tisty Share keeps a copy sealed on your machine, which it cannot read, until it expires, and sees its size, its times and how often it is read |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -77,11 +70,9 @@ directly is the one way that changes this, and each provider is described in
 its own section below. Encrypting is offered only for those clouds, never for a
 folder.
 
-There is no option where Tisty hosts your tasks, notes or documents, and no
-paid tier that changes this. **The one server we run is Tisty Share**, and it
-holds only what you share by link, sealed on your machine so it cannot read it,
-until it expires. For everything else there is nothing on our side to breach,
-subpoena, sell, or lose.
+There is no option where Tisty hosts anything. There is no paid tier that
+changes this. **Tisty talks to no server of ours**, so there is nothing on our
+side to breach, subpoena, sell, or lose.
 
 Choosing a destination is choosing who you trust. Tisty makes that choice
 visible instead of making it for you.
@@ -185,8 +176,11 @@ defence, because the remedy barely exists.
 
 ## What Tisty does not do
 
-- Does not send data to any server you did not choose: your cloud if you
-  connect one, Tisty Share if you share a document.
+- Does not send data to any server you did not choose: only your cloud, if you
+  connect one.
+- Does not share documents by link, and never talks to
+  [Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty), the separate
+  service that does.
 - Does not create accounts or profiles.
 - Does not use cookies, analytics, advertising, or tracking of any kind.
 - Does not share anything with third parties.
@@ -197,8 +191,7 @@ defence, because the remedy barely exists.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below and,
   only if you connect Google Drive, OneDrive or a WebDAV server, the requests
-  that sync with it, and, only for a document you shared by link, the requests
-  that keep that link up to date.
+  that sync with it.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -468,30 +461,9 @@ happens on its own:
 The part worth knowing before you open it: **whatever that assistant reads, it
 takes with it.** If it runs against a service, then the moment you ask it to
 look, what it looks at is on its way to that service. Tisty still sends
-nothing — but this door is real, and besides syncing and sharing it is the only
-thing here that can carry your data off this machine. Which is why it stays
-shut until you open it, and why closing it is one click.
-
-## Sharing by link, if you choose to
-
-*Share* is not switched on in Tisty yet. Until it is, Tisty never talks to Tisty
-Share, and nothing in this section happens.
-
-Tisty's *Share* button hands a document to Tisty Share, a separate service at
-`tisty.cl`, on a server we run. What the service keeps, why and for how long is
-in [its own privacy policy](share/PRIVACY.md); what Tisty itself sends it is
-here.
-
-| | |
-| :--- | :--- |
-| **When** | When you press *Share*. After that, only for a document you shared: a new version a couple of minutes after you stop saving, if you chose that the link follows what you save; a check for a newer version when Tisty opens and after each round of syncing; and what you change under *Shared* — password, expiry, pause. Stopping a share, or deleting a shared document, tells the service to let it go |
-| **What it sends** | The document, its pages and the documents it cites, each sealed on your machine with XChaCha20-Poly1305 under a key that travels only in the link, after the `#`, and never reaches the server. The pictures it names go inside, cleaned first: no location, no comments, nothing hidden after them. Each version carries your machine's signature and its certificate, and the name you chose to sign with, if any. The edit and manage tokens go as `Bearer`, and a password in a header, never in the address |
-| **What it does not send** | Your other documents, your tasks, your device identifier, or the key that opens what it sends |
-| **Who it talks to** | `tisty.cl` only, over HTTPS, with the user agent `tisty/<version>`. The server sees the address the request comes from, as any server does |
-| **The one time without pressing *Share*** | If you keep a 24-word phrase and take a machine's key back, Tisty tells Tisty Share, so a stolen key can no longer sign a share in your name. It sends that key's public part, signed by your root key, and nothing else |
-
-If you never press *Share* and never take a key back, Tisty never talks to
-Tisty Share.
+nothing — but this door is real, and besides syncing it is the only thing here
+that can carry your data off this machine. Which is why it stays shut until you
+open it, and why closing it is one click.
 
 ## Children's privacy
 

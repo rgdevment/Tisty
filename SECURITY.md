@@ -13,8 +13,8 @@ and nowhere you did not choose.
 - **Email** <rgdevment@tisty.app>, subject `[SECURITY] short description`.
 - **GitHub Security Advisory** — the *Security* tab, *Report a vulnerability*.
 
-A vulnerability in Tisty Share — tisty.cl, its API, the page that reads a link
-or the envelope format — goes by [its own security policy](share/SECURITY.md).
+A vulnerability in Folio by Tisty, the separate service for sharing by link,
+goes by the security policy in [its own repository](https://github.com/rgdevment/Folio-by-Tisty).
 
 Useful in a report: what an attacker could do and to whom, steps to reproduce,
 the affected version, and your operating system. A proof of concept helps but
@@ -30,14 +30,13 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry. Nothing you keep sits on a server of ours: the one service we run,
-  Tisty Share, holds only what you share by link, sealed on your machine so it
-  cannot read it. Tisty makes one request of its own — a daily GET for a
-  version manifest, carrying nothing but the version you are running — and two
-  more only if you press the button that offers you an update. A copy from the
-  Microsoft Store makes neither request: it asks Windows what the Store has for
-  it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
-  headers.
+  telemetry, no remote server. Tisty talks to no service of ours, so nothing
+  you keep sits on our side to breach. Tisty makes one request of its own — a
+  daily GET for a version manifest, carrying nothing but the version you are
+  running — and two more only if you press the button that offers you an
+  update. A copy from the Microsoft Store makes neither request: it asks Windows
+  what the Store has for it. It is written out in full in
+  [PRIVACY.md](PRIVACY.md), down to the headers.
 - **A cloud account is reached only if you choose it.** Tisty can sync straight
   with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
   WebDAV server of your own since 1.32; Dropbox is reached only through a folder
