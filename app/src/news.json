@@ -1083,5 +1083,64 @@
         "said": "the small icon is drawn anew. On a Mac it is a single colour, like the rest of the menu bar; on Windows it turns white or black as soon as you change the taskbar's colour, even when nothing else changes."
       }
     ]
+  },
+  {
+    "version": "1.41.0",
+    "headline": {
+      "es": "Un documento en varios idiomas, como uno solo",
+      "en": "One document in several languages, as one"
+    },
+    "es": [
+      {
+        "title": "Varios idiomas, una sola fila",
+        "said": "cada idioma es un documento propio, y Tisty los muestra como uno solo, en el idioma de la app. Un selector en el panel lateral, o sobre la hoja si cerraste el panel, te lleva a otro idioma en la misma sección."
+      },
+      {
+        "title": "Traducir, unir y separar",
+        "said": "en el menú del documento, «Traducir a…» escribe una copia lista para traducir, «Unir con su otro idioma…» junta dos documentos que ya tienes y «Separar de sus idiomas» los vuelve a separar."
+      },
+      {
+        "title": "Siempre juntos",
+        "said": "mover, archivar, bloquear y borrar actúan sobre todos los idiomas de la carpeta, y el papel y las hojas pasan de un idioma a los otros. La búsqueda los encuentra una sola vez."
+      },
+      {
+        "title": "La guía, en dos idiomas",
+        "said": "la guía de bienvenida viene en español y en inglés como un solo documento, y las guías antiguas se juntan solas al abrir Tisty."
+      },
+      {
+        "title": "También para tus asistentes",
+        "said": "un asistente conectado puede escribir un documento como traducción de otro, unir o separar sus idiomas, y sabe en qué idiomas está cada uno."
+      },
+      {
+        "title": "Más claro y más seguro",
+        "said": "Ajustes cuenta para qué sirven la frase de 24 palabras y la llave: cifrar tu nube y reconocer tus equipos. Y un texto con enlaces muy anidados ya no tarda en abrir."
+      }
+    ],
+    "en": [
+      {
+        "title": "Several languages, one row",
+        "said": "each language is a document of its own, and Tisty shows them as one, in the app's language. A switch in the side panel, or above the sheet when the panel is shut, takes you to another language at the same section."
+      },
+      {
+        "title": "Translate, join and part",
+        "said": "in the document's menu, «Translate into…» writes a copy ready to translate, «Join with its other language…» brings together two documents you already have, and «Take out of its languages» parts them again."
+      },
+      {
+        "title": "Always together",
+        "said": "moving, archiving, locking and deleting act on every language in the folder, and paper and sheets follow from one language to the others. Search finds them only once."
+      },
+      {
+        "title": "The guide, in two languages",
+        "said": "the welcome guide comes in Spanish and English as one document, and older guides come together on their own when Tisty opens."
+      },
+      {
+        "title": "For your assistants too",
+        "said": "a connected assistant can write a document as a translation of another, join or part its languages, and knows which languages each one is in."
+      },
+      {
+        "title": "Clearer and safer",
+        "said": "Settings tells what the 24-word phrase and the key are for: encrypting your cloud and knowing your computers. And a text with deeply nested links no longer takes long to open."
+      }
+    ]
   }
 ]
