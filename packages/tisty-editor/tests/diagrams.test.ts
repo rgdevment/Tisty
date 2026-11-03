@@ -102,6 +102,19 @@ describe("a diagram on a page", () => {
     expect(drawn.sources).toEqual([]);
   });
 
+  it("names its markers apart from another drawing's, so a line never reaches a hidden one", async () => {
+    const flow = "flowchart TD\n  Apart --> Named\n";
+    const markers = (svg: string | null) =>
+      [...(svg ?? "").matchAll(/<marker id="([^"]+)"/g)].map((one) => one[1]);
+
+    const light = await drawing(flow, false);
+    const dark = await drawing(flow, true);
+
+    expect(markers(light).length).toBeGreaterThan(0);
+    expect(markers(light).filter((one) => markers(dark).includes(one))).toEqual([]);
+    expect(markers(light).some((one) => light?.includes(`marker-end="url(#${one})"`))).toBe(true);
+  });
+
   it("is not drawn when it is empty or too long to lay out", async () => {
     expect(await drawing("   ", false)).toBeNull();
     expect(await drawing(`graph TD\n${"A-->B\n".repeat(8000)}`, false)).toBeNull();

@@ -1,5 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
+import { once } from "node:events";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { createServer as serving } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
@@ -246,66 +248,66 @@ const bodyOf = async (request) => {
   return Buffer.concat(parts).toString();
 };
 
+const stopped = async (browser) => {
+  if (browser.pid === undefined || browser.exitCode !== null || browser.signalCode !== null) return;
+  const gone = once(browser, "exit");
+  browser.kill();
+  await gone;
+};
+
 // Mermaid lays out only in a browser, so one draws each diagram here, once, in both looks.
-const drawnInChrome = (sources, files, page) =>
-  new Promise((done, failed) => {
-    const chrome = CHROMES.find((one) => one && existsSync(one));
-    if (!chrome) throw new Error("the guide's diagrams are drawn in Chrome: none found, name one in CHROME_BIN");
-    const profile = mkdtempSync(join(tmpdir(), "tisty-guide-"));
-    let browser = null;
-    let clock = null;
-    const server = serving(async (request, response) => {
-      const { pathname } = new URL(request.url, "http://localhost");
-      const file = join(files, pathname);
-      if (pathname === "/") response.writeHead(200, { "content-type": "text/html" }).end(page);
-      else if (pathname === "/sources") response.end(JSON.stringify(sources));
-      else if (pathname === "/drawn") {
-        const said = await bodyOf(request);
-        response.writeHead(204).end();
-        finish(() => done(new Map(JSON.parse(said).map((one) => [one.source, one]))));
-      } else if (existsSync(file) && statSync(file).isFile())
-        response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-      else response.writeHead(404).end();
-    });
-    const finish = (settle) => {
-      clearTimeout(clock);
-      server.closeAllConnections();
-      server.close();
-      browser.removeAllListeners("exit");
-      browser.once("exit", () => {
-        rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
-        settle();
-      });
-      if (browser.exitCode !== null || !browser.kill()) browser.emit("exit");
-    };
-    server.listen(0, "127.0.0.1", () => {
-      // The page is this script's own, served from this machine, and a runner may not allow Chrome its sandbox.
-      const flags = ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--window-size=800,600", `--user-data-dir=${profile}`];
-      browser = spawn(chrome, [...flags, `http://127.0.0.1:${server.address().port}/`], { stdio: "ignore" });
-      browser.once("exit", () => finish(() => failed(new Error("Chrome closed before drawing the guide's diagrams"))));
-      clock = setTimeout(() => finish(() => failed(new Error("Chrome did not finish the guide's diagrams"))), 120_000);
-    });
+const drawnInChrome = async (sources, files, page) => {
+  const chrome = CHROMES.find((one) => one && existsSync(one));
+  if (!chrome) throw new Error("the guide's diagrams are drawn in Chrome: none found, name one in CHROME_BIN");
+  const answer = Promise.withResolvers();
+  const server = serving(async (request, response) => {
+    const { pathname } = new URL(request.url, "http://localhost");
+    const file = join(files, pathname);
+    if (pathname === "/") response.writeHead(200, { "content-type": "text/html" }).end(page);
+    else if (pathname === "/sources") response.end(JSON.stringify(sources));
+    else if (pathname === "/drawn") {
+      const said = await bodyOf(request);
+      response.writeHead(204).end();
+      answer.resolve(new Map(JSON.parse(said).map((one) => [one.source, one])));
+    } else if (pathname === "/failed") {
+      const said = await bodyOf(request);
+      response.writeHead(204).end();
+      answer.reject(new Error(`Chrome could not draw the guide's diagrams: ${said}`));
+    } else if (existsSync(file) && statSync(file).isFile())
+      response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
+    else response.writeHead(404).end();
   });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const profile = mkdtempSync(join(tmpdir(), "tisty-guide-"));
+  // The page is this script's own, served from this machine, and a runner may not allow Chrome its sandbox.
+  const flags = ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--window-size=800,600", `--user-data-dir=${profile}`];
+  let browser = null;
+  const clock = setTimeout(() => answer.reject(new Error("Chrome did not finish the guide's diagrams")), 120_000);
+  try {
+    browser = spawn(chrome, [...flags, `http://127.0.0.1:${server.address().port}/`], { stdio: "ignore" });
+    browser.once("error", answer.reject);
+    browser.once("exit", () => answer.reject(new Error("Chrome closed before drawing the guide's diagrams")));
+    return await answer.promise;
+  } finally {
+    clearTimeout(clock);
+    server.closeAllConnections();
+    server.close();
+    if (browser) await stopped(browser);
+    // Chrome's helpers can outlive it, and what they leave in the temp folder is no reason to fail a build.
+    await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(() => {});
+  }
+};
 
 const waitingIn = (document) => [...document.querySelectorAll("figure.diagram > pre > code")];
 
-// Drawings repeat their markers' names, and a reference reaches the first in the page, which may be in the hidden look.
-const apart = (svg, mark) => {
-  const named = new Set(
-    [...svg.matchAll(/url\((?:["']|&quot;)?#([^"')&]+)|href="#([^"]+)"/g)].map((one) => one[1] ?? one[2]),
-  );
-  return svg.replace(/(\sid="|url\((?:["']|&quot;)?#|href="#)([^"')&]+)/g, (whole, before, name) =>
-    named.has(name) ? `${before}${name}-${mark}` : whole,
-  );
-};
-
-const sheetFor = (document, look, svg, at) => {
+const sheetFor = (document, look, svg) => {
   const sheet = document.createElement("div");
   sheet.className = "diagram-sheet";
   sheet.dataset.look = look;
   // The example's source, written beside it, is what a search should find.
   sheet.setAttribute("data-pagefind-ignore", "");
-  sheet.innerHTML = apart(svg, `${look}-${at}`);
+  sheet.innerHTML = svg;
   return sheet;
 };
 
@@ -319,12 +321,12 @@ const drawDiagrams = async (pages, files, page) => {
   const unreadable = sources.filter((one) => !drawings.get(one)?.light || !drawings.get(one)?.dark);
   if (unreadable.length) throw new Error(`diagrams that draw nothing:\n${unreadable.join("\n---\n")}`);
   for (const { one, document } of held) {
-    waitingIn(document).forEach((code, at) => {
+    for (const code of waitingIn(document)) {
       const figure = code.closest("figure");
       const { light, dark } = drawings.get(code.textContent);
-      figure.replaceChildren(sheetFor(document, "light", light, at), sheetFor(document, "dark", dark, at));
+      figure.replaceChildren(sheetFor(document, "light", light), sheetFor(document, "dark", dark));
       figure.classList.add("drawn");
-    });
+    }
     one.html = document.querySelector("article").outerHTML;
   }
 };
@@ -381,7 +383,7 @@ await bundled({
 await drawDiagrams(
   [...built.values()].flat(),
   out,
-  `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body><script type="module" src="/${DRAWER}/drawer.js"></script></body></html>`,
+  `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body><script type="module">import("/${DRAWER}/drawer.js").then((one)=>one.drawAll()).catch((error)=>fetch("/failed",{method:"POST",body:String(error?.stack??error)}))</script></body></html>`,
 );
 rmSync(join(out, DRAWER), { recursive: true });
 for (const language of LANGUAGES) {

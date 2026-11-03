@@ -193,32 +193,36 @@ ${urls.join("\n")}
 const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>document.querySelectorAll("iframe.widget");const tell=(w)=>w&&w.postMessage({tisty:"theme",dark:r.classList.contains("dark")},"*");addEventListener("message",(e)=>{if(!e.data||e.data.tisty!=="height")return;for(const f of frames())if(f.contentWindow===e.source){f.style.height=Math.min(Math.max(e.data.h,40),2000)+"px";tell(e.source)}});new MutationObserver(()=>{for(const f of frames())tell(f.contentWindow)}).observe(r,{attributes:true,attributeFilter:["class"]})})()</script>`;
 
 // Search weighs more than a page, so it comes when a reader reaches for the box, and keeps what they already typed.
-const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const waiting=box.querySelector("input");const landed=(one)=>new Promise((done)=>{one.onload=done});const load=async()=>{box.removeEventListener("pointerenter",load);box.removeEventListener("focusin",load);const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";const both=Promise.all([landed(sheet),landed(code)]);document.head.append(sheet,code);await both;const typed=waiting.value;const held=document.activeElement===waiting;waiting.remove();new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});const field=box.querySelector("input");if(!field)return;if(typed){field.value=typed;field.dispatchEvent(new Event("input",{bubbles:true}))}if(held)field.focus()};box.addEventListener("pointerenter",load);box.addEventListener("focusin",load)})()</script>`;
+const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const waiting=box.querySelector("input");const landed=(one)=>new Promise((done,failed)=>{one.onload=done;one.onerror=failed});const load=async()=>{box.removeEventListener("pointerenter",load);box.removeEventListener("focusin",load);const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";const both=Promise.all([landed(sheet),landed(code)]);document.head.append(sheet,code);try{await both}catch{box.remove();return}const typed=waiting.value;const held=document.activeElement===waiting;waiting.remove();new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});const field=box.querySelector("input");if(!field)return;if(typed){field.value=typed;field.dispatchEvent(new Event("input",{bubbles:true}))}if(held)field.focus()};box.addEventListener("pointerenter",load);box.addEventListener("focusin",load)})()</script>`;
 
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
 
-// Each page is named because Pages joins the values of every rule that matches, and `/*` would also match the files below.
+const YEAR = "public, max-age=31536000, immutable";
+const DAY = "public, max-age=86400";
 const SHORT = "public, max-age=300, stale-while-revalidate=3600";
+// Pages stops at this many rules without a word, and the pages past it would lose their cache.
+const MOST_RULES = 100;
+
+const rule = (path, cache) => `${path}\n  Cache-Control: ${cache}`;
 
 // The logo's name carries its print, so it can be kept for a year; a picture for a day; a page a moment, as a release replaces it.
-export const headers = (logo, built) => `/${logo}
-  Cache-Control: public, max-age=31536000, immutable
-/fonts/*
-  Cache-Control: public, max-age=31536000, immutable
-/tisty.svg
-  Cache-Control: public, max-age=86400
-/rina.jpg
-  Cache-Control: public, max-age=86400
-/es/tisty.svg
-  Cache-Control: public, max-age=86400
-/es/rina.jpg
-  Cache-Control: public, max-age=86400
-${LANGUAGES.flatMap((language) =>
-  built
-    .get(language.code)
-    .map((page) => `/${language.dir}${page.slug === "index" ? "" : page.slug}\n  Cache-Control: ${SHORT}`),
-).join("\n")}
-`;
+// Each page is named because Pages joins the values of every rule that matches, and `/*` would also match the files above it.
+export const headers = (logo, built) => {
+  const rules = [
+    rule(`/${logo}`, YEAR),
+    rule("/fonts/*", YEAR),
+    rule("/tisty.svg", DAY),
+    rule("/rina.jpg", DAY),
+    rule("/es/tisty.svg", DAY),
+    rule("/es/rina.jpg", DAY),
+    ...LANGUAGES.flatMap((language) =>
+      built.get(language.code).map((page) => rule(`/${language.dir}${page.slug === "index" ? "" : page.slug}`, SHORT)),
+    ),
+  ];
+  if (rules.length > MOST_RULES)
+    throw new Error(`the guide needs ${rules.length} header rules, and Pages applies ${MOST_RULES}`);
+  return `${rules.join("\n")}\n`;
+};
 
 export const robots = `User-agent: *\nAllow: /\n\nSitemap: ${SITE}sitemap.xml\n`;
