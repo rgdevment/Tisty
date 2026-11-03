@@ -1121,7 +1121,7 @@ impl State {
     }
 
     /// What goes out as mine rests on the key that vouched for the machine that made it, since any alias can be taken (decision 70).
-    pub fn mine_to_share(
+    pub fn mine_by_key(
         &self,
         kept: &crate::model::Kept,
         me: &tisty_share_proto::identity::Person,
@@ -1145,7 +1145,7 @@ impl State {
         me: Option<&tisty_share_proto::identity::Person>,
     ) -> bool {
         match me {
-            Some(me) => !self.mine_to_share(kept, me),
+            Some(me) => !self.mine_by_key(kept, me),
             None => kept.guest || !self.mine(kept),
         }
     }
