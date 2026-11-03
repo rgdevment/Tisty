@@ -125,14 +125,14 @@ fn the_server_reads_every_limit_and_the_sender_without_the_key() {
     assert_eq!(
         kinds,
         vec![
-            Kind::Text,
+            Kind::Config,
             Kind::Signature,
             Kind::Html,
-            Kind::Config,
-            Kind::Png
+            Kind::Png,
+            Kind::Text
         ]
     );
-    assert_eq!(manifest.parts[4].plain(), 300);
+    assert_eq!(manifest.parts[3].plain(), 300);
     assert!(holds_for(arrived.sender(&[]), &mario));
     assert!(
         !String::from_utf8_lossy(&bytes).contains("hola"),
@@ -309,7 +309,7 @@ fn a_manifest_over_the_limits_is_refused_by_the_server_before_anything_is_kept()
         from: None,
         head: URL_SAFE_NO_PAD.encode([0u8; HEAD]),
         commit: URL_SAFE_NO_PAD.encode([0u8; 32]),
-        parts: [Kind::Text, Kind::Html, Kind::Config]
+        parts: [Kind::Config, Kind::Html]
             .map(|kind| Part {
                 kind,
                 size: 20,
@@ -321,6 +321,11 @@ fn a_manifest_over_the_limits_is_refused_by_the_server_before_anything_is_kept()
                 size: 30,
                 len: 14,
             }))
+            .chain([Part {
+                kind: Kind::Text,
+                size: 20,
+                len: 4,
+            }])
             .collect(),
     };
     let written = serde_json::to_vec(&manifest).unwrap();
@@ -586,7 +591,7 @@ fn sizes_near_the_largest_number_never_overflow_a_server_with_no_limits() {
         commit: URL_SAFE_NO_PAD.encode([0u8; 32]),
         parts: vec![
             Part {
-                kind: Kind::Text,
+                kind: Kind::Config,
                 size: 20,
                 len: 4,
             },
@@ -596,19 +601,19 @@ fn sizes_near_the_largest_number_never_overflow_a_server_with_no_limits() {
                 len: 4,
             },
             Part {
-                kind: Kind::Config,
+                kind: Kind::Png,
+                size: u64::MAX,
+                len: u64::MAX - TAG as u64,
+            },
+            Part {
+                kind: Kind::Png,
+                size: u64::MAX,
+                len: u64::MAX - TAG as u64,
+            },
+            Part {
+                kind: Kind::Text,
                 size: 20,
                 len: 4,
-            },
-            Part {
-                kind: Kind::Png,
-                size: u64::MAX,
-                len: u64::MAX - TAG as u64,
-            },
-            Part {
-                kind: Kind::Png,
-                size: u64::MAX,
-                len: u64::MAX - TAG as u64,
             },
         ],
     };
@@ -860,6 +865,7 @@ fn cited(doc: &str, id: &str, page: Option<(u32, u32)>) -> Cited {
         key: key(4).to_text().to_string(),
         title: format!("Sobre {doc}"),
         page,
+        lang: None,
     }
 }
 
@@ -888,12 +894,12 @@ fn what_the_words_cite_travels_sealed_between_the_signature_and_the_pictures() {
     assert_eq!(
         kinds,
         vec![
-            Kind::Text,
+            Kind::Config,
             Kind::Signature,
             Kind::Cited,
             Kind::Html,
-            Kind::Config,
-            Kind::Png
+            Kind::Png,
+            Kind::Text
         ]
     );
     assert_eq!(arrived.manifest().v, FORMAT);
@@ -916,7 +922,7 @@ fn an_envelope_that_cites_nothing_carries_no_list() {
         .iter()
         .map(|one| one.kind)
         .collect();
-    assert_eq!(kinds, vec![Kind::Text, Kind::Html, Kind::Config]);
+    assert_eq!(kinds, vec![Kind::Config, Kind::Html, Kind::Text]);
     assert!(open(&key(9), &arrived, &[]).unwrap().cited.is_empty());
 }
 
@@ -1020,11 +1026,11 @@ fn a_drawn_page_travels_sealed_beside_the_words_laid_out_with_an_index() {
     assert_eq!(
         kinds,
         vec![
-            Kind::Text,
+            Kind::Config,
             Kind::Signature,
             Kind::Html,
-            Kind::Config,
-            Kind::Png
+            Kind::Png,
+            Kind::Text
         ]
     );
     assert!(holds_for(arrived.sender(&[]), &mario));
@@ -1217,7 +1223,7 @@ fn a_drawn_page_comes_only_where_and_when_the_manifest_says() {
     };
     assert_eq!(older.holds(&limits), Err(Refused::Damaged));
 
-    for kind in [Kind::Html, Kind::Config] {
+    for kind in [Kind::Config, Kind::Html, Kind::Text] {
         let mut without = manifest.clone();
         without.parts.retain(|one| one.kind != kind);
         assert_eq!(without.holds(&limits), Err(Refused::Damaged));
@@ -1226,6 +1232,11 @@ fn a_drawn_page_comes_only_where_and_when_the_manifest_says() {
     let mut before_cited = manifest.clone();
     before_cited.parts.swap(1, 2);
     assert_eq!(before_cited.holds(&limits), Err(Refused::Damaged));
+
+    // The words go last, after the pictures, so a reader by ranges leaves them for when they are asked for.
+    let mut words_first = manifest.clone();
+    words_first.parts.rotate_right(1);
+    assert_eq!(words_first.holds(&limits), Err(Refused::Damaged));
 }
 
 #[test]
@@ -1239,7 +1250,7 @@ fn a_drawn_page_opens_signed_or_not_with_or_without_citing_and_pictures() {
     for by in [None, Some(mario.signer())] {
         let sealed = sealed(&key(9), &page, by.as_ref()).unwrap();
         let arrived = read(&sealed.to_bytes()).unwrap();
-        assert_eq!(arrived.manifest().parts.last().unwrap().kind, Kind::Config);
+        assert_eq!(arrived.manifest().parts.last().unwrap().kind, Kind::Text);
         let opened = open(&key(9), &arrived, &[]).unwrap();
         assert_eq!(opened.cited, list);
         assert_eq!(opened.html.as_str(), "<p>hola</p>");
@@ -1423,4 +1434,48 @@ fn a_config_tisty_would_never_write_is_not_sealed() {
         ..draft("hola", &[])
     };
     assert_eq!(sealed(&key(9), &page, None).err(), Some(Refused::Damaged));
+}
+
+#[test]
+fn the_page_holds_for_its_writer_before_the_words_arrive_and_the_words_when_they_do() {
+    let mario = machine(1);
+    let written = draft("hola", &[]);
+    let changed = draft("adiós", &[]);
+    let sealed = resealed(&written, &changed, &mario);
+    let opened = open(&key(9), &read(&sealed.to_bytes()).unwrap(), &[]).unwrap();
+    assert_eq!(opened.wrote, Some(Verdict::Refused));
+}
+
+#[test]
+fn one_of_the_anchor_s_languages_goes_without_a_card_s_name() {
+    let language = Cited {
+        doc: String::new(),
+        lang: Some("pt-BR".into()),
+        ..cited("notas", "nts9Qe", None)
+    };
+    let list = [language.clone()];
+    let page = Draft {
+        cited: &list,
+        ..draft("hola", &[])
+    };
+    let envelope = sealed(&key(9), &page, None).unwrap();
+    let opened = open(&key(9), &read(&envelope.to_bytes()).unwrap(), &[]).unwrap();
+    assert_eq!(opened.cited, list);
+
+    let nameless = Cited {
+        lang: None,
+        ..language.clone()
+    };
+    let odd = Cited {
+        lang: Some("pt_<b>".into()),
+        ..language
+    };
+    for one in [nameless, odd] {
+        let list = [one];
+        let page = Draft {
+            cited: &list,
+            ..draft("hola", &[])
+        };
+        assert_eq!(sealed(&key(9), &page, None).err(), Some(Refused::Damaged));
+    }
 }

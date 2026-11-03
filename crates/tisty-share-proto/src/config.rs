@@ -82,7 +82,7 @@ fn titled(said: &str) -> bool {
     !said.is_empty() && said.chars().count() <= TITLE_AT_MOST
 }
 
-fn langed(said: &str) -> bool {
+pub(crate) fn langed(said: &str) -> bool {
     (2..=LANG_AT_MOST).contains(&said.len())
         && said
             .bytes()

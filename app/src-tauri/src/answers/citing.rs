@@ -163,6 +163,7 @@ pub(crate) fn cited_in(text: &str, among: &[(Citable, Shared)]) -> Vec<Cited> {
                 key: shared.key.clone(),
                 title: one.title.chars().take(200).collect(),
                 page: one.page,
+                lang: None,
             })
         })
         .collect()

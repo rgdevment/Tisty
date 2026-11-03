@@ -50,6 +50,7 @@ fuzz_target!(|input: Input| {
             key: LinkKey::from_bytes(&[4; 32]).to_text().to_string(),
             title: "Notas".into(),
             page: Some((1, 2)),
+            lang: None,
         })
         .into_iter()
         .collect();

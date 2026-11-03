@@ -237,15 +237,19 @@ impl Manifest {
         if self.parts.iter().any(|one| !one.fits()) {
             return Err(Refused::Damaged);
         }
-        let (text, rest) = self.parts.split_first().ok_or(Refused::Damaged)?;
-        let hashed = self
+        // What a reader needs to paint comes first and the words last, so a reader by ranges asks for them only to copy or download (decision 92).
+        let (config, rest) = self.parts.split_first().ok_or(Refused::Damaged)?;
+        let (text, rest) = rest.split_last().ok_or(Refused::Damaged)?;
+        if config.kind != Kind::Config || config.plain() > CONFIG_AT_MOST || text.kind != Kind::Text
+        {
+            return Err(Refused::Damaged);
+        }
+        // The writer's signature lists the hash of each picture and of the words.
+        let hashed = 1 + self
             .parts
             .iter()
             .filter(|one| one.kind.is_picture())
             .count();
-        if text.kind != Kind::Text {
-            return Err(Refused::Damaged);
-        }
         if text.plain() > limits.text {
             return Err(Refused::TextTooBig);
         }
@@ -267,18 +271,11 @@ impl Manifest {
             }
             _ => rest,
         };
-        // Every version carries the page Tisty drew, which is all the web shows (decision 91), and how Tisty read it.
-        let (html, pictures) = match rest {
-            [html, config, pictures @ ..]
-                if html.kind == Kind::Html && config.kind == Kind::Config =>
-            {
-                if config.plain() > CONFIG_AT_MOST {
-                    return Err(Refused::Damaged);
-                }
-                (html, pictures)
-            }
-            _ => return Err(Refused::Damaged),
-        };
+        // Every version carries the page Tisty drew, which is all the web shows (decision 91).
+        let (html, pictures) = rest
+            .split_first()
+            .filter(|(html, _)| html.kind == Kind::Html)
+            .ok_or(Refused::Damaged)?;
         if html.plain() > limits.html {
             return Err(Refused::HtmlTooBig);
         }
@@ -318,7 +315,7 @@ impl Manifest {
             .is_some_and(|one| one.kind == Kind::Signature)
     }
 
-    /// Where the parts an envelope may leave out begin: past the words and their signature.
+    /// Where the parts an envelope may leave out begin: past its config and the writer's signature.
     fn first_optional(&self) -> usize {
         if self.signed() { 2 } else { 1 }
     }
@@ -334,17 +331,17 @@ impl Manifest {
         self.kind_at(self.first_optional(), Kind::Cited)
     }
 
-    // Right after what the words cite, or after the words and their signature when they cite nothing.
+    // Right after what the words cite, or after the config and the signature when they cite nothing.
     fn html_at(&self) -> usize {
         self.cited_at().map_or(self.first_optional(), |at| at + 1)
     }
 
-    fn config_at(&self) -> usize {
+    fn first_picture(&self) -> usize {
         self.html_at() + 1
     }
 
-    fn first_picture(&self) -> usize {
-        self.config_at() + 1
+    fn text_at(&self) -> usize {
+        self.parts.len() - 1
     }
 }
 
@@ -389,12 +386,20 @@ pub struct Cited {
     /// Its place among the pages of the document it belongs to, when it is one, from 1.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page: Option<(u32, u32)>,
+    /// The language it is the same document in, when it is one of the anchor's languages rather than cited by a card (decision 69 bis).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
 }
 
 impl Cited {
     fn holds(&self) -> bool {
         let short = |said: &str, most: usize| !said.is_empty() && said.chars().count() <= most;
-        short(&self.doc, TITLE_AT_MOST)
+        // A language is reached through the reader's choice, never a card, so only it may go without a card's name.
+        let named = match &self.lang {
+            Some(lang) => crate::config::langed(lang) && self.doc.chars().count() <= TITLE_AT_MOST,
+            None => short(&self.doc, TITLE_AT_MOST),
+        };
+        named
             && short(&self.title, TITLE_AT_MOST)
             && named_id(&self.id)
             && LinkKey::from_text(&self.key).is_some()
@@ -450,6 +455,8 @@ struct Wrote {
     /// The hash of every picture as written, so the words hold before the pictures arrive and each one when it does.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pictures: Vec<String>,
+    /// The hash of the words as written, so the page holds before they arrive.
+    text: String,
     signed: Signed,
 }
 
@@ -508,7 +515,7 @@ fn sealed_with(
         .map(|said| deflated(said).map(|sealed| (said.len(), sealed)))
         .transpose()?;
     // Each part as it is sealed, with its length once opened.
-    let mut plain: Vec<(Kind, usize, &[u8])> = vec![(Kind::Text, draft.text.len(), &text)];
+    let mut plain: Vec<(Kind, usize, &[u8])> = vec![(Kind::Config, config.0, &config.1)];
     if let Some(inner) = inner {
         plain.push((Kind::Signature, inner.len(), inner));
     }
@@ -516,13 +523,13 @@ fn sealed_with(
         plain.push((Kind::Cited, *len, said));
     }
     plain.push((Kind::Html, draft.html.len(), &html));
-    plain.push((Kind::Config, config.0, &config.1));
     plain.extend(
         draft
             .pictures
             .iter()
             .map(|(kind, bytes)| (*kind, bytes.len(), *bytes)),
     );
+    plain.push((Kind::Text, draft.text.len(), &text));
 
     let head: [u8; HEAD] = {
         let minted = crate::minted().ok_or(Refused::NoRandomness)?;
@@ -632,24 +639,19 @@ fn wrote(signer: &Signer, draft: &Draft, cited: Option<&[u8]>) -> Result<Vec<u8>
     let pictures: Vec<String> = draft
         .pictures
         .iter()
-        .map(|(_, bytes)| URL_SAFE_NO_PAD.encode(Sha256::digest(bytes)))
+        .map(|(_, bytes)| hashed(bytes))
         .collect();
+    let text = hashed(draft.text.as_bytes());
     let config = configured(&draft.config)?;
-    let covered = drawn_content(
-        draft.text,
-        cited,
-        draft.html,
-        &config,
-        draft.pictures,
-        &pictures,
-    )
-    .ok_or(Refused::Unsigned)?;
+    let covered = drawn_content(&text, cited, draft.html, &config, draft.pictures, &pictures)
+        .ok_or(Refused::Unsigned)?;
     let said = vouched_words(&covered, draft.id, signer.at, signer.name);
     let wrote = Wrote {
         id: draft.id.to_owned(),
         at: signer.at,
         name: signer.name.map(str::to_owned),
         pictures,
+        text,
         signed: sign(signer, WROTE, &said)?,
     };
     serde_json::to_vec(&wrote).map_err(|_| Refused::Unsigned)
@@ -688,7 +690,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             false => bytes,
         });
     }
-    let text = Zeroizing::new(worded(&plain[0])?);
+    let text = Zeroizing::new(worded(&plain[manifest.text_at()])?);
     let cited_bytes = manifest.cited_at().map(|at| plain[at].as_slice());
     let cited: Vec<Cited> = match cited_bytes {
         Some(bytes) => serde_json::from_slice(bytes).map_err(|_| Refused::Damaged)?,
@@ -701,15 +703,15 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
         return Err(Refused::Damaged);
     }
     let html = Zeroizing::new(worded(&plain[manifest.html_at()])?);
-    let config_bytes = plain[manifest.config_at()].as_slice();
+    let config_bytes = plain[0].as_slice();
     let config: Config = serde_json::from_slice(config_bytes).map_err(|_| Refused::Damaged)?;
     if !config.holds() {
         return Err(Refused::Damaged);
     }
-    let first_picture = manifest.first_picture();
-    let pictures = manifest.parts[first_picture..]
+    let shown_at = manifest.first_picture()..manifest.text_at();
+    let pictures = manifest.parts[shown_at.clone()]
         .iter()
-        .zip(&plain[first_picture..])
+        .zip(&plain[shown_at])
         .map(|(part, bytes)| match Kind::of_picture(bytes) {
             Some(kind) if kind == part.kind => Ok((kind, Zeroizing::new(bytes.to_vec()))),
             _ => Err(Refused::NotAPicture),
@@ -725,7 +727,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             .map(|(kind, bytes)| (*kind, bytes.as_slice()))
             .collect();
         let said = drawn_content(
-            &text,
+            &inner.text,
             cited_bytes,
             &html,
             config_bytes,
@@ -733,8 +735,9 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             &inner.pictures,
         )
         .map(|covered| vouched_words(&covered, &inner.id, inner.at, inner.name.as_deref()));
-        // Each picture must be the one the writer hashed, which holds them apart from the words they signed.
-        let pictured = pictures_hold(&shown, &inner.pictures);
+        // Each picture and the words must be the ones the writer hashed, which holds them apart from the page they signed.
+        let pictured =
+            pictures_hold(&shown, &inner.pictures) && hashed(text.as_bytes()) == inner.text;
         // The server tells only the sender's revocations, so words another key wrote, or signed for another link, never hold.
         let verdict = match (said, inner.id == manifest.id && pictured, &envelope.sent) {
             (None, _, _) | (_, false, _) => Verdict::Refused,
@@ -1013,9 +1016,9 @@ fn vouched_words(content: &[u8], id: &str, at: jiff::Timestamp, name: Option<&st
     said
 }
 
-/// What the inner signature reads beside a drawn page: each picture's hash stands in for it, so the words hold alone.
+/// What the inner signature reads: the hash of the words and of each picture stands in for them, so the page holds before they arrive.
 fn drawn_content(
-    text: &str,
+    text_hash: &str,
     cited: Option<&[u8]>,
     html: &str,
     config: &[u8],
@@ -1029,7 +1032,7 @@ fn drawn_content(
     over.update(WRITTEN);
     over.update(b"drawn");
     let parts: [(&[u8], &[u8]); 4] = [
-        (b"text", text.as_bytes()),
+        (b"text", text_hash.as_bytes()),
         (b"cited", cited.unwrap_or_default()),
         (b"html", html.as_bytes()),
         (b"config", config),
@@ -1097,7 +1100,11 @@ fn pictures_hold(pictures: &[(Kind, &[u8])], hashes: &[String]) -> bool {
         && pictures
             .iter()
             .zip(hashes)
-            .all(|((_, bytes), hash)| URL_SAFE_NO_PAD.encode(Sha256::digest(bytes)) == *hash)
+            .all(|((_, bytes), hash)| hashed(bytes) == *hash)
+}
+
+fn hashed(bytes: &[u8]) -> String {
+    URL_SAFE_NO_PAD.encode(Sha256::digest(bytes))
 }
 
 fn decoded<const N: usize>(said: &str) -> Option<[u8; N]> {

@@ -251,6 +251,7 @@ fn hands_the_reader_what_the_words_cite_with_the_keys_that_open_them() {
         key: key(2).to_text().to_string(),
         title: "Instalar en Windows".into(),
         page: Some((2, 3)),
+        lang: None,
     }];
     let text = "![Instalar en Windows](tisty:doc/guia-2)";
     let page = drawn(text);
