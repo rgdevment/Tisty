@@ -1,4 +1,4 @@
-import { hosting } from "tisty-editor/read";
+import { ending, hosting, kept } from "tisty-editor/read";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -7,74 +7,6 @@ export type Preview =
   | { as: "file"; at: string; kind: string }
   | { as: "doc"; id: string }
   | { as: "web"; at: string; host: string };
-
-export const KINDS: Record<string, string> = {
-  pdf: "kindPdf",
-  md: "kindMarkdown",
-  markdown: "kindMarkdown",
-  txt: "kindText",
-  rtf: "kindText",
-  doc: "kindWord",
-  docx: "kindWord",
-  odt: "kindWord",
-  xls: "kindExcel",
-  xlsx: "kindExcel",
-  ods: "kindExcel",
-  ppt: "kindSlides",
-  pptx: "kindSlides",
-  odp: "kindSlides",
-  zip: "kindArchive",
-  rar: "kindArchive",
-  "7z": "kindArchive",
-  gz: "kindArchive",
-  tar: "kindArchive",
-  csv: "kindSheet",
-  json: "kindData",
-  xml: "kindData",
-  yml: "kindData",
-  yaml: "kindData",
-  toml: "kindData",
-  png: "kindImage",
-  jpg: "kindImage",
-  jpeg: "kindImage",
-  gif: "kindImage",
-  svg: "kindImage",
-  html: "kindPage",
-  htm: "kindPage",
-  webp: "kindImage",
-  avif: "kindImage",
-  heic: "kindImage",
-  mp4: "kindVideo",
-  webm: "kindVideo",
-  m4v: "kindVideo",
-  mov: "kindVideo",
-  ogv: "kindVideo",
-  mp3: "kindAudio",
-  m4a: "kindAudio",
-  wav: "kindAudio",
-  ogg: "kindAudio",
-  oga: "kindAudio",
-  aac: "kindAudio",
-  flac: "kindAudio",
-};
-
-const FAMILIES: Record<string, string> = {
-  kindPdf: "pdf",
-  kindWord: "word",
-  kindExcel: "sheet",
-  kindSheet: "sheet",
-  kindSlides: "slides",
-  kindArchive: "archive",
-  kindData: "data",
-  kindImage: "image",
-  kindPage: "page",
-  kindVideo: "video",
-  kindAudio: "audio",
-  kindMarkdown: "text",
-  kindText: "text",
-};
-
-export const family = (kind: string): string => FAMILIES[KINDS[kind] ?? ""] ?? "plain";
 
 export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
 
@@ -93,12 +25,6 @@ const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
 const outside = (href: string): boolean =>
   /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("/") || href.startsWith("\\\\");
 
-export const ending = (href: string): string => {
-  const name = href.split(/[?#]/)[0].split("/").pop() ?? "";
-  const dot = name.lastIndexOf(".");
-  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
-};
-
 export const named = (href: string): string => {
   const raw = href.split(/[?#]/)[0].split("/").pop() ?? href;
   try {
@@ -110,16 +36,6 @@ export const named = (href: string): string => {
 
 /// Only the two schemes a person can be shown safely, and never the machine's own paths: what
 /// comes back is a name and a host, never something a card would go and load.
-// The core's own test for an attachment's name: a stamp of hex after the last dash, all in lower case.
-export const kept = (href: string): boolean => {
-  const said = href.trim().replace(/^<|>$/g, "").split(/[?#]/)[0];
-  const leaf = said.startsWith("attachments/") ? (said.split("/").pop() ?? "") : said;
-  if (!leaf || leaf.includes("/") || leaf.includes("\\") || leaf !== leaf.toLowerCase())
-    return false;
-  const stamp = leaf.split(".")[0].split("-").pop() ?? "";
-  return /^[0-9a-f]{8,16}$/.test(stamp);
-};
-
 export const previewOf = (href: string): Preview | null => {
   const at = href.trim();
   if (!at) return null;

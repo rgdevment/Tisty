@@ -1,32 +1,14 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { drawnGlyph, markup, piece } from "tisty-editor/read";
+import { alone, ending, fileCard, KINDS, piece } from "tisty-editor/read";
 import { keptHere, type Lent, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
-import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
+import { named, previewOf, weighed } from "../previews";
 import { plainly } from "../refusal";
 import { more } from "./carding";
 import { type Lending, lendKept, locked } from "./widgeting";
 
-const GLYPH: Record<string, string> = {
-  pdf: "page",
-  word: "page",
-  text: "page",
-  sheet: "sheet",
-  data: "table",
-  slides: "book",
-  archive: "file-archive",
-  page: "code",
-  video: "file-video",
-  audio: "file-audio",
-};
-
 export const lents = new WeakMap<Element, Lent>();
-
-const alone = (img: Element): boolean => {
-  const held = img.parentElement;
-  return held?.tagName === "P" && held.children.length === 1 && !(held.textContent ?? "").trim();
-};
 
 export const pressed = (page: Document, className: string, said: string, run: () => void) => {
   const one = page.createElement("button");
@@ -124,31 +106,18 @@ const labelled = (kind: string): string => {
 };
 
 const filed = (page: Document, img: Element, at: string, live: () => boolean, asking: boolean) => {
-  const name = img.getAttribute("alt") || named(at);
   const kind = ending(at);
-  const kin = family(kind);
-  if (!alone(img)) {
-    const chip = page.createElement("a");
-    chip.className = "card";
-    chip.setAttribute("href", at);
-    chip.dataset.family = kin;
-    chip.textContent = name;
-    img.replaceWith(chip);
-    return;
-  }
-  const card = page.createElement("a");
-  card.className = "doc-card is-file";
+  const { card, meta, kindIs } = fileCard(
+    page,
+    img,
+    kind,
+    img.getAttribute("alt") || named(at),
+    labelled(kind),
+  );
   card.setAttribute("href", at);
-  card.dataset.family = kin;
-  const tile = piece(page, "card-tile");
-  tile.append(drawnGlyph(page, markup(GLYPH[kin] ?? "page") ?? ""));
-  const meta = piece(page, "card-meta");
-  const kindIs = piece(page, "kind", labelled(kind));
-  meta.append(kindIs);
+  if (!meta || !kindIs) return;
   if (asking) meta.append(more(page, at));
   meta.append(piece(page, "card-go", "›"));
-  card.append(tile, piece(page, "card-name", name), piece(page, "card-blurb"), meta);
-  img.replaceWith(card);
   weighs(at)
     .then((bytes) => {
       if (live()) kindIs.textContent = `${labelled(kind)} · ${weighed(bytes)}`;
