@@ -13,8 +13,8 @@ and nowhere you did not choose.
 - **Email** <rgdevment@tisty.app>, subject `[SECURITY] short description`.
 - **GitHub Security Advisory** — the *Security* tab, *Report a vulnerability*.
 
-A vulnerability in Tisty Share — tisty.cl, its API, the page that reads a link
-or the envelope format — goes by [its own security policy](share/SECURITY.md).
+A vulnerability in Folio by Tisty, the separate service for sharing by link,
+goes by the security policy in [its own repository](https://github.com/rgdevment/Folio-by-Tisty).
 
 Useful in a report: what an attacker could do and to whom, steps to reproduce,
 the affected version, and your operating system. A proof of concept helps but
@@ -30,14 +30,15 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry. Nothing you keep sits on a server of ours: the one service we run,
-  Tisty Share, holds only what you share by link, sealed on your machine so it
-  cannot read it. Tisty makes one request of its own — a daily GET for a
-  version manifest, carrying nothing but the version you are running — and two
-  more only if you press the button that offers you an update. A copy from the
-  Microsoft Store makes neither request: it asks Windows what the Store has for
-  it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
-  headers.
+  telemetry, no remote server. Nothing you keep reaches a service of ours, so
+  nothing sits on our side to breach. Tisty makes one check of its own — a
+  daily GET for a version manifest and one for its signature, carrying nothing
+  but the version you are running — and two more requests only if you press the
+  button that offers you an update. A copy from the Microsoft Store makes none
+  of them: it asks Windows what the Store has for it. It is written out in full
+  in [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few others —
+  the guide, the help's pictures, a link's preview, and the signed `cloud.json`
+  at most once an hour while you sync.
 - **A cloud account is reached only if you choose it.** Tisty can sync straight
   with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
   WebDAV server of your own since 1.32; Dropbox is reached only through a folder
@@ -89,7 +90,9 @@ report will never be dismissed for being inconvenient.
   them — or into a cloud of your own that it reaches itself. There is no
   Tisty-operated backend at any tier, and no transport of ours to attack: with a
   folder, the code that syncs reads and writes local paths, and with a cloud it
-  speaks only to that provider or that server.
+  speaks only to that provider or that server, plus, at most once an hour, the
+  signed `cloud.json` on GitHub described in [PRIVACY.md](PRIVACY.md) under *The
+  remote switch*. Never a server of ours.
 - **A cloud can be encrypted so that its provider cannot read it.** Since 1.36,
   what Tisty keeps in Google Drive, OneDrive or a WebDAV server can be sealed
   with a key that comes from a 24-word phrase only you hold. Neither the
