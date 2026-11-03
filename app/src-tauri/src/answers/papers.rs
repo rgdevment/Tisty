@@ -349,7 +349,7 @@ fn name_to_sign(name: Option<String>) -> Result<Option<String>, Refusal> {
             tisty_core::event::NAME_AT_MOST.to_string(),
         ));
     }
-    match tisty_share_proto::envelope::named_well(&said) {
+    match tisty_share_proto::name::named_well(&said) {
         true => Ok(Some(said)),
         false => Err(Refusal::of("nameUnfit")),
     }

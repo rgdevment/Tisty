@@ -13,8 +13,6 @@ workspace = true
 default = ["mint"]
 # The server only checks keys and never makes one, and the system's randomness does not build for wasm.
 mint = ["dep:rand_core"]
-# Only Tisty recompresses before sealing; the reader and the Worker never decode a picture.
-pictures = ["dep:image"]
 
 [dependencies]
 base64.workspace = true
@@ -23,13 +21,10 @@ chacha20poly1305.workspace = true
 curve25519-dalek.workspace = true
 ed25519-dalek.workspace = true
 hmac.workspace = true
-image = { workspace = true, optional = true }
 jiff.workspace = true
-miniz_oxide.workspace = true
 rand_core = { workspace = true, optional = true }
 scrypt.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 unicode-normalization.workspace = true
@@ -37,4 +32,5 @@ zeroize.workspace = true
 
 [dev-dependencies]
 hkdf.workspace = true
-tisty-share-proto = { path = ".", features = ["pictures"] }
+serde_json.workspace = true
+tisty-share-proto = { path = ".", features = ["mint"] }
