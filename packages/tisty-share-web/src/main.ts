@@ -323,6 +323,8 @@ const reader = async (root: Read) => {
   // Each step remembers the one it hangs from: a page's sisters hang from the same document as the page.
   const ups: number[] = [0];
   const reads: Read[] = [];
+  // The name each step was shown under, its drawn heading when it says no title.
+  const named: string[] = [];
   const stepped = (one: Cited, up: number) => {
     ys[walk.at()] = scrollY;
     ups.length = walk.at() + 1;
@@ -334,7 +336,16 @@ const reader = async (root: Read) => {
   const placed = (one: Cited | null, at: number): Placed | null => {
     const from = reads[ups[at] ?? 0];
     if (!one || at === 0 || !from) return null;
-    return placedIn(one, from.title || say("document"), from.cited);
+    return placedIn(one, named[ups[at] ?? 0] || say("document"), from.cited);
+  };
+  // A document that could not be opened still has its way back to the one above.
+  const placeBar = (one: Cited | null, at: number, opened: boolean) => {
+    const where = placed(one, at);
+    ribbon(bar, where, ribboned, {
+      up: () => walk.up(ups[at] ?? 0),
+      to: sideways,
+    });
+    onward(under, opened ? where?.on : undefined, ribboned, sideways);
   };
   // Tags and dates sit under the body's title; a body without one has them above it instead.
   const draw = async () => {
@@ -407,14 +418,8 @@ const reader = async (root: Read) => {
     if (one) tell("opening");
     const next = one ? await openCited(one) : root;
     if (mine !== turn) return;
-    // A document that could not be opened still has its way back to the one above.
-    const where = placed(one, at);
-    ribbon(bar, where, ribboned, {
-      up: () => walk.up(ups[at] ?? 0),
-      to: sideways,
-    });
-    onward(under, typeof next === "string" ? undefined : where?.on, ribboned, sideways);
     if (typeof next === "string") {
+      placeBar(one, at, false);
       found = null;
       besideShown(false);
       besideOpen.hidden = true;
@@ -426,6 +431,8 @@ const reader = async (root: Read) => {
     await queued(async () => {
       if (mine !== turn) return;
       await put(next);
+      named[at] = title;
+      placeBar(one, at, true);
       scrollTo({ top: ys[at] ?? 0 });
     });
   };

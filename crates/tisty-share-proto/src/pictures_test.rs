@@ -291,3 +291,37 @@ fn a_photo_its_tag_turns_is_written_again_standing() {
     assert_eq!(kind, Kind::Jpeg);
     assert_eq!((read(&bytes).width(), read(&bytes).height()), (20, 40));
 }
+
+/// A segment of the given marker carrying `said`, as a JPEG frames one.
+fn segment(marker: u8, said: &[u8]) -> Vec<u8> {
+    let mut out = vec![0xFF, marker];
+    out.extend_from_slice(&((said.len() + 2) as u16).to_be_bytes());
+    out.extend_from_slice(said);
+    out
+}
+
+#[test]
+fn a_photo_kept_as_written_keeps_its_colour_profile() {
+    let photo = written(&noise(60, 40), ImageFormat::Jpeg);
+    let mut profiled = photo[..2].to_vec();
+    profiled.extend(segment(0xE2, b"ICC_PROFILE\0\x01\x01 display p3"));
+    profiled.extend(segment(0xE2, b"MPF\0 another picture"));
+    profiled.extend_from_slice(&photo[2..]);
+
+    let kept = stripped(&profiled, (60, 40)).unwrap();
+    assert!(kept.windows(11).any(|one| one == b"ICC_PROFILE"));
+    assert!(!kept.windows(3).any(|one| one == b"MPF"));
+}
+
+#[test]
+fn a_photo_coded_in_a_way_browsers_do_not_draw_is_written_again() {
+    let mut photo = written(&noise(60, 40), ImageFormat::Jpeg);
+    let frame = photo
+        .windows(2)
+        .position(|one| one == [0xFF, 0xC0])
+        .unwrap();
+    assert!(stripped(&photo, (60, 40)).is_some());
+    // The same frame said to be arithmetic coded, which no browser draws.
+    photo[frame + 1] = 0xC9;
+    assert_eq!(stripped(&photo, (60, 40)), None);
+}

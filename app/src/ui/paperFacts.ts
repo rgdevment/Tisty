@@ -1,8 +1,8 @@
+import { kept } from "tisty-editor/read";
 import type { DocFacts } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
-import { kept } from "../previews";
 
 export const held = (pages: number): string =>
   pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages));

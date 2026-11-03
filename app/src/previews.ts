@@ -1,4 +1,4 @@
-import { ending, hosting } from "tisty-editor/read";
+import { ending, hosting, kept } from "tisty-editor/read";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -36,16 +36,6 @@ export const named = (href: string): string => {
 
 /// Only the two schemes a person can be shown safely, and never the machine's own paths: what
 /// comes back is a name and a host, never something a card would go and load.
-// The core's own test for an attachment's name: a stamp of hex after the last dash, all in lower case.
-export const kept = (href: string): boolean => {
-  const said = href.trim().replace(/^<|>$/g, "").split(/[?#]/)[0];
-  const leaf = said.startsWith("attachments/") ? (said.split("/").pop() ?? "") : said;
-  if (!leaf || leaf.includes("/") || leaf.includes("\\") || leaf !== leaf.toLowerCase())
-    return false;
-  const stamp = leaf.split(".")[0].split("-").pop() ?? "";
-  return /^[0-9a-f]{8,16}$/.test(stamp);
-};
-
 export const previewOf = (href: string): Preview | null => {
   const at = href.trim();
   if (!at) return null;

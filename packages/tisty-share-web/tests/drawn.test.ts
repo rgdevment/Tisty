@@ -66,6 +66,11 @@ describe("an attachment that is no picture", () => {
     expect(filed(html)).toBe(
       '<p><img data-file="pdf" alt="La cartilla"><img src="tisty:picture/0" alt="Uno"><img src="https://x.test/a"></p>',
     );
+    // A picture on the web, or a name Tisty never kept, is no attachment of Tisty's.
+    for (const outside of ["https://x.test/logo.png", "foto.png", "data:image/png;base64,AA"]) {
+      const html = `<p><img src="${outside}" alt="Fuera"></p>`;
+      expect(filed(html)).toBe(html);
+    }
     expect(cleaned(filed('<p><img src="paseos-0123abcd.csv" alt="Paseos"></p>'))).toContain(
       'data-file="csv"',
     );
@@ -80,7 +85,7 @@ describe("an attachment that is no picture", () => {
     expect(card?.getAttribute("data-family")).toBe("pdf");
     expect(card?.querySelector(".card-name")?.textContent).toBe("La cartilla");
     expect(card?.querySelector(".kind")?.textContent).toBe("PDF · Se queda en Tisty");
-    const chip = page.querySelector("span.card");
+    const chip = page.querySelector("a.card");
     expect(chip?.textContent).toBe("Un ladrido");
     expect(chip?.getAttribute("data-family")).toBe("audio");
     expect(page.querySelector("img")).toBeNull();

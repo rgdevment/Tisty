@@ -1,12 +1,10 @@
 import {
   acrossOf,
-  drawnGlyph,
   ending,
-  family,
-  fileGlyph,
+  fileCard,
+  kept,
   PAPERS,
   type Paper,
-  piece,
   readAs,
   type Say,
   type Sheet,
@@ -36,39 +34,25 @@ const OUTSIDE = /^(https?:|mailto:)/i;
 // Control and direction marks, which Tisty keeps out of a title so none can dress one up as another.
 const MARKS = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/gu;
 
-// An attachment that is no picture stays in Tisty; its kind is kept before cleaning drops where it lay.
+// An attachment of Tisty's that is no picture stays there; its kind is kept before cleaning drops where it lay.
 export const filed = (html: string): string =>
   html.replace(/<img src="([^"]*)"/g, (all, at: string) => {
     const kind = ending(at);
-    return at.startsWith(PICTURE) || !/^[a-z0-9]{1,8}$/.test(kind)
-      ? all
-      : `<img data-file="${kind}"`;
+    return kept(at) && /^[a-z0-9]{1,8}$/.test(kind) ? `<img data-file="${kind}"` : all;
   });
 
-// Drawn as Tisty draws a file, a card on a line of its own and a chip within words, saying it did not travel.
+// Drawn as Tisty draws a file, saying it did not travel.
 export const fileCards = (page: Document, stays: string) => {
   for (const img of page.querySelectorAll<HTMLImageElement>("img[data-file]")) {
     const kind = img.dataset.file ?? "";
-    const kin = family(kind);
-    const name = img.alt || kind.toUpperCase();
-    const held = img.parentElement;
-    const alone =
-      held?.tagName === "P" && held.children.length === 1 && !(held.textContent ?? "").trim();
-    if (!alone) {
-      const chip = piece(page, "card", name);
-      chip.dataset.family = kin;
-      chip.title = stays;
-      img.replaceWith(chip);
-      continue;
-    }
-    const card = piece(page, "doc-card is-file");
-    card.dataset.family = kin;
-    const tile = piece(page, "card-tile");
-    tile.append(drawnGlyph(page, fileGlyph(kind)));
-    const meta = piece(page, "card-meta");
-    meta.append(piece(page, "kind", `${kind.toUpperCase()} · ${stays}`));
-    card.append(tile, piece(page, "card-name", name), piece(page, "card-blurb"), meta);
-    img.replaceWith(card);
+    const { card } = fileCard(
+      page,
+      img,
+      kind,
+      img.alt || kind.toUpperCase(),
+      `${kind.toUpperCase()} · ${stays}`,
+    );
+    card.title = stays;
   }
 };
 

@@ -30,7 +30,7 @@ pub fn recompressed(bytes: &[u8], limits: &Limits) -> Result<(Kind, Vec<u8>), Re
         && limits.takes(Kind::Jpeg)
         && decoded.width() <= SIDE_AT_MOST
         && decoded.height() <= SIDE_AT_MOST)
-        .then(|| stripped(bytes))
+        .then(|| stripped(bytes, (decoded.width(), decoded.height())))
         .flatten()
         .filter(|one| one.len() as u64 <= limits.picture);
     let mut picture = fitted(decoded, SIDE_AT_MOST);
@@ -77,10 +77,12 @@ fn decoded(bytes: &[u8], kind: Kind) -> Result<(DynamicImage, bool), Refused> {
     Ok((plain(picture), orientation != Orientation::NoTransforms))
 }
 
-/// The JPEG as written, less every segment that says something besides its pixels and anything past its end.
-fn stripped(bytes: &[u8]) -> Option<Vec<u8>> {
+/// The JPEG as written, less every segment that says something besides its pixels and anything past its end;
+/// none when it is coded in a way a browser does not draw.
+fn stripped(bytes: &[u8], size: (u32, u32)) -> Option<Vec<u8>> {
     let mut out = bytes.get(..2).filter(|soi| *soi == [0xFF, 0xD8])?.to_vec();
     let mut at = 2;
+    let mut drawable = false;
     loop {
         if *bytes.get(at)? != 0xFF {
             return None;
@@ -109,8 +111,15 @@ fn stripped(bytes: &[u8]) -> Option<Vec<u8>> {
         ]));
         let end = start.checked_add(len).filter(|_| len >= 2)?;
         let segment = bytes.get(start..end)?;
-        // Only Adobe's APP14 says how to read the pixels; the other APPn and comments say where, when, by whom, or hold a thumbnail.
-        if !matches!(marker, 0xE0..=0xED | 0xEF | 0xFE) {
+        match marker {
+            // Baseline, extended and progressive Huffman are what every browser draws.
+            0xC0..=0xC2 => drawable = true,
+            0xC3 | 0xC5..=0xC7 | 0xC9..=0xCB | 0xCD..=0xCF => return None,
+            _ => {}
+        }
+        // A colour profile and Adobe's APP14 say how to read the pixels; the other APPn and comments say where, when, by whom, or hold a thumbnail.
+        let profile = marker == 0xE2 && segment.get(2..14) == Some(b"ICC_PROFILE\0");
+        if profile || !matches!(marker, 0xE0..=0xED | 0xEF | 0xFE) {
             out.extend_from_slice(&[0xFF, marker]);
             out.extend_from_slice(segment);
         }
@@ -127,8 +136,7 @@ fn stripped(bytes: &[u8]) -> Option<Vec<u8>> {
         }
     }
     let read = ImageReader::with_format(Cursor::new(&out), ImageFormat::Jpeg).into_dimensions();
-    let held = ImageReader::with_format(Cursor::new(bytes), ImageFormat::Jpeg).into_dimensions();
-    (read.ok()? == held.ok()?).then_some(out)
+    (drawable && read.ok()? == size).then_some(out)
 }
 
 /// Eight bits a channel is all a page shows; an alpha channel nothing shows through is dropped, so the picture may fit as a JPEG.
