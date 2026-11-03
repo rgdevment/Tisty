@@ -336,7 +336,6 @@ pub fn sign_name(
     Ok(as_signed(&session))
 }
 
-/// The name as it is kept, or why it cannot be: a share signs with it too, so it is held to what a share takes.
 fn name_to_sign(name: Option<String>) -> Result<Option<String>, Refusal> {
     let Some(said) = name
         .map(|one| tisty_core::text::plainly(&one).trim().to_string())

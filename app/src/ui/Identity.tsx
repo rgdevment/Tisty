@@ -58,7 +58,6 @@ export default function Identity({
       .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
   };
 
-  // Sharing needs a key even with no cloud, so the phrase can be born here and not only while encrypting it.
   const [beginning, setBeginning] = useState(false);
   const begin = () => {
     setBeginning(true);

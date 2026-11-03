@@ -288,7 +288,6 @@ pub enum Op {
         k: Option<String>,
     },
 
-    /// A machine's own word for the key it signs shared documents with; nobody else's counts.
     #[serde(rename = "share.key")]
     ShareKey { p: String },
     /// A machine's own word for the person it answers to; a certificate from any other root speaks for nobody here.
@@ -306,8 +305,6 @@ pub enum Op {
         machine: bool,
     },
 
-    /// A document shared from this store, with all it takes to read, edit and manage it again
-    /// after a reinstall: the links travel with the synced data (decision 52 of Tisty Share).
     #[serde(rename = "share.doc")]
     ShareDoc { id: DocId, d: Shared },
     #[serde(rename = "share.version")]
@@ -337,7 +334,6 @@ pub struct Tongue {
     pub of: Option<DocId>,
 }
 
-/// One shared document's place on a Tisty Share server and the secrets that open it there.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Shared {
     /// The server's address, `https://tisty.cl` unless the person runs their own.
@@ -378,7 +374,6 @@ pub struct Shared {
     pub cites: bool,
 }
 
-/// The name a share goes out signed with; the key signs it whichever is chosen.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Signs {
