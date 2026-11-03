@@ -210,7 +210,6 @@ fn a_copy_of_a_document_someone_else_signed_is_a_guest_copy_even_when_it_was_not
     let copy = session.copy_doc(&theirs.to_string()).unwrap();
     let twin = &session.state.docs[&twin_of(&session, &copy)];
 
-    // Made on this machine, the copy would otherwise read as mine to share.
     assert!(twin.guest);
     assert_eq!(twin.by.as_deref(), Some("Otra persona"));
 }

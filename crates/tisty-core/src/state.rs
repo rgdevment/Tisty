@@ -156,16 +156,6 @@ impl State {
         }
     }
 
-    /// Shares of a document deleted for good, which nothing in Tisty leads to any more. Any machine stops them.
-    pub fn gone_shares(&self) -> Vec<(DocId, crate::event::Shared)> {
-        // Deleted, not merely unheard of: a share can arrive from one machine before its document does from another.
-        self.shares
-            .iter()
-            .filter(|(id, _)| self.tombstones.contains(id))
-            .map(|(id, shared)| (*id, shared.clone()))
-            .collect()
-    }
-
     pub fn replay(events: &[Event]) -> Self {
         let mut state = Self::default();
         for event in events {

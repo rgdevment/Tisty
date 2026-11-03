@@ -59,7 +59,7 @@ export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
-  // One look at a time: a second press, or a second mount in development, never fetches a share twice.
+  // One look at a time: a second press, or a second mount in development, never fetches twice.
   const asking = useRef(false);
   const look = useCallback(() => {
     if (asking.current) return;

@@ -32,7 +32,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "diagram_again") return Promise.resolve(ipc.now);
     if (cmd === "diagram_order")
       return ipc.order < 0
-        ? Promise.reject({ code: "diagramGone", name: "Tisty Share" })
+        ? Promise.reject({ code: "diagramGone", name: "Tisty Notes" })
         : Promise.resolve(ipc.order);
     return Promise.resolve(null);
   },
@@ -92,7 +92,7 @@ vi.mock("tisty-editor/read", async (real) => ({
 
 const shown: Showing = {
   kind: "diagram",
-  paper: { id: "D1", file: "f1", title: "Tisty Share", place: "Proyectos" },
+  paper: { id: "D1", file: "f1", title: "Tisty Notes", place: "Proyectos" },
   source: "mindmap\n  root((Share))\n",
 };
 
@@ -103,7 +103,7 @@ const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const lastOf = (cmd: string) => asked(cmd)[asked(cmd).length - 1];
 const written = async () =>
   (await screen.findByLabelText(say("diagramText"))) as HTMLTextAreaElement;
-const saving = () => screen.getByRole("button", { name: fill("diagramSave", "Tisty Share") });
+const saving = () => screen.getByRole("button", { name: fill("diagramSave", "Tisty Notes") });
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -131,7 +131,7 @@ describe("the diagram window", () => {
     );
     await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
 
-    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share-3.svg"]));
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Notes-3.svg"]));
     expect(asked("diagram_order")).toHaveLength(1);
   });
 
@@ -147,9 +147,9 @@ describe("the diagram window", () => {
 
     await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
 
-    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share.svg"]));
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Notes.svg"]));
     expect(screen.getByRole("alert").textContent).toBe(
-      saidPlainly({ code: "diagramGone", name: "Tisty Share" }),
+      saidPlainly({ code: "diagramGone", name: "Tisty Notes" }),
     );
   });
 
@@ -173,7 +173,7 @@ describe("the diagram window", () => {
     render(<Viewing />);
 
     expect((await written()).value).toBe(shown.source);
-    expect(screen.getByText(fill("diagramOf", "Tisty Share"))).toBeTruthy();
+    expect(screen.getByText(fill("diagramOf", "Tisty Notes"))).toBeTruthy();
     expect(screen.getByText(`${say("diagramMindmap")} · Proyectos`)).toBeTruthy();
     expect(screen.getByText(t("diagramSaved"))).toBeTruthy();
     expect((saving() as HTMLButtonElement).disabled).toBe(true);
@@ -220,7 +220,7 @@ describe("the diagram window", () => {
   });
 
   it("says plainly when the diagram changed in the document meanwhile, and keeps what was typed", async () => {
-    ipc.refusal = { code: "diagramMoved", name: "Tisty Share" };
+    ipc.refusal = { code: "diagramMoved", name: "Tisty Notes" };
     render(<Viewing />);
     const text = await written();
 
@@ -228,7 +228,7 @@ describe("the diagram window", () => {
     await userEvent.click(saving());
 
     expect((await screen.findByRole("alert")).textContent).toBe(
-      fill("diagramMoved", "Tisty Share"),
+      fill("diagramMoved", "Tisty Notes"),
     );
     expect(text.value).toBe("mindmap\n  root((Otra))");
     expect(screen.getByText(t("diagramUnsaved"))).toBeTruthy();
@@ -299,7 +299,7 @@ describe("the diagram window", () => {
   });
 
   it("after a refusal, takes the document's diagram or saves its own over it", async () => {
-    ipc.refusal = { code: "diagramMoved", name: "Tisty Share" };
+    ipc.refusal = { code: "diagramMoved", name: "Tisty Notes" };
     render(<Viewing />);
     const text = await written();
 

@@ -639,7 +639,6 @@ impl Session {
                 .map(|one| one.order.as_str()),
         );
         let twin = ulid::Ulid::generate();
-        // A copy of someone else's document is still theirs, or duplicating it would make it mine to share (decision 68).
         let me = self.state.persons.person(&self.config.device_id);
         // Marked as a guest copy too: the copy is made on this machine, which would otherwise vouch for it as mine.
         let (guest, signed_as) = match self.state.theirs(&kept, me.as_ref()) {

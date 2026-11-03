@@ -2163,9 +2163,9 @@ const en = {
   settingsBack: "Back",
   settingsBackTo: "Back to Tisty",
   identityWhat:
-    "With it you encrypt your cloud and sign what you share with Tisty Share. It is born with your 24-word phrase.",
+    "With it you encrypt your cloud and mark your computers as yours. It is born with your 24-word phrase.",
   identityUnborn:
-    "Your identity is born when you create your 24-word phrase. You need it to share documents and to encrypt your cloud.",
+    "Your identity is born when you create your 24-word phrase. You need it to encrypt your cloud and to mark your computers as yours.",
   identityCreate: "Create my phrase",
   phraseTypeOpen: "I already have my phrase",
   phraseTypeHow: "Type your 24 words, separated by spaces, in English or Spanish.",
@@ -2185,10 +2185,10 @@ const en = {
   phraseStep: "Step {name} of 2",
   phraseWriteDown: "Write down your phrase",
   phraseWhat:
-    "These 24 words open your encrypted cloud and are your identity in Tisty Share. Only you have them.",
+    "These 24 words open your encrypted cloud and are the identity your computers answer to. Only you have them.",
   phraseOutside: "Keep it outside Tisty.",
   phraseOutsideWhy:
-    "On paper or in a PDF you keep apart, never in a Tisty document. It never passes through our hands, so nobody can give it back to you: if you lose the phrase and all your computers, you lose your encrypted data and your identity in Tisty Share.",
+    "On paper or in a PDF you keep apart, never in a Tisty document. It never passes through our hands, so nobody can give it back to you: if you lose the phrase and all your computers, you lose your encrypted data and your identity.",
   phrasePdf: "Save as PDF",
   phraseKept: "I've saved it",
   sheetTitle: "Your Tisty phrase",
@@ -2248,10 +2248,10 @@ const en = {
     "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: we do not know what you write or what you share.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nWe never upload anything to any service. There is no telemetry behind this either.",
   aliasTooLong: "An alias holds up to {name} characters",
   signName: "Name to sign with",
-  signNameShort: "How you appear on your PDFs, and on what you share if you choose it.",
+  signNameShort: "How you appear on your PDFs.",
   signNameNone: "your name",
   signNameWhy:
-    "Your alias is the short name your documents carry inside Tisty, and the one a link goes signed with unless you choose otherwise.\n\nThe name to sign with is how you want to appear on paper: your full name, or however you sign your work. It goes on a PDF's card, in place of your alias, only when you choose to add the card, and on a link only when you choose it while sharing.\n\nA document that says author: in its properties keeps that author instead.",
+    "Your alias is the short name your documents carry inside Tisty.\n\nThe name to sign with is how you want to appear on paper: your full name, or however you sign your work. It goes on a PDF's card, in place of your alias, only when you choose to add the card.\n\nA document that says author: in its properties keeps that author instead.",
   signNameKept: "Your PDFs are signed {name}",
   signNameGone: "Your PDFs use your alias again",
   nameTooLong: "A name holds up to {name} characters",
@@ -4866,9 +4866,9 @@ const es: Catalog = {
   settingsBack: "Volver",
   settingsBackTo: "Volver a Tisty",
   identityWhat:
-    "Con ella cifras tu nube y firmas lo que compartes con Tisty Share. Nace con tu frase de 24 palabras.",
+    "Con ella cifras tu nube y marcas tus equipos como tuyos. Nace con tu frase de 24 palabras.",
   identityUnborn:
-    "Tu identidad nace cuando creas tu frase de 24 palabras. La necesitas para compartir documentos y para cifrar tu nube.",
+    "Tu identidad nace cuando creas tu frase de 24 palabras. La necesitas para cifrar tu nube y para marcar tus equipos como tuyos.",
   identityCreate: "Crear mi frase",
   phraseTypeOpen: "Ya tengo mi frase",
   phraseTypeHow: "Escribe tus 24 palabras, separadas por espacios, en español o en inglés.",
@@ -4887,10 +4887,10 @@ const es: Catalog = {
   phraseStep: "Paso {name} de 2",
   phraseWriteDown: "Anota tu frase",
   phraseWhat:
-    "Estas 24 palabras abren tu nube cifrada y son tu identidad en Tisty Share. Solo tú las tienes.",
+    "Estas 24 palabras abren tu nube cifrada y son la identidad a la que responden tus equipos. Solo tú las tienes.",
   phraseOutside: "Guárdala fuera de Tisty.",
   phraseOutsideWhy:
-    "En papel o en un PDF que guardes aparte, nunca en un documento de Tisty. Nunca pasa por nuestras manos, así que nadie te la puede devolver: si pierdes la frase y todos tus equipos, pierdes tus datos cifrados y tu identidad en Tisty Share.",
+    "En papel o en un PDF que guardes aparte, nunca en un documento de Tisty. Nunca pasa por nuestras manos, así que nadie te la puede devolver: si pierdes la frase y todos tus equipos, pierdes tus datos cifrados y tu identidad.",
   phrasePdf: "Guardar como PDF",
   phraseKept: "Ya la guardé",
   sheetTitle: "Tu frase de Tisty",
@@ -4950,10 +4950,10 @@ const es: Catalog = {
     "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: nosotros no sabemos lo que escribes ni lo que compartes.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNunca subimos nada a ningún servicio. Tampoco hay telemetría detrás.",
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   signName: "Nombre para firmar",
-  signNameShort: "Cómo apareces en tus PDF, y en lo que compartes si lo eliges.",
+  signNameShort: "Cómo apareces en tus PDF.",
   signNameNone: "tu nombre",
   signNameWhy:
-    "El alias es el nombre corto que llevan tus documentos dentro de Tisty, y con el que va firmado un link salvo que elijas otra cosa.\n\nEl nombre para firmar es cómo quieres aparecer en papel: tu nombre completo o como firmes tu trabajo. Va en la ficha del PDF, en lugar del alias, solo cuando eliges añadir la ficha, y en un link solo cuando lo eliges al compartir.\n\nSi un documento dice author: en sus propiedades, manda ese autor.",
+    "El alias es el nombre corto que llevan tus documentos dentro de Tisty.\n\nEl nombre para firmar es cómo quieres aparecer en papel: tu nombre completo o como firmes tu trabajo. Va en la ficha del PDF, en lugar del alias, solo cuando eliges añadir la ficha.\n\nSi un documento dice author: en sus propiedades, manda ese autor.",
   signNameKept: "Tus PDF se firman como {name}",
   signNameGone: "Tus PDF vuelven a usar tu alias",
   nameTooLong: "Un nombre admite hasta {name} caracteres",

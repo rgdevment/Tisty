@@ -223,7 +223,7 @@ fn a_stop_for_an_older_link_leaves_the_newer_share_alone() {
 }
 
 #[test]
-fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
+fn a_share_replaced_is_loose_until_stopped() {
     let doc = Ulid::generate();
     let newer = crate::event::Shared {
         link: "n3werLnk".into(),
@@ -246,38 +246,6 @@ fn a_share_replaced_or_of_a_document_gone_is_loose_until_stopped() {
         .map(|one| one.share.link.as_str())
         .collect();
     assert_eq!(replaced, ["k7Qm2xPa"]);
-    // A share whose document has not arrived yet is not gone: it may come from another machine later.
-    assert!(state.gone_shares().is_empty());
-}
-
-#[test]
-fn a_share_of_a_document_deleted_for_good_is_gone() {
-    let doc = Ulid::generate();
-    let state = State::replay(&[
-        by(
-            1,
-            "dev_a",
-            Op::DocAdd {
-                id: doc,
-                d: Default::default(),
-            },
-        ),
-        by(
-            2,
-            "dev_a",
-            Op::ShareDoc {
-                id: doc,
-                d: shared(1),
-            },
-        ),
-        by(3, "dev_a", Op::DocDelete { id: doc }),
-    ]);
-    let gone: Vec<String> = state
-        .gone_shares()
-        .into_iter()
-        .map(|(_, one)| one.link)
-        .collect();
-    assert_eq!(gone, ["k7Qm2xPa"]);
 }
 
 #[test]
