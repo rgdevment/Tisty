@@ -934,18 +934,18 @@ fn signing_as(alias: &str) -> Op {
 }
 
 #[test]
-fn a_document_another_machine_of_mine_made_is_mine_to_share() {
+fn a_document_another_machine_of_mine_made_is_mine_by_key() {
     let mut two = Two::new();
     let doc = ulid::Ulid::generate();
     two.wrote("dev_a", vec![signing_as("ana")], 130);
     two.wrote("dev_b", vec![written(doc, "ana")], 140);
     let state = two.state();
 
-    assert!(state.mine_to_share(&state.docs[&doc], &seed().root().person()));
+    assert!(state.mine_by_key(&state.docs[&doc], &seed().root().person()));
 }
 
 #[test]
-fn taking_someone_elses_alias_does_not_make_their_document_mine_to_share() {
+fn taking_someone_elses_alias_does_not_make_their_document_mine_by_key() {
     let mut two = Two::new();
     two.events.push(joined("dev_c", DeviceKind::Machine));
     let (_room, third) = room();
@@ -965,8 +965,8 @@ fn taking_someone_elses_alias_does_not_make_their_document_mine_to_share() {
     let theirs = &state.docs[&doc];
 
     assert!(state.mine(theirs));
-    assert!(!state.mine_to_share(theirs, &seed().root().person()));
-    assert!(state.mine_to_share(theirs, &stranger.root().person()));
+    assert!(!state.mine_by_key(theirs, &seed().root().person()));
+    assert!(state.mine_by_key(theirs, &stranger.root().person()));
 }
 
 #[test]
@@ -983,8 +983,8 @@ fn a_machine_nobody_vouched_for_has_only_its_alias_to_go_by() {
     let state = two.state();
     let me = seed().root().person();
 
-    assert!(state.mine_to_share(&state.docs[&ours], &me));
-    assert!(!state.mine_to_share(&state.docs[&theirs], &me));
+    assert!(state.mine_by_key(&state.docs[&ours], &me));
+    assert!(!state.mine_by_key(&state.docs[&theirs], &me));
 }
 
 fn adopting(two: &Two) -> Option<Op> {
@@ -1126,8 +1126,8 @@ fn what_my_machine_made_is_not_shared_by_a_root_that_vouched_for_it_uninvited() 
     two.wrote("dev_b", vec![written(doc, "ana")], 150);
     let state = two.state();
 
-    assert!(state.mine_to_share(&state.docs[&doc], &seed().root().person()));
-    assert!(!state.mine_to_share(&state.docs[&doc], &stranger.root().person()));
+    assert!(state.mine_by_key(&state.docs[&doc], &seed().root().person()));
+    assert!(!state.mine_by_key(&state.docs[&doc], &stranger.root().person()));
 }
 
 #[test]

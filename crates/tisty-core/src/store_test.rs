@@ -2143,3 +2143,48 @@ fn the_line_1_34_0_wrote_still_counts_towards_a_closed_segment() {
 
     assert_eq!(read.len(), 1, "the closed segment was taken for a cut one");
 }
+
+#[test]
+fn lines_of_a_retired_operation_are_read_past_without_a_word_in_the_log() {
+    let _alone = crate::witness::ALONE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("store");
+    let dir = root.join("dev_a");
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut said = String::new();
+    for op in crate::event::RETIRED_OPS.iter().chain(&["task.bless"]) {
+        said.push_str(&format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-11-01T10:00:00Z","by":"dev_a","opt":true,"op":"{op}","id":"01M14RFT9ECC2B6E4CX4P59XPH","link":"k7Qm2xPa","version":2}}"#
+        ));
+        said.push('\n');
+    }
+    std::fs::write(dir.join(ACTIVE), said).unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    crate::witness::keeps(crate::witness::file(&paths), true);
+
+    let read = read_all(&root).unwrap();
+    Store::open(&root, DeviceId("dev_a".into()))
+        .unwrap()
+        .append(add("after them"))
+        .unwrap();
+
+    let diary = std::fs::read_to_string(crate::witness::file(&paths)).unwrap_or_default();
+    crate::witness::stops();
+    assert!(read.is_empty());
+    assert!(diary.contains("task.bless"), "{diary}");
+    for op in crate::event::RETIRED_OPS {
+        assert!(!diary.contains(op), "{diary}");
+    }
+    assert_eq!(
+        diary.matches("does not understand was skipped").count(),
+        1,
+        "{diary}"
+    );
+    assert_eq!(
+        diary.matches("segment line unreadable").count(),
+        1,
+        "{diary}"
+    );
+}
