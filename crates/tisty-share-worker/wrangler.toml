@@ -8,8 +8,7 @@ routes = [
   { pattern = "www.tisty.cl", custom_domain = true },
 ]
 
-# Runs beside D1 and R2, both in eastern North America (ENAM): a read is a few queries in a row, each a trip
-# across a continent from the reader's own city, and only one when the Worker answers from there (decision 94 bis).
+# Beside D1 and R2 in eastern North America, so a read's queries in a row cross the continent once (decision 94 bis).
 [placement]
 region = "aws:us-east-1"
 
@@ -17,7 +16,7 @@ region = "aws:us-east-1"
 [assets]
 directory = "../../packages/tisty-share-web/dist"
 not_found_handling = "single-page-application"
-run_worker_first = ["/", "/404", "/api/*", "/robots.txt"]
+run_worker_first = ["/api/*"]
 
 # worker-build is installed once, as the CI's wasm job does: cargo install worker-build@0.8.7 --locked
 [build]

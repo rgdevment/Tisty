@@ -93,8 +93,7 @@ const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>
 
 type Early = { readonly id: string; readonly answer: Promise<Response> };
 
-// The envelope public/early.js asked for before the page's code arrived, taken once for the plain read of that id;
-// marked taken either way, so early.js arriving late never asks a second time.
+// Taken once and marked taken either way, so early.js arriving after the page's code never asks a second time.
 export const early = (id: string, ask: typeof fetch = fetch): typeof fetch => {
   const held = globalThis as { tistyEarly?: Early | null };
   const asked = held.tistyEarly;
