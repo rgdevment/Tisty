@@ -4,7 +4,7 @@ import type { Say } from "./words";
 
 export type Glimpse = { readonly title?: string; readonly said?: string; readonly shot?: string };
 
-// The sheet keeps no site's glimpse: the window brings the ones it kept and asks for one when told, the web has none.
+// The sheet keeps no site's glimpse: the window brings the ones it kept and asks for one when told.
 export type Glimpses = {
   readonly kept: (at: string) => Promise<Glimpse | null>;
   readonly fetched: (at: string) => Promise<Glimpse | null>;
