@@ -5811,7 +5811,6 @@ name = "tisty-gui"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
- "image",
  "jiff",
  "log",
  "objc2",
@@ -5842,8 +5841,6 @@ dependencies = [
  "tisty-nl",
  "tisty-onedrive",
  "tisty-share-proto",
- "tisty-share-server",
- "tisty-share-worker",
  "tisty-webdav",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
