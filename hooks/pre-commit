@@ -13,6 +13,7 @@ git checkout-index --all --prefix="$staged/" || {
 }
 
 bash "$staged/scripts/rules.sh" < /dev/null || status=1
+bash "$staged/scripts/branches.sh" "$(git rev-parse --abbrev-ref HEAD)" || status=1
 
 quietly() {
   local said
