@@ -5912,6 +5912,7 @@ dependencies = [
  "hmac",
  "image",
  "jiff",
+ "miniz_oxide 0.8.9",
  "rand_core 0.9.5",
  "scrypt",
  "serde",

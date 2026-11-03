@@ -3,6 +3,8 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::{Shared, Signs};
+use tisty_markdown::front;
+use tisty_share_proto::config::{Config, Field};
 use tisty_share_proto::envelope::{self, Cited, Draft, Kind, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
@@ -483,7 +485,8 @@ fn put_up(
         from,
         text: words.text,
         cited: words.cited,
-        html: Some(&html),
+        html: &html,
+        config: configured(words.text),
         pictures: &pictures,
     };
     let sealed =
@@ -514,6 +517,27 @@ fn put_up(
         body: sealed.into_bytes(),
     })
     .and_then(done)
+}
+
+/// How this Tisty reads the words, so the reader shows the title, paper and properties without reading Markdown.
+fn configured(text: &str) -> Config {
+    let laid = front::laid(text);
+    Config {
+        title: Some(tisty_core::docs::titled(text)).filter(|one| !one.is_empty()),
+        tags: front::tags(text),
+        lang: front::lang(text),
+        paper: laid.paper.map(str::to_owned),
+        sheets: laid.sheets,
+        landscape: laid.landscape,
+        fields: front::fields(text)
+            .into_iter()
+            .map(|one| Field {
+                key: one.key,
+                values: one.values,
+            })
+            .collect(),
+    }
+    .trimmed()
 }
 
 /// The password and the shorter life the person chose, set once the first version is up.

@@ -91,3 +91,19 @@ fn a_property_taken_out_takes_its_listed_values_with_it() {
         "---\ntags: [a]\nlang: es\n---\n# a\n"
     );
 }
+
+#[test]
+fn the_paper_and_the_sheets_are_read_as_the_window_reads_them() {
+    let laid = front::laid("---\npaper: Letter\nsheets: on\norientation: landscape\n---\n# a");
+    assert_eq!(
+        laid,
+        front::Laid {
+            paper: Some("letter"),
+            sheets: true,
+            landscape: true,
+        }
+    );
+    // Lying across only means something while the sheets are laid, and a paper the window lacks is no paper.
+    let loose = front::laid("---\npaper: A0\norientation: landscape\n---\n# a");
+    assert_eq!(loose, front::Laid::default());
+}
