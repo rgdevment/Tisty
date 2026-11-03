@@ -461,6 +461,15 @@ nothing and still has no server of its own — but this door is real, and it is
 the only thing here that can carry your data off this machine. Which is why it
 stays shut until you open it, and why closing it is one click.
 
+## Sharing by link, if you choose to
+
+Tisty's *Share* button hands a document to Tisty Share, a separate service with
+a server of its own. Tisty seals the document on your machine first, so the
+service keeps an encrypted copy it cannot read; but it is a service, it keeps
+records, and this policy does not cover it. What it keeps, why and for how long
+is in [its own privacy policy](share/PRIVACY.md). If you never press *Share*,
+nothing here changes: Tisty still collects nothing.
+
 ## Children's privacy
 
 Tisty collects no personal information from anyone, of any age. There are no

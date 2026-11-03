@@ -8,7 +8,9 @@ and nowhere.
 
 ## Reporting a vulnerability
 
-**Do not open a public issue.** Use either private channel:
+**Do not open a public issue.** Use either private channel. A vulnerability in
+Tisty Share — tisty.cl, its API, the page that reads a link or the envelope
+format — goes by [its own security policy](share/SECURITY.md).
 
 - **Email** <rgdevment@tisty.app>, subject `[SECURITY] short description`.
 - **GitHub Security Advisory** — the *Security* tab, *Report a vulnerability*.
