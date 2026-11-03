@@ -786,7 +786,7 @@ pub(super) fn other_version_kept(
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
-    // The other version of someone else's document is still theirs, as a duplicate of it is (decision 68).
+    // The other version of someone else's document is still theirs, as a duplicate of it is.
     let me = session.state.persons.person(&session.config.device_id);
     let theirs = session
         .state
