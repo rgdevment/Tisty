@@ -215,7 +215,7 @@ fn on_paper_an_unsigned_guest_document_names_nobody() {
 }
 
 #[test]
-fn a_name_to_sign_is_held_to_what_a_share_takes() {
+fn a_name_to_sign_is_trimmed_short_enough_and_never_mostly_digits() {
     assert_eq!(name_to_sign(None).unwrap(), None);
     assert_eq!(name_to_sign(Some("   ".into())).unwrap(), None);
     assert_eq!(

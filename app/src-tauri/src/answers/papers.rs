@@ -336,7 +336,6 @@ pub fn sign_name(
     Ok(as_signed(&session))
 }
 
-/// The name as it is kept, or why it cannot be: a share signs with it too, so it is held to what a share takes.
 fn name_to_sign(name: Option<String>) -> Result<Option<String>, Refusal> {
     let Some(said) = name
         .map(|one| tisty_core::text::plainly(&one).trim().to_string())
@@ -787,7 +786,7 @@ pub(super) fn other_version_kept(
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
-    // The other version of someone else's document is still theirs, as a duplicate of it is (decision 68).
+    // The other version of someone else's document is still theirs, as a duplicate of it is.
     let me = session.state.persons.person(&session.config.device_id);
     let theirs = session
         .state
