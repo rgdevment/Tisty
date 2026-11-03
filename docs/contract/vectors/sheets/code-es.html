@@ -1,0 +1,30 @@
+<h1 id="cuando-lo-que-apuntas-es-código" data-at="0-35">Cuando lo que apuntas es código</h1><p data-at="36-233">La otra página te enseñaba qué es una página. Esta te enseña para qué sirven de verdad: para el apaño que resolviste a las once de la madrugada y que dentro de seis meses no vas a recordar.</p><p data-at="234-376">Un bloque de código se colorea según su lenguaje, y con <code>title=</code> le pones el nombre del archivo. Escribe <code>/</code> y elige <strong>Bloque de código</strong>.</p><figure class="code" data-at="377-591"><figcaption>src/walk.rs</figcaption><pre><code class="language-rust">fn time_to_take_her_out(hour: u8, been_out: bool) -&gt; bool {
+    match (hour, been_out) {
+        (7..=9, false) =&gt; true,
+        (20..=22, false) =&gt; true,
+        _ =&gt; false,
+    }
+}
+</code></pre></figure><p data-at="593-739">Eso de arriba es Rust, que es de lo que está hecho Tisty. Y esto es lo mismo contado como un flujo, que a veces se entiende antes de un vistazo:</p><figure class="diagram" data-at="740-956"><pre><code class="language-mermaid">flowchart TD
+  A[Rina te mira fijo] --&gt; B{Ya salio hoy?}
+  B -- No --&gt; C[Sacarla]
+  B -- Si --&gt; D{Te sigue observando?}
+  D -- Si --&gt; C
+  D -- No --&gt; E[Era hambre]
+  C --&gt; F[Vuelve embarrada]
+  F --&gt; A
+</code></pre></figure><p data-at="958-1012">Los ajustes de un programa, en JSON, con sus colores:</p><figure class="code" data-at="1013-1183"><figcaption>settings.json</figcaption><pre><code class="language-json">{
+  &quot;language&quot;: &quot;es&quot;,
+  &quot;walks&quot;: [&quot;08:00&quot;, &quot;21:00&quot;],
+  &quot;remind&quot;: true,
+  &quot;vet&quot;: { &quot;name&quot;: &quot;South Clinic&quot;, &quot;phone&quot;: &quot;+56 9 1234 5678&quot; }
+}
+</code></pre></figure><p data-at="1185-1234">Una consulta que escribiste una vez y funcionó:</p><figure class="code" data-at="1235-1374"><figcaption>spending.sql</figcaption><pre><code class="language-sql">SELECT month, SUM(amount) AS total
+FROM spending
+WHERE category = 'vet'
+GROUP BY month
+ORDER BY total DESC;
+</code></pre></figure><p data-at="1376-1408">El comando que nunca recuerdas:</p><figure class="code" data-at="1409-1488"><figcaption>backup.sh</figcaption><pre><code class="language-bash">rsync -a --delete ~/Tisty/ /Volumes/Backup/Tisty/
+</code></pre></figure><p data-at="1490-1544">Y lo que cambió entre lo que funcionaba y lo que no:</p><figure class="code" data-at="1545-1602"><pre><code class="language-diff">- const WALKS: u8 = 1;
++ const WALKS: u8 = 2;
+</code></pre></figure><blockquote class="callout" data-callout="tip" data-at="1604-1746"><p data-at="1615-1746">El nombre del archivo se ve en la cabecera del bloque y llega también al PDF. Si imprimes esta página, los colores van con ella.</p></blockquote><p data-at="1747-1936">Cuando el código va dentro de una frase, va entre acentos graves: <code>cargo build --release</code>, <code>Ctrl</code> + <code>C</code>, <code>~/.config/tisty</code>. Eso es código en línea, y no se colorea porque no hace falta.</p><p data-at="1937-2122">Un apunte que vale más que el código: escribe debajo <strong>por qué</strong> era así. El bloque te dice qué hiciste; la línea de después te dice por qué, que es lo que de verdad se olvida.</p>

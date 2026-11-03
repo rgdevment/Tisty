@@ -1,0 +1,98 @@
+<h1 id="uno-de-cada-cosa" data-at="0-19">Uno de cada cosa</h1><p data-at="20-254">Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento, todo en una sola hoja. Aquí casi nada se explica; está para mirarla, editarla e imprimirla. Si algo en esta hoja se ve mal, vale la pena contárnoslo.</p><hr data-at="255-259"><h2 id="palabras" data-at="260-272">Palabras</h2><p data-at="273-582"><strong>Negrita</strong>, <em>cursiva</em>, <em><strong>las dos a la vez</strong></em>, <s>tachado</s>, <u>subrayado</u> y <code>código suelto</code>. Un <a href="https://github.com/rgdevment/Tisty">enlace a un sitio</a>, y la misma dirección escrita tal cual entre ángulos: <a href="https://github.com/rgdevment/Tisty">https://github.com/rgdevment/Tisty</a>. Una dirección de correo funciona igual: <a href="mailto:rina@example.com">rina@example.com</a>.</p><p data-at="583-667">Cuatro marcadores: <mark>amarillo</mark>, <mark data-pen="green">verde</mark>, <mark data-pen="blue">azul</mark> y <mark data-pen="pink">rosa</mark>.</p><p data-at="668-782">Íconos, con color o sin él: <span class="ico" data-ico="dog" data-hue="orange" title="dog"></span> <span class="ico" data-ico="bone" data-hue="amber" title="bone"></span> <span class="ico" data-ico="heart" data-hue="red" title="heart"></span> <span class="ico" data-ico="leaf" data-hue="green" title="leaf"></span> <span class="ico" data-ico="moon" data-hue="indigo" title="moon"></span> <span class="ico" data-ico="star" data-hue="" title="star"></span></p><p data-at="783-831">Emojis por su nombre: 🐶 🎉 👍 ☀️</p><p data-at="832-912">Una etiqueta escrita en un documento lo archiva bajo ella: <span class="tag" data-tag="rina">#rina</span>, <span class="tag" data-tag="veterinario">#veterinario</span>.</p><p data-at="913-1012">Una línea termina donde tú la terminas.<br>Esta línea es el mismo párrafo, una línea más abajo.</p><h2 id="títulos" data-at="1013-1025">Títulos</h2><h3 id="tercer-nivel" data-at="1026-1043">Tercer nivel</h3><h4 id="cuarto-nivel" data-at="1044-1062">Cuarto nivel</h4><h5 id="quinto-nivel" data-at="1063-1082">Quinto nivel</h5><h6 id="sexto-nivel" data-at="1083-1102">Sexto nivel</h6><h2 id="listas" data-at="1103-1113">Listas</h2><ul data-at="1114-1180"><li data-at="1114-1123">Correa</li><li data-at="1123-1172">Bolsas<ul data-at="1134-1172"><li data-at="1134-1147">Las verdes</li><li data-at="1149-1172">El rollo de repuesto</li></ul></li><li data-at="1172-1180">Agua</li></ul><ol data-at="1180-1259"><li data-at="1180-1201">Ponerle la correa</li><li data-at="1201-1228">Caminar hasta el parque</li><li data-at="1228-1259">Soltarla junto a la laguna</li></ol><p data-at="1259-1282">Etapas, que se marcan:</p><ul data-at="1283-1397"><li class="task" data-at="1283-1315"><span class="check" data-done="true"></span>Llevar la libreta de Rina</li><li class="task" data-at="1315-1346"><span class="check" data-done="true"></span>Pesarla antes de la hora</li><li class="task" data-at="1346-1397"><span class="check" data-done="false"></span>Preguntar por la pastilla de las garrapatas</li></ul><h2 id="citas-y-avisos" data-at="1397-1415">Citas y avisos</h2><blockquote data-at="1416-1450"><p data-at="1418-1450">Lo que no se escribe, no pasó.</p></blockquote><blockquote class="callout" data-callout="note" data-at="1451-1517"><p data-at="1463-1517">Para lo que vale la pena saber, sin ninguna urgencia.</p></blockquote><blockquote class="callout" data-callout="tip" data-at="1518-1574"><p data-at="1529-1574">Para el atajo que encontraste por las malas.</p></blockquote><blockquote class="callout" data-callout="important" data-at="1575-1632"><p data-at="1592-1632">Para lo que no se puede pasar por alto.</p></blockquote><blockquote class="callout" data-callout="warning" data-at="1633-1689"><p data-at="1648-1689">Para lo que puede salir mal si no miras.</p></blockquote><blockquote class="callout" data-callout="caution" data-at="1690-1741"><p data-at="1705-1741">Para lo que no tiene vuelta atrás.</p></blockquote><h2 id="una-tabla" data-at="1742-1755">Una tabla</h2><p data-at="1756-1868">Columnas a la izquierda, al centro y a la derecha, y la primera más ancha: su regla está dibujada más larga.</p><div class="table" data-at="1869-2051"><table><colgroup><col style="width:180px"><col><col></colgroup><thead><tr><th scope="col" style="text-align:left">Vacuna</th><th scope="col" style="text-align:center">Puesta</th><th scope="col" style="text-align:right">Otra vez en</th></tr></thead><tbody><tr><td style="text-align:left">Séxtuple</td><td style="text-align:center">marzo</td><td style="text-align:right">12 meses</td></tr><tr><td style="text-align:left">Antirrábica</td><td style="text-align:center">marzo</td><td style="text-align:right">12 meses</td></tr><tr><td style="text-align:left">Desparasitación</td><td style="text-align:center">agosto</td><td style="text-align:right">3 meses</td></tr></tbody></table></div><h2 id="código" data-at="2052-2063">Código</h2><figure class="code" data-at="2064-2201"><figcaption>src/paseo.rs</figcaption><pre><code class="language-rust">fn paseos_de_hoy(hechos: u8) -&gt; &amp;'static str {
+    if hechos &gt;= 2 { &quot;suficiente&quot; } else { &quot;uno más&quot; }
+}
+</code></pre></figure><figure class="code" data-at="2203-2290"><figcaption>peso.py</figcaption><pre><code class="language-python">pesos = [13.2, 13.8, 14.1]
+print(sum(pesos) / len(pesos))
+</code></pre></figure><figure class="code" data-at="2292-2426"><figcaption>recordar.ts</figcaption><pre><code class="language-ts">const toca = new Date(&quot;2026-11-12&quot;);
+const dias = Math.ceil((toca.getTime() - Date.now()) / 86_400_000);
+</code></pre></figure><figure class="code" data-at="2428-2478"><pre><code class="language-html">&lt;p class=&quot;nota&quot;&gt;Rina estuvo aquí.&lt;/p&gt;
+</code></pre></figure><figure class="code" data-at="2480-2533"><pre><code class="language-css">.nota { color: tomato; font-weight: 600; }
+</code></pre></figure><figure class="code" data-at="2535-2596"><figcaption>paseos.yml</figcaption><pre><code class="language-yaml">manana: &quot;08:00&quot;
+noche: &quot;21:00&quot;
+</code></pre></figure><figure class="code" data-at="2598-2657"><pre><code class="language-diff">- const PASEOS: u8 = 1;
++ const PASEOS: u8 = 2;
+</code></pre></figure><figure class="code" data-at="2659-2702"><pre><code class="language-text">Texto plano, sin ningún color.
+</code></pre></figure><h2 id="diagramas" data-at="2704-2717">Diagramas</h2><figure class="diagram" data-at="2718-2835"><pre><code class="language-mermaid">flowchart LR
+  A[Correa puesta] --&gt; B{¿Llueve?}
+  B -- Sí --&gt; C[Paseo corto]
+  B -- No --&gt; D[Parque]
+</code></pre></figure><figure class="diagram" data-at="2837-2946"><pre><code class="language-mermaid">sequenceDiagram
+  Rina-&gt;&gt;Tú: te mira
+  Tú-&gt;&gt;Rina: correa puesta
+  Rina--&gt;&gt;Tú: mueve la cola
+</code></pre></figure><figure class="diagram" data-at="2948-3037"><pre><code class="language-mermaid">pie title Paseos esta semana
+  &quot;Mañana&quot; : 7
+  &quot;Noche&quot; : 5
+  &quot;Los dos&quot; : 2
+</code></pre></figure><figure class="diagram" data-at="3039-3128"><pre><code class="language-mermaid">classDiagram
+  class Perro {
+    nombre
+    pasear()
+  }
+  Perro &lt;|-- Rina
+</code></pre></figure><figure class="diagram" data-at="3130-3244"><pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; Durmiendo
+  Durmiendo --&gt; Paseando: correa
+  Paseando --&gt; Durmiendo: casa
+</code></pre></figure><figure class="diagram" data-at="3246-3329"><pre><code class="language-mermaid">erDiagram
+  PERRO ||--o{ VACUNA : recibe
+  PERRO ||--o{ PASEO : hace
+</code></pre></figure><figure class="diagram" data-at="3331-3526"><pre><code class="language-mermaid">gantt
+  title El otoño de Rina
+  dateFormat YYYY-MM-DD
+  section Veterinario
+  Refuerzo :2026-10-03, 1d
+  Control :2026-11-12, 1d
+  section Paseos
+  Paseos largos :2026-10-01, 30d
+</code></pre></figure><figure class="diagram" data-at="3528-3681"><pre><code class="language-mermaid">journey
+  title Un paseo de domingo
+  section Ida
+    Correa puesta: 5: Rina
+    Lluvia: 2: Rina, Tú
+  section Vuelta
+    Toalla: 3: Rina
+</code></pre></figure><figure class="diagram" data-at="3683-3784"><pre><code class="language-mermaid">mindmap
+  root((Rina))
+    Comida
+    Paseos
+      Mañana
+      Noche
+    Veterinario
+</code></pre></figure><figure class="diagram" data-at="3786-3887"><pre><code class="language-mermaid">timeline
+  title Rina
+  2023 : Nace
+  2024 : Primera nieve
+  2025 : Aprende a sentarse
+</code></pre></figure><figure class="diagram" data-at="3889-3975"><pre><code class="language-mermaid">gitGraph
+  commit
+  branch paseo
+  commit
+  checkout main
+  merge paseo
+</code></pre></figure><figure class="diagram" data-at="3977-4138"><pre><code class="language-mermaid">quadrantChart
+  title Quehaceres de la casa
+  x-axis Fácil --&gt; Difícil
+  y-axis Aburrida --&gt; Entretenida
+  Paseo: [0.3, 0.8]
+  Baño: [0.7, 0.2]
+</code></pre></figure><figure class="diagram" data-at="4140-4300"><pre><code class="language-mermaid">xychart-beta
+  title &quot;Minutos de paseo&quot;
+  x-axis [Lun, Mar, Mié, Jue]
+  y-axis &quot;Minutos&quot; 0 --&gt; 60
+  bar [35, 50, 20, 45]
+  line [35, 50, 20, 45]
+</code></pre></figure><h2 id="fórmulas" data-at="4302-4315">Fórmulas</h2><div class="math" data-at="4316-4361"><math display="block"><mi>d</mi><mi>o</mi><mi>s</mi><mi>i</mi><mi>s</mi><mo>=</mo><mfrac><mrow><mi>p</mi><mi>e</mi><mi>s</mi><mi>o</mi><mo lspace="0.2222em" rspace="0.2222em">×</mo><mn>0.5</mn></mrow><mn>2</mn></mfrac></math></div><div class="math" data-at="4363-4410"><math display="block"><munderover><mo lspace="0">∑</mo><mrow><mi>i</mi><mo lspace="0" rspace="0">=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>i</mi><mo>=</mo><mfrac><mrow><mi>n</mi><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><mn>2</mn></mfrac></math></div><div class="math" data-at="4412-4456"><math display="block"><msubsup><mo lspace="0">∫</mo><mn>0</mn><mn>1</mn></msubsup><msup><mi>x</mi><mn>2</mn></msup><mspace width="0.16666667em"/><mi>d</mi><mi>x</mi><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac></math></div><div class="math" data-at="4458-4514"><math display="block"><mrow><mo>(</mo><mtable displaystyle="false" scriptlevel="0"><mtr><mtd><mn>1</mn></mtd><mtd><mn>0</mn></mtd></mtr><mtr><mtd><mn>0</mn></mtd><mtd><mn>1</mn></mtd></mtr></mtable><mo>)</mo></mrow></math></div><h2 id="un-widget" data-at="4516-4529">Un widget</h2><figure class="code" data-at="4530-5256"><figcaption>Rina este mes</figcaption><pre><code class="language-widget">&lt;div class=&quot;grid&quot;&gt;
+  &lt;div class=&quot;stat&quot;&gt;&lt;small&gt;Paseos&lt;/small&gt;&lt;b&gt;42&lt;/b&gt;&lt;em class=&quot;up&quot;&gt;+6 sobre agosto&lt;/em&gt;&lt;/div&gt;
+  &lt;div class=&quot;stat&quot;&gt;&lt;small&gt;Peso&lt;/small&gt;&lt;b&gt;14 kg&lt;/b&gt;&lt;em class=&quot;down&quot;&gt;−0,3 kg&lt;/em&gt;&lt;/div&gt;
+  &lt;div class=&quot;stat&quot;&gt;&lt;small&gt;Próxima vacuna&lt;/small&gt;&lt;b&gt;12 nov&lt;/b&gt;&lt;span class=&quot;badge warn&quot;&gt;toca&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;card&quot; style=&quot;margin-top:12px&quot;&gt;
+  &lt;div class=&quot;head&quot;&gt;&lt;h3&gt;Revisiones&lt;/h3&gt;&lt;span class=&quot;badge bad&quot;&gt;falta una&lt;/span&gt;&lt;/div&gt;
+  &lt;ul class=&quot;list&quot;&gt;
+    &lt;li&gt;&lt;span class=&quot;box done&quot;&gt;&lt;/span&gt;&lt;span class=&quot;gone&quot;&gt;Garrapatas&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span class=&quot;box&quot;&gt;&lt;/span&gt;Orejas&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;div class=&quot;row&quot;&gt;&lt;button class=&quot;primary&quot;&gt;Hecho&lt;/button&gt;&lt;button&gt;Después&lt;/button&gt;&lt;/div&gt;
+&lt;/div&gt;
+</code></pre></figure><h2 id="adjuntos" data-at="5258-5270">Adjuntos</h2><p data-at="5271-5281">Una foto:</p><p data-at="5282-5312"><img src="rina.jpg" alt="Rina en su silla" loading="lazy"></p><p data-at="5313-5321">Un PDF:</p><p data-at="5322-5359"><img src="cartilla.pdf" alt="La cartilla de Rina" loading="lazy"></p><p data-at="5360-5371">Un sonido:</p><p data-at="5372-5396"><img src="bark.mp3" alt="Un ladrido" loading="lazy"></p><p data-at="5397-5407">Un video:</p><p data-at="5408-5430"><img src="walk.mp4" alt="Un paseo" loading="lazy"></p><p data-at="5431-5438">Datos:</p><p data-at="5439-5472"><img src="paseos.csv" alt="Paseos de octubre" loading="lazy"></p><p data-at="5473-5513">Una página HTML, dibujada como widget:</p><p data-at="5514-5548"><img src="paseos.html" alt="Paseos de octubre" loading="lazy"></p><p data-at="5549-5590">La misma página, guardada como archivo:</p><p data-at="5591-5632"><img src="paseos.html" alt="Paseos de octubre" loading="lazy" data-as="file"></p><h2 id="un-enlace-solo" data-at="5633-5651">Un enlace solo</h2><p data-at="5652-5706"><a href="https://github.com/rgdevment/Tisty">Tisty en GitHub</a></p><h2 id="una-regla" data-at="5707-5720">Una regla</h2><p data-at="5721-5776">Lo que sigue empieza en la hoja siguiente al imprimir.</p><hr data-at="5777-5781"><p data-at="5782-5795">Eso es todo.</p>

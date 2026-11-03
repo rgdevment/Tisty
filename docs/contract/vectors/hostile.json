@@ -1,0 +1,189 @@
+{
+  "version": "1.0.0-draft.1",
+  "note": "Each input goes through the cleaner with allowed.json. The result holds none of must_not_contain and all of must_keep.",
+  "cases": [
+    {
+      "name": "script",
+      "input": "<p>hola</p><script>alert(1)</script>",
+      "must_not_contain": [
+        "<script",
+        "alert(1)"
+      ],
+      "must_keep": [
+        "hola"
+      ]
+    },
+    {
+      "name": "event-handler",
+      "input": "<p onclick=\"alert(1)\">hola</p>",
+      "must_not_contain": [
+        "onclick"
+      ],
+      "must_keep": [
+        "hola"
+      ]
+    },
+    {
+      "name": "javascript-link",
+      "input": "<a href=\"javascript:alert(1)\">x</a>",
+      "must_not_contain": [
+        "javascript:"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    },
+    {
+      "name": "other-scheme",
+      "input": "<a href=\"data:text/html,hi\">x</a>",
+      "must_not_contain": [
+        "data:text"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    },
+    {
+      "name": "protocol-relative",
+      "input": "<a href=\"//evil.example\">x</a>",
+      "must_not_contain": [
+        "evil.example"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    },
+    {
+      "name": "outside-picture",
+      "input": "<img src=\"https://evil.example/a.png\" alt=\"a\">",
+      "must_not_contain": [
+        "evil.example"
+      ],
+      "must_keep": []
+    },
+    {
+      "name": "style-element",
+      "input": "<style>body{display:none}</style><p>hola</p>",
+      "must_not_contain": [
+        "<style",
+        "display:none"
+      ],
+      "must_keep": [
+        "hola"
+      ]
+    },
+    {
+      "name": "style-url",
+      "input": "<p style=\"color:#000;background:url(https://evil.example/)\">hola</p>",
+      "must_not_contain": [
+        "evil.example",
+        "url("
+      ],
+      "must_keep": [
+        "hola"
+      ]
+    },
+    {
+      "name": "style-cover",
+      "input": "<div style=\"position:fixed;inset:0\">x</div>",
+      "must_not_contain": [
+        "position",
+        "inset"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    },
+    {
+      "name": "negative-margin",
+      "input": "<p style=\"width:-5px\">x</p>",
+      "must_not_contain": [
+        "-5px"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    },
+    {
+      "name": "iframe",
+      "input": "<iframe src=\"https://evil.example\"></iframe><p>hola</p>",
+      "must_not_contain": [
+        "<iframe",
+        "evil.example"
+      ],
+      "must_keep": [
+        "hola"
+      ]
+    },
+    {
+      "name": "form",
+      "input": "<form action=\"https://evil.example\"><input name=\"k\"></form>",
+      "must_not_contain": [
+        "<form",
+        "<input",
+        "evil.example"
+      ],
+      "must_keep": []
+    },
+    {
+      "name": "meta-and-base",
+      "input": "<meta http-equiv=\"refresh\" content=\"0;url=https://evil.example\"><base href=\"https://evil.example/\">",
+      "must_not_contain": [
+        "<meta",
+        "<base",
+        "evil.example"
+      ],
+      "must_keep": []
+    },
+    {
+      "name": "svg-script",
+      "input": "<svg><script>alert(1)</script><path d=\"M0 0\"/></svg>",
+      "must_not_contain": [
+        "<script",
+        "alert(1)"
+      ],
+      "must_keep": [
+        "<path"
+      ]
+    },
+    {
+      "name": "svg-foreign-object",
+      "input": "<svg><foreignObject><p>x</p></foreignObject></svg>",
+      "must_not_contain": [
+        "foreignObject",
+        "foreignobject"
+      ],
+      "must_keep": []
+    },
+    {
+      "name": "svg-use",
+      "input": "<svg><use href=\"https://evil.example/a.svg#b\"/></svg>",
+      "must_not_contain": [
+        "<use",
+        "evil.example"
+      ],
+      "must_keep": []
+    },
+    {
+      "name": "unknown-data",
+      "input": "<p data-evil=\"1\" data-pen=\"blue\">x</p>",
+      "must_not_contain": [
+        "data-evil"
+      ],
+      "must_keep": [
+        "data-pen",
+        "x"
+      ]
+    },
+    {
+      "name": "aria",
+      "input": "<p aria-hidden=\"true\">x</p>",
+      "must_not_contain": [
+        "aria-hidden"
+      ],
+      "must_keep": [
+        "x"
+      ]
+    }
+  ]
+}

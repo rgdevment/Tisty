@@ -1,0 +1,545 @@
+{
+  "version": "1.0.0-draft.1",
+  "envelopes": [
+    {
+      "name": "plain",
+      "note": "The least a version holds: config, signature, the sheet and the words.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "second-version",
+      "note": "A later version says which one it was written on.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE5eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MiwiZnJvbSI6MSwic2FsdCI6IkRnNE9EZzRPRGc0T0RnNE9EZzRPRGc0T0RnNE9EZzRPRGc0T0RnNE9EZzQiLCJjb21taXQiOiJFaUJ6WWJhMHgyejlXQzJEeDdpY2lmWnl3X3JNNmF6VjAtOGJCZzhxRjFBIiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIAjEjJyAN61mMkzNRmNtu50tpoKMeJOhkd30R1pFfK2miKcLv9kcu5lCCbdAYRd_H5GT-MvUyA47jm-5OXttklp9dcIEHlIpRdFuHftFaYTx6HU6ghAFWtvXXZ37gzJdZRfS9xxBR60gX54SUF_GUpvuZOe9Wn5Yr0dZIKlD309TwAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6IjZ6OF9ldmxZSkxwRWhZZUlSNUJhX3ZiN2x5aHRYNmhzaU1zZU53U0tIMHEzcDhjQmR2akhkNlA5THB4SGQ4N1FFb3U3cUFZNXJaN0t6M0N1WDdqekJBIn1qmnV2xNfGXVEmaXCwej8ZHiRVDHi8PJp2UFz0bj-BDALxja5rvbh3LE7Kq7R9uxG9thagMSCxzJc8nkeHGB2A-BRlHwL4ohPW-7TqNPRNdOg_31W76xL-v-QYpm0lRW4CDbpPh8xZdJ-T_toTV_Tufs3RLdGQ2tP2fMHsJn58YwK4xkQDb9i8tIqvR8_T-uQvhMoWGOSro8ZobWfJrZ60V8HfI1prtw20drkUd4k2j61-q3adGIJkBJ7nJTl4caNrU1n8kfFAhutCuSTglSOeD14uCyjF6jdxKBI72feIk6vSP5vl__xexZj4rQZUZFELzPGTu22oQeyWZOP-UPRVV2uJnKHbuPsiuescSeb9KCdmvdu52gw6xhLQQdloxjnRzaY7UOpJhutmUlso5OxrZq-Iedt-JFNI9OUSwZ2Hr7tiVK7U5xdl45lo3nFDu0iZZH3ODsdecZ_AUYCl_jFPZ_ufRbyQTQmqutuZPDRYbVy7gneu6tbO-NLiDqmRhFyJ3hxyVv1EvwTb0Yo7k2qwqyMLjAatZyfczfiFtZxx6LGExwHkpHb2C2Ys9qnV_FA31-2mKuxnMFBZD-ztVgfcikcAABNbHaRr5PujDLpk922xcDcHxQUE-NKEXsbk6aLHDSwQlBbVTpYhmeJPdc6HZoOfqwXv9pIs5EU5pGRU8OUOEfNXO5gCPz8CTMEgU0FUxq4OkWvErhvPzDWsz_5MFkrhJJ1AJ9tjEuOP6KgJkO9vhml8jRRKbOSi6iEvWm0kn65N61td-QkguhMwoem5pBvvCOd6QUHF6kfsGj-h8uNjx9-iffR8x3N8VV2ct0Bj44ozd_Xwr8EG1rWmMHKLTDaYD3X0vbxs7kg7DKf7sR54TNlkeQO2auLHBX4ITWgsgwEqQgNjUDn5ZkN7ec5Y-4-QODGuO_mwkzwBXHmYXn1QyhirIXi8plkHnUKdbk_k3-drddJsKpXg9wHe8_gdkJKLmtXGuAuZ_7btjjZaaP7S83tfYUsOc79HWRD13TnhmQ",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 2,
+        "from": 1
+      }
+    },
+    {
+      "name": "picture",
+      "note": "A picture sits between the sheet and the words, and is not deflated.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAFeeyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjU0MywibGVuIjo1Mjd9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InBuZyIsInNpemUiOjg2LCJsZW4iOjcwfSx7ImtpbmQiOiJ0ZXh0Iiwic2l6ZSI6ODUsImxlbiI6Njd9XX0AAACg4V9_qmweQztALZya-lVzWs8irUgkHpYEet_fkuC_3nS5dE-1HVza9pV_mmwTo_y8FMLXcgxB6_i7K0Ab36o1j0R4NgHmBJsV1Eidmbw0Odt01-7AtXByGoLe56V9ue6tJ04qW9QigUPAsJX2iTD3RnQqSF9WPeIuqFsWlX1TyYVkK8I-svuY-s3-jglr8hTEWFsEcckfmOWMo6I3IQWX5wAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6InVRUURhZXJZZEM4NDdvdmVyencyNzFCYmJqZ1lyNFdERVZLNmRqRlRZaW9HZlBURkI4Z0ZLZlZ5NG03cWIzSUJXWExQTXZZRklDSTlSbFdqN2VPNUJRIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOlYimkuVcmboHvHYdJ3AjIJf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZtLzaHHNdFBZf39mLrkQB4B2LajVKkxNJib-sBGhKEU8RZYLC2p7Hh75jf6h2WcP9uQFLNLVXA5MzDzjkhfzgQz_AZ72IPP5Scf2z3uR8-KfpzlaLj6xIB2A_MaV2PhKesYE0xFyhFTFuacsB0mAVSYiH38wcqWxUywB-_YVQcNJg5t8zEbdFWEuA7kbDFgEv3Ii7irur1HNAigw3hewLWEM4M-Kx-BjedKbV1U-QzGSDrs6mOfuZdD8TEa034ykY4J_89QdYaRxI7sl4aFEye3xe4aiCO3GFvX9EkKUuw4L2UY7XZT7EeLDOWYvVzzY8NkSl7sx1efudpFrOQ8xEfJUt7wmGpM5JvNbOr_B2xh6QeEp51mYHI--EHFEYDGdGLotMJI7eKYR5-DT7rlYy90F0F_jofkosgnGjEzHKR-rIOIHvvOMZ4wUqlv_3UwbH7BfrwLoKRlzFlu5i-LCYjwoNHUSABuJHrKjiEnDX46MfFDDEojTrKeN64Zv5zpFqXu5L058Mhk3o5MMOzunt0khOq5tdFidRUTwH_AfR9PzdvR-ynx4_WjtOHW0oAF0TetUYCK_zoLa9SmE9ZyyThqIYB5L6N6V5_L8v2x5DC0VlLBR6hAUydV8kqXpcgFdkPSAPGjOXu5jM8uXoSSn-p3I04OJe69kADolThLzB5sZSME3r_bchhfYLyhPDSlSVIXIde4o6a7wVUDpvMsLy-VwmwbyRArDdJ7sm6uSITOg5HVtbSI2i1atcl2_UWbm5Dpr7oGKyG1kS_5biPShm4IEbCKH4zK-7dSYxEnrvuYvuw34joafSzhzOb9DJLHoWKUmk98Lg2XlhF4GIVJmcqTII8wd5bOA_HIO4F6TMFea0cSNs9fagMFUQpEAh9w02tE3W8qiUpj5zKYqq2hHZ9ODXquI5akbXrYKxvjHzAgTadALn6wzd8-zYkrOE3riEBEVVo4zmOhnlItSj1pDCE_5-zS85uoIWe0sWd8yWonuQCQPM",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [
+          {
+            "kind": "png",
+            "sha256": "SXeQlH1GZnYM4488AOhSxx_bZsroSbro6e3jUnGeFYE"
+          }
+        ],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "anchor",
+      "note": "A language map and a cited page, in the part before the sheet.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAFieyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6ImNpdGVkIiwic2l6ZSI6MTI2LCJsZW4iOjIxOX0seyJraW5kIjoiaHRtbCIsInNpemUiOjEwMywibGVuIjo5NH0seyJraW5kIjoidGV4dCIsInNpemUiOjg1LCJsZW4iOjY3fV19AAAAoHd4aPPo6HAi0-6Az8DRiEWrAIGSBWTr6N84TUjnzHHKF6pOgtAt7SEdrLsvCnpUc3O1QBaOGRaCHhzoak5PTpIaclBFSzOgZcxXX_9n6Y9OzBtVTz9SVLsMynoBiXSaQyIv7XxTrq11bcltmoU3655WuLcDEesL9SkAK1Z71cPxIMpN65XugT21L1glG4vP1I6xErVVQAEHXvaz6qee8YUAAAFZeyJjZXJ0aWZpY2F0ZSI6eyJyb290IjoiaW9qajNYUUo4Wlg5VXRzdFBMcGRjc3BuQ2I4ZGxCSWI4M1NJQWJRUGIxdyIsInNoYXJlIjoiZ1RsM0RxaDlGMTlXbzFSbXcweC16TXVOaXBHMDdqZWlYZllQVzRfSnM1USIsInNpbmNlIjoiMjAyNi0xMS0wM1QxMjowMDowMFoiLCJzaWciOiJlUlhETWhwM0QzTll4RnB3VW01V2dNMW9ONDVCMzFYbkNPamJvc2NmSF9rR2hDZEcybHhqVXpJUWQ2MGRLRzZpRVFjY3dROVpWYUJfMDJGX1p2MFVCZyJ9LCJzaWciOiJseHVZQnVaZmFWQ0dqd1dLcDhoY0pIa3AybFdRYmlnOVd4VTExcXkxbklvXzdPVXo3TEs4RlFwQVphWWktMkl2dEhwcnZCSWRGeHNYSDNJeU1Kc1ZDdyJ9blZkIDLZ6qmxrDB8Xzve6wy0ZJLeT3K5LrCDyqr4-27XLxGCHc3ufUAhx9IX_avSdzzCrFlu8TMkoawbxWe1-XS91nhq8IzXxRLsko0AqP9pTpeZIDiyEMaZbupFmf-uwMeX_bXpTZ4sT8hh_PvGfjsMEGuS64q611JJ9uAvd5nbcbKXT_ZppSwn_ckAj0hqZvrBniUBC0PefqaAnGkWaSMth0ufAkSMoMsF94EmQVt5qpBLj8jsAzOnSAgkmUH7GXSB25iw7dK_xNxkiTbKXWM3hEl_7KH_iohvfnxuUZCgX79pABm6oFkm_ZF8FgXQUsTNqfYMOMtJ1X8v_I3I2UZaLCYRUHNFjF7WV_lLSHUk0tQAdkp8AKMei0NCRCXTdvTLyS6ZSBKodpmQi4kt7yV9zqyL8znZKrZDhHdc2A33MvW_SkZutC7kSVn_Kiwsh6qT-k2VIU-G2icCv5sUe2eqLU3ZTCJTOMV7Qx8wn9Z652sowYdzZBvMS2YnvMKi4Bm3zBWtSzs6uRDaTuvXaeRiFPEbfim3CR-g-q1gZmIYJZwy_C_8Nkjr2KJqs7H-WGWXVa_HxOngHgs0JzTw24WXFkOVmnArdFA5-q2b-o9Gc6xaUY_xPbZAjJQ_pNDjNSUmmwrgZbMsn_egtOioxgX-jT6hl5E7TJOtuDdDW_qdfmYlXMbj5CcU1ZE9rqTJiF8ND9hWhmrLjUTYDpcjnIaY--3hYb5NDwnMis9iF54jps-GWZKdHXRadHz-XrBM3Xz8COCaraKboWeZdYs7g4yhEgmh-fYzhil-rqcGf5aThKfRHzoMN6Ix4Qrw4C_DcX3WsOBLHFiR6p_q-wOj2iBuFrVNz67VaNYYV1WjuP_4HMAUOXNKL8B2h5Fpq9oR1epcc7zZRL45ODYHAagZr76XW07fczjKvd1Rh5ur98no81SYE3-3xgcjsi-WaWTJ3Y-GSdXNmH_8yeqQo_rmDX3FgKEXhNsfQ8tpu_C_Tqn7Veq0-786cwUEW0u-BgXl1dX5xz1FTehmvlzhIiQsqegdMn29BloZV1aLFEqZraa8aizZD-TLdC9g4U2tE3W8qiUpj5zKYqq2hHZ9ODXquI5akbXrYKxvjHzAgTadALn6wzd8-zYkrOE3riEBEVVo4zmOhnlItSj1pDCE_5-zS1zVgWPW8gCEFrIMC4cgyt4",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [
+          {
+            "doc": "",
+            "id": "enGlish1",
+            "key": "DAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw",
+            "title": "Walks",
+            "lang": "en"
+          },
+          {
+            "doc": "Rina",
+            "id": "citedDoc",
+            "key": "DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0",
+            "title": "Rina",
+            "page": [
+              1,
+              2
+            ]
+          }
+        ],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "no-name",
+      "note": "The signed name is optional; the reader then shows the fingerprint alone.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ2OSwibGVuIjo0NTN9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIDYwa1O36AjK-ie8pd0WikYUYNTgap7tsflzKH4tjDyRg7FmbBQy04e0jWk5XWb3UAWPD4Fj7OuyM4LNeBP4h9_NNpzJO6fw-DRiyzcz3xuYMXn6rXBiRvRbChbkC7HsIuaeScWtrPtD36S7e9qMRBmDOPXUZ089d5dU6W0T9LIKQAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6IjU1SDVVLTNZcEFtOExCVkw3T21ESk90YlpLV2RKT0hubUhGblRtbThJRGZtQTd0YlNQbWU2TkFKTTAzVloxRklENklMdVNmMmc1eERLcXFaalF1T0NnIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOJlnhVz28Nc2wTniZlqXOYJf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGp8_tSPJQELPIZhqarxDXd1dgayM-ZlI8aYxTTJmhxcKm3TgVv90ew1NZZQAhKWdeNHcvDA9rDn25TI4QnJOLdYS2fcAmrspfCbiW9-fG5Amr1f9DVLE7S-VjefuxRcMOcfs4P46zMe0R7uXRWqlPLYd0IdGyMkMHKmbMRo6ktBZmq8vxEmGF0swEb4dHQZYbUrvoHnftJ6X6MGk7PXwkTkADHG9MLjZt8Svl3saSjyF7Yj1rw4J3vyaf54UcUfWSL60tD9Kpo8XNiDejXrixRpZaAvS65fP1x7n0hQFyjKtBiTFhqTmBUkPPIRGnWuxZeRA7jxF4Y2QVaDZZth0PkT2Wc2sxdWVd0ga_nhp2QbZAIguivTNsdrP-fQgRvomNdRU5pNx_mkuMYKfDAILvvO1rUFHe2xPUtYCWyeyOP67iV4rhBl_LIUk27bym_X0-IZC1TRZPBmsS2ijPzxzJXSNbiqDKy58Stnk7OtdhBJ2ZsVKzQD65zjOSnYuEGtpdXZdA85jE2kd-iOUOVrtg-Z6r3Y2LUqq1X2rUNYPItxSLcIjm8G7qEDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWpk9Jwwzo7CNBFM5pwdUzsE5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTYqPrhVEoShnMl_mQYLeM4w",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": null,
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "revoked-key",
+      "note": "A good signature whose key the root took back reads as revoked.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [
+        {
+          "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+          "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+          "at": "2026-11-03T13:00:00Z",
+          "sig": "_7oToXmSZrilUrPa90mtcS25J6p7SkTfnf-jYIeG51hLF5nz2uNIlcTgdt7ybs56gVpxTqz2ZOIYxFeD5qstBA"
+        }
+      ],
+      "expect": {
+        "sender": "revoked",
+        "writer": "revoked",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "other-root-revocation",
+      "note": "A revocation from another root takes nothing back.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [
+        {
+          "root": "7UkoxijRwsbq6QM4kFmVYSlZJzpcY_k2NsFGFKyHN9E",
+          "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+          "at": "2026-11-03T13:00:00Z",
+          "sig": "wfmst6HgJtDEnCET6xRRzVzGdcM1F4ZQpRJte2oh0IBVFp8jznfRl6XqJp9yZ_FlY4G2BcZRTnYbGBCcnrvXCg"
+        }
+      ],
+      "expect": {
+        "sender": "holds",
+        "writer": "holds",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "foreign",
+      "note": "Not an envelope at all.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0dPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "refused": "foreign"
+      }
+    },
+    {
+      "name": "newer-layout",
+      "note": "A layout byte above 1 belongs to a newer Tisty.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAIAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "refused": "newer"
+      }
+    },
+    {
+      "name": "newer-format",
+      "note": "A manifest version above 5 belongs to a newer Tisty.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo2LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBMUWo6GKptMJFmIXG3I01BsR1dp2oG3z6JXFSbWLKNamok4FUioPFipKXGD4o3KE5Je4eYzbHC6U5tzPsNZuuclGxY1Tas-s0M-MGb52TQRyz4WB1GuQY3FV3PaSXs0ZAemuVf36mMvwZq50c4ib-Ut5WSxyTYnbQ4pPzRNuRr9QAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6IkZmTEdLOGQxdFpkZzlkQ2hUUkpyMWhldVVnbGFVSzYyb0kydXc1TGxDWU1nSURnN2ppa3Q0T3BsVm9zSk1ER0hPQUQyV2dtQ3dROHVrR2w3ZHJBOUJnIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOh2180-eyzjVMpJor1AZksJf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkosvtH9I-k7ja6dtUtmFFsADxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWrFwAG0FIA5zO2mBC5f8JHU5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTKzMW0kygZIc-F54soUNZKQ",
+      "revoked": [],
+      "expect": {
+        "refused": "newer"
+      }
+    },
+    {
+      "name": "older-format",
+      "note": "No format below 5 is read.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo0LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIDYUcWVS-sOYHuX_p5oVqsE2m78ZReP3vcOJj-ihuIkatzMTFbIPTarY6jKSwRiG68sf4UdflTOpb1VRo9RSddBP7Cnu2kkvBWuiLkV-9aJ3ojze1Qaz73fUtvWzS6WwaDP1HZSI3FWNSli-GY5_frEY-4F6FGMqzMxOj7doU643QAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Ilp3cm9QUllvZHRsaEk5NlFlZjFCM0hvNXlrb0tTOGdFSWJ0LUFaTFdRcGc0NUdCS0llQThCVUpXalhidndMOXQxMVlQUzFlMXhjWlBhMnh5VXZrQUNnIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOl1rn-Dzj3aYqyxKvN-_Fo5f9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkgbtD2qW8ZfjvoCQA9dLPs4Dxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWrV95qfz9EqX4vJjKq8GTDH5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBT82pljUlBVpk-Df583pny3Q",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "wrong-key",
+      "note": "Another key fails at the commitment, before any part is opened.",
+      "key": "Dw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "refused": "locked"
+      }
+    },
+    {
+      "name": "flipped-part",
+      "note": "A sealed byte that no longer matches the index.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7A",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "flipped-part-new-index",
+      "note": "The index was rewritten too, so the seal is what catches it.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLud4zy0xGmfM9QuZgiyx3KdAr235Gublxesx07sBqWt1NdM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6ImhvbE1pUWhTRmlnTkpwakd3TWwxLUY1Mm0yeTBPaXpQUkpVdlhkc2RBV3h3NDVLU1hqeFdmQU15bVlfa2lhNjVMbmhlLUstb1htSnZtTmJMWml6akRBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgCxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "refused": "locked"
+      }
+    },
+    {
+      "name": "swapped-parts",
+      "note": "Two parts traded places, with their sizes and hashes, and the nonce catches it.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjo4NSwibGVuIjo5NH0seyJraW5kIjoidGV4dCIsInNpemUiOjEwMywibGVuIjo2N31dfQAAAICFe38XSh642Krw25eq55Oqi3hd07IrJfZ4YCcQRv00G9cRvSJ6zOtjeTnaOH6gGYlE47Gk9Y3m1X2Aq82EGdiRcSsNSIN4joVMzWoNMK3uiYfbPpZeEYIUA6OXVfZbYJxzx6G0b7as1GfpiW9Lz7gPFBv086LUUpbUsg0fOWUyqwAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6ImJ5eno4ZGFEZ2FfRjJWNGR5aDMzR0g1N01hclV1Wm9mWWRQNDdXb1N5c1hQZTNGd3BYd0p1S2JVTGhaVGV5X2E0S2U1S0xOYUduamlwLTV0Nll2dEJ3In1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOMRiDa56U3Uf2URbhRzCF05f9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkl0FMNgqsG5qOvP357EZLIXlYCMtjVpuYfGQYF6csX9arN4Sl_PCLDeXP2rioyftF5LVOHsT53SGzz6xu5cb6Cr8Vc3cCK2MxpP7iRIKcH8-WPskoFNmQop8zrhFKOdDkTVevoQmA8aM5e7mMzy5ehJKf6ncjTg4l7r2QAOiVOEvMHmxlIwTev9tyGF9gvKE8NKVJUhch17ijprvBVQOm8ywvL5XCbBvJECsN0nuybq5IhM6DkdW1tIjaLVqc7X-DG2mKr5XU4jkzMZwtw",
+      "revoked": [],
+      "expect": {
+        "refused": "locked"
+      }
+    },
+    {
+      "name": "changed-version",
+      "note": "The manifest changed after sealing, so no part opens.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6NywiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Img0TENPbDBQY1RmQkdjdTJlSGs0aDRnQmxSa2NSMXotdHlENzhNRjM3Z3I3R2drTnF3X2F3c25FVVhqb2lNV1lBZUFOcnpmc01RR09vNlVFUDl1SUJ3In1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "refused": "locked"
+      }
+    },
+    {
+      "name": "truncated",
+      "note": "The last part was cut short.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "trailing-bytes",
+      "note": "Bytes past the last part.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Imd6NHdxekVtbUNNUzE4Q283RTNzUTY0YTRHVUdkbDFHbUZFRnFqcXVDZlJPcl8wZjIwQWx3a0l4UExJX0k5WkJZd0l2Rk15WnlDdGVFeU5aa016R0FBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkn8WtWYrIO5VYs2A-1-__KgDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7QA",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "no-signature",
+      "note": "Part 1 has to be the writer's signature.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAESeyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAGCSRL6gtpJWvaeBFEAo0JdvOJ4y1vMZjDzfQLoOZgUYiMX27ukoKI9TPysBbKCUcraQqdmUlJAYiICWBlco7fwy5xllaMW-rTnXeX2ZUUShUtxAzgsLVHLQv-tQgnNNxrYAAAFZeyJjZXJ0aWZpY2F0ZSI6eyJyb290IjoiaW9qajNYUUo4Wlg5VXRzdFBMcGRjc3BuQ2I4ZGxCSWI4M1NJQWJRUGIxdyIsInNoYXJlIjoiZ1RsM0RxaDlGMTlXbzFSbXcweC16TXVOaXBHMDdqZWlYZllQVzRfSnM1USIsInNpbmNlIjoiMjAyNi0xMS0wM1QxMjowMDowMFoiLCJzaWciOiJlUlhETWhwM0QzTll4RnB3VW01V2dNMW9ONDVCMzFYbkNPamJvc2NmSF9rR2hDZEcybHhqVXpJUWQ2MGRLRzZpRVFjY3dROVpWYUJfMDJGX1p2MFVCZyJ9LCJzaWciOiI2ckRsWGZWT2dHYUEyLUN6bmhYTGdlaWd5azJYVEMxQ3RCa2xXdmwxcXpmdGkzZjNlNXdmdmw3WlpBdTAyWEtUMVY1TjFSTGZpeVo0ZDJaZGRrcUVCdyJ9blZkIDLZ6qmxrDB8Xzve6wy0ZJLeT3K5LrCDyqr4-27XLxGCHc3ufUAhx9IX_avSdzzCrFlu8TMkoawbxWe1-XS91nhq8IzXxRLsko0AqP9pTnLvB0q66QvHu7kma_Fs0k7JFZ2DL5QeIS-b3XMZwnbooAgvf--nfQpi57jnUobQoyzcUelWCrRtO1fzl0NLRCgdpF3aC-0lTElHen668PkQoIZDY0OMxHSoaoDo1Hyu--M0_fdpEwWoZEffIVvoYhTZw8eZZvqq9dkYDmSf73LegxbdPpclnkErHVL5S8UFYCSj36dT-TqWKxwJmE1gv80FD8D5a0rCgLQVIZdG0tkjZkBHYxvR8NXRTQiZZj6vXzHGXr5WB0U2x0PRYw",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "words-not-last",
+      "note": "The words have to come last.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N30seyJraW5kIjoiaHRtbCIsInNpemUiOjEwMywibGVuIjo5NH1dfQAAAIDNGhEdGJA4HcuDhumTbhPa2TDsFs9jmNilLgbFBmu1KxPdpt-qKUJS6P6lxw8_QBrqDq_w-6ksyw9AjabC8y7OnPbb3_hReZDbAJXMHyA8_nARRnLoY3y45b-TBsc5L8jgsTb39woGjc-q6gWlE2ccTmnj2q0xy-3kjIV6Gqe_hgAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6ImRlUUZiY212aTBJT2tQYUpqVVRYU2FNZy1CNno4b3pGYkp1ZllJd0FVeDJuT0dhdW1aR1hOYmtWeDRlY3lGLUZ5TzZjUktNZEQyMTdPajFYd25UaURRIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOuRr3DgS5if8ZRMXhBABuj5f9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-S47wKEkPbZvZV0029oPbog8nwWP70DfyuzwpuoaiuBD1g3LlkcjFIyYbxEj3iizrVnvXeXgYquXOfNc65Ru8suwWd663s194D4Rw1D_m17WtwunKmz4ZZkvgV67pr5UBb3CP7Q3BCcW712RgOZJ_vct6DFt0-lyWeQSsdUvlLxQVgJKPfp1P5OpYrHAmYTWC_zQUPwPlrSsKAtBUhl0bS2SNmQEdjG9Hw1dFNCJnEC7bofdcpaOk3IADVcGZzE3-3xgcjsi-WaWTJ3Y-GSdXNmH_8yeqQo_rmDX3FgKEXhNsfQ8tpu_C_Tqn7Veq0-786cwUEW0u-BgXl1dX5xz1FTehmvlzhIiQsqegdMn29BloZV1aLOslOmxAVJUquoWSzj4HOqQ",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "no-sheet",
+      "note": "A version without a sheet shows nothing.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAEYeyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAGAAXydtNnsilErk7Nvq4X-BOhDxDWg7C2OGZq7QzgoAj-uHEL-boLBPsFvqxFpMIkWOPNkYgwv3HjEorE65ZA3QGFWAv3MN0KvEkniKeFcoKPJuVDHmyc3l99hcD6If9usAAAFZeyJjZXJ0aWZpY2F0ZSI6eyJyb290IjoiaW9qajNYUUo4Wlg5VXRzdFBMcGRjc3BuQ2I4ZGxCSWI4M1NJQWJRUGIxdyIsInNoYXJlIjoiZ1RsM0RxaDlGMTlXbzFSbXcweC16TXVOaXBHMDdqZWlYZllQVzRfSnM1USIsInNpbmNlIjoiMjAyNi0xMS0wM1QxMjowMDowMFoiLCJzaWciOiJlUlhETWhwM0QzTll4RnB3VW01V2dNMW9ONDVCMzFYbkNPamJvc2NmSF9rR2hDZEcybHhqVXpJUWQ2MGRLRzZpRVFjY3dROVpWYUJfMDJGX1p2MFVCZyJ9LCJzaWciOiJlLXpJenBfVGtfQWpnTW1pWjFqRnh0YjFDZVNYOG1wVEtOeXp1ajFyOF9Hb0l3bmdNQzd4bC1YTUN2aUQ4RzExeFFSYmZSMmplUVZFbVFDck5KR3VDZyJ9blZkIDLZ6qmxrDB8Xzve6wy0ZJLeT3K5LrCDyqr4-27XLxGCHc3ufUAhx9IX_avSdzzCrFlu8TMkoawbxWe1-XS91nhq8IzXxRLsko0AqP9pTuZE0VDk0uAloqADw2Z5mi6X_bXpTZ4sT8hh_PvGfjsMEGuS64q611JJ9uAvd5nbcbKXT_ZppSwn_ckAj0hqZvrBniUBC0PefqaAnGkWaSMth0ufAkSMoMsF94EmQVt5qpBLj8jsAzOnSAgkmUH7GXSB25iw7dK_xNxkiTbKXWM3hEl_7KH_iohvfnxuUZCgX79pABm6oFkm_ZF8FgXQUsTNqfYMOMtJ1X8v_I3I2UZaLCYRUHNFjF7WV_lLSHUk0tQAdkp8AKMei0NCRCXTdvTLyS6ZSBKodpmQi4kt7yV9zqyL8znZKrZDhHdc2A33MvW_SkZutC7kSVn_Kiwsh6qT-k2VIU-G2icCv5sUe2eqLU3ZTCJTOMV7Qx8wn9Z652sowYdzZBvMS2YnvMKi4Bm3zBWtSzs6uRDaTuvXaeRiFPEbfim3CR-g-q1gZmIYJZwy_C_8Nkjr2KJqs7H-WGWXVa_HxOngHgs0JzTw24WXFkOVmnArdFA5-q2b-o9Gc6xaUY_xPbZAjJQ_kuO8ChJD22b2VdNNvaD26IPJ8Fj-9A38rs8KbqGorgQ9YNy5ZHIxSMmG8RI94os61Z713l4GKrlznzXOuUbvLLsFneut7NfeA-EcNQ_5te1rcLpyps-GWZLLbZwhHeg2eLITD8_6xxzG9dkYDmSf73LegxbdPpclnkErHVL5S8UFYCSj36dT-TqWKxwJmE1gv80FD8D5a0rCgLQVIZdG0tkjZkBHYxvR8NXRTQiZU8DLGbk1-XiAbNmtFW52FA",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "unfolds-past-len",
+      "note": "A part may not open to more than its manifest says.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE7eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6NH0seyJraW5kIjoidGV4dCIsInNpemUiOjg1LCJsZW4iOjY3fV19AAAAgNeo6D6V1hsYSU6NkTa9aRfow_29p0oobseA1Hup9ON4yW7-mxJcjgSgZ8_MBGZgomg3nrJyGUAp4cAlgfT29_WhF9xuj-hODOVTfdOZsHXnAw9xtAgTvSkHbG0G4ixwUYE07vOmh8gfa1b7ucHk3c8fkxMHTkXtpOu9LLJO4bTnAAABWXsiY2VydGlmaWNhdGUiOnsicm9vdCI6ImlvamozWFFKOFpYOVV0c3RQTHBkY3NwbkNiOGRsQkliODNTSUFiUVBiMXciLCJzaGFyZSI6ImdUbDNEcWg5RjE5V28xUm13MHgtek11TmlwRzA3amVpWGZZUFc0X0pzNVEiLCJzaW5jZSI6IjIwMjYtMTEtMDNUMTI6MDA6MDBaIiwic2lnIjoiZVJYRE1ocDNEM05ZeEZwd1VtNVdnTTFvTjQ1QjMxWG5DT2pib3NjZkhfa0doQ2RHMmx4alV6SVFkNjBkS0c2aUVRY2N3UTlaVmFCXzAyRl9adjBVQmcifSwic2lnIjoiRm1sa1gtTTg3TjhfTlV2WWQ3WFBsYzVoTENPLXFqeE1jc2tWbXR4RlpBRko3R0VwNHZka0JwMEJjTHRxVm4zLTBvd1o1MlNGWFplVFhqQmRFVVdNQWcifW5WZCAy2eqpsawwfF873usMtGSS3k9yuS6wg8qq-Ptu1y8Rgh3N7n1AIcfSF_2r0nc8wqxZbvEzJKGsG8Vntfl0vdZ4avCM18US7JKNAKj_aU7obcel5_kOQbxoEHK3bX3gl_216U2eLE_IYfz7xn47DBBrkuuKutdSSfbgL3eZ23Gyl0_2aaUsJ_3JAI9Iamb6wZ4lAQtD3n6mgJxpFmkjLYdLnwJEjKDLBfeBJkFbeaqQS4_I7AMzp0gIJJlB-xl0gduYsO3Sv8TcZIk2yl1jN4RJf-yh_4qIb358blGQoF-_aQAZuqBZJv2RfBYF0FLEzan2DDjLSdV_L_yNyNlGWiwmEVBzRYxe1lf5S0h1JNLUAHZKfACjHotDQkQl03b0y8kumUgSqHaZkIuJLe8lfc6si_M52Sq2Q4R3XNgN9zL1v0pGbrQu5ElZ_yosLIeqk_pNlSFPhtonAr-bFHtnqi1N2UwiUzjFe0MfMJ_WeudrKMGHc2QbzEtmJ7zCouAZt8wVrUs7OrkQ2k7r12nkYhTxG34ptwkfoPqtYGZiGCWcMvwv_DZI69iiarOx_lhll1Wvx8Tp4B4LNCc08NuFlxZDlZpwK3RQOfqtm_qPRnOsWlGP8T22QIyUP5LjvAoSQ9tm9lXTTb2g9uiDyfBY_vQN_K7PCm6hqK4EPWDcuWRyMUjJhvESPeKLOtWe9d5eBiq5c581zrlG7yy7BZ3rrezX3gPhHDUP-bXta3C6cqbPhlmS3InwDe_IYhXnbz4i6Qi4YgPGjOXu5jM8uXoSSn-p3I04OJe69kADolThLzB5sZSME3r_bchhfYLyhPDSlSVIXIde4o6a7wVUDpvMsLy-VwmwbyRArDdJ7sm6uSITOg5HVtbSI2i1aqrAusIUy_m4HWqOdzybiITlYCMtjVpuYfGQYF6csX9arN4Sl_PCLDeXP2rioyftF5LVOHsT53SGzz6xu5cb6Cr8Vc3cCK2MxpP7iRIKcH8-WPskoFMRslLzxw39PuAZ1rJilUtI",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "spelled-another-way",
+      "note": "The sender's signature is taken only in the one spelling.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h2uOULTuh3P2U87cFf2NV5Ocxbi-eQVJo_5JzJNOuLudDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVogeyJjZXJ0aWZpY2F0ZSI6eyJyb290IjoiaW9qajNYUUo4Wlg5VXRzdFBMcGRjc3BuQ2I4ZGxCSWI4M1NJQWJRUGIxdyIsInNoYXJlIjoiZ1RsM0RxaDlGMTlXbzFSbXcweC16TXVOaXBHMDdqZWlYZllQVzRfSnM1USIsInNpbmNlIjoiMjAyNi0xMS0wM1QxMjowMDowMFoiLCJzaWciOiJlUlhETWhwM0QzTll4RnB3VW01V2dNMW9ONDVCMzFYbkNPamJvc2NmSF9rR2hDZEcybHhqVXpJUWQ2MGRLRzZpRVFjY3dROVpWYUJfMDJGX1p2MFVCZyJ9LCJzaWciOiJnejR3cXpFbW1DTVMxOENvN0Uzc1E2NGE0R1VHZGwxR21GRUZxanF1Q2ZST3JfMGYyMEFsd2tJeFBMSV9JOVpCWXdJdkZNeVp5Q3RlRXlOWmtNekdBQSJ9blZkIDLZ6qmxrDB8Xzve6wy0ZJLeT3K5LrCDyqr4-27XLxGCHc3ufUAhx9IX_avSdzzCrFlu8TMkoawbxWe1-XS91nhq8IzXxRLsko0AqP9pTnM8bhgXAfbhuy4j24AfdL2X_bXpTZ4sT8hh_PvGfjsMEGuS64q611JJ9uAvd5nbcbKXT_ZppSwn_ckAj0hqZvrBniUBC0PefqaAnGkWaSMth0ufAkSMoMsF94EmQVt5qpBLj8jsAzOnSAgkmUH7GXSB25iw7dK_xNxkiTbKXWM3hEl_7KH_iohvfnxuUZCgX79pABm6oFkm_ZF8FgXQUsTNqfYMOMtJ1X8v_I3I2UZaLCYRUHNFjF7WV_lLSHUk0tQAdkp8AKMei0NCRCXTdvTLyS6ZSBKodpmQi4kt7yV9zqyL8znZKrZDhHdc2A33MvW_SkZutC7kSVn_Kiwsh6qT-k2VIU-G2icCv5sUe2eqLU3ZTCJTOMV7Qx8wn9Z652sowYdzZBvMS2YnvMKi4Bm3zBWtSzs6uRDaTuvXaeRiFPEbfim3CR-g-q1gZmIYJZwy_C_8Nkjr2KJqs7H-WGWXVa_HxOngHgs0JzTw24WXFkOVmnArdFA5-q2b-o9Gc6xaUY_xPbZAjJQ_kuO8ChJD22b2VdNNvaD26IPJ8Fj-9A38rs8KbqGorgQ9YNy5ZHIxSMmG8RI94os61Z713l4GKrlznzXOuUbvLLsFneut7NfeA-EcNQ_5te1rcLpyps-GWZJ_FrVmKyDuVWLNgPtfv_yoA8aM5e7mMzy5ehJKf6ncjTg4l7r2QAOiVOEvMHmxlIwTev9tyGF9gvKE8NKVJUhch17ijprvBVQOm8ywvL5XCbBvJECsN0nuybq5IhM6DkdW1tIjaLVqMZETf-QzARgaLL3eC-mB2eVgIy2NWm5h8ZBgXpyxf1qs3hKX88IsN5c_auKjJ-0XktU4exPndIbPPrG7lxvoKvxVzdwIrYzGk_uJEgpwfz5Y-ySgU5CZDt_iZMPA0bg_CBkHA-0",
+      "revoked": [],
+      "expect": {
+        "refused": "damaged"
+      }
+    },
+    {
+      "name": "not-a-picture",
+      "note": "The bytes do not start like the kind they declare.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAFeeyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjU0MywibGVuIjo1Mjd9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InBuZyIsInNpemUiOjM3LCJsZW4iOjIxfSx7ImtpbmQiOiJ0ZXh0Iiwic2l6ZSI6ODUsImxlbiI6Njd9XX0AAACgw_FgEt5QYvdEe5S5U_8dkkeOIF_jHd5iyeREPsDlZ-Qzj2FxM83NRx6WjxdKlyPtTuxaqQ8qHlf7WKuKUKvF3y8PiVPCFw8jzl0-edRAY8l_l9iddv7d19eBpjTc04f3DSUzjC3KDZmrrcrJTTdSmO8TcGxtZcMmiBavvlQurJDR9uMTDSgqtAaQg9_7xfGpCJ00h1nS9omVgYC71eUY_AAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Im42dWF5TTVPdnU5dWpfX0ZpUGhMcEFUaTBZM19VY1cwam1aNHdVSkJXUWxLSUxjLUI5blJ4TzRPU1JnanptNjZ2ZlNTSDVkV2RrZWxnMldlNjVNQ0JBIn1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lO5Tza7vUyTJzz8T1C0gGGjpf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZtLzaHHNdFBZf39mKLph1kMUGYpWKc0MAlKJt-CC6Hb_JSeoe6s6G9747v2mKRcNluRiTMRk7c5MzDzjkhfzgQz_AZ72IPP5Scf2z3uR8-KfpzlaLj6xIB2A_MaV2PhKesYE0xFyhFTFuacsB0mAVSYiH38wcqWxUywB-_YVQcNJg5t8zEbdFWEuA7kbDFgEv3Ii7irur1HNAigw3hewLWEM4M-Kx-BjedKbV1U-QzGSDrs6mOfuZdD8TEa034ykY4J_89QdYaRxI7sl4aFEye3xe4aiCO3GFvX9EkKUuw4L2UY7XZT7EeLDOWYvVzzY8NkSl7sx1efudpFrOQ8xEfJUt7wmGpM5JvNbOr_B2xh6QeEp51mYHI--EHFEYDGdGLotMJI7eKYR5-DT7rlYy90F0F_jofkosgnGjEzHKR-rIOIHvvOMZ4wUqlv_3UwbH7BfrwLoKRlzFlu5i-LCYjwoNHUSABuJHrKjiEnDX46MfFDDEojTrKePqLb9Anr1atlabf-KQOsmwoLbqUo1pt2g_W85dovoVRTAvJCOlgPE46WLy-8YmnlP_OAkUDHGPhi2grBv_LLYtv2H8bzjr7ptoQ9oC0tV94T-2825fS0VlL4IQdjXiNrclRea4P7fUcAwPGjOXu5jM8uXoSSn-p3I04OJe69kADolThLzB5sZSME3r_bchhfYLyhPDSlSVIXIde4o6a7wVUDpvMsLy-VwmwbyRArDdJ7sm6uSITOg5HVtbSI2i1aqeRp4kGALtlUvOjR1n3c-pC3Z-7Z3rRCiitXFMbQ9rmKvgx7d4VKJRpFeDolD--M6AmmJgeTa0TdbyqJSmPnMpiqraEdn04Neq4jlqRtetgrG-MfMCBNp0AufrDN3z7NiSs4TeuIQERVWjjOY6GeUi1KPWkMIT_n7NLsH59xflTu5PJlG_-oe6L8g",
+      "revoked": [],
+      "expect": {
+        "refused": "not_a_picture"
+      }
+    },
+    {
+      "name": "signed-for-another-link",
+      "note": "The writer signed for another id, so that signature is refused.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h1TfhY8izLR5iq3X8G4Xeg9G6_ExjvOxTU9O-kjgwuwuDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6Ik00X3hmVHBVU08yaGM4MlM3VVNkNWVFZlUtcy1JMThUU0xUX1NjdXFDODZ5NlFFcHNpLVZ6UUN6TUQ3ZjZvT3BPMWNLaDBzZGNGcDhfSGJpZ1R5NkN3In1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixFkV_lodtcawwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2p9gw4y0nVfy_8jcjZRlosJhFQc0WMXtZX-UtIdSTS1AB2SnwAox6LQ0JEJdN29MvJLplIEqh2mZCLiS3vJX3OrIvzOdkqtkOEd1zYDfcy9b9KRm60LuRJWf8qLCyHqpP6TZUhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZie8wqLgGbfMFa1LOzq5ENpO69dp5GIU8Rt-KbcJH6D6rWBmYhglnDL8L_w2SOvYomqzsf5YZZdVr8fE6eAeCzQnNPDbhZcWQ5WacCt0UDn6rZv6j0ZzrFpRj_E9tkCMlD-D46MLNUbQG8tq1hSZoP7UirXfK6SzH4uC2WAWk6uUGh8sroYQJ0lHzZvDPzfZji3zks-hfDdsn1a3D7G9MpAKpTqttMTQxdMNsGg_Dv6_oDpYoSqnz4ZZktc5kNuapqKvKZO-QOSmbaoDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "refused",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    },
+    {
+      "name": "writer-is-not-sender",
+      "note": "Written by another key than the one that uploaded: refused.",
+      "key": "CgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo",
+      "envelope": "_0ZPTAEAAAE8eyJ2Ijo1LCJpZCI6Ims3UW0yeFBhIiwidmVyc2lvbiI6MSwiZnJvbSI6bnVsbCwic2FsdCI6IkN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3NMQ3dzTEN3c0xDd3MiLCJjb21taXQiOiJ5MG5nLTRpZHp2cnAyQmFHdjZwcDJ2NVZvakZ4N0lYNWtJeFhLMFRKUjU4IiwicGFydHMiOlt7ImtpbmQiOiJjb25maWciLCJzaXplIjo5OCwibGVuIjoxMDF9LHsia2luZCI6InNpZ25hdHVyZSIsInNpemUiOjQ4NCwibGVuIjo0Njh9LHsia2luZCI6Imh0bWwiLCJzaXplIjoxMDMsImxlbiI6OTR9LHsia2luZCI6InRleHQiLCJzaXplIjo4NSwibGVuIjo2N31dfQAAAIBSE1Kg8ldmE3K29MZ5sHCeqR3INoaty58OJMK0pTQ9h_CSPs8XZUEYbfB7CNH4mXnKMdwoOSXTEgHUfAMFy_AKDW2AIS1Hrh_GOrbcmkw-1F_W1V7sEIOw3VovI6H5RwtM8zorDcJ7SOaKUjOCQBPS1Y1snn-LrKqaaDg2RCi4FAAAAVl7ImNlcnRpZmljYXRlIjp7InJvb3QiOiJpb2pqM1hRSjhaWDlVdHN0UExwZGNzcG5DYjhkbEJJYjgzU0lBYlFQYjF3Iiwic2hhcmUiOiJnVGwzRHFoOUYxOVdvMVJtdzB4LXpNdU5pcEcwN2plaVhmWVBXNF9KczVRIiwic2luY2UiOiIyMDI2LTExLTAzVDEyOjAwOjAwWiIsInNpZyI6ImVSWERNaHAzRDNOWXhGcHdVbTVXZ00xb040NUIzMVhuQ09qYm9zY2ZIX2tHaENkRzJseGpVeklRZDYwZEtHNmlFUWNjd1E5WlZhQl8wMkZfWnYwVUJnIn0sInNpZyI6ImNlOGtfMWxPWTM2M0h1czg5SU9aNTdOc1ozVTVwRVB5bHZOMHFnN1Vtb1JUREJTcGxpYldHMktEVkN0V245SjBwbHlkalFvUWlvNzlUZW9SbmFyWEJ3In1uVmQgMtnqqbGsMHxfO97rDLRkkt5PcrkusIPKqvj7btcvEYIdze59QCHH0hf9q9J3PMKsWW7xMyShrBvFZ7X5dL3WeGrwjNfFEuySjQCo_2lOczxuGBcB9uG7LiPbgB90vZf9telNnixPyGH8-8Z-OwwQa5LrirrXUkn24C93mdtxspdP9mmlLCf9yQCPSGpm-sGeJQELQ95-poCcaRZpIy2HS58CRIygywX3gSZBW3mqkEuPyOwDM6dICCSZQfsZdIHbmLDt0r_E3GSJNspdYzeESX_sof-KiG9-fG5RkKBfv2kAGbqgWSb9kXwWBdBSxM2pqDY5zgLkRDezpPKRJX8SZipabne2fspj8FMAchHP9lAACmkOpDejW25MF9N29MvJLplIEqh2h7SoyS_pGB3r1frzM9wok2vDOFzFEegTq4pYAQ_ver5bUMMuNiGugZaha5UhT4baJwK_mxR7Z6otTdlMIlM4xXtDHzCf1nrnayjBh3NkG8xLZieYo6ncJozwC9hOJCq2Ie5R_MsuhDIApzZccsAtfd_rh2wbXggonhKpJeIyPOWukkfTku5EUrktn87FjLw5ODUCRtCNuasjSIGEXi94N2HElfDq_ntzrFpRj_E9tkCMlD-syuJyN1jGBP9Y0zaKls7t6bGcEaOkCY6w2BBLp4iKERhcqJ5PdDMF7Lr4Jz6CnE_Vr4q-ZxQ42HC7NP2SMfEqwC6bhNHO1dk470I4G_Wj3Fd4mRen-YZZkjwKKlp82TfRZsTb2FD8-BkDxozl7uYzPLl6Ekp_qdyNODiXuvZAA6JU4S8webGUjBN6_23IYX2C8oTw0pUlSFyHXuKOmu8FVA6bzLC8vlcJsG8kQKw3Se7JurkiEzoOR1bW0iNotWoxkRN_5DMBGBosvd4L6YHZ5WAjLY1abmHxkGBenLF_WqzeEpfzwiw3lz9q4qMn7ReS1Th7E-d0hs8-sbuXG-gq_FXN3AitjMaT-4kSCnB_Plj7JKBTkJkO3-Jkw8DRuD8IGQcD7Q",
+      "revoked": [],
+      "expect": {
+        "sender": "holds",
+        "writer": "refused",
+        "config": {
+          "title": "Paseos",
+          "tags": [
+            "rina"
+          ],
+          "lang": "es",
+          "paper": "a4",
+          "fields": [
+            {
+              "key": "lang",
+              "values": [
+                "es"
+              ]
+            }
+          ]
+        },
+        "cited": [],
+        "html": "<h1 data-at=\"0-8\">Paseos</h1><p>Rina sale <mark data-pen=\"green\">dos veces</mark> al día.</p>",
+        "text": "---\nlang: es\n---\n# Paseos\n\nRina sale ==dos veces=={green} al día.\n",
+        "pictures": [],
+        "name": "Mario",
+        "at": "2026-11-03T12:30:00Z",
+        "person": "7UkoxijRwsbq6QM4kFmVYSlZJzpcY_k2NsFGFKyHN9E",
+        "id": "k7Qm2xPa",
+        "version": 1,
+        "from": null
+      }
+    }
+  ]
+}

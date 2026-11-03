@@ -1,0 +1,119 @@
+{
+  "version": "1.0.0-draft.1",
+  "fingerprint": {
+    "person": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+    "shown": "16286 17636 65288 15933"
+  },
+  "certificates": [
+    {
+      "name": "good",
+      "certificate": {
+        "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "since": "2026-11-03T12:00:00Z",
+        "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+      },
+      "holds": true
+    },
+    {
+      "name": "forged-root",
+      "certificate": {
+        "root": "7UkoxijRwsbq6QM4kFmVYSlZJzpcY_k2NsFGFKyHN9E",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "since": "2026-11-03T12:00:00Z",
+        "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+      },
+      "holds": false
+    },
+    {
+      "name": "changed-date",
+      "certificate": {
+        "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "since": "2026-11-03T12:00:01Z",
+        "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+      },
+      "holds": false
+    },
+    {
+      "name": "fraction-of-second",
+      "certificate": {
+        "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "since": "2026-11-03T12:00:00.5Z",
+        "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+      },
+      "holds": false
+    }
+  ],
+  "revocations": [
+    {
+      "name": "good",
+      "revocation": {
+        "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "at": "2026-11-03T13:00:00Z",
+        "sig": "_7oToXmSZrilUrPa90mtcS25J6p7SkTfnf-jYIeG51hLF5nz2uNIlcTgdt7ybs56gVpxTqz2ZOIYxFeD5qstBA"
+      },
+      "holds": true
+    },
+    {
+      "name": "forged",
+      "revocation": {
+        "root": "7UkoxijRwsbq6QM4kFmVYSlZJzpcY_k2NsFGFKyHN9E",
+        "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+        "at": "2026-11-03T13:00:00Z",
+        "sig": "_7oToXmSZrilUrPa90mtcS25J6p7SkTfnf-jYIeG51hLF5nz2uNIlcTgdt7ybs56gVpxTqz2ZOIYxFeD5qstBA"
+      },
+      "holds": false
+    }
+  ],
+  "signatures": [
+    {
+      "name": "good",
+      "about": "folio.envelope.v1",
+      "said": "d2hhdCB3YXMgc2FpZA",
+      "signed": {
+        "certificate": {
+          "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+          "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+          "since": "2026-11-03T12:00:00Z",
+          "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+        },
+        "sig": "KgIoUe5MpOCs1mEhjbVal238mF8P9XqxheabloKhL3LjGReDSsulufJzdyfPDaxITAUblAIcZfokdSlpyBzpBA"
+      },
+      "holds": true
+    },
+    {
+      "name": "about-something-else",
+      "about": "folio.text.v1",
+      "said": "d2hhdCB3YXMgc2FpZA",
+      "signed": {
+        "certificate": {
+          "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+          "share": "gTl3Dqh9F19Wo1Rmw0x-zMuNipG07jeiXfYPW4_Js5Q",
+          "since": "2026-11-03T12:00:00Z",
+          "sig": "eRXDMhp3D3NYxFpwUm5WgM1oN45B31XnCOjboscfH_kGhCdG2lxjUzIQd60dKG6iEQccwQ9ZVaB_02F_Zv0UBg"
+        },
+        "sig": "KgIoUe5MpOCs1mEhjbVal238mF8P9XqxheabloKhL3LjGReDSsulufJzdyfPDaxITAUblAIcZfokdSlpyBzpBA"
+      },
+      "holds": false
+    },
+    {
+      "name": "small-order-key",
+      "note": "An identity point as the key and an empty signature verify under loose rules; strict ones refuse them.",
+      "about": "folio.envelope.v1",
+      "said": "d2hhdCB3YXMgc2FpZA",
+      "signed": {
+        "certificate": {
+          "root": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+          "share": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "since": "2026-11-03T12:00:00Z",
+          "sig": "r0c7dRNGBuZPfgSIoP8feHC48K7rutTCCVnSh5LWBnswlNuOvYPfeZ1gAFW29AGx6YqcqFw-rsvj_l_J4hOpBg"
+        },
+        "sig": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "holds": false
+    }
+  ]
+}

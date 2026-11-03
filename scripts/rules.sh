@@ -310,6 +310,19 @@ the_packages_keep_to_themselves() {
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
 }
 
+# The contract with whoever shows a sheet: its vectors open as it says, and its colours are the ones Tisty draws with.
+the_contract_holds() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the contract was not looked at"
+    return
+  fi
+  if node docs/contract/vectors/verify.mjs > /dev/null; then
+    went_well "the contract's vectors hold"
+  else
+    amiss "the contract's vectors do not hold; run node docs/contract/vectors/verify.mjs"
+  fi
+}
+
 no_token_kept_in_the_tree() {
   local token='ya29\.[A-Za-z0-9_-]{20,}|1//0[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|sl\.[A-Za-z0-9_-]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}'
   grep -rnIE "$token" crates app/src app/src-tauri/src packages scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
@@ -328,5 +341,6 @@ every_spawn_pins_its_language
 the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
+the_contract_holds
 no_token_kept_in_the_tree
 exit $status
