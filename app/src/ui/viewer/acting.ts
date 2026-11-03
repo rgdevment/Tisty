@@ -1,4 +1,4 @@
-import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
@@ -61,20 +61,12 @@ export const choicesFor = (a: Acts): Choice[] => {
     ];
   }
   const path = shown?.kind === "file" || shown?.kind === "missed" ? shown.path : null;
-  // A share has no folder: its path is the link, which opens where it was read.
-  const reveal: Choice =
-    (shown?.kind === "file" || shown?.kind === "missed") && shown.shared
-      ? {
-          key: "browse",
-          label: t("viewBrowse"),
-          onPick: () => void openUrl(shown.path).catch(a.fail),
-        }
-      : {
-          key: "reveal",
-          label: t("viewReveal"),
-          off: !path,
-          onPick: () => path && void revealItemInDir(path).catch(a.fail),
-        };
+  const reveal: Choice = {
+    key: "reveal",
+    label: t("viewReveal"),
+    off: !path,
+    onPick: () => path && void revealItemInDir(path).catch(a.fail),
+  };
   if (shown?.kind === "missed")
     return [reveal, { key: "retry", label: t("viewRetry"), onPick: a.look }];
   const own: Choice[] =

@@ -1183,8 +1183,6 @@ export default function Docs({
 
       {beside && open && (
         <Beside
-          onError={onError}
-          onKeep={flush}
           title={called}
           paper={open.file}
           body={body}

@@ -483,10 +483,6 @@ export type Showing =
       place: string;
       path: string;
       body: string;
-      shared: boolean;
-      /** A share's writer's fingerprint, and whether this machine met it before. */
-      print?: string;
-      known?: boolean;
     }
   | {
       kind: "missed";
@@ -494,14 +490,11 @@ export type Showing =
       place: string;
       path: string;
       refusal: { code: string; name?: string };
-      /** Came through a Tisty Share link: `path` is that link. */
-      shared: boolean;
     }
   | { kind: "doc"; paper: Viewed; body: string }
   | { kind: "widget"; lent: Lent; from: Viewed | null }
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
-export const viewUnlock = (password: string): Promise<void> => invoke("view_unlock", { password });
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed & Left> =>
   invoke("view_import", { open });
@@ -1255,8 +1248,6 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
-  /** Whether it can be shared from here: someone else's never is, and nothing goes out unsigned. */
-  shareable: "yes" | "notMine" | "noKey" | "off";
 }
 
 export const ALIAS_AT_MOST = 40;

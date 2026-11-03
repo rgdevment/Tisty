@@ -1,26 +1,13 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  type Facts,
-  fields,
-  type Head,
-  type Leaf,
-  type Link,
-  overgrown,
-  type Panel,
-} from "tisty-editor/read";
+import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
-import { dayOf, weigh } from "../format";
+import { weigh } from "../format";
 import { waysOut } from "../leaving";
-import { fill, t } from "../locales";
-import { plainly } from "../refusal";
-import { type ShareCard, shareCard, shareChange, shareStill, shareStop } from "../shares";
+import { t } from "../locales";
 import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
-import ShareSettings from "./ShareSettings";
-import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
 import { often } from "./tagging";
 
@@ -82,9 +69,6 @@ interface Props {
   /** The languages the document is told in, the one open now marked. */
   tongues?: readonly Filed[];
   onTongue?: (tongue: Filed) => void;
-  onError: (problem: unknown) => void;
-  /** Saves what is still waiting in the editor, so what «Share» looks through is what it sends. */
-  onKeep?: () => Promise<unknown> | undefined;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -121,162 +105,6 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   }, [body, facts, tags, onFront]);
 };
 
-// How a share stands, in a few words: who can open it, when it ends and how often it was read.
-const gistOf = (card: ShareCard | null): string => {
-  if (!card) return t("sharedNot");
-  const info = card.info;
-  if (info?.blocked) return t("sharedBlocked");
-  if (info?.paused) return t("sharedPaused");
-  const reads =
-    info && (info.reads === 1 ? t("sharedReadsOne") : fill("sharedReads", String(info.reads)));
-  return [
-    t(card.gated ? "sharedGated" : "sharedUnlisted"),
-    info ? fill("sharedEnds", dayOfSeconds(info.ends)) : "",
-    reads ?? "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
-};
-
-// Shorter than the shortest life the dialog offers, so no share reads as ending from the moment it is made (decision 50).
-const ENDS_SOON = 12 * 3_600;
-
-const dayOfSeconds = (at: number) => dayOf(new Date(at * 1000).toISOString());
-
-// What the row says under its gist: why it is blocked or paused, when it runs out soon, or where its links live.
-const saidOf = (card: ShareCard): string => {
-  const info = card.info;
-  if (!info) return t("sharedOffline");
-  if (info.blocked) return t("sharedBlockedWhy");
-  if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
-  if (card.heldBack) return fill("sharedHeldBack", plainly(card.heldBack));
-  if (info.ends - Date.now() / 1000 < ENDS_SOON)
-    return fill("sharedEndsSoon", dayOfSeconds(info.ends));
-  // Whether it follows saves is told beside its box, so only what goes with it is said here, when anything does.
-  return carriedOf(card).trim();
-};
-
-// How many documents go with it, said only when some do.
-const carriedOf = (card: ShareCard): string => {
-  if (!card.holds) return "";
-  return ` ${card.holds === 1 ? t("sharedHoldsOne") : fill("sharedHolds", String(card.holds))}`;
-};
-
-const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {
-  const info = card.info;
-  if (!info) return undefined;
-  if (info.blocked) return "bad";
-  return info.paused || card.heldBack || info.ends - Date.now() / 1000 < ENDS_SOON
-    ? "warn"
-    : "good";
-};
-
-// The «Shared» row: an offer to share, or the links to hand out and ways to change or stop it.
-const sharedPanel = (
-  card: ShareCard | null,
-  facts: DocFacts | null,
-  asked: {
-    onShare: () => void;
-    onSettings: () => void;
-    onPause: (paused: boolean) => void;
-    onStill: (still: boolean) => void;
-    onStop: () => void;
-  },
-): Panel => {
-  // Someone else's document is not offered at all (decision 68); until its facts arrive nothing is offered either.
-  if (!card && facts?.shareable === "notMine")
-    return { kind: "shared", gist: t("sharedNotMine"), said: t("sharedNotMineWhy") };
-  if (!card && facts?.shareable === "noKey")
-    return { kind: "shared", gist: t("sharedNoKey"), said: t("sharedNoKeyWhy") };
-  if (!card)
-    return {
-      kind: "shared",
-      gist: t("sharedNot"),
-      said: t("sharedWhy"),
-      acts: facts
-        ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
-        : undefined,
-    };
-  // The link to read opens in the browser, as whoever gets it will see it.
-  const read: Link = {
-    key: "read",
-    label: t("shareLinkRead"),
-    url: card.read,
-    onOpen: () => void openUrl(card.read).catch(() => {}),
-  };
-  // Someone else's share edited here: its link to read, and a way to stop editing it; theirs to manage.
-  if (card.taken)
-    return {
-      kind: "shared",
-      gist: t("sharedTaken"),
-      said: t("sharedTakenWhy"),
-      links: [read],
-      acts: [{ key: "stop", label: t("shareStopEditing"), danger: true, onPick: asked.onStop }],
-    };
-  // Held through another share, it lives, changes and goes with that one, so there is nothing to manage here.
-  if (card.held)
-    return { kind: "shared", gist: t("sharedHeld"), said: t("sharedHeldWhy"), links: [read] };
-  const links: Link[] = [read];
-  if (card.edit)
-    links.push({
-      key: "edit",
-      label: t("shareLinkEdit"),
-      url: card.edit,
-      note: t("shareLinkEditNote"),
-    });
-  // The server refuses everything but a look on a blocked document, so nothing is offered on one.
-  const blocked = card.info?.blocked ?? false;
-  const paused = card.info?.paused ?? false;
-  // Unreached, the server cannot be asked to change anything, so only stopping stays.
-  const changes = card.info
-    ? [
-        { key: "settings", label: t("shareSettings"), onPick: asked.onSettings },
-        {
-          key: "pause",
-          label: t(paused ? "shareResume" : "sharePause"),
-          onPick: () => asked.onPause(!paused),
-        },
-      ]
-    : [];
-  return {
-    kind: "shared",
-    gist: gistOf(card),
-    tone: toneOf(card),
-    said: saidOf(card),
-    links: blocked ? [] : links,
-    // Keeping it in sync is a choice that stays, so it reads as one, as it does when sharing.
-    toggle: blocked
-      ? undefined
-      : {
-          label: t("shareSynced"),
-          on: !card.still,
-          onTurn: (on) => asked.onStill(!on),
-          help: t(card.still ? "sharedStill" : "sharedFollows"),
-        },
-    acts: blocked
-      ? []
-      : [...changes, { key: "stop", label: t("shareStop"), danger: true, onPick: asked.onStop }],
-  };
-};
-
-// The card is asked for once per document, and again only when this column changes it.
-const useShared = (paper: string) => {
-  const [card, setCard] = useState<ShareCard | null>(null);
-  useEffect(() => {
-    let gone = false;
-    setCard(null);
-    shareCard(paper)
-      .then((now) => {
-        if (!gone) setCard(now);
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [paper]);
-  return [card, setCard] as const;
-};
-
 export default function Beside(props: Props) {
   const { paper, kept, pages, up, trail = [] } = props;
   const heads = useSettled(props.heads, paper);
@@ -285,9 +113,6 @@ export default function Beside(props: Props) {
   const short = outline.length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
   const [out, setOut] = useState<{ x: number; y: number } | null>(null);
-  const [card, setCard] = useShared(paper);
-  const [sharing, setSharing] = useState(false);
-  const [settings, setSettings] = useState(false);
   // Pressing the button closes the open menu as a press outside it; the click that follows must not open it again.
   const shutAt = useRef(0);
 
@@ -374,28 +199,6 @@ export default function Beside(props: Props) {
         },
       },
       { kind: "details", facts: details, open: short },
-      ...(card !== null || (facts !== null && facts.shareable !== "off")
-        ? [
-            sharedPanel(card, facts, {
-              onShare: () => {
-                void Promise.resolve(latest.current.onKeep?.())
-                  .catch(() => {})
-                  .finally(() => setSharing(true));
-              },
-              onSettings: () => setSettings(true),
-              onStill: (still) =>
-                shareStill(paper, still).then(setCard).catch(latest.current.onError),
-              onPause: (pausing) =>
-                shareChange(paper, { do: pausing ? "pause" : "resume" })
-                  .then(setCard)
-                  .catch(latest.current.onError),
-              onStop: () =>
-                shareStop(paper)
-                  .then(() => setCard(null))
-                  .catch(latest.current.onError),
-            }),
-          ]
-        : []),
     ],
     [
       props.title,
@@ -414,8 +217,6 @@ export default function Beside(props: Props) {
       paper,
       details,
       short,
-      card,
-      facts,
     ],
   );
 
@@ -435,30 +236,6 @@ export default function Beside(props: Props) {
             shutAt.current = performance.now();
             setOut(null);
           }}
-        />
-      )}
-      {sharing && (
-        <Sharing
-          file={paper}
-          title={props.title || t("untitledDoc")}
-          onShared={(made) => {
-            setCard(made);
-            setSharing(false);
-          }}
-          onClose={() => setSharing(false)}
-          onError={props.onError}
-        />
-      )}
-      {settings && card && (
-        <ShareSettings
-          file={paper}
-          card={card}
-          onChanged={(now) => {
-            setCard(now);
-            setSettings(false);
-          }}
-          onClose={() => setSettings(false)}
-          onError={props.onError}
         />
       )}
     </aside>

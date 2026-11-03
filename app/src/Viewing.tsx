@@ -1,5 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PAPERS } from "tisty-editor/read";
 import {
@@ -11,12 +11,11 @@ import {
   viewGo,
   viewImport,
   viewShown,
-  viewUnlock,
 } from "./core";
 import { paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
-import { plainly, saidPlainly } from "./refusal";
+import { saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
@@ -50,21 +49,10 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   }
 };
 
-// A share's pictures ride in its envelope and come with the copy kept here, so until then each says what it shows.
-const UNPICTURED = /!\[([^\]\n]*)\]\(\s*<?tisty:picture\/\d+>?[^)\n]*\)/g;
-const unpictured = (body: string): string =>
-  body.replace(UNPICTURED, (_, alt: string) => `*🖼 ${alt}*`);
-
-// A share behind a password is asked for it here, and asked again when the one given was not it.
-const LOCKED = new Set(["shareOpenGated", "shareOpenWrong"]);
-
-// A share link Tisty could not open says why in its own words, and its link can still go to the browser.
-const troubleOf = (refusal: { code: string; name?: string }, shared: boolean): Trouble =>
+const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
-    : shared
-      ? { kind: "other", said: plainly(refusal) }
-      : { kind: "unreadable" };
+    : { kind: "unreadable" };
 
 // A diagram's window is its own thing: none of the reader's state is set up for it.
 export default function Viewing() {
@@ -150,9 +138,7 @@ function Reading({
       gone = true;
     };
   }, [reading, shown]);
-  const shared = reading && shown.kind === "file" && shown.shared;
-  const body = reading ? (shared ? unpictured(shown.body) : shown.body) : "";
-  const awaiting = shared && body !== shown.body;
+  const body = reading ? shown.body : "";
   const which =
     shown?.kind === "doc" ? shown.paper.file : shown?.kind === "file" ? shown.path : null;
   const shape = useSheets(which, body);
@@ -163,13 +149,7 @@ function Reading({
   const paper = shown?.kind === "doc" ? shown.paper : null;
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
-  // A share is named by its title, which has no extension to drop.
-  const named =
-    shown?.kind === "file"
-      ? shown.shared
-        ? shown.name
-        : shown.name.replace(/\.[^.]+$/, "")
-      : (paper?.title ?? "");
+  const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
   const pdf = usePdf({
     ready: reading,
     body,
@@ -296,16 +276,6 @@ function Reading({
           </button>
         </div>
       )}
-      {shared && shown.print && !shown.known && (
-        <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
-          {fill("viewSharedNewPrint", shown.print)}
-        </p>
-      )}
-      {awaiting && (
-        <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-soft" role="status">
-          {t("viewSharedPictures")}
-        </p>
-      )}
       {note && (
         <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-urgent" role="alert">
           {note}
@@ -354,17 +324,11 @@ function Reading({
       )}
       {shown?.kind === "missed" && (
         <Problem
-          trouble={troubleOf(shown.refusal, shown.shared)}
+          trouble={troubleOf(shown.refusal)}
           name={shown.name}
           place={shown.place}
-          onReveal={shown.shared ? undefined : () => void revealItemInDir(shown.path).catch(fail)}
-          onBrowse={shown.shared ? () => void openUrl(shown.path).catch(fail) : undefined}
+          onReveal={() => void revealItemInDir(shown.path).catch(fail)}
           onRetry={look}
-          onPassword={
-            shown.shared && LOCKED.has(shown.refusal.code)
-              ? (password) => viewUnlock(password).then(look)
-              : undefined
-          }
         />
       )}
       {shown?.kind === "widget" && (

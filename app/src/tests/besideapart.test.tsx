@@ -11,7 +11,6 @@ describe("a document opened in a window of its own", () => {
     const onApart = vi.fn();
     render(
       <Beside
-        onError={() => {}}
         title="Notas"
         paper="dev_a-0001"
         body="# Notas"
