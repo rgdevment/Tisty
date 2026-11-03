@@ -1,4 +1,5 @@
 use jiff::Timestamp;
+use tisty_share_proto::config::Config;
 use tisty_share_proto::envelope::{Draft, Kind, LinkKey, Refused, Signer, seal};
 use tisty_share_proto::identity::{Root, ShareKey};
 use tisty_share_proto::limits::Limits;
@@ -17,7 +18,7 @@ fn png(len: usize) -> Vec<u8> {
     bytes
 }
 
-// Sealed as Tisty seals a version now: the words with the page it drew from them.
+// Sealed as Tisty seals a version now: the words with the page it drew from them and how it read them.
 fn sealed(text: &str, pictures: &[(Kind, &[u8])], by: Option<&Signer>) -> Vec<u8> {
     let drawn = drawn(text);
     let draft = Draft {
@@ -27,6 +28,12 @@ fn sealed(text: &str, pictures: &[(Kind, &[u8])], by: Option<&Signer>) -> Vec<u8
         text,
         cited: &[],
         html: &drawn,
+        config: Config {
+            title: tisty_markdown::front::title(text),
+            tags: tisty_markdown::front::tags(text),
+            paper: Some("letter".into()),
+            ..Config::default()
+        },
         pictures,
     };
     seal(&key(1), &draft, by, &Limits::default())
@@ -50,13 +57,18 @@ fn shows_the_page_tisty_drew_without_drawing_it() {
 }
 
 #[test]
-fn says_its_title_tags_and_version() {
+fn says_how_tisty_read_it_and_its_version() {
     let page = read(sealed(TEXT, &[], None)).unwrap();
     assert_eq!(
         page.about,
         About {
             title: Some("Docker en WSL2".into()),
             tags: vec!["guía".into(), "docker".into()],
+            lang: None,
+            paper: Some("letter".into()),
+            sheets: false,
+            landscape: false,
+            fields: Vec::new(),
             version: 4,
             wrote: None,
             sent: None,
@@ -158,6 +170,7 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
         text: &long,
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures: &[],
     };
     let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
@@ -248,6 +261,7 @@ fn hands_the_reader_what_the_words_cite_with_the_keys_that_open_them() {
         text,
         cited: &cited,
         html: &page,
+        config: Default::default(),
         pictures: &[],
     };
     let sealed = seal(&key(1), &draft, None, &Limits::default())

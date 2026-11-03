@@ -44,7 +44,7 @@ fn decoded(bytes: &[u8], kind: Kind) -> Result<DynamicImage, Refused> {
         Kind::Jpeg => ImageFormat::Jpeg,
         Kind::Webp => ImageFormat::WebP,
         Kind::Gif => ImageFormat::Gif,
-        Kind::Text | Kind::Signature | Kind::Cited | Kind::Html => {
+        Kind::Text | Kind::Signature | Kind::Cited | Kind::Html | Kind::Config => {
             return Err(Refused::NotAPicture);
         }
     };

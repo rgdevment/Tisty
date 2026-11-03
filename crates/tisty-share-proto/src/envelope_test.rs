@@ -40,6 +40,7 @@ fn draft<'a>(text: &'a str, pictures: &'a [(Kind, &'a [u8])]) -> Draft<'a> {
         text,
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures,
     }
 }
@@ -123,9 +124,15 @@ fn the_server_reads_every_limit_and_the_sender_without_the_key() {
     let kinds: Vec<Kind> = manifest.parts.iter().map(|one| one.kind).collect();
     assert_eq!(
         kinds,
-        vec![Kind::Text, Kind::Signature, Kind::Html, Kind::Png]
+        vec![
+            Kind::Text,
+            Kind::Signature,
+            Kind::Html,
+            Kind::Config,
+            Kind::Png
+        ]
     );
-    assert_eq!(manifest.parts[3].plain(), 300);
+    assert_eq!(manifest.parts[4].plain(), 300);
     assert!(holds_for(arrived.sender(&[]), &mario));
     assert!(
         !String::from_utf8_lossy(&bytes).contains("hola"),
@@ -302,7 +309,7 @@ fn a_manifest_over_the_limits_is_refused_by_the_server_before_anything_is_kept()
         from: None,
         head: URL_SAFE_NO_PAD.encode([0u8; HEAD]),
         commit: URL_SAFE_NO_PAD.encode([0u8; 32]),
-        parts: [Kind::Text, Kind::Html]
+        parts: [Kind::Text, Kind::Html, Kind::Config]
             .map(|kind| Part {
                 kind,
                 size: 20,
@@ -585,6 +592,11 @@ fn sizes_near_the_largest_number_never_overflow_a_server_with_no_limits() {
             },
             Part {
                 kind: Kind::Html,
+                size: 20,
+                len: 4,
+            },
+            Part {
+                kind: Kind::Config,
                 size: 20,
                 len: 4,
             },
@@ -880,6 +892,7 @@ fn what_the_words_cite_travels_sealed_between_the_signature_and_the_pictures() {
             Kind::Signature,
             Kind::Cited,
             Kind::Html,
+            Kind::Config,
             Kind::Png
         ]
     );
@@ -903,7 +916,7 @@ fn an_envelope_that_cites_nothing_carries_no_list() {
         .iter()
         .map(|one| one.kind)
         .collect();
-    assert_eq!(kinds, vec![Kind::Text, Kind::Html]);
+    assert_eq!(kinds, vec![Kind::Text, Kind::Html, Kind::Config]);
     assert!(open(&key(9), &arrived, &[]).unwrap().cited.is_empty());
 }
 
@@ -1006,7 +1019,13 @@ fn a_drawn_page_travels_sealed_beside_the_words_laid_out_with_an_index() {
         .collect();
     assert_eq!(
         kinds,
-        vec![Kind::Text, Kind::Signature, Kind::Html, Kind::Png]
+        vec![
+            Kind::Text,
+            Kind::Signature,
+            Kind::Html,
+            Kind::Config,
+            Kind::Png
+        ]
     );
     assert!(holds_for(arrived.sender(&[]), &mario));
 
@@ -1119,6 +1138,13 @@ fn a_page_or_its_pictures_changed_by_someone_who_holds_the_key_do_not_hold_for_t
         drawn("hola", "<p>hola</p>", &reordered),
         drawn("hola", "<p>hola</p>", &fewer),
         drawn("hola", "<p>hola</p>", &more),
+        Draft {
+            config: Config {
+                title: Some("Otro".into()),
+                ..Config::default()
+            },
+            ..drawn("hola", "<p>hola</p>", &both)
+        },
     ];
     for carried in &changed {
         let sealed = resealed(&written, carried, &mario);
@@ -1191,9 +1217,11 @@ fn a_drawn_page_comes_only_where_and_when_the_manifest_says() {
     };
     assert_eq!(older.holds(&limits), Err(Refused::Damaged));
 
-    let mut without = manifest.clone();
-    without.parts.retain(|one| one.kind != Kind::Html);
-    assert_eq!(without.holds(&limits), Err(Refused::Damaged));
+    for kind in [Kind::Html, Kind::Config] {
+        let mut without = manifest.clone();
+        without.parts.retain(|one| one.kind != kind);
+        assert_eq!(without.holds(&limits), Err(Refused::Damaged));
+    }
 
     let mut before_cited = manifest.clone();
     before_cited.parts.swap(1, 2);
@@ -1211,7 +1239,7 @@ fn a_drawn_page_opens_signed_or_not_with_or_without_citing_and_pictures() {
     for by in [None, Some(mario.signer())] {
         let sealed = sealed(&key(9), &page, by.as_ref()).unwrap();
         let arrived = read(&sealed.to_bytes()).unwrap();
-        assert_eq!(arrived.manifest().parts.last().unwrap().kind, Kind::Html);
+        assert_eq!(arrived.manifest().parts.last().unwrap().kind, Kind::Config);
         let opened = open(&key(9), &arrived, &[]).unwrap();
         assert_eq!(opened.cited, list);
         assert_eq!(opened.html.as_str(), "<p>hola</p>");
@@ -1263,7 +1291,7 @@ fn the_words_and_the_page_travel_deflated_and_open_as_written() {
     let html = "<p>Una línea que se repite.</p>".repeat(400);
     let sealed = sealed(&key(9), &drawn(&text, &html, &[]), None).unwrap();
     let parts = &sealed.manifest().parts;
-    for part in parts {
+    for part in parts.iter().filter(|one| one.kind != Kind::Config) {
         assert!(
             part.size < part.len / 4,
             "{:?} travels in {} of {}",
@@ -1358,4 +1386,41 @@ fn a_part_left_as_it_is_says_its_very_size() {
         .unwrap();
     png.len -= 1;
     assert_eq!(manifest.holds(&Limits::default()), Err(Refused::Damaged));
+}
+
+#[test]
+fn how_tisty_read_the_words_travels_signed_beside_them() {
+    let mario = machine(1);
+    let config = Config {
+        title: Some("Guía".into()),
+        tags: vec!["tisty".into()],
+        lang: Some("es".into()),
+        paper: Some("letter".into()),
+        sheets: true,
+        landscape: true,
+        fields: vec![crate::config::Field {
+            key: "author".into(),
+            values: vec!["Ana".into()],
+        }],
+    };
+    let page = Draft {
+        config: config.clone(),
+        ..draft("hola", &[])
+    };
+    let sealed = sealed(&key(9), &page, Some(&mario.signer())).unwrap();
+    let opened = open(&key(9), &read(&sealed.to_bytes()).unwrap(), &[]).unwrap();
+    assert_eq!(opened.config, config);
+    assert!(holds_for(opened.wrote, &mario));
+}
+
+#[test]
+fn a_config_tisty_would_never_write_is_not_sealed() {
+    let page = Draft {
+        config: Config {
+            landscape: true,
+            ..Config::default()
+        },
+        ..draft("hola", &[])
+    };
+    assert_eq!(sealed(&key(9), &page, None).err(), Some(Refused::Damaged));
 }

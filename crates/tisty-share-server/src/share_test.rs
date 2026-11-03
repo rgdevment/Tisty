@@ -58,6 +58,7 @@ fn sealed(id: &str, version: u64, from: Option<u64>, text: &str) -> Vec<u8> {
         text,
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures: &[],
     };
     let (machine, certificate) = vouched();
@@ -307,6 +308,7 @@ fn a_signed_envelope_is_taken_with_its_signature() {
         text: "firmado",
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures: &[(Kind::Png, b"\x89PNG\r\n\x1a\n...")],
     };
     let bytes = envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
@@ -327,6 +329,7 @@ fn an_unsigned_envelope_is_refused() {
         text: "sin firma",
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures: &[],
     };
     let bytes = envelope::seal(&key(), &draft, None, &Limits::default())
@@ -1125,6 +1128,7 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
         text: "pesado",
         cited: &[],
         html: "<p>a</p>",
+        config: Default::default(),
         pictures: &pictures,
     };
     let (machine, certificate) = vouched();

@@ -101,6 +101,45 @@ fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
 }
 
 #[test]
+fn every_version_goes_up_with_how_tisty_read_its_words() {
+    let here = Here::new();
+    let text = "---
+tags: [guia, tisty]
+lang: ES
+paper: Letter
+sheets: on
+orientation: landscape
+author: Ana
+---
+# Guía de Markdown";
+    let shared = share(
+        &here,
+        SERVER,
+        text,
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    let (_, body) = here.read(&shared.link, None);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let key = LinkKey::from_text(&shared.key).unwrap();
+    let config = envelope::open(&key, &envelope, &[]).unwrap().config;
+    assert_eq!(config.title.as_deref(), Some("Guía de Markdown"));
+    assert_eq!(config.tags, ["guia", "tisty"]);
+    assert_eq!(config.lang.as_deref(), Some("es"));
+    assert_eq!(config.paper.as_deref(), Some("letter"));
+    assert!(config.sheets && config.landscape);
+    assert!(
+        config
+            .fields
+            .iter()
+            .any(|one| one.key == "author" && one.values == ["Ana"])
+    );
+}
+
+#[test]
 fn a_page_drawn_past_what_the_server_takes_is_too_big_to_share() {
     let here = Here::new();
     here.share.borrow_mut().policy.limits.html = 8;

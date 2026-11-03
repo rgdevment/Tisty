@@ -66,6 +66,7 @@ fuzz_target!(|input: Input| {
         } else {
             "<p>fuzzed</p>"
         },
+        config: Default::default(),
         pictures: &shown,
     };
     let Ok(sealed) = envelope::seal(

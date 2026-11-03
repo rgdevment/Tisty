@@ -109,6 +109,33 @@ pub fn tags(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// The papers a document may ask for, as the window lays them.
+pub const PAPERS: [&str; 4] = ["a4", "letter", "folio", "tabloid"];
+
+/// How a document asks to be laid: its paper, whether in sheets and whether lying across, as the window reads it.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Laid {
+    pub paper: Option<&'static str>,
+    pub sheets: bool,
+    pub landscape: bool,
+}
+
+pub fn laid(text: &str) -> Laid {
+    let all = fields(text);
+    let said = |key: &str| {
+        all.iter()
+            .find(|one| one.key.eq_ignore_ascii_case(key))
+            .and_then(|one| one.values.first())
+            .map(|one| one.to_lowercase())
+    };
+    let sheets = said("sheets").as_deref() == Some("on");
+    Laid {
+        paper: said("paper").and_then(|asked| PAPERS.into_iter().find(|one| *one == asked)),
+        sheets,
+        landscape: sheets && said("orientation").as_deref() == Some("landscape"),
+    }
+}
+
 /// The language the body says it is in, as a tag in its usual case: `es`, `pt-BR`, `zh-Hant`.
 pub fn lang(text: &str) -> Option<String> {
     fields(text)

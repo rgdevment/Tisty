@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 use crate::cloud::{HEAD, TAG, nonced};
+use crate::config::{CONFIG_AT_MOST, Config};
 use crate::identity::{Certificate, Revocation, ShareKey, Signed, Verdict, check};
 use crate::limits::Limits;
 
@@ -89,6 +90,8 @@ pub enum Kind {
     Cited,
     /// The page Tisty drew from the words, which the web shows as it is (decision 91).
     Html,
+    /// How Tisty read the words: title, tags, language, paper and front matter.
+    Config,
     Png,
     Jpeg,
     Webp,
@@ -96,22 +99,22 @@ pub enum Kind {
 }
 
 impl Kind {
-    /// Words deflate well and a picture is already compressed, so only the words, the page and their list are deflated.
+    /// Words deflate well and a picture is already compressed, so only the words, the page and what they say of it are deflated.
     pub fn deflated(self) -> bool {
-        matches!(self, Kind::Text | Kind::Cited | Kind::Html)
+        matches!(self, Kind::Text | Kind::Cited | Kind::Html | Kind::Config)
     }
 
     pub fn is_picture(self) -> bool {
         !matches!(
             self,
-            Kind::Text | Kind::Signature | Kind::Cited | Kind::Html
+            Kind::Text | Kind::Signature | Kind::Cited | Kind::Html | Kind::Config
         )
     }
 
     pub fn media(self) -> &'static str {
         match self {
             Kind::Text => "text/markdown",
-            Kind::Signature | Kind::Cited => "application/json",
+            Kind::Signature | Kind::Cited | Kind::Config => "application/json",
             Kind::Html => "text/html",
             Kind::Png => "image/png",
             Kind::Jpeg => "image/jpeg",
@@ -264,11 +267,18 @@ impl Manifest {
             }
             _ => rest,
         };
-        // Every version carries the page Tisty drew, which is all the web shows (decision 91).
-        let (html, pictures) = rest
-            .split_first()
-            .filter(|(html, _)| html.kind == Kind::Html)
-            .ok_or(Refused::Damaged)?;
+        // Every version carries the page Tisty drew, which is all the web shows (decision 91), and how Tisty read it.
+        let (html, pictures) = match rest {
+            [html, config, pictures @ ..]
+                if html.kind == Kind::Html && config.kind == Kind::Config =>
+            {
+                if config.plain() > CONFIG_AT_MOST {
+                    return Err(Refused::Damaged);
+                }
+                (html, pictures)
+            }
+            _ => return Err(Refused::Damaged),
+        };
         if html.plain() > limits.html {
             return Err(Refused::HtmlTooBig);
         }
@@ -329,8 +339,12 @@ impl Manifest {
         self.cited_at().map_or(self.first_optional(), |at| at + 1)
     }
 
-    fn first_picture(&self) -> usize {
+    fn config_at(&self) -> usize {
         self.html_at() + 1
+    }
+
+    fn first_picture(&self) -> usize {
+        self.config_at() + 1
     }
 }
 
@@ -359,6 +373,7 @@ pub struct Draft<'a> {
     pub cited: &'a [Cited],
     /// The page Tisty drew from the words, which is all the web shows (decision 91).
     pub html: &'a str,
+    pub config: Config,
     pub pictures: &'a [(Kind, &'a [u8])],
 }
 
@@ -393,6 +408,14 @@ fn named_id(id: &str) -> bool {
         && id
             .bytes()
             .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
+}
+
+/// The config as it is sealed and signed: one way of writing it, so the writer and the reader sign the same bytes.
+#[cfg(feature = "mint")]
+fn configured(config: &Config) -> Result<Zeroizing<Vec<u8>>, Refused> {
+    serde_json::to_vec(config)
+        .map(Zeroizing::new)
+        .map_err(|_| Refused::Damaged)
 }
 
 /// The list as it is sealed: none at all when nothing is cited, so such an envelope is what it always was.
@@ -443,6 +466,8 @@ pub struct Opened {
     pub cited: Vec<Cited>,
     /// The page Tisty drew: the writer's word, so whoever shows it still cleans it.
     pub html: Zeroizing<String>,
+    /// How the writer's Tisty read the words, signed with them.
+    pub config: Config,
     pub pictures: Vec<(Kind, Zeroizing<Vec<u8>>)>,
     /// Who wrote these words and pictures, when the envelope carries their signature; one signed for another id is refused.
     pub wrote: Option<Verdict>,
@@ -477,6 +502,8 @@ fn sealed_with(
 ) -> Result<Envelope, Refused> {
     let text = deflated(draft.text.as_bytes())?;
     let html = deflated(draft.html.as_bytes())?;
+    let config = configured(&draft.config)?;
+    let config = (config.len(), deflated(&config)?);
     let cited = cited
         .map(|said| deflated(said).map(|sealed| (said.len(), sealed)))
         .transpose()?;
@@ -489,6 +516,7 @@ fn sealed_with(
         plain.push((Kind::Cited, *len, said));
     }
     plain.push((Kind::Html, draft.html.len(), &html));
+    plain.push((Kind::Config, config.0, &config.1));
     plain.extend(
         draft
             .pictures
@@ -589,6 +617,9 @@ fn check_draft(draft: &Draft) -> Result<(), Refused> {
     {
         return Err(Refused::NotAPicture);
     }
+    if !draft.config.holds() {
+        return Err(Refused::Damaged);
+    }
     Ok(())
 }
 
@@ -603,8 +634,16 @@ fn wrote(signer: &Signer, draft: &Draft, cited: Option<&[u8]>) -> Result<Vec<u8>
         .iter()
         .map(|(_, bytes)| URL_SAFE_NO_PAD.encode(Sha256::digest(bytes)))
         .collect();
-    let covered = drawn_content(draft.text, cited, draft.html, draft.pictures, &pictures)
-        .ok_or(Refused::Unsigned)?;
+    let config = configured(&draft.config)?;
+    let covered = drawn_content(
+        draft.text,
+        cited,
+        draft.html,
+        &config,
+        draft.pictures,
+        &pictures,
+    )
+    .ok_or(Refused::Unsigned)?;
     let said = vouched_words(&covered, draft.id, signer.at, signer.name);
     let wrote = Wrote {
         id: draft.id.to_owned(),
@@ -662,6 +701,11 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
         return Err(Refused::Damaged);
     }
     let html = Zeroizing::new(worded(&plain[manifest.html_at()])?);
+    let config_bytes = plain[manifest.config_at()].as_slice();
+    let config: Config = serde_json::from_slice(config_bytes).map_err(|_| Refused::Damaged)?;
+    if !config.holds() {
+        return Err(Refused::Damaged);
+    }
     let first_picture = manifest.first_picture();
     let pictures = manifest.parts[first_picture..]
         .iter()
@@ -680,8 +724,15 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             .iter()
             .map(|(kind, bytes)| (*kind, bytes.as_slice()))
             .collect();
-        let said = drawn_content(&text, cited_bytes, &html, &shown, &inner.pictures)
-            .map(|covered| vouched_words(&covered, &inner.id, inner.at, inner.name.as_deref()));
+        let said = drawn_content(
+            &text,
+            cited_bytes,
+            &html,
+            config_bytes,
+            &shown,
+            &inner.pictures,
+        )
+        .map(|covered| vouched_words(&covered, &inner.id, inner.at, inner.name.as_deref()));
         // Each picture must be the one the writer hashed, which holds them apart from the words they signed.
         let pictured = pictures_hold(&shown, &inner.pictures);
         // The server tells only the sender's revocations, so words another key wrote, or signed for another link, never hold.
@@ -705,6 +756,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
         text,
         cited,
         html,
+        config,
         pictures,
         wrote,
         written,
@@ -966,6 +1018,7 @@ fn drawn_content(
     text: &str,
     cited: Option<&[u8]>,
     html: &str,
+    config: &[u8],
     pictures: &[(Kind, &[u8])],
     hashes: &[String],
 ) -> Option<Vec<u8>> {
@@ -975,10 +1028,11 @@ fn drawn_content(
     let mut over = Sha256::new();
     over.update(WRITTEN);
     over.update(b"drawn");
-    let parts: [(&[u8], &[u8]); 3] = [
+    let parts: [(&[u8], &[u8]); 4] = [
         (b"text", text.as_bytes()),
         (b"cited", cited.unwrap_or_default()),
         (b"html", html.as_bytes()),
+        (b"config", config),
     ];
     for (named, said) in parts {
         over.update(named);
