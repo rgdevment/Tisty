@@ -56,22 +56,22 @@ fn read_back(here: &Here, shared: &Shared) -> String {
         .to_string()
 }
 
-// What the link opens now, with the page Tisty drew for it, if any.
-fn drawn_back(here: &Here, shared: &Shared) -> Option<String> {
+// What the link opens now, with the page Tisty drew for it.
+fn drawn_back(here: &Here, shared: &Shared) -> String {
     let (_, body) = here.read(&shared.link, None);
     let envelope = Envelope::read(body, &Limits::default()).unwrap();
     let key = LinkKey::from_text(&shared.key).unwrap();
     envelope::open(&key, &envelope, &[])
         .unwrap()
         .html
-        .map(|html| html.to_string())
+        .to_string()
 }
 
 #[test]
 fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
     let here = Here::new();
     let voucher = voucher();
-    let drawn = |text| Some(tisty_markdown::html(&tisty_markdown::read(text)));
+    let drawn = |text| tisty_markdown::html(&tisty_markdown::read(text));
     let first = "# Hola
 
 | a | b |
@@ -98,6 +98,45 @@ fn every_version_goes_up_with_the_page_tisty_drew_from_its_words() {
     };
     update(&here, &shared, &words).unwrap();
     assert_eq!(drawn_back(&here, &shared), drawn("## Dos"));
+}
+
+#[test]
+fn every_version_goes_up_with_how_tisty_read_its_words() {
+    let here = Here::new();
+    let text = "---
+tags: [guia, tisty]
+lang: ES
+paper: Letter
+sheets: on
+orientation: landscape
+author: Ana
+---
+# Guía de Markdown";
+    let shared = share(
+        &here,
+        SERVER,
+        text,
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    let (_, body) = here.read(&shared.link, None);
+    let envelope = Envelope::read(body, &Limits::default()).unwrap();
+    let key = LinkKey::from_text(&shared.key).unwrap();
+    let config = envelope::open(&key, &envelope, &[]).unwrap().config;
+    assert_eq!(config.title.as_deref(), Some("Guía de Markdown"));
+    assert_eq!(config.tags, ["guia", "tisty"]);
+    assert_eq!(config.lang.as_deref(), Some("es"));
+    assert_eq!(config.paper.as_deref(), Some("letter"));
+    assert!(config.sheets && config.landscape);
+    assert!(
+        config
+            .fields
+            .iter()
+            .any(|one| one.key == "author" && one.values == ["Ana"])
+    );
 }
 
 #[test]

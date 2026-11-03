@@ -1,4 +1,5 @@
 pub mod cloud;
+pub mod config;
 pub mod envelope;
 pub mod handing;
 pub mod identity;
