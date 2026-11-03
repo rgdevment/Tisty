@@ -13,7 +13,6 @@ export type TableEdit =
   | { readonly kind: "columnRemove"; readonly column: number }
   | { readonly kind: "sort"; readonly column: number; readonly down: boolean };
 
-// The editor holds no words and no Markdown core of its own: the window gives Tisty's, the web will give its wasm.
 export type Hosted = {
   readonly say: (word: EditWord) => string;
   /** The table holding a byte of the body changed by the edits, or a refusal already in the reader's words. */
