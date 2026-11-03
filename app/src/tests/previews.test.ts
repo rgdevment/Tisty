@@ -1,5 +1,6 @@
+import { ending, family, KINDS } from "tisty-editor/read";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
+import { named, previewOf, weighed } from "../previews";
 
 describe("what a link is worth showing as", () => {
   it("plays what the webview can play", () => {
