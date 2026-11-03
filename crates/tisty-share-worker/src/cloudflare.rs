@@ -70,6 +70,13 @@ impl Cloud {
             .map_err(fault)
     }
 
+    async fn census(&self, now: i64) -> Result<kept::Census, Fault> {
+        Ok(self
+            .first(sql::CENSUS, &[number(now)])
+            .await?
+            .unwrap_or_default())
+    }
+
     async fn all<T: DeserializeOwned>(
         &self,
         query: &str,
@@ -449,5 +456,10 @@ async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
     }
     if let Some(fault) = &swept.unlapsed {
         worker::console_error!("the sweep could not let old counters go: {fault}");
+    }
+    // Numbers only, every quarter of an hour, so how the service stands is seen without looking at any document.
+    match share.store.census(now()).await {
+        Ok(census) => worker::console_log!("{}", serde_json::json!({ "census": census })),
+        Err(why) => worker::console_error!("the census failed: {why}"),
     }
 }
