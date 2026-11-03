@@ -1,25 +1,12 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { drawnGlyph, markup, piece } from "tisty-editor/read";
+import { drawnGlyph, ending, family, fileGlyph, KINDS, piece } from "tisty-editor/read";
 import { keptHere, type Lent, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
-import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
+import { named, previewOf, weighed } from "../previews";
 import { plainly } from "../refusal";
 import { more } from "./carding";
 import { type Lending, lendKept, locked } from "./widgeting";
-
-const GLYPH: Record<string, string> = {
-  pdf: "page",
-  word: "page",
-  text: "page",
-  sheet: "sheet",
-  data: "table",
-  slides: "book",
-  archive: "file-archive",
-  page: "code",
-  video: "file-video",
-  audio: "file-audio",
-};
 
 export const lents = new WeakMap<Element, Lent>();
 
@@ -141,7 +128,7 @@ const filed = (page: Document, img: Element, at: string, live: () => boolean, as
   card.setAttribute("href", at);
   card.dataset.family = kin;
   const tile = piece(page, "card-tile");
-  tile.append(drawnGlyph(page, markup(GLYPH[kin] ?? "page") ?? ""));
+  tile.append(drawnGlyph(page, fileGlyph(kind)));
   const meta = piece(page, "card-meta");
   const kindIs = piece(page, "kind", labelled(kind));
   meta.append(kindIs);

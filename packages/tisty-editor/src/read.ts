@@ -2,6 +2,7 @@ export { type Carded, type Cards, cardBox, carded, drawnGlyph, glyph, piece } fr
 export { celled, hueOf, sayingDays, today } from "./cells";
 export { colored, coloredAll } from "./coloring";
 export { diagramShot, diagrams, drawing, sourceOf } from "./diagrams";
+export { ending, family, fileGlyph, KINDS } from "./files";
 export { begun, folded, matched, terms } from "./finding";
 export { type Field, fields, frontLines, keyed, type Laid, laidIn, overgrown } from "./front";
 export { known, markup } from "./glyphs";

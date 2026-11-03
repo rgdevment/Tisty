@@ -1,7 +1,12 @@
 import {
   acrossOf,
+  drawnGlyph,
+  ending,
+  family,
+  fileGlyph,
   PAPERS,
   type Paper,
+  piece,
   readAs,
   type Say,
   type Sheet,
@@ -30,6 +35,42 @@ const OUTSIDE = /^(https?:|mailto:)/i;
 
 // Control and direction marks, which Tisty keeps out of a title so none can dress one up as another.
 const MARKS = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/gu;
+
+// An attachment that is no picture stays in Tisty; its kind is kept before cleaning drops where it lay.
+export const filed = (html: string): string =>
+  html.replace(/<img src="([^"]*)"/g, (all, at: string) => {
+    const kind = ending(at);
+    return at.startsWith(PICTURE) || !/^[a-z0-9]{1,8}$/.test(kind)
+      ? all
+      : `<img data-file="${kind}"`;
+  });
+
+// Drawn as Tisty draws a file, a card on a line of its own and a chip within words, saying it did not travel.
+export const fileCards = (page: Document, stays: string) => {
+  for (const img of page.querySelectorAll<HTMLImageElement>("img[data-file]")) {
+    const kind = img.dataset.file ?? "";
+    const kin = family(kind);
+    const name = img.alt || kind.toUpperCase();
+    const held = img.parentElement;
+    const alone =
+      held?.tagName === "P" && held.children.length === 1 && !(held.textContent ?? "").trim();
+    if (!alone) {
+      const chip = piece(page, "card", name);
+      chip.dataset.family = kin;
+      chip.title = stays;
+      img.replaceWith(chip);
+      continue;
+    }
+    const card = piece(page, "doc-card is-file");
+    card.dataset.family = kin;
+    const tile = piece(page, "card-tile");
+    tile.append(drawnGlyph(page, fileGlyph(kind)));
+    const meta = piece(page, "card-meta");
+    meta.append(piece(page, "kind", `${kind.toUpperCase()} · ${stays}`));
+    card.append(tile, piece(page, "card-name", name), piece(page, "card-blurb"), meta);
+    img.replaceWith(card);
+  }
+};
 
 // Set aside before the frame reads the html, so the browser never asks for a picture by its name.
 export const unasked = (html: string): string =>
@@ -148,11 +189,11 @@ export const drawn = async (
   frame: HTMLIFrameElement,
   opened: Opened,
   dark: boolean,
-  said: { readonly say: Say; readonly language: string },
+  said: { readonly say: Say; readonly language: string; readonly stays: string },
   laid: () => Laid,
   onCited: (one: Cited) => void,
 ): Promise<Drawn> => {
-  const page = await loaded(frame, shell(unasked(cleaned(opened.html)), dark));
+  const page = await loaded(frame, shell(unasked(cleaned(filed(opened.html))), dark));
   page.documentElement.classList.add("tall");
   if (opened.lang) page.documentElement.lang = opened.lang;
   page.querySelector(".page")?.removeAttribute("inert");
@@ -164,6 +205,7 @@ export const drawn = async (
     live,
     brought: () => {
       made = pictured(page, opened.pictures);
+      fileCards(page, said.stays);
     },
     sites: {},
     cards: { card: cardOf(opened.cited) },
