@@ -37,7 +37,7 @@ export type Book = {
 };
 
 export type Facts = {
-  readonly body: string;
+  readonly body?: string;
   readonly author?: string;
   readonly born?: string;
   readonly editor?: string;

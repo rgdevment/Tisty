@@ -835,6 +835,7 @@ img {
   margin: 16px auto;
   padding: 8px;
   max-width: 100%;
+  height: auto;
   max-height: 28rem;
   object-fit: contain;
   background: var(--tisty-rail);
