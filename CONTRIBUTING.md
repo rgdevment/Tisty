@@ -201,12 +201,13 @@ Without npm it is one line:
 git config core.hooksPath hooks
 ```
 
-That gives you three. `pre-commit` runs the conventions, the branch's name, `cargo fmt --all
---check` and biome over what is staged, not over the working tree beside it —
-about two seconds, and between them they are most of what turns CI red.
-`commit-msg` weighs the subject while the fix is still an `--amend` rather than
-a rebase. `pre-push` runs the conventions again, the name each branch takes on the
-remote and the subjects of everything you are about to send, and when what you send is a tag it asks
+That gives you three. `pre-commit` runs the conventions, the branch's name,
+`cargo fmt --all --check` and biome over what is staged, not over the working
+tree beside it — about two seconds, and between them they are most of what
+turns CI red. `commit-msg` weighs the subject while the fix is still an
+`--amend` rather than a rebase. `pre-push` runs the conventions again, the name
+each branch takes on the remote and the subjects of everything you are about to
+send, and when what you send is a tag it asks
 `scripts/news.sh` whether `app/src/news.json` says what changed in that version:
 the window an update opens with is the only place the app says it. A candidate
 is exempt, and so is a patch whose minor release already has its entry, since
