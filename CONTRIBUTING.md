@@ -179,6 +179,11 @@ Pull requests are squashed, and the squash keeps the pull request's title, so
 that title — with the number GitHub adds after it, `(#123)` — is the subject
 that reaches `main`, and CI holds it to the same shape and the same length.
 
+A branch says the same thing before its first commit: `kind/what`, in lowercase,
+where the kind is one of the types above or `hotfix` or `release`, as in
+`feat/docs-languages` or `fix/pulldown-cmark-0.13.6`. `scripts/branches.sh`
+holds that shape.
+
 `scripts/rules.sh` holds the conventions a person can break in a second: four
 lines of comment in a row, a file grown past what anybody reads through, Spanish
 where the code should be English,
@@ -196,12 +201,12 @@ Without npm it is one line:
 git config core.hooksPath hooks
 ```
 
-That gives you three. `pre-commit` runs the conventions, `cargo fmt --all
+That gives you three. `pre-commit` runs the conventions, the branch's name, `cargo fmt --all
 --check` and biome over what is staged, not over the working tree beside it —
 about two seconds, and between them they are most of what turns CI red.
 `commit-msg` weighs the subject while the fix is still an `--amend` rather than
-a rebase. `pre-push` runs the conventions again and the subjects of everything
-you are about to send, and when what you send is a tag it asks
+a rebase. `pre-push` runs the conventions again, the name each branch takes on the
+remote and the subjects of everything you are about to send, and when what you send is a tag it asks
 `scripts/news.sh` whether `app/src/news.json` says what changed in that version:
 the window an update opens with is the only place the app says it. A candidate
 is exempt, and so is a patch whose minor release already has its entry, since

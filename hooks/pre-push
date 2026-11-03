@@ -13,9 +13,13 @@ main=$(git symbolic-ref -q --short "refs/remotes/$remote/HEAD" 2> /dev/null || e
 
 nothing=0000000000000000000000000000000000000000
 status=0
-while read -r ref mine _ theirs; do
+while read -r ref mine where theirs; do
   [ -n "${mine:-}" ] || continue
   [ "$mine" != "$nothing" ] || continue
+  # The name it takes on the remote, which is the one everybody sees.
+  case ${where:-} in
+    refs/heads/*) bash scripts/branches.sh "${where#refs/heads/}" || status=1 ;;
+  esac
   # A tag is the last moment to notice the version it names has nothing to tell whoever installs it.
   case ${ref:-} in
     refs/tags/v*)
