@@ -32,6 +32,11 @@ fn there(n: u8) -> IpAddr {
 /// Little work, so the tests run quickly; one test asks for the server's own.
 fn policy() -> Policy {
     Policy {
+        limits: Limits {
+            shares: 64,
+            pictures: 10,
+            ..Limits::default()
+        },
         slowness: Slowness { log_n: 4, r: 8 },
         work: Work {
             reserve: 4,
@@ -98,7 +103,7 @@ fn opened(served: &Served) -> String {
 }
 
 fn digest_of(bytes: &[u8]) -> [u8; 32] {
-    Envelope::read(bytes.to_vec(), &Limits::default())
+    Envelope::read(bytes.to_vec(), &policy().limits)
         .unwrap()
         .digest()
 }
@@ -1155,7 +1160,7 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
         at: Timestamp::from_second(T0).unwrap(),
         name: None,
     };
-    let heavy = envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
+    let heavy = envelope::seal(&key(), &draft, Some(&signer), &policy().limits)
         .unwrap()
         .to_bytes();
     assert!(heavy.len() > 1024 * 1024);
@@ -1537,6 +1542,9 @@ impl Store for Faulty {
     async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault> {
         self.inner.ending(now, at_most).await
     }
+    async fn shares_of(&self, owner: &str, now: i64) -> Result<u64, Fault> {
+        self.inner.shares_of(owner, now).await
+    }
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
         self.inner.count(key, by, until, now).await
     }
@@ -1755,6 +1763,7 @@ fn a_stored_document_missing_a_later_field_still_opens_and_one_missing_its_end_d
         holders: Vec::new(),
         holds: Vec::new(),
         own: None,
+        owner: String::new(),
     };
     let written: serde_json::Value = serde_json::to_value(&doc).unwrap();
     let without = |field: &str| {
@@ -2397,6 +2406,7 @@ fn a_version_kept_before_sheets_reads_without_one_and_is_written_without_one() {
         digest: [3; 32],
         by: None,
         sheet: None,
+        pictures: 0,
     };
     let written = serde_json::to_value(kept).unwrap();
     assert!(written.get("sheet").is_none());
@@ -2408,3 +2418,6 @@ fn a_version_kept_before_sheets_reads_without_one_and_is_written_without_one() {
     let again = serde_json::to_string(&split).unwrap();
     assert_eq!(serde_json::from_str::<Kept>(&again).unwrap(), split);
 }
+
+#[path = "level_test.rs"]
+mod level;

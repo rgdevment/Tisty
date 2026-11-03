@@ -103,6 +103,17 @@ impl Store for Memory {
         Ok(ended.into_iter().take(at_most).map(|(_, id)| id).collect())
     }
 
+    async fn shares_of(&self, owner: &str, now: i64) -> Result<u64, Fault> {
+        Ok(self
+            .docs
+            .borrow()
+            .values()
+            .filter(|doc| doc.owner == owner)
+            .filter(|doc| doc.ends >= now && !doc.versions.is_empty() && doc.holders.is_empty())
+            .filter(|doc| doc.blocked.is_none())
+            .count() as u64)
+    }
+
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
         let mut counters = self.counters.borrow_mut();
         let held = counters.entry(key.to_owned()).or_insert((0, until));

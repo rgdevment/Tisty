@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use futures_util::future::{join, join3};
+use futures_util::future::{join, join4};
 use serde::{Deserialize, Serialize};
 use tisty_share_proto::envelope::{Envelope, Refused as Unread};
 use tisty_share_proto::identity::{Revocation, Verdict};
@@ -50,6 +50,7 @@ pub struct Policy {
     pub sweep: usize,
     /// Seconds a report and a blocked document are kept as evidence (decision 42).
     pub evidence: i64,
+    pub readers: u64,
 }
 
 impl Default for Policy {
@@ -73,6 +74,7 @@ impl Default for Policy {
             reports_to_block: 3,
             sweep: 15,
             evidence: 90 * DAY,
+            readers: 250,
         }
     }
 }
@@ -126,6 +128,10 @@ pub enum Refused {
     Reported,
     #[error("that is longer than a report takes")]
     TooLong,
+    #[error("this person already shares as many documents as they may")]
+    SharesFull,
+    #[error("a share carries no more pictures than this")]
+    PicturesFull,
     #[error("no free id could be found; try again")]
     Crowded,
     #[error("there was no randomness to mint with")]
@@ -346,6 +352,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 holders: Vec::new(),
                 holds: Vec::new(),
                 own: None,
+                owner: String::new(),
             };
             if self.store.save(&doc, None).await? == Saved::Done {
                 return Ok(Reserved { id, edit, admin });
@@ -396,6 +403,16 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if manifest.from != latest || manifest.version != latest.map_or(1, |one| one + 1) {
             return Err(Refused::Behind { latest });
         }
+        let pictures = manifest
+            .parts
+            .iter()
+            .filter(|part| part.kind.is_picture())
+            .count() as u64;
+        if latest.is_none() {
+            doc.owner = by.map_or_else(String::new, |sender| guard::hex(&sender.root));
+            self.room_to_share(&doc, now).await?;
+        }
+        self.room_for_pictures(&doc, pictures).await?;
         // Only what was kept is counted against the day, so a store that fails costs the caller nothing.
         guard::affords(
             &self.store,
@@ -412,6 +429,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             digest: envelope.digest(),
             by,
             sheet: envelope.sheet_end(),
+            pictures,
         };
         self.store.keep(id, &kept, envelope.into_bytes()).await?;
         // A reserved id may wait an hour for its first version, and the reader is told when it was shared, not reserved.
@@ -455,13 +473,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let kept = *doc.versions.last().ok_or(Refused::Unwritten)?;
         let sheet = kept.sheet.filter(|_| sheet_first);
         // Each waits on a store, so the envelope and what took its key back come while the password is weighed; neither goes out unless it holds.
-        let (allowed, envelope, revoked) = join3(
+        let (allowed, welcome, envelope, revoked) = join4(
             self.let_in(&doc, password, proof, caller, now),
+            self.welcome(&doc, caller, now),
             self.store.envelope_range(id, &kept, 0, sheet),
             self.revoked(kept.by.as_ref()),
         )
         .await;
         allowed?;
+        welcome?;
         let envelope = envelope?.ok_or_else(|| lost(id, &kept))?;
         // Told as `seen` leaves it for a new reader; one back within the hour hears an end at most that hour ahead.
         let ends = match doc.holders.is_empty() {
@@ -532,6 +552,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let new_reader = self.first_read_today(&id, caller, now).await?;
         if new_reader {
             doc.reads += 1;
+            self.counted_reader(&doc.owner, caller, now).await?;
         }
         if new_reader || now - doc.active >= ACTIVITY_GRAIN {
             touched(&mut doc, now, self.policy.idle);
@@ -753,6 +774,51 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(self.store.mark(&seen, (day + 1) * DAY, now).await?)
     }
 
+    fn reader_of(&self, owner: &str, caller: IpAddr, now: i64) -> String {
+        let who = guard::today(&self.secret, caller, now);
+        format!("reader:{owner}:{who}")
+    }
+
+    async fn counted_reader(&self, owner: &str, caller: IpAddr, now: i64) -> Result<(), Refused> {
+        let day = now.div_euclid(DAY);
+        let reader = self.reader_of(owner, caller, now);
+        if self.store.mark(&reader, (day + 1) * DAY, now).await? {
+            self.store
+                .count(&readers_of(owner, day), 1, (day + 1) * DAY, now)
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn welcome(&self, doc: &Doc, caller: IpAddr, now: i64) -> Result<(), Refused> {
+        let day = now.div_euclid(DAY);
+        if self
+            .store
+            .counted(&readers_of(&doc.owner, day), now)
+            .await?
+            < self.policy.readers
+        {
+            return Ok(());
+        }
+        let reader = self.reader_of(&doc.owner, caller, now);
+        match self.store.held(&reader, now).await? {
+            Some(_) => Ok(()),
+            None => Err(Refused::Slow {
+                until: (day + 1) * DAY,
+            }),
+        }
+    }
+
+    async fn room_to_share(&self, doc: &Doc, now: i64) -> Result<(), Refused> {
+        if !doc.holders.is_empty() {
+            return Ok(());
+        }
+        match self.store.shares_of(&doc.owner, now).await? >= self.policy.limits.shares {
+            true => Err(Refused::SharesFull),
+            false => Ok(()),
+        }
+    }
+
     pub(crate) async fn owned(&self, id: &str, admin: &str, now: i64) -> Result<Doc, Refused> {
         let doc = self.live(id, now).await?;
         if keys::hashed(admin) != doc.admin {
@@ -807,6 +873,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
             }),
         }
     }
+}
+
+fn readers_of(owner: &str, day: i64) -> String {
+    format!("readers:{owner}:{day}")
 }
 
 fn gated(doc: &Doc) -> &[u8] {

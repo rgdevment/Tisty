@@ -14,6 +14,12 @@ pub const FORGET: &str = "DELETE FROM docs WHERE id = ?1";
 
 pub const ENDING: &str = "SELECT id FROM docs WHERE ends < ?1 ORDER BY ends, id LIMIT ?2";
 
+pub const SHARES_OF: &str = "SELECT count(*) AS value FROM docs \
+    WHERE ends >= ?2 AND json_extract(body, '$.owner') = ?1 \
+    AND json_array_length(body, '$.versions') > 0 \
+    AND coalesce(json_array_length(body, '$.holders'), 0) = 0 \
+    AND json_extract(body, '$.blocked') IS NULL";
+
 /// How many documents there are and how they stand, counted whole and never one by one (decision 98).
 pub const CENSUS: &str = "SELECT count(*) AS docs, \
     coalesce(sum(json_array_length(body, '$.versions') = 0), 0) AS unwritten, \

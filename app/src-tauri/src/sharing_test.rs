@@ -529,6 +529,35 @@ fn the_pictures_the_words_name_go_in_the_envelope_and_the_rest_stay_as_written()
 }
 
 #[test]
+fn the_pictures_a_share_carries_are_counted_as_its_envelope_would_carry_them() {
+    let text = "# Viaje\n\n![Playa](attachments/playa-a1b2c3d4.png)\n\n![Otra vez](attachments/playa-a1b2c3d4.png)\n\n![Faro](attachments/faro-c3d4e5f6.png)\n\n![Plano](attachments/plano-b2c3d4e5.pdf)\n\n```md\n![En código](attachments/muelle-d4e5f6a7.png)\n```\n";
+    let read = |target: &str| match target {
+        "attachments/plano-b2c3d4e5.pdf" => Some(b"%PDF-1.7".to_vec()),
+        _ => Some(png(20)),
+    };
+    assert_eq!(pictures_in(text, read), 2);
+    assert_eq!(pictures_in(text, |_| None), 0);
+}
+
+#[test]
+fn a_share_past_its_level_is_told_with_how_many_it_may_have() {
+    let said = |word: &str| Said {
+        status: 409,
+        body: serde_json::json!({ "refused": word })
+            .to_string()
+            .into_bytes(),
+        revoked: None,
+    };
+    let full = refused(&said("shares_full"));
+    assert_eq!((full.code, full.name.as_deref()), ("shareFull", Some("2")));
+    let pictured = refused(&said("pictures_full"));
+    assert_eq!(
+        (pictured.code, pictured.name.as_deref()),
+        ("sharePicturesFull", Some("2"))
+    );
+}
+
+#[test]
 fn a_shared_document_carries_its_pictures_to_whoever_opens_it() {
     let here = Here::new();
     let (text, pictures) = pictured(

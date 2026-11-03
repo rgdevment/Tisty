@@ -3,11 +3,14 @@ import { copied } from "../core";
 import { fill, t } from "../locales";
 import {
   type ShareCard,
+  type ShareLevel,
   type ShareLook,
+  type ShareOwn,
   type ShareSecret,
   type ShareSigns,
   shareDoc,
   shareLook,
+  shareStop,
 } from "../shares";
 import Modal from "./Modal";
 
@@ -45,6 +48,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [still, setStill] = useState(false);
   const [cites, setCites] = useState(false);
   const [reach, setReach] = useState({ pages: 0, cited: 0 });
+  const [pictured, setPictured] = useState({ own: 0, cited: 0 });
+  const [own, setOwn] = useState<ShareOwn[]>([]);
+  const [level, setLevel] = useState<ShareLevel | null>(null);
+  const [stopping, setStopping] = useState<string | null>(null);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
   const [seen, setSeen] = useState<string | null>(null);
@@ -63,6 +70,9 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setSecrets([]);
     setNames(undefined);
     setReach({ pages: 0, cited: 0 });
+    setPictured({ own: 0, cited: 0 });
+    setOwn([]);
+    setLevel(null);
     setSeen(null);
     shareLook(file)
       .then((look) => {
@@ -70,6 +80,9 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
         setSecrets(look.secrets);
         setNames({ name: look.name, alias: look.alias });
         setReach({ pages: look.pages, cited: look.cited });
+        setPictured({ own: look.pictures ?? 0, cited: look.citedPictures ?? 0 });
+        setOwn(look.shares ?? []);
+        setLevel(look.level ?? null);
         setSigns((now) => (now === "alias" && !look.alias ? "key" : now));
         setSeen(look.seen);
       })
@@ -80,7 +93,22 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     };
   }, [file, round]);
 
-  const ready = looked && !busy && (!gated || password.trim() !== "");
+  const room = level ? Math.max(level.cited - reach.pages, 0) : reach.cited;
+  const citing = cites && reach.cited > 0;
+  const full = level !== null && own.length >= level.shares;
+  const paged = level !== null && reach.pages > level.cited;
+  const pictures = pictured.own + (citing ? pictured.cited : 0);
+  const crowded = level !== null && pictures > level.pictures;
+  const ready =
+    looked && !busy && !full && !paged && !crowded && (!gated || password.trim() !== "");
+
+  const stop = (one: ShareOwn) => {
+    setStopping(one.file);
+    shareStop(one.file)
+      .then(() => setRound((now) => now + 1))
+      .catch(onError)
+      .finally(() => setStopping(null));
+  };
 
   const go = (event: React.FormEvent) => {
     event.preventDefault();
@@ -94,7 +122,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       seen,
       signs,
       still,
-      cites: cites && reach.cited > 0,
+      cites: citing,
     })
       .then((card) => {
         copied(card.read).catch(() => {});
@@ -120,6 +148,49 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
           <p role="status" className="text-[12.5px] text-soft">
             {t("shareChanged")}
           </p>
+        )}
+        {full && level && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1.5 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
+          >
+            <span className="text-[13px] font-semibold text-hue-amber">
+              {fill("shareFullCount", String(own.length), String(level.shares))}
+            </span>
+            <ul className="flex flex-col gap-1 text-[12.5px]">
+              {own.map((one) => (
+                <li key={one.file} className="flex items-center justify-between gap-3">
+                  <span className="truncate">{one.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => stop(one)}
+                    disabled={stopping !== null}
+                    aria-label={`${t("shareStop")}: ${one.title}`}
+                    className="h-7 shrink-0 rounded-md border border-line px-2.5 text-[11.5px] hover:bg-hover disabled:opacity-50"
+                  >
+                    {t("shareStop")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <span className="text-[11.5px] leading-relaxed text-soft">
+              {fill("shareFull", String(level.shares))}
+            </span>
+          </div>
+        )}
+        {(paged || crowded) && level && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5 text-[12.5px]"
+          >
+            {paged && <span>{fill("shareTooManyCited", String(level.cited))}</span>}
+            {crowded && (
+              <span>
+                {fill("sharePicturesCount", String(pictures))}{" "}
+                {fill("sharePicturesFull", String(level.pictures))}
+              </span>
+            )}
+          </div>
         )}
         {secrets.length > 0 && (
           <div
@@ -222,6 +293,11 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
                 />
                 {reach.cited === 1 ? t("shareCitesOne") : fill("shareCites", String(reach.cited))}
               </label>
+            )}
+            {citing && level && reach.cited > room && (
+              <p className="text-[11.5px] leading-relaxed text-soft">
+                {fill("shareCitedPast", String(level.cited), String(room))}
+              </p>
             )}
             <p className="text-[11.5px] leading-relaxed text-faint">{t("shareCitesWhy")}</p>
           </div>

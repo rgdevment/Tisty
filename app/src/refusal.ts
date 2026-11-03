@@ -258,6 +258,8 @@ const KNOWN = [
   "shareNotMine",
   "shareNoKey",
   "shareTooManyCited",
+  "shareFull",
+  "sharePicturesFull",
   "shareHeld",
 ] as const;
 

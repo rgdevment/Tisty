@@ -4,6 +4,7 @@ use serde::Serialize;
 use tisty_core::Op;
 use tisty_core::event::{Shared, Signs};
 use tisty_core::model::DocId;
+use tisty_share_proto::limits::Limits;
 
 use super::citing;
 use crate::handed::Voucher;
@@ -181,6 +182,92 @@ pub struct Look {
     /// Its pages, which always go with it, and the other documents it cites, which go when chosen (decision 64).
     pages: usize,
     cited: usize,
+    pictures: usize,
+    cited_pictures: usize,
+    shares: Vec<Own>,
+    level: Level,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Own {
+    file: String,
+    title: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Level {
+    shares: u64,
+    cited: u64,
+    pictures: u64,
+}
+
+impl Level {
+    fn of(limits: &Limits) -> Self {
+        Self {
+            shares: limits.shares,
+            cited: limits.cited,
+            pictures: limits.pictures,
+        }
+    }
+}
+
+pub(crate) fn own_shares(session: &Session) -> Vec<(DocId, Shared)> {
+    session
+        .state
+        .shares
+        .iter()
+        .filter(|(_, one)| !one.taken && !one.held && one.server == sharing::SERVER)
+        .filter(|(doc, _)| {
+            session.state.docs.contains_key(doc) && !citing::held_here(session, **doc)
+        })
+        .map(|(doc, one)| (*doc, one.clone()))
+        .collect()
+}
+
+fn listed(session: &Session) -> Vec<Own> {
+    own_shares(session)
+        .into_iter()
+        .filter_map(|(doc, _)| {
+            let kept = session.state.docs.get(&doc)?;
+            Some(Own {
+                file: kept.file.clone(),
+                title: kept
+                    .title
+                    .clone()
+                    .filter(|title| !title.trim().is_empty())
+                    .unwrap_or_else(|| kept.file.clone()),
+            })
+        })
+        .collect()
+}
+
+fn gone_of(own: &[(DocId, Shared)]) -> Vec<(DocId, String)> {
+    own.iter()
+        .filter(|(_, shared)| {
+            Net::to(&shared.server)
+                .and_then(|wire| sharing::info(&wire, shared))
+                .is_err_and(|refused| sharing::already_gone(&refused))
+        })
+        .map(|(doc, shared)| (*doc, shared.link.clone()))
+        .collect()
+}
+
+fn forget_gone(session: &mut Session, gone: Vec<(DocId, String)>) -> Answer<()> {
+    let ops: Vec<Op> = gone
+        .into_iter()
+        .filter(|(doc, link)| {
+            session
+                .state
+                .shares
+                .get(doc)
+                .is_some_and(|now| now.link == *link)
+        })
+        .map(|(id, link)| Op::ShareStop { id, link })
+        .collect();
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session.commit_all(ops).map_err(Refusal::from)
 }
 
 // The name a share goes out with, as chosen, held to what an envelope takes.
@@ -201,37 +288,56 @@ fn fit(one: &Option<String>) -> Option<String> {
 
 #[tauri::command]
 pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
-    let (docs, name, alias, pages, cited) = {
+    let limits = Limits::default();
+    let (docs, data, name, alias, pages, cited, own) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         let signed = &session.state.signed;
-        // Past what one share holds it is refused when shared, so the dialog counts one more than may go.
-        let (pages, cited) = citing::reach(&session, doc)
-            .map_or((0, citing::CITED_AT_MOST + 1), |all| {
-                (all.pages.len(), all.cited.len())
-            });
+        let reach = citing::reach(&session, doc);
+        let room = citing::cited_at_most().saturating_sub(reach.pages.len());
+        let pages = citing::texts_of(&session, reach.pages.iter().map(|one| one.doc));
+        let cited = citing::texts_of(&session, reach.cited.iter().take(room).map(|one| one.doc));
         (
             session.paths.docs(),
+            session.paths.data().to_path_buf(),
             fit(&signed.name),
             fit(&signed.alias),
-            pages,
-            cited,
+            (reach.pages.len(), pages),
+            (reach.cited.len(), cited),
+            own_shares(&session),
         )
     };
+    let full = own.len() as u64 >= limits.shares;
     // A long document takes a moment to read and look through, so neither holds the window or the session.
-    apart(move || {
+    let (look, gone) = apart(move || {
         let text = tisty_core::docs::read(&docs, &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        Ok(Look {
+        let pictures = citing::pictures_of(std::iter::once(&text).chain(&pages.1), &data);
+        let look = Look {
             secrets: secrets(&text),
             seen: sharing::print_of(&text),
             name,
             alias,
-            pages,
-            cited,
-        })
+            pages: pages.0,
+            cited: cited.0,
+            pictures,
+            cited_pictures: citing::pictures_of(&cited.1, &data),
+            shares: Vec::new(),
+            level: Level::of(&limits),
+        };
+        let gone = match full {
+            true => gone_of(&own),
+            false => Vec::new(),
+        };
+        Ok((look, gone))
     })
-    .await
+    .await?;
+    let mut session = held(&session);
+    forget_gone(&mut session, gone)?;
+    Ok(Look {
+        shares: listed(&session),
+        ..look
+    })
 }
 
 // A new share as it went up: its links, what went with it, and how the server holds it.
@@ -273,6 +379,10 @@ pub async fn share_doc(
             return Err(Refusal::of("shareChanged"));
         }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
+        let shares = Limits::default().shares;
+        if own_shares(&session).len() as u64 >= shares {
+            return Err(Refusal::about("shareFull", shares.to_string()));
+        }
         let name = signing_name(&session.state.signed, chosen.signs);
         let going = citing::going_of(&session, citing::reached(&session, doc, chosen.cites)?);
         (
@@ -301,6 +411,11 @@ pub async fn share_doc(
     let (spent, shared_up) = apart(move || {
         let mut spent = citing::Spent::default();
         let shared_up = (|| -> Answer<SharedUp> {
+            let most = Limits::default().pictures;
+            let texts = std::iter::once(&text).chain(going.iter().map(|one| &one.text));
+            if citing::pictures_of(texts, &data) as u64 > most {
+                return Err(Refusal::about("sharePicturesFull", most.to_string()));
+            }
             let wire = Net::to(sharing::SERVER)?;
             // What this person took back may not have reached the server when it happened, so every share tells it again.
             let _ = sharing::revoke(&wire, &revoked);

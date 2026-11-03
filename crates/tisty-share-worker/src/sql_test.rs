@@ -201,3 +201,31 @@ fn the_census_counts_documents_whole_by_how_they_stand() {
     // docs, unwritten, gated, paused, blocked, held, ending in a day, in a week, reads
     assert_eq!(census(0), vec![3, 1, 1, 1, 1, 1, 2, 2, 5]);
 }
+
+#[test]
+fn an_owner_s_shares_are_those_alive_written_and_held_by_nothing() {
+    let db = started();
+    let doc = |id: &str, ends: i64, body: &str| {
+        db.execute(INSERT_DOC, params![id, 0, ends, body]).unwrap();
+    };
+    doc("a", 100, r#"{"owner":"o1","versions":[1]}"#);
+    doc("b", 500, r#"{"owner":"o1","versions":[]}"#);
+    doc("c", 500, r#"{"owner":"o1","versions":[1],"holders":["x"]}"#);
+    doc("d", 500, r#"{"owner":"o2","versions":[1]}"#);
+    doc("e", 500, r#"{"owner":"o1","versions":[1],"holders":[]}"#);
+    doc("f", 500, r#"{"versions":[1]}"#);
+    doc("g", 500, r#"{"owner":"o1","versions":[1],"blocked":9}"#);
+    doc(
+        "h",
+        500,
+        r#"{"owner":"o1","versions":[1],"paused":7,"blocked":null}"#,
+    );
+    let shares = |owner: &str, now: i64| -> i64 {
+        db.query_row(SHARES_OF, params![owner, now], |row| row.get(0))
+            .unwrap()
+    };
+    assert_eq!(shares("o1", 100), 3);
+    assert_eq!(shares("o1", 101), 2);
+    assert_eq!(shares("o2", 101), 1);
+    assert_eq!(shares("o3", 0), 0);
+}

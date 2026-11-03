@@ -35,9 +35,14 @@ fn sealed(id: &str, version: u64, from: Option<u64>) -> Vec<u8> {
     sealed_with(id, version, from, &[])
 }
 
-fn pictured(id: &str) -> Vec<u8> {
+fn photo() -> Vec<u8> {
     let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
     png.resize(300, 1);
+    png
+}
+
+fn pictured(id: &str) -> Vec<u8> {
+    let png = photo();
     sealed_with(id, 1, None, &[(Kind::Png, &png)])
 }
 
@@ -157,13 +162,17 @@ impl World {
         self.shared_as(|id| sealed(id, 1, None))
     }
 
-    fn shared_as(&mut self, first_of: fn(&str) -> Vec<u8>) -> Shared {
+    fn reserved(&mut self) -> Value {
         let work = self.work(json!({ "for": "reserve" }));
         let mut asked = asked("POST", "/api/v1/docs");
         asked.work = Some(work);
         let reserved = self.answer(asked);
         assert_eq!(reserved.status, 201);
-        let links = said(&reserved);
+        said(&reserved)
+    }
+
+    fn shared_as(&mut self, first_of: fn(&str) -> Vec<u8>) -> Shared {
+        let links = self.reserved();
         let id: String = links["id"].as_str().unwrap().into();
         let edit: String = links["edit"].as_str().unwrap().into();
         let first = first_of(&id);
@@ -303,6 +312,37 @@ fn refusals_come_back_as_a_status_and_a_word() {
     let mut not_the_owner = asked("GET", &format!("/api/v1/docs/{}/info", shared.id));
     not_the_owner.token = Some(shared.edit.clone());
     assert_eq!(world.answer(not_the_owner).status, 403);
+
+    world.shared();
+    let third = world.reserved();
+    let id = third["id"].as_str().unwrap();
+    let full = world.put(id, third["edit"].as_str().unwrap(), sealed(id, 1, None));
+    assert_eq!(
+        (full.status, said(&full)),
+        (409, json!({ "refused": "shares_full" }))
+    );
+}
+
+#[test]
+fn a_share_past_its_pictures_says_so_by_a_word() {
+    let mut world = World::new();
+    let root = world.shared_as(pictured);
+    let page = world.reserved();
+    let id = page["id"].as_str().unwrap();
+    let hold =
+        json!({ "do": "hold", "with": { "id": id, "admin": page["admin"], "lives": false } });
+    assert_eq!(world.manage(&root, hold).status, 204);
+    let png = photo();
+    let two = [(Kind::Png, png.as_slice()), (Kind::Png, png.as_slice())];
+    let full = world.put(
+        id,
+        page["edit"].as_str().unwrap(),
+        sealed_with(id, 1, None, &two),
+    );
+    assert_eq!(
+        (full.status, said(&full)),
+        (413, json!({ "refused": "pictures_full" }))
+    );
 }
 
 #[test]

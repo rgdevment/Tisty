@@ -6,14 +6,16 @@ use tisty_core::Op;
 use tisty_core::event::Shared;
 use tisty_core::model::{DocId, Kept};
 use tisty_share_proto::envelope::Cited;
+use tisty_share_proto::limits::Limits;
 
 use super::shares::{Shareable, apart, doc_of, shareable};
 use crate::handed::Voucher;
 use crate::sharing::{self, Chosen, Net, Words};
 use crate::{Answer, Refusal, Session, held};
 
-/// Documents one share may hold, all rounds together: what one envelope may list (decision 64).
-pub(crate) const CITED_AT_MOST: usize = tisty_share_proto::envelope::CITED_AT_MOST;
+pub(crate) fn cited_at_most() -> usize {
+    usize::try_from(Limits::default().cited).unwrap_or(usize::MAX)
+}
 
 /// New documents one round reserves at most, well within a server's hour; the rest go in the rounds after.
 pub(crate) const NEW_A_ROUND: usize = 10;
@@ -35,12 +37,17 @@ pub(crate) struct Reach {
 }
 
 impl Reach {
-    pub(crate) fn taken(self, cites: bool) -> Vec<Citable> {
+    pub(crate) fn taken(self, cites: bool) -> Answer<Vec<Citable>> {
+        let most = cited_at_most();
+        if self.pages.len() > most {
+            return Err(Refusal::about("shareTooManyCited", most.to_string()));
+        }
+        let room = most - self.pages.len();
         let mut all = self.pages;
         if cites {
-            all.extend(self.cited);
+            all.extend(self.cited.into_iter().take(room));
         }
-        all
+        Ok(all)
     }
 }
 
@@ -48,26 +55,23 @@ impl Reach {
 type Texts = HashMap<DocId, Option<String>>;
 
 /// Only the person's own go, and never one that holds others itself, since what holds is never held.
-pub(crate) fn reach(session: &Session, root: DocId) -> Answer<Reach> {
+pub(crate) fn reach(session: &Session, root: DocId) -> Reach {
     reach_among(session, root, &|kept| {
         shareable(session, kept) == Shareable::Yes
     })
 }
 
-fn reach_among(session: &Session, root: DocId, own: &dyn Fn(&Kept) -> bool) -> Answer<Reach> {
+fn reach_among(session: &Session, root: DocId, own: &dyn Fn(&Kept) -> bool) -> Reach {
     let mut texts = Texts::new();
     let pages = walked(session, &mut texts, root, false, &BTreeSet::new(), own);
     let known: BTreeSet<DocId> = pages.iter().map(|one| one.doc).collect();
     let cited = walked(session, &mut texts, root, true, &known, own);
-    if pages.len() + cited.len() > CITED_AT_MOST {
-        return Err(Refusal::of("shareTooManyCited"));
-    }
-    Ok(Reach { pages, cited })
+    Reach { pages, cited }
 }
 
 /// What a share holds: its pages always, and what it cites when the person chose so.
 pub(crate) fn reached(session: &Session, root: DocId, cites: bool) -> Answer<Vec<Citable>> {
-    Ok(reach(session, root)?.taken(cites))
+    reach(session, root).taken(cites)
 }
 
 fn walked(
@@ -105,7 +109,7 @@ fn walked(
                 found.push(citable(session, texts, kept));
             }
             // Past what an envelope may list the walk stops, and `reach` refuses the share.
-            if found.len() > CITED_AT_MOST {
+            if found.len() > cited_at_most() {
                 return found;
             }
             waiting.push(kept.id);
@@ -139,6 +143,23 @@ fn place(session: &Session, texts: &mut Texts, parent: DocId, page: DocId) -> Op
         u32::try_from(at + 1).ok()?,
         u32::try_from(pages.len()).ok()?,
     ))
+}
+
+pub(crate) fn texts_of(session: &Session, docs: impl IntoIterator<Item = DocId>) -> Vec<String> {
+    let mut texts = Texts::new();
+    docs.into_iter()
+        .filter_map(|doc| text_of(session, &mut texts, doc))
+        .collect()
+}
+
+pub(crate) fn pictures_of<'a>(
+    texts: impl IntoIterator<Item = &'a String>,
+    data: &std::path::Path,
+) -> usize {
+    texts
+        .into_iter()
+        .map(|text| sharing::pictures_in(text, |target| sharing::attachment(target, data)))
+        .sum()
 }
 
 fn text_of(session: &Session, texts: &mut Texts, doc: DocId) -> Option<String> {
@@ -282,6 +303,7 @@ pub(crate) fn took_up(
             // Blocked or held by too many: its card reads as not shared rather than stopping the rest.
             Err(refused)
                 if sharing::refused_as(&refused, &["blocked", "too_long", "forbidden"]) => {}
+            Err(refused) if refused.code == "sharePicturesFull" => {}
             Err(refused) => return Err(refused),
         }
     }
@@ -328,6 +350,9 @@ fn put_new(
     signing: &Signing,
     spent: &mut Spent,
 ) -> Answer<()> {
+    for (_, shared) in reserved.iter() {
+        sharing::hold(wire, holder, shared, false)?;
+    }
     for (one, (_, shared)) in fresh.iter().zip(reserved.iter_mut()) {
         let cited = cited_in(&one.text, listed);
         let (text, pictures) = sharing::pictured(&one.text, |target| {
@@ -343,9 +368,6 @@ fn put_new(
         spent.uploads += 1;
         sharing::first_up(wire, shared, &words, &chosen_for(holder))?;
         shared.print = printed(&one.text, &cited);
-    }
-    for (_, shared) in reserved.iter() {
-        sharing::hold(wire, holder, shared, false)?;
     }
     Ok(())
 }
