@@ -373,9 +373,6 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::ShareRoot { .. }
         | Op::ShareCertified { .. }
         | Op::ShareRevoked { .. }
-        | Op::ShareDoc { .. }
-        | Op::ShareVersion { .. }
-        | Op::ShareStop { .. }
         | Op::TaskPaged { .. } => None,
     }
 }
