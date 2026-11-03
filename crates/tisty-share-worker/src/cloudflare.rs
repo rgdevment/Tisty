@@ -390,10 +390,19 @@ fn deployed_as(env: &Env) -> Option<String> {
 #[event(fetch)]
 async fn fetch(request: Request, env: Env, ctx: Context) -> worker::Result<Response> {
     let began = Date::now().as_millis();
+    let path = request.path();
+    let place = request.cf().map(|cf| (cf.country(), cf.colo()));
     let (mut answer, seen, waited) = served(request, &env)
         .await
         .unwrap_or_else(|why| (api::broken(why.to_string()), None, [0, 0]));
     let read = seen.is_some();
+    if let Some(line) = read
+        .then_some(place)
+        .flatten()
+        .and_then(|(country, colo)| api::read_line(&path, country.as_deref(), &colo))
+    {
+        worker::console_log!("{line}");
+    }
     // A read is written down once its reader has the envelope, so no write stands between them.
     if let Some(seen) = seen {
         let env = env.clone();
