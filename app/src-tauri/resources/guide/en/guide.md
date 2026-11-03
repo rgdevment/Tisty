@@ -362,7 +362,17 @@ This guide has one. It is named right here, and so here is where it goes:
 
 ![Rina](tisty:page)
 
-### 10. What comes from elsewhere
+### 10. A document in several languages
+
+A manual for your team in Spanish and English, a contract in two languages. Each language is a document of its own, with its own file on disk, and Tisty shows them as one: one row in the tree, opened in the app's language.
+
+**To translate one**, open the document's menu and choose **Translate into…**: it writes a copy of its text and its pages, ready to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** parts them again.
+
+The switch sits in the title panel, or above the sheet when the panel is shut, and keeps your place at the same section of the other language. Moving, archiving, locking or deleting acts on every language, and paper and sheets follow from one to the others.
+
+This guide is one: it is in Spanish too, a click away in its switch.
+
+### 11. What comes from elsewhere
 
 Tisty keeps what you write exactly as you wrote it: front matter, footnotes, links by reference, comments — all of it stays in the file, word for word.
 
@@ -374,7 +384,7 @@ A calendar comes in too. Drag an `.ics` onto the window, away from a document, o
 
 ## What holds for all of it
 
-### 11. An assistant can write here
+### 12. An assistant can write here
 
 If you use an assistant, it can propose tasks and write documents of its own accord, and add to or correct the documents it may write in. What it never does is close or delete a task, delete a document, or change a task you wrote — unless you open that task to agents. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
 
@@ -386,7 +396,7 @@ A task of your own you can open to it: in the detail, **Allow agents**. From the
 
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open, and where what it wrote over is still kept, that same bar offers to put the document back to what it said before. What it says now is kept in its place, so you can come back to it. The offer only appears when what is kept is exactly the one write back — after anything else it stays quiet rather than putting you somewhere you did not mean.
 
-### 12. Your copies
+### 13. Your copies
 
 Tisty always works on this computer. To reach it from another one, tell it where to leave the copies. Your Google Drive, your OneDrive or your own WebDAV server — Nextcloud, ownCloud, Synology and others — connect directly from Settings → Sync, with no other program installed. Or pick a folder: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk.
 
@@ -406,7 +416,7 @@ Settings can also write you a full backup whenever you want one — even when yo
 
 Uninstalling Tisty takes the program away and leaves your tasks and documents where they are, so reinstalling finds them as they were. On Windows they live in `.tisty`, in your user folder, hidden and closed to the other accounts on the computer; on a Mac, in `Library/Application Support/tisty` and `Library/Caches/tisty`, in your home folder. To leave for good, delete that folder yourself — on Windows, turn on **Hidden items** in File Explorer's **View** menu to see it first. If Tisty moved there from an earlier version, the copy from before stays in `AppData\Local\tisty`, with a `MOVED.txt` that says so: you can delete it too.
 
-### 13. Completing, dropping and erasing
+### 14. Completing, dropping and erasing
 
 - **Completing** a task marks it done and sends it to the Archive.
 - **Close with a summary** asks for two lines on how it went before completing it. They go first under **When it closes**; in a routine, they stay with its round.
@@ -422,7 +432,7 @@ Files you had attached do not go with it, because another document might still b
 
 Each time you open Maintenance it looks over your history, documents and attachments, and **Check again** does it once more: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong. [The archive](https://www.tisty.app/docs/archive/), in the docs, tells each layer in full.
 
-### 14. Shortcuts
+### 15. Shortcuts
 
 | Shortcut | What it does |
 | --- | --- |
@@ -438,7 +448,7 @@ Each time you open Maintenance it looks over your history, documents and attachm
 
 The rest, for each corner of Tisty, is in [keyboard shortcuts](https://www.tisty.app/docs/keyboard-shortcuts/).
 
-### 15. If it was any use
+### 16. If it was any use
 
 Everything Tisty does is explained at [www.tisty.app/docs](https://www.tisty.app/docs/), and every form a document can hold, drawn the way Tisty draws it, at [markdown.tisty.app](https://markdown.tisty.app).
 

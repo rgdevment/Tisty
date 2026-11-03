@@ -362,7 +362,17 @@ Esta guía tiene una. Aquí debajo está nombrada, y por eso aquí es donde va:
 
 ![La Rina](tisty:page)
 
-### 10. Lo que viene de afuera
+### 10. Un documento en varios idiomas
+
+Un manual para tu equipo en español y en inglés, un contrato en dos idiomas. Cada idioma es un documento propio, con su archivo en el disco, y Tisty los muestra como uno solo: una fila en el árbol, abierta en el idioma de la app.
+
+**Para traducir uno**, abre el menú del documento y elige **Traducir a…**: escribe una copia de su texto y sus páginas, lista para traducir sección por sección. Si ya tienes los dos escritos, **Unir con su otro idioma…** los junta, y **Separar de sus idiomas** los vuelve a separar.
+
+El selector está en el panel del título, o sobre la hoja si cerraste el panel, y te deja en la misma sección del otro idioma. Mover, archivar, bloquear o borrar actúa sobre todos los idiomas, y el papel y las hojas pasan de uno a los otros.
+
+Esta guía es uno: también está en inglés, a un clic en su selector.
+
+### 11. Lo que viene de afuera
 
 Tisty guarda lo que escribes exactamente como lo escribiste: la cabecera de propiedades, las notas al pie, los enlaces por referencia, los comentarios. Todo queda en el archivo, palabra por palabra.
 
@@ -374,7 +384,7 @@ Un calendario también entra. Arrastra un `.ics` a la ventana, fuera de un docum
 
 ## Lo que vale para todo
 
-### 11. Un asistente puede escribir aquí
+### 12. Un asistente puede escribir aquí
 
 Si usas un asistente, puede proponer tareas y escribir documentos por su cuenta, y añadir o corregir en los documentos donde puede escribir. Lo que nunca hace es cerrar ni borrar una tarea, borrar un documento ni cambiar una tarea que escribiste tú, salvo que abras esa tarea a los agentes. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
@@ -386,7 +396,7 @@ Una tarea tuya se la puedes abrir: en su detalle, **Permitir agentes**. Desde ah
 
 Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto, y cuando lo que esa escritura reemplazó sigue guardado, esa misma barra te ofrece volver a lo que el documento decía antes. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello. La oferta solo aparece cuando lo guardado es exactamente esa escritura hacia atrás: tras cualquier otra cosa se calla, en vez de dejarte donde no querías.
 
-### 12. Tus copias
+### 13. Tus copias
 
 Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias. Tu Google Drive, tu OneDrive o tu propio servidor WebDAV —Nextcloud, ownCloud, Synology y otros— se conectan directamente desde Configuración → Sincronizar, sin instalar ningún otro programa. O elige una carpeta: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo.
 
@@ -406,7 +416,7 @@ En Configuración puedes además guardar un respaldo completo cuando quieras, ta
 
 Desinstalar Tisty quita el programa y deja tus tareas y documentos donde están, así que al reinstalarlo los encuentra tal como los dejaste. En Windows viven en `.tisty`, dentro de tu carpeta de usuario, oculta y cerrada para las demás cuentas del equipo; en un Mac, en `Library/Application Support/tisty` y `Library/Caches/tisty`, dentro de tu carpeta personal. Para irte del todo, borra esa carpeta; en Windows, activa antes **Elementos ocultos** en el menú **Ver** del Explorador de archivos para verla. Si Tisty se mudó ahí desde una versión anterior, en `AppData\Local\tisty` queda la copia de antes, con un archivo `MOVED.txt` que lo dice: también puedes borrarla.
 
-### 13. Terminar, descartar y borrar
+### 14. Terminar, descartar y borrar
 
 - **Terminar** una tarea la marca hecha y la manda al Archivo.
 - **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla. Van primero en **Al cerrarla**; en una rutina, quedan con su vuelta.
@@ -422,7 +432,7 @@ Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en
 
 Cada vez que abres Mantenimiento, revisa tu historial, tus documentos y tus adjuntos, y **Revisar de nuevo** lo repite: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal. [El archivo](https://www.tisty.app/es/ayuda/el-archivo/), en la ayuda, cuenta cada capa completa.
 
-### 14. Atajos
+### 15. Atajos
 
 | Atajo | Qué hace |
 | --- | --- |
@@ -438,7 +448,7 @@ Cada vez que abres Mantenimiento, revisa tu historial, tus documentos y tus adju
 
 Lo demás, para cada rincón de Tisty, está en [atajos de teclado](https://www.tisty.app/es/ayuda/atajos-de-teclado/).
 
-### 15. Si te sirvió
+### 16. Si te sirvió
 
 Todo lo que hace Tisty se explica en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/), y cada forma que cabe en un documento, dibujada como la dibuja Tisty, en [markdown.tisty.app](https://markdown.tisty.app/es/).
 

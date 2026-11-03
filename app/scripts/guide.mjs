@@ -30,17 +30,16 @@ const vite = await createServer({
   logLevel: "error",
   server: { middlewareMode: true, hmr: false },
 });
-const { iconed } = await vite.ssrLoadModule("/src/ui/dressing.ts");
-const { coloredAll, HUES, PAGE_CSS: sheet, saidKinds } = await vite.ssrLoadModule("tisty-editor/read");
+const { carded, coloredAll, hosting, HUES, iconed, PAGE_CSS: sheet, piece, saidKinds } =
+  await vite.ssrLoadModule("tisty-editor/read");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
-const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
-const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
+const { named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
+const { SAY } = await vite.ssrLoadModule("/src/ui/saying.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
 // The packages beside the app are found by the app's own aliases, which a build with no config file would not have.
 const packages = vite.config.resolve.alias.filter(
   ({ find }) => typeof find === "string" && existsSync(join(root, "packages", find)),
 );
-await vite.close();
 
 const drawn = (texts) =>
   JSON.parse(
@@ -104,7 +103,7 @@ const cards = (page) => {
     const titles = new Map(
       Array.from(drawn.querySelectorAll("a.card[data-doc]")).map((one) => [one.dataset.doc, one.textContent]),
     );
-    carded(page, { card: (file) => ({ kind: "doc", title: titles.get(file) ?? "" }) }, () => true);
+    carded(page, { card: (file) => ({ kind: "doc", title: titles.get(file) ?? "" }), say: SAY }, () => true);
     for (const link of drawn.querySelectorAll(":scope > p > a[href]")) {
       const held = link.parentElement;
       const at = link.getAttribute("href");
@@ -127,10 +126,10 @@ const cards = (page) => {
   }
 };
 
-const dressed = (page) => {
+const dressed = async (page) => {
   saidKinds(page, (kind) => t(`said${kind}`));
-  iconed(page);
-  coloredAll(page);
+  await iconed(page);
+  await coloredAll(page);
   kept(page);
   lent(page);
   cards(page);
@@ -148,7 +147,7 @@ const shown = (page) => {
   return blocks.map((one) => one.textContent).join(" ");
 };
 
-const build = (language) => {
+const build = async (language) => {
   adopt(language.code);
   const text = readFileSync(
     join(root, "crates", "tisty-markdown", "reference", language.file),
@@ -161,7 +160,9 @@ const build = (language) => {
   const examples = sheets.flatMap((page) => examplesIn(page));
   const looks = drawn(examples.map((code) => code.textContent));
   examples.forEach((code, at) => shownBeside(code, looks[at], language));
-  const pages = parts.map((part, at) => ({ part, page: dressed(sheets[at]) }));
+  const pages = await Promise.all(
+    parts.map(async (part, at) => ({ part, page: await dressed(sheets[at]) })),
+  );
 
   const slugs = new Map();
   const tops = new Set();
@@ -245,7 +246,11 @@ const faces = ["inter", "space-grotesk", "jetbrains-mono"].flatMap((name) => {
     return face.replace(`./files/${file}`, `/fonts/${named}`);
   });
 });
-const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
+// One language at a time, since the window's words follow the language adopted last.
+const built = new Map();
+for (const language of LANGUAGES) built.set(language.code, await build(language));
+// The sheet brings its icons and code colours on demand, so the server stays up until the pages are drawn.
+await vite.close();
 const logo = readFileSync(join(app, "src", "assets", "tisty.svg"));
 const appLight = /\{([^}]*)\}/.exec(light)[1];
 const css = `${faces.join("\n")}
