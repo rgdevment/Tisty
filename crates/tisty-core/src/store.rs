@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     Error, Result,
-    event::{DeviceId, Event, KNOWN_OPS, Op, SCHEMA_VERSION},
+    event::{DeviceId, Event, KNOWN_OPS, Op, RETIRED_OPS, SCHEMA_VERSION},
     witness::{self, Fact, channel},
 };
 
@@ -939,6 +939,12 @@ struct Stamped {
     op: String,
 }
 
+impl Stamped {
+    fn retired(&self) -> bool {
+        self.opt && RETIRED_OPS.contains(&self.op.as_str())
+    }
+}
+
 #[derive(Debug)]
 struct Lines {
     events: usize,
@@ -1036,6 +1042,9 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
         }
         lines.events += 1;
         lines.closing = None;
+        if stamp.retired() {
+            continue;
+        }
 
         // Only an operation this build has never heard of is forgiven, whatever schema it came
         // under; a known one that fails to parse is corruption, and waving it through would
@@ -1391,6 +1400,7 @@ fn tail_of(path: &Path) -> Result<Tail> {
                     tail.seq = 0;
                 }
             }
+            Err(_) if serde_json::from_str::<Stamped>(&line).is_ok_and(|one| one.retired()) => {}
             Err(_) => witness::warn(
                 channel::STORE,
                 "segment line unreadable",

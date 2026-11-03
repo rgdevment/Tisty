@@ -1119,6 +1119,60 @@ fn a_machine_meeting_the_folder_for_the_first_time_adopts_its_name(shared: &Shar
     );
 }
 
+fn links_a_development_build_kept_cross_the_folder_untouched(shared: &Shared) {
+    let other = machine("dev_b");
+    let active = other.store.join(&other.device).join("active.tisty");
+    let mut said = std::fs::read(&active).unwrap();
+    for op in [
+        r#""share.doc","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{"server":"https://tisty.cl","link":"k7Qm2xPa","key":"tWj3cJFtRiwp6ms2QS6DKXwHL2aGnEB6HcDUhX9r99E","edit":"edit-token","admin":"admin-token","version":1}"#,
+        r#""share.version","id":"01M14RFT9ECC2B6E4CX4P59XPH","link":"k7Qm2xPa","version":2,"print":"dos""#,
+        r#""share.stop","id":"01M14RFT9ECC2B6E4CX4P59XPH","link":"k7Qm2xPa""#,
+    ] {
+        let line = format!(
+            r#"{{"v":18,"ts":"2026-11-01T18:59:16Z","by":"dev_b","opt":true,"op":{op}}}"#
+        );
+        said.extend_from_slice(line.as_bytes());
+        said.push(b'\n');
+    }
+    std::fs::write(&active, &said).unwrap();
+    wrote(&other, "after the links".into());
+    shared.carry(&other, Way::Push, &[]).unwrap();
+
+    let one = blank("dev_a");
+    vouches(&one, &other);
+    shared.carry(&one, Way::Both, &[]).unwrap();
+    wrote(&one, "lo de dev_a".into());
+    shared.carry(&one, Way::Both, &[]).unwrap();
+    vouches(&other, &one);
+    shared.carry(&other, Way::Both, &[]).unwrap();
+
+    let mut here = titles(&one.store);
+    here.sort();
+    assert_eq!(here, ["after the links", "lo de dev_a", "lo de dev_b"]);
+    let mut there = titles(&other.store);
+    there.sort();
+    assert_eq!(there, here);
+    let kept = std::fs::read(&active).unwrap();
+    assert!(kept.starts_with(&said));
+    let carried = one.store.join(&other.device).join("active.tisty");
+    assert_eq!(std::fs::read(&carried).unwrap(), kept);
+
+    let there = shared.path().join(STORE).join(&other.device).join("active.tisty");
+    let mut forged = std::fs::read(&there).unwrap();
+    forged.extend_from_slice(
+        br#"{"v":18,"ts":"2026-11-02T10:00:00Z","by":"dev_b","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPJ","d":{"title":"unsigned","order":"a0"}}"#,
+    );
+    forged.push(b'\n');
+    std::fs::write(&there, forged).unwrap();
+
+    let after = shared.carry(&one, Way::Pull, &[]).unwrap();
+
+    assert_eq!(after.unreadable, vec![other.device.clone()]);
+    assert_eq!(after.brought, 0);
+    assert!(!titles(&one.store).contains(&"unsigned".to_string()));
+    assert_eq!(std::fs::read(&carried).unwrap(), kept);
+}
+
 fn syncing_twice_over_carries_nothing_the_second_time(shared: &Shared) {
     let one = machine("dev_a");
 
@@ -1176,6 +1230,7 @@ both_sides! {
     one_direction_only_does_one_direction,
     a_machine_meeting_the_folder_for_the_first_time_adopts_its_name,
     syncing_twice_over_carries_nothing_the_second_time,
+    links_a_development_build_kept_cross_the_folder_untouched,
     a_clash_is_found_even_when_another_machine_already_proved_the_lineage,
     a_folder_says_it_stirred_without_being_read,
     the_same_name_writing_two_different_things_is_the_clash_that_is_refused,

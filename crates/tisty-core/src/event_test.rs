@@ -435,3 +435,10 @@ fn the_operations_of_the_cloud_and_of_sharing_come_back_whole_through_the_line()
         );
     }
 }
+
+#[test]
+fn a_retired_operation_keeps_its_name_so_no_new_one_can_take_it() {
+    for name in crate::event::RETIRED_OPS {
+        assert!(!KNOWN_OPS.contains(name), "{name}");
+    }
+}

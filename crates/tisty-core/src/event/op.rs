@@ -94,11 +94,10 @@ pub const KNOWN_OPS: &[&str] = &[
     "share.root",
     "share.certified",
     "share.revoked",
-    "share.doc",
-    "share.version",
-    "share.stop",
     "doc.tongue",
 ];
+
+pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
@@ -304,91 +303,12 @@ pub enum Op {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         machine: bool,
     },
-
-    #[serde(rename = "share.doc")]
-    ShareDoc { id: DocId, d: Shared },
-    #[serde(rename = "share.version")]
-    /// Named apart from the event's own `v`, since an op is written flat into its event.
-    ShareVersion {
-        id: DocId,
-        /// Empty on a line from before links were named, which speaks of whatever share there is.
-        #[serde(default, skip_serializing_if = "String::is_empty")]
-        link: String,
-        version: u64,
-        /// The print of the person's own words put up as it; empty when the version is someone else's.
-        #[serde(default, skip_serializing_if = "String::is_empty")]
-        print: String,
-    },
-    /// Names the link it stops, so a machine that had not heard of a newer share never forgets that one.
-    #[serde(rename = "share.stop")]
-    ShareStop {
-        id: DocId,
-        #[serde(default, skip_serializing_if = "String::is_empty")]
-        link: String,
-    },
 }
 
 /// The document whose languages this one joins: the anchor of the group, never one of its members.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tongue {
     pub of: Option<DocId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Shared {
-    /// The server's address, `https://tisty.cl` unless the person runs their own.
-    pub server: String,
-    /// The id the server minted: the path of every link.
-    pub link: String,
-    /// The key in the `#`, which the server never sees.
-    pub key: String,
-    pub edit: String,
-    pub admin: String,
-    /// Whether anyone was handed the edit link; the owner always holds the token (decision 67).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub editable: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub gated: bool,
-    /// The last version this store put up.
-    pub version: u64,
-    /// Kept as it was shared rather than following what is saved (decision 48).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub still: bool,
-    /// Someone else's share this store edits through their edit link: it holds no token to manage it (decision 9).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub taken: bool,
-    /// The print of the words the person last put up, so words saved and not yet up are owed (decision 83).
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub print: String,
-    /// What the person chose to sign it with, which every version keeps (decision 89).
-    #[serde(default, skip_serializing_if = "Signs::is_name")]
-    pub signs: Signs,
-    /// The documents it holds on the server, its pages and what it cites, each shared in its own envelope (decision 64).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub holds: Vec<DocId>,
-    /// Shared only because another share holds it, so it goes when nothing holds it.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub held: bool,
-    /// The person chose to share what it cites besides its pages, which every save keeps up.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub cites: bool,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Signs {
-    /// The name to sign with, or the alias when there is none, as every share did before the choice.
-    #[default]
-    Name,
-    Alias,
-    /// Only the key's fingerprint.
-    Key,
-}
-
-impl Signs {
-    fn is_name(&self) -> bool {
-        *self == Signs::Name
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -461,9 +381,6 @@ impl Op {
                 | Op::ShareRoot { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
-                | Op::ShareDoc { .. }
-                | Op::ShareVersion { .. }
-                | Op::ShareStop { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -483,9 +400,6 @@ impl Op {
                 | Op::ShareRoot { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
-                | Op::ShareDoc { .. }
-                | Op::ShareVersion { .. }
-                | Op::ShareStop { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DeviceRelease { .. }
@@ -569,10 +483,7 @@ impl Op {
             | Op::ShareKey { .. }
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. }
-            | Op::ShareDoc { .. }
-            | Op::ShareVersion { .. }
-            | Op::ShareStop { .. } => self,
+            | Op::ShareRevoked { .. } => self,
         }
     }
 
@@ -720,10 +631,7 @@ impl Op {
             | Op::ShareKey { .. }
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. }
-            | Op::ShareDoc { .. }
-            | Op::ShareVersion { .. }
-            | Op::ShareStop { .. } => None,
+            | Op::ShareRevoked { .. } => None,
         }
     }
 }
