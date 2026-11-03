@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error the build's own script carries no types
-import { headers } from "../../scripts/guide-site.mjs";
+import { headers, searchOnReach } from "../../scripts/guide-site.mjs";
 import { drawAll } from "../guide/diagramming";
 
 vi.mock("tisty-editor/read", () => ({
@@ -38,6 +38,116 @@ describe("the guide's diagrams", () => {
       { source: "one", light: "light one", dark: "dark one" },
       { source: "ñandú", light: "light ñandú", dark: "dark ñandú" },
     ]);
+  });
+});
+
+describe("the guide's search", () => {
+  class Drawn {
+    constructor({ element }: { element: Element }) {
+      element.insertAdjacentHTML("beforeend", '<input class="found">');
+    }
+  }
+  const nextTurn = () => new Promise((done) => setTimeout(done));
+
+  const reachable = () => {
+    document.head.innerHTML = "";
+    document.body.innerHTML = '<div data-search><input class="search-waiting"></div>';
+    searchOnReach();
+    return document.querySelector("[data-search]") as HTMLElement;
+  };
+
+  const loading = () => ({
+    sheet: document.head.querySelector("link") as HTMLLinkElement,
+    code: document.head.querySelector("script") as HTMLScriptElement,
+  });
+
+  const landed = async () => {
+    const { sheet, code } = loading();
+    sheet.dispatchEvent(new Event("load"));
+    code.dispatchEvent(new Event("load"));
+    await nextTurn();
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("downloads nothing until a reader reaches for the box, and then once", () => {
+    const box = reachable();
+    expect(document.head.querySelector("link, script")).toBeNull();
+
+    box.dispatchEvent(new Event("pointerenter"));
+    box.dispatchEvent(new Event("focusin"));
+
+    expect(document.head.querySelectorAll("link")).toHaveLength(1);
+    expect(document.head.querySelectorAll("script")).toHaveLength(1);
+    expect(loading().sheet.getAttribute("href")).toBe("/pagefind/pagefind-ui.css");
+    expect(loading().code.getAttribute("src")).toBe("/pagefind/pagefind-ui.js");
+  });
+
+  it("hands what was typed to the real box, and the focus with it", async () => {
+    vi.stubGlobal("PagefindUI", Drawn);
+    const box = reachable();
+    const waiting = box.querySelector("input") as HTMLInputElement;
+    waiting.focus();
+    box.dispatchEvent(new Event("focusin"));
+    waiting.value = "tabl";
+
+    const typed: string[] = [];
+    box.addEventListener("input", (event) => typed.push((event.target as HTMLInputElement).value));
+    await landed();
+
+    const field = box.querySelector("input") as HTMLInputElement;
+    expect(field.className).toBe("found");
+    expect(field.value).toBe("tabl");
+    expect(typed).toEqual(["tabl"]);
+    expect(document.activeElement).toBe(field);
+  });
+
+  it("leaves the focus alone when the reader only passed over the box", async () => {
+    vi.stubGlobal("PagefindUI", Drawn);
+    const box = reachable();
+    box.dispatchEvent(new Event("pointerenter"));
+    await landed();
+
+    expect(box.querySelectorAll("input")).toHaveLength(1);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("steps aside when a file does not arrive", async () => {
+    const box = reachable();
+    box.dispatchEvent(new Event("pointerenter"));
+
+    loading().sheet.dispatchEvent(new Event("load"));
+    loading().code.dispatchEvent(new Event("error"));
+    await nextTurn();
+
+    expect(box.isConnected).toBe(false);
+  });
+
+  it("steps aside when Pagefind cannot draw its box", async () => {
+    vi.stubGlobal(
+      "PagefindUI",
+      class {
+        constructor() {
+          throw new Error("no");
+        }
+      },
+    );
+    const box = reachable();
+    box.dispatchEvent(new Event("pointerenter"));
+    await landed();
+
+    expect(box.isConnected).toBe(false);
+  });
+
+  it("steps aside when Pagefind draws no box", async () => {
+    vi.stubGlobal("PagefindUI", class {});
+    const box = reachable();
+    box.dispatchEvent(new Event("pointerenter"));
+    await landed();
+
+    expect(box.isConnected).toBe(false);
   });
 });
 

@@ -115,6 +115,21 @@ describe("a diagram on a page", () => {
     expect(markers(light).some((one) => light?.includes(`marker-end="url(#${one})"`))).toBe(true);
   });
 
+  it("names its markers apart when the same drawing is placed twice", async () => {
+    const page = sheet("flowchart TD\n  Twice --> Placed\n", "flowchart TD\n  Twice --> Placed\n");
+    await diagrams(page, false, () => true);
+
+    const [first, second] = [...page.querySelectorAll("figure.diagram")].map((figure) => ({
+      markers: [...figure.querySelectorAll("marker")].map((one) => one.id),
+      line: figure.querySelector("[marker-end]")?.getAttribute("marker-end"),
+    }));
+
+    expect(first.markers.length).toBeGreaterThan(0);
+    expect(first.markers.filter((one) => second.markers.includes(one))).toEqual([]);
+    expect(first.markers.map((one) => `url(#${one})`)).toContain(first.line);
+    expect(second.markers.map((one) => `url(#${one})`)).toContain(second.line);
+  });
+
   it("is not drawn when it is empty or too long to lay out", async () => {
     expect(await drawing("   ", false)).toBeNull();
     expect(await drawing(`graph TD\n${"A-->B\n".repeat(8000)}`, false)).toBeNull();

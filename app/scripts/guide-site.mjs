@@ -193,11 +193,52 @@ ${urls.join("\n")}
 const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>document.querySelectorAll("iframe.widget");const tell=(w)=>w&&w.postMessage({tisty:"theme",dark:r.classList.contains("dark")},"*");addEventListener("message",(e)=>{if(!e.data||e.data.tisty!=="height")return;for(const f of frames())if(f.contentWindow===e.source){f.style.height=Math.min(Math.max(e.data.h,40),2000)+"px";tell(e.source)}});new MutationObserver(()=>{for(const f of frames())tell(f.contentWindow)}).observe(r,{attributes:true,attributeFilter:["class"]})})()</script>`;
 
 // Search weighs more than a page, so it comes when a reader reaches for the box, and keeps what they already typed.
-const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const waiting=box.querySelector("input");const landed=(one)=>new Promise((done,failed)=>{one.onload=done;one.onerror=failed});const load=async()=>{box.removeEventListener("pointerenter",load);box.removeEventListener("focusin",load);const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";const both=Promise.all([landed(sheet),landed(code)]);document.head.append(sheet,code);try{await both}catch{box.remove();return}const typed=waiting.value;const held=document.activeElement===waiting;waiting.remove();new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});const field=box.querySelector("input");if(!field)return;if(typed){field.value=typed;field.dispatchEvent(new Event("input",{bubbles:true}))}if(held)field.focus()};box.addEventListener("pointerenter",load);box.addEventListener("focusin",load)})()</script>`;
+export const searchOnReach = () => {
+  const box = document.querySelector("[data-search]");
+  if (!box) return;
+  const waiting = box.querySelector("input");
+  const landed = (one) =>
+    new Promise((done, failed) => {
+      one.onload = done;
+      one.onerror = failed;
+    });
+  const load = async () => {
+    box.removeEventListener("pointerenter", load);
+    box.removeEventListener("focusin", load);
+    const sheet = document.createElement("link");
+    sheet.rel = "stylesheet";
+    sheet.href = "/pagefind/pagefind-ui.css";
+    const code = document.createElement("script");
+    code.src = "/pagefind/pagefind-ui.js";
+    const both = Promise.all([landed(sheet), landed(code)]);
+    document.head.append(sheet, code);
+    try {
+      await both;
+      new PagefindUI({ element: box, showSubResults: true, showImages: false, resetStyles: false });
+      const field = box.querySelector("input:not(.search-waiting)");
+      if (!field) throw new Error("Pagefind drew no box");
+      const typed = waiting.value;
+      const held = document.activeElement === waiting;
+      waiting.remove();
+      if (typed) {
+        field.value = typed;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (held) field.focus();
+    } catch {
+      box.remove();
+    }
+  };
+  box.addEventListener("pointerenter", load);
+  box.addEventListener("focusin", load);
+};
+
+const SEARCH = `<script>(${searchOnReach})()</script>`;
 
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
 
+// A name with its print is kept a year, a picture a day, and a page a moment, as a release replaces it.
 const YEAR = "public, max-age=31536000, immutable";
 const DAY = "public, max-age=86400";
 const SHORT = "public, max-age=300, stale-while-revalidate=3600";
@@ -206,7 +247,6 @@ const MOST_RULES = 100;
 
 const rule = (path, cache) => `${path}\n  Cache-Control: ${cache}`;
 
-// The logo's name carries its print, so it can be kept for a year; a picture for a day; a page a moment, as a release replaces it.
 // Each page is named because Pages joins the values of every rule that matches, and `/*` would also match the files above it.
 export const headers = (logo, built) => {
   const rules = [

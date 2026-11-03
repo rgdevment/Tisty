@@ -1,6 +1,5 @@
 import { drawing } from "tisty-editor/read";
 
-/** Draws the diagrams the guide's build asks for, in both looks, and hands them back to it. */
 export const drawAll = async () => {
   const sources: string[] = await (await fetch("/sources")).json();
   // A label is measured in the font it is shown in, and a face not yet loaded would measure as another.
