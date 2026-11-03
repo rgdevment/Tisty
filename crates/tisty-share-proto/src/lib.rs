@@ -1,15 +1,10 @@
 pub mod cloud;
-pub mod config;
-pub mod envelope;
 pub mod handing;
 pub mod identity;
-pub mod limits;
+pub mod name;
 pub mod notice;
 pub mod phrase;
-#[cfg(feature = "pictures")]
-pub mod pictures;
 pub mod seed;
-pub mod work;
 
 pub use ed25519_dalek::VerifyingKey;
 
