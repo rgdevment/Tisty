@@ -1,6 +1,6 @@
 # Privacy
 
-Tisty collects nothing and has no server to send anything to. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
+Tisty collects nothing, and nothing you write goes to a server of ours unless you share it by link. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
 
 This page is a summary. The full policy, including the parts that are not reassuring, is [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md), and the security reasoning is in [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
@@ -38,11 +38,12 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 | **A backup zip** | Wherever you put it |
 | **A `.tistyx` parcel you hand to someone** | Them, and whoever they hand it to |
 | **A `.tistyx` locked with six digits** | Whoever has both the file and the number |
+| **A document you share by link** (Tisty Share) | Whoever has the link. Tisty Share keeps a copy it cannot read until it expires |
 | **An assistant you let in** | Whatever service that assistant talks to |
 
 ## The network requests Tisty makes
 
-**On its own, one:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows instead, and makes no request of its own.
+**On its own, one:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows instead, and makes no request of its own. For a document you shared by link, Tisty also keeps that link up to date by itself: see **Share** below.
 
 **Only when you ask:**
 
@@ -50,7 +51,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 - **Bring the preview** on a [link card](https://markdown.tisty.app/links) asks that page once for its title and picture.
 - **The help** inside Tisty (the `?` at the foot of the sidebar) comes with your version and asks nothing. Its **Tisty's Markdown** guide (also `F1` while you write) reads it from [markdown.tisty.app](https://markdown.tisty.app), so it is always the latest; offline, it shows the copy that came with your version. Its pictures are downloaded from GitHub only when you press **Download** above the help.
 - **Clicking a link** opens your browser.
-- **Share** hands an encrypted copy of a document to Tisty Share, a separate service with a server of its own and [its own privacy policy](https://github.com/rgdevment/Tisty/blob/main/share/PRIVACY.md). Tisty seals it first, so the service cannot read it; if you never share, nothing goes.
+- **Share** hands a document, its pages and what it cites to Tisty Share at `tisty.cl`, a separate service on a server we run, with [its own privacy policy](https://github.com/rgdevment/Tisty/blob/main/share/PRIVACY.md). Tisty seals them first, so the service cannot read them. After that, only for what you shared, Tisty puts up each new version if the link follows what you save, and checks for a newer one when it opens and after each sync. The one time it talks to Tisty Share without your pressing **Share** is when you take a machine's key back with your 24-word phrase, so a stolen key cannot sign in your name.
 - **Google Drive**, **OneDrive** or **your WebDAV server**, once you connect it from the window, is where Tisty sends and fetches your copies. Assistants never touch the network.
 - **Checking a WebDAV server** — only when you connect it: Tisty signs in with what you typed and looks at its own folder there, and nothing else. Only `https://` is accepted, except to this very computer, and the password never travels to any other address.
 - **Checking the way to OneDrive** works the same as the check for Google Drive below, with one request to `graph.microsoft.com` that carries nothing of yours.

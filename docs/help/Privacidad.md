@@ -1,6 +1,6 @@
 # Privacidad
 
-Tisty no recoge nada y no tiene servidor al que enviar nada. Sin cuenta, sin telemetría, sin analítica, sin reportes de fallos. No es una promesa que tengas que creer: es una propiedad del código, que es [público](https://github.com/rgdevment/Tisty). Si quieres, pásale un monitor de red.
+Tisty no recoge nada, y nada de lo que escribes va a un servidor nuestro salvo que lo compartas por link. Sin cuenta, sin telemetría, sin analítica, sin reportes de fallos. No es una promesa que tengas que creer: es una propiedad del código, que es [público](https://github.com/rgdevment/Tisty). Si quieres, pásale un monitor de red.
 
 Esta página es un resumen. La política completa, incluidas las partes que no tranquilizan, está en [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) (en inglés), y el razonamiento de seguridad en [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
@@ -38,11 +38,12 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 | **Un zip de respaldo** | Donde lo pongas |
 | **Un paquete `.tistyx` que le das a alguien** | Esa persona, y a quien se lo pase |
 | **Un `.tistyx` cerrado con seis dígitos** | Quien tenga el archivo y el número |
+| **Un documento que compartes por link** (Tisty Share) | Quien tenga el link. Tisty Share guarda una copia que no puede leer hasta que caduca |
 | **Un asistente que dejas entrar** | El servicio con que hable ese asistente |
 
 ## Las peticiones de red que hace Tisty
 
-**Por su cuenta, una:** al abrirse y una vez al día después, descarga un archivo pequeño para ver si hay una versión más nueva. No envía nada: ni identificador, ni tareas, ni nombre. Una copia de la Microsoft Store le pregunta a Windows y no hace ninguna petición propia.
+**Por su cuenta, una:** al abrirse y una vez al día después, descarga un archivo pequeño para ver si hay una versión más nueva. No envía nada: ni identificador, ni tareas, ni nombre. Una copia de la Microsoft Store le pregunta a Windows y no hace ninguna petición propia. Para un documento que compartiste por link, Tisty además mantiene ese link al día por su cuenta: mira **Compartir** más abajo.
 
 **Solo cuando tú lo pides:**
 
@@ -50,7 +51,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 - **Traer la vista previa** en una [tarjeta de enlace](https://markdown.tisty.app/es/enlaces) le pregunta a esa página una vez por su título y su imagen.
 - **La ayuda** dentro de Tisty (el `?` al pie de la barra lateral) viene con tu versión y no pide nada. Su guía **Markdown de Tisty** (también `F1` mientras escribes) la lee desde [markdown.tisty.app](https://markdown.tisty.app/es/), así que siempre es la última; sin conexión, muestra la copia que trae tu versión. Sus imágenes se descargan desde GitHub solo cuando pulsas **Descargar** sobre la ayuda.
 - **Hacer clic en un enlace** abre tu navegador.
-- **Compartir** le entrega una copia cifrada de un documento a Tisty Share, un servicio aparte con su propio servidor y [su propia política de privacidad](https://github.com/rgdevment/Tisty/blob/main/share/PRIVACIDAD.md). Tisty la sella antes, así el servicio no puede leerla; si nunca compartes, no sale nada.
+- **Compartir** le entrega un documento, sus páginas y lo que cita a Tisty Share en `tisty.cl`, un servicio aparte en un servidor que operamos, con [su propia política de privacidad](https://github.com/rgdevment/Tisty/blob/main/share/PRIVACIDAD.md). Tisty los sella antes, así el servicio no puede leerlos. Después, solo para lo que compartiste, Tisty sube cada versión nueva si el link sigue lo que guardas, y revisa si hay una más nueva al abrirse y después de cada sincronización. La única vez que habla con Tisty Share sin que presiones **Compartir** es cuando retiras la llave de un equipo con tu frase de 24 palabras, para que una llave robada no pueda firmar en tu nombre.
 - **Google Drive**, **OneDrive** o **tu servidor WebDAV**, una vez que lo conectas desde la ventana, es adonde Tisty manda tus copias y de donde las trae. Los asistentes nunca tocan la red.
 - **Revisar un servidor WebDAV**: solo cuando lo conectas, Tisty entra con lo que escribiste y mira su propia carpeta ahí, nada más. Solo se acepta `https://`, salvo hacia este mismo equipo, y la contraseña nunca viaja a otra dirección.
 - **Revisar el camino a OneDrive** funciona igual que la revisión para Google Drive, más abajo, con una petición a `graph.microsoft.com` que no lleva nada tuyo.

@@ -50,7 +50,7 @@ protocolo y lo cambian juntos:
 
 | Dónde | Qué |
 |---|---|
-| `crates/tisty-share-proto` | El sobre, sus firmas y sus topes, que la app sella y el servidor revisa |
+| `crates/tisty-share-proto` | El sobre, sus firmas y sus topes, que la app sella y el servidor revisa. Lo comparte con la app, que también guarda ahí la frase de 24 palabras, sus llaves y el sello de la nube cifrada |
 | `crates/tisty-share-server` | El servicio en sí, sobre cualquier almacén: versiones, links, caducidad, defensas |
 | `crates/tisty-share-worker` | El servicio en Cloudflare Workers, D1 y R2 |
 | `crates/tisty-share-wasm` | Lo que corre la página de lectura para abrir un sobre |

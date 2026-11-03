@@ -3,17 +3,18 @@
 Tisty stores tasks, notes and documents — material that is often personal and
 sometimes confidential. This document explains what the design protects, what
 it deliberately does not, and how to report a problem. For what is collected
-and where it goes, see [PRIVACY.md](PRIVACY.md) — the short answer is nothing
-and nowhere.
+and where it goes, see [PRIVACY.md](PRIVACY.md) — the short answer is nothing,
+and nowhere you did not choose.
 
 ## Reporting a vulnerability
 
-**Do not open a public issue.** Use either private channel. A vulnerability in
-Tisty Share — tisty.cl, its API, the page that reads a link or the envelope
-format — goes by [its own security policy](share/SECURITY.md).
+**Do not open a public issue.** Use either private channel:
 
 - **Email** <rgdevment@tisty.app>, subject `[SECURITY] short description`.
 - **GitHub Security Advisory** — the *Security* tab, *Report a vulnerability*.
+
+A vulnerability in Tisty Share — tisty.cl, its API, the page that reads a link
+or the envelope format — goes by [its own security policy](share/SECURITY.md).
 
 Useful in a report: what an attacker could do and to whom, steps to reproduce,
 the affected version, and your operating system. A proof of concept helps but
@@ -29,8 +30,9 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry, no remote server. There is no service of ours to breach because we
-  run none. Tisty makes one request of its own — a daily GET for a
+  telemetry. Nothing you keep sits on a server of ours: the one service we run,
+  Tisty Share, holds only what you share by link, sealed on your machine so it
+  cannot read it. Tisty makes one request of its own — a daily GET for a
   version manifest, carrying nothing but the version you are running — and two
   more only if you press the button that offers you an update. A copy from the
   Microsoft Store makes neither request: it asks Windows what the Store has for
@@ -51,7 +53,7 @@ report will never be dismissed for being inconvenient.
   Windows, in a file sealed for your user with DPAPI under your profile that
   uninstalling removes, and masks tokens, passwords and signed addresses in its
   own log. Only the window holds it and only the window connects an account;
-  assistants never reach the network. Nothing goes to a server of ours. A daily
+  assistants never reach the network. Syncing goes to no server of ours. A daily
   allowance per computer keeps one copy from spending the project's shared
   quota, and the one remote switch that can lower it or pause syncing,
   `cloud.json`, is refused unless it is signed with minisign against a key

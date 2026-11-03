@@ -36,11 +36,13 @@ be met with legal threats.
 - **The page is never trusted.** The reading page cleans the drawn page with a
   closed list of tags and styles, runs no script from it, and lives behind a
   Content Security Policy that allows nothing from elsewhere.
-- **Nothing travels but the pixels.** Pictures are written again before they
-  leave: no location, no comments, nothing hidden after them.
-- **Abuse costs.** Reserving, uploading, reporting and guessing a password each
-  ask for a proof of work; passwords are kept as a slow digest, and wrong ones
-  slow down only the network that says them.
+- **Pictures are cleaned before they leave.** They are written again, or, for a
+  photo that needs no change, stripped down to the picture and its colour
+  profile: no location, no comments, nothing hidden after them.
+- **Abuse costs.** Reserving, uploading and reporting each ask for a proof of
+  work. Passwords are kept as a slow digest; wrong ones are counted against the
+  network that says them, which alone is made to wait, and past 50 in a day
+  every guess asks for a proof of work too.
 
 ## What it does not protect
 

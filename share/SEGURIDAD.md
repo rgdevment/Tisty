@@ -37,11 +37,13 @@ amenazas legales.
   cerrada de etiquetas y estilos, no corre ningún script que venga en ella, y
   vive detrás de una política de seguridad de contenido que no permite nada de
   otro origen.
-- **Solo viajan los píxeles.** Las imágenes se vuelven a escribir antes de
-  salir: sin ubicación, sin comentarios, sin nada escondido detrás.
-- **Abusar cuesta.** Reservar, subir, denunciar y adivinar una clave piden cada
-  uno una prueba de trabajo; las claves se guardan como un resumen lento, y las
-  equivocadas solo hacen esperar a la red que las dice.
+- **Las imágenes salen limpias.** Se vuelven a escribir o, en una foto que no
+  necesita cambios, se dejan solo la imagen y su perfil de color: sin
+  ubicación, sin comentarios, sin nada escondido detrás.
+- **Abusar cuesta.** Reservar, subir y denunciar piden cada uno una prueba de
+  trabajo. Las claves se guardan como un resumen lento; las equivocadas se le
+  cuentan a la red que las dice, que es la única que espera, y pasadas 50 en
+  el día cada intento pide también una prueba de trabajo.
 
 ## Qué no protege
 

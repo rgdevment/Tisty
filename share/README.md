@@ -49,7 +49,7 @@ protocol and change it together:
 
 | Where | What |
 |---|---|
-| `crates/tisty-share-proto` | The envelope, its signatures and limits, which the app seals and the server checks |
+| `crates/tisty-share-proto` | The envelope, its signatures and limits, which the app seals and the server checks. It is shared with the app, which also keeps there the 24-word phrase, its keys and the encrypted cloud's seal |
 | `crates/tisty-share-server` | The service itself, on any store: versions, links, expiry, defences |
 | `crates/tisty-share-worker` | The service on Cloudflare Workers, D1 and R2 |
 | `crates/tisty-share-wasm` | What the reading page runs to open an envelope |
