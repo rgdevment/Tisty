@@ -47,7 +47,6 @@ impl Page {
     }
 }
 
-/// A link's version drawn before its pictures and text arrive; freeing it lets go of the link's key.
 #[wasm_bindgen]
 pub struct Sheet(Begun);
 
@@ -58,13 +57,11 @@ impl Sheet {
         self.0.html.clone()
     }
 
-    /// Title, tags, version and signatures, as JSON.
     #[wasm_bindgen(getter)]
     pub fn about(&self) -> String {
         serde_json::to_string(&self.0.about).unwrap_or_default()
     }
 
-    /// What the words cite, each with the id and key that open it, as JSON.
     #[wasm_bindgen(getter)]
     pub fn cited(&self) -> String {
         serde_json::to_string(&self.0.cited).unwrap_or_default()
@@ -79,7 +76,6 @@ impl Sheet {
         media(self.0.kinds.get(at).copied())
     }
 
-    /// Opens what followed the sheet, or says in one word why it would not.
     pub fn rest(&mut self, rest: Vec<u8>) -> Result<Rest, JsError> {
         self.0
             .rest(rest)
@@ -88,7 +84,6 @@ impl Sheet {
     }
 }
 
-/// The pictures and the text that followed a sheet.
 #[wasm_bindgen]
 pub struct Rest(envelope::Rest);
 
@@ -130,7 +125,6 @@ pub fn open(
         .map_err(|unread| JsError::new(unread.word()))
 }
 
-/// Opens the sheet of an envelope whose rest comes after, as `open` opens one whole.
 #[wasm_bindgen]
 pub fn open_sheet(
     sheet: Vec<u8>,

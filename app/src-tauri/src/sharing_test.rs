@@ -579,7 +579,6 @@ fn the_page_keeps_each_picture_s_room_with_the_sides_it_travels_with() {
     let html = drawn_back(&here, &shared);
     assert!(html.contains(r#"<img src="tisty:picture/0" width="20" height="20" alt="Uno""#));
     assert!(html.contains(r#"<img src="tisty:picture/1" width="30" height="30" alt="Dos""#));
-    // A picture that does not read keeps the page as drawn.
     let drawn = tisty_markdown::html(&tisty_markdown::read("![Uno](tisty:picture/0)"));
     assert_eq!(sized(&drawn, &[(Kind::Png, b"no".to_vec())]), drawn);
 }

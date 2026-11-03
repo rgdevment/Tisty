@@ -54,7 +54,6 @@ fn sealed(id: &str, version: u64, from: Option<u64>, text: &str) -> Vec<u8> {
     sealed_with(id, version, from, text, &[])
 }
 
-/// An envelope whose page is followed by a picture, which a reader may ask for apart.
 fn pictured(id: &str, version: u64, from: Option<u64>) -> Vec<u8> {
     let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
     png.resize(300, 1);
@@ -2206,7 +2205,6 @@ fn a_document_past_its_end_is_gone_to_everyone_and_taken_only_by_the_sweep() {
 }
 
 impl World {
-    /// A document shared once with a picture after its page.
     fn shared_pictured(&mut self, now: i64) -> (Reserved, Vec<u8>) {
         let reserved = self.reserve(now);
         let bytes = pictured(&reserved.id, 1, None);
@@ -2247,7 +2245,6 @@ fn a_reader_asking_for_the_sheet_gets_the_page_first_and_the_rest_for_its_ticket
 
     let rest = world.rest(&reserved.id, &ticket, T0 + 20).unwrap();
     assert_eq!(rest, bytes[end..]);
-    // Asking for the rest is no second read and no activity.
     assert_eq!(world.doc(&reserved.id), counted);
 }
 
@@ -2292,7 +2289,7 @@ fn a_ticket_holds_for_its_own_id_and_version_ten_minutes_and_no_longer() {
             Err(Refused::Forbidden)
         );
     }
-    let elsewhere = guard::ticket(&[6; 32], &reserved.id, 1, T0 + 60);
+    let elsewhere = guard::ticket(&[6; 32], &reserved.id, 1, &[], T0 + 60);
     assert_eq!(
         world.rest(&reserved.id, &elsewhere, T0),
         Err(Refused::Forbidden)
@@ -2359,6 +2356,38 @@ fn the_rest_behind_a_password_needs_only_its_ticket_and_counts_as_a_poll() {
         world.rest(&reserved.id, &ticket, T0),
         Err(Refused::Slow { until: T0 + HOUR })
     );
+}
+
+#[test]
+fn a_ticket_no_longer_holds_once_the_password_or_the_version_changes() {
+    let mut world = World::new();
+    let (gated, _) = world.shared_pictured(T0);
+    world
+        .manage(&gated, Manage::Password(Some("clave".into())), T0)
+        .unwrap();
+    let (served, _) = done(
+        world
+            .share
+            .read(&gated.id, Some("clave"), None, true, HERE, T0),
+    )
+    .unwrap();
+    let ticket = served.rest.unwrap();
+    world
+        .manage(&gated, Manage::Password(Some("otra".into())), T0)
+        .unwrap();
+    assert_eq!(world.rest(&gated.id, &ticket, T0), Err(Refused::Forbidden));
+
+    let (replaced, _) = world.shared_pictured(T0);
+    let ticket = world.sheet(&replaced.id, T0).unwrap().rest.unwrap();
+    world
+        .put(
+            &replaced.id,
+            &replaced.edit,
+            pictured(&replaced.id, 2, Some(1)),
+            T0,
+        )
+        .unwrap();
+    assert_eq!(world.rest(&replaced.id, &ticket, T0), Err(Refused::Missing));
 }
 
 #[test]

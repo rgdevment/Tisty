@@ -54,7 +54,6 @@ pub fn recompressed(bytes: &[u8], limits: &Limits) -> Result<(Kind, Vec<u8>), Re
     Err(Refused::PictureTooBig)
 }
 
-/// How wide and tall a picture stands, read from its header, so a page keeps its room before its bytes arrive.
 pub fn sides(bytes: &[u8]) -> Option<(u32, u32)> {
     let format = format_of(Kind::of_picture(bytes)?).ok()?;
     ImageReader::with_format(Cursor::new(bytes), format)

@@ -78,7 +78,6 @@ const worked = async (
   return work ? work : { refused: "failed" };
 };
 
-// An envelope with pictures comes as its sheet, up to its page, and a ticket to ask for the rest once the sheet is drawn.
 const SHEET = { "Tisty-Sheet": "1" };
 
 const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>) =>
@@ -90,7 +89,6 @@ const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>
       facts: factsOf(answer.headers),
       // The keys taken back that sent it, which the page believes only as far as their roots signed them.
       revoked: answer.headers.get("Tisty-Revoked") ?? undefined,
-      // None for an envelope without pictures, or one asked by an early.js from before sheets: it came whole.
       rest: answer.headers.get("Tisty-Rest") ?? undefined,
     }),
     { headers: { ...SHEET, ...headers } },
@@ -131,7 +129,6 @@ export const fetched = async (
   return sealedOf(id, ask, { ...headers, "Tisty-Work": work });
 };
 
-// The ticket stands for the read that let the reader in, so the rest asks no password of its own.
 export const restOf = (id: string, ticket: string, ask: typeof fetch = fetch) =>
   asked(
     `docs/${encodeURIComponent(id)}/rest`,

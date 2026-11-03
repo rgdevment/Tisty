@@ -87,7 +87,6 @@ impl Cloud {
         done.results().map_err(fault)
     }
 
-    /// One kept envelope, or the range of it asked for, as R2 holds it.
     async fn fetched(
         &self,
         id: &str,

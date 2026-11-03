@@ -1,6 +1,5 @@
 use super::*;
 
-/// What a reader by two trips holds: the envelope up to its page, then its rest apart.
 fn split(envelope: &Envelope) -> (Envelope, Vec<u8>) {
     let bytes = envelope.to_bytes();
     let end = envelope.sheet_end().expect("pictures follow the page") as usize;
@@ -114,7 +113,6 @@ fn the_rest_is_taken_only_as_the_index_hashes_it_up_to_the_last_byte() {
     for wrong in [rest[..rest.len() - 1].to_vec(), longer, changed, Vec::new()] {
         assert_eq!(begun.rest(wrong).err(), Some(Refused::Damaged));
     }
-    // A rest refused leaves the sheet as it was, so the right one still ends it.
     begun.rest(rest.clone()).unwrap();
     assert!(open_rest(&key(9), &begun, &sheet).is_ok());
     assert_eq!(begun.rest(rest).err(), Some(Refused::Damaged));

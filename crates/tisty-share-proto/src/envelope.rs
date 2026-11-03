@@ -666,17 +666,14 @@ fn sign(signer: &Signer, about: &str, said: &[u8]) -> Result<Signed, Refused> {
         .ok_or(Refused::Unsigned)
 }
 
-/// What the web draws at once: everything but the pictures and the words, which the writer's hashes stand in for.
 pub struct Sheet {
     pub manifest: Manifest,
     pub cited: Vec<Cited>,
-    /// The page Tisty drew: the writer's word, so whoever shows it still cleans it.
     pub html: Zeroizing<String>,
     pub config: Config,
     pub wrote: Option<Verdict>,
     pub written: Option<Written>,
     pub sent: Option<Verdict>,
-    /// The hashes the writer listed, which the pictures and the words must hash to when they arrive.
     listed: Option<Listed>,
 }
 
@@ -685,14 +682,12 @@ struct Listed {
     text: String,
 }
 
-/// What arrives after the sheet: the pictures and, last, the words.
 pub struct Rest {
     pub pictures: Vec<(Kind, Zeroizing<Vec<u8>>)>,
     pub text: Zeroizing<String>,
 }
 
 impl Sheet {
-    // Without the writer's signature nothing was hashed, so whatever opens under the key is what was sent.
     fn holds(&self, rest: &Rest) -> bool {
         self.listed.as_ref().is_none_or(|listed| {
             pictures_hold(&rest.pictures, &listed.pictures)
@@ -701,7 +696,6 @@ impl Sheet {
     }
 }
 
-/// Every part of one envelope opens with one key, checked once against what the bytes are tied to.
 struct Unsealer<'a> {
     envelope: &'a Envelope,
     head: [u8; HEAD],
@@ -723,7 +717,6 @@ impl<'a> Unsealer<'a> {
         })
     }
 
-    // The last part is the one the manifest ends with, so a reader holding only the sheet never takes another for it.
     fn part(&self, at: usize) -> Result<Zeroizing<Vec<u8>>, Refused> {
         let manifest = &self.envelope.manifest;
         let last = at == manifest.parts.len() - 1;
@@ -747,7 +740,6 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
     let unsealer = Unsealer::new(key, envelope)?;
     let sheet = sheet_of(&unsealer, revoked)?;
     let rest = rest_of(&unsealer)?;
-    // A picture or the words other than the ones the writer hashed still open, only never as theirs.
     let wrote = match sheet.holds(&rest) {
         true => sheet.wrote,
         false => sheet.wrote.map(|_| Verdict::Refused),
@@ -765,7 +757,6 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
     })
 }
 
-/// Opens what the web draws first, from an envelope read whole or only up to its page.
 pub fn open_sheet(
     key: &LinkKey,
     envelope: &Envelope,
@@ -774,7 +765,6 @@ pub fn open_sheet(
     sheet_of(&Unsealer::new(key, envelope)?, revoked)
 }
 
-/// Opens the pictures and the words of a whole envelope, each the one the writer hashed or none at all.
 pub fn open_rest(key: &LinkKey, envelope: &Envelope, sheet: &Sheet) -> Result<Rest, Refused> {
     if sheet.manifest != envelope.manifest {
         return Err(Refused::Damaged);
@@ -830,7 +820,6 @@ fn sheet_of(unsealer: &Unsealer, revoked: &[Revocation]) -> Result<Sheet, Refuse
     })
 }
 
-// The kinds come from the manifest and the hashes from the writer, so the verdict holds before any picture arrives.
 fn vouched(
     envelope: &Envelope,
     inner: Wrote,
@@ -967,19 +956,16 @@ impl Envelope {
         Self::read_up_to(bytes, limits, |manifest| manifest.parts.len())
     }
 
-    /// Reads an envelope begun: its bytes end where its page does, and every limit holds on the manifest as in `read`.
     pub fn read_sheet(bytes: Vec<u8>, limits: &Limits) -> Result<Self, Refused> {
         Self::read_up_to(bytes, limits, Manifest::first_picture)
     }
 
-    /// Where the page ends in the bytes, when pictures follow it, so a reader asks for the sheet apart from them.
     pub fn sheet_end(&self) -> Option<u64> {
         let manifest = &self.manifest;
         (manifest.first_picture() < manifest.text_at())
             .then(|| self.parts[manifest.html_at()].end as u64)
     }
 
-    /// Ends an envelope begun with the parts that follow its page, each the one the index hashes, up to its very last.
     pub fn rest(&mut self, mut more: Vec<u8>) -> Result<(), Refused> {
         let from = self.parts.len();
         if self.whole() {
@@ -1065,7 +1051,6 @@ impl Envelope {
     }
 }
 
-/// Each of these parts, from the one at `from`, hashes to what the index says of it.
 fn indexed(envelope: &Envelope, parts: &[Range<usize>], from: usize) -> bool {
     let index = &envelope.bytes[envelope.index.clone()];
     parts
@@ -1074,7 +1059,6 @@ fn indexed(envelope: &Envelope, parts: &[Range<usize>], from: usize) -> bool {
         .all(|(part, hash)| Sha256::digest(&envelope.bytes[part.clone()]).as_slice() == hash)
 }
 
-/// Each of these parts, one after the other from `at`, never past the bytes; `at` moves past them.
 fn parts_from(parts: &[Part], bytes: &[u8], at: &mut usize) -> Result<Vec<Range<usize>>, Refused> {
     parts
         .iter()

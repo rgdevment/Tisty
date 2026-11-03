@@ -16,7 +16,6 @@ use crate::store::{Doc, Fault, Kept, Saved, Sender, Store};
 const DAY: i64 = 24 * 60 * 60;
 /// A read writes down activity at most this often: days decide an expiry, and every write costs a store.
 const ACTIVITY_GRAIN: i64 = 60 * 60;
-/// How long a reader served a sheet may come back for its rest; a page asks for it the moment the sheet is drawn.
 const REST_LASTS: i64 = 10 * 60;
 
 /// The numbers a server runs on, all of them its own to change.
@@ -146,12 +145,10 @@ pub struct Reserved {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Served {
     pub version: u64,
-    /// The whole envelope, or only its sheet when `rest` says how to ask for what follows.
     pub envelope: Vec<u8>,
     pub facts: Facts,
     /// What took back the key that sent it, so the reader is told rather than shown it as holding.
     pub revoked: Vec<Revocation>,
-    /// The ticket for the rest of an envelope served as its sheet.
     pub rest: Option<String>,
 }
 
@@ -441,7 +438,6 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// Only ever the latest version, so nobody is served one already replaced; what it writes down waits in `Seen`.
-    /// Asked for the sheet first, an envelope with pictures is served up to its page, with a ticket for the rest.
     pub async fn read(
         &mut self,
         id: &str,
@@ -477,7 +473,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
             envelope,
             facts: Facts::of(&doc, ends),
             revoked: revoked?,
-            rest: sheet.map(|_| guard::ticket(&self.secret, id, kept.version, now + REST_LASTS)),
+            rest: sheet.map(|_| {
+                guard::ticket(
+                    &self.secret,
+                    id,
+                    kept.version,
+                    gated(&doc),
+                    now + REST_LASTS,
+                )
+            }),
         };
         let seen = Seen {
             id: id.to_owned(),
@@ -489,7 +493,6 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok((served, seen))
     }
 
-    /// What follows the sheet a read served, for the ticket it came with: a poll, not a read, and no activity.
     pub async fn rest(
         &self,
         id: &str,
@@ -498,13 +501,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
         now: i64,
     ) -> Result<Vec<u8>, Refused> {
         self.admit(caller, Act::Poll, now).await?;
-        let version = guard::ticketed(&self.secret, id, ticket, now).ok_or(Refused::Forbidden)?;
         let doc = self.live(id, now).await?;
+        let version = guard::ticketed(&self.secret, id, gated(&doc), ticket, now)
+            .ok_or(Refused::Forbidden)?;
         open_to_read(&doc)?;
+        self.held_up(&doc, now).await?;
         let kept = doc
             .versions
-            .iter()
-            .find(|kept| kept.version == version)
+            .last()
+            .filter(|kept| kept.version == version)
             .ok_or(Refused::Missing)?;
         let sheet = kept.sheet.ok_or(Refused::Missing)?;
         self.store
@@ -800,6 +805,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
             }),
         }
     }
+}
+
+fn gated(doc: &Doc) -> &[u8] {
+    doc.gate.as_ref().map_or(&[], |gate| &gate.digest)
 }
 
 fn open_to_read(doc: &Doc) -> Result<(), Refused> {

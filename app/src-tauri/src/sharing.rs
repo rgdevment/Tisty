@@ -278,8 +278,6 @@ pub(crate) fn pictured(
     (said, pictures)
 }
 
-/// The page with each picture it names given the sides it was written again with, so a reader's sheet keeps its room
-/// while the pictures travel after it.
 pub(crate) fn sized(html: &str, pictures: &[(Kind, Vec<u8>)]) -> String {
     pictures
         .iter()

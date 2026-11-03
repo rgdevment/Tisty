@@ -69,6 +69,8 @@ export const pictured = (page: Document, pictures: readonly Picture[]): string[]
     if (!picture) continue;
     const url = URL.createObjectURL(new Blob([picture.bytes], { type: picture.media }));
     made.push(url);
+    img.removeAttribute("width");
+    img.removeAttribute("height");
     img.src = url;
   }
   return made;
@@ -169,7 +171,6 @@ export const fitting = (frame: HTMLIFrameElement, laid: () => Laid) => () => {
 export type Drawn = {
   readonly page: Document;
   readonly lay: () => void;
-  /** Puts the pictures that travel after the sheet where their room was kept. */
   readonly picture: (pictures: readonly Picture[]) => void;
 };
 

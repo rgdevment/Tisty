@@ -274,7 +274,6 @@ fn hands_the_reader_what_the_words_cite_with_the_keys_that_open_them() {
     assert!(page.html.contains("data-doc=\"guia-2\""));
 }
 
-/// The sheet the server sends ahead and the rest it sends after, cut where the page ends.
 fn split(envelope: &[u8]) -> (Vec<u8>, Vec<u8>) {
     let read = Envelope::read(envelope.to_vec(), &Limits::default()).unwrap();
     let end = read.sheet_end().unwrap() as usize;

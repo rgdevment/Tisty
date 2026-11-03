@@ -50,9 +50,7 @@ pub struct Asked {
     pub password: Option<String>,
     /// The proof of work, as JSON in `Tisty-Work`.
     pub work: Option<String>,
-    /// The page asks for the sheet first with `Tisty-Sheet: 1`; Tisty never does, and gets the envelope whole.
     pub sheet: bool,
-    /// The ticket a sheet came with, in `Tisty-Rest`, to ask for what follows it.
     pub rest: Option<String>,
     pub body: Vec<u8>,
     pub caller: IpAddr,

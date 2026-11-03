@@ -61,7 +61,6 @@ pub struct Kept {
     /// Who sent it, so a reader is told when that key was taken back; versions from before have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<Sender>,
-    /// Where its page ends when pictures follow, so a reader gets the sheet first; versions from before have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sheet: Option<u64>,
 }
@@ -107,7 +106,6 @@ pub trait Store {
     async fn save(&self, doc: &Doc, revision: Option<u64>) -> Result<Saved, Fault>;
     async fn forget(&self, id: &str) -> Result<(), Fault>;
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault>;
-    /// The bytes of a kept envelope from `from`, up to `until` or to its end, so its sheet and its rest travel apart.
     async fn envelope_range(
         &self,
         id: &str,

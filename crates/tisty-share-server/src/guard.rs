@@ -194,30 +194,35 @@ fn seed(secret: &[u8; 32], bound: &[u8], salt: &str, bits: u8, expires: i64) -> 
     URL_SAFE_NO_PAD.encode(said)
 }
 
-/// What lets a reader served a sheet ask for its rest: one version of one id until it expires, signed so no other server's works.
-pub fn ticket(secret: &[u8; 32], id: &str, version: u64, expires: i64) -> String {
-    let signed = URL_SAFE_NO_PAD.encode(rest_seal(secret, id, version, expires));
-    format!("{version}.{expires}.{signed}")
+pub fn ticket(secret: &[u8; 32], id: &str, version: u64, gate: &[u8], expires: i64) -> String {
+    let signed = rest_seal(secret, id, version, gate, expires)
+        .finalize()
+        .into_bytes();
+    format!("{version}.{expires}.{}", URL_SAFE_NO_PAD.encode(signed))
 }
 
-/// The version a ticket stands for, when this server signed it for this id and it has not expired.
-pub fn ticketed(secret: &[u8; 32], id: &str, ticket: &str, now: i64) -> Option<u64> {
+pub fn ticketed(secret: &[u8; 32], id: &str, gate: &[u8], ticket: &str, now: i64) -> Option<u64> {
     let mut said = ticket.splitn(3, '.');
     let version: u64 = said.next()?.parse().ok()?;
     let expires: i64 = said.next()?.parse().ok()?;
-    let signed = URL_SAFE_NO_PAD.encode(rest_seal(secret, id, version, expires));
-    (said.next()? == signed && expires >= now).then_some(version)
+    let signed = URL_SAFE_NO_PAD.decode(said.next()?).ok()?;
+    let held = rest_seal(secret, id, version, gate, expires)
+        .verify_slice(&signed)
+        .is_ok();
+    (held && expires >= now).then_some(version)
 }
 
-fn rest_seal(secret: &[u8; 32], id: &str, version: u64, expires: i64) -> [u8; 32] {
-    let length = (id.len() as u64).to_be_bytes();
-    keyed(
+fn rest_seal(secret: &[u8; 32], id: &str, version: u64, gate: &[u8], expires: i64) -> Hmac<Sha256> {
+    let lengths = [id.len() as u64, gate.len() as u64].map(u64::to_be_bytes);
+    over(
         secret,
         &[
             REST,
-            &length,
+            &lengths[0],
             id.as_bytes(),
             &version.to_be_bytes(),
+            &lengths[1],
+            gate,
             &expires.to_be_bytes(),
         ],
     )
@@ -388,11 +393,15 @@ async fn overdone<S: Store>(
 
 /// HMAC pads a key shorter than its block with zeros, so padding it here builds one that cannot fail.
 fn keyed(secret: &[u8; 32], parts: &[&[u8]]) -> [u8; 32] {
+    over(secret, parts).finalize().into_bytes().into()
+}
+
+fn over(secret: &[u8; 32], parts: &[&[u8]]) -> Hmac<Sha256> {
     let mut block = hmac::digest::Key::<Hmac<Sha256>>::default();
     block[..secret.len()].copy_from_slice(secret);
     let mut over = <Hmac<Sha256> as KeyInit>::new(&block);
     parts.iter().for_each(|part| over.update(part));
-    over.finalize().into_bytes().into()
+    over
 }
 
 pub(crate) fn hex(bytes: &[u8]) -> String {

@@ -31,10 +31,8 @@ import { type Link, linkOf, readLinkOf } from "./link";
 import { onward, type Placed, placedIn, type Ribboned, ribbon } from "./ribbon";
 import { gated, refused, sheetWordsFor, spanish, wordsFor } from "./words";
 
-// What follows a sheet: its pictures, each the one the writer hashed, and the text.
 type Arrived = { readonly pictures: readonly Picture[]; readonly text: string };
-// What the link opened: the body, its front matter's title (which wins over the first line, as in Tisty) and the text,
-// which comes with the pictures through `rest` when they travel after the sheet.
+// What the link opened: the body, its front matter's title (which wins over the first line, as in Tisty) and the text.
 type Found = Opened & {
   readonly title: string;
   readonly text?: string;
@@ -145,7 +143,6 @@ const taken = (page: Page): Found => {
   }
 };
 
-// A picture or the text that does not hold opens nothing of the rest, and the sheet lets go of the key either way.
 const arrivedFor = async (
   sheet: Sheet,
   media: readonly string[],
@@ -167,27 +164,43 @@ const arrivedFor = async (
     }
   } catch (error_) {
     return wordOf(error_);
+  }
+};
+
+const WAITS = [0, 2000, 6000];
+const PASSING = new Set(["offline", "down"]);
+
+const tried = async (
+  sheet: Sheet,
+  media: readonly string[],
+  ticket: Ticket,
+): Promise<Arrived | string> => {
+  let arrived: Arrived | string = "failed";
+  try {
+    for (const wait of WAITS) {
+      await new Promise((done) => setTimeout(done, wait));
+      arrived = await arrivedFor(sheet, media, ticket);
+      if (typeof arrived !== "string" || !PASSING.has(arrived)) return arrived;
+    }
+    return arrived;
   } finally {
     sheet.free();
   }
 };
 
-// The sheet keeps the link's key for its rest, asked for once however often its page is shown, and only when it is signed.
 const sheetTaken = (sheet: Sheet, ticket: Ticket): Found | string => {
-  let rest: (() => Promise<Arrived | string>) | undefined;
+  let arriving: Promise<Arrived | string> | undefined;
   try {
     const about = JSON.parse(sheet.about) as About;
     const refusal = unsigned(about);
     if (refusal) return refusal;
     const media = Array.from({ length: sheet.pictures }, (_, at) => sheet.media(at) ?? "");
-    let arriving: Promise<Arrived | string> | undefined;
-    rest = () => {
-      arriving ??= arrivedFor(sheet, media, ticket);
-      return arriving;
-    };
-    return { ...drawnOf(sheet, about), pictures: [], rest };
+    const found = { ...drawnOf(sheet, about), pictures: [] };
+    const taken = tried(sheet, media, ticket);
+    arriving = taken;
+    return { ...found, rest: () => taken };
   } finally {
-    if (!rest) sheet.free();
+    if (!arriving) sheet.free();
   }
 };
 
@@ -500,7 +513,6 @@ const reader = async (root: Read) => {
     );
     return drawing;
   };
-  // The pictures and the text go into the sheet still shown; failing, its pictures stay empty and nothing else changes.
   const arrive = async (shown: Read) => {
     const arrived = await shown.rest?.();
     if (!arrived || typeof arrived === "string") return;

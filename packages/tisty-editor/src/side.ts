@@ -37,7 +37,6 @@ export type Book = {
 };
 
 export type Facts = {
-  /** Left out while the words are on their way, and the details then say nothing of how long they are. */
   readonly body?: string;
   readonly author?: string;
   readonly born?: string;

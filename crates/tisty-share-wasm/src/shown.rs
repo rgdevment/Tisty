@@ -19,12 +19,10 @@ pub struct Shown {
     pub pictures: Vec<(Kind, Zeroizing<Vec<u8>>)>,
 }
 
-/// A version drawn before its pictures and words arrive, holding the key that opens them until it is dropped.
 pub struct Begun {
     pub html: String,
     pub about: About,
     pub cited: Vec<Cited>,
-    /// Each picture's kind, in the order the page names them.
     pub kinds: Vec<Kind>,
     envelope: Envelope,
     sheet: Sheet,
@@ -141,7 +139,6 @@ pub fn shown(
     })
 }
 
-/// Opens the sheet the server sent ahead of the rest, as `shown` opens a whole envelope.
 pub fn begun(
     sheet: Vec<u8>,
     key: &str,
@@ -175,7 +172,6 @@ pub fn begun(
 }
 
 impl Begun {
-    /// Opens what followed the sheet: a picture or the text that is not the one the writer hashed opens nothing.
     pub fn rest(&mut self, rest: Vec<u8>) -> Result<Rest, Unread> {
         self.envelope.rest(rest).map_err(Unread::Envelope)?;
         open_rest(&self.key, &self.envelope, &self.sheet).map_err(Unread::Envelope)
@@ -191,7 +187,6 @@ fn limits_of(said: Option<&str>) -> Result<Limits, Unread> {
     }
 }
 
-/// Who wrote and who sent a version, as its envelope says.
 struct Signatures {
     wrote: Option<Verdict>,
     written: Option<Written>,

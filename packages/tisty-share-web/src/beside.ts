@@ -6,7 +6,6 @@ import { stamped } from "./when";
 
 export type Now = {
   readonly title: string;
-  /** Not there yet while it travels after the sheet, and what needs it waits for it. */
   readonly text?: string;
   readonly about: About;
   readonly facts: Facts;

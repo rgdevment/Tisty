@@ -35,7 +35,6 @@ fn sealed(id: &str, version: u64, from: Option<u64>) -> Vec<u8> {
     sealed_with(id, version, from, &[])
 }
 
-/// A first version whose page is followed by a picture, which the page asks for apart.
 fn pictured(id: &str) -> Vec<u8> {
     let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
     png.resize(300, 1);
