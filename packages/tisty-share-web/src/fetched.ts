@@ -91,6 +91,7 @@ const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>
     Object.keys(headers).length > 0 ? { headers } : undefined,
   );
 
+// A contract with public/early.js, which a browser may keep an hour past a deploy: a new shape is only ever skipped.
 type Early = { readonly id: string; readonly answer: Promise<Response> };
 
 // Taken once and marked taken either way, so early.js arriving after the page's code never asks a second time.
