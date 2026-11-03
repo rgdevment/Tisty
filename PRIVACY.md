@@ -474,6 +474,9 @@ shut until you open it, and why closing it is one click.
 
 ## Sharing by link, if you choose to
 
+*Share* is not switched on in Tisty yet. Until it is, Tisty never talks to Tisty
+Share, and nothing in this section happens.
+
 Tisty's *Share* button hands a document to Tisty Share, a separate service at
 `tisty.cl`, on a server we run. What the service keeps, why and for how long is
 in [its own privacy policy](share/PRIVACY.md); what Tisty itself sends it is

@@ -83,6 +83,24 @@ fn a_shared_document_opens_here_with_its_title_and_the_name_it_was_signed_with()
 }
 
 #[test]
+fn a_share_past_its_owner_s_readers_a_day_opens_here_after_a_little_work() {
+    let here = Here::new();
+    let shared = sharing::share(
+        &here,
+        sharing::SERVER,
+        "# Lista",
+        &[],
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+    here.share.borrow_mut().policy.readers = 0;
+    let got = fetched(&here, &link_of(&shared), None).unwrap();
+    assert_eq!(got.title, "Lista");
+}
+
+#[test]
 fn a_share_behind_a_password_or_gone_is_told_as_such() {
     let here = Here::new();
     let chosen = Chosen {

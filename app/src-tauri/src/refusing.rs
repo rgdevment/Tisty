@@ -22,7 +22,7 @@ pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 /// package instead of replacing it, and leave the person with two Tistys.
 const IN_THE_STORE: &str = "https://apps.microsoft.com/detail/9PGVWXD8X93N";
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Refusal {
     pub code: &'static str,

@@ -4,6 +4,7 @@ use serde::Serialize;
 use tisty_core::Op;
 use tisty_core::event::{Shared, Signs};
 use tisty_core::model::DocId;
+use tisty_share_proto::limits::Limits;
 
 use super::citing;
 use crate::handed::Voucher;
@@ -19,6 +20,7 @@ pub enum Shareable {
     NotMine,
     /// What is shared is always signed, and this machine has no key a person vouches for yet.
     NoKey,
+    Off,
 }
 
 // The key this machine signs with and the person it answers for; without both nothing is shared.
@@ -35,6 +37,9 @@ pub(super) fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::i
 }
 
 pub(crate) fn shareable(session: &Session, kept: &tisty_core::model::Kept) -> Shareable {
+    if !sharing::ON {
+        return Shareable::Off;
+    }
     match sharer(session) {
         Some((_, me)) if session.state.mine_to_share(kept, &me) => Shareable::Yes,
         Some(_) => Shareable::NotMine,
@@ -62,6 +67,7 @@ pub struct Card {
     holds: usize,
     /// None when the server could not be reached; the links still work without it.
     info: Option<Info>,
+    held_back: Option<Refusal>,
 }
 
 fn card(shared: &Shared, info: Option<Info>) -> Card {
@@ -76,6 +82,7 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
         held: shared.held,
         holds: shared.holds.len(),
         info,
+        held_back: None,
     }
 }
 
@@ -181,6 +188,107 @@ pub struct Look {
     /// Its pages, which always go with it, and the other documents it cites, which go when chosen (decision 64).
     pages: usize,
     cited: usize,
+    pictures: usize,
+    cited_pictures: usize,
+    shares: Vec<Own>,
+    level: Level,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Own {
+    file: String,
+    title: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Level {
+    shares: u64,
+    cited: u64,
+    pictures: u64,
+}
+
+impl Level {
+    fn of(limits: &Limits) -> Self {
+        Self {
+            shares: limits.shares,
+            cited: limits.cited,
+            pictures: limits.pictures,
+        }
+    }
+}
+
+pub(crate) fn own_shares(session: &Session) -> Vec<(DocId, Shared)> {
+    session
+        .state
+        .shares
+        .iter()
+        .filter(|(_, one)| !one.taken && !one.held && one.server == sharing::SERVER)
+        .filter(|(doc, _)| session.state.docs.contains_key(doc))
+        .map(|(doc, one)| (*doc, one.clone()))
+        .collect()
+}
+
+fn listed(session: &Session, blocked: &[DocId]) -> Vec<Own> {
+    own_shares(session)
+        .into_iter()
+        .filter(|(doc, _)| !blocked.contains(doc))
+        .filter_map(|(doc, _)| {
+            let kept = session.state.docs.get(&doc)?;
+            Some(Own {
+                file: kept.file.clone(),
+                title: kept
+                    .title
+                    .clone()
+                    .filter(|title| !title.trim().is_empty())
+                    .unwrap_or_else(|| kept.file.clone()),
+            })
+        })
+        .collect()
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct Standing {
+    pub(crate) gone: Vec<(DocId, String)>,
+    pub(crate) blocked: Vec<DocId>,
+}
+
+impl Standing {
+    pub(crate) fn counted(&self, own: &[(DocId, Shared)]) -> u64 {
+        own.len()
+            .saturating_sub(self.gone.len() + self.blocked.len()) as u64
+    }
+}
+
+pub(crate) fn standing_of(wire: &impl sharing::Wire, own: &[(DocId, Shared)]) -> Standing {
+    let mut standing = Standing::default();
+    for (doc, shared) in own {
+        match sharing::info(wire, shared) {
+            Ok(info) if info.blocked => standing.blocked.push(*doc),
+            Err(refused) if sharing::already_gone(&refused) => {
+                standing.gone.push((*doc, shared.link.clone()));
+            }
+            _ => {}
+        }
+    }
+    standing
+}
+
+fn forget_gone(session: &mut Session, gone: Vec<(DocId, String)>) -> Answer<()> {
+    let ops: Vec<Op> = gone
+        .into_iter()
+        .filter(|(doc, link)| {
+            session
+                .state
+                .shares
+                .get(doc)
+                .is_some_and(|now| now.link == *link)
+        })
+        .map(|(id, link)| Op::ShareStop { id, link })
+        .collect();
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session.commit_all(ops).map_err(Refusal::from)
 }
 
 // The name a share goes out with, as chosen, held to what an envelope takes.
@@ -201,37 +309,57 @@ fn fit(one: &Option<String>) -> Option<String> {
 
 #[tauri::command]
 pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
-    let (docs, name, alias, pages, cited) = {
+    sharing::switched(sharing::ON)?;
+    let limits = Limits::default();
+    let (docs, data, name, alias, pages, cited, own) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         let signed = &session.state.signed;
-        // Past what one share holds it is refused when shared, so the dialog counts one more than may go.
-        let (pages, cited) = citing::reach(&session, doc)
-            .map_or((0, citing::CITED_AT_MOST + 1), |all| {
-                (all.pages.len(), all.cited.len())
-            });
+        let reach = citing::reach(&session, doc);
+        let room = citing::cited_at_most().saturating_sub(reach.pages.len());
+        let pages = citing::texts_of(&session, reach.pages.iter().map(|one| one.doc));
+        let cited = citing::texts_of(&session, reach.cited.iter().take(room).map(|one| one.doc));
         (
             session.paths.docs(),
+            session.paths.data().to_path_buf(),
             fit(&signed.name),
             fit(&signed.alias),
-            pages,
-            cited,
+            (reach.pages.len(), pages),
+            (reach.cited.len(), cited),
+            own_shares(&session),
         )
     };
+    let full = own.len() as u64 >= limits.shares;
     // A long document takes a moment to read and look through, so neither holds the window or the session.
-    apart(move || {
+    let (look, standing) = apart(move || {
         let text = tisty_core::docs::read(&docs, &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        Ok(Look {
+        let pictures = citing::pictures_of(std::iter::once(&text).chain(&pages.1), &data);
+        let look = Look {
             secrets: secrets(&text),
             seen: sharing::print_of(&text),
             name,
             alias,
-            pages,
-            cited,
-        })
+            pages: pages.0,
+            cited: cited.0,
+            pictures,
+            cited_pictures: citing::pictures_of(&cited.1, &data),
+            shares: Vec::new(),
+            level: Level::of(&limits),
+        };
+        let standing = match full {
+            true => standing_of(&Net::to(sharing::SERVER)?, &own),
+            false => Standing::default(),
+        };
+        Ok((look, standing))
     })
-    .await
+    .await?;
+    let mut session = held(&session);
+    forget_gone(&mut session, standing.gone)?;
+    Ok(Look {
+        shares: listed(&session, &standing.blocked),
+        ..look
+    })
 }
 
 // A new share as it went up: its links, what went with it, and how the server holds it.
@@ -245,7 +373,8 @@ pub async fn share_doc(
     file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let (doc, text, voucher, revoked, name, data, going) = {
+    sharing::switched(sharing::ON)?;
+    let (doc, text, voucher, revoked, name, data, going, own) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
@@ -261,6 +390,7 @@ pub async fn share_doc(
             Shareable::Yes => {}
             Shareable::NotMine => return Err(Refusal::of("shareNotMine")),
             Shareable::NoKey => return Err(Refusal::of("shareNoKey")),
+            Shareable::Off => return Err(Refusal::of("shareOff")),
         }
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
@@ -283,6 +413,7 @@ pub async fn share_doc(
             name,
             session.paths.data().to_path_buf(),
             going,
+            own_shares(&session),
         )
     };
     // Never beside a round that keeps what shares cite in step, waiting for one that runs, so no document is reserved twice.
@@ -301,7 +432,16 @@ pub async fn share_doc(
     let (spent, shared_up) = apart(move || {
         let mut spent = citing::Spent::default();
         let shared_up = (|| -> Answer<SharedUp> {
+            let most = Limits::default().pictures;
+            let texts = std::iter::once(&text).chain(going.iter().map(|one| &one.text));
+            if citing::pictures_of(texts, &data) as u64 > most {
+                return Err(Refusal::about("sharePicturesFull", most.to_string()));
+            }
             let wire = Net::to(sharing::SERVER)?;
+            let shares = Limits::default().shares;
+            if own.len() as u64 >= shares && standing_of(&wire, &own).counted(&own) >= shares {
+                return Err(Refusal::about("shareFull", shares.to_string()));
+            }
             // What this person took back may not have reached the server when it happened, so every share tells it again.
             let _ = sharing::revoke(&wire, &revoked);
             let root = sharing::reserve(&wire, sharing::SERVER, &chosen)?;
@@ -377,8 +517,15 @@ pub async fn share_doc(
 pub async fn share_card(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    following: tauri::State<'_, super::versions::Following>,
     file: String,
 ) -> Answer<Option<Card>> {
+    sharing::switched(sharing::ON)?;
+    let held_back = following.held_back_of(&file);
+    let card = |shared: &Shared, info: Option<Info>| Card {
+        held_back: held_back.clone(),
+        ..card(shared, info)
+    };
     // Looking at a share is when its newer versions are most wanted, so they are brought first.
     let _ = super::versions::brought(&app, &file).await;
     let shared = {
@@ -426,6 +573,7 @@ pub async fn share_change(
     file: String,
     change: sharing::Change,
 ) -> Answer<Card> {
+    sharing::switched(sharing::ON)?;
     let (doc, shared) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
@@ -475,6 +623,7 @@ pub async fn share_change(
 
 #[tauri::command]
 pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
+    sharing::switched(sharing::ON)?;
     let (doc, shared) = {
         let session = held(&session);
         let doc = doc_of(&session, &file)?;
@@ -537,6 +686,7 @@ pub async fn share_still(
     file: String,
     still: bool,
 ) -> Answer<Card> {
+    sharing::switched(sharing::ON)?;
     let now = {
         let mut session = held(&session);
         let doc = doc_of(&session, &file)?;
@@ -579,6 +729,9 @@ const UNREAD_FOR: jiff::SignedDuration = jiff::SignedDuration::from_hours(7 * 24
 
 /// Stops in the background every share nothing in Tisty leads to any more, and forgets each one the server let go of.
 pub(crate) fn let_loose_go(app: tauri::AppHandle) {
+    if !sharing::ON {
+        return;
+    }
     use tauri::Manager;
     tauri::async_runtime::spawn(async move {
         let loosening = app.state::<Loosening>();

@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
+import { plainly } from "../refusal";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: unknown }[],
@@ -10,8 +11,13 @@ const ipc = vi.hoisted(() => ({
   alias: "ana" as string | null,
   pages: 0,
   cited: 0,
+  pictures: 0,
+  citedPictures: 0,
+  shares: [] as { file: string; title: string }[],
+  level: undefined as { shares: number; cited: number; pictures: number } | undefined,
   pending: undefined as Promise<unknown> | undefined,
   changed: false,
+  full: false,
 }));
 
 const CARD = {
@@ -29,6 +35,10 @@ vi.mock("@tauri-apps/api/core", () => ({
       ipc.changed = false;
       return Promise.reject({ code: "shareChanged" });
     }
+    if (cmd === "share_doc" && ipc.full) {
+      ipc.full = false;
+      return Promise.reject({ code: "shareFull", name: "2" });
+    }
     if (cmd === "share_look")
       return (
         ipc.pending ??
@@ -38,8 +48,16 @@ vi.mock("@tauri-apps/api/core", () => ({
           alias: ipc.alias,
           pages: ipc.pages,
           cited: ipc.cited,
+          pictures: ipc.pictures,
+          citedPictures: ipc.citedPictures,
+          shares: ipc.shares,
+          level: ipc.level,
         })
       );
+    if (cmd === "share_stop") {
+      const { file } = args as { file: string };
+      ipc.shares = ipc.shares.filter((one) => one.file !== file);
+    }
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
   },
 }));
@@ -55,8 +73,13 @@ beforeEach(() => {
   ipc.alias = "ana";
   ipc.pages = 0;
   ipc.cited = 0;
+  ipc.pictures = 0;
+  ipc.citedPictures = 0;
+  ipc.shares = [];
+  ipc.level = undefined;
   ipc.pending = undefined;
   ipc.changed = false;
+  ipc.full = false;
 });
 
 describe("the share dialog", () => {
@@ -336,5 +359,113 @@ describe("the share dialog", () => {
         .map((one) => one.getAttribute("aria-label") ?? one.parentElement?.textContent),
     ).toEqual([t("shareSynced")]);
     expect(screen.queryByText(t("shareCitesWhy"))).toBeNull();
+  });
+
+  it("says how many it shares and, once asked to be sure, stops one to make room for this one", async () => {
+    ipc.level = { shares: 2, cited: 2, pictures: 2 };
+    ipc.shares = [
+      { file: "uno.md", title: "Uno" },
+      { file: "dos.md", title: "Dos" },
+    ];
+    const onShared = vi.fn();
+    render(
+      <Sharing
+        file="tres.md"
+        title="Tres"
+        onShared={onShared}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    expect(await screen.findByText(fill("shareFullCount", "2"))).toBeTruthy();
+    expect(screen.getByText(fill("shareFull", "2"))).toBeTruthy();
+    const go = screen.getByRole("button", { name: t("shareGo") }) as HTMLButtonElement;
+    expect(go.disabled).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("shareStop")}: Uno` }));
+    expect(asked("share_stop")).toEqual([]);
+    expect(screen.getByText(fill("shareStopAsk", "Uno"))).toBeTruthy();
+    const row = () => screen.getByText(fill("shareStopAsk", "Uno")).closest("li") as HTMLElement;
+    await userEvent.click(within(row()).getByRole("button", { name: t("cancel") }));
+    expect(screen.queryByText(fill("shareStopAsk", "Uno"))).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: `${t("shareStop")}: Uno` }));
+    await userEvent.click(within(row()).getByRole("button", { name: t("shareStop") }));
+    expect(asked("share_stop")).toEqual([{ file: "uno.md" }]);
+    await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByText(fill("shareFull", "2"))).toBeNull());
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(onShared).toHaveBeenCalled());
+  });
+
+  it("holds back a share whose pictures pass what one share carries, and says why", async () => {
+    ipc.level = { shares: 2, cited: 2, pictures: 2 };
+    ipc.cited = 1;
+    ipc.pictures = 1;
+    ipc.citedPictures = 2;
+    render(
+      <Sharing
+        file="viaje.md"
+        title="Viaje"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    const go = (await screen.findByRole("button", { name: t("shareGo") })) as HTMLButtonElement;
+    expect(go.disabled).toBe(false);
+    await userEvent.click(screen.getByRole("checkbox", { name: t("shareCitesOne") }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(fill("sharePicturesFull", "2"));
+    expect(alert.textContent).toContain(fill("sharePicturesCount", "3"));
+    expect(go.disabled).toBe(true);
+  });
+
+  it("looks again and offers what to stop when the server says the person shares too many already", async () => {
+    ipc.level = { shares: 2, cited: 2, pictures: 2 };
+    ipc.full = true;
+    const onError = vi.fn();
+    render(
+      <Sharing
+        file="tres.md"
+        title="Tres"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={onError}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    ipc.shares = [{ file: "uno.md", title: "Uno" }];
+    expect(await screen.findByText(fill("shareFull", "2"))).toBeTruthy();
+    expect(onError).not.toHaveBeenCalled();
+    expect((screen.getByRole("button", { name: t("shareGo") }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("offers nothing it cites when its pages already fill one share", async () => {
+    ipc.level = { shares: 2, cited: 2, pictures: 2 };
+    ipc.pages = 2;
+    ipc.cited = 1;
+    render(
+      <Sharing
+        file="guia.md"
+        title="Guía"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    expect(await screen.findByText(fill("sharePages", "2"))).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: t("shareCitesOne") })).toBeNull();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
+    expect(asked("share_doc")[0]).toMatchObject({ chosen: { cites: false } });
+  });
+
+  it("says plainly why the server would take no more shares or pictures", () => {
+    expect(plainly({ code: "shareFull", name: "2" })).toBe(fill("shareFull", "2"));
+    expect(plainly({ code: "sharePicturesFull", name: "2" })).toBe(fill("sharePicturesFull", "2"));
+    expect(plainly({ code: "shareTooManyCited", name: "2" })).toBe(fill("shareTooManyCited", "2"));
   });
 });

@@ -649,7 +649,8 @@ an anonymous, end-to-end encrypted link, which you reach from Tisty's *Share*
 button only if you choose to. It runs a server and does not make the promises
 above: what it keeps and why is in its own [README](share/README.md),
 [terms](share/TERMS.md), [privacy policy](share/PRIVACY.md) and
-[security policy](share/SECURITY.md).
+[security policy](share/SECURITY.md). It is not switched on in Tisty yet: until
+it is, Tisty never talks to it.
 
 ## Two Machines, If You Have Two
 

@@ -14,6 +14,7 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { dayOf, weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
+import { plainly } from "../refusal";
 import { type ShareCard, shareCard, shareChange, shareStill, shareStop } from "../shares";
 import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
@@ -148,6 +149,7 @@ const saidOf = (card: ShareCard): string => {
   if (!info) return t("sharedOffline");
   if (info.blocked) return t("sharedBlockedWhy");
   if (info.paused) return fill("sharedPausedWhy", dayOfSeconds(info.ends));
+  if (card.heldBack) return fill("sharedHeldBack", plainly(card.heldBack));
   if (info.ends - Date.now() / 1000 < ENDS_SOON)
     return fill("sharedEndsSoon", dayOfSeconds(info.ends));
   // Whether it follows saves is told beside its box, so only what goes with it is said here, when anything does.
@@ -164,7 +166,9 @@ const toneOf = (card: ShareCard): "good" | "warn" | "bad" | undefined => {
   const info = card.info;
   if (!info) return undefined;
   if (info.blocked) return "bad";
-  return info.paused || info.ends - Date.now() / 1000 < ENDS_SOON ? "warn" : "good";
+  return info.paused || card.heldBack || info.ends - Date.now() / 1000 < ENDS_SOON
+    ? "warn"
+    : "good";
 };
 
 // The «Shared» row: an offer to share, or the links to hand out and ways to change or stop it.
@@ -370,23 +374,28 @@ export default function Beside(props: Props) {
         },
       },
       { kind: "details", facts: details, open: short },
-      sharedPanel(card, facts, {
-        onShare: () => {
-          void Promise.resolve(latest.current.onKeep?.())
-            .catch(() => {})
-            .finally(() => setSharing(true));
-        },
-        onSettings: () => setSettings(true),
-        onStill: (still) => shareStill(paper, still).then(setCard).catch(latest.current.onError),
-        onPause: (pausing) =>
-          shareChange(paper, { do: pausing ? "pause" : "resume" })
-            .then(setCard)
-            .catch(latest.current.onError),
-        onStop: () =>
-          shareStop(paper)
-            .then(() => setCard(null))
-            .catch(latest.current.onError),
-      }),
+      ...(card !== null || (facts !== null && facts.shareable !== "off")
+        ? [
+            sharedPanel(card, facts, {
+              onShare: () => {
+                void Promise.resolve(latest.current.onKeep?.())
+                  .catch(() => {})
+                  .finally(() => setSharing(true));
+              },
+              onSettings: () => setSettings(true),
+              onStill: (still) =>
+                shareStill(paper, still).then(setCard).catch(latest.current.onError),
+              onPause: (pausing) =>
+                shareChange(paper, { do: pausing ? "pause" : "resume" })
+                  .then(setCard)
+                  .catch(latest.current.onError),
+              onStop: () =>
+                shareStop(paper)
+                  .then(() => setCard(null))
+                  .catch(latest.current.onError),
+            }),
+          ]
+        : []),
     ],
     [
       props.title,

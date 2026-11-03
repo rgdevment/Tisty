@@ -53,6 +53,7 @@ impl Here {
                 report: 4,
                 password: 4,
                 password_most: 8,
+                reader: 4,
                 lasts: 10 * 60,
             },
             ..Policy::default()

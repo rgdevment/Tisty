@@ -40,6 +40,7 @@ export interface ShareCard {
   /** How many documents go with it, its pages and what it cites. */
   holds?: number;
   info: ShareInfo | null;
+  heldBack?: { code: string; name?: string } | null;
 }
 
 /** A line that reads like a key or a password, and what it calls it when it does. */
@@ -58,6 +59,21 @@ export interface ShareLook {
   /** Its pages, which always go with it, and the other documents it cites, which go when chosen. */
   pages: number;
   cited: number;
+  pictures?: number;
+  citedPictures?: number;
+  shares?: ShareOwn[];
+  level?: ShareLevel;
+}
+
+export interface ShareOwn {
+  file: string;
+  title: string;
+}
+
+export interface ShareLevel {
+  shares: number;
+  cited: number;
+  pictures: number;
 }
 
 export const shareLook = (file: string): Promise<ShareLook> => invoke("share_look", { file });
