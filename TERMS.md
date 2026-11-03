@@ -17,8 +17,10 @@ inside it and opens the door for assistants, the plugins and the `tisty-mcp`
 launcher that connect assistants to it, and the website
 [www.tisty.app](https://www.tisty.app/).
 
-A service to share documents by link is planned. It is not covered here, and
-will have terms of its own before it opens.
+Tisty Share, the service that shares a document by link from Tisty's *Share*
+button, is not covered here: it is a separate service with its own
+[terms](share/TERMS.md), [privacy policy](share/PRIVACY.md) and
+[security policy](share/SECURITY.md).
 
 ## The licence comes first
 

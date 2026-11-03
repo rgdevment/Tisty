@@ -661,6 +661,14 @@ nada. Si existe y presionas el botón que te la ofrece, vienen dos más — el
 archivo que nombra la versión y el instalador — y Tisty se niega a instalar nada
 que no esté firmado con una clave compilada dentro de la copia que ya tienes.
 
+**¿Conoces Tisty Share?** Es un servicio aparte para compartir un documento con
+un link anónimo y cifrado de punta a punta, al que llegas desde el botón
+*Compartir* de Tisty solo si tú lo eliges. Tiene un servidor y no hace las
+promesas de arriba: qué guarda y para qué está en su propio
+[README](share/README.es.md), sus [términos](share/TERMINOS.md), su
+[política de privacidad](share/PRIVACIDAD.md) y su
+[política de seguridad](share/SEGURIDAD.md).
+
 ## Dos equipos, si tienes dos
 
 Dile a Tisty dónde dejar las copias, en Configuración › *Sincronizar*. Hay dos

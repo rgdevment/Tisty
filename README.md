@@ -644,6 +644,13 @@ does exist and you press the button that offers it, two more follow — the file
 naming the release, and the installer — and Tisty refuses to install anything
 not signed with a key compiled into the copy you already have.
 
+**Do you know Tisty Share?** It is a separate service for sharing a document by
+an anonymous, end-to-end encrypted link, which you reach from Tisty's *Share*
+button only if you choose to. It runs a server and does not make the promises
+above: what it keeps and why is in its own [README](share/README.md),
+[terms](share/TERMS.md), [privacy policy](share/PRIVACY.md) and
+[security policy](share/SECURITY.md).
+
 ## Two Machines, If You Have Two
 
 Tell Tisty where to leave the copies, in Settings › *Sync*. There are two
