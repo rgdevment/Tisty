@@ -36,7 +36,8 @@ app/sign.json
 
 __pycache__/
 
-crates/tisty-share-server/
-crates/tisty-share-worker/
-crates/tisty-share-wasm/
-packages/tisty-share-web/
+crates/tisty-share-worker/build/
+crates/tisty-share-worker/.wrangler/
+crates/tisty-share-worker/.dev.vars*
+crates/tisty-share-worker/.env*
+packages/tisty-share-web/wasm/
