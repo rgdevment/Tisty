@@ -1280,7 +1280,7 @@ fn the_words_and_the_page_travel_deflated_and_open_as_written() {
 #[test]
 fn a_part_inflates_to_exactly_the_length_its_manifest_says_and_no_further() {
     let said = "palabras ".repeat(1000);
-    let deflated = miniz_oxide::deflate::compress_to_vec(said.as_bytes(), 9);
+    let deflated = deflated(said.as_bytes()).unwrap();
     let len = said.len() as u64;
     assert_eq!(
         inflated(&deflated, len).unwrap().as_slice(),
@@ -1292,6 +1292,46 @@ fn a_part_inflates_to_exactly_the_length_its_manifest_says_and_no_further() {
         inflated(b"not deflate at all", 4).err(),
         Some(Refused::Damaged)
     );
+    let mut padded = deflated.to_vec();
+    padded.extend_from_slice(b"hidden");
+    assert_eq!(inflated(&padded, len).err(), Some(Refused::Damaged));
+}
+
+#[test]
+fn bytes_that_do_not_shrink_fit_the_room_deflate_is_given() {
+    let mut seed = 0x2545_F491_4F6C_DD1Du64;
+    let noise: Vec<u8> = (0..300_000)
+        .map(|_| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed as u8
+        })
+        .collect();
+    let sealed = deflated(&noise).unwrap();
+    assert!(sealed.len() as u64 > noise.len() as u64);
+    assert_eq!(
+        inflated(&sealed, noise.len() as u64).unwrap().as_slice(),
+        noise.as_slice()
+    );
+}
+
+#[test]
+fn empty_words_and_page_travel_and_open_empty() {
+    let sealed = sealed(&key(9), &drawn("", "", &[]), None).unwrap();
+    let opened = open(&key(9), &read(&sealed.to_bytes()).unwrap(), &[]).unwrap();
+    assert_eq!(opened.text.as_str(), "");
+    assert_eq!(opened.html.as_str(), "");
+}
+
+#[test]
+fn a_deflated_part_travels_never_much_past_what_it_opens_to() {
+    let mut manifest = sealed(&key(9), &draft("hola", &[]), None)
+        .unwrap()
+        .manifest()
+        .clone();
+    manifest.parts[0].size = 3 * 1024 * 1024;
+    assert_eq!(manifest.holds(&Limits::default()), Err(Refused::Damaged));
 }
 
 #[test]

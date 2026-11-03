@@ -96,7 +96,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    /// Words inflate well and a picture is already compressed, so only the words, the page and their list are deflated.
+    /// Words deflate well and a picture is already compressed, so only the words, the page and their list are deflated.
     pub fn deflated(self) -> bool {
         matches!(self, Kind::Text | Kind::Cited | Kind::Html)
     }
@@ -150,10 +150,21 @@ impl Part {
         self.len
     }
 
-    // A part that is not deflated opens to its sealed bytes less the tag, exactly.
+    // A part that is not deflated opens to its sealed bytes less the tag, exactly, and one that is never travels much past it.
     fn fits(&self) -> bool {
-        self.size >= TAG as u64 && (self.kind.deflated() || self.len == self.size - TAG as u64)
+        let Some(sealed) = self.size.checked_sub(TAG as u64) else {
+            return false;
+        };
+        match self.kind.deflated() {
+            true => sealed <= deflated_at_most(self.len),
+            false => sealed == self.len,
+        }
     }
+}
+
+/// Deflate stores what does not shrink a few bytes over its length, so a part past this carries what it does not say.
+fn deflated_at_most(len: u64) -> u64 {
+    len.saturating_add(len / 16).saturating_add(64)
 }
 
 /// What the server reads without the key: enough to hold every limit and nothing of what is said.
@@ -464,11 +475,11 @@ fn sealed_with(
     by: Option<&Signer>,
     limits: &Limits,
 ) -> Result<Envelope, Refused> {
-    let deflated =
-        |said: &[u8]| Zeroizing::new(miniz_oxide::deflate::compress_to_vec(said, DEFLATED_AS));
-    let text = deflated(draft.text.as_bytes());
-    let html = deflated(draft.html.as_bytes());
-    let cited = cited.map(|said| (said.len(), deflated(said)));
+    let text = deflated(draft.text.as_bytes())?;
+    let html = deflated(draft.html.as_bytes())?;
+    let cited = cited
+        .map(|said| deflated(said).map(|sealed| (said.len(), sealed)))
+        .transpose()?;
     // Each part as it is sealed, with its length once opened.
     let mut plain: Vec<(Kind, usize, &[u8])> = vec![(Kind::Text, draft.text.len(), &text)];
     if let Some(inner) = inner {
@@ -984,14 +995,38 @@ fn drawn_content(
     Some(over.finalize().to_vec())
 }
 
-// Inflated to exactly the length the manifest says and no further, so a part can never unfold into more than it claims.
+// Deflated in one go into room for its worst case, so no copy of the words is left behind by a buffer that grew.
+#[cfg(feature = "mint")]
+fn deflated(said: &[u8]) -> Result<Zeroizing<Vec<u8>>, Refused> {
+    use miniz_oxide::deflate::core::{
+        CompressorOxide, TDEFLFlush, TDEFLStatus, compress, create_comp_flags_from_zip_params,
+    };
+    let room =
+        usize::try_from(deflated_at_most(said.len() as u64)).map_err(|_| Refused::Damaged)?;
+    let mut sealed = Zeroizing::new(vec![0; room]);
+    let mut compressor =
+        CompressorOxide::new(create_comp_flags_from_zip_params(DEFLATED_AS.into(), 0, 0));
+    match compress(&mut compressor, said, &mut sealed, TDEFLFlush::Finish) {
+        (TDEFLStatus::Done, read, wrote) if read == said.len() => {
+            sealed.truncate(wrote);
+            Ok(sealed)
+        }
+        _ => Err(Refused::Damaged),
+    }
+}
+
+// Inflated straight into exactly the length the manifest says, from every byte sealed, so a part never unfolds into more or hides more.
 fn inflated(deflated: &[u8], len: u64) -> Result<Zeroizing<Vec<u8>>, Refused> {
+    use miniz_oxide::inflate::TINFLStatus;
+    use miniz_oxide::inflate::core::inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+    use miniz_oxide::inflate::core::{DecompressorOxide, decompress};
     let len = usize::try_from(len).map_err(|_| Refused::Damaged)?;
-    let opened = miniz_oxide::inflate::decompress_to_vec_with_limit(deflated, len)
-        .map_err(|_| Refused::Damaged)?;
-    match opened.len() == len {
-        true => Ok(Zeroizing::new(opened)),
-        false => Err(Refused::Damaged),
+    let mut opened = Zeroizing::new(vec![0; len]);
+    let mut decompressor = Box::<DecompressorOxide>::default();
+    let flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+    match decompress(&mut decompressor, deflated, &mut opened, 0, flags) {
+        (TINFLStatus::Done, read, wrote) if read == deflated.len() && wrote == len => Ok(opened),
+        _ => Err(Refused::Damaged),
     }
 }
 

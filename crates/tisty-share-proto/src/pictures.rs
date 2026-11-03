@@ -88,9 +88,12 @@ fn smallest_of(
     let fits = |bytes: &[u8]| bytes.len() as u64 <= limits.picture;
     let (png, jpeg) = (limits.takes(Kind::Png), limits.takes(Kind::Jpeg));
     if png && (kind != Kind::Jpeg || !jpeg) {
-        let written = as_png(picture)?;
+        let written = as_png(picture, CompressionType::Default)?;
         if fits(&written) {
-            return Ok(Some((Kind::Png, written)));
+            // The slower compression is paid once, on the side that fits, never on each side tried before it.
+            let best = as_png(picture, CompressionType::Best)?;
+            let smaller = std::cmp::min_by_key(best, written, Vec::len);
+            return Ok(Some((Kind::Png, smaller)));
         }
         if picture.color().has_alpha() {
             return Ok(None);
@@ -103,13 +106,12 @@ fn smallest_of(
     Ok(fits(&written).then_some((Kind::Jpeg, written)))
 }
 
-fn as_png(picture: &DynamicImage) -> Result<Vec<u8>, Refused> {
+fn as_png(picture: &DynamicImage, compression: CompressionType) -> Result<Vec<u8>, Refused> {
     let mut out = Vec::new();
     picture
         .write_with_encoder(PngEncoder::new_with_quality(
             &mut out,
-            // The writer's machine pays the slower compression once, so every reader downloads less.
-            CompressionType::Best,
+            compression,
             FilterType::Adaptive,
         ))
         .map_err(|_| Refused::NotAPicture)?;
