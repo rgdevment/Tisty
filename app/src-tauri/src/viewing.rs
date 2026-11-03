@@ -31,39 +31,24 @@ pub struct Paper {
 pub enum Shown {
     File(PathBuf),
     Doc(Paper),
-    Widget {
-        lent: Lent,
-        from: Option<Paper>,
-    },
+    Widget { lent: Lent, from: Option<Paper> },
     Diagram(crate::diagramming::Drawn),
-    /// A Tisty Share link, fetched when its window first asks and kept, so saving a copy takes what was read.
-    Shared {
-        link: crate::received::Link,
-        got: Option<crate::received::Received>,
-    },
 }
 
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    /// `shared` when it came through a Tisty Share link, whose `path` is that link and `name` a title, not a file's.
     File {
         name: String,
         place: String,
         path: String,
         body: String,
-        shared: bool,
-        /// A share's writer's fingerprint, and whether this machine met it before.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        print: Option<String>,
-        known: bool,
     },
     Missed {
         name: String,
         place: String,
         path: String,
         refusal: Refusal,
-        shared: bool,
     },
     Doc {
         paper: Paper,
@@ -93,18 +78,15 @@ pub struct Views {
     made: AtomicU64,
     ready: std::sync::atomic::AtomicBool,
     early: Mutex<Vec<PathBuf>>,
-    early_shares: Mutex<Vec<crate::received::Link>>,
     calendars: Mutex<Vec<PathBuf>>,
     unsaved: Mutex<std::collections::HashSet<String>>,
 }
 
 impl Views {
     // Finder hands over the file a launch was for before the app has finished starting, so it waits for the start.
-    pub fn started(&self, wanted: &mut Vec<PathBuf>, shares: &mut Vec<crate::received::Link>) {
+    pub fn started(&self, wanted: &mut Vec<PathBuf>) {
         let mut held = self.early.lock().unwrap_or_else(|e| e.into_inner());
         wanted.append(&mut held);
-        let mut held = self.early_shares.lock().unwrap_or_else(|e| e.into_inner());
-        shares.append(&mut held);
         self.ready.store(true, Ordering::SeqCst);
     }
 
@@ -232,24 +214,9 @@ pub fn ics_waiting(views: tauri::State<'_, Views>) -> Vec<String> {
 
 pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
     let found = wanted(argv, cwd);
-    let shares = crate::received::links(argv);
-    let any = !found.is_empty() || !shares.is_empty();
+    let any = !found.is_empty();
     show(app, found);
-    show_shares(app, shares);
     any
-}
-
-// Each share's window opens at once and fetches what it shows itself, so a slow server holds nothing else.
-pub fn show_shares(app: &AppHandle, shares: Vec<crate::received::Link>) {
-    if shares.is_empty() {
-        return;
-    }
-    let app = app.clone();
-    std::thread::spawn(move || {
-        for link in shares {
-            open(&app, Shown::Shared { link, got: None });
-        }
-    });
 }
 
 #[cfg(target_os = "macos")]
@@ -259,17 +226,14 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
         .collect();
     let views = app.state::<Views>();
     let found = wanted(&said, None);
-    let shares = crate::received::links(&said);
-    if let (Ok(mut held), Ok(mut held_shares)) = (views.early.lock(), views.early_shares.lock())
+    if let Ok(mut held) = views.early.lock()
         && !views.ready.load(Ordering::SeqCst)
     {
         held.extend(found);
-        held_shares.extend(shares);
         return;
     }
-    let any = !found.is_empty() || !shares.is_empty();
+    let any = !found.is_empty();
     show(app, found);
-    show_shares(app, shares);
     if !any {
         witness::warn(
             channel::WINDOW,
@@ -317,7 +281,6 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         Shown::Doc(paper) => paper.title.clone(),
         Shown::Diagram(drawn) => drawn.paper.title.clone(),
         Shown::Widget { .. } => "Tisty".into(),
-        Shown::Shared { .. } => "Tisty Share".into(),
     };
     if let Ok(mut held) = views.shown.lock() {
         held.insert(label.clone(), shown);
@@ -440,16 +403,12 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
                 place: place_of(&at),
                 path: at.display().to_string(),
                 body,
-                shared: false,
-                print: None,
-                known: false,
             },
             Err(refusal) => Showing::Missed {
                 name: named(&at),
                 place: place_of(&at),
                 path: at.display().to_string(),
                 refusal,
-                shared: false,
             },
         },
         Shown::Doc(paper) => Showing::Doc {
@@ -461,107 +420,7 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
             paper: drawn.paper,
             source: drawn.was,
         },
-        // The network is slow and blocking, so it is waited on off the runtime that serves every window.
-        Shown::Shared { link, got } => {
-            let app = app.clone();
-            tauri::async_runtime::spawn_blocking(move || shared_showing(&app, &label, link, got))
-                .await
-                .map_err(|_| Refusal::of("internal"))?
-        }
     })
-}
-
-// Fetched with its password if it has one, and weighed against what this machine read before.
-fn received_here(
-    app: &AppHandle,
-    link: &crate::received::Link,
-    password: Option<&str>,
-) -> Answer<crate::received::Received> {
-    let got = crate::sharing::Net::to(crate::sharing::SERVER)
-        .and_then(|wire| crate::received::fetched(&wire, link, password))?;
-    let (cache, mine) = {
-        let session = session_of(app)?;
-        let session = held(&session);
-        let me = session.state.persons.person(&session.config.device_id);
-        (
-            session.paths.cache().to_path_buf(),
-            me.map(|one| one.fingerprint()),
-        )
-    };
-    crate::received::seen_here(&cache, link, mine.as_deref(), got)
-}
-
-// Runs on the blocking pool, where a blocking client may be built and dropped.
-fn shared_showing(
-    app: &AppHandle,
-    label: &str,
-    link: crate::received::Link,
-    got: Option<crate::received::Received>,
-) -> Showing {
-    let got = match got {
-        Some(got) => Ok(got),
-        None => received_here(app, &link, None),
-    };
-    match got {
-        Ok(got) => {
-            let place = got.signer.as_deref().map_or_else(
-                || "Tisty Share".to_string(),
-                |name| format!("Tisty Share · {name}"),
-            );
-            let showing = Showing::File {
-                name: got.title.clone(),
-                place,
-                path: link.read(),
-                body: got.body.clone(),
-                shared: true,
-                print: Some(got.print.clone()),
-                known: got.known,
-            };
-            reshow(
-                &app.state::<Views>(),
-                label,
-                Shown::Shared {
-                    link,
-                    got: Some(got),
-                },
-            );
-            showing
-        }
-        Err(refusal) => Showing::Missed {
-            name: "Tisty Share".into(),
-            place: "Tisty Share".into(),
-            path: link.read(),
-            refusal,
-            shared: true,
-        },
-    }
-}
-
-/// Opens the share this window shows with the password its reader typed; the window then asks for it again.
-#[tauri::command]
-pub async fn view_unlock(
-    app: AppHandle,
-    window: tauri::WebviewWindow,
-    password: String,
-) -> Answer<()> {
-    let label = window.label().to_owned();
-    let Shown::Shared { link, .. } = shown_in(&app.state::<Views>(), &label)? else {
-        return Err(Refusal::of("notAllowed"));
-    };
-    tauri::async_runtime::spawn_blocking(move || {
-        let got = received_here(&app, &link, Some(&password))?;
-        reshow(
-            &app.state::<Views>(),
-            &label,
-            Shown::Shared {
-                link,
-                got: Some(got),
-            },
-        );
-        Ok(())
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
 }
 
 #[tauri::command]
@@ -574,9 +433,6 @@ pub fn view_facts(
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
         Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
-        Shown::Shared { got, .. } => Ok(crate::answers::papers::received_facts(
-            got.map_or(0, |one| one.body.len() as u64),
-        )),
         Shown::Widget { .. } => Err(Refusal::of("notAllowed")),
     }
 }
@@ -603,17 +459,7 @@ pub fn view_import(
             }
             (paper, left)
         }
-        Shown::Shared {
-            link,
-            got: Some(got),
-        } => {
-            let paper = received_kept(&app, &link, &got)?;
-            if let Ok(mut held) = views.shown.lock() {
-                held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
-            }
-            (paper, Left::default())
-        }
-        Shown::Widget { .. } | Shown::Diagram(_) | Shown::Shared { got: None, .. } => {
+        Shown::Widget { .. } | Shown::Diagram(_) => {
             return Err(Refusal::of("notAllowed"));
         }
     };
@@ -673,61 +519,6 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
         );
     }
     Ok((paper, left))
-}
-
-// What came through someone else's link is kept as a guest copy under their name, so it is never shared again as one's own.
-fn received_kept(
-    app: &AppHandle,
-    link: &crate::received::Link,
-    got: &crate::received::Received,
-) -> Answer<Paper> {
-    let session = session_of(app)?;
-    let mut session = held(&session);
-    let (data, scratch) = (session.paths.data(), session.paths.cache());
-    let (body, told) = crate::received::kept_pictures(got, data, scratch);
-    if !told.is_empty() {
-        session.commit_all(told).map_err(Refusal::from)?;
-    }
-    let (made, id) =
-        crate::answers::carrying::imported_as(&mut session, &body, None, true, got.signer.clone())?;
-    // An edit link ties one copy to its share, when this machine can sign what goes up to it (decision 9).
-    let held_already = session.state.shares.values().any(|one| one.link == link.id);
-    let signs = crate::answers::shares::can_sign(&session);
-    if let Some(edit) = link.edit.as_ref().filter(|_| signs && !held_already) {
-        // The words as kept here count as up, so the copy is not put straight back as a version of its own.
-        let kept_print = tisty_core::docs::read(&session.paths.docs(), &made.id)
-            .map(|kept| crate::sharing::print_of(&kept))
-            .unwrap_or_default();
-        session
-            .commit(tisty_core::Op::ShareDoc {
-                id,
-                d: tisty_core::event::Shared {
-                    server: crate::sharing::SERVER.to_owned(),
-                    link: link.id.clone(),
-                    key: link.key.clone(),
-                    edit: edit.clone(),
-                    admin: String::new(),
-                    editable: true,
-                    gated: got.gated,
-                    version: got.version,
-                    still: false,
-                    taken: true,
-                    print: kept_print,
-                    // Nobody chose a name for it, so the editor's alias goes rather than their full name.
-                    signs: tisty_core::event::Signs::Alias,
-                    holds: Vec::new(),
-                    held: false,
-                    cites: false,
-                },
-            })
-            .map_err(Refusal::from)?;
-    }
-    Ok(Paper {
-        id: id.to_string(),
-        file: made.id,
-        title: made.title,
-        place: String::new(),
-    })
 }
 
 #[tauri::command(async)]
