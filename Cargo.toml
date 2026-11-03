@@ -54,8 +54,6 @@ same-file = "1"
 winapi-util = "0.1"
 thiserror = "2"
 sha2 = "0.11"
-# Deflates the words and the page before they are sealed (decision 91); only inflating reaches the reader's wasm.
-miniz_oxide = { version = "0.9", default-features = false, features = ["with-alloc"] }
 # Its default randomness does not build for wasm, and a key it held must be wiped when dropped.
 chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc", "zeroize"] }
 scrypt = { version = "0.12", default-features = false }
@@ -77,7 +75,6 @@ curve25519-dalek = { version = "5", default-features = false, features = ["alloc
 # The 24 words that bring a person's identity back: BIP39, so the words are a list people already trust.
 bip39 = { version = "3", default-features = false, features = ["std", "spanish", "zeroize"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 anyhow = "1"
 sys-locale = "0.3"
 machine-uid = "0.6"
