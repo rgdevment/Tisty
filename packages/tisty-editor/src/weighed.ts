@@ -1,4 +1,4 @@
-// Every size Tisty shows, in the window or on the web, is weighed by the same rule.
+// Every size Tisty shows is weighed by the same rule.
 export const weighed = (bytes: number): string => {
   if (!Number.isFinite(bytes)) return "—";
   const units = ["B", "kB", "MB", "GB", "TB"];

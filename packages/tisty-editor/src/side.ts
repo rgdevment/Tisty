@@ -52,45 +52,10 @@ export type Facts = {
   readonly tags?: readonly { readonly name: string; readonly times: number }[];
 };
 
-export type Seal = {
-  readonly verdict: "holds" | "revoked" | "refused" | "unreadable" | "unsigned";
-  /** The name or alias the writer chose to sign with, which only their key vouches for. */
-  readonly name?: string;
-  /** When they signed, already said in the reader's language. */
-  readonly signedOn?: string;
-  /** The writer's key as people can read it to each other: the one thing a name cannot copy. */
-  readonly fingerprint?: string;
-  /** The uploader's fingerprint, only when someone other than the writer sent it. */
-  readonly sender?: string;
-};
-
-/** A link to hand out, shown whole so it can be read before it is copied. */
-export type Link = {
-  readonly key: string;
-  readonly label: string;
-  readonly url: string;
-  readonly note?: string;
-  /** Offered beside «Copy» where the host can open the link, as a reader does. */
-  readonly onOpen?: () => void;
-};
-
-/** A choice that stays on or off, said as a box to tick rather than as a press that flips it. */
-export type Toggle = {
-  readonly label: string;
-  readonly on: boolean;
-  readonly onTurn: (on: boolean) => void;
-  /** What ticking it does, behind a small «?» beside it rather than spelled out under it. */
-  readonly help?: string;
-};
-
 export type Act = {
   readonly key: string;
   readonly label: string;
   readonly main?: boolean;
-  /** Undoes what was shared or made, so it stands on its own row and reads as such. */
-  readonly danger?: boolean;
-  readonly href?: string;
-  readonly download?: string;
   readonly onPick?: (at: HTMLElement) => void;
 };
 
@@ -117,17 +82,6 @@ export type Panel =
     }
   | { readonly kind: "index"; readonly heads: readonly Head[]; readonly book?: Book }
   | { readonly kind: "details"; readonly facts: Facts; readonly open?: boolean }
-  | { readonly kind: "seal"; readonly seal: Seal }
-  | {
-      readonly kind: "shared";
-      readonly gist: string;
-      readonly tone?: "good" | "warn" | "bad";
-      readonly said?: string;
-      readonly links?: readonly Link[];
-      readonly toggle?: Toggle;
-      readonly acts?: readonly Act[];
-      readonly open?: boolean;
-    }
   | { readonly kind: "acts"; readonly acts: readonly Act[] };
 
 export type About = Extract<Panel, { kind: "title" | "paper" | "index" }>;
@@ -137,7 +91,7 @@ const ABOUT = new Set<Panel["kind"]>(["title", "paper", "index"]);
 
 const isAbout = (panel: Panel): panel is About => ABOUT.has(panel.kind);
 
-// One row open at a time; a row the reader opened or shut stays so while the panels are drawn again.
+// A row the reader opened or shut stays so while the panels are drawn again.
 const folding = (host: HTMLElement) => {
   if (host.dataset.folding) return;
   host.dataset.folding = "on";
@@ -146,19 +100,6 @@ const folding = (host: HTMLElement) => {
     const row = summary?.parentElement;
     if (row instanceof HTMLDetailsElement) row.dataset.chosen = "";
   });
-  host.addEventListener(
-    "toggle",
-    (event) => {
-      const row = event.target as HTMLDetailsElement;
-      if (!row.open) return;
-      for (const other of host.querySelectorAll<HTMLDetailsElement>("details[data-row][open]")) {
-        if (other === row) continue;
-        other.open = false;
-        other.dataset.chosen = "";
-      }
-    },
-    true,
-  );
 };
 
 const PRESSABLE = "button, a, summary";
