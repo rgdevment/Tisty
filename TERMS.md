@@ -1,6 +1,6 @@
 # Terms of use
 
-**Last updated:** October 23, 2026
+**Last updated:** November 3, 2026
 
 ## The short version
 
@@ -17,10 +17,9 @@ inside it and opens the door for assistants, the plugins and the `tisty-mcp`
 launcher that connect assistants to it, and the website
 [www.tisty.app](https://www.tisty.app/).
 
-Tisty Share, the service that shares a document by link from Tisty's *Share*
-button, is not covered here: it is a separate service with its own
-[terms](share/TERMS.md), [privacy policy](share/PRIVACY.md) and
-[security policy](share/SECURITY.md).
+Folio by Tisty, the service that shares a document by link, is not covered
+here: it is a separate service, with its own terms and policies in
+[its own repository](https://github.com/rgdevment/Folio-by-Tisty).
 
 ## The licence comes first
 

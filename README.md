@@ -638,19 +638,18 @@ you know, as [the section below](#two-machines-if-you-have-two) tells. Both are
 written out in [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md),
 including the parts that are not reassuring.
 
-Tisty makes **one** network request unasked — when it opens, and once a day
-after that: it checks whether a newer version exists. It sends nothing. If one
-does exist and you press the button that offers it, two more follow — the file
-naming the release, and the installer — and Tisty refuses to install anything
-not signed with a key compiled into the copy you already have.
+Tisty makes **one** check unasked — when it opens, and once a day after that:
+it downloads a small file and its signature to see whether a newer version
+exists. It sends nothing. If one does exist and you press the button that
+offers it, two more requests follow — the file naming the release, and the
+installer — and Tisty refuses to install anything not signed with a key
+compiled into the copy you already have. There are a few more, listed in
+[PRIVACY.md](PRIVACY.md).
 
-**Do you know Tisty Share?** It is a separate service for sharing a document by
-an anonymous, end-to-end encrypted link, which you reach from Tisty's *Share*
-button only if you choose to. It runs a server and does not make the promises
-above: what it keeps and why is in its own [README](share/README.md),
-[terms](share/TERMS.md), [privacy policy](share/PRIVACY.md) and
-[security policy](share/SECURITY.md). It is not switched on in Tisty yet: until
-it is, Tisty never talks to it.
+**Folio by Tisty** is a separate service for sharing a document by an
+anonymous, end-to-end encrypted link, with its own terms and policies in
+[its own repository](https://github.com/rgdevment/Folio-by-Tisty). Tisty does
+not share by link, and has no code that talks to it.
 
 ## Two Machines, If You Have Two
 
