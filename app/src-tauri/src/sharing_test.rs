@@ -555,6 +555,36 @@ fn a_shared_document_carries_its_pictures_to_whoever_opens_it() {
 }
 
 #[test]
+fn the_page_keeps_each_picture_s_room_with_the_sides_it_travels_with() {
+    let here = Here::new();
+    let read = |target: &str| match target {
+        "attachments/uno-a1b2c3d4.png" => Some(png(20)),
+        _ => Some(png(30)),
+    };
+    let (text, pictures) = pictured(
+        "![Uno](attachments/uno-a1b2c3d4.png)\n\n![Dos](attachments/dos-b2c3d4e5.png)\n",
+        read,
+    );
+    let shared = share(
+        &here,
+        SERVER,
+        &text,
+        &pictures,
+        &Chosen::default(),
+        &voucher(),
+        None,
+    )
+    .unwrap();
+
+    let html = drawn_back(&here, &shared);
+    assert!(html.contains(r#"<img src="tisty:picture/0" width="20" height="20" alt="Uno""#));
+    assert!(html.contains(r#"<img src="tisty:picture/1" width="30" height="30" alt="Dos""#));
+    // A picture that does not read keeps the page as drawn.
+    let drawn = tisty_markdown::html(&tisty_markdown::read("![Uno](tisty:picture/0)"));
+    assert_eq!(sized(&drawn, &[(Kind::Png, b"no".to_vec())]), drawn);
+}
+
+#[test]
 fn a_picture_named_with_spaces_or_angle_brackets_is_taken_and_a_stray_mark_is_not() {
     let read = |target: &str| (target == "attachments/playa-a1b2c3d4.png").then(|| png(20));
     let (said, pictures) = pictured("![a]( attachments/playa-a1b2c3d4.png )\n", read);

@@ -278,6 +278,24 @@ pub(crate) fn pictured(
     (said, pictures)
 }
 
+/// The page with each picture it names given the sides it was written again with, so a reader's sheet keeps its room
+/// while the pictures travel after it.
+pub(crate) fn sized(html: &str, pictures: &[(Kind, Vec<u8>)]) -> String {
+    pictures
+        .iter()
+        .enumerate()
+        .fold(html.to_owned(), |html, (place, (_, bytes))| {
+            let Some((wide, tall)) = tisty_share_proto::pictures::sides(bytes) else {
+                return html;
+            };
+            let named = format!("<img src=\"{PICTURE}{place}\"");
+            html.replace(
+                &named,
+                &format!("{named} width=\"{wide}\" height=\"{tall}\""),
+            )
+        })
+}
+
 /// The bytes of an attachment the words name, read where the store keeps them; called off the window's thread.
 pub(crate) fn attachment(target: &str, data: &std::path::Path) -> Option<Vec<u8>> {
     std::fs::read(tisty_core::attach::resolve(target, data).ok()?).ok()
@@ -478,7 +496,10 @@ fn put_up(
         .map(|(kind, bytes)| (*kind, bytes.as_slice()))
         .collect();
     // The web shows only the page drawn here, so one past the server's limits is too big to share, not words alone.
-    let html = tisty_markdown::html(&tisty_markdown::read(words.text));
+    let html = sized(
+        &tisty_markdown::html(&tisty_markdown::read(words.text)),
+        words.pictures,
+    );
     let draft = Draft {
         id: &shared.link,
         version: from.map_or(1, |one| one + 1),

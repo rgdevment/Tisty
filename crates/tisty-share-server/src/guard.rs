@@ -15,6 +15,7 @@ const CHALLENGE: &[u8] = b"tisty-share.challenge.v1\0";
 const WHO_TODAY: &[u8] = b"tisty-share.who.day.v1\0";
 const WHO: &[u8] = b"tisty-share.who.v1\0";
 const WHO_WIDE: &[u8] = b"tisty-share.who.wide.v1\0";
+const REST: &[u8] = b"tisty-share.rest.v1\0";
 
 /// What a caller is about to do, each with its own hourly allowance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -191,6 +192,35 @@ fn seed(secret: &[u8; 32], bound: &[u8], salt: &str, bits: u8, expires: i64) -> 
         ],
     );
     URL_SAFE_NO_PAD.encode(said)
+}
+
+/// What lets a reader served a sheet ask for its rest: one version of one id until it expires, signed so no other server's works.
+pub fn ticket(secret: &[u8; 32], id: &str, version: u64, expires: i64) -> String {
+    let signed = URL_SAFE_NO_PAD.encode(rest_seal(secret, id, version, expires));
+    format!("{version}.{expires}.{signed}")
+}
+
+/// The version a ticket stands for, when this server signed it for this id and it has not expired.
+pub fn ticketed(secret: &[u8; 32], id: &str, ticket: &str, now: i64) -> Option<u64> {
+    let mut said = ticket.splitn(3, '.');
+    let version: u64 = said.next()?.parse().ok()?;
+    let expires: i64 = said.next()?.parse().ok()?;
+    let signed = URL_SAFE_NO_PAD.encode(rest_seal(secret, id, version, expires));
+    (said.next()? == signed && expires >= now).then_some(version)
+}
+
+fn rest_seal(secret: &[u8; 32], id: &str, version: u64, expires: i64) -> [u8; 32] {
+    let length = (id.len() as u64).to_be_bytes();
+    keyed(
+        secret,
+        &[
+            REST,
+            &length,
+            id.as_bytes(),
+            &version.to_be_bytes(),
+            &expires.to_be_bytes(),
+        ],
+    )
 }
 
 /// An IPv6 caller is one /64, so a machine cannot step around a limit by changing its last bits.

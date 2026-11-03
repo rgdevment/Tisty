@@ -84,6 +84,10 @@ describe("the panels beside a sheet", () => {
     ]);
     sided(side, say, [{ kind: "details", facts: { body: "" } }]);
     expect(text(side, ".side-gist")).toEqual(["paperEmpty"]);
+    // Words still on their way are never told as none.
+    sided(side, say, [{ kind: "details", facts: { author: "Mario" } }]);
+    expect(text(side, ".side-fact dt")).toEqual(["paperAuthor"]);
+    expect(side.textContent).not.toContain("paperEmpty");
   });
 
   it("shows the signed name and the whole print unfolded, and has nothing to open when nobody signed", () => {

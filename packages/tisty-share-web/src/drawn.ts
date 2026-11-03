@@ -166,7 +166,12 @@ export const fitting = (frame: HTMLIFrameElement, laid: () => Laid) => () => {
   return sheet && frame.clientWidth >= sheet.wide ? sheet : undefined;
 };
 
-export type Drawn = { readonly page: Document; readonly lay: () => void };
+export type Drawn = {
+  readonly page: Document;
+  readonly lay: () => void;
+  /** Puts the pictures that travel after the sheet where their room was kept. */
+  readonly picture: (pictures: readonly Picture[]) => void;
+};
 
 // The body as Tisty draws it, in the reader's own frame, grown to its height so the page scrolls as one.
 export const drawn = async (
@@ -213,5 +218,8 @@ export const drawn = async (
   citing(page, opened.cited, onCited);
   grows(frame, page);
   await read.drawn;
-  return { page, lay };
+  const picture = (pictures: readonly Picture[]) => {
+    made = [...made, ...pictured(page, pictures)];
+  };
+  return { page, lay, picture };
 };

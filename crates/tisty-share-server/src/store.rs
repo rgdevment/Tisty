@@ -61,6 +61,9 @@ pub struct Kept {
     /// Who sent it, so a reader is told when that key was taken back; versions from before have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<Sender>,
+    /// Where its page ends when pictures follow, so a reader gets the sheet first; versions from before have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<u64>,
 }
 
 /// The key that sent a version and the root that vouched for it: only that root can take it back.
@@ -104,6 +107,14 @@ pub trait Store {
     async fn save(&self, doc: &Doc, revision: Option<u64>) -> Result<Saved, Fault>;
     async fn forget(&self, id: &str) -> Result<(), Fault>;
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault>;
+    /// The bytes of a kept envelope from `from`, up to `until` or to its end, so its sheet and its rest travel apart.
+    async fn envelope_range(
+        &self,
+        id: &str,
+        kept: &Kept,
+        from: u64,
+        until: Option<u64>,
+    ) -> Result<Option<Vec<u8>>, Fault>;
     async fn keep(&self, id: &str, kept: &Kept, bytes: Vec<u8>) -> Result<(), Fault>;
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault>;
     /// At most `at_most` ids of documents whose `ends` has passed, those that ended first first.

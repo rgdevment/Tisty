@@ -16,6 +16,8 @@ use crate::store::{Doc, Fault, Kept, Saved, Sender, Store};
 const DAY: i64 = 24 * 60 * 60;
 /// A read writes down activity at most this often: days decide an expiry, and every write costs a store.
 const ACTIVITY_GRAIN: i64 = 60 * 60;
+/// How long a reader served a sheet may come back for its rest; a page asks for it the moment the sheet is drawn.
+const REST_LASTS: i64 = 10 * 60;
 
 /// The numbers a server runs on, all of them its own to change.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -144,10 +146,13 @@ pub struct Reserved {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Served {
     pub version: u64,
+    /// The whole envelope, or only its sheet when `rest` says how to ask for what follows.
     pub envelope: Vec<u8>,
     pub facts: Facts,
     /// What took back the key that sent it, so the reader is told rather than shown it as holding.
     pub revoked: Vec<Revocation>,
+    /// The ticket for the rest of an envelope served as its sheet.
+    pub rest: Option<String>,
 }
 
 /// What a read leaves to be written down once its reader has the envelope: who read it today, and that it is in use.
@@ -409,6 +414,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             version: manifest.version,
             digest: envelope.digest(),
             by,
+            sheet: envelope.sheet_end(),
         };
         self.store.keep(id, &kept, envelope.into_bytes()).await?;
         // A reserved id may wait an hour for its first version, and the reader is told when it was shared, not reserved.
@@ -435,11 +441,13 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// Only ever the latest version, so nobody is served one already replaced; what it writes down waits in `Seen`.
+    /// Asked for the sheet first, an envelope with pictures is served up to its page, with a ticket for the rest.
     pub async fn read(
         &mut self,
         id: &str,
         password: Option<&str>,
         proof: Option<&Proof>,
+        sheet_first: bool,
         caller: IpAddr,
         now: i64,
     ) -> Result<(Served, Seen), Refused> {
@@ -449,10 +457,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
         open_to_read(&doc)?;
         let held = self.held_up(&doc, now).await?;
         let kept = *doc.versions.last().ok_or(Refused::Unwritten)?;
+        let sheet = kept.sheet.filter(|_| sheet_first);
         // Each waits on a store, so the envelope and what took its key back come while the password is weighed; neither goes out unless it holds.
         let (allowed, envelope, revoked) = join3(
             self.let_in(&doc, password, proof, caller, now),
-            self.store.envelope(id, &kept),
+            self.store.envelope_range(id, &kept, 0, sheet),
             self.revoked(kept.by.as_ref()),
         )
         .await;
@@ -468,6 +477,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             envelope,
             facts: Facts::of(&doc, ends),
             revoked: revoked?,
+            rest: sheet.map(|_| guard::ticket(&self.secret, id, kept.version, now + REST_LASTS)),
         };
         let seen = Seen {
             id: id.to_owned(),
@@ -477,6 +487,30 @@ impl<S: Store, R: Randomness> Share<S, R> {
             lost: held.lost,
         };
         Ok((served, seen))
+    }
+
+    /// What follows the sheet a read served, for the ticket it came with: a poll, not a read, and no activity.
+    pub async fn rest(
+        &self,
+        id: &str,
+        ticket: &str,
+        caller: IpAddr,
+        now: i64,
+    ) -> Result<Vec<u8>, Refused> {
+        self.admit(caller, Act::Poll, now).await?;
+        let version = guard::ticketed(&self.secret, id, ticket, now).ok_or(Refused::Forbidden)?;
+        let doc = self.live(id, now).await?;
+        open_to_read(&doc)?;
+        let kept = doc
+            .versions
+            .iter()
+            .find(|kept| kept.version == version)
+            .ok_or(Refused::Missing)?;
+        let sheet = kept.sheet.ok_or(Refused::Missing)?;
+        self.store
+            .envelope_range(id, kept, sheet, None)
+            .await?
+            .ok_or_else(|| lost(id, kept))
     }
 
     /// Counts a new reader today, pushes the end back and lets go of holders that went without letting go.
@@ -556,6 +590,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             envelope,
             facts: Facts::of(&doc, self.told_end(&doc, now).await),
             revoked: self.revoked(kept.by.as_ref()).await?,
+            rest: None,
         })
     }
 

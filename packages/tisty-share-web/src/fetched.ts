@@ -78,6 +78,9 @@ const worked = async (
   return work ? work : { refused: "failed" };
 };
 
+// An envelope with pictures comes as its sheet, up to its page, and a ticket to ask for the rest once the sheet is drawn.
+const SHEET = { "Tisty-Sheet": "1" };
+
 const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>) =>
   asked(
     `docs/${encodeURIComponent(id)}`,
@@ -87,8 +90,10 @@ const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>
       facts: factsOf(answer.headers),
       // The keys taken back that sent it, which the page believes only as far as their roots signed them.
       revoked: answer.headers.get("Tisty-Revoked") ?? undefined,
+      // None for an envelope without pictures, or one asked by an early.js from before sheets: it came whole.
+      rest: answer.headers.get("Tisty-Rest") ?? undefined,
     }),
-    Object.keys(headers).length > 0 ? { headers } : undefined,
+    { headers: { ...SHEET, ...headers } },
   );
 
 // A contract with public/early.js, which a browser may keep an hour past a deploy: a new shape is only ever skipped.
@@ -102,7 +107,8 @@ export const early = (id: string, ask: typeof fetch = fetch): typeof fetch => {
   if (!asked || asked.id !== id) return ask;
   let taken = false;
   return (url, init) => {
-    if (taken || init !== undefined || !String(url).endsWith(`/docs/${id}`)) return ask(url, init);
+    const passworded = new Headers(init?.headers).has("Tisty-Password");
+    if (taken || passworded || !String(url).endsWith(`/docs/${id}`)) return ask(url, init);
     taken = true;
     return asked.answer;
   };
@@ -124,6 +130,15 @@ export const fetched = async (
   if (typeof work !== "string") return ENDS.has(work.refused) ? work : { refused: worded(work) };
   return sealedOf(id, ask, { ...headers, "Tisty-Work": work });
 };
+
+// The ticket stands for the read that let the reader in, so the rest asks no password of its own.
+export const restOf = (id: string, ticket: string, ask: typeof fetch = fetch) =>
+  asked(
+    `docs/${encodeURIComponent(id)}/rest`,
+    ask,
+    async (answer) => new Uint8Array(await answer.arrayBuffer()),
+    { headers: { "Tisty-Rest": ticket } },
+  );
 
 export const limitsOf = (ask: typeof fetch = fetch) =>
   asked("limits", ask, async (answer) => ({ limits: await answer.text() }));

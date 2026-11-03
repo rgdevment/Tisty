@@ -835,6 +835,8 @@ img {
   margin: 16px auto;
   padding: 8px;
   max-width: 100%;
+  /* A picture given its sides keeps their shape when the page is narrower than it. */
+  height: auto;
   max-height: 28rem;
   object-fit: contain;
   background: var(--tisty-rail);

@@ -50,6 +50,10 @@ pub struct Asked {
     pub password: Option<String>,
     /// The proof of work, as JSON in `Tisty-Work`.
     pub work: Option<String>,
+    /// The page asks for the sheet first with `Tisty-Sheet: 1`; Tisty never does, and gets the envelope whole.
+    pub sheet: bool,
+    /// The ticket a sheet came with, in `Tisty-Rest`, to ask for what follows it.
+    pub rest: Option<String>,
     pub body: Vec<u8>,
     pub caller: IpAddr,
     pub now: i64,
@@ -231,10 +235,22 @@ async fn routed<S: Store, R: Randomness>(
                 .as_deref()
                 .and_then(|work| serde_json::from_str::<Proof>(work).ok());
             let (served, left) = share
-                .read(id, password.as_deref(), proof.as_ref(), caller, now)
+                .read(
+                    id,
+                    password.as_deref(),
+                    proof.as_ref(),
+                    asked.sheet,
+                    caller,
+                    now,
+                )
                 .await?;
             *seen = Some(left);
             Ok(envelope(served))
+        }
+        ("GET", ["docs", id, "rest"]) => {
+            let ticket = asked.rest.as_deref().ok_or(Refused::Forbidden)?;
+            let rest = share.rest(id, ticket, caller, now).await?;
+            Ok(plain(200, "application/octet-stream", rest))
         }
         ("GET", ["docs", id, "latest"]) => {
             let latest = share.latest(id, token, caller, now).await?;
@@ -386,6 +402,9 @@ fn envelope(served: Served) -> Answer {
         answer
             .headers
             .push(("Tisty-Revoked", json!(served.revoked).to_string()));
+    }
+    if let Some(ticket) = served.rest {
+        answer.headers.push(("Tisty-Rest", ticket));
     }
     answer
 }

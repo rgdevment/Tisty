@@ -57,6 +57,15 @@ describe("a picture the text names", () => {
     expect(pictured(page, [png])).toEqual([]);
     expect(page.querySelector("img[src]")).toBeNull();
   });
+
+  it("drawn before its bytes arrive keeps its room and is filled once they do", () => {
+    vi.stubGlobal("URL", { ...URL, createObjectURL: () => "blob:1" });
+    const page = pageOf('<img data-picture="0" width="640" height="480">');
+    expect(pictured(page, [])).toEqual([]);
+    expect(pictured(page, [png])).toEqual(["blob:1"]);
+    const img = page.querySelector("img");
+    expect([img?.getAttribute("src"), img?.width, img?.height]).toEqual(["blob:1", 640, 480]);
+  });
 });
 
 describe("an attachment that is no picture", () => {
