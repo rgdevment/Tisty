@@ -501,15 +501,17 @@ impl<S: Store, R: Randomness> Share<S, R> {
         now: i64,
     ) -> Result<Vec<u8>, Refused> {
         self.admit(caller, Act::Poll, now).await?;
+        let ticket = guard::ticketed(&self.secret, id, ticket, now).ok_or(Refused::Forbidden)?;
         let doc = self.live(id, now).await?;
-        let version = guard::ticketed(&self.secret, id, gated(&doc), ticket, now)
-            .ok_or(Refused::Forbidden)?;
+        if !ticket.holds(&self.secret, gated(&doc)) {
+            return Err(Refused::Forbidden);
+        }
         open_to_read(&doc)?;
         self.held_up(&doc, now).await?;
         let kept = doc
             .versions
             .last()
-            .filter(|kept| kept.version == version)
+            .filter(|kept| kept.version == ticket.version)
             .ok_or(Refused::Missing)?;
         let sheet = kept.sheet.ok_or(Refused::Missing)?;
         self.store

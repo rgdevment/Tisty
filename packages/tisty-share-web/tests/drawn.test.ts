@@ -58,18 +58,16 @@ describe("a picture the text names", () => {
     expect(page.querySelector("img[src]")).toBeNull();
   });
 
-  it("drawn before its bytes arrive keeps its room, then takes its own shape once they do", () => {
+  it("drawn before its bytes arrive keeps its room until they load, then takes its own shape", () => {
     vi.stubGlobal("URL", { ...URL, createObjectURL: () => "blob:1" });
     const page = pageOf('<img data-picture="0" width="640" height="480">');
     expect(pictured(page, [])).toEqual([]);
-    expect(page.querySelector("img")?.getAttribute("width")).toBe("640");
     expect(pictured(page, [png])).toEqual(["blob:1"]);
-    const img = page.querySelector("img");
-    expect([
-      img?.getAttribute("src"),
-      img?.hasAttribute("width"),
-      img?.hasAttribute("height"),
-    ]).toEqual(["blob:1", false, false]);
+    const img = page.querySelector("img") as HTMLImageElement;
+    const sized = () => [img.hasAttribute("width"), img.hasAttribute("height")];
+    expect([img.getAttribute("src"), ...sized()]).toEqual(["blob:1", true, true]);
+    img.dispatchEvent(new Event("load"));
+    expect(sized()).toEqual([false, false]);
   });
 });
 

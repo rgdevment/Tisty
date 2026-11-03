@@ -28,10 +28,10 @@ import {
 } from "./fetched";
 import { type About, accessOf, bylined, endsOf, otherHand, tagged, whenOf } from "./frame";
 import { type Link, linkOf, readLinkOf } from "./link";
+import { type Arrived, picturesOf, resting, STALE } from "./rested";
 import { onward, type Placed, placedIn, type Ribboned, ribbon } from "./ribbon";
 import { gated, refused, sheetWordsFor, spanish, wordsFor } from "./words";
 
-type Arrived = { readonly pictures: readonly Picture[]; readonly text: string };
 // What the link opened: the body, its front matter's title (which wins over the first line, as in Tisty) and the text.
 type Found = Opened & {
   readonly title: string;
@@ -101,17 +101,6 @@ const drawnNow = () => {
 const wordOf = (refused: unknown): string =>
   refused instanceof Error ? refused.message : "failed";
 
-const picturesOf = (
-  count: number,
-  bytes: (at: number) => Uint8Array | undefined,
-  media: (at: number) => string | undefined,
-): Picture[] =>
-  Array.from({ length: count }, (_, at) => ({
-    // wasm-bindgen hands each picture over in a buffer of its own, never a shared one.
-    bytes: (bytes(at) ?? new Uint8Array()) as Uint8Array<ArrayBuffer>,
-    media: media(at) ?? "",
-  }));
-
 const drawnOf = (held: Page | Sheet, about: About) => ({
   html: held.html,
   cited: citedOf(held.cited),
@@ -143,64 +132,18 @@ const taken = (page: Page): Found => {
   }
 };
 
-const arrivedFor = async (
-  sheet: Sheet,
-  media: readonly string[],
-  { id, ticket }: Ticket,
-): Promise<Arrived | string> => {
-  try {
-    const answer = await restOf(id, ticket);
-    if ("refused" in answer) return answer.refused;
-    const rest = sheet.rest(answer);
-    try {
-      const pictures = picturesOf(
-        rest.pictures,
-        (at) => rest.picture(at),
-        (at) => media[at],
-      );
-      return { pictures, text: rest.text };
-    } finally {
-      rest.free();
-    }
-  } catch (error_) {
-    return wordOf(error_);
-  }
-};
-
-const WAITS = [0, 2000, 6000];
-const PASSING = new Set(["offline", "down"]);
-
-const tried = async (
-  sheet: Sheet,
-  media: readonly string[],
-  ticket: Ticket,
-): Promise<Arrived | string> => {
-  let arrived: Arrived | string = "failed";
-  try {
-    for (const wait of WAITS) {
-      await new Promise((done) => setTimeout(done, wait));
-      arrived = await arrivedFor(sheet, media, ticket);
-      if (typeof arrived !== "string" || !PASSING.has(arrived)) return arrived;
-    }
-    return arrived;
-  } finally {
-    sheet.free();
-  }
-};
-
-const sheetTaken = (sheet: Sheet, ticket: Ticket): Found | string => {
-  let arriving: Promise<Arrived | string> | undefined;
+const sheetTaken = (sheet: Sheet, { id, ticket }: Ticket): Found | string => {
+  let handed = false;
   try {
     const about = JSON.parse(sheet.about) as About;
     const refusal = unsigned(about);
     if (refusal) return refusal;
     const media = Array.from({ length: sheet.pictures }, (_, at) => sheet.media(at) ?? "");
-    const found = { ...drawnOf(sheet, about), pictures: [] };
-    const taken = tried(sheet, media, ticket);
-    arriving = taken;
-    return { ...found, rest: () => taken };
+    const rest = resting(sheet, media, () => restOf(id, ticket));
+    handed = true;
+    return { ...drawnOf(sheet, about), pictures: [], rest };
   } finally {
-    if (!arriving) sheet.free();
+    if (!handed) sheet.free();
   }
 };
 
@@ -377,7 +320,8 @@ const ribboned: Ribboned = {
 };
 
 // What the link opened and what it cites, each drawn in the same place in turn with its own panels.
-const reader = async (root: Read) => {
+const reader = async (first: Read) => {
+  let root = first;
   let found: Read | null = root;
   let view = viewOf(root.about);
   let raw = false;
@@ -513,9 +457,13 @@ const reader = async (root: Read) => {
     );
     return drawing;
   };
-  const arrive = async (shown: Read) => {
+  const arrive = async (shown: Read, stale: () => void) => {
     const arrived = await shown.rest?.();
-    if (!arrived || typeof arrived === "string") return;
+    if (arrived === undefined) return;
+    if (typeof arrived === "string") {
+      if (STALE.has(arrived) && found === shown) stale();
+      return;
+    }
     await queued(async () => {
       if (found !== shown) return;
       found = { ...shown, ...arrived };
@@ -552,7 +500,25 @@ const reader = async (root: Read) => {
       placeBar(one, at, true);
       scrollTo({ top: ys[at] ?? 0 });
     });
-    if (found === next) void arrive(next);
+    if (found === next)
+      void arrive(next, () => {
+        renewed(one, at).catch(() => tell("failed"));
+      });
+  };
+  const renewing = new Set<string>();
+  const renewed = async (one: Cited | null, at: number) => {
+    const id = one?.id ?? root.link.id;
+    if (renewing.has(id)) return;
+    renewing.add(id);
+    if (one) {
+      openCited.forget(one.id);
+      return show(one, at);
+    }
+    const answer = await fetched(root.link.id);
+    const fresh = "refused" in answer ? answer.refused : await unsealed(root.link, answer);
+    if (typeof fresh === "string" || found?.link.id !== id) return;
+    root = fresh;
+    return show(null, 0);
   };
   // The page puts each step back where the reader left it, once its document is drawn again.
   history.scrollRestoration = "manual";

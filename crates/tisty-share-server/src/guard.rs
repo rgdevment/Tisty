@@ -16,6 +16,7 @@ const WHO_TODAY: &[u8] = b"tisty-share.who.day.v1\0";
 const WHO: &[u8] = b"tisty-share.who.v1\0";
 const WHO_WIDE: &[u8] = b"tisty-share.who.wide.v1\0";
 const REST: &[u8] = b"tisty-share.rest.v1\0";
+const REST_GATE: &[u8] = b"tisty-share.rest.gate.v1\0";
 
 /// What a caller is about to do, each with its own hourly allowance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -194,26 +195,46 @@ fn seed(secret: &[u8; 32], bound: &[u8], salt: &str, bits: u8, expires: i64) -> 
     URL_SAFE_NO_PAD.encode(said)
 }
 
+pub struct Ticket {
+    pub version: u64,
+    gated: String,
+}
+
+impl Ticket {
+    pub fn holds(&self, secret: &[u8; 32], gate: &[u8]) -> bool {
+        self.gated == gated_as(secret, gate)
+    }
+}
+
 pub fn ticket(secret: &[u8; 32], id: &str, version: u64, gate: &[u8], expires: i64) -> String {
-    let signed = rest_seal(secret, id, version, gate, expires)
+    let gated = gated_as(secret, gate);
+    let signed = rest_seal(secret, id, version, &gated, expires)
         .finalize()
         .into_bytes();
-    format!("{version}.{expires}.{}", URL_SAFE_NO_PAD.encode(signed))
+    format!(
+        "{version}.{expires}.{gated}.{}",
+        URL_SAFE_NO_PAD.encode(signed)
+    )
 }
 
-pub fn ticketed(secret: &[u8; 32], id: &str, gate: &[u8], ticket: &str, now: i64) -> Option<u64> {
-    let mut said = ticket.splitn(3, '.');
+pub fn ticketed(secret: &[u8; 32], id: &str, ticket: &str, now: i64) -> Option<Ticket> {
+    let mut said = ticket.splitn(4, '.');
     let version: u64 = said.next()?.parse().ok()?;
     let expires: i64 = said.next()?.parse().ok()?;
+    let gated = said.next()?.to_owned();
     let signed = URL_SAFE_NO_PAD.decode(said.next()?).ok()?;
-    let held = rest_seal(secret, id, version, gate, expires)
+    let held = rest_seal(secret, id, version, &gated, expires)
         .verify_slice(&signed)
         .is_ok();
-    (held && expires >= now).then_some(version)
+    (held && expires >= now).then_some(Ticket { version, gated })
 }
 
-fn rest_seal(secret: &[u8; 32], id: &str, version: u64, gate: &[u8], expires: i64) -> Hmac<Sha256> {
-    let lengths = [id.len() as u64, gate.len() as u64].map(u64::to_be_bytes);
+fn gated_as(secret: &[u8; 32], gate: &[u8]) -> String {
+    URL_SAFE_NO_PAD.encode(&keyed(secret, &[REST_GATE, gate])[..16])
+}
+
+fn rest_seal(secret: &[u8; 32], id: &str, version: u64, gated: &str, expires: i64) -> Hmac<Sha256> {
+    let lengths = [id.len() as u64, gated.len() as u64].map(u64::to_be_bytes);
     over(
         secret,
         &[
@@ -222,7 +243,7 @@ fn rest_seal(secret: &[u8; 32], id: &str, version: u64, gate: &[u8], expires: i6
             id.as_bytes(),
             &version.to_be_bytes(),
             &lengths[1],
-            gate,
+            gated.as_bytes(),
             &expires.to_be_bytes(),
         ],
     )

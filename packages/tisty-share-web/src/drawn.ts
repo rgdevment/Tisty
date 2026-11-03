@@ -69,8 +69,11 @@ export const pictured = (page: Document, pictures: readonly Picture[]): string[]
     if (!picture) continue;
     const url = URL.createObjectURL(new Blob([picture.bytes], { type: picture.media }));
     made.push(url);
-    img.removeAttribute("width");
-    img.removeAttribute("height");
+    const shaped = () => {
+      img.removeAttribute("width");
+      img.removeAttribute("height");
+    };
+    img.addEventListener("load", shaped, { once: true });
     img.src = url;
   }
   return made;
