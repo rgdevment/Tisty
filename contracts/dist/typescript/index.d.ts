@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.0";
+export declare const VERSION: "1.0.1";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
