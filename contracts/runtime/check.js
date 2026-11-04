@@ -1,6 +1,9 @@
 export const VERSION = WHOLE.version;
 export const CONTRACTS = WHOLE.contracts;
 export const ALLOWED = WHOLE.allowed;
+export const PASSTHROUGH = WHOLE.passthrough;
+export const STYLES = WHOLE.styles;
+export const URLS = WHOLE.urls;
 
 // A tag called constructor must not find what every object inherits.
 const own = (held, name) => (held && Object.hasOwn(held, name) ? held[name] : undefined);
@@ -17,16 +20,47 @@ const isTime = (said) => {
   return month >= 1 && month <= 12 && day >= 1 && day <= daysIn(year, month) && hour <= 23 && minute <= 59 && second <= 59;
 };
 
-const base64urlOf = (said, length) => said.length === length && /^[A-Za-z0-9_-]+$/.test(said);
+// A moment nothing signs may hold a fraction of a second, as the log keeps them.
+const isMoment = (said) => isTime(said.replace(/\.\d{1,9}Z$/, "Z"));
+
+const UNSEEN = /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B\u200E\u200F\u2028-\u202E\u2060-\u206F\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB\u{1D173}-\u{1D17A}\u{E0000}-\u{E007F}\p{Cc}]/u;
+
+// Many scripts write with a joiner, and it only hides a letter where no script needs one: between Latin, Greek or Cyrillic.
+const needsNoJoiner = (one) => one === undefined || one < 0x0590 || (one >= 0x1e00 && one <= 0x1fff);
+
+const isLine = (said) => {
+  const points = [...said].map((one) => one.codePointAt(0));
+  const joined = (one, at) => (one !== 0x200c && one !== 0x200d) || (!needsNoJoiner(points[at - 1]) && !needsNoJoiner(points[at + 1]));
+  return !UNSEEN.test(said) && points.every(joined);
+};
+
+const isFileName = (said) => isLine(said) && !/[/\\]/.test(said);
+
+const isName = (said) => {
+  const letters = said.match(/\p{Alphabetic}/gu)?.length ?? 0;
+  const digits = said.match(/[0-9]/g)?.length ?? 0;
+  return said.trim() === said && [...said].length <= 80 && letters > 0 && digits <= letters && isLine(said);
+};
+
+const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
+const base64urlOf = (said, length, spare) =>
+  said.length === length && /^[A-Za-z0-9_-]+$/.test(said) && BASE64URL.indexOf(said[length - 1]) % spare === 0;
+
+const isId = (said) => /^[A-Za-z0-9_-]+$/.test(said);
+
+const spacesOff = (said) => said.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "");
 
 const lengthOf = (said) => [...said].length;
 
 const isLanguage = (said) => /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/.test(said);
 
+// Accents come off the alphabets that have them, and elsewhere a mark is how the word is written.
 const isTagWord = (said) =>
   said === said.toLowerCase() &&
-  said === said.normalize("NFD").replace(/\p{M}/gu, "") &&
-  /^[\p{Alphabetic}\p{N}]+(-[\p{Alphabetic}\p{N}]+)*$/u.test(said);
+  !/[\u0000-\u052F\u1E00-\u1FFF]\p{M}/u.test(said.normalize("NFD")) &&
+  /^[\p{Alphabetic}\p{M}\p{N}]+(-[\p{Alphabetic}\p{M}\p{N}]+)*$/u.test(said);
 
 const checkType = (type, value, at, out) => {
   if (type === "text") {
@@ -35,20 +69,28 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "boolean") out.push(at + " is not true or false");
   } else if (type === "whole") {
     if (!Number.isSafeInteger(value) || value < 0) out.push(at + " is not a whole number");
-  } else if (type === "number") {
-    if (typeof value !== "number") out.push(at + " is not a number");
+  } else if (type === "id") {
+    if (typeof value !== "string" || !isId(value)) out.push(at + " is not an id");
   } else if (type === "time") {
     if (typeof value !== "string" || !isTime(value)) out.push(at + " is not a date in whole seconds");
+  } else if (type === "moment") {
+    if (typeof value !== "string" || !isMoment(value)) out.push(at + " is not a date");
+  } else if (type === "name") {
+    if (typeof value !== "string" || !isName(value)) out.push(at + " is not a name a person can read as written");
+  } else if (type === "line") {
+    if (typeof value !== "string" || !isLine(value)) out.push(at + " is not one line a person can read as written");
+  } else if (type === "file_name") {
+    if (typeof value !== "string" || !isFileName(value)) out.push(at + " is not the name of a file");
   } else if (type === "language") {
     if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
   } else if (type === "tag_word") {
     if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
   } else if (type === "key") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a key");
+    if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a key");
   } else if (type === "hash") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a hash");
+    if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a hash");
   } else if (type === "signed") {
-    if (typeof value !== "string" || !base64urlOf(value, 86)) out.push(at + " is not a signature");
+    if (typeof value !== "string" || !base64urlOf(value, 86, 16)) out.push(at + " is not a signature");
   } else if (WHOLE.enums[type]) {
     if (!WHOLE.enums[type].includes(value)) out.push(at + " is none of " + WHOLE.enums[type].join(", "));
   } else {
@@ -68,9 +110,12 @@ function checkFields(name, value, at, out) {
     const here = at === "" ? field : at + "." + field;
     const given = value[field];
     if (given === undefined || given === null) {
-      if (said.required || value[said.required_when] === true) out.push(here + " is missing");
+      if (said.required || (said.required_when && value[said.required_when] === true)) out.push(here + " is missing");
       continue;
     }
+    if (said.only_when && value[said.only_when] !== true) out.push(here + " is only for what is " + said.only_when);
+    // A word this version does not list wears its default, so a later one can add it.
+    if (said.otherwise !== undefined && typeof given === "string") continue;
     if (said.type === "list") {
       if (!Array.isArray(given)) {
         out.push(here + " is not a list");
@@ -83,7 +128,10 @@ function checkFields(name, value, at, out) {
     }
     checkType(said.type, given, here, out);
     const size = typeof given === "string" ? lengthOf(given) : given;
-    if (typeof size === "number" && (typeof given === "string" || said.type === "whole" || said.type === "number")) {
+    if (typeof given === "string" && said.bytes_at_most !== undefined && new TextEncoder().encode(given).length > said.bytes_at_most) {
+      out.push(here + " is too long");
+    }
+    if (typeof size === "number" && (typeof given === "string" || said.type === "whole")) {
       if (said.at_least !== undefined && size < said.at_least) out.push(here + " is too short or too low");
       if (said.at_most !== undefined && size > said.at_most) out.push(here + " is too long or too high");
     }
@@ -112,6 +160,12 @@ const opened = (html) => {
   let rest = html;
   for (let start = rest.indexOf("<"); start >= 0; start = rest.indexOf("<")) {
     rest = rest.slice(start + 1);
+    if (rest.startsWith("!") || rest.startsWith("?")) out.push({ tag: "!", attributes: [], unclosed: false });
+    // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
+    if (rest.startsWith("/")) {
+      const closes = /^\/([a-zA-Z][^\t\n\f\r />]*)[\t\n\f\r ]*>/.exec(rest);
+      out.push({ tag: closes ? "</" + lowered(closes[1]) : "/", attributes: [], unclosed: false });
+    }
     if (!/^[a-zA-Z]/.test(rest)) continue;
     let end = until(rest, /[\t\n\f\r />]/);
     const one = { tag: lowered(rest.slice(0, end)), attributes: [], unclosed: false };
@@ -153,37 +207,110 @@ const opened = (html) => {
 
 const brokenBy = (rule, value) =>
   (rule.never ?? []).some((one) => words(value).includes(one)) ||
-  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
+  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with)) ||
+  (rule.only !== undefined && !rule.only.includes(value));
+
+// One spelling for a place too, and it fits a whole number in every language.
+const referenceIn = (bare) => {
+  const place = bare.slice(bare.indexOf(":") + 1);
+  const slash = place.indexOf("/");
+  const kind = place.slice(0, Math.max(slash, 0));
+  const at = place.slice(slash + 1);
+  return slash >= 0 && WHOLE.urls.references.includes(kind) && /^(0|[1-9][0-9]{0,14})$/.test(at) ? { kind, at: Number(at) } : null;
+};
 
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
+// A link says where it goes: nothing without a scheme means anything once it travels, except a heading of its own page.
 const wrongUrl = (value) => {
   const bare = [...value].filter((one) => one > " ").join("");
-  const head = bare.slice(0, until(bare, /[/?#]/));
-  if (head.includes("&")) return true;
-  const colon = head.indexOf(":");
-  return colon >= 0 && !WHOLE.urls.schemes.includes(lowered(head.slice(0, colon)));
+  if (bare.startsWith("#")) return false;
+  const colon = bare.indexOf(":");
+  if (colon < 0) return true;
+  const scheme = lowered(bare.slice(0, colon));
+  if (!WHOLE.urls.schemes.includes(scheme)) return true;
+  return scheme === "tisty" && referenceIn(bare) === null;
+};
+
+// A paint or a marker names something in its own drawing, and nothing else.
+const wrongPaint = (value) => {
+  const said = spacesOff(lowered(value));
+  if (said.includes("&") || said.includes("\\")) return true;
+  if (!said.includes("url(")) return false;
+  return !/^url\(#[^\t\n\f\r ()]+\)$/.test(said);
 };
 
 const isSizeIn = (said, unit) => said.endsWith(unit) && /^\d+(\.\d+)?$/.test(said.slice(0, said.length - unit.length));
 
+const isSized = (said, units) => {
+  if (/^-?0*\.?0+$/.test(said)) return true;
+  return units.some((unit) => said.endsWith(unit) && /^-?\d*\.?\d+$/.test(said.slice(0, said.length - unit.length)));
+};
+
+const isColor = (said) => /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(said);
+
+const holdsStyle = (rule, said) => {
+  if (rule.unit) return isSizeIn(said, rule.unit);
+  if (rule.sizes) return isSized(said, rule.sizes);
+  if (rule.color) return isColor(said);
+  return rule.values.includes(said);
+};
+
 const wrongStyles = (tag, value) =>
   value
     .split(";")
-    .map((one) => one.trim())
+    .map(spacesOff)
     .filter(Boolean)
     .filter((one) => {
       const colon = one.indexOf(":");
-      const property = lowered(one.slice(0, Math.max(colon, 0))).trim();
-      const said = lowered(one.slice(colon + 1)).trim();
-      return !WHOLE.styles.some(
-        (rule) => rule.on === tag && rule.property === property && (rule.values ? rule.values.includes(said) : isSizeIn(said, rule.unit)),
-      );
+      const property = spacesOff(lowered(one.slice(0, Math.max(colon, 0))));
+      const said = spacesOff(lowered(one.slice(colon + 1)));
+      return !WHOLE.styles.some((rule) => rule.on === tag && rule.property === property && holdsStyle(rule, said));
     });
+
+// Each place inside what travels that the HTML leads to, read as a browser reads its attributes.
+export function referencesIn(html) {
+  const out = [];
+  for (const { attributes } of opened(html)) {
+    for (const [name, value] of attributes) {
+      const bare = [...value].filter((one) => one > " ").join("");
+      const one = WHOLE.urls.attributes.includes(name) && lowered(bare).startsWith("tisty:") ? referenceIn(bare) : null;
+      if (one) out.push(one);
+    }
+  }
+  return out;
+}
+
+// Each picture the HTML draws, with the size it holds for it.
+export function picturesIn(html) {
+  const out = [];
+  for (const { tag, attributes } of opened(html)) {
+    if (tag !== "img") continue;
+    const said = (name) => attributes.find(([one]) => one === name)?.[1];
+    const one = said("src")?.startsWith("tisty:picture/") ? referenceIn(said("src")) : null;
+    if (one) out.push({ at: one.at, width: said("width"), height: said("height") });
+  }
+  return out;
+}
 
 export function checkHtml(html) {
   const out = [];
   const through = WHOLE.passthrough.attributes;
   for (const { tag, attributes, unclosed } of opened(html)) {
+    if (tag === "!") {
+      out.push("a comment is in no contract");
+      continue;
+    }
+    if (tag === "/") {
+      out.push("a closing tag that says more than its name is in no contract");
+      continue;
+    }
+    if (tag.startsWith("</")) {
+      if (!own(WHOLE.allowed, tag.slice(2)) && !WHOLE.passthrough.tags.includes(tag.slice(2))) out.push(tag + "> is in no contract");
+      continue;
+    }
+    for (const rule of WHOLE.html_rules) {
+      if (rule.tag === tag && rule.requires?.some((name) => !attributes.some(([said]) => said === name))) out.push(rule.says);
+    }
     const drawn = own(WHOLE.allowed, tag);
     if (!drawn && !WHOLE.passthrough.tags.includes(tag)) {
       out.push("<" + tag + "> is in no contract");
@@ -195,11 +322,16 @@ export function checkHtml(html) {
       if (!listed) out.push(name + " on <" + tag + "> is in no contract");
       if (name === "class") {
         for (const one of words(value)) {
-          const known = drawn?.classes.includes(one) || drawn?.class_starts.some((start) => one.startsWith(start));
+          const known =
+            !one.includes("&") &&
+            (drawn?.classes.includes(one) ||
+            drawn?.class_starts.some((start) => one.startsWith(start)) ||
+              drawn?.class_ends.some((end) => one.endsWith(end)));
           if (!known) out.push("the class " + one + " on <" + tag + "> is in no contract");
         }
       }
       if (WHOLE.urls.attributes.includes(name) && wrongUrl(value)) out.push(name + " on <" + tag + "> goes where no contract lets it");
+      if (WHOLE.urls.paints.includes(name) && wrongPaint(value)) out.push(name + " on <" + tag + "> asks for what is not in its drawing");
       if (name === "style") {
         for (const one of wrongStyles(tag, value)) out.push("the style " + one + " on <" + tag + "> is in no contract");
       }

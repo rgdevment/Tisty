@@ -12,10 +12,11 @@ const packageAt = (name: string, from: string): string => {
   return packageAt(name, up);
 };
 const studio = packageAt("tisty-diagrams", dirname(fileURLToPath(import.meta.url)));
+const contracts = join(dirname(studio), "..", "contracts", "dist", "typescript", "index.js");
 
 // The reader's own run, for Stryker: its logic is tested here; the app runs the same tests with its own.
 export default defineConfig({
-  resolve: { alias: { "tisty-diagrams": join(studio, "src") } },
+  resolve: { alias: { "tisty-diagrams": join(studio, "src"), "@tisty/contracts": contracts } },
   test: {
     environment: "jsdom",
     include: ["tests/**/*.test.ts?(x)"],

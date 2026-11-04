@@ -3,12 +3,24 @@ group: documents
 checked_by: [writer, reader]
 says: Words and what marks them. HTML written inside the words is taken only as far as passthrough says.
 values:
-  pens: [yellow, green, blue, pink]
+  pens: [yellow, red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
   callouts: [note, tip, important, warning, caution]
   hues: [red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
+  unknown_values: "A pen or a hue it does not know wears the default, and a reader never builds a style or an address from the value."
   url_schemes: [http, https, mailto, tisty]
   url_attributes: [href, src, cite]
-  page_source: "tisty:page/N, the at of a page in the same document"
+  references:
+    page: "tisty:page/N, the at of a page of the same document, from 1"
+    picture: "tisty:picture/N, the at of a picture of the same document, from 0"
+    file: "tisty:file/N, the at of a file of the same document, from 0"
+    cited: "tisty:cited/N, its place in cited, from 0"
+  links:
+    only: "A link leads to a place on the web, an address, one of these references or a heading of the same page. What leads anywhere else travels as its words."
+    anchors: "A link that starts with # moves to a heading or a note of the same page. The reader moves there without changing the address, since the part after its # holds the link key."
+    front: "The properties of a document are in the HTML, and hidden on the sheet. A reader shows them in its details."
+    never_a_card: "A task, a document not shared along and a [[reference]] travel as their words, with no trace of what they named."
+    icons: "An icon travels drawn, as an svg inside its span, so a reader never needs the set."
+    finished: "Everything is in the HTML when it travels: nothing is asked for or worked out to read it."
   passthrough_tags:
     [a, abbr, acronym, area, article, aside, b, bdi, bdo, blockquote, br, caption, center, cite, code, col, colgroup,
      data, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hgroup,
@@ -35,32 +47,32 @@ values:
     thead: [align, char, charoff]
     tr: [align, char, charoff]
 draws:
-  - { tag: h1, attributes: [id, data-at] }
-  - { tag: h2, attributes: [id, data-at] }
-  - { tag: h3, attributes: [id, data-at] }
-  - { tag: h4, attributes: [id, data-at] }
-  - { tag: h5, attributes: [id, data-at] }
-  - { tag: h6, attributes: [id, data-at] }
-  - { tag: p, attributes: [data-at, class], classes: [refdef] }
+  - { tag: h1, attributes: [id] }
+  - { tag: h2, attributes: [id] }
+  - { tag: h3, attributes: [id] }
+  - { tag: h4, attributes: [id] }
+  - { tag: h5, attributes: [id] }
+  - { tag: h6, attributes: [id] }
+  - { tag: p, attributes: [class], classes: [refdef] }
   - { tag: strong }
   - { tag: em }
   - { tag: s }
   - { tag: u }
   - { tag: br }
   - { tag: code, attributes: [class], classes: [math] }
-  - { tag: a, attributes: [href, class, data-doc, data-task], classes: [card] }
+  - { tag: a, attributes: [href, class], classes: [card] }
   - { tag: mark, attributes: [data-pen] }
-  - { tag: span, attributes: [class, data-tag, data-ico, data-hue, data-ref, data-done, title], classes: [tag, ico, ref, check, fn-label, front-sep, refdef-label, refdef-to] }
-  - { tag: blockquote, attributes: [class, data-callout, data-at], classes: [callout] }
-  - { tag: ul, attributes: [data-at] }
-  - { tag: ol, attributes: [start, data-at] }
-  - { tag: li, attributes: [class, data-at], classes: [task] }
-  - { tag: hr, attributes: [data-at] }
-  - { tag: details, attributes: [open, data-at] }
+  - { tag: span, attributes: [class, data-tag, data-ico, data-hue, data-done, title], classes: [tag, ico, check, fn-label, front-sep, refdef-label, refdef-to] }
+  - { tag: blockquote, attributes: [class, data-callout], classes: [callout] }
+  - { tag: ul }
+  - { tag: ol, attributes: [start] }
+  - { tag: li, attributes: [class], classes: [task] }
+  - { tag: hr }
+  - { tag: details, attributes: [open] }
   - { tag: summary }
-  - { tag: div, attributes: [id, class, data-at], classes: [footnote] }
+  - { tag: div, attributes: [id, class], classes: [footnote] }
   - { tag: sup, attributes: [class], classes: [fnref] }
-  - { tag: dl, attributes: [class, data-at], classes: [front] }
+  - { tag: dl, attributes: [class], classes: [front] }
   - { tag: dt }
   - { tag: dd }
 ---
@@ -73,7 +85,7 @@ values:
   totals: [sum, avg, min, max, count]
   leans: [left, center, right]
 draws:
-  - { tag: div, attributes: [class, data-at], classes: [table] }
+  - { tag: div, attributes: [class], classes: [table] }
   - { tag: table }
   - { tag: colgroup }
   - { tag: col, attributes: [style] }
@@ -91,30 +103,51 @@ styles:
 contract: code
 group: documents
 checked_by: [writer, reader]
-says: A block of code, with its language and its title. The writer colours it before it travels.
+says: >-
+  A block of code, with its language and its title. The writer colours it before it travels, as far as it can: a language
+  it does not know and a block past its limit travel without colour, and read the same.
+values:
+  colored_at_most_characters: 65536
 draws:
-  - { tag: figure, attributes: [class, data-at], classes: [code] }
+  - { tag: figure, attributes: [class], classes: [code] }
   - { tag: figcaption }
   - { tag: pre }
   - { tag: code, attributes: [class], class_starts: [language-] }
-  - { tag: span, attributes: [class], class_starts: [hljs-] }
+  - { tag: span, attributes: [class], class_starts: [hljs-], class_ends: [_] }
 ---
 contract: diagram
 group: documents
 checked_by: [writer, reader]
-says: A drawing inside a document. It is no document itself. The writer draws it as inline SVG before it travels, and its colours follow the theme.
+says: >-
+  A drawing inside a document. It is no document itself. The writer draws it before it travels as two inline SVG, one for
+  each theme, and a reader shows the one of its theme. All it needs is on its attributes: no style, no class, no script.
+  What a stylesheet alone could say, such as a shadow or a filter on a card, stays behind.
 values:
   languages: [mermaid, mmd]
-  colors: "var(--tisty-*) or currentColor"
+  themes: [light, dark]
+  in_a_figure: "Two svg, each saying its data-theme."
+  paint_attributes: [fill, stroke, marker-start, marker-end, marker-mid, clip-path]
+  paint_urls: "A paint or a marker names something in its own drawing, as url(#name), and nothing else."
+  not_drawn: "A diagram that cannot be drawn travels as code, with no language, and the writer says so to the person."
+html_rules:
+  - { tag: svg, attribute: data-theme, only: [light, dark], says: "A drawing is for one of the two themes." }
 draws:
-  - { tag: figure, attributes: [class, data-at], classes: [diagram] }
-  - { tag: svg, attributes: [xmlns, width, height, viewbox, role, aria-label] }
-  - { tag: g, attributes: [transform, fill, stroke] }
-  - { tag: path, attributes: [d, fill, stroke, stroke-width, stroke-dasharray, marker-end, marker-start] }
-  - { tag: rect, attributes: [x, y, width, height, rx, ry, fill, stroke, stroke-width] }
-  - { tag: polygon, attributes: [points, fill, stroke] }
-  - { tag: text, attributes: [x, y, fill, text-anchor, dominant-baseline, font-size, font-weight, font-family] }
-  - { tag: marker, attributes: [id, markerwidth, markerheight, refx, refy, orient] }
+  - { tag: figure, attributes: [class], classes: [diagram] }
+  - { tag: svg, attributes: [xmlns, width, height, viewbox, preserveaspectratio, role, aria-label, aria-hidden, data-theme, fill, stroke, stroke-width, stroke-linecap, stroke-linejoin, font-family, font-size, font-weight, font-style, text-anchor] }
+  - { tag: g, attributes: [transform, opacity, fill, fill-opacity, fill-rule, stroke, stroke-width, stroke-opacity, stroke-dasharray, stroke-linecap, stroke-linejoin, font-family, font-size, font-weight, font-style, text-anchor, dominant-baseline, clip-path] }
+  - { tag: path, attributes: [d, transform, opacity, fill, fill-opacity, fill-rule, stroke, stroke-width, stroke-opacity, stroke-dasharray, stroke-linecap, stroke-linejoin, marker-start, marker-end, marker-mid, clip-path] }
+  - { tag: rect, attributes: [x, y, width, height, rx, ry, transform, opacity, fill, fill-opacity, stroke, stroke-width, stroke-opacity, stroke-dasharray, clip-path] }
+  - { tag: circle, attributes: [cx, cy, r, transform, opacity, fill, fill-opacity, stroke, stroke-width, stroke-opacity, stroke-dasharray] }
+  - { tag: ellipse, attributes: [cx, cy, rx, ry, transform, opacity, fill, fill-opacity, stroke, stroke-width, stroke-opacity, stroke-dasharray] }
+  - { tag: line, attributes: [x1, y1, x2, y2, transform, opacity, stroke, stroke-width, stroke-opacity, stroke-dasharray, stroke-linecap, marker-start, marker-end, marker-mid] }
+  - { tag: polyline, attributes: [points, transform, opacity, fill, stroke, stroke-width, stroke-opacity, stroke-dasharray, stroke-linecap, stroke-linejoin, marker-start, marker-end, marker-mid] }
+  - { tag: polygon, attributes: [points, transform, opacity, fill, fill-opacity, stroke, stroke-width, stroke-opacity, stroke-dasharray, marker-start, marker-end, marker-mid] }
+  - { tag: text, attributes: [x, y, dx, dy, transform, opacity, fill, stroke, stroke-width, text-anchor, dominant-baseline, font-size, font-weight, font-family, font-style, clip-path] }
+  - { tag: tspan, attributes: [x, y, dx, dy, fill, stroke, text-anchor, dominant-baseline, font-size, font-weight, font-family, font-style] }
+  - { tag: marker, attributes: [id, viewbox, markerwidth, markerheight, markerunits, refx, refy, orient] }
+  - { tag: clippath, attributes: [id] }
+  - { tag: lineargradient, attributes: [id, x1, y1, x2, y2, gradientunits] }
+  - { tag: stop, attributes: [offset, stop-color, stop-opacity] }
   - { tag: defs }
 never: [foreignobject, style, script, use, image]
 ---
@@ -122,60 +155,128 @@ contract: formula
 group: documents
 checked_by: [writer, reader]
 says: A formula, drawn as MathML, which browsers draw on their own.
+values:
+  sizes: [em, rem, ex, "%", px]
+  aligned: [left, right, center]
+  justified: [start, end, center]
+  lines: ["0.05em solid currentcolor", "0.05em dashed currentcolor"]
+  shifted: [compact]
+  caps: [small-caps]
 draws:
-  - { tag: div, attributes: [class, data-at], classes: [math] }
-  - { tag: math, attributes: [display] }
-  - { tag: mrow }
-  - { tag: mi }
-  - { tag: mn }
-  - { tag: mo, attributes: [lspace, rspace, stretchy] }
-  - { tag: mfrac }
+  - { tag: div, attributes: [class], classes: [math] }
+  - { tag: math, attributes: [display, displaystyle] }
+  - { tag: mrow, attributes: [displaystyle, scriptlevel, style, class], class_starts: [menclose-] }
+  - { tag: mi, attributes: [mathvariant, style] }
+  - { tag: mn, attributes: [mathvariant, style] }
+  - { tag: mo, attributes: [lspace, rspace, stretchy, form, fence, separator, largeop, movablelimits, minsize, maxsize, symmetric, mathvariant, accent, style] }
+  - { tag: mfrac, attributes: [displaystyle, linethickness, scriptlevel, style] }
   - { tag: msup }
   - { tag: msub }
   - { tag: msubsup }
-  - { tag: mover }
-  - { tag: munder }
-  - { tag: munderover }
+  - { tag: mover, attributes: [accent, displaystyle, scriptlevel] }
+  - { tag: munder, attributes: [accentunder, displaystyle, scriptlevel] }
+  - { tag: munderover, attributes: [accent, accentunder, displaystyle, scriptlevel] }
   - { tag: msqrt }
   - { tag: mroot }
-  - { tag: mtable, attributes: [displaystyle, scriptlevel] }
-  - { tag: mtr }
-  - { tag: mtd }
-  - { tag: mspace, attributes: [width] }
-  - { tag: mtext }
+  - { tag: mtable, attributes: [displaystyle, scriptlevel, style] }
+  - { tag: mtr, attributes: [style] }
+  - { tag: mtd, attributes: [style] }
+  - { tag: mspace, attributes: [width, style] }
+  - { tag: mtext, attributes: [style, mathvariant] }
+  - { tag: mpadded, attributes: [width, height, depth, voffset, lspace, style] }
+  - { tag: mphantom }
+  - { tag: menclose, attributes: [notation] }
+  - { tag: mmultiscripts }
+  - { tag: mprescripts }
+  - { tag: merror, attributes: [class], class_starts: [math-core-] }
+  - { tag: span, attributes: [style, class], class_starts: [math-core-] }
+styles:
+  - { on: [mrow, mi, mn, mo, mtext, mfrac], property: color, color: true }
+  - { on: [mrow, mi, mn, mo, mtext], property: font-size, sized: sizes }
+  - { on: [mrow, mo, mspace, mpadded], property: margin-left, sized: sizes }
+  - { on: [mrow, mo, mspace, mpadded], property: margin-right, sized: sizes }
+  - { on: [mrow, mtd, mtr, mtable, mspace, mpadded], property: padding-left, sized: sizes }
+  - { on: [mrow, mtd, mtr, mtable, mspace, mpadded], property: padding-right, sized: sizes }
+  - { on: [mrow, mtd, mtr, mtable, mspace, mpadded, mfrac], property: padding-top, sized: sizes }
+  - { on: [mrow, mtd, mtr, mtable, mspace, mpadded, mfrac], property: padding-bottom, sized: sizes }
+  - { on: [mtable, mtd, mspace], property: width, sized: sizes }
+  - { on: [mtd], property: text-align, is: aligned }
+  - { on: [mtd], property: justify-items, is: justified }
+  - { on: [mtable, mtr, mtd], property: border-top, is: lines }
+  - { on: [mtable, mtr, mtd], property: border-bottom, is: lines }
+  - { on: [mtable, mtr, mtd], property: border-left, is: lines }
+  - { on: [mtable, mtr, mtd], property: border-right, is: lines }
+  - { on: [mrow, mtable, mtd], property: math-shift, is: shifted }
+  - { on: [span, mtext], property: font-variant-caps, is: caps }
 ---
 contract: attachment
 group: documents
 checked_by: [writer, reader]
 says: >-
-  A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in
-  its files envelope, shows as a card and is asked for the first time it is opened.
-values:
-  pictures: [png, jpeg]
-  first_bytes: { png: 89504E47, jpeg: FFD8FF }
-  writer_makes_pictures:
-    - "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing."
-    - "Its longest side is at most 1600 pixels."
-    - "A photo goes as JPEG at quality 82, and anything else as PNG."
-    - "A JPEG it need not turn or shrink travels as it is, without its APPn segments except the ICC profile and Adobe's APP14."
-    - "An animated GIF stays its first frame."
-    - "The same picture travels once."
-  reader_checks_pictures: "That the kind it says matches its first bytes."
-  picture_source: "tisty:picture/N, its at among the pictures"
-  file_source: "tisty:file/N, its at among the files"
+  A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its
+  files envelope, shows as a card and is asked for the first time it is opened.
 fields:
   at: { type: whole, required: true, says: "Its place among those it travels with, from 0." }
-  name: { type: text, required: true, at_least: 1 }
-  kind: { type: text }
+  name: { type: file_name, required: true, at_least: 1, says: "One line, with no path." }
+  kind: { type: line }
   size: { type: whole, says: "Its bytes." }
-draws:
-  - { tag: img, attributes: [src, alt, loading, data-as] }
+values:
+  file_source: "tisty:file/N, its at among the files"
+  reader_opens_files: "A file is only ever downloaded. A reader never draws it or runs it, and never believes its name or its kind."
 cases:
   - says: "A file with its name."
     value: { at: 1, name: "cartilla.pdf", kind: "application/pdf", size: 2048 }
     holds: true
   - says: "No name."
     value: { at: 1, kind: "application/pdf" }
+    holds: false
+---
+contract: picture
+group: documents
+is: attachment
+checked_by: [writer, reader]
+says: >-
+  An attachment that is drawn. Its bytes are pixels the writer wrote itself, so an image is nothing but an image. Its size
+  is known before it is drawn, so its place on the sheet is held and no cut moves when it arrives.
+enums:
+  picture_kind: [image/png, image/jpeg]
+fields:
+  kind: { type: picture_kind, required: true }
+  size: { type: whole, required: true, says: "Its bytes." }
+  width: { type: whole, required: true, at_least: 1, at_most: 1600 }
+  height: { type: whole, required: true, at_least: 1, at_most: 1600 }
+values:
+  first_bytes: { image/png: 89504E470D0A1A0A, image/jpeg: FFD8FF }
+  picture_source: "tisty:picture/N, its at among the pictures"
+  writer_makes_pictures:
+    - "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them."
+    - "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Of a colour profile for the three channels written, of at most 64 KiB, only what says how its pixels look is written anew: no names, dates or descriptions."
+    - "A file cut short is no picture."
+    - "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing."
+    - "Its longest side is at most 1600 pixels."
+    - "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82, unless something shows through it. Anything else goes as PNG."
+    - "An animated picture stays its first frame."
+    - "The same picture travels once."
+    - "Its name says nothing of where it came from: picture-N, with its kind's ending."
+  writer_asks_the_machine: "What it cannot decode itself, as HEIC, it may ask the machine to turn into something it can, and goes on from those pixels."
+  cannot_be_made: "A picture that cannot be made, and an SVG, which is never a picture, travels as a file with its card, or as its alt when that cannot go either. The writer says so to the person."
+  reader_checks_pictures: "That its first bytes match its kind, that its header says its width and height before decoding it, and that nothing follows its end. One that fails shows its alt."
+draws:
+  - { tag: img, attributes: [src, alt, width, height, loading] }
+html_rules:
+  - { tag: img, requires: [src, alt, width, height], says: "A picture says its size, and its place on the sheet is held." }
+cases:
+  - says: "A picture with all it needs."
+    value: { at: 0, name: "picture-0.png", kind: "image/png", size: 2048, width: 640, height: 480 }
+    holds: true
+  - says: "No size on the sheet."
+    value: { at: 0, name: "picture-0.png", kind: "image/png", size: 2048 }
+    holds: false
+  - says: "Past the longest side."
+    value: { at: 0, name: "picture-0.jpg", kind: "image/jpeg", size: 2048, width: 4000, height: 3000 }
+    holds: false
+  - says: "A kind that is not drawn."
+    value: { at: 0, name: "picture-0.svg", kind: "image/svg+xml", size: 2048, width: 10, height: 10 }
     holds: false
 ---
 contract: widget
@@ -185,8 +286,8 @@ says: A small isolated view inside a document, which can run its own script. Tis
 fields:
   title: { type: text }
   body: { type: text, required: true }
-draws:
-  - { tag: figure, attributes: [class, data-at], classes: [code] }
+values:
+  drawn_as: "A block of code in the language widget."
 cases:
   - says: "A widget with its words."
     value: { title: "Rina este mes", body: "<div></div>" }

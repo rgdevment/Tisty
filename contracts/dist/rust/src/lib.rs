@@ -2,91 +2,124 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.0.0-draft.7";
+pub const VERSION: &str = "1.0.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+pub enum PictureKind {
+    #[serde(rename = "image/png")]
+    ImagePng,
+    #[serde(rename = "image/jpeg")]
+    ImageJpeg,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EnvelopeKind {
+    #[serde(rename = "main")]
     Main,
+    #[serde(rename = "files")]
     Files,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum PartName {
+    #[serde(rename = "first")]
     First,
+    #[serde(rename = "rest")]
     Rest,
+    #[serde(rename = "picture")]
     Picture,
+    #[serde(rename = "file")]
     File,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum SyncEvery {
+    #[serde(rename = "off")]
     Off,
+    #[serde(rename = "every5")]
     Every5,
+    #[serde(rename = "every10")]
     Every10,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum SheetsWord {
+    #[serde(rename = "on")]
     On,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum SaidPriority {
+    #[serde(rename = "do")]
     Do,
+    #[serde(rename = "decide")]
     Decide,
+    #[serde(rename = "delegate")]
     Delegate,
+    #[serde(rename = "minor")]
     Minor,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Verdict {
+    #[serde(rename = "holds")]
     Holds,
-    Revoked,
+    #[serde(rename = "retired")]
+    Retired,
+    #[serde(rename = "doubtful")]
+    Doubtful,
+    #[serde(rename = "refused")]
     Refused,
+    #[serde(rename = "unreadable")]
+    Unreadable,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Paper {
+    #[serde(rename = "a4")]
     A4,
+    #[serde(rename = "letter")]
     Letter,
+    #[serde(rename = "folio")]
     Folio,
+    #[serde(rename = "tabloid")]
     Tabloid,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Orientation {
+    #[serde(rename = "portrait")]
     Portrait,
+    #[serde(rename = "landscape")]
     Landscape,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Status {
+    #[serde(rename = "open")]
     Open,
+    #[serde(rename = "done")]
     Done,
+    #[serde(rename = "dropped")]
     Dropped,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub enum Priority {
+    #[serde(rename = "do")]
     Do,
+    #[serde(rename = "decide")]
     Decide,
+    #[serde(rename = "delegate")]
     Delegate,
+    #[serde(rename = "unset")]
     Unset,
+    #[serde(rename = "minor")]
     Minor,
 }
 
-/// A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened.
+/// A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Attachment {
     pub at: u64,
@@ -95,6 +128,17 @@ pub struct Attachment {
     pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<u64>,
+}
+
+/// An attachment that is drawn. Its bytes are pixels the writer wrote itself, so an image is nothing but an image. Its size is known before it is drawn, so its place on the sheet is held and no cut moves when it arrives.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Picture {
+    pub at: u64,
+    pub name: String,
+    pub kind: PictureKind,
+    pub size: u64,
+    pub width: u64,
+    pub height: u64,
 }
 
 /// A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
@@ -112,39 +156,29 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<Tag>>,
+    pub tags: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sheet: Option<Sheet>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub by: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub born_by: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub edited_by: Option<String>,
     pub body: String,
     pub html: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pages: Option<Vec<Page>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pictures: Option<Vec<Attachment>>,
+    pub pictures: Option<Vec<Picture>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<Attachment>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cited: Option<Vec<Cited>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub properties: Option<Vec<Property>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub languages: Option<Vec<Translation>>,
 }
@@ -156,15 +190,11 @@ pub trait DocumentReader {
     fn set_orientation(&mut self, orientation: Orientation);
     fn index(&mut self) -> Vec<String>;
     fn details(&mut self) -> Document;
-    fn verdict(&mut self) -> Verdict;
+    fn verdict(&mut self, file: Vec<u8>, served: Served) -> Result<Verdict, String>;
     fn go_to_page(&mut self, at: u64);
     fn set_language(&mut self, lang: String);
     fn open_in_tisty(&mut self);
     fn copy_link(&mut self) -> String;
-}
-
-pub trait DocumentWriter {
-    fn draw(&mut self, body: String) -> String;
 }
 
 /// How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads.
@@ -185,11 +215,35 @@ pub struct Envelope {
 }
 
 pub trait EnvelopeWriter {
-    fn seal(&mut self, document: Document) -> Envelope;
+    fn seal(&mut self, document: Document, pictures: Vec<Vec<u8>>, files: Vec<Vec<u8>>, sealing: Sealing) -> Result<Vec<Vec<u8>>, String>;
 }
 
 pub trait EnvelopeReader {
-    fn open(&mut self, envelope: Envelope, key: String) -> Document;
+    fn open(&mut self, file: Vec<u8>, opening: Opening) -> Result<Vec<Vec<u8>>, String>;
+}
+
+/// What a writer needs to seal a document, beyond the document and its bytes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Sealing {
+    pub id: String,
+    pub version: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_key: Option<String>,
+}
+
+/// What a reader asks for when it opens an envelope.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Opening {
+    pub id: String,
+    pub kind: EnvelopeKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_key: Option<String>,
 }
 
 /// One part of an envelope, as the manifest tells it. The server holds its limits to these sizes.
@@ -239,13 +293,6 @@ pub struct FrontMatter {
     pub repeat: Option<String>,
 }
 
-/// One property as it was written, including those Tisty does not know, which it keeps and shows.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Property {
-    pub key: String,
-    pub values: Vec<String>,
-}
-
 /// A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Page {
@@ -253,31 +300,17 @@ pub struct Page {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<Tag>>,
+    pub tags: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sheet: Option<Sheet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub signed_as: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub by: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub born_by: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub edited_by: Option<String>,
     pub body: String,
     pub html: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub properties: Option<Vec<Property>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub languages: Option<Vec<Translation>>,
     pub page_of: String,
     pub at: u64,
 }
@@ -293,13 +326,13 @@ pub struct Translation {
     pub key: Option<String>,
 }
 
-/// A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
+/// A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     pub name: String,
 }
 
-/// Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs, under a certificate from the root. It travels in clear, so the server checks it without opening anything.
+/// Who answers for an envelope, and through it for the document. The root key is who a person is, and it never changes: a version under another root is someone else. The machine key signs, under a certificate from the root, and it can be replaced. It travels in clear, so the server checks it without opening anything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
     pub root: String,
@@ -309,7 +342,7 @@ pub struct Signature {
     pub signed: String,
 }
 
-/// A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed as revoked. It is not about stopping sharing a document or stopping a person from publishing.
+/// A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it holds. Everything it decides is decided by whoever receives it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Revocation {
     pub root: String,
@@ -318,11 +351,21 @@ pub struct Revocation {
     pub signed: String,
 }
 
+/// What the server serves beside an envelope, in clear, so a reader can weigh its signature. A reader trusts it as far as it trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Served {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub received: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revocations: Option<Vec<Revocation>>,
+}
+
 /// Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Cited {
     pub document: String,
-    pub key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
 }
@@ -355,7 +398,7 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub list: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<Tag>>,
+    pub tags: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repeat: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -386,7 +429,7 @@ pub struct Note {
     pub body: String,
 }
 
-/// When a task rings.
+/// When a task rings, written as a task's date is.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Reminder {
     pub at: String,
@@ -439,11 +482,84 @@ fn is_time(said: &str) -> bool {
         && number(17, 19) <= 59
 }
 
-fn base64url_of(said: &str, length: usize) -> bool {
+// A moment nothing signs may hold a fraction of a second, as the log keeps them.
+fn is_moment(said: &str) -> bool {
+    match said.split_once('.') {
+        Some((whole, part)) => {
+            let digits = part.strip_suffix('Z').unwrap_or_default();
+            (1..=9).contains(&digits.len())
+                && digits.bytes().all(|digit| digit.is_ascii_digit())
+                && is_time(&format!("{whole}Z"))
+        }
+        None => is_time(said),
+    }
+}
+
+fn unseen(one: char) -> bool {
+    one.is_control()
+        || matches!(
+            one,
+            '\u{00AD}'
+                | '\u{034F}'
+                | '\u{061C}'
+                | '\u{115F}'
+                | '\u{1160}'
+                | '\u{17B4}'..='\u{17B5}'
+                | '\u{180B}'..='\u{180F}'
+                | '\u{200B}' | '\u{200E}' | '\u{200F}'
+                | '\u{2028}'..='\u{202E}'
+                | '\u{2060}'..='\u{206F}'
+                | '\u{2800}'
+                | '\u{3164}'
+                | '\u{FEFF}'
+                | '\u{FFA0}'
+                | '\u{FFF9}'..='\u{FFFB}'
+                | '\u{1D173}'..='\u{1D17A}'
+                | '\u{E0000}'..='\u{E007F}'
+        )
+}
+
+// Many scripts write with a joiner, and it only hides a letter where no script needs one: between Latin, Greek or Cyrillic.
+fn needs_no_joiner(one: Option<&char>) -> bool {
+    one.is_none_or(|one| *one < '\u{0590}' || ('\u{1E00}'..='\u{1FFF}').contains(one))
+}
+
+fn is_line(said: &str) -> bool {
+    let points: Vec<char> = said.chars().collect();
+    let joined = |at: usize| !needs_no_joiner(at.checked_sub(1).and_then(|before| points.get(before))) && !needs_no_joiner(points.get(at + 1));
+    !points.iter().any(|one| unseen(*one)) && points.iter().enumerate().all(|(at, one)| !matches!(one, '\u{200C}' | '\u{200D}') || joined(at))
+}
+
+fn is_file_name(said: &str) -> bool {
+    is_line(said) && !said.contains(['/', '\\'])
+}
+
+fn is_name(said: &str) -> bool {
+    let letters = said.chars().filter(|one| one.is_alphabetic()).count();
+    let digits = said.chars().filter(char::is_ascii_digit).count();
+    said.trim() == said && said.chars().count() <= 80 && letters > 0 && digits <= letters && is_line(said)
+}
+
+const BASE64URL: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const WHOLE_AT_MOST: u64 = (1 << 53) - 1;
+
+// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
+fn base64url_of(said: &str, length: usize, spare: usize) -> bool {
     said.len() == length
-        && said
-            .bytes()
-            .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
+        && said.bytes().all(|one| BASE64URL.as_bytes().contains(&one))
+        && said.bytes().last().and_then(|one| BASE64URL.bytes().position(|known| known == one)).is_some_and(|at| at % spare == 0)
+}
+
+fn is_id(said: &str) -> bool {
+    !said.is_empty() && said.bytes().all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
+}
+
+// What JavaScript can tell of a number: an integer it holds exactly, however it was written.
+fn is_whole(value: &Value) -> bool {
+    match value.as_u64() {
+        Some(number) => number <= WHOLE_AT_MOST,
+        None => value.as_f64().is_some_and(|number| number.fract() == 0.0 && (0.0..=WHOLE_AT_MOST as f64).contains(&number)),
+    }
 }
 
 fn is_language(said: &str) -> bool {
@@ -472,16 +588,29 @@ fn is_language(said: &str) -> bool {
 }
 
 fn is_tag_word(said: &str) -> bool {
+    let apart: Vec<char> = said.nfd().collect();
+    // Accents come off the alphabets that have them, and elsewhere a mark is how the word is written.
+    let accented = apart.windows(2).any(|one| (one[0] <= '\u{052F}' || ('\u{1E00}'..='\u{1FFF}').contains(&one[0])) && is_combining_mark(one[1]));
     said == said.to_lowercase()
-        && said.nfd().filter(|one| !is_combining_mark(*one)).eq(said.chars())
+        && !accented
         && said
             .split('-')
-            .all(|part| !part.is_empty() && part.chars().all(char::is_alphanumeric))
+            .all(|part| !part.is_empty() && part.chars().all(|one| one.is_alphanumeric() || is_combining_mark(one)))
 }
 
 fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<String>) {
     let wrong = |said: &str| format!("{at} {said}");
     match kind {
+        "line" => {
+            if !value.as_str().is_some_and(is_line) {
+                out.push(wrong("is not one line a person can read as written"));
+            }
+        }
+        "file_name" => {
+            if !value.as_str().is_some_and(is_file_name) {
+                out.push(wrong("is not the name of a file"));
+            }
+        }
         "text" => {
             if !value.is_string() {
                 out.push(wrong("is not text"));
@@ -493,18 +622,28 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
             }
         }
         "whole" => {
-            if !value.is_u64() {
+            if !is_whole(value) {
                 out.push(wrong("is not a whole number"));
             }
         }
-        "number" => {
-            if !value.is_number() {
-                out.push(wrong("is not a number"));
+        "id" => {
+            if !value.as_str().is_some_and(is_id) {
+                out.push(wrong("is not an id"));
             }
         }
         "time" => {
             if !value.as_str().is_some_and(is_time) {
                 out.push(wrong("is not a date in whole seconds"));
+            }
+        }
+        "moment" => {
+            if !value.as_str().is_some_and(is_moment) {
+                out.push(wrong("is not a date"));
+            }
+        }
+        "name" => {
+            if !value.as_str().is_some_and(is_name) {
+                out.push(wrong("is not a name a person can read as written"));
             }
         }
         "language" => {
@@ -518,17 +657,17 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
             }
         }
         "key" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
                 out.push(wrong("is not a key"));
             }
         }
         "hash" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
                 out.push(wrong("is not a hash"));
             }
         }
         "signed" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 86)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 86, 16)) {
                 out.push(wrong("is not a signature"));
             }
         }
@@ -567,6 +706,14 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
             }
             continue;
         };
+        let only_when = said["only_when"].as_str();
+        if let Some(field) = only_when.filter(|field| given.get(*field) != Some(&Value::Bool(true))) {
+            out.push(format!("{here} is only for what is {field}"));
+        }
+        // A word this version does not list wears its default, so a later one can add it.
+        if said.get("otherwise").is_some() && one.is_string() {
+            continue;
+        }
         let least = said["at_least"].as_u64();
         let most = said["at_most"].as_u64();
         if said["type"] == "list" {
@@ -588,9 +735,15 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         }
         let kind = said["type"].as_str().unwrap_or_default();
         check_type(all, kind, one, &here, out);
+        let bytes = said["bytes_at_most"].as_u64();
+        if let (Value::String(text), Some(top)) = (one, bytes) {
+            if text.len() as u64 > top {
+                out.push(format!("{here} is too long"));
+            }
+        }
         let size = match one {
             Value::String(text) => Some(text.chars().count() as u64),
-            Value::Number(number) => number.as_u64(),
+            Value::Number(number) => number.as_f64().map(|number| number as u64),
             _ => None,
         };
         if let Some(size) = size {
@@ -625,12 +778,30 @@ struct Opened {
     unclosed: bool,
 }
 
+fn closes_well(said: &str) -> bool {
+    let end = said.find(|one: char| is_space(one) || one == '/' || one == '>').unwrap_or(said.len());
+    said.starts_with(|one: char| one.is_ascii_alphabetic()) && said[end..].trim_start_matches(is_space).starts_with('>')
+}
+
 // Each tag the HTML opens, with its attributes. It walks as checkHtml does in TypeScript, so one page gets one verdict.
 fn opened(html: &str) -> Vec<Opened> {
     let mut out = Vec::new();
     let mut rest = html;
     while let Some(start) = rest.find('<') {
         rest = &rest[start + 1..];
+        if rest.starts_with(['!', '?']) {
+            out.push(Opened { tag: "!".to_owned(), attributes: Vec::new(), unclosed: false });
+        }
+        // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
+        if let Some(closing) = rest.strip_prefix('/') {
+            let tag = if closes_well(closing) {
+                let end = closing.find(|one: char| is_space(one) || one == '/' || one == '>').unwrap_or(closing.len());
+                format!("</{}", closing[..end].to_ascii_lowercase())
+            } else {
+                "/".to_owned()
+            };
+            out.push(Opened { tag, attributes: Vec::new(), unclosed: false });
+        }
         if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
             continue;
         }
@@ -692,18 +863,90 @@ fn words(said: &str) -> impl Iterator<Item = &str> {
 fn broken_by(rule: &Value, value: &str) -> bool {
     words(value).any(|one| listed(&rule["never"], one))
         || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
+        || rule["only"].as_array().is_some_and(|only| !only.iter().any(|one| one == value))
 }
 
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
+// A link says where it goes: nothing without a scheme means anything once it travels, except a heading of its own page.
 fn wrong_url(all: &Value, value: &str) -> bool {
     let bare: String = value.chars().filter(|one| *one > ' ').collect();
-    let end = bare.find(['/', '?', '#']).unwrap_or(bare.len());
-    let head = &bare[..end];
-    if head.contains('&') {
+    if bare.starts_with('#') {
+        return false;
+    }
+    let Some((scheme, place)) = bare.split_once(':') else {
+        return true;
+    };
+    let scheme = scheme.to_ascii_lowercase();
+    if !listed(&all["urls"]["schemes"], &scheme) {
         return true;
     }
-    head.split_once(':')
-        .is_some_and(|(scheme, _)| !listed(&all["urls"]["schemes"], &scheme.to_ascii_lowercase()))
+    scheme == "tisty" && reference_in(all, place).is_none()
+}
+
+// One spelling for a place too, and it fits a whole number in every language.
+fn reference_in(all: &Value, place: &str) -> Option<(String, u64)> {
+    let (kind, at) = place.split_once('/')?;
+    let spelled = at == "0" || (!at.starts_with('0') && !at.is_empty() && at.len() <= 15 && at.bytes().all(|digit| digit.is_ascii_digit()));
+    if !spelled || !listed(&all["urls"]["references"], kind) {
+        return None;
+    }
+    Some((kind.to_owned(), at.parse().ok()?))
+}
+
+/// Each picture the HTML draws, with the width and the height it holds for it.
+pub fn pictures_in(html: &str) -> Vec<(u64, String, String)> {
+    let all = whole();
+    let mut out = Vec::new();
+    for Opened { tag, attributes, .. } in opened(html) {
+        if tag != "img" {
+            continue;
+        }
+        let said = |name: &str| attributes.iter().find(|(one, _)| one == name).map(|(_, value)| value.clone());
+        let Some(src) = said("src") else {
+            continue;
+        };
+        let place = src.strip_prefix("tisty:").filter(|one| one.starts_with("picture/"));
+        if let Some((_, at)) = place.and_then(|one| reference_in(all, one)) {
+            out.push((at, said("width").unwrap_or_default(), said("height").unwrap_or_default()));
+        }
+    }
+    out
+}
+
+/// Each place inside what travels that the HTML leads to, read as a browser reads its attributes.
+pub fn references_in(html: &str) -> Vec<(String, u64)> {
+    let all = whole();
+    let mut out = Vec::new();
+    for Opened { attributes, .. } in opened(html) {
+        for (name, value) in attributes {
+            if !listed(&all["urls"]["attributes"], &name) {
+                continue;
+            }
+            let bare: String = value.chars().filter(|one| *one > ' ').collect();
+            let Some((scheme, place)) = bare.split_once(':') else {
+                continue;
+            };
+            if scheme.eq_ignore_ascii_case("tisty") {
+                out.extend(reference_in(all, place));
+            }
+        }
+    }
+    out
+}
+
+// A paint or a marker names something in its own drawing, and nothing else.
+fn wrong_paint(value: &str) -> bool {
+    let said = value.trim_matches(is_space).to_ascii_lowercase();
+    if said.contains('&') || said.contains('\\') {
+        return true;
+    }
+    if !said.contains("url(") {
+        return false;
+    }
+    !said
+        .strip_prefix("url(#")
+        .and_then(|rest| rest.strip_suffix(')'))
+        .is_some_and(|name| !name.is_empty() && !name.contains(|one: char| is_space(one) || one == '(' || one == ')'))
 }
 
 fn is_size_in(said: &str, unit: &str) -> bool {
@@ -714,15 +957,33 @@ fn is_size_in(said: &str, unit: &str) -> bool {
     })
 }
 
+fn is_sized(said: &str, units: &Value) -> bool {
+    let signed = said.strip_prefix('-').unwrap_or(said);
+    let number = |one: &str| {
+        let bare = one.replacen('.', "", 1);
+        !bare.is_empty() && !one.ends_with('.') && bare.bytes().all(|digit| digit.is_ascii_digit())
+    };
+    if number(signed) && signed.bytes().all(|one| one == b'0' || one == b'.') {
+        return true;
+    }
+    units.as_array().into_iter().flatten().filter_map(Value::as_str).any(|unit| signed.strip_suffix(unit).is_some_and(number))
+}
+
+fn is_color(said: &str) -> bool {
+    said.strip_prefix('#').is_some_and(|hex| matches!(hex.len(), 3 | 6 | 8) && hex.bytes().all(|one| one.is_ascii_digit() || (b'a'..=b'f').contains(&one)))
+}
+
 fn wrong_style(all: &Value, tag: &str, one: &str) -> bool {
     let (property, said) = one.split_once(':').unwrap_or(("", one));
-    let property = property.trim().to_ascii_lowercase();
-    let said = said.trim().to_ascii_lowercase();
+    let property = property.trim_matches(is_space).to_ascii_lowercase();
+    let said = said.trim_matches(is_space).to_ascii_lowercase();
     !all["styles"].as_array().into_iter().flatten().any(|rule| {
         rule["on"] == tag
             && rule["property"] == property.as_str()
             && match rule["unit"].as_str() {
                 Some(unit) => is_size_in(&said, unit),
+                None if !rule["sizes"].is_null() => is_sized(&said, &rule["sizes"]),
+                None if !rule["color"].is_null() => is_color(&said),
                 None => listed(&rule["values"], &said),
             }
     })
@@ -734,6 +995,26 @@ pub fn check_html(html: &str) -> Vec<String> {
     let through = &all["passthrough"]["attributes"];
     let mut out: Vec<String> = Vec::new();
     for Opened { tag, attributes, unclosed } in opened(html) {
+        if tag == "!" {
+            out.push("a comment is in no contract".to_owned());
+            continue;
+        }
+        if tag == "/" {
+            out.push("a closing tag that says more than its name is in no contract".to_owned());
+            continue;
+        }
+        if let Some(name) = tag.strip_prefix("</") {
+            if all["allowed"].get(name).is_none() && !listed(&all["passthrough"]["tags"], name) {
+                out.push(format!("{tag}> is in no contract"));
+            }
+            continue;
+        }
+        for rule in all["html_rules"].as_array().into_iter().flatten().filter(|rule| rule["tag"] == tag.as_str()) {
+            let missing = rule["requires"].as_array().into_iter().flatten().filter_map(Value::as_str).any(|name| !attributes.iter().any(|(said, _)| said == name));
+            if missing {
+                out.push(rule["says"].as_str().unwrap_or_default().to_owned());
+            }
+        }
         let drawn = &all["allowed"][tag.as_str()];
         if drawn.is_null() && !listed(&all["passthrough"]["tags"], &tag) {
             out.push(format!("<{tag}> is in no contract"));
@@ -754,7 +1035,10 @@ pub fn check_html(html: &str) -> Vec<String> {
                     let starts = drawn["class_starts"].as_array().is_some_and(|many| {
                         many.iter().any(|start| start.as_str().is_some_and(|start| one.starts_with(start)))
                     });
-                    if !starts && !listed(&drawn["classes"], one) {
+                    let ends = drawn["class_ends"].as_array().is_some_and(|many| {
+                        many.iter().any(|end| end.as_str().is_some_and(|end| one.ends_with(end)))
+                    });
+                    if one.contains('&') || (!starts && !ends && !listed(&drawn["classes"], one)) {
                         out.push(format!("the class {one} on <{tag}> is in no contract"));
                     }
                 }
@@ -762,8 +1046,11 @@ pub fn check_html(html: &str) -> Vec<String> {
             if listed(&all["urls"]["attributes"], &name) && wrong_url(all, &value) {
                 out.push(format!("{name} on <{tag}> goes where no contract lets it"));
             }
+            if listed(&all["urls"]["paints"], &name) && wrong_paint(&value) {
+                out.push(format!("{name} on <{tag}> asks for what is not in its drawing"));
+            }
             if name == "style" {
-                for one in value.split(';').map(str::trim).filter(|one| !one.is_empty()) {
+                for one in value.split(';').map(|one| one.trim_matches(is_space)).filter(|one| !one.is_empty()) {
                     if wrong_style(all, &tag, one) {
                         out.push(format!("the style {one} on <{tag}> is in no contract"));
                     }

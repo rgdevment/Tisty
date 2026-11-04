@@ -165,12 +165,15 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (354 crates)
+## In the core (372 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
 | `adler2` | 2.0.1 | 0BSD OR MIT OR Apache-2.0 |
+| `aead` | 0.5.2 | MIT OR Apache-2.0 |
 | `aead` | 0.6.1 | MIT OR Apache-2.0 |
+| `aes` | 0.8.4 | MIT OR Apache-2.0 |
+| `aes-gcm` | 0.10.3 | Apache-2.0 OR MIT |
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
 | `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
 | `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
@@ -199,9 +202,11 @@ written once with the crates that carry it.
 | `cfg-if` | 1.0.5 | MIT OR Apache-2.0 |
 | `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
 | `chacha20poly1305` | 0.11.0 | Apache-2.0 OR MIT |
+| `cipher` | 0.4.4 | MIT OR Apache-2.0 |
 | `cipher` | 0.5.2 | MIT OR Apache-2.0 |
 | `clipboard-win` | 5.4.3 | BSL-1.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
+| `color_quant` | 1.1.0 | MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
 | `core_detect` | 1.0.0 | MIT/Apache-2.0 |
@@ -210,13 +215,16 @@ written once with the crates that carry it.
 | `core-foundation-sys` | 0.8.7 | MIT OR Apache-2.0 |
 | `core-graphics` | 0.25.0 | MIT OR Apache-2.0 |
 | `core-graphics-types` | 0.2.0 | MIT OR Apache-2.0 |
+| `cpufeatures` | 0.2.17 | MIT OR Apache-2.0 |
 | `cpufeatures` | 0.3.1 | MIT OR Apache-2.0 |
 | `crc32fast` | 1.5.2 | MIT OR Apache-2.0 |
 | `crossbeam-channel` | 0.5.17 | MIT OR Apache-2.0 |
 | `crossbeam-utils` | 0.8.23 | MIT OR Apache-2.0 |
+| `crypto-common` | 0.1.7 | MIT OR Apache-2.0 |
 | `crypto-common` | 0.2.2 | MIT OR Apache-2.0 |
 | `cssparser` | 0.38.0 | MPL-2.0 |
 | `ctor` | 1.0.13 | Apache-2.0 OR MIT |
+| `ctr` | 0.9.2 | MIT OR Apache-2.0 |
 | `ctutils` | 0.4.5 | Apache-2.0 OR MIT |
 | `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
 | `deranged` | 0.5.9 | MIT OR Apache-2.0 |
@@ -257,9 +265,12 @@ written once with the crates that carry it.
 | `futures-sink` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-task` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-util` | 0.3.34 | MIT OR Apache-2.0 |
+| `generic-array` | 0.14.7 | MIT |
 | `getrandom` | 0.2.17 | MIT OR Apache-2.0 |
 | `getrandom` | 0.3.4 | MIT OR Apache-2.0 |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 |
+| `ghash` | 0.5.1 | Apache-2.0 OR MIT |
+| `gif` | 0.14.2 | MIT OR Apache-2.0 |
 | `glob` | 0.3.4 | MIT OR Apache-2.0 |
 | `global-hotkey` | 0.8.0 | Apache-2.0 OR MIT |
 | `h2` | 0.4.20 | MIT |
@@ -268,6 +279,7 @@ written once with the crates that carry it.
 | `hashlink` | 0.12.2 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
 | `hex-conservative` | 0.2.3 | CC0-1.0 |
+| `hkdf` | 0.13.0 | MIT OR Apache-2.0 |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
 | `htmd` | 0.5.6 | Apache-2.0 |
 | `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
@@ -291,8 +303,10 @@ written once with the crates that carry it.
 | `idna` | 1.1.0 | MIT OR Apache-2.0 |
 | `idna_adapter` | 1.2.2 | Apache-2.0 OR MIT |
 | `image` | 0.25.10 | MIT OR Apache-2.0 |
+| `image-webp` | 0.2.4 | MIT OR Apache-2.0 |
 | `indexmap` | 2.14.2 | Apache-2.0 OR MIT |
 | `infer` | 0.22.0 | MIT |
+| `inout` | 0.1.4 | MIT OR Apache-2.0 |
 | `inout` | 0.2.4 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 |
@@ -344,6 +358,7 @@ written once with the crates that carry it.
 | `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
+| `opaque-debug` | 0.3.1 | MIT OR Apache-2.0 |
 | `open` | 5.4.4 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
 | `osakit` | 0.3.1 | MIT OR Apache-2.0 |
@@ -359,6 +374,7 @@ written once with the crates that carry it.
 | `plist` | 1.10.1 | MIT |
 | `png` | 0.18.1 | MIT OR Apache-2.0 |
 | `poly1305` | 0.9.1 | Apache-2.0 OR MIT |
+| `polyval` | 0.6.2 | Apache-2.0 OR MIT |
 | `potential_utf` | 0.1.6 | Unicode-3.0 |
 | `powerfmt` | 0.2.1 | MIT OR Apache-2.0 |
 | `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
@@ -370,6 +386,7 @@ written once with the crates that carry it.
 | `rand` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand` | 0.10.3 | MIT OR Apache-2.0 |
 | `rand_chacha` | 0.9.0 | MIT OR Apache-2.0 |
+| `rand_core` | 0.6.4 | MIT OR Apache-2.0 |
 | `rand_core` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_core` | 0.10.1 | MIT OR Apache-2.0 |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib |
@@ -470,6 +487,7 @@ written once with the crates that carry it.
 | `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
+| `universal-hash` | 0.5.1 | MIT OR Apache-2.0 |
 | `universal-hash` | 0.6.1 | MIT OR Apache-2.0 |
 | `untrusted` | 0.9.0 | ISC |
 | `url` | 2.5.8 | MIT OR Apache-2.0 |

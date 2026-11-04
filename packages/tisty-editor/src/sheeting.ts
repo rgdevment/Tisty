@@ -35,6 +35,8 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   let headsEnded = y;
   let headsOpen = false;
   for (const one of Array.from(sheet.children) as HTMLElement[]) {
+    // What is hidden takes no room, and it must not count as the block that stays on a sheet.
+    if (one.matches(".front")) continue;
     if (one.matches(BREAKS)) {
       one.style.setProperty("--fill", `${Math.max(0, begins + room - ended)}px`);
       begins = bottomOf(one, sheet) + y;

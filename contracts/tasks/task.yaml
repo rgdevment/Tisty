@@ -12,10 +12,10 @@ fields:
   status: { type: status, required: true }
   priority: { type: priority }
   description: { type: text }
-  date: { type: text, says: "The day it is meant to be done on, or the day the work starts." }
-  deadline: { type: text, says: "The day it truly runs out." }
-  list: { type: text }
-  tags: { type: list, of: tag }
+  date: { type: text, says: "The day it is meant to be done on, or the day the work starts: 2026-10-03, 2026-10-02T09:00 or 2026-10-02T09:00[Europe/Madrid]." }
+  deadline: { type: text, says: "The day it truly runs out, written the same way." }
+  list: { type: text, says: "The id of the list it sits in." }
+  tags: { type: list, of: tag_word }
   repeat: { type: text, says: "every week from due, every 2 months from done until 2026-12-31." }
   part_of: { type: text }
   after: { type: text }
@@ -54,7 +54,7 @@ group: tasks
 checked_by: [writer, reader]
 says: Something recorded on a task, with when.
 fields:
-  at: { type: time, required: true }
+  at: { type: moment, required: true }
   body: { type: text, required: true, at_least: 1 }
 cases:
   - says: "A note."
@@ -62,6 +62,9 @@ cases:
     holds: true
   - says: "The day a leap year adds."
     value: { at: "2028-02-29T12:00:00Z", body: "Llamé" }
+    holds: true
+  - says: "A note with a fraction of a second, as the log keeps them: nothing signs it."
+    value: { at: "2026-11-04T03:05:01.1571702Z", body: "Llamé" }
     holds: true
   - says: "That day in another year, which does not exist."
     value: { at: "2026-02-29T12:00:00Z", body: "Llamé" }
@@ -73,7 +76,7 @@ cases:
 contract: reminder
 group: tasks
 checked_by: [writer, reader]
-says: When a task rings.
+says: When a task rings, written as a task's date is.
 fields:
   at: { type: text, required: true, at_least: 1 }
 cases:

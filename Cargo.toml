@@ -15,6 +15,7 @@ publish = false
 insta = { version = "1.49.0", features = ["json"] }
 minisign-verify = "0.3"
 tisty-carrier = { path = "crates/tisty-carrier" }
+tisty-envelope = { path = "crates/tisty-envelope" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-help = { path = "crates/tisty-help" }
 tisty-onedrive = { path = "crates/tisty-onedrive" }
@@ -65,6 +66,11 @@ base64 = "0.23"
 zeroize = "1"
 hmac = { version = "0.13", features = ["zeroize"] }
 hkdf = "0.13"
+# What seals an envelope, and what opens it in every browser with nothing but WebCrypto.
+aes-gcm = "0.10"
+flate2 = "1"
+# Only what reads and rewrites a picture for what travels, with no system codec.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 # Each keychain store by name: `keyring` would pull every store onto every system.
 keyring-core = "1"
 apple-native-keyring-store = { version = "1", features = ["keychain"] }

@@ -10,7 +10,7 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Paper | Papel | The size of a sheet: A4, Letter, Folio or Tabloid. |
 | Orientation | Orientación | Which way a sheet stands: portrait or landscape. |
 | Page break | Salto de página | A line of three dashes, an `hr` among the blocks of the HTML. Despite its name, it cuts a sheet, not a page. |
-| Element | Elemento | What the words of a document or a page contain: text, table, code, diagram, formula, attachment or widget. An icon is a mark inside the text. |
+| Element | Elemento | What the words of a document or a page contain: text, table, code, diagram, formula, attachment, picture or widget. An icon is a mark inside the text. |
 | Diagram | Diagrama | A drawing inside a document. It is no document, and it travels drawn, as SVG. |
 | Attachment | Adjunto | A file a document names. A picture travels with the words and is drawn; any other file travels apart and is a card. |
 | Widget | Widget | A small isolated view inside a document, which can run its own script. Only Tisty runs it. |
@@ -20,7 +20,11 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Signature | Firma | Who answers for an envelope, and through it for the document. |
 | Envelope | Sobre | How a document travels, as one file the server stores unopened. Per language, one for its words, pages and pictures, and a second one for its other files only when it has any. |
 | Link | Link | How a shared document is reached: the web one reads, and tisty:// hands it over to a Tisty, the only place to edit. |
-| Revocation | Revocación | A person taking back one of their machine keys for good, as when a machine is lost. |
+| Root key | Llave raíz | Who a person is, from their 24 words. It never changes: another root is another person. |
+| Machine key | Llave de máquina | What signs on one machine, under a certificate from the root. It can be replaced. |
+| Revocation | Revocación | The root saying it no longer answers for a machine key, since a moment. It deletes nothing and stops nothing. |
+| Verdict | Veredicto | What a reader says of a signature: holds, retired, doubtful, refused or unreadable. |
+| Cited | Citado | Another document shared along with this one, in its own envelopes, with its key. |
 | Sync | Sincronizar | Sending what changed in a document to what is shared. A button, or by itself every 5 or 10 minutes. |
 | Writer | Quien escribe | Whoever turns words into a document ready to travel: Tisty, or a fork of it. |
 | Reader | Quien lee | Whoever shows a document: Tisty or Folio. |
