@@ -1,0 +1,133 @@
+{
+  "named": [
+    [
+      "Cami\u00f3n",
+      "camion"
+    ],
+    [
+      "camio\u0301n",
+      "camion"
+    ],
+    [
+      "\u0395\u03bb\u03bb\u03ac\u03b4\u03b1",
+      "\u03b5\u03bb\u03bb\u03b1\u03b4\u03b1"
+    ],
+    [
+      "\u0419\u043e\u0434",
+      "\u0438\u043e\u0434"
+    ],
+    [
+      "Vi\u1ec7t",
+      "viet"
+    ],
+    [
+      "Dos Palabras",
+      "dos-palabras"
+    ],
+    [
+      "legal__mensual",
+      "legal-mensual"
+    ],
+    [
+      "\u0939\u093f\u0928\u094d\u0926\u0940",
+      "\u0939\u093f\u0928\u094d\u0926\u0940"
+    ],
+    [
+      "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd",
+      "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"
+    ],
+    [
+      "\u0e44\u0e17\u0e22",
+      "\u0e44\u0e17\u0e22"
+    ],
+    [
+      "\ud55c\uae00",
+      "\ud55c\uae00"
+    ],
+    [
+      "\u1112\u1161\u11ab\u1100\u1173\u11af",
+      "\ud55c\uae00"
+    ],
+    [
+      "\u304c\u304f\u305b\u3044",
+      "\u304c\u304f\u305b\u3044"
+    ],
+    [
+      "\u05e2\u05b4\u05d1\u05b0\u05e8\u05b4\u05d9\u05ea",
+      "\u05e2\u05d1\u05e8\u05d9\u05ea"
+    ],
+    [
+      "\u0639\u064e\u0631\u064e\u0628\u0650\u064a",
+      "\u0639\u0631\u0628\u064a"
+    ],
+    [
+      "\u2615\ufe0fcoffee",
+      "coffee"
+    ],
+    [
+      "cafe\ud83d\ude00\ufe0f",
+      "cafe"
+    ],
+    [
+      "\u65e5\u672c\ufe0f",
+      "\u65e5\u672c"
+    ],
+    [
+      "\u845b\udb40\udd00x",
+      "\u845bx"
+    ],
+    [
+      "\u0301x\u65e5\u672c",
+      "x\u65e5\u672c"
+    ],
+    [
+      "a \u0301b",
+      "a-b"
+    ],
+    [
+      "\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+      "\u0645\u06cc\u062e\u0648\u0627\u0647\u0645"
+    ]
+  ],
+  "sentences": [
+    [
+      "hoy #\u0939\u093f\u0928\u094d\u0926\u0940 y #\u0ba4\u0bae\u0bbf\u0bb4\u0bcd fin \u0915\u094d#no",
+      [
+        "\u0939\u093f\u0928\u094d\u0926\u0940",
+        "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"
+      ]
+    ],
+    [
+      "\u2705\ufe0f#tag fin",
+      [
+        "tag"
+      ]
+    ],
+    [
+      "e\u0301#no fin",
+      []
+    ],
+    [
+      "#\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645 fin",
+      [
+        "\u0645\u06cc\u062e\u0648\u0627\u0647\u0645"
+      ]
+    ],
+    [
+      "#\u65e5\u672c\ud83d\ude00 fin",
+      [
+        "\u65e5\u672c"
+      ]
+    ],
+    [
+      "hoy #\u65e5\u672c\ufe0f fin",
+      [
+        "\u65e5\u672c"
+      ]
+    ],
+    [
+      "bg-#fff y a#no",
+      []
+    ]
+  ]
+}

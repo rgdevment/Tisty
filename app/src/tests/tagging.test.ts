@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import cases from "../../../fixtures/tags.json";
 import { named, often } from "../ui/tagging";
 
 describe("the shape the core gives a tag", () => {
@@ -7,11 +8,20 @@ describe("the shape the core gives a tag", () => {
     expect(named("legal__mensual")).toBe("legal-mensual");
     expect(named("-legal-")).toBe("legal");
     expect(named("diseño")).toBe("diseno");
-    expect(named("Ελλάδα")).toBe("ελλαδα");
-    for (const word of ["हिन्दी", "தமிழ்", "한글", "がくせい"]) expect(named(word)).toBe(word);
-    expect(named("한글".normalize("NFD"))).toBe("한글");
     expect(named("camión")).toBe(named("camion"));
     expect(named("CAMIÓN")).toBe("camion");
+  });
+});
+
+describe("the words the core reads too, from one file so the two cannot drift apart", () => {
+  it("makes the tag each word says", () => {
+    for (const [said, tag] of cases.named) expect(named(said), said).toBe(tag);
+  });
+
+  it("finds the tags each sentence says", () => {
+    for (const [line, tags] of cases.sentences) {
+      expect([...often(line as string).keys()], line as string).toEqual(tags);
+    }
   });
 });
 

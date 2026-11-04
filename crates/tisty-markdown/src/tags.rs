@@ -52,13 +52,13 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
             at += 1;
             continue;
         }
-        let before = line[..at].chars().next_back();
         // Anything but a separator before the hash ties it to what came first, like bg-#fff or a URL.
-        if before.is_some_and(|one| {
-            one.is_alphanumeric()
-                || unicode_normalization::char::is_combining_mark(one)
-                || "#/-_.:".contains(one)
-        }) {
+        // A mark sits on what it follows, so it ties only what that does: after an emoji it is no word.
+        let before = line[..at]
+            .chars()
+            .rev()
+            .find(|one| !unicode_normalization::char::is_combining_mark(*one));
+        if before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one)) {
             at += 1;
             continue;
         }
@@ -68,16 +68,8 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
             at += 1;
             continue;
         }
-        let word: String = rest
-            .chars()
-            .take_while(|one| {
-                one.is_alphanumeric()
-                    || *one == '-'
-                    || *one == '_'
-                    || unicode_normalization::char::is_combining_mark(*one)
-            })
-            .collect();
-        if let Some(tag) = named(&word).filter(|one| worth_reading(one)) {
+        let word = word_in(rest);
+        if let Some(tag) = named(word).filter(|one| worth_reading(one)) {
             found.push((at..at + 1 + word.len(), tag));
         }
         at += 1 + word.len();
@@ -85,36 +77,67 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
     found
 }
 
-// The alphabets that write an accent over a letter that stands without it.
+// A joiner is how many scripts write inside a word, so it goes on only where the word does.
+fn word_in(rest: &str) -> &str {
+    let mut end = 0;
+    let mut chars = rest.char_indices().peekable();
+    while let Some((at, one)) = chars.next() {
+        let joins = matches!(one, '\u{200C}' | '\u{200D}')
+            && chars.peek().is_some_and(|(_, next)| next.is_alphanumeric());
+        let holds = one.is_alphanumeric()
+            || one == '-'
+            || one == '_'
+            || unicode_normalization::char::is_combining_mark(one);
+        if !holds && !joins {
+            break;
+        }
+        end = at + one.len_utf8();
+    }
+    &rest[..end]
+}
+
+// Where a mark is an accent or a vowel a reader can do without, over a letter that stands without it.
 fn wears_accents(base: char) -> bool {
-    base <= '\u{052F}' || ('\u{1E00}'..='\u{1FFF}').contains(&base)
+    base <= '\u{06FF}'
+        || ('\u{0750}'..='\u{077F}').contains(&base)
+        || ('\u{08A0}'..='\u{08FF}').contains(&base)
+        || ('\u{1E00}'..='\u{1FFF}').contains(&base)
+}
+
+// It only asks for another drawing of what comes before it, so two tags would look the same and be two.
+fn picks_a_drawing(one: char) -> bool {
+    matches!(one, '\u{180B}'..='\u{180D}' | '\u{FE00}'..='\u{FE0F}' | '\u{E0100}'..='\u{E01EF}')
 }
 
 pub fn named(raw: &str) -> Option<String> {
     use unicode_normalization::char::is_combining_mark;
     // Accents come off, so #camion on Monday and #camión on Friday are one tag. Elsewhere a mark
     // is how the word is written: without its vowels, हिन्दी is another word.
+    let mut kept = String::with_capacity(raw.len());
     let mut base = '-';
-    let normalised: String = composed(raw)
-        .trim()
-        .to_lowercase()
-        .nfd()
-        .filter(|c| {
-            if !is_combining_mark(*c) {
-                base = *c;
+    for one in raw.trim().to_lowercase().nfd() {
+        if is_combining_mark(one) {
+            if !picks_a_drawing(one) && !wears_accents(base) {
+                kept.push(one);
             }
-            !is_combining_mark(*c) || !wears_accents(base)
-        })
-        .map(|c| {
-            if c.is_whitespace() || c == '_' {
-                '-'
-            } else {
-                c
-            }
-        })
-        .filter(|c| c.is_alphanumeric() || is_combining_mark(*c) || *c == '-')
-        .nfc()
-        .collect();
+            continue;
+        }
+        let one = if one.is_whitespace() || one == '_' {
+            '-'
+        } else {
+            one
+        };
+        // A mark on what goes goes with it, or it would land on the letter before.
+        base = if one.is_alphanumeric() || one == '-' {
+            one
+        } else {
+            '-'
+        };
+        if one.is_alphanumeric() || one == '-' {
+            kept.push(one);
+        }
+    }
+    let normalised: String = kept.nfc().collect();
 
     let trimmed = normalised.trim_matches('-');
     if !trimmed.chars().any(char::is_alphanumeric) {
@@ -153,47 +176,5 @@ fn collapse_dashes(s: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn accents_come_off_the_alphabets_that_have_them() {
-        for (said, tag) in [
-            ("Camión", "camion"),
-            ("camio\u{301}n", "camion"),
-            ("Ελλάδα", "ελλαδα"),
-            ("Йод", "иод"),
-            ("Việt", "viet"),
-        ] {
-            assert_eq!(named(said).as_deref(), Some(tag), "{said}");
-        }
-    }
-
-    #[test]
-    fn elsewhere_a_mark_is_how_the_word_is_written() {
-        for said in ["हिन्दी", "தமிழ்", "ไทย", "한글", "がくせい", "العربية"]
-        {
-            assert_eq!(named(said).as_deref(), Some(said), "{said}");
-        }
-        let apart: String = "한글".nfd().collect();
-        assert_eq!(named(&apart).as_deref(), Some("한글"));
-    }
-
-    #[test]
-    fn a_tag_read_again_is_the_same_tag() {
-        for said in ["हिन्दी", "한글", "Camión_Rojo", "தமிழ் நாடு"]
-        {
-            let once = named(said).unwrap();
-            assert_eq!(named(&once).as_deref(), Some(once.as_str()));
-        }
-    }
-
-    #[test]
-    fn a_sentence_reads_the_whole_word_and_nothing_glued_to_a_mark() {
-        let line = "hoy #हिन्दी y #தமிழ் fin क्#no";
-        let tags: Vec<String> = spots(line).into_iter().map(|(_, tag)| tag).collect();
-        assert_eq!(tags, ["हिन्दी", "தமிழ்"]);
-        let (at, _) = &spots(line)[0];
-        assert_eq!(&line[at.clone()], "#हिन्दी");
-    }
-}
+#[path = "tags_test.rs"]
+mod tests;

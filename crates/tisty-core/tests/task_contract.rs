@@ -112,16 +112,9 @@ fn every_status_and_priority_tisty_keeps_is_one_the_contract_knows() {
 
 #[test]
 fn every_tag_tisty_makes_is_one_the_contract_knows() {
-    for said in [
-        "Camión",
-        "Ελλάδα",
-        "हिन्दी",
-        "தமிழ்",
-        "한글",
-        "がくせい",
-        "العربية",
-        "Dos Palabras",
-    ] {
+    let cases: Value = serde_json::from_str(include_str!("../../../fixtures/tags.json")).unwrap();
+    for one in cases["named"].as_array().unwrap() {
+        let said = one[0].as_str().unwrap();
         let tag = Tag::new(said).unwrap();
         assert_eq!(
             check("tag", &json!({ "name": tag.as_str() })),
