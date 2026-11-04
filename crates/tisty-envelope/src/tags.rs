@@ -1,4 +1,4 @@
-/// One opening or closing tag of HTML this crate's own translator wrote, or that ammonia wrote back: quotes always double, values escaped.
+/// One opening or closing tag of HTML. Most come from this crate's translator or from ammonia, with double quotes; anything else a browser reads as a tag is read as one here too.
 pub struct Tag<'a> {
     pub name: &'a str,
     pub closes: bool,
@@ -28,15 +28,29 @@ impl<'a> Tag<'a> {
             }
             let end =
                 rest.find(|one: char| one.is_ascii_whitespace() || one == '=' || one == '>')?;
+            // No name before an equals sign reads as no tag, rather than as going round here for ever.
+            if end == 0 {
+                return None;
+            }
             let said = &rest[..end];
-            rest = &rest[end..];
-            match rest.strip_prefix("=\"") {
-                Some(after) => {
-                    let close = after.find('"')?;
-                    attributes.push((said, &after[..close]));
-                    rest = &after[close + 1..];
+            rest = rest[end..].trim_start_matches(|one: char| one.is_ascii_whitespace());
+            let Some(value) = rest.strip_prefix('=') else {
+                attributes.push((said, ""));
+                continue;
+            };
+            let value = value.trim_start_matches(|one: char| one.is_ascii_whitespace());
+            match value.chars().next() {
+                Some(quote @ ('"' | '\'')) => {
+                    let inner = &value[1..];
+                    let close = inner.find(quote)?;
+                    attributes.push((said, &inner[..close]));
+                    rest = &inner[close + 1..];
                 }
-                None => attributes.push((said, "")),
+                _ => {
+                    let end = value.find(|one: char| one.is_ascii_whitespace() || one == '>')?;
+                    attributes.push((said, &value[..end]));
+                    rest = &value[end..];
+                }
             }
         }
         Some(Self {

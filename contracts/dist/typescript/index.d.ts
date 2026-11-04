@@ -75,7 +75,7 @@ export interface DocumentReader {
   setOrientation(orientation: Orientation): void;
   index(): string[];
   details(): Document;
-  verdict(served: Served): Verdict;
+  verdict(signature: Signature, served: Served): Verdict;
   goToPage(at: number): void;
   setLanguage(lang: string): void;
   openInTisty(): void;
@@ -100,7 +100,7 @@ export interface EnvelopeWriter {
 }
 
 export interface EnvelopeReader {
-  open(file: Uint8Array, opening: Opening): Promise<Document>;
+  open(file: Uint8Array, opening: Opening): Promise<Uint8Array[]>;
 }
 
 /** What a writer needs to seal a document, beyond the document and its bytes. */
@@ -109,6 +109,7 @@ export interface Sealing {
   version: number;
   from?: number;
   link_key?: string;
+  files_hash?: string;
 }
 
 /** What a reader asks for when it opens an envelope. */
@@ -210,7 +211,7 @@ export interface Served {
 /** Another document shared along with this one. It keeps its own envelopes, because it is not part of this document. */
 export interface Cited {
   document: string;
-  key: string;
+  key?: string;
   title?: string;
 }
 
@@ -261,6 +262,10 @@ export interface Reminder {
 export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
+/** What a person may write by hand, for whoever cleans a document. */
+export declare const PASSTHROUGH: { tags: string[]; attributes: Record<string, string[]> };
+export declare const STYLES: { on: string; property: string; unit?: string; sizes?: string[]; color?: boolean; values?: string[] }[];
+export declare const URLS: { schemes: string[]; attributes: string[]; references: string[]; paints: string[] };
 /** What is wrong with a value under this contract: nothing when it holds. */
 export declare function check(contract: ContractName, value: unknown): string[];
 /** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */

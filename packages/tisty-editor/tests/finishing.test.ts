@@ -38,6 +38,23 @@ describe("a document finished to travel", () => {
     expect(checkHtml(html)).toEqual([]);
   });
 
+  it("colours code in every language that holds another, with nothing the contract does not know", async () => {
+    const blocks = [
+      ["html", "&lt;script&gt;let a = 1;&lt;/script&gt;&lt;style&gt;p { color: red; }&lt;/style&gt;"],
+      ["shell", "$ ls -la"],
+      ["js", "const a = html`&lt;p&gt;${b}&lt;/p&gt;`;"],
+      ["python-repl", "&gt;&gt;&gt; print(1)"],
+      ["php-template", "&lt;?php echo 1; ?&gt;&lt;p&gt;a&lt;/p&gt;"],
+    ];
+    for (const [tongue, said] of blocks) {
+      const { html } = await finished(
+        `<figure class="code"><pre><code class="language-${tongue}">${said}</code></pre></figure>`,
+      );
+      expect(html, tongue).toContain("hljs-");
+      expect(checkHtml(html), tongue).toEqual([]);
+    }
+  });
+
   it("draws an icon so whoever reads needs no set of its own", async () => {
     const { html } = await finished(
       '<p><span class="ico" data-ico="clock" data-hue="red" title="clock"></span><span class="ico" data-ico="nope" data-hue="" title="nope"></span></p>',

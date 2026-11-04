@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "moment", "name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
+const PRIMITIVES = new Set(["text", "id", "bool", "whole", "time", "moment", "name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {
@@ -139,7 +139,7 @@ const camel = (name) => name.replace(/_([a-z])/g, (_, letter) => letter.toUpperC
 const tsType = (type) => {
   if (type.startsWith("list:")) return `${tsType(type.slice(5))}[]`;
   if (type === "bool") return "boolean";
-  if (type === "whole" || type === "number") return "number";
+  if (type === "whole") return "number";
   if (type === "bytes") return "Uint8Array";
   if (PRIMITIVES.has(type)) return "string";
   return pascal(type);
@@ -173,6 +173,10 @@ const typescriptTypes = () => {
     `export type ContractName = ${contracts.map((one) => JSON.stringify(one.contract)).join(" | ")};`,
     "export declare const CONTRACTS: Record<ContractName, unknown>;",
     "export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;",
+    "/** What a person may write by hand, for whoever cleans a document. */",
+    "export declare const PASSTHROUGH: { tags: string[]; attributes: Record<string, string[]> };",
+    'export declare const STYLES: { on: string; property: string; unit?: string; sizes?: string[]; color?: boolean; values?: string[] }[];',
+    "export declare const URLS: { schemes: string[]; attributes: string[]; references: string[]; paints: string[] };",
     "/** What is wrong with a value under this contract: nothing when it holds. */",
     "export declare function check(contract: ContractName, value: unknown): string[];",
     "/** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */",
@@ -206,7 +210,6 @@ const rustType = (type) => {
   if (type.startsWith("list:")) return `Vec<${rustType(type.slice(5))}>`;
   if (type === "bool") return "bool";
   if (type === "whole") return "u64";
-  if (type === "number") return "f64";
   if (type === "bytes") return "Vec<u8>";
   if (PRIMITIVES.has(type)) return "String";
   return pascal(type);

@@ -16,11 +16,15 @@ type Lit = {
   children?: Lit[];
 };
 
+// A part in another language is named after it too, which colours nothing and says nothing to whoever reads.
+const colouring = (one: unknown) => typeof one === "string" && (one.startsWith("hljs-") || one.endsWith("_"));
+
 const grown = (page: Document, node: Lit): Node => {
   if (node.type === "text") return page.createTextNode(node.value ?? "");
   const span = page.createElement("span");
   const named = node.properties?.className;
-  if (Array.isArray(named)) span.className = named.join(" ");
+  const worn = Array.isArray(named) ? named.filter(colouring) : [];
+  if (worn.length) span.className = worn.join(" ");
   for (const one of node.children ?? []) span.append(grown(page, one));
   return span;
 };

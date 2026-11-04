@@ -89,7 +89,7 @@ values:
     h1: { margin: "26px 0 8px" }
     h2: { margin: "22px 0 6px", weight: 640 }
     h3: { margin: "18px 0 4px", weight: 640 }
-    h4: { margin: "16px 0 4px", weight: 640 }
+    h4: { margin: "16px 0 4px", weight: 640, says: "h5 and h6 too." }
     p: { margin: "10px 0" }
     list: { margin: "10px 0", padding_left: "22px" }
     list_paragraph: { margin: "2px 0" }
@@ -97,6 +97,13 @@ values:
     figure: { margin: "12px 0" }
     pre: { padding: "12px 14px", size: "0.88em", line_height: 1.55 }
     details: { margin: "14px 0" }
+    picture: { margin: "16px auto", padding: "8px", max_height: "28rem", border: "1px solid hair", radius: "12px" }
+    rule: { margin: "16px 0", border: "1px solid line", says: "Inside a block. Among the blocks, it starts a sheet." }
+    formula: { margin: "12px 0", padding: "4px 0" }
+    caption: { padding: "6px 14px", size: "12px" }
+    note: { margin: "6px 0", size: "0.9em" }
+    definition: { margin: "2px 0", size: "0.82em" }
+    properties: { hidden: true }
   callouts:
     padding: "10px 14px"
     border_width: "3px"

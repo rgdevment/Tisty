@@ -3,16 +3,11 @@
 use jiff::civil::date;
 use serde_json::{Value, json};
 use tisty_contracts::check;
-use tisty_core::model::{DateSpec, LogEntry, Priority, Status, Step, Tag, Task};
+use tisty_core::model::{
+    Cadence, DateSpec, LogEntry, Priority, Repeat, Status, Step, Tag, Task, Unit,
+};
+use tisty_core::task_front::{day, repeat};
 use ulid::Ulid;
-
-fn day(spec: &DateSpec) -> String {
-    match (spec.has_time, spec.floating) {
-        (false, _) => spec.date().to_string(),
-        (true, true) => spec.at.strftime("%Y-%m-%dT%H:%M").to_string(),
-        (true, false) => format!("{}[{}]", spec.at.strftime("%Y-%m-%dT%H:%M"), spec.tz),
-    }
-}
 
 fn told(task: &Task) -> Value {
     let mut out = json!({
@@ -37,6 +32,18 @@ fn told(task: &Task) -> Value {
     if let Some(one) = &task.source {
         out["source"] = json!(one);
     }
+    if let Some(one) = &task.description {
+        out["description"] = json!(one);
+    }
+    if let Some(one) = task.repeat {
+        out["repeat"] = json!(repeat(one));
+    }
+    if let Some(one) = &task.part_of {
+        out["part_of"] = json!(one.to_string());
+    }
+    if let Some(one) = &task.after {
+        out["after"] = json!(one.to_string());
+    }
     out
 }
 
@@ -49,6 +56,13 @@ fn a_full_task() -> Task {
     task.deadline = Some(DateSpec::floating(at, "America/Santiago"));
     task.reminders = vec![DateSpec::fixed(at, "Europe/Madrid")];
     task.source = Some("sereno#1".to_owned());
+    task.description = Some("La de la rabia".to_owned());
+    task.repeat = Some(Repeat::due(Cadence {
+        every: 1,
+        unit: Unit::Year,
+    }));
+    task.part_of = Some(Ulid::from_parts(2, 2));
+    task.after = Some(Ulid::from_parts(3, 3));
     task.steps = vec![Step {
         id: Ulid::from_parts(1, 1),
         text: "Pedir hora".to_owned(),

@@ -21,7 +21,8 @@ const u32 = (number) => {
 
 const filled = (byte) => Buffer.alloc(32, byte);
 const LINK_KEY = filled(0x11);
-const HEAD = filled(0x22);
+// Every envelope has a head of its own, even here: under one key, a head used twice breaks the seal.
+const HEADS = { main: filled(0x22), files: filled(0x23) };
 const SINCE = "2026-11-03T12:00:00Z";
 
 const signer = async (seed) => {
@@ -44,7 +45,7 @@ const seal = async ({ kind, id, version, sealed, parts }) => {
     return { name, compressed, squeezed, open_size: bytes.length, sealed_size: squeezed.length + (sealed ? 16 : 0) };
   });
   const opening = sealed
-    ? { head: b64(HEAD), commitment: b64(await hmac()) }
+    ? { head: b64(HEADS[kind]), commitment: b64(await hmac(HEADS[kind])) }
     : {};
   const manifest = words(
     JSON.stringify({
@@ -57,7 +58,7 @@ const seal = async ({ kind, id, version, sealed, parts }) => {
       parts: told.map(({ name, compressed, sealed_size, open_size }) => ({ name, compressed, sealed_size, open_size })),
     }),
   );
-  const key = sealed ? await envelopeKey() : undefined;
+  const key = sealed ? await envelopeKey(HEADS[kind]) : undefined;
   const travelling = [];
   for (const [at, part] of told.entries()) {
     travelling.push(
@@ -80,14 +81,14 @@ const nonce = (at) => {
   return out;
 };
 
-async function hmac() {
+async function hmac(head) {
   const key = await subtle.importKey("raw", LINK_KEY, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return Buffer.from(await subtle.sign("HMAC", key, Buffer.concat([words("tisty-envelope-commit"), HEAD])));
+  return Buffer.from(await subtle.sign("HMAC", key, Buffer.concat([words("tisty-envelope-commit"), head])));
 }
 
-async function envelopeKey() {
+async function envelopeKey(head) {
   const base = await subtle.importKey("raw", LINK_KEY, "HKDF", false, ["deriveKey"]);
-  return subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: HEAD, info: words("tisty-envelope-key") }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+  return subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: head, info: words("tisty-envelope-key") }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
 }
 
 const textParts = ({ body, pages, ...first }) => [
@@ -116,7 +117,7 @@ const whole = {
   files: [{ at: 0, name: "cartilla.pdf", kind: "application/pdf", size: FILES[0].length }],
   files_hash: files.hash,
   html: '<h1 id="paseos">Paseos</h1><img src="tisty:picture/0" alt="Rina" width="1" height="1"><a href="tisty:page/1">Enero</a><a href="tisty:file/0">Cartilla</a>',
-  body: "# Paseos\n\n![Rina](rina.png)\n",
+  body: "# Paseos\n\n![Rina](tisty:picture/0)\n",
   pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, title: "Enero", html: '<h1 id="enero">Enero</h1>', body: "# Enero\n" }],
 };
 const main = await seal({

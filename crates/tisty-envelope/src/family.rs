@@ -1,14 +1,17 @@
+use std::collections::BTreeSet;
+
 use tisty_contracts::{Cited, Document, Sealing, Translation};
 
 use crate::sealing::{Refused, Sealed, Writer};
 
-/// One language of a document, ready to seal.
+/// One language of a document, ready to seal, and what it shares along.
 #[derive(Debug, Clone)]
 pub struct Tongue {
     pub document: Document,
     pub pictures: Vec<Vec<u8>>,
     pub files: Vec<Vec<u8>>,
     pub sealing: Sealing,
+    pub cited: Vec<Family>,
 }
 
 /// A document and its other languages. Only the anchor holds the map, so a reader reaches each language from it.
@@ -37,24 +40,90 @@ fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
     })
 }
 
-/// Seals a family. Each language goes in its own envelopes, signed here, and the anchor carries the map to them.
-pub fn sealed_family(writer: &mut Writer, family: Family) -> Result<Vec<Going>, Refused> {
-    let Family { mut anchor, others } = family;
-    if !others.is_empty() {
-        if anchor.document.lang.is_none() {
+fn languages_add(family: &Family) -> Result<(), Refused> {
+    let anchor = &family.anchor;
+    if anchor.document.lang.is_none() {
+        return Err(Refused::DoesNotAdd(
+            "the anchor of a family does not say its language",
+        ));
+    }
+    let mut seen = BTreeSet::from([anchor.document.lang.clone()]);
+    for tongue in &family.others {
+        if !seen.insert(tongue.document.lang.clone()) {
+            return Err(Refused::DoesNotAdd("a family says one language twice"));
+        }
+        // Everything public can be read by anyone, so a key in it would open what it was meant to keep.
+        if anchor.sealing.link_key.is_none() && tongue.sealing.link_key.is_some() {
             return Err(Refused::DoesNotAdd(
-                "the anchor of a family does not say its language",
+                "what is public cannot hold the key of a private language",
             ));
         }
+    }
+    Ok(())
+}
+
+fn cited_by(tongue: &Tongue) -> Result<Vec<Cited>, Refused> {
+    let mut seen = BTreeSet::new();
+    let mut said = Vec::with_capacity(tongue.cited.len());
+    for one in &tongue.cited {
+        let id = &one.anchor.sealing.id;
+        if !seen.insert(id) {
+            return Err(Refused::DoesNotAdd("a document cites another one twice"));
+        }
+        if std::iter::once(&one.anchor)
+            .chain(&one.others)
+            .any(|tongue| !tongue.cited.is_empty())
+        {
+            return Err(Refused::DoesNotAdd(
+                "what is cited is held by the document itself, and cites nothing further",
+            ));
+        }
+        let key = one.anchor.sealing.link_key.clone();
+        if tongue.sealing.link_key.is_none() && key.is_some() {
+            return Err(Refused::DoesNotAdd(
+                "what is public cannot hold the key of a private document",
+            ));
+        }
+        said.push(Cited {
+            document: id.clone(),
+            key,
+            title: one.anchor.document.title.clone(),
+        });
+    }
+    Ok(said)
+}
+
+fn languages_sealed(
+    writer: &mut Writer,
+    family: Family,
+    going: &mut Vec<Going>,
+) -> Result<Vec<Family>, Refused> {
+    let Family {
+        mut anchor,
+        mut others,
+    } = family;
+    if !others.is_empty() {
+        languages_add(&Family {
+            anchor: anchor.clone(),
+            others: others.clone(),
+        })?;
         anchor.document.languages = Some(
             others
                 .iter()
                 .map(translation_of)
                 .collect::<Result<_, _>>()?,
         );
+        // Paper, sheets and orientation are the group's.
+        for tongue in &mut others {
+            tongue.document.sheet.clone_from(&anchor.document.sheet);
+        }
     }
-    let mut going = Vec::with_capacity(others.len() + 1);
-    for tongue in std::iter::once(anchor).chain(others) {
+    let mut cited = Vec::new();
+    for mut tongue in std::iter::once(anchor).chain(others) {
+        let said = cited_by(&tongue)?;
+        if !said.is_empty() {
+            tongue.document.cited = Some(said);
+        }
         let id = tongue.sealing.id.clone();
         let sealed = writer.sealed(
             tongue.document,
@@ -63,37 +132,20 @@ pub fn sealed_family(writer: &mut Writer, family: Family) -> Result<Vec<Going>, 
             &tongue.sealing,
         )?;
         going.push(Going { id, sealed });
+        cited.extend(tongue.cited);
     }
-    Ok(going)
+    Ok(cited)
 }
 
-/// Seals a document with what it cites. Each cited family keeps its own envelopes and its key goes in `cited`, in the order the HTML counts them.
-pub fn sealed_with_cited(
-    writer: &mut Writer,
-    mut family: Family,
-    cited: Vec<Family>,
-) -> Result<Vec<Going>, Refused> {
+/// Seals a family: each language in its own envelopes, signed here, with the anchor carrying the map to them, and each document cited in its own, once however many cite it.
+pub fn sealed_family(writer: &mut Writer, family: Family) -> Result<Vec<Going>, Refused> {
     let mut going = Vec::new();
-    let mut said = Vec::with_capacity(cited.len());
+    let cited = languages_sealed(writer, family, &mut going)?;
+    let mut seen = BTreeSet::new();
     for one in cited {
-        let key = one
-            .anchor
-            .sealing
-            .link_key
-            .clone()
-            .ok_or(Refused::DoesNotAdd(
-                "what is cited has to say the key that opens it",
-            ))?;
-        said.push(Cited {
-            document: one.anchor.sealing.id.clone(),
-            key,
-            title: one.anchor.document.title.clone(),
-        });
-        going.extend(sealed_family(writer, one)?);
+        if seen.insert(one.anchor.sealing.id.clone()) {
+            languages_sealed(writer, one, &mut going)?;
+        }
     }
-    if !said.is_empty() {
-        family.anchor.document.cited = Some(said);
-    }
-    going.splice(0..0, sealed_family(writer, family)?);
     Ok(going)
 }

@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use tisty_contracts::check_html;
-use tisty_envelope::travelling::{Places, named, ready};
+use tisty_envelope::travelling::{Places, body_ready, named, ready};
 
 const NOT_DRAWN_YET: &str = "A diagram travels drawn, as SVG.";
 
@@ -162,6 +162,18 @@ fn what_a_person_can_write_by_hand_never_falls_outside_the_contract() {
     ];
     for one in written {
         assert_eq!(wrong_in(one), Vec::<String>::new(), "{one}");
+    }
+}
+
+#[test]
+fn every_document_there_is_reads_the_same_once_its_words_travel() {
+    for (name, text) in every_real_document() {
+        let words = body_ready(&text, &Places::default());
+        assert_eq!(wrong_in(&words), Vec::<String>::new(), "{name}");
+        assert!(
+            !words.contains("tisty:doc/") || words.contains("```"),
+            "{name}"
+        );
     }
 }
 

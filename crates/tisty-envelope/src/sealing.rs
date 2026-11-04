@@ -25,6 +25,8 @@ const TAG_BYTES: u64 = 16;
 const COMMITMENT: &[u8] = b"tisty-envelope-commit";
 const KEY_INFO: &[u8] = b"tisty-envelope-key";
 const ABOUT: &str = "envelope";
+const MANIFEST_AT_MOST: usize = 65_536;
+const SIGNATURE_AT_MOST: usize = 4_096;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
@@ -163,10 +165,13 @@ fn references_fit(html: &str, document: &Document) -> Result<(), Refused> {
     walk(html, |_, tag| {
         let Some(tag) = tag else { return };
         for (name, value) in &tag.attributes {
-            if *name != "href" && *name != "src" {
+            if !name.eq_ignore_ascii_case("href") && !name.eq_ignore_ascii_case("src") {
                 continue;
             }
-            let Some((kind, at)) = value
+            // A browser drops spaces and control characters and reads a scheme in any capitals, so here too.
+            let bare: String = value.chars().filter(|one| *one > ' ').collect();
+            let lowered = bare.to_ascii_lowercase();
+            let Some((kind, at)) = lowered
                 .strip_prefix("tisty:")
                 .and_then(|one| one.split_once('/'))
             else {
@@ -203,9 +208,18 @@ fn pictures_are_what_they_say(said: &[Picture], bytes: &[Vec<u8>]) -> Result<(),
             tisty_contracts::PictureKind::ImagePng => b"\x89PNG\r\n\x1a\n",
             tisty_contracts::PictureKind::ImageJpeg => b"\xff\xd8\xff",
         };
+        let size = image::ImageReader::new(std::io::Cursor::new(bytes))
+            .with_guessed_format()
+            .ok()
+            .and_then(|one| one.into_dimensions().ok());
         if picture.at != number as u64
             || picture.size != bytes.len() as u64
             || !bytes.starts_with(first)
+            || size
+                != u32::try_from(picture.width)
+                    .ok()
+                    .zip(u32::try_from(picture.height).ok())
+            || is_a_path(&picture.name)
         {
             return Err(Refused::DoesNotAdd(
                 "a picture is not what its document says",
@@ -215,8 +229,31 @@ fn pictures_are_what_they_say(said: &[Picture], bytes: &[Vec<u8>]) -> Result<(),
     Ok(())
 }
 
-fn files_are_what_they_say(document: &Document, bytes: &[Vec<u8>]) -> Result<(), Refused> {
+fn is_a_path(name: &str) -> bool {
+    name.contains(['/', '\\'])
+}
+
+// Files kept from an earlier version travel in the envelope already sent, so here they are only named.
+fn files_are_what_they_say(
+    document: &Document,
+    bytes: &[Vec<u8>],
+    kept: bool,
+) -> Result<(), Refused> {
     let said = document.files.as_deref().unwrap_or_default();
+    if said.iter().any(|file| is_a_path(&file.name)) {
+        return Err(Refused::DoesNotAdd(
+            "a file is named by the path it came from",
+        ));
+    }
+    if kept {
+        return if bytes.is_empty() {
+            Ok(())
+        } else {
+            Err(Refused::DoesNotAdd(
+                "it keeps the files already sent and sends others too",
+            ))
+        };
+    }
     if said.len() != bytes.len() {
         return Err(Refused::DoesNotAdd(
             "it says another number of files than it holds",
@@ -234,6 +271,42 @@ fn files_are_what_they_say(document: &Document, bytes: &[Vec<u8>]) -> Result<(),
     } else {
         Err(Refused::DoesNotAdd("a file is not what its document says"))
     }
+}
+
+// What only the writer knows, and a reader has no way to look at until it has opened everything.
+fn adds_up(
+    document: &Document,
+    sealing: &Sealing,
+    certificate: &Certificate,
+) -> Result<(), Refused> {
+    if sealing.from.is_some_and(|from| from >= sealing.version) {
+        return Err(Refused::DoesNotAdd(
+            "it starts from a version that is not an earlier one",
+        ));
+    }
+    if document
+        .owner
+        .as_ref()
+        .is_some_and(|owner| *owner != certificate.root)
+    {
+        return Err(Refused::DoesNotAdd(
+            "it says another owner than the root that signs it",
+        ));
+    }
+    if document.languages.is_some() && document.lang.is_none() {
+        return Err(Refused::DoesNotAdd(
+            "it holds the map of its languages without saying its own",
+        ));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for page in document.pages.iter().flatten() {
+        if page.page_of != document.id || !seen.insert(page.at) {
+            return Err(Refused::DoesNotAdd(
+                "a page is not in its place in this document",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn split(document: &Document) -> Result<(Vec<u8>, Vec<u8>), Refused> {
@@ -282,10 +355,11 @@ impl<'a> Writer<'a> {
                 "its id is not the one it is sealed under",
             ));
         }
+        adds_up(&document, sealing, self.certificate)?;
         pictures_are_what_they_say(document.pictures.as_deref().unwrap_or_default(), &pictures)?;
-        files_are_what_they_say(&document, &files)?;
+        files_are_what_they_say(&document, &files, sealing.files_hash.is_some())?;
         let files_envelope = if files.is_empty() {
-            document.files_hash = None;
+            document.files_hash.clone_from(&sealing.files_hash);
             None
         } else {
             let parts = files
@@ -362,6 +436,9 @@ impl<'a> Writer<'a> {
             &serde_json::to_value(&manifest).map_err(|_| Refused::Unsealed)?,
         )?;
         let manifest = serde_json::to_vec(&manifest).map_err(|_| Refused::Unsealed)?;
+        if manifest.len() > MANIFEST_AT_MOST {
+            return Err(Refused::DoesNotAdd("its manifest is past its size"));
+        }
         let cipher = match (&key, &head) {
             (Some(key), Some(head)) => Some(cipher_of(key, head)?),
             _ => None,
@@ -386,6 +463,9 @@ impl<'a> Writer<'a> {
             index.extend_from_slice(&Sha256::digest(one));
         }
         let signature = self.signature(&manifest, &index)?;
+        if signature.len() > SIGNATURE_AT_MOST {
+            return Err(Refused::DoesNotAdd("its signature is past its size"));
+        }
         let mut out = Vec::new();
         out.extend_from_slice(MARK);
         out.extend_from_slice(&length_of(&manifest)?);

@@ -88,11 +88,26 @@ fn is_name(said: &str) -> bool {
     said.trim() == said && said.chars().count() <= 80 && letters > 0 && digits <= letters && !said.chars().any(unseen)
 }
 
-fn base64url_of(said: &str, length: usize) -> bool {
+const BASE64URL: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const WHOLE_AT_MOST: u64 = (1 << 53) - 1;
+
+// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
+fn base64url_of(said: &str, length: usize, spare: usize) -> bool {
     said.len() == length
-        && said
-            .bytes()
-            .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
+        && said.bytes().all(|one| BASE64URL.as_bytes().contains(&one))
+        && said.bytes().last().and_then(|one| BASE64URL.bytes().position(|known| known == one)).is_some_and(|at| at % spare == 0)
+}
+
+fn is_id(said: &str) -> bool {
+    !said.is_empty() && said.bytes().all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
+}
+
+// What JavaScript can tell of a number: an integer it holds exactly, however it was written.
+fn is_whole(value: &Value) -> bool {
+    match value.as_u64() {
+        Some(number) => number <= WHOLE_AT_MOST,
+        None => value.as_f64().is_some_and(|number| number.fract() == 0.0 && (0.0..=WHOLE_AT_MOST as f64).contains(&number)),
+    }
 }
 
 fn is_language(said: &str) -> bool {
@@ -142,13 +157,13 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
             }
         }
         "whole" => {
-            if !value.is_u64() {
+            if !is_whole(value) {
                 out.push(wrong("is not a whole number"));
             }
         }
-        "number" => {
-            if !value.is_number() {
-                out.push(wrong("is not a number"));
+        "id" => {
+            if !value.as_str().is_some_and(is_id) {
+                out.push(wrong("is not an id"));
             }
         }
         "time" => {
@@ -177,17 +192,17 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
             }
         }
         "key" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
                 out.push(wrong("is not a key"));
             }
         }
         "hash" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
                 out.push(wrong("is not a hash"));
             }
         }
         "signed" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 86)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 86, 16)) {
                 out.push(wrong("is not a signature"));
             }
         }
@@ -226,6 +241,10 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
             }
             continue;
         };
+        let only_when = said["only_when"].as_str();
+        if let Some(field) = only_when.filter(|field| given.get(*field) != Some(&Value::Bool(true))) {
+            out.push(format!("{here} is only for what is {field}"));
+        }
         let least = said["at_least"].as_u64();
         let most = said["at_most"].as_u64();
         if said["type"] == "list" {
@@ -247,9 +266,15 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         }
         let kind = said["type"].as_str().unwrap_or_default();
         check_type(all, kind, one, &here, out);
+        let bytes = said["bytes_at_most"].as_u64();
+        if let (Value::String(text), Some(top)) = (one, bytes) {
+            if text.len() as u64 > top {
+                out.push(format!("{here} is too long"));
+            }
+        }
         let size = match one {
             Value::String(text) => Some(text.chars().count() as u64),
-            Value::Number(number) => number.as_u64(),
+            Value::Number(number) => number.as_f64().map(|number| number as u64),
             _ => None,
         };
         if let Some(size) = size {
@@ -284,6 +309,11 @@ struct Opened {
     unclosed: bool,
 }
 
+fn closes_well(said: &str) -> bool {
+    let end = said.find(|one: char| is_space(one) || one == '/' || one == '>').unwrap_or(said.len());
+    said.starts_with(|one: char| one.is_ascii_alphabetic()) && said[end..].trim_start_matches(is_space).starts_with('>')
+}
+
 // Each tag the HTML opens, with its attributes. It walks as checkHtml does in TypeScript, so one page gets one verdict.
 fn opened(html: &str) -> Vec<Opened> {
     let mut out = Vec::new();
@@ -292,6 +322,12 @@ fn opened(html: &str) -> Vec<Opened> {
         rest = &rest[start + 1..];
         if rest.starts_with(['!', '?']) {
             out.push(Opened { tag: "!".to_owned(), attributes: Vec::new(), unclosed: false });
+        }
+        // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
+        if let Some(closing) = rest.strip_prefix('/') {
+            if !closes_well(closing) {
+                out.push(Opened { tag: "/".to_owned(), attributes: Vec::new(), unclosed: false });
+            }
         }
         if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
             continue;
@@ -380,8 +416,8 @@ fn wrong_url(all: &Value, value: &str) -> bool {
 
 // A paint or a marker names something in its own drawing, and nothing else.
 fn wrong_paint(value: &str) -> bool {
-    let said = value.trim().to_ascii_lowercase();
-    if said.contains('&') {
+    let said = value.trim_matches(is_space).to_ascii_lowercase();
+    if said.contains('&') || said.contains('\\') {
         return true;
     }
     if !said.contains("url(") {
@@ -390,7 +426,7 @@ fn wrong_paint(value: &str) -> bool {
     !said
         .strip_prefix("url(#")
         .and_then(|rest| rest.strip_suffix(')'))
-        .is_some_and(|name| !name.is_empty() && !name.contains(|one: char| one.is_whitespace() || one == '(' || one == ')'))
+        .is_some_and(|name| !name.is_empty() && !name.contains(|one: char| is_space(one) || one == '(' || one == ')'))
 }
 
 fn is_size_in(said: &str, unit: &str) -> bool {
@@ -419,8 +455,8 @@ fn is_color(said: &str) -> bool {
 
 fn wrong_style(all: &Value, tag: &str, one: &str) -> bool {
     let (property, said) = one.split_once(':').unwrap_or(("", one));
-    let property = property.trim().to_ascii_lowercase();
-    let said = said.trim().to_ascii_lowercase();
+    let property = property.trim_matches(is_space).to_ascii_lowercase();
+    let said = said.trim_matches(is_space).to_ascii_lowercase();
     !all["styles"].as_array().into_iter().flatten().any(|rule| {
         rule["on"] == tag
             && rule["property"] == property.as_str()
@@ -441,6 +477,10 @@ pub fn check_html(html: &str) -> Vec<String> {
     for Opened { tag, attributes, unclosed } in opened(html) {
         if tag == "!" {
             out.push("a comment is in no contract".to_owned());
+            continue;
+        }
+        if tag == "/" {
+            out.push("a closing tag that says more than its name is in no contract".to_owned());
             continue;
         }
         for rule in all["html_rules"].as_array().into_iter().flatten().filter(|rule| rule["tag"] == tag.as_str()) {
@@ -472,7 +512,7 @@ pub fn check_html(html: &str) -> Vec<String> {
                     let ends = drawn["class_ends"].as_array().is_some_and(|many| {
                         many.iter().any(|end| end.as_str().is_some_and(|end| one.ends_with(end)))
                     });
-                    if !starts && !ends && !listed(&drawn["classes"], one) {
+                    if one.contains('&') || (!starts && !ends && !listed(&drawn["classes"], one)) {
                         out.push(format!("the class {one} on <{tag}> is in no contract"));
                     }
                 }
@@ -484,7 +524,7 @@ pub fn check_html(html: &str) -> Vec<String> {
                 out.push(format!("{name} on <{tag}> asks for what is not in its drawing"));
             }
             if name == "style" {
-                for one in value.split(';').map(str::trim).filter(|one| !one.is_empty()) {
+                for one in value.split(';').map(|one| one.trim_matches(is_space)).filter(|one| !one.is_empty()) {
                     if wrong_style(all, &tag, one) {
                         out.push(format!("the style {one} on <{tag}> is in no contract"));
                     }

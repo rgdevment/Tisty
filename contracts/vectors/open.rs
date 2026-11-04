@@ -61,6 +61,9 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
         Ok(out)
     };
     let size = u32::from_be_bytes(piece(4)?.try_into().unwrap()) as usize;
+    if size > 65536 {
+        return Err("its manifest is past its size".into());
+    }
     let manifest_bytes = piece(size)?;
     let manifest: Value = serde_json::from_slice(manifest_bytes).map_err(|_| "its manifest")?;
     if !check("envelope", &manifest).is_empty() {
@@ -69,10 +72,21 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     if manifest["id"] != asked.0 || manifest["kind"] != asked.1 {
         return Err("not what it asked for".into());
     }
+    let names: Vec<&str> = manifest["parts"].as_array().unwrap().iter().map(|part| part["name"].as_str().unwrap()).collect();
+    let in_order = match asked.1 {
+        "main" => names.len() >= 2 && names[0] == "first" && names[1] == "rest" && names[2..].iter().all(|name| *name == "picture"),
+        _ => names.iter().all(|name| *name == "file"),
+    };
+    if !in_order {
+        return Err("its parts are not in their order".into());
+    }
     if manifest["sealed"] != true && link_key.is_some() {
         return Err("a key answers only for what is sealed".into());
     }
     let size = u32::from_be_bytes(piece(4)?.try_into().unwrap()) as usize;
+    if size > 4096 {
+        return Err("its signature is past its size".into());
+    }
     let signature: Value = serde_json::from_slice(piece(size)?).map_err(|_| "its signature")?;
     if !check("signature", &signature).is_empty() {
         return Err("its signature".into());

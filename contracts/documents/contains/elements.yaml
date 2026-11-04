@@ -15,7 +15,8 @@ values:
     cited: "tisty:cited/N, its place in cited, from 0"
   links:
     only: "A link leads to a place on the web, an address, one of these references or a heading of the same page. What leads anywhere else travels as its words."
-    anchors: "A link that starts with # moves to its heading. The reader moves there without changing the address, since the part after its # holds the link key."
+    anchors: "A link that starts with # moves to a heading or a note of the same page. The reader moves there without changing the address, since the part after its # holds the link key."
+    front: "The properties of a document are in the HTML, and hidden on the sheet. A reader shows them in its details."
     never_a_card: "A task, a document not shared along and a [[reference]] travel as their words, with no trace of what they named."
     icons: "An icon travels drawn, as an svg inside its span, so a reader never needs the set."
     finished: "Everything is in the HTML when it travels: nothing is asked for or worked out to read it."
@@ -105,7 +106,7 @@ says: >-
   A block of code, with its language and its title. The writer colours it before it travels, as far as it can: a language
   it does not know and a block past its limit travel without colour, and read the same.
 values:
-  colored_at_most_bytes: 65536
+  colored_at_most_characters: 65536
 draws:
   - { tag: figure, attributes: [class], classes: [code] }
   - { tag: figcaption }
@@ -119,6 +120,7 @@ checked_by: [writer, reader]
 says: >-
   A drawing inside a document. It is no document itself. The writer draws it before it travels as two inline SVG, one for
   each theme, and a reader shows the one of its theme. All it needs is on its attributes: no style, no class, no script.
+  What a stylesheet alone could say, such as a shadow or a filter on a card, stays behind.
 values:
   languages: [mermaid, mmd]
   themes: [light, dark]
@@ -244,10 +246,11 @@ values:
   picture_source: "tisty:picture/N, its at among the pictures"
   writer_makes_pictures:
     - "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them."
-    - "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, as long as it is a colour profile's size."
+    - "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, when it is one for the three channels written, of at most 64 KiB."
+    - "A file cut short is no picture."
     - "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing."
     - "Its longest side is at most 1600 pixels."
-    - "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82. Anything else goes as PNG."
+    - "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82, unless something shows through it. Anything else goes as PNG."
     - "An animated picture stays its first frame."
     - "The same picture travels once."
     - "Its name says nothing of where it came from: picture-N, with its kind's ending."

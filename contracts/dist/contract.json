@@ -55,7 +55,8 @@
         },
         "links": {
           "only": "A link leads to a place on the web, an address, one of these references or a heading of the same page. What leads anywhere else travels as its words.",
-          "anchors": "A link that starts with # moves to its heading. The reader moves there without changing the address, since the part after its # holds the link key.",
+          "anchors": "A link that starts with # moves to a heading or a note of the same page. The reader moves there without changing the address, since the part after its # holds the link key.",
+          "front": "The properties of a document are in the HTML, and hidden on the sheet. A reader shows them in its details.",
           "never_a_card": "A task, a document not shared along and a [[reference]] travel as their words, with no trace of what they named.",
           "icons": "An icon travels drawn, as an svg inside its span, so a reader never needs the set.",
           "finished": "Everything is in the HTML when it travels: nothing is asked for or worked out to read it."
@@ -537,7 +538,7 @@
       ],
       "says": "A block of code, with its language and its title. The writer colours it before it travels, as far as it can: a language it does not know and a block past its limit travel without colour, and read the same.",
       "values": {
-        "colored_at_most_bytes": 65536
+        "colored_at_most_characters": 65536
       },
       "draws": [
         {
@@ -585,7 +586,7 @@
         "writer",
         "reader"
       ],
-      "says": "A drawing inside a document. It is no document itself. The writer draws it before it travels as two inline SVG, one for each theme, and a reader shows the one of its theme. All it needs is on its attributes: no style, no class, no script.",
+      "says": "A drawing inside a document. It is no document itself. The writer draws it before it travels as two inline SVG, one for each theme, and a reader shows the one of its theme. All it needs is on its attributes: no style, no class, no script. What a stylesheet alone could say, such as a shadow or a filter on a card, stays behind.",
       "values": {
         "languages": [
           "mermaid",
@@ -1387,10 +1388,11 @@
         "picture_source": "tisty:picture/N, its at among the pictures",
         "writer_makes_pictures": [
           "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them.",
-          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, as long as it is a colour profile's size.",
+          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, when it is one for the three channels written, of at most 64 KiB.",
+          "A file cut short is no picture.",
           "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing.",
           "Its longest side is at most 1600 pixels.",
-          "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82. Anything else goes as PNG.",
+          "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82, unless something shows through it. Anything else goes as PNG.",
           "An animated picture stays its first frame.",
           "The same picture travels once.",
           "Its name says nothing of where it came from: picture-N, with its kind's ending."
@@ -1530,15 +1532,16 @@
         "page"
       ],
       "values": {
-        "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint."
+        "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.",
+        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in clear.",
+        "anchor_language": "Paper, sheets and orientation are the group's: the anchor's, in every language."
       },
       "fields": {
         "id": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64,
-          "says": "What names it."
+          "says": "What names it, and what goes in its link. It says nothing of the machine it came from."
         },
         "title": {
           "type": "text",
@@ -1575,8 +1578,8 @@
         "body": {
           "type": "text",
           "required": true,
-          "at_most": 512000,
-          "says": "Its words, in the Tisty language, at most 500 KiB."
+          "bytes_at_most": 512000,
+          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written."
         },
         "html": {
           "type": "text",
@@ -1616,7 +1619,7 @@
         "languages": {
           "type": "list",
           "of": "translation",
-          "says": "The same document in other languages. Each one is a document of its own."
+          "says": "The same document in other languages. Each one is a document of its own. Whoever holds this says its own lang too."
         }
       },
       "html_rules": [
@@ -1679,12 +1682,12 @@
         },
         {
           "says": "A picture asked of someone else.",
-          "html": "<img src=\"https://a.example/x.png\">",
+          "html": "<img src=\"https://a.example/x.png\" alt=\"a\" width=\"1\" height=\"1\">",
           "holds": false
         },
         {
           "says": "The same one, under the other quote.",
-          "html": "<img src='https://a.example/x.png'>",
+          "html": "<img src='https://a.example/x.png' alt='a' width='1' height='1'>",
           "holds": false
         },
         {
@@ -1844,8 +1847,58 @@
         },
         {
           "says": "A quote that never closes.",
-          "html": "<img src=\"tisty:picture/0><script>alert(1)</script>",
+          "html": "<img alt=\"a\" width=\"1\" height=\"1\" src=\"tisty:picture/0><script>alert(1)</script>",
           "holds": false
+        },
+        {
+          "says": "A quote inside a closing tag, which hides from a reader's first look what the browser runs.",
+          "html": "</p a=\"<p title='\"><script>alert(1)</script><p b='>x",
+          "holds": false
+        },
+        {
+          "says": "The same, with no name in the closing tag.",
+          "html": "</ <p title=\"><script>alert(1)</script><p b=\">x",
+          "holds": false
+        },
+        {
+          "says": "A closing tag that says its name, and a space.",
+          "html": "<p>a</p >",
+          "holds": true
+        },
+        {
+          "says": "A class hidden behind an entity.",
+          "html": "<code class=\"language-&#109;ermaid\">a</code>",
+          "holds": false
+        },
+        {
+          "says": "A paint hidden behind an escape.",
+          "html": "<svg><path d=\"M0 0\" fill=\"\\\\75 rl(https://a.example/x)\"></path></svg>",
+          "holds": false
+        },
+        {
+          "says": "A paint hidden behind an entity.",
+          "html": "<svg><path d=\"M0 0\" fill=\"url&#40;https://a.example/x)\"></path></svg>",
+          "holds": false
+        },
+        {
+          "says": "A colour a formula can say.",
+          "html": "<math><mrow style=\"color:#abc\"><mi>x</mi></mrow></math>",
+          "holds": true
+        },
+        {
+          "says": "Something else for a colour.",
+          "html": "<math><mrow style=\"color:#ggg\"><mi>x</mi></mrow></math>",
+          "holds": false
+        },
+        {
+          "says": "A size in a unit no formula uses.",
+          "html": "<math><mtable style=\"width:10pt\"><mtr><mtd>x</mtd></mtr></mtable></math>",
+          "holds": false
+        },
+        {
+          "says": "A size with a sign where a column takes none.",
+          "html": "<table><colgroup><col style=\"width:1.5px\"></colgroup></table>",
+          "holds": true
         }
       ],
       "roles": {
@@ -1881,6 +1934,7 @@
           },
           "verdict": {
             "takes": {
+              "signature": "signature",
               "served": "served"
             },
             "gives": "verdict",
@@ -2057,6 +2111,84 @@
           "holds": false
         },
         {
+          "says": "A name past what a person reads.",
+          "value": {
+            "id": "x",
+            "signed_as": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "An id that would not fit in a link.",
+          "value": {
+            "id": "a/b#c",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A date in a month no year has.",
+          "value": {
+            "id": "x",
+            "made": "2026-13-03T12:00:00Z",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "An hour no day has.",
+          "value": {
+            "id": "x",
+            "made": "2026-11-03T24:00:00Z",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A minute no hour has.",
+          "value": {
+            "id": "x",
+            "made": "2026-11-03T12:60:00Z",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A second no minute has.",
+          "value": {
+            "id": "x",
+            "made": "2026-11-03T12:00:60Z",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A key with spare bits set, a second spelling of the same key.",
+          "value": {
+            "id": "x",
+            "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sR",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "Words past 500 KiB, counted in bytes.",
+          "value": {
+            "id": "x",
+            "html": "<p>x</p>",
+            "body": "€€€€"
+          },
+          "holds": true
+        },
+        {
           "says": "A name that hides what it is.",
           "value": {
             "id": "x",
@@ -2129,6 +2261,7 @@
         },
         "sealing": {
           "link_key": "32 random bytes after the # of the link, in base64url. It never reaches the server and never comes from a password.",
+          "head": "32 random bytes, new for every envelope and never used again: its nonces only count parts, so a head used twice under one key breaks the seal.",
           "commitment": "HMAC-SHA-256 of tisty-envelope-commit and the head, with the link key, compared before opening anything.",
           "envelope_key": "HKDF-SHA-256 of the link key, with the head as salt and tisty-envelope-key as info.",
           "parts": "AES-256-GCM. Its nonce is 12 bytes holding the part's number, from 0, big endian. Its additional data is the manifest.",
@@ -2143,13 +2276,22 @@
           "Under a link with a key, an envelope that is not sealed: the key would answer for nothing.",
           "A manifest whose id or kind is not what it asked for.",
           "A document inside whose id is not the manifest's.",
-          "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files."
+          "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files.",
+          "A main envelope whose parts are not first, rest and then pictures, and a files envelope with anything but files.",
+          "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts.",
+          "A files envelope whose manifest and index are not what its document's files_hash says.",
+          "A manifest that says a head or a commitment while it is not sealed."
         ],
         "who_checks_what": {
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version.",
-          "reader": "With the key, it checks the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
+          "reader": "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
         },
-        "versions": "The same major version opens. A higher one is read as newer, and a lower one as damaged.",
+        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged.",
+        "sizes_at_most": {
+          "manifest_bytes": 65536,
+          "signature_bytes": 4096
+        },
+        "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent.",
         "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
       },
       "fields": {
@@ -2165,9 +2307,8 @@
           "required": true
         },
         "id": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64
         },
         "version": {
@@ -2177,7 +2318,7 @@
         },
         "from": {
           "type": "whole",
-          "says": "The version it starts from."
+          "says": "The version it starts from, an earlier one."
         },
         "sealed": {
           "type": "bool",
@@ -2187,11 +2328,13 @@
         "head": {
           "type": "hash",
           "required_when": "sealed",
+          "only_when": "sealed",
           "says": "32 random bytes."
         },
         "commitment": {
           "type": "hash",
-          "required_when": "sealed"
+          "required_when": "sealed",
+          "only_when": "sealed"
         },
         "parts": {
           "type": "list",
@@ -2220,8 +2363,9 @@
               "file": "bytes",
               "opening": "opening"
             },
-            "gives": "document",
-            "fails": true
+            "gives": "list:bytes",
+            "fails": true,
+            "says": "Its parts once open, in order. Laid over each other, the first two of a main envelope make the document."
           }
         }
       },
@@ -2268,10 +2412,99 @@
                 "compressed": true,
                 "sealed_size": 24,
                 "open_size": 90
+              },
+              {
+                "name": "rest",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
               }
             ]
           },
           "holds": true
+        },
+        {
+          "says": "A public one that says what opens a sealed one.",
+          "value": {
+            "contract": "1.0.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 1,
+            "sealed": false,
+            "head": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              },
+              {
+                "name": "rest",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
+        },
+        {
+          "says": "A number past what every language can hold.",
+          "value": {
+            "contract": "1.0.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 9007199254740992,
+            "sealed": false,
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
+        },
+        {
+          "says": "No whole number at all.",
+          "value": {
+            "contract": "1.0.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 1.5,
+            "sealed": false,
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
+        },
+        {
+          "says": "A version before the first.",
+          "value": {
+            "contract": "1.0.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 0,
+            "sealed": false,
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
         },
         {
           "says": "A sealed one that lost what opens it.",
@@ -2334,9 +2567,8 @@
       "says": "What a writer needs to seal a document, beyond the document and its bytes.",
       "fields": {
         "id": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64
         },
         "version": {
@@ -2350,6 +2582,10 @@
         "link_key": {
           "type": "key",
           "says": "None for what is public."
+        },
+        "files_hash": {
+          "type": "hash",
+          "says": "The files envelope already sent, when no file changed."
         }
       },
       "cases": [
@@ -2381,9 +2617,8 @@
       "says": "What a reader asks for when it opens an envelope.",
       "fields": {
         "id": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64
         },
         "kind": {
@@ -2743,11 +2978,10 @@
       ],
       "fields": {
         "id": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64,
-          "says": "What names it."
+          "says": "What names it, and what goes in its link. It says nothing of the machine it came from."
         },
         "title": {
           "type": "text",
@@ -2776,8 +3010,8 @@
         "body": {
           "type": "text",
           "required": true,
-          "at_most": 512000,
-          "says": "Its words, in the Tisty language, at most 500 KiB."
+          "bytes_at_most": 512000,
+          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written."
         },
         "html": {
           "type": "text",
@@ -2791,11 +3025,10 @@
           "says": "Its properties as written, for the details."
         },
         "page_of": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64,
-          "says": "The document it is a page of."
+          "says": "The document it is a page of: its id, always."
         },
         "at": {
           "type": "whole",
@@ -2887,9 +3120,8 @@
           "required": true
         },
         "document": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64
         },
         "title": {
@@ -2898,7 +3130,7 @@
         },
         "key": {
           "type": "key",
-          "says": "The link key of that language's envelopes. Only the anchor language holds the map, so reaching a language takes nothing but the anchor."
+          "says": "The link key of that language's envelopes, only when the anchor is sealed too: what is public never holds a key. Only the anchor language holds the map, so reaching a language takes nothing but the anchor."
         }
       },
       "cases": [
@@ -3077,7 +3309,15 @@
           "doubtful": "They hold, and a revocation names the key, and this version arrived after its at or the server does not say when.",
           "refused": "The certificate or the signature does not hold.",
           "unreadable": "It cannot be read as a signature."
-        }
+        },
+        "weighing": [
+          "A revocation counts only if its signature holds and it names this root and this machine. Any other counts for nothing.",
+          "Of several, the earliest at counts. Arriving exactly at at counts as after.",
+          "A reader that shows retired or doubtful says the date is the server's word.",
+          "Refused or unreadable, the words are not shown: everything shared is signed."
+        ],
+        "fingerprint": "SHA-256 of tisty-share.person.v1, a zero byte and the root, whose first 9 bytes as a number, shifted right 6 bits, are written as 20 digits in four groups of five. Two people can read it to each other, and it is how a person is told apart.",
+        "one_spelling": "Keys, hashes and signatures have one base64url spelling: the spare bits of the last character are zero."
       },
       "fields": {
         "root": {
@@ -3240,15 +3480,13 @@
       "says": "Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.",
       "fields": {
         "document": {
-          "type": "text",
+          "type": "id",
           "required": true,
-          "at_least": 1,
           "at_most": 64
         },
         "key": {
           "type": "key",
-          "required": true,
-          "says": "The link key of its envelopes."
+          "says": "The link key of its envelopes, when it has one. What is public never holds a key, so it cites only what is public."
         },
         "title": {
           "type": "text",
@@ -3266,9 +3504,16 @@
           "holds": true
         },
         {
-          "says": "No key.",
+          "says": "A public document, which has no key.",
           "value": {
             "document": "other123"
+          },
+          "holds": true
+        },
+        {
+          "says": "No document.",
+          "value": {
+            "key": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
           },
           "holds": false
         }
@@ -3348,7 +3593,8 @@
           "blocks": "A block that does not fit moves whole to the next sheet. The first block of a sheet stays, even if it does not fit.",
           "headings": "A heading never stays alone at the foot: the headings right above it move with the block that follows.",
           "page_break": "An hr among the blocks always starts a new sheet.",
-          "print": "Printing uses the same paper, orientation and margins."
+          "print": "Printing uses the same paper, orientation and margins.",
+          "measure": "A block ends at its own lower edge. Its margin below does not count, and its margin above does, as the browser lays them."
         }
       },
       "cases": [
@@ -3525,7 +3771,8 @@
           },
           "h4": {
             "margin": "16px 0 4px",
-            "weight": 640
+            "weight": 640,
+            "says": "h5 and h6 too."
           },
           "p": {
             "margin": "10px 0"
@@ -3553,6 +3800,37 @@
           },
           "details": {
             "margin": "14px 0"
+          },
+          "picture": {
+            "margin": "16px auto",
+            "padding": "8px",
+            "max_height": "28rem",
+            "border": "1px solid hair",
+            "radius": "12px"
+          },
+          "rule": {
+            "margin": "16px 0",
+            "border": "1px solid line",
+            "says": "Inside a block. Among the blocks, it starts a sheet."
+          },
+          "formula": {
+            "margin": "12px 0",
+            "padding": "4px 0"
+          },
+          "caption": {
+            "padding": "6px 14px",
+            "size": "12px"
+          },
+          "note": {
+            "margin": "6px 0",
+            "size": "0.9em"
+          },
+          "definition": {
+            "margin": "2px 0",
+            "size": "0.82em"
+          },
+          "properties": {
+            "hidden": true
           }
         },
         "callouts": {

@@ -199,6 +199,43 @@ fn what_only_the_machine_reads_goes_on_from_what_it_turned_it_into() {
 }
 
 #[test]
+fn a_heic_named_only_among_its_other_brands_is_still_one() {
+    let told_in_its_list = b"\0\0\0\x18ftypiso8\0\0\0\0mif1heic";
+    let done = made_or_turned(told_in_its_list, || Some(a_photo(20, 10))).unwrap();
+    assert_eq!(done.kind, Kind::Jpeg);
+}
+
+#[test]
+fn a_file_cut_short_is_no_picture() {
+    let whole = a_photo(40, 30);
+    assert_eq!(made(&whole[..whole.len() / 2]), Err(Unmade::NotAPicture));
+    let png = encoded(
+        DynamicImage::ImageRgb8(RgbImage::from_pixel(40, 30, Rgb([1, 2, 3]))),
+        ImageFormat::Png,
+    );
+    assert_eq!(made(&png[..png.len() / 2]), Err(Unmade::NotAPicture));
+}
+
+#[test]
+fn only_a_real_profile_for_these_pixels_stays() {
+    let mut real = vec![0u8; 128];
+    real[16..20].copy_from_slice(b"RGB ");
+    real[36..40].copy_from_slice(b"acsp");
+    assert!(is_a_profile_for_these_pixels(&real));
+    let mut gray = real.clone();
+    gray[16..20].copy_from_slice(b"GRAY");
+    assert!(!is_a_profile_for_these_pixels(&gray));
+    let mut cmyk = real.clone();
+    cmyk[16..20].copy_from_slice(b"CMYK");
+    assert!(!is_a_profile_for_these_pixels(&cmyk));
+    assert!(!is_a_profile_for_these_pixels(
+        b"a long text about where this was taken, not a profile at all"
+    ));
+    real.resize(PROFILE_AT_MOST + 1, 0);
+    assert!(!is_a_profile_for_these_pixels(&real));
+}
+
+#[test]
 fn what_it_reads_itself_never_asks_the_machine() {
     let done = made_or_turned(&a_photo(20, 10), || panic!("asked the machine")).unwrap();
     assert_eq!(done.kind, Kind::Jpeg);

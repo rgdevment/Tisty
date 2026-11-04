@@ -27,6 +27,7 @@ values:
     reader: "Native DecompressionStream, into a buffer of exactly open_size. A part that gives more or less does not open."
   sealing:
     link_key: "32 random bytes after the # of the link, in base64url. It never reaches the server and never comes from a password."
+    head: "32 random bytes, new for every envelope and never used again: its nonces only count parts, so a head used twice under one key breaks the seal."
     commitment: "HMAC-SHA-256 of tisty-envelope-commit and the head, with the link key, compared before opening anything."
     envelope_key: "HKDF-SHA-256 of the link key, with the head as salt and tisty-envelope-key as info."
     parts: "AES-256-GCM. Its nonce is 12 bytes holding the part's number, from 0, big endian. Its additional data is the manifest."
@@ -42,26 +43,32 @@ values:
     - "A manifest whose id or kind is not what it asked for."
     - "A document inside whose id is not the manifest's."
     - "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files."
+    - "A main envelope whose parts are not first, rest and then pictures, and a files envelope with anything but files."
+    - "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts."
+    - "A files envelope whose manifest and index are not what its document's files_hash says."
+    - "A manifest that says a head or a commitment while it is not sealed."
   who_checks_what:
     server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
-    reader: "With the key, it checks the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The same major version opens. A higher one is read as newer, and a lower one as damaged."
+    reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
+  versions: "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged."
+  sizes_at_most: { manifest_bytes: 65536, signature_bytes: 4096 }
+  files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
 fields:
   contract: { type: text, required: true, at_least: 1, at_most: 32, says: "The version of these contracts it was written under." }
   kind: { type: envelope_kind, required: true }
-  id: { type: text, required: true, at_least: 1, at_most: 64 }
+  id: { type: id, required: true, at_most: 64 }
   version: { type: whole, required: true, at_least: 1 }
-  from: { type: whole, says: "The version it starts from." }
+  from: { type: whole, says: "The version it starts from, an earlier one." }
   sealed: { type: bool, required: true, says: "False only for what is public." }
-  head: { type: hash, required_when: sealed, says: "32 random bytes." }
-  commitment: { type: hash, required_when: sealed }
+  head: { type: hash, required_when: sealed, only_when: sealed, says: "32 random bytes." }
+  commitment: { type: hash, required_when: sealed, only_when: sealed }
   parts: { type: list, of: envelope_part, required: true, at_least: 1 }
 roles:
   writer:
     seal: { takes: { document: document, pictures: "list:bytes", files: "list:bytes", sealing: sealing }, gives: "list:bytes", fails: true, says: "The main envelope and, only with files, the files envelope." }
   reader:
-    open: { takes: { file: bytes, opening: opening }, gives: document, fails: true }
+    open: { takes: { file: bytes, opening: opening }, gives: "list:bytes", fails: true, says: "Its parts once open, in order. Laid over each other, the first two of a main envelope make the document." }
 cases:
   - says: "A sealed main envelope."
     value:
@@ -76,8 +83,20 @@ cases:
       parts: [{ name: first, compressed: true, sealed_size: 40, open_size: 90 }, { name: rest, compressed: true, sealed_size: 50, open_size: 120 }]
     holds: true
   - says: "A public one, with nothing to open it with."
-    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }] }
+    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
     holds: true
+  - says: "A public one that says what opens a sealed one."
+    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, head: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "A number past what every language can hold."
+    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 9007199254740993, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "No whole number at all."
+    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1.5, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "A version before the first."
+    value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 0, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
   - says: "A sealed one that lost what opens it."
     value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: true, parts: [{ name: first, compressed: true, sealed_size: 40, open_size: 90 }] }
     holds: false
@@ -93,10 +112,11 @@ group: documents
 checked_by: [writer]
 says: What a writer needs to seal a document, beyond the document and its bytes.
 fields:
-  id: { type: text, required: true, at_least: 1, at_most: 64 }
+  id: { type: id, required: true, at_most: 64 }
   version: { type: whole, required: true, at_least: 1 }
   from: { type: whole }
   link_key: { type: key, says: "None for what is public." }
+  files_hash: { type: hash, says: "The files envelope already sent, when no file changed." }
 cases:
   - says: "A private version."
     value: { id: "k7Qm2xPa", version: 2, from: 1, link_key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
@@ -110,7 +130,7 @@ group: documents
 checked_by: [reader]
 says: What a reader asks for when it opens an envelope.
 fields:
-  id: { type: text, required: true, at_least: 1, at_most: 64 }
+  id: { type: id, required: true, at_most: 64 }
   kind: { type: envelope_kind, required: true }
   link_key: { type: key }
 cases:

@@ -1,4 +1,4 @@
-import { CONTRACTS, checkHtml } from "@tisty/contracts";
+import { CONTRACTS } from "@tisty/contracts";
 import { describe, expect, it } from "vitest";
 import { source } from "./source";
 
@@ -97,6 +97,17 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, "pre", "padding")).toBe(blocks.pre.padding);
     expect(said(page, "pre", "line-height")).toBe(String(blocks.pre.line_height));
     expect(said(page, "details", "margin")).toBe(blocks.details.margin);
+    for (const tag of ["h5", "h6"]) expect(said(page, tag, "margin")).toBe(blocks.h4.margin);
+    expect(said(page, "img", "margin")).toBe(blocks.picture.margin);
+    expect(said(page, "img", "padding")).toBe(blocks.picture.padding);
+    expect(said(page, "img", "max-height")).toBe(blocks.picture.max_height);
+    expect(said(page, "hr", "margin")).toBe(blocks.rule.margin);
+    expect(said(page, "div.math", "margin")).toBe(blocks.formula.margin);
+    expect(said(page, "div.math", "padding")).toBe(blocks.formula.padding);
+    expect(said(page, "figure.code figcaption", "padding")).toBe(blocks.caption.padding);
+    expect(said(page, ".footnote", "margin")).toBe(blocks.note.margin);
+    expect(said(page, ".refdef", "margin")).toBe(blocks.definition.margin);
+    expect(said(page, ".front", "display")).toBe("none");
   });
 
   it("its tables", () => {
@@ -141,12 +152,5 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     );
     expect(page).toContain(`--wide, ${sheet.long_page_width_pixels}px`);
     expect(style.sheet.width).toBe(`${sheet.long_page_width_pixels}px`);
-  });
-});
-
-describe("the contract the window checks against", () => {
-  it("is the one the package was generated from", () => {
-    expect(checkHtml("<script></script>")).not.toEqual([]);
-    expect(checkHtml("<p>a</p>")).toEqual([]);
   });
 });

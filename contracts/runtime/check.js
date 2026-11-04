@@ -1,6 +1,9 @@
 export const VERSION = WHOLE.version;
 export const CONTRACTS = WHOLE.contracts;
 export const ALLOWED = WHOLE.allowed;
+export const PASSTHROUGH = WHOLE.passthrough;
+export const STYLES = WHOLE.styles;
+export const URLS = WHOLE.urls;
 
 // A tag called constructor must not find what every object inherits.
 const own = (held, name) => (held && Object.hasOwn(held, name) ? held[name] : undefined);
@@ -28,7 +31,15 @@ const isName = (said) => {
   return said.trim() === said && [...said].length <= 80 && letters > 0 && digits <= letters && !UNSEEN.test(said);
 };
 
-const base64urlOf = (said, length) => said.length === length && /^[A-Za-z0-9_-]+$/.test(said);
+const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
+const base64urlOf = (said, length, spare) =>
+  said.length === length && /^[A-Za-z0-9_-]+$/.test(said) && BASE64URL.indexOf(said[length - 1]) % spare === 0;
+
+const isId = (said) => /^[A-Za-z0-9_-]+$/.test(said);
+
+const spacesOff = (said) => said.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "");
 
 const lengthOf = (said) => [...said].length;
 
@@ -46,8 +57,8 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "boolean") out.push(at + " is not true or false");
   } else if (type === "whole") {
     if (!Number.isSafeInteger(value) || value < 0) out.push(at + " is not a whole number");
-  } else if (type === "number") {
-    if (typeof value !== "number") out.push(at + " is not a number");
+  } else if (type === "id") {
+    if (typeof value !== "string" || !isId(value)) out.push(at + " is not an id");
   } else if (type === "time") {
     if (typeof value !== "string" || !isTime(value)) out.push(at + " is not a date in whole seconds");
   } else if (type === "moment") {
@@ -59,11 +70,11 @@ const checkType = (type, value, at, out) => {
   } else if (type === "tag_word") {
     if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
   } else if (type === "key") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a key");
+    if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a key");
   } else if (type === "hash") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a hash");
+    if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a hash");
   } else if (type === "signed") {
-    if (typeof value !== "string" || !base64urlOf(value, 86)) out.push(at + " is not a signature");
+    if (typeof value !== "string" || !base64urlOf(value, 86, 16)) out.push(at + " is not a signature");
   } else if (WHOLE.enums[type]) {
     if (!WHOLE.enums[type].includes(value)) out.push(at + " is none of " + WHOLE.enums[type].join(", "));
   } else {
@@ -83,9 +94,10 @@ function checkFields(name, value, at, out) {
     const here = at === "" ? field : at + "." + field;
     const given = value[field];
     if (given === undefined || given === null) {
-      if (said.required || value[said.required_when] === true) out.push(here + " is missing");
+      if (said.required || (said.required_when && value[said.required_when] === true)) out.push(here + " is missing");
       continue;
     }
+    if (said.only_when && value[said.only_when] !== true) out.push(here + " is only for what is " + said.only_when);
     if (said.type === "list") {
       if (!Array.isArray(given)) {
         out.push(here + " is not a list");
@@ -98,7 +110,10 @@ function checkFields(name, value, at, out) {
     }
     checkType(said.type, given, here, out);
     const size = typeof given === "string" ? lengthOf(given) : given;
-    if (typeof size === "number" && (typeof given === "string" || said.type === "whole" || said.type === "number")) {
+    if (typeof given === "string" && said.bytes_at_most !== undefined && new TextEncoder().encode(given).length > said.bytes_at_most) {
+      out.push(here + " is too long");
+    }
+    if (typeof size === "number" && (typeof given === "string" || said.type === "whole")) {
       if (said.at_least !== undefined && size < said.at_least) out.push(here + " is too short or too low");
       if (said.at_most !== undefined && size > said.at_most) out.push(here + " is too long or too high");
     }
@@ -128,6 +143,8 @@ const opened = (html) => {
   for (let start = rest.indexOf("<"); start >= 0; start = rest.indexOf("<")) {
     rest = rest.slice(start + 1);
     if (rest.startsWith("!") || rest.startsWith("?")) out.push({ tag: "!", attributes: [], unclosed: false });
+    // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
+    if (rest.startsWith("/") && !/^\/[a-zA-Z][^\t\n\f\r />]*[\t\n\f\r ]*>/.test(rest)) out.push({ tag: "/", attributes: [], unclosed: false });
     if (!/^[a-zA-Z]/.test(rest)) continue;
     let end = until(rest, /[\t\n\f\r />]/);
     const one = { tag: lowered(rest.slice(0, end)), attributes: [], unclosed: false };
@@ -188,10 +205,10 @@ const wrongUrl = (value) => {
 
 // A paint or a marker names something in its own drawing, and nothing else.
 const wrongPaint = (value) => {
-  const said = lowered(value).trim();
-  if (said.includes("&")) return true;
+  const said = spacesOff(lowered(value));
+  if (said.includes("&") || said.includes("\\")) return true;
   if (!said.includes("url(")) return false;
-  return !/^url\(#[^\s()]+\)$/.test(said);
+  return !/^url\(#[^\t\n\f\r ()]+\)$/.test(said);
 };
 
 const isSizeIn = (said, unit) => said.endsWith(unit) && /^\d+(\.\d+)?$/.test(said.slice(0, said.length - unit.length));
@@ -213,12 +230,12 @@ const holdsStyle = (rule, said) => {
 const wrongStyles = (tag, value) =>
   value
     .split(";")
-    .map((one) => one.trim())
+    .map(spacesOff)
     .filter(Boolean)
     .filter((one) => {
       const colon = one.indexOf(":");
-      const property = lowered(one.slice(0, Math.max(colon, 0))).trim();
-      const said = lowered(one.slice(colon + 1)).trim();
+      const property = spacesOff(lowered(one.slice(0, Math.max(colon, 0))));
+      const said = spacesOff(lowered(one.slice(colon + 1)));
       return !WHOLE.styles.some((rule) => rule.on === tag && rule.property === property && holdsStyle(rule, said));
     });
 
@@ -228,6 +245,10 @@ export function checkHtml(html) {
   for (const { tag, attributes, unclosed } of opened(html)) {
     if (tag === "!") {
       out.push("a comment is in no contract");
+      continue;
+    }
+    if (tag === "/") {
+      out.push("a closing tag that says more than its name is in no contract");
       continue;
     }
     for (const rule of WHOLE.html_rules) {
@@ -245,9 +266,10 @@ export function checkHtml(html) {
       if (name === "class") {
         for (const one of words(value)) {
           const known =
-            drawn?.classes.includes(one) ||
+            !one.includes("&") &&
+            (drawn?.classes.includes(one) ||
             drawn?.class_starts.some((start) => one.startsWith(start)) ||
-            drawn?.class_ends.some((end) => one.endsWith(end));
+              drawn?.class_ends.some((end) => one.endsWith(end)));
           if (!known) out.push("the class " + one + " on <" + tag + "> is in no contract");
         }
       }

@@ -5,19 +5,25 @@
 mod opening;
 
 use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use jiff::Timestamp;
 use opening::{document_of, opened};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{Document, Sealing};
-use tisty_envelope::family::{Family, Tongue, sealed_family, sealed_with_cited};
+use tisty_envelope::family::{Family, Tongue, sealed_family};
 use tisty_envelope::pictures::made;
 use tisty_envelope::sealing::{Refused, Writer};
 use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 
 const SINCE: &str = "2026-11-03T12:00:00Z";
-const PNG: &[u8] = b"\x89PNG\r\n\x1a\nnot decoded by the seal";
+
+// A real picture, one pixel wide.
+fn png() -> Vec<u8> {
+    STANDARD
+        .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==")
+        .unwrap()
+}
 
 fn root() -> Root {
     Root::from_bytes(&[0x33; 32])
@@ -39,6 +45,7 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
         version: 1,
         from: None,
         link_key,
+        files_hash: None,
     }
 }
 
@@ -50,6 +57,10 @@ fn the_key(byte: u8) -> Vec<u8> {
     vec![byte; 32]
 }
 
+fn a_picture_said() -> Value {
+    json!([{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": png().len(), "width": 1, "height": 1 }])
+}
+
 #[test]
 fn a_private_document_opens_as_the_samples_do() {
     let (key, certificate) = signer();
@@ -59,7 +70,7 @@ fn a_private_document_opens_as_the_samples_do() {
         "title": "Paseos",
         "lang": "es",
         "signed_as": "Mario",
-        "pictures": [{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": PNG.len(), "width": 1, "height": 1 }],
+        "pictures": a_picture_said(),
         "files": [{ "at": 0, "name": "cartilla.pdf", "kind": "application/pdf", "size": 3 }],
         "html": "<h1 id=\"paseos\">Paseos</h1><img src=\"tisty:picture/0\" alt=\"Rina\" width=\"1\" height=\"1\"><a href=\"tisty:page/1\">Enero</a><a class=\"card\" href=\"tisty:file/0\">Cartilla</a>",
         "body": "# Paseos\n",
@@ -68,7 +79,7 @@ fn a_private_document_opens_as_the_samples_do() {
     let sealed = writer
         .sealed(
             said,
-            vec![PNG.to_vec()],
+            vec![png()],
             vec![b"pdf".to_vec()],
             &sealing("k7Qm2xPa", Some(key_text(0x11))),
         )
@@ -78,7 +89,7 @@ fn a_private_document_opens_as_the_samples_do() {
     let held = document_of(&main);
     assert_eq!(held["signed_as"], "Mario");
     assert_eq!(held["pages"][0]["body"], "# Enero\n");
-    assert_eq!(main.parts[2], PNG);
+    assert_eq!(main.parts[2], png());
 
     let files = opened(
         sealed.files.as_ref().unwrap(),
@@ -107,6 +118,45 @@ fn a_public_document_goes_unsealed_and_says_so() {
 }
 
 #[test]
+fn a_comma_does_not_send_its_files_again() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let said = |body: &str| {
+        document(json!({
+            "id": "x",
+            "files": [{ "at": 0, "name": "cartilla.pdf", "size": 3 }],
+            "html": "<a class=\"card\" href=\"tisty:file/0\">Cartilla</a>",
+            "body": body,
+        }))
+    };
+    let first = writer
+        .sealed(
+            said("a"),
+            vec![],
+            vec![b"pdf".to_vec()],
+            &sealing("x", Some(key_text(1))),
+        )
+        .unwrap();
+    let opened_first = document_of(&opened(&first.main, ("x", "main"), Some(&the_key(1))).unwrap());
+    let hash = opened_first["files_hash"].as_str().unwrap().to_owned();
+
+    let mut again = sealing("x", Some(key_text(1)));
+    again.version = 2;
+    again.from = Some(1);
+    again.files_hash = Some(hash.clone());
+    let second = writer.sealed(said("a,"), vec![], vec![], &again).unwrap();
+    assert!(second.files.is_none());
+    let held = document_of(&opened(&second.main, ("x", "main"), Some(&the_key(1))).unwrap());
+    assert_eq!(held["files_hash"], hash);
+
+    let refused = writer.sealed(said("b"), vec![], vec![b"pdf".to_vec()], &again);
+    assert!(
+        refused.is_err(),
+        "either the old envelope or a new one, never both"
+    );
+}
+
+#[test]
 fn it_writes_the_same_certificate_and_revocation_as_the_samples() {
     let samples: Value =
         serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
@@ -118,99 +168,170 @@ fn it_writes_the_same_certificate_and_revocation_as_the_samples() {
     assert_eq!(revocation.at.to_string(), samples["revocation"]["at"]);
 }
 
-#[test]
-fn nothing_outside_the_contract_leaves() {
+fn refused(value: Value, sealing: &Sealing) -> Refused {
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);
-    let refused = |writer: &mut Writer, value: Value, pictures: Vec<Vec<u8>>| {
-        writer
-            .sealed(
-                document(value),
-                pictures,
-                vec![],
-                &sealing("x", Some(key_text(1))),
-            )
-            .unwrap_err()
-    };
+    writer
+        .sealed(document(value), vec![], vec![], sealing)
+        .unwrap_err()
+}
+
+#[test]
+fn nothing_outside_the_contract_leaves() {
+    let at = sealing("x", Some(key_text(1)));
     assert!(matches!(
         refused(
-            &mut writer,
             json!({ "id": "x", "html": "<script>a()</script>", "body": "a" }),
-            vec![]
+            &at
         ),
         Refused::OutsideTheContract("html", _)
     ));
     assert!(matches!(
         refused(
-            &mut writer,
             json!({ "id": "x", "html": "<figure class=\"diagram\"><pre><code class=\"language-mermaid\">a</code></pre></figure>", "body": "a" }),
-            vec![]
+            &at
         ),
         Refused::OutsideTheContract("html", _)
     ));
     assert!(matches!(
         refused(
-            &mut writer,
-            json!({ "id": "y", "html": "<p>a</p>", "body": "a" }),
-            vec![]
+            json!({ "id": "x", "html": "</p a=\"<p title='\"><script>a()</script><p b='>x", "body": "a" }),
+            &at
         ),
+        Refused::OutsideTheContract("html", _)
+    ));
+    assert!(matches!(
+        refused(json!({ "id": "y", "html": "<p>a</p>", "body": "a" }), &at),
         Refused::DoesNotAdd(_)
     ));
     assert!(matches!(
         refused(
-            &mut writer,
             json!({ "id": "x", "signed_as": "a 123 456", "html": "<p>a</p>", "body": "a" }),
-            vec![]
+            &at
         ),
         Refused::OutsideTheContract("document", _)
     ));
 }
 
 #[test]
-fn a_reference_that_points_at_nothing_never_leaves() {
+fn html_written_loosely_cannot_hang_the_seal() {
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);
+    let said = document(json!({ "id": "x", "html": "<p title=x>a</p><p =>b</p>", "body": "a" }));
+    let _ = writer.sealed(said, vec![], vec![], &sealing("x", Some(key_text(1))));
+}
+
+#[test]
+fn a_reference_that_points_at_nothing_never_leaves_however_it_is_written() {
+    let at = sealing("x", Some(key_text(1)));
     for html in [
         "<a href=\"tisty:page/1\">a</a>",
         "<a href=\"tisty:file/0\">a</a>",
         "<a href=\"tisty:cited/0\">a</a>",
+        "<a href=\"TISTY:page/9\">a</a>",
+        "<a href=\" tisty:page/9\">a</a>",
+        "<a HREF=\"tisty:page/9\">a</a>",
+        "<a href='tisty:page/9'>a</a>",
+        "<a href=tisty:page/9>a</a>",
         "<img src=\"tisty:picture/0\" alt=\"a\" width=\"1\" height=\"1\">",
     ] {
-        let refused = writer
-            .sealed(
-                document(json!({ "id": "x", "html": html, "body": "a" })),
-                vec![],
-                vec![],
-                &sealing("x", Some(key_text(1))),
-            )
-            .unwrap_err();
-        assert!(matches!(refused, Refused::DoesNotAdd(_)), "{html}");
+        assert!(
+            matches!(
+                refused(json!({ "id": "x", "html": html, "body": "a" }), &at),
+                Refused::DoesNotAdd(_)
+            ),
+            "{html}"
+        );
     }
+}
+
+#[test]
+fn a_writer_does_not_get_to_say_what_does_not_add_up() {
+    let at = sealing("x", Some(key_text(1)));
+    let base = json!({ "id": "x", "html": "<p>a</p>", "body": "a" });
+    let with = |field: &str, value: Value| {
+        let mut out = base.clone();
+        out[field] = value;
+        out
+    };
+    let cases = [
+        with(
+            "files",
+            json!([{ "at": 0, "name": "C:\\Users\\Mario\\cartilla.pdf" }]),
+        ),
+        with(
+            "pages",
+            json!([{ "id": "p1", "page_of": "otro", "at": 1, "html": "<p>a</p>", "body": "a" }]),
+        ),
+        with(
+            "pages",
+            json!([
+                { "id": "p1", "page_of": "x", "at": 1, "html": "<p>a</p>", "body": "a" },
+                { "id": "p2", "page_of": "x", "at": 1, "html": "<p>a</p>", "body": "a" },
+            ]),
+        ),
+        with("owner", json!(key_text(0x77))),
+        with("languages", json!([{ "lang": "en", "document": "y" }])),
+    ];
+    for one in cases {
+        let (key, certificate) = signer();
+        let mut writer = Writer::new(&key, &certificate);
+        let files = if one.get("files").is_some() {
+            vec![b"pdf".to_vec()]
+        } else {
+            vec![]
+        };
+        let wrong = writer.sealed(document(one.clone()), vec![], files, &at);
+        assert!(matches!(wrong, Err(Refused::DoesNotAdd(_))), "{one}");
+    }
+    let mut late = sealing("x", Some(key_text(1)));
+    late.from = Some(1);
+    assert!(matches!(
+        refused(base.clone(), &late),
+        Refused::DoesNotAdd(_)
+    ));
 }
 
 #[test]
 fn a_picture_that_is_not_what_it_says_never_leaves() {
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);
-    let said = |size: usize| {
-        document(json!({
-            "id": "x",
-            "pictures": [{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": size, "width": 1, "height": 1 }],
-            "html": "<p>a</p>",
-            "body": "a",
-        }))
+    let said = |value: Value| {
+        document(json!({ "id": "x", "pictures": value, "html": "<p>a</p>", "body": "a" }))
     };
     let at = sealing("x", Some(key_text(1)));
     assert!(
         writer
-            .sealed(said(3), vec![b"pdf".to_vec()], vec![], &at)
+            .sealed(said(a_picture_said()), vec![b"pdf".to_vec()], vec![], &at)
             .is_err()
     );
-    assert!(writer.sealed(said(PNG.len()), vec![], vec![], &at).is_err());
     assert!(
         writer
-            .sealed(said(1), vec![PNG.to_vec()], vec![], &at)
+            .sealed(said(a_picture_said()), vec![], vec![], &at)
             .is_err()
+    );
+    let lying_size = json!([{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": 1, "width": 1, "height": 1 }]);
+    assert!(
+        writer
+            .sealed(said(lying_size), vec![png()], vec![], &at)
+            .is_err()
+    );
+    let lying_width = json!([{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": png().len(), "width": 1600, "height": 1 }]);
+    assert!(
+        writer
+            .sealed(said(lying_width), vec![png()], vec![], &at)
+            .is_err()
+    );
+    let a_path = json!([{ "at": 0, "name": "C:/fotos/rina.png", "kind": "image/png", "size": png().len(), "width": 1, "height": 1 }]);
+    assert!(
+        writer
+            .sealed(said(a_path), vec![png()], vec![], &at)
+            .is_err()
+    );
+    assert!(
+        writer
+            .sealed(said(a_picture_said()), vec![png()], vec![], &at)
+            .is_ok()
     );
 }
 
@@ -245,28 +366,40 @@ fn a_picture_made_here_passes_what_the_seal_asks() {
     assert_eq!(main.parts[2], picture.bytes);
 }
 
-fn tongue(id: &str, lang: &str, byte: u8) -> Tongue {
+fn tongue(id: &str, lang: &str, key: Option<u8>) -> Tongue {
     Tongue {
         document: document(
             json!({ "id": id, "lang": lang, "title": id, "html": "<p>a</p>", "body": "a" }),
         ),
         pictures: vec![],
         files: vec![],
-        sealing: sealing(id, Some(key_text(byte))),
+        sealing: sealing(id, key.map(key_text)),
+        cited: vec![],
     }
+}
+
+fn alone(one: Tongue) -> Family {
+    Family {
+        anchor: one,
+        others: vec![],
+    }
+}
+
+fn sealed(family: Family) -> Result<Vec<tisty_envelope::family::Going>, Refused> {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    sealed_family(&mut writer, family)
 }
 
 #[test]
 fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
-    let (key, certificate) = signer();
-    let mut writer = Writer::new(&key, &certificate);
-    let going = sealed_family(
-        &mut writer,
-        Family {
-            anchor: tongue("hola", "es", 1),
-            others: vec![tongue("hello", "en", 2), tongue("ola", "pt-BR", 3)],
-        },
-    )
+    let going = sealed(Family {
+        anchor: tongue("hola", "es", Some(1)),
+        others: vec![
+            tongue("hello", "en", Some(2)),
+            tongue("ola", "pt-BR", Some(3)),
+        ],
+    })
     .unwrap();
     assert_eq!(going.len(), 3);
     let anchor =
@@ -282,53 +415,83 @@ fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
 }
 
 #[test]
-fn a_family_must_say_its_languages() {
-    let (key, certificate) = signer();
-    let mut writer = Writer::new(&key, &certificate);
-    let mut anchor = tongue("hola", "es", 1);
+fn the_paper_of_a_family_is_the_anchors() {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.document.sheet =
+        serde_json::from_value(json!({ "paper": "letter", "on": true })).unwrap();
+    let mut other = tongue("hello", "en", Some(2));
+    other.document.sheet = serde_json::from_value(json!({ "paper": "a4" })).unwrap();
+    let going = sealed(Family {
+        anchor,
+        others: vec![other],
+    })
+    .unwrap();
+    let english =
+        document_of(&opened(&going[1].sealed.main, ("hello", "main"), Some(&the_key(2))).unwrap());
+    assert_eq!(english["sheet"]["paper"], "letter");
+}
+
+#[test]
+fn a_family_must_say_its_languages_once_each() {
+    let mut anchor = tongue("hola", "es", Some(1));
     anchor.document.lang = None;
     assert!(
-        sealed_family(
-            &mut writer,
-            Family {
-                anchor,
-                others: vec![tongue("hello", "en", 2)]
-            }
-        )
+        sealed(Family {
+            anchor,
+            others: vec![tongue("hello", "en", Some(2))]
+        })
         .is_err()
     );
-    let mut other = tongue("hello", "en", 2);
+    let mut other = tongue("hello", "en", Some(2));
     other.document.lang = None;
     assert!(
-        sealed_family(
-            &mut writer,
-            Family {
-                anchor: tongue("hola", "es", 1),
-                others: vec![other]
-            }
-        )
+        sealed(Family {
+            anchor: tongue("hola", "es", Some(1)),
+            others: vec![other]
+        })
+        .is_err()
+    );
+    assert!(
+        sealed(Family {
+            anchor: tongue("hola", "es", Some(1)),
+            others: vec![tongue("otra", "es", Some(2))]
+        })
         .is_err()
     );
 }
 
 #[test]
-fn what_is_cited_keeps_its_own_envelopes_and_its_key_goes_along() {
-    let (key, certificate) = signer();
-    let mut writer = Writer::new(&key, &certificate);
-    let mut holder = tongue("hola", "es", 1);
+fn what_is_public_never_holds_a_key() {
+    let private_language = Family {
+        anchor: tongue("hola", "es", None),
+        others: vec![tongue("hello", "en", Some(2))],
+    };
+    assert!(matches!(
+        sealed(private_language),
+        Err(Refused::DoesNotAdd(_))
+    ));
+    let mut holder = tongue("hola", "es", None);
+    holder.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    assert!(matches!(sealed(alone(holder)), Err(Refused::DoesNotAdd(_))));
+}
+
+#[test]
+fn what_is_public_may_cite_what_is_public() {
+    let mut holder = tongue("hola", "es", None);
     holder.document.html = "<a class=\"card\" href=\"tisty:cited/0\">Otro</a>".to_owned();
-    let going = sealed_with_cited(
-        &mut writer,
-        Family {
-            anchor: holder,
-            others: vec![],
-        },
-        vec![Family {
-            anchor: tongue("otro", "es", 9),
-            others: vec![],
-        }],
-    )
-    .unwrap();
+    holder.cited = vec![alone(tongue("otro", "es", None))];
+    let going = sealed(alone(holder)).unwrap();
+    let held = document_of(&opened(&going[0].sealed.main, ("hola", "main"), None).unwrap());
+    assert_eq!(held["cited"][0]["document"], "otro");
+    assert!(held["cited"][0].get("key").is_none());
+}
+
+#[test]
+fn what_is_cited_keeps_its_own_envelopes_and_its_key_goes_along() {
+    let mut holder = tongue("hola", "es", Some(1));
+    holder.document.html = "<a class=\"card\" href=\"tisty:cited/0\">Otro</a>".to_owned();
+    holder.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    let going = sealed(alone(holder)).unwrap();
     assert_eq!(going[0].id, "hola");
     assert_eq!(going[1].id, "otro");
     let held =
@@ -338,17 +501,51 @@ fn what_is_cited_keeps_its_own_envelopes_and_its_key_goes_along() {
     assert!(opened(&going[1].sealed.main, ("otro", "main"), Some(&the_key(9))).is_ok());
 }
 
+#[test]
+fn two_languages_may_cite_one_document_and_it_goes_once() {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    let mut other = tongue("hello", "en", Some(2));
+    other.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    let going = sealed(Family {
+        anchor,
+        others: vec![other],
+    })
+    .unwrap();
+    let ids: Vec<&str> = going.iter().map(|one| one.id.as_str()).collect();
+    assert_eq!(ids, ["hola", "hello", "otro"]);
+}
+
+#[test]
+fn what_cites_cites_directly_and_only_once() {
+    let mut twice = tongue("hola", "es", Some(1));
+    twice.cited = vec![
+        alone(tongue("otro", "es", Some(9))),
+        alone(tongue("otro", "es", Some(9))),
+    ];
+    assert!(sealed(alone(twice)).is_err());
+    let mut deep = tongue("otro", "es", Some(9));
+    deep.cited = vec![alone(tongue("tercero", "es", Some(8)))];
+    let mut holder = tongue("hola", "es", Some(1));
+    holder.cited = vec![alone(deep)];
+    assert!(sealed(alone(holder)).is_err());
+}
+
 // What Tisty seals, kept where the JavaScript opener reads it: a browser has to open exactly this.
 #[test]
 fn what_rust_seals_is_what_javascript_is_handed() {
     let (key, certificate) = signer();
-    let mut writer = Writer::with_head(&key, &certificate, || Some([0x22; 32]));
+    let mut next = 0x21;
+    let mut writer = Writer::with_head(&key, &certificate, move || {
+        next += 1;
+        Some([next; 32])
+    });
     let said = document(json!({
         "id": "writtenByTisty",
         "title": "Paseos",
         "lang": "es",
         "signed_as": "Mario",
-        "pictures": [{ "at": 0, "name": "picture-0.png", "kind": "image/png", "size": PNG.len(), "width": 1, "height": 1 }],
+        "pictures": a_picture_said(),
         "files": [{ "at": 0, "name": "cartilla.pdf", "kind": "application/pdf", "size": 3 }],
         "html": "<h1 id=\"paseos\">Paseos</h1><img src=\"tisty:picture/0\" alt=\"Rina\" width=\"1\" height=\"1\"><a class=\"card\" href=\"tisty:file/0\">Cartilla</a>",
         "body": "# Paseos\n",
@@ -356,7 +553,7 @@ fn what_rust_seals_is_what_javascript_is_handed() {
     let sealed = writer
         .sealed(
             said,
-            vec![PNG.to_vec()],
+            vec![png()],
             vec![b"pdf".to_vec()],
             &sealing("writtenByTisty", Some(key_text(0x11))),
         )

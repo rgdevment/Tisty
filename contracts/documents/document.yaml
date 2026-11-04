@@ -9,8 +9,12 @@ values:
   name: >-
     A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides
     a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.
+  says_nothing_unchosen: >-
+    What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name
+    from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in clear.
+  anchor_language: "Paper, sheets and orientation are the group's: the anchor's, in every language."
 fields:
-  id: { type: text, required: true, at_least: 1, at_most: 64, says: "What names it." }
+  id: { type: id, required: true, at_most: 64, says: "What names it, and what goes in its link. It says nothing of the machine it came from." }
   title: { type: text, at_most: 8192, says: "Its properties' title, or else its first line with words." }
   tags: { type: list, of: tag_word, at_most: 64 }
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
@@ -19,7 +23,7 @@ fields:
   signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Only a reader with the key sees it. Never a proof." }
   made: { type: time }
   wrote: { type: time }
-  body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
+  body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written." }
   html: { type: text, required: true, says: "Its words as the writer drew them. A reader never draws them itself." }
   pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
   pictures: { type: list, of: picture, says: "The pictures its main envelope holds." }
@@ -30,7 +34,7 @@ fields:
   languages:
     type: list
     of: translation
-    says: "The same document in other languages. Each one is a document of its own."
+    says: "The same document in other languages. Each one is a document of its own. Whoever holds this says its own lang too."
 html_rules:
   - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
   - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with its document, which asks nobody else for one." }
@@ -60,10 +64,10 @@ html_cases:
     html: '<p onclick="x">a</p>'
     holds: false
   - says: "A picture asked of someone else."
-    html: '<img src="https://a.example/x.png">'
+    html: '<img src="https://a.example/x.png" alt="a" width="1" height="1">'
     holds: false
   - says: "The same one, under the other quote."
-    html: "<img src='https://a.example/x.png'>"
+    html: "<img src='https://a.example/x.png' alt='a' width='1' height='1'>"
     holds: false
   - says: "What a diagram never holds."
     html: "<svg><foreignObject></foreignObject></svg>"
@@ -159,8 +163,38 @@ html_cases:
     html: '<constructor a="1">'
     holds: false
   - says: "A quote that never closes."
-    html: '<img src="tisty:picture/0><script>alert(1)</script>'
+    html: '<img alt="a" width="1" height="1" src="tisty:picture/0><script>alert(1)</script>'
     holds: false
+  - says: "A quote inside a closing tag, which hides from a reader's first look what the browser runs."
+    html: "</p a=\"<p title='\"><script>alert(1)</script><p b='>x"
+    holds: false
+  - says: "The same, with no name in the closing tag."
+    html: '</ <p title="><script>alert(1)</script><p b=">x'
+    holds: false
+  - says: "A closing tag that says its name, and a space."
+    html: "<p>a</p >"
+    holds: true
+  - says: "A class hidden behind an entity."
+    html: '<code class="language-&#109;ermaid">a</code>'
+    holds: false
+  - says: "A paint hidden behind an escape."
+    html: '<svg><path d="M0 0" fill="\\75 rl(https://a.example/x)"></path></svg>'
+    holds: false
+  - says: "A paint hidden behind an entity."
+    html: '<svg><path d="M0 0" fill="url&#40;https://a.example/x)"></path></svg>'
+    holds: false
+  - says: "A colour a formula can say."
+    html: '<math><mrow style="color:#abc"><mi>x</mi></mrow></math>'
+    holds: true
+  - says: "Something else for a colour."
+    html: '<math><mrow style="color:#ggg"><mi>x</mi></mrow></math>'
+    holds: false
+  - says: "A size in a unit no formula uses."
+    html: '<math><mtable style="width:10pt"><mtr><mtd>x</mtd></mtr></mtable></math>'
+    holds: false
+  - says: "A size with a sign where a column takes none."
+    html: '<table><colgroup><col style="width:1.5px"></colgroup></table>'
+    holds: true
 roles:
   reader:
     show: { takes: { document: document }, says: "Cleans the document and draws it, in its language." }
@@ -169,7 +203,7 @@ roles:
     set_orientation: { takes: { orientation: orientation } }
     index: { gives: "list:text", says: "The headings of the document, leading to each one." }
     details: { gives: document, says: "Title, tags and properties." }
-    verdict: { takes: { served: served }, gives: verdict, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
+    verdict: { takes: { signature: signature, served: served }, gives: verdict, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
     go_to_page: { takes: { at: whole } }
     set_language: { takes: { lang: language } }
     open_in_tisty: { says: "Hands the document over to a Tisty." }
@@ -220,6 +254,30 @@ cases:
   - says: "A name that passes for a fingerprint."
     value: { id: "x", signed_as: "a 123 456", html: "<p>x</p>", body: "x" }
     holds: false
+  - says: "A name past what a person reads."
+    value: { id: "x", signed_as: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "An id that would not fit in a link."
+    value: { id: "a/b#c", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A date in a month no year has."
+    value: { id: "x", made: "2026-13-03T12:00:00Z", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "An hour no day has."
+    value: { id: "x", made: "2026-11-03T24:00:00Z", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A minute no hour has."
+    value: { id: "x", made: "2026-11-03T12:60:00Z", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A second no minute has."
+    value: { id: "x", made: "2026-11-03T12:00:60Z", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A key with spare bits set, a second spelling of the same key."
+    value: { id: "x", owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sR", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "Words past 500 KiB, counted in bytes."
+    value: { id: "x", html: "<p>x</p>", body: "€€€€" }
+    holds: true
   - says: "A name that hides what it is."
     value: { id: "x", signed_as: "Ma\u200Brio", html: "<p>x</p>", body: "x" }
     holds: false

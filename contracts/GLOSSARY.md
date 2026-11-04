@@ -24,6 +24,7 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Machine key | Llave de máquina | What signs on one machine, under a certificate from the root. It can be replaced. |
 | Revocation | Revocación | The root saying it no longer answers for a machine key, since a moment. It deletes nothing and stops nothing. |
 | Verdict | Veredicto | What a reader says of a signature: holds, retired, doubtful, refused or unreadable. |
+| Cited | Citado | Another document shared along with this one, in its own envelopes, with its key. |
 | Sync | Sincronizar | Sending what changed in a document to what is shared. A button, or by itself every 5 or 10 minutes. |
 | Writer | Quien escribe | Whoever turns words into a document ready to travel: Tisty, or a fork of it. |
 | Reader | Quien lee | Whoever shows a document: Tisty or Folio. |

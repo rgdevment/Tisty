@@ -74,11 +74,34 @@ fn reader(given: &[u8]) -> Result<ImageReader<Cursor<&[u8]>>, Unmade> {
     Ok(reader)
 }
 
+// A box of brands: the first says what the file is, and those after it what else it can be read as.
 fn is_of_the_heif_family(given: &[u8]) -> bool {
-    given.get(4..8) == Some(b"ftyp".as_slice())
-        && given
-            .get(8..12)
-            .is_some_and(|brand| FAMILY_BRANDS.iter().any(|one| one.as_slice() == brand))
+    if given.get(4..8) != Some(b"ftyp".as_slice()) {
+        return false;
+    }
+    let size = given
+        .get(..4)
+        .and_then(|one| <[u8; 4]>::try_from(one).ok())
+        .map_or(0, |one| u32::from_be_bytes(one) as usize);
+    given
+        .get(8..size.clamp(12, given.len().max(12)))
+        .unwrap_or_default()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .any(|brand| FAMILY_BRANDS.contains(&brand))
+}
+
+// The header of a colour profile says what it is and for how many channels, and only those of the three channels written stay.
+fn is_a_profile_for_these_pixels(said: &[u8]) -> bool {
+    said.len() <= PROFILE_AT_MOST
+        && said.get(36..40) == Some(b"acsp".as_slice())
+        && said.get(16..20) == Some(b"RGB ".as_slice())
+}
+
+// A JPEG cut short decodes all the same, as a grey stretch where the rest should be.
+fn is_cut_short(given: &[u8]) -> bool {
+    given.starts_with(&[0xFF, 0xD8]) && !given.windows(2).any(|one| one == [0xFF, 0xD9])
 }
 
 /// A picture made anew from its pixels, so only pixels travel: metadata, a location and anything hidden in the file stay behind.
@@ -103,6 +126,9 @@ pub fn made_or_turned(
 }
 
 fn written(given: &[u8], photo: bool) -> Result<Made, Unmade> {
+    if is_cut_short(given) {
+        return Err(Unmade::NotAPicture);
+    }
     let (wide, tall) = reader(given)?.into_dimensions().map_err(unread)?;
     if u64::from(wide) * u64::from(tall) > PIXELS_AT_MOST {
         return Err(Unmade::TooLarge);
@@ -113,7 +139,7 @@ fn written(given: &[u8], photo: bool) -> Result<Made, Unmade> {
         .icc_profile()
         .ok()
         .flatten()
-        .filter(|one| one.len() <= PROFILE_AT_MOST);
+        .filter(|one| is_a_profile_for_these_pixels(one));
     let mut pixels = DynamicImage::from_decoder(decoder).map_err(unread)?;
     pixels.apply_orientation(turn);
     if pixels.width().max(pixels.height()) > LONGEST {

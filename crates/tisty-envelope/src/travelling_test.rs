@@ -156,6 +156,78 @@ fn a_quote_keeps_its_source_only_when_it_leads_somewhere() {
 }
 
 #[test]
+fn a_path_never_stands_in_for_a_picture_that_could_not_go() {
+    let html = r#"<img src="C:\Users\Mario\Fotos\rina.png" alt="" loading="lazy">"#;
+    assert_eq!(ready(html, &places()), "");
+}
+
+#[test]
+fn a_link_that_went_takes_its_address_with_it() {
+    let html =
+        "<p><a href=\"tisty:task/01M6\">tisty:task/01M6</a> y <a href=\"otro.html\">otro</a></p>";
+    assert_eq!(ready(html, &places()), "<p> y otro</p>");
+}
+
+#[test]
+fn only_the_properties_block_loses_what_stays_home() {
+    let html = r#"<div><dt>task</dt><dd>a</dd></div><p>queda</p></dd></div>"#;
+    assert_eq!(ready(html, &places()), html);
+    let lone = r#"<dl class="front"><div><dt>task</dt><dd>01M6</dd></div></dl><p>a</p>"#;
+    assert_eq!(ready(lone, &places()), "<p>a</p>");
+}
+
+#[test]
+fn a_link_never_ends_up_inside_a_link() {
+    let html =
+        r#"<a href="https://a.example"><img src="cartilla.pdf" alt="Cartilla" loading="lazy"></a>"#;
+    assert_eq!(
+        ready(html, &places()),
+        r#"<a href="https://a.example">Cartilla</a>"#
+    );
+}
+
+#[test]
+fn html_written_loosely_cannot_hang_it() {
+    assert_eq!(ready("<p title=x>a</p>", &places()), "<p title=\"x\">a</p>");
+    assert_eq!(ready("<p =>a</p>", &places()), "<p =>a</p>");
+    assert_eq!(
+        ready("<p title='a'>b</p>", &places()),
+        "<p title=\"a\">b</p>"
+    );
+}
+
+#[test]
+fn the_words_keep_nothing_their_html_left_home() {
+    let body = "---\ntitle: a\ntask: 01M6\ntranslationKey: x\n---\n![Rina](rina.png) ![Otra](C:\\fotos\\b.png) ![web](https://a.example/x.png)\n\n[la cartilla](cartilla.pdf) [enero](tisty:doc/enero) [nada](tisty:doc/nada) [fuera](https://a.example) [ruta](a/b.md) <tisty:task/01M6>\n\n![tarea](tisty:task/01M6) [[enero]] [[nada]]\n\n[def]: otro.html\n";
+    let done = body_ready(body, &places());
+    for gone in [
+        "01M6",
+        "translationKey",
+        "C:\\",
+        "fotos",
+        "rina.png",
+        "tisty:doc",
+        "a/b.md",
+        "otro.html",
+        "[[",
+    ] {
+        assert!(!done.contains(gone), "{gone} in {done}");
+    }
+    for kept in [
+        "title: a",
+        "![Rina](tisty:picture/0)",
+        "[web](https://a.example/x.png)",
+        "[la cartilla](tisty:file/1)",
+        "[enero](tisty:page/2)",
+        "[fuera](https://a.example)",
+    ] {
+        assert!(done.contains(kept), "{kept} not in {done}");
+    }
+    assert!(done.contains("nada"));
+    assert!(done.contains("tarea"));
+}
+
+#[test]
 fn it_says_what_a_page_names_before_anything_is_found() {
     let found = named(
         r##"<img src="rina.png" alt="x"><a href="cartilla.pdf">a</a><a href="#b">b</a><a href="https://a.example">c</a><a class="card" data-doc="enero">d</a><a href="tisty:doc/otro">e</a><span class="ref" data-ref="tercero">f</span>"##,

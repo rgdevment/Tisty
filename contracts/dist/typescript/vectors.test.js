@@ -43,13 +43,23 @@ const opened = async (bytes, asked, linkKey) => {
     at += 4;
     return view.getUint32(at - 4);
   };
-  const manifestBytes = piece(length());
+  const manifestLength = length();
+  assert.ok(manifestLength <= 65536, "its manifest is within its size");
+  const manifestBytes = piece(manifestLength);
   const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
   assert.deepEqual(check("envelope", manifest), []);
   assert.equal(manifest.id, asked.id, "the document it asked for");
   assert.equal(manifest.kind, asked.kind, "the kind it asked for");
   assert.ok(manifest.sealed || !linkKey, "a key answers only for what is sealed");
-  const signature = JSON.parse(new TextDecoder().decode(piece(length())));
+  const names = manifest.parts.map((one) => one.name);
+  const inOrder =
+    asked.kind === "main"
+      ? names[0] === "first" && names[1] === "rest" && names.slice(2).every((one) => one === "picture")
+      : names.every((one) => one === "file");
+  assert.ok(inOrder, "its parts are in their order");
+  const signatureLength = length();
+  assert.ok(signatureLength <= 4096, "its signature is within its size");
+  const signature = JSON.parse(new TextDecoder().decode(piece(signatureLength)));
   assert.deepEqual(check("signature", signature), []);
   const index = piece(32 * manifest.parts.length);
   const root = b64(signature.root);
@@ -88,9 +98,15 @@ const MAIN = { id: "k7Qm2xPa", kind: "main" };
 const FILES = { id: "k7Qm2xPa", kind: "files" };
 const PUBLIC = { id: "wordsOnly", kind: "main" };
 
-test("the samples are written under this major version", async () => {
+test("the samples are written under this very version", async () => {
   const { manifest } = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
-  assert.equal(manifest.contract.split(".")[0], VERSION.split(".")[0]);
+  assert.equal(manifest.contract, VERSION, "run node contracts/vectors/make.mjs");
+});
+
+test("no head is used twice under one key", async () => {
+  const main = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
+  const files = await opened(hex(VECTORS.files.envelope), FILES, linkKey);
+  assert.notEqual(main.manifest.head, files.manifest.head);
 });
 
 test("a main envelope gives its document, its pages and its pictures, with no other request", async () => {

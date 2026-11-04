@@ -22,7 +22,7 @@ const KEPT = new Set([
 const BECOME_GROUPS = new Set(["a", "switch"]);
 
 const SHAPE: Record<string, readonly string[]> = {
-  svg: ["viewBox", "preserveAspectRatio", "role", "aria-label"],
+  svg: ["viewBox", "width", "height", "preserveAspectRatio", "role", "aria-label"],
   path: ["d"],
   rect: ["x", "y", "width", "height", "rx", "ry"],
   circle: ["cx", "cy", "r"],
