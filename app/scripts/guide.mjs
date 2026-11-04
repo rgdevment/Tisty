@@ -11,12 +11,17 @@ import { JSDOM } from "jsdom";
 import { build as bundled, createServer } from "vite";
 import { createHash } from "node:crypto";
 import {
+  changedOn,
+  commitsIn,
+  describedAs,
   escaped,
   headers,
   href,
   LANGUAGES,
   mapped,
   missing,
+  muted,
+  raised,
   robots,
   sheetOf,
 } from "./guide-site.mjs";
@@ -138,27 +143,50 @@ const dressed = async (page) => {
   kept(page);
   lent(page);
   cards(page);
+  muted(page);
   for (const one of page.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   return page;
 };
 
-// What a reader sees of a page, without its heading or the examples as written.
-const shown = (page) => {
-  const copy = page.querySelector("article").cloneNode(true);
-  for (const one of copy.querySelectorAll("h2, .written, figcaption")) one.remove();
-  const blocks = Array.from(copy.children).flatMap((one) =>
-    one.matches("figure.example") ? Array.from(one.querySelector(".drawn").children) : [one],
-  );
-  return blocks.map((one) => one.textContent).join(" ");
+const REFERENCE = "crates/tisty-markdown/reference";
+
+const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 16 * 1024 * 1024, stdio: "pipe" }).toString();
+
+// A shallow clone or an archive cannot say when a topic changed, and a wrong date is worse than none.
+const wholeHistory = () => {
+  try {
+    return git("rev-parse", "--is-shallow-repository").trim() === "false";
+  } catch {
+    return false;
+  }
+};
+const dated = wholeHistory();
+if (!dated) {
+  // What goes live must not lose its dates to a checkout nobody meant to be shallow.
+  if (process.env.GUIDE_DATES === "required") throw new Error("this checkout has no whole git history, and this guide must go out with its dates");
+  console.warn("no whole git history here, so the guide's pages go out without dates");
+}
+
+const reference = (language) => readFileSync(join(root, REFERENCE, language.file), "utf8");
+
+// Newest first, starting from what is on disk, which may say more than the last commit.
+const revisionsOf = (file, text) => {
+  const path = `${REFERENCE}/${file}`;
+  return [
+    { date: new Date().toISOString().slice(0, 10), topics: topicsOf(text) },
+    ...commitsIn(git("log", "--first-parent", "--format=%H %cs", "--", path)).map(({ hash, date }) => ({
+      date,
+      topics: topicsOf(git("show", `${hash}:${path}`)),
+    })),
+  ];
 };
 
 const build = async (language) => {
   adopt(language.code);
-  const text = readFileSync(
-    join(root, "crates", "tisty-markdown", "reference", language.file),
-    "utf8",
-  );
+  const text = reference(language);
   const parts = topicsOf(text);
+  for (const part of parts) describedAs(language, part.slug);
+  const changed = dated ? changedOn(revisionsOf(language.file, text)) : new Map();
   const sheets = drawn(parts.map((part) => part.body)).map(
     (html) => new JSDOM(`<article class="page">${html}</article>`).window.document,
   );
@@ -185,30 +213,23 @@ const build = async (language) => {
       link.setAttribute("href", tops.has(id) ? href(slug) : `${href(slug)}#${id}`);
     }
     const title = part.heading ?? page.querySelector("h1")?.textContent ?? "Tisty Markdown";
-    const first = (
-      page.querySelector("article > p")?.textContent ||
-      shown(page) ||
-      ""
-    )
-      .replace(/\s+/g, " ")
-      .trim();
+    const subs = Array.from(page.querySelectorAll("article > h3[id]")).map((head) => ({
+      id: head.id,
+      title: head.textContent,
+    }));
+    if (part.at > 0) raised(page);
     return {
       at: part.at,
       slug: part.slug,
       title,
       label: part.at === 0 ? language.start : title,
-      subs: Array.from(page.querySelectorAll("article > h3[id]")).map((head) => ({
-        id: head.id,
-        title: head.textContent,
-      })),
-      said: first.length > 160 ? `${first.slice(0, 157).trimEnd()}…` : first,
+      subs,
+      said: language.said[part.slug],
+      changed: changed.get(part.slug),
       html: page.querySelector("article").outerHTML,
     };
   });
 };
-
-const reference = (language) =>
-  readFileSync(join(root, "crates", "tisty-markdown", "reference", language.file), "utf8");
 
 // What an assistant reads best is the language as written, so it gets the reference itself.
 const llms = (built) => {
