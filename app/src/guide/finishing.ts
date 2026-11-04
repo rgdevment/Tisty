@@ -10,11 +10,16 @@ const figure = (source: string): string => {
   return `<figure class="diagram"><pre>${held.outerHTML}</pre></figure>`;
 };
 
-/** Finishes each diagram in this browser and answers what the contract says of it. Only `scripts/finished.mjs` loads this. */
-export const finishAll = async (): Promise<void> => {
-  const sources: string[] = await (await fetch("/sources")).json();
+const answered = async <Asked, Answer>(each: (one: Asked) => Promise<Answer>) => {
+  const asked: Asked[] = await (await fetch("/sources")).json();
   const answers = [];
-  for (const source of sources) {
+  for (const one of asked) answers.push(await each(one));
+  await fetch("/drawn", { method: "POST", body: JSON.stringify(answers) });
+};
+
+/** Finishes each diagram in this browser and answers what the contract says of it. Only `scripts/finished.mjs` loads this. */
+export const finishAll = (): Promise<void> =>
+  answered(async (source: string) => {
     const { html, notDrawn } = await finished(figure(source));
     const page = new DOMParser().parseFromString(html, "text/html");
     const [light, dark, ...more] = page.querySelectorAll("figure.diagram > svg");
@@ -24,7 +29,12 @@ export const finishAll = async (): Promise<void> => {
       light?.getAttribute("data-theme") === "light" &&
       dark?.getAttribute("data-theme") === "dark" &&
       parts(light) === parts(dark);
-    answers.push({ source, drawn: notDrawn === 0 && both, wrong: checkHtml(html) });
-  }
-  await fetch("/drawn", { method: "POST", body: JSON.stringify(answers) });
-};
+    return { source, drawn: notDrawn === 0 && both, wrong: checkHtml(html) };
+  });
+
+/** Finishes each document on its way. Only `scripts/journey.mjs` loads this, and Rust looks at what comes back before sealing it. */
+export const finishWhole = (): Promise<void> =>
+  answered(async ({ name, html }: { name: string; html: string }) => ({
+    name,
+    ...(await finished(html)),
+  }));

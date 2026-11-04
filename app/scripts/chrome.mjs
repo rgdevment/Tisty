@@ -25,7 +25,7 @@ const stopped = async (browser) => {
 };
 
 // What only a real browser lays out is asked of one: it opens the page, reads /sources and answers at /drawn, or says why not at /failed.
-export const drawnInChrome = async (sources, files, page, what) => {
+export const drawnInChrome = async (sources, files, page, what, within = 120_000) => {
   const chrome = CHROMES.find((one) => one && existsSync(one));
   if (!chrome) throw new Error(`${what} are drawn in Chrome: none found, name one in CHROME_BIN`);
   let drawn;
@@ -58,7 +58,7 @@ export const drawnInChrome = async (sources, files, page, what) => {
   // The page is this script's own, served from this machine, and a runner may not allow Chrome its sandbox.
   const flags = ["--headless=new", "--no-sandbox", "--disable-gpu", "--no-first-run", "--window-size=800,600", `--user-data-dir=${profile}`];
   let browser = null;
-  const clock = setTimeout(() => failed(new Error(`Chrome did not finish ${what}`)), 120_000);
+  const clock = setTimeout(() => failed(new Error(`Chrome did not finish ${what}`)), within);
   try {
     browser = spawn(chrome, [...flags, `http://127.0.0.1:${server.address().port}/`], { stdio: "ignore" });
     browser.once("error", failed);

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { finishAll } from "../guide/finishing";
+import { finishAll, finishWhole } from "../guide/finishing";
 
 const finished = vi.hoisted(() => vi.fn());
 vi.mock("tisty-editor/read", () => ({ finished }));
@@ -80,6 +80,20 @@ describe("what Chrome answers of each diagram", () => {
   it("answers what the contract says of it", async () => {
     const [one] = await answered("<script>a</script>");
     expect(one.wrong).toContain("<script> is in no contract");
+  });
+
+  it("hands a whole document back as it came out, under its name", async () => {
+    finished.mockResolvedValue({ html: "<p>drawn</p>", notDrawn: 1 });
+    const asked = vi.fn(async (_: string, __?: RequestInit) => ({
+      json: async () => [{ name: "paseos", html: "<p>a</p>" }],
+    }));
+    vi.stubGlobal("fetch", asked);
+    await finishWhole();
+    expect(finished).toHaveBeenCalledWith("<p>a</p>");
+    expect(asked.mock.calls[1][0]).toBe("/drawn");
+    expect(JSON.parse(String(asked.mock.calls[1][1]?.body))).toEqual([
+      { name: "paseos", html: "<p>drawn</p>", notDrawn: 1 },
+    ]);
   });
 
   it("answers for every source", async () => {

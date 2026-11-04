@@ -3,11 +3,10 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build as bundled } from "vite";
 import { drawnInChrome } from "./chrome.mjs";
+import { bundledFinisher, finisherPage } from "./finisher.mjs";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const root = resolve(app, "..");
 
 const EVERY_KIND = [
   'flowchart TD\n A[Inicio] --> B{¿Sí?}\n B -->|sí| C((Fin))\n B -.->|no| D[(Base)]\n subgraph S\n C --> E>x]\n end\n click A href "https://a.example"',
@@ -47,29 +46,8 @@ const inTheGuide = ["en", "es"].flatMap((language) => {
 const sources = [...new Set([...EVERY_KIND, ...inTheGuide])];
 const files = mkdtempSync(join(tmpdir(), "tisty-finished-"));
 try {
-  await bundled({
-    root: app,
-    configFile: false,
-    logLevel: "error",
-    resolve: {
-      alias: {
-        "tisty-diagrams": join(root, "packages", "tisty-diagrams", "src"),
-        "tisty-editor": join(root, "packages", "tisty-editor", "src"),
-        "@tisty/contracts": join(root, "contracts", "dist", "typescript", "index.js"),
-      },
-    },
-    build: {
-      outDir: join(files, "finisher"),
-      emptyOutDir: true,
-      lib: { entry: join(app, "src", "guide", "finishing.ts"), formats: ["es"], fileName: () => "finisher.js" },
-    },
-  });
-  const said = await drawnInChrome(
-    sources,
-    files,
-    `<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module">import("/finisher/finisher.js").then((one)=>one.finishAll()).catch((error)=>fetch("/failed",{method:"POST",body:String(error?.stack??error)}))</script></body></html>`,
-    "what a document travels with",
-  );
+  await bundledFinisher(files);
+  const said = await drawnInChrome(sources, files, finisherPage("finishAll"), "what a document travels with");
   const wrong = said.filter((one) => one.wrong.length || !one.drawn);
   for (const one of wrong) console.error(`x  ${one.drawn ? one.wrong.join("; ") : "not drawn"}:\n${one.source}`);
   console.log(`${said.length - wrong.length} of ${said.length} diagrams travel as the contract says`);

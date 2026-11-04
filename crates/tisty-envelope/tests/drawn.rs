@@ -1,47 +1,12 @@
 //! What the translator draws, once its references are in place, is what the contract says. Colour, icons and drawings come after, in the window.
 
-use std::path::Path;
+mod real;
 
+use real::every_real_document;
 use tisty_contracts::check_html;
 use tisty_envelope::travelling::{Places, body_ready, named, ready};
 
 const NOT_DRAWN_YET: &str = "A diagram travels drawn, as SVG.";
-
-fn root() -> &'static Path {
-    Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
-}
-
-fn every_real_document() -> Vec<(String, String)> {
-    let raw = std::fs::read_to_string(root().join("fixtures/markdown.json")).unwrap();
-    let cases: Vec<serde_json::Value> = serde_json::from_str(&raw).unwrap();
-    let mut out: Vec<(String, String)> = cases
-        .into_iter()
-        .map(|one| {
-            let text = match one["file"].as_str() {
-                Some(file) => std::fs::read_to_string(root().join(file)).unwrap(),
-                None => one["text"].as_str().unwrap().to_owned(),
-            };
-            (one["name"].as_str().unwrap().to_owned(), text)
-        })
-        .collect();
-    for folder in [
-        "docs/help",
-        "app/src-tauri/resources/guide/en",
-        "app/src-tauri/resources/guide/es",
-    ] {
-        for file in std::fs::read_dir(root().join(folder)).unwrap().flatten() {
-            let path = file.path();
-            if path.extension().is_some_and(|one| one == "md") {
-                out.push((
-                    path.display().to_string(),
-                    std::fs::read_to_string(&path).unwrap(),
-                ));
-            }
-        }
-    }
-    assert!(out.len() > 100);
-    out
-}
 
 fn wrong_in(text: &str) -> Vec<String> {
     let html = tisty_markdown::html(&tisty_markdown::read(text));
