@@ -1,8 +1,4 @@
-export declare const VERSION: "1.0.0-draft.1";
-
-export type Paper = "a4" | "letter" | "folio" | "tabloid";
-
-export type Orientation = "portrait" | "landscape";
+export declare const VERSION: "1.0.0-draft.2";
 
 export type SheetsWord = "on";
 
@@ -10,31 +6,33 @@ export type SaidPriority = "do" | "decide" | "delegate" | "minor";
 
 export type Verdict = "holds" | "revoked" | "refused";
 
+export type Paper = "a4" | "letter" | "folio" | "tabloid";
+
+export type Orientation = "portrait" | "landscape";
+
 export type Status = "open" | "done" | "dropped";
 
 export type Priority = "do" | "decide" | "delegate" | "unset" | "minor";
 
-/** A file a page names. Pictures travel with the page. Everything else stays in Tisty, and whoever cannot show it shows a card that says so. */
+/** A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so. */
 export interface Attachment {
   name: string;
   kind?: string;
 }
 
-/** A small isolated page inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty. */
+/** A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty. */
 export interface Widget {
   title?: string;
   body: string;
 }
 
-/** A document is what a person writes and keeps. It is made of pages, in one language, by someone who signed it. */
+/** A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages. */
 export interface Document {
   id: string;
   title?: string;
   tags?: Tag[];
   lang?: string;
-  paper?: Paper;
-  sheets?: boolean;
-  orientation?: Orientation;
+  sheet?: Sheet;
   owner?: string;
   signature?: Signature;
   made?: string;
@@ -42,7 +40,9 @@ export interface Document {
   by?: string;
   born_by?: string;
   edited_by?: string;
-  pages: Page[];
+  body: string;
+  html?: string;
+  pages?: Page[];
   properties?: Property[];
   languages?: Translation[];
 }
@@ -90,12 +90,26 @@ export interface Property {
   values: string[];
 }
 
-/** A page is a part of a document, with words of its own. It is what holds tables, diagrams and everything else. */
+/** A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own. */
 export interface Page {
-  at: number;
+  id: string;
   title?: string;
+  tags?: Tag[];
+  lang?: string;
+  sheet?: Sheet;
+  owner?: string;
+  signature?: Signature;
+  made?: string;
+  wrote?: string;
+  by?: string;
+  born_by?: string;
+  edited_by?: string;
   body: string;
   html?: string;
+  properties?: Property[];
+  languages?: Translation[];
+  page_of: string;
+  at: number;
 }
 
 /** Where the same document is in another language. */
@@ -118,6 +132,13 @@ export interface Signature {
   certificate: string;
   signed: string;
   name?: string;
+}
+
+/** How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page. */
+export interface Sheet {
+  paper?: Paper;
+  on?: boolean;
+  orientation?: Orientation;
 }
 
 /** A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this. */
@@ -162,5 +183,5 @@ export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;
 /** What is wrong with a value under this contract: nothing when it holds. */
 export declare function check(contract: ContractName, value: unknown): string[];
-/** What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language. */
+/** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */
 export declare function checkHtml(html: string): string[];

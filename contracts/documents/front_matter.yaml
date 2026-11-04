@@ -17,6 +17,7 @@ values:
   written_only_by_tisty: [task, translationKey]
   skipped_lines_start_with: "#"
   on_reading:
+    paper, sheets and orientation: "They make the sheet of the document or page."
     lang: "Language, script and region, split by - or _, in any capitals: pt_br is read as pt-BR."
     tags: "Commas or spaces split them, with # or without it, and each one is read into the form of a tag."
 enums:

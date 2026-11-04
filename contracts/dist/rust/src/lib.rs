@@ -5,24 +5,8 @@ use serde_json::Value;
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
-pub const VERSION: &str = "1.0.0-draft.1";
+pub const VERSION: &str = "1.0.0-draft.2";
 pub const CONTRACT: &str = include_str!("contract.json");
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Paper {
-    A4,
-    Letter,
-    Folio,
-    Tabloid,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Orientation {
-    Portrait,
-    Landscape,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -49,6 +33,22 @@ pub enum Verdict {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub enum Paper {
+    A4,
+    Letter,
+    Folio,
+    Tabloid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Orientation {
+    Portrait,
+    Landscape,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Status {
     Open,
     Done,
@@ -65,7 +65,7 @@ pub enum Priority {
     Minor,
 }
 
-/// A file a page names. Pictures travel with the page. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
+/// A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Attachment {
     pub name: String,
@@ -73,7 +73,7 @@ pub struct Attachment {
     pub kind: Option<String>,
 }
 
-/// A small isolated page inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
+/// A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Widget {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -81,7 +81,7 @@ pub struct Widget {
     pub body: String,
 }
 
-/// A document is what a person writes and keeps. It is made of pages, in one language, by someone who signed it.
+/// A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Document {
     pub id: String,
@@ -92,11 +92,7 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub paper: Option<Paper>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sheets: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub orientation: Option<Orientation>,
+    pub sheet: Option<Sheet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,7 +107,11 @@ pub struct Document {
     pub born_by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited_by: Option<String>,
-    pub pages: Vec<Page>,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub html: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pages: Option<Vec<Page>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub properties: Option<Vec<Property>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -177,15 +177,41 @@ pub struct Property {
     pub values: Vec<String>,
 }
 
-/// A page is a part of a document, with words of its own. It is what holds tables, diagrams and everything else.
+/// A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Page {
-    pub at: u64,
+    pub id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<Tag>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<Sheet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<Signature>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrote: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited_by: Option<String>,
     pub body: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub html: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<Vec<Property>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub languages: Option<Vec<Translation>>,
+    pub page_of: String,
+    pub at: u64,
 }
 
 /// Where the same document is in another language.
@@ -213,6 +239,17 @@ pub struct Signature {
     pub signed: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+}
+
+/// How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Sheet {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paper: Option<Paper>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub orientation: Option<Orientation>,
 }
 
 /// A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this.
@@ -402,6 +439,11 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         out.push(format!("{at} is not a {name}"));
         return;
     };
+    let gone = all["contracts"][name]["except"].as_array().into_iter().flatten();
+    for field in gone.filter_map(Value::as_str).filter(|field| given.contains_key(*field)) {
+        let here = if at.is_empty() { field.to_owned() } else { format!("{at}.{field}") };
+        out.push(format!("{here} is not something a {name} has"));
+    }
     let Some(fields) = all["contracts"][name]["fields"].as_object() else {
         return;
     };
@@ -464,7 +506,7 @@ pub fn check(contract: &str, value: &Value) -> Vec<String> {
 
 type Opened = (String, Vec<(String, String)>);
 
-// Each tag a page opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
 fn opened(html: &str) -> Vec<Opened> {
     let mut out = Vec::new();
     let mut rest = html;
@@ -527,7 +569,7 @@ fn broken_by(rule: &Value, value: &str) -> bool {
         || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
 }
 
-/// What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language.
+/// What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language.
 pub fn check_html(html: &str) -> Vec<String> {
     let all = whole();
     let through = &all["passthrough"]["attributes"];

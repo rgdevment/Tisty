@@ -1,65 +1,29 @@
 contract: page
 group: documents
 checked_by: [writer, reader]
-says: A page is a part of a document, with words of its own. It is what holds tables, diagrams and everything else.
-contains: [text, table, code, diagram, formula, attachment, widget]
+says: >-
+  A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
+  no more, so a page never has pages of its own.
+is: document
+except: [pages]
 fields:
-  at: { type: whole, required: true, at_least: 1, says: "Its place in the document, from 1." }
-  title: { type: text, at_most: 8192 }
-  body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
-  html: { type: text, says: "Its words as the writer drew them." }
-html_rules:
-  - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
-  - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with the page, and a page asks nobody else for one." }
-html_cases:
-  - says: "Words and what marks them."
-    html: '<h1 id="paseos" data-at="1">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
-    holds: true
-  - says: "Coloured code."
-    html: '<figure class="code"><figcaption>a</figcaption><pre><code class="language-rust"><span class="hljs-keyword">fn</span></code></pre></figure>'
-    holds: true
-  - says: "A drawn diagram."
-    html: '<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0"></path></svg></figure>'
-    holds: true
-  - says: "A picture that travels with the page."
-    html: '<img src="tisty:picture/0" alt="Rina" loading="lazy">'
-    holds: true
-  - says: "HTML written inside the words, as far as passthrough says."
-    html: '<abbr title="Hyper Text">HTML</abbr>'
-    holds: true
-  - says: "A diagram that did not get drawn."
-    html: '<figure class="diagram"><pre><code class="language-mermaid">graph</code></pre></figure>'
-    holds: false
-  - says: "A script."
-    html: "<script>alert(1)</script>"
-    holds: false
-  - says: "An attribute that runs something."
-    html: '<p onclick="x">a</p>'
-    holds: false
-  - says: "A picture asked of someone else."
-    html: '<img src="https://a.example/x.png">'
-    holds: false
-  - says: "The same one, under the other quote."
-    html: "<img src='https://a.example/x.png'>"
-    holds: false
-  - says: "What a diagram never holds."
-    html: "<svg><foreignObject></foreignObject></svg>"
-    holds: false
-  - says: "A class of its own."
-    html: '<p class="mine">a</p>'
-    holds: false
-  - says: "A style where no contract says one."
-    html: '<div style="color:red">a</div>'
-    holds: false
+  page_of: { type: text, required: true, at_least: 1, at_most: 64, says: "The document it is a page of." }
+  at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
 cases:
-  - says: "A page with its words."
-    value: { at: 1, body: "# Paseos" }
+  - says: "A page, its document and its place."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "# Enero" }
+    holds: true
+  - says: "A page with a sheet of its own, like any document."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "# Enero", sheet: { paper: "letter" } }
     holds: true
   - says: "Places count from 1."
-    value: { at: 0, body: "x" }
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 0, body: "x" }
     holds: false
-  - says: "No words."
-    value: { at: 1 }
+  - says: "It does not say which document it belongs to."
+    value: { id: "p1", at: 1, body: "x" }
+    holds: false
+  - says: "A page with pages of its own."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "x", pages: [{ id: "p2", page_of: "p1", at: 1, body: "y" }] }
     holds: false
 ---
 contract: translation
@@ -171,7 +135,16 @@ cases:
 contract: sheet
 group: documents
 checked_by: [reader]
-says: How a page is cut on paper. A sheet holds nothing of its own, and measures on screen what it measures on paper.
+says: >-
+  How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures
+  on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.
+enums:
+  paper: [a4, letter, folio, tabloid]
+  orientation: [portrait, landscape]
+fields:
+  paper: { type: paper, says: "Its size. A4 when it says none." }
+  on: { type: bool, says: "Whether it is drawn in sheets on screen. Off, the paper only says how it prints." }
+  orientation: { type: orientation, says: "Only while in sheets." }
 values:
   millimetres:
     a4: [210, 297]
@@ -183,3 +156,13 @@ values:
   margin_millimetres: { x: 20, y: 22 }
   pixels_per_inch: 96
   long_page_width_pixels: 820
+cases:
+  - says: "A size and a way to stand."
+    value: { paper: "letter", on: true, orientation: "landscape" }
+    holds: true
+  - says: "A paper Tisty does not know."
+    value: { paper: "a3" }
+    holds: false
+  - says: "An orientation Tisty does not know."
+    value: { orientation: "diagonal" }
+    holds: false

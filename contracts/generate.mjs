@@ -26,9 +26,13 @@ const stop = (said) => {
   process.exit(1);
 };
 
+const KEYS = new Set(["contract", "group", "checked_by", "says", "is", "except", "contains", "enums", "fields", "values", "draws", "never", "styles", "html_rules", "html_cases", "roles", "cases"]);
+
 const names = new Map();
 const enums = new Map();
 for (const one of contracts) {
+  // A misspelt key would quietly take its rules out of every language.
+  for (const key of Object.keys(one)) if (!KEYS.has(key)) stop(`${one.contract} says ${key}, which a contract does not have`);
   if (!one.contract || !one.group || !one.says || !Array.isArray(one.checked_by)) {
     stop(`${one.contract ?? "a contract"} lacks contract, group, says or checked_by`);
   }
@@ -38,6 +42,17 @@ for (const one of contracts) {
     if (enums.has(name)) stop(`the enum ${name} is written twice`);
     enums.set(name, values);
   }
+}
+
+// A contract that is another one holds its fields, less those it gives up, and adds its own.
+for (const one of contracts.filter((each) => each.is)) {
+  const base = names.get(one.is);
+  if (!base?.fields) stop(`${one.contract} is ${one.is}, which has no fields`);
+  for (const field of one.except ?? []) {
+    if (!base.fields[field]) stop(`${one.contract} gives up ${field}, which ${one.is} does not have`);
+  }
+  const kept = Object.entries(base.fields).filter(([field]) => !one.except?.includes(field));
+  one.fields = { ...Object.fromEntries(kept), ...one.fields };
 }
 
 const hasFields = (name) => Boolean(names.get(name)?.fields);
@@ -139,7 +154,7 @@ const typescriptTypes = () => {
     "export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;",
     "/** What is wrong with a value under this contract: nothing when it holds. */",
     "export declare function check(contract: ContractName, value: unknown): string[];",
-    "/** What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language. */",
+    "/** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */",
     "export declare function checkHtml(html: string): string[];",
     "",
   );
@@ -200,6 +215,9 @@ function checkFields(name, value, at, out) {
     out.push(at + " is not a " + name);
     return;
   }
+  for (const field of WHOLE.contracts[name].except ?? []) {
+    if (value[field] !== undefined) out.push((at === "" ? field : at + "." + field) + " is not something a " + name + " has");
+  }
   for (const [field, said] of Object.entries(WHOLE.contracts[name].fields ?? {})) {
     const here = at === "" ? field : at + "." + field;
     const given = value[field];
@@ -233,7 +251,7 @@ export function check(contract, value) {
   return out;
 }
 
-// Each tag a page opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
 const opened = (html) => {
   const tags = /<([a-zA-Z][^\\s/>]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>?/g;
   const attributes = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]*)))?/g;
@@ -484,6 +502,11 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         out.push(format!("{at} is not a {name}"));
         return;
     };
+    let gone = all["contracts"][name]["except"].as_array().into_iter().flatten();
+    for field in gone.filter_map(Value::as_str).filter(|field| given.contains_key(*field)) {
+        let here = if at.is_empty() { field.to_owned() } else { format!("{at}.{field}") };
+        out.push(format!("{here} is not something a {name} has"));
+    }
     let Some(fields) = all["contracts"][name]["fields"].as_object() else {
         return;
     };
@@ -546,7 +569,7 @@ pub fn check(contract: &str, value: &Value) -> Vec<String> {
 
 type Opened = (String, Vec<(String, String)>);
 
-// Each tag a page opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
 fn opened(html: &str) -> Vec<Opened> {
     let mut out = Vec::new();
     let mut rest = html;
@@ -609,7 +632,7 @@ fn broken_by(rule: &Value, value: &str) -> bool {
         || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
 }
 
-/// What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language.
+/// What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language.
 pub fn check_html(html: &str) -> Vec<String> {
     let all = whole();
     let through = &all["passthrough"]["attributes"];

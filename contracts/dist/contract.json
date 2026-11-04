@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-draft.1",
+  "version": "1.0.0-draft.2",
   "contracts": {
     "text": {
       "contract": "text",
@@ -586,7 +586,7 @@
         "writer",
         "reader"
       ],
-      "says": "A drawing inside a page. It is no document. The writer draws it as inline SVG before it travels, and its colours follow the theme.",
+      "says": "A drawing inside a document. It is no document itself. The writer draws it as inline SVG before it travels, and its colours follow the theme.",
       "values": {
         "languages": [
           "mermaid",
@@ -794,7 +794,7 @@
         "writer",
         "reader"
       ],
-      "says": "A file a page names. Pictures travel with the page. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.",
+      "says": "A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.",
       "values": {
         "pictures": [
           "png",
@@ -850,7 +850,7 @@
         "writer",
         "reader"
       ],
-      "says": "A small isolated page inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.",
+      "says": "A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.",
       "fields": {
         "title": {
           "type": "text"
@@ -897,22 +897,17 @@
         "writer",
         "reader"
       ],
-      "says": "A document is what a person writes and keeps. It is made of pages, in one language, by someone who signed it.",
+      "says": "A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages.",
       "contains": [
+        "text",
+        "table",
+        "code",
+        "diagram",
+        "formula",
+        "attachment",
+        "widget",
         "page"
       ],
-      "enums": {
-        "paper": [
-          "a4",
-          "letter",
-          "folio",
-          "tabloid"
-        ],
-        "orientation": [
-          "portrait",
-          "landscape"
-        ]
-      },
       "fields": {
         "id": {
           "type": "text",
@@ -935,17 +930,9 @@
           "type": "language",
           "says": "The language it is written in, as a tag: es, en, pt-BR."
         },
-        "paper": {
-          "type": "paper",
-          "says": "The paper it is laid on. A4 when it says none."
-        },
-        "sheets": {
-          "type": "bool",
-          "says": "Whether it is drawn in sheets of that paper."
-        },
-        "orientation": {
-          "type": "orientation",
-          "says": "Only while in sheets."
+        "sheet": {
+          "type": "sheet",
+          "says": "How it is laid on paper."
         },
         "owner": {
           "type": "key",
@@ -974,11 +961,20 @@
           "type": "text",
           "at_most": 160
         },
+        "body": {
+          "type": "text",
+          "required": true,
+          "at_most": 512000,
+          "says": "Its words, in the Tisty language, at most 500 KiB."
+        },
+        "html": {
+          "type": "text",
+          "says": "Its words as the writer drew them."
+        },
         "pages": {
           "type": "list",
           "of": "page",
-          "required": true,
-          "at_least": 1
+          "says": "Its pages, in the order its words name them."
         },
         "properties": {
           "type": "list",
@@ -992,13 +988,97 @@
           "says": "The same document in other languages. Each one is a document of its own."
         }
       },
+      "html_rules": [
+        {
+          "tag": "code",
+          "attribute": "class",
+          "never": [
+            "language-mermaid",
+            "language-mmd"
+          ],
+          "says": "A diagram travels drawn, as SVG."
+        },
+        {
+          "tag": "img",
+          "attribute": "src",
+          "starts_with": "tisty:picture/",
+          "says": "A picture travels with its document, which asks nobody else for one."
+        }
+      ],
+      "html_cases": [
+        {
+          "says": "Words and what marks them.",
+          "html": "<h1 id=\"paseos\" data-at=\"1\">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>",
+          "holds": true
+        },
+        {
+          "says": "Coloured code.",
+          "html": "<figure class=\"code\"><figcaption>a</figcaption><pre><code class=\"language-rust\"><span class=\"hljs-keyword\">fn</span></code></pre></figure>",
+          "holds": true
+        },
+        {
+          "says": "A drawn diagram.",
+          "html": "<figure class=\"diagram\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><path d=\"M0 0\"></path></svg></figure>",
+          "holds": true
+        },
+        {
+          "says": "A picture that travels with its document.",
+          "html": "<img src=\"tisty:picture/0\" alt=\"Rina\" loading=\"lazy\">",
+          "holds": true
+        },
+        {
+          "says": "HTML written inside the words, as far as passthrough says.",
+          "html": "<abbr title=\"Hyper Text\">HTML</abbr>",
+          "holds": true
+        },
+        {
+          "says": "A diagram that did not get drawn.",
+          "html": "<figure class=\"diagram\"><pre><code class=\"language-mermaid\">graph</code></pre></figure>",
+          "holds": false
+        },
+        {
+          "says": "A script.",
+          "html": "<script>alert(1)</script>",
+          "holds": false
+        },
+        {
+          "says": "An attribute that runs something.",
+          "html": "<p onclick=\"x\">a</p>",
+          "holds": false
+        },
+        {
+          "says": "A picture asked of someone else.",
+          "html": "<img src=\"https://a.example/x.png\">",
+          "holds": false
+        },
+        {
+          "says": "The same one, under the other quote.",
+          "html": "<img src='https://a.example/x.png'>",
+          "holds": false
+        },
+        {
+          "says": "What a diagram never holds.",
+          "html": "<svg><foreignObject></foreignObject></svg>",
+          "holds": false
+        },
+        {
+          "says": "A class of its own.",
+          "html": "<p class=\"mine\">a</p>",
+          "holds": false
+        },
+        {
+          "says": "A style where no contract says one.",
+          "html": "<div style=\"color:red\">a</div>",
+          "holds": false
+        }
+      ],
       "roles": {
         "reader": {
           "show": {
             "takes": {
               "document": "document"
             },
-            "says": "Cleans the page and draws it, in the document's language."
+            "says": "Cleans the document and draws it, in its language."
           },
           "set_paper": {
             "takes": {
@@ -1017,7 +1097,7 @@
           },
           "index": {
             "gives": "list:text",
-            "says": "The headings of the page, leading to each one."
+            "says": "The headings of the document, leading to each one."
           },
           "details": {
             "gives": "document",
@@ -1025,7 +1105,7 @@
           },
           "verdict": {
             "gives": "verdict",
-            "says": "Who signed it. Shown outside the page, where the document cannot imitate it."
+            "says": "Who signed it. Shown outside the document, where it cannot imitate it."
           },
           "go_to_page": {
             "takes": {
@@ -1050,7 +1130,7 @@
               "body": "text"
             },
             "gives": "text",
-            "says": "Turns the words into the HTML of a page."
+            "says": "Turns the words into the HTML of a document."
           },
           "sign": {
             "takes": {
@@ -1062,15 +1142,10 @@
       },
       "cases": [
         {
-          "says": "The least a document holds.",
+          "says": "The least a document holds, with no pages at all.",
           "value": {
             "id": "k7Qm2xPa",
-            "pages": [
-              {
-                "at": 1,
-                "body": "# Paseos"
-              }
-            ]
+            "body": "# Paseos"
           },
           "holds": true
         },
@@ -1084,6 +1159,24 @@
                 "name": "rina"
               }
             ],
+            "lang": "pt-BR",
+            "sheet": {
+              "paper": "letter",
+              "on": true,
+              "orientation": "landscape"
+            },
+            "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "made": "2026-11-03T12:00:00Z",
+            "wrote": "2026-11-03T12:30:00Z",
+            "body": "# Paseos",
+            "pages": [
+              {
+                "id": "p1",
+                "page_of": "k7Qm2xPa",
+                "at": 1,
+                "body": "# Enero"
+              }
+            ],
             "properties": [
               {
                 "key": "fuente",
@@ -1091,38 +1184,43 @@
                   "la libreta"
                 ]
               }
-            ],
-            "lang": "pt-BR",
-            "paper": "letter",
-            "sheets": true,
-            "orientation": "landscape",
-            "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
-            "made": "2026-11-03T12:00:00Z",
-            "wrote": "2026-11-03T12:30:00Z",
-            "pages": [
-              {
-                "at": 1,
-                "body": "# Paseos"
-              }
             ]
           },
           "holds": true
         },
         {
-          "says": "No pages.",
+          "says": "No words.",
           "value": {
-            "id": "k7Qm2xPa",
-            "pages": []
+            "id": "k7Qm2xPa"
           },
           "holds": false
         },
         {
           "says": "No id.",
           "value": {
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A page of a page, which is one level too many.",
+          "value": {
+            "id": "x",
+            "body": "x",
             "pages": [
               {
+                "id": "p1",
+                "page_of": "x",
                 "at": 1,
-                "body": "x"
+                "body": "y",
+                "pages": [
+                  {
+                    "id": "p2",
+                    "page_of": "p1",
+                    "at": 1,
+                    "body": "z"
+                  }
+                ]
               }
             ]
           },
@@ -1132,13 +1230,10 @@
           "says": "A paper Tisty does not know.",
           "value": {
             "id": "x",
-            "paper": "a3",
-            "pages": [
-              {
-                "at": 1,
-                "body": "x"
-              }
-            ]
+            "body": "x",
+            "sheet": {
+              "paper": "a3"
+            }
           },
           "holds": false
         },
@@ -1147,12 +1242,7 @@
           "value": {
             "id": "x",
             "lang": "e s",
-            "pages": [
-              {
-                "at": 1,
-                "body": "x"
-              }
-            ]
+            "body": "x"
           },
           "holds": false
         },
@@ -1161,12 +1251,7 @@
           "value": {
             "id": "x",
             "made": "2026-11-03T12:00:00.5Z",
-            "pages": [
-              {
-                "at": 1,
-                "body": "x"
-              }
-            ]
+            "body": "x"
           },
           "holds": false
         },
@@ -1175,12 +1260,7 @@
           "value": {
             "id": "x",
             "owner": "abc",
-            "pages": [
-              {
-                "at": 1,
-                "body": "x"
-              }
-            ]
+            "body": "x"
           },
           "holds": false
         }
@@ -1212,6 +1292,7 @@
         ],
         "skipped_lines_start_with": "#",
         "on_reading": {
+          "paper, sheets and orientation": "They make the sheet of the document or page.",
           "lang": "Language, script and region, split by - or _, in any capitals: pt_br is read as pt-BR.",
           "tags": "Commas or spaces split them, with # or without it, and each one is read into the form of a tag."
         }
@@ -1394,26 +1475,63 @@
         "writer",
         "reader"
       ],
-      "says": "A page is a part of a document, with words of its own. It is what holds tables, diagrams and everything else.",
-      "contains": [
-        "text",
-        "table",
-        "code",
-        "diagram",
-        "formula",
-        "attachment",
-        "widget"
+      "says": "A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own.",
+      "is": "document",
+      "except": [
+        "pages"
       ],
       "fields": {
-        "at": {
-          "type": "whole",
+        "id": {
+          "type": "text",
           "required": true,
           "at_least": 1,
-          "says": "Its place in the document, from 1."
+          "at_most": 64,
+          "says": "What names it."
         },
         "title": {
           "type": "text",
-          "at_most": 8192
+          "at_most": 8192,
+          "says": "Its properties' title, or else its first line with words."
+        },
+        "tags": {
+          "type": "list",
+          "of": "tag",
+          "at_most": 64
+        },
+        "lang": {
+          "type": "language",
+          "says": "The language it is written in, as a tag: es, en, pt-BR."
+        },
+        "sheet": {
+          "type": "sheet",
+          "says": "How it is laid on paper."
+        },
+        "owner": {
+          "type": "key",
+          "says": "The root key of whoever shares it."
+        },
+        "signature": {
+          "type": "signature",
+          "says": "Who answers for what it says."
+        },
+        "made": {
+          "type": "time"
+        },
+        "wrote": {
+          "type": "time"
+        },
+        "by": {
+          "type": "text",
+          "at_most": 160,
+          "says": "The name it was last written under."
+        },
+        "born_by": {
+          "type": "text",
+          "at_most": 160
+        },
+        "edited_by": {
+          "type": "text",
+          "at_most": 160
         },
         "body": {
           "type": "text",
@@ -1424,113 +1542,90 @@
         "html": {
           "type": "text",
           "says": "Its words as the writer drew them."
+        },
+        "properties": {
+          "type": "list",
+          "of": "property",
+          "at_most": 32,
+          "says": "Its properties as written, for the details."
+        },
+        "languages": {
+          "type": "list",
+          "of": "translation",
+          "says": "The same document in other languages. Each one is a document of its own."
+        },
+        "page_of": {
+          "type": "text",
+          "required": true,
+          "at_least": 1,
+          "at_most": 64,
+          "says": "The document it is a page of."
+        },
+        "at": {
+          "type": "whole",
+          "required": true,
+          "at_least": 1,
+          "says": "Its place in that document, from 1."
         }
       },
-      "html_rules": [
-        {
-          "tag": "code",
-          "attribute": "class",
-          "never": [
-            "language-mermaid",
-            "language-mmd"
-          ],
-          "says": "A diagram travels drawn, as SVG."
-        },
-        {
-          "tag": "img",
-          "attribute": "src",
-          "starts_with": "tisty:picture/",
-          "says": "A picture travels with the page, and a page asks nobody else for one."
-        }
-      ],
-      "html_cases": [
-        {
-          "says": "Words and what marks them.",
-          "html": "<h1 id=\"paseos\" data-at=\"1\">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>",
-          "holds": true
-        },
-        {
-          "says": "Coloured code.",
-          "html": "<figure class=\"code\"><figcaption>a</figcaption><pre><code class=\"language-rust\"><span class=\"hljs-keyword\">fn</span></code></pre></figure>",
-          "holds": true
-        },
-        {
-          "says": "A drawn diagram.",
-          "html": "<figure class=\"diagram\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><path d=\"M0 0\"></path></svg></figure>",
-          "holds": true
-        },
-        {
-          "says": "A picture that travels with the page.",
-          "html": "<img src=\"tisty:picture/0\" alt=\"Rina\" loading=\"lazy\">",
-          "holds": true
-        },
-        {
-          "says": "HTML written inside the words, as far as passthrough says.",
-          "html": "<abbr title=\"Hyper Text\">HTML</abbr>",
-          "holds": true
-        },
-        {
-          "says": "A diagram that did not get drawn.",
-          "html": "<figure class=\"diagram\"><pre><code class=\"language-mermaid\">graph</code></pre></figure>",
-          "holds": false
-        },
-        {
-          "says": "A script.",
-          "html": "<script>alert(1)</script>",
-          "holds": false
-        },
-        {
-          "says": "An attribute that runs something.",
-          "html": "<p onclick=\"x\">a</p>",
-          "holds": false
-        },
-        {
-          "says": "A picture asked of someone else.",
-          "html": "<img src=\"https://a.example/x.png\">",
-          "holds": false
-        },
-        {
-          "says": "The same one, under the other quote.",
-          "html": "<img src='https://a.example/x.png'>",
-          "holds": false
-        },
-        {
-          "says": "What a diagram never holds.",
-          "html": "<svg><foreignObject></foreignObject></svg>",
-          "holds": false
-        },
-        {
-          "says": "A class of its own.",
-          "html": "<p class=\"mine\">a</p>",
-          "holds": false
-        },
-        {
-          "says": "A style where no contract says one.",
-          "html": "<div style=\"color:red\">a</div>",
-          "holds": false
-        }
-      ],
       "cases": [
         {
-          "says": "A page with its words.",
+          "says": "A page, its document and its place.",
           "value": {
+            "id": "p1",
+            "page_of": "k7Qm2xPa",
             "at": 1,
-            "body": "# Paseos"
+            "body": "# Enero"
+          },
+          "holds": true
+        },
+        {
+          "says": "A page with a sheet of its own, like any document.",
+          "value": {
+            "id": "p1",
+            "page_of": "k7Qm2xPa",
+            "at": 1,
+            "body": "# Enero",
+            "sheet": {
+              "paper": "letter"
+            }
           },
           "holds": true
         },
         {
           "says": "Places count from 1.",
           "value": {
+            "id": "p1",
+            "page_of": "k7Qm2xPa",
             "at": 0,
             "body": "x"
           },
           "holds": false
         },
         {
-          "says": "No words.",
+          "says": "It does not say which document it belongs to.",
           "value": {
-            "at": 1
+            "id": "p1",
+            "at": 1,
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A page with pages of its own.",
+          "value": {
+            "id": "p1",
+            "page_of": "k7Qm2xPa",
+            "at": 1,
+            "body": "x",
+            "pages": [
+              {
+                "id": "p2",
+                "page_of": "p1",
+                "at": 1,
+                "body": "y"
+              }
+            ]
           },
           "holds": false
         }
@@ -1788,7 +1883,33 @@
       "checked_by": [
         "reader"
       ],
-      "says": "How a page is cut on paper. A sheet holds nothing of its own, and measures on screen what it measures on paper.",
+      "says": "How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.",
+      "enums": {
+        "paper": [
+          "a4",
+          "letter",
+          "folio",
+          "tabloid"
+        ],
+        "orientation": [
+          "portrait",
+          "landscape"
+        ]
+      },
+      "fields": {
+        "paper": {
+          "type": "paper",
+          "says": "Its size. A4 when it says none."
+        },
+        "on": {
+          "type": "bool",
+          "says": "Whether it is drawn in sheets on screen. Off, the paper only says how it prints."
+        },
+        "orientation": {
+          "type": "orientation",
+          "says": "Only while in sheets."
+        }
+      },
       "values": {
         "millimetres": {
           "a4": [
@@ -1820,7 +1941,32 @@
         },
         "pixels_per_inch": 96,
         "long_page_width_pixels": 820
-      }
+      },
+      "cases": [
+        {
+          "says": "A size and a way to stand.",
+          "value": {
+            "paper": "letter",
+            "on": true,
+            "orientation": "landscape"
+          },
+          "holds": true
+        },
+        {
+          "says": "A paper Tisty does not know.",
+          "value": {
+            "paper": "a3"
+          },
+          "holds": false
+        },
+        {
+          "says": "An orientation Tisty does not know.",
+          "value": {
+            "orientation": "diagonal"
+          },
+          "holds": false
+        }
+      ]
     },
     "style": {
       "contract": "style",
@@ -2171,16 +2317,6 @@
     }
   },
   "enums": {
-    "paper": [
-      "a4",
-      "letter",
-      "folio",
-      "tabloid"
-    ],
-    "orientation": [
-      "portrait",
-      "landscape"
-    ],
     "sheets_word": [
       "on"
     ],
@@ -2194,6 +2330,16 @@
       "holds",
       "revoked",
       "refused"
+    ],
+    "paper": [
+      "a4",
+      "letter",
+      "folio",
+      "tabloid"
+    ],
+    "orientation": [
+      "portrait",
+      "landscape"
     ],
     "status": [
       "open",
@@ -2922,7 +3068,7 @@
       "tag": "img",
       "attribute": "src",
       "starts_with": "tisty:picture/",
-      "says": "A picture travels with the page, and a page asks nobody else for one."
+      "says": "A picture travels with its document, which asks nobody else for one."
     }
   ]
 }

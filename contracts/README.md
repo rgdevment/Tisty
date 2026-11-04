@@ -1,7 +1,8 @@
 # Tisty's contracts
 
 What a document and a task are. Whoever works with them speaks this language,
-and implements only the contracts it needs.
+and implements only the contracts it needs. [The glossary](GLOSSARY.md) says what
+each word means.
 
 Change the YAML, then run `node contracts/generate.mjs`. It writes a package for
 each language into `dist`, with the types, the interfaces and a `check` that

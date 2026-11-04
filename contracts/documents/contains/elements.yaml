@@ -100,7 +100,7 @@ draws:
 contract: diagram
 group: documents
 checked_by: [writer, reader]
-says: A drawing inside a page. It is no document. The writer draws it as inline SVG before it travels, and its colours follow the theme.
+says: A drawing inside a document. It is no document itself. The writer draws it as inline SVG before it travels, and its colours follow the theme.
 values:
   languages: [mermaid, mmd]
   colors: "var(--tisty-*) or currentColor"
@@ -145,7 +145,7 @@ draws:
 contract: attachment
 group: documents
 checked_by: [writer, reader]
-says: A file a page names. Pictures travel with the page. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
+says: A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
 values:
   pictures: [png, jpeg, webp, gif]
   picture_source: "tisty:picture/N, counted from 0"
@@ -165,7 +165,7 @@ cases:
 contract: widget
 group: documents
 checked_by: [writer, reader]
-says: A small isolated page inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
+says: A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
 fields:
   title: { type: text }
   body: { type: text, required: true }
