@@ -1,6 +1,24 @@
 use super::Session;
 use tisty_core::{Config, DeviceId, Op, Paths, Store};
 
+#[test]
+fn an_agent_only_the_settings_remember_is_not_seated() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let agent = tisty_core::agent::register(&paths).unwrap();
+    assert_eq!(
+        Session::at(paths.clone()).unwrap().seated_agent(),
+        Some(&agent)
+    );
+
+    tisty_core::backup::set_aside(&paths, false).unwrap();
+
+    let session = Session::at(paths.clone()).unwrap();
+    assert_eq!(session.config.agent_id, Some(agent));
+    assert_eq!(session.seated_agent(), None);
+}
+
 /// An agent that joined before `device.host` existed gets its host written by the window,
 /// once, as the machine — and a machine with no agent writes nothing.
 #[test]

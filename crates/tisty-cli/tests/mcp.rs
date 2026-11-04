@@ -136,6 +136,21 @@ fn a_hand_let_in_leaves_no_knock() {
 }
 
 #[test]
+fn letting_in_again_opens_a_door_the_old_history_took_with_it() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    served.person().takes_the_places_history();
+
+    let shut = served.call("lists", serde_json::json!({}));
+    assert_eq!(shut["result"]["isError"], true, "{shut}");
+
+    served.person().lets_the_agent_in();
+
+    let open = served.call("lists", serde_json::json!({}));
+    assert_ne!(open["result"]["isError"], true, "{open}");
+}
+
+#[test]
 fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
     served.person().lets_the_agent_in();

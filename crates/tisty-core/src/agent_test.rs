@@ -104,6 +104,112 @@ fn registering_twice_does_not_mint_a_second_identity() {
 }
 
 #[test]
+fn an_agent_left_behind_with_the_old_history_is_minted_anew() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let lost = register(&paths).unwrap();
+
+    crate::backup::set_aside(&paths, false).unwrap();
+    assert_eq!(registered(&paths).unwrap(), Some(lost.clone()));
+
+    let who = register(&paths).unwrap();
+    assert_ne!(who, lost);
+    let state = crate::State::replay(&crate::store::read_all(paths.store()).unwrap());
+    assert!(state.agents.contains(&who));
+    assert_eq!(registered(&paths).unwrap(), Some(who));
+}
+
+#[test]
+fn an_empty_store_waiting_for_its_history_is_not_written_to() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let held = register(&paths).unwrap();
+    crate::backup::set_aside(&paths, false).unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::folder(tmp.path().join("shared")));
+    config.save(&paths).unwrap();
+
+    assert_eq!(register(&paths).unwrap(), held);
+
+    assert!(!crate::store::inhabited(paths.store()));
+    assert_eq!(registered(&paths).unwrap(), Some(held));
+}
+
+#[test]
+fn a_history_that_came_without_the_agent_lets_a_new_one_in() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let lost = register(&paths).unwrap();
+    crate::backup::set_aside(&paths, false).unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::folder(tmp.path().join("shared")));
+    config.save(&paths).unwrap();
+    Store::open(paths.store(), DeviceId("dev_other".into()))
+        .unwrap()
+        .append(Op::DeviceJoin {
+            d: DeviceId("dev_other".into()),
+            k: Some(DeviceKind::Machine),
+            p: None,
+        })
+        .unwrap();
+
+    let who = register(&paths).unwrap();
+
+    assert_ne!(who, lost);
+    let state = crate::State::replay(&crate::store::read_all(paths.store()).unwrap());
+    assert!(state.agents.contains(&who));
+}
+
+#[test]
+fn an_agent_replaced_stays_retired_when_its_old_join_arrives_late() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let replaced = register(&paths).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let from = paths.store().join(&replaced.0);
+    for one in std::fs::read_dir(&from).unwrap() {
+        let one = one.unwrap();
+        std::fs::copy(one.path(), kept.path().join(one.file_name())).unwrap();
+    }
+    crate::backup::set_aside(&paths, false).unwrap();
+
+    let who = register(&paths).unwrap();
+
+    std::fs::create_dir_all(&from).unwrap();
+    for one in std::fs::read_dir(kept.path()).unwrap() {
+        let one = one.unwrap();
+        std::fs::copy(one.path(), from.join(one.file_name())).unwrap();
+    }
+    let state = crate::State::replay(&crate::store::read_all(paths.store()).unwrap());
+    assert!(
+        state.assistants.contains(&replaced),
+        "its words stay its own"
+    );
+    assert!(!state.agents.contains(&replaced));
+    assert!(state.agents.contains(&who));
+}
+
+#[test]
+fn an_agent_removed_from_another_machine_can_be_let_in_again() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let removed = register(&paths).unwrap();
+    let config = Config::load_or_init(&paths).unwrap();
+    Store::open(paths.store(), config.device_id.clone())
+        .unwrap()
+        .signing_with(crate::signing::mine(&paths, &config.device_id))
+        .append(Op::DeviceRemove { d: removed.clone() })
+        .unwrap();
+
+    let who = register(&paths).unwrap();
+
+    assert_ne!(who, removed);
+    let events = crate::store::read_all(paths.store()).unwrap();
+    assert!(crate::State::replay(&events).agents.contains(&who));
+    assert!(crate::store::ledger(paths.store()).unwrap().may_write(&who));
+}
+
+#[test]
 fn an_agent_joins_as_one_and_the_state_says_so() {
     let tmp = tempfile::tempdir().unwrap();
     let paths = paths(tmp.path());
