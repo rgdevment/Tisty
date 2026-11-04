@@ -47,7 +47,13 @@ fn languages_add(anchor: &Tongue, others: &[Tongue]) -> Result<(), Refused> {
         ));
     }
     let mut seen = BTreeSet::from([anchor.document.lang.clone()]);
+    let mut ids = BTreeSet::from([&anchor.sealing.id]);
     for tongue in others {
+        if !ids.insert(&tongue.sealing.id) {
+            return Err(Refused::DoesNotAdd(
+                "two languages of a family go under one id",
+            ));
+        }
         if !seen.insert(tongue.document.lang.clone()) {
             return Err(Refused::DoesNotAdd("a family says one language twice"));
         }

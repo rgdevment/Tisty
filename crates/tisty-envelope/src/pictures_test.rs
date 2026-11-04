@@ -217,6 +217,14 @@ fn a_file_cut_short_is_no_picture() {
 }
 
 #[test]
+fn what_follows_its_end_does_not_make_it_cut_short() {
+    let mut with_a_video = a_photo(40, 30);
+    with_a_video.extend_from_slice(b"ftypmp42");
+    with_a_video.extend_from_slice(&[0xFF, 0xDA, 1, 2, 3]);
+    assert!(made(&with_a_video).is_ok());
+}
+
+#[test]
 fn a_file_cut_short_is_no_picture_though_its_thumbnail_ends() {
     let thumbnail = a_photo(8, 8);
     let main = a_photo(40, 30);

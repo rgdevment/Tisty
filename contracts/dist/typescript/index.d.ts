@@ -110,6 +110,7 @@ export interface Sealing {
   from?: number;
   link_key?: string;
   files_hash?: string;
+  files_key?: string;
 }
 
 /** What a reader asks for when it opens an envelope. */

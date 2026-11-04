@@ -240,12 +240,21 @@ fn files_are_what_they_say(
     kept: bool,
 ) -> Result<(), Refused> {
     let said = document.files.as_deref().unwrap_or_default();
+    let in_place = said
+        .iter()
+        .enumerate()
+        .all(|(number, file)| file.at == number as u64);
     if said.iter().any(|file| is_a_path(&file.name)) {
         return Err(Refused::DoesNotAdd(
             "a file is named by the path it came from",
         ));
     }
     if kept {
+        if said.is_empty() || !in_place {
+            return Err(Refused::DoesNotAdd(
+                "it keeps files its document does not say",
+            ));
+        }
         return if bytes.is_empty() {
             Ok(())
         } else {
@@ -282,6 +291,11 @@ fn adds_up(
     if sealing.from.is_some_and(|from| from >= sealing.version) {
         return Err(Refused::DoesNotAdd(
             "it starts from a version that is not an earlier one",
+        ));
+    }
+    if sealing.files_hash.is_some() && sealing.files_key != sealing.link_key {
+        return Err(Refused::DoesNotAdd(
+            "it keeps files sealed under another key",
         ));
     }
     if document

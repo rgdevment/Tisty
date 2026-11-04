@@ -113,6 +113,33 @@ fn kept_to_itself_gone(html: &str) -> String {
     format!("{}{front}{}", &html[..from], &html[to..])
 }
 
+// A definition draws its address in words, which stay only when it leads somewhere.
+fn definitions_gone(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some(from) = rest.find("<p class=\"refdef\"") {
+        let Some(length) = rest[from..].find("</p>") else {
+            break;
+        };
+        let end = from + length + "</p>".len();
+        let drawn = &rest[from..end];
+        let stays = drawn
+            .split_once("refdef-to\">")
+            .and_then(|(_, to)| to.split_once("</span>"))
+            .is_some_and(|(to, _)| {
+                let to = unescaped(to);
+                leads_outside(&to) || leads_to_a_heading(&to)
+            });
+        out.push_str(&rest[..from]);
+        if stays {
+            out.push_str(drawn);
+        }
+        rest = &rest[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
 fn written_back(tag: &Tag, leaving: &[&str], out: &mut String) {
     let _ = write!(out, "<{}", tag.name);
     for (name, value) in &tag.attributes {
@@ -279,7 +306,7 @@ impl Ready<'_> {
 
 /// The HTML of a document with everything it names in place, so reading it takes nothing else. Colour, icons and drawings come after, in the window.
 pub fn ready(html: &str, places: &Places) -> String {
-    let html = kept_to_itself_gone(html);
+    let html = definitions_gone(&kept_to_itself_gone(html));
     let mut ready = Ready {
         places,
         out: String::with_capacity(html.len()),
@@ -313,8 +340,8 @@ fn reached_as(said: &str, places: &Places) -> Option<String> {
 
 type Change = (Range<usize>, String);
 
-// Where the words of a link end when an address follows: the bracket closing the one it opens with, whatever its words or its title hold.
-fn wall_of(said: &str) -> Option<usize> {
+// The bracket closing the one a link or a definition opens with, whatever its words hold.
+fn closing_of(said: &str) -> Option<usize> {
     let mut depth = 0usize;
     let mut skipping = false;
     for (at, one) in said.char_indices() {
@@ -325,7 +352,7 @@ fn wall_of(said: &str) -> Option<usize> {
             ']' => {
                 depth = depth.checked_sub(1)?;
                 if depth == 0 {
-                    return said[at..].starts_with("](").then_some(at);
+                    return Some(at);
                 }
             }
             _ => {}
@@ -334,21 +361,44 @@ fn wall_of(said: &str) -> Option<usize> {
     None
 }
 
-// Past its words and before its title, either of which may repeat it.
-fn address_in(said: &str, to: &str) -> Option<usize> {
-    let from = wall_of(said)? + 2;
-    Some(from + said[from..].find(to)?)
+// An address as it is written, which a title or its own words may repeat and an escape may spell otherwise: in angle brackets, or up to a space or the parenthesis around it.
+fn address_from(said: &str, from: usize) -> Option<Range<usize>> {
+    let start = from + said[from..].find(|one: char| !one.is_whitespace())?;
+    if said[start..].starts_with('<') {
+        let length = said[start + 1..].find('>')?;
+        return Some(start + 1..start + 1 + length);
+    }
+    let mut depth = 0usize;
+    let mut skipping = false;
+    for (at, one) in said[start..].char_indices() {
+        match one {
+            _ if skipping => skipping = false,
+            '\\' => skipping = true,
+            '(' => depth += 1,
+            ')' if depth == 0 => return Some(start..start + at),
+            ')' => depth -= 1,
+            _ if one.is_whitespace() => return Some(start..start + at),
+            _ => {}
+        }
+    }
+    Some(start..said.len())
+}
+
+fn address_after(said: &str, wall: &str) -> Option<Range<usize>> {
+    let closing = closing_of(said).filter(|at| said[*at..].starts_with(wall))?;
+    address_from(said, closing + wall.len())
+}
+
+fn within(at: &Range<usize>, inside: &Range<usize>) -> Range<usize> {
+    at.start + inside.start..at.start + inside.end
 }
 
 fn image_said(at: &Range<usize>, said: &str, src: &str, places: &Places, out: &mut Vec<Change>) {
-    let alt = wall_of(said)
-        .and_then(|wall| said.get(2..wall))
-        .or_else(|| said.strip_prefix("![")?.split_once(']').map(|(alt, _)| alt))
+    let alt = closing_of(said)
+        .and_then(|closing| said.get(2..closing))
         .unwrap_or_default();
-    match (reached_as(src, places), address_in(said, src)) {
-        (Some(place), Some(found)) => {
-            out.push((at.start + found..at.start + found + src.len(), place));
-        }
+    match (reached_as(src, places), address_after(said, "](")) {
+        (Some(place), Some(address)) => out.push((within(at, &address), place)),
         (Some(place), None) => out.push((at.clone(), format!("![{alt}]({place})"))),
         (None, _) if leads_outside(src) => out.push((at.start..at.start + 1, String::new())),
         (None, _) => out.push((at.clone(), alt.to_owned())),
@@ -359,17 +409,26 @@ fn link_said(at: &Range<usize>, said: &str, to: &str, places: &Places, out: &mut
     if leads_outside(to) || leads_to_a_heading(to) {
         return;
     }
-    if let (Some(place), Some(found)) = (reached_as(to, places), address_in(said, to)) {
-        out.push((at.start + found..at.start + found + to.len(), place));
-    } else if let Some(wall) = wall_of(said) {
-        out.push((at.start..at.start + 1, String::new()));
-        out.push((at.start + wall..at.end, String::new()));
-    } else if said.starts_with('<') {
-        out.push((at.clone(), String::new()));
+    let by_itself = said.starts_with('<');
+    match reached_as(to, places) {
+        Some(place) if by_itself => out.push((at.start + 1..at.end - 1, place)),
+        Some(place) => {
+            // One that names a definition leads there through it, which says the place.
+            if let Some(address) = address_after(said, "](") {
+                out.push((within(at, &address), place));
+            }
+        }
+        None if by_itself => out.push((at.clone(), String::new())),
+        None => {
+            if let Some(closing) = closing_of(said) {
+                out.push((at.start..at.start + 1, String::new()));
+                out.push((at.start + closing..at.end, String::new()));
+            }
+        }
     }
 }
 
-// A definition is the address of every link that names it, so it leads where they would, and its title may repeat it.
+// A definition is the address of every link that names it. Where it leads nowhere they went to their words, so it goes with its address.
 fn definition_said(
     at: &Range<usize>,
     said: &str,
@@ -380,20 +439,9 @@ fn definition_said(
     if leads_outside(to) || leads_to_a_heading(to) {
         return;
     }
-    let Some(from) = said.find("]:").map(|wall| wall + 2) else {
-        return;
-    };
-    let place = reached_as(to, places).unwrap_or_else(|| "#".to_owned());
-    match said[from..].find(to) {
-        Some(found) => {
-            let found = from + found;
-            out.push((at.start + found..at.start + found + to.len(), place));
-        }
-        // Written with escapes it is not found as it was read, and it must not stay all the same.
-        None => out.push((
-            at.start + from..at.start + said.trim_end().len(),
-            format!(" {place}"),
-        )),
+    match (reached_as(to, places), address_after(said, "]:")) {
+        (Some(place), Some(address)) => out.push((within(at, &address), place)),
+        _ => out.push((at.clone(), String::new())),
     }
 }
 

@@ -237,6 +237,8 @@ pub struct Sealing {
     pub link_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_key: Option<String>,
 }
 
 /// What a reader asks for when it opens an envelope.

@@ -52,7 +52,7 @@ values:
     reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
   versions: "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
-  files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent."
+  files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
 fields:
   contract: { type: text, required: true, at_least: 1, at_most: 32, says: "The version of these contracts it was written under." }
@@ -117,6 +117,7 @@ fields:
   from: { type: whole }
   link_key: { type: key, says: "None for what is public." }
   files_hash: { type: hash, says: "The files envelope already sent, when no file changed." }
+  files_key: { type: key, says: "The key that envelope was sealed with. None when it was public." }
 cases:
   - says: "A private version."
     value: { id: "k7Qm2xPa", version: 2, from: 1, link_key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }

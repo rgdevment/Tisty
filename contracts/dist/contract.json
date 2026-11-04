@@ -2298,7 +2298,7 @@
           "manifest_bytes": 16384,
           "signature_bytes": 2048
         },
-        "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent.",
+        "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should.",
         "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
       },
       "fields": {
@@ -2593,6 +2593,10 @@
         "files_hash": {
           "type": "hash",
           "says": "The files envelope already sent, when no file changed."
+        },
+        "files_key": {
+          "type": "key",
+          "says": "The key that envelope was sealed with. None when it was public."
         }
       },
       "cases": [

@@ -92,13 +92,27 @@ fn is_of_the_heif_family(given: &[u8]) -> bool {
         .any(|brand| FAMILY_BRANDS.contains(&brand))
 }
 
-// A JPEG cut short decodes all the same, as a grey stretch where the rest should be. A thumbnail in its metadata has an end of its own, so only one past the last scan counts.
+// A JPEG cut short decodes all the same, as a grey stretch where the rest should be. Its marks are walked in order, so a thumbnail inside one and a video after its end say nothing.
 fn is_cut_short(given: &[u8]) -> bool {
-    let scan = given
-        .windows(2)
-        .rposition(|one| one == [0xFF, 0xDA])
-        .unwrap_or(0);
-    given.starts_with(&[0xFF, 0xD8]) && !given[scan..].windows(2).any(|one| one == [0xFF, 0xD9])
+    if !given.starts_with(&[0xFF, 0xD8]) {
+        return false;
+    }
+    let mut at = 2;
+    while let Some(mark) = given.get(at + 1).copied() {
+        at += match (given[at], mark) {
+            (0xFF, 0xD9) => return false,
+            (0xFF, 0xFF) => 1,
+            (0xFF, 0x00 | 0x01 | 0xD0..=0xD8) => 2,
+            (0xFF, _) => {
+                let Some(&[high, low]) = given.get(at + 2..at + 4) else {
+                    return true;
+                };
+                2 + usize::from(u16::from_be_bytes([high, low]))
+            }
+            _ => 1,
+        };
+    }
+    true
 }
 
 /// A picture made anew from its pixels, so only pixels travel: metadata, a location and anything hidden in the file stay behind.

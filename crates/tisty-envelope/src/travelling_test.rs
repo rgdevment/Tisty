@@ -49,6 +49,20 @@ fn an_address_is_told_from_a_title_that_repeats_it() {
 }
 
 #[test]
+fn an_address_is_found_however_it_was_spelled() {
+    let mut places = places();
+    places.files.insert("un_archivo (1).pdf".into(), 3);
+    places.files.insert("un_archivo.pdf".into(), 4);
+    for (said, goes) in [
+        ("[R](un\\_archivo.pdf)\n", "[R](tisty:file/4)\n"),
+        ("[R](<un_archivo (1).pdf>)\n", "[R](<tisty:file/3>)\n"),
+        ("[R](un\\_archivo.pdf \"t\")\n", "[R](tisty:file/4 \"t\")\n"),
+    ] {
+        assert_eq!(body_ready(said, &places), goes);
+    }
+}
+
+#[test]
 fn a_definition_leads_where_its_links_would() {
     for (said, goes) in [
         (
@@ -59,8 +73,6 @@ fn a_definition_leads_where_its_links_would() {
             "[R][r]\n\n[r]: cartilla.pdf \"cartilla.pdf\"\n",
             "[R][r]\n\n[r]: tisty:file/1 \"cartilla.pdf\"\n",
         ),
-        ("[R][r]\n\n[r]: C:/m/s.pdf\n", "[R][r]\n\n[r]: #\n"),
-        ("[R][r]\n\n[r]: un\\_secreto.pdf\n", "[R][r]\n\n[r]: #\n"),
         ("[R][r]\n\n[r]: #titulo\n", "[R][r]\n\n[r]: #titulo\n"),
         (
             "[R][r]\n\n[r]: https://a.example\n",
@@ -69,6 +81,34 @@ fn a_definition_leads_where_its_links_would() {
     ] {
         assert_eq!(body_ready(said, &places()), goes);
     }
+}
+
+#[test]
+fn a_definition_that_leads_nowhere_leaves_its_links_as_words() {
+    for said in [
+        "[R][r]\n\n[r]: C:/m/s.pdf\n",
+        "[R][r]\n\n[r]: C:/m/s.pdf \"C:/m/s.pdf\"\n",
+        "[R][r]\n\n[r]: un\\_secreto.pdf\n",
+    ] {
+        let goes = body_ready(said, &places());
+        assert_eq!(goes.trim_end(), "R");
+    }
+    assert_eq!(body_ready("[r]\n\n[r]: s.pdf\n", &places()).trim_end(), "r");
+}
+
+#[test]
+fn the_html_draws_no_address_that_leads_nowhere() {
+    let drawn = |said: &str| {
+        ready(
+            &tisty_markdown::html(&tisty_markdown::read(said)),
+            &places(),
+        )
+    };
+    let gone = drawn("[R][r]\n\n[r]: C:/Users/m/secreto.pdf\n");
+    assert!(!gone.contains("secreto"), "{gone}");
+    assert!(!gone.contains("refdef"), "{gone}");
+    let kept = drawn("[R][r]\n\n[r]: https://a.example\n");
+    assert!(kept.contains("refdef-to"), "{kept}");
 }
 
 #[test]

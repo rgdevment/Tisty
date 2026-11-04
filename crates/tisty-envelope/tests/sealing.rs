@@ -46,6 +46,7 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
         from: None,
         link_key,
         files_hash: None,
+        files_key: None,
     }
 }
 
@@ -144,6 +145,7 @@ fn a_comma_does_not_send_its_files_again() {
     again.version = 2;
     again.from = Some(1);
     again.files_hash = Some(hash.clone());
+    again.files_key = Some(key_text(1));
     let second = writer.sealed(said("a,"), vec![], vec![], &again).unwrap();
     assert!(second.files.is_none());
     let held = document_of(&opened(&second.main, ("x", "main"), Some(&the_key(1))).unwrap());
@@ -153,6 +155,40 @@ fn a_comma_does_not_send_its_files_again() {
     assert!(
         refused.is_err(),
         "either the old envelope or a new one, never both"
+    );
+
+    let mut other_key = sealing("x", Some(key_text(2)));
+    other_key.version = 2;
+    other_key.files_hash = Some(hash.clone());
+    other_key.files_key = Some(key_text(1));
+    assert!(
+        writer
+            .sealed(said("c"), vec![], vec![], &other_key)
+            .is_err()
+    );
+
+    let mut turned_public = other_key.clone();
+    turned_public.link_key = None;
+    assert!(
+        writer
+            .sealed(said("c"), vec![], vec![], &turned_public)
+            .is_err()
+    );
+
+    let mut turned_private = other_key;
+    turned_private.link_key = Some(key_text(1));
+    turned_private.files_key = None;
+    assert!(
+        writer
+            .sealed(said("c"), vec![], vec![], &turned_private)
+            .is_err()
+    );
+
+    let nothing_named = document(json!({ "id": "x", "html": "<p>a</p>", "body": "a" }));
+    assert!(
+        writer
+            .sealed(nothing_named, vec![], vec![], &again)
+            .is_err()
     );
 }
 
@@ -518,6 +554,14 @@ fn two_languages_may_cite_one_document_and_it_goes_once() {
 
 #[test]
 fn two_documents_never_go_under_one_id() {
+    assert!(
+        sealed(Family {
+            anchor: tongue("aaaa", "es", Some(1)),
+            others: vec![tongue("aaaa", "en", Some(1))],
+        })
+        .is_err()
+    );
+
     let mut itself = tongue("aaaa", "es", Some(1));
     itself.cited = vec![alone(tongue("aaaa", "es", Some(1)))];
     assert!(sealed(alone(itself)).is_err());
