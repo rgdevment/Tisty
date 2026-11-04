@@ -459,6 +459,7 @@ fn a_reader_refuses_what_a_writer_should_never_have_sealed() {
         let bytes = hex(&one["envelope"]);
         assert!(reading(&bytes, ("hostile", "main"), None).is_err(), "{}", one["says"]);
     }
+    assert!(reading(&hex(&all["past_its_end"]), ("hostile", "main"), None).is_err());
 }
 
 #[test]

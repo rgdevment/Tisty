@@ -240,6 +240,16 @@ for (const { says, envelope } of VECTORS.refused) {
   });
 }
 
+// The standard refuses it and browsers follow, but Node 22 lets it through, and a reader can only see it through what its runtime does.
+const refusesWhatFollows = await inflated(Uint8Array.of(3, 0, 1), 0).then(
+  () => false,
+  () => true,
+);
+
+test("a reader refuses a part with something past its end", { skip: !refusesWhatFollows }, async () => {
+  await assert.rejects(reading(hex(VECTORS.past_its_end), { id: "hostile", kind: "main" }));
+});
+
 for (const { says, main, files } of VECTORS.files_refused) {
   test(`a reader refuses ${says}`, async () => {
     const { held } = await reading(hex(VECTORS.main.envelope), { id: main.id, kind: "main" }, linkKey);

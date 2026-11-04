@@ -182,7 +182,6 @@ const CASES = [
   ["a signature that does not hold", { parts: asWords(fair, fairRest), forged: "signed" }],
   ["a certificate that does not hold", { parts: asWords(fair, fairRest), forged: "certificate" }],
   ["a signature that cannot be read", { parts: asWords(fair, fairRest), signatureBytes: words("no es una firma") }],
-  ["a part with something past its end", { parts: [{ ...asWords(fair, fairRest)[0], junk: [1, 2, 3] }, asWords(fair, fairRest)[1]] }],
   ["a draft of this version", { parts: asWords(fair, fairRest), contract: "1.0.0-draft.8" }],
   ["two pages out of their order", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 2 }, { ...page, id: "p2" }] }) }],
   ["two pages with one id", { parts: asWords(fair, { ...fairRest, pages: [page, { ...page, at: 2 }] }) }],
@@ -228,6 +227,7 @@ for (const [says, { parts, ...over }] of OPENING) {
   const { bytes } = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, parts, ...over });
   opening.push({ says, envelope: bytes.toString("hex") });
 }
+const pastItsEnd = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, parts: [{ ...asWords(fair, fairRest)[0], junk: [1, 2, 3] }, asWords(fair, fairRest)[1]] });
 const aNewerMajor = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, contract: "2.0.0", parts: [{ name: "fonts", compressed: false, bytes: words("x") }] });
 
 // A main envelope that answers for another files envelope than the one it is handed.
@@ -284,6 +284,7 @@ const said = {
   refused,
   opening,
   a_newer_major: aNewerMajor.bytes.toString("hex"),
+  past_its_end: pastItsEnd.bytes.toString("hex"),
   signed_by: { root: b64(root.public), machine: b64(machine.public) },
   verdicts,
   files_refused: [
