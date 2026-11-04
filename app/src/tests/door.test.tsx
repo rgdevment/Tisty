@@ -5,13 +5,13 @@ import type { DoorDue } from "../core";
 import Door from "../ui/Door";
 import { knowAgents } from "../who";
 
-const ipc = vi.hoisted(() => ({ sent: [] as string[], refuse: false }));
+const ipc = vi.hoisted(() => ({ sent: [] as string[], refuse: false, on: true }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     ipc.sent.push(cmd);
     if (ipc.refuse) return Promise.reject(new Error("the config would not take it"));
-    return Promise.resolve(null);
+    return Promise.resolve(cmd === "agent_turn" ? { on: ipc.on } : null);
   },
 }));
 
@@ -32,6 +32,7 @@ function shown(due: DoorDue = { why: "installed", by: null }) {
 beforeEach(() => {
   ipc.sent = [];
   ipc.refuse = false;
+  ipc.on = true;
   knowAgents({}, { clients: { "claude-code": "Claude Code" } });
 });
 
@@ -165,6 +166,17 @@ describe("the card for an assistant turned away at the door", () => {
     await screen.findByText("Claude Code can work with you now.");
     expect(ipc.sent).toEqual(["agent_turn", "door_heard"]);
     expect(said.opened).toBe(0);
+  });
+
+  it("welcomes nobody while the door is still waiting for its history", async () => {
+    ipc.on = false;
+    const said = shown(knocked);
+
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    await waitFor(() => expect(ipc.sent).toEqual(["agent_turn", "door_heard"]));
+    expect(said.settled).toBe(1);
+    expect(screen.queryByText("Claude Code can work with you now.")).toBeNull();
   });
 
   it("goes on any click once it has said so", async () => {

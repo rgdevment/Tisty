@@ -8,8 +8,18 @@ use crate::{
 /// Minting is the person's act: nothing reachable over a wire calls this.
 pub fn register(paths: &Paths) -> Result<DeviceId> {
     let mut config = Config::load_or_init(paths)?;
-    if let Some(held) = config.agent_id.clone() {
-        return Ok(held);
+    let held = config.agent_id.clone();
+    if let Some(held) = &held {
+        // A first write would make an empty store refuse the history it is waiting for.
+        let waiting = config.sync.is_some() && !crate::store::inhabited(paths.store());
+        // The settings outlive the history: a machine that took another's log still names an agent it no longer holds.
+        if waiting
+            || crate::State::replay(&crate::store::read_all(paths.store())?)
+                .agents
+                .contains(held)
+        {
+            return Ok(held.clone());
+        }
     }
 
     let who = DeviceId(crate::config::new_device_id());
@@ -20,6 +30,10 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
         )));
     };
     let shown = crate::signing::shown(&key);
+    // Its join may still arrive with the history, and nothing would be left to retire it then.
+    if let Some(replaced) = held {
+        said_gone(paths, &config, replaced)?;
+    }
     config.agent_id = Some(who.clone());
     config.save(paths)?;
 
@@ -196,10 +210,15 @@ pub fn retire(paths: &Paths) -> Result<Option<DeviceId>> {
     config.agent_id = None;
     config.save(paths)?;
 
+    said_gone(paths, &config, who.clone())?;
+    Ok(Some(who))
+}
+
+fn said_gone(paths: &Paths, config: &Config, who: DeviceId) -> Result<()> {
     let mut store = Store::open(paths.store(), config.device_id.clone())?
         .signing_with(crate::signing::mine(paths, &config.device_id));
-    store.append(Op::DeviceRemove { d: who.clone() })?;
-    Ok(Some(who))
+    store.append(Op::DeviceRemove { d: who })?;
+    Ok(())
 }
 
 const KNOCKED: &str = "knocked.json";

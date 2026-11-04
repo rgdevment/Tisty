@@ -683,11 +683,7 @@ pub fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<DoorDue>> {
     let (open, asked) = {
         let session = held(&session);
-        let open = session
-            .config
-            .agent_id
-            .as_ref()
-            .is_some_and(|who| session.state.agents.contains(who));
+        let open = session.seated_agent().is_some();
         let knock = tisty_core::agent::knocked(&session.paths);
         if let Some(due) = knocking(open, knock, session.config.knock_heard) {
             return Ok(Some(due));
