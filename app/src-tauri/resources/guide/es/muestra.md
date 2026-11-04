@@ -221,7 +221,7 @@ quadrantChart
 ```mermaid
 xychart-beta
   title "Minutos de paseo"
-  x-axis [Lun, Mar, Mié, Jue]
+  x-axis ["Lun", "Mar", "Mié", "Jue"]
   y-axis "Minutos" 0 --> 60
   bar [35, 50, 20, 45]
   line [35, 50, 20, 45]

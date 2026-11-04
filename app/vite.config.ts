@@ -19,11 +19,17 @@ const packageAt = (name: string, from: string): string => {
 const appAt = dirname(fileURLToPath(import.meta.url));
 const studio = packageAt("tisty-diagrams", appAt);
 const reader = packageAt("tisty-editor", appAt);
+// The contracts are generated beside the app and taken by path: nothing is published for Tisty to read them.
+const contracts = join(dirname(packageAt("tisty-editor", appAt)), "..", "contracts", "dist", "typescript");
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "tisty-diagrams": join(studio, "src"), "tisty-editor": join(reader, "src") },
+    alias: {
+      "tisty-diagrams": join(studio, "src"),
+      "tisty-editor": join(reader, "src"),
+      "@tisty/contracts": join(contracts, "index.js"),
+    },
   },
 
   test: {

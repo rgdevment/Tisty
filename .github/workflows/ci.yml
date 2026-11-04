@@ -123,6 +123,9 @@ jobs:
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs; a branch needs it once per system.
       - if: github.event_name != 'pull_request' || startsWith(matrix.part, '1/')
         run: cargo clippy --workspace --all-targets
+      - name: The contracts hold in Rust too
+        if: github.event_name != 'pull_request' || startsWith(matrix.part, '1/')
+        run: cargo test --manifest-path contracts/dist/rust/Cargo.toml
       - run: cargo nextest run --workspace --no-tests=pass ${{ matrix.part && format('--partition count:{0}', matrix.part) || '' }}
       # Compiling the doc tests is most of what they cost, and macOS is the job with time to spare.
       - if: runner.os == 'macOS' && matrix.part == '1/2'
@@ -198,6 +201,10 @@ jobs:
       - run: npm ci
         working-directory: app
       # guide.yml runs only on a tag, so a window change that breaks the script would otherwise wait for the release.
+      # Mermaid lays out only in a browser, so only one can say that what travels speaks the contract.
+      - run: node app/scripts/finished.mjs
+      # Each step holds on its own, and only this says that what one hands over the next one takes.
+      - run: node app/scripts/journey.mjs
       - run: node app/scripts/guide.mjs target/guide
         env:
           GUIDE_DATES: required

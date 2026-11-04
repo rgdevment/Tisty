@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "language", "tag_word", "key", "hash", "signed"]);
+const PRIMITIVES = new Set(["text", "id", "bool", "whole", "time", "moment", "name", "line", "file_name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {
@@ -53,6 +53,8 @@ for (const one of contracts.filter((each) => each.is)) {
   }
   const kept = Object.entries(base.fields).filter(([field]) => !one.except?.includes(field));
   one.fields = { ...Object.fromEntries(kept), ...one.fields };
+  // What the base gave up for good, the one that is it does not get back.
+  if (base.except) one.except = [...(one.except ?? []), ...base.except];
 }
 
 const hasFields = (name) => Boolean(names.get(name)?.fields);
@@ -70,7 +72,7 @@ for (const one of contracts) {
   }
   for (const [role, functions] of Object.entries(one.roles ?? {})) {
     for (const [name, fn] of Object.entries(functions)) {
-      const types = [...Object.values(fn.takes ?? {}), ...(fn.gives ? [fn.gives.replace(/^list:/, "")] : [])];
+      const types = [...Object.values(fn.takes ?? {}), ...(fn.gives ? [fn.gives] : [])].map((type) => type.replace(/^list:/, ""));
       for (const type of types) if (!known(type)) stop(`${role}.${name} names ${type}, which no contract defines`);
     }
   }
@@ -80,10 +82,11 @@ const allowed = () => {
   const tags = new Map();
   for (const one of contracts) {
     for (const draw of one.draws ?? []) {
-      const held = tags.get(draw.tag) ?? { attributes: new Set(), classes: new Set(), class_starts: new Set() };
+      const held = tags.get(draw.tag) ?? { attributes: new Set(), classes: new Set(), class_starts: new Set(), class_ends: new Set() };
       for (const name of draw.attributes ?? []) held.attributes.add(name);
       for (const name of draw.classes ?? []) held.classes.add(name);
       for (const name of draw.class_starts ?? []) held.class_starts.add(name);
+      for (const name of draw.class_ends ?? []) held.class_ends.add(name);
       tags.set(draw.tag, held);
     }
   }
@@ -94,6 +97,7 @@ const allowed = () => {
       attributes: [...held.attributes].sort(),
       classes: [...held.classes].sort(),
       class_starts: [...held.class_starts].sort(),
+      class_ends: [...held.class_ends].sort(),
     };
   }
   return out;
@@ -102,8 +106,18 @@ const allowed = () => {
 const drawn = allowed();
 const htmlRules = contracts.flatMap((one) => one.html_rules ?? []);
 for (const rule of htmlRules) {
-  if (!drawn[rule.tag]?.attributes.includes(rule.attribute)) stop(`a rule looks at ${rule.attribute} on ${rule.tag}, which no contract draws`);
+  for (const name of rule.requires ?? [rule.attribute]) {
+    if (!drawn[rule.tag]?.attributes.includes(name)) stop(`a rule looks at ${name} on ${rule.tag}, which no contract draws`);
+  }
 }
+
+// A style names its kind of value in one of three ways, and on one tag or on several.
+const styleRules = (one) =>
+  (one.styles ?? []).flatMap(({ on, property, unit, is, sized, color }) => {
+    const said = unit ? { unit } : color ? { color } : sized ? { sizes: one.values?.[sized] } : { values: one.values?.[is] };
+    if (Object.values(said).some((held) => !held)) stop(`${one.contract} says a style on ${on} is ${is ?? sized}, which it does not list`);
+    return [on].flat().map((tag) => ({ on: tag, property, ...said }));
+  });
 
 const whole = {
   version: VERSION,
@@ -111,13 +125,13 @@ const whole = {
   enums: Object.fromEntries(enums),
   allowed: drawn,
   passthrough: { tags: names.get("text").values.passthrough_tags, attributes: names.get("text").values.passthrough_attributes },
-  urls: { schemes: names.get("text").values.url_schemes, attributes: names.get("text").values.url_attributes },
-  styles: contracts.flatMap((one) =>
-    (one.styles ?? []).map(({ on, property, unit, is }) => {
-      if (!unit && !one.values?.[is]) stop(`${one.contract} says a style on ${on} is ${is}, which it does not list`);
-      return unit ? { on, property, unit } : { on, property, values: one.values[is] };
-    }),
-  ),
+  urls: {
+    schemes: names.get("text").values.url_schemes,
+    attributes: names.get("text").values.url_attributes,
+    references: Object.keys(names.get("text").values.references),
+    paints: names.get("diagram").values.paint_attributes,
+  },
+  styles: contracts.flatMap(styleRules),
   html_rules: htmlRules,
 };
 
@@ -127,7 +141,8 @@ const camel = (name) => name.replace(/_([a-z])/g, (_, letter) => letter.toUpperC
 const tsType = (type) => {
   if (type.startsWith("list:")) return `${tsType(type.slice(5))}[]`;
   if (type === "bool") return "boolean";
-  if (type === "whole" || type === "number") return "number";
+  if (type === "whole") return "number";
+  if (type === "bytes") return "Uint8Array";
   if (PRIMITIVES.has(type)) return "string";
   return pascal(type);
 };
@@ -150,7 +165,8 @@ const typescriptTypes = () => {
       out.push(`export interface ${pascal(one.contract)}${pascal(role)} {`);
       for (const [name, fn] of Object.entries(functions)) {
         const takes = Object.entries(fn.takes ?? {}).map(([arg, type]) => `${arg}: ${tsType(type)}`);
-        out.push(`  ${camel(name)}(${takes.join(", ")}): ${fn.gives ? tsType(fn.gives) : "void"};`);
+        const gives = fn.gives ? tsType(fn.gives) : "void";
+        out.push(`  ${camel(name)}(${takes.join(", ")}): ${fn.fails ? `Promise<${gives}>` : gives};`);
       }
       out.push("}", "");
     }
@@ -158,11 +174,17 @@ const typescriptTypes = () => {
   out.push(
     `export type ContractName = ${contracts.map((one) => JSON.stringify(one.contract)).join(" | ")};`,
     "export declare const CONTRACTS: Record<ContractName, unknown>;",
-    "export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;",
+    "export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;",
+    "/** What a person may write by hand, for whoever cleans a document. */",
+    "export declare const PASSTHROUGH: { tags: string[]; attributes: Record<string, string[]> };",
+    'export declare const STYLES: { on: string; property: string; unit?: string; sizes?: string[]; color?: boolean; values?: string[] }[];',
+    "export declare const URLS: { schemes: string[]; attributes: string[]; references: string[]; paints: string[] };",
     "/** What is wrong with a value under this contract: nothing when it holds. */",
     "export declare function check(contract: ContractName, value: unknown): string[];",
     "/** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */",
     "export declare function checkHtml(html: string): string[];",
+    "export declare function referencesIn(html: string): { kind: string; at: number }[];",
+    "export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];",
     "",
   );
   return out.join("\n");
@@ -192,7 +214,7 @@ const rustType = (type) => {
   if (type.startsWith("list:")) return `Vec<${rustType(type.slice(5))}>`;
   if (type === "bool") return "bool";
   if (type === "whole") return "u64";
-  if (type === "number") return "f64";
+  if (type === "bytes") return "Vec<u8>";
   if (PRIMITIVES.has(type)) return "String";
   return pascal(type);
 };
@@ -213,8 +235,8 @@ const rustLib = () => {
   ];
   for (const [name, values] of enums) {
     out.push("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]");
-    out.push('#[serde(rename_all = "kebab-case")]', `pub enum ${pascal(name)} {`);
-    for (const value of values) out.push(`    ${pascal(value)},`);
+    out.push(`pub enum ${pascal(name)} {`);
+    for (const value of values) out.push(`    #[serde(rename = ${JSON.stringify(value)})]`, `    ${pascal(value.replace(/[^a-zA-Z0-9]/g, "_"))},`);
     out.push("}", "");
   }
   for (const one of contracts) {
@@ -238,7 +260,8 @@ const rustLib = () => {
       out.push(`pub trait ${pascal(one.contract)}${pascal(role)} {`);
       for (const [name, fn] of Object.entries(functions)) {
         const takes = Object.entries(fn.takes ?? {}).map(([arg, type]) => `${arg}: ${rustType(type)}`);
-        const gives = fn.gives ? ` -> ${rustType(fn.gives)}` : "";
+        const held = fn.gives ? rustType(fn.gives) : "()";
+        const gives = fn.fails ? ` -> Result<${held}, String>` : fn.gives ? ` -> ${held}` : "";
         out.push(`    fn ${name}(${["&mut self", ...takes].join(", ")})${gives};`);
       }
       out.push("}", "");
@@ -297,6 +320,7 @@ const files = {
   "typescript/cases.test.js": typescriptCases(),
   "typescript/vectors.test.js": readFileSync(join(here, "vectors", "open.test.js"), "utf8"),
   "typescript/vectors.json": readFileSync(join(here, "vectors", "vectors.json"), "utf8"),
+  "typescript/written-by-tisty.json": readFileSync(join(here, "vectors", "written-by-tisty.json"), "utf8"),
   "rust/Cargo.toml": `[package]
 name = "tisty-contracts"
 version = "${VERSION}"
@@ -320,6 +344,8 @@ sha2 = "0.11"
 
 [workspace]
 `,
+  // Generated, so nobody formats it by hand, and a workspace that names it by path must not try.
+  "rust/rustfmt.toml": `disable_all_formatting = true\n`,
   "rust/src/lib.rs": rustLib(),
   "rust/src/contract.json": `${JSON.stringify(whole)}\n`,
   "rust/tests/cases.rs": rustCases,

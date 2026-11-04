@@ -45,3 +45,4 @@ winapi-util.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+tisty-contracts = { path = "../../contracts/dist/rust" }
