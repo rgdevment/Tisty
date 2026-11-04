@@ -1,6 +1,6 @@
 {
   "name": "@tisty/contracts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "What a Tisty document and task are. Generated from Tisty's contracts.",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -16,11 +16,19 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
-    "./vectors.json": "./vectors.json"
+    "./check": {
+      "types": "./check.d.ts",
+      "default": "./check.js"
+    },
+    "./vectors.json": "./vectors.json",
+    "./written-by-tisty.json": "./written-by-tisty.json"
   },
   "files": [
     "index.js",
     "index.d.ts",
-    "vectors.json"
+    "check.js",
+    "check.d.ts",
+    "vectors.json",
+    "written-by-tisty.json"
   ]
 }
