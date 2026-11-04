@@ -7,6 +7,7 @@ values:
   callouts: [note, tip, important, warning, caution]
   hues: [red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
   url_schemes: [http, https, mailto, tisty]
+  page_source: "tisty:page/N, the at of a page in the same document"
   passthrough_tags:
     [a, abbr, acronym, area, article, aside, b, bdi, bdo, blockquote, br, caption, center, cite, code, col, colgroup,
      data, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hgroup,
@@ -145,21 +146,26 @@ draws:
 contract: attachment
 group: documents
 checked_by: [writer, reader]
-says: A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
+says: >-
+  A file a document names. It travels in the document's media envelope. A picture is drawn when it arrives; any other
+  file shows as a card and is asked for the first time it is opened.
 values:
   pictures: [png, jpeg, webp, gif]
-  picture_source: "tisty:picture/N, counted from 0"
+  picture_source: "tisty:picture/N, its at in the media envelope"
+  file_source: "tisty:file/N, its at in the media envelope"
 fields:
+  at: { type: whole, required: true, says: "Its place in the media envelope, from 0." }
   name: { type: text, required: true, at_least: 1 }
   kind: { type: text }
+  size: { type: whole, says: "Its bytes." }
 draws:
   - { tag: img, attributes: [src, alt, loading, data-as] }
 cases:
   - says: "A file with its name."
-    value: { name: "cartilla.pdf", kind: "application/pdf" }
+    value: { at: 1, name: "cartilla.pdf", kind: "application/pdf", size: 2048 }
     holds: true
   - says: "No name."
-    value: { kind: "application/pdf" }
+    value: { at: 1, kind: "application/pdf" }
     holds: false
 ---
 contract: widget

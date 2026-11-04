@@ -3,9 +3,9 @@ group: documents
 checked_by: [writer, reader]
 says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
-  no more, so a page never has pages of its own.
+  no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages]
+except: [pages, media, attachments, cited]
 fields:
   page_of: { type: text, required: true, at_least: 1, at_most: 64, says: "The document it is a page of." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
@@ -34,6 +34,7 @@ fields:
   lang: { type: language, required: true }
   document: { type: text, required: true, at_least: 1, at_most: 64 }
   title: { type: text, at_most: 8192 }
+  key: { type: key, says: "The link key of that language's envelopes. Only the anchor language holds the map." }
 cases:
   - says: "A language and the document that holds it."
     value: { lang: "en", document: "enGlish1" }
@@ -103,7 +104,9 @@ cases:
 contract: signature
 group: documents
 checked_by: [writer, reader]
-says: Who answers for a document. The root key is who a person is; the machine key signs, under a certificate from the root.
+says: >-
+  Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs,
+  under a certificate from the root. It travels in clear, so the server checks it without opening anything.
 enums:
   verdict: [holds, revoked, refused]
 fields:
@@ -111,8 +114,7 @@ fields:
   machine: { type: key, required: true }
   since: { type: time, required: true }
   certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
-  signed: { type: signed, required: true, says: "The machine's signature over the document." }
-  name: { type: text, at_most: 80, says: "The name its writer chose. Never a proof." }
+  signed: { type: signed, required: true, says: "The machine's signature over the manifest and the index." }
 cases:
   - says: "A whole signature."
     value:
@@ -122,14 +124,29 @@ cases:
       certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: true
-  - says: "A name past what a name can be."
+  - says: "A date with a fraction of a second, which nobody signed."
     value:
       root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
-      since: "2026-11-03T12:00:00Z"
+      since: "2026-11-03T12:00:00.5Z"
       certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
-      name: "012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+    holds: false
+---
+contract: cited
+group: documents
+checked_by: [writer, reader]
+says: Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.
+fields:
+  document: { type: text, required: true, at_least: 1, at_most: 64 }
+  key: { type: key, required: true, says: "The link key of its envelopes." }
+  title: { type: text, at_most: 8192 }
+cases:
+  - says: "A document and its key."
+    value: { document: "other123", key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
+    holds: true
+  - says: "No key."
+    value: { document: "other123" }
     holds: false
 ---
 contract: sheet

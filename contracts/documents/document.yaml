@@ -12,7 +12,7 @@ fields:
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
   sheet: { type: sheet, says: "How it is laid on paper." }
   owner: { type: key, says: "The root key of whoever shares it." }
-  signature: { type: signature, says: "Who answers for what it says." }
+  signed_as: { type: text, at_most: 80, says: "The name its writer chose, which only a reader with the key sees. Never a proof." }
   made: { type: time }
   wrote: { type: time }
   by: { type: text, at_most: 160, says: "The name it was last written under." }
@@ -21,6 +21,9 @@ fields:
   body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
   html: { type: text, says: "Its words as the writer drew them." }
   pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
+  media: { type: hash, says: "The hash of its media envelope, when it has one." }
+  attachments: { type: list, of: attachment, says: "What its media envelope holds, pictures first." }
+  cited: { type: list, of: cited, says: "The documents it shares along, each in its own envelopes." }
   properties: { type: list, of: property, at_most: 32, says: "Its properties as written, for the details." }
   languages:
     type: list
@@ -66,6 +69,9 @@ html_cases:
   - says: "A class of its own."
     html: '<p class="mine">a</p>'
     holds: false
+  - says: "A link to one of its pages and to one of its files, ready."
+    html: '<a href="tisty:page/3">Enero</a> <a href="tisty:file/1">Cartilla</a>'
+    holds: true
   - says: "A style where no contract says one."
     html: '<div style="color:red">a</div>'
     holds: false
@@ -84,7 +90,6 @@ roles:
     copy_link: { gives: text }
   writer:
     draw: { takes: { body: text }, gives: text, says: "Turns the words into the HTML of a document." }
-    sign: { takes: { document: document }, gives: signature }
 cases:
   - says: "The least a document holds, with no pages at all."
     value: { id: "k7Qm2xPa", body: "# Paseos" }

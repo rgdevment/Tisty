@@ -320,7 +320,7 @@ the_contracts_hold() {
     went_well "node_modules is not here, so the contracts were not looked at"
     return
   fi
-  if node contracts/generate.mjs --check && node --test contracts/dist/typescript/cases.test.js > /dev/null; then
+  if node contracts/generate.mjs --check && node --test contracts/dist/typescript/cases.test.js contracts/dist/typescript/vectors.test.js > /dev/null; then
     went_well "the contracts hold"
   else
     amiss "the contracts do not hold; run node contracts/generate.mjs and node --test contracts/dist/typescript/cases.test.js"

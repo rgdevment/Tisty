@@ -10,6 +10,9 @@ holds a value to its contract. Each contract's `cases` run in every language.
 
 ```sh
 node contracts/generate.mjs
-node --test contracts/dist/typescript/cases.test.js
+node --test contracts/dist/typescript/cases.test.js contracts/dist/typescript/vectors.test.js
 cargo test --manifest-path contracts/dist/rust/Cargo.toml
 ```
+
+`node contracts/vectors/make.mjs` writes the sample envelopes again, when their
+format changes. Every implementation has to open them.

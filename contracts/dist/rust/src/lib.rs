@@ -5,8 +5,31 @@ use serde_json::Value;
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
-pub const VERSION: &str = "1.0.0-draft.3";
+pub const VERSION: &str = "1.0.0-draft.4";
 pub const CONTRACT: &str = include_str!("contract.json");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum EnvelopeKind {
+    Text,
+    Media,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PartName {
+    First,
+    Rest,
+    File,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SyncEvery {
+    Off,
+    Every5,
+    Every10,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -65,12 +88,15 @@ pub enum Priority {
     Minor,
 }
 
-/// A file a document names. Pictures travel with it. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
+/// A file a document names. It travels in the document's media envelope. A picture is drawn when it arrives; any other file shows as a card and is asked for the first time it is opened.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Attachment {
+    pub at: u64,
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<u64>,
 }
 
 /// A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
@@ -96,7 +122,7 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub signature: Option<Signature>,
+    pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -112,6 +138,12 @@ pub struct Document {
     pub html: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pages: Option<Vec<Page>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachments: Option<Vec<Attachment>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cited: Option<Vec<Cited>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub properties: Option<Vec<Property>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -134,7 +166,45 @@ pub trait DocumentReader {
 
 pub trait DocumentWriter {
     fn draw(&mut self, body: String) -> String;
-    fn sign(&mut self, document: Document) -> Signature;
+}
+
+/// How a document travels. One envelope per language holds its words and all its pages, with references ready, so reading them takes no other request. A second one holds its pictures and files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads of an envelope.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Envelope {
+    pub contract: String,
+    pub kind: EnvelopeKind,
+    pub id: String,
+    pub version: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<u64>,
+    pub sealed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commitment: Option<String>,
+    pub parts: Vec<EnvelopePart>,
+}
+
+pub trait EnvelopeWriter {
+    fn seal(&mut self, document: Document) -> Envelope;
+}
+
+pub trait EnvelopeReader {
+    fn open(&mut self, envelope: Envelope, key: String) -> Document;
+}
+
+/// One part of an envelope, as the manifest tells it. The server holds its limits to these sizes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EnvelopePart {
+    pub name: PartName,
+    pub compressed: bool,
+    pub sealed_size: u64,
+    pub open_size: u64,
+}
+
+pub trait SyncWriter {
+    fn sync(&mut self);
+    fn set_sync(&mut self, every: SyncEvery);
 }
 
 /// The properties at the start of a document, between two lines of three dashes. The first line is ---, the words start right under it, and --- or ... closes them. Past their limits they stay as written and none is read. A value that says nothing Tisty knows stays written too and does nothing, so no document fails for its properties: the writer reads them and gives the document what they mean. This holds what they mean, once read.
@@ -177,7 +247,7 @@ pub struct Property {
     pub values: Vec<String>,
 }
 
-/// A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own.
+/// A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Page {
     pub id: String,
@@ -192,7 +262,7 @@ pub struct Page {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub signature: Option<Signature>,
+    pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -221,6 +291,8 @@ pub struct Translation {
     pub document: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
 }
 
 /// A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
@@ -229,7 +301,7 @@ pub struct Tag {
     pub name: String,
 }
 
-/// Who answers for a document. The root key is who a person is; the machine key signs, under a certificate from the root.
+/// Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs, under a certificate from the root. It travels in clear, so the server checks it without opening anything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
     pub root: String,
@@ -237,8 +309,15 @@ pub struct Signature {
     pub since: String,
     pub certificate: String,
     pub signed: String,
+}
+
+/// Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Cited {
+    pub document: String,
+    pub key: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    pub title: Option<String>,
 }
 
 /// How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.
@@ -417,6 +496,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
                 out.push(wrong("is not a key"));
             }
         }
+        "hash" => {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+                out.push(wrong("is not a hash"));
+            }
+        }
         "signed" => {
             if !value.as_str().is_some_and(|one| base64url_of(one, 86)) {
                 out.push(wrong("is not a signature"));
@@ -451,7 +535,8 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         let here = if at.is_empty() { field.clone() } else { format!("{at}.{field}") };
         let one = given.get(field).filter(|one| !one.is_null());
         let Some(one) = one else {
-            if said["required"].as_bool() == Some(true) {
+            let when = said["required_when"].as_str().and_then(|field| given.get(field));
+            if said["required"].as_bool() == Some(true) || when == Some(&Value::Bool(true)) {
                 out.push(format!("{here} is missing"));
             }
             continue;

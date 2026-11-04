@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "language", "tag_word", "key", "signed"]);
+const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "language", "tag_word", "key", "hash", "signed"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {
@@ -201,6 +201,8 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
   } else if (type === "key") {
     if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a key");
+  } else if (type === "hash") {
+    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a hash");
   } else if (type === "signed") {
     if (typeof value !== "string" || !base64urlOf(value, 86)) out.push(at + " is not a signature");
   } else if (WHOLE.enums[type]) {
@@ -222,7 +224,7 @@ function checkFields(name, value, at, out) {
     const here = at === "" ? field : at + "." + field;
     const given = value[field];
     if (given === undefined || given === null) {
-      if (said.required) out.push(here + " is missing");
+      if (said.required || value[said.required_when] === true) out.push(here + " is missing");
       continue;
     }
     if (said.type === "list") {
@@ -480,6 +482,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
                 out.push(wrong("is not a key"));
             }
         }
+        "hash" => {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
+                out.push(wrong("is not a hash"));
+            }
+        }
         "signed" => {
             if !value.as_str().is_some_and(|one| base64url_of(one, 86)) {
                 out.push(wrong("is not a signature"));
@@ -514,7 +521,8 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         let here = if at.is_empty() { field.clone() } else { format!("{at}.{field}") };
         let one = given.get(field).filter(|one| !one.is_null());
         let Some(one) = one else {
-            if said["required"].as_bool() == Some(true) {
+            let when = said["required_when"].as_str().and_then(|field| given.get(field));
+            if said["required"].as_bool() == Some(true) || when == Some(&Value::Bool(true)) {
                 out.push(format!("{here} is missing"));
             }
             continue;
@@ -714,7 +722,7 @@ const files = {
       main: "index.js",
       types: "index.d.ts",
       exports: { ".": { types: "./index.d.ts", default: "./index.js" } },
-      files: ["index.js", "index.d.ts"],
+      files: ["index.js", "index.d.ts", "vectors.json"],
     },
     null,
     2,
@@ -722,6 +730,8 @@ const files = {
   "typescript/index.js": typescriptRuntime(),
   "typescript/index.d.ts": typescriptTypes(),
   "typescript/cases.test.js": typescriptCases(),
+  "typescript/vectors.test.js": readFileSync(join(here, "vectors", "open.test.js"), "utf8"),
+  "typescript/vectors.json": readFileSync(join(here, "vectors", "vectors.json"), "utf8"),
   "rust/Cargo.toml": `[package]
 name = "tisty-contracts"
 version = "${VERSION}"
@@ -734,11 +744,22 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 unicode-normalization = "0.1"
 
+[dev-dependencies]
+aes-gcm = "0.10"
+base64 = "0.23"
+ed25519-dalek = "3"
+flate2 = "1"
+hkdf = "0.13"
+hmac = "0.13"
+sha2 = "0.11"
+
 [workspace]
 `,
   "rust/src/lib.rs": rustLib(),
   "rust/src/contract.json": `${JSON.stringify(whole)}\n`,
   "rust/tests/cases.rs": rustCases,
+  "rust/tests/vectors.rs": readFileSync(join(here, "vectors", "open.rs"), "utf8"),
+  "rust/vectors.json": readFileSync(join(here, "vectors", "vectors.json"), "utf8"),
 };
 
 const checking = process.argv.includes("--check");
