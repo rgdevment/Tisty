@@ -103,6 +103,13 @@ pub fn named(html: &str) -> Named {
     out
 }
 
+/// The words of a piece of HTML, as they read with nothing around them.
+pub fn words_in(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    walk(html, |words, _| out.push_str(&unescaped(words)));
+    out
+}
+
 // Only the properties block the translator draws: ammonia takes the class off anything written by hand.
 fn kept_to_itself_gone(html: &str) -> String {
     let Some(from) = html.find("<dl class=\"front\"") else {
