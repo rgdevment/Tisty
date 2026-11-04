@@ -216,6 +216,13 @@ fn a_public_envelope_opens_without_a_key() {
 }
 
 #[test]
+fn words_are_counted_in_bytes_as_a_machine_holds_them() {
+    let said = |body: String| serde_json::json!({ "id": "x", "html": "<p>x</p>", "body": body });
+    assert_eq!(check("document", &said("a".repeat(512000))), Vec::<String>::new());
+    assert!(!check("document", &said("€".repeat(200000))).is_empty());
+}
+
+#[test]
 fn a_revocation_is_signed_by_the_root() {
     let all = vectors();
     let said = &all["revocation"];

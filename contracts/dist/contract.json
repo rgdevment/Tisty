@@ -1534,7 +1534,7 @@
       ],
       "values": {
         "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.",
-        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in clear.",
+        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in the manifest.",
         "anchor_language": "Paper, sheets and orientation are the group's: the anchor's, in every language."
       },
       "fields": {
@@ -2179,15 +2179,6 @@
             "body": "x"
           },
           "holds": false
-        },
-        {
-          "says": "Words past 500 KiB, counted in bytes.",
-          "value": {
-            "id": "x",
-            "html": "<p>x</p>",
-            "body": "€€€€"
-          },
-          "holds": true
         },
         {
           "says": "A name that hides what it is.",

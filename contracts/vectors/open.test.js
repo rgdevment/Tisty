@@ -148,6 +148,11 @@ test("a public envelope opens without a key", async () => {
   assert.deepEqual(held, VECTORS.public.document);
 });
 
+test("words are counted in bytes, as a machine holds them", () => {
+  assert.deepEqual(check("document", { id: "x", html: "<p>x</p>", body: "a".repeat(512000) }), []);
+  assert.notDeepEqual(check("document", { id: "x", html: "<p>x</p>", body: "€".repeat(200000) }), []);
+});
+
 test("a revocation is signed by the root", async () => {
   const said = VECTORS.revocation;
   assert.deepEqual(check("revocation", said), []);

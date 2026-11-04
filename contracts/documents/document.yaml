@@ -11,7 +11,7 @@ values:
     a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.
   says_nothing_unchosen: >-
     What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name
-    from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in clear.
+    from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in the manifest.
   anchor_language: "Paper, sheets and orientation are the group's: the anchor's, in every language."
 fields:
   id: { type: id, required: true, at_most: 64, says: "What names it, and what goes in its link. It says nothing of the machine it came from." }
@@ -275,9 +275,6 @@ cases:
   - says: "A key with spare bits set, a second spelling of the same key."
     value: { id: "x", owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sR", html: "<p>x</p>", body: "x" }
     holds: false
-  - says: "Words past 500 KiB, counted in bytes."
-    value: { id: "x", html: "<p>x</p>", body: "€€€€" }
-    holds: true
   - says: "A name that hides what it is."
     value: { id: "x", signed_as: "Ma\u200Brio", html: "<p>x</p>", body: "x" }
     holds: false
