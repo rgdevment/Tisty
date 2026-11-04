@@ -41,7 +41,6 @@ fn seen_only(said: &str) -> String {
     out
 }
 
-/// What a person wrote as one line a reader can show as written: no breaks and nothing unseen. `None` when no words are left.
 pub fn line(said: &str) -> Option<String> {
     let flat: String = on_one_line(said).chars().take(LINE_AT_MOST).collect();
     let mut seen = if is_a_line(&flat) {
@@ -56,13 +55,11 @@ pub fn line(said: &str) -> Option<String> {
     (!kept.is_empty()).then(|| kept.to_owned())
 }
 
-/// A file's own name, never the path it came from.
 pub fn file_name(said: &str) -> Option<String> {
     let last = said.rsplit(['/', '\\']).next().unwrap_or_default();
     line(last).filter(|one| one.chars().any(|point| point != '.'))
 }
 
-/// A name someone chose for themselves, or `None` when it can be no name, as one that passes for a fingerprint.
 pub fn name(said: &str) -> Option<String> {
     let kept: String = line(said)?.chars().take(NAME_AT_MOST).collect();
     let kept = kept.trim_end().to_owned();
@@ -70,7 +67,6 @@ pub fn name(said: &str) -> Option<String> {
     holds("document", &document).then_some(kept)
 }
 
-/// A word a document is kept under, when it is written in the one form the contract takes.
 pub fn is_a_tag(said: &str) -> bool {
     holds("tag", &json!({ "name": said }))
 }

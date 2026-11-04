@@ -8,19 +8,18 @@ use crate::Unshared;
 
 const SHELF: &str = "sharing.json";
 
-/// What a document's last version was sent as. Its keys open what was sent, so it stays in this machine's private folder.
+// Its keys open what was sent, so it stays in this machine's private folder.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Remembered {
     pub id: String,
     pub version: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_key: Option<String>,
-    /// What says whether its files changed, without keeping them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_print: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_hash: Option<String>,
-    /// The key its files envelope was sealed with. Without it, files sent under another could be kept by mistake.
+    // Without it, files sent under another key could be kept by mistake.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_key: Option<String>,
 }
@@ -29,7 +28,6 @@ fn shelf_at(paths: &Paths) -> PathBuf {
     paths.private().join(SHELF)
 }
 
-/// What was last sent of each document, by the file it is kept in.
 pub fn remembered(paths: &Paths) -> Result<BTreeMap<String, Remembered>, Unshared> {
     let said = match std::fs::read(shelf_at(paths)) {
         Ok(said) => said,
@@ -39,7 +37,7 @@ pub fn remembered(paths: &Paths) -> Result<BTreeMap<String, Remembered>, Unshare
     serde_json::from_slice(&said).map_err(|e| Unshared::Unread(e.to_string()))
 }
 
-/// Called once the envelopes have reached where they go, and never before: only then can the next version count on them.
+// Called once the envelopes have reached where they go, and never before: only then can the next version count on them.
 pub fn sent(paths: &Paths, went: &[(String, Remembered)]) -> Result<(), Unshared> {
     let unwritten = |e: &dyn std::fmt::Display| Unshared::Unwritten(e.to_string());
     let mut shelf = remembered(paths)?;

@@ -202,6 +202,7 @@ const KNOWN = [
   "noIdentityToSign",
   "cannotSeal",
   "cannotFinish",
+  "awayNotShared",
   "tongueUnsaid",
   "notALanguage",
   "pageHasNoTongue",

@@ -689,12 +689,16 @@ const en = {
   toldPictureAsFile:
     "In {other}, the picture {name} goes as a file to download, because it cannot be drawn",
   toldPictureAsWords:
-    "In {other}, the picture {name} goes as its words, because it is no longer here",
+    "In {other}, the picture {name} goes as its words, because it is no longer here or is too large to travel",
   toldPictureAsLink: "In {other}, the picture at {name} goes as a link to it",
-  toldFileAsWords: "In {other}, the file {name} goes as its words, because it is no longer here",
+  toldFileAsWords:
+    "In {other}, the file {name} goes as its words, because it is no longer here or is too large to travel",
   toldNotDrawn: "In {other}, {name} diagrams could not be drawn and go as code",
-  toldPageLeftBehind: "A page of {name} could not be read and stays here",
-  toldLanguageLeftBehind: "The language {name} is locked or someone else's, so it stays here",
+  toldPageLeftBehind:
+    "A page of {name} stays here, because it is put away, locked or could not be read",
+  awayNotShared: "That one is put away. Bring it back to share it",
+  toldLanguageLeftBehind:
+    "The language {name} is locked, put away or someone else's, so it stays here",
   toldNameLeftOut: "That name cannot be used to sign, so it goes without a name",
   tongueUnsaid: "Say first which language it is in",
   notALanguage: "That is not a language Tisty knows how to name",
@@ -3383,13 +3387,17 @@ const es: Catalog = {
     "No se pudieron dibujar su código y sus diagramas. Inténtalo de nuevo en un momento.",
   toldPictureAsFile:
     "En {other}, la imagen {name} va como archivo para descargar, porque no se puede dibujar",
-  toldPictureAsWords: "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí",
+  toldPictureAsWords:
+    "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
   toldPictureAsLink: "En {other}, la imagen de {name} va como un enlace a ella",
-  toldFileAsWords: "En {other}, el archivo {name} va como sus palabras, porque ya no está aquí",
+  toldFileAsWords:
+    "En {other}, el archivo {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
   toldNotDrawn: "En {other}, {name} diagramas no se pudieron dibujar y van como código",
-  toldPageLeftBehind: "Una página de {name} no se pudo leer y se queda aquí",
+  toldPageLeftBehind:
+    "Una página de {name} se queda aquí, porque está archivada, bloqueada o no se pudo leer",
+  awayNotShared: "Ese está archivado. Desarchívalo para compartirlo",
   toldLanguageLeftBehind:
-    "El idioma {name} está bloqueado o es de otra persona, así que se queda aquí",
+    "El idioma {name} está bloqueado, archivado o es de otra persona, así que se queda aquí",
   toldNameLeftOut: "Ese nombre no sirve para firmar, así que va sin nombre",
   tongueUnsaid: "Primero di en qué idioma está",
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",

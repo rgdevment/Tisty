@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tisty_envelope::family::{Family, Going, Tongue, sealed_family};
@@ -7,14 +8,12 @@ use tisty_envelope::sealing::Writer;
 use crate::gathering::Gathered;
 use crate::{Remembered, Told, Unshared};
 
-/// HTML with everything it names in place, for a window to colour and draw.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Unfinished {
     pub name: String,
     pub html: String,
 }
 
-/// What a window answers, as `finished` in `tisty-editor` gives it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Finished {
@@ -23,12 +22,10 @@ pub struct Finished {
     pub not_drawn: usize,
 }
 
-/// A document in its envelopes, and what the person has to be told about them.
 #[derive(Debug)]
 pub struct Sealed {
     pub going: Vec<Going>,
     pub told: Vec<Told>,
-    /// Handed to `sent` once they have reached where they go.
     pub remembering: Vec<(String, Remembered)>,
 }
 
@@ -36,55 +33,46 @@ fn page_name(file: &str, at: u64) -> String {
     format!("{file}/{at}")
 }
 
-fn each_tongue<'a>(family: &'a Family, out: &mut Vec<&'a Tongue>) {
-    out.push(&family.anchor);
-    out.extend(&family.others);
-    for tongue in std::iter::once(&family.anchor).chain(&family.others) {
-        for cited in &tongue.cited {
-            each_tongue(cited, out);
-        }
-    }
-}
-
-fn each_tongue_mut(
-    family: &mut Family,
-    change: &mut impl FnMut(&mut Tongue) -> Result<(), Unshared>,
-) -> Result<(), Unshared> {
-    change(&mut family.anchor)?;
-    for tongue in &mut family.others {
-        change(tongue)?;
-    }
-    let cited = std::iter::once(&mut family.anchor)
-        .chain(&mut family.others)
-        .flat_map(|tongue| &mut tongue.cited);
-    for one in cited {
-        each_tongue_mut(one, change)?;
-    }
-    Ok(())
-}
-
 impl Gathered {
-    /// All a window has to finish, once each however many cite it.
-    pub fn unfinished(&self) -> Vec<Unfinished> {
-        let mut tongues = Vec::new();
-        each_tongue(&self.family, &mut tongues);
-        let mut out = BTreeMap::new();
-        for tongue in tongues {
-            let Some(file) = self.file_of(&tongue.document.id) else {
-                continue;
-            };
-            out.insert(file.to_owned(), tongue.document.html.clone());
-            for page in tongue.document.pages.iter().flatten() {
-                out.insert(page_name(file, page.at), page.html.clone());
-            }
-        }
-        out.into_iter()
-            .map(|(name, html)| Unfinished { name, html })
+    fn files_by_id(&self) -> BTreeMap<String, String> {
+        self.remembering
+            .iter()
+            .map(|(file, was)| (was.id.clone(), file.clone()))
             .collect()
     }
 
-    /// Takes what a window answered. Sealing looks at it again: a window's word counts for nothing either.
+    pub fn unfinished(&self) -> Vec<Unfinished> {
+        let files = self.files_by_id();
+        let mut out = Vec::new();
+        let tongues = std::iter::once(&self.family)
+            .chain(&self.cited)
+            .flat_map(|one| std::iter::once(&one.anchor).chain(&one.others));
+        for tongue in tongues {
+            let Some(file) = files.get(&tongue.document.id) else {
+                continue;
+            };
+            out.push(Unfinished {
+                name: file.clone(),
+                html: tongue.document.html.clone(),
+            });
+            out.extend(
+                tongue
+                    .document
+                    .pages
+                    .iter()
+                    .flatten()
+                    .map(|page| Unfinished {
+                        name: page_name(file, page.at),
+                        html: page.html.clone(),
+                    }),
+            );
+        }
+        out
+    }
+
+    // Sealing looks at the result again: a window's word counts for nothing either.
     pub fn finished(&mut self, answers: Vec<Finished>) -> Result<(), Unshared> {
+        let files = self.files_by_id();
         let mut not_drawn: BTreeMap<String, usize> = BTreeMap::new();
         let mut html = BTreeMap::new();
         for one in answers {
@@ -92,18 +80,24 @@ impl Gathered {
             *not_drawn.entry(file).or_default() += one.not_drawn;
             html.insert(one.name, one.html);
         }
-        let files = self.files.clone();
         let taken = |name: String| html.get(&name).cloned().ok_or(Unshared::Unfinished(name));
-        each_tongue_mut(&mut self.family, &mut |tongue| {
+        let finish = |tongue: &mut Tongue| {
+            let id = &tongue.document.id;
             let file = files
-                .get(&tongue.document.id)
-                .ok_or_else(|| Unshared::Unfinished(tongue.document.id.clone()))?;
+                .get(id)
+                .ok_or_else(|| Unshared::Unfinished(id.clone()))?;
             tongue.document.html = taken(file.clone())?;
             for page in tongue.document.pages.iter_mut().flatten() {
                 page.html = taken(page_name(file, page.at))?;
             }
-            Ok(())
-        })?;
+            Ok::<(), Unshared>(())
+        };
+        let tongues = std::iter::once(&mut self.family)
+            .chain(&mut self.cited)
+            .flat_map(|one| std::iter::once(&mut one.anchor).chain(&mut one.others));
+        for tongue in tongues {
+            finish(tongue)?;
+        }
         for (file, many) in not_drawn.into_iter().filter(|(_, many)| *many > 0) {
             self.told.push(Told::NotDrawn {
                 document: self.titles.get(&file).cloned().unwrap_or_default(),
@@ -113,11 +107,25 @@ impl Gathered {
         Ok(())
     }
 
-    /// Seals what the window finished. Nothing is remembered yet: nothing has gone anywhere.
+    // Nothing is remembered yet: nothing has gone anywhere.
     pub fn sealed(self, writer: &mut Writer) -> Result<Sealed, Unshared> {
-        let going = sealed_family(writer, self.family)?;
-        let remembering = self
-            .remembering
+        let Self {
+            mut family,
+            cited,
+            cites,
+            told,
+            remembering,
+            ..
+        } = self;
+        let cited: Vec<Arc<Family>> = cited.into_iter().map(Arc::new).collect();
+        for tongue in std::iter::once(&mut family.anchor).chain(&mut family.others) {
+            let said = cites.get(&tongue.document.id).into_iter().flatten();
+            tongue.cited = said.map(|at| Arc::clone(&cited[*at])).collect();
+        }
+        // Whoever holds one last hands its bytes on without copying them.
+        drop(cited);
+        let going = sealed_family(writer, family)?;
+        let remembering = remembering
             .into_iter()
             .map(|(file, mut was)| {
                 let hash = going
@@ -131,12 +139,8 @@ impl Gathered {
             .collect();
         Ok(Sealed {
             going,
-            told: self.told,
+            told,
             remembering,
         })
-    }
-
-    fn file_of(&self, id: &str) -> Option<&str> {
-        self.files.get(id).map(String::as_str)
     }
 }

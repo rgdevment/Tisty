@@ -19,6 +19,8 @@ pub enum Unshared {
     NotOwn,
     #[error("a locked document stays here")]
     Shut,
+    #[error("what is put away stays here")]
+    Away,
     #[error("a page goes with its document, and a task's words stay with the task")]
     NotADocument,
     #[error("it could not be read: {0}")]

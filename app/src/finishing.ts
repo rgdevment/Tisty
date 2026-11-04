@@ -6,7 +6,6 @@ interface Unfinished {
   html: string;
 }
 
-/** What a window nobody sees was opened for: it finishes what it is asked, says what it did and is closed. Rust looks at the result again before sealing. */
 export const finishWhatIsAsked = async (): Promise<void> => {
   try {
     const asked = await invoke<Unfinished[]>("finishing_asked");

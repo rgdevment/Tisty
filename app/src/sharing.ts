@@ -23,13 +23,11 @@ export interface Sharing {
   signedAs?: string;
 }
 
-/** A document in its sealed envelopes, and what the person has to be told about them. Nothing goes anywhere. */
 export const docSealed = (
   id: string,
   { public: isPublic, cited, signedAs }: Sharing,
 ): Promise<Sealed> => invoke("doc_sealed", { id, public: isPublic, cited, signedAs });
 
-/** What did not travel as the person wrote it, in their words. */
 export const toldPlainly = (told: Told): string => {
   switch (told.what) {
     case "pictureAsFile":

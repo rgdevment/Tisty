@@ -66,6 +66,7 @@ describe("why a document could not be sealed", () => {
     "noIdentityToSign",
     "cannotSeal",
     "cannotFinish",
+    "awayNotShared",
   ])("is said in words the window knows: %s", (code) => {
     const said = plainly({ code });
     expect(said).not.toContain(code);

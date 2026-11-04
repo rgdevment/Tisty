@@ -39,7 +39,6 @@ pub enum Unopened {
     Damaged(&'static str),
 }
 
-/// An envelope once open: its parts in order, and what its signature says.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Opened {
     pub manifest: Vec<u8>,
@@ -48,7 +47,7 @@ pub struct Opened {
     pub verdict: Verdict,
 }
 
-/// A document someone else wrote. It stays a `Value`: a later minor version adds what this one leaves aside, and a paper it does not know is no fault.
+// It stays a `Value`: a later minor version adds what this one leaves aside, and a paper it does not know is no fault.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reading {
     pub document: Value,
@@ -56,7 +55,6 @@ pub struct Reading {
     pub verdict: Verdict,
 }
 
-/// How a reader lays a document, whatever it says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Laid {
     pub paper: Paper,
@@ -308,7 +306,6 @@ fn part_opened(
     Ok(held)
 }
 
-/// Opens one envelope, or says why not. Nothing in it is believed before it is checked, and a reader that does not know its version says so rather than calling it damaged.
 pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened, Unopened> {
     if bytes.get(..MARK.len()) != Some(MARK.as_slice()) {
         return damaged("it has no mark of an envelope");
@@ -453,7 +450,7 @@ fn pages_in_place(held: &Value) -> Result<&[Value], Unopened> {
     Ok(pages)
 }
 
-/// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
+// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
 pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     let (Some(first), Some(rest)) = (main.parts.first(), main.parts.get(1)) else {
         return damaged("it holds no words");
@@ -487,7 +484,6 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     Ok(held)
 }
 
-/// Reads the main envelope of a document whoever wrote it: this is where words from elsewhere first count as read.
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
     let document = document_in(&main)?;
@@ -500,7 +496,6 @@ pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Readi
     })
 }
 
-/// Opens the files of a document it already read, which answers for them through its hash.
 pub fn files_for(
     document: &Value,
     bytes: &[u8],
@@ -585,7 +580,6 @@ fn jpeg_size(bytes: &[u8]) -> Option<(u64, u64)> {
     None
 }
 
-/// What a reader looks at before it draws a picture. One that fails shows its alt, and the words still read.
 pub fn picture_holds(bytes: &[u8], said: &Value) -> bool {
     let size = if said["kind"] == "image/png" {
         png_size(bytes)
@@ -598,7 +592,6 @@ pub fn picture_holds(bytes: &[u8], said: &Value) -> bool {
         })
 }
 
-/// How a document says to lay it. A4 and portrait when it says none or one this reader does not know.
 pub fn laid(document: &Value) -> Laid {
     let sheet = &document["sheet"];
     Laid {
@@ -609,7 +602,6 @@ pub fn laid(document: &Value) -> Laid {
     }
 }
 
-/// Tisty as the contract's reader. What a server serves beside an envelope is weighed with its signature.
 pub struct Reader {
     pub served: Served,
 }

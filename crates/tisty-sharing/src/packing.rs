@@ -5,35 +5,27 @@ use tisty_contracts::{Attachment, Picture, PictureKind};
 use tisty_core::attach;
 use tisty_envelope::clean;
 use tisty_envelope::pictures::{Kind, Made, made_or_turned};
-use tisty_envelope::travelling::{Placed, Places};
+use tisty_envelope::travelling::{Placed, Places, leads_outside};
 
 use crate::gathering::Desk;
 
 const NO_NAME: &str = "file";
+// This machine's own and no rule of the contract's: all of a file is held in memory to seal it.
+const TRAVELS_AT_MOST: u64 = 64 * 1024 * 1024;
 
-/// What did not travel as the person wrote it, which they are told.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "what", rename_all = "camelCase")]
 pub enum Told {
-    /// A picture that could not be made, or an SVG, went as a file with its card.
     PictureAsFile { document: String, name: String },
-    /// A picture that could go neither way went as its alt.
     PictureAsWords { document: String, name: String },
-    /// A picture on the web is never asked for, so it went as a link to it.
     PictureAsLink { document: String, name: String },
-    /// A file that is no longer here went as its words.
     FileAsWords { document: String, name: String },
-    /// Diagrams that could not be drawn went as code.
     NotDrawn { document: String, many: usize },
-    /// A page could not be read, so its document went without it.
     PageLeftBehind { document: String },
-    /// A language that is locked, or someone else's, stayed here.
     LanguageLeftBehind { document: String },
-    /// The name chosen can be no name, so it went without one.
     NameLeftOut,
 }
 
-/// What a language names, once found: where each sits and the bytes that go.
 #[derive(Debug, Default)]
 pub(crate) struct Packed {
     pub places: Places,
@@ -63,11 +55,6 @@ fn own_name(reference: &str) -> String {
     clean::file_name(&named).unwrap_or_else(|| NO_NAME.to_owned())
 }
 
-fn leads_outside(name: &str) -> bool {
-    let lowered = name.trim().to_ascii_lowercase();
-    lowered.starts_with("http://") || lowered.starts_with("https://")
-}
-
 fn kind_of(kind: Kind) -> PictureKind {
     match kind {
         Kind::Png => PictureKind::ImagePng,
@@ -87,21 +74,20 @@ impl<'a> Packing<'a> {
 
     fn found(&self, name: &str) -> Option<(PathBuf, Vec<u8>)> {
         let at = attach::found(name, self.desk.paths.data(), self.desk.also).ok()?;
+        if std::fs::metadata(&at).ok()?.len() > TRAVELS_AT_MOST {
+            return None;
+        }
         let bytes = std::fs::read(&at).ok()?;
         Some((at, bytes))
-    }
-
-    fn placed(&self, name: &str) -> bool {
-        self.out.places.pictures.contains_key(name) || self.out.places.files.contains_key(name)
     }
 
     fn document(&self) -> String {
         self.document.to_owned()
     }
 
-    /// A picture the HTML draws. It goes made anew, or as a file with its card, or as its alt.
     pub fn picture(&mut self, name: &str) {
-        if self.placed(name) {
+        let places = &self.out.places;
+        if places.pictures.contains_key(name) || places.files.contains_key(name) {
             return;
         }
         if !attach::names_an_attachment(name) {
@@ -137,9 +123,9 @@ impl<'a> Packing<'a> {
         }
     }
 
-    /// What the person laid in as a file, or a link to something kept here. A link to anything else goes as its words.
+    // Laid in as a file it is a card, even when the same attachment is drawn as a picture elsewhere.
     pub fn file(&mut self, name: &str) {
-        if self.placed(name) || !attach::names_an_attachment(name) {
+        if self.out.places.files.contains_key(name) || !attach::names_an_attachment(name) {
             return;
         }
         match self.found(name) {
@@ -148,6 +134,13 @@ impl<'a> Packing<'a> {
                 document: self.document(),
                 name: own_name(name),
             }),
+        }
+    }
+
+    // A link reaches a picture that already travels, so its bytes need not go twice.
+    pub fn link(&mut self, name: &str) {
+        if !self.out.places.pictures.contains_key(name) {
+            self.file(name);
         }
     }
 

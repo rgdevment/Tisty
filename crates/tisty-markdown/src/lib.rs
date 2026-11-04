@@ -41,6 +41,7 @@ pub mod vocab;
 mod writing;
 
 #[cfg(feature = "outline")]
+pub use inline::filed;
 pub use outline::{Head, outline};
 pub use page::html;
 pub use printed::printed;

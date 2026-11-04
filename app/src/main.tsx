@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
@@ -71,5 +72,7 @@ const shown = () =>
 
 // A window nobody sees draws nothing of its own: it is there to finish a document.
 if (label.startsWith("finisher-"))
-  void import("./finishing").then((one) => one.finishWhatIsAsked());
+  import("./finishing")
+    .then((one) => one.finishWhatIsAsked())
+    .catch(() => invoke("finishing_answered", { answers: null }));
 else void shown();

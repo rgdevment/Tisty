@@ -3,12 +3,12 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_core::model::DocId;
+use tisty_core::witness::{self, Fact, channel};
 use tisty_envelope::sealing::Writer;
 use tisty_sharing::{Asked, Desk, Told, Unshared, gathered, signer};
 
 use crate::{Answer, Refusal, Session, held};
 
-/// What a document came to, for the person to see before anything goes anywhere.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Sealed {
@@ -18,10 +18,16 @@ pub struct Sealed {
 }
 
 fn refused(wrong: &Unshared) -> Refusal {
+    witness::warn(
+        channel::WINDOW,
+        "a document could not be sealed",
+        &[("why", Fact::Why(wrong.to_string()))],
+    );
     Refusal::of(match wrong {
         Unshared::NoSuchDoc => "noSuchDoc",
         Unshared::NotOwn => "notOneOwnDoc",
         Unshared::Shut => "documentLocked",
+        Unshared::Away => "awayNotShared",
         Unshared::NotADocument => "onlyADocumentShared",
         Unshared::Unfinished(_) => "cannotFinish",
         Unshared::Unread(_) | Unshared::Unwritten(_) | Unshared::Refused(_) => "cannotSeal",
@@ -32,7 +38,7 @@ fn doc_id(said: &str) -> Answer<DocId> {
     said.parse().map_err(|_| Refusal::of("noSuchDoc"))
 }
 
-/// Seals a document where it is kept: pictures and files found, a window nobody sees finishing what only a window can, and its envelopes signed by this machine. Nothing goes anywhere and nothing is remembered: that is for whoever sends them.
+// Nothing goes anywhere and nothing is remembered: that is for whoever sends them.
 #[tauri::command]
 pub async fn doc_sealed(
     app: tauri::AppHandle,

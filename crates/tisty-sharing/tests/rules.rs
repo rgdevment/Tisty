@@ -902,6 +902,217 @@ fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
 }
 
 #[test]
+fn an_anchor_that_is_locked_stays_here_and_the_map_goes_with_who_does() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\nsecreto\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\nwalks\n", None);
+    let pt = home.wrote("---\nlang: pt\n---\n\npasseios\n", None);
+    home.joined(en, es);
+    home.joined(pt, es);
+    home.commit(Op::DocLock { id: es });
+
+    let out = sealed(&home, &asked(en));
+    let reads = every_reader_opens(&out);
+    assert_eq!(reads.len(), 2);
+    assert!(reads.iter().all(|one| !all_text(one).contains("secreto")));
+    assert_eq!(
+        reads
+            .iter()
+            .filter(|one| one.held.get("languages").is_some())
+            .count(),
+        1
+    );
+    assert_eq!(
+        out.told
+            .iter()
+            .filter(|one| matches!(one, Told::LanguageLeftBehind { .. }))
+            .count(),
+        1
+    );
+    assert_eq!(out.remembering.len(), 2);
+}
+
+#[test]
+fn an_anchor_someone_else_shared_stays_here() {
+    let (_tmp, mut home) = home();
+    let body = "---\nlang: es\n---\n\nde otra persona\n";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let es = ulid::Ulid::generate();
+    home.commit(Op::DocAdd {
+        id: es,
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            ..Default::default()
+        },
+    });
+    let en = home.wrote("---\nlang: en\n---\n\nwalks\n", None);
+    home.joined(en, es);
+    let reads = every_reader_opens(&sealed(&home, &asked(en)));
+    assert_eq!(reads.len(), 1);
+    assert!(!all_text(&reads[0]).contains("de otra persona"));
+}
+
+#[test]
+fn a_page_put_away_stays_here_and_the_person_is_told() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("# Paseos\n\n[[Enero]] [[Febrero]]\n", None);
+    let enero = home.wrote("# Enero\n\nprivado\n", Some(doc));
+    home.wrote("# Febrero\n", Some(doc));
+    home.commit(Op::DocArchive { id: enero });
+
+    let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
+    assert_eq!(read.held["pages"].as_array().unwrap().len(), 1);
+    assert_eq!(read.held["pages"][0]["at"], 1);
+    assert_eq!(read.held["pages"][0]["title"], "Febrero");
+    assert!(!all_text(read).contains("privado"));
+    assert!(read.held["html"].as_str().unwrap().contains("Enero"));
+    assert!(matches!(&out.told[..], [Told::PageLeftBehind { .. }]));
+}
+
+#[test]
+fn a_language_put_away_stays_here_and_what_is_put_away_is_not_shared() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\nx\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\nguardado\n", None);
+    home.joined(en, es);
+    home.commit(Op::DocArchive { id: en });
+    let out = sealed(&home, &asked(es));
+    let reads = every_reader_opens(&out);
+    assert_eq!(reads.len(), 1);
+    assert!(!all_text(&reads[0]).contains("guardado"));
+    assert!(matches!(&out.told[..], [Told::LanguageLeftBehind { .. }]));
+
+    let alone = home.wrote("x\n", None);
+    home.commit(Op::DocArchive { id: alone });
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+    };
+    let refused = tisty_sharing::gathered(&desk, &asked(alone)).err();
+    assert!(matches!(refused, Some(Unshared::Away)), "{refused:?}");
+}
+
+#[test]
+fn what_is_chosen_and_nobody_names_is_neither_gathered_nor_remembered() {
+    let (_tmp, mut home) = home();
+    let leaf = home.attached("gone.pdf", b"%PDF");
+    let other = home.wrote(&format!("# Otro\n\n[c]({leaf})\n"), None);
+    std::fs::remove_file(home.paths.attachments().join(&leaf)).unwrap();
+    let doc = home.wrote("# Paseos\n", None);
+    let mut asking = asked(doc);
+    asking.cited = vec![other];
+
+    let out = sealed(&home, &asking);
+    assert_eq!(out.going.len(), 1);
+    assert_eq!(out.remembering.len(), 1);
+    assert_eq!(out.told, [], "nothing to say of what does not travel");
+    assert!(every_reader_opens(&out)[0].held.get("cited").is_none());
+}
+
+#[test]
+fn a_family_chosen_twice_goes_once_under_one_identity() {
+    let (_tmp, mut home) = home();
+    let otro = home.wrote("---\nlang: es\n---\n\n# Otro\n", None);
+    let other = home.wrote("---\nlang: en\n---\n\n# Other\n", None);
+    home.joined(other, otro);
+    let doc = home.wrote("[[Otro]] y [[Other]]\n", None);
+    let mut asking = asked(doc);
+    asking.cited = vec![otro, other, otro];
+
+    let out = sealed(&home, &asking);
+    let reads = every_reader_opens(&out);
+    assert_eq!(reads.len(), 3);
+    assert_eq!(out.remembering.len(), 3);
+    let files: std::collections::BTreeSet<&String> =
+        out.remembering.iter().map(|(file, _)| file).collect();
+    assert_eq!(files.len(), 3);
+    assert_eq!(
+        reads[0].held["cited"].as_array().unwrap().len(),
+        1,
+        "both names lead to one"
+    );
+    let html = reads[0].held["html"].as_str().unwrap();
+    assert_eq!(html.matches("tisty:cited/0").count(), 2, "{html}");
+}
+
+#[test]
+fn what_is_drawn_and_also_laid_in_as_a_file_goes_both_ways() {
+    let (_tmp, mut home) = home();
+    let picture = a_picture(8, 8, 1);
+    let leaf = home.attached("foto.png", &picture);
+    let doc = home.wrote(&format!("![a]({leaf}) ![b]({leaf} \"file\")\n"), None);
+    let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
+    assert_eq!(read.pictures.len(), 1);
+    assert_eq!(read.files, vec![picture]);
+    let html = read.held["html"].as_str().unwrap();
+    assert!(
+        html.contains("tisty:picture/0") && html.contains("tisty:file/0"),
+        "{html}"
+    );
+    let body = read.held["body"].as_str().unwrap();
+    assert!(
+        body.contains("tisty:picture/0") && body.contains("tisty:file/0"),
+        "{body}"
+    );
+    assert_eq!(out.told, []);
+}
+
+#[test]
+fn a_link_to_a_picture_that_travels_leads_to_it_and_its_bytes_go_once() {
+    let (_tmp, mut home) = home();
+    let leaf = home.attached("foto.png", &a_picture(8, 8, 1));
+    let doc = home.wrote(&format!("![a]({leaf}) [b]({leaf})\n"), None);
+    let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
+    assert_eq!(read.pictures.len(), 1);
+    assert!(read.files.is_empty());
+    assert_eq!(
+        read.held["html"]
+            .as_str()
+            .unwrap()
+            .matches("tisty:picture/0")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn a_file_too_large_to_hold_goes_as_its_words_and_the_person_is_told() {
+    let (_tmp, mut home) = home();
+    let leaf = home.attached("pelicula.mp4", b"small for now");
+    let doc = home.wrote(&format!("[La pelicula]({leaf})\n"), None);
+    let at = home.paths.attachments().join(&leaf);
+    let file = std::fs::OpenOptions::new().write(true).open(at).unwrap();
+    file.set_len(64 * 1024 * 1024 + 1).unwrap();
+    let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
+    assert!(read.files.is_empty());
+    assert!(read.held["html"].as_str().unwrap().contains("La pelicula"));
+    assert!(matches!(&out.told[..], [Told::FileAsWords { .. }]));
+}
+
+#[test]
+fn an_address_on_a_picture_goes_as_a_link_and_is_told_as_one() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("![Escribeme](mailto:a@b.example)\n", None);
+    let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
+    assert!(
+        read.held["html"]
+            .as_str()
+            .unwrap()
+            .contains("href=\"mailto:a@b.example\"")
+    );
+    assert!(matches!(&out.told[..], [Told::PictureAsLink { .. }]));
+}
+
+#[test]
 fn a_language_that_is_locked_stays_here_and_the_person_is_told() {
     let (_tmp, mut home) = home();
     let es = home.wrote("---\nlang: es\n---\n\nx\n", None);
