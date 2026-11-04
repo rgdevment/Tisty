@@ -1,0 +1,169 @@
+contract: document
+group: documents
+checked_by: [writer, reader]
+says: >-
+  A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language,
+  and it can hold pages.
+contains: [text, table, code, diagram, formula, attachment, widget, page]
+fields:
+  id: { type: text, required: true, at_least: 1, at_most: 64, says: "What names it." }
+  title: { type: text, at_most: 8192, says: "Its properties' title, or else its first line with words." }
+  tags: { type: list, of: tag, at_most: 64 }
+  lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
+  sheet: { type: sheet, says: "How it is laid on paper." }
+  owner: { type: key, says: "The root key of whoever shares it." }
+  signed_as: { type: text, at_most: 80, says: "The name its writer chose, which only a reader with the key sees. Never a proof." }
+  made: { type: time }
+  wrote: { type: time }
+  by: { type: text, at_most: 160, says: "The name it was last written under." }
+  born_by: { type: text, at_most: 160 }
+  edited_by: { type: text, at_most: 160 }
+  body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
+  html: { type: text, required: true, says: "Its words as the writer drew them. A reader never draws them itself." }
+  pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
+  pictures: { type: list, of: attachment, says: "The pictures its main envelope holds." }
+  files: { type: list, of: attachment, says: "What its files envelope holds." }
+  files_hash: { type: hash, says: "The hash of its files envelope, when it has one." }
+  cited: { type: list, of: cited, says: "The documents it shares along, each in its own envelopes." }
+  properties: { type: list, of: property, at_most: 32, says: "Its properties as written, for the details." }
+  languages:
+    type: list
+    of: translation
+    says: "The same document in other languages. Each one is a document of its own."
+html_rules:
+  - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
+  - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with its document, which asks nobody else for one." }
+html_cases:
+  - says: "Words and what marks them."
+    html: '<h1 id="paseos" data-at="1">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
+    holds: true
+  - says: "Coloured code."
+    html: '<figure class="code"><figcaption>a</figcaption><pre><code class="language-rust"><span class="hljs-keyword">fn</span></code></pre></figure>'
+    holds: true
+  - says: "A drawn diagram."
+    html: '<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0"></path></svg></figure>'
+    holds: true
+  - says: "A picture that travels with its document."
+    html: '<img src="tisty:picture/0" alt="Rina" loading="lazy">'
+    holds: true
+  - says: "HTML written inside the words, as far as passthrough says."
+    html: '<abbr title="Hyper Text">HTML</abbr>'
+    holds: true
+  - says: "A diagram that did not get drawn."
+    html: '<figure class="diagram"><pre><code class="language-mermaid">graph</code></pre></figure>'
+    holds: false
+  - says: "A script."
+    html: "<script>alert(1)</script>"
+    holds: false
+  - says: "An attribute that runs something."
+    html: '<p onclick="x">a</p>'
+    holds: false
+  - says: "A picture asked of someone else."
+    html: '<img src="https://a.example/x.png">'
+    holds: false
+  - says: "The same one, under the other quote."
+    html: "<img src='https://a.example/x.png'>"
+    holds: false
+  - says: "What a diagram never holds."
+    html: "<svg><foreignObject></foreignObject></svg>"
+    holds: false
+  - says: "A class of its own."
+    html: '<p class="mine">a</p>'
+    holds: false
+  - says: "A link to one of its pages and to one of its files, ready."
+    html: '<a href="tisty:page/3">Enero</a> <a href="tisty:file/1">Cartilla</a>'
+    holds: true
+  - says: "A style where no contract says one."
+    html: '<div style="color:red">a</div>'
+    holds: false
+  - says: "A style a table can say."
+    html: '<table><colgroup><col style="width:120px"></colgroup><tr><td style="text-align:right">1</td></tr></table>'
+    holds: true
+  - says: "A style a table cannot say."
+    html: '<table><tr><td style="position:fixed">1</td></tr></table>'
+    holds: false
+  - says: "A size where a column does not take it."
+    html: '<table><colgroup><col style="width:-1px"></colgroup></table>'
+    holds: false
+  - says: "A style that asks someone else for something."
+    html: '<table><tr><td style="text-align:right;background:url(//a.example/x)">1</td></tr></table>'
+    holds: false
+  - says: "Links a document can hold."
+    html: '<a href="https://a.example/x?b=1&c=2">a</a> <a href="#enero">b</a> <a href="mailto:a@b.example">c</a> <a href="otro.html">d</a>'
+    holds: true
+  - says: "A link that runs something."
+    html: '<a href="javascript:alert(1)">a</a>'
+    holds: false
+  - says: "The same one, broken by a line."
+    html: "<a href=\"java\nscript:alert(1)\">a</a>"
+    holds: false
+  - says: "The same one, hidden behind an entity."
+    html: '<a href="javascript&#58;alert(1)">a</a>'
+    holds: false
+  - says: "A tag every object inherits, alone."
+    html: "<constructor>"
+    holds: false
+  - says: "A tag every object inherits, with an attribute."
+    html: '<constructor a="1">'
+    holds: false
+  - says: "A quote that never closes."
+    html: '<img src="tisty:picture/0><script>alert(1)</script>'
+    holds: false
+roles:
+  reader:
+    show: { takes: { document: document }, says: "Cleans the document and draws it, in its language." }
+    set_paper: { takes: { paper: paper } }
+    set_sheets: { takes: { on: bool } }
+    set_orientation: { takes: { orientation: orientation } }
+    index: { gives: "list:text", says: "The headings of the document, leading to each one." }
+    details: { gives: document, says: "Title, tags and properties." }
+    verdict: { gives: verdict, says: "Who signed it. Shown outside the document, where it cannot imitate it." }
+    go_to_page: { takes: { at: whole } }
+    set_language: { takes: { lang: language } }
+    open_in_tisty: { says: "Hands the document over to a Tisty." }
+    copy_link: { gives: text }
+  writer:
+    draw: { takes: { body: text }, gives: text, says: "Turns the words into the HTML of a document." }
+cases:
+  - says: "The least a document holds, with no pages at all."
+    value: { id: "k7Qm2xPa", html: "<p>x</p>", body: "# Paseos" }
+    holds: true
+  - says: "Every field it can say."
+    value:
+      id: "k7Qm2xPa"
+      title: "Paseos"
+      tags: [{ name: "rina" }]
+      lang: "pt-BR"
+      sheet: { paper: "letter", on: true, orientation: "landscape" }
+      owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      made: "2026-11-03T12:00:00Z"
+      wrote: "2026-11-03T12:30:00Z"
+      html: "<p>Paseos</p>"
+      body: "# Paseos"
+      pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero" }]
+      properties: [{ key: "fuente", values: ["la libreta"] }]
+    holds: true
+  - says: "No words."
+    value: { id: "k7Qm2xPa", html: "<p>x</p>" }
+    holds: false
+  - says: "Not drawn."
+    value: { id: "k7Qm2xPa", body: "# Paseos" }
+    holds: false
+  - says: "No id."
+    value: { html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A page of a page, which is one level too many."
+    value: { id: "x", html: "<p>x</p>", body: "x", pages: [{ id: "p1", page_of: "x", at: 1, html: "<p>x</p>", body: "y", pages: [{ id: "p2", page_of: "p1", at: 1, html: "<p>x</p>", body: "z" }] }] }
+    holds: false
+  - says: "A paper Tisty does not know."
+    value: { id: "x", html: "<p>x</p>", body: "x", sheet: { paper: "a3" } }
+    holds: false
+  - says: "A language that is no tag."
+    value: { id: "x", lang: "e s", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A date with a fraction of a second, which nobody signed."
+    value: { id: "x", made: "2026-11-03T12:00:00.5Z", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A key of the wrong length."
+    value: { id: "x", owner: "abc", html: "<p>x</p>", body: "x" }
+    holds: false

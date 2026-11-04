@@ -143,6 +143,9 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo test -p tisty-cli --bin tisty i18n
 
+      - name: The contracts hold in Rust too
+        run: cargo test --manifest-path contracts/dist/rust/Cargo.toml
+
       - name: Twenty turns of the suite
         shell: bash
         run: |
