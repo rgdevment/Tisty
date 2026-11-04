@@ -63,7 +63,6 @@ export interface Document {
   files?: Attachment[];
   files_hash?: string;
   cited?: Cited[];
-  properties?: Property[];
   languages?: Translation[];
 }
 
@@ -74,7 +73,7 @@ export interface DocumentReader {
   setOrientation(orientation: Orientation): void;
   index(): string[];
   details(): Document;
-  verdict(signature: Signature, served: Served): Verdict;
+  verdict(file: Uint8Array, served: Served): Promise<Verdict>;
   goToPage(at: number): void;
   setLanguage(lang: string): void;
   openInTisty(): void;
@@ -150,12 +149,6 @@ export interface FrontMatter {
   repeat?: string;
 }
 
-/** One property as it was written, including those Tisty does not know, which it keeps and shows. */
-export interface Property {
-  key: string;
-  values: string[];
-}
-
 /** A page is a document like any other, with one difference: it says which document it belongs to. There is one level and no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once. */
 export interface Page {
   id: string;
@@ -167,7 +160,6 @@ export interface Page {
   wrote?: string;
   body: string;
   html: string;
-  properties?: Property[];
   page_of: string;
   at: number;
 }
@@ -259,7 +251,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

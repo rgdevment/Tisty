@@ -108,6 +108,12 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, ".footnote", "margin")).toBe(blocks.note.margin);
     expect(said(page, ".refdef", "margin")).toBe(blocks.definition.margin);
     expect(said(page, ".front", "display")).toBe("none");
+    expect(said(page, "figure.code", "border-radius")).toBe(blocks.code_figure.radius);
+    expect(said(page, "details", "border-radius")).toBe(blocks.details.radius);
+    expect(said(page, "summary", "padding")).toBe(blocks.details.summary_padding);
+    expect(said(page, ".footnote", "gap")).toBe(blocks.note.gap);
+    expect(said(page, ".check", "left")).toBe(blocks.check.left);
+    expect(said(page, ".check", "top")).toBe(blocks.check.top);
   });
 
   it("its tables", () => {

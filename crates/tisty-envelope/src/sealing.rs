@@ -18,8 +18,6 @@ use tisty_contracts::{
 use tisty_share_proto::identity::{Certificate, ShareKey};
 use zeroize::Zeroizing;
 
-use crate::travelling::KEPT_TO_ITSELF;
-
 const MARK: &[u8; 4] = b"TENV";
 const TAG_BYTES: u64 = 16;
 const COMMITMENT: &[u8] = b"tisty-envelope-commit";
@@ -227,10 +225,6 @@ fn pictures_are_what_they_say(said: &[Picture], all: &[Vec<u8>]) -> Result<(), R
     Ok(())
 }
 
-fn is_a_path(name: &str) -> bool {
-    name.contains(['/', '\\'])
-}
-
 // Files kept from an earlier version travel in the envelope already sent, so here they are only named.
 fn files_are_what_they_say(
     document: &Document,
@@ -242,11 +236,6 @@ fn files_are_what_they_say(
         .iter()
         .enumerate()
         .all(|(number, file)| file.at == number as u64);
-    if said.iter().any(|file| is_a_path(&file.name)) {
-        return Err(Refused::DoesNotAdd(
-            "a file is named by the path it came from",
-        ));
-    }
     if kept {
         if said.is_empty() || !in_place {
             return Err(Refused::DoesNotAdd(
@@ -290,15 +279,6 @@ fn adds_up(document: &Document, sealing: &Sealing) -> Result<(), Refused> {
     if sealing.files_hash.is_some() && sealing.files_key != sealing.link_key {
         return Err(Refused::DoesNotAdd(
             "it keeps files sealed under another key",
-        ));
-    }
-    if document.properties.iter().flatten().any(|one| {
-        KEPT_TO_ITSELF
-            .iter()
-            .any(|kept| one.key.eq_ignore_ascii_case(kept))
-    }) {
-        return Err(Refused::DoesNotAdd(
-            "its properties say what stays on this machine",
         ));
     }
     if document.languages.is_some() && document.lang.is_none() {

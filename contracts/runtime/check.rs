@@ -69,7 +69,7 @@ fn unseen(one: char) -> bool {
                 | '\u{1160}'
                 | '\u{17B4}'..='\u{17B5}'
                 | '\u{180B}'..='\u{180F}'
-                | '\u{200B}'..='\u{200F}'
+                | '\u{200B}' | '\u{200E}' | '\u{200F}'
                 | '\u{2028}'..='\u{202E}'
                 | '\u{2060}'..='\u{206F}'
                 | '\u{2800}'
@@ -82,10 +82,25 @@ fn unseen(one: char) -> bool {
         )
 }
 
+// Many scripts write with a joiner, and it only hides a letter where no script needs one: between Latin, Greek or Cyrillic.
+fn needs_no_joiner(one: Option<&char>) -> bool {
+    one.is_none_or(|one| *one < '\u{0590}' || ('\u{1E00}'..='\u{1FFF}').contains(one))
+}
+
+fn is_line(said: &str) -> bool {
+    let points: Vec<char> = said.chars().collect();
+    let joined = |at: usize| !needs_no_joiner(at.checked_sub(1).and_then(|before| points.get(before))) && !needs_no_joiner(points.get(at + 1));
+    !points.iter().any(|one| unseen(*one)) && points.iter().enumerate().all(|(at, one)| !matches!(one, '\u{200C}' | '\u{200D}') || joined(at))
+}
+
+fn is_file_name(said: &str) -> bool {
+    is_line(said) && !said.contains(['/', '\\'])
+}
+
 fn is_name(said: &str) -> bool {
     let letters = said.chars().filter(|one| one.is_alphabetic()).count();
     let digits = said.chars().filter(char::is_ascii_digit).count();
-    said.trim() == said && said.chars().count() <= 80 && letters > 0 && digits <= letters && !said.chars().any(unseen)
+    said.trim() == said && said.chars().count() <= 80 && letters > 0 && digits <= letters && is_line(said)
 }
 
 const BASE64URL: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -136,16 +151,29 @@ fn is_language(said: &str) -> bool {
 }
 
 fn is_tag_word(said: &str) -> bool {
+    let apart: Vec<char> = said.nfd().collect();
+    // Accents come off the alphabets that have them, and elsewhere a mark is how the word is written.
+    let accented = apart.windows(2).any(|one| (one[0] <= '\u{052F}' || ('\u{1E00}'..='\u{1FFF}').contains(&one[0])) && is_combining_mark(one[1]));
     said == said.to_lowercase()
-        && said.nfd().filter(|one| !is_combining_mark(*one)).eq(said.chars())
+        && !accented
         && said
             .split('-')
-            .all(|part| !part.is_empty() && part.chars().all(char::is_alphanumeric))
+            .all(|part| !part.is_empty() && part.chars().all(|one| one.is_alphanumeric() || is_combining_mark(one)))
 }
 
 fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<String>) {
     let wrong = |said: &str| format!("{at} {said}");
     match kind {
+        "line" => {
+            if !value.as_str().is_some_and(is_line) {
+                out.push(wrong("is not one line a person can read as written"));
+            }
+        }
+        "file_name" => {
+            if !value.as_str().is_some_and(is_file_name) {
+                out.push(wrong("is not the name of a file"));
+            }
+        }
         "text" => {
             if !value.is_string() {
                 out.push(wrong("is not text"));
@@ -244,6 +272,10 @@ fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<
         let only_when = said["only_when"].as_str();
         if let Some(field) = only_when.filter(|field| given.get(*field) != Some(&Value::Bool(true))) {
             out.push(format!("{here} is only for what is {field}"));
+        }
+        // A word this version does not list wears its default, so a later one can add it.
+        if said.get("otherwise").is_some() && one.is_string() {
+            continue;
         }
         let least = said["at_least"].as_u64();
         let most = said["at_most"].as_u64();

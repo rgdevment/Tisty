@@ -11,6 +11,7 @@ values:
   layout: [mark, manifest length, manifest, signature length, signature, index, parts]
   mark: TENV
   lengths: "4 bytes, big endian"
+  written_as: "The manifest and the signature are JSON in UTF-8."
   index: "The SHA-256 of each part as it travels, 32 bytes each, in order."
   main_parts:
     first: "The document as JSON, without its body and its pages, so it can be drawn with the first bytes."
@@ -44,7 +45,7 @@ values:
     - "A document inside whose id is not the manifest's."
     - "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files."
     - "A main envelope whose parts are not first, rest and then pictures, and a files envelope with anything but files."
-    - "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts."
+    - "A manifest or a signature past their sizes, a part that gives another size or holds anything past its end, and anything that follows its parts."
     - "A files envelope whose manifest and index are not what its document's files_hash says."
     - "A manifest that says a head or a commitment while it is not sealed."
     - "A from that is not earlier than its version."
@@ -55,7 +56,7 @@ values:
   who_checks_what:
     server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
     reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader can leave aside: anything that reader would refuse, as a new tag or a new rule, takes a new major version."
+  versions: "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."

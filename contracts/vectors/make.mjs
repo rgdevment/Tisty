@@ -45,14 +45,14 @@ const revocation = async (by, of, at) => ({
 });
 const revoked = await revocation(root, machine, SINCE);
 
-const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [] }) => {
-  const told = parts.map(({ name, compressed, bytes, saying }) => {
-    const squeezed = compressed ? deflateRawSync(bytes, { level: 9 }) : bytes;
-    return { name, compressed, squeezed, open_size: saying ?? bytes.length, sealed_size: squeezed.length + (sealed ? 16 : 0) };
+const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [], more = {}, spelled = (one) => one, forged, signatureBytes }) => {
+  const told = parts.map(({ name, compressed, bytes, saying, junk = [], more }) => {
+    const squeezed = compressed ? Buffer.concat([deflateRawSync(bytes, { level: 9 }), Buffer.from(junk)]) : bytes;
+    return { name, compressed, squeezed, open_size: saying ?? bytes.length, sealed_size: squeezed.length + (sealed ? 16 : 0), more };
   });
   const opening = sealed ? { head: b64(head), commitment: b64(await hmac(head)) } : {};
   const manifest = words(
-    JSON.stringify({
+    spelled(JSON.stringify({
       contract,
       kind,
       id,
@@ -60,8 +60,9 @@ const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRAC
       ...(from === undefined ? {} : { from }),
       sealed,
       ...opening,
-      parts: told.map(({ name, compressed, sealed_size, open_size }) => ({ name, compressed, sealed_size, open_size })),
-    }),
+      parts: told.map(({ name, compressed, sealed_size, open_size, more }) => ({ name, compressed, sealed_size, open_size, ...more })),
+      ...more,
+    })),
   );
   const key = sealed ? await envelopeKey(head) : undefined;
   const travelling = [];
@@ -74,8 +75,9 @@ const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRAC
   }
   const index = Buffer.concat(travelling.map((one) => sha(one)));
   const about = words("envelope");
-  const signed = await sign(machine, words("tisty-share.signed.v1\0"), root.public, machine.public, be8(about.length), about, sha(manifest), index);
-  const signature = words(JSON.stringify({ root: b64(root.public), machine: b64(machine.public), since: SINCE, certificate: b64(certificate), signed: b64(signed) }));
+  const signed = await sign(machine, words("tisty-share.signed.v1\0"), root.public, machine.public, be8(about.length), about, sha(manifest), forged === "signed" ? words("otro") : index);
+  const vouched = forged === "certificate" ? await sign(root, words("otro")) : certificate;
+  const signature = signatureBytes ?? words(JSON.stringify({ root: b64(root.public), machine: b64(machine.public), since: SINCE, certificate: b64(vouched), signed: b64(signed) }));
   const bytes = Buffer.concat([words("TENV"), u32(manifest.length), manifest, u32(signature.length), signature, index, ...travelling, ...after]);
   return { bytes, hash: b64(sha(manifest, index)) };
 };
@@ -177,6 +179,10 @@ const CASES = [
   ["a newer major version", { parts: asWords(fair, fairRest), contract: "99.0.0" }],
   ["an older major version", { parts: asWords(fair, fairRest), contract: "0.9.0" }],
   ["a version that is none", { parts: asWords(fair, fairRest), contract: "paseos" }],
+  ["a signature that does not hold", { parts: asWords(fair, fairRest), forged: "signed" }],
+  ["a certificate that does not hold", { parts: asWords(fair, fairRest), forged: "certificate" }],
+  ["a signature that cannot be read", { parts: asWords(fair, fairRest), signatureBytes: words("no es una firma") }],
+  ["a part with something past its end", { parts: [{ ...asWords(fair, fairRest)[0], junk: [1, 2, 3] }, asWords(fair, fairRest)[1]] }],
   ["a draft of this version", { parts: asWords(fair, fairRest), contract: "1.0.0-draft.8" }],
   ["two pages out of their order", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 2 }, { ...page, id: "p2" }] }) }],
   ["two pages with one id", { parts: asWords(fair, { ...fairRest, pages: [page, { ...page, at: 2 }] }) }],
@@ -201,7 +207,28 @@ for (const [says, { parts, ...over }] of CASES) {
   refused.push({ says, envelope: bytes.toString("hex") });
 }
 
-const aLaterMinor = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, parts: asWords(fair, fairRest), contract: "1.9.0" });
+// What a reader opens all the same: a later minor only adds what it can leave aside, and a number is a number however it is written.
+const OPENING = [
+  ["a later minor version", { parts: asWords(fair, fairRest), contract: "1.9.0" }],
+  [
+    "fields it does not know, wherever they are",
+    {
+      contract: "1.9.0",
+      more: { novel: "x" },
+      parts: [
+        { ...asWords({ ...fair, novel: "x", sheet: { paper: "a5", orientation: "diagonal", novel: 1 } }, fairRest)[0], more: { novel: 1 } },
+        asWords(fair, { ...fairRest, pages: [{ ...page, novel: "x" }] })[1],
+      ],
+    },
+  ],
+  ["numbers written with a point", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 1 }] }), spelled: (one) => one.replace(/"(open_size|sealed_size|version)":(\d+)/g, '"$1":$2.0') }],
+];
+const opening = [];
+for (const [says, { parts, ...over }] of OPENING) {
+  const { bytes } = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, parts, ...over });
+  opening.push({ says, envelope: bytes.toString("hex") });
+}
+const aNewerMajor = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, contract: "2.0.0", parts: [{ name: "fonts", compressed: false, bytes: words("x") }] });
 
 // A main envelope that answers for another files envelope than the one it is handed.
 const otherFiles = await seal({ kind: "files", id: "k7Qm2xPa", version: 1, sealed: true, head: HEADS.other, parts: [{ name: "file", compressed: false, bytes: words("otro") }] });
@@ -255,7 +282,8 @@ const said = {
   identity: { root: b64(root.public), fingerprint: fingerprintOf(root.public) },
   references: { html: `<a HREF='tisty:page/1'>a</a><img alt=a src=tisty:picture/0 width=1 height=1><q cite=" tisty:file/2 ">b</q><a title/href="tisty:cited/3">c</a><a href="https://a.example/tisty:page/9">tisty:page/8</a>`, said: [{ kind: "page", at: 1 }, { kind: "picture", at: 0 }, { kind: "file", at: 2 }, { kind: "cited", at: 3 }] },
   refused,
-  a_later_minor: aLaterMinor.bytes.toString("hex"),
+  opening,
+  a_newer_major: aNewerMajor.bytes.toString("hex"),
   signed_by: { root: b64(root.public), machine: b64(machine.public) },
   verdicts,
   files_refused: [

@@ -12,9 +12,17 @@
       "values": {
         "pens": [
           "yellow",
+          "red",
+          "orange",
+          "amber",
           "green",
+          "teal",
           "blue",
-          "pink"
+          "indigo",
+          "purple",
+          "pink",
+          "brown",
+          "gray"
         ],
         "callouts": [
           "note",
@@ -36,6 +44,7 @@
           "brown",
           "gray"
         ],
+        "unknown_values": "A pen or a hue it does not know wears the default, and a reader never builds a style or an address from the value.",
         "url_schemes": [
           "http",
           "https",
@@ -237,38 +246,6 @@
           ]
         }
       },
-      "html_rules": [
-        {
-          "tag": "mark",
-          "attribute": "data-pen",
-          "only": [
-            "yellow",
-            "green",
-            "blue",
-            "pink"
-          ],
-          "says": "A pen is one of those it says."
-        },
-        {
-          "tag": "span",
-          "attribute": "data-hue",
-          "only": [
-            "",
-            "red",
-            "orange",
-            "amber",
-            "green",
-            "teal",
-            "blue",
-            "indigo",
-            "purple",
-            "pink",
-            "brown",
-            "gray"
-          ],
-          "says": "A hue is one of those it says."
-        }
-      ],
       "draws": [
         {
           "tag": "h1",
@@ -1339,12 +1316,13 @@
           "says": "Its place among those it travels with, from 0."
         },
         "name": {
-          "type": "text",
+          "type": "file_name",
           "required": true,
-          "at_least": 1
+          "at_least": 1,
+          "says": "One line, with no path."
         },
         "kind": {
-          "type": "text"
+          "type": "line"
         },
         "size": {
           "type": "whole",
@@ -1398,9 +1376,10 @@
           "says": "Its place among those it travels with, from 0."
         },
         "name": {
-          "type": "text",
+          "type": "file_name",
           "required": true,
-          "at_least": 1
+          "at_least": 1,
+          "says": "One line, with no path."
         },
         "kind": {
           "type": "picture_kind",
@@ -1567,7 +1546,8 @@
         "by",
         "born_by",
         "edited_by",
-        "owner"
+        "owner",
+        "properties"
       ],
       "says": "A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages.",
       "contains": [
@@ -1595,9 +1575,9 @@
           "says": "What names it, and what goes in its link. It says nothing of the machine it came from."
         },
         "title": {
-          "type": "text",
+          "type": "line",
           "at_most": 8192,
-          "says": "Its properties' title, or else its first line with words."
+          "says": "Its properties' title, or else its first line with words. A reader shows it in its own frame, so it is one line with nothing unseen."
         },
         "tags": {
           "type": "list",
@@ -1657,12 +1637,6 @@
           "of": "cited",
           "says": "The documents it shares along, each in its own envelopes."
         },
-        "properties": {
-          "type": "list",
-          "of": "property",
-          "at_most": 32,
-          "says": "Its properties as written, for the details."
-        },
         "languages": {
           "type": "list",
           "of": "translation",
@@ -1718,14 +1692,14 @@
           "holds": false
         },
         {
-          "says": "A pen it does not have.",
+          "says": "A pen it does not know, which wears the default.",
           "html": "<mark data-pen=\"javascript\">a</mark>",
-          "holds": false
+          "holds": true
         },
         {
-          "says": "A hue it does not have.",
+          "says": "A hue it does not know, which wears the default.",
           "html": "<span class=\"ico\" data-ico=\"dog\" data-hue=\"url\"></span>",
-          "holds": false
+          "holds": true
         },
         {
           "says": "A drawing for a theme that does not exist.",
@@ -2029,7 +2003,7 @@
             "takes": {
               "document": "document"
             },
-            "says": "Cleans the document and draws it, in its language."
+            "says": "Cleans the document and draws it, in its language. A cleaner keeps its tisty: references and its ids, and looks for an id or a # only inside the document, never in the reader's own page."
           },
           "set_paper": {
             "takes": {
@@ -2052,14 +2026,15 @@
           },
           "details": {
             "gives": "document",
-            "says": "Title, tags and properties."
+            "says": "Title and tags, and the properties from the block its HTML holds."
           },
           "verdict": {
             "takes": {
-              "signature": "signature",
+              "file": "bytes",
               "served": "served"
             },
             "gives": "verdict",
+            "fails": true,
             "says": "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it."
           },
           "go_to_page": {
@@ -2081,6 +2056,88 @@
         }
       },
       "cases": [
+        {
+          "says": "A title that turns the text around beside the reader's frame.",
+          "value": {
+            "id": "x",
+            "title": "Firmado ‮exe.fdp",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A title of two lines, which could write a verdict of its own.",
+          "value": {
+            "id": "x",
+            "title": "Paseos\n\nVeredicto: holds",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A name joined as Persian writes it.",
+          "value": {
+            "id": "x",
+            "signed_as": "علی‌رضا",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": true
+        },
+        {
+          "says": "A name joined as Latin never needs, hiding a letter.",
+          "value": {
+            "id": "x",
+            "signed_as": "Ma‍rio",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "Tags in the alphabets where a mark is how a word is written.",
+          "value": {
+            "id": "x",
+            "tags": [
+              "हिन्दी",
+              "한글",
+              "தமிழ்"
+            ],
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": true
+        },
+        {
+          "says": "A tag that keeps its accent.",
+          "value": {
+            "id": "x",
+            "tags": [
+              "camión"
+            ],
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
+        {
+          "says": "A file named by the path it came from.",
+          "value": {
+            "id": "x",
+            "files": [
+              {
+                "at": 0,
+                "name": "..\\x.exe"
+              }
+            ],
+            "files_hash": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "html": "<p>x</p>",
+            "body": "x"
+          },
+          "holds": false
+        },
         {
           "says": "The least a document holds, with no pages at all.",
           "value": {
@@ -2125,14 +2182,6 @@
                 "at": 1,
                 "html": "<p>x</p>",
                 "body": "# Enero"
-              }
-            ],
-            "properties": [
-              {
-                "key": "fuente",
-                "values": [
-                  "la libreta"
-                ]
               }
             ]
           },
@@ -2190,7 +2239,7 @@
           "holds": false
         },
         {
-          "says": "A paper Tisty does not know.",
+          "says": "A paper Tisty does not know, which is read as A4.",
           "value": {
             "id": "x",
             "html": "<p>x</p>",
@@ -2199,7 +2248,7 @@
               "paper": "a3"
             }
           },
-          "holds": false
+          "holds": true
         },
         {
           "says": "A language that is no tag.",
@@ -2354,6 +2403,7 @@
         ],
         "mark": "TENV",
         "lengths": "4 bytes, big endian",
+        "written_as": "The manifest and the signature are JSON in UTF-8.",
         "index": "The SHA-256 of each part as it travels, 32 bytes each, in order.",
         "main_parts": {
           "first": "The document as JSON, without its body and its pages, so it can be drawn with the first bytes.",
@@ -2390,7 +2440,7 @@
           "A document inside whose id is not the manifest's.",
           "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files.",
           "A main envelope whose parts are not first, rest and then pictures, and a files envelope with anything but files.",
-          "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts.",
+          "A manifest or a signature past their sizes, a part that gives another size or holds anything past its end, and anything that follows its parts.",
           "A files envelope whose manifest and index are not what its document's files_hash says.",
           "A manifest that says a head or a commitment while it is not sealed.",
           "A from that is not earlier than its version.",
@@ -2403,7 +2453,7 @@
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version.",
           "reader": "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
         },
-        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader can leave aside: anything that reader would refuse, as a new tag or a new rule, takes a new major version.",
+        "versions": "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version.",
         "sizes_at_most": {
           "manifest_bytes": 16384,
           "signature_bytes": 2048
@@ -3047,38 +3097,6 @@
         }
       ]
     },
-    "property": {
-      "contract": "property",
-      "group": "documents",
-      "checked_by": [
-        "reader"
-      ],
-      "says": "One property as it was written, including those Tisty does not know, which it keeps and shows.",
-      "fields": {
-        "key": {
-          "type": "text",
-          "required": true,
-          "at_least": 1
-        },
-        "values": {
-          "type": "list",
-          "of": "text",
-          "required": true
-        }
-      },
-      "cases": [
-        {
-          "says": "A property of the person's own.",
-          "value": {
-            "key": "fuente",
-            "values": [
-              "la libreta de la veterinaria"
-            ]
-          },
-          "holds": true
-        }
-      ]
-    },
     "page": {
       "contract": "page",
       "group": "documents",
@@ -3099,7 +3117,8 @@
         "by",
         "born_by",
         "edited_by",
-        "owner"
+        "owner",
+        "properties"
       ],
       "fields": {
         "id": {
@@ -3109,9 +3128,9 @@
           "says": "What names it, and what goes in its link. It says nothing of the machine it came from."
         },
         "title": {
-          "type": "text",
+          "type": "line",
           "at_most": 8192,
-          "says": "Its properties' title, or else its first line with words."
+          "says": "Its properties' title, or else its first line with words. A reader shows it in its own frame, so it is one line with nothing unseen."
         },
         "tags": {
           "type": "list",
@@ -3142,12 +3161,6 @@
           "type": "text",
           "required": true,
           "says": "Its words as the writer drew them. A reader never draws them itself."
-        },
-        "properties": {
-          "type": "list",
-          "of": "property",
-          "at_most": 32,
-          "says": "Its properties as written, for the details."
         },
         "page_of": {
           "type": "id",
@@ -3250,7 +3263,7 @@
           "at_most": 64
         },
         "title": {
-          "type": "text",
+          "type": "line",
           "at_most": 8192
         },
         "key": {
@@ -3614,7 +3627,7 @@
           "says": "The link key of its envelopes, when it has one. What is public never holds a key, so it cites only what is public."
         },
         "title": {
-          "type": "text",
+          "type": "line",
           "at_most": 8192,
           "says": "What its card shows before it is opened."
         }
@@ -3666,7 +3679,8 @@
       "fields": {
         "paper": {
           "type": "paper",
-          "says": "Its size. A4 when it says none."
+          "otherwise": "a4",
+          "says": "Its size. A4 when it says none, or one this reader does not know."
         },
         "on": {
           "type": "bool",
@@ -3674,7 +3688,8 @@
         },
         "orientation": {
           "type": "orientation",
-          "says": "Only while in sheets."
+          "otherwise": "portrait",
+          "says": "Only while in sheets. Portrait when it says none, or one this reader does not know."
         }
       },
       "values": {
@@ -3715,11 +3730,11 @@
           "landscape": "It swaps the paper's width and height.",
           "written_width": "The sheet's width less both side margins.",
           "room": "The sheet's height less the top and bottom margins, less one pixel.",
-          "blocks": "A block that does not fit moves whole to the next sheet. The first block of a sheet stays, even if it does not fit.",
+          "blocks": "A block that does not fit moves whole to the next sheet. The first block of a sheet stays, even if it does not fit. What is hidden, as the properties, is no block.",
           "headings": "A heading never stays alone at the foot: the headings right above it move with the block that follows.",
           "page_break": "An hr among the blocks always starts a new sheet.",
           "print": "Printing uses the same paper, orientation and margins.",
-          "measure": "A block ends at its own lower edge. Its margin below does not count, and its margin above does, as the browser lays them."
+          "measure": "A block ends at its own lower edge, and its margin below does not count. Its margin above counts, as the browser lays them, except on the first block after a cut, where it collapses into the band between two sheets."
         }
       },
       "cases": [
@@ -3733,18 +3748,25 @@
           "holds": true
         },
         {
+          "says": "A paper that is no word.",
+          "value": {
+            "paper": 3
+          },
+          "holds": false
+        },
+        {
           "says": "A paper Tisty does not know.",
           "value": {
             "paper": "a3"
           },
-          "holds": false
+          "holds": true
         },
         {
           "says": "An orientation Tisty does not know.",
           "value": {
             "orientation": "diagonal"
           },
-          "holds": false
+          "holds": true
         }
       ]
     },
@@ -3755,7 +3777,7 @@
         "writer",
         "reader"
       ],
-      "says": "How a sheet looks. The sheet looks the same everywhere; the frame around it belongs to whoever shows it.",
+      "says": "How a sheet looks, by the same rules everywhere, over the fonts of each system, so two readers can still cut a sheet in another place. The frame around it belongs to whoever shows it.",
       "values": {
         "colors": {
           "light": {
@@ -3862,12 +3884,16 @@
         },
         "code": {
           "size": "0.88em",
-          "line_height": 1.55
+          "line_height": 1.55,
+          "in_a_block": "Code inside a pre keeps the size of the pre, and has no padding or background of its own."
         },
         "table": {
           "size": "0.92em",
           "margin": "14px 0",
           "cell_padding": "6px 10px",
+          "width": "100%",
+          "borders": "Separate, with no space between: the table has its top and left, and each cell its right and bottom.",
+          "row_height": "1lh + 13px, so an empty row still stands",
           "cell_align": "left top",
           "border": "1px solid line",
           "head": {
@@ -3923,15 +3949,46 @@
             "size": "0.88em",
             "line_height": 1.55
           },
+          "code_figure": {
+            "border": "1px solid hair",
+            "radius": "10px",
+            "background": "hover",
+            "says": "A figure of code. Its pre has no margin of its own."
+          },
           "details": {
-            "margin": "14px 0"
+            "margin": "14px 0",
+            "border": "1px solid hair",
+            "radius": "10px",
+            "summary_padding": "9px 14px"
           },
           "picture": {
             "margin": "16px auto",
             "padding": "8px",
             "max_height": "28rem",
             "border": "1px solid hair",
-            "radius": "12px"
+            "radius": "12px",
+            "box_sizing": "border-box"
+          },
+          "title": {
+            "size": "1.65em",
+            "weight": 640,
+            "line_height": 1.25,
+            "margin": "0 0 22px",
+            "padding_bottom": "14px",
+            "border_bottom": "1px solid hair",
+            "says": "The first heading or paragraph of a document with a title, past its properties. Alone on the sheet, it has no margin below, padding or border."
+          },
+          "task": {
+            "marker": "none",
+            "says": "An li of class task. Done, it is soft and struck through."
+          },
+          "check": {
+            "left": "-23px",
+            "top": "0.32em",
+            "size": "15px",
+            "border": "1.5px solid faint",
+            "radius": "5px",
+            "says": "The empty span of a task, drawn by the reader. With data-done true it fills with accent and shows a tick."
           },
           "rule": {
             "margin": "16px 0",
@@ -3948,7 +4005,12 @@
           },
           "note": {
             "margin": "6px 0",
-            "size": "0.9em"
+            "size": "0.9em",
+            "gap": "8px",
+            "color": "soft",
+            "label_width": "1.2em",
+            "label_weight": 600,
+            "says": "A footnote: its label, then its words beside it."
           },
           "definition": {
             "margin": "2px 0",
@@ -3968,6 +4030,14 @@
             "important": "indigo",
             "warning": "amber",
             "caution": "red"
+          },
+          "label": {
+            "size": "11.5px",
+            "weight": 600,
+            "spacing": "0.04em",
+            "capitals": true,
+            "margin_bottom": "2px",
+            "says": "The word of its kind, which the reader writes above its words in the reader's own language, in its hue."
           }
         },
         "pens": {
@@ -3978,7 +4048,8 @@
             "pink": "pen-pink"
           },
           "otherwise": "A pen named by a hue is that hue over the sheet at 28 percent.",
-          "default": "yellow"
+          "default": "yellow",
+          "unknown": "A pen it does not know wears the default."
         },
         "code_colors": {
           "comment": {
@@ -4056,7 +4127,7 @@
         "icon": {
           "size": "1.05em",
           "color": "soft",
-          "hue": "A span that says data-hue wears that hue."
+          "hue": "A span that says data-hue wears that hue, and one it does not know wears soft."
         },
         "diagram": "Each svg is at most its width and at most the width of the sheet, centred, and only the one of the reader's theme shows.",
         "variables": "In CSS each color is var(--tisty-<name>)."
@@ -6102,36 +6173,6 @@
     }
   ],
   "html_rules": [
-    {
-      "tag": "mark",
-      "attribute": "data-pen",
-      "only": [
-        "yellow",
-        "green",
-        "blue",
-        "pink"
-      ],
-      "says": "A pen is one of those it says."
-    },
-    {
-      "tag": "span",
-      "attribute": "data-hue",
-      "only": [
-        "",
-        "red",
-        "orange",
-        "amber",
-        "green",
-        "teal",
-        "blue",
-        "indigo",
-        "purple",
-        "pink",
-        "brown",
-        "gray"
-      ],
-      "says": "A hue is one of those it says."
-    },
     {
       "tag": "svg",
       "attribute": "data-theme",

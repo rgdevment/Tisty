@@ -317,7 +317,7 @@ fn a_writer_does_not_get_to_say_what_does_not_add_up() {
             vec![]
         };
         let wrong = writer.sealed(document(one.clone()), vec![], files, &at);
-        assert!(matches!(wrong, Err(Refused::DoesNotAdd(_))), "{one}");
+        assert!(wrong.is_err(), "{one}");
     }
     let mut late = sealing("x", Some(key_text(1)));
     late.from = Some(1);
@@ -601,23 +601,6 @@ fn a_picture_travels_once_and_says_nothing_of_where_it_came_from() {
     assert!(
         writer
             .sealed(twice, vec![png(), png()], vec![], &sealing("x", None))
-            .is_err()
-    );
-}
-
-#[test]
-fn its_properties_do_not_say_what_stays_on_this_machine() {
-    let (key, certificate) = signer();
-    let mut writer = Writer::new(&key, &certificate);
-    let said = document(json!({
-        "id": "x",
-        "properties": [{ "key": "Task", "values": ["01M6"] }],
-        "html": "<p>a</p>",
-        "body": "a",
-    }));
-    assert!(
-        writer
-            .sealed(said, vec![], vec![], &sealing("x", None))
             .is_err()
     );
 }

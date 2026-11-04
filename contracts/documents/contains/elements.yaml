@@ -3,9 +3,10 @@ group: documents
 checked_by: [writer, reader]
 says: Words and what marks them. HTML written inside the words is taken only as far as passthrough says.
 values:
-  pens: [yellow, green, blue, pink]
+  pens: [yellow, red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
   callouts: [note, tip, important, warning, caution]
   hues: [red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
+  unknown_values: "A pen or a hue it does not know wears the default, and a reader never builds a style or an address from the value."
   url_schemes: [http, https, mailto, tisty]
   url_attributes: [href, src, cite]
   references:
@@ -45,9 +46,6 @@ values:
     th: [align, char, charoff, colspan, headers, rowspan, scope]
     thead: [align, char, charoff]
     tr: [align, char, charoff]
-html_rules:
-  - { tag: mark, attribute: data-pen, only: [yellow, green, blue, pink], says: "A pen is one of those it says." }
-  - { tag: span, attribute: data-hue, only: ["", red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray], says: "A hue is one of those it says." }
 draws:
   - { tag: h1, attributes: [id] }
   - { tag: h2, attributes: [id] }
@@ -219,8 +217,8 @@ says: >-
   files envelope, shows as a card and is asked for the first time it is opened.
 fields:
   at: { type: whole, required: true, says: "Its place among those it travels with, from 0." }
-  name: { type: text, required: true, at_least: 1 }
-  kind: { type: text }
+  name: { type: file_name, required: true, at_least: 1, says: "One line, with no path." }
+  kind: { type: line }
   size: { type: whole, says: "Its bytes." }
 values:
   file_source: "tisty:file/N, its at among the files"

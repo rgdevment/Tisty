@@ -23,12 +23,23 @@ const isTime = (said) => {
 // A moment nothing signs may hold a fraction of a second, as the log keeps them.
 const isMoment = (said) => isTime(said.replace(/\.\d{1,9}Z$/, "Z"));
 
-const UNSEEN = /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u2028-\u202E\u2060-\u206F\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB\u{1D173}-\u{1D17A}\u{E0000}-\u{E007F}\p{Cc}]/u;
+const UNSEEN = /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B\u200E\u200F\u2028-\u202E\u2060-\u206F\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB\u{1D173}-\u{1D17A}\u{E0000}-\u{E007F}\p{Cc}]/u;
+
+// Many scripts write with a joiner, and it only hides a letter where no script needs one: between Latin, Greek or Cyrillic.
+const needsNoJoiner = (one) => one === undefined || one < 0x0590 || (one >= 0x1e00 && one <= 0x1fff);
+
+const isLine = (said) => {
+  const points = [...said].map((one) => one.codePointAt(0));
+  const joined = (one, at) => (one !== 0x200c && one !== 0x200d) || (!needsNoJoiner(points[at - 1]) && !needsNoJoiner(points[at + 1]));
+  return !UNSEEN.test(said) && points.every(joined);
+};
+
+const isFileName = (said) => isLine(said) && !/[/\\]/.test(said);
 
 const isName = (said) => {
   const letters = said.match(/\p{Alphabetic}/gu)?.length ?? 0;
   const digits = said.match(/[0-9]/g)?.length ?? 0;
-  return said.trim() === said && [...said].length <= 80 && letters > 0 && digits <= letters && !UNSEEN.test(said);
+  return said.trim() === said && [...said].length <= 80 && letters > 0 && digits <= letters && isLine(said);
 };
 
 const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -45,10 +56,11 @@ const lengthOf = (said) => [...said].length;
 
 const isLanguage = (said) => /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/.test(said);
 
+// Accents come off the alphabets that have them, and elsewhere a mark is how the word is written.
 const isTagWord = (said) =>
   said === said.toLowerCase() &&
-  said === said.normalize("NFD").replace(/\p{M}/gu, "") &&
-  /^[\p{Alphabetic}\p{N}]+(-[\p{Alphabetic}\p{N}]+)*$/u.test(said);
+  !/[\u0000-\u052F\u1E00-\u1FFF]\p{M}/u.test(said.normalize("NFD")) &&
+  /^[\p{Alphabetic}\p{M}\p{N}]+(-[\p{Alphabetic}\p{M}\p{N}]+)*$/u.test(said);
 
 const checkType = (type, value, at, out) => {
   if (type === "text") {
@@ -65,6 +77,10 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "string" || !isMoment(value)) out.push(at + " is not a date");
   } else if (type === "name") {
     if (typeof value !== "string" || !isName(value)) out.push(at + " is not a name a person can read as written");
+  } else if (type === "line") {
+    if (typeof value !== "string" || !isLine(value)) out.push(at + " is not one line a person can read as written");
+  } else if (type === "file_name") {
+    if (typeof value !== "string" || !isFileName(value)) out.push(at + " is not the name of a file");
   } else if (type === "language") {
     if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
   } else if (type === "tag_word") {
@@ -98,6 +114,8 @@ function checkFields(name, value, at, out) {
       continue;
     }
     if (said.only_when && value[said.only_when] !== true) out.push(here + " is only for what is " + said.only_when);
+    // A word this version does not list wears its default, so a later one can add it.
+    if (said.otherwise !== undefined && typeof given === "string") continue;
     if (said.type === "list") {
       if (!Array.isArray(given)) {
         out.push(here + " is not a list");

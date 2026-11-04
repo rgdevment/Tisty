@@ -5,7 +5,7 @@ use std::ops::Range;
 use crate::tags::{Tag, escaped, unescaped, walk};
 
 // Tisty's own: a task's id, what finds a language again, and how the person plans their work say nothing to whoever reads.
-pub(crate) const KEPT_TO_ITSELF: [&str; 8] = [
+const KEPT_TO_ITSELF: [&str; 8] = [
     "task",
     "translationKey",
     "scheduled",
@@ -274,6 +274,10 @@ impl Ready<'_> {
             "img" => self.picture(tag),
             "a" => self.link(tag),
             "span" if self.reference(tag) => {}
+            // A language that is no word colours nothing, and its class would refuse the whole document.
+            "code" if tag.said("class").is_some_and(|one| one.contains('&')) => {
+                written_back(tag, &["data-at", "class"], &mut self.out);
+            }
             "area"
                 if !tag
                     .said("href")

@@ -43,6 +43,11 @@ fn verified(key: &[u8], signature: &[u8], said: &[u8]) -> Result<(), String> {
     key.verify_strict(said, &signature).map_err(|_| "the signature does not hold".to_owned())
 }
 
+// What JavaScript can tell of a number: an integer, however it was written.
+fn whole(said: &Value) -> Option<u64> {
+    said.as_u64().or_else(|| said.as_f64().filter(|one| one.fract() == 0.0).map(|one| one as u64))
+}
+
 fn seconds(said: &str) -> i64 {
     let number = |at: std::ops::Range<usize>| said[at].parse::<i64>().unwrap();
     let (year, month, day) = (number(0..4), number(5..7), number(8..10));
@@ -82,16 +87,17 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     }
     let manifest_bytes = piece(size)?;
     let manifest: Value = serde_json::from_slice(manifest_bytes).map_err(|_| "its manifest")?;
+    // Before anything else: a newer version may say what this one would call damaged.
+    if !manifest["contract"].as_str().is_some_and(opens_here) {
+        return Err("written under a version this reader does not open".into());
+    }
     if !check("envelope", &manifest).is_empty() {
         return Err("its manifest".into());
     }
     if manifest["id"] != asked.0 || manifest["kind"] != asked.1 {
         return Err("not what it asked for".into());
     }
-    if !opens_here(manifest["contract"].as_str().unwrap()) {
-        return Err("written under a version this reader does not open".into());
-    }
-    if manifest["from"].as_u64().is_some_and(|from| from >= manifest["version"].as_u64().unwrap()) {
+    if whole(&manifest["from"]).is_some_and(|from| Some(from) >= whole(&manifest["version"])) {
         return Err("it starts from a version that is not earlier".into());
     }
     let squeezes = |part: &Value| part["compressed"] != true || part["name"] == "first" || part["name"] == "rest";
@@ -160,7 +166,7 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
 
     let mut out = Vec::new();
     for (number, part) in parts.iter().enumerate() {
-        let travelled = piece(part["sealed_size"].as_u64().unwrap() as usize)?;
+        let travelled = piece(whole(&part["sealed_size"]).unwrap() as usize)?;
         if Sha256::digest(travelled).as_slice() != &index[32 * number..32 * number + 32] {
             return Err("its hash".into());
         }
@@ -173,16 +179,17 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
             }
             None => travelled.to_vec(),
         };
-        let open_size = part["open_size"].as_u64().unwrap();
+        let open_size = whole(&part["open_size"]).unwrap();
         let held = if part["compressed"] == true {
             if open_size > OPENS_AT_MOST {
                 return Err("it says more than this reader holds".into());
             }
             let mut inflated = Vec::new();
-            DeflateDecoder::new(held.as_slice())
-                .take(open_size + 1)
-                .read_to_end(&mut inflated)
-                .map_err(|_| "it does not inflate")?;
+            let mut decoder = DeflateDecoder::new(held.as_slice());
+            (&mut decoder).take(open_size + 1).read_to_end(&mut inflated).map_err(|_| "it does not inflate")?;
+            if decoder.total_in() != held.len() as u64 {
+                return Err("something follows what it squeezed".into());
+            }
             inflated
         } else {
             held
@@ -199,7 +206,7 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
 }
 
 fn ats_of(list: &Value) -> Vec<u64> {
-    list.as_array().into_iter().flatten().filter_map(|one| one["at"].as_u64()).collect()
+    list.as_array().into_iter().flatten().filter_map(|one| whole(&one["at"])).collect()
 }
 
 fn references_hold(html: &str, held: &Value) -> Result<(), String> {
@@ -219,7 +226,7 @@ fn references_hold(html: &str, held: &Value) -> Result<(), String> {
     }
     for (at, width, height) in pictures_in(html) {
         let picture = &held["pictures"][at as usize];
-        let says = |name: &str, value: &str| picture[name].as_u64().is_some_and(|number| format!("{number}") == value);
+        let says = |name: &str, value: &str| whole(&picture[name]).is_some_and(|number| format!("{number}") == value);
         if !says("width", &width) || !says("height", &height) {
             return Err("a picture drawn at another size than its own".into());
         }
@@ -254,7 +261,7 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
         return Err("another number of pictures than it says".into());
     }
     for (at, one) in pictures.iter().enumerate() {
-        if one["at"] != at as u64 || one["size"] != main.parts[at + 2].len() as u64 {
+        if whole(&one["at"]) != Some(at as u64) || whole(&one["size"]) != Some(main.parts[at + 2].len() as u64) {
             return Err("a picture is not what it says".into());
         }
     }
@@ -262,7 +269,7 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     let mut ids = std::collections::BTreeSet::new();
     let mut last = 0;
     for page in pages {
-        let at = page["at"].as_u64().unwrap_or_default();
+        let at = whole(&page["at"]).unwrap_or_default();
         if page["page_of"] != held["id"] || at <= last || !ids.insert(page["id"].as_str()) {
             return Err("a page is not in its place in this document".into());
         }
@@ -296,7 +303,7 @@ pub fn files_for(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Opti
         return Err("another number of files than it says".into());
     }
     for (at, one) in said.iter().enumerate() {
-        if one["at"] != at as u64 || one["size"].as_u64().is_some_and(|size| size != files.parts[at].len() as u64) {
+        if whole(&one["at"]) != Some(at as u64) || whole(&one["size"]).is_some_and(|size| size != files.parts[at].len() as u64) {
             return Err("a file is not what it says".into());
         }
     }
@@ -477,9 +484,19 @@ fn a_reader_weighs_a_signature_by_what_the_server_serves() {
 }
 
 #[test]
-fn a_later_minor_version_opens_since_it_only_adds_what_can_be_left_aside() {
+fn a_reader_opens_what_a_later_minor_only_adds() {
     let all = vectors();
-    assert!(reading(&hex(&all["a_later_minor"]), ("hostile", "main"), None).is_ok());
+    for one in all["opening"].as_array().unwrap() {
+        let said = reading(&hex(&one["envelope"]), ("hostile", "main"), None);
+        assert!(said.is_ok(), "{}: {:?}", one["says"], said.err());
+    }
+}
+
+#[test]
+fn a_newer_major_version_is_told_from_a_damaged_one_whatever_it_holds() {
+    let all = vectors();
+    let said = reading(&hex(&all["a_newer_major"]), ("hostile", "main"), None);
+    assert!(said.err().is_some_and(|wrong| wrong.contains("version")));
 }
 
 #[test]

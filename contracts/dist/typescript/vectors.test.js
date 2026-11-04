@@ -66,10 +66,11 @@ const opened = async (bytes, asked, linkKey) => {
   assert.ok(manifestLength <= 16384, "its manifest is within its size");
   const manifestBytes = piece(manifestLength);
   const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
+  // Before anything else: a newer version may say what this one would call damaged.
+  assert.ok(opensHere(String(manifest.contract)), "written under a version this reader opens");
   assert.deepEqual(check("envelope", manifest), []);
   assert.equal(manifest.id, asked.id, "the document it asked for");
   assert.equal(manifest.kind, asked.kind, "the kind it asked for");
-  assert.ok(opensHere(manifest.contract), "written under a version this reader opens");
   assert.ok(manifest.from === undefined || manifest.from < manifest.version, "it starts from an earlier version");
   assert.ok(manifest.parts.every((one) => !one.compressed || one.name === "first" || one.name === "rest"), "a picture or a file is never compressed");
   assert.ok(manifest.sealed || !linkKey, "a key answers only for what is sealed");
@@ -134,7 +135,7 @@ const documentIn = ({ manifest, parts }) => {
   assert.ok(pages.every((one) => one.page_of === held.id), "its pages are its own");
   assert.ok(pages.every((one, at) => at === 0 || pages[at - 1].at < one.at), "its pages by their place, each in its own");
   assert.equal(new Set(pages.map((one) => one.id)).size, pages.length, "each page with an id of its own");
-  assert.equal((held.files ?? []).length > 0, held.files_hash !== undefined, "files and the hash that answers for them go together");
+  assert.equal((held.files ?? []).length > 0, held.files_hash != null, "files and the hash that answers for them go together");
   const there = { page: atsOf(pages), picture: atsOf(pictures), file: atsOf(held.files), cited: (held.cited ?? []).map((_, at) => at) };
   for (const html of [held.html, ...pages.map((one) => one.html)]) {
     assert.deepEqual(checkHtml(html), []);
@@ -259,8 +260,14 @@ for (const { says, served, verdict } of VECTORS.verdicts) {
   });
 }
 
-test("a later minor version opens, since it only adds what can be left aside", async () => {
-  await reading(hex(VECTORS.a_later_minor), { id: "hostile", kind: "main" });
+for (const { says, envelope } of VECTORS.opening) {
+  test(`a reader opens ${says}`, async () => {
+    await reading(hex(envelope), { id: "hostile", kind: "main" });
+  });
+}
+
+test("a newer major version is told from a damaged one, whatever it holds", async () => {
+  await assert.rejects(reading(hex(VECTORS.a_newer_major), { id: "hostile", kind: "main" }), /version/);
 });
 
 for (const one of VECTORS.pictures.hold) {

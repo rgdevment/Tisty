@@ -1,7 +1,7 @@
 contract: document
 group: documents
 checked_by: [writer, reader]
-except: [by, born_by, edited_by, owner]
+except: [by, born_by, edited_by, owner, properties]
 says: >-
   A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language,
   and it can hold pages.
@@ -17,7 +17,7 @@ values:
   anchor_language: "Paper, sheets and orientation are the group's: the anchor's, in every language."
 fields:
   id: { type: id, required: true, at_most: 64, says: "What names it, and what goes in its link. It says nothing of the machine it came from." }
-  title: { type: text, at_most: 8192, says: "Its properties' title, or else its first line with words." }
+  title: { type: line, at_most: 8192, says: "Its properties' title, or else its first line with words. A reader shows it in its own frame, so it is one line with nothing unseen." }
   tags: { type: list, of: tag_word, at_most: 64 }
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
   sheet: { type: sheet, says: "How it is laid on paper." }
@@ -31,7 +31,6 @@ fields:
   files: { type: list, of: attachment, says: "What its files envelope holds." }
   files_hash: { type: hash, says: "The hash of its files envelope, when it has one." }
   cited: { type: list, of: cited, says: "The documents it shares along, each in its own envelopes." }
-  properties: { type: list, of: property, at_most: 32, says: "Its properties as written, for the details." }
   languages:
     type: list
     of: translation
@@ -58,12 +57,12 @@ html_cases:
   - says: "A closing tag of what no contract knows, which would reach out of where it is put."
     html: "<p>a</p></main></body>"
     holds: false
-  - says: "A pen it does not have."
+  - says: "A pen it does not know, which wears the default."
     html: '<mark data-pen="javascript">a</mark>'
-    holds: false
-  - says: "A hue it does not have."
+    holds: true
+  - says: "A hue it does not know, which wears the default."
     html: '<span class="ico" data-ico="dog" data-hue="url"></span>'
-    holds: false
+    holds: true
   - says: "A drawing for a theme that does not exist."
     html: '<figure class="diagram"><svg data-theme="sepia"></svg></figure>'
     holds: false
@@ -243,18 +242,39 @@ html_cases:
     holds: true
 roles:
   reader:
-    show: { takes: { document: document }, says: "Cleans the document and draws it, in its language." }
+    show: { takes: { document: document }, says: "Cleans the document and draws it, in its language. A cleaner keeps its tisty: references and its ids, and looks for an id or a # only inside the document, never in the reader's own page." }
     set_paper: { takes: { paper: paper } }
     set_sheets: { takes: { on: bool } }
     set_orientation: { takes: { orientation: orientation } }
     index: { gives: "list:text", says: "The headings of the document, leading to each one." }
-    details: { gives: document, says: "Title, tags and properties." }
-    verdict: { takes: { signature: signature, served: served }, gives: verdict, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
+    details: { gives: document, says: "Title and tags, and the properties from the block its HTML holds." }
+    verdict: { takes: { file: bytes, served: served }, gives: verdict, fails: true, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
     go_to_page: { takes: { at: whole } }
     set_language: { takes: { lang: language } }
     open_in_tisty: { says: "Hands the document over to a Tisty." }
     copy_link: { gives: text }
 cases:
+  - says: "A title that turns the text around beside the reader's frame."
+    value: { id: "x", title: "Firmado \u202Eexe.fdp", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A title of two lines, which could write a verdict of its own."
+    value: { id: "x", title: "Paseos\n\nVeredicto: holds", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A name joined as Persian writes it."
+    value: { id: "x", signed_as: "علی\u200Cرضا", html: "<p>x</p>", body: "x" }
+    holds: true
+  - says: "A name joined as Latin never needs, hiding a letter."
+    value: { id: "x", signed_as: "Ma\u200Drio", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "Tags in the alphabets where a mark is how a word is written."
+    value: { id: "x", tags: ["हिन्दी", "한글", "தமிழ்"], html: "<p>x</p>", body: "x" }
+    holds: true
+  - says: "A tag that keeps its accent."
+    value: { id: "x", tags: ["camión"], html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A file named by the path it came from."
+    value: { id: "x", files: [{ at: 0, name: "..\\x.exe" }], files_hash: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", html: "<p>x</p>", body: "x" }
+    holds: false
   - says: "The least a document holds, with no pages at all."
     value: { id: "k7Qm2xPa", html: "<p>x</p>", body: "# Paseos" }
     holds: true
@@ -273,7 +293,6 @@ cases:
       html: "<p>Paseos</p>"
       body: "# Paseos"
       pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero" }]
-      properties: [{ key: "fuente", values: ["la libreta"] }]
     holds: true
   - says: "No words."
     value: { id: "k7Qm2xPa", html: "<p>x</p>" }
@@ -287,9 +306,9 @@ cases:
   - says: "A page of a page, which is one level too many."
     value: { id: "x", html: "<p>x</p>", body: "x", pages: [{ id: "p1", page_of: "x", at: 1, html: "<p>x</p>", body: "y", pages: [{ id: "p2", page_of: "p1", at: 1, html: "<p>x</p>", body: "z" }] }] }
     holds: false
-  - says: "A paper Tisty does not know."
+  - says: "A paper Tisty does not know, which is read as A4."
     value: { id: "x", html: "<p>x</p>", body: "x", sheet: { paper: "a3" } }
-    holds: false
+    holds: true
   - says: "A language that is no tag."
     value: { id: "x", lang: "e s", html: "<p>x</p>", body: "x" }
     holds: false

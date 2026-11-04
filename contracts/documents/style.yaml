@@ -1,7 +1,7 @@
 contract: style
 group: documents
 checked_by: [writer, reader]
-says: How a sheet looks. The sheet looks the same everywhere; the frame around it belongs to whoever shows it.
+says: How a sheet looks, by the same rules everywhere, over the fonts of each system, so two readers can still cut a sheet in another place. The frame around it belongs to whoever shows it.
 values:
   colors:
     light:
@@ -74,11 +74,14 @@ values:
     h2: { size: "1.3em" }
     h3: { size: "1.13em" }
     h4: { size: "1em" }
-  code: { size: "0.88em", line_height: 1.55 }
+  code: { size: "0.88em", line_height: 1.55, in_a_block: "Code inside a pre keeps the size of the pre, and has no padding or background of its own." }
   table:
     size: "0.92em"
     margin: "14px 0"
     cell_padding: "6px 10px"
+    width: "100%"
+    borders: "Separate, with no space between: the table has its top and left, and each cell its right and bottom."
+    row_height: "1lh + 13px, so an empty row still stands"
     cell_align: "left top"
     border: "1px solid line"
     head: { background: "hover", weight: 600 }
@@ -96,12 +99,16 @@ values:
     quote: { margin: "12px 0", padding_left: "14px", border: "2px solid line", color: soft }
     figure: { margin: "12px 0" }
     pre: { padding: "12px 14px", size: "0.88em", line_height: 1.55 }
-    details: { margin: "14px 0" }
-    picture: { margin: "16px auto", padding: "8px", max_height: "28rem", border: "1px solid hair", radius: "12px" }
+    code_figure: { border: "1px solid hair", radius: "10px", background: hover, says: "A figure of code. Its pre has no margin of its own." }
+    details: { margin: "14px 0", border: "1px solid hair", radius: "10px", summary_padding: "9px 14px" }
+    picture: { margin: "16px auto", padding: "8px", max_height: "28rem", border: "1px solid hair", radius: "12px", box_sizing: "border-box" }
+    title: { size: "1.65em", weight: 640, line_height: 1.25, margin: "0 0 22px", padding_bottom: "14px", border_bottom: "1px solid hair", says: "The first heading or paragraph of a document with a title, past its properties. Alone on the sheet, it has no margin below, padding or border." }
+    task: { marker: none, says: "An li of class task. Done, it is soft and struck through." }
+    check: { left: "-23px", top: "0.32em", size: "15px", border: "1.5px solid faint", radius: "5px", says: "The empty span of a task, drawn by the reader. With data-done true it fills with accent and shows a tick." }
     rule: { margin: "16px 0", border: "1px solid line", says: "Inside a block. Among the blocks, it starts a sheet." }
     formula: { margin: "12px 0", padding: "4px 0" }
     caption: { padding: "6px 14px", size: "12px" }
-    note: { margin: "6px 0", size: "0.9em" }
+    note: { margin: "6px 0", size: "0.9em", gap: "8px", color: soft, label_width: "1.2em", label_weight: 600, says: "A footnote: its label, then its words beside it." }
     definition: { margin: "2px 0", size: "0.82em" }
     properties: { hidden: true }
   callouts:
@@ -109,10 +116,12 @@ values:
     border_width: "3px"
     tint_percent: 7
     hues: { note: blue, tip: green, important: indigo, warning: amber, caution: red }
+    label: { size: "11.5px", weight: 600, spacing: "0.04em", capitals: true, margin_bottom: "2px", says: "The word of its kind, which the reader writes above its words in the reader's own language, in its hue." }
   pens:
     named: { yellow: pen-yellow, green: pen-green, blue: pen-blue, pink: pen-pink }
     otherwise: "A pen named by a hue is that hue over the sheet at 28 percent."
     default: yellow
+    unknown: "A pen it does not know wears the default."
   code_colors:
     comment: { color: faint, italic: true }
     quote: { color: faint, italic: true }
@@ -137,6 +146,6 @@ values:
     type: { color: hue-amber }
     built_in: { color: hue-amber }
     deletion: { color: hue-red }
-  icon: { size: "1.05em", color: soft, hue: "A span that says data-hue wears that hue." }
+  icon: { size: "1.05em", color: soft, hue: "A span that says data-hue wears that hue, and one it does not know wears soft." }
   diagram: "Each svg is at most its width and at most the width of the sheet, centred, and only the one of the reader's theme shows."
   variables: "In CSS each color is var(--tisty-<name>)."

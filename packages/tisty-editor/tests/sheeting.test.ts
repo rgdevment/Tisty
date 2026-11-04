@@ -35,6 +35,16 @@ describe("sheets laid on the page", () => {
     expect(sheet.style.getPropertyValue("--last")).not.toBe("");
   });
 
+  it("does not take the hidden properties for the block that stays, which would leave a blank sheet", () => {
+    const sheet = laid([
+      ["dl", 10, 0],
+      ["table", 10, 500],
+    ]);
+    sheet.children[0].className = "front";
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    expect(sheet.querySelectorAll(".sheet-turn")).toHaveLength(0);
+  });
+
   it("leaves a block taller than a sheet where it starts, instead of a blank sheet before it", () => {
     const sheet = laid([
       ["table", 20, 500],

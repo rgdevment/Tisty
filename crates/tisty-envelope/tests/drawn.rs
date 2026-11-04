@@ -122,8 +122,9 @@ fn what_a_person_can_write_by_hand_never_falls_outside_the_contract() {
         r#"<map name="x"><area href="otro.html"><area href="https://a.example"></map><q cite="x.html">q</q>"#,
         "[win](C:\\Users\\a.md) [rel](a/b.md) [q](?a=1&b=2) [amp](a&b.md) [tel](tel:+56) [t](tisty:doc/abc) [f](file:///c:/a) [java](javascript:alert(1)) [data](data:text/html,x)",
         "![doc](tisty:doc/abc) ![task](tisty:task/abc) ![rel](rina.png) ![remote](https://a.example/x.png) ![file](manual.pdf \"file\") ![data](data:image/png;base64,AAAA)",
-        "[[una referencia]] [[#2]] ==(red)pen== ++under++ :star:red: [^1]\n\n[^1]: nota\n\n[def]: https://a.example \"t\"",
+        "[[una referencia]] [[#2]] ==pen=={red} ==otro=={yellow} ++under++ :star:red: [^1]\n\n[^1]: nota\n\n[def]: https://a.example \"t\"",
         "---\ntitle: a\ntask: 01M6\ntranslationKey: x\nauthor: b\n---\n# a",
+        "```r&d\nx\n```\n\n```<?php\nx\n```\n\n```\"json\"\nx\n```\n\n```a b\nx\n```\n\n```c++\nx\n```\n",
     ];
     for one in written {
         assert_eq!(wrong_in(one), Vec::<String>::new(), "{one}");
