@@ -79,7 +79,8 @@ const diagramsIn = async (page: Document, draw: Draw) => {
       }
       const held = page.createElement("template");
       held.innerHTML = light + dark;
-      const [one, other] = held.content.querySelectorAll("svg");
+      // A drawing can hold others, as icons, so only the two at the top are the two looks.
+      const [one, other] = held.content.children;
       one.setAttribute("data-theme", "light");
       other.setAttribute("data-theme", "dark");
       figure.replaceChildren(one, other);

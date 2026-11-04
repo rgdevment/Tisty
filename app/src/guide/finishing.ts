@@ -1,6 +1,8 @@
 import { checkHtml } from "@tisty/contracts";
 import { finished } from "tisty-editor/read";
 
+const parts = (drawing: Element) => drawing.querySelectorAll("svg, text").length;
+
 const figure = (source: string): string => {
   const held = document.createElement("code");
   held.className = "language-mermaid";
@@ -15,10 +17,13 @@ export const finishAll = async (): Promise<void> => {
   for (const source of sources) {
     const { html, notDrawn } = await finished(figure(source));
     const page = new DOMParser().parseFromString(html, "text/html");
-    const themes = [...page.querySelectorAll("figure.diagram > svg")].map((one) =>
-      one.getAttribute("data-theme"),
-    );
-    const both = themes.length === 2 && themes[0] === "light" && themes[1] === "dark";
+    const [light, dark, ...more] = page.querySelectorAll("figure.diagram > svg");
+    // One source says the same in both looks, so another count means one is not the whole drawing. Its box can differ: gitGraph makes up its ids.
+    const both =
+      !more.length &&
+      light?.getAttribute("data-theme") === "light" &&
+      dark?.getAttribute("data-theme") === "dark" &&
+      parts(light) === parts(dark);
     answers.push({ source, drawn: notDrawn === 0 && both, wrong: checkHtml(html) });
   }
   await fetch("/drawn", { method: "POST", body: JSON.stringify(answers) });

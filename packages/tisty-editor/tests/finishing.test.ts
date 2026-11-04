@@ -96,6 +96,23 @@ describe("a document finished to travel", () => {
     expect(checkHtml(html)).toEqual([]);
   });
 
+  it("does not take a drawing inside a drawing for the other look", async () => {
+    const { html } = await finished(
+      mermaid("architecture"),
+      drawnBy(
+        () =>
+          '<svg viewBox="0 0 100 50"><g><svg viewBox="0 0 8 8"><path d="M0 0"></path></svg></g><circle r="1"></circle></svg>',
+      ),
+    );
+    const page = new DOMParser().parseFromString(html, "text/html");
+    const looks = [...page.querySelectorAll("figure.diagram > svg")];
+    expect(looks.map((one) => one.getAttribute("data-theme"))).toEqual(["light", "dark"]);
+    for (const one of looks) {
+      expect(one.getAttribute("viewBox")).toBe("0 0 100 50");
+      expect(one.querySelectorAll("svg")).toHaveLength(1);
+    }
+  });
+
   it("says when a diagram could not be drawn, and it still reads, as code", async () => {
     const { html, notDrawn } = await finished(
       mermaid("graph &lt;"),
