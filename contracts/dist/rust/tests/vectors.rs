@@ -61,7 +61,7 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
         Ok(out)
     };
     let size = u32::from_be_bytes(piece(4)?.try_into().unwrap()) as usize;
-    if size > 65536 {
+    if size > 16384 {
         return Err("its manifest is past its size".into());
     }
     let manifest_bytes = piece(size)?;
@@ -84,7 +84,7 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
         return Err("a key answers only for what is sealed".into());
     }
     let size = u32::from_be_bytes(piece(4)?.try_into().unwrap()) as usize;
-    if size > 4096 {
+    if size > 2048 {
         return Err("its signature is past its size".into());
     }
     let signature: Value = serde_json::from_slice(piece(size)?).map_err(|_| "its signature")?;

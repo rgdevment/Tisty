@@ -219,6 +219,7 @@ fields:
   size: { type: whole, says: "Its bytes." }
 values:
   file_source: "tisty:file/N, its at among the files"
+  reader_opens_files: "A file is only ever downloaded. A reader never draws it or runs it, and never believes its name or its kind."
 cases:
   - says: "A file with its name."
     value: { at: 1, name: "cartilla.pdf", kind: "application/pdf", size: 2048 }

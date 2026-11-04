@@ -44,7 +44,7 @@ const opened = async (bytes, asked, linkKey) => {
     return view.getUint32(at - 4);
   };
   const manifestLength = length();
-  assert.ok(manifestLength <= 65536, "its manifest is within its size");
+  assert.ok(manifestLength <= 16384, "its manifest is within its size");
   const manifestBytes = piece(manifestLength);
   const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
   assert.deepEqual(check("envelope", manifest), []);
@@ -58,7 +58,7 @@ const opened = async (bytes, asked, linkKey) => {
       : names.every((one) => one === "file");
   assert.ok(inOrder, "its parts are in their order");
   const signatureLength = length();
-  assert.ok(signatureLength <= 4096, "its signature is within its size");
+  assert.ok(signatureLength <= 2048, "its signature is within its size");
   const signature = JSON.parse(new TextDecoder().decode(piece(signatureLength)));
   assert.deepEqual(check("signature", signature), []);
   const index = piece(32 * manifest.parts.length);

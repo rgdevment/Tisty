@@ -25,8 +25,8 @@ const TAG_BYTES: u64 = 16;
 const COMMITMENT: &[u8] = b"tisty-envelope-commit";
 const KEY_INFO: &[u8] = b"tisty-envelope-key";
 const ABOUT: &str = "envelope";
-const MANIFEST_AT_MOST: usize = 65_536;
-const SIGNATURE_AT_MOST: usize = 4_096;
+const MANIFEST_AT_MOST: usize = 16_384;
+const SIGNATURE_AT_MOST: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {

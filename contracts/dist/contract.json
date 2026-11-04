@@ -1309,7 +1309,8 @@
         }
       },
       "values": {
-        "file_source": "tisty:file/N, its at among the files"
+        "file_source": "tisty:file/N, its at among the files",
+        "reader_opens_files": "A file is only ever downloaded. A reader never draws it or runs it, and never believes its name or its kind."
       },
       "cases": [
         {
@@ -2288,8 +2289,8 @@
         },
         "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged.",
         "sizes_at_most": {
-          "manifest_bytes": 65536,
-          "signature_bytes": 4096
+          "manifest_bytes": 16384,
+          "signature_bytes": 2048
         },
         "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent.",
         "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
