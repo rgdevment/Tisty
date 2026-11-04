@@ -1,0 +1,80 @@
+contract: document
+group: documents
+checked_by: [writer, reader]
+says: A document is what a person writes and keeps. It is made of pages, in one language, by someone who signed it.
+contains: [page]
+enums:
+  paper: [a4, letter, folio, tabloid]
+  orientation: [portrait, landscape]
+fields:
+  id: { type: text, required: true, at_least: 1, at_most: 64, says: "What names it." }
+  title: { type: text, at_most: 8192, says: "Its properties' title, or else its first line with words." }
+  tags: { type: list, of: tag, at_most: 64 }
+  lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
+  paper: { type: paper, says: "The paper it is laid on. A4 when it says none." }
+  sheets: { type: bool, says: "Whether it is drawn in sheets of that paper." }
+  orientation: { type: orientation, says: "Only while in sheets." }
+  owner: { type: key, says: "The root key of whoever shares it." }
+  signature: { type: signature, says: "Who answers for what it says." }
+  made: { type: time }
+  wrote: { type: time }
+  by: { type: text, at_most: 160, says: "The name it was last written under." }
+  born_by: { type: text, at_most: 160 }
+  edited_by: { type: text, at_most: 160 }
+  pages: { type: list, of: page, required: true, at_least: 1 }
+  languages:
+    type: list
+    of: translation
+    says: "The same document in other languages. Each one is a document of its own."
+roles:
+  reader:
+    show: { takes: { document: document }, says: "Cleans the page and draws it, in the document's language." }
+    set_paper: { takes: { paper: paper } }
+    set_sheets: { takes: { on: bool } }
+    set_orientation: { takes: { orientation: orientation } }
+    index: { gives: "list:text", says: "The headings of the page, leading to each one." }
+    details: { gives: document, says: "Title, tags and properties." }
+    verdict: { gives: verdict, says: "Who signed it. Shown outside the page, where the document cannot imitate it." }
+    go_to_page: { takes: { at: whole } }
+    set_language: { takes: { lang: language } }
+    open_in_tisty: { says: "Hands the document over to a Tisty." }
+    copy_link: { gives: text }
+  writer:
+    draw: { takes: { body: text }, gives: text, says: "Turns the words into the HTML of a page." }
+    sign: { takes: { document: document }, gives: signature }
+cases:
+  - says: "The least a document holds."
+    value: { id: "k7Qm2xPa", pages: [{ at: 1, body: "# Paseos" }] }
+    holds: true
+  - says: "Every field it can say."
+    value:
+      id: "k7Qm2xPa"
+      title: "Paseos"
+      tags: [{ name: "rina" }]
+      lang: "pt-BR"
+      paper: "letter"
+      sheets: true
+      orientation: "landscape"
+      owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      made: "2026-11-03T12:00:00Z"
+      wrote: "2026-11-03T12:30:00Z"
+      pages: [{ at: 1, body: "# Paseos" }]
+    holds: true
+  - says: "No pages."
+    value: { id: "k7Qm2xPa", pages: [] }
+    holds: false
+  - says: "No id."
+    value: { pages: [{ at: 1, body: "x" }] }
+    holds: false
+  - says: "A paper Tisty does not know."
+    value: { id: "x", paper: "a3", pages: [{ at: 1, body: "x" }] }
+    holds: false
+  - says: "A language that is no tag."
+    value: { id: "x", lang: "e s", pages: [{ at: 1, body: "x" }] }
+    holds: false
+  - says: "A date with a fraction of a second, which nobody signed."
+    value: { id: "x", made: "2026-11-03T12:00:00.5Z", pages: [{ at: 1, body: "x" }] }
+    holds: false
+  - says: "A key of the wrong length."
+    value: { id: "x", owner: "abc", pages: [{ at: 1, body: "x" }] }
+    holds: false

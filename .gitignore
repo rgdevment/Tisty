@@ -41,3 +41,5 @@ crates/tisty-share-worker/.wrangler/
 crates/tisty-share-worker/.dev.vars*
 crates/tisty-share-worker/.env*
 packages/tisty-share-web/wasm/
+contracts/dist/rust/target/
+contracts/dist/rust/Cargo.lock

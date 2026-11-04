@@ -1,0 +1,162 @@
+contract: text
+group: documents
+checked_by: [writer, reader]
+says: Words and what marks them. HTML written inside the words is taken only as far as passthrough says.
+values:
+  pens: [yellow, green, blue, pink]
+  callouts: [note, tip, important, warning, caution]
+  hues: [red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
+  url_schemes: [http, https, mailto, tisty]
+  passthrough_tags:
+    [a, abbr, acronym, area, article, aside, b, bdi, bdo, blockquote, br, caption, center, cite, code, col, colgroup,
+     data, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hgroup,
+     hr, i, img, ins, kbd, li, map, mark, nav, ol, p, pre, q, rp, rt, rtc, ruby, s, samp, small, span, strike, strong,
+     sub, summary, sup, table, tbody, td, th, thead, time, tr, tt, u, ul, var, wbr]
+draws:
+  - { tag: h1, attributes: [id, data-at] }
+  - { tag: h2, attributes: [id, data-at] }
+  - { tag: h3, attributes: [id, data-at] }
+  - { tag: h4, attributes: [id, data-at] }
+  - { tag: h5, attributes: [id, data-at] }
+  - { tag: h6, attributes: [id, data-at] }
+  - { tag: p, attributes: [data-at, class], classes: [refdef] }
+  - { tag: strong }
+  - { tag: em }
+  - { tag: s }
+  - { tag: u }
+  - { tag: br }
+  - { tag: code, attributes: [class], classes: [math] }
+  - { tag: a, attributes: [href, class, data-doc, data-task], classes: [card] }
+  - { tag: mark, attributes: [data-pen] }
+  - { tag: span, attributes: [class, data-tag, data-ico, data-hue, data-ref, data-done, title], classes: [tag, ico, ref, check, fn-label, front-sep, refdef-label, refdef-to] }
+  - { tag: blockquote, attributes: [class, data-callout, data-at], classes: [callout] }
+  - { tag: ul, attributes: [data-at] }
+  - { tag: ol, attributes: [start, data-at] }
+  - { tag: li, attributes: [class, data-at], classes: [task] }
+  - { tag: hr, attributes: [data-at] }
+  - { tag: details, attributes: [open, data-at] }
+  - { tag: summary }
+  - { tag: div, attributes: [id, class, data-at], classes: [footnote] }
+  - { tag: sup, attributes: [class], classes: [fnref] }
+  - { tag: dl, attributes: [class, data-at], classes: [front] }
+  - { tag: dt }
+  - { tag: dd }
+---
+contract: table
+group: documents
+checked_by: [writer, reader]
+says: Rows and columns. A column can say what it holds and how it adds up. A table wider than the sheet scrolls by itself.
+values:
+  holds: [text, number, money, percent, date, duration, check, select, tags, rating, link]
+  totals: [sum, avg, min, max, count]
+  leans: [left, center, right]
+draws:
+  - { tag: div, attributes: [class, data-at], classes: [table] }
+  - { tag: table }
+  - { tag: colgroup }
+  - { tag: col, attributes: [style] }
+  - { tag: thead }
+  - { tag: tbody }
+  - { tag: tfoot }
+  - { tag: tr }
+  - { tag: th, attributes: [scope, style, data-type, data-currency, data-total] }
+  - { tag: td, attributes: [style, class, data-key, data-amiss], classes: [whole] }
+styles:
+  - { on: col, property: width, unit: px }
+  - { on: th, property: text-align, is: leans }
+  - { on: td, property: text-align, is: leans }
+---
+contract: code
+group: documents
+checked_by: [writer, reader]
+says: A block of code, with its language and its title. The writer colours it before it travels.
+draws:
+  - { tag: figure, attributes: [class, data-at], classes: [code] }
+  - { tag: figcaption }
+  - { tag: pre }
+  - { tag: code, attributes: [class], class_starts: [language-] }
+  - { tag: span, attributes: [class], class_starts: [hljs-] }
+---
+contract: diagram
+group: documents
+checked_by: [writer, reader]
+says: A drawing inside a page. It is no document. The writer draws it as inline SVG before it travels, and its colours follow the theme.
+values:
+  languages: [mermaid, mmd]
+  colors: "var(--tisty-*) or currentColor"
+draws:
+  - { tag: figure, attributes: [class, data-at], classes: [diagram] }
+  - { tag: pre }
+  - { tag: code, attributes: [class], class_starts: [language-] }
+  - { tag: svg, attributes: [xmlns, width, height, viewbox, role, aria-label] }
+  - { tag: g, attributes: [transform, fill, stroke] }
+  - { tag: path, attributes: [d, fill, stroke, stroke-width, stroke-dasharray, marker-end, marker-start] }
+  - { tag: rect, attributes: [x, y, width, height, rx, ry, fill, stroke, stroke-width] }
+  - { tag: polygon, attributes: [points, fill, stroke] }
+  - { tag: text, attributes: [x, y, fill, text-anchor, dominant-baseline, font-size, font-weight, font-family] }
+  - { tag: marker, attributes: [id, markerwidth, markerheight, refx, refy, orient] }
+  - { tag: defs }
+never: [foreignobject, style, script, use, image]
+---
+contract: formula
+group: documents
+checked_by: [writer, reader]
+says: A formula, drawn as MathML, which browsers draw on their own.
+draws:
+  - { tag: div, attributes: [class, data-at], classes: [math] }
+  - { tag: math, attributes: [display] }
+  - { tag: mrow }
+  - { tag: mi }
+  - { tag: mn }
+  - { tag: mo, attributes: [lspace, rspace, stretchy] }
+  - { tag: mfrac }
+  - { tag: msup }
+  - { tag: msub }
+  - { tag: msubsup }
+  - { tag: mover }
+  - { tag: munder }
+  - { tag: munderover }
+  - { tag: msqrt }
+  - { tag: mroot }
+  - { tag: mtable, attributes: [displaystyle, scriptlevel] }
+  - { tag: mtr }
+  - { tag: mtd }
+  - { tag: mspace, attributes: [width] }
+  - { tag: mtext }
+---
+contract: attachment
+group: documents
+checked_by: [writer, reader]
+says: A file a page names. Pictures travel with the page. Everything else stays in Tisty, and whoever cannot show it shows a card that says so.
+values:
+  pictures: [png, jpeg, webp, gif]
+  picture_source: "tisty:picture/N, counted from 0"
+fields:
+  name: { type: text, required: true, at_least: 1 }
+  kind: { type: text }
+draws:
+  - { tag: img, attributes: [src, alt, loading, data-as] }
+cases:
+  - says: "A file with its name."
+    value: { name: "cartilla.pdf", kind: "application/pdf" }
+    holds: true
+  - says: "No name."
+    value: { kind: "application/pdf" }
+    holds: false
+---
+contract: widget
+group: documents
+checked_by: [writer, reader]
+says: A small isolated page inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
+fields:
+  title: { type: text }
+  body: { type: text, required: true }
+draws:
+  - { tag: figure, attributes: [class, data-at], classes: [code] }
+cases:
+  - says: "A widget with its words."
+    value: { title: "Rina este mes", body: "<div></div>" }
+    holds: true
+  - says: "No words."
+    value: { title: "x" }
+    holds: false

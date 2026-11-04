@@ -1,0 +1,98 @@
+contract: page
+group: documents
+checked_by: [writer, reader]
+says: A page is a part of a document, with words of its own. It is what holds tables, diagrams and everything else.
+contains: [text, table, code, diagram, formula, attachment, widget]
+fields:
+  at: { type: whole, required: true, at_least: 1, says: "Its place in the document, from 1." }
+  title: { type: text, at_most: 8192 }
+  body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
+  html: { type: text, says: "Its words as the writer drew them." }
+cases:
+  - says: "A page with its words."
+    value: { at: 1, body: "# Paseos" }
+    holds: true
+  - says: "Places count from 1."
+    value: { at: 0, body: "x" }
+    holds: false
+  - says: "No words."
+    value: { at: 1 }
+    holds: false
+---
+contract: translation
+group: documents
+checked_by: [writer, reader]
+says: Where the same document is in another language.
+fields:
+  lang: { type: language, required: true }
+  document: { type: text, required: true, at_least: 1, at_most: 64 }
+  title: { type: text, at_most: 8192 }
+cases:
+  - says: "A language and the document that holds it."
+    value: { lang: "en", document: "enGlish1" }
+    holds: true
+  - says: "No language."
+    value: { document: "enGlish1" }
+    holds: false
+---
+contract: tag
+group: documents
+checked_by: [writer]
+says: A word a document or a task is kept under.
+fields:
+  name: { type: text, required: true, at_least: 1, at_most: 200 }
+cases:
+  - says: "A word."
+    value: { name: "rina" }
+    holds: true
+  - says: "No word."
+    value: { name: "" }
+    holds: false
+---
+contract: signature
+group: documents
+checked_by: [writer, reader]
+says: Who answers for a document. The root key is who a person is; the machine key signs, under a certificate from the root.
+enums:
+  verdict: [holds, revoked, refused]
+fields:
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  since: { type: time, required: true }
+  certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
+  signed: { type: signed, required: true, says: "The machine's signature over the document." }
+  name: { type: text, at_most: 80, says: "The name its writer chose. Never a proof." }
+cases:
+  - says: "A whole signature."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "A name past what a name can be."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      name: "012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+    holds: false
+---
+contract: sheet
+group: documents
+checked_by: [reader]
+says: How a page is cut on paper. A sheet holds nothing of its own, and measures on screen what it measures on paper.
+values:
+  millimetres:
+    a4: [210, 297]
+    letter: [215.9, 279.4]
+    folio: [215.9, 330.2]
+    tabloid: [279.4, 431.8]
+  offered: [a4, letter, folio]
+  default_paper: a4
+  margin_millimetres: { x: 20, y: 22 }
+  pixels_per_inch: 96
+  long_page_width_pixels: 820
