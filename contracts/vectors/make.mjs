@@ -5,6 +5,9 @@ import { deflateRawSync } from "node:zlib";
 
 const { subtle } = webcrypto;
 const CONTRACT = readFileSync(new URL("../VERSION", import.meta.url), "utf8").trim();
+const [MAJOR, MINOR] = CONTRACT.split(".").map(Number);
+const LATER_MINOR = `${MAJOR}.${MINOR + 1}.0`;
+const DRAFT_OF_THIS = `${CONTRACT.split("-")[0]}-draft.8`;
 const words = (said) => new TextEncoder().encode(said);
 const b64 = (bytes) => Buffer.from(bytes).toString("base64url");
 const sha = (...pieces) => createHash("sha256").update(Buffer.concat(pieces)).digest();
@@ -182,7 +185,7 @@ const CASES = [
   ["a signature that does not hold", { parts: asWords(fair, fairRest), forged: "signed" }],
   ["a certificate that does not hold", { parts: asWords(fair, fairRest), forged: "certificate" }],
   ["a signature that cannot be read", { parts: asWords(fair, fairRest), signatureBytes: words("no es una firma") }],
-  ["a draft of this version", { parts: asWords(fair, fairRest), contract: "1.0.0-draft.8" }],
+  ["a draft of this version", { parts: asWords(fair, fairRest), contract: DRAFT_OF_THIS }],
   ["two pages out of their order", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 2 }, { ...page, id: "p2" }] }) }],
   ["two pages with one id", { parts: asWords(fair, { ...fairRest, pages: [page, { ...page, at: 2 }] }) }],
   ["a picture drawn at another size than its own", { parts: [...asWords({ ...fair, pictures: [aPicture], html: '<img src="tisty:picture/0" alt="a" width="900" height="1">' }, fairRest), asPicture] }],
@@ -208,11 +211,11 @@ for (const [says, { parts, ...over }] of CASES) {
 
 // What a reader opens all the same: a later minor only adds what it can leave aside, and a number is a number however it is written.
 const OPENING = [
-  ["a later minor version", { parts: asWords(fair, fairRest), contract: "1.9.0" }],
+  ["a later minor version", { parts: asWords(fair, fairRest), contract: LATER_MINOR }],
   [
     "fields it does not know, wherever they are",
     {
-      contract: "1.9.0",
+      contract: LATER_MINOR,
       more: { novel: "x" },
       parts: [
         { ...asWords({ ...fair, novel: "x", sheet: { paper: "a5", orientation: "diagonal", novel: 1 } }, fairRest)[0], more: { novel: 1 } },
