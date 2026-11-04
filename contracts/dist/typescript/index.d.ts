@@ -53,7 +53,6 @@ export interface Document {
   tags?: string[];
   lang?: string;
   sheet?: Sheet;
-  owner?: string;
   signed_as?: string;
   made?: string;
   wrote?: string;

@@ -15,6 +15,7 @@ values:
   aliases: { tag: tags }
   forms: "key: value, a list in brackets, or a - item on each line"
   written_only_by_tisty: [task, translationKey]
+  stays_home: "What a task says stays on this machine, in any capitals: task, translationKey, scheduled, due, remind, list, priority and repeat never travel, in the HTML or in the body."
   skipped_lines_start_with: "#"
   on_reading:
     paper, sheets and orientation: "They make the sheet of the document or page."

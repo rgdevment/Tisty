@@ -162,8 +162,6 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sheet: Option<Sheet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,

@@ -41,6 +41,9 @@ const inflated = async (bytes, size) => {
   return joined(...pieces);
 };
 
+const majorOf = (said) => said.split(".")[0];
+const opensHere = (said) => (said.includes("-") || VERSION.includes("-") ? said === VERSION : majorOf(said) === majorOf(VERSION));
+
 const verified = async (key, signature, ...pieces) => {
   const held = await subtle.importKey("raw", key, "Ed25519", false, ["verify"]);
   assert.ok(await subtle.verify("Ed25519", held, signature, joined(...pieces)), "the signature holds");
@@ -66,7 +69,7 @@ const opened = async (bytes, asked, linkKey) => {
   assert.deepEqual(check("envelope", manifest), []);
   assert.equal(manifest.id, asked.id, "the document it asked for");
   assert.equal(manifest.kind, asked.kind, "the kind it asked for");
-  assert.equal(manifest.contract.split(".")[0], VERSION.split(".")[0], "a major version of its own");
+  assert.ok(opensHere(manifest.contract), "written under a version this reader opens");
   assert.ok(manifest.from === undefined || manifest.from < manifest.version, "it starts from an earlier version");
   assert.ok(manifest.parts.every((one) => !one.compressed || one.name === "first" || one.name === "rest"), "a picture or a file is never compressed");
   assert.ok(manifest.sealed || !linkKey, "a key answers only for what is sealed");
@@ -106,21 +109,20 @@ const opened = async (bytes, asked, linkKey) => {
     parts.push(part.compressed ? await inflated(held, part.open_size) : held);
   }
   assert.equal(at, bytes.length, "nothing follows its parts");
-  return { manifest, manifestBytes, index, parts, root: signature.root };
+  return { manifest, manifestBytes, index, parts };
 };
 
 const asJson = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
 const atsOf = (list) => (list ?? []).map((one) => one.at);
 
 // All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
-const documentIn = ({ manifest, parts, root }) => {
+const documentIn = ({ manifest, parts }) => {
   const [first, rest] = parts.slice(0, 2).map(asJson);
   assert.ok(!("body" in first) && !("pages" in first), "the first part holds neither body nor pages");
   assert.ok(Object.keys(rest).every((one) => one === "body" || one === "pages"), "the rest holds only those");
   const held = { ...first, ...rest };
   assert.deepEqual(check("document", held), []);
   assert.equal(held.id, manifest.id, "the document inside is the one the manifest says");
-  assert.ok(held.owner === undefined || held.owner === root, "its owner is the root that signs");
   const pictures = held.pictures ?? [];
   assert.equal(pictures.length, parts.length - 2, "as many pictures as it says");
   pictures.forEach((one, at) => {

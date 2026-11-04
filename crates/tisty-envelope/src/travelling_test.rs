@@ -258,6 +258,25 @@ fn what_stays_home_stays_in_any_capitals() {
 }
 
 #[test]
+fn how_the_person_plans_their_work_stays_home() {
+    let said = "---\ntitle: a\nauthor: Rina\nlist: Trabajo\nDue: 2026-12-01\nscheduled: 2026-11-30\nremind: [2026-11-29]\npriority: do\nrepeat: every week from due\n---\n# a\n";
+    let html = ready(
+        &tisty_markdown::html(&tisty_markdown::read(said)),
+        &places(),
+    );
+    let body = body_ready(said, &places());
+    for text in [&html, &body] {
+        for gone in ["Trabajo", "2026", "every week", "priority"] {
+            assert!(!text.contains(gone), "{gone} went along in {text}");
+        }
+        assert!(
+            text.contains("Rina"),
+            "what the person wrote for others stays: {text}"
+        );
+    }
+}
+
+#[test]
 fn a_quote_keeps_its_source_only_when_it_leads_somewhere() {
     assert_eq!(ready(r#"<q cite="x.html">a</q>"#, &places()), "<q>a</q>");
     assert_eq!(

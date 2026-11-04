@@ -25,6 +25,7 @@ const WRITTEN: &str = r#"---
 title: Paseos
 Task: 01M6
 TranslationKey: paseos
+list: Trabajo privado
 ---
 
 # Paseos
@@ -216,6 +217,7 @@ fn it_arrived_whole(held: &Value, main: &opening::Opened, picture: &[u8]) {
             "01m6",
             "rina.png",
             "secreto",
+            "trabajo privado",
             "translationkey",
             "(cartilla.pdf",
         ] {

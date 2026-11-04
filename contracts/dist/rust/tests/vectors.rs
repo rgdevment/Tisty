@@ -23,7 +23,6 @@ pub struct Opened {
     pub manifest: Vec<u8>,
     pub index: Vec<u8>,
     pub parts: Vec<Vec<u8>>,
-    pub root: String,
 }
 
 fn b64(said: &Value) -> Vec<u8> {
@@ -54,6 +53,14 @@ const MAIN: (&str, &str) = ("k7Qm2xPa", "main");
 const FILES: (&str, &str) = ("k7Qm2xPa", "files");
 const PUBLIC: (&str, &str) = ("wordsOnly", "main");
 
+fn opens_here(said: &str) -> bool {
+    if said.contains('-') || VERSION.contains('-') {
+        return said == VERSION;
+    }
+    let major = |version: &'static str| version.split('.').next().unwrap_or_default();
+    said.split('.').next().unwrap_or_default() == major(VERSION)
+}
+
 pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     if bytes.len() < 4 || &bytes[..4] != b"TENV" {
         return Err("its mark".into());
@@ -76,9 +83,8 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     if manifest["id"] != asked.0 || manifest["kind"] != asked.1 {
         return Err("not what it asked for".into());
     }
-    let major = |said: &str| said.split('.').next().unwrap_or_default().to_owned();
-    if major(manifest["contract"].as_str().unwrap()) != major(VERSION) {
-        return Err("another major version".into());
+    if !opens_here(manifest["contract"].as_str().unwrap()) {
+        return Err("written under a version this reader does not open".into());
     }
     if manifest["from"].as_u64().is_some_and(|from| from >= manifest["version"].as_u64().unwrap()) {
         return Err("it starts from a version that is not earlier".into());
@@ -184,7 +190,7 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     if piece(1).is_ok() {
         return Err("something follows its parts".into());
     }
-    Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out, root: signature["root"].as_str().unwrap().to_owned() })
+    Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out })
 }
 
 fn ats_of(list: &Value) -> Vec<u64> {
@@ -229,9 +235,6 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     }
     if held["id"] != manifest["id"] {
         return Err("another document inside".into());
-    }
-    if held["owner"].as_str().is_some_and(|owner| owner != main.root) {
-        return Err("its owner is not the root that signs".into());
     }
     let empty = Vec::new();
     let pictures = held["pictures"].as_array().unwrap_or(&empty);

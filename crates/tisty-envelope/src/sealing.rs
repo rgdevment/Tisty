@@ -268,11 +268,7 @@ fn files_are_what_they_say(
 }
 
 // What only the writer knows, and a reader has no way to look at until it has opened everything.
-fn adds_up(
-    document: &Document,
-    sealing: &Sealing,
-    certificate: &Certificate,
-) -> Result<(), Refused> {
+fn adds_up(document: &Document, sealing: &Sealing) -> Result<(), Refused> {
     if sealing.from.is_some_and(|from| from >= sealing.version) {
         return Err(Refused::DoesNotAdd(
             "it starts from a version that is not an earlier one",
@@ -281,15 +277,6 @@ fn adds_up(
     if sealing.files_hash.is_some() && sealing.files_key != sealing.link_key {
         return Err(Refused::DoesNotAdd(
             "it keeps files sealed under another key",
-        ));
-    }
-    if document
-        .owner
-        .as_ref()
-        .is_some_and(|owner| *owner != certificate.root)
-    {
-        return Err(Refused::DoesNotAdd(
-            "it says another owner than the root that signs it",
         ));
     }
     if document.properties.iter().flatten().any(|one| {
@@ -363,7 +350,7 @@ impl<'a> Writer<'a> {
                 "its id is not the one it is sealed under",
             ));
         }
-        adds_up(&document, sealing, self.certificate)?;
+        adds_up(&document, sealing)?;
         pictures_are_what_they_say(document.pictures.as_deref().unwrap_or_default(), &pictures)?;
         files_are_what_they_say(&document, &files, sealing.files_hash.is_some())?;
         let files_envelope = if files.is_empty() {

@@ -306,7 +306,6 @@ fn a_writer_does_not_get_to_say_what_does_not_add_up() {
                 { "id": "p2", "page_of": "x", "at": 1, "html": "<p>a</p>", "body": "a" },
             ]),
         ),
-        with("owner", json!(key_text(0x77))),
         with("languages", json!([{ "lang": "en", "document": "y" }])),
     ];
     for one in cases {

@@ -1523,7 +1523,8 @@
       "except": [
         "by",
         "born_by",
-        "edited_by"
+        "edited_by",
+        "owner"
       ],
       "says": "A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages.",
       "contains": [
@@ -1540,6 +1541,7 @@
       "values": {
         "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.",
         "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.",
+        "who_shares_it": "Whoever signs its envelope: the root in its signature, and nothing inside can say otherwise.",
         "anchor_language": "Paper, sheets and orientation are the group's: the anchor's, in every language."
       },
       "fields": {
@@ -1566,10 +1568,6 @@
         "sheet": {
           "type": "sheet",
           "says": "How it is laid on paper."
-        },
-        "owner": {
-          "type": "key",
-          "says": "The root key of whoever shares it."
         },
         "signed_as": {
           "type": "name",
@@ -2008,7 +2006,6 @@
               "on": true,
               "orientation": "landscape"
             },
-            "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
             "made": "2026-11-03T12:00:00Z",
             "wrote": "2026-11-03T12:30:00Z",
             "html": "<p>Paseos</p>",
@@ -2117,16 +2114,6 @@
           "holds": false
         },
         {
-          "says": "A key of the wrong length.",
-          "value": {
-            "id": "x",
-            "owner": "abc",
-            "html": "<p>x</p>",
-            "body": "x"
-          },
-          "holds": false
-        },
-        {
           "says": "A name that passes for a fingerprint.",
           "value": {
             "id": "x",
@@ -2196,7 +2183,7 @@
           "holds": false
         },
         {
-          "says": "A key with spare bits set, a second spelling of the same key.",
+          "says": "Who shares it, which only its signature says.",
           "value": {
             "id": "x",
             "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sR",
@@ -2301,13 +2288,13 @@
           "A from that is not earlier than its version.",
           "A picture or a file that says it is compressed.",
           "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid.",
-          "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, an owner that is not the root that signs, or a reference to what does not travel. Its words are not shown."
+          "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, or a reference to what does not travel. Its words are not shown."
         ],
         "who_checks_what": {
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version.",
           "reader": "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
         },
-        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged.",
+        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft: its format can change from one to the next, so a draft and anything else, in either direction, do not open.",
         "sizes_at_most": {
           "manifest_bytes": 16384,
           "signature_bytes": 2048
@@ -2804,6 +2791,7 @@
           "task",
           "translationKey"
         ],
+        "stays_home": "What a task says stays on this machine, in any capitals: task, translationKey, scheduled, due, remind, list, priority and repeat never travel, in the HTML or in the body.",
         "skipped_lines_start_with": "#",
         "on_reading": {
           "paper, sheets and orientation": "They make the sheet of the document or page.",
@@ -2998,11 +2986,11 @@
         "files_hash",
         "cited",
         "languages",
-        "owner",
         "signed_as",
         "by",
         "born_by",
-        "edited_by"
+        "edited_by",
+        "owner"
       ],
       "fields": {
         "id": {

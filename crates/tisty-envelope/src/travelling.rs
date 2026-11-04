@@ -4,8 +4,17 @@ use std::ops::Range;
 
 use crate::tags::{Tag, escaped, unescaped, walk};
 
-// Written only by Tisty, for itself: a task's id and what finds a language again say nothing to whoever reads.
-pub(crate) const KEPT_TO_ITSELF: [&str; 2] = ["task", "translationKey"];
+// Tisty's own: a task's id, what finds a language again, and how the person plans their work say nothing to whoever reads.
+pub(crate) const KEPT_TO_ITSELF: [&str; 8] = [
+    "task",
+    "translationKey",
+    "scheduled",
+    "due",
+    "remind",
+    "list",
+    "priority",
+    "repeat",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Placed {

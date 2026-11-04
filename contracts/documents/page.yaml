@@ -5,7 +5,7 @@ says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
   no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages, pictures, files, files_hash, cited, languages, owner, signed_as]
+except: [pages, pictures, files, files_hash, cited, languages, signed_as]
 fields:
   page_of: { type: id, required: true, at_most: 64, says: "The document it is a page of: its id, always." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
