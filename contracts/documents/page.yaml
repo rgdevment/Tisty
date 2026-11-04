@@ -8,6 +8,49 @@ fields:
   title: { type: text, at_most: 8192 }
   body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
   html: { type: text, says: "Its words as the writer drew them." }
+html_rules:
+  - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
+  - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with the page, and a page asks nobody else for one." }
+html_cases:
+  - says: "Words and what marks them."
+    html: '<h1 id="paseos" data-at="1">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
+    holds: true
+  - says: "Coloured code."
+    html: '<figure class="code"><figcaption>a</figcaption><pre><code class="language-rust"><span class="hljs-keyword">fn</span></code></pre></figure>'
+    holds: true
+  - says: "A drawn diagram."
+    html: '<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0"></path></svg></figure>'
+    holds: true
+  - says: "A picture that travels with the page."
+    html: '<img src="tisty:picture/0" alt="Rina" loading="lazy">'
+    holds: true
+  - says: "HTML written inside the words, as far as passthrough says."
+    html: '<abbr title="Hyper Text">HTML</abbr>'
+    holds: true
+  - says: "A diagram that did not get drawn."
+    html: '<figure class="diagram"><pre><code class="language-mermaid">graph</code></pre></figure>'
+    holds: false
+  - says: "A script."
+    html: "<script>alert(1)</script>"
+    holds: false
+  - says: "An attribute that runs something."
+    html: '<p onclick="x">a</p>'
+    holds: false
+  - says: "A picture asked of someone else."
+    html: '<img src="https://a.example/x.png">'
+    holds: false
+  - says: "The same one, under the other quote."
+    html: "<img src='https://a.example/x.png'>"
+    holds: false
+  - says: "What a diagram never holds."
+    html: "<svg><foreignObject></foreignObject></svg>"
+    holds: false
+  - says: "A class of its own."
+    html: '<p class="mine">a</p>'
+    holds: false
+  - says: "A style where no contract says one."
+    html: '<div style="color:red">a</div>'
+    holds: false
 cases:
   - says: "A page with its words."
     value: { at: 1, body: "# Paseos" }
@@ -34,19 +77,63 @@ cases:
   - says: "No language."
     value: { document: "enGlish1" }
     holds: false
+  - says: "A language and its script."
+    value: { lang: "zh-Hant", document: "x" }
+    holds: true
+  - says: "A language, its script and its region."
+    value: { lang: "zh-Hant-TW", document: "x" }
+    holds: true
+  - says: "A region by its number."
+    value: { lang: "es-419", document: "x" }
+    holds: true
+  - says: "Capitals where they do not go."
+    value: { lang: "ES", document: "x" }
+    holds: false
+  - says: "A region in small letters."
+    value: { lang: "pt-br", document: "x" }
+    holds: false
+  - says: "An underscore, which reading turns into a dash."
+    value: { lang: "pt_BR", document: "x" }
+    holds: false
+  - says: "The name of a language instead of its tag."
+    value: { lang: "español", document: "x" }
+    holds: false
 ---
 contract: tag
 group: documents
 checked_by: [writer]
-says: A word a document or a task is kept under.
+says: >-
+  A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space
+  or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and
+  a letter, and it does not count glued to the text before it, inside code or in [[#2]].
+values:
+  in_a_sentence: { characters_at_least: 2, needs_a_letter: true }
 fields:
-  name: { type: text, required: true, at_least: 1, at_most: 200 }
+  name: { type: tag_word, required: true }
 cases:
   - says: "A word."
     value: { name: "rina" }
     holds: true
+  - says: "Words joined by a dash."
+    value: { name: "mi-etiqueta" }
+    holds: true
   - says: "No word."
     value: { name: "" }
+    holds: false
+  - says: "Capitals."
+    value: { name: "Rina" }
+    holds: false
+  - says: "An accent."
+    value: { name: "camión" }
+    holds: false
+  - says: "A space."
+    value: { name: "mi etiqueta" }
+    holds: false
+  - says: "A dash at its edge."
+    value: { name: "-rina" }
+    holds: false
+  - says: "Two dashes together."
+    value: { name: "mi--etiqueta" }
     holds: false
 ---
 contract: signature

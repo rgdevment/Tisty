@@ -12,6 +12,26 @@ values:
      data, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hgroup,
      hr, i, img, ins, kbd, li, map, mark, nav, ol, p, pre, q, rp, rt, rtc, ruby, s, samp, small, span, strike, strong,
      sub, summary, sup, table, tbody, td, th, thead, time, tr, tt, u, ul, var, wbr]
+  passthrough_attributes:
+    "*": [lang, title]
+    a: [href, hreflang, rel]
+    bdo: [dir]
+    blockquote: [cite]
+    col: [align, char, charoff, span]
+    colgroup: [align, char, charoff, span]
+    del: [cite, datetime]
+    hr: [align, size, width]
+    img: [align, alt, height, src, width]
+    ins: [cite, datetime]
+    ol: [start]
+    q: [cite]
+    table: [align, char, charoff, summary]
+    tbody: [align, char, charoff]
+    td: [align, char, charoff, colspan, headers, rowspan]
+    tfoot: [align, char, charoff]
+    th: [align, char, charoff, colspan, headers, rowspan, scope]
+    thead: [align, char, charoff]
+    tr: [align, char, charoff]
 draws:
   - { tag: h1, attributes: [id, data-at] }
   - { tag: h2, attributes: [id, data-at] }
@@ -86,8 +106,6 @@ values:
   colors: "var(--tisty-*) or currentColor"
 draws:
   - { tag: figure, attributes: [class, data-at], classes: [diagram] }
-  - { tag: pre }
-  - { tag: code, attributes: [class], class_starts: [language-] }
   - { tag: svg, attributes: [xmlns, width, height, viewbox, role, aria-label] }
   - { tag: g, attributes: [transform, fill, stroke] }
   - { tag: path, attributes: [d, fill, stroke, stroke-width, stroke-dasharray, marker-end, marker-start] }

@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "language", "key", "signed"]);
+const PRIMITIVES = new Set(["text", "bool", "whole", "number", "time", "language", "tag_word", "key", "signed"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {
@@ -84,11 +84,19 @@ const allowed = () => {
   return out;
 };
 
+const drawn = allowed();
+const htmlRules = contracts.flatMap((one) => one.html_rules ?? []);
+for (const rule of htmlRules) {
+  if (!drawn[rule.tag]?.attributes.includes(rule.attribute)) stop(`a rule looks at ${rule.attribute} on ${rule.tag}, which no contract draws`);
+}
+
 const whole = {
   version: VERSION,
   contracts: Object.fromEntries(contracts.map((one) => [one.contract, one])),
   enums: Object.fromEntries(enums),
-  allowed: allowed(),
+  allowed: drawn,
+  passthrough: { tags: names.get("text").values.passthrough_tags, attributes: names.get("text").values.passthrough_attributes },
+  html_rules: htmlRules,
 };
 
 const pascal = (name) => name.replace(/(^|_)([a-z])/g, (_, __, letter) => letter.toUpperCase());
@@ -131,6 +139,8 @@ const typescriptTypes = () => {
     "export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;",
     "/** What is wrong with a value under this contract: nothing when it holds. */",
     "export declare function check(contract: ContractName, value: unknown): string[];",
+    "/** What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language. */",
+    "export declare function checkHtml(html: string): string[];",
     "",
   );
   return out.join("\n");
@@ -152,6 +162,13 @@ const base64urlOf = (said, length) => said.length === length && /^[A-Za-z0-9_-]+
 
 const lengthOf = (said) => [...said].length;
 
+const isLanguage = (said) => /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/.test(said);
+
+const isTagWord = (said) =>
+  said === said.toLowerCase() &&
+  said === said.normalize("NFD").replace(/\\p{M}/gu, "") &&
+  /^[\\p{Alphabetic}\\p{N}]+(-[\\p{Alphabetic}\\p{N}]+)*$/u.test(said);
+
 const checkType = (type, value, at, out) => {
   if (type === "text") {
     if (typeof value !== "string") out.push(at + " is not text");
@@ -164,7 +181,9 @@ const checkType = (type, value, at, out) => {
   } else if (type === "time") {
     if (typeof value !== "string" || !isTime(value)) out.push(at + " is not a date in whole seconds");
   } else if (type === "language") {
-    if (typeof value !== "string" || !/^[A-Za-z0-9-]{2,35}$/.test(value)) out.push(at + " is not a language tag");
+    if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
+  } else if (type === "tag_word") {
+    if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
   } else if (type === "key") {
     if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a key");
   } else if (type === "signed") {
@@ -213,16 +232,61 @@ export function check(contract, value) {
   checkFields(contract, value, "", out);
   return out;
 }
+
+// Each tag a page opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+const opened = (html) => {
+  const tags = /<([a-zA-Z][^\\s/>]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>?/g;
+  const attributes = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]*)))?/g;
+  return [...html.matchAll(tags)].map(([, tag, rest]) => ({
+    tag: tag.toLowerCase(),
+    attributes: [...rest.matchAll(attributes)].map(([, name, double, single, bare]) => [name.toLowerCase(), double ?? single ?? bare ?? ""]),
+  }));
+};
+
+const brokenBy = (rule, value) =>
+  (rule.never ?? []).some((one) => value.split(/\\s+/).includes(one)) ||
+  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
+
+export function checkHtml(html) {
+  const out = [];
+  const through = WHOLE.passthrough.attributes;
+  for (const { tag, attributes } of opened(html)) {
+    const drawn = WHOLE.allowed[tag];
+    if (!drawn && !WHOLE.passthrough.tags.includes(tag)) {
+      out.push("<" + tag + "> is in no contract");
+      continue;
+    }
+    for (const [name, value] of attributes) {
+      const listed = drawn?.attributes.includes(name) || through["*"].includes(name) || through[tag]?.includes(name);
+      if (!listed) out.push(name + " on <" + tag + "> is in no contract");
+      if (name === "class") {
+        for (const one of value.split(/\\s+/).filter(Boolean)) {
+          const known = drawn?.classes.includes(one) || drawn?.class_starts.some((start) => one.startsWith(start));
+          if (!known) out.push("the class " + one + " on <" + tag + "> is in no contract");
+        }
+      }
+      for (const rule of WHOLE.html_rules) {
+        if (rule.tag === tag && rule.attribute === name && brokenBy(rule, value)) out.push(rule.says);
+      }
+    }
+  }
+  return [...new Set(out)];
+}
 `;
 
 const typescriptCases = () => `import assert from "node:assert/strict";
 import { test } from "node:test";
-import { check, CONTRACTS } from "./index.js";
+import { check, checkHtml, CONTRACTS } from "./index.js";
 
 for (const [name, contract] of Object.entries(CONTRACTS)) {
   for (const one of contract.cases ?? []) {
     test(name + ": " + one.says, () => {
       assert.equal(check(name, one.value).length === 0, one.holds, check(name, one.value).join("; "));
+    });
+  }
+  for (const one of contract.html_cases ?? []) {
+    test(name + " html: " + one.says, () => {
+      assert.equal(checkHtml(one.html).length === 0, one.holds, checkHtml(one.html).join("; "));
     });
   }
 }
@@ -238,7 +302,8 @@ const rustType = (type) => {
 };
 
 const RESERVED = new Set(["type", "ref", "move", "loop", "as", "in", "use", "do", "final", "override"]);
-const rustField = (name) => (RESERVED.has(name) ? `r#${name}` : name);
+const snake = (name) => name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+const rustField = (name) => (RESERVED.has(snake(name)) ? `r#${snake(name)}` : snake(name));
 
 const rustLib = () => {
   const out = [
@@ -246,6 +311,8 @@ const rustLib = () => {
     "",
     "use serde::{Deserialize, Serialize};",
     "use serde_json::Value;",
+    "use unicode_normalization::UnicodeNormalization;",
+    "use unicode_normalization::char::is_combining_mark;",
     "",
     `pub const VERSION: &str = "${VERSION}";`,
     'pub const CONTRACT: &str = include_str!("contract.json");',
@@ -263,10 +330,12 @@ const rustLib = () => {
       out.push(`pub struct ${pascal(one.contract)} {`);
       for (const [field, said] of Object.entries(one.fields)) {
         const type = rustType(said.type === "list" ? `list:${said.of}` : said.type);
+        const renamed = snake(field) === field ? "" : `rename = "${field}", `;
         if (said.required) {
+          if (renamed) out.push(`    #[serde(${renamed.slice(0, -2)})]`);
           out.push(`    pub ${rustField(field)}: ${type},`);
         } else {
-          out.push('    #[serde(default, skip_serializing_if = "Option::is_none")]');
+          out.push(`    #[serde(${renamed}default, skip_serializing_if = "Option::is_none")]`);
           out.push(`    pub ${rustField(field)}: Option<${type}>,`);
         }
       }
@@ -318,10 +387,36 @@ fn base64url_of(said: &str, length: usize) -> bool {
 }
 
 fn is_language(said: &str) -> bool {
-    (2..=35).contains(&said.len())
+    let lower = |one: &str| one.bytes().all(|letter| letter.is_ascii_lowercase());
+    let mut parts = said.split('-');
+    let language = parts.next().unwrap_or_default();
+    if !(2..=3).contains(&language.len()) || !lower(language) {
+        return false;
+    }
+    let mut script = false;
+    let mut region = false;
+    for part in parts {
+        let bytes = part.as_bytes();
+        let is_script = bytes.len() == 4 && bytes[0].is_ascii_uppercase() && lower(&part[1..]);
+        let is_region = (bytes.len() == 2 && bytes.iter().all(u8::is_ascii_uppercase))
+            || (bytes.len() == 3 && bytes.iter().all(u8::is_ascii_digit));
+        if is_script && !script && !region {
+            script = true;
+        } else if is_region && !region {
+            region = true;
+        } else {
+            return false;
+        }
+    }
+    true
+}
+
+fn is_tag_word(said: &str) -> bool {
+    said == said.to_lowercase()
+        && said.nfd().filter(|one| !is_combining_mark(*one)).eq(said.chars())
         && said
-            .bytes()
-            .all(|one| one.is_ascii_alphanumeric() || one == b'-')
+            .split('-')
+            .all(|part| !part.is_empty() && part.chars().all(char::is_alphanumeric))
 }
 
 fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<String>) {
@@ -355,6 +450,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
         "language" => {
             if !value.as_str().is_some_and(is_language) {
                 out.push(wrong("is not a language tag"));
+            }
+        }
+        "tag_word" => {
+            if !value.as_str().is_some_and(is_tag_word) {
+                out.push(wrong("is not a tag"));
             }
         }
         "key" => {
@@ -443,12 +543,117 @@ pub fn check(contract: &str, value: &Value) -> Vec<String> {
     check_fields(&all, contract, value, "", &mut out);
     out
 }
+
+type Opened = (String, Vec<(String, String)>);
+
+// Each tag a page opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+fn opened(html: &str) -> Vec<Opened> {
+    let mut out = Vec::new();
+    let mut rest = html;
+    while let Some(start) = rest.find('<') {
+        rest = &rest[start + 1..];
+        if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
+            continue;
+        }
+        let end = rest
+            .find(|one: char| one.is_whitespace() || one == '/' || one == '>')
+            .unwrap_or(rest.len());
+        let tag = rest[..end].to_ascii_lowercase();
+        rest = &rest[end..];
+        let mut attributes = Vec::new();
+        loop {
+            rest = rest.trim_start_matches(|one: char| one.is_whitespace() || one == '/');
+            if rest.is_empty() {
+                break;
+            }
+            if let Some(after) = rest.strip_prefix('>') {
+                rest = after;
+                break;
+            }
+            let end = rest
+                .find(|one: char| one.is_whitespace() || one == '=' || one == '/' || one == '>')
+                .unwrap_or(rest.len());
+            let name = rest[..end].to_ascii_lowercase();
+            rest = rest[end..].trim_start();
+            let Some(after) = rest.strip_prefix('=') else {
+                attributes.push((name, String::new()));
+                continue;
+            };
+            let after = after.trim_start();
+            let (value, left) = match after.chars().next() {
+                Some(quote @ ('"' | '\\'')) => {
+                    let inner = &after[1..];
+                    let end = inner.find(quote).unwrap_or(inner.len());
+                    (&inner[..end], inner.get(end + 1..).unwrap_or_default())
+                }
+                _ => after.split_at(
+                    after
+                        .find(|one: char| one.is_whitespace() || one == '>')
+                        .unwrap_or(after.len()),
+                ),
+            };
+            attributes.push((name, value.to_owned()));
+            rest = left;
+        }
+        out.push((tag, attributes));
+    }
+    out
+}
+
+fn listed(many: &Value, one: &str) -> bool {
+    many.as_array().is_some_and(|many| many.iter().any(|known| known == one))
+}
+
+fn broken_by(rule: &Value, value: &str) -> bool {
+    value.split_whitespace().any(|one| listed(&rule["never"], one))
+        || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
+}
+
+/// What in the HTML of a page is outside the contracts. It is no cleaner: it says whether a page speaks this language.
+pub fn check_html(html: &str) -> Vec<String> {
+    let all = whole();
+    let through = &all["passthrough"]["attributes"];
+    let mut out: Vec<String> = Vec::new();
+    for (tag, attributes) in opened(html) {
+        let drawn = &all["allowed"][tag.as_str()];
+        if drawn.is_null() && !listed(&all["passthrough"]["tags"], &tag) {
+            out.push(format!("<{tag}> is in no contract"));
+            continue;
+        }
+        for (name, value) in attributes {
+            if !listed(&drawn["attributes"], &name)
+                && !listed(&through["*"], &name)
+                && !listed(&through[tag.as_str()], &name)
+            {
+                out.push(format!("{name} on <{tag}> is in no contract"));
+            }
+            if name == "class" {
+                for one in value.split_whitespace() {
+                    let starts = drawn["class_starts"].as_array().is_some_and(|many| {
+                        many.iter().any(|start| start.as_str().is_some_and(|start| one.starts_with(start)))
+                    });
+                    if !starts && !listed(&drawn["classes"], one) {
+                        out.push(format!("the class {one} on <{tag}> is in no contract"));
+                    }
+                }
+            }
+            for rule in all["html_rules"].as_array().into_iter().flatten() {
+                if rule["tag"] == tag.as_str() && rule["attribute"] == name.as_str() && broken_by(rule, &value) {
+                    out.push(rule["says"].as_str().unwrap_or_default().to_owned());
+                }
+            }
+        }
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    out.retain(|one| seen.insert(one.clone()));
+    out
+}
 `);
   return out.join("\n");
 };
 
 const rustCases = `use serde_json::Value;
-use tisty_contracts::{CONTRACT, check};
+use tisty_contracts::{CONTRACT, check, check_html};
 
 #[test]
 fn every_case_says_what_the_contract_says() {
@@ -460,6 +665,12 @@ fn every_case_says_what_the_contract_says() {
             let wrong = check(name, &one["value"]);
             let holds = one["holds"].as_bool().unwrap();
             assert_eq!(wrong.is_empty(), holds, "{name}: {}: {wrong:?}", one["says"]);
+            ran += 1;
+        }
+        for one in contract["html_cases"].as_array().into_iter().flatten() {
+            let wrong = check_html(one["html"].as_str().unwrap());
+            let holds = one["holds"].as_bool().unwrap();
+            assert_eq!(wrong.is_empty(), holds, "{name} html: {}: {wrong:?}", one["says"]);
             ran += 1;
         }
     }
@@ -490,7 +701,7 @@ const files = {
   "typescript/cases.test.js": typescriptCases(),
   "rust/Cargo.toml": `[package]
 name = "tisty-contracts"
-version = "${VERSION.replace(/-.*/, "")}"
+version = "${VERSION}"
 edition = "2024"
 license = "AGPL-3.0-only"
 description = "What a Tisty document and task are. Generated from Tisty's contracts."
@@ -498,6 +709,7 @@ description = "What a Tisty document and task are. Generated from Tisty's contra
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+unicode-normalization = "0.1"
 
 [workspace]
 `,

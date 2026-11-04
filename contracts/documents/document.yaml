@@ -22,6 +22,7 @@ fields:
   born_by: { type: text, at_most: 160 }
   edited_by: { type: text, at_most: 160 }
   pages: { type: list, of: page, required: true, at_least: 1 }
+  properties: { type: list, of: property, at_most: 32, says: "Its properties as written, for the details." }
   languages:
     type: list
     of: translation
@@ -51,6 +52,7 @@ cases:
       id: "k7Qm2xPa"
       title: "Paseos"
       tags: [{ name: "rina" }]
+      properties: [{ key: "fuente", values: ["la libreta"] }]
       lang: "pt-BR"
       paper: "letter"
       sheets: true

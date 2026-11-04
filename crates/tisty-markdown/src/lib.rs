@@ -343,7 +343,3 @@ fn unquoted(line: &str) -> &str {
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "contract_test.rs"]
-mod contract_test;

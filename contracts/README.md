@@ -9,6 +9,6 @@ holds a value to its contract. Each contract's `cases` run in every language.
 
 ```sh
 node contracts/generate.mjs
-node --test contracts/dist/typescript/cases.test.js contracts/tisty.test.mjs
+node --test contracts/dist/typescript/cases.test.js
 cargo test --manifest-path contracts/dist/rust/Cargo.toml
 ```

@@ -310,7 +310,7 @@ the_packages_keep_to_themselves() {
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
 }
 
-# The contracts: what is kept is what their YAML says, their cases hold, and Tisty draws with what they promise.
+# The contracts: what is kept is what their YAML says, and their cases hold.
 the_contracts_hold() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the contracts were not looked at"
@@ -320,10 +320,10 @@ the_contracts_hold() {
     went_well "node_modules is not here, so the contracts were not looked at"
     return
   fi
-  if node contracts/generate.mjs --check && node --test contracts/dist/typescript/cases.test.js contracts/tisty.test.mjs > /dev/null; then
+  if node contracts/generate.mjs --check && node --test contracts/dist/typescript/cases.test.js > /dev/null; then
     went_well "the contracts hold"
   else
-    amiss "the contracts do not hold; run node contracts/generate.mjs and node --test contracts/tisty.test.mjs"
+    amiss "the contracts do not hold; run node contracts/generate.mjs and node --test contracts/dist/typescript/cases.test.js"
   fi
 }
 
