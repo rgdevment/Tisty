@@ -7,6 +7,9 @@ describe("the shape the core gives a tag", () => {
     expect(named("legal__mensual")).toBe("legal-mensual");
     expect(named("-legal-")).toBe("legal");
     expect(named("diseño")).toBe("diseno");
+    expect(named("Ελλάδα")).toBe("ελλαδα");
+    for (const word of ["हिन्दी", "தமிழ்", "한글", "がくせい"]) expect(named(word)).toBe(word);
+    expect(named("한글".normalize("NFD"))).toBe("한글");
     expect(named("camión")).toBe(named("camion"));
     expect(named("CAMIÓN")).toBe("camion");
   });

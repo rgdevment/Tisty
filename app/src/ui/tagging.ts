@@ -3,22 +3,26 @@ import { frontTags, unfronted } from "../front";
 /// The same reading the core does when it saves: a hash pinned to a letter or a digit, with a
 /// separator in front of it. `# Heading` carries a space, and a colour or a web address carries
 /// something that is not a separator.
-const AT = /(^|[^\p{L}\p{N}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\-_]*)/gu;
+const AT = /(^|[^\p{L}\p{N}\p{M}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\p{M}\-_]*)/gu;
+
+// The alphabets that write an accent over a letter that stands without it. Elsewhere a mark is how the word is written.
+const ACCENTS = /([\u0021-\u052F\u1E00-\u1FFF])\p{M}+/gu;
 
 export const worthReading = (tag: string): boolean => tag.length > 1 && /\p{L}/u.test(tag);
 
-/// The same shape the core gives a tag — accents off, lowercase, underscores and spaces as dashes,
+/// The same shape the core gives a tag — accents off where a letter stands without them, lowercase, underscores and spaces as dashes,
 /// nothing else kept, and never two dashes in a row. A word that lands anywhere else opens a
 /// screen with nothing on it.
 export const named = (said: string): string =>
   said
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .replace(ACCENTS, "$1")
     .toLowerCase()
     .replace(/[\s_]/g, "-")
-    .replace(/[^\p{L}\p{N}-]/gu, "")
+    .replace(/[^\p{L}\p{N}\p{M}-]/gu, "")
     .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
+    .normalize("NFC");
 
 export const often = (body: string): Map<string, number> => {
   const many = new Map<string, number>();

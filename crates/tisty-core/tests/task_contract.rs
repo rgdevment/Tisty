@@ -111,6 +111,27 @@ fn every_status_and_priority_tisty_keeps_is_one_the_contract_knows() {
 }
 
 #[test]
+fn every_tag_tisty_makes_is_one_the_contract_knows() {
+    for said in [
+        "Camión",
+        "Ελλάδα",
+        "हिन्दी",
+        "தமிழ்",
+        "한글",
+        "がくせい",
+        "العربية",
+        "Dos Palabras",
+    ] {
+        let tag = Tag::new(said).unwrap();
+        assert_eq!(
+            check("tag", &json!({ "name": tag.as_str() })),
+            Vec::<String>::new(),
+            "{said}"
+        );
+    }
+}
+
+#[test]
 fn a_task_with_the_least_it_holds_speaks_it_too() {
     let task = Task::new(Ulid::from_parts(1, 1), "x", "a");
     assert_eq!(check("task", &told(&task)), Vec::<String>::new());
