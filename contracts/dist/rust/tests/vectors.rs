@@ -46,7 +46,11 @@ fn seconds(said: &str) -> i64 {
     1_793_707_200
 }
 
-fn opened(bytes: &[u8], link_key: Option<&[u8]>) -> Result<Opened, String> {
+const MAIN: (&str, &str) = ("k7Qm2xPa", "main");
+const FILES: (&str, &str) = ("k7Qm2xPa", "files");
+const PUBLIC: (&str, &str) = ("wordsOnly", "main");
+
+fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     if bytes.len() < 4 || &bytes[..4] != b"TENV" {
         return Err("its mark".into());
     }
@@ -61,6 +65,12 @@ fn opened(bytes: &[u8], link_key: Option<&[u8]>) -> Result<Opened, String> {
     let manifest: Value = serde_json::from_slice(manifest_bytes).map_err(|_| "its manifest")?;
     if !check("envelope", &manifest).is_empty() {
         return Err("its manifest".into());
+    }
+    if manifest["id"] != asked.0 || manifest["kind"] != asked.1 {
+        return Err("not what it asked for".into());
+    }
+    if manifest["sealed"] != true && link_key.is_some() {
+        return Err("a key answers only for what is sealed".into());
     }
     let size = u32::from_be_bytes(piece(4)?.try_into().unwrap()) as usize;
     let signature: Value = serde_json::from_slice(piece(size)?).map_err(|_| "its signature")?;
@@ -164,7 +174,7 @@ fn vectors() -> Value {
 #[test]
 fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     let all = vectors();
-    let main = opened(&hex(&all["main"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap();
+    let main = opened(&hex(&all["main"]["envelope"]), MAIN, Some(&b64(&all["link_key"]))).unwrap();
     let held = document_of(&main);
     assert_eq!(held, all["main"]["document"]);
     assert_eq!(check("document", &held), Vec::<String>::new());
@@ -175,7 +185,7 @@ fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
 #[test]
 fn a_files_envelope_gives_its_files_and_the_main_envelope_answers_for_it() {
     let all = vectors();
-    let held = opened(&hex(&all["files"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap();
+    let held = opened(&hex(&all["files"]["envelope"]), FILES, Some(&b64(&all["link_key"]))).unwrap();
     let files: Vec<Vec<u8>> = all["files"]["files"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(held.parts, files);
     let hash = Sha256::digest([held.manifest, held.index].concat());
@@ -185,7 +195,7 @@ fn a_files_envelope_gives_its_files_and_the_main_envelope_answers_for_it() {
 #[test]
 fn a_public_envelope_opens_without_a_key() {
     let all = vectors();
-    let held = document_of(&opened(&hex(&all["public"]["envelope"]), None).unwrap());
+    let held = document_of(&opened(&hex(&all["public"]["envelope"]), PUBLIC, None).unwrap());
     assert_eq!(held, all["public"]["document"]);
 }
 
@@ -203,7 +213,22 @@ fn a_revocation_is_signed_by_the_root() {
 #[test]
 fn another_key_does_not_open_it() {
     let all = vectors();
-    assert!(opened(&hex(&all["main"]["envelope"]), Some(&[0u8; 32])).is_err());
+    assert!(opened(&hex(&all["main"]["envelope"]), MAIN, Some(&[0u8; 32])).is_err());
+}
+
+#[test]
+fn a_link_with_a_key_refuses_an_envelope_that_is_not_sealed() {
+    let all = vectors();
+    let key = b64(&all["link_key"]);
+    assert!(opened(&hex(&all["public"]["envelope"]), PUBLIC, Some(&key)).is_err());
+}
+
+#[test]
+fn neither_another_document_nor_another_kind_passes_for_the_one_asked_for() {
+    let all = vectors();
+    let key = b64(&all["link_key"]);
+    assert!(opened(&hex(&all["public"]["envelope"]), MAIN, None).is_err());
+    assert!(opened(&hex(&all["files"]["envelope"]), MAIN, Some(&key)).is_err());
 }
 
 #[test]
@@ -213,9 +238,9 @@ fn changing_or_cutting_it_does_not_open_it() {
     let whole = hex(&all["main"]["envelope"]);
     let mut last = whole.clone();
     *last.last_mut().unwrap() ^= 1;
-    assert!(opened(&last, Some(&key)).is_err());
+    assert!(opened(&last, MAIN, Some(&key)).is_err());
     let mut manifest = whole.clone();
     manifest[40] ^= 1;
-    assert!(opened(&manifest, Some(&key)).is_err());
-    assert!(opened(&whole[..whole.len() - 1], Some(&key)).is_err());
+    assert!(opened(&manifest, MAIN, Some(&key)).is_err());
+    assert!(opened(&whole[..whole.len() - 1], MAIN, Some(&key)).is_err());
 }

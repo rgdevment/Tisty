@@ -11,19 +11,19 @@ fields:
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
 cases:
   - says: "A page, its document and its place."
-    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "# Enero" }
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero" }
     holds: true
   - says: "A page with a sheet of its own, like any document."
-    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "# Enero", sheet: { paper: "letter" } }
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero", sheet: { paper: "letter" } }
     holds: true
   - says: "Places count from 1."
-    value: { id: "p1", page_of: "k7Qm2xPa", at: 0, body: "x" }
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 0, html: "<p>x</p>", body: "x" }
     holds: false
   - says: "It does not say which document it belongs to."
-    value: { id: "p1", at: 1, body: "x" }
+    value: { id: "p1", at: 1, html: "<p>x</p>", body: "x" }
     holds: false
   - says: "A page with pages of its own."
-    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, body: "x", pages: [{ id: "p2", page_of: "p1", at: 1, body: "y" }] }
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "x", pages: [{ id: "p2", page_of: "p1", at: 1, html: "<p>x</p>", body: "y" }] }
     holds: false
 ---
 contract: translation

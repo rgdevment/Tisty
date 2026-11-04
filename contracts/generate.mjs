@@ -1,4 +1,4 @@
-// Turns the contracts into a package for each language. With --check it only says whether what is kept is up to date.
+// Turns the contracts into a package for each language: change the YAML, run this, and run vectors/make.mjs if the envelope's format changed.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -111,6 +111,13 @@ const whole = {
   enums: Object.fromEntries(enums),
   allowed: drawn,
   passthrough: { tags: names.get("text").values.passthrough_tags, attributes: names.get("text").values.passthrough_attributes },
+  urls: { schemes: names.get("text").values.url_schemes, attributes: names.get("text").values.url_attributes },
+  styles: contracts.flatMap((one) =>
+    (one.styles ?? []).map(({ on, property, unit, is }) => {
+      if (!unit && !one.values?.[is]) stop(`${one.contract} says a style on ${on} is ${is}, which it does not list`);
+      return unit ? { on, property, unit } : { on, property, values: one.values[is] };
+    }),
+  ),
   html_rules: htmlRules,
 };
 
@@ -161,138 +168,7 @@ const typescriptTypes = () => {
   return out.join("\n");
 };
 
-const typescriptRuntime = () => `const WHOLE = ${JSON.stringify(whole)};
-export const VERSION = WHOLE.version;
-export const CONTRACTS = WHOLE.contracts;
-export const ALLOWED = WHOLE.allowed;
-
-const isTime = (said) => {
-  const found = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})Z$/.exec(said);
-  if (!found) return false;
-  const [month, day, hour, minute, second] = found.slice(2).map(Number);
-  return month >= 1 && month <= 12 && day >= 1 && day <= 31 && hour <= 23 && minute <= 59 && second <= 59;
-};
-
-const base64urlOf = (said, length) => said.length === length && /^[A-Za-z0-9_-]+$/.test(said);
-
-const lengthOf = (said) => [...said].length;
-
-const isLanguage = (said) => /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/.test(said);
-
-const isTagWord = (said) =>
-  said === said.toLowerCase() &&
-  said === said.normalize("NFD").replace(/\\p{M}/gu, "") &&
-  /^[\\p{Alphabetic}\\p{N}]+(-[\\p{Alphabetic}\\p{N}]+)*$/u.test(said);
-
-const checkType = (type, value, at, out) => {
-  if (type === "text") {
-    if (typeof value !== "string") out.push(at + " is not text");
-  } else if (type === "bool") {
-    if (typeof value !== "boolean") out.push(at + " is not true or false");
-  } else if (type === "whole") {
-    if (!Number.isSafeInteger(value) || value < 0) out.push(at + " is not a whole number");
-  } else if (type === "number") {
-    if (typeof value !== "number") out.push(at + " is not a number");
-  } else if (type === "time") {
-    if (typeof value !== "string" || !isTime(value)) out.push(at + " is not a date in whole seconds");
-  } else if (type === "language") {
-    if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
-  } else if (type === "tag_word") {
-    if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
-  } else if (type === "key") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a key");
-  } else if (type === "hash") {
-    if (typeof value !== "string" || !base64urlOf(value, 43)) out.push(at + " is not a hash");
-  } else if (type === "signed") {
-    if (typeof value !== "string" || !base64urlOf(value, 86)) out.push(at + " is not a signature");
-  } else if (WHOLE.enums[type]) {
-    if (!WHOLE.enums[type].includes(value)) out.push(at + " is none of " + WHOLE.enums[type].join(", "));
-  } else {
-    checkFields(type, value, at, out);
-  }
-};
-
-function checkFields(name, value, at, out) {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    out.push(at + " is not a " + name);
-    return;
-  }
-  for (const field of WHOLE.contracts[name].except ?? []) {
-    if (value[field] !== undefined) out.push((at === "" ? field : at + "." + field) + " is not something a " + name + " has");
-  }
-  for (const [field, said] of Object.entries(WHOLE.contracts[name].fields ?? {})) {
-    const here = at === "" ? field : at + "." + field;
-    const given = value[field];
-    if (given === undefined || given === null) {
-      if (said.required || value[said.required_when] === true) out.push(here + " is missing");
-      continue;
-    }
-    if (said.type === "list") {
-      if (!Array.isArray(given)) {
-        out.push(here + " is not a list");
-        continue;
-      }
-      if (said.at_least !== undefined && given.length < said.at_least) out.push(here + " has too few");
-      if (said.at_most !== undefined && given.length > said.at_most) out.push(here + " has too many");
-      given.forEach((one, n) => checkType(said.of, one, here + "[" + n + "]", out));
-      continue;
-    }
-    checkType(said.type, given, here, out);
-    const size = typeof given === "string" ? lengthOf(given) : given;
-    if (typeof size === "number" && (typeof given === "string" || said.type === "whole" || said.type === "number")) {
-      if (said.at_least !== undefined && size < said.at_least) out.push(here + " is too short or too low");
-      if (said.at_most !== undefined && size > said.at_most) out.push(here + " is too long or too high");
-    }
-  }
-}
-
-export function check(contract, value) {
-  if (!WHOLE.contracts[contract]) return ["there is no contract called " + contract];
-  const out = [];
-  checkFields(contract, value, "", out);
-  return out;
-}
-
-// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
-const opened = (html) => {
-  const tags = /<([a-zA-Z][^\\s/>]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>?/g;
-  const attributes = /([^\\s=/>]+)(?:\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]*)))?/g;
-  return [...html.matchAll(tags)].map(([, tag, rest]) => ({
-    tag: tag.toLowerCase(),
-    attributes: [...rest.matchAll(attributes)].map(([, name, double, single, bare]) => [name.toLowerCase(), double ?? single ?? bare ?? ""]),
-  }));
-};
-
-const brokenBy = (rule, value) =>
-  (rule.never ?? []).some((one) => value.split(/\\s+/).includes(one)) ||
-  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
-
-export function checkHtml(html) {
-  const out = [];
-  const through = WHOLE.passthrough.attributes;
-  for (const { tag, attributes } of opened(html)) {
-    const drawn = WHOLE.allowed[tag];
-    if (!drawn && !WHOLE.passthrough.tags.includes(tag)) {
-      out.push("<" + tag + "> is in no contract");
-      continue;
-    }
-    for (const [name, value] of attributes) {
-      const listed = drawn?.attributes.includes(name) || through["*"].includes(name) || through[tag]?.includes(name);
-      if (!listed) out.push(name + " on <" + tag + "> is in no contract");
-      if (name === "class") {
-        for (const one of value.split(/\\s+/).filter(Boolean)) {
-          const known = drawn?.classes.includes(one) || drawn?.class_starts.some((start) => one.startsWith(start));
-          if (!known) out.push("the class " + one + " on <" + tag + "> is in no contract");
-        }
-      }
-      for (const rule of WHOLE.html_rules) {
-        if (rule.tag === tag && rule.attribute === name && brokenBy(rule, value)) out.push(rule.says);
-      }
-    }
-  }
-  return [...new Set(out)];
-}
-`;
+const typescriptRuntime = () => `const WHOLE = ${JSON.stringify(whole)};\n${readFileSync(join(here, "runtime", "check.js"), "utf8")}`;
 
 const typescriptCases = () => `import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -330,9 +206,6 @@ const rustLib = () => {
     "//! The contracts of Tisty, generated from their YAML. Change the YAML, never this.",
     "",
     "use serde::{Deserialize, Serialize};",
-    "use serde_json::Value;",
-    "use unicode_normalization::UnicodeNormalization;",
-    "use unicode_normalization::char::is_combining_mark;",
     "",
     `pub const VERSION: &str = "${VERSION}";`,
     'pub const CONTRACT: &str = include_str!("contract.json");',
@@ -371,315 +244,7 @@ const rustLib = () => {
       out.push("}", "");
     }
   }
-  out.push(`fn whole() -> Value {
-    serde_json::from_str(CONTRACT).expect("the contract is generated as JSON")
-}
-
-fn is_time(said: &str) -> bool {
-    let b = said.as_bytes();
-    let digits = |from: usize, to: usize| b[from..to].iter().all(u8::is_ascii_digit);
-    let number = |from: usize, to: usize| said[from..to].parse::<u32>().unwrap_or(99);
-    b.len() == 20
-        && digits(0, 4)
-        && b[4] == b'-'
-        && digits(5, 7)
-        && b[7] == b'-'
-        && digits(8, 10)
-        && b[10] == b'T'
-        && digits(11, 13)
-        && b[13] == b':'
-        && digits(14, 16)
-        && b[16] == b':'
-        && digits(17, 19)
-        && b[19] == b'Z'
-        && (1..=12).contains(&number(5, 7))
-        && (1..=31).contains(&number(8, 10))
-        && number(11, 13) <= 23
-        && number(14, 16) <= 59
-        && number(17, 19) <= 59
-}
-
-fn base64url_of(said: &str, length: usize) -> bool {
-    said.len() == length
-        && said
-            .bytes()
-            .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_')
-}
-
-fn is_language(said: &str) -> bool {
-    let lower = |one: &str| one.bytes().all(|letter| letter.is_ascii_lowercase());
-    let mut parts = said.split('-');
-    let language = parts.next().unwrap_or_default();
-    if !(2..=3).contains(&language.len()) || !lower(language) {
-        return false;
-    }
-    let mut script = false;
-    let mut region = false;
-    for part in parts {
-        let bytes = part.as_bytes();
-        let is_script = bytes.len() == 4 && bytes[0].is_ascii_uppercase() && lower(&part[1..]);
-        let is_region = (bytes.len() == 2 && bytes.iter().all(u8::is_ascii_uppercase))
-            || (bytes.len() == 3 && bytes.iter().all(u8::is_ascii_digit));
-        if is_script && !script && !region {
-            script = true;
-        } else if is_region && !region {
-            region = true;
-        } else {
-            return false;
-        }
-    }
-    true
-}
-
-fn is_tag_word(said: &str) -> bool {
-    said == said.to_lowercase()
-        && said.nfd().filter(|one| !is_combining_mark(*one)).eq(said.chars())
-        && said
-            .split('-')
-            .all(|part| !part.is_empty() && part.chars().all(char::is_alphanumeric))
-}
-
-fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<String>) {
-    let wrong = |said: &str| format!("{at} {said}");
-    match kind {
-        "text" => {
-            if !value.is_string() {
-                out.push(wrong("is not text"));
-            }
-        }
-        "bool" => {
-            if !value.is_boolean() {
-                out.push(wrong("is not true or false"));
-            }
-        }
-        "whole" => {
-            if !value.is_u64() {
-                out.push(wrong("is not a whole number"));
-            }
-        }
-        "number" => {
-            if !value.is_number() {
-                out.push(wrong("is not a number"));
-            }
-        }
-        "time" => {
-            if !value.as_str().is_some_and(is_time) {
-                out.push(wrong("is not a date in whole seconds"));
-            }
-        }
-        "language" => {
-            if !value.as_str().is_some_and(is_language) {
-                out.push(wrong("is not a language tag"));
-            }
-        }
-        "tag_word" => {
-            if !value.as_str().is_some_and(is_tag_word) {
-                out.push(wrong("is not a tag"));
-            }
-        }
-        "key" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
-                out.push(wrong("is not a key"));
-            }
-        }
-        "hash" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43)) {
-                out.push(wrong("is not a hash"));
-            }
-        }
-        "signed" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 86)) {
-                out.push(wrong("is not a signature"));
-            }
-        }
-        _ => match all["enums"].get(kind) {
-            Some(values) => {
-                let listed = values.as_array().is_some_and(|many| many.contains(value));
-                if !listed {
-                    out.push(wrong("is none of what its list allows"));
-                }
-            }
-            None => check_fields(all, kind, value, at, out),
-        },
-    }
-}
-
-fn check_fields(all: &Value, name: &str, value: &Value, at: &str, out: &mut Vec<String>) {
-    let Some(given) = value.as_object() else {
-        out.push(format!("{at} is not a {name}"));
-        return;
-    };
-    let gone = all["contracts"][name]["except"].as_array().into_iter().flatten();
-    for field in gone.filter_map(Value::as_str).filter(|field| given.contains_key(*field)) {
-        let here = if at.is_empty() { field.to_owned() } else { format!("{at}.{field}") };
-        out.push(format!("{here} is not something a {name} has"));
-    }
-    let Some(fields) = all["contracts"][name]["fields"].as_object() else {
-        return;
-    };
-    for (field, said) in fields {
-        let here = if at.is_empty() { field.clone() } else { format!("{at}.{field}") };
-        let one = given.get(field).filter(|one| !one.is_null());
-        let Some(one) = one else {
-            let when = said["required_when"].as_str().and_then(|field| given.get(field));
-            if said["required"].as_bool() == Some(true) || when == Some(&Value::Bool(true)) {
-                out.push(format!("{here} is missing"));
-            }
-            continue;
-        };
-        let least = said["at_least"].as_u64();
-        let most = said["at_most"].as_u64();
-        if said["type"] == "list" {
-            let Some(many) = one.as_array() else {
-                out.push(format!("{here} is not a list"));
-                continue;
-            };
-            if least.is_some_and(|floor| (many.len() as u64) < floor) {
-                out.push(format!("{here} has too few"));
-            }
-            if most.is_some_and(|top| many.len() as u64 > top) {
-                out.push(format!("{here} has too many"));
-            }
-            let of = said["of"].as_str().unwrap_or_default();
-            for (n, item) in many.iter().enumerate() {
-                check_type(all, of, item, &format!("{here}[{n}]"), out);
-            }
-            continue;
-        }
-        let kind = said["type"].as_str().unwrap_or_default();
-        check_type(all, kind, one, &here, out);
-        let size = match one {
-            Value::String(text) => Some(text.chars().count() as u64),
-            Value::Number(number) => number.as_u64(),
-            _ => None,
-        };
-        if let Some(size) = size {
-            if least.is_some_and(|floor| size < floor) {
-                out.push(format!("{here} is too short or too low"));
-            }
-            if most.is_some_and(|top| size > top) {
-                out.push(format!("{here} is too long or too high"));
-            }
-        }
-    }
-}
-
-/// What is wrong with a value under this contract: nothing when it holds.
-pub fn check(contract: &str, value: &Value) -> Vec<String> {
-    let all = whole();
-    if all["contracts"].get(contract).is_none() {
-        return vec![format!("there is no contract called {contract}")];
-    }
-    let mut out = Vec::new();
-    check_fields(&all, contract, value, "", &mut out);
-    out
-}
-
-type Opened = (String, Vec<(String, String)>);
-
-// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
-fn opened(html: &str) -> Vec<Opened> {
-    let mut out = Vec::new();
-    let mut rest = html;
-    while let Some(start) = rest.find('<') {
-        rest = &rest[start + 1..];
-        if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
-            continue;
-        }
-        let end = rest
-            .find(|one: char| one.is_whitespace() || one == '/' || one == '>')
-            .unwrap_or(rest.len());
-        let tag = rest[..end].to_ascii_lowercase();
-        rest = &rest[end..];
-        let mut attributes = Vec::new();
-        loop {
-            rest = rest.trim_start_matches(|one: char| one.is_whitespace() || one == '/');
-            if rest.is_empty() {
-                break;
-            }
-            if let Some(after) = rest.strip_prefix('>') {
-                rest = after;
-                break;
-            }
-            let end = rest
-                .find(|one: char| one.is_whitespace() || one == '=' || one == '/' || one == '>')
-                .unwrap_or(rest.len());
-            let name = rest[..end].to_ascii_lowercase();
-            rest = rest[end..].trim_start();
-            let Some(after) = rest.strip_prefix('=') else {
-                attributes.push((name, String::new()));
-                continue;
-            };
-            let after = after.trim_start();
-            let (value, left) = match after.chars().next() {
-                Some(quote @ ('"' | '\\'')) => {
-                    let inner = &after[1..];
-                    let end = inner.find(quote).unwrap_or(inner.len());
-                    (&inner[..end], inner.get(end + 1..).unwrap_or_default())
-                }
-                _ => after.split_at(
-                    after
-                        .find(|one: char| one.is_whitespace() || one == '>')
-                        .unwrap_or(after.len()),
-                ),
-            };
-            attributes.push((name, value.to_owned()));
-            rest = left;
-        }
-        out.push((tag, attributes));
-    }
-    out
-}
-
-fn listed(many: &Value, one: &str) -> bool {
-    many.as_array().is_some_and(|many| many.iter().any(|known| known == one))
-}
-
-fn broken_by(rule: &Value, value: &str) -> bool {
-    value.split_whitespace().any(|one| listed(&rule["never"], one))
-        || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
-}
-
-/// What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language.
-pub fn check_html(html: &str) -> Vec<String> {
-    let all = whole();
-    let through = &all["passthrough"]["attributes"];
-    let mut out: Vec<String> = Vec::new();
-    for (tag, attributes) in opened(html) {
-        let drawn = &all["allowed"][tag.as_str()];
-        if drawn.is_null() && !listed(&all["passthrough"]["tags"], &tag) {
-            out.push(format!("<{tag}> is in no contract"));
-            continue;
-        }
-        for (name, value) in attributes {
-            if !listed(&drawn["attributes"], &name)
-                && !listed(&through["*"], &name)
-                && !listed(&through[tag.as_str()], &name)
-            {
-                out.push(format!("{name} on <{tag}> is in no contract"));
-            }
-            if name == "class" {
-                for one in value.split_whitespace() {
-                    let starts = drawn["class_starts"].as_array().is_some_and(|many| {
-                        many.iter().any(|start| start.as_str().is_some_and(|start| one.starts_with(start)))
-                    });
-                    if !starts && !listed(&drawn["classes"], one) {
-                        out.push(format!("the class {one} on <{tag}> is in no contract"));
-                    }
-                }
-            }
-            for rule in all["html_rules"].as_array().into_iter().flatten() {
-                if rule["tag"] == tag.as_str() && rule["attribute"] == name.as_str() && broken_by(rule, &value) {
-                    out.push(rule["says"].as_str().unwrap_or_default().to_owned());
-                }
-            }
-        }
-    }
-    let mut seen = std::collections::BTreeSet::new();
-    out.retain(|one| seen.insert(one.clone()));
-    out
-}
-`);
+  out.push(readFileSync(join(here, "runtime", "check.rs"), "utf8"));
   return out.join("\n");
 };
 
@@ -721,7 +286,7 @@ const files = {
       type: "module",
       main: "index.js",
       types: "index.d.ts",
-      exports: { ".": { types: "./index.d.ts", default: "./index.js" } },
+      exports: { ".": { types: "./index.d.ts", default: "./index.js" }, "./vectors.json": "./vectors.json" },
       files: ["index.js", "index.d.ts", "vectors.json"],
     },
     null,

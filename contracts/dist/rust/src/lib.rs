@@ -1,11 +1,8 @@
 //! The contracts of Tisty, generated from their YAML. Change the YAML, never this.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use unicode_normalization::UnicodeNormalization;
-use unicode_normalization::char::is_combining_mark;
 
-pub const VERSION: &str = "1.0.0-draft.6";
+pub const VERSION: &str = "1.0.0-draft.7";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -135,8 +132,7 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited_by: Option<String>,
     pub body: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub html: Option<String>,
+    pub html: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pages: Option<Vec<Page>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -277,8 +273,7 @@ pub struct Page {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited_by: Option<String>,
     pub body: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub html: Option<String>,
+    pub html: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub properties: Option<Vec<Property>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -397,16 +392,35 @@ pub struct Reminder {
     pub at: String,
 }
 
-fn whole() -> Value {
-    serde_json::from_str(CONTRACT).expect("the contract is generated as JSON")
+use std::sync::OnceLock;
+
+use serde_json::Value;
+use unicode_normalization::UnicodeNormalization;
+use unicode_normalization::char::is_combining_mark;
+
+fn whole() -> &'static Value {
+    static WHOLE: OnceLock<Value> = OnceLock::new();
+    WHOLE.get_or_init(|| serde_json::from_str(CONTRACT).expect("the contract is generated as JSON"))
+}
+
+fn days_in(year: u32, month: u32) -> u32 {
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    match month {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    }
 }
 
 fn is_time(said: &str) -> bool {
     let b = said.as_bytes();
+    if b.len() != 20 {
+        return false;
+    }
     let digits = |from: usize, to: usize| b[from..to].iter().all(u8::is_ascii_digit);
     let number = |from: usize, to: usize| said[from..to].parse::<u32>().unwrap_or(99);
-    b.len() == 20
-        && digits(0, 4)
+    digits(0, 4)
         && b[4] == b'-'
         && digits(5, 7)
         && b[7] == b'-'
@@ -419,7 +433,7 @@ fn is_time(said: &str) -> bool {
         && digits(17, 19)
         && b[19] == b'Z'
         && (1..=12).contains(&number(5, 7))
-        && (1..=31).contains(&number(8, 10))
+        && (1..=days_in(number(0, 4), number(5, 7))).contains(&number(8, 10))
         && number(11, 13) <= 23
         && number(14, 16) <= 59
         && number(17, 19) <= 59
@@ -597,13 +611,21 @@ pub fn check(contract: &str, value: &Value) -> Vec<String> {
         return vec![format!("there is no contract called {contract}")];
     }
     let mut out = Vec::new();
-    check_fields(&all, contract, value, "", &mut out);
+    check_fields(all, contract, value, "", &mut out);
     out
 }
 
-type Opened = (String, Vec<(String, String)>);
+fn is_space(one: char) -> bool {
+    matches!(one, '\t' | '\n' | '\x0C' | '\r' | ' ')
+}
 
-// Each tag the HTML opens, with its attributes. It walks both quotes, since a quote can hide a > or a name.
+struct Opened {
+    tag: String,
+    attributes: Vec<(String, String)>,
+    unclosed: bool,
+}
+
+// Each tag the HTML opens, with its attributes. It walks as checkHtml does in TypeScript, so one page gets one verdict.
 fn opened(html: &str) -> Vec<Opened> {
     let mut out = Vec::new();
     let mut rest = html;
@@ -613,13 +635,12 @@ fn opened(html: &str) -> Vec<Opened> {
             continue;
         }
         let end = rest
-            .find(|one: char| one.is_whitespace() || one == '/' || one == '>')
+            .find(|one: char| is_space(one) || one == '/' || one == '>')
             .unwrap_or(rest.len());
-        let tag = rest[..end].to_ascii_lowercase();
+        let mut one = Opened { tag: rest[..end].to_ascii_lowercase(), attributes: Vec::new(), unclosed: false };
         rest = &rest[end..];
-        let mut attributes = Vec::new();
         loop {
-            rest = rest.trim_start_matches(|one: char| one.is_whitespace() || one == '/');
+            rest = rest.trim_start_matches(|one: char| is_space(one) || one == '/');
             if rest.is_empty() {
                 break;
             }
@@ -628,31 +649,34 @@ fn opened(html: &str) -> Vec<Opened> {
                 break;
             }
             let end = rest
-                .find(|one: char| one.is_whitespace() || one == '=' || one == '/' || one == '>')
+                .find(|one: char| is_space(one) || one == '=' || one == '/' || one == '>')
                 .unwrap_or(rest.len());
             let name = rest[..end].to_ascii_lowercase();
-            rest = rest[end..].trim_start();
+            rest = rest[end..].trim_start_matches(is_space);
             let Some(after) = rest.strip_prefix('=') else {
-                attributes.push((name, String::new()));
+                one.attributes.push((name, String::new()));
                 continue;
             };
-            let after = after.trim_start();
-            let (value, left) = match after.chars().next() {
+            rest = after.trim_start_matches(is_space);
+            match rest.chars().next() {
                 Some(quote @ ('"' | '\'')) => {
-                    let inner = &after[1..];
-                    let end = inner.find(quote).unwrap_or(inner.len());
-                    (&inner[..end], inner.get(end + 1..).unwrap_or_default())
+                    let inner = &rest[1..];
+                    let Some(close) = inner.find(quote) else {
+                        one.unclosed = true;
+                        rest = "";
+                        break;
+                    };
+                    one.attributes.push((name, inner[..close].to_owned()));
+                    rest = &inner[close + 1..];
                 }
-                _ => after.split_at(
-                    after
-                        .find(|one: char| one.is_whitespace() || one == '>')
-                        .unwrap_or(after.len()),
-                ),
-            };
-            attributes.push((name, value.to_owned()));
-            rest = left;
+                _ => {
+                    let end = rest.find(|one: char| is_space(one) || one == '>').unwrap_or(rest.len());
+                    one.attributes.push((name, rest[..end].to_owned()));
+                    rest = &rest[end..];
+                }
+            }
         }
-        out.push((tag, attributes));
+        out.push(one);
     }
     out
 }
@@ -661,9 +685,47 @@ fn listed(many: &Value, one: &str) -> bool {
     many.as_array().is_some_and(|many| many.iter().any(|known| known == one))
 }
 
+fn words(said: &str) -> impl Iterator<Item = &str> {
+    said.split(is_space).filter(|one| !one.is_empty())
+}
+
 fn broken_by(rule: &Value, value: &str) -> bool {
-    value.split_whitespace().any(|one| listed(&rule["never"], one))
+    words(value).any(|one| listed(&rule["never"], one))
         || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
+}
+
+// Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
+fn wrong_url(all: &Value, value: &str) -> bool {
+    let bare: String = value.chars().filter(|one| *one > ' ').collect();
+    let end = bare.find(['/', '?', '#']).unwrap_or(bare.len());
+    let head = &bare[..end];
+    if head.contains('&') {
+        return true;
+    }
+    head.split_once(':')
+        .is_some_and(|(scheme, _)| !listed(&all["urls"]["schemes"], &scheme.to_ascii_lowercase()))
+}
+
+fn is_size_in(said: &str, unit: &str) -> bool {
+    let all_digits = |one: &str| !one.is_empty() && one.bytes().all(|digit| digit.is_ascii_digit());
+    said.strip_suffix(unit).is_some_and(|number| match number.split_once('.') {
+        Some((whole, part)) => all_digits(whole) && all_digits(part),
+        None => all_digits(number),
+    })
+}
+
+fn wrong_style(all: &Value, tag: &str, one: &str) -> bool {
+    let (property, said) = one.split_once(':').unwrap_or(("", one));
+    let property = property.trim().to_ascii_lowercase();
+    let said = said.trim().to_ascii_lowercase();
+    !all["styles"].as_array().into_iter().flatten().any(|rule| {
+        rule["on"] == tag
+            && rule["property"] == property.as_str()
+            && match rule["unit"].as_str() {
+                Some(unit) => is_size_in(&said, unit),
+                None => listed(&rule["values"], &said),
+            }
+    })
 }
 
 /// What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language.
@@ -671,11 +733,14 @@ pub fn check_html(html: &str) -> Vec<String> {
     let all = whole();
     let through = &all["passthrough"]["attributes"];
     let mut out: Vec<String> = Vec::new();
-    for (tag, attributes) in opened(html) {
+    for Opened { tag, attributes, unclosed } in opened(html) {
         let drawn = &all["allowed"][tag.as_str()];
         if drawn.is_null() && !listed(&all["passthrough"]["tags"], &tag) {
             out.push(format!("<{tag}> is in no contract"));
             continue;
+        }
+        if unclosed {
+            out.push(format!("<{tag}> leaves a quote open"));
         }
         for (name, value) in attributes {
             if !listed(&drawn["attributes"], &name)
@@ -685,12 +750,22 @@ pub fn check_html(html: &str) -> Vec<String> {
                 out.push(format!("{name} on <{tag}> is in no contract"));
             }
             if name == "class" {
-                for one in value.split_whitespace() {
+                for one in words(&value) {
                     let starts = drawn["class_starts"].as_array().is_some_and(|many| {
                         many.iter().any(|start| start.as_str().is_some_and(|start| one.starts_with(start)))
                     });
                     if !starts && !listed(&drawn["classes"], one) {
                         out.push(format!("the class {one} on <{tag}> is in no contract"));
+                    }
+                }
+            }
+            if listed(&all["urls"]["attributes"], &name) && wrong_url(all, &value) {
+                out.push(format!("{name} on <{tag}> goes where no contract lets it"));
+            }
+            if name == "style" {
+                for one in value.split(';').map(str::trim).filter(|one| !one.is_empty()) {
+                    if wrong_style(all, &tag, one) {
+                        out.push(format!("the style {one} on <{tag}> is in no contract"));
                     }
                 }
             }

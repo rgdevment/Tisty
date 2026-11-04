@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-draft.6",
+  "version": "1.0.0-draft.7",
   "contracts": {
     "text": {
       "contract": "text",
@@ -41,6 +41,11 @@
           "https",
           "mailto",
           "tisty"
+        ],
+        "url_attributes": [
+          "href",
+          "src",
+          "cite"
         ],
         "page_source": "tisty:page/N, the at of a page in the same document",
         "passthrough_tags": [
@@ -995,7 +1000,8 @@
         },
         "html": {
           "type": "text",
-          "says": "Its words as the writer drew them."
+          "required": true,
+          "says": "Its words as the writer drew them. A reader never draws them itself."
         },
         "pages": {
           "type": "list",
@@ -1120,6 +1126,61 @@
           "says": "A style where no contract says one.",
           "html": "<div style=\"color:red\">a</div>",
           "holds": false
+        },
+        {
+          "says": "A style a table can say.",
+          "html": "<table><colgroup><col style=\"width:120px\"></colgroup><tr><td style=\"text-align:right\">1</td></tr></table>",
+          "holds": true
+        },
+        {
+          "says": "A style a table cannot say.",
+          "html": "<table><tr><td style=\"position:fixed\">1</td></tr></table>",
+          "holds": false
+        },
+        {
+          "says": "A size where a column does not take it.",
+          "html": "<table><colgroup><col style=\"width:-1px\"></colgroup></table>",
+          "holds": false
+        },
+        {
+          "says": "A style that asks someone else for something.",
+          "html": "<table><tr><td style=\"text-align:right;background:url(//a.example/x)\">1</td></tr></table>",
+          "holds": false
+        },
+        {
+          "says": "Links a document can hold.",
+          "html": "<a href=\"https://a.example/x?b=1&c=2\">a</a> <a href=\"#enero\">b</a> <a href=\"mailto:a@b.example\">c</a> <a href=\"otro.html\">d</a>",
+          "holds": true
+        },
+        {
+          "says": "A link that runs something.",
+          "html": "<a href=\"javascript:alert(1)\">a</a>",
+          "holds": false
+        },
+        {
+          "says": "The same one, broken by a line.",
+          "html": "<a href=\"java\nscript:alert(1)\">a</a>",
+          "holds": false
+        },
+        {
+          "says": "The same one, hidden behind an entity.",
+          "html": "<a href=\"javascript&#58;alert(1)\">a</a>",
+          "holds": false
+        },
+        {
+          "says": "A tag every object inherits, alone.",
+          "html": "<constructor>",
+          "holds": false
+        },
+        {
+          "says": "A tag every object inherits, with an attribute.",
+          "html": "<constructor a=\"1\">",
+          "holds": false
+        },
+        {
+          "says": "A quote that never closes.",
+          "html": "<img src=\"tisty:picture/0><script>alert(1)</script>",
+          "holds": false
         }
       ],
       "roles": {
@@ -1189,6 +1250,7 @@
           "says": "The least a document holds, with no pages at all.",
           "value": {
             "id": "k7Qm2xPa",
+            "html": "<p>x</p>",
             "body": "# Paseos"
           },
           "holds": true
@@ -1212,12 +1274,14 @@
             "owner": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
             "made": "2026-11-03T12:00:00Z",
             "wrote": "2026-11-03T12:30:00Z",
+            "html": "<p>Paseos</p>",
             "body": "# Paseos",
             "pages": [
               {
                 "id": "p1",
                 "page_of": "k7Qm2xPa",
                 "at": 1,
+                "html": "<p>x</p>",
                 "body": "# Enero"
               }
             ],
@@ -1235,13 +1299,23 @@
         {
           "says": "No words.",
           "value": {
-            "id": "k7Qm2xPa"
+            "id": "k7Qm2xPa",
+            "html": "<p>x</p>"
+          },
+          "holds": false
+        },
+        {
+          "says": "Not drawn.",
+          "value": {
+            "id": "k7Qm2xPa",
+            "body": "# Paseos"
           },
           "holds": false
         },
         {
           "says": "No id.",
           "value": {
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -1250,18 +1324,21 @@
           "says": "A page of a page, which is one level too many.",
           "value": {
             "id": "x",
+            "html": "<p>x</p>",
             "body": "x",
             "pages": [
               {
                 "id": "p1",
                 "page_of": "x",
                 "at": 1,
+                "html": "<p>x</p>",
                 "body": "y",
                 "pages": [
                   {
                     "id": "p2",
                     "page_of": "p1",
                     "at": 1,
+                    "html": "<p>x</p>",
                     "body": "z"
                   }
                 ]
@@ -1274,6 +1351,7 @@
           "says": "A paper Tisty does not know.",
           "value": {
             "id": "x",
+            "html": "<p>x</p>",
             "body": "x",
             "sheet": {
               "paper": "a3"
@@ -1286,6 +1364,7 @@
           "value": {
             "id": "x",
             "lang": "e s",
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -1295,6 +1374,7 @@
           "value": {
             "id": "x",
             "made": "2026-11-03T12:00:00.5Z",
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -1304,6 +1384,7 @@
           "value": {
             "id": "x",
             "owner": "abc",
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -1366,6 +1447,10 @@
           "signed": "Ed25519 by the machine, over tisty-share.signed.v1, a zero byte, root, machine, the length of envelope in 8 bytes, big endian, envelope, the SHA-256 of the manifest and the index.",
           "files": "The document's files_hash is the SHA-256 of the files envelope's manifest and index, so one signature answers for both."
         },
+        "reader_refuses": [
+          "Under a link with a key, an envelope that is not sealed: the key would answer for nothing.",
+          "A manifest whose id or kind is not what it asked for."
+        ],
         "versions": "The same major version opens. A higher one is read as newer, and a lower one as damaged.",
         "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
       },
@@ -1924,7 +2009,8 @@
         },
         "html": {
           "type": "text",
-          "says": "Its words as the writer drew them."
+          "required": true,
+          "says": "Its words as the writer drew them. A reader never draws them itself."
         },
         "properties": {
           "type": "list",
@@ -1958,6 +2044,7 @@
             "id": "p1",
             "page_of": "k7Qm2xPa",
             "at": 1,
+            "html": "<p>x</p>",
             "body": "# Enero"
           },
           "holds": true
@@ -1968,6 +2055,7 @@
             "id": "p1",
             "page_of": "k7Qm2xPa",
             "at": 1,
+            "html": "<p>x</p>",
             "body": "# Enero",
             "sheet": {
               "paper": "letter"
@@ -1981,6 +2069,7 @@
             "id": "p1",
             "page_of": "k7Qm2xPa",
             "at": 0,
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -1990,6 +2079,7 @@
           "value": {
             "id": "p1",
             "at": 1,
+            "html": "<p>x</p>",
             "body": "x"
           },
           "holds": false
@@ -2000,12 +2090,14 @@
             "id": "p1",
             "page_of": "k7Qm2xPa",
             "at": 1,
+            "html": "<p>x</p>",
             "body": "x",
             "pages": [
               {
                 "id": "p2",
                 "page_of": "p1",
                 "at": 1,
+                "html": "<p>x</p>",
                 "body": "y"
               }
             ]
@@ -2773,6 +2865,30 @@
             "body": "Llamé"
           },
           "holds": true
+        },
+        {
+          "says": "The day a leap year adds.",
+          "value": {
+            "at": "2028-02-29T12:00:00Z",
+            "body": "Llamé"
+          },
+          "holds": true
+        },
+        {
+          "says": "That day in another year, which does not exist.",
+          "value": {
+            "at": "2026-02-29T12:00:00Z",
+            "body": "Llamé"
+          },
+          "holds": false
+        },
+        {
+          "says": "A day no month has.",
+          "value": {
+            "at": "2026-04-31T12:00:00Z",
+            "body": "Llamé"
+          },
+          "holds": false
         }
       ]
     },
@@ -3555,6 +3671,44 @@
       ]
     }
   },
+  "urls": {
+    "schemes": [
+      "http",
+      "https",
+      "mailto",
+      "tisty"
+    ],
+    "attributes": [
+      "href",
+      "src",
+      "cite"
+    ]
+  },
+  "styles": [
+    {
+      "on": "col",
+      "property": "width",
+      "unit": "px"
+    },
+    {
+      "on": "th",
+      "property": "text-align",
+      "values": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    {
+      "on": "td",
+      "property": "text-align",
+      "values": [
+        "left",
+        "center",
+        "right"
+      ]
+    }
+  ],
   "html_rules": [
     {
       "tag": "code",

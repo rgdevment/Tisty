@@ -30,7 +30,7 @@ const verified = async (key, signature, ...pieces) => {
   assert.ok(await subtle.verify("Ed25519", held, signature, joined(...pieces)), "the signature holds");
 };
 
-const opened = async (bytes, linkKey) => {
+const opened = async (bytes, asked, linkKey) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   assert.ok(same(bytes.subarray(0, 4), words("TENV")), "its mark");
   let at = 4;
@@ -46,6 +46,9 @@ const opened = async (bytes, linkKey) => {
   const manifestBytes = piece(length());
   const manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
   assert.deepEqual(check("envelope", manifest), []);
+  assert.equal(manifest.id, asked.id, "the document it asked for");
+  assert.equal(manifest.kind, asked.kind, "the kind it asked for");
+  assert.ok(manifest.sealed || !linkKey, "a key answers only for what is sealed");
   const signature = JSON.parse(new TextDecoder().decode(piece(length())));
   assert.deepEqual(check("signature", signature), []);
   const index = piece(32 * manifest.parts.length);
@@ -81,34 +84,37 @@ const opened = async (bytes, linkKey) => {
 const documentOf = ({ parts }) => Object.assign({}, ...parts.slice(0, 2).map((one) => JSON.parse(new TextDecoder().decode(one))));
 const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
 const linkKey = b64(VECTORS.link_key);
+const MAIN = { id: "k7Qm2xPa", kind: "main" };
+const FILES = { id: "k7Qm2xPa", kind: "files" };
+const PUBLIC = { id: "wordsOnly", kind: "main" };
 
 test("the samples are written under this major version", async () => {
-  const { manifest } = await opened(hex(VECTORS.main.envelope), linkKey);
+  const { manifest } = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
   assert.equal(manifest.contract.split(".")[0], VERSION.split(".")[0]);
 });
 
 test("a main envelope gives its document, its pages and its pictures, with no other request", async () => {
-  const main = await opened(hex(VECTORS.main.envelope), linkKey);
+  const main = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
   assert.deepEqual(documentOf(main), VECTORS.main.document);
   assert.deepEqual(check("document", documentOf(main)), []);
   assert.deepEqual(hexOf(main.parts.slice(2)), VECTORS.main.pictures);
 });
 
 test("a files envelope gives its files, and the main envelope answers for it", async () => {
-  const files = await opened(hex(VECTORS.files.envelope), linkKey);
+  const files = await opened(hex(VECTORS.files.envelope), FILES, linkKey);
   assert.deepEqual(hexOf(files.parts), VECTORS.files.files);
   const hash = await sha(files.manifestBytes, files.index);
   assert.ok(same(hash, b64(VECTORS.main.document.files_hash)));
 });
 
 test("words alone need one envelope", async () => {
-  const { manifest } = await opened(hex(VECTORS.public.envelope));
+  const { manifest } = await opened(hex(VECTORS.public.envelope), PUBLIC);
   assert.equal(manifest.parts.length, 2);
   assert.equal(VECTORS.public.document.files_hash, undefined);
 });
 
 test("a public envelope opens without a key", async () => {
-  const held = documentOf(await opened(hex(VECTORS.public.envelope)));
+  const held = documentOf(await opened(hex(VECTORS.public.envelope), PUBLIC));
   assert.deepEqual(held, VECTORS.public.document);
 });
 
@@ -120,17 +126,29 @@ test("a revocation is signed by the root", async () => {
 });
 
 test("another key does not open it", async () => {
-  await assert.rejects(opened(hex(VECTORS.main.envelope), new Uint8Array(32)));
+  await assert.rejects(opened(hex(VECTORS.main.envelope), MAIN, new Uint8Array(32)));
+});
+
+test("a link with a key refuses an envelope that is not sealed", async () => {
+  await assert.rejects(opened(hex(VECTORS.public.envelope), PUBLIC, linkKey));
+});
+
+test("another document does not pass for the one asked for", async () => {
+  await assert.rejects(opened(hex(VECTORS.public.envelope), MAIN));
+});
+
+test("a files envelope does not pass for the main one", async () => {
+  await assert.rejects(opened(hex(VECTORS.files.envelope), MAIN, linkKey));
 });
 
 for (const [says, at] of [["its last byte", -1], ["a byte of its manifest", 40]]) {
   test(`changing ${says} does not open it`, async () => {
     const bytes = hex(VECTORS.main.envelope);
     bytes[at < 0 ? bytes.length + at : at] ^= 1;
-    await assert.rejects(opened(bytes, linkKey));
+    await assert.rejects(opened(bytes, MAIN, linkKey));
   });
 }
 
 test("cutting it does not open it", async () => {
-  await assert.rejects(opened(hex(VECTORS.main.envelope).slice(0, -1), linkKey));
+  await assert.rejects(opened(hex(VECTORS.main.envelope).slice(0, -1), MAIN, linkKey));
 });

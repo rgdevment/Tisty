@@ -19,7 +19,7 @@ fields:
   born_by: { type: text, at_most: 160 }
   edited_by: { type: text, at_most: 160 }
   body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
-  html: { type: text, says: "Its words as the writer drew them." }
+  html: { type: text, required: true, says: "Its words as the writer drew them. A reader never draws them itself." }
   pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
   pictures: { type: list, of: attachment, says: "The pictures its main envelope holds." }
   files: { type: list, of: attachment, says: "What its files envelope holds." }
@@ -76,6 +76,39 @@ html_cases:
   - says: "A style where no contract says one."
     html: '<div style="color:red">a</div>'
     holds: false
+  - says: "A style a table can say."
+    html: '<table><colgroup><col style="width:120px"></colgroup><tr><td style="text-align:right">1</td></tr></table>'
+    holds: true
+  - says: "A style a table cannot say."
+    html: '<table><tr><td style="position:fixed">1</td></tr></table>'
+    holds: false
+  - says: "A size where a column does not take it."
+    html: '<table><colgroup><col style="width:-1px"></colgroup></table>'
+    holds: false
+  - says: "A style that asks someone else for something."
+    html: '<table><tr><td style="text-align:right;background:url(//a.example/x)">1</td></tr></table>'
+    holds: false
+  - says: "Links a document can hold."
+    html: '<a href="https://a.example/x?b=1&c=2">a</a> <a href="#enero">b</a> <a href="mailto:a@b.example">c</a> <a href="otro.html">d</a>'
+    holds: true
+  - says: "A link that runs something."
+    html: '<a href="javascript:alert(1)">a</a>'
+    holds: false
+  - says: "The same one, broken by a line."
+    html: "<a href=\"java\nscript:alert(1)\">a</a>"
+    holds: false
+  - says: "The same one, hidden behind an entity."
+    html: '<a href="javascript&#58;alert(1)">a</a>'
+    holds: false
+  - says: "A tag every object inherits, alone."
+    html: "<constructor>"
+    holds: false
+  - says: "A tag every object inherits, with an attribute."
+    html: '<constructor a="1">'
+    holds: false
+  - says: "A quote that never closes."
+    html: '<img src="tisty:picture/0><script>alert(1)</script>'
+    holds: false
 roles:
   reader:
     show: { takes: { document: document }, says: "Cleans the document and draws it, in its language." }
@@ -93,7 +126,7 @@ roles:
     draw: { takes: { body: text }, gives: text, says: "Turns the words into the HTML of a document." }
 cases:
   - says: "The least a document holds, with no pages at all."
-    value: { id: "k7Qm2xPa", body: "# Paseos" }
+    value: { id: "k7Qm2xPa", html: "<p>x</p>", body: "# Paseos" }
     holds: true
   - says: "Every field it can say."
     value:
@@ -105,28 +138,32 @@ cases:
       owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       made: "2026-11-03T12:00:00Z"
       wrote: "2026-11-03T12:30:00Z"
+      html: "<p>Paseos</p>"
       body: "# Paseos"
-      pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, body: "# Enero" }]
+      pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero" }]
       properties: [{ key: "fuente", values: ["la libreta"] }]
     holds: true
   - says: "No words."
-    value: { id: "k7Qm2xPa" }
+    value: { id: "k7Qm2xPa", html: "<p>x</p>" }
+    holds: false
+  - says: "Not drawn."
+    value: { id: "k7Qm2xPa", body: "# Paseos" }
     holds: false
   - says: "No id."
-    value: { body: "x" }
+    value: { html: "<p>x</p>", body: "x" }
     holds: false
   - says: "A page of a page, which is one level too many."
-    value: { id: "x", body: "x", pages: [{ id: "p1", page_of: "x", at: 1, body: "y", pages: [{ id: "p2", page_of: "p1", at: 1, body: "z" }] }] }
+    value: { id: "x", html: "<p>x</p>", body: "x", pages: [{ id: "p1", page_of: "x", at: 1, html: "<p>x</p>", body: "y", pages: [{ id: "p2", page_of: "p1", at: 1, html: "<p>x</p>", body: "z" }] }] }
     holds: false
   - says: "A paper Tisty does not know."
-    value: { id: "x", body: "x", sheet: { paper: "a3" } }
+    value: { id: "x", html: "<p>x</p>", body: "x", sheet: { paper: "a3" } }
     holds: false
   - says: "A language that is no tag."
-    value: { id: "x", lang: "e s", body: "x" }
+    value: { id: "x", lang: "e s", html: "<p>x</p>", body: "x" }
     holds: false
   - says: "A date with a fraction of a second, which nobody signed."
-    value: { id: "x", made: "2026-11-03T12:00:00.5Z", body: "x" }
+    value: { id: "x", made: "2026-11-03T12:00:00.5Z", html: "<p>x</p>", body: "x" }
     holds: false
   - says: "A key of the wrong length."
-    value: { id: "x", owner: "abc", body: "x" }
+    value: { id: "x", owner: "abc", html: "<p>x</p>", body: "x" }
     holds: false

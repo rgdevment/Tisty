@@ -37,6 +37,9 @@ values:
       Ed25519 by the machine, over tisty-share.signed.v1, a zero byte, root, machine, the length of envelope in 8 bytes,
       big endian, envelope, the SHA-256 of the manifest and the index.
     files: "The document's files_hash is the SHA-256 of the files envelope's manifest and index, so one signature answers for both."
+  reader_refuses:
+    - "Under a link with a key, an envelope that is not sealed: the key would answer for nothing."
+    - "A manifest whose id or kind is not what it asked for."
   versions: "The same major version opens. A higher one is read as newer, and a lower one as damaged."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
 fields:

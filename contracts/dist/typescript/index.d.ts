@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.0-draft.6";
+export declare const VERSION: "1.0.0-draft.7";
 
 export type EnvelopeKind = "main" | "files";
 
@@ -49,7 +49,7 @@ export interface Document {
   born_by?: string;
   edited_by?: string;
   body: string;
-  html?: string;
+  html: string;
   pages?: Page[];
   pictures?: Attachment[];
   files?: Attachment[];
@@ -150,7 +150,7 @@ export interface Page {
   born_by?: string;
   edited_by?: string;
   body: string;
-  html?: string;
+  html: string;
   properties?: Property[];
   languages?: Translation[];
   page_of: string;
