@@ -81,7 +81,7 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
     let mut found = Vec::new();
     while from < last {
         let to = text[from..].find('\n').map_or(text.len(), |at| from + at);
-        for (at, name) in crate::tags::spots_as_written(&text[from..to]) {
+        for (at, name) in crate::tags::spots(&text[from..to]) {
             let at = from + at.start..from + at.end;
             if filed.contains(&name) && written(&words, &at) && !refs.holding(&at) {
                 found.push(Span {

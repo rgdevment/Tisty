@@ -35,8 +35,8 @@ export const formless = (state: EditorState): boolean => {
 export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
 export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
 export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
-export const TAG_EDGE = String.raw`(?<![\p{L}\p{N}#/\-_.:])`;
-export const TAG_TAIL = String.raw`[\p{L}\p{N}\p{M}_-]`;
+export const TAG_EDGE = String.raw`(?<![\p{L}\p{N}#/\-_.:]\p{M}*)`;
+export const TAG_TAIL = String.raw`(?:[\p{L}\p{N}\p{M}_-]|[\u200C\u200D](?=[\p{L}\p{N}]))`;
 export const TAG_WORD = String.raw`[\p{L}\p{N}]${TAG_TAIL}*`;
 
 // A # in a link's address is an anchor, never a tag, even while the link is still being typed.
