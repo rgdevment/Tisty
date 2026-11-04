@@ -41,28 +41,35 @@ const label = getCurrentWindow().label;
 const quick = label === "quick";
 if (quick) document.documentElement.classList.add("quick");
 
-const drawn = drawsHeicHere()
-  .then(drawsHeic)
-  .catch(() => undefined);
+const drawn = () =>
+  drawsHeicHere()
+    .then(drawsHeic)
+    .catch(() => undefined);
 // Whether a HEIC is a picture is known before anything is drawn, though never at the cost of starting.
 const READY_WITHIN = 300;
 
-void Promise.race([drawn, new Promise((ready) => setTimeout(ready, READY_WITHIN))]).then(() =>
-  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-      <Standing>
-        <Suspense fallback={null}>
-          {label === "moving" ? (
-            <Moving />
-          ) : label.startsWith("view-") ? (
-            <Viewing />
-          ) : quick ? (
-            <Quick />
-          ) : (
-            <App />
-          )}
-        </Suspense>
-      </Standing>
-    </React.StrictMode>,
-  ),
-);
+const shown = () =>
+  Promise.race([drawn(), new Promise((ready) => setTimeout(ready, READY_WITHIN))]).then(() =>
+    ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+      <React.StrictMode>
+        <Standing>
+          <Suspense fallback={null}>
+            {label === "moving" ? (
+              <Moving />
+            ) : label.startsWith("view-") ? (
+              <Viewing />
+            ) : quick ? (
+              <Quick />
+            ) : (
+              <App />
+            )}
+          </Suspense>
+        </Standing>
+      </React.StrictMode>,
+    ),
+  );
+
+// A window nobody sees draws nothing of its own: it is there to finish a document.
+if (label.startsWith("finisher-"))
+  void import("./finishing").then((one) => one.finishWhatIsAsked());
+else void shown();

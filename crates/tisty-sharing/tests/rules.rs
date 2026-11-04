@@ -225,7 +225,7 @@ fn a_person_can_say_a_title_nothing_is_left_of_and_it_still_seals() {
     let (_tmp, mut home) = home();
     let doc = home.wrote("---\ntitle: \"\u{200B}\"\n---\n\nHola\n", None);
     let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
-    assert_eq!(read.held["body"].as_str().unwrap().contains("Hola"), true);
+    assert!(read.held["body"].as_str().unwrap().contains("Hola"));
 }
 
 #[test]
