@@ -170,7 +170,8 @@ const alike = (tag: string, written: string): boolean =>
     .replace(/^#/, "")
     .toLowerCase()
     .replace(/[ _]/g, "-")
-    .replace(/[^\p{L}\p{N}-]/gu, "") === tag;
+    .replace(/[^\p{L}\p{N}\p{M}-]/gu, "")
+    .normalize("NFC") === tag;
 
 function Hint() {
   return (

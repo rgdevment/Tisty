@@ -35,17 +35,8 @@ pub fn tags_in(body: &str) -> Vec<String> {
     found
 }
 
-/// Every tag on one composed line, with the bytes it takes and the name it is filed under.
+/// Every tag on one line, with the bytes it takes and the name it is filed under.
 pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
-    scan(line, false)
-}
-
-/// The same tags on a line as it was written, where an accent may still sit apart from its letter.
-pub fn spots_as_written(line: &str) -> Vec<(Range<usize>, String)> {
-    scan(line, true)
-}
-
-fn scan(line: &str, apart: bool) -> Vec<(Range<usize>, String)> {
     let mut found = Vec::new();
     let bytes = line.as_bytes();
     // A lone backtick is prose: only one that closes marks code.
@@ -61,8 +52,11 @@ fn scan(line: &str, apart: bool) -> Vec<(Range<usize>, String)> {
             at += 1;
             continue;
         }
-        let before = line[..at].chars().next_back();
-        // Anything but a separator before the hash ties it to what came first, like bg-#fff or a URL.
+        // Anything but a separator before the hash ties it to what came first, as bg-#fff, and a mark counts as what it sits on.
+        let before = line[..at]
+            .chars()
+            .rev()
+            .find(|one| !unicode_normalization::char::is_combining_mark(*one));
         if before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one)) {
             at += 1;
             continue;
@@ -73,16 +67,8 @@ fn scan(line: &str, apart: bool) -> Vec<(Range<usize>, String)> {
             at += 1;
             continue;
         }
-        let word: String = rest
-            .chars()
-            .take_while(|one| {
-                one.is_alphanumeric()
-                    || *one == '-'
-                    || *one == '_'
-                    || (apart && unicode_normalization::char::is_combining_mark(*one))
-            })
-            .collect();
-        if let Some(tag) = named(&word).filter(|one| worth_reading(one)) {
+        let word = word_in(rest);
+        if let Some(tag) = named(word).filter(|one| worth_reading(one)) {
             found.push((at..at + 1 + word.len(), tag));
         }
         at += 1 + word.len();
@@ -90,22 +76,66 @@ fn scan(line: &str, apart: bool) -> Vec<(Range<usize>, String)> {
     found
 }
 
+// A joiner is how many scripts write inside a word, so it goes on only where the word does.
+fn word_in(rest: &str) -> &str {
+    let mut end = 0;
+    let mut chars = rest.char_indices().peekable();
+    while let Some((at, one)) = chars.next() {
+        let joins = matches!(one, '\u{200C}' | '\u{200D}')
+            && chars.peek().is_some_and(|(_, next)| next.is_alphanumeric());
+        let holds = one.is_alphanumeric()
+            || one == '-'
+            || one == '_'
+            || unicode_normalization::char::is_combining_mark(one);
+        if !holds && !joins {
+            break;
+        }
+        end = at + one.len_utf8();
+    }
+    &rest[..end]
+}
+
+// Where a mark is an accent or a vowel a reader can do without, over a letter that stands without it.
+fn wears_accents(base: char) -> bool {
+    base <= '\u{06FF}'
+        || ('\u{0750}'..='\u{077F}').contains(&base)
+        || ('\u{08A0}'..='\u{08FF}').contains(&base)
+        || ('\u{1E00}'..='\u{1FFF}').contains(&base)
+}
+
+// It only asks for another drawing of what comes before it, so two tags would look the same and be two.
+fn picks_a_drawing(one: char) -> bool {
+    matches!(one, '\u{180B}'..='\u{180D}' | '\u{FE00}'..='\u{FE0F}' | '\u{E0100}'..='\u{E01EF}')
+}
+
 pub fn named(raw: &str) -> Option<String> {
-    // Accents come off, so #camion on Monday and #camión on Friday are one tag.
-    let normalised: String = composed(raw)
-        .trim()
-        .to_lowercase()
-        .nfd()
-        .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
-        .map(|c| {
-            if c.is_whitespace() || c == '_' {
-                '-'
-            } else {
-                c
+    use unicode_normalization::char::is_combining_mark;
+    // Accents come off so #camion and #camión are one tag; elsewhere a mark is how the word is written.
+    let mut kept = String::with_capacity(raw.len());
+    let mut base = '-';
+    for one in raw.trim().to_lowercase().nfd() {
+        if is_combining_mark(one) {
+            if !picks_a_drawing(one) && !wears_accents(base) {
+                kept.push(one);
             }
-        })
-        .filter(|c| c.is_alphanumeric() || *c == '-')
-        .collect();
+            continue;
+        }
+        let one = if one.is_whitespace() || one == '_' {
+            '-'
+        } else {
+            one
+        };
+        // A mark on what goes goes with it, or it would land on the letter before.
+        base = if one.is_alphanumeric() || one == '-' {
+            one
+        } else {
+            '-'
+        };
+        if one.is_alphanumeric() || one == '-' {
+            kept.push(one);
+        }
+    }
+    let normalised: String = kept.nfc().collect();
 
     let trimmed = normalised.trim_matches('-');
     if !trimmed.chars().any(char::is_alphanumeric) {
@@ -142,3 +172,7 @@ fn collapse_dashes(s: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+#[path = "tags_test.rs"]
+mod tests;
