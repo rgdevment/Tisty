@@ -10,7 +10,7 @@ use jiff::Timestamp;
 use opening::{document_of, opened};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use tisty_contracts::{Document, Sealing};
+use tisty_contracts::{Document, Sealing, check_html};
 use tisty_envelope::family::{Family, Tongue, sealed_family};
 use tisty_envelope::pictures::made;
 use tisty_envelope::sealing::{Refused, Writer};
@@ -514,6 +514,44 @@ fn two_languages_may_cite_one_document_and_it_goes_once() {
     .unwrap();
     let ids: Vec<&str> = going.iter().map(|one| one.id.as_str()).collect();
     assert_eq!(ids, ["hola", "hello", "otro"]);
+}
+
+#[test]
+fn two_documents_never_go_under_one_id() {
+    let mut itself = tongue("aaaa", "es", Some(1));
+    itself.cited = vec![alone(tongue("aaaa", "es", Some(1)))];
+    assert!(sealed(alone(itself)).is_err());
+
+    let mut told = tongue("otro", "es", Some(2));
+    told.document.html = "<p>otra cosa</p>".to_owned();
+    let mut holder = tongue("aaaa", "es", Some(1));
+    holder.cited = vec![alone(tongue("otro", "es", Some(2)))];
+    let mut other = tongue("bbbb", "en", Some(1));
+    other.cited = vec![alone(told)];
+    assert!(
+        sealed(Family {
+            anchor: holder,
+            others: vec![other],
+        })
+        .is_err()
+    );
+}
+
+#[test]
+fn an_attribute_a_browser_reads_after_a_slash_counts_too() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let said = document(json!({
+        "id": "x",
+        "html": "<a title/href=\"tisty:page/9\">a</a>",
+        "body": "a",
+    }));
+    assert_eq!(check_html(&said.html), Vec::<String>::new());
+    assert!(
+        writer
+            .sealed(said, vec![], vec![], &sealing("x", None))
+            .is_err()
+    );
 }
 
 #[test]

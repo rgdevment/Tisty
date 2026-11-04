@@ -2,6 +2,7 @@
 pub struct Tag<'a> {
     pub name: &'a str,
     pub closes: bool,
+    pub empties: bool,
     pub attributes: Vec<(&'a str, &'a str)>,
     pub length: usize,
 }
@@ -20,14 +21,17 @@ impl<'a> Tag<'a> {
         let name = &inner[..end];
         let mut rest = &inner[end..];
         let mut attributes = Vec::new();
-        loop {
+        let empties = loop {
+            let before = rest;
             rest = rest.trim_start_matches(|one: char| one.is_ascii_whitespace() || one == '/');
             if let Some(after) = rest.strip_prefix('>') {
+                let empties = before[..before.len() - rest.len()].ends_with('/');
                 rest = after;
-                break;
+                break empties;
             }
-            let end =
-                rest.find(|one: char| one.is_ascii_whitespace() || one == '=' || one == '>')?;
+            let end = rest.find(|one: char| {
+                one.is_ascii_whitespace() || one == '=' || one == '/' || one == '>'
+            })?;
             // No name before an equals sign reads as no tag, rather than as going round here for ever.
             if end == 0 {
                 return None;
@@ -52,10 +56,11 @@ impl<'a> Tag<'a> {
                     rest = &value[end..];
                 }
             }
-        }
+        };
         Some(Self {
             name,
             closes,
+            empties,
             attributes,
             length: html.len() - rest.len(),
         })

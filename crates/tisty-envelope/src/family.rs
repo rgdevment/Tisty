@@ -5,7 +5,7 @@ use tisty_contracts::{Cited, Document, Sealing, Translation};
 use crate::sealing::{Refused, Sealed, Writer};
 
 /// One language of a document, ready to seal, and what it shares along.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tongue {
     pub document: Document,
     pub pictures: Vec<Vec<u8>>,
@@ -15,7 +15,7 @@ pub struct Tongue {
 }
 
 /// A document and its other languages. Only the anchor holds the map, so a reader reaches each language from it.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Family {
     pub anchor: Tongue,
     pub others: Vec<Tongue>,
@@ -40,15 +40,14 @@ fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
     })
 }
 
-fn languages_add(family: &Family) -> Result<(), Refused> {
-    let anchor = &family.anchor;
+fn languages_add(anchor: &Tongue, others: &[Tongue]) -> Result<(), Refused> {
     if anchor.document.lang.is_none() {
         return Err(Refused::DoesNotAdd(
             "the anchor of a family does not say its language",
         ));
     }
     let mut seen = BTreeSet::from([anchor.document.lang.clone()]);
-    for tongue in &family.others {
+    for tongue in others {
         if !seen.insert(tongue.document.lang.clone()) {
             return Err(Refused::DoesNotAdd("a family says one language twice"));
         }
@@ -103,10 +102,7 @@ fn languages_sealed(
         mut others,
     } = family;
     if !others.is_empty() {
-        languages_add(&Family {
-            anchor: anchor.clone(),
-            others: others.clone(),
-        })?;
+        languages_add(&anchor, &others)?;
         anchor.document.languages = Some(
             others
                 .iter()
@@ -137,8 +133,31 @@ fn languages_sealed(
     Ok(cited)
 }
 
+fn tongues(family: &Family) -> impl Iterator<Item = &Tongue> {
+    std::iter::once(&family.anchor).chain(&family.others)
+}
+
+// Each document goes once under its id, so two that claim one would leave one of them unsaid.
+fn each_goes_once(family: &Family) -> Result<(), Refused> {
+    let mut going = vec![family];
+    for one in tongues(family).flat_map(|tongue| &tongue.cited) {
+        if going.contains(&one) {
+            continue;
+        }
+        let same_id = |tongue: &Tongue| tongues(one).any(|its| its.sealing.id == tongue.sealing.id);
+        if going.iter().any(|kept| tongues(kept).any(same_id)) {
+            return Err(Refused::DoesNotAdd(
+                "two different documents go under one id",
+            ));
+        }
+        going.push(one);
+    }
+    Ok(())
+}
+
 /// Seals a family: each language in its own envelopes, signed here, with the anchor carrying the map to them, and each document cited in its own, once however many cite it.
 pub fn sealed_family(writer: &mut Writer, family: Family) -> Result<Vec<Going>, Refused> {
+    each_goes_once(&family)?;
     let mut going = Vec::new();
     let cited = languages_sealed(writer, family, &mut going)?;
     let mut seen = BTreeSet::new();

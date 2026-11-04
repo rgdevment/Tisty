@@ -17,6 +17,61 @@ fn places() -> Places {
 }
 
 #[test]
+fn a_formula_keeps_its_empty_parts_closed() {
+    let html = tisty_markdown::html(&tisty_markdown::read(r"texto $a\,b$ fin"));
+    assert!(ready(&html, &places()).contains(r#"<mspace width="0.16666667em"/><mi>b</mi>"#));
+    assert_eq!(
+        ready(r#"<span title=a/>x</span>"#, &places()),
+        r#"<span title="a/">x</span>"#
+    );
+}
+
+#[test]
+fn an_address_is_told_from_a_title_that_repeats_it() {
+    for (said, goes) in [
+        (
+            "[R](cartilla.pdf \"cartilla.pdf\")\n",
+            "[R](tisty:file/1 \"cartilla.pdf\")\n",
+        ),
+        (
+            "![a](rina.png \"rina.png\")\n",
+            "![a](tisty:picture/0 \"rina.png\")\n",
+        ),
+        ("![rina.png](rina.png)\n", "![rina.png](tisty:picture/0)\n"),
+        (
+            "[![rina.png](rina.png)](cartilla.pdf \"rina.png\")\n",
+            "[![rina.png](tisty:picture/0)](tisty:file/1 \"rina.png\")\n",
+        ),
+        ("[R](C:/m/s.pdf \"C:/m/s.pdf\")\n", "R\n"),
+    ] {
+        assert_eq!(body_ready(said, &places()), goes);
+    }
+}
+
+#[test]
+fn a_definition_leads_where_its_links_would() {
+    for (said, goes) in [
+        (
+            "[R][r]\n\n[r]: cartilla.pdf\n",
+            "[R][r]\n\n[r]: tisty:file/1\n",
+        ),
+        (
+            "[R][r]\n\n[r]: cartilla.pdf \"cartilla.pdf\"\n",
+            "[R][r]\n\n[r]: tisty:file/1 \"cartilla.pdf\"\n",
+        ),
+        ("[R][r]\n\n[r]: C:/m/s.pdf\n", "[R][r]\n\n[r]: #\n"),
+        ("[R][r]\n\n[r]: un\\_secreto.pdf\n", "[R][r]\n\n[r]: #\n"),
+        ("[R][r]\n\n[r]: #titulo\n", "[R][r]\n\n[r]: #titulo\n"),
+        (
+            "[R][r]\n\n[r]: https://a.example\n",
+            "[R][r]\n\n[r]: https://a.example\n",
+        ),
+    ] {
+        assert_eq!(body_ready(said, &places()), goes);
+    }
+}
+
+#[test]
 fn a_picture_says_its_place_and_its_size() {
     assert_eq!(
         ready(

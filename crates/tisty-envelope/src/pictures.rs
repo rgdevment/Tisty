@@ -6,12 +6,12 @@ use image::error::ImageError;
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageDecoder, ImageEncoder, ImageFormat, ImageReader, Limits};
 
+use crate::colour::colour_only;
+
 const LONGEST: u32 = 1600;
 const JPEG_QUALITY: u8 = 82;
 const PIXELS_AT_MOST: u64 = 50_000_000;
 const MEMORY_AT_MOST: u64 = 512 * 1024 * 1024;
-// A colour profile is a few KB; one this large carries something else.
-const PROFILE_AT_MOST: usize = 64 * 1024;
 // What the HEIF family opens with, which only the machine may be able to read.
 const FAMILY_BRANDS: [&[u8; 4]; 9] = [
     b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"mif1", b"msf1", b"avif",
@@ -92,16 +92,13 @@ fn is_of_the_heif_family(given: &[u8]) -> bool {
         .any(|brand| FAMILY_BRANDS.contains(&brand))
 }
 
-// The header of a colour profile says what it is and for how many channels, and only those of the three channels written stay.
-fn is_a_profile_for_these_pixels(said: &[u8]) -> bool {
-    said.len() <= PROFILE_AT_MOST
-        && said.get(36..40) == Some(b"acsp".as_slice())
-        && said.get(16..20) == Some(b"RGB ".as_slice())
-}
-
-// A JPEG cut short decodes all the same, as a grey stretch where the rest should be.
+// A JPEG cut short decodes all the same, as a grey stretch where the rest should be. A thumbnail in its metadata has an end of its own, so only one past the last scan counts.
 fn is_cut_short(given: &[u8]) -> bool {
-    given.starts_with(&[0xFF, 0xD8]) && !given.windows(2).any(|one| one == [0xFF, 0xD9])
+    let scan = given
+        .windows(2)
+        .rposition(|one| one == [0xFF, 0xDA])
+        .unwrap_or(0);
+    given.starts_with(&[0xFF, 0xD8]) && !given[scan..].windows(2).any(|one| one == [0xFF, 0xD9])
 }
 
 /// A picture made anew from its pixels, so only pixels travel: metadata, a location and anything hidden in the file stay behind.
@@ -139,7 +136,7 @@ fn written(given: &[u8], photo: bool) -> Result<Made, Unmade> {
         .icc_profile()
         .ok()
         .flatten()
-        .filter(|one| is_a_profile_for_these_pixels(one));
+        .and_then(|one| colour_only(&one));
     let mut pixels = DynamicImage::from_decoder(decoder).map_err(unread)?;
     pixels.apply_orientation(turn);
     if pixels.width().max(pixels.height()) > LONGEST {

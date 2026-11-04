@@ -120,7 +120,8 @@ fn written_back(tag: &Tag, leaving: &[&str], out: &mut String) {
             let _ = write!(out, " {name}=\"{value}\"");
         }
     }
-    out.push('>');
+    // In a formula this is what closes an empty part: without it, all that follows falls inside.
+    out.push_str(if tag.empties { "/>" } else { ">" });
 }
 
 fn card(href: &str, out: &mut String) {
@@ -312,12 +313,39 @@ fn reached_as(said: &str, places: &Places) -> Option<String> {
 
 type Change = (Range<usize>, String);
 
+// Where the words of a link end when an address follows: the bracket closing the one it opens with, whatever its words or its title hold.
+fn wall_of(said: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    let mut skipping = false;
+    for (at, one) in said.char_indices() {
+        match one {
+            _ if skipping => skipping = false,
+            '\\' => skipping = true,
+            '[' => depth += 1,
+            ']' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return said[at..].starts_with("](").then_some(at);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+// Past its words and before its title, either of which may repeat it.
+fn address_in(said: &str, to: &str) -> Option<usize> {
+    let from = wall_of(said)? + 2;
+    Some(from + said[from..].find(to)?)
+}
+
 fn image_said(at: &Range<usize>, said: &str, src: &str, places: &Places, out: &mut Vec<Change>) {
-    let alt = said
-        .strip_prefix("![")
-        .and_then(|rest| rest.split_once("]("))
-        .map_or("", |(alt, _)| alt);
-    match (reached_as(src, places), said.rfind(src)) {
+    let alt = wall_of(said)
+        .and_then(|wall| said.get(2..wall))
+        .or_else(|| said.strip_prefix("![")?.split_once(']').map(|(alt, _)| alt))
+        .unwrap_or_default();
+    match (reached_as(src, places), address_in(said, src)) {
         (Some(place), Some(found)) => {
             out.push((at.start + found..at.start + found + src.len(), place));
         }
@@ -331,13 +359,41 @@ fn link_said(at: &Range<usize>, said: &str, to: &str, places: &Places, out: &mut
     if leads_outside(to) || leads_to_a_heading(to) {
         return;
     }
-    if let (Some(place), Some(found)) = (reached_as(to, places), said.rfind(to)) {
+    if let (Some(place), Some(found)) = (reached_as(to, places), address_in(said, to)) {
         out.push((at.start + found..at.start + found + to.len(), place));
-    } else if let Some(wall) = said.rfind("](").filter(|_| said.starts_with('[')) {
+    } else if let Some(wall) = wall_of(said) {
         out.push((at.start..at.start + 1, String::new()));
         out.push((at.start + wall..at.end, String::new()));
     } else if said.starts_with('<') {
         out.push((at.clone(), String::new()));
+    }
+}
+
+// A definition is the address of every link that names it, so it leads where they would, and its title may repeat it.
+fn definition_said(
+    at: &Range<usize>,
+    said: &str,
+    to: &str,
+    places: &Places,
+    out: &mut Vec<Change>,
+) {
+    if leads_outside(to) || leads_to_a_heading(to) {
+        return;
+    }
+    let Some(from) = said.find("]:").map(|wall| wall + 2) else {
+        return;
+    };
+    let place = reached_as(to, places).unwrap_or_else(|| "#".to_owned());
+    match said[from..].find(to) {
+        Some(found) => {
+            let found = from + found;
+            out.push((at.start + found..at.start + found + to.len(), place));
+        }
+        // Written with escapes it is not found as it was read, and it must not stay all the same.
+        None => out.push((
+            at.start + from..at.start + said.trim_end().len(),
+            format!(" {place}"),
+        )),
     }
 }
 
@@ -349,13 +405,7 @@ fn changes_in(
 ) {
     for block in blocks {
         if let tisty_markdown::Kind::Definition { to, .. } = &block.kind {
-            let said = &text[block.at.clone()];
-            if let Some(found) = said.rfind(to.as_str()).filter(|_| !leads_outside(to)) {
-                out.push((
-                    block.at.start + found..block.at.start + found + to.len(),
-                    "#".to_owned(),
-                ));
-            }
+            definition_said(&block.at, &text[block.at.clone()], to, places, out);
         }
         for span in &block.spans {
             let said = &text[span.at.clone()];

@@ -217,22 +217,17 @@ fn a_file_cut_short_is_no_picture() {
 }
 
 #[test]
-fn only_a_real_profile_for_these_pixels_stays() {
-    let mut real = vec![0u8; 128];
-    real[16..20].copy_from_slice(b"RGB ");
-    real[36..40].copy_from_slice(b"acsp");
-    assert!(is_a_profile_for_these_pixels(&real));
-    let mut gray = real.clone();
-    gray[16..20].copy_from_slice(b"GRAY");
-    assert!(!is_a_profile_for_these_pixels(&gray));
-    let mut cmyk = real.clone();
-    cmyk[16..20].copy_from_slice(b"CMYK");
-    assert!(!is_a_profile_for_these_pixels(&cmyk));
-    assert!(!is_a_profile_for_these_pixels(
-        b"a long text about where this was taken, not a profile at all"
-    ));
-    real.resize(PROFILE_AT_MOST + 1, 0);
-    assert!(!is_a_profile_for_these_pixels(&real));
+fn a_file_cut_short_is_no_picture_though_its_thumbnail_ends() {
+    let thumbnail = a_photo(8, 8);
+    let main = a_photo(40, 30);
+    let length = u16::try_from(thumbnail.len() + 2).unwrap();
+    let mut whole = main[..2].to_vec();
+    whole.extend_from_slice(&[0xFF, 0xE1]);
+    whole.extend_from_slice(&length.to_be_bytes());
+    whole.extend_from_slice(&thumbnail);
+    whole.extend_from_slice(&main[2..]);
+    assert!(made(&whole).is_ok());
+    assert_eq!(made(&whole[..whole.len() - 8]), Err(Unmade::NotAPicture));
 }
 
 #[test]
