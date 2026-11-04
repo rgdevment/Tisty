@@ -1,11 +1,33 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error the build's own script carries no types
 import * as site from "../../scripts/guide-site.mjs";
 import { drawAll } from "../guide/diagramming";
 import { topicsOf } from "../guide/reference";
 
-const { changedOn, headers, LANGUAGES, mapped, raised, searchOnReach, sheetOf } = site;
+const {
+  commitsIn,
+  datesOf,
+  describedAs,
+  headers,
+  LANGUAGES,
+  mapped,
+  raised,
+  searchOnReach,
+  sheetOf,
+} = site;
+
+// A mutation run works on a copy of the window alone, deep under it, so the reference is found by walking up.
+const referenceFile = (file: string) => {
+  let at = process.cwd();
+  while (!existsSync(join(at, "crates", "tisty-markdown"))) {
+    const up = dirname(at);
+    if (up === at) throw new Error("no crates folder above the tests");
+    at = up;
+  }
+  return join(at, "crates", "tisty-markdown", "reference", file);
+};
 
 vi.mock("tisty-editor/read", () => ({
   drawing: async (source: string, dark: boolean) => `${dark ? "dark" : "light"} ${source}`,
@@ -155,7 +177,7 @@ describe("the guide's search", () => {
 });
 
 describe("what the guide tells a search engine", () => {
-  type Language = { code: string; file: string; said: Record<string, string> };
+  type Language = { code: string; file: string; image: string; said: Record<string, string> };
   const languages: Language[] = LANGUAGES;
 
   const page = (slug: string, title: string) => ({
@@ -165,6 +187,7 @@ describe("what the guide tells a search engine", () => {
     label: title,
     subs: [],
     said: "What it says.",
+    published: "2026-04-01",
     changed: "2026-05-02",
     html: "<article></article>",
   });
@@ -180,7 +203,7 @@ describe("what the guide tells a search engine", () => {
   it.each(languages.map((one) => [one.code, one] as const))(
     "describes each topic in %s, in what a result page shows whole",
     (_, language) => {
-      const text = readFileSync(`../crates/tisty-markdown/reference/${language.file}`, "utf8");
+      const text = readFileSync(referenceFile(language.file), "utf8");
       const slugs = topicsOf(text).map((one) => one.slug);
 
       expect(Object.keys(language.said).sort()).toEqual([...slugs].sort());
@@ -190,6 +213,13 @@ describe("what the guide tells a search engine", () => {
       }
     },
   );
+
+  it("says what to do when a topic has no description", () => {
+    const [english] = languages;
+
+    expect(describedAs(english, "tables")).toBe(english.said.tables);
+    expect(() => describedAs(english, "brand-new")).toThrow(/no description for "brand-new"/);
+  });
 
   it("names the start page for what it is, and the site by its name", () => {
     const [english] = languages;
@@ -208,13 +238,16 @@ describe("what the guide tells a search engine", () => {
 
     const [article, trail] = dataIn(html);
     expect(article["@type"]).toBe("TechArticle");
+    expect(article.datePublished).toBe("2026-04-01");
     expect(article.dateModified).toBe("2026-05-02");
+    expect(article.author.name).toBe("Tisty");
+    expect(article.image).toBe(spanish.image);
     expect(trail["@type"]).toBe("BreadcrumbList");
     expect(trail.itemListElement).toEqual([
       {
         "@type": "ListItem",
         position: 1,
-        name: "Tisty Markdown",
+        name: "Markdown de Tisty",
         item: "https://markdown.tisty.app/es/",
       },
       {
@@ -235,6 +268,24 @@ describe("what the guide tells a search engine", () => {
     expect(map.match(/<lastmod>/g)).toHaveLength(4);
   });
 
+  it("leaves a page undated when the history cannot say, rather than guess", () => {
+    const { changed: _, published: __, ...undated } = page("tables", "Tables");
+    const none = new Map(languages.map((language) => [language.code, [undated]]));
+
+    expect(mapped(none)).not.toContain("lastmod");
+    const [article] = dataIn(sheetOf(none, languages[0], undated, look));
+    expect(article.dateModified).toBeUndefined();
+    expect(article.datePublished).toBeUndefined();
+  });
+
+  it("reads the commits of a log, skipping an empty one", () => {
+    expect(commitsIn("abc 2026-11-03\ndef 2026-10-01\n")).toEqual([
+      { hash: "abc", date: "2026-11-03" },
+      { hash: "def", date: "2026-10-01" },
+    ]);
+    expect(commitsIn("")).toEqual([]);
+  });
+
   it("gives a topic's page one top heading, moving its own up a level", () => {
     const page = new DOMParser().parseFromString(
       '<article><h2 id="tables" class="a">Tables <em>now</em></h2><p>Words</p><h3 id="types">Types</h3><h4>Foot</h4><figure><h2>Example</h2></figure></article>',
@@ -250,6 +301,22 @@ describe("what the guide tells a search engine", () => {
     expect(top?.className).toBe("a");
     expect(top?.innerHTML).toBe("Tables <em>now</em>");
     expect(page.querySelector("figure > h2")?.textContent).toBe("Example");
+  });
+
+  it("keeps an example's headings out of the page's outline, on every kind of page", () => {
+    const [topic, start] = [
+      '<article><h2>Title</h2><figure class="example"><div class="drawn"><h1>Sample</h1><h3>Part</h3></div></figure></article>',
+      '<article><h1>Guide</h1><figure class="example"><div class="drawn"><h2>Sample</h2></div></figure></article>',
+    ].map((html) => new DOMParser().parseFromString(html, "text/html"));
+
+    raised(topic);
+    raised(start);
+
+    expect(topic.querySelector("article > h1")?.getAttribute("role")).toBeNull();
+    expect(topic.querySelector(".drawn h1")?.getAttribute("role")).toBe("presentation");
+    expect(topic.querySelector(".drawn h3")?.getAttribute("role")).toBe("presentation");
+    expect(start.querySelector("article > h1")?.getAttribute("role")).toBeNull();
+    expect(start.querySelector(".drawn h2")?.getAttribute("role")).toBe("presentation");
   });
 
   it("leaves a page that already has its top heading", () => {
@@ -272,7 +339,7 @@ describe("what the guide tells a search engine", () => {
       ...(tags === undefined ? [] : [{ slug: "tags", body: tags }]),
     ];
 
-    const dates = changedOn([
+    const dates = datesOf([
       { date: "2026-11-03", topics: topics("new", "same") },
       { date: "2026-10-01", topics: topics("old", "same") },
       { date: "2026-09-01", topics: topics("new", "same") },
@@ -280,8 +347,8 @@ describe("what the guide tells a search engine", () => {
       { date: "2026-07-01", topics: topics("old", "same") },
     ]);
 
-    expect(dates.get("tables")).toBe("2026-11-03");
-    expect(dates.get("tags")).toBe("2026-09-01");
+    expect(dates.get("tables")).toEqual({ published: "2026-07-01", changed: "2026-11-03" });
+    expect(dates.get("tags")).toEqual({ published: "2026-07-01", changed: "2026-09-01" });
   });
 });
 

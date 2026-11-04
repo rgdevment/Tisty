@@ -23,6 +23,7 @@ export const LANGUAGES = [
     locale: "en_US",
     image: "https://www.tisty.app/tisty-social.png",
     title: "Tisty Markdown guide: syntax and examples",
+    site: "Tisty Markdown",
     said: {
       index: "The Tisty Markdown guide: every mark a Tisty document can hold, from headings and tables to pens, icons and diagrams, with examples as they are drawn.",
       properties: "Properties at the top of a Tisty document: title, tags, paper, language and a task's dates, written as front matter between two --- lines.",
@@ -73,6 +74,7 @@ export const LANGUAGES = [
     locale: "es_ES",
     image: "https://www.tisty.app/tisty-social-es.png",
     title: "Guía de Markdown de Tisty: sintaxis y ejemplos",
+    site: "Markdown de Tisty",
     said: {
       index: "La guía de Markdown de Tisty: cada marca que puede llevar un documento, de títulos y tablas a rotuladores, iconos y diagramas, con ejemplos dibujados.",
       propiedades: "Propiedades al principio de un documento de Tisty: título, etiquetas, papel, idioma y fechas de una tarea, escritas como front matter entre dos líneas ---.",
@@ -125,37 +127,54 @@ const twinOf = (built, language, page) => {
   return { other, twin: built.get(other.code)[page.at] ?? built.get(other.code)[0] };
 };
 
-const data = (said) => `<script type="application/ld+json">${JSON.stringify(said).replace(/</g, "\\u003c")}</script>`;
+const jsonLd = (said) => `<script type="application/ld+json">${JSON.stringify(said).replace(/</g, "\\u003c")}</script>`;
+
+const TISTY = { "@type": "Organization", name: "Tisty", url: "https://www.tisty.app/" };
 
 const described = (language, page) =>
-  data({
+  jsonLd({
     "@context": "https://schema.org",
     "@type": page.slug === "index" ? "WebSite" : "TechArticle",
     ...(page.slug === "index"
       ? { name: "Tisty Markdown" }
-      : { headline: page.title, dateModified: page.changed }),
+      : {
+          headline: page.title,
+          datePublished: page.published,
+          dateModified: page.changed,
+          author: TISTY,
+          image: language.image,
+        }),
     description: page.said,
     inLanguage: language.code,
     url: address(language, page),
     isPartOf: { "@type": "WebSite", name: "Tisty Markdown", url: SITE },
-    publisher: { "@type": "Organization", name: "Tisty", url: "https://www.tisty.app/" },
+    publisher: TISTY,
   });
 
 const crumbs = (language, page) =>
   page.slug === "index"
     ? ""
-    : data({
+    : jsonLd({
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Tisty Markdown", item: address(language, { slug: "index" }) },
+          { "@type": "ListItem", position: 1, name: language.site, item: address(language, { slug: "index" }) },
           { "@type": "ListItem", position: 2, name: page.title, item: address(language, page) },
         ],
       });
 
+export const describedAs = (language, slug) => {
+  const said = language.said[slug];
+  if (!said) throw new Error(`the ${language.code} guide has no description for "${slug}": add one to LANGUAGES in guide-site.mjs`);
+  return said;
+};
+
 // A topic opens on a `##` of the whole reference, so on a page of its own every heading moves up a level.
 export const raised = (document) => {
   const article = document.querySelector("article");
+  // An example shows how a heading looks, and is not a heading of the guide's own outline.
+  for (const shown of article.querySelectorAll(".drawn h1, .drawn h2, .drawn h3, .drawn h4, .drawn h5, .drawn h6"))
+    shown.setAttribute("role", "presentation");
   if (article.querySelector(":scope > h1")) return;
   const heads = article.querySelectorAll(":scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6");
   for (const head of heads) {
@@ -166,16 +185,30 @@ export const raised = (document) => {
   }
 };
 
-// A topic's date is the oldest revision in the unbroken run that still says the same, so a release that leaves it alone does not pass it off as new.
-export const changedOn = (revisions) => {
+export const commitsIn = (log) =>
+  log
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [hash, date] = line.split(" ");
+      return { hash, date };
+    });
+
+// A topic changed on the oldest revision in the unbroken run that still says the same, so a release that leaves it alone does not pass it off as new.
+export const datesOf = (revisions) => {
   const newest = new Map(revisions[0].topics.map((one) => [one.slug, one.body]));
   const dates = new Map();
   const open = new Set(newest.keys());
   for (const { date, topics } of revisions) {
     const said = new Map(topics.map((one) => [one.slug, one.body]));
-    for (const slug of [...open]) {
-      if (said.get(slug) === newest.get(slug)) dates.set(slug, date);
-      else open.delete(slug);
+    for (const slug of newest.keys()) {
+      if (!said.has(slug)) {
+        open.delete(slug);
+        continue;
+      }
+      if (said.get(slug) !== newest.get(slug)) open.delete(slug);
+      dates.set(slug, { published: date, changed: open.has(slug) ? date : dates.get(slug).changed });
     }
   }
   return dates;
@@ -279,7 +312,7 @@ export const mapped = (built) => {
   const urls = LANGUAGES.flatMap((language) =>
     built.get(language.code).map((page) => {
       const { other, twin } = twinOf(built, language, page);
-      return `<url><loc>${address(language, page)}</loc><lastmod>${page.changed}</lastmod><xhtml:link rel="alternate" hreflang="${language.code}" href="${address(language, page)}"/><xhtml:link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}"/></url>`;
+      return `<url><loc>${address(language, page)}</loc>${page.changed ? `<lastmod>${page.changed}</lastmod>` : ""}<xhtml:link rel="alternate" hreflang="${language.code}" href="${address(language, page)}"/><xhtml:link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}"/></url>`;
     }),
   );
   return `<?xml version="1.0" encoding="UTF-8"?>

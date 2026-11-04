@@ -11,7 +11,9 @@ import { JSDOM } from "jsdom";
 import { build as bundled, createServer } from "vite";
 import { createHash } from "node:crypto";
 import {
-  changedOn,
+  commitsIn,
+  datesOf,
+  describedAs,
   escaped,
   headers,
   href,
@@ -144,17 +146,28 @@ const dressed = async (page) => {
   return page;
 };
 
+const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 16 * 1024 * 1024, stdio: "pipe" }).toString();
+
+// A shallow clone or an archive cannot say when a topic changed, and a wrong date is worse than none.
+const wholeHistory = () => {
+  try {
+    return git("rev-parse", "--is-shallow-repository").trim() === "false";
+  } catch {
+    return false;
+  }
+};
+const dated = wholeHistory();
+if (!dated) console.warn("no whole git history here, so the guide's pages go out without dates");
+
 // Newest first, starting from what is on disk, which may say more than the last commit.
 const revisionsOf = (file, text) => {
-  const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 16 * 1024 * 1024 }).toString();
   const path = `crates/tisty-markdown/reference/${file}`;
-  const commits = git("log", "--format=%H %cs", "--", path).trim().split("\n").filter(Boolean);
   return [
     { date: new Date().toISOString().slice(0, 10), topics: topicsOf(text) },
-    ...commits.map((line) => {
-      const [hash, date] = line.split(" ");
-      return { date, topics: topicsOf(git("show", `${hash}:${path}`)) };
-    }),
+    ...commitsIn(git("log", "--first-parent", "--format=%H %cs", "--", path)).map(({ hash, date }) => ({
+      date,
+      topics: topicsOf(git("show", `${hash}:${path}`)),
+    })),
   ];
 };
 
@@ -165,7 +178,8 @@ const build = async (language) => {
     "utf8",
   );
   const parts = topicsOf(text);
-  const changed = changedOn(revisionsOf(language.file, text));
+  const descriptions = new Map(parts.map((part) => [part.slug, describedAs(language, part.slug)]));
+  const dates = dated ? datesOf(revisionsOf(language.file, text)) : new Map();
   const sheets = drawn(parts.map((part) => part.body)).map(
     (html) => new JSDOM(`<article class="page">${html}</article>`).window.document,
   );
@@ -203,8 +217,8 @@ const build = async (language) => {
       title,
       label: part.at === 0 ? language.start : title,
       subs,
-      said: language.said[part.slug],
-      changed: changed.get(part.slug),
+      said: descriptions.get(part.slug),
+      ...dates.get(part.slug),
       html: page.querySelector("article").outerHTML,
     };
   });
