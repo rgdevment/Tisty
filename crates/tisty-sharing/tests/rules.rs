@@ -275,6 +275,28 @@ fn a_picture_is_made_anew_named_by_its_place_and_travels_once() {
 }
 
 #[test]
+fn two_files_with_the_same_pixels_are_one_picture() {
+    let (_tmp, mut home) = home();
+    let one = a_picture(8, 8, 1);
+    let mut other = one.clone();
+    other.extend_from_slice(b"and something else hidden");
+    let (one, other) = (home.attached("a.png", &one), home.attached("b.png", &other));
+    assert_ne!(one, other);
+    let doc = home.wrote(
+        &format!(
+            "![a]({one}) ![b]({other})
+"
+        ),
+        None,
+    );
+    let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
+    assert_eq!(read.pictures.len(), 1);
+    assert_eq!(read.held["pictures"].as_array().unwrap().len(), 1);
+    let html = read.held["html"].as_str().unwrap();
+    assert_eq!(html.matches("tisty:picture/0").count(), 2, "{html}");
+}
+
+#[test]
 fn a_heic_is_asked_of_the_machine_and_goes_on_from_those_pixels() {
     let (_tmp, mut home) = home();
     let mut heic = vec![0, 0, 0, 24];
@@ -376,6 +398,38 @@ fn a_file_goes_apart_named_by_itself_and_never_by_its_path() {
         "{html}"
     );
     assert!(!all_text(read).contains(&leaf));
+    assert_eq!(out.told, []);
+}
+
+#[test]
+fn a_file_resting_in_the_other_folder_is_found_too() {
+    let (tmp, mut home) = home();
+    let pdf = b"%PDF-1.7 cartilla";
+    let leaf = home.attached("cartilla.pdf", pdf);
+    let doc = home.wrote(
+        &format!(
+            "[c]({leaf})
+"
+        ),
+        None,
+    );
+    let beside = tmp.path().join("beside");
+    std::fs::create_dir_all(beside.join("attachments")).unwrap();
+    std::fs::rename(
+        home.paths.attachments().join(&leaf),
+        beside.join("attachments").join(&leaf),
+    )
+    .unwrap();
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: Some(&beside),
+        turned: &|_| None,
+    };
+    let gathered = tisty_sharing::gathered(&desk, &asked(doc)).unwrap();
+    let answers = by_a_window_with_nothing_to_draw(&gathered);
+    let out = home.sealed(gathered, answers);
+    assert_eq!(every_reader_opens(&out)[0].files, vec![pdf.to_vec()]);
     assert_eq!(out.told, []);
 }
 
@@ -503,6 +557,71 @@ fn what_is_cited_goes_only_when_chosen_in_its_own_envelopes_with_its_key() {
         "what is cited cites nothing further"
     );
     assert!(!all_text(&reads[1]).contains("tisty:cited"));
+}
+
+#[test]
+fn what_is_cited_in_two_languages_goes_once_and_its_own_languages_go_with_it() {
+    let (_tmp, mut home) = home();
+    let otro = home.wrote(
+        "---
+lang: es
+---
+
+# Otro
+",
+        None,
+    );
+    let other = home.wrote(
+        "---
+lang: en
+---
+
+# Other
+",
+        None,
+    );
+    home.joined(other, otro);
+    let es = home.wrote(
+        "---
+lang: es
+---
+
+[[Otro]]
+",
+        None,
+    );
+    let en = home.wrote(
+        "---
+lang: en
+---
+
+[[Other]]
+",
+        None,
+    );
+    home.joined(en, es);
+    let mut asking = asked(es);
+    asking.cited = vec![otro];
+
+    let out = sealed(&home, &asking);
+    let reads = every_reader_opens(&out);
+    assert_eq!(
+        reads.len(),
+        4,
+        "two languages, and the two of what they cite"
+    );
+    let ids: std::collections::BTreeSet<&String> = reads.iter().map(|one| &one.id).collect();
+    assert_eq!(ids.len(), 4);
+    for one in reads.iter().filter(|one| one.held.get("cited").is_some()) {
+        assert_eq!(one.held["cited"][0]["title"], "Otro");
+    }
+    assert_eq!(
+        reads
+            .iter()
+            .filter(|one| one.held.get("cited").is_some())
+            .count(),
+        2
+    );
 }
 
 #[test]
@@ -753,6 +872,33 @@ fn only_what_is_ones_own_and_open_is_shared() {
     ));
     home.commit(Op::DocLock { id: doc });
     assert!(matches!(refused(&home, doc), Some(Unshared::Shut)));
+}
+
+#[test]
+fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
+    let (_tmp, mut home) = home();
+    let body = "# De otra persona
+";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let id = ulid::Ulid::generate();
+    home.commit(Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            ..Default::default()
+        },
+    });
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+    };
+    let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
+    assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
 }
 
 #[test]

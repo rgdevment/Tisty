@@ -223,7 +223,11 @@ fn another_key_does_not_open_it_and_a_key_answers_only_for_what_is_sealed() {
     let all = all();
     let another = URL_SAFE_NO_PAD.encode([0u8; 32]);
     let main = asked("k7Qm2xPa", EnvelopeKind::Main, Some(&another));
-    assert!(opened(&hex(&all["main"]["envelope"]), &main, &nothing_served()).is_err());
+    // Told by its commitment, before anything is opened.
+    assert_eq!(
+        opened(&hex(&all["main"]["envelope"]), &main, &nothing_served()).err(),
+        Some(Unopened::Damaged("it was sealed with another key"))
+    );
     let public = asked("wordsOnly", EnvelopeKind::Main, all["link_key"].as_str());
     assert!(opened(&hex(&all["public"]["envelope"]), &public, &nothing_served()).is_err());
     let no_key = asked("k7Qm2xPa", EnvelopeKind::Main, None);

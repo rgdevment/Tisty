@@ -61,27 +61,26 @@ pub async fn doc_sealed(
             session.dest(),
         )
     };
-    let unfinished = tauri::async_runtime::spawn_blocking(move || {
+    // Asked first: with nothing to sign with, nothing else is worth doing.
+    let (key, certificate) =
+        signer(&paths, &state, &device).ok_or_else(|| Refusal::of("noIdentityToSign"))?;
+    let mut gathered = tauri::async_runtime::spawn_blocking(move || {
         let desk = Desk {
             paths: &paths,
             state: &state,
             also: also.as_deref(),
             turned: &turned,
         };
-        let got = gathered(&desk, &asked);
-        got.map(|one| (one, paths, state, device))
+        gathered(&desk, &asked)
     })
     .await
     .map_err(|_| Refusal::of("cannotSeal"))?
     .map_err(|wrong| refused(&wrong))?;
-    let (mut gathered, paths, state, device) = unfinished;
     let answers = crate::finishing::in_hiding(&app, gathered.unfinished()).await?;
     gathered
         .finished(answers)
         .map_err(|wrong| refused(&wrong))?;
     let sealed = tauri::async_runtime::spawn_blocking(move || {
-        let (key, certificate) =
-            signer(&paths, &state, &device).ok_or_else(|| Refusal::of("noIdentityToSign"))?;
         let mut writer = Writer::new(&key, &certificate);
         gathered
             .sealed(&mut writer)
