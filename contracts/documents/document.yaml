@@ -21,8 +21,9 @@ fields:
   body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
   html: { type: text, says: "Its words as the writer drew them." }
   pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
-  media: { type: hash, says: "The hash of its media envelope, when it has one." }
-  attachments: { type: list, of: attachment, says: "What its media envelope holds, pictures first." }
+  pictures: { type: list, of: attachment, says: "The pictures its main envelope holds." }
+  files: { type: list, of: attachment, says: "What its files envelope holds." }
+  files_hash: { type: hash, says: "The hash of its files envelope, when it has one." }
   cited: { type: list, of: cited, says: "The documents it shares along, each in its own envelopes." }
   properties: { type: list, of: property, at_most: 32, says: "Its properties as written, for the details." }
   languages:

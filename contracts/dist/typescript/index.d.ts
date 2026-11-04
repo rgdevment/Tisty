@@ -1,8 +1,8 @@
-export declare const VERSION: "1.0.0-draft.4";
+export declare const VERSION: "1.0.0-draft.5";
 
-export type EnvelopeKind = "text" | "media";
+export type EnvelopeKind = "main" | "files";
 
-export type PartName = "first" | "rest" | "file";
+export type PartName = "first" | "rest" | "picture" | "file";
 
 export type SyncEvery = "off" | "every5" | "every10";
 
@@ -20,7 +20,7 @@ export type Status = "open" | "done" | "dropped";
 
 export type Priority = "do" | "decide" | "delegate" | "unset" | "minor";
 
-/** A file a document names. It travels in the document's media envelope. A picture is drawn when it arrives; any other file shows as a card and is asked for the first time it is opened. */
+/** A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. */
 export interface Attachment {
   at: number;
   name: string;
@@ -51,8 +51,9 @@ export interface Document {
   body: string;
   html?: string;
   pages?: Page[];
-  media?: string;
-  attachments?: Attachment[];
+  pictures?: Attachment[];
+  files?: Attachment[];
+  files_hash?: string;
   cited?: Cited[];
   properties?: Property[];
   languages?: Translation[];
@@ -76,7 +77,7 @@ export interface DocumentWriter {
   draw(body: string): string;
 }
 
-/** How a document travels. One envelope per language holds its words and all its pages, with references ready, so reading them takes no other request. A second one holds its pictures and files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads of an envelope. */
+/** How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads. */
 export interface Envelope {
   contract: string;
   kind: EnvelopeKind;

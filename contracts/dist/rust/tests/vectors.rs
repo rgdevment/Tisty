@@ -145,11 +145,12 @@ fn opened(bytes: &[u8], link_key: Option<&[u8]>) -> Result<Opened, String> {
     Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out })
 }
 
+// The first two parts of a main envelope are its words; what follows them is pictures.
 fn document_of(opened: &Opened) -> Value {
     let mut out = Map::new();
-    for part in &opened.parts {
+    for part in &opened.parts[..2] {
         let Value::Object(fields) = serde_json::from_slice(part).unwrap() else {
-            panic!("a part of a text envelope is an object");
+            panic!("the words of a main envelope are an object");
         };
         out.extend(fields);
     }
@@ -161,21 +162,24 @@ fn vectors() -> Value {
 }
 
 #[test]
-fn a_text_envelope_gives_its_document_with_its_pages() {
+fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     let all = vectors();
-    let held = document_of(&opened(&hex(&all["text"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap());
-    assert_eq!(held, all["text"]["document"]);
+    let main = opened(&hex(&all["main"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap();
+    let held = document_of(&main);
+    assert_eq!(held, all["main"]["document"]);
     assert_eq!(check("document", &held), Vec::<String>::new());
+    let pictures: Vec<Vec<u8>> = all["main"]["pictures"].as_array().unwrap().iter().map(hex).collect();
+    assert_eq!(main.parts[2..], pictures);
 }
 
 #[test]
-fn a_media_envelope_gives_its_files_and_the_text_envelope_answers_for_it() {
+fn a_files_envelope_gives_its_files_and_the_main_envelope_answers_for_it() {
     let all = vectors();
-    let media = opened(&hex(&all["media"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap();
-    let files: Vec<Vec<u8>> = all["media"]["files"].as_array().unwrap().iter().map(hex).collect();
-    assert_eq!(media.parts, files);
-    let hash = Sha256::digest([media.manifest, media.index].concat());
-    assert_eq!(hash.as_slice(), b64(&all["text"]["document"]["media"]));
+    let held = opened(&hex(&all["files"]["envelope"]), Some(&b64(&all["link_key"]))).unwrap();
+    let files: Vec<Vec<u8>> = all["files"]["files"].as_array().unwrap().iter().map(hex).collect();
+    assert_eq!(held.parts, files);
+    let hash = Sha256::digest([held.manifest, held.index].concat());
+    assert_eq!(hash.as_slice(), b64(&all["main"]["document"]["files_hash"]));
 }
 
 #[test]
@@ -188,14 +192,14 @@ fn a_public_envelope_opens_without_a_key() {
 #[test]
 fn another_key_does_not_open_it() {
     let all = vectors();
-    assert!(opened(&hex(&all["text"]["envelope"]), Some(&[0u8; 32])).is_err());
+    assert!(opened(&hex(&all["main"]["envelope"]), Some(&[0u8; 32])).is_err());
 }
 
 #[test]
 fn changing_or_cutting_it_does_not_open_it() {
     let all = vectors();
     let key = b64(&all["link_key"]);
-    let whole = hex(&all["text"]["envelope"]);
+    let whole = hex(&all["main"]["envelope"]);
     let mut last = whole.clone();
     *last.last_mut().unwrap() ^= 1;
     assert!(opened(&last, Some(&key)).is_err());

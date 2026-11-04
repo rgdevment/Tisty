@@ -5,14 +5,14 @@ use serde_json::Value;
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
-pub const VERSION: &str = "1.0.0-draft.4";
+pub const VERSION: &str = "1.0.0-draft.5";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum EnvelopeKind {
-    Text,
-    Media,
+    Main,
+    Files,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +20,7 @@ pub enum EnvelopeKind {
 pub enum PartName {
     First,
     Rest,
+    Picture,
     File,
 }
 
@@ -88,7 +89,7 @@ pub enum Priority {
     Minor,
 }
 
-/// A file a document names. It travels in the document's media envelope. A picture is drawn when it arrives; any other file shows as a card and is asked for the first time it is opened.
+/// A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Attachment {
     pub at: u64,
@@ -139,9 +140,11 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pages: Option<Vec<Page>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub media: Option<String>,
+    pub pictures: Option<Vec<Attachment>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub attachments: Option<Vec<Attachment>>,
+    pub files: Option<Vec<Attachment>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cited: Option<Vec<Cited>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -168,7 +171,7 @@ pub trait DocumentWriter {
     fn draw(&mut self, body: String) -> String;
 }
 
-/// How a document travels. One envelope per language holds its words and all its pages, with references ready, so reading them takes no other request. A second one holds its pictures and files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads of an envelope.
+/// How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Envelope {
     pub contract: String,

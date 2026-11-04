@@ -69,7 +69,7 @@ const seal = async ({ kind, id, version, sealed, parts }) => {
   const signed = await sign(machine, words("tisty-share.signed.v1\0"), root.public, machine.public, be8(about.length), about, sha(manifest), index);
   const signature = words(JSON.stringify({ root: b64(root.public), machine: b64(machine.public), since: SINCE, certificate: b64(certificate), signed: b64(signed) }));
   const bytes = Buffer.concat([words("TENV"), u32(manifest.length), manifest, u32(signature.length), signature, index, ...travelling]);
-  return { bytes, media: b64(sha(manifest, index)) };
+  return { bytes, hash: b64(sha(manifest, index)) };
 };
 
 const nonce = (at) => {
@@ -93,9 +93,10 @@ const textParts = ({ body, pages, ...first }) => [
   { name: "rest", compressed: true, bytes: words(JSON.stringify({ body, pages })) },
 ];
 
-const FILES = [Buffer.from("89504e470d0a1a0a00", "hex"), words("%PDF-1.7 cartilla")];
-const media = await seal({
-  kind: "media",
+const PICTURES = [Buffer.from("89504e470d0a1a0a00", "hex")];
+const FILES = [words("%PDF-1.7 cartilla")];
+const files = await seal({
+  kind: "files",
   id: "k7Qm2xPa",
   version: 1,
   sealed: true,
@@ -108,24 +109,28 @@ const whole = {
   lang: "es",
   sheet: { paper: "letter", on: true, orientation: "landscape" },
   signed_as: "Mario",
-  media: media.media,
-  attachments: [
-    { at: 0, name: "rina.png", kind: "image/png", size: FILES[0].length },
-    { at: 1, name: "cartilla.pdf", kind: "application/pdf", size: FILES[1].length },
-  ],
+  pictures: [{ at: 0, name: "rina.png", kind: "image/png", size: PICTURES[0].length }],
+  files: [{ at: 0, name: "cartilla.pdf", kind: "application/pdf", size: FILES[0].length }],
+  files_hash: files.hash,
   html: '<h1 id="paseos" data-at="1">Paseos</h1><img src="tisty:picture/0" alt="Rina"><a href="tisty:page/1">Enero</a>',
   body: "# Paseos\n\n![Rina](rina.png)\n",
   pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, title: "Enero", html: '<h1 id="enero" data-at="1">Enero</h1>', body: "# Enero\n" }],
 };
-const text = await seal({ kind: "text", id: "k7Qm2xPa", version: 1, sealed: true, parts: textParts(whole) });
+const main = await seal({
+  kind: "main",
+  id: "k7Qm2xPa",
+  version: 1,
+  sealed: true,
+  parts: [...textParts(whole), ...PICTURES.map((bytes) => ({ name: "picture", compressed: false, bytes }))],
+});
 
 const plain = { id: "wordsOnly", title: "Solo palabras", html: "<p>Hola</p>", body: "Hola\n" };
-const open = await seal({ kind: "text", id: "wordsOnly", version: 1, sealed: false, parts: textParts(plain) });
+const open = await seal({ kind: "main", id: "wordsOnly", version: 1, sealed: false, parts: textParts(plain) });
 
 const said = {
   link_key: b64(LINK_KEY),
-  text: { envelope: text.bytes.toString("hex"), document: whole },
-  media: { envelope: media.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
+  main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")) },
+  files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
   public: { envelope: open.bytes.toString("hex"), document: plain },
 };
 writeFileSync(new URL("./vectors.json", import.meta.url), `${JSON.stringify(said, null, 2)}\n`);

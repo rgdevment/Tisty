@@ -147,14 +147,14 @@ contract: attachment
 group: documents
 checked_by: [writer, reader]
 says: >-
-  A file a document names. It travels in the document's media envelope. A picture is drawn when it arrives; any other
-  file shows as a card and is asked for the first time it is opened.
+  A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in
+  its files envelope, shows as a card and is asked for the first time it is opened.
 values:
   pictures: [png, jpeg, webp, gif]
-  picture_source: "tisty:picture/N, its at in the media envelope"
-  file_source: "tisty:file/N, its at in the media envelope"
+  picture_source: "tisty:picture/N, its at among the pictures"
+  file_source: "tisty:file/N, its at among the files"
 fields:
-  at: { type: whole, required: true, says: "Its place in the media envelope, from 0." }
+  at: { type: whole, required: true, says: "Its place among those it travels with, from 0." }
   name: { type: text, required: true, at_least: 1 }
   kind: { type: text }
   size: { type: whole, says: "Its bytes." }

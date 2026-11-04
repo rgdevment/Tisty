@@ -77,29 +77,34 @@ const opened = async (bytes, linkKey) => {
   return { manifest, manifestBytes, index, parts };
 };
 
-const documentOf = ({ parts }) => Object.assign({}, ...parts.map((one) => JSON.parse(new TextDecoder().decode(one))));
+// The first two parts of a main envelope are its words; what follows them is pictures.
+const documentOf = ({ parts }) => Object.assign({}, ...parts.slice(0, 2).map((one) => JSON.parse(new TextDecoder().decode(one))));
+const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
 const linkKey = b64(VECTORS.link_key);
 
 test("the samples are written under this major version", async () => {
-  const { manifest } = await opened(hex(VECTORS.text.envelope), linkKey);
+  const { manifest } = await opened(hex(VECTORS.main.envelope), linkKey);
   assert.equal(manifest.contract.split(".")[0], VERSION.split(".")[0]);
 });
 
-test("a text envelope gives its document, with its pages and no other request", async () => {
-  const held = documentOf(await opened(hex(VECTORS.text.envelope), linkKey));
-  assert.deepEqual(held, VECTORS.text.document);
-  assert.deepEqual(check("document", held), []);
+test("a main envelope gives its document, its pages and its pictures, with no other request", async () => {
+  const main = await opened(hex(VECTORS.main.envelope), linkKey);
+  assert.deepEqual(documentOf(main), VECTORS.main.document);
+  assert.deepEqual(check("document", documentOf(main)), []);
+  assert.deepEqual(hexOf(main.parts.slice(2)), VECTORS.main.pictures);
 });
 
-test("a media envelope gives its files, and the text envelope answers for it", async () => {
-  const media = await opened(hex(VECTORS.media.envelope), linkKey);
-  assert.deepEqual(media.parts.map((one) => Buffer.from(one).toString("hex")), VECTORS.media.files);
-  const hash = await sha(media.manifestBytes, media.index);
-  assert.ok(same(hash, b64(VECTORS.text.document.media)));
+test("a files envelope gives its files, and the main envelope answers for it", async () => {
+  const files = await opened(hex(VECTORS.files.envelope), linkKey);
+  assert.deepEqual(hexOf(files.parts), VECTORS.files.files);
+  const hash = await sha(files.manifestBytes, files.index);
+  assert.ok(same(hash, b64(VECTORS.main.document.files_hash)));
 });
 
-test("words alone need no media envelope", () => {
-  assert.equal(VECTORS.public.document.media, undefined);
+test("words alone need one envelope", async () => {
+  const { manifest } = await opened(hex(VECTORS.public.envelope));
+  assert.equal(manifest.parts.length, 2);
+  assert.equal(VECTORS.public.document.files_hash, undefined);
 });
 
 test("a public envelope opens without a key", async () => {
@@ -108,17 +113,17 @@ test("a public envelope opens without a key", async () => {
 });
 
 test("another key does not open it", async () => {
-  await assert.rejects(opened(hex(VECTORS.text.envelope), new Uint8Array(32)));
+  await assert.rejects(opened(hex(VECTORS.main.envelope), new Uint8Array(32)));
 });
 
 for (const [says, at] of [["its last byte", -1], ["a byte of its manifest", 40]]) {
   test(`changing ${says} does not open it`, async () => {
-    const bytes = hex(VECTORS.text.envelope);
+    const bytes = hex(VECTORS.main.envelope);
     bytes[at < 0 ? bytes.length + at : at] ^= 1;
     await assert.rejects(opened(bytes, linkKey));
   });
 }
 
 test("cutting it does not open it", async () => {
-  await assert.rejects(opened(hex(VECTORS.text.envelope).slice(0, -1), linkKey));
+  await assert.rejects(opened(hex(VECTORS.main.envelope).slice(0, -1), linkKey));
 });
