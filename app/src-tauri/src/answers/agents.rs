@@ -117,10 +117,10 @@ pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     // Read here so a voice turned in the other copy reaches the PATH too, not only a turn in this one.
     let paths = session.paths.clone();
     std::thread::spawn(move || crate::pathing::keep(paths));
-    let who = session.config.agent_id.clone();
+    let who = session.seated_agent();
     Ok(Agent {
         on: who.is_some(),
-        code: spoken_by(&session.paths, who.as_ref()),
+        code: spoken_by(&session.paths, who),
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
     })
 }

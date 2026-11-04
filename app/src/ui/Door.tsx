@@ -28,8 +28,10 @@ export default function Door({ apart, due, onSettled, onOpen, onError }: Props) 
   }
   const letIn = (heard: () => Promise<void>) => {
     agentTurn(true)
-      .then(() => {
-        setWelcomed(true);
+      .then((now) => {
+        // The history it is waiting for may bring the assistant back, so this is not a welcome yet.
+        if (now.on) setWelcomed(true);
+        else onSettled();
         return heard();
       })
       .catch(onError);

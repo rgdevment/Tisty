@@ -104,6 +104,8 @@ beforeEach(() => {
         return Promise.resolve(ipc.due);
       case "door_due":
         return Promise.resolve(ipc.agents);
+      case "agent_turn":
+        return Promise.resolve({ on: args.on });
       case "complete":
         if (held) held.status = "done";
         return Promise.resolve(held);

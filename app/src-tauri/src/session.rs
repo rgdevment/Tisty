@@ -226,6 +226,14 @@ impl Session {
         Ok(true)
     }
 
+    /// The log says who may write; the settings can still name an agent it no longer holds.
+    pub fn seated_agent(&self) -> Option<&tisty_core::DeviceId> {
+        self.config
+            .agent_id
+            .as_ref()
+            .filter(|who| self.state.agents.contains(*who))
+    }
+
     /// An agent minted before hosts spoke for theirs gets its host's word once, then never looks again.
     fn vouch_for_agent(&mut self) {
         let Some(agent) = self.config.agent_id.clone() else {

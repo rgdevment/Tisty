@@ -54,6 +54,10 @@ impl Person {
         tisty_core::agent::retire(&self.paths).unwrap();
     }
 
+    pub fn takes_the_places_history(&self) {
+        tisty_core::backup::set_aside(&self.paths, false).unwrap();
+    }
+
     pub fn captures(&self, text: &str) -> TaskId {
         let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
         let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))
