@@ -577,9 +577,29 @@ fn what_rust_seals_is_what_javascript_is_handed() {
     if std::env::var_os("TISTY_WRITE_SAMPLES").is_some() {
         std::fs::write(path, &text).unwrap();
     }
-    let kept = std::fs::read_to_string(path).unwrap().replace("\r\n", "\n");
-    assert_eq!(
-        kept, text,
-        "run with TISTY_WRITE_SAMPLES=1, then node contracts/generate.mjs"
-    );
+    let kept: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let unhexed = |said: &Value| -> Vec<u8> {
+        let said = said.as_str().unwrap();
+        (0..said.len())
+            .step_by(2)
+            .map(|at| u8::from_str_radix(&said[at..at + 2], 16).unwrap())
+            .collect()
+    };
+    // Compressed bytes and their sizes depend on the deflate this build links, so what has to hold is what they open to.
+    let held = |bytes: &[u8], kind: &str| {
+        let one = opened(bytes, ("writtenByTisty", kind), Some(&the_key(0x11))).unwrap();
+        let mut manifest: Value = serde_json::from_slice(&one.manifest).unwrap();
+        manifest["parts"].take();
+        (manifest, one.parts)
+    };
+    for (kind, fresh) in [
+        ("main", &sealed.main),
+        ("files", sealed.files.as_ref().unwrap()),
+    ] {
+        assert_eq!(
+            held(&unhexed(&kept[kind]), kind),
+            held(fresh, kind),
+            "run with TISTY_WRITE_SAMPLES=1, then node contracts/generate.mjs"
+        );
+    }
 }

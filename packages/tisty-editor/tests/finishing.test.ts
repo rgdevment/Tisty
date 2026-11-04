@@ -40,7 +40,10 @@ describe("a document finished to travel", () => {
 
   it("colours code in every language that holds another, with nothing the contract does not know", async () => {
     const blocks = [
-      ["html", "&lt;script&gt;let a = 1;&lt;/script&gt;&lt;style&gt;p { color: red; }&lt;/style&gt;"],
+      [
+        "html",
+        "&lt;script&gt;let a = 1;&lt;/script&gt;&lt;style&gt;p { color: red; }&lt;/style&gt;",
+      ],
       ["shell", "$ ls -la"],
       ["js", "const a = html`&lt;p&gt;${b}&lt;/p&gt;`;"],
       ["python-repl", "&gt;&gt;&gt; print(1)"],

@@ -17,7 +17,8 @@ type Lit = {
 };
 
 // A part in another language is named after it too, which colours nothing and says nothing to whoever reads.
-const colouring = (one: unknown) => typeof one === "string" && (one.startsWith("hljs-") || one.endsWith("_"));
+const colouring = (one: unknown) =>
+  typeof one === "string" && (one.startsWith("hljs-") || one.endsWith("_"));
 
 const grown = (page: Document, node: Lit): Node => {
   if (node.type === "text") return page.createTextNode(node.value ?? "");
