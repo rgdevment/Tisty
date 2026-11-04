@@ -1,0 +1,26 @@
+{
+  "name": "@tisty/contracts",
+  "version": "1.0.0-draft.7",
+  "description": "What a Tisty document and task are. Generated from Tisty's contracts.",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rgdevment/Tisty.git",
+    "directory": "contracts/dist/typescript"
+  },
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./vectors.json": "./vectors.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "vectors.json"
+  ]
+}

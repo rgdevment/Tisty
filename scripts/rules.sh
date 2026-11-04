@@ -310,6 +310,23 @@ the_packages_keep_to_themselves() {
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
 }
 
+# The contracts: what is kept is what their YAML says, and their cases hold.
+the_contracts_hold() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the contracts were not looked at"
+    return
+  fi
+  if [ ! -d node_modules/js-yaml ]; then
+    went_well "node_modules is not here, so the contracts were not looked at"
+    return
+  fi
+  if node contracts/generate.mjs --check && node --test contracts/dist/typescript/cases.test.js contracts/dist/typescript/vectors.test.js > /dev/null; then
+    went_well "the contracts hold"
+  else
+    amiss "the contracts do not hold; run node contracts/generate.mjs and node --test contracts/dist/typescript/cases.test.js"
+  fi
+}
+
 no_token_kept_in_the_tree() {
   local token='ya29\.[A-Za-z0-9_-]{20,}|1//0[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|sl\.[A-Za-z0-9_-]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}'
   grep -rnIE "$token" crates app/src app/src-tauri/src packages scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
@@ -328,5 +345,6 @@ every_spawn_pins_its_language
 the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
+the_contracts_hold
 no_token_kept_in_the_tree
 exit $status

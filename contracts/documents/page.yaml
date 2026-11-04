@@ -1,0 +1,223 @@
+contract: page
+group: documents
+checked_by: [writer, reader]
+says: >-
+  A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
+  no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
+is: document
+except: [pages, pictures, files, files_hash, cited]
+fields:
+  page_of: { type: text, required: true, at_least: 1, at_most: 64, says: "The document it is a page of." }
+  at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
+cases:
+  - says: "A page, its document and its place."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero" }
+    holds: true
+  - says: "A page with a sheet of its own, like any document."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "# Enero", sheet: { paper: "letter" } }
+    holds: true
+  - says: "Places count from 1."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 0, html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "It does not say which document it belongs to."
+    value: { id: "p1", at: 1, html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A page with pages of its own."
+    value: { id: "p1", page_of: "k7Qm2xPa", at: 1, html: "<p>x</p>", body: "x", pages: [{ id: "p2", page_of: "p1", at: 1, html: "<p>x</p>", body: "y" }] }
+    holds: false
+---
+contract: translation
+group: documents
+checked_by: [writer, reader]
+says: Where the same document is in another language.
+fields:
+  lang: { type: language, required: true }
+  document: { type: text, required: true, at_least: 1, at_most: 64 }
+  title: { type: text, at_most: 8192 }
+  key: { type: key, says: "The link key of that language's envelopes. Only the anchor language holds the map." }
+cases:
+  - says: "A language and the document that holds it."
+    value: { lang: "en", document: "enGlish1" }
+    holds: true
+  - says: "No language."
+    value: { document: "enGlish1" }
+    holds: false
+  - says: "A language and its script."
+    value: { lang: "zh-Hant", document: "x" }
+    holds: true
+  - says: "A language, its script and its region."
+    value: { lang: "zh-Hant-TW", document: "x" }
+    holds: true
+  - says: "A region by its number."
+    value: { lang: "es-419", document: "x" }
+    holds: true
+  - says: "Capitals where they do not go."
+    value: { lang: "ES", document: "x" }
+    holds: false
+  - says: "A region in small letters."
+    value: { lang: "pt-br", document: "x" }
+    holds: false
+  - says: "An underscore, which reading turns into a dash."
+    value: { lang: "pt_BR", document: "x" }
+    holds: false
+  - says: "The name of a language instead of its tag."
+    value: { lang: "español", document: "x" }
+    holds: false
+---
+contract: tag
+group: documents
+checked_by: [writer]
+says: >-
+  A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space
+  or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and
+  a letter, and it does not count glued to the text before it, inside code or in [[#2]].
+values:
+  in_a_sentence: { characters_at_least: 2, needs_a_letter: true }
+fields:
+  name: { type: tag_word, required: true }
+cases:
+  - says: "A word."
+    value: { name: "rina" }
+    holds: true
+  - says: "Words joined by a dash."
+    value: { name: "mi-etiqueta" }
+    holds: true
+  - says: "No word."
+    value: { name: "" }
+    holds: false
+  - says: "Capitals."
+    value: { name: "Rina" }
+    holds: false
+  - says: "An accent."
+    value: { name: "camión" }
+    holds: false
+  - says: "A space."
+    value: { name: "mi etiqueta" }
+    holds: false
+  - says: "A dash at its edge."
+    value: { name: "-rina" }
+    holds: false
+  - says: "Two dashes together."
+    value: { name: "mi--etiqueta" }
+    holds: false
+---
+contract: signature
+group: documents
+checked_by: [writer, reader]
+says: >-
+  Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs,
+  under a certificate from the root. It travels in clear, so the server checks it without opening anything.
+enums:
+  verdict: [holds, revoked, refused]
+fields:
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  since: { type: time, required: true }
+  certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
+  signed: { type: signed, required: true, says: "The machine's signature over the manifest and the index." }
+cases:
+  - says: "A whole signature."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "A date with a fraction of a second, which nobody signed."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00.5Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
+contract: revocation
+group: documents
+checked_by: [writer, reader]
+says: >-
+  A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed
+  as revoked. It is not about stopping sharing a document or stopping a person from publishing.
+values:
+  signed: "Ed25519 by the root, over tisty-share.revocation.v1, a zero byte, root, machine and at in seconds, 8 bytes, big endian."
+fields:
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  at: { type: time, required: true }
+  signed: { type: signed, required: true }
+cases:
+  - says: "A whole revocation."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      at: "2026-11-03T12:00:00Z"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "It does not say which key."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      at: "2026-11-03T12:00:00Z"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
+contract: cited
+group: documents
+checked_by: [writer, reader]
+says: Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.
+fields:
+  document: { type: text, required: true, at_least: 1, at_most: 64 }
+  key: { type: key, required: true, says: "The link key of its envelopes." }
+  title: { type: text, at_most: 8192 }
+cases:
+  - says: "A document and its key."
+    value: { document: "other123", key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
+    holds: true
+  - says: "No key."
+    value: { document: "other123" }
+    holds: false
+---
+contract: sheet
+group: documents
+checked_by: [reader]
+says: >-
+  How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures
+  on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.
+enums:
+  paper: [a4, letter, folio, tabloid]
+  orientation: [portrait, landscape]
+fields:
+  paper: { type: paper, says: "Its size. A4 when it says none." }
+  on: { type: bool, says: "Whether it is drawn in sheets on screen. Off, the paper only says how it prints." }
+  orientation: { type: orientation, says: "Only while in sheets." }
+values:
+  millimetres:
+    a4: [210, 297]
+    letter: [215.9, 279.4]
+    folio: [215.9, 330.2]
+    tabloid: [279.4, 431.8]
+  offered: [a4, letter, folio]
+  default_paper: a4
+  margin_millimetres: { x: 20, y: 22 }
+  pixels_per_inch: 96
+  long_page_width_pixels: 820
+  cutting:
+    html: "The HTML is a list of blocks and carries no sheets. The reader lays it out for the paper and orientation in use."
+    again: "The reader lays it out again when the paper, the orientation or the height of the blocks changes, as when a picture arrives."
+    landscape: "It swaps the paper's width and height."
+    written_width: "The sheet's width less both side margins."
+    room: "The sheet's height less the top and bottom margins, less one pixel."
+    blocks: "A block that does not fit moves whole to the next sheet. The first block of a sheet stays, even if it does not fit."
+    headings: "A heading never stays alone at the foot: the headings right above it move with the block that follows."
+    page_break: "An hr among the blocks always starts a new sheet."
+    print: "Printing uses the same paper, orientation and margins."
+cases:
+  - says: "A size and a way to stand."
+    value: { paper: "letter", on: true, orientation: "landscape" }
+    holds: true
+  - says: "A paper Tisty does not know."
+    value: { paper: "a3" }
+    holds: false
+  - says: "An orientation Tisty does not know."
+    value: { orientation: "diagonal" }
+    holds: false

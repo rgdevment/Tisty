@@ -1,0 +1,82 @@
+contract: task
+group: tasks
+checked_by: [writer, reader]
+says: A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this.
+contains: [step, note, reminder]
+enums:
+  status: [open, done, dropped]
+  priority: [do, decide, delegate, unset, minor]
+fields:
+  id: { type: text, required: true, at_least: 1 }
+  title: { type: text, required: true, at_least: 1 }
+  status: { type: status, required: true }
+  priority: { type: priority }
+  description: { type: text }
+  date: { type: text, says: "The day it is meant to be done on, or the day the work starts." }
+  deadline: { type: text, says: "The day it truly runs out." }
+  list: { type: text }
+  tags: { type: list, of: tag }
+  repeat: { type: text, says: "every week from due, every 2 months from done until 2026-12-31." }
+  part_of: { type: text }
+  after: { type: text }
+  source: { type: text }
+  steps: { type: list, of: step }
+  notes: { type: list, of: note }
+  reminders: { type: list, of: reminder }
+cases:
+  - says: "The least a task holds."
+    value: { id: "01M6", title: "Vacunar a Rina", status: "open" }
+    holds: true
+  - says: "A status Tisty does not know."
+    value: { id: "01M6", title: "x", status: "later" }
+    holds: false
+  - says: "No title."
+    value: { id: "01M6", title: "", status: "open" }
+    holds: false
+---
+contract: step
+group: tasks
+checked_by: [writer, reader]
+says: One line of a task's checklist.
+fields:
+  text: { type: text, required: true, at_least: 1 }
+  done: { type: bool, required: true }
+cases:
+  - says: "A step."
+    value: { text: "Pedir hora", done: false }
+    holds: true
+  - says: "Not said whether it is done."
+    value: { text: "Pedir hora" }
+    holds: false
+---
+contract: note
+group: tasks
+checked_by: [writer, reader]
+says: Something recorded on a task, with when.
+fields:
+  at: { type: time, required: true }
+  body: { type: text, required: true, at_least: 1 }
+cases:
+  - says: "A note."
+    value: { at: "2026-11-03T12:00:00Z", body: "Llamé" }
+    holds: true
+  - says: "The day a leap year adds."
+    value: { at: "2028-02-29T12:00:00Z", body: "Llamé" }
+    holds: true
+  - says: "That day in another year, which does not exist."
+    value: { at: "2026-02-29T12:00:00Z", body: "Llamé" }
+    holds: false
+  - says: "A day no month has."
+    value: { at: "2026-04-31T12:00:00Z", body: "Llamé" }
+    holds: false
+---
+contract: reminder
+group: tasks
+checked_by: [writer, reader]
+says: When a task rings.
+fields:
+  at: { type: text, required: true, at_least: 1 }
+cases:
+  - says: "A reminder."
+    value: { at: "2026-10-02T09:00" }
+    holds: true

@@ -1,0 +1,74 @@
+contract: front_matter
+group: documents
+checked_by: [writer]
+says: >-
+  The properties at the start of a document, between two lines of three dashes. The first line is ---, the words start
+  right under it, and --- or ... closes them. Past their limits they stay as written and none is read. A value that says
+  nothing Tisty knows stays written too and does nothing, so no document fails for its properties: the writer reads
+  them and gives the document what they mean. This holds what they mean, once read.
+values:
+  block_bytes_at_most: 4096
+  properties_at_most: 32
+  value_characters_at_most: 500
+  opens: "---"
+  closes: ["---", "..."]
+  aliases: { tag: tags }
+  forms: "key: value, a list in brackets, or a - item on each line"
+  written_only_by_tisty: [task, translationKey]
+  skipped_lines_start_with: "#"
+  on_reading:
+    paper, sheets and orientation: "They make the sheet of the document or page."
+    lang: "Language, script and region, split by - or _, in any capitals: pt_br is read as pt-BR."
+    tags: "Commas or spaces split them, with # or without it, and each one is read into the form of a tag."
+enums:
+  sheets_word: ["on"]
+  said_priority: [do, decide, delegate, minor]
+fields:
+  title: { type: text, at_most: 500 }
+  tags: { type: list, of: tag_word, at_most: 64, says: "The same as writing #word in a sentence." }
+  paper: { type: paper, says: "A4 when it says none, and nothing stays written." }
+  sheets: { type: sheets_word }
+  orientation: { type: orientation }
+  lang: { type: language }
+  translationKey: { type: text, at_most: 500, says: "What a language carries outside Tisty to find the others when it comes back." }
+  task: { type: text, at_most: 500, says: "The id of its task, written once." }
+  scheduled: { type: text, at_most: 500, says: "2026-10-03, 2026-10-02T09:00 or 2026-10-02T09:00[Europe/Madrid]." }
+  due: { type: text, at_most: 500 }
+  remind: { type: list, of: text }
+  list: { type: text, at_most: 500 }
+  priority: { type: said_priority }
+  repeat: { type: text, at_most: 500, says: "every week from due, every 2 months from done until 2026-12-31." }
+cases:
+  - says: "The properties of a document."
+    value: { title: "Vacunas de Rina", tags: [rina, veterinaria], paper: letter, sheets: "on", orientation: landscape, lang: pt-BR }
+    holds: true
+  - says: "The properties of a task."
+    value: { task: "01M563T6T541A3Q2PP5YQW5XK1", scheduled: "2026-09-28", due: "2026-10-03", remind: ["2026-10-02T09:00"], list: casa, priority: do, repeat: "every year from due" }
+    holds: true
+  - says: "A language in another language's words."
+    value: { lang: "español" }
+    holds: false
+  - says: "Sheets is said only as on, and nothing stays written otherwise."
+    value: { sheets: "off" }
+    holds: false
+  - says: "A paper Tisty does not know."
+    value: { paper: "a3" }
+    holds: false
+  - says: "A priority Tisty does not write."
+    value: { priority: "unset" }
+    holds: false
+  - says: "A value past what is read."
+    value: { title: "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" }
+    holds: false
+---
+contract: property
+group: documents
+checked_by: [reader]
+says: One property as it was written, including those Tisty does not know, which it keeps and shows.
+fields:
+  key: { type: text, required: true, at_least: 1 }
+  values: { type: list, of: text, required: true }
+cases:
+  - says: "A property of the person's own."
+    value: { key: "fuente", values: ["la libreta de la veterinaria"] }
+    holds: true
