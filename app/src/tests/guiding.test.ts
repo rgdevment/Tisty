@@ -7,12 +7,13 @@ import { drawAll } from "../guide/diagramming";
 import { topicsOf } from "../guide/reference";
 
 const {
+  changedOn,
   commitsIn,
-  datesOf,
   describedAs,
   headers,
   LANGUAGES,
   mapped,
+  muted,
   raised,
   searchOnReach,
   sheetOf,
@@ -187,7 +188,6 @@ describe("what the guide tells a search engine", () => {
     label: title,
     subs: [],
     said: "What it says.",
-    published: "2026-04-01",
     changed: "2026-05-02",
     html: "<article></article>",
   });
@@ -210,6 +210,8 @@ describe("what the guide tells a search engine", () => {
       for (const said of Object.values(language.said)) {
         expect(said.length).toBeGreaterThan(70);
         expect(said.length).toBeLessThanOrEqual(160);
+        // llms.txt carries them as Markdown, where these would hide words or turn into other characters.
+        expect(said).not.toMatch(/<!--|&\w+;/);
       }
     },
   );
@@ -238,8 +240,15 @@ describe("what the guide tells a search engine", () => {
 
     const [article, trail] = dataIn(html);
     expect(article["@type"]).toBe("TechArticle");
-    expect(article.datePublished).toBe("2026-04-01");
+    expect(article.datePublished).toBeUndefined();
     expect(article.dateModified).toBe("2026-05-02");
+    expect(html).toContain("<title>Tables · Markdown de Tisty</title>");
+    expect(html).toContain('<meta property="og:site_name" content="Markdown de Tisty">');
+    expect(article.isPartOf).toEqual({
+      "@type": "WebSite",
+      name: "Markdown de Tisty",
+      url: "https://markdown.tisty.app/es/",
+    });
     expect(article.author.name).toBe("Tisty");
     expect(article.image).toBe(spanish.image);
     expect(trail["@type"]).toBe("BreadcrumbList");
@@ -268,14 +277,27 @@ describe("what the guide tells a search engine", () => {
     expect(map.match(/<lastmod>/g)).toHaveLength(4);
   });
 
+  it("names the same default language in the sitemap as in the page's head", () => {
+    const map: string = mapped(built);
+    const [english] = languages;
+    const head: string = sheetOf(built, english, built.get(english.code)?.[1], look);
+
+    expect(map.match(/hreflang="x-default"/g)).toHaveLength(4);
+    expect(map).toContain(
+      '<xhtml:link rel="alternate" hreflang="x-default" href="https://markdown.tisty.app/tables"/>',
+    );
+    expect(head).toContain(
+      '<link rel="alternate" hreflang="x-default" href="https://markdown.tisty.app/tables">',
+    );
+  });
+
   it("leaves a page undated when the history cannot say, rather than guess", () => {
-    const { changed: _, published: __, ...undated } = page("tables", "Tables");
+    const { changed: _, ...undated } = page("tables", "Tables");
     const none = new Map(languages.map((language) => [language.code, [undated]]));
 
     expect(mapped(none)).not.toContain("lastmod");
     const [article] = dataIn(sheetOf(none, languages[0], undated, look));
     expect(article.dateModified).toBeUndefined();
-    expect(article.datePublished).toBeUndefined();
   });
 
   it("reads the commits of a log, skipping an empty one", () => {
@@ -303,34 +325,21 @@ describe("what the guide tells a search engine", () => {
     expect(page.querySelector("figure > h2")?.textContent).toBe("Example");
   });
 
-  it("keeps an example's headings out of the page's outline, on every kind of page", () => {
-    const [topic, start] = [
-      '<article><h2>Title</h2><figure class="example"><div class="drawn"><h1>Sample</h1><h3>Part</h3></div></figure></article>',
-      '<article><h1>Guide</h1><figure class="example"><div class="drawn"><h2>Sample</h2></div></figure></article>',
-    ].map((html) => new DOMParser().parseFromString(html, "text/html"));
-
-    raised(topic);
-    raised(start);
-
-    expect(topic.querySelector("article > h1")?.getAttribute("role")).toBeNull();
-    expect(topic.querySelector(".drawn h1")?.getAttribute("role")).toBe("presentation");
-    expect(topic.querySelector(".drawn h3")?.getAttribute("role")).toBe("presentation");
-    expect(start.querySelector("article > h1")?.getAttribute("role")).toBeNull();
-    expect(start.querySelector(".drawn h2")?.getAttribute("role")).toBe("presentation");
-  });
-
-  it("leaves a page that already has its top heading", () => {
+  it("keeps an example's headings out of the outline, the links and the search", () => {
     const page = new DOMParser().parseFromString(
-      "<article><h1>Guide</h1><h2>Glance</h2></article>",
+      '<article><h1 id="guide">Guide</h1><figure class="example"><div class="drawn"><h1 id="sample">Sample</h1><h3 id="part">Part</h3></div></figure></article>',
       "text/html",
     );
 
-    raised(page);
+    muted(page);
 
-    expect([...page.querySelectorAll("article > *")].map((one) => one.localName)).toEqual([
-      "h1",
-      "h2",
-    ]);
+    const top = page.querySelector("article > h1");
+    expect(top?.id).toBe("guide");
+    expect(top?.getAttribute("role")).toBeNull();
+    for (const shown of page.querySelectorAll(".drawn h1, .drawn h3")) {
+      expect(shown.getAttribute("role")).toBe("presentation");
+      expect(shown.hasAttribute("id")).toBe(false);
+    }
   });
 
   it("dates a topic by when it last changed, not by the last release", () => {
@@ -339,7 +348,7 @@ describe("what the guide tells a search engine", () => {
       ...(tags === undefined ? [] : [{ slug: "tags", body: tags }]),
     ];
 
-    const dates = datesOf([
+    const dates = changedOn([
       { date: "2026-11-03", topics: topics("new", "same") },
       { date: "2026-10-01", topics: topics("old", "same") },
       { date: "2026-09-01", topics: topics("new", "same") },
@@ -347,8 +356,8 @@ describe("what the guide tells a search engine", () => {
       { date: "2026-07-01", topics: topics("old", "same") },
     ]);
 
-    expect(dates.get("tables")).toEqual({ published: "2026-07-01", changed: "2026-11-03" });
-    expect(dates.get("tags")).toEqual({ published: "2026-07-01", changed: "2026-09-01" });
+    expect(dates.get("tables")).toBe("2026-11-03");
+    expect(dates.get("tags")).toBe("2026-09-01");
   });
 });
 

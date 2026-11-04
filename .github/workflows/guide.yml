@@ -37,6 +37,8 @@ jobs:
         working-directory: app
         run: npm ci
       - name: Draw the guide
+        env:
+          GUIDE_DATES: required
         run: node app/scripts/guide.mjs guide
       - name: Index it for search
         run: npx --yes pagefind@1.5.2 --site guide

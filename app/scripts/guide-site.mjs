@@ -48,7 +48,7 @@ export const LANGUAGES = [
       "diagrams-formulas-and-widgets": "Mermaid diagrams, math formulas and widgets in Tisty Markdown: blocks drawn instead of shown as code, the diagram window, and what each one can do.",
       tables: "Tables in Tisty Markdown: alignment, column widths and typed columns for money, dates, ratings and more, with sums at the foot of the table.",
       "page-breaks": "Page breaks in Tisty Markdown: a --- rule on its own line starts a new sheet in print and PDF, and how sheets turn on their own.",
-      "comments-and-entities": "Comments and entities in Tisty Markdown: notes between <!-- and --> that the page does not show, and characters such as &copy; and &nbsp;.",
+      "comments-and-entities": "Comments and entities in Tisty Markdown: notes to yourself that the page does not show, and names for characters that are awkward to type.",
       "what-is-outside-the-language": "What happens to HTML and other content from outside Tisty Markdown: what is converted on the way in, and what stays exactly as written.",
     },
   },
@@ -99,7 +99,7 @@ export const LANGUAGES = [
       "diagramas-formulas-y-widgets": "Diagramas Mermaid, fórmulas y widgets en Markdown de Tisty: bloques que se dibujan en vez de mostrarse como código, y la ventana de diagramas.",
       tablas: "Tablas en Markdown de Tisty: alineación, ancho de columnas y columnas con tipo para dinero, fechas, valoraciones y más, con sumas al pie de la tabla.",
       "saltos-de-pagina": "Saltos de página en Markdown de Tisty: una raya --- sola en su línea empieza una hoja nueva al imprimir o en PDF, y cómo las hojas pasan solas.",
-      "comentarios-y-entidades": "Comentarios y entidades en Markdown de Tisty: notas entre <!-- y --> que la página no muestra, y caracteres como &copy; y &nbsp;.",
+      "comentarios-y-entidades": "Comentarios y entidades en Markdown de Tisty: notas para ti que la página no muestra, y nombres para caracteres difíciles de escribir.",
       "lo-que-queda-fuera-del-lenguaje": "Qué pasa con el HTML y lo que llega de fuera de Markdown de Tisty: lo que se convierte al entrar y lo que se queda tal como está escrito.",
     },
   },
@@ -136,10 +136,9 @@ const described = (language, page) =>
     "@context": "https://schema.org",
     "@type": page.slug === "index" ? "WebSite" : "TechArticle",
     ...(page.slug === "index"
-      ? { name: "Tisty Markdown" }
+      ? { name: language.site }
       : {
           headline: page.title,
-          datePublished: page.published,
           dateModified: page.changed,
           author: TISTY,
           image: language.image,
@@ -147,7 +146,7 @@ const described = (language, page) =>
     description: page.said,
     inLanguage: language.code,
     url: address(language, page),
-    isPartOf: { "@type": "WebSite", name: "Tisty Markdown", url: SITE },
+    isPartOf: { "@type": "WebSite", name: language.site, url: `${SITE}${language.dir}` },
     publisher: TISTY,
   });
 
@@ -169,13 +168,17 @@ export const describedAs = (language, slug) => {
   return said;
 };
 
+// An example shows how a heading looks; it is no section of the guide to outline, link to or find in a search.
+export const muted = (document) => {
+  for (const shown of document.querySelectorAll(".drawn h1, .drawn h2, .drawn h3, .drawn h4, .drawn h5, .drawn h6")) {
+    shown.setAttribute("role", "presentation");
+    shown.removeAttribute("id");
+  }
+};
+
 // A topic opens on a `##` of the whole reference, so on a page of its own every heading moves up a level.
 export const raised = (document) => {
   const article = document.querySelector("article");
-  // An example shows how a heading looks, and is not a heading of the guide's own outline.
-  for (const shown of article.querySelectorAll(".drawn h1, .drawn h2, .drawn h3, .drawn h4, .drawn h5, .drawn h6"))
-    shown.setAttribute("role", "presentation");
-  if (article.querySelector(":scope > h1")) return;
   const heads = article.querySelectorAll(":scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6");
   for (const head of heads) {
     const above = document.createElement(`h${Number(head.localName[1]) - 1}`);
@@ -196,19 +199,15 @@ export const commitsIn = (log) =>
     });
 
 // A topic changed on the oldest revision in the unbroken run that still says the same, so a release that leaves it alone does not pass it off as new.
-export const datesOf = (revisions) => {
+export const changedOn = (revisions) => {
   const newest = new Map(revisions[0].topics.map((one) => [one.slug, one.body]));
   const dates = new Map();
   const open = new Set(newest.keys());
   for (const { date, topics } of revisions) {
     const said = new Map(topics.map((one) => [one.slug, one.body]));
-    for (const slug of newest.keys()) {
-      if (!said.has(slug)) {
-        open.delete(slug);
-        continue;
-      }
-      if (said.get(slug) !== newest.get(slug)) open.delete(slug);
-      dates.set(slug, { published: date, changed: open.has(slug) ? date : dates.get(slug).changed });
+    for (const slug of [...open]) {
+      if (said.get(slug) === newest.get(slug)) dates.set(slug, date);
+      else open.delete(slug);
     }
   }
   return dates;
@@ -223,7 +222,7 @@ const heads = (language, page, title, other, twin) => {
 <link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}">
 <link rel="alternate" hreflang="x-default" href="${address(first, language === first ? page : twin)}">
 <meta property="og:type" content="${page.slug === "index" ? "website" : "article"}">
-<meta property="og:site_name" content="Tisty Markdown">
+<meta property="og:site_name" content="${language.site}">
 <meta property="og:title" content="${told(title)}">
 <meta property="og:description" content="${told(page.said)}">
 <meta property="og:url" content="${here}">
@@ -255,7 +254,7 @@ export const sheetOf = (built, language, page, { style, logo, font }) => {
   ]
     .filter(Boolean)
     .join("");
-  const title = page.slug === "index" ? language.title : `${page.title} · Tisty Markdown`;
+  const title = page.slug === "index" ? language.title : `${page.title} · ${language.site}`;
   return `<!doctype html>
 <html lang="${language.code}">
 <head>
@@ -312,7 +311,7 @@ export const mapped = (built) => {
   const urls = LANGUAGES.flatMap((language) =>
     built.get(language.code).map((page) => {
       const { other, twin } = twinOf(built, language, page);
-      return `<url><loc>${address(language, page)}</loc>${page.changed ? `<lastmod>${page.changed}</lastmod>` : ""}<xhtml:link rel="alternate" hreflang="${language.code}" href="${address(language, page)}"/><xhtml:link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}"/></url>`;
+      return `<url><loc>${address(language, page)}</loc>${page.changed ? `<lastmod>${page.changed}</lastmod>` : ""}<xhtml:link rel="alternate" hreflang="${language.code}" href="${address(language, page)}"/><xhtml:link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}"/><xhtml:link rel="alternate" hreflang="x-default" href="${address(LANGUAGES[0], language === LANGUAGES[0] ? page : twin)}"/></url>`;
     }),
   );
   return `<?xml version="1.0" encoding="UTF-8"?>
