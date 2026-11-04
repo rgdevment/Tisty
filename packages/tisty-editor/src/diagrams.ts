@@ -16,6 +16,7 @@ const PENDING = "figure.diagram > pre > code";
 let loading: Promise<Mermaid> | null = null;
 let turns: Promise<unknown> = Promise.resolve();
 let made = 0;
+let placings = 0;
 const drawings = new Map<string, string>();
 // A fence half written while it is edited draws nothing, and keeping those beside the drawings would push them out.
 const refused = new Set<string>();
@@ -93,15 +94,20 @@ export const drawing = (
     const again = kept(key);
     if (again !== undefined) return again;
     if (!still()) return null;
+    made += 1;
+    const named = `tisty-diagram-${made}`;
     // What the window draws is shown as the window draws it, with its places, its shapes and its margin.
     const own = await studioNow()
       .then(({ PALETTES, pictureOf, svgOf }) => {
         const picture = pictureOf(source);
         if (!picture) return undefined;
-        return svgOf(picture, PALETTES[dark ? "dark" : "light"], null, fontNow()).replace(
-          "<svg ",
-          `<svg style="max-width:${picture.size.wide}px" `,
-        );
+        return svgOf(
+          picture,
+          PALETTES[dark ? "dark" : "light"],
+          null,
+          fontNow(),
+          `${named}-`,
+        ).replace("<svg ", `<svg style="max-width:${picture.size.wide}px" `);
       })
       .catch(() => undefined);
     if (own !== undefined) {
@@ -111,9 +117,8 @@ export const drawing = (
     const mermaid = await mermaidNow().catch(() => null);
     if (!mermaid) return null;
     mermaid.initialize(settings(dark));
-    made += 1;
     const drawn = await mermaid
-      .render(`tisty-diagram-${made}`, source)
+      .render(named, source)
       .then((one) => one.svg)
       .catch(() => null);
     keep(key, drawn);
@@ -126,7 +131,9 @@ export const drawing = (
 const placed = (figure: Element, svg: string, dark: boolean) => {
   const sheet = figure.ownerDocument.createElement("div");
   sheet.className = "diagram-sheet";
-  sheet.innerHTML = svg;
+  placings += 1;
+  // One drawing placed twice would share its markers' names, and a line reaches the first in the page, even a hidden one.
+  sheet.innerHTML = svg.replace(/tisty-diagram-\d+/g, `$&-${placings}`);
   figure.replaceChildren(sheet, ...figure.querySelectorAll(":scope > .diagram-bar"));
   figure.classList.add("drawn");
   figure.classList.remove("unreadable");
