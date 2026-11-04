@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-draft.8",
+  "version": "1.0.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -237,6 +237,38 @@
           ]
         }
       },
+      "html_rules": [
+        {
+          "tag": "mark",
+          "attribute": "data-pen",
+          "only": [
+            "yellow",
+            "green",
+            "blue",
+            "pink"
+          ],
+          "says": "A pen is one of those it says."
+        },
+        {
+          "tag": "span",
+          "attribute": "data-hue",
+          "only": [
+            "",
+            "red",
+            "orange",
+            "amber",
+            "green",
+            "teal",
+            "blue",
+            "indigo",
+            "purple",
+            "pink",
+            "brown",
+            "gray"
+          ],
+          "says": "A hue is one of those it says."
+        }
+      ],
       "draws": [
         {
           "tag": "h1",
@@ -608,6 +640,17 @@
         "paint_urls": "A paint or a marker names something in its own drawing, as url(#name), and nothing else.",
         "not_drawn": "A diagram that cannot be drawn travels as code, with no language, and the writer says so to the person."
       },
+      "html_rules": [
+        {
+          "tag": "svg",
+          "attribute": "data-theme",
+          "only": [
+            "light",
+            "dark"
+          ],
+          "says": "A drawing is for one of the two themes."
+        }
+      ],
       "draws": [
         {
           "tag": "figure",
@@ -1540,7 +1583,7 @@
       ],
       "values": {
         "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.",
-        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.",
+        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body, and what the person typed as words in a sentence is theirs. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.",
         "who_shares_it": "Whoever signs its envelope: the root in its signature, and nothing inside can say otherwise.",
         "anchor_language": "Paper, sheets and orientation are the group's: the anchor's, in every language."
       },
@@ -1583,7 +1626,7 @@
           "type": "text",
           "required": true,
           "bytes_at_most": 512000,
-          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written."
+          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone."
         },
         "html": {
           "type": "text",
@@ -1593,7 +1636,7 @@
         "pages": {
           "type": "list",
           "of": "page",
-          "says": "Its pages, in the order its words name them."
+          "says": "Its pages, by their place, each with an id of its own."
         },
         "pictures": {
           "type": "list",
@@ -1668,6 +1711,71 @@
           "says": "HTML written inside the words, as far as passthrough says.",
           "html": "<abbr title=\"Hyper Text\">HTML</abbr>",
           "holds": true
+        },
+        {
+          "says": "A closing tag of what no contract knows, which would reach out of where it is put.",
+          "html": "<p>a</p></main></body>",
+          "holds": false
+        },
+        {
+          "says": "A pen it does not have.",
+          "html": "<mark data-pen=\"javascript\">a</mark>",
+          "holds": false
+        },
+        {
+          "says": "A hue it does not have.",
+          "html": "<span class=\"ico\" data-ico=\"dog\" data-hue=\"url\"></span>",
+          "holds": false
+        },
+        {
+          "says": "A drawing for a theme that does not exist.",
+          "html": "<figure class=\"diagram\"><svg data-theme=\"sepia\"></svg></figure>",
+          "holds": false
+        },
+        {
+          "says": "An event on a picture.",
+          "html": "<img src=\"tisty:picture/0\" alt=\"a\" width=\"1\" height=\"1\" onerror=\"alert(1)\">",
+          "holds": false
+        },
+        {
+          "says": "An event on a drawing.",
+          "html": "<svg onload=\"alert(1)\"></svg>",
+          "holds": false
+        },
+        {
+          "says": "A script inside a drawing.",
+          "html": "<svg><script>alert(1)</script></svg>",
+          "holds": false
+        },
+        {
+          "says": "A frame.",
+          "html": "<iframe src=\"https://a.example\"></iframe>",
+          "holds": false
+        },
+        {
+          "says": "A form that sends somewhere.",
+          "html": "<form action=\"https://a.example\"><input name=\"clave\"></form>",
+          "holds": false
+        },
+        {
+          "says": "A base that moves every address.",
+          "html": "<base href=\"https://a.example/\">",
+          "holds": false
+        },
+        {
+          "says": "A meta that leaves the page.",
+          "html": "<meta http-equiv=\"refresh\" content=\"0;url=https://a.example\">",
+          "holds": false
+        },
+        {
+          "says": "An address on a formula.",
+          "html": "<math href=\"javascript:alert(1)\"><mi>x</mi></math>",
+          "holds": false
+        },
+        {
+          "says": "A script in capitals.",
+          "html": "<SCRIPT>alert(1)</SCRIPT>",
+          "holds": false
         },
         {
           "says": "A place written two ways would be two places.",
@@ -2288,19 +2396,20 @@
           "A from that is not earlier than its version.",
           "A picture or a file that says it is compressed.",
           "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid.",
-          "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, or a reference to what does not travel. Its words are not shown."
+          "A document, a page or an HTML outside the contract, pages out of their order or repeating a place or an id, a page that is not of this document, a picture drawn at another size than its own, files without the hash that answers for them or a hash without files, or a reference to what does not travel. Its words are not shown.",
+          "A file at another place or of another size than its document says."
         ],
         "who_checks_what": {
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version.",
           "reader": "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
         },
-        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft: its format can change from one to the next, so a draft and anything else, in either direction, do not open.",
+        "versions": "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader can leave aside: anything that reader would refuse, as a new tag or a new rule, takes a new major version.",
         "sizes_at_most": {
           "manifest_bytes": 16384,
           "signature_bytes": 2048
         },
         "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should.",
-        "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
+        "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
       },
       "fields": {
         "contract": {
@@ -3027,7 +3136,7 @@
           "type": "text",
           "required": true,
           "bytes_at_most": 512000,
-          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written."
+          "says": "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone."
         },
         "html": {
           "type": "text",
@@ -5993,6 +6102,45 @@
     }
   ],
   "html_rules": [
+    {
+      "tag": "mark",
+      "attribute": "data-pen",
+      "only": [
+        "yellow",
+        "green",
+        "blue",
+        "pink"
+      ],
+      "says": "A pen is one of those it says."
+    },
+    {
+      "tag": "span",
+      "attribute": "data-hue",
+      "only": [
+        "",
+        "red",
+        "orange",
+        "amber",
+        "green",
+        "teal",
+        "blue",
+        "indigo",
+        "purple",
+        "pink",
+        "brown",
+        "gray"
+      ],
+      "says": "A hue is one of those it says."
+    },
+    {
+      "tag": "svg",
+      "attribute": "data-theme",
+      "only": [
+        "light",
+        "dark"
+      ],
+      "says": "A drawing is for one of the two themes."
+    },
     {
       "tag": "img",
       "requires": [

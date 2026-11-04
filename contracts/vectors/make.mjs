@@ -37,7 +37,13 @@ const sign = async (who, ...pieces) => Buffer.from(await subtle.sign("Ed25519", 
 
 const certificate = await sign(root, words("tisty-share.certificate.v1\0"), root.public, machine.public, be8(Date.parse(SINCE) / 1000));
 
-const revoked = await sign(root, words("tisty-share.revocation.v1\0"), root.public, machine.public, be8(Date.parse(SINCE) / 1000));
+const revocation = async (by, of, at) => ({
+  root: b64(by.public),
+  machine: b64(of.public),
+  at,
+  signed: b64(await sign(by, words("tisty-share.revocation.v1\0"), by.public, of.public, be8(Date.parse(at) / 1000))),
+});
+const revoked = await revocation(root, machine, SINCE);
 
 const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [] }) => {
   const told = parts.map(({ name, compressed, bytes, saying }) => {
@@ -171,7 +177,13 @@ const CASES = [
   ["a newer major version", { parts: asWords(fair, fairRest), contract: "99.0.0" }],
   ["an older major version", { parts: asWords(fair, fairRest), contract: "0.9.0" }],
   ["a version that is none", { parts: asWords(fair, fairRest), contract: "paseos" }],
-  ["another draft of this version", { parts: asWords(fair, fairRest), contract: "1.0.0-draft.0" }],
+  ["a draft of this version", { parts: asWords(fair, fairRest), contract: "1.0.0-draft.8" }],
+  ["two pages out of their order", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 2 }, { ...page, id: "p2" }] }) }],
+  ["two pages with one id", { parts: asWords(fair, { ...fairRest, pages: [page, { ...page, at: 2 }] }) }],
+  ["a picture drawn at another size than its own", { parts: [...asWords({ ...fair, pictures: [aPicture], html: '<img src="tisty:picture/0" alt="a" width="900" height="1">' }, fairRest), asPicture] }],
+  ["files without the hash that answers for them", { parts: asWords({ ...fair, files: [{ at: 0, name: "cartilla.pdf" }] }, fairRest) }],
+  ["a hash without files", { parts: asWords({ ...fair, files_hash: files.hash }, fairRest) }],
+  ["a picture that gives another size than its manifest says", { parts: [...asWords({ ...fair, pictures: [aPicture] }, fairRest), { ...asPicture, saying: 3 }] }],
   ["a script in its HTML", { parts: withHtml("<script>alert(1)</script>") }],
   ["a script in a page", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, html: "<script>alert(1)</script>" }] }) }],
   ["a page of another document", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, page_of: "otroDoc" }] }) }],
@@ -189,13 +201,34 @@ for (const [says, { parts, ...over }] of CASES) {
   refused.push({ says, envelope: bytes.toString("hex") });
 }
 
+const aLaterMinor = await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, parts: asWords(fair, fairRest), contract: "1.9.0" });
+
 // A main envelope that answers for another files envelope than the one it is handed.
 const otherFiles = await seal({ kind: "files", id: "k7Qm2xPa", version: 1, sealed: true, head: HEADS.other, parts: [{ name: "file", compressed: false, bytes: words("otro") }] });
 const moreFiles = await seal({ kind: "files", id: HOSTILE, version: 1, sealed: false, parts: [...FILES, ...FILES].map((bytes) => ({ name: "file", compressed: false, bytes })) });
 const compressedFile = await seal({ kind: "files", id: HOSTILE, version: 1, sealed: false, parts: [{ name: "file", compressed: true, bytes: FILES[0] }] });
 const aFile = { at: 0, name: "cartilla.pdf", kind: "application/pdf", size: FILES[0].length };
+const inOtherPlace = await seal({ kind: "files", id: HOSTILE, version: 1, sealed: false, parts: [{ name: "file", compressed: false, bytes: FILES[0] }] });
 const countedOver = { id: HOSTILE, html: "<p>a</p>", body: "a", files: [aFile], files_hash: moreFiles.hash };
 const squeezedOver = { id: HOSTILE, html: "<p>a</p>", body: "a", files: [aFile], files_hash: compressedFile.hash };
+
+const stranger = await signer(filled(0x55));
+const BEFORE = "2026-11-04T00:00:00Z";
+const AT = "2026-11-05T00:00:00Z";
+const AFTER = "2026-11-06T00:00:00Z";
+const broken = { ...(await revocation(root, machine, AT)), at: AFTER };
+const verdicts = [
+  { says: "no revocation names it", served: { received: AFTER }, verdict: "holds" },
+  { says: "the server says nothing and names no revocation", served: {}, verdict: "holds" },
+  { says: "it arrived before the revocation's at", served: { received: BEFORE, revocations: [await revocation(root, machine, AT)] }, verdict: "retired" },
+  { says: "it arrived exactly at it, which counts as after", served: { received: AT, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
+  { says: "it arrived after it", served: { received: AFTER, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
+  { says: "the server does not say when it arrived", served: { revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
+  { says: "of several, the earliest counts", served: { received: AT, revocations: [await revocation(root, machine, AFTER), await revocation(root, machine, BEFORE)] }, verdict: "doubtful" },
+  { says: "a revocation of another machine counts for nothing", served: { received: AFTER, revocations: [await revocation(root, stranger, AT)] }, verdict: "holds" },
+  { says: "a revocation by another root counts for nothing", served: { received: AFTER, revocations: [{ ...(await revocation(stranger, machine, AT)) }] }, verdict: "holds" },
+  { says: "a revocation whose signature does not hold counts for nothing", served: { received: AFTER, revocations: [broken] }, verdict: "holds" },
+];
 
 const png = PICTURES[0];
 const jpeg = Buffer.from("/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCAABAAIDAREAAhEBAxEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDk64z9KP/Z", "base64");
@@ -222,15 +255,20 @@ const said = {
   identity: { root: b64(root.public), fingerprint: fingerprintOf(root.public) },
   references: { html: `<a HREF='tisty:page/1'>a</a><img alt=a src=tisty:picture/0 width=1 height=1><q cite=" tisty:file/2 ">b</q><a title/href="tisty:cited/3">c</a><a href="https://a.example/tisty:page/9">tisty:page/8</a>`, said: [{ kind: "page", at: 1 }, { kind: "picture", at: 0 }, { kind: "file", at: 2 }, { kind: "cited", at: 3 }] },
   refused,
+  a_later_minor: aLaterMinor.bytes.toString("hex"),
+  signed_by: { root: b64(root.public), machine: b64(machine.public) },
+  verdicts,
   files_refused: [
-    { says: "another files envelope than the one it answers for", main: { id: "k7Qm2xPa", key: true }, files: otherFiles.bytes.toString("hex") },
+    { says: "another files envelope than the one it answers for", main: { id: "k7Qm2xPa" }, files: otherFiles.bytes.toString("hex") },
   ],
   files_lying: [
     { says: "more files than it says", document: countedOver, files: moreFiles.bytes.toString("hex") },
     { says: "a file that says it is compressed", document: squeezedOver, files: compressedFile.bytes.toString("hex") },
+    { says: "a file at another place than it says", document: { id: HOSTILE, html: "<p>a</p>", body: "a", files: [{ ...aFile, at: 3 }], files_hash: inOtherPlace.hash }, files: inOtherPlace.bytes.toString("hex") },
+    { says: "a file of another size than it says", document: { id: HOSTILE, html: "<p>a</p>", body: "a", files: [{ ...aFile, size: 1 }], files_hash: inOtherPlace.hash }, files: inOtherPlace.bytes.toString("hex") },
   ],
   pictures,
-  revocation: { root: b64(root.public), machine: b64(machine.public), at: SINCE, signed: b64(revoked) },
+  revocation: revoked,
   main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")) },
   files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
   public: { envelope: open.bytes.toString("hex"), document: plain },

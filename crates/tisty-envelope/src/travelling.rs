@@ -403,13 +403,43 @@ fn within(at: &Range<usize>, inside: &Range<usize>) -> Range<usize> {
     at.start + inside.start..at.start + inside.end
 }
 
+// What HTML typed by hand holds goes as the drawn HTML does, and a comment never shows, so nobody knows it would go.
+fn typed_html_said(at: &Range<usize>, said: &str, places: &Places, out: &mut Vec<Change>) {
+    let mut bare = String::with_capacity(said.len());
+    let mut rest = said;
+    while let Some(from) = rest.find("<!--") {
+        bare.push_str(&rest[..from]);
+        rest = rest[from..]
+            .find("-->")
+            .map_or("", |to| &rest[from + to + 3..]);
+    }
+    bare.push_str(rest);
+    let goes = ready(&bare, places);
+    if goes != said {
+        out.push((at.clone(), goes));
+    }
+}
+
 fn image_said(at: &Range<usize>, said: &str, src: &str, places: &Places, out: &mut Vec<Change>) {
     let alt = closing_of(said)
         .and_then(|closing| said.get(2..closing))
         .unwrap_or_default();
     match (reached_as(src, places), address_after(said, "](")) {
-        (Some(place), Some(address)) => out.push((within(at, &address), place)),
-        (Some(place), None) => out.push((at.clone(), format!("![{alt}]({place})"))),
+        // A file is a card, as the HTML draws it, and no picture.
+        (Some(place), Some(address)) => {
+            if !places.pictures.contains_key(src) {
+                out.push((at.start..at.start + 1, String::new()));
+            }
+            out.push((within(at, &address), place));
+        }
+        (Some(place), None) => {
+            let mark = if places.pictures.contains_key(src) {
+                "!"
+            } else {
+                ""
+            };
+            out.push((at.clone(), format!("{mark}[{alt}]({place})")));
+        }
         (None, _) if leads_outside(src) => out.push((at.start..at.start + 1, String::new())),
         (None, _) => out.push((at.clone(), alt.to_owned())),
     }
@@ -462,6 +492,9 @@ fn changes_in(
     out: &mut Vec<Change>,
 ) {
     for block in blocks {
+        if matches!(block.kind, tisty_markdown::Kind::Html) {
+            typed_html_said(&block.at, &text[block.at.clone()], places, out);
+        }
         if let tisty_markdown::Kind::Definition { to, .. } = &block.kind {
             definition_said(&block.at, &text[block.at.clone()], to, places, out);
         }

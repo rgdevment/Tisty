@@ -5818,7 +5818,7 @@ dependencies = [
 
 [[package]]
 name = "tisty-contracts"
-version = "1.0.0-draft.8"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",

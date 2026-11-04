@@ -277,6 +277,29 @@ fn how_the_person_plans_their_work_stays_home() {
 }
 
 #[test]
+fn html_typed_by_hand_goes_as_the_drawn_html_does() {
+    let said = "<!-- nota C:/secreto -->\n\n<img src=\"C:/secreto.png\" alt=\"foto\">\n\n<!-- otra -->\n<div><a href=\"C:/secreto.pdf\">R</a></div>\n\n<img src=\"rina.png\" alt=\"Rina\">\n";
+    let goes = body_ready(said, &places());
+    assert!(
+        !goes.contains("secreto") && !goes.contains("nota"),
+        "{goes}"
+    );
+    assert!(goes.contains("tisty:picture/0"), "{goes}");
+}
+
+#[test]
+fn a_file_named_as_a_picture_is_a_card_in_the_words_too() {
+    assert_eq!(
+        body_ready("![a](cartilla.pdf)\n", &places()),
+        "[a](tisty:file/1)\n"
+    );
+    assert_eq!(
+        body_ready("![a](rina.png)\n", &places()),
+        "![a](tisty:picture/0)\n"
+    );
+}
+
+#[test]
 fn a_quote_keeps_its_source_only_when_it_leads_somewhere() {
     assert_eq!(ready(r#"<q cite="x.html">a</q>"#, &places()), "<q>a</q>");
     assert_eq!(

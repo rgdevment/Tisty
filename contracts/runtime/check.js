@@ -144,7 +144,10 @@ const opened = (html) => {
     rest = rest.slice(start + 1);
     if (rest.startsWith("!") || rest.startsWith("?")) out.push({ tag: "!", attributes: [], unclosed: false });
     // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
-    if (rest.startsWith("/") && !/^\/[a-zA-Z][^\t\n\f\r />]*[\t\n\f\r ]*>/.test(rest)) out.push({ tag: "/", attributes: [], unclosed: false });
+    if (rest.startsWith("/")) {
+      const closes = /^\/([a-zA-Z][^\t\n\f\r />]*)[\t\n\f\r ]*>/.exec(rest);
+      out.push({ tag: closes ? "</" + lowered(closes[1]) : "/", attributes: [], unclosed: false });
+    }
     if (!/^[a-zA-Z]/.test(rest)) continue;
     let end = until(rest, /[\t\n\f\r />]/);
     const one = { tag: lowered(rest.slice(0, end)), attributes: [], unclosed: false };
@@ -186,7 +189,8 @@ const opened = (html) => {
 
 const brokenBy = (rule, value) =>
   (rule.never ?? []).some((one) => words(value).includes(one)) ||
-  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
+  (rule.starts_with !== undefined && !value.startsWith(rule.starts_with)) ||
+  (rule.only !== undefined && !rule.only.includes(value));
 
 // One spelling for a place too, and it fits a whole number in every language.
 const referenceIn = (bare) => {
@@ -258,6 +262,18 @@ export function referencesIn(html) {
   return out;
 }
 
+// Each picture the HTML draws, with the size it holds for it.
+export function picturesIn(html) {
+  const out = [];
+  for (const { tag, attributes } of opened(html)) {
+    if (tag !== "img") continue;
+    const said = (name) => attributes.find(([one]) => one === name)?.[1];
+    const one = said("src")?.startsWith("tisty:picture/") ? referenceIn(said("src")) : null;
+    if (one) out.push({ at: one.at, width: said("width"), height: said("height") });
+  }
+  return out;
+}
+
 export function checkHtml(html) {
   const out = [];
   const through = WHOLE.passthrough.attributes;
@@ -268,6 +284,10 @@ export function checkHtml(html) {
     }
     if (tag === "/") {
       out.push("a closing tag that says more than its name is in no contract");
+      continue;
+    }
+    if (tag.startsWith("</")) {
+      if (!own(WHOLE.allowed, tag.slice(2)) && !WHOLE.passthrough.tags.includes(tag.slice(2))) out.push(tag + "> is in no contract");
       continue;
     }
     for (const rule of WHOLE.html_rules) {

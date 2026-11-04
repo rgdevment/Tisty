@@ -80,10 +80,6 @@ fn drawn(text: &str, places: &Places) -> String {
     ready(&tisty_markdown::html(&tisty_markdown::read(text)), places)
 }
 
-fn real_ones() -> Vec<(String, String)> {
-    every_real_document()
-}
-
 #[test]
 #[ignore = "app/scripts/journey.mjs runs it before Chrome"]
 fn ready_for_the_window() {
@@ -103,7 +99,7 @@ fn ready_for_the_window() {
         json!({ "name": "english", "html": drawn(IN_ENGLISH, &none) }),
         json!({ "name": "cited", "html": drawn(CITED, &none) }),
     ];
-    for (name, text) in real_ones() {
+    for (name, text) in every_real_document() {
         out.push(json!({ "name": name, "html": drawn(&text, &none) }));
     }
     std::fs::write(
@@ -285,7 +281,7 @@ fn sealed_from_the_window() {
     assert_eq!(going.len(), 3);
 
     let mut wrong = Vec::new();
-    for (at, (name, text)) in real_ones().iter().enumerate() {
+    for (at, (name, text)) in every_real_document().iter().enumerate() {
         let id = format!("real{at}");
         let said = document(json!({
             "id": id,

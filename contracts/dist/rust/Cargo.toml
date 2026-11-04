@@ -1,6 +1,6 @@
 [package]
 name = "tisty-contracts"
-version = "1.0.0-draft.8"
+version = "1.0.0"
 edition = "2024"
 license = "AGPL-3.0-only"
 description = "What a Tisty document and task are. Generated from Tisty's contracts."

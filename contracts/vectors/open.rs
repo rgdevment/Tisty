@@ -12,7 +12,7 @@ use hkdf::Hkdf;
 use hmac::{Hmac, KeyInit as _, Mac};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
-use tisty_contracts::{VERSION, check, check_html, references_in};
+use tisty_contracts::{VERSION, check, check_html, pictures_in, references_in};
 
 const VECTORS: &str = include_str!("../vectors.json");
 
@@ -44,9 +44,14 @@ fn verified(key: &[u8], signature: &[u8], said: &[u8]) -> Result<(), String> {
 }
 
 fn seconds(said: &str) -> i64 {
-    // Whatever the moment, it is whole seconds, and only this date is ever signed in the samples.
-    assert_eq!(said, "2026-11-03T12:00:00Z");
-    1_793_707_200
+    let number = |at: std::ops::Range<usize>| said[at].parse::<i64>().unwrap();
+    let (year, month, day) = (number(0..4), number(5..7), number(8..10));
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let of_era = year.rem_euclid(400);
+    let of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let days = era * 146_097 + of_era * 365 + of_era / 4 - of_era / 100 + of_year - 719_468;
+    days * 86_400 + number(11..13) * 3_600 + number(14..16) * 60 + number(17..19)
 }
 
 const MAIN: (&str, &str) = ("k7Qm2xPa", "main");
@@ -212,6 +217,13 @@ fn references_hold(html: &str, held: &Value) -> Result<(), String> {
             return Err(format!("tisty:{kind}/{at} is not there"));
         }
     }
+    for (at, width, height) in pictures_in(html) {
+        let picture = &held["pictures"][at as usize];
+        let says = |name: &str, value: &str| picture[name].as_u64().is_some_and(|number| format!("{number}") == value);
+        if !says("width", &width) || !says("height", &height) {
+            return Err("a picture drawn at another size than its own".into());
+        }
+    }
     Ok(())
 }
 
@@ -247,11 +259,18 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
         }
     }
     let pages = held["pages"].as_array().unwrap_or(&empty);
-    let mut places = std::collections::BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
+    let mut last = 0;
     for page in pages {
-        if page["page_of"] != held["id"] || !places.insert(page["at"].as_u64()) {
+        let at = page["at"].as_u64().unwrap_or_default();
+        if page["page_of"] != held["id"] || at <= last || !ids.insert(page["id"].as_str()) {
             return Err("a page is not in its place in this document".into());
         }
+        last = at;
+    }
+    let files = held["files"].as_array().map_or(0, Vec::len);
+    if (files > 0) != held["files_hash"].is_string() {
+        return Err("files and the hash that answers for them go together".into());
     }
     references_hold(held["html"].as_str().unwrap_or_default(), &held)?;
     for page in pages {
@@ -272,8 +291,14 @@ pub fn files_for(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Opti
     if URL_SAFE_NO_PAD.encode(hash) != held["files_hash"].as_str().unwrap_or_default() {
         return Err("not the envelope its document answers for".into());
     }
-    if held["files"].as_array().map_or(0, Vec::len) != files.parts.len() {
+    let said = held["files"].as_array().map_or(&[][..], Vec::as_slice);
+    if said.len() != files.parts.len() {
         return Err("another number of files than it says".into());
+    }
+    for (at, one) in said.iter().enumerate() {
+        if one["at"] != at as u64 || one["size"].as_u64().is_some_and(|size| size != files.parts[at].len() as u64) {
+            return Err("a file is not what it says".into());
+        }
     }
     Ok(files)
 }
@@ -349,6 +374,29 @@ pub fn document_of(opened: &Opened) -> Value {
     Value::Object(out)
 }
 
+// What a reader says of a signature that holds, from what the server serves beside it. Whole seconds in one form sort as they read.
+fn verdict_of(signed_by: &Value, served: &Value) -> &'static str {
+    let root = signed_by["root"].as_str().unwrap();
+    let machine = signed_by["machine"].as_str().unwrap();
+    let earliest = served["revocations"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|one| one["root"] == root && one["machine"] == machine)
+        .filter(|one| {
+            let at = seconds(one["at"].as_str().unwrap());
+            let said = [b"tisty-share.revocation.v1\0".as_slice(), &b64(&one["root"]), &b64(&one["machine"]), &at.to_be_bytes()].concat();
+            verified(&b64(&one["root"]), &b64(&one["signed"]), &said).is_ok()
+        })
+        .filter_map(|one| one["at"].as_str())
+        .min();
+    match (earliest, served["received"].as_str()) {
+        (None, _) => "holds",
+        (Some(at), Some(received)) if received < at => "retired",
+        _ => "doubtful",
+    }
+}
+
 fn vectors() -> Value {
     serde_json::from_str(VECTORS).unwrap()
 }
@@ -417,6 +465,21 @@ fn a_reader_refuses_files_its_document_does_not_answer_for() {
     for one in all["files_lying"].as_array().unwrap() {
         assert!(files_for(&one["document"], &hex(&one["files"]), ("hostile", "files"), None).is_err(), "{}", one["says"]);
     }
+}
+
+#[test]
+fn a_reader_weighs_a_signature_by_what_the_server_serves() {
+    let all = vectors();
+    for one in all["verdicts"].as_array().unwrap() {
+        assert_eq!(check("served", &one["served"]), Vec::<String>::new());
+        assert_eq!(verdict_of(&all["signed_by"], &one["served"]), one["verdict"], "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_later_minor_version_opens_since_it_only_adds_what_can_be_left_aside() {
+    let all = vectors();
+    assert!(reading(&hex(&all["a_later_minor"]), ("hostile", "main"), None).is_ok());
 }
 
 #[test]

@@ -12,7 +12,7 @@ values:
     a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.
   says_nothing_unchosen: >-
     What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name
-    from its log, in the HTML or in the body. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.
+    from its log, in the HTML or in the body, and what the person typed as words in a sentence is theirs. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.
   who_shares_it: "Whoever signs its envelope: the root in its signature, and nothing inside can say otherwise."
   anchor_language: "Paper, sheets and orientation are the group's: the anchor's, in every language."
 fields:
@@ -24,9 +24,9 @@ fields:
   signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Where it is sealed, only a reader with the key sees it; what is public shows it to anyone. Never a proof." }
   made: { type: time }
   wrote: { type: time }
-  body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. What HTML typed by hand holds stays as written." }
+  body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone." }
   html: { type: text, required: true, says: "Its words as the writer drew them. A reader never draws them itself." }
-  pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
+  pages: { type: list, of: page, says: "Its pages, by their place, each with an id of its own." }
   pictures: { type: list, of: picture, says: "The pictures its main envelope holds." }
   files: { type: list, of: attachment, says: "What its files envelope holds." }
   files_hash: { type: hash, says: "The hash of its files envelope, when it has one." }
@@ -55,6 +55,45 @@ html_cases:
   - says: "HTML written inside the words, as far as passthrough says."
     html: '<abbr title="Hyper Text">HTML</abbr>'
     holds: true
+  - says: "A closing tag of what no contract knows, which would reach out of where it is put."
+    html: "<p>a</p></main></body>"
+    holds: false
+  - says: "A pen it does not have."
+    html: '<mark data-pen="javascript">a</mark>'
+    holds: false
+  - says: "A hue it does not have."
+    html: '<span class="ico" data-ico="dog" data-hue="url"></span>'
+    holds: false
+  - says: "A drawing for a theme that does not exist."
+    html: '<figure class="diagram"><svg data-theme="sepia"></svg></figure>'
+    holds: false
+  - says: "An event on a picture."
+    html: '<img src="tisty:picture/0" alt="a" width="1" height="1" onerror="alert(1)">'
+    holds: false
+  - says: "An event on a drawing."
+    html: '<svg onload="alert(1)"></svg>'
+    holds: false
+  - says: "A script inside a drawing."
+    html: "<svg><script>alert(1)</script></svg>"
+    holds: false
+  - says: "A frame."
+    html: '<iframe src="https://a.example"></iframe>'
+    holds: false
+  - says: "A form that sends somewhere."
+    html: '<form action="https://a.example"><input name="clave"></form>'
+    holds: false
+  - says: "A base that moves every address."
+    html: '<base href="https://a.example/">'
+    holds: false
+  - says: "A meta that leaves the page."
+    html: '<meta http-equiv="refresh" content="0;url=https://a.example">'
+    holds: false
+  - says: "An address on a formula."
+    html: '<math href="javascript:alert(1)"><mi>x</mi></math>'
+    holds: false
+  - says: "A script in capitals."
+    html: "<SCRIPT>alert(1)</SCRIPT>"
+    holds: false
   - says: "A place written two ways would be two places."
     html: '<a href="tisty:page/01">Enero</a>'
     holds: false

@@ -325,9 +325,13 @@ fn opened(html: &str) -> Vec<Opened> {
         }
         // A closing tag says nothing but its name: a quote in one would hide from here what a browser goes on to run.
         if let Some(closing) = rest.strip_prefix('/') {
-            if !closes_well(closing) {
-                out.push(Opened { tag: "/".to_owned(), attributes: Vec::new(), unclosed: false });
-            }
+            let tag = if closes_well(closing) {
+                let end = closing.find(|one: char| is_space(one) || one == '/' || one == '>').unwrap_or(closing.len());
+                format!("</{}", closing[..end].to_ascii_lowercase())
+            } else {
+                "/".to_owned()
+            };
+            out.push(Opened { tag, attributes: Vec::new(), unclosed: false });
         }
         if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
             continue;
@@ -390,6 +394,7 @@ fn words(said: &str) -> impl Iterator<Item = &str> {
 fn broken_by(rule: &Value, value: &str) -> bool {
     words(value).any(|one| listed(&rule["never"], one))
         || rule["starts_with"].as_str().is_some_and(|start| !value.starts_with(start))
+        || rule["only"].as_array().is_some_and(|only| !only.iter().any(|one| one == value))
 }
 
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
@@ -419,6 +424,26 @@ fn reference_in(all: &Value, place: &str) -> Option<(String, u64)> {
     Some((kind.to_owned(), at.parse().ok()?))
 }
 
+/// Each picture the HTML draws, with the width and the height it holds for it.
+pub fn pictures_in(html: &str) -> Vec<(u64, String, String)> {
+    let all = whole();
+    let mut out = Vec::new();
+    for Opened { tag, attributes, .. } in opened(html) {
+        if tag != "img" {
+            continue;
+        }
+        let said = |name: &str| attributes.iter().find(|(one, _)| one == name).map(|(_, value)| value.clone());
+        let Some(src) = said("src") else {
+            continue;
+        };
+        let place = src.strip_prefix("tisty:").filter(|one| one.starts_with("picture/"));
+        if let Some((_, at)) = place.and_then(|one| reference_in(all, one)) {
+            out.push((at, said("width").unwrap_or_default(), said("height").unwrap_or_default()));
+        }
+    }
+    out
+}
+
 /// Each place inside what travels that the HTML leads to, read as a browser reads its attributes.
 pub fn references_in(html: &str) -> Vec<(String, u64)> {
     let all = whole();
@@ -433,7 +458,7 @@ pub fn references_in(html: &str) -> Vec<(String, u64)> {
                 continue;
             };
             if scheme.eq_ignore_ascii_case("tisty") {
-                out.extend(reference_in(&all, place));
+                out.extend(reference_in(all, place));
             }
         }
     }
@@ -507,6 +532,12 @@ pub fn check_html(html: &str) -> Vec<String> {
         }
         if tag == "/" {
             out.push("a closing tag that says more than its name is in no contract".to_owned());
+            continue;
+        }
+        if let Some(name) = tag.strip_prefix("</") {
+            if all["allowed"].get(name).is_none() && !listed(&all["passthrough"]["tags"], name) {
+                out.push(format!("{tag}> is in no contract"));
+            }
             continue;
         }
         for rule in all["html_rules"].as_array().into_iter().flatten().filter(|rule| rule["tag"] == tag.as_str()) {

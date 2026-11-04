@@ -50,14 +50,15 @@ values:
     - "A from that is not earlier than its version."
     - "A picture or a file that says it is compressed."
     - "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid."
-    - "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, or a reference to what does not travel. Its words are not shown."
+    - "A document, a page or an HTML outside the contract, pages out of their order or repeating a place or an id, a page that is not of this document, a picture drawn at another size than its own, files without the hash that answers for them or a hash without files, or a reference to what does not travel. Its words are not shown."
+    - "A file at another place or of another size than its document says."
   who_checks_what:
     server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
     reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft: its format can change from one to the next, so a draft and anything else, in either direction, do not open."
+  versions: "The major version is the number before the first dot of contract. The same one opens. A higher one is read as newer, which asks the reader to update and opens nothing, and a lower one as damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader can leave aside: anything that reader would refuse, as a new tag or a new rule, takes a new major version."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
-  reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
+  reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
 fields:
   contract: { type: text, required: true, at_least: 1, at_most: 32, says: "The version of these contracts it was written under." }
   kind: { type: envelope_kind, required: true }

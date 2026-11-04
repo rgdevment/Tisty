@@ -552,6 +552,35 @@ fn two_languages_may_cite_one_document_and_it_goes_once() {
 }
 
 #[test]
+fn a_picture_is_drawn_at_its_own_size_and_pages_go_in_their_order() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let wide = document(json!({
+        "id": "x",
+        "pictures": a_picture_said(),
+        "html": "<img src=\"tisty:picture/0\" alt=\"a\" width=\"900\" height=\"1\">",
+        "body": "a",
+    }));
+    assert!(
+        writer
+            .sealed(wide, vec![png()], vec![], &sealing("x", None))
+            .is_err()
+    );
+    let page = |id: &str, at: u64| json!({ "id": id, "page_of": "x", "at": at, "html": "<p>a</p>", "body": "a" });
+    for pages in [
+        json!([page("b", 2), page("a", 1)]),
+        json!([page("a", 1), page("a", 2)]),
+    ] {
+        let said = document(json!({ "id": "x", "pages": pages, "html": "<p>a</p>", "body": "a" }));
+        assert!(
+            writer
+                .sealed(said, vec![], vec![], &sealing("x", None))
+                .is_err()
+        );
+    }
+}
+
+#[test]
 fn a_picture_travels_once_and_says_nothing_of_where_it_came_from() {
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);

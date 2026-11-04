@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.0-draft.8";
+export declare const VERSION: "1.0.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -271,3 +271,4 @@ export declare function check(contract: ContractName, value: unknown): string[];
 /** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */
 export declare function checkHtml(html: string): string[];
 export declare function referencesIn(html: string): { kind: string; at: number }[];
+export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];

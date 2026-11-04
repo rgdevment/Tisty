@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, checkHtml, referencesIn, VERSION } from "./index.js";
+import { check, checkHtml, picturesIn, referencesIn, VERSION } from "./index.js";
 
 const VECTORS = JSON.parse(readFileSync(new URL("./vectors.json", import.meta.url), "utf8"));
 const { subtle } = globalThis.crypto;
@@ -106,6 +106,7 @@ const opened = async (bytes, asked, linkKey) => {
     const held = manifest.sealed
       ? new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv: nonce, additionalData: manifestBytes }, key, travelled))
       : travelled;
+    assert.ok(part.compressed || held.length === part.open_size, "a part gives what its manifest says");
     parts.push(part.compressed ? await inflated(held, part.open_size) : held);
   }
   assert.equal(at, bytes.length, "nothing follows its parts");
@@ -131,11 +132,16 @@ const documentIn = ({ manifest, parts }) => {
   });
   const pages = held.pages ?? [];
   assert.ok(pages.every((one) => one.page_of === held.id), "its pages are its own");
-  assert.equal(new Set(atsOf(pages)).size, pages.length, "each page in a place of its own");
+  assert.ok(pages.every((one, at) => at === 0 || pages[at - 1].at < one.at), "its pages by their place, each in its own");
+  assert.equal(new Set(pages.map((one) => one.id)).size, pages.length, "each page with an id of its own");
+  assert.equal((held.files ?? []).length > 0, held.files_hash !== undefined, "files and the hash that answers for them go together");
   const there = { page: atsOf(pages), picture: atsOf(pictures), file: atsOf(held.files), cited: (held.cited ?? []).map((_, at) => at) };
   for (const html of [held.html, ...pages.map((one) => one.html)]) {
     assert.deepEqual(checkHtml(html), []);
     for (const { kind, at } of referencesIn(html)) assert.ok(there[kind].includes(at), `tisty:${kind}/${at} is there`);
+    for (const { at, width, height } of picturesIn(html)) {
+      assert.ok(width === String(pictures[at].width) && height === String(pictures[at].height), "a picture drawn at its own size");
+    }
   }
   return held;
 };
@@ -150,6 +156,10 @@ const filesFor = async (held, bytes, asked, linkKey) => {
   assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)), "the envelope its document answers for");
   const said = held.files ?? [];
   assert.equal(said.length, files.parts.length, "as many files as it says");
+  said.forEach((one, at) => {
+    assert.equal(one.at, at, "a file in its place");
+    assert.ok(one.size === undefined || one.size === files.parts[at].length, "a file of its size");
+  });
   return files;
 };
 
@@ -163,7 +173,7 @@ const pictureHolds = (bytes, { kind, size, width, height }) => {
     for (let at = 8; at + 12 <= bytes.length; ) {
       const length = view.getUint32(at);
       const name = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
-      if (at === 8 && name === "IHDR" && length >= 8) said = [view.getUint32(at + 8), view.getUint32(at + 12)];
+      if (at === 8 && name === "IHDR" && length >= 8 && at + 16 <= bytes.length) said = [view.getUint32(at + 8), view.getUint32(at + 12)];
       at += 12 + length;
       if (name === "IEND") return at === bytes.length && said?.[0] === width && said?.[1] === height;
     }
@@ -184,6 +194,19 @@ const pictureHolds = (bytes, { kind, size, width, height }) => {
     }
   }
   return false;
+};
+
+// What a reader says of a signature that holds, from what the server serves beside it. Whole seconds in one form sort as they read.
+const verdictOf = async ({ root, machine }, { received, revocations = [] }) => {
+  const counting = [];
+  for (const one of revocations) {
+    if (one.root !== root || one.machine !== machine) continue;
+    const held = await subtle.importKey("raw", b64(root), "Ed25519", false, ["verify"]);
+    const said = joined(words("tisty-share.revocation.v1\0"), b64(root), b64(machine), be(Date.parse(one.at) / 1000));
+    if (await subtle.verify("Ed25519", held, b64(one.signed), said)) counting.push(one.at);
+  }
+  if (!counting.length) return "holds";
+  return received !== undefined && received < counting.sort()[0] ? "retired" : "doubtful";
 };
 
 const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
@@ -228,6 +251,17 @@ for (const { says, document, files } of VECTORS.files_lying) {
     await assert.rejects(filesFor(document, hex(files), { id: "hostile", kind: "files" }));
   });
 }
+
+for (const { says, served, verdict } of VECTORS.verdicts) {
+  test(`a signature is ${verdict} when ${says}`, async () => {
+    assert.deepEqual(check("served", served), []);
+    assert.equal(await verdictOf(VECTORS.signed_by, served), verdict);
+  });
+}
+
+test("a later minor version opens, since it only adds what can be left aside", async () => {
+  await reading(hex(VECTORS.a_later_minor), { id: "hostile", kind: "main" });
+});
 
 for (const one of VECTORS.pictures.hold) {
   test(`a real ${one.kind} holds`, () => assert.ok(pictureHolds(hex(one.bytes), one)));

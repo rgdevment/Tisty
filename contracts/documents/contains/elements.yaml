@@ -45,6 +45,9 @@ values:
     th: [align, char, charoff, colspan, headers, rowspan, scope]
     thead: [align, char, charoff]
     tr: [align, char, charoff]
+html_rules:
+  - { tag: mark, attribute: data-pen, only: [yellow, green, blue, pink], says: "A pen is one of those it says." }
+  - { tag: span, attribute: data-hue, only: ["", red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray], says: "A hue is one of those it says." }
 draws:
   - { tag: h1, attributes: [id] }
   - { tag: h2, attributes: [id] }
@@ -128,6 +131,8 @@ values:
   paint_attributes: [fill, stroke, marker-start, marker-end, marker-mid, clip-path]
   paint_urls: "A paint or a marker names something in its own drawing, as url(#name), and nothing else."
   not_drawn: "A diagram that cannot be drawn travels as code, with no language, and the writer says so to the person."
+html_rules:
+  - { tag: svg, attribute: data-theme, only: [light, dark], says: "A drawing is for one of the two themes." }
 draws:
   - { tag: figure, attributes: [class], classes: [diagram] }
   - { tag: svg, attributes: [xmlns, width, height, viewbox, preserveaspectratio, role, aria-label, aria-hidden, data-theme, fill, stroke, stroke-width, stroke-linecap, stroke-linejoin, font-family, font-size, font-weight, font-style, text-anchor] }

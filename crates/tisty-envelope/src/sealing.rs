@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
     Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, PartName, Picture, Sealing,
-    Signature, VERSION, check, check_html, references_in,
+    Signature, VERSION, check, check_html, pictures_in, references_in,
 };
 use tisty_share_proto::identity::{Certificate, ShareKey};
 use zeroize::Zeroizing;
@@ -169,11 +169,24 @@ fn references_fit(html: &str, document: &Document) -> Result<(), Refused> {
             "file" => (at as usize) < files,
             _ => (at as usize) < cited,
         });
-    if holds {
+    if !holds {
+        return Err(Refused::DoesNotAdd(
+            "a reference points at something that does not travel",
+        ));
+    }
+    let at_its_size = pictures_in(html).into_iter().all(|(at, width, height)| {
+        document
+            .pictures
+            .iter()
+            .flatten()
+            .nth(at as usize)
+            .is_some_and(|one| width == one.width.to_string() && height == one.height.to_string())
+    });
+    if at_its_size {
         Ok(())
     } else {
         Err(Refused::DoesNotAdd(
-            "a reference points at something that does not travel",
+            "a picture is drawn at another size than its own",
         ))
     }
 }
@@ -293,13 +306,15 @@ fn adds_up(document: &Document, sealing: &Sealing) -> Result<(), Refused> {
             "it holds the map of its languages without saying its own",
         ));
     }
-    let mut seen = std::collections::BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
+    let mut last = 0;
     for page in document.pages.iter().flatten() {
-        if page.page_of != document.id || !seen.insert(page.at) {
+        if page.page_of != document.id || page.at <= last || !ids.insert(&page.id) {
             return Err(Refused::DoesNotAdd(
                 "a page is not in its place in this document",
             ));
         }
+        last = page.at;
     }
     Ok(())
 }
