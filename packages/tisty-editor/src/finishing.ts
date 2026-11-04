@@ -58,6 +58,13 @@ const asCode = (page: Document, source: string) => {
   return figure;
 };
 
+// Named after what it draws: with no frame around them, drawings from two documents share a page, and a line reaches the first marker of its name.
+const nameOf = (source: string) => {
+  let hash = 0x811c9dc5;
+  for (const one of source) hash = Math.imul(hash ^ (one.codePointAt(0) ?? 0), 0x01000193);
+  return (hash >>> 0).toString(36);
+};
+
 const diagramsIn = async (page: Document, draw: Draw) => {
   const figures = [...page.querySelectorAll("figure.diagram")];
   if (!figures.length) return 0;
@@ -70,8 +77,9 @@ const diagramsIn = async (page: Document, draw: Draw) => {
   try {
     for (const [at, figure] of figures.entries()) {
       const source = figure.querySelector("pre > code")?.textContent ?? "";
-      const light = await flat(source, false, `d${at}-l`, draw, room);
-      const dark = light && (await flat(source, true, `d${at}-d`, draw, room));
+      const named = `d${nameOf(source)}-${at}`;
+      const light = await flat(source, false, `${named}-l`, draw, room);
+      const dark = light && (await flat(source, true, `${named}-d`, draw, room));
       if (!light || !dark) {
         notDrawn += 1;
         figure.replaceWith(asCode(page, source));

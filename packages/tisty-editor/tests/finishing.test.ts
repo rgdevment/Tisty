@@ -96,6 +96,19 @@ describe("a document finished to travel", () => {
     expect(checkHtml(html)).toEqual([]);
   });
 
+  it("names what it draws apart from what another document draws", async () => {
+    document.head.innerHTML = "<style>path{marker-end:url(#a)}</style>";
+    const ids = async (source: string) => {
+      const { html } = await finished(mermaid(source), drawnBy(DRAWING));
+      const page = new DOMParser().parseFromString(html, "text/html");
+      return [...page.querySelectorAll("[id]")].map((one) => one.id);
+    };
+    const [one, other] = [await ids("graph"), await ids("flowchart")];
+    expect(one.length).toBeGreaterThan(0);
+    expect(one.filter((id) => other.includes(id))).toEqual([]);
+    expect(await ids("graph")).toEqual(one);
+  });
+
   it("does not take a drawing inside a drawing for the other look", async () => {
     const { html } = await finished(
       mermaid("architecture"),
