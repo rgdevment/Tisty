@@ -1,7 +1,7 @@
 use super::*;
 
 fn cases() -> serde_json::Value {
-    serde_json::from_str(include_str!("../../../fixtures/tags.json")).unwrap()
+    serde_json::from_str(include_str!("../../../app/src/tests/tagcases.json")).unwrap()
 }
 
 fn said(one: &serde_json::Value) -> &str {

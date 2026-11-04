@@ -52,8 +52,7 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
             at += 1;
             continue;
         }
-        // Anything but a separator before the hash ties it to what came first, like bg-#fff or a URL.
-        // A mark sits on what it follows, so it ties only what that does: after an emoji it is no word.
+        // Anything but a separator before the hash ties it to what came first, as bg-#fff, and a mark counts as what it sits on.
         let before = line[..at]
             .chars()
             .rev()
@@ -111,8 +110,7 @@ fn picks_a_drawing(one: char) -> bool {
 
 pub fn named(raw: &str) -> Option<String> {
     use unicode_normalization::char::is_combining_mark;
-    // Accents come off, so #camion on Monday and #camión on Friday are one tag. Elsewhere a mark
-    // is how the word is written: without its vowels, हिन्दी is another word.
+    // Accents come off so #camion and #camión are one tag; elsewhere a mark is how the word is written.
     let mut kept = String::with_capacity(raw.len());
     let mut base = '-';
     for one in raw.trim().to_lowercase().nfd() {

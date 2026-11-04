@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import cases from "../../../fixtures/tags.json";
 import { named, often } from "../ui/tagging";
+import cases from "./tagcases.json";
 
 describe("the shape the core gives a tag", () => {
   it("shapes the odd ones the way the core does, or the screen opens empty", () => {

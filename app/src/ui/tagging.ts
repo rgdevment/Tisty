@@ -7,7 +7,7 @@ const AT =
   /(?<![\p{L}\p{N}#/\-_.:]\p{M}*)#([\p{L}\p{N}](?:[\p{L}\p{N}\p{M}\-_]|[\u200C\u200D](?=[\p{L}\p{N}]))*)/gu;
 
 // Where a mark is an accent or a vowel a reader can do without, over a letter that stands without it.
-const ACCENTS = /([\s\u0021-\u06FF\u0750-\u077F\u08A0-\u08FF\u1E00-\u1FFF])\p{M}+/gu;
+const ACCENTS = /([\p{White_Space}\u0021-\u06FF\u0750-\u077F\u08A0-\u08FF\u1E00-\u1FFF])\p{M}+/gu;
 // It only asks for another drawing of what comes before it, so two tags would look the same and be two.
 const DRAWINGS = /[\u180B-\u180D\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
 
@@ -21,10 +21,10 @@ export const named = (said: string): string =>
     .toLowerCase()
     .normalize("NFD")
     .replace(DRAWINGS, "")
-    .replace(/[^\p{L}\p{N}\p{M}\s_-]\p{M}*/gu, "")
+    .replace(/[^\p{L}\p{N}\p{M}\p{White_Space}_-]\p{M}*/gu, "")
     .replace(ACCENTS, "$1")
     .replace(/^\p{M}+/u, "")
-    .replace(/[\s_]/g, "-")
+    .replace(/[\p{White_Space}_]/gu, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-|-$/g, "")
     .normalize("NFC");
