@@ -1096,6 +1096,16 @@
           "class_starts": [
             "math-core-"
           ]
+        },
+        {
+          "tag": "span",
+          "attributes": [
+            "style",
+            "class"
+          ],
+          "class_starts": [
+            "math-core-"
+          ]
         }
       ],
       "styles": [
@@ -1177,6 +1187,19 @@
             "mfrac"
           ],
           "property": "padding-top",
+          "sized": "sizes"
+        },
+        {
+          "on": [
+            "mrow",
+            "mtd",
+            "mtr",
+            "mtable",
+            "mspace",
+            "mpadded",
+            "mfrac"
+          ],
+          "property": "padding-bottom",
           "sized": "sizes"
         },
         {
@@ -1364,7 +1387,7 @@
         "picture_source": "tisty:picture/N, its at among the pictures",
         "writer_makes_pictures": [
           "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them.",
-          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind.",
+          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, as long as it is a colour profile's size.",
           "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing.",
           "Its longest side is at most 1600 pixels.",
           "A photo, one that came as JPEG or HEIC, goes as JPEG at quality 82. Anything else goes as PNG.",
@@ -1372,7 +1395,7 @@
           "The same picture travels once.",
           "Its name says nothing of where it came from: picture-N, with its kind's ending."
         ],
-        "writer_asks_the_machine": "What it cannot decode itself, as HEIC, it may ask the machine to turn into a lossless PNG, and goes on from those pixels.",
+        "writer_asks_the_machine": "What it cannot decode itself, as HEIC, it may ask the machine to turn into something it can, and goes on from those pixels.",
         "cannot_be_made": "A picture that cannot be made, and an SVG, which is never a picture, travels as a file with its card, or as its alt when that cannot go either. The writer says so to the person.",
         "reader_checks_pictures": "That its first bytes match its kind, that its header says its width and height before decoding it, and that nothing follows its end. One that fails shows its alt."
       },
@@ -3632,6 +3655,7 @@
           "color": "soft",
           "hue": "A span that says data-hue wears that hue."
         },
+        "diagram": "Each svg is at most its width and at most the width of the sheet, centred, and only the one of the reader's theme shows.",
         "variables": "In CSS each color is var(--tisty-<name>)."
       }
     },
@@ -4616,6 +4640,7 @@
         "data-hue",
         "data-ico",
         "data-tag",
+        "style",
         "title"
       ],
       "classes": [
@@ -4628,7 +4653,8 @@
         "tag"
       ],
       "class_starts": [
-        "hljs-"
+        "hljs-",
+        "math-core-"
       ],
       "class_ends": [
         "_"
@@ -5404,6 +5430,83 @@
     {
       "on": "mfrac",
       "property": "padding-top",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mrow",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mtd",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mtr",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mtable",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mspace",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mpadded",
+      "property": "padding-bottom",
+      "sizes": [
+        "em",
+        "rem",
+        "ex",
+        "%",
+        "px"
+      ]
+    },
+    {
+      "on": "mfrac",
+      "property": "padding-bottom",
       "sizes": [
         "em",
         "rem",

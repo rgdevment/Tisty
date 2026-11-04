@@ -12,14 +12,14 @@ use hkdf::Hkdf;
 use hmac::{Hmac, KeyInit as _, Mac};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
-use tisty_contracts::check;
+use tisty_contracts::{check, check_html};
 
 const VECTORS: &str = include_str!("../vectors.json");
 
-struct Opened {
-    manifest: Vec<u8>,
-    index: Vec<u8>,
-    parts: Vec<Vec<u8>>,
+pub struct Opened {
+    pub manifest: Vec<u8>,
+    pub index: Vec<u8>,
+    pub parts: Vec<Vec<u8>>,
 }
 
 fn b64(said: &Value) -> Vec<u8> {
@@ -41,7 +41,7 @@ fn verified(key: &[u8], signature: &[u8], said: &[u8]) -> Result<(), String> {
 }
 
 fn seconds(said: &str) -> i64 {
-    // The samples are all signed at this moment; Tisty reads any moment with its own clock types.
+    // Whatever the moment, it is whole seconds, and only this date is ever signed in the samples.
     assert_eq!(said, "2026-11-03T12:00:00Z");
     1_793_707_200
 }
@@ -50,7 +50,7 @@ const MAIN: (&str, &str) = ("k7Qm2xPa", "main");
 const FILES: (&str, &str) = ("k7Qm2xPa", "files");
 const PUBLIC: (&str, &str) = ("wordsOnly", "main");
 
-fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     if bytes.len() < 4 || &bytes[..4] != b"TENV" {
         return Err("its mark".into());
     }
@@ -156,7 +156,7 @@ fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<
 }
 
 // The first two parts of a main envelope are its words; what follows them is pictures.
-fn document_of(opened: &Opened) -> Value {
+pub fn document_of(opened: &Opened) -> Value {
     let mut out = Map::new();
     for part in &opened.parts[..2] {
         let Value::Object(fields) = serde_json::from_slice(part).unwrap() else {
@@ -178,6 +178,8 @@ fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     let held = document_of(&main);
     assert_eq!(held, all["main"]["document"]);
     assert_eq!(check("document", &held), Vec::<String>::new());
+    assert_eq!(check_html(held["html"].as_str().unwrap()), Vec::<String>::new());
+    assert_eq!(held["id"], MAIN.0, "the document inside is the one the manifest says");
     let pictures: Vec<Vec<u8>> = all["main"]["pictures"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(main.parts[2..], pictures);
 }

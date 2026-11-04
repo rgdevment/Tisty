@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, VERSION } from "./index.js";
+import { check, checkHtml, VERSION } from "./index.js";
 
 const VECTORS = JSON.parse(readFileSync(new URL("./vectors.json", import.meta.url), "utf8"));
 const { subtle } = globalThis.crypto;
@@ -97,6 +97,8 @@ test("a main envelope gives its document, its pages and its pictures, with no ot
   const main = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
   assert.deepEqual(documentOf(main), VECTORS.main.document);
   assert.deepEqual(check("document", documentOf(main)), []);
+  assert.deepEqual(checkHtml(documentOf(main).html), []);
+  assert.equal(documentOf(main).id, main.manifest.id, "the document inside is the one the manifest says");
   assert.deepEqual(hexOf(main.parts.slice(2)), VECTORS.main.pictures);
 });
 
@@ -105,6 +107,18 @@ test("a files envelope gives its files, and the main envelope answers for it", a
   assert.deepEqual(hexOf(files.parts), VECTORS.files.files);
   const hash = await sha(files.manifestBytes, files.index);
   assert.ok(same(hash, b64(VECTORS.main.document.files_hash)));
+});
+
+test("what Tisty sealed in Rust opens here with what a browser brings", async () => {
+  const written = JSON.parse(readFileSync(new URL("./written-by-tisty.json", import.meta.url), "utf8"));
+  const key = b64(written.link_key);
+  const main = await opened(hex(written.main), { id: "writtenByTisty", kind: "main" }, key);
+  const held = documentOf(main);
+  assert.deepEqual(check("document", held), []);
+  assert.deepEqual(checkHtml(held.html), []);
+  assert.equal(held.id, main.manifest.id);
+  const files = await opened(hex(written.files), { id: "writtenByTisty", kind: "files" }, key);
+  assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)));
 });
 
 test("words alone need one envelope", async () => {

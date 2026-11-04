@@ -313,6 +313,7 @@ const files = {
   "typescript/cases.test.js": typescriptCases(),
   "typescript/vectors.test.js": readFileSync(join(here, "vectors", "open.test.js"), "utf8"),
   "typescript/vectors.json": readFileSync(join(here, "vectors", "vectors.json"), "utf8"),
+  "typescript/written-by-tisty.json": readFileSync(join(here, "vectors", "written-by-tisty.json"), "utf8"),
   "rust/Cargo.toml": `[package]
 name = "tisty-contracts"
 version = "${VERSION}"
@@ -336,6 +337,8 @@ sha2 = "0.11"
 
 [workspace]
 `,
+  // Generated, so nobody formats it by hand, and a workspace that names it by path must not try.
+  "rust/rustfmt.toml": `disable_all_formatting = true\n`,
   "rust/src/lib.rs": rustLib(),
   "rust/src/contract.json": `${JSON.stringify(whole)}\n`,
   "rust/tests/cases.rs": rustCases,

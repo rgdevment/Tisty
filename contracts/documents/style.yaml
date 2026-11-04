@@ -131,4 +131,5 @@ values:
     built_in: { color: hue-amber }
     deletion: { color: hue-red }
   icon: { size: "1.05em", color: soft, hue: "A span that says data-hue wears that hue." }
+  diagram: "Each svg is at most its width and at most the width of the sheet, centred, and only the one of the reader's theme shows."
   variables: "In CSS each color is var(--tisty-<name>)."
