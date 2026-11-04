@@ -53,6 +53,8 @@ for (const one of contracts.filter((each) => each.is)) {
   }
   const kept = Object.entries(base.fields).filter(([field]) => !one.except?.includes(field));
   one.fields = { ...Object.fromEntries(kept), ...one.fields };
+  // What the base gave up for good, the one that is it does not get back.
+  if (base.except) one.except = [...(one.except ?? []), ...base.except];
 }
 
 const hasFields = (name) => Boolean(names.get(name)?.fields);

@@ -1520,6 +1520,11 @@
         "writer",
         "reader"
       ],
+      "except": [
+        "by",
+        "born_by",
+        "edited_by"
+      ],
       "says": "A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language, and it can hold pages.",
       "contains": [
         "text",
@@ -1968,6 +1973,16 @@
             "body": "# Paseos"
           },
           "holds": true
+        },
+        {
+          "says": "Who wrote it, which went out of what travels.",
+          "value": {
+            "id": "k7Qm2xPa",
+            "html": "<p>x</p>",
+            "body": "# Paseos",
+            "by": "Mario"
+          },
+          "holds": false
         },
         {
           "says": "Every field it can say.",
@@ -2966,7 +2981,10 @@
         "cited",
         "languages",
         "owner",
-        "signed_as"
+        "signed_as",
+        "by",
+        "born_by",
+        "edited_by"
       ],
       "fields": {
         "id": {
