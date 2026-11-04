@@ -8,7 +8,12 @@ use crate::{
 /// Minting is the person's act: nothing reachable over a wire calls this.
 pub fn register(paths: &Paths) -> Result<DeviceId> {
     let mut config = Config::load_or_init(paths)?;
-    if let Some(held) = config.agent_id.clone() {
+    // The settings outlive the history: a machine that took another's log still names an agent it no longer holds.
+    if let Some(held) = config.agent_id.clone()
+        && crate::State::replay(&crate::store::read_all(paths.store())?)
+            .agents
+            .contains(&held)
+    {
         return Ok(held);
     }
 

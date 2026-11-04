@@ -204,7 +204,7 @@ pub fn facts(
         quiet: session.config.muted().to_vec(),
         shortcut: bound.0.lock().ok().and_then(|now| now.clone()),
         installed: report::installed(crate::update::route().route, crate::update::from_a_mount()),
-        assistant: session.config.agent_id.is_some(),
+        assistant: session.seated_agent().is_some(),
     })
 }
 

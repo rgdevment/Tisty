@@ -104,6 +104,42 @@ fn registering_twice_does_not_mint_a_second_identity() {
 }
 
 #[test]
+fn an_agent_left_behind_with_the_old_history_is_minted_anew() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let lost = register(&paths).unwrap();
+
+    crate::backup::set_aside(&paths, false).unwrap();
+    assert_eq!(registered(&paths).unwrap(), Some(lost.clone()));
+
+    let who = register(&paths).unwrap();
+    assert_ne!(who, lost);
+    let state = crate::State::replay(&crate::store::read_all(paths.store()).unwrap());
+    assert!(state.agents.contains(&who));
+    assert_eq!(registered(&paths).unwrap(), Some(who));
+}
+
+#[test]
+fn an_agent_removed_from_another_machine_can_be_let_in_again() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let removed = register(&paths).unwrap();
+    let config = Config::load_or_init(&paths).unwrap();
+    Store::open(paths.store(), config.device_id.clone())
+        .unwrap()
+        .signing_with(crate::signing::mine(&paths, &config.device_id))
+        .append(Op::DeviceRemove { d: removed.clone() })
+        .unwrap();
+
+    let who = register(&paths).unwrap();
+
+    assert_ne!(who, removed);
+    let events = crate::store::read_all(paths.store()).unwrap();
+    assert!(crate::State::replay(&events).agents.contains(&who));
+    assert!(crate::store::ledger(paths.store()).unwrap().may_write(&who));
+}
+
+#[test]
 fn an_agent_joins_as_one_and_the_state_says_so() {
     let tmp = tempfile::tempdir().unwrap();
     let paths = paths(tmp.path());
