@@ -1,4 +1,4 @@
-use super::*;
+use super::{named, spots};
 
 fn cases() -> serde_json::Value {
     serde_json::from_str(include_str!("../../../app/src/tests/tagcases.json")).unwrap()
