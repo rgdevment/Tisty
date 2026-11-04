@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error the build's own script carries no types
-import { headers, searchOnReach } from "../../scripts/guide-site.mjs";
+import * as site from "../../scripts/guide-site.mjs";
 import { drawAll } from "../guide/diagramming";
+import { topicsOf } from "../guide/reference";
+
+const { changedOn, headers, LANGUAGES, mapped, raised, searchOnReach, sheetOf } = site;
 
 vi.mock("tisty-editor/read", () => ({
   drawing: async (source: string, dark: boolean) => `${dark ? "dark" : "light"} ${source}`,
@@ -148,6 +151,137 @@ describe("the guide's search", () => {
     await landed();
 
     expect(box.isConnected).toBe(false);
+  });
+});
+
+describe("what the guide tells a search engine", () => {
+  type Language = { code: string; file: string; said: Record<string, string> };
+  const languages: Language[] = LANGUAGES;
+
+  const page = (slug: string, title: string) => ({
+    at: slug === "index" ? 0 : 1,
+    slug,
+    title,
+    label: title,
+    subs: [],
+    said: "What it says.",
+    changed: "2026-05-02",
+    html: "<article></article>",
+  });
+  const built = new Map(
+    languages.map((language) => [language.code, [page("index", "Home"), page("tables", "Tables")]]),
+  );
+  const look = { style: "", logo: "logo.svg", font: "/fonts/inter.woff2" };
+  const dataIn = (html: string) =>
+    [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((one) =>
+      JSON.parse(one[1]),
+    );
+
+  it.each(languages.map((one) => [one.code, one] as const))(
+    "describes each topic in %s, in what a result page shows whole",
+    (_, language) => {
+      const text = readFileSync(`../crates/tisty-markdown/reference/${language.file}`, "utf8");
+      const slugs = topicsOf(text).map((one) => one.slug);
+
+      expect(Object.keys(language.said).sort()).toEqual([...slugs].sort());
+      for (const said of Object.values(language.said)) {
+        expect(said.length).toBeGreaterThan(70);
+        expect(said.length).toBeLessThanOrEqual(160);
+      }
+    },
+  );
+
+  it("names the start page for what it is, and the site by its name", () => {
+    const [english] = languages;
+    const html: string = sheetOf(built, english, built.get(english.code)?.[0], look);
+
+    expect(html).toContain("<title>Tisty Markdown guide: syntax and examples</title>");
+    const [site, ...others] = dataIn(html);
+    expect(site["@type"]).toBe("WebSite");
+    expect(site.name).toBe("Tisty Markdown");
+    expect(others).toEqual([]);
+  });
+
+  it("dates a topic and places it under the start page", () => {
+    const [, spanish] = languages;
+    const html: string = sheetOf(built, spanish, built.get(spanish.code)?.[1], look);
+
+    const [article, trail] = dataIn(html);
+    expect(article["@type"]).toBe("TechArticle");
+    expect(article.dateModified).toBe("2026-05-02");
+    expect(trail["@type"]).toBe("BreadcrumbList");
+    expect(trail.itemListElement).toEqual([
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Tisty Markdown",
+        item: "https://markdown.tisty.app/es/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Tables",
+        item: "https://markdown.tisty.app/es/tables",
+      },
+    ]);
+  });
+
+  it("dates every address in the sitemap", () => {
+    const map: string = mapped(built);
+
+    expect(map).toContain(
+      "<loc>https://markdown.tisty.app/tables</loc><lastmod>2026-05-02</lastmod>",
+    );
+    expect(map.match(/<lastmod>/g)).toHaveLength(4);
+  });
+
+  it("gives a topic's page one top heading, moving its own up a level", () => {
+    const page = new DOMParser().parseFromString(
+      '<article><h2 id="tables" class="a">Tables <em>now</em></h2><p>Words</p><h3 id="types">Types</h3><h4>Foot</h4><figure><h2>Example</h2></figure></article>',
+      "text/html",
+    );
+
+    raised(page);
+
+    const heads = [...page.querySelectorAll("article > *")].map((one) => one.localName);
+    expect(heads).toEqual(["h1", "p", "h2", "h3", "figure"]);
+    const top = page.querySelector("h1");
+    expect(top?.id).toBe("tables");
+    expect(top?.className).toBe("a");
+    expect(top?.innerHTML).toBe("Tables <em>now</em>");
+    expect(page.querySelector("figure > h2")?.textContent).toBe("Example");
+  });
+
+  it("leaves a page that already has its top heading", () => {
+    const page = new DOMParser().parseFromString(
+      "<article><h1>Guide</h1><h2>Glance</h2></article>",
+      "text/html",
+    );
+
+    raised(page);
+
+    expect([...page.querySelectorAll("article > *")].map((one) => one.localName)).toEqual([
+      "h1",
+      "h2",
+    ]);
+  });
+
+  it("dates a topic by when it last changed, not by the last release", () => {
+    const topics = (tables: string, tags?: string) => [
+      { slug: "tables", body: tables },
+      ...(tags === undefined ? [] : [{ slug: "tags", body: tags }]),
+    ];
+
+    const dates = changedOn([
+      { date: "2026-11-03", topics: topics("new", "same") },
+      { date: "2026-10-01", topics: topics("old", "same") },
+      { date: "2026-09-01", topics: topics("new", "same") },
+      { date: "2026-08-01", topics: topics("old") },
+      { date: "2026-07-01", topics: topics("old", "same") },
+    ]);
+
+    expect(dates.get("tables")).toBe("2026-11-03");
+    expect(dates.get("tags")).toBe("2026-09-01");
   });
 });
 

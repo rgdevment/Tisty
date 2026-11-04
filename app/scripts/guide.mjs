@@ -11,12 +11,14 @@ import { JSDOM } from "jsdom";
 import { build as bundled, createServer } from "vite";
 import { createHash } from "node:crypto";
 import {
+  changedOn,
   escaped,
   headers,
   href,
   LANGUAGES,
   mapped,
   missing,
+  raised,
   robots,
   sheetOf,
 } from "./guide-site.mjs";
@@ -142,14 +144,18 @@ const dressed = async (page) => {
   return page;
 };
 
-// What a reader sees of a page, without its heading or the examples as written.
-const shown = (page) => {
-  const copy = page.querySelector("article").cloneNode(true);
-  for (const one of copy.querySelectorAll("h2, .written, figcaption")) one.remove();
-  const blocks = Array.from(copy.children).flatMap((one) =>
-    one.matches("figure.example") ? Array.from(one.querySelector(".drawn").children) : [one],
-  );
-  return blocks.map((one) => one.textContent).join(" ");
+// Newest first, starting from what is on disk, which may say more than the last commit.
+const revisionsOf = (file, text) => {
+  const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 16 * 1024 * 1024 }).toString();
+  const path = `crates/tisty-markdown/reference/${file}`;
+  const commits = git("log", "--format=%H %cs", "--", path).trim().split("\n").filter(Boolean);
+  return [
+    { date: new Date().toISOString().slice(0, 10), topics: topicsOf(text) },
+    ...commits.map((line) => {
+      const [hash, date] = line.split(" ");
+      return { date, topics: topicsOf(git("show", `${hash}:${path}`)) };
+    }),
+  ];
 };
 
 const build = async (language) => {
@@ -159,6 +165,7 @@ const build = async (language) => {
     "utf8",
   );
   const parts = topicsOf(text);
+  const changed = changedOn(revisionsOf(language.file, text));
   const sheets = drawn(parts.map((part) => part.body)).map(
     (html) => new JSDOM(`<article class="page">${html}</article>`).window.document,
   );
@@ -185,23 +192,19 @@ const build = async (language) => {
       link.setAttribute("href", tops.has(id) ? href(slug) : `${href(slug)}#${id}`);
     }
     const title = part.heading ?? page.querySelector("h1")?.textContent ?? "Tisty Markdown";
-    const first = (
-      page.querySelector("article > p")?.textContent ||
-      shown(page) ||
-      ""
-    )
-      .replace(/\s+/g, " ")
-      .trim();
+    const subs = Array.from(page.querySelectorAll("article > h3[id]")).map((head) => ({
+      id: head.id,
+      title: head.textContent,
+    }));
+    raised(page);
     return {
       at: part.at,
       slug: part.slug,
       title,
       label: part.at === 0 ? language.start : title,
-      subs: Array.from(page.querySelectorAll("article > h3[id]")).map((head) => ({
-        id: head.id,
-        title: head.textContent,
-      })),
-      said: first.length > 160 ? `${first.slice(0, 157).trimEnd()}…` : first,
+      subs,
+      said: language.said[part.slug],
+      changed: changed.get(part.slug),
       html: page.querySelector("article").outerHTML,
     };
   });
