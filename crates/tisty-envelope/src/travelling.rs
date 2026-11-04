@@ -50,6 +50,8 @@ pub struct Places {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Named {
     pub pictures: Vec<String>,
+    /// What the person laid in as a file, however its bytes read: it goes as a card and never as a picture.
+    pub files: Vec<String>,
     pub links: Vec<String>,
     pub documents: Vec<String>,
 }
@@ -76,7 +78,13 @@ pub fn named(html: &str) -> Named {
             return;
         };
         match tag.name {
-            "img" => out.pictures.extend(tag.said("src").map(unescaped)),
+            "img" => {
+                let into = match tag.said("data-as") {
+                    Some("file") => &mut out.files,
+                    _ => &mut out.pictures,
+                };
+                into.extend(tag.said("src").map(unescaped));
+            }
             "a" => {
                 if let Some(doc) = tag.said("data-doc") {
                     out.documents.push(unescaped(doc));

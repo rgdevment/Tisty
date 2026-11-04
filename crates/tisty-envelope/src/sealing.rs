@@ -18,13 +18,13 @@ use tisty_contracts::{
 use tisty_share_proto::identity::{Certificate, ShareKey};
 use zeroize::Zeroizing;
 
-const MARK: &[u8; 4] = b"TENV";
+pub(crate) const MARK: &[u8; 4] = b"TENV";
 const TAG_BYTES: u64 = 16;
 const COMMITMENT: &[u8] = b"tisty-envelope-commit";
 const KEY_INFO: &[u8] = b"tisty-envelope-key";
-const ABOUT: &str = "envelope";
-const MANIFEST_AT_MOST: usize = 16_384;
-const SIGNATURE_AT_MOST: usize = 2_048;
+pub(crate) const ABOUT: &str = "envelope";
+pub(crate) const MANIFEST_AT_MOST: usize = 16_384;
+pub(crate) const SIGNATURE_AT_MOST: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
@@ -47,6 +47,8 @@ pub enum Refused {
 pub struct Sealed {
     pub main: Vec<u8>,
     pub files: Option<Vec<u8>>,
+    /// What answers for its files, sent now or kept, so the next version can keep them.
+    pub files_hash: Option<String>,
 }
 
 /// The one who seals and signs, with this machine's key under its certificate.
@@ -120,7 +122,16 @@ fn committed_to(link_key: &[u8], head: &[u8; 32]) -> Result<[u8; 32], Refused> {
     Ok(mac.finalize().into_bytes().into())
 }
 
-fn cipher_of(link_key: &[u8], head: &[u8; 32]) -> Result<Aes256Gcm, Refused> {
+pub(crate) fn commitment_holds(link_key: &[u8], head: &[u8; 32], said: &[u8]) -> bool {
+    let Ok(mut mac) = Hmac::<Sha256>::new_from_slice(link_key) else {
+        return false;
+    };
+    mac.update(COMMITMENT);
+    mac.update(head);
+    mac.verify_slice(said).is_ok()
+}
+
+pub(crate) fn cipher_of(link_key: &[u8], head: &[u8; 32]) -> Result<Aes256Gcm, Refused> {
     let mut key = Zeroizing::new([0u8; 32]);
     Hkdf::<Sha256>::new(Some(head), link_key)
         .expand(KEY_INFO, key.as_mut())
@@ -128,7 +139,7 @@ fn cipher_of(link_key: &[u8], head: &[u8; 32]) -> Result<Aes256Gcm, Refused> {
     Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| Refused::Unsealed)
 }
 
-fn nonce(number: usize) -> Result<[u8; 12], Refused> {
+pub(crate) fn nonce(number: usize) -> Result<[u8; 12], Refused> {
     let mut out = [0u8; 12];
     let number = u32::try_from(number).map_err(|_| Refused::Unsealed)?;
     out[8..].copy_from_slice(&number.to_be_bytes());
@@ -384,6 +395,7 @@ impl<'a> Writer<'a> {
         Ok(Sealed {
             main,
             files: files_envelope,
+            files_hash: document.files_hash,
         })
     }
 
