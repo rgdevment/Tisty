@@ -26,7 +26,7 @@ export const named = (said: string): string =>
     .replace(/^\p{M}+/u, "")
     .replace(/[\s_]/g, "-")
     .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/^-|-$/g, "")
     .normalize("NFC");
 
 export const often = (body: string): Map<string, number> => {
