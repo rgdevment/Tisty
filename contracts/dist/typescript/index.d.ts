@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.0-draft.2";
+export declare const VERSION: "1.0.0-draft.3";
 
 export type SheetsWord = "on";
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-draft.2",
+  "version": "1.0.0-draft.3",
   "contracts": {
     "text": {
       "contract": "text",
@@ -1940,7 +1940,18 @@
           "y": 22
         },
         "pixels_per_inch": 96,
-        "long_page_width_pixels": 820
+        "long_page_width_pixels": 820,
+        "cutting": {
+          "html": "The HTML is a list of blocks and carries no sheets. The reader lays it out for the paper and orientation in use.",
+          "again": "The reader lays it out again when the paper, the orientation or the height of the blocks changes, as when a picture arrives.",
+          "landscape": "It swaps the paper's width and height.",
+          "written_width": "The sheet's width less both side margins.",
+          "room": "The sheet's height less the top and bottom margins, less one pixel.",
+          "blocks": "A block that does not fit moves whole to the next sheet. The first block of a sheet stays, even if it does not fit.",
+          "headings": "A heading never stays alone at the foot: the headings right above it move with the block that follows.",
+          "page_break": "An hr among the blocks always starts a new sheet.",
+          "print": "Printing uses the same paper, orientation and margins."
+        }
       },
       "cases": [
         {
