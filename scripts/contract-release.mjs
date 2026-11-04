@@ -30,7 +30,9 @@ export const judged = ({ was, now, changed }) => {
   const wrong = [];
   if (changed && was === now) wrong.push(`what the package publishes changed, and contracts/VERSION is still ${now}`);
   if (was !== now && before && !isAfter(after, before)) wrong.push(`contracts/VERSION goes from ${was} to ${now}, and it only goes up`);
-  const major = before && after.numbers[0] > before.numbers[0];
+  const [majorNow, minorNow, patchNow] = after.numbers;
+  const draftBecomesMajor = before?.draft && !after.draft && minorNow === 0 && patchNow === 0;
+  const major = before && (majorNow > before.numbers[0] || draftBecomesMajor);
   return {
     wrong,
     reminders: major ? [`a new major version: deploy Folio first, and Tisty after it, since a reader refuses what is newer than it`] : [],

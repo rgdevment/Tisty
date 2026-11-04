@@ -34,6 +34,12 @@ test("only a new major version reminds who deploys first", () => {
   assert.deepEqual(judged({ was: "1.4.0", now: "1.5.0", changed: true }).reminders, []);
 });
 
+test("a major version that comes out of its draft reminds too, since that is the one that goes out", () => {
+  assert.match(judged({ was: "2.0.0-draft.3", now: "2.0.0", changed: true }).reminders[0], /Folio first/);
+  assert.deepEqual(judged({ was: "2.1.0-draft.1", now: "2.1.0", changed: true }).reminders, []);
+  assert.deepEqual(judged({ was: "2.0.0-draft.1", now: "2.0.0-draft.2", changed: true }).reminders, []);
+});
+
 const out = { version: "1.0.1", packaged: "1.0.1", releases: ["contracts-v1.0.0", "v1.41.1"], tags: ["contracts-v1.0.0", "v1.41.1"] };
 
 test("a new version goes out under a tag of its own, which no release of the app answers to", () => {
