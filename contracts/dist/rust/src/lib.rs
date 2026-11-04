@@ -5,7 +5,7 @@ use serde_json::Value;
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
-pub const VERSION: &str = "1.0.0-draft.5";
+pub const VERSION: &str = "1.0.0-draft.6";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -311,6 +311,15 @@ pub struct Signature {
     pub machine: String,
     pub since: String,
     pub certificate: String,
+    pub signed: String,
+}
+
+/// A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed as revoked. It is not about stopping sharing a document or stopping a person from publishing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Revocation {
+    pub root: String,
+    pub machine: String,
+    pub at: String,
     pub signed: String,
 }
 

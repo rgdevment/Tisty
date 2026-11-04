@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.0-draft.5";
+export declare const VERSION: "1.0.0-draft.6";
 
 export type EnvelopeKind = "main" | "files";
 
@@ -179,6 +179,14 @@ export interface Signature {
   signed: string;
 }
 
+/** A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed as revoked. It is not about stopping sharing a document or stopping a person from publishing. */
+export interface Revocation {
+  root: string;
+  machine: string;
+  at: string;
+  signed: string;
+}
+
 /** Another document shared along with this one. It keeps its own envelopes, because it is not part of this document. */
 export interface Cited {
   document: string;
@@ -230,7 +238,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "widget" | "document" | "envelope" | "envelope_part" | "sync" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "widget" | "document" | "envelope" | "envelope_part" | "sync" | "link" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "revocation" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;
 /** What is wrong with a value under this contract: nothing when it holds. */

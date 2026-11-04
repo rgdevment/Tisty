@@ -19,6 +19,8 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Language | Idioma | Each language of a document is a document of its own, shown as one. |
 | Signature | Firma | Who answers for an envelope, and through it for the document. |
 | Envelope | Sobre | How a document travels, as one file the server stores unopened. Per language, one for its words, pages and pictures, and a second one for its other files only when it has any. |
+| Link | Link | How a shared document is reached: the web one reads, and tisty:// hands it over to a Tisty, the only place to edit. |
+| Revocation | Revocación | A person taking back one of their machine keys for good, as when a machine is lost. |
 | Sync | Sincronizar | Sending what changed in a document to what is shared. A button, or by itself every 5 or 10 minutes. |
 | Writer | Quien escribe | Whoever turns words into a document ready to travel: Tisty, or a fork of it. |
 | Reader | Quien lee | Whoever shows a document: Tisty or Folio. |

@@ -36,6 +36,8 @@ const sign = async (who, ...pieces) => Buffer.from(await subtle.sign("Ed25519", 
 
 const certificate = await sign(root, words("tisty-share.certificate.v1\0"), root.public, machine.public, be8(Date.parse(SINCE) / 1000));
 
+const revoked = await sign(root, words("tisty-share.revocation.v1\0"), root.public, machine.public, be8(Date.parse(SINCE) / 1000));
+
 const seal = async ({ kind, id, version, sealed, parts }) => {
   const told = parts.map(({ name, compressed, bytes }) => {
     const squeezed = compressed ? deflateRawSync(bytes, { level: 9 }) : bytes;
@@ -129,6 +131,7 @@ const open = await seal({ kind: "main", id: "wordsOnly", version: 1, sealed: fal
 
 const said = {
   link_key: b64(LINK_KEY),
+  revocation: { root: b64(root.public), machine: b64(machine.public), at: SINCE, signed: b64(revoked) },
   main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")) },
   files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
   public: { envelope: open.bytes.toString("hex"), document: plain },

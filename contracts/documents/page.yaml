@@ -133,6 +133,34 @@ cases:
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: false
 ---
+contract: revocation
+group: documents
+checked_by: [writer, reader]
+says: >-
+  A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed
+  as revoked. It is not about stopping sharing a document or stopping a person from publishing.
+values:
+  signed: "Ed25519 by the root, over tisty-share.revocation.v1, a zero byte, root, machine and at in seconds, 8 bytes, big endian."
+fields:
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  at: { type: time, required: true }
+  signed: { type: signed, required: true }
+cases:
+  - says: "A whole revocation."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      at: "2026-11-03T12:00:00Z"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "It does not say which key."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      at: "2026-11-03T12:00:00Z"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
 contract: cited
 group: documents
 checked_by: [writer, reader]

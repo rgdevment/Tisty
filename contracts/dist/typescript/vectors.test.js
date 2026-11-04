@@ -112,6 +112,13 @@ test("a public envelope opens without a key", async () => {
   assert.deepEqual(held, VECTORS.public.document);
 });
 
+test("a revocation is signed by the root", async () => {
+  const said = VECTORS.revocation;
+  assert.deepEqual(check("revocation", said), []);
+  const root = b64(said.root);
+  await verified(root, b64(said.signed), words("tisty-share.revocation.v1\0"), root, b64(said.machine), be(Date.parse(said.at) / 1000));
+});
+
 test("another key does not open it", async () => {
   await assert.rejects(opened(hex(VECTORS.main.envelope), new Uint8Array(32)));
 });

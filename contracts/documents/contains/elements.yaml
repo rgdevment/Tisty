@@ -150,7 +150,16 @@ says: >-
   A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in
   its files envelope, shows as a card and is asked for the first time it is opened.
 values:
-  pictures: [png, jpeg, webp, gif]
+  pictures: [png, jpeg]
+  first_bytes: { png: 89504E47, jpeg: FFD8FF }
+  writer_makes_pictures:
+    - "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing."
+    - "Its longest side is at most 1600 pixels."
+    - "A photo goes as JPEG at quality 82, and anything else as PNG."
+    - "A JPEG it need not turn or shrink travels as it is, without its APPn segments except the ICC profile and Adobe's APP14."
+    - "An animated GIF stays its first frame."
+    - "The same picture travels once."
+  reader_checks_pictures: "That the kind it says matches its first bytes."
   picture_source: "tisty:picture/N, its at among the pictures"
   file_source: "tisty:file/N, its at among the files"
 fields:

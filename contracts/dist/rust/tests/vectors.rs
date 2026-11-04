@@ -190,6 +190,17 @@ fn a_public_envelope_opens_without_a_key() {
 }
 
 #[test]
+fn a_revocation_is_signed_by_the_root() {
+    let all = vectors();
+    let said = &all["revocation"];
+    assert_eq!(check("revocation", said), Vec::<String>::new());
+    let root = b64(&said["root"]);
+    let at = seconds(said["at"].as_str().unwrap());
+    let signed = [b"tisty-share.revocation.v1\0".as_slice(), &root, &b64(&said["machine"]), &at.to_be_bytes()].concat();
+    verified(&root, &b64(&said["signed"]), &signed).unwrap();
+}
+
+#[test]
 fn another_key_does_not_open_it() {
     let all = vectors();
     assert!(opened(&hex(&all["main"]["envelope"]), Some(&[0u8; 32])).is_err());

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-draft.5",
+  "version": "1.0.0-draft.6",
   "contracts": {
     "text": {
       "contract": "text",
@@ -799,10 +799,21 @@
       "values": {
         "pictures": [
           "png",
-          "jpeg",
-          "webp",
-          "gif"
+          "jpeg"
         ],
+        "first_bytes": {
+          "png": 8.9504e+51,
+          "jpeg": "FFD8FF"
+        },
+        "writer_makes_pictures": [
+          "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing.",
+          "Its longest side is at most 1600 pixels.",
+          "A photo goes as JPEG at quality 82, and anything else as PNG.",
+          "A JPEG it need not turn or shrink travels as it is, without its APPn segments except the ICC profile and Adobe's APP14.",
+          "An animated GIF stays its first frame.",
+          "The same picture travels once."
+        ],
+        "reader_checks_pictures": "That the kind it says matches its first bytes.",
         "picture_source": "tisty:picture/N, its at among the pictures",
         "file_source": "tisty:file/N, its at among the files"
       },
@@ -1618,6 +1629,21 @@
         }
       }
     },
+    "link": {
+      "contract": "link",
+      "group": "documents",
+      "checked_by": [
+        "writer",
+        "reader"
+      ],
+      "says": "How a shared document is reached. A browser opens the web link, and only reads. The link for Tisty hands the document over to a Tisty, and editing happens only there.",
+      "values": {
+        "private": "https://tisty.cl/{id}#{link_key}",
+        "public": "https://folio.tisty.app/{id}",
+        "in_tisty": "tisty://folio?link={the web link, percent-encoded}",
+        "editing": "Never on the web. Who may edit from Tisty, and how editors and versions grow, is not defined yet."
+      }
+    },
     "front_matter": {
       "contract": "front_matter",
       "group": "documents",
@@ -2226,6 +2252,57 @@
             "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
             "since": "2026-11-03T12:00:00.5Z",
             "certificate": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw",
+            "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+          },
+          "holds": false
+        }
+      ]
+    },
+    "revocation": {
+      "contract": "revocation",
+      "group": "documents",
+      "checked_by": [
+        "writer",
+        "reader"
+      ],
+      "says": "A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed as revoked. It is not about stopping sharing a document or stopping a person from publishing.",
+      "values": {
+        "signed": "Ed25519 by the root, over tisty-share.revocation.v1, a zero byte, root, machine and at in seconds, 8 bytes, big endian."
+      },
+      "fields": {
+        "root": {
+          "type": "key",
+          "required": true
+        },
+        "machine": {
+          "type": "key",
+          "required": true
+        },
+        "at": {
+          "type": "time",
+          "required": true
+        },
+        "signed": {
+          "type": "signed",
+          "required": true
+        }
+      },
+      "cases": [
+        {
+          "says": "A whole revocation.",
+          "value": {
+            "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "at": "2026-11-03T12:00:00Z",
+            "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+          },
+          "holds": true
+        },
+        {
+          "says": "It does not say which key.",
+          "value": {
+            "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "at": "2026-11-03T12:00:00Z",
             "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
           },
           "holds": false

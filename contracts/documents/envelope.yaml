@@ -115,3 +115,15 @@ roles:
   writer:
     sync: { says: "Sends now what changed." }
     set_sync: { takes: { every: sync_every } }
+---
+contract: link
+group: documents
+checked_by: [writer, reader]
+says: >-
+  How a shared document is reached. A browser opens the web link, and only reads. The link for Tisty hands the document
+  over to a Tisty, and editing happens only there.
+values:
+  private: "https://tisty.cl/{id}#{link_key}"
+  public: "https://folio.tisty.app/{id}"
+  in_tisty: "tisty://folio?link={the web link, percent-encoded}"
+  editing: "Never on the web. Who may edit from Tisty, and how editors and versions grow, is not defined yet."
