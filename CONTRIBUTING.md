@@ -225,6 +225,19 @@ past all three. What the repository actually requires is what CI refuses, which
 is why the workflows run the same two files rather than keeping their own copies
 of the rules.
 
+## The contract
+
+`contracts/` is what Tisty and whoever shows a document agree on. If what its package holds changes,
+`contracts/VERSION` goes up in the same pull request, and CI fails otherwise. Whether something
+counts is not a list of folders: `dist` is generated, so what counts is whatever changes the files
+the package publishes, or the crate's sources. A test or a comment in the YAML that reaches neither
+does not count.
+
+On `main`, a new version goes out by itself as the pre-release `contracts-vX.Y.Z`, and what is out
+is never replaced, since Folio pins its hash. A draft is never published. Within a major version, a
+later one only adds what an earlier reader can leave aside. For a new major version, Folio deploys
+first and Tisty after it.
+
 ## Security
 
 Do not open a public issue for a vulnerability. See [SECURITY.md](SECURITY.md).

@@ -1,0 +1,72 @@
+name: Contracts
+
+# Publishing the contract does not depend on remembering it. Folio installs each package from its
+# release and pins its hash, so a version goes out once and is never replaced.
+on:
+  push:
+    branches: [main]
+    paths: [contracts/VERSION]
+  # A run that failed has nothing else to set it off again: the version has already changed.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: the package goes out
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
+      - name: What goes out, if anything
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Only a listing that answered counts as «not there»: an error read as that would publish twice.
+          RELEASES=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')
+          TAGS=$(git ls-remote --tags --refs origin 'contracts-v*' | sed 's#.*refs/tags/##')
+          export RELEASES TAGS
+          node scripts/contract-release.mjs plan
+
+      - name: The package holds
+        if: steps.plan.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          node contracts/generate.mjs --check
+          node --test contracts/dist/typescript/*.test.js
+
+      # A pre-release, or the app's own feed would read it as the highest version of Tisty.
+      - name: It goes out
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          file=$(cd contracts/dist/typescript && npm pack --silent --pack-destination "$RUNNER_TEMP")
+          gh release create "$TAG" "$RUNNER_TEMP/$file" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --title "Contract ${TAG#contracts-v}" \
+            --notes "The contract for whoever shows what Tisty shares. Nothing changes in the app."
