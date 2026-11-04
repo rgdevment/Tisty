@@ -198,6 +198,8 @@ jobs:
       - run: npm ci
         working-directory: app
       # guide.yml runs only on a tag, so a window change that breaks the script would otherwise wait for the release.
+      # Mermaid lays out only in a browser, so only one can say that what travels speaks the contract.
+      - run: node app/scripts/finished.mjs
       - run: node app/scripts/guide.mjs target/guide
         env:
           GUIDE_DATES: required
