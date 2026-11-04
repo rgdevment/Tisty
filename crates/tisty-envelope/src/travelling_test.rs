@@ -242,6 +242,22 @@ fn what_is_kept_to_itself_stays_home() {
 }
 
 #[test]
+fn what_stays_home_stays_in_any_capitals() {
+    let said = "---\ntitle: a\nTask: 01M6\nTRANSLATIONKEY: k\n---\n# a\n";
+    let html = ready(
+        &tisty_markdown::html(&tisty_markdown::read(said)),
+        &places(),
+    );
+    assert!(!html.contains("01M6"), "{html}");
+    assert!(
+        !html.to_ascii_lowercase().contains("translationkey"),
+        "{html}"
+    );
+    assert!(html.contains("<dt>title</dt>"), "{html}");
+    assert!(!body_ready(said, &places()).contains("01M6"));
+}
+
+#[test]
 fn a_quote_keeps_its_source_only_when_it_leads_somewhere() {
     assert_eq!(ready(r#"<q cite="x.html">a</q>"#, &places()), "<q>a</q>");
     assert_eq!(

@@ -1389,7 +1389,7 @@
         "picture_source": "tisty:picture/N, its at among the pictures",
         "writer_makes_pictures": [
           "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them.",
-          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, when it is one for the three channels written, of at most 64 KiB.",
+          "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Of a colour profile for the three channels written, of at most 64 KiB, only what says how its pixels look is written anew: no names, dates or descriptions.",
           "A file cut short is no picture.",
           "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing.",
           "Its longest side is at most 1600 pixels.",
@@ -1539,7 +1539,7 @@
       ],
       "values": {
         "name": "A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.",
-        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. Pictures and files are named by their place, and no date goes in the manifest.",
+        "says_nothing_unchosen": "What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name from its log, in the HTML or in the body. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.",
         "anchor_language": "Paper, sheets and orientation are the group's: the anchor's, in every language."
       },
       "fields": {
@@ -1573,7 +1573,7 @@
         },
         "signed_as": {
           "type": "name",
-          "says": "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Only a reader with the key sees it. Never a proof."
+          "says": "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Where it is sealed, only a reader with the key sees it; what is public shows it to anyone. Never a proof."
         },
         "made": {
           "type": "time"
@@ -1670,6 +1670,16 @@
           "says": "HTML written inside the words, as far as passthrough says.",
           "html": "<abbr title=\"Hyper Text\">HTML</abbr>",
           "holds": true
+        },
+        {
+          "says": "A place written two ways would be two places.",
+          "html": "<a href=\"tisty:page/01\">Enero</a>",
+          "holds": false
+        },
+        {
+          "says": "A place past what a whole number holds in every language.",
+          "html": "<a href=\"tisty:page/9007199254740993\">Enero</a>",
+          "holds": false
         },
         {
           "says": "A diagram that did not get drawn.",
@@ -2264,7 +2274,7 @@
         "compression": {
           "format": "deflate-raw",
           "writer": "On the person's machine, with the strongest deflate it has. Any deflate opens the same, and text saves the most.",
-          "reader": "Native DecompressionStream, into a buffer of exactly open_size. A part that gives more or less does not open."
+          "reader": "Native DecompressionStream, read piece by piece and stopped as soon as it passes open_size, which is only the writer's word: it sets nothing aside for it beforehand, and each reader keeps a limit of its own above which it does not start. A part that gives more or less does not open."
         },
         "sealing": {
           "link_key": "32 random bytes after the # of the link, in base64url. It never reaches the server and never comes from a password.",
@@ -2287,7 +2297,11 @@
           "A main envelope whose parts are not first, rest and then pictures, and a files envelope with anything but files.",
           "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts.",
           "A files envelope whose manifest and index are not what its document's files_hash says.",
-          "A manifest that says a head or a commitment while it is not sealed."
+          "A manifest that says a head or a commitment while it is not sealed.",
+          "A from that is not earlier than its version.",
+          "A picture or a file that says it is compressed.",
+          "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid.",
+          "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, an owner that is not the root that signs, or a reference to what does not travel. Its words are not shown."
         ],
         "who_checks_what": {
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version.",
@@ -2692,7 +2706,7 @@
         "open_size": {
           "type": "whole",
           "required": true,
-          "says": "Its bytes once opened."
+          "says": "Its bytes once opened, as the writer says. Never believed before they are there."
         }
       },
       "cases": [

@@ -856,12 +856,38 @@ fn wrong_url(all: &Value, value: &str) -> bool {
     if !listed(&all["urls"]["schemes"], &scheme) {
         return true;
     }
-    if scheme != "tisty" {
-        return false;
+    scheme == "tisty" && reference_in(all, place).is_none()
+}
+
+// One spelling for a place too, and it fits a whole number in every language.
+fn reference_in(all: &Value, place: &str) -> Option<(String, u64)> {
+    let (kind, at) = place.split_once('/')?;
+    let spelled = at == "0" || (!at.starts_with('0') && !at.is_empty() && at.len() <= 15 && at.bytes().all(|digit| digit.is_ascii_digit()));
+    if !spelled || !listed(&all["urls"]["references"], kind) {
+        return None;
     }
-    !place.split_once('/').is_some_and(|(kind, at)| {
-        listed(&all["urls"]["references"], kind) && !at.is_empty() && at.bytes().all(|digit| digit.is_ascii_digit())
-    })
+    Some((kind.to_owned(), at.parse().ok()?))
+}
+
+/// Each place inside what travels that the HTML leads to, read as a browser reads its attributes.
+pub fn references_in(html: &str) -> Vec<(String, u64)> {
+    let all = whole();
+    let mut out = Vec::new();
+    for Opened { attributes, .. } in opened(html) {
+        for (name, value) in attributes {
+            if !listed(&all["urls"]["attributes"], &name) {
+                continue;
+            }
+            let bare: String = value.chars().filter(|one| *one > ' ').collect();
+            let Some((scheme, place)) = bare.split_once(':') else {
+                continue;
+            };
+            if scheme.eq_ignore_ascii_case("tisty") {
+                out.extend(reference_in(&all, place));
+            }
+        }
+    }
+    out
 }
 
 // A paint or a marker names something in its own drawing, and nothing else.

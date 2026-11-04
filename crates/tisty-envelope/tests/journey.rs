@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use base64::Engine;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use jiff::Timestamp;
-use opening::{document_of, opened};
+use opening::{files_for, reading};
 use real::every_real_document;
 use serde_json::{Value, json};
 use tisty_contracts::{Document, Sealing, check_html};
@@ -23,8 +23,8 @@ use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 
 const WRITTEN: &str = r#"---
 title: Paseos
-task: 01M6
-translationKey: paseos
+Task: 01M6
+TranslationKey: paseos
 ---
 
 # Paseos
@@ -213,13 +213,16 @@ fn it_arrived_whole(held: &Value, main: &opening::Opened, picture: &[u8]) {
     let body = held["body"].as_str().unwrap();
     for text in [html, body] {
         for gone in [
-            "01M6",
+            "01m6",
             "rina.png",
             "secreto",
-            "translationKey",
+            "translationkey",
             "(cartilla.pdf",
         ] {
-            assert!(!text.contains(gone), "{gone} went along in {text}");
+            assert!(
+                !text.to_lowercase().contains(gone),
+                "{gone} went along in {text}"
+            );
         }
         assert!(!text.contains("language-mermaid"), "{text}");
     }
@@ -268,12 +271,11 @@ fn sealed_from_the_window() {
             other => panic!("{other} was never written"),
         };
         let key = vec![byte; 32];
-        let main = opened(&one.sealed.main, (&one.id, "main"), Some(&key)).unwrap();
-        let held = document_of(&main);
+        let (main, held) = reading(&one.sealed.main, (&one.id, "main"), Some(&key)).unwrap();
         if byte == 1 {
             it_arrived_whole(&held, &main, &picture);
             let files = one.sealed.files.as_ref().unwrap();
-            let files = opened(files, (&one.id, "files"), Some(&key)).unwrap();
+            let files = files_for(&held, files, (&one.id, "files"), Some(&key)).unwrap();
             assert_eq!(files.parts[0], PDF);
         }
         out.push(json!({ "name": one.id, "document": held }));
@@ -290,8 +292,8 @@ fn sealed_from_the_window() {
         }));
         match writer.sealed(said, vec![], vec![], &sealing(&id, None)) {
             Ok(sealed) => {
-                let main = opened(&sealed.main, (&id, "main"), None).unwrap();
-                out.push(json!({ "name": name, "document": document_of(&main) }));
+                let (_, held) = reading(&sealed.main, (&id, "main"), None).unwrap();
+                out.push(json!({ "name": name, "document": held }));
             }
             Err(refused) => wrong.push(format!("{name}: {refused}")),
         }

@@ -13,12 +13,12 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
     Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, PartName, Picture, Sealing,
-    Signature, VERSION, check, check_html,
+    Signature, VERSION, check, check_html, references_in,
 };
 use tisty_share_proto::identity::{Certificate, ShareKey};
 use zeroize::Zeroizing;
 
-use crate::tags::walk;
+use crate::travelling::KEPT_TO_ITSELF;
 
 const MARK: &[u8; 4] = b"TENV";
 const TAG_BYTES: u64 = 16;
@@ -161,33 +161,14 @@ fn references_fit(html: &str, document: &Document) -> Result<(), Refused> {
     let pictures = document.pictures.as_ref().map_or(0, Vec::len);
     let files = document.files.as_ref().map_or(0, Vec::len);
     let cited = document.cited.as_ref().map_or(0, Vec::len);
-    let mut holds = true;
-    walk(html, |_, tag| {
-        let Some(tag) = tag else { return };
-        for (name, value) in &tag.attributes {
-            if !name.eq_ignore_ascii_case("href") && !name.eq_ignore_ascii_case("src") {
-                continue;
-            }
-            // A browser drops spaces and control characters and reads a scheme in any capitals, so here too.
-            let bare: String = value.chars().filter(|one| *one > ' ').collect();
-            let lowered = bare.to_ascii_lowercase();
-            let Some((kind, at)) = lowered
-                .strip_prefix("tisty:")
-                .and_then(|one| one.split_once('/'))
-            else {
-                continue;
-            };
-            let at = at.parse::<u64>().unwrap_or(u64::MAX);
-            let here = match kind {
-                "page" => pages.contains(&at),
-                "picture" => (at as usize) < pictures,
-                "file" => (at as usize) < files,
-                "cited" => (at as usize) < cited,
-                _ => false,
-            };
-            holds &= here;
-        }
-    });
+    let holds = references_in(html)
+        .into_iter()
+        .all(|(kind, at)| match kind.as_str() {
+            "page" => pages.contains(&at),
+            "picture" => (at as usize) < pictures,
+            "file" => (at as usize) < files,
+            _ => (at as usize) < cited,
+        });
     if holds {
         Ok(())
     } else {
@@ -197,17 +178,22 @@ fn references_fit(html: &str, document: &Document) -> Result<(), Refused> {
     }
 }
 
-fn pictures_are_what_they_say(said: &[Picture], bytes: &[Vec<u8>]) -> Result<(), Refused> {
-    if said.len() != bytes.len() {
+fn pictures_are_what_they_say(said: &[Picture], all: &[Vec<u8>]) -> Result<(), Refused> {
+    if said.len() != all.len() {
         return Err(Refused::DoesNotAdd(
             "it says another number of pictures than it holds",
         ));
     }
-    for (number, (picture, bytes)) in said.iter().zip(bytes).enumerate() {
-        let first: &[u8] = match picture.kind {
-            tisty_contracts::PictureKind::ImagePng => b"\x89PNG\r\n\x1a\n",
-            tisty_contracts::PictureKind::ImageJpeg => b"\xff\xd8\xff",
+    for (number, (picture, bytes)) in said.iter().zip(all).enumerate() {
+        let (first, ending): (&[u8], &str) = match picture.kind {
+            tisty_contracts::PictureKind::ImagePng => (b"\x89PNG\r\n\x1a\n", "png"),
+            tisty_contracts::PictureKind::ImageJpeg => (b"\xff\xd8\xff", "jpg"),
         };
+        if picture.name != format!("picture-{number}.{ending}") || all[..number].contains(bytes) {
+            return Err(Refused::DoesNotAdd(
+                "a picture says where it came from, or travels twice",
+            ));
+        }
         let size = image::ImageReader::new(std::io::Cursor::new(bytes))
             .with_guessed_format()
             .ok()
@@ -219,7 +205,6 @@ fn pictures_are_what_they_say(said: &[Picture], bytes: &[Vec<u8>]) -> Result<(),
                 != u32::try_from(picture.width)
                     .ok()
                     .zip(u32::try_from(picture.height).ok())
-            || is_a_path(&picture.name)
         {
             return Err(Refused::DoesNotAdd(
                 "a picture is not what its document says",
@@ -305,6 +290,15 @@ fn adds_up(
     {
         return Err(Refused::DoesNotAdd(
             "it says another owner than the root that signs it",
+        ));
+    }
+    if document.properties.iter().flatten().any(|one| {
+        KEPT_TO_ITSELF
+            .iter()
+            .any(|kept| one.key.eq_ignore_ascii_case(kept))
+    }) {
+        return Err(Refused::DoesNotAdd(
+            "its properties say what stays on this machine",
         ));
     }
     if document.languages.is_some() && document.lang.is_none() {

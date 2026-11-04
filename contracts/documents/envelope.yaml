@@ -24,7 +24,7 @@ values:
   compression:
     format: deflate-raw
     writer: "On the person's machine, with the strongest deflate it has. Any deflate opens the same, and text saves the most."
-    reader: "Native DecompressionStream, into a buffer of exactly open_size. A part that gives more or less does not open."
+    reader: "Native DecompressionStream, read piece by piece and stopped as soon as it passes open_size, which is only the writer's word: it sets nothing aside for it beforehand, and each reader keeps a limit of its own above which it does not start. A part that gives more or less does not open."
   sealing:
     link_key: "32 random bytes after the # of the link, in base64url. It never reaches the server and never comes from a password."
     head: "32 random bytes, new for every envelope and never used again: its nonces only count parts, so a head used twice under one key breaks the seal."
@@ -47,6 +47,10 @@ values:
     - "A manifest or a signature past their sizes, a part that gives another size, and anything that follows its parts."
     - "A files envelope whose manifest and index are not what its document's files_hash says."
     - "A manifest that says a head or a commitment while it is not sealed."
+    - "A from that is not earlier than its version."
+    - "A picture or a file that says it is compressed."
+    - "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid."
+    - "A document, a page or an HTML outside the contract, a page that is not of this document or repeats its place, an owner that is not the root that signs, or a reference to what does not travel. Its words are not shown."
   who_checks_what:
     server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
     reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
@@ -152,7 +156,7 @@ fields:
   name: { type: part_name, required: true }
   compressed: { type: bool, required: true }
   sealed_size: { type: whole, required: true, says: "Its bytes as it travels." }
-  open_size: { type: whole, required: true, says: "Its bytes once opened." }
+  open_size: { type: whole, required: true, says: "Its bytes once opened, as the writer says. Never believed before they are there." }
 cases:
   - says: "A part with its sizes."
     value: { name: file, compressed: false, sealed_size: 116, open_size: 100 }

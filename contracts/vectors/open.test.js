@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, checkHtml, VERSION } from "./index.js";
+import { check, checkHtml, referencesIn, VERSION } from "./index.js";
 
 const VECTORS = JSON.parse(readFileSync(new URL("./vectors.json", import.meta.url), "utf8"));
 const { subtle } = globalThis.crypto;
@@ -18,11 +18,27 @@ const be = (number) => {
   return out;
 };
 
+// This reader's own, and no number of the contract's: each reader knows what it can hold.
+const OPENS_AT_MOST = 64 * 1024 * 1024;
+
+// A manifest only says how much will come, so nothing is set aside for it and reading stops the moment it passes.
 const inflated = async (bytes, size) => {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-  const out = new Uint8Array(await new Response(stream).arrayBuffer());
-  assert.equal(out.length, size, "a part gives what its manifest says");
-  return out;
+  assert.ok(size <= OPENS_AT_MOST, "it says more than this reader holds");
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+  const pieces = [];
+  let held = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    held += value.length;
+    if (held > size) {
+      await reader.cancel();
+      assert.fail("a part gives more than its manifest says");
+    }
+    pieces.push(value);
+  }
+  assert.equal(held, size, "a part gives what its manifest says");
+  return joined(...pieces);
 };
 
 const verified = async (key, signature, ...pieces) => {
@@ -50,6 +66,9 @@ const opened = async (bytes, asked, linkKey) => {
   assert.deepEqual(check("envelope", manifest), []);
   assert.equal(manifest.id, asked.id, "the document it asked for");
   assert.equal(manifest.kind, asked.kind, "the kind it asked for");
+  assert.equal(manifest.contract.split(".")[0], VERSION.split(".")[0], "a major version of its own");
+  assert.ok(manifest.from === undefined || manifest.from < manifest.version, "it starts from an earlier version");
+  assert.ok(manifest.parts.every((one) => !one.compressed || one.name === "first" || one.name === "rest"), "a picture or a file is never compressed");
   assert.ok(manifest.sealed || !linkKey, "a key answers only for what is sealed");
   const names = manifest.parts.map((one) => one.name);
   const inOrder =
@@ -87,11 +106,84 @@ const opened = async (bytes, asked, linkKey) => {
     parts.push(part.compressed ? await inflated(held, part.open_size) : held);
   }
   assert.equal(at, bytes.length, "nothing follows its parts");
-  return { manifest, manifestBytes, index, parts };
+  return { manifest, manifestBytes, index, parts, root: signature.root };
 };
 
-// The first two parts of a main envelope are its words; what follows them is pictures.
-const documentOf = ({ parts }) => Object.assign({}, ...parts.slice(0, 2).map((one) => JSON.parse(new TextDecoder().decode(one))));
+const asJson = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
+const atsOf = (list) => (list ?? []).map((one) => one.at);
+
+// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
+const documentIn = ({ manifest, parts, root }) => {
+  const [first, rest] = parts.slice(0, 2).map(asJson);
+  assert.ok(!("body" in first) && !("pages" in first), "the first part holds neither body nor pages");
+  assert.ok(Object.keys(rest).every((one) => one === "body" || one === "pages"), "the rest holds only those");
+  const held = { ...first, ...rest };
+  assert.deepEqual(check("document", held), []);
+  assert.equal(held.id, manifest.id, "the document inside is the one the manifest says");
+  assert.ok(held.owner === undefined || held.owner === root, "its owner is the root that signs");
+  const pictures = held.pictures ?? [];
+  assert.equal(pictures.length, parts.length - 2, "as many pictures as it says");
+  pictures.forEach((one, at) => {
+    assert.equal(one.at, at, "a picture in its place");
+    assert.equal(one.size, parts[at + 2].length, "a picture of its size");
+  });
+  const pages = held.pages ?? [];
+  assert.ok(pages.every((one) => one.page_of === held.id), "its pages are its own");
+  assert.equal(new Set(atsOf(pages)).size, pages.length, "each page in a place of its own");
+  const there = { page: atsOf(pages), picture: atsOf(pictures), file: atsOf(held.files), cited: (held.cited ?? []).map((_, at) => at) };
+  for (const html of [held.html, ...pages.map((one) => one.html)]) {
+    assert.deepEqual(checkHtml(html), []);
+    for (const { kind, at } of referencesIn(html)) assert.ok(there[kind].includes(at), `tisty:${kind}/${at} is there`);
+  }
+  return held;
+};
+
+const reading = async (bytes, asked, linkKey) => {
+  const main = await opened(bytes, asked, linkKey);
+  return { main, held: documentIn(main) };
+};
+
+const filesFor = async (held, bytes, asked, linkKey) => {
+  const files = await opened(bytes, asked, linkKey);
+  assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)), "the envelope its document answers for");
+  const said = held.files ?? [];
+  assert.equal(said.length, files.parts.length, "as many files as it says");
+  return files;
+};
+
+// What a reader looks at before it draws one. A picture that fails shows its alt, and the words still read.
+const pictureHolds = (bytes, { kind, size, width, height }) => {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (bytes.length !== size) return false;
+  let said = null;
+  if (kind === "image/png") {
+    if (!same(bytes.subarray(0, 8), Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))) return false;
+    for (let at = 8; at + 12 <= bytes.length; ) {
+      const length = view.getUint32(at);
+      const name = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
+      if (at === 8 && name === "IHDR" && length >= 8) said = [view.getUint32(at + 8), view.getUint32(at + 12)];
+      at += 12 + length;
+      if (name === "IEND") return at === bytes.length && said?.[0] === width && said?.[1] === height;
+    }
+    return false;
+  }
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) return false;
+  for (let at = 2; at + 1 < bytes.length; ) {
+    const mark = bytes[at + 1];
+    if (bytes[at] !== 0xff) at += 1;
+    else if (mark === 0xd9) return at + 2 === bytes.length && said?.[0] === width && said?.[1] === height;
+    else if (mark === 0xff) at += 1;
+    else if (mark === 0x00 || mark === 0x01 || (mark >= 0xd0 && mark <= 0xd8)) at += 2;
+    else {
+      if (at + 4 > bytes.length) return false;
+      const isSize = mark >= 0xc0 && mark <= 0xcf && mark !== 0xc4 && mark !== 0xc8 && mark !== 0xcc;
+      if (isSize && at + 9 <= bytes.length) said = [view.getUint16(at + 7), view.getUint16(at + 5)];
+      at += 2 + view.getUint16(at + 2);
+    }
+  }
+  return false;
+};
+
 const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
 const linkKey = b64(VECTORS.link_key);
 const MAIN = { id: "k7Qm2xPa", kind: "main" };
@@ -103,38 +195,73 @@ test("the samples are written under this very version", async () => {
   assert.equal(manifest.contract, VERSION, "run node contracts/vectors/make.mjs");
 });
 
-test("no head is used twice under one key", async () => {
-  const main = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
-  const files = await opened(hex(VECTORS.files.envelope), FILES, linkKey);
-  assert.notEqual(main.manifest.head, files.manifest.head);
+test("no head is used twice under one key, across every sample", async () => {
+  const written = JSON.parse(readFileSync(new URL("./written-by-tisty.json", import.meta.url), "utf8"));
+  assert.equal(written.link_key, VECTORS.link_key);
+  const heads = [
+    await opened(hex(VECTORS.main.envelope), MAIN, linkKey),
+    await opened(hex(VECTORS.files.envelope), FILES, linkKey),
+    await opened(hex(VECTORS.files_refused[0].files), FILES, linkKey),
+    await opened(hex(written.main), { id: "writtenByTisty", kind: "main" }, linkKey),
+    await opened(hex(written.files), { id: "writtenByTisty", kind: "files" }, linkKey),
+  ].map((one) => one.manifest.head);
+  assert.equal(new Set(heads).size, heads.length);
+});
+
+for (const { says, envelope } of VECTORS.refused) {
+  test(`a reader refuses ${says}`, async () => {
+    await assert.rejects(reading(hex(envelope), { id: "hostile", kind: "main" }));
+  });
+}
+
+for (const { says, main, files } of VECTORS.files_refused) {
+  test(`a reader refuses ${says}`, async () => {
+    const { held } = await reading(hex(VECTORS.main.envelope), { id: main.id, kind: "main" }, linkKey);
+    await assert.rejects(filesFor(held, hex(files), { id: main.id, kind: "files" }, linkKey));
+  });
+}
+
+for (const { says, document, files } of VECTORS.files_lying) {
+  test(`a reader refuses ${says}`, async () => {
+    await assert.rejects(filesFor(document, hex(files), { id: "hostile", kind: "files" }));
+  });
+}
+
+for (const one of VECTORS.pictures.hold) {
+  test(`a real ${one.kind} holds`, () => assert.ok(pictureHolds(hex(one.bytes), one)));
+}
+
+for (const one of VECTORS.pictures.fail) {
+  test(`a reader shows the alt of ${one.says}`, () => assert.ok(!pictureHolds(hex(one.bytes), one)));
+}
+
+test("a reference is read as a browser reads it, and only where it leads", () => {
+  assert.deepEqual(referencesIn(VECTORS.references.html), VECTORS.references.said);
+});
+
+test("the fingerprint is what the contract's words make of a root", async () => {
+  const digest = await sha(words("tisty-share.person.v1\0"), b64(VECTORS.identity.root));
+  const number = BigInt(`0x${Buffer.from(digest.subarray(0, 9)).toString("hex")}`) >> 6n;
+  assert.equal(number.toString().padStart(20, "0").match(/.{5}/g).join(" "), VECTORS.identity.fingerprint);
 });
 
 test("a main envelope gives its document, its pages and its pictures, with no other request", async () => {
-  const main = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);
-  assert.deepEqual(documentOf(main), VECTORS.main.document);
-  assert.deepEqual(check("document", documentOf(main)), []);
-  assert.deepEqual(checkHtml(documentOf(main).html), []);
-  assert.equal(documentOf(main).id, main.manifest.id, "the document inside is the one the manifest says");
+  const { main, held } = await reading(hex(VECTORS.main.envelope), MAIN, linkKey);
+  assert.deepEqual(held, VECTORS.main.document);
   assert.deepEqual(hexOf(main.parts.slice(2)), VECTORS.main.pictures);
+  held.pictures.forEach((one, at) => assert.ok(pictureHolds(main.parts[at + 2], one)));
 });
 
 test("a files envelope gives its files, and the main envelope answers for it", async () => {
-  const files = await opened(hex(VECTORS.files.envelope), FILES, linkKey);
+  const files = await filesFor(VECTORS.main.document, hex(VECTORS.files.envelope), FILES, linkKey);
   assert.deepEqual(hexOf(files.parts), VECTORS.files.files);
-  const hash = await sha(files.manifestBytes, files.index);
-  assert.ok(same(hash, b64(VECTORS.main.document.files_hash)));
 });
 
 test("what Tisty sealed in Rust opens here with what a browser brings", async () => {
   const written = JSON.parse(readFileSync(new URL("./written-by-tisty.json", import.meta.url), "utf8"));
   const key = b64(written.link_key);
-  const main = await opened(hex(written.main), { id: "writtenByTisty", kind: "main" }, key);
-  const held = documentOf(main);
-  assert.deepEqual(check("document", held), []);
-  assert.deepEqual(checkHtml(held.html), []);
-  assert.equal(held.id, main.manifest.id);
-  const files = await opened(hex(written.files), { id: "writtenByTisty", kind: "files" }, key);
-  assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)));
+  const { held } = await reading(hex(written.main), { id: "writtenByTisty", kind: "main" }, key);
+  await filesFor(held, hex(written.files), { id: "writtenByTisty", kind: "files" }, key);
 });
 
 test("words alone need one envelope", async () => {
@@ -144,7 +271,7 @@ test("words alone need one envelope", async () => {
 });
 
 test("a public envelope opens without a key", async () => {
-  const held = documentOf(await opened(hex(VECTORS.public.envelope), PUBLIC));
+  const { held } = await reading(hex(VECTORS.public.envelope), PUBLIC);
   assert.deepEqual(held, VECTORS.public.document);
 });
 

@@ -247,7 +247,7 @@ values:
   picture_source: "tisty:picture/N, its at among the pictures"
   writer_makes_pictures:
     - "It decodes what it was given, never believing its name, and refuses more than 50 million pixels before decoding them."
-    - "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Only a colour profile stays, when it is one for the three channels written, of at most 64 KiB."
+    - "It writes new bytes from those pixels, always, so metadata, a location and anything hidden in the file are left behind. Of a colour profile for the three channels written, of at most 64 KiB, only what says how its pixels look is written anew: no names, dates or descriptions."
     - "A file cut short is no picture."
     - "It respects the picture's orientation, and leaves 8 bits per channel and no alpha that covers nothing."
     - "Its longest side is at most 1600 pixels."

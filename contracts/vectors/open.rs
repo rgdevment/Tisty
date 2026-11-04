@@ -12,14 +12,18 @@ use hkdf::Hkdf;
 use hmac::{Hmac, KeyInit as _, Mac};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
-use tisty_contracts::{check, check_html};
+use tisty_contracts::{VERSION, check, check_html, references_in};
 
 const VECTORS: &str = include_str!("../vectors.json");
+
+// This reader's own, and no number of the contract's: each reader knows what it can hold.
+const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
 
 pub struct Opened {
     pub manifest: Vec<u8>,
     pub index: Vec<u8>,
     pub parts: Vec<Vec<u8>>,
+    pub root: String,
 }
 
 fn b64(said: &Value) -> Vec<u8> {
@@ -71,6 +75,17 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     }
     if manifest["id"] != asked.0 || manifest["kind"] != asked.1 {
         return Err("not what it asked for".into());
+    }
+    let major = |said: &str| said.split('.').next().unwrap_or_default().to_owned();
+    if major(manifest["contract"].as_str().unwrap()) != major(VERSION) {
+        return Err("another major version".into());
+    }
+    if manifest["from"].as_u64().is_some_and(|from| from >= manifest["version"].as_u64().unwrap()) {
+        return Err("it starts from a version that is not earlier".into());
+    }
+    let squeezes = |part: &Value| part["compressed"] != true || part["name"] == "first" || part["name"] == "rest";
+    if !manifest["parts"].as_array().unwrap().iter().all(squeezes) {
+        return Err("a picture or a file is never compressed".into());
     }
     let names: Vec<&str> = manifest["parts"].as_array().unwrap().iter().map(|part| part["name"].as_str().unwrap()).collect();
     let in_order = match asked.1 {
@@ -149,6 +164,9 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
         };
         let open_size = part["open_size"].as_u64().unwrap();
         let held = if part["compressed"] == true {
+            if open_size > OPENS_AT_MOST {
+                return Err("it says more than this reader holds".into());
+            }
             let mut inflated = Vec::new();
             DeflateDecoder::new(held.as_slice())
                 .take(open_size + 1)
@@ -166,7 +184,154 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     if piece(1).is_ok() {
         return Err("something follows its parts".into());
     }
-    Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out })
+    Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out, root: signature["root"].as_str().unwrap().to_owned() })
+}
+
+fn ats_of(list: &Value) -> Vec<u64> {
+    list.as_array().into_iter().flatten().filter_map(|one| one["at"].as_u64()).collect()
+}
+
+fn references_hold(html: &str, held: &Value) -> Result<(), String> {
+    if !check_html(html).is_empty() {
+        return Err("its HTML is outside the contract".into());
+    }
+    for (kind, at) in references_in(html) {
+        let there = match kind.as_str() {
+            "page" => ats_of(&held["pages"]).contains(&at),
+            "picture" => ats_of(&held["pictures"]).contains(&at),
+            "file" => ats_of(&held["files"]).contains(&at),
+            _ => (at as usize) < held["cited"].as_array().map_or(0, Vec::len),
+        };
+        if !there {
+            return Err(format!("tisty:{kind}/{at} is not there"));
+        }
+    }
+    Ok(())
+}
+
+// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
+pub fn document_in(main: &Opened) -> Result<Value, String> {
+    let words = |part: &[u8]| -> Result<Map<String, Value>, String> {
+        match serde_json::from_slice(part) {
+            Ok(Value::Object(fields)) => Ok(fields),
+            _ => Err("its words are not an object".to_owned()),
+        }
+    };
+    let first = words(&main.parts[0])?;
+    let rest = words(&main.parts[1])?;
+    if first.contains_key("body") || first.contains_key("pages") || rest.keys().any(|one| one != "body" && one != "pages") {
+        return Err("a part says what is not its own".into());
+    }
+    let held = document_of(main);
+    let manifest: Value = serde_json::from_slice(&main.manifest).map_err(|_| "its manifest")?;
+    if !check("document", &held).is_empty() {
+        return Err("its document is outside the contract".into());
+    }
+    if held["id"] != manifest["id"] {
+        return Err("another document inside".into());
+    }
+    if held["owner"].as_str().is_some_and(|owner| owner != main.root) {
+        return Err("its owner is not the root that signs".into());
+    }
+    let empty = Vec::new();
+    let pictures = held["pictures"].as_array().unwrap_or(&empty);
+    if pictures.len() != main.parts.len() - 2 {
+        return Err("another number of pictures than it says".into());
+    }
+    for (at, one) in pictures.iter().enumerate() {
+        if one["at"] != at as u64 || one["size"] != main.parts[at + 2].len() as u64 {
+            return Err("a picture is not what it says".into());
+        }
+    }
+    let pages = held["pages"].as_array().unwrap_or(&empty);
+    let mut places = std::collections::BTreeSet::new();
+    for page in pages {
+        if page["page_of"] != held["id"] || !places.insert(page["at"].as_u64()) {
+            return Err("a page is not in its place in this document".into());
+        }
+    }
+    references_hold(held["html"].as_str().unwrap_or_default(), &held)?;
+    for page in pages {
+        references_hold(page["html"].as_str().unwrap_or_default(), &held)?;
+    }
+    Ok(held)
+}
+
+pub fn reading(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<(Opened, Value), String> {
+    let main = opened(bytes, asked, link_key)?;
+    let held = document_in(&main)?;
+    Ok((main, held))
+}
+
+pub fn files_for(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+    let files = opened(bytes, asked, link_key)?;
+    let hash = Sha256::digest([files.manifest.as_slice(), &files.index].concat());
+    if URL_SAFE_NO_PAD.encode(hash) != held["files_hash"].as_str().unwrap_or_default() {
+        return Err("not the envelope its document answers for".into());
+    }
+    if held["files"].as_array().map_or(0, Vec::len) != files.parts.len() {
+        return Err("another number of files than it says".into());
+    }
+    Ok(files)
+}
+
+fn u16_at(bytes: &[u8], at: usize) -> Option<u64> {
+    Some(u64::from(u16::from_be_bytes(bytes.get(at..at + 2)?.try_into().ok()?)))
+}
+
+fn u32_at(bytes: &[u8], at: usize) -> Option<u64> {
+    Some(u64::from(u32::from_be_bytes(bytes.get(at..at + 4)?.try_into().ok()?)))
+}
+
+// Whether the bytes of a PNG hold what it says, up to its last one.
+fn png_size(bytes: &[u8]) -> Option<(u64, u64)> {
+    if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return None;
+    }
+    let mut said = None;
+    let mut at = 8;
+    while at + 12 <= bytes.len() {
+        let length = u32_at(bytes, at)? as usize;
+        let name = &bytes[at + 4..at + 8];
+        if at == 8 && name == b"IHDR" && length >= 8 {
+            said = Some((u32_at(bytes, at + 8)?, u32_at(bytes, at + 12)?));
+        }
+        at += 12 + length;
+        if name == b"IEND" {
+            return said.filter(|_| at == bytes.len());
+        }
+    }
+    None
+}
+
+fn jpeg_size(bytes: &[u8]) -> Option<(u64, u64)> {
+    if !bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        return None;
+    }
+    let mut said = None;
+    let mut at = 2;
+    while at + 1 < bytes.len() {
+        let mark = bytes[at + 1];
+        at += match (bytes[at], mark) {
+            (0xFF, 0xD9) => return said.filter(|_| at + 2 == bytes.len()),
+            (0xFF, 0xFF) => 1,
+            (0xFF, 0x00 | 0x01 | 0xD0..=0xD8) => 2,
+            (0xFF, _) => {
+                if (0xC0..=0xCF).contains(&mark) && ![0xC4, 0xC8, 0xCC].contains(&mark) {
+                    said = u16_at(bytes, at + 7).zip(u16_at(bytes, at + 5));
+                }
+                2 + u16_at(bytes, at + 2)? as usize
+            }
+            _ => 1,
+        };
+    }
+    None
+}
+
+// What a reader looks at before it draws one. A picture that fails shows its alt, and the words still read.
+pub fn picture_holds(bytes: &[u8], said: &Value) -> bool {
+    let size = if said["kind"] == "image/png" { png_size(bytes) } else { jpeg_size(bytes) };
+    said["size"] == bytes.len() as u64 && size.is_some_and(|(wide, tall)| said["width"] == wide && said["height"] == tall)
 }
 
 // The first two parts of a main envelope are its words; what follows them is pictures.
@@ -188,12 +353,9 @@ fn vectors() -> Value {
 #[test]
 fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     let all = vectors();
-    let main = opened(&hex(&all["main"]["envelope"]), MAIN, Some(&b64(&all["link_key"]))).unwrap();
-    let held = document_of(&main);
+    let (main, held) = reading(&hex(&all["main"]["envelope"]), MAIN, Some(&b64(&all["link_key"]))).unwrap();
     assert_eq!(held, all["main"]["document"]);
-    assert_eq!(check("document", &held), Vec::<String>::new());
-    assert_eq!(check_html(held["html"].as_str().unwrap()), Vec::<String>::new());
-    assert_eq!(held["id"], MAIN.0, "the document inside is the one the manifest says");
+    assert!(picture_holds(&main.parts[2], &held["pictures"][0]));
     let pictures: Vec<Vec<u8>> = all["main"]["pictures"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(main.parts[2..], pictures);
 }
@@ -201,17 +363,16 @@ fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
 #[test]
 fn a_files_envelope_gives_its_files_and_the_main_envelope_answers_for_it() {
     let all = vectors();
-    let held = opened(&hex(&all["files"]["envelope"]), FILES, Some(&b64(&all["link_key"]))).unwrap();
+    let key = b64(&all["link_key"]);
+    let held = files_for(&all["main"]["document"], &hex(&all["files"]["envelope"]), FILES, Some(&key)).unwrap();
     let files: Vec<Vec<u8>> = all["files"]["files"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(held.parts, files);
-    let hash = Sha256::digest([held.manifest, held.index].concat());
-    assert_eq!(hash.as_slice(), b64(&all["main"]["document"]["files_hash"]));
 }
 
 #[test]
 fn a_public_envelope_opens_without_a_key() {
     let all = vectors();
-    let held = document_of(&opened(&hex(&all["public"]["envelope"]), PUBLIC, None).unwrap());
+    let (_, held) = reading(&hex(&all["public"]["envelope"]), PUBLIC, None).unwrap();
     assert_eq!(held, all["public"]["document"]);
 }
 
@@ -231,6 +392,62 @@ fn a_revocation_is_signed_by_the_root() {
     let at = seconds(said["at"].as_str().unwrap());
     let signed = [b"tisty-share.revocation.v1\0".as_slice(), &root, &b64(&said["machine"]), &at.to_be_bytes()].concat();
     verified(&root, &b64(&said["signed"]), &signed).unwrap();
+}
+
+#[test]
+fn a_reader_refuses_what_a_writer_should_never_have_sealed() {
+    let all = vectors();
+    for one in all["refused"].as_array().unwrap() {
+        let bytes = hex(&one["envelope"]);
+        assert!(reading(&bytes, ("hostile", "main"), None).is_err(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_reader_refuses_files_its_document_does_not_answer_for() {
+    let all = vectors();
+    let key = b64(&all["link_key"]);
+    let (_, held) = reading(&hex(&all["main"]["envelope"]), MAIN, Some(&key)).unwrap();
+    for one in all["files_refused"].as_array().unwrap() {
+        assert!(files_for(&held, &hex(&one["files"]), FILES, Some(&key)).is_err(), "{}", one["says"]);
+    }
+    for one in all["files_lying"].as_array().unwrap() {
+        assert!(files_for(&one["document"], &hex(&one["files"]), ("hostile", "files"), None).is_err(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_reader_looks_at_a_picture_before_it_draws_it() {
+    let all = vectors();
+    for one in all["pictures"]["hold"].as_array().unwrap() {
+        assert!(picture_holds(&hex(&one["bytes"]), one), "{}", one["kind"]);
+    }
+    for one in all["pictures"]["fail"].as_array().unwrap() {
+        assert!(!picture_holds(&hex(&one["bytes"]), one), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_reference_is_read_as_a_browser_reads_it_and_only_where_it_leads() {
+    let all = vectors();
+    let said: Vec<(String, u64)> = all["references"]["said"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| (one["kind"].as_str().unwrap().to_owned(), one["at"].as_u64().unwrap()))
+        .collect();
+    assert_eq!(references_in(all["references"]["html"].as_str().unwrap()), said);
+}
+
+#[test]
+fn the_fingerprint_is_what_the_words_of_the_contract_make_of_a_root() {
+    let all = vectors();
+    let digest = Sha256::digest([b"tisty-share.person.v1\0".as_slice(), &b64(&all["identity"]["root"])].concat());
+    let mut wide = [0u8; 16];
+    wide[7..].copy_from_slice(&digest[..9]);
+    let digits = format!("{:020}", u128::from_be_bytes(wide) >> 6);
+    let groups: Vec<&str> = digits.as_bytes().chunks(5).map(|one| std::str::from_utf8(one).unwrap()).collect();
+    assert_eq!(groups.join(" "), all["identity"]["fingerprint"]);
 }
 
 #[test]

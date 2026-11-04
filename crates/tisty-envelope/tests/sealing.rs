@@ -553,6 +553,58 @@ fn two_languages_may_cite_one_document_and_it_goes_once() {
 }
 
 #[test]
+fn a_picture_travels_once_and_says_nothing_of_where_it_came_from() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let picture = |name: &str, at: u64| json!({ "at": at, "name": name, "kind": "image/png", "size": png().len(), "width": 1, "height": 1 });
+    let said = |pictures: Value| {
+        document(json!({ "id": "x", "pictures": pictures, "html": "<p>a</p>", "body": "a" }))
+    };
+    let named_home = said(json!([picture("en-casa.png", 0)]));
+    assert!(
+        writer
+            .sealed(named_home, vec![png()], vec![], &sealing("x", None))
+            .is_err()
+    );
+    let twice = said(json!([
+        picture("picture-0.png", 0),
+        picture("picture-1.png", 1)
+    ]));
+    assert!(
+        writer
+            .sealed(twice, vec![png(), png()], vec![], &sealing("x", None))
+            .is_err()
+    );
+}
+
+#[test]
+fn its_properties_do_not_say_what_stays_on_this_machine() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let said = document(json!({
+        "id": "x",
+        "properties": [{ "key": "Task", "values": ["01M6"] }],
+        "html": "<p>a</p>",
+        "body": "a",
+    }));
+    assert!(
+        writer
+            .sealed(said, vec![], vec![], &sealing("x", None))
+            .is_err()
+    );
+}
+
+#[test]
+fn the_fingerprint_is_the_one_the_contract_shows() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+    assert_eq!(
+        vectors["identity"]["fingerprint"],
+        root().person().fingerprint()
+    );
+}
+
+#[test]
 fn two_documents_never_go_under_one_id() {
     assert!(
         sealed(Family {
@@ -617,7 +669,8 @@ fn what_cites_cites_directly_and_only_once() {
 #[test]
 fn what_rust_seals_is_what_javascript_is_handed() {
     let (key, certificate) = signer();
-    let mut next = 0x21;
+    // Heads of their own, since these samples share a key with the contract's.
+    let mut next = 0x60;
     let mut writer = Writer::with_head(&key, &certificate, move || {
         next += 1;
         Some([next; 32])

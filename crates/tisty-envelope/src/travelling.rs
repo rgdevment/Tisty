@@ -5,7 +5,7 @@ use std::ops::Range;
 use crate::tags::{Tag, escaped, unescaped, walk};
 
 // Written only by Tisty, for itself: a task's id and what finds a language again say nothing to whoever reads.
-const KEPT_TO_ITSELF: [&str; 2] = ["task", "translationKey"];
+pub(crate) const KEPT_TO_ITSELF: [&str; 2] = ["task", "translationKey"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Placed {
@@ -99,8 +99,9 @@ fn kept_to_itself_gone(html: &str) -> String {
     };
     let mut front = html[from..to].to_owned();
     for key in KEPT_TO_ITSELF {
-        let open = format!("<div><dt>{key}</dt>");
-        while let Some(at) = front.find(&open) {
+        // Properties are read in any capitals, so what stays home is found in any too.
+        let open = format!("<div><dt>{}</dt>", key.to_ascii_lowercase());
+        while let Some(at) = front.to_ascii_lowercase().find(&open) {
             let Some(length) = front[at..].find("</dd></div>") else {
                 break;
             };

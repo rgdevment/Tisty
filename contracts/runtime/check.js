@@ -188,6 +188,15 @@ const brokenBy = (rule, value) =>
   (rule.never ?? []).some((one) => words(value).includes(one)) ||
   (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
 
+// One spelling for a place too, and it fits a whole number in every language.
+const referenceIn = (bare) => {
+  const place = bare.slice(bare.indexOf(":") + 1);
+  const slash = place.indexOf("/");
+  const kind = place.slice(0, Math.max(slash, 0));
+  const at = place.slice(slash + 1);
+  return slash >= 0 && WHOLE.urls.references.includes(kind) && /^(0|[1-9][0-9]{0,14})$/.test(at) ? { kind, at: Number(at) } : null;
+};
+
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
 // A link says where it goes: nothing without a scheme means anything once it travels, except a heading of its own page.
 const wrongUrl = (value) => {
@@ -197,10 +206,7 @@ const wrongUrl = (value) => {
   if (colon < 0) return true;
   const scheme = lowered(bare.slice(0, colon));
   if (!WHOLE.urls.schemes.includes(scheme)) return true;
-  if (scheme !== "tisty") return false;
-  const place = bare.slice(colon + 1);
-  const slash = place.indexOf("/");
-  return slash < 0 || !WHOLE.urls.references.includes(place.slice(0, slash)) || !/^[0-9]+$/.test(place.slice(slash + 1));
+  return scheme === "tisty" && referenceIn(bare) === null;
 };
 
 // A paint or a marker names something in its own drawing, and nothing else.
@@ -238,6 +244,19 @@ const wrongStyles = (tag, value) =>
       const said = spacesOff(lowered(one.slice(colon + 1)));
       return !WHOLE.styles.some((rule) => rule.on === tag && rule.property === property && holdsStyle(rule, said));
     });
+
+// Each place inside what travels that the HTML leads to, read as a browser reads its attributes.
+export function referencesIn(html) {
+  const out = [];
+  for (const { attributes } of opened(html)) {
+    for (const [name, value] of attributes) {
+      const bare = [...value].filter((one) => one > " ").join("");
+      const one = WHOLE.urls.attributes.includes(name) && lowered(bare).startsWith("tisty:") ? referenceIn(bare) : null;
+      if (one) out.push(one);
+    }
+  }
+  return out;
+}
 
 export function checkHtml(html) {
   const out = [];
