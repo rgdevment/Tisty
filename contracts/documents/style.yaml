@@ -84,3 +84,51 @@ values:
     head: { background: "hover", weight: 600 }
     typed_numbers: "tabular-nums"
   sheet: { width: "820px", padding: "36px 40px", radius: "10px", shadow: "0 1px 3px cast" }
+  # The margins decide where sheets are cut, so a reader without them cuts elsewhere.
+  blocks:
+    h1: { margin: "26px 0 8px" }
+    h2: { margin: "22px 0 6px", weight: 640 }
+    h3: { margin: "18px 0 4px", weight: 640 }
+    h4: { margin: "16px 0 4px", weight: 640 }
+    p: { margin: "10px 0" }
+    list: { margin: "10px 0", padding_left: "22px" }
+    list_paragraph: { margin: "2px 0" }
+    quote: { margin: "12px 0", padding_left: "14px", border: "2px solid line", color: soft }
+    figure: { margin: "12px 0" }
+    pre: { padding: "12px 14px", size: "0.88em", line_height: 1.55 }
+    details: { margin: "14px 0" }
+  callouts:
+    padding: "10px 14px"
+    border_width: "3px"
+    tint_percent: 7
+    hues: { note: blue, tip: green, important: indigo, warning: amber, caution: red }
+  pens:
+    named: { yellow: pen-yellow, green: pen-green, blue: pen-blue, pink: pen-pink }
+    otherwise: "A pen named by a hue is that hue over the sheet at 28 percent."
+    default: yellow
+  code_colors:
+    comment: { color: faint, italic: true }
+    quote: { color: faint, italic: true }
+    keyword: { color: hue-purple }
+    selector-tag: { color: hue-purple }
+    literal: { color: hue-purple }
+    doctag: { color: hue-purple }
+    name: { color: hue-purple }
+    string: { color: hue-green }
+    regexp: { color: hue-green }
+    addition: { color: hue-green }
+    number: { color: hue-orange }
+    symbol: { color: hue-orange }
+    bullet: { color: hue-orange }
+    title: { color: hue-blue }
+    section: { color: hue-blue }
+    attr: { color: hue-teal }
+    attribute: { color: hue-teal }
+    variable: { color: hue-teal }
+    template-variable: { color: hue-teal }
+    property: { color: hue-teal }
+    type: { color: hue-amber }
+    built_in: { color: hue-amber }
+    deletion: { color: hue-red }
+  icon: { size: "1.05em", color: soft, hue: "A span that says data-hue wears that hue." }
+  variables: "In CSS each color is var(--tisty-<name>)."

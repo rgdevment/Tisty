@@ -34,12 +34,17 @@ values:
   signing:
     certificate: "Ed25519 by the root, over tisty-share.certificate.v1, a zero byte, root, machine and since in seconds, 8 bytes, big endian."
     signed: >-
-      Ed25519 by the machine, over tisty-share.signed.v1, a zero byte, root, machine, the length of envelope in 8 bytes,
-      big endian, envelope, the SHA-256 of the manifest and the index.
-    files: "The document's files_hash is the SHA-256 of the files envelope's manifest and index, so one signature answers for both."
+      Ed25519 by the machine, over these bytes in a row: tisty-share.signed.v1, a zero byte, root, machine, the number 8 in
+      8 bytes, big endian, the 8 letters of the word envelope, the SHA-256 of the manifest alone, and then the index as it is.
+    files: "The document's files_hash is one SHA-256 over the files envelope's manifest followed by its index, so one signature answers for both."
   reader_refuses:
     - "Under a link with a key, an envelope that is not sealed: the key would answer for nothing."
     - "A manifest whose id or kind is not what it asked for."
+    - "A document inside whose id is not the manifest's."
+    - "A main envelope with more or fewer pictures than its document says, and a files envelope with more or fewer files."
+  who_checks_what:
+    server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
+    reader: "With the key, it checks the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
   versions: "The same major version opens. A higher one is read as newer, and a lower one as damaged."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time it is opened."
 fields:
@@ -54,9 +59,9 @@ fields:
   parts: { type: list, of: envelope_part, required: true, at_least: 1 }
 roles:
   writer:
-    seal: { takes: { document: document }, gives: envelope }
+    seal: { takes: { document: document, pictures: "list:bytes", files: "list:bytes", sealing: sealing }, gives: "list:bytes", fails: true, says: "The main envelope and, only with files, the files envelope." }
   reader:
-    open: { takes: { envelope: envelope, key: key }, gives: document }
+    open: { takes: { file: bytes, opening: opening }, gives: document, fails: true }
 cases:
   - says: "A sealed main envelope."
     value:
@@ -81,6 +86,39 @@ cases:
     holds: false
   - says: "A kind of envelope that does not exist."
     value: { contract: "1.0.0", kind: video, id: "k7Qm2xPa", version: 1, sealed: false, parts: [{ name: file, compressed: false, sealed_size: 1, open_size: 1 }] }
+    holds: false
+---
+contract: sealing
+group: documents
+checked_by: [writer]
+says: What a writer needs to seal a document, beyond the document and its bytes.
+fields:
+  id: { type: text, required: true, at_least: 1, at_most: 64 }
+  version: { type: whole, required: true, at_least: 1 }
+  from: { type: whole }
+  link_key: { type: key, says: "None for what is public." }
+cases:
+  - says: "A private version."
+    value: { id: "k7Qm2xPa", version: 2, from: 1, link_key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
+    holds: true
+  - says: "No id."
+    value: { version: 1 }
+    holds: false
+---
+contract: opening
+group: documents
+checked_by: [reader]
+says: What a reader asks for when it opens an envelope.
+fields:
+  id: { type: text, required: true, at_least: 1, at_most: 64 }
+  kind: { type: envelope_kind, required: true }
+  link_key: { type: key }
+cases:
+  - says: "A public document."
+    value: { id: "k7Qm2xPa", kind: main }
+    holds: true
+  - says: "No kind."
+    value: { id: "k7Qm2xPa" }
     holds: false
 ---
 contract: envelope_part

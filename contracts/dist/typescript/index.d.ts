@@ -1,4 +1,6 @@
-export declare const VERSION: "1.0.0-draft.7";
+export declare const VERSION: "1.0.0-draft.8";
+
+export type PictureKind = "image/png" | "image/jpeg";
 
 export type EnvelopeKind = "main" | "files";
 
@@ -10,7 +12,7 @@ export type SheetsWord = "on";
 
 export type SaidPriority = "do" | "decide" | "delegate" | "minor";
 
-export type Verdict = "holds" | "revoked" | "refused";
+export type Verdict = "holds" | "retired" | "doubtful" | "refused" | "unreadable";
 
 export type Paper = "a4" | "letter" | "folio" | "tabloid";
 
@@ -20,12 +22,22 @@ export type Status = "open" | "done" | "dropped";
 
 export type Priority = "do" | "decide" | "delegate" | "unset" | "minor";
 
-/** A file a document names. A picture travels in its main envelope and is drawn when it arrives. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. */
+/** A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. */
 export interface Attachment {
   at: number;
   name: string;
   kind?: string;
   size?: number;
+}
+
+/** An attachment that is drawn. Its bytes are pixels the writer wrote itself, so an image is nothing but an image. Its size is known before it is drawn, so its place on the sheet is held and no cut moves when it arrives. */
+export interface Picture {
+  at: number;
+  name: string;
+  kind: PictureKind;
+  size: number;
+  width: number;
+  height: number;
 }
 
 /** A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty. */
@@ -38,20 +50,17 @@ export interface Widget {
 export interface Document {
   id: string;
   title?: string;
-  tags?: Tag[];
+  tags?: string[];
   lang?: string;
   sheet?: Sheet;
   owner?: string;
   signed_as?: string;
   made?: string;
   wrote?: string;
-  by?: string;
-  born_by?: string;
-  edited_by?: string;
   body: string;
   html: string;
   pages?: Page[];
-  pictures?: Attachment[];
+  pictures?: Picture[];
   files?: Attachment[];
   files_hash?: string;
   cited?: Cited[];
@@ -66,15 +75,11 @@ export interface DocumentReader {
   setOrientation(orientation: Orientation): void;
   index(): string[];
   details(): Document;
-  verdict(): Verdict;
+  verdict(served: Served): Verdict;
   goToPage(at: number): void;
   setLanguage(lang: string): void;
   openInTisty(): void;
   copyLink(): string;
-}
-
-export interface DocumentWriter {
-  draw(body: string): string;
 }
 
 /** How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads. */
@@ -91,11 +96,26 @@ export interface Envelope {
 }
 
 export interface EnvelopeWriter {
-  seal(document: Document): Envelope;
+  seal(document: Document, pictures: Uint8Array[], files: Uint8Array[], sealing: Sealing): Promise<Uint8Array[]>;
 }
 
 export interface EnvelopeReader {
-  open(envelope: Envelope, key: string): Document;
+  open(file: Uint8Array, opening: Opening): Promise<Document>;
+}
+
+/** What a writer needs to seal a document, beyond the document and its bytes. */
+export interface Sealing {
+  id: string;
+  version: number;
+  from?: number;
+  link_key?: string;
+}
+
+/** What a reader asks for when it opens an envelope. */
+export interface Opening {
+  id: string;
+  kind: EnvelopeKind;
+  link_key?: string;
 }
 
 /** One part of an envelope, as the manifest tells it. The server holds its limits to these sizes. */
@@ -139,20 +159,14 @@ export interface Property {
 export interface Page {
   id: string;
   title?: string;
-  tags?: Tag[];
+  tags?: string[];
   lang?: string;
   sheet?: Sheet;
-  owner?: string;
-  signed_as?: string;
   made?: string;
   wrote?: string;
-  by?: string;
-  born_by?: string;
-  edited_by?: string;
   body: string;
   html: string;
   properties?: Property[];
-  languages?: Translation[];
   page_of: string;
   at: number;
 }
@@ -165,12 +179,12 @@ export interface Translation {
   key?: string;
 }
 
-/** A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]]. */
+/** A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]]. */
 export interface Tag {
   name: string;
 }
 
-/** Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs, under a certificate from the root. It travels in clear, so the server checks it without opening anything. */
+/** Who answers for an envelope, and through it for the document. The root key is who a person is, and it never changes: a version under another root is someone else. The machine key signs, under a certificate from the root, and it can be replaced. It travels in clear, so the server checks it without opening anything. */
 export interface Signature {
   root: string;
   machine: string;
@@ -179,12 +193,18 @@ export interface Signature {
   signed: string;
 }
 
-/** A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed as revoked. It is not about stopping sharing a document or stopping a person from publishing. */
+/** A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it holds. Everything it decides is decided by whoever receives it. */
 export interface Revocation {
   root: string;
   machine: string;
   at: string;
   signed: string;
+}
+
+/** What the server serves beside an envelope, in clear, so a reader can weigh its signature. A reader trusts it as far as it trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web. */
+export interface Served {
+  received?: string;
+  revocations?: Revocation[];
 }
 
 /** Another document shared along with this one. It keeps its own envelopes, because it is not part of this document. */
@@ -211,7 +231,7 @@ export interface Task {
   date?: string;
   deadline?: string;
   list?: string;
-  tags?: Tag[];
+  tags?: string[];
   repeat?: string;
   part_of?: string;
   after?: string;
@@ -233,14 +253,14 @@ export interface Note {
   body: string;
 }
 
-/** When a task rings. */
+/** When a task rings, written as a task's date is. */
 export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "widget" | "document" | "envelope" | "envelope_part" | "sync" | "link" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "revocation" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "property" | "page" | "translation" | "tag" | "signature" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
-export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[] }>;
+export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What is wrong with a value under this contract: nothing when it holds. */
 export declare function check(contract: ContractName, value: unknown): string[];
 /** What in the HTML of a document is outside the contracts. It is no cleaner: it says whether a document speaks this language. */

@@ -17,6 +17,17 @@ const isTime = (said) => {
   return month >= 1 && month <= 12 && day >= 1 && day <= daysIn(year, month) && hour <= 23 && minute <= 59 && second <= 59;
 };
 
+// A moment nothing signs may hold a fraction of a second, as the log keeps them.
+const isMoment = (said) => isTime(said.replace(/\.\d{1,9}Z$/, "Z"));
+
+const UNSEEN = /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u2028-\u202E\u2060-\u206F\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB\u{1D173}-\u{1D17A}\u{E0000}-\u{E007F}\p{Cc}]/u;
+
+const isName = (said) => {
+  const letters = said.match(/\p{Alphabetic}/gu)?.length ?? 0;
+  const digits = said.match(/[0-9]/g)?.length ?? 0;
+  return said.trim() === said && [...said].length <= 80 && letters > 0 && digits <= letters && !UNSEEN.test(said);
+};
+
 const base64urlOf = (said, length) => said.length === length && /^[A-Za-z0-9_-]+$/.test(said);
 
 const lengthOf = (said) => [...said].length;
@@ -39,6 +50,10 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "number") out.push(at + " is not a number");
   } else if (type === "time") {
     if (typeof value !== "string" || !isTime(value)) out.push(at + " is not a date in whole seconds");
+  } else if (type === "moment") {
+    if (typeof value !== "string" || !isMoment(value)) out.push(at + " is not a date");
+  } else if (type === "name") {
+    if (typeof value !== "string" || !isName(value)) out.push(at + " is not a name a person can read as written");
   } else if (type === "language") {
     if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
   } else if (type === "tag_word") {
@@ -112,6 +127,7 @@ const opened = (html) => {
   let rest = html;
   for (let start = rest.indexOf("<"); start >= 0; start = rest.indexOf("<")) {
     rest = rest.slice(start + 1);
+    if (rest.startsWith("!") || rest.startsWith("?")) out.push({ tag: "!", attributes: [], unclosed: false });
     if (!/^[a-zA-Z]/.test(rest)) continue;
     let end = until(rest, /[\t\n\f\r />]/);
     const one = { tag: lowered(rest.slice(0, end)), attributes: [], unclosed: false };
@@ -156,15 +172,43 @@ const brokenBy = (rule, value) =>
   (rule.starts_with !== undefined && !value.startsWith(rule.starts_with));
 
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
+// A link says where it goes: nothing without a scheme means anything once it travels, except a heading of its own page.
 const wrongUrl = (value) => {
   const bare = [...value].filter((one) => one > " ").join("");
-  const head = bare.slice(0, until(bare, /[/?#]/));
-  if (head.includes("&")) return true;
-  const colon = head.indexOf(":");
-  return colon >= 0 && !WHOLE.urls.schemes.includes(lowered(head.slice(0, colon)));
+  if (bare.startsWith("#")) return false;
+  const colon = bare.indexOf(":");
+  if (colon < 0) return true;
+  const scheme = lowered(bare.slice(0, colon));
+  if (!WHOLE.urls.schemes.includes(scheme)) return true;
+  if (scheme !== "tisty") return false;
+  const place = bare.slice(colon + 1);
+  const slash = place.indexOf("/");
+  return slash < 0 || !WHOLE.urls.references.includes(place.slice(0, slash)) || !/^[0-9]+$/.test(place.slice(slash + 1));
+};
+
+// A paint or a marker names something in its own drawing, and nothing else.
+const wrongPaint = (value) => {
+  const said = lowered(value).trim();
+  if (said.includes("&")) return true;
+  if (!said.includes("url(")) return false;
+  return !/^url\(#[^\s()]+\)$/.test(said);
 };
 
 const isSizeIn = (said, unit) => said.endsWith(unit) && /^\d+(\.\d+)?$/.test(said.slice(0, said.length - unit.length));
+
+const isSized = (said, units) => {
+  if (/^-?0*\.?0+$/.test(said)) return true;
+  return units.some((unit) => said.endsWith(unit) && /^-?\d*\.?\d+$/.test(said.slice(0, said.length - unit.length)));
+};
+
+const isColor = (said) => /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(said);
+
+const holdsStyle = (rule, said) => {
+  if (rule.unit) return isSizeIn(said, rule.unit);
+  if (rule.sizes) return isSized(said, rule.sizes);
+  if (rule.color) return isColor(said);
+  return rule.values.includes(said);
+};
 
 const wrongStyles = (tag, value) =>
   value
@@ -175,15 +219,20 @@ const wrongStyles = (tag, value) =>
       const colon = one.indexOf(":");
       const property = lowered(one.slice(0, Math.max(colon, 0))).trim();
       const said = lowered(one.slice(colon + 1)).trim();
-      return !WHOLE.styles.some(
-        (rule) => rule.on === tag && rule.property === property && (rule.values ? rule.values.includes(said) : isSizeIn(said, rule.unit)),
-      );
+      return !WHOLE.styles.some((rule) => rule.on === tag && rule.property === property && holdsStyle(rule, said));
     });
 
 export function checkHtml(html) {
   const out = [];
   const through = WHOLE.passthrough.attributes;
   for (const { tag, attributes, unclosed } of opened(html)) {
+    if (tag === "!") {
+      out.push("a comment is in no contract");
+      continue;
+    }
+    for (const rule of WHOLE.html_rules) {
+      if (rule.tag === tag && rule.requires?.some((name) => !attributes.some(([said]) => said === name))) out.push(rule.says);
+    }
     const drawn = own(WHOLE.allowed, tag);
     if (!drawn && !WHOLE.passthrough.tags.includes(tag)) {
       out.push("<" + tag + "> is in no contract");
@@ -195,11 +244,15 @@ export function checkHtml(html) {
       if (!listed) out.push(name + " on <" + tag + "> is in no contract");
       if (name === "class") {
         for (const one of words(value)) {
-          const known = drawn?.classes.includes(one) || drawn?.class_starts.some((start) => one.startsWith(start));
+          const known =
+            drawn?.classes.includes(one) ||
+            drawn?.class_starts.some((start) => one.startsWith(start)) ||
+            drawn?.class_ends.some((end) => one.endsWith(end));
           if (!known) out.push("the class " + one + " on <" + tag + "> is in no contract");
         }
       }
       if (WHOLE.urls.attributes.includes(name) && wrongUrl(value)) out.push(name + " on <" + tag + "> goes where no contract lets it");
+      if (WHOLE.urls.paints.includes(name) && wrongPaint(value)) out.push(name + " on <" + tag + "> asks for what is not in its drawing");
       if (name === "style") {
         for (const one of wrongStyles(tag, value)) out.push("the style " + one + " on <" + tag + "> is in no contract");
       }

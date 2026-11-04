@@ -95,7 +95,8 @@ const textParts = ({ body, pages, ...first }) => [
   { name: "rest", compressed: true, bytes: words(JSON.stringify({ body, pages })) },
 ];
 
-const PICTURES = [Buffer.from("89504e470d0a1a0a00", "hex")];
+// A real picture, one pixel wide, so a reader that decodes what it receives opens it too.
+const PICTURES = [Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==", "base64")];
 const FILES = [words("%PDF-1.7 cartilla")];
 const files = await seal({
   kind: "files",
@@ -111,12 +112,12 @@ const whole = {
   lang: "es",
   sheet: { paper: "letter", on: true, orientation: "landscape" },
   signed_as: "Mario",
-  pictures: [{ at: 0, name: "rina.png", kind: "image/png", size: PICTURES[0].length }],
+  pictures: [{ at: 0, name: "picture-0.png", kind: "image/png", size: PICTURES[0].length, width: 1, height: 1 }],
   files: [{ at: 0, name: "cartilla.pdf", kind: "application/pdf", size: FILES[0].length }],
   files_hash: files.hash,
-  html: '<h1 id="paseos" data-at="1">Paseos</h1><img src="tisty:picture/0" alt="Rina"><a href="tisty:page/1">Enero</a>',
+  html: '<h1 id="paseos">Paseos</h1><img src="tisty:picture/0" alt="Rina" width="1" height="1"><a href="tisty:page/1">Enero</a><a href="tisty:file/0">Cartilla</a>',
   body: "# Paseos\n\n![Rina](rina.png)\n",
-  pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, title: "Enero", html: '<h1 id="enero" data-at="1">Enero</h1>', body: "# Enero\n" }],
+  pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, title: "Enero", html: '<h1 id="enero">Enero</h1>', body: "# Enero\n" }],
 };
 const main = await seal({
   kind: "main",

@@ -4,24 +4,25 @@ checked_by: [writer, reader]
 says: >-
   A document is the parent: what a person writes and keeps. It holds its words, with all they contain, in one language,
   and it can hold pages.
-contains: [text, table, code, diagram, formula, attachment, widget, page]
+contains: [text, table, code, diagram, formula, attachment, picture, widget, page]
+values:
+  name: >-
+    A name is a line a person can read as written: at most 80 characters, no spaces at its edges, nothing unseen that hides
+    a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.
 fields:
   id: { type: text, required: true, at_least: 1, at_most: 64, says: "What names it." }
   title: { type: text, at_most: 8192, says: "Its properties' title, or else its first line with words." }
-  tags: { type: list, of: tag, at_most: 64 }
+  tags: { type: list, of: tag_word, at_most: 64 }
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
   sheet: { type: sheet, says: "How it is laid on paper." }
   owner: { type: key, says: "The root key of whoever shares it." }
-  signed_as: { type: text, at_most: 80, says: "The name its writer chose, which only a reader with the key sees. Never a proof." }
+  signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Only a reader with the key sees it. Never a proof." }
   made: { type: time }
   wrote: { type: time }
-  by: { type: text, at_most: 160, says: "The name it was last written under." }
-  born_by: { type: text, at_most: 160 }
-  edited_by: { type: text, at_most: 160 }
   body: { type: text, required: true, at_most: 512000, says: "Its words, in the Tisty language, at most 500 KiB." }
   html: { type: text, required: true, says: "Its words as the writer drew them. A reader never draws them itself." }
   pages: { type: list, of: page, says: "Its pages, in the order its words name them." }
-  pictures: { type: list, of: attachment, says: "The pictures its main envelope holds." }
+  pictures: { type: list, of: picture, says: "The pictures its main envelope holds." }
   files: { type: list, of: attachment, says: "What its files envelope holds." }
   files_hash: { type: hash, says: "The hash of its files envelope, when it has one." }
   cited: { type: list, of: cited, says: "The documents it shares along, each in its own envelopes." }
@@ -35,16 +36,16 @@ html_rules:
   - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with its document, which asks nobody else for one." }
 html_cases:
   - says: "Words and what marks them."
-    html: '<h1 id="paseos" data-at="1">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
+    html: '<h1 id="paseos">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
     holds: true
   - says: "Coloured code."
     html: '<figure class="code"><figcaption>a</figcaption><pre><code class="language-rust"><span class="hljs-keyword">fn</span></code></pre></figure>'
     holds: true
   - says: "A drawn diagram."
-    html: '<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0"></path></svg></figure>'
+    html: '<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" data-theme="light" viewBox="0 0 10 10"><path d="M0 0" fill="#fff" marker-end="url(#a)"></path></svg><svg data-theme="dark" viewBox="0 0 10 10"><circle cx="1" cy="1" r="1"></circle></svg></figure>'
     holds: true
   - says: "A picture that travels with its document."
-    html: '<img src="tisty:picture/0" alt="Rina" loading="lazy">'
+    html: '<img src="tisty:picture/0" alt="Rina" width="640" height="480" loading="lazy">'
     holds: true
   - says: "HTML written inside the words, as far as passthrough says."
     html: '<abbr title="Hyper Text">HTML</abbr>'
@@ -89,8 +90,59 @@ html_cases:
     html: '<table><tr><td style="text-align:right;background:url(//a.example/x)">1</td></tr></table>'
     holds: false
   - says: "Links a document can hold."
-    html: '<a href="https://a.example/x?b=1&c=2">a</a> <a href="#enero">b</a> <a href="mailto:a@b.example">c</a> <a href="otro.html">d</a>'
+    html: '<a href="https://a.example/x?b=1&amp;c=2">a</a> <a href="#enero">b</a> <a href="mailto:a@b.example?subject=x&amp;body=y">c</a>'
     holds: true
+  - says: "A link that leads nowhere once it travels."
+    html: '<a href="otro.html">a</a>'
+    holds: false
+  - says: "A link to another host, with no scheme to read."
+    html: '<a href="//a.example/x">a</a>'
+    holds: false
+  - says: "A path on the writer's machine."
+    html: '<a href="C:\Users\a.md">a</a>'
+    holds: false
+  - says: "A reference to something local that never travels."
+    html: '<a href="tisty:doc/abc">a</a>'
+    holds: false
+  - says: "A link that hands something over to a Tisty, inside the words."
+    html: '<a href="tisty://folio?link=x">a</a>'
+    holds: false
+  - says: "A reference with no place."
+    html: '<a href="tisty:page/x">a</a>'
+    holds: false
+  - says: "A document shared along."
+    html: '<a class="card" href="tisty:cited/0">Otro</a>'
+    holds: true
+  - says: "A card that names a document it does not hold."
+    html: '<a class="card" data-doc="abc">Otro</a>'
+    holds: false
+  - says: "Where a block sits in the words of the writer, which nobody reads."
+    html: '<p data-at="1-2">a</p>'
+    holds: false
+  - says: "A comment, which no writer needs."
+    html: '<p>a</p><!-- <b>b</b> -->'
+    holds: false
+  - says: "A picture that does not say its size."
+    html: '<img src="tisty:picture/0" alt="a">'
+    holds: false
+  - says: "Coloured code as lowlight writes it."
+    html: '<code class="language-js"><span class="hljs-title function_">f</span><span class="hljs-title class_ inherited__">B</span></code>'
+    holds: true
+  - says: "An icon, drawn."
+    html: '<span class="ico" data-ico="clock" data-hue="red" title="clock"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg></span>'
+    holds: true
+  - says: "A paint that asks someone else for something."
+    html: '<svg><path d="M0 0" fill="url(https://a.example/x)"></path></svg>'
+    holds: false
+  - says: "A marker that asks someone else for something."
+    html: '<svg><path d="M0 0" marker-end="url(//a.example/x#y)"></path></svg>'
+    holds: false
+  - says: "A formula as math-core writes it."
+    html: '<math display="block"><mrow displaystyle="true" scriptlevel="0"><mfrac linethickness="0"><mi mathvariant="normal">a</mi><mn>1</mn></mfrac></mrow><mtable style="width: 100%"><mtr><mtd style="text-align: left;padding-left:1em;border-top: 0.05em solid currentcolor">x</mtd></mtr></mtable><mrow style="color:#FF0000;"><mspace style="margin-left:-0.16em"></mspace></mrow><mpadded voffset="1em" width="0"><mphantom><mi>x</mi></mphantom></mpadded></math>'
+    holds: true
+  - says: "A style a formula cannot say."
+    html: '<math><mrow style="position:fixed"><mi>x</mi></mrow></math>'
+    holds: false
   - says: "A link that runs something."
     html: '<a href="javascript:alert(1)">a</a>'
     holds: false
@@ -117,13 +169,11 @@ roles:
     set_orientation: { takes: { orientation: orientation } }
     index: { gives: "list:text", says: "The headings of the document, leading to each one." }
     details: { gives: document, says: "Title, tags and properties." }
-    verdict: { gives: verdict, says: "Who signed it. Shown outside the document, where it cannot imitate it." }
+    verdict: { takes: { served: served }, gives: verdict, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
     go_to_page: { takes: { at: whole } }
     set_language: { takes: { lang: language } }
     open_in_tisty: { says: "Hands the document over to a Tisty." }
     copy_link: { gives: text }
-  writer:
-    draw: { takes: { body: text }, gives: text, says: "Turns the words into the HTML of a document." }
 cases:
   - says: "The least a document holds, with no pages at all."
     value: { id: "k7Qm2xPa", html: "<p>x</p>", body: "# Paseos" }
@@ -132,7 +182,7 @@ cases:
     value:
       id: "k7Qm2xPa"
       title: "Paseos"
-      tags: [{ name: "rina" }]
+      tags: ["rina"]
       lang: "pt-BR"
       sheet: { paper: "letter", on: true, orientation: "landscape" }
       owner: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
@@ -166,4 +216,13 @@ cases:
     holds: false
   - says: "A key of the wrong length."
     value: { id: "x", owner: "abc", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A name that passes for a fingerprint."
+    value: { id: "x", signed_as: "a 123 456", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A name that hides what it is."
+    value: { id: "x", signed_as: "Ma\u200Brio", html: "<p>x</p>", body: "x" }
+    holds: false
+  - says: "A picture that does not say what it is."
+    value: { id: "x", html: "<p>x</p>", body: "x", pictures: [{ at: 0, name: "a.png" }] }
     holds: false

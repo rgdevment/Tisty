@@ -5,7 +5,7 @@ says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
   no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages, pictures, files, files_hash, cited]
+except: [pages, pictures, files, files_hash, cited, languages, owner, signed_as]
 fields:
   page_of: { type: text, required: true, at_least: 1, at_most: 64, says: "The document it is a page of." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
@@ -34,7 +34,7 @@ fields:
   lang: { type: language, required: true }
   document: { type: text, required: true, at_least: 1, at_most: 64 }
   title: { type: text, at_most: 8192 }
-  key: { type: key, says: "The link key of that language's envelopes. Only the anchor language holds the map." }
+  key: { type: key, says: "The link key of that language's envelopes. Only the anchor language holds the map, so reaching a language takes nothing but the anchor." }
 cases:
   - says: "A language and the document that holds it."
     value: { lang: "en", document: "enGlish1" }
@@ -68,9 +68,9 @@ contract: tag
 group: documents
 checked_by: [writer]
 says: >-
-  A word a document or a task is kept under, in the one form Tisty keeps it. Capitals and accents come off and a space
-  or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and
-  a letter, and it does not count glued to the text before it, inside code or in [[#2]].
+  A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off
+  and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two
+  characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
 values:
   in_a_sentence: { characters_at_least: 2, needs_a_letter: true }
 fields:
@@ -105,10 +105,18 @@ contract: signature
 group: documents
 checked_by: [writer, reader]
 says: >-
-  Who answers for an envelope, and through it for the document. The root key is who a person is; the machine key signs,
-  under a certificate from the root. It travels in clear, so the server checks it without opening anything.
+  Who answers for an envelope, and through it for the document. The root key is who a person is, and it never changes: a
+  version under another root is someone else. The machine key signs, under a certificate from the root, and it can be
+  replaced. It travels in clear, so the server checks it without opening anything.
 enums:
-  verdict: [holds, revoked, refused]
+  verdict: [holds, retired, doubtful, refused, unreadable]
+values:
+  verdicts:
+    holds: "The certificate and the signature hold, and no revocation names the key."
+    retired: "They hold, and a revocation names the key, but this version arrived before its at. A calm note: signed with a key its owner retired."
+    doubtful: "They hold, and a revocation names the key, and this version arrived after its at or the server does not say when."
+    refused: "The certificate or the signature does not hold."
+    unreadable: "It cannot be read as a signature."
 fields:
   root: { type: key, required: true }
   machine: { type: key, required: true }
@@ -135,12 +143,15 @@ cases:
 ---
 contract: revocation
 group: documents
-checked_by: [writer, reader]
+checked_by: [writer, server, reader]
 says: >-
-  A person taking back one of their machine keys for good, as when a machine is lost. A reader shows what that key signed
-  as revoked. It is not about stopping sharing a document or stopping a person from publishing.
+  A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or
+  retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it
+  holds. Everything it decides is decided by whoever receives it.
 values:
   signed: "Ed25519 by the root, over tisty-share.revocation.v1, a zero byte, root, machine and at in seconds, 8 bytes, big endian."
+  at: "The moment since which the root no longer answers for that key. For a lost machine, the person says when it was lost. The earliest one found counts."
+  published: "Only a key that signed something the server holds. A key simply replaced on a machine still in use is never published."
 fields:
   root: { type: key, required: true }
   machine: { type: key, required: true }
@@ -161,6 +172,26 @@ cases:
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: false
 ---
+contract: served
+group: documents
+checked_by: [server, reader]
+says: >-
+  What the server serves beside an envelope, in clear, so a reader can weigh its signature. A reader trusts it as far as it
+  trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
+fields:
+  received: { type: time, says: "When the server received this version. Nothing in the document can write this date." }
+  revocations: { type: list, of: revocation, says: "What the root of its signature has revoked, as far as the server knows." }
+cases:
+  - says: "A version received, with nothing revoked."
+    value: { received: "2026-11-03T12:00:00Z", revocations: [] }
+    holds: true
+  - says: "It holds with nothing said: such a version is doubtful if its key is revoked."
+    value: {}
+    holds: true
+  - says: "A revocation that lost its signature."
+    value: { revocations: [{ root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", at: "2026-11-03T12:00:00Z" }] }
+    holds: false
+---
 contract: cited
 group: documents
 checked_by: [writer, reader]
@@ -168,7 +199,7 @@ says: Another document shared along with this one. It keeps its own envelopes, b
 fields:
   document: { type: text, required: true, at_least: 1, at_most: 64 }
   key: { type: key, required: true, says: "The link key of its envelopes." }
-  title: { type: text, at_most: 8192 }
+  title: { type: text, at_most: 8192, says: "What its card shows before it is opened." }
 cases:
   - says: "A document and its key."
     value: { document: "other123", key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
@@ -201,6 +232,7 @@ values:
   margin_millimetres: { x: 20, y: 22 }
   pixels_per_inch: 96
   long_page_width_pixels: 820
+  rounding: "Paper and margins are worked out in pixels and rounded to whole pixels."
   cutting:
     html: "The HTML is a list of blocks and carries no sheets. The reader lays it out for the paper and orientation in use."
     again: "The reader lays it out again when the paper, the orientation or the height of the blocks changes, as when a picture arrives."

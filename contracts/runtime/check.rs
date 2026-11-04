@@ -45,6 +45,49 @@ fn is_time(said: &str) -> bool {
         && number(17, 19) <= 59
 }
 
+// A moment nothing signs may hold a fraction of a second, as the log keeps them.
+fn is_moment(said: &str) -> bool {
+    match said.split_once('.') {
+        Some((whole, part)) => {
+            let digits = part.strip_suffix('Z').unwrap_or_default();
+            (1..=9).contains(&digits.len())
+                && digits.bytes().all(|digit| digit.is_ascii_digit())
+                && is_time(&format!("{whole}Z"))
+        }
+        None => is_time(said),
+    }
+}
+
+fn unseen(one: char) -> bool {
+    one.is_control()
+        || matches!(
+            one,
+            '\u{00AD}'
+                | '\u{034F}'
+                | '\u{061C}'
+                | '\u{115F}'
+                | '\u{1160}'
+                | '\u{17B4}'..='\u{17B5}'
+                | '\u{180B}'..='\u{180F}'
+                | '\u{200B}'..='\u{200F}'
+                | '\u{2028}'..='\u{202E}'
+                | '\u{2060}'..='\u{206F}'
+                | '\u{2800}'
+                | '\u{3164}'
+                | '\u{FEFF}'
+                | '\u{FFA0}'
+                | '\u{FFF9}'..='\u{FFFB}'
+                | '\u{1D173}'..='\u{1D17A}'
+                | '\u{E0000}'..='\u{E007F}'
+        )
+}
+
+fn is_name(said: &str) -> bool {
+    let letters = said.chars().filter(|one| one.is_alphabetic()).count();
+    let digits = said.chars().filter(char::is_ascii_digit).count();
+    said.trim() == said && said.chars().count() <= 80 && letters > 0 && digits <= letters && !said.chars().any(unseen)
+}
+
 fn base64url_of(said: &str, length: usize) -> bool {
     said.len() == length
         && said
@@ -111,6 +154,16 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
         "time" => {
             if !value.as_str().is_some_and(is_time) {
                 out.push(wrong("is not a date in whole seconds"));
+            }
+        }
+        "moment" => {
+            if !value.as_str().is_some_and(is_moment) {
+                out.push(wrong("is not a date"));
+            }
+        }
+        "name" => {
+            if !value.as_str().is_some_and(is_name) {
+                out.push(wrong("is not a name a person can read as written"));
             }
         }
         "language" => {
@@ -237,6 +290,9 @@ fn opened(html: &str) -> Vec<Opened> {
     let mut rest = html;
     while let Some(start) = rest.find('<') {
         rest = &rest[start + 1..];
+        if rest.starts_with(['!', '?']) {
+            out.push(Opened { tag: "!".to_owned(), attributes: Vec::new(), unclosed: false });
+        }
         if !rest.starts_with(|one: char| one.is_ascii_alphabetic()) {
             continue;
         }
@@ -301,15 +357,40 @@ fn broken_by(rule: &Value, value: &str) -> bool {
 }
 
 // Browsers drop spaces and control characters and decode entities, so a scheme hidden behind either counts as wrong.
+// A link says where it goes: nothing without a scheme means anything once it travels, except a heading of its own page.
 fn wrong_url(all: &Value, value: &str) -> bool {
     let bare: String = value.chars().filter(|one| *one > ' ').collect();
-    let end = bare.find(['/', '?', '#']).unwrap_or(bare.len());
-    let head = &bare[..end];
-    if head.contains('&') {
+    if bare.starts_with('#') {
+        return false;
+    }
+    let Some((scheme, place)) = bare.split_once(':') else {
+        return true;
+    };
+    let scheme = scheme.to_ascii_lowercase();
+    if !listed(&all["urls"]["schemes"], &scheme) {
         return true;
     }
-    head.split_once(':')
-        .is_some_and(|(scheme, _)| !listed(&all["urls"]["schemes"], &scheme.to_ascii_lowercase()))
+    if scheme != "tisty" {
+        return false;
+    }
+    !place.split_once('/').is_some_and(|(kind, at)| {
+        listed(&all["urls"]["references"], kind) && !at.is_empty() && at.bytes().all(|digit| digit.is_ascii_digit())
+    })
+}
+
+// A paint or a marker names something in its own drawing, and nothing else.
+fn wrong_paint(value: &str) -> bool {
+    let said = value.trim().to_ascii_lowercase();
+    if said.contains('&') {
+        return true;
+    }
+    if !said.contains("url(") {
+        return false;
+    }
+    !said
+        .strip_prefix("url(#")
+        .and_then(|rest| rest.strip_suffix(')'))
+        .is_some_and(|name| !name.is_empty() && !name.contains(|one: char| one.is_whitespace() || one == '(' || one == ')'))
 }
 
 fn is_size_in(said: &str, unit: &str) -> bool {
@@ -318,6 +399,22 @@ fn is_size_in(said: &str, unit: &str) -> bool {
         Some((whole, part)) => all_digits(whole) && all_digits(part),
         None => all_digits(number),
     })
+}
+
+fn is_sized(said: &str, units: &Value) -> bool {
+    let signed = said.strip_prefix('-').unwrap_or(said);
+    let number = |one: &str| {
+        let bare = one.replacen('.', "", 1);
+        !bare.is_empty() && !one.ends_with('.') && bare.bytes().all(|digit| digit.is_ascii_digit())
+    };
+    if number(signed) && signed.bytes().all(|one| one == b'0' || one == b'.') {
+        return true;
+    }
+    units.as_array().into_iter().flatten().filter_map(Value::as_str).any(|unit| signed.strip_suffix(unit).is_some_and(number))
+}
+
+fn is_color(said: &str) -> bool {
+    said.strip_prefix('#').is_some_and(|hex| matches!(hex.len(), 3 | 6 | 8) && hex.bytes().all(|one| one.is_ascii_digit() || (b'a'..=b'f').contains(&one)))
 }
 
 fn wrong_style(all: &Value, tag: &str, one: &str) -> bool {
@@ -329,6 +426,8 @@ fn wrong_style(all: &Value, tag: &str, one: &str) -> bool {
             && rule["property"] == property.as_str()
             && match rule["unit"].as_str() {
                 Some(unit) => is_size_in(&said, unit),
+                None if !rule["sizes"].is_null() => is_sized(&said, &rule["sizes"]),
+                None if !rule["color"].is_null() => is_color(&said),
                 None => listed(&rule["values"], &said),
             }
     })
@@ -340,6 +439,16 @@ pub fn check_html(html: &str) -> Vec<String> {
     let through = &all["passthrough"]["attributes"];
     let mut out: Vec<String> = Vec::new();
     for Opened { tag, attributes, unclosed } in opened(html) {
+        if tag == "!" {
+            out.push("a comment is in no contract".to_owned());
+            continue;
+        }
+        for rule in all["html_rules"].as_array().into_iter().flatten().filter(|rule| rule["tag"] == tag.as_str()) {
+            let missing = rule["requires"].as_array().into_iter().flatten().filter_map(Value::as_str).any(|name| !attributes.iter().any(|(said, _)| said == name));
+            if missing {
+                out.push(rule["says"].as_str().unwrap_or_default().to_owned());
+            }
+        }
         let drawn = &all["allowed"][tag.as_str()];
         if drawn.is_null() && !listed(&all["passthrough"]["tags"], &tag) {
             out.push(format!("<{tag}> is in no contract"));
@@ -360,13 +469,19 @@ pub fn check_html(html: &str) -> Vec<String> {
                     let starts = drawn["class_starts"].as_array().is_some_and(|many| {
                         many.iter().any(|start| start.as_str().is_some_and(|start| one.starts_with(start)))
                     });
-                    if !starts && !listed(&drawn["classes"], one) {
+                    let ends = drawn["class_ends"].as_array().is_some_and(|many| {
+                        many.iter().any(|end| end.as_str().is_some_and(|end| one.ends_with(end)))
+                    });
+                    if !starts && !ends && !listed(&drawn["classes"], one) {
                         out.push(format!("the class {one} on <{tag}> is in no contract"));
                     }
                 }
             }
             if listed(&all["urls"]["attributes"], &name) && wrong_url(all, &value) {
                 out.push(format!("{name} on <{tag}> goes where no contract lets it"));
+            }
+            if listed(&all["urls"]["paints"], &name) && wrong_paint(&value) {
+                out.push(format!("{name} on <{tag}> asks for what is not in its drawing"));
             }
             if name == "style" {
                 for one in value.split(';').map(str::trim).filter(|one| !one.is_empty()) {
