@@ -9,6 +9,80 @@ fn said(answer: &Response<Vec<u8>>) -> String {
 }
 
 #[test]
+fn an_engine_starts_with_no_name_to_resolve_and_no_udp() {
+    assert!(ENGINE_ARGS.contains("MAP * ~NOTFOUND\""));
+    assert!(ENGINE_ARGS.contains("--webrtc-ip-handling-policy=disable_non_proxied_udp"));
+}
+
+#[test]
+fn the_only_address_an_engine_can_name_is_the_dev_server() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+    assert_eq!(config["build"]["devUrl"], "http://localhost:1420");
+
+    assert!(
+        ENGINE_ARGS.contains(
+            "--host-resolver-rules=\"MAP localhost:1420 localhost:1420, MAP * ~NOTFOUND\""
+        )
+    );
+}
+
+#[test]
+fn naming_the_engine_arguments_keeps_what_the_webview_passed_by_default() {
+    assert!(ENGINE_ARGS.contains("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
+    assert!(ENGINE_ARGS.contains("--autoplay-policy=no-user-gesture-required"));
+}
+
+#[test]
+fn every_window_the_config_opens_starts_its_engine_cut_off() {
+    let mut config: tauri::Config =
+        serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+    assert!(config.app.windows.len() >= 2);
+
+    cut_off(&mut config);
+
+    for window in &config.app.windows {
+        assert_eq!(
+            window.additional_browser_args,
+            Some(ENGINE_ARGS.to_string()),
+            "{} would start its engine differently and WebView2 would refuse it",
+            window.label
+        );
+    }
+}
+
+fn sources_under(at: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(at).unwrap().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            sources_under(&path, found);
+        } else if path.extension().is_some_and(|one| one == "rs") {
+            found.push(path);
+        }
+    }
+}
+
+#[test]
+fn no_window_is_built_but_through_the_one_that_cuts_the_engine_off() {
+    let mut sources = Vec::new();
+    sources_under(
+        &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+        &mut sources,
+    );
+    let building = concat!("WebviewWindowBuilder", "::new(");
+    let elsewhere: Vec<_> = sources
+        .iter()
+        .filter(|path| !path.ends_with("widgets.rs"))
+        .filter(|path| std::fs::read_to_string(path).unwrap().contains(building))
+        .collect();
+
+    assert!(
+        elsewhere.is_empty(),
+        "these build a window of their own, which WebView2 would refuse: {elsewhere:?}"
+    );
+}
+
+#[test]
 fn a_lent_widget_is_served_inside_its_own_fence() {
     let lent = Lent::default();
     let id = lent

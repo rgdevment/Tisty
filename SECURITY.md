@@ -136,6 +136,12 @@ report will never be dismissed for being inconvenient.
   may also build scripts out of `blob:` and `data:` it makes itself, and frames
   out of `blob:` only, which bundled pages need in order to unpack, and still
   reaches no address.
+  A policy does not cover all an engine can do: WebRTC, `preconnect` and DNS
+  prefetch go around it. So on Windows every window starts WebView2 with no name
+  it can resolve and no WebRTC over UDP, and `scripts/widget-network.mjs` holds
+  a hostile widget to that in a real window. macOS has no such arguments and
+  WKWebView has not been put to that test, so there "no network" is the policy's
+  word, not a proven fact.
   All it can say to the window is how tall it is and which link was clicked
   inside it, and a link is opened only after a real click there. A widget is as
   trustworthy as the document that carries it, and a document can arrive

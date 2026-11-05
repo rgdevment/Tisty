@@ -18,6 +18,24 @@ pub const PAGED: &str = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-
 style-src 'unsafe-inline' blob:; img-src data: blob:; font-src data: blob:; media-src data: blob:; \
 connect-src data: blob:; frame-src blob:; worker-src blob:; form-action 'none'; base-uri 'none'";
 
+// No policy reaches WebRTC, preconnect or DNS prefetch, so the engine goes without names and UDP; the dev port stays because a dev build shares WebView2's folder with the installed app, and both must start alike.
+const ENGINE_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --webrtc-ip-handling-policy=disable_non_proxied_udp --host-resolver-rules=\"MAP localhost:1420 localhost:1420, MAP * ~NOTFOUND\"";
+
+pub fn cut_off(config: &mut tauri::Config) {
+    for window in &mut config.app.windows {
+        window.additional_browser_args = Some(ENGINE_ARGS.to_string());
+    }
+}
+
+// WebView2 refuses a window whose engine starts differently from those already open, so every window is built here.
+pub fn window<'a, M: tauri::Manager<tauri::Wry>>(
+    manager: &'a M,
+    label: impl Into<String>,
+    page: tauri::WebviewUrl,
+) -> tauri::WebviewWindowBuilder<'a, tauri::Wry, M> {
+    tauri::WebviewWindowBuilder::new(manager, label, page).additional_browser_args(ENGINE_ARGS)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
     Fenced,

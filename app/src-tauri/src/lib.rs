@@ -1034,6 +1034,12 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     }
 }
 
+fn context() -> tauri::Context<tauri::Wry> {
+    let mut context = tauri::generate_context!();
+    widgets::cut_off(context.config_mut());
+    context
+}
+
 fn plugged() -> tauri::Builder<tauri::Wry> {
     let mut building = tauri::Builder::default();
     if tisty_core::paths::profile().is_none() {
@@ -1345,7 +1351,7 @@ pub fn run() {
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
         .invoke_handler(commands())
-        .build(tauri::generate_context!())
+        .build(context())
         .expect("error while running tauri application")
         .run(|_app, _event| {
             #[cfg(target_os = "macos")]

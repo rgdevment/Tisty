@@ -321,7 +321,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
-    let made = tauri::WebviewWindowBuilder::new(
+    let made = widgets::window(
         app,
         &label,
         tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
