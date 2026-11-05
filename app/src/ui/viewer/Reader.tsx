@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   acrossOf,
   type Facts,
@@ -11,12 +11,11 @@ import {
 import { copied, type DocFacts, type Paper } from "../../core";
 import { weigh } from "../../format";
 import { t } from "../../locales";
+import Page from "../Page";
 import { dated, holdsOf } from "../paperFacts";
 import SidePanels from "../SidePanels";
 import { usePictures } from "../usePictures";
 import { button } from "./Glyphs";
-
-const Page = lazy(() => import("../Page"));
 
 interface Props {
   body: string;
@@ -193,25 +192,23 @@ export default function Reader(props: Readonly<Props>) {
         {raw ? (
           <Raw body={body} wide={wide} />
         ) : (
-          <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
-            <Page
-              viewing
-              body={body}
-              label={title}
-              stranger={stranger}
-              wide={wide}
-              zoom={zoom}
-              sheet={sheet}
-              onOutline={outlined}
-              onDoc={props.onDoc}
-              onOpen={props.onOpen}
-              onPicture={pictures.view}
-              onShown={(at) => {
-                shown.current = at;
-                props.onPage?.(at);
-              }}
-            />
-          </Suspense>
+          <Page
+            viewing
+            body={body}
+            label={title}
+            stranger={stranger}
+            wide={wide}
+            zoom={zoom}
+            sheet={sheet}
+            onOutline={outlined}
+            onDoc={props.onDoc}
+            onOpen={props.onOpen}
+            onPicture={pictures.view}
+            onShown={(at) => {
+              shown.current = at;
+              props.onPage?.(at);
+            }}
+          />
         )}
         {pictures.viewer}
       </div>

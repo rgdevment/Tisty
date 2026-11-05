@@ -140,7 +140,7 @@ export default function Frame(props: Readonly<Props>) {
     };
     const unfollow = followTheme(retheme);
     held.addEventListener("load", loaded);
-    held.srcdoc = framed(first);
+    held.srcdoc = framed(first, said.current.reach().bar?.css);
     return () => {
       live = false;
       swap.current = () => {};

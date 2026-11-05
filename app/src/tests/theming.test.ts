@@ -10,6 +10,10 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: () => new Promise(() => {}) }))
 
 // The theme is painted before anything renders; each window's root loads on its own and would land after the test.
 vi.mock("react-dom/client", () => ({ default: { createRoot: () => ({ render: () => {} }) } }));
+vi.mock("../App", () => ({ default: () => null }));
+vi.mock("../Moving", () => ({ default: () => null }));
+vi.mock("../Quick", () => ({ default: () => null }));
+vi.mock("../Viewing", () => ({ default: () => null }));
 
 describe("every window paints itself in the system theme", () => {
   const dark = (yes: boolean) => {

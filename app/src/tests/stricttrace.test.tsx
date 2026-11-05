@@ -21,25 +21,22 @@ vi.mock("@tauri-apps/api/core", async () => ({
   }),
 }));
 
-vi.mock("../ui/Sheet", async () => {
-  const actual = await vi.importActual<typeof import("../ui/Sheet")>("../ui/Sheet");
-  const Real = actual.default;
-  return {
-    ...actual,
-    default: (props: Record<string, unknown>) =>
-      createElement(Real, {
-        ...props,
-        onOrder: (move: unknown) => {
-          store.log.push(`order:${move === null ? "null" : typeof move}`);
-          store.movers.push(move);
-          (props.onOrder as ((m: unknown) => void) | undefined)?.(move);
-        },
-        onWrite: (text: string) => {
-          store.writes.push(text);
-          (props.onWrite as (text: string) => void)(text);
-        },
-      } as never),
-  };
+vi.mock("../ui/sheetLoaded", async () => {
+  const { default: Real } = await import("../ui/Sheet");
+  const Watched = (props: Record<string, unknown>) =>
+    createElement(Real, {
+      ...props,
+      onOrder: (move: unknown) => {
+        store.log.push(`order:${move === null ? "null" : typeof move}`);
+        store.movers.push(move);
+        (props.onOrder as ((m: unknown) => void) | undefined)?.(move);
+      },
+      onWrite: (text: string) => {
+        store.writes.push(text);
+        (props.onWrite as (text: string) => void)(text);
+      },
+    } as never);
+  return { sheetLoaded: () => Promise.resolve(Watched) };
 });
 
 const page = (id: string, file: string, title: string, pageOf?: string): Filed => ({

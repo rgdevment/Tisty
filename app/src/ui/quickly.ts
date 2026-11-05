@@ -1,4 +1,4 @@
-import { formatButtons } from "tisty-editor/edit";
+import type { formatButtons } from "tisty-editor/edit";
 import { spanned } from "tisty-editor/read";
 import { t } from "../locales";
 import { shotAt } from "./paging";
@@ -24,7 +24,10 @@ export type Menued = {
 // What a key pressed over chosen words does to them once the block opens: null keeps them chosen.
 export type Chosen = Omit<Formatting, "open" | "close"> & { readonly typed: string | null };
 
+export type Bar = { readonly buttons: typeof formatButtons; readonly css: string };
+
 export type Quick = {
+  readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
   readonly onChoose?: (asked: Chosen) => void;
@@ -57,13 +60,17 @@ export const picked = (page: Document): Omit<Formatting, "open" | "close"> | nul
   return { at, block, read: before.toString(), said };
 };
 
-const barOf = (page: Document, pick: (open: string, close: string) => void) => {
+const barOf = (
+  page: Document,
+  buttons: Bar["buttons"],
+  pick: (open: string, close: string) => void,
+) => {
   const bar = page.createElement("div");
   bar.className = "cm-bar quick-bar";
   bar.setAttribute("role", "toolbar");
   bar.setAttribute("aria-label", t("formatting"));
   bar.hidden = true;
-  const { formats, pens } = formatButtons(page, t, pick);
+  const { formats, pens } = buttons(page, t, pick);
   bar.append(...formats, ...pens);
   page.body.append(bar);
   return bar;
@@ -71,20 +78,23 @@ const barOf = (page: Document, pick: (open: string, close: string) => void) => {
 
 export const quickly = (page: Document, reach: () => Quick) => {
   let chosen: Omit<Formatting, "open" | "close"> | null = null;
-  const bar = barOf(page, (open, close) => {
-    const asked = chosen;
-    hide();
-    page.getSelection()?.removeAllRanges();
-    if (asked) reach().onFormat?.({ ...asked, open, close });
-  });
+  const brought = reach().bar;
+  const bar =
+    brought &&
+    barOf(page, brought.buttons, (open, close) => {
+      const asked = chosen;
+      hide();
+      page.getSelection()?.removeAllRanges();
+      if (asked) reach().onFormat?.({ ...asked, open, close });
+    });
   const hide = () => {
-    bar.hidden = true;
+    if (bar) bar.hidden = true;
     chosen = null;
   };
   const show = () => {
     const writing = page.querySelector(".editing") !== null;
     chosen = reach().onFormat && !writing ? picked(page) : null;
-    if (!chosen) return hide();
+    if (!chosen || !bar) return hide();
     const box = page.getSelection()?.getRangeAt(0).getBoundingClientRect();
     const view = page.defaultView;
     if (!box || !view) return hide();
@@ -96,7 +106,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
     bar.style.left = `${Math.max(4, (box.left + view.scrollX) / zoom)}px`;
   };
   page.addEventListener("mouseup", (event) => {
-    if (bar.contains(event.target as Node)) return;
+    if (bar?.contains(event.target as Node)) return;
     setTimeout(show);
   });
   // Words chosen on the page are written over as they would be in any editor, the block opening around them.
@@ -115,7 +125,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
   });
   page.addEventListener("selectionchange", () => {
     if (page.getSelection()?.isCollapsed) hide();
-    else if (!bar.hidden) show();
+    else if (bar && !bar.hidden) show();
   });
   page.addEventListener("contextmenu", (event) => {
     event.preventDefault();

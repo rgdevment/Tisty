@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
+import { EditorView } from "@codemirror/view";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { askedHere } from "../guide/asked";
 import { topicsOf } from "../guide/reference";
 import { kindOf, slugOf, TOPICS } from "../guide/topicOf";
 import { inTheRepo } from "./repo";
@@ -77,13 +79,45 @@ describe("the topic a block of writing asks about", () => {
 });
 
 describe("asking for the guide", () => {
-  it("opens it on F1", () => {
+  it("opens it on F1", async () => {
     const onHelp = vi.fn();
     render(<HelpKey onHelp={onHelp} />);
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
     });
-    expect(onHelp).toHaveBeenCalledWith(undefined);
+    await waitFor(() => expect(onHelp).toHaveBeenCalledWith(undefined));
+  });
+
+  it("opens it on what the block being written is made of", async () => {
+    const frame = document.createElement("iframe");
+    document.body.append(frame);
+    const page = frame.contentDocument as Document;
+    const writing = page.createElement("div");
+    writing.className = "editing";
+    page.body.append(writing);
+    const view = new EditorView({ doc: "| a |", parent: writing });
+    const onHelp = vi.fn();
+    render(<HelpKey onHelp={onHelp} />);
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
+    });
+    await waitFor(() => expect(onHelp).toHaveBeenCalledWith("tables"));
+    view.destroy();
+    frame.remove();
+  });
+
+  it("keeps what the block was made of when it closes just after F1", async () => {
+    const frame = document.createElement("iframe");
+    document.body.append(frame);
+    const page = frame.contentDocument as Document;
+    const writing = page.createElement("div");
+    writing.className = "editing";
+    page.body.append(writing);
+    const view = new EditorView({ doc: "| a |", parent: writing });
+    const asked = askedHere();
+    view.destroy();
+    expect(await asked).toBe("tables");
+    frame.remove();
   });
 });
 

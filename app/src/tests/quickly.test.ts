@@ -1,3 +1,4 @@
+import { formatButtons } from "tisty-editor/edit";
 import { describe, expect, it, vi } from "vitest";
 import { picked, quickly } from "../ui/quickly";
 
@@ -62,7 +63,8 @@ describe("words picked on the drawn page", () => {
     const drawn = page('<p data-at="0-20">Rina likes her walks</p>');
     const onFormat = vi.fn();
     let writable = true;
-    quickly(drawn, () => (writable ? { onFormat } : {}));
+    const brought = { buttons: formatButtons, css: "" };
+    quickly(drawn, () => (writable ? { bar: brought, onFormat } : { bar: brought }));
     const bar = drawn.querySelector<HTMLElement>(".quick-bar");
     expect(bar?.hidden).toBe(true);
     choose(drawn, drawn.querySelector("p")?.firstChild as Node, 11, 14);
@@ -79,6 +81,20 @@ describe("words picked on the drawn page", () => {
     drawn.dispatchEvent(new MouseEvent("mouseup"));
     await new Promise((done) => setTimeout(done, 0));
     expect(bar?.hidden).toBe(true);
+  });
+
+  it("puts no bar on a page that only reads, and still keeps the browser's menu away", async () => {
+    const drawn = page('<p data-at="0-20">Rina likes her walks</p>');
+    quickly(drawn, () => ({}));
+    expect(drawn.querySelector(".quick-bar")).toBeNull();
+    choose(drawn, drawn.querySelector("p")?.firstChild as Node, 11, 14);
+    drawn.dispatchEvent(new MouseEvent("mouseup"));
+    await new Promise((done) => setTimeout(done, 0));
+    drawn.dispatchEvent(new Event("selectionchange"));
+    expect(drawn.querySelector(".quick-bar")).toBeNull();
+    const asked = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    drawn.querySelector("p")?.dispatchEvent(asked);
+    expect(asked.defaultPrevented).toBe(true);
   });
 
   it("hands a right click to the window, saying whether it fell on a block being written", () => {

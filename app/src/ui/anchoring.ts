@@ -1,3 +1,5 @@
+export const MARK_FADES = 4000;
+
 const shared = (was: string, now: string): [number, number] => {
   const most = Math.min(was.length, now.length);
   let head = 0;

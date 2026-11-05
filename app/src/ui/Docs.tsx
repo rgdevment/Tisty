@@ -1,8 +1,7 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
-import { MARKED_FOR } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { asPlain } from "../copying";
 import {
@@ -40,7 +39,7 @@ import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
-import { changedIn } from "./anchoring";
+import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
@@ -50,14 +49,13 @@ import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
+import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
-
-const Sheet = lazy(() => import("./Sheet"));
 
 const SETTLES = 700;
 
@@ -150,6 +148,8 @@ export default function Docs({
   fresh = 0,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
+  const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
+  const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -164,7 +164,7 @@ export default function Docs({
   // The mark shows where the words changed, then fades, so the page goes back to reading as it was.
   useEffect(() => {
     if (!lately) return;
-    const gone = setTimeout(() => setLately(null), MARKED_FOR);
+    const gone = setTimeout(() => setLately(null), MARK_FADES);
     return () => clearTimeout(gone);
   }, [lately]);
   // Once faded, the same change can be marked again from the notice, as long as the notice stays.
@@ -413,8 +413,10 @@ export default function Docs({
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) {
       setComing(false);
+      setUnopened(asked);
       return;
     }
+    setUnopened(null);
     const before = open?.file;
     if (before && before !== asked) {
       const leaving = known.find((one) => one.file === before);
@@ -429,8 +431,8 @@ export default function Docs({
     const wrote_at = typed.current;
     (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
-      .then(() => docOpened(wanted.file))
-      .then(({ body: text, print }) => {
+      .then(() => Promise.all([docOpened(wanted.file), sheetLoaded()]))
+      .then(([{ body: text, print }, ready]) => {
         if (turn.current !== mine) return;
         // Somebody typed while this was in flight: reading it back over them would lose the
         // words and drop the caret at the end.
@@ -444,6 +446,7 @@ export default function Docs({
         // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
         setStirred((was) => astir || (was && before === wanted.file));
         if (astir) mark(changedIn(last, text));
+        setSheet(() => ready);
         setOpen(wanted);
         setClashed(false);
         if (!same) {
@@ -467,6 +470,7 @@ export default function Docs({
           setOpen(null);
           return;
         }
+        setUnopened(wanted.file);
         onError(saidPlainly(e));
       });
   }, [asked, known, open, flush, onError, fresh, behind, mark]);
@@ -848,7 +852,7 @@ export default function Docs({
               data-keeps-writing=""
               className="absolute top-2 left-full z-10 ml-3"
             />
-            <Suspense fallback={<div className="min-h-0 flex-1" />}>
+            {Sheet && (
               <Sheet
                 sheet={sheetOf}
                 onPage={(page) => {
@@ -952,7 +956,7 @@ export default function Docs({
                 asking={slashAsks}
                 kept={!saving && !waiting}
               />
-            </Suspense>
+            )}
           </div>
         ) : coming ? (
           <div role="status" aria-live="polite" style={wall} className="mx-auto w-full px-10">
@@ -964,7 +968,7 @@ export default function Docs({
               <span className="sliding block h-full w-1/3 rounded-full bg-soft" />
             </span>
           </div>
-        ) : (
+        ) : asked && unopened !== asked ? null : (
           <p style={wall} className="mx-auto w-full px-10 text-[12.5px] text-faint">
             {t("pickADoc")}
           </p>

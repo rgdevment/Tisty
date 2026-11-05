@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
@@ -18,10 +18,9 @@ import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
+import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { useTaskAsks } from "./taskAsking";
 import { useWholeKeys } from "./wholeKeys";
-
-const Sheet = lazy(() => import("./Sheet"));
 
 const SETTLES = 700;
 
@@ -61,6 +60,7 @@ export default function TaskWords({
   onTask,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
+  const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
@@ -95,11 +95,11 @@ export default function TaskWords({
 
   useEffect(() => {
     let live = true;
-    taskDocOpen(task.id)
-      .then(real)
-      .then((found) => {
+    Promise.all([taskDocOpen(task.id).then(real), sheetLoaded()])
+      .then(([found, ready]) => {
         if (!live) return;
         if (found) holding.current?.(found.held);
+        setSheet(() => ready);
         setDoc(found);
         setSeen((one) => one + 1);
       })
@@ -112,7 +112,7 @@ export default function TaskWords({
   }, [task.id, open, turn]);
 
   // While the page is read, its room stays as it last was, so what is under it never jumps.
-  if (!doc)
+  if (!doc || !Sheet)
     return (
       <div ref={kept.ref} className="task-words relative" style={{ minHeight: kept.height ?? 180 }}>
         <Skeleton inset="46px 32px" />
@@ -124,6 +124,7 @@ export default function TaskWords({
     <div ref={kept.ref} className="task-words">
       <Written
         key={`${doc.file}:${seen}`}
+        Sheet={Sheet}
         task={task}
         doc={doc}
         make={make}
@@ -133,7 +134,6 @@ export default function TaskWords({
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
         shaping={shaping}
-        room={kept.height}
         asking={doc.held ? undefined : asking}
         dates={dates}
         onTask={onTask}
@@ -149,6 +149,7 @@ export default function TaskWords({
 }
 
 function Written({
+  Sheet,
   task,
   doc,
   make,
@@ -158,12 +159,12 @@ function Written({
   onDoc,
   onMoved,
   shaping,
-  room,
   asking,
   dates,
   onTask,
   onPart,
 }: {
+  Sheet: LoadedSheet;
   task: Task;
   doc: TaskDoc;
   make?: (body: string) => Promise<string>;
@@ -177,7 +178,6 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
-  room?: number;
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
   onTask?: (id: string) => void;
@@ -330,7 +330,7 @@ function Written({
   };
 
   return (
-    <Suspense fallback={<div style={{ minHeight: room }} />}>
+    <>
       {clash && (
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
           <span className="text-soft">{t("documentMoved")}</span>
@@ -370,6 +370,6 @@ function Written({
         onTask={onTask}
         onPart={onPart}
       />
-    </Suspense>
+    </>
   );
 }
