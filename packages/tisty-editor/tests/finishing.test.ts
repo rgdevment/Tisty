@@ -96,6 +96,20 @@ describe("a document finished to travel", () => {
     expect(checkHtml(html)).toEqual([]);
   });
 
+  it("ends a line where a label says so, in both drawings, and still holds", async () => {
+    const { html, notDrawn } = await finished(mermaid("graph LR\n  A[Uno&lt;br/&gt;dos] --&gt; B"));
+    const page = new DOMParser().parseFromString(html, "text/html");
+    expect(notDrawn).toBe(0);
+    const drawings = page.querySelectorAll("figure.diagram svg");
+    expect(drawings).toHaveLength(2);
+    for (const one of drawings) {
+      const words = [...one.querySelectorAll("text")].map((text) => text.textContent);
+      expect(words).toEqual(expect.arrayContaining(["Uno", "dos"]));
+      expect(one.textContent).not.toMatch(/<\s*br/i);
+    }
+    expect(checkHtml(html)).toEqual([]);
+  });
+
   it("names what it draws apart from what another document draws", async () => {
     document.head.innerHTML = "<style>path{marker-end:url(#a)}</style>";
     const ids = async (source: string) => {

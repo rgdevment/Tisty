@@ -18,6 +18,23 @@ classDiagram⏎  class Animal {⏎    <<abstract>>⏎    +String name⏎  }⏎  
 `;
 
 describe("the picture of a diagram the window draws", () => {
+  it("ends a line where a label says so, in a box, on a line and in a group", () => {
+    const picture = pictureOf(
+      unfolded(
+        "flowchart LR⏎  subgraph g1 [Uno<br/>grupo]⏎    A⏎  end⏎  A[Uno<br/>dos] -->|tres<br>cuatro| B{cinco<BR />seis}",
+      ),
+    );
+    expect(picture).not.toBeNull();
+    if (!picture) return;
+    for (const palette of [PALETTES.light, PALETTES.dark]) {
+      const read = parsed(svgOf(picture, palette, palette.sheet, "Inter"));
+      const words = [...read.querySelectorAll("text")].map((one) => one.textContent);
+      for (const line of ["Uno grupo", "Uno", "dos", "tres", "cuatro", "cinco", "seis"])
+        expect(words).toContain(line);
+      expect(words.join(" ")).not.toMatch(/<\s*br/i);
+    }
+  });
+
   it("is well-formed SVG of the window's size, with every word the window shows, in either theme", () => {
     for (const case_ of lines(PICTURED)) {
       const [source, said] = case_.split(" → ");

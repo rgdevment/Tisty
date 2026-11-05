@@ -58,6 +58,10 @@ export const fitted = (text: string, room: number, perChar: number): string => {
   return text.length <= most ? text : `${text.slice(0, Math.max(1, most - 1))}…`;
 };
 
+// How a label says a line ends, in the same forms Mermaid takes.
+const LINE_BREAK = /<br\s*\/?>/gi;
+export const linesSaid = (text: string): string[] => text.split(LINE_BREAK);
+
 export const MONO = "ui-monospace, Menlo, Consolas, monospace";
 
 export interface Writing {
@@ -72,7 +76,7 @@ export interface Writing {
 }
 
 export const writing = (one: Writing): string =>
-  `<text x="${at(one.x)}" y="${at(one.y)}" font-size="${one.size}" fill="${one.fill}" text-anchor="${one.anchor ?? "middle"}" dominant-baseline="central"${one.bold ? ' font-weight="600"' : ""}${one.mono ? ` font-family="${MONO}"` : ""}>${escaped(one.text)}</text>`;
+  `<text x="${at(one.x)}" y="${at(one.y)}" font-size="${one.size}" fill="${one.fill}" text-anchor="${one.anchor ?? "middle"}" dominant-baseline="central"${one.bold ? ' font-weight="600"' : ""}${one.mono ? ` font-family="${MONO}"` : ""}>${escaped(linesSaid(one.text).join(" "))}</text>`;
 
 export interface Look {
   readonly fill: string;
@@ -123,10 +127,23 @@ export const straight = (a: { x: number; y: number }, b: { x: number; y: number 
   `M ${at(a.x)} ${at(a.y)} L ${at(b.x)} ${at(b.y)}`;
 
 // The pill takes the colour of the ground so the line does not run through the words.
+const PILL_LINE = 14;
+
 export const pill = (x: number, y: number, text: string, palette: Palette, ringedWith?: string) => {
-  const wide = text.length * 6.2 + 14;
-  const rect = { x: x - wide / 2, y: y - 9, wide, tall: 18 };
-  return `${boxed(rect, { fill: palette.desk, stroke: ringedWith, radius: 9 })}${writing({ x, y, text, size: 11, fill: palette.accent })}`;
+  const lines = linesSaid(text).map((line) => line.trim());
+  const wide = Math.max(...lines.map((line) => line.length)) * 6.2 + 14;
+  const more = (lines.length - 1) * PILL_LINE;
+  const rect = { x: x - wide / 2, y: y - 9 - more / 2, wide, tall: 18 + more };
+  const words = lines.map((line, at) =>
+    writing({
+      x,
+      y: y - more / 2 + at * PILL_LINE,
+      text: line,
+      size: 11,
+      fill: palette.accent,
+    }),
+  );
+  return `${boxed(rect, { fill: palette.desk, stroke: ringedWith, radius: 9 })}${words.join("")}`;
 };
 
 // A page holding several drawings names their markers apart: a line reaches the first marker of its name, even a hidden one.

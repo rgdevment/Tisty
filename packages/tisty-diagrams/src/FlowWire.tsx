@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 import { endWordAt, routeOf } from "./flowroutes";
 import type { Rect } from "./graphlayout";
+import { linesSaid } from "./picture";
 import Renaming from "./Renaming";
 
 export type WireData = {
@@ -84,11 +85,13 @@ export function Wire({
               onDoubleClick={data.onName}
               className={
                 data.label
-                  ? `rounded-full border bg-desk px-2 text-[11px] text-accent ${selected ? "border-accent" : "border-transparent"}`
+                  ? `whitespace-pre rounded-[9px] border bg-desk px-2 text-center text-[11px] text-accent ${selected ? "border-accent" : "border-transparent"}`
                   : "block h-3 w-3 rounded-full opacity-0 focus:opacity-100 focus:ring-2 focus:ring-accent"
               }
             >
-              {data.label}
+              {linesSaid(data.label)
+                .map((line) => line.trim())
+                .join("\n")}
             </button>
           )}
         </div>
