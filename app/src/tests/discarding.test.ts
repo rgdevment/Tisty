@@ -52,7 +52,7 @@ describe("being warned that Windows is closing the window", () => {
     });
     const release = holds(flushed);
 
-    settledThen(keptForTheEnd)();
+    settledThen(() => keptForTheEnd(1))();
     await Promise.resolve();
     expect(flushed).toHaveBeenCalled();
     expect(ipc.calls).toEqual([]);
@@ -68,7 +68,7 @@ describe("being warned that Windows is closing the window", () => {
       queued("words:t3", () => Promise.reject(new Error("the disk refused"))).catch(() => {});
     });
 
-    settledThen(keptForTheEnd)();
+    settledThen(() => keptForTheEnd(1))();
 
     await vi.waitFor(() => expect(ipc.calls).toEqual(["kept_for_the_end"]));
     release();

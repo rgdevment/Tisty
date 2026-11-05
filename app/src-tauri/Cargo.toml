@@ -27,7 +27,6 @@ windows = { version = "0.62", features = [
   "Management_Deployment",
   "Services_Store",
   "Win32_Foundation",
-  "Win32_Graphics_Gdi",
   "Win32_Graphics_Imaging",
   "Win32_Media_MediaFoundation",
   "Win32_Security_Cryptography",
@@ -81,6 +80,9 @@ percent-encoding = "2"
 
 [dev-dependencies]
 tempfile.workspace = true
+
+[target."cfg(windows)".dev-dependencies]
+windows = { version = "0.62", features = ["Win32_Graphics_Gdi", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

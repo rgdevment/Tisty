@@ -343,20 +343,18 @@ pub fn parted(app: tauri::AppHandle) {
 }
 
 #[derive(Default)]
-pub(crate) struct Ending(std::sync::Arc<std::sync::atomic::AtomicBool>);
+pub(crate) struct Ending(std::sync::Arc<std::sync::atomic::AtomicU64>);
 
 #[tauri::command]
-pub fn kept_for_the_end(app: tauri::AppHandle) {
+pub fn kept_for_the_end(app: tauri::AppHandle, round: u64) {
     use tauri::Manager;
 
     app.state::<Ending>()
         .0
-        .store(true, std::sync::atomic::Ordering::SeqCst);
+        .fetch_max(round, std::sync::atomic::Ordering::SeqCst);
 }
 
-/// tao ends the process inside `WM_ENDSESSION` without a word to anyone, so the question before it
-/// is the only turn the window gets to keep what is still waiting to be written. Nothing leaves
-/// here: another program may yet refuse the shutdown, and then Tisty simply carries on.
+/// tao ends the process inside `WM_ENDSESSION`, so the question before it is the window's only turn to keep what waits.
 #[cfg(windows)]
 pub(crate) fn warned_first(window: &tauri::WebviewWindow) {
     use tauri::{Emitter, Manager};
@@ -366,15 +364,22 @@ pub(crate) fn warned_first(window: &tauri::WebviewWindow) {
     };
     let app = window.app_handle().clone();
     let answered = app.state::<Ending>().0.clone();
-    // From a thread of its own: this runs inside whatever the event loop was doing, and an emit
-    // from its own thread would step right into it.
-    let tell = Box::new(move || {
+    // From a thread of its own: an emit from this one would step into what the event loop is doing.
+    let tell = Box::new(move |round: u64| {
         let app = app.clone();
         std::thread::spawn(move || {
-            let _ = app.emit_to("main", "ending", ());
+            let _ = app.emit_to("main", "ending", round);
         });
     });
-    let warning = warned::Warning::new(tell, answered, WINDOW_ANSWERS_WITHIN);
+    let give_up = std::sync::Arc::new(|| {
+        witness::error(
+            channel::WINDOW,
+            "Windows asked to close Tisty, and the window stopped answering, so it was ended",
+            &[],
+        );
+        std::process::exit(0);
+    });
+    let warning = warned::Warning::new(tell, answered, WINDOW_ANSWERS_WITHIN, give_up);
     if !warned::listens(windows::Win32::Foundation::HWND(hwnd.0 as _), warning) {
         witness::warn(
             channel::WINDOW,
@@ -392,7 +397,8 @@ mod warned {
     use std::cell::Cell;
     use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
+    use std::sync::atomic::{AtomicU64, Ordering::SeqCst};
+    use std::sync::mpsc::{RecvTimeoutError, Sender, channel as told_by};
     use std::time::{Duration, Instant};
 
     use tisty_core::witness::{self, Fact, channel};
@@ -400,25 +406,34 @@ mod warned {
     use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
     use windows::Win32::UI::WindowsAndMessaging::{
         DispatchMessageW, ENDSESSION_CLOSEAPP, MSG, MsgWaitForMultipleObjectsEx, PM_QS_POSTMESSAGE,
-        PM_QS_SENDMESSAGE, PM_REMOVE, PeekMessageW, PostQuitMessage, QS_POSTMESSAGE,
-        QS_SENDMESSAGE, TranslateMessage, WM_QUERYENDSESSION, WM_QUIT,
+        PM_QS_SENDMESSAGE, PM_REMOVE, PeekMessageW, QS_POSTMESSAGE, QS_SENDMESSAGE,
+        WM_QUERYENDSESSION,
     };
 
     const LOOKS_AGAIN: Duration = Duration::from_millis(20);
 
     pub struct Warning {
-        tell: Box<dyn Fn()>,
-        answered: Arc<AtomicBool>,
+        tell: Box<dyn Fn(u64)>,
+        answered: Arc<AtomicU64>,
         patience: Duration,
+        give_up: Arc<dyn Fn() + Send + Sync>,
+        round: Cell<u64>,
         waiting: Cell<bool>,
     }
 
     impl Warning {
-        pub fn new(tell: Box<dyn Fn()>, answered: Arc<AtomicBool>, patience: Duration) -> Self {
+        pub fn new(
+            tell: Box<dyn Fn(u64)>,
+            answered: Arc<AtomicU64>,
+            patience: Duration,
+            give_up: Arc<dyn Fn() + Send + Sync>,
+        ) -> Self {
             Self {
                 tell,
                 answered,
                 patience,
+                give_up,
+                round: Cell::new(0),
                 waiting: Cell::new(false),
             }
         }
@@ -427,11 +442,18 @@ mod warned {
             if self.waiting.replace(true) {
                 return;
             }
-            self.answered.store(false, SeqCst);
-            let began = Instant::now();
-            (self.tell)();
-            let answered = waited(&self.answered, self.patience);
+            // A panic must not cross back into Windows, nor leave every later warning unheard.
+            let _ = catch_unwind(AssertUnwindSafe(|| self.warned(closing)));
             self.waiting.set(false);
+        }
+
+        fn warned(&self, closing: isize) {
+            let round = self.round.get() + 1;
+            self.round.set(round);
+            let began = Instant::now();
+            let _watched = self.watched();
+            (self.tell)(round);
+            let answered = waited(&self.answered, round, self.patience);
 
             let because = match closing as u32 & ENDSESSION_CLOSEAPP {
                 0 => "the_session_ends",
@@ -447,46 +469,50 @@ mod warned {
             if answered {
                 witness::note(
                     channel::WINDOW,
-                    "Windows is closing Tisty, and what was waiting to be written is kept",
+                    "Windows asked to close Tisty, and the window is done writing",
                     &facts,
                 );
             } else {
                 witness::warn(
                     channel::WINDOW,
-                    "Windows is closing Tisty, and the window did not say in time that it kept what was waiting",
+                    "Windows asked to close Tisty, and the window did not finish writing in time",
                     &facts,
                 );
             }
         }
+
+        // Dropping what this returns calls it off: a message dispatched in the wait may block for good.
+        fn watched(&self) -> Sender<()> {
+            let (still_here, gone) = told_by::<()>();
+            let give_up = Arc::clone(&self.give_up);
+            let limit = self.patience * 2;
+            std::thread::spawn(move || {
+                if matches!(gone.recv_timeout(limit), Err(RecvTimeoutError::Timeout)) {
+                    give_up();
+                }
+            });
+            still_here
+        }
     }
 
-    // The answer comes back through this very thread, as WebView2 hands the window's calls over in
-    // window messages. Paint and input stay queued: only the answer's messages are needed, and
-    // tao's paint handling asserts that it is not entered twice.
+    // The answer returns through this thread in window messages; paint and input wait, as tao asserts its paint is not re-entered.
     #[allow(unsafe_code)]
-    fn waited(answered: &AtomicBool, patience: Duration) -> bool {
+    fn waited(answered: &AtomicU64, round: u64, patience: Duration) -> bool {
         let deadline = Instant::now() + patience;
         let mut message = MSG::default();
-        while !answered.load(SeqCst) {
+        while answered.load(SeqCst) < round {
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
                 return false;
             }
             let only_the_answers = PM_REMOVE | PM_QS_POSTMESSAGE | PM_QS_SENDMESSAGE;
-            if !unsafe { PeekMessageW(&raw mut message, None, 0, 0, only_the_answers) }.as_bool() {
-                let nap = left.min(LOOKS_AGAIN).as_millis() as u32;
-                let woken_by = QS_POSTMESSAGE | QS_SENDMESSAGE;
-                unsafe { MsgWaitForMultipleObjectsEx(None, nap, woken_by, Default::default()) };
+            if unsafe { PeekMessageW(&raw mut message, None, 0, 0, only_the_answers) }.as_bool() {
+                unsafe { DispatchMessageW(&raw const message) };
                 continue;
             }
-            if message.message == WM_QUIT {
-                unsafe { PostQuitMessage(message.wParam.0 as i32) };
-                return answered.load(SeqCst);
-            }
-            unsafe {
-                let _ = TranslateMessage(&raw const message);
-                DispatchMessageW(&raw const message);
-            }
+            let nap = left.min(LOOKS_AGAIN).as_millis() as u32;
+            let woken_by = QS_POSTMESSAGE | QS_SENDMESSAGE;
+            unsafe { MsgWaitForMultipleObjectsEx(None, nap, woken_by, Default::default()) };
         }
         true
     }
@@ -502,9 +528,7 @@ mod warned {
     ) -> LRESULT {
         if message == WM_QUERYENDSESSION {
             // Windows calls this on the window's thread, with the pointer `listens` let go of.
-            let warning = unsafe { &*(warning as *const Warning) };
-            // A panic must not cross back into Windows, and Windows still needs its answer.
-            let _ = catch_unwind(AssertUnwindSafe(|| warning.heard(lparam.0)));
+            unsafe { &*(warning as *const Warning) }.heard(lparam.0);
         }
         unsafe { DefSubclassProc(hwnd, message, wparam, lparam) }
     }
@@ -521,7 +545,7 @@ mod warned {
 #[allow(unsafe_code)]
 mod warned_tests {
     use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst};
+    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering::SeqCst};
     use std::time::{Duration, Instant};
 
     use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
@@ -537,14 +561,16 @@ mod warned_tests {
     use super::warned::{Warning, listens};
 
     const ANSWER: u32 = WM_APP + 1;
+    const BLOCK: u32 = WM_APP + 2;
     const PLENTY: Duration = Duration::from_secs(20);
 
     #[derive(Default)]
     struct Seen {
-        answered: Arc<AtomicBool>,
+        answered: Arc<AtomicU64>,
         told: AtomicUsize,
         painted: AtomicUsize,
         painted_by_the_answer: AtomicUsize,
+        given_up: AtomicUsize,
     }
 
     unsafe extern "system" fn watching(
@@ -560,8 +586,9 @@ mod warned_tests {
             ANSWER => {
                 let painted = seen.painted.load(SeqCst);
                 seen.painted_by_the_answer.store(painted, SeqCst);
-                seen.answered.store(true, SeqCst);
+                seen.answered.fetch_max(wparam.0 as u64, SeqCst);
             }
+            BLOCK => std::thread::sleep(Duration::from_millis(wparam.0 as u64)),
             WM_PAINT => {
                 seen.painted.fetch_add(1, SeqCst);
             }
@@ -574,7 +601,7 @@ mod warned_tests {
     fn a_window(
         seen: &Arc<Seen>,
         patience: Duration,
-        tell: impl Fn(isize) + Send + 'static,
+        tell: impl Fn(isize, u64) + Send + 'static,
     ) -> isize {
         let (hand, got) = std::sync::mpsc::channel();
         let seen = Arc::clone(seen);
@@ -594,14 +621,17 @@ mod warned_tests {
                 None,
             )
             .expect("a window");
-            assert!(
-                SetWindowSubclass(hwnd, Some(watching), 2, Arc::as_ptr(&seen) as usize).as_bool()
-            );
+            let watched = Arc::as_ptr(&seen) as usize;
+            assert!(SetWindowSubclass(hwnd, Some(watching), 2, watched).as_bool());
             let at = hwnd.0 as isize;
+            let counted = Arc::clone(&seen);
             let warning = Warning::new(
-                Box::new(move || tell(at)),
+                Box::new(move |round| tell(at, round)),
                 Arc::clone(&seen.answered),
                 patience,
+                Arc::new(move || {
+                    counted.given_up.fetch_add(1, SeqCst);
+                }),
             );
             assert!(listens(hwnd, warning));
             hand.send(at).expect("the test is waiting");
@@ -631,8 +661,20 @@ mod warned_tests {
         (said, began.elapsed())
     }
 
-    fn answer(at: isize) {
-        unsafe { PostMessageW(Some(HWND(at as _)), ANSWER, WPARAM(0), LPARAM(0)) }.expect("posted");
+    fn post(at: isize, message: u32, what: u64) {
+        unsafe {
+            PostMessageW(
+                Some(HWND(at as _)),
+                message,
+                WPARAM(what as usize),
+                LPARAM(0),
+            )
+        }
+        .expect("posted");
+    }
+
+    fn answer(at: isize, round: u64) {
+        post(at, ANSWER, round);
     }
 
     #[test]
@@ -642,7 +684,7 @@ mod warned_tests {
 
         let (said, took) = asked(at);
 
-        assert!(seen.answered.load(SeqCst));
+        assert_eq!(seen.answered.load(SeqCst), 1);
         assert!(took < PLENTY, "{took:?}");
         assert_ne!(said, 0, "Windows may go ahead");
     }
@@ -651,40 +693,88 @@ mod warned_tests {
     fn a_window_that_never_answers_does_not_hold_windows_back() {
         let seen = Arc::new(Seen::default());
         let patience = Duration::from_millis(150);
-        let at = a_window(&seen, patience, |_| {});
+        let at = a_window(&seen, patience, |_, _| {});
 
         let (said, took) = asked(at);
 
         assert!(took >= patience, "{took:?}");
         assert!(took < PLENTY, "{took:?}");
         assert_ne!(said, 0, "Windows may go ahead");
+        std::thread::sleep(patience * 3);
+        assert_eq!(seen.given_up.load(SeqCst), 0, "the wait ended by itself");
     }
 
     #[test]
     fn a_shutdown_called_off_is_asked_about_again_the_next_time() {
         let seen = Arc::new(Seen::default());
         let counted = Arc::clone(&seen);
-        let at = a_window(&seen, PLENTY, move |at| {
+        let at = a_window(&seen, PLENTY, move |at, round| {
             counted.told.fetch_add(1, SeqCst);
-            answer(at);
+            answer(at, round);
         });
 
         asked(at);
         asked(at);
 
         assert_eq!(seen.told.load(SeqCst), 2);
+        assert_eq!(seen.answered.load(SeqCst), 2);
+    }
+
+    #[test]
+    fn a_late_answer_does_not_speak_for_a_newer_question() {
+        let seen = Arc::new(Seen::default());
+        let patience = Duration::from_millis(150);
+        let at = a_window(&seen, patience, |at, round| {
+            if round == 2 {
+                answer(at, 1);
+            }
+        });
+
+        asked(at);
+        let (_, took) = asked(at);
+
+        assert!(took >= patience, "the old answer closed it: {took:?}");
+    }
+
+    #[test]
+    fn a_warning_that_fell_over_is_still_heard_the_next_time() {
+        let seen = Arc::new(Seen::default());
+        let counted = Arc::clone(&seen);
+        let at = a_window(&seen, PLENTY, move |at, round| {
+            counted.told.fetch_add(1, SeqCst);
+            assert_ne!(round, 1, "falls over on purpose");
+            answer(at, round);
+        });
+
+        let (said, _) = asked(at);
+        assert_ne!(said, 0, "Windows may go ahead");
+        asked(at);
+
+        assert_eq!(seen.told.load(SeqCst), 2);
+    }
+
+    #[test]
+    fn a_message_that_blocks_the_wait_cannot_hold_windows_for_good() {
+        let seen = Arc::new(Seen::default());
+        let at = a_window(&seen, Duration::from_millis(50), |at, _| {
+            post(at, BLOCK, 600);
+        });
+
+        asked(at);
+
+        assert_eq!(seen.given_up.load(SeqCst), 1);
     }
 
     #[test]
     fn paint_waits_until_the_event_loop_has_the_thread_back() {
         let seen = Arc::new(Seen::default());
-        let at = a_window(&seen, PLENTY, |at| {
+        let at = a_window(&seen, PLENTY, |at, round| {
             unsafe {
                 let _ = RedrawWindow(Some(HWND(at as _)), None, None, RDW_INTERNALPAINT);
             }
             std::thread::spawn(move || {
                 std::thread::sleep(Duration::from_millis(100));
-                answer(at);
+                answer(at, round);
             });
         });
 

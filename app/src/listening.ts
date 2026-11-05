@@ -123,7 +123,7 @@ export function useListening({
   useEffect(() => {
     const off = [
       listen("parting", settledThen(parted)),
-      listen("ending", settledThen(keptForTheEnd)),
+      listen<number>("ending", ({ payload }) => settledThen(() => keptForTheEnd(payload))()),
     ];
     return () => {
       for (const one of off) void one.then((stop) => stop());
