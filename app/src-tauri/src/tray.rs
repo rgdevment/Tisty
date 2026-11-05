@@ -250,6 +250,7 @@ pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
+    crate::waking::returns(false);
     undock_unless_seen(window.app_handle(), window.label());
 }
 
@@ -264,6 +265,7 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     };
     docked(app, true);
     let _ = window.show();
+    crate::waking::returns(true);
     let _ = window.unminimize();
     let _ = window.set_focus();
 }
@@ -288,6 +290,24 @@ mod tests {
             });
         assert!(seen > 0, "the icon is fully transparent");
         (sum / seen) as u32
+    }
+
+    #[test]
+    fn both_ways_the_window_goes_keep_windows_told() {
+        let here = include_str!("tray.rs");
+        for (way, told) in [
+            ("pub fn withdraw", "returns(false)"),
+            ("pub fn surface", "returns(true)"),
+        ] {
+            let body = here.split(way).nth(1).and_then(|rest| {
+                rest.split(
+                    "
+}",
+                )
+                .next()
+            });
+            assert!(body.is_some_and(|body| body.contains(told)), "{way}");
+        }
     }
 
     #[test]

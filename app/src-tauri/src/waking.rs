@@ -26,6 +26,25 @@ pub fn unreaching(args: &[String]) -> bool {
     matches!(args, [_, one] if one == UNREACH)
 }
 
+/// The plugin relaunches with the arguments it started with, which would hide the window from whoever pressed the button.
+pub fn came_back(route: crate::update::Route, found: Option<&str>, here: &str) -> bool {
+    crate::update::self_installs(route) && found == Some(here)
+}
+
+/// Kept current as the window comes and goes, since Windows only reads it when it closes this copy to replace a file.
+pub fn returns(seen: bool) {
+    #[cfg(windows)]
+    if let Err(why) = there::returns(seen) {
+        witness::warn(
+            channel::WINDOW,
+            "the machine was not told how to reopen Tisty after an update",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
+    #[cfg(not(windows))]
+    let _ = seen;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Waking {
@@ -193,6 +212,14 @@ mod there {
 
     fn packaged() -> bool {
         crate::update::route().route == crate::update::Route::Store
+    }
+
+    fn back_with(seen: bool) -> &'static str {
+        if seen { "" } else { HUSHED }
+    }
+
+    pub fn returns(seen: bool) -> std::io::Result<()> {
+        crate::desktop::reopened_with(back_with(seen)).map_err(sour)
     }
 
     fn tasked() -> Waking {
@@ -380,10 +407,23 @@ mod tests {
 
 #[cfg(all(test, windows))]
 mod tests {
+    use super::HUSHED;
     use super::there::{approves, ours};
+    use crate::desktop::reopens_with;
     use std::path::Path;
 
     const EXE: &str = r"C:\Program Files\Tisty\Tisty.exe";
+
+    #[test]
+    fn windows_is_told_how_to_reopen_a_copy_and_for_nothing_but_being_replaced() {
+        const ONLY_TO_BE_REPLACED: u32 = 1 | 2 | 8;
+
+        super::returns(false);
+        assert_eq!(reopens_with(), (HUSHED.to_string(), ONLY_TO_BE_REPLACED));
+
+        super::returns(true);
+        assert_eq!(reopens_with(), (String::new(), ONLY_TO_BE_REPLACED));
+    }
 
     #[test]
     fn the_quoted_program_is_read_apart_from_its_arguments() {
