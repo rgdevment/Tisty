@@ -24,7 +24,9 @@
     "../packages/tisty-diagrams/src",
     "../packages/tisty-diagrams/tests",
     "../packages/tisty-editor/src",
-    "../packages/tisty-editor/tests"
+    "../packages/tisty-editor/tests",
+    "../packages/tisty-sheet/src",
+    "../packages/tisty-sheet/tests"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

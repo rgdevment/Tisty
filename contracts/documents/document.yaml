@@ -40,6 +40,18 @@ html_rules:
   - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
   - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with its document, which asks nobody else for one." }
 html_cases:
+  - says: "A player typed by hand, which only a reader makes."
+    html: '<audio src="tisty:file/0" autoplay></audio>'
+    holds: false
+  - says: "A video typed by hand."
+    html: '<video src="tisty:file/0" controls></video>'
+    holds: false
+  - says: "A source or a track of its own."
+    html: '<p>a</p><source src="tisty:file/0"><track src="tisty:file/1">'
+    holds: false
+  - says: "A frame of its own."
+    html: '<iframe srcdoc="x" sandbox="allow-scripts"></iframe>'
+    holds: false
   - says: "Words and what marks them."
     html: '<h1 id="paseos">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>'
     holds: true

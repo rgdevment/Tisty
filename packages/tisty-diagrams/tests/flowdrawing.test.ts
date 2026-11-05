@@ -102,6 +102,12 @@ describe("drawing a shape", () => {
       ],
       ["supercalifragilisticoespialidoso", ["supercalifragilisticoesp", "ialidoso"]],
       ["a supercalifragilisticoespialidoso b", ["a", "supercalifragilisticoesp", "ialidoso b"]],
+      ["uno<br/>dos", ["uno", "dos"]],
+      ["uno<br>dos<BR />tres", ["uno", "dos", "tres"]],
+      [
+        "la nube es mas una tormenta<br/>y nada mas",
+        ["la nube es mas una", "tormenta", "y nada mas"],
+      ],
     ];
     for (const [text, lines] of cases) expect(linesOf(text), text).toEqual(lines);
     expect(sizeOf("la nube es mas una tormenta que una nubecita", "cloud")).toEqual({

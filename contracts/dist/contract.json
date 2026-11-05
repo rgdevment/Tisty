@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -1308,7 +1308,7 @@
         "writer",
         "reader"
       ],
-      "says": "A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened.",
+      "says": "A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. A sound or a video can then play.",
       "fields": {
         "at": {
           "type": "whole",
@@ -1331,7 +1331,69 @@
       },
       "values": {
         "file_source": "tisty:file/N, its at among the files",
-        "reader_opens_files": "A file is only ever downloaded. A reader never draws it or runs it, and never believes its name or its kind."
+        "plays": {
+          "mp3": {
+            "player": "audio",
+            "type": "audio/mpeg"
+          },
+          "m4a": {
+            "player": "audio",
+            "type": "audio/mp4",
+            "brands": [
+              "M4A ",
+              "M4B "
+            ]
+          },
+          "wav": {
+            "player": "audio",
+            "type": "audio/wav"
+          },
+          "ogg": {
+            "player": "audio",
+            "type": "audio/ogg"
+          },
+          "flac": {
+            "player": "audio",
+            "type": "audio/flac"
+          },
+          "aac": {
+            "player": "audio",
+            "type": "audio/aac"
+          },
+          "mp4": {
+            "player": "video",
+            "type": "video/mp4",
+            "brands": [
+              "isom",
+              "iso2",
+              "iso3",
+              "iso4",
+              "iso5",
+              "iso6",
+              "mp41",
+              "mp42",
+              "avc1",
+              "M4V ",
+              "M4VH",
+              "M4VP"
+            ]
+          },
+          "webm": {
+            "player": "video",
+            "type": "video/webm"
+          },
+          "mov": {
+            "player": "video",
+            "type": "video/mp4",
+            "brands": [
+              "qt  "
+            ]
+          }
+        },
+        "reader_opens_files": "Pressing a file's card asks for it, and the card promises nothing before that. Its first bytes say what it is, and playableAs reads them, with the same verdict in every language; its name and its kind can hold a file back or choose the card's word, and never let it play. Whatever playableAs does not name that same press saves, a PDF and a CSV too: as application/octet-stream, and never by going to its blob, which would run with the reader's origin. A reader never draws it or runs it.",
+        "reader_plays": "A reader on the web may play what playableAs names when its card stands alone in its paragraph; a link inside a sentence stays a word of it, and saves the file. The player takes the card's place, in an audio or a video element the reader makes itself and never takes from the HTML, fed from a blob of the opened bytes whose type is the one the plays list gives, never the one the file says. It shows its controls, and has no autoplay, loop, track or other source: it starts only when the person presses play, and nothing the file holds runs. Asking for the file is not pressing play, so the player arrives still.",
+        "reader_cannot_play": "A reader that cannot play it goes back to the card, which now saves it: the plays list names no such format, canPlayType answers with nothing, the player fails, or its version never heard of this. It never calls the file damaged for that.",
+        "page_in_a_file": "A file whose name or kind says HTML is never played and never opened on the web, whatever the reader does with widgets. Its card says it is seen in Tisty, and pressing it saves it."
       },
       "cases": [
         {
@@ -1515,7 +1577,8 @@
         }
       },
       "values": {
-        "drawn_as": "A block of code in the language widget."
+        "drawn_as": "A block of code in the language widget.",
+        "on_the_web": "A reader on the web never runs it, and writes its card from nothing of its code. The page holds the link key and the token, and a frame with allow-scripts keeps those from a hostile widget, but not the network: a CSP does not cover WebRTC, a preconnect or the connection a refused navigation opens, so it can tell another server who is reading, and on some browsers it can freeze the page. Running it is for a later minor that closes those."
       },
       "cases": [
         {
@@ -1665,6 +1728,26 @@
         }
       ],
       "html_cases": [
+        {
+          "says": "A player typed by hand, which only a reader makes.",
+          "html": "<audio src=\"tisty:file/0\" autoplay></audio>",
+          "holds": false
+        },
+        {
+          "says": "A video typed by hand.",
+          "html": "<video src=\"tisty:file/0\" controls></video>",
+          "holds": false
+        },
+        {
+          "says": "A source or a track of its own.",
+          "html": "<p>a</p><source src=\"tisty:file/0\"><track src=\"tisty:file/1\">",
+          "holds": false
+        },
+        {
+          "says": "A frame of its own.",
+          "html": "<iframe srcdoc=\"x\" sandbox=\"allow-scripts\"></iframe>",
+          "holds": false
+        },
         {
           "says": "Words and what marks them.",
           "html": "<h1 id=\"paseos\">Paseos</h1><p>1 &lt; 2 and a < b, <strong>Rina</strong></p>",
@@ -2486,7 +2569,7 @@
           "signature_bytes": 2048
         },
         "files_kept": "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should.",
-        "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
+        "reading": "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone presses its card."
       },
       "fields": {
         "contract": {
@@ -6393,5 +6476,64 @@
       "starts_with": "tisty:picture/",
       "says": "A picture travels with its document, which asks nobody else for one."
     }
-  ]
+  ],
+  "plays": {
+    "mp3": {
+      "player": "audio",
+      "type": "audio/mpeg"
+    },
+    "m4a": {
+      "player": "audio",
+      "type": "audio/mp4",
+      "brands": [
+        "M4A ",
+        "M4B "
+      ]
+    },
+    "wav": {
+      "player": "audio",
+      "type": "audio/wav"
+    },
+    "ogg": {
+      "player": "audio",
+      "type": "audio/ogg"
+    },
+    "flac": {
+      "player": "audio",
+      "type": "audio/flac"
+    },
+    "aac": {
+      "player": "audio",
+      "type": "audio/aac"
+    },
+    "mp4": {
+      "player": "video",
+      "type": "video/mp4",
+      "brands": [
+        "isom",
+        "iso2",
+        "iso3",
+        "iso4",
+        "iso5",
+        "iso6",
+        "mp41",
+        "mp42",
+        "avc1",
+        "M4V ",
+        "M4VH",
+        "M4VP"
+      ]
+    },
+    "webm": {
+      "player": "video",
+      "type": "video/webm"
+    },
+    "mov": {
+      "player": "video",
+      "type": "video/mp4",
+      "brands": [
+        "qt  "
+      ]
+    }
+  }
 }
