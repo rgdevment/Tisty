@@ -4,6 +4,8 @@
 #[path = "../../../contracts/dist/rust/tests/vectors.rs"]
 mod opening;
 
+use std::sync::Arc;
+
 use base64::Engine;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use jiff::Timestamp;
@@ -506,7 +508,7 @@ fn what_is_public_never_holds_a_key() {
         Err(Refused::DoesNotAdd(_))
     ));
     let mut holder = tongue("hola", "es", None);
-    holder.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    holder.cited = vec![Arc::new(alone(tongue("otro", "es", Some(9))))];
     assert!(matches!(sealed(alone(holder)), Err(Refused::DoesNotAdd(_))));
 }
 
@@ -514,7 +516,7 @@ fn what_is_public_never_holds_a_key() {
 fn what_is_public_may_cite_what_is_public() {
     let mut holder = tongue("hola", "es", None);
     holder.document.html = "<a class=\"card\" href=\"tisty:cited/0\">Otro</a>".to_owned();
-    holder.cited = vec![alone(tongue("otro", "es", None))];
+    holder.cited = vec![Arc::new(alone(tongue("otro", "es", None)))];
     let going = sealed(alone(holder)).unwrap();
     let held = document_of(&opened(&going[0].sealed.main, ("hola", "main"), None).unwrap());
     assert_eq!(held["cited"][0]["document"], "otro");
@@ -525,7 +527,7 @@ fn what_is_public_may_cite_what_is_public() {
 fn what_is_cited_keeps_its_own_envelopes_and_its_key_goes_along() {
     let mut holder = tongue("hola", "es", Some(1));
     holder.document.html = "<a class=\"card\" href=\"tisty:cited/0\">Otro</a>".to_owned();
-    holder.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    holder.cited = vec![Arc::new(alone(tongue("otro", "es", Some(9))))];
     let going = sealed(alone(holder)).unwrap();
     assert_eq!(going[0].id, "hola");
     assert_eq!(going[1].id, "otro");
@@ -539,9 +541,9 @@ fn what_is_cited_keeps_its_own_envelopes_and_its_key_goes_along() {
 #[test]
 fn two_languages_may_cite_one_document_and_it_goes_once() {
     let mut anchor = tongue("hola", "es", Some(1));
-    anchor.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    anchor.cited = vec![Arc::new(alone(tongue("otro", "es", Some(9))))];
     let mut other = tongue("hello", "en", Some(2));
-    other.cited = vec![alone(tongue("otro", "es", Some(9)))];
+    other.cited = vec![Arc::new(alone(tongue("otro", "es", Some(9))))];
     let going = sealed(Family {
         anchor,
         others: vec![other],
@@ -626,15 +628,15 @@ fn two_documents_never_go_under_one_id() {
     );
 
     let mut itself = tongue("aaaa", "es", Some(1));
-    itself.cited = vec![alone(tongue("aaaa", "es", Some(1)))];
+    itself.cited = vec![Arc::new(alone(tongue("aaaa", "es", Some(1))))];
     assert!(sealed(alone(itself)).is_err());
 
     let mut told = tongue("otro", "es", Some(2));
     told.document.html = "<p>otra cosa</p>".to_owned();
     let mut holder = tongue("aaaa", "es", Some(1));
-    holder.cited = vec![alone(tongue("otro", "es", Some(2)))];
+    holder.cited = vec![Arc::new(alone(tongue("otro", "es", Some(2))))];
     let mut other = tongue("bbbb", "en", Some(1));
-    other.cited = vec![alone(told)];
+    other.cited = vec![Arc::new(alone(told))];
     assert!(
         sealed(Family {
             anchor: holder,
@@ -665,14 +667,14 @@ fn an_attribute_a_browser_reads_after_a_slash_counts_too() {
 fn what_cites_cites_directly_and_only_once() {
     let mut twice = tongue("hola", "es", Some(1));
     twice.cited = vec![
-        alone(tongue("otro", "es", Some(9))),
-        alone(tongue("otro", "es", Some(9))),
+        Arc::new(alone(tongue("otro", "es", Some(9)))),
+        Arc::new(alone(tongue("otro", "es", Some(9)))),
     ];
     assert!(sealed(alone(twice)).is_err());
     let mut deep = tongue("otro", "es", Some(9));
-    deep.cited = vec![alone(tongue("tercero", "es", Some(8)))];
+    deep.cited = vec![Arc::new(alone(tongue("tercero", "es", Some(8))))];
     let mut holder = tongue("hola", "es", Some(1));
-    holder.cited = vec![alone(deep)];
+    holder.cited = vec![Arc::new(alone(deep))];
     assert!(sealed(alone(holder)).is_err());
 }
 
