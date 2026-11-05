@@ -26,3 +26,7 @@ export const settled = async (): Promise<void> => {
   await Promise.allSettled([...queues.values()]);
   await Promise.allSettled([...queues.values()]);
 };
+
+export const settledThen = (then: () => Promise<void>) => (): void => {
+  void settled().finally(() => void then());
+};
