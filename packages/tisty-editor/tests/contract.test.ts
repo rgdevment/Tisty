@@ -1,7 +1,7 @@
 import { CONTRACTS } from "@tisty/contracts";
 import { describe, expect, it } from "vitest";
 import { fields } from "../src/front";
-import { source } from "./source";
+import { sheetSource, source } from "./source";
 
 type Blocks = Record<string, Record<string, string | number>>;
 type Style = {
@@ -45,8 +45,8 @@ type FrontMatter = {
 const style = (CONTRACTS.style as Style).values;
 const sheet = (CONTRACTS.sheet as Sheet).values;
 const frontMatter = (CONTRACTS.front_matter as FrontMatter).values;
-const page = source("page.css");
-const tables = source("tables.css");
+const page = sheetSource("page.css");
+const tables = sheetSource("tables.css");
 const tokens = source("tokens.css");
 const paper = source("paper.ts");
 
