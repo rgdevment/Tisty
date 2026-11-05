@@ -9,7 +9,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
-import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
+import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
 import { dragging, tabled } from "./tabled";
@@ -44,6 +44,7 @@ export type Reaching = Carding & {
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
+  readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
   readonly onChoose?: (asked: Chosen) => void;
@@ -510,8 +511,9 @@ export const wired = (page: Document, reach: () => Reaching) => {
       charsAt(now.body, at[0]),
       charsAt(now.body, at[1]),
     ];
-    const { onFormat, onMenu, onChoose } = now;
+    const { bar, onFormat, onMenu, onChoose } = now;
     return {
+      bar,
       onFormat: onFormat && ((asked) => onFormat({ ...asked, at: chars(asked.at) })),
       onChoose: onChoose && ((asked) => onChoose({ ...asked, at: chars(asked.at) })),
       onMenu:
