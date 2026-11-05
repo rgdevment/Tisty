@@ -32,7 +32,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: npm ci
+      - run: npm ci --no-workspaces
 
       - name: The workflows parse
         run: |
@@ -109,7 +109,6 @@ jobs:
           package-manager-cache: false
 
       - name: The window the notices read
-        working-directory: app
         run: npm ci
 
       - name: Written again, and unchanged

@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-PATH="$PWD/app/node_modules/.bin:$PATH"
+PATH="$PWD/node_modules/.bin:$PATH"
 src=assets/icons
 icons=app/src-tauri/icons
 work=$(mktemp -d)

@@ -3,11 +3,17 @@
   "private": true,
   "homepage": "https://www.tisty.app/",
   "repository": "github:rgdevment/Tisty",
+  "workspaces": [
+    "app",
+    "packages/*",
+    "contracts/dist/typescript"
+  ],
   "devDependencies": {
     "js-yaml": "^5.5.0",
     "markdownlint-cli2": "^0.24.0"
   },
   "scripts": {
+    "postinstall": "node scripts/old-install.mjs",
     "prepare": "git config --get core.hooksPath || git config core.hooksPath hooks || echo the hooks are not set: this is not a git clone",
     "check": "node scripts/check.mjs",
     "check:quick": "node scripts/check.mjs --quick",
@@ -17,9 +23,20 @@
     "format:md": "markdownlint-cli2 --fix"
   },
   "overrides": {
-    "katex": "^0.18.9",
+    "@stryker-mutator/core": {
+      "minimatch": "^11.0.1"
+    },
     "markdown-it": "^15.0.3",
+    "mermaid": {
+      "katex": "^0.19.1"
+    },
+    "micromark-extension-math": {
+      "katex": "^0.18.9"
+    },
     "re2js": "^2.8.7",
-    "smol-toml": "^1.9.0"
+    "smol-toml": "^1.9.0",
+    "typed-rest-client": {
+      "qs": "^6.15.2"
+    }
   }
 }

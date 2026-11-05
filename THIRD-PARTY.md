@@ -16,7 +16,7 @@ for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
 [serde](https://serde.rs), [jiff](https://github.com/BurntSushi/jiff),
 [SQLite](https://sqlite.org) and [clap](https://github.com/clap-rs/clap)
 underneath. Each one is permissively licensed, and `Cargo.lock` and
-`app/package-lock.json` name every last transitive one with its version.
+`package-lock.json` name every last transitive one with its version.
 
 `npm run notices` writes that whole list out into
 [THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), with each package's notice in

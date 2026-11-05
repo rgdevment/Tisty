@@ -9,7 +9,9 @@ export default function HelpKey({ onHelp }: { readonly onHelp: (topic?: string) 
     const keyed = (event: KeyboardEvent) => {
       if (event.key !== "F1" || event.repeat) return;
       event.preventDefault();
-      now.current(askedHere());
+      void askedHere()
+        .catch(() => undefined)
+        .then((topic) => now.current(topic));
     };
     window.addEventListener("keydown", keyed);
     let drop: (() => void) | undefined;

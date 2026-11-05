@@ -4,20 +4,12 @@ import { fileURLToPath } from "node:url";
 import { build as bundled } from "vite";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const root = resolve(app, "..");
 
 export const bundledFinisher = (files) =>
   bundled({
     root: app,
     configFile: false,
     logLevel: "error",
-    resolve: {
-      alias: {
-        "tisty-diagrams": join(root, "packages", "tisty-diagrams", "src"),
-        "tisty-editor": join(root, "packages", "tisty-editor", "src"),
-        "@tisty/contracts": join(root, "contracts", "dist", "typescript", "index.js"),
-      },
-    },
     build: {
       outDir: join(files, "finisher"),
       emptyOutDir: true,
