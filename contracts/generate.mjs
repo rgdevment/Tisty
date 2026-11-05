@@ -437,6 +437,7 @@ for (const [name, said] of Object.entries(files)) {
 const lockPath = join(here, "..", "package-lock.json");
 const lock = JSON.parse(readFileSync(lockPath, "utf8"));
 const locked = lock.packages["contracts/dist/typescript"];
+if (!locked) stop("package-lock.json does not know contracts/dist/typescript; run npm install at the root");
 if (locked.version !== VERSION) {
   if (checking) stale.push("../../package-lock.json");
   else {

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
@@ -308,8 +309,9 @@ const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 
 rmSync(out, { recursive: true, force: true });
 const printOf = (bytes) => createHash("sha256").update(bytes).digest("hex").slice(0, 10);
+const fromApp = createRequire(join(app, "package.json"));
 const faces = ["inter", "space-grotesk", "jetbrains-mono"].flatMap((name) => {
-  const from = join(root, "node_modules", "@fontsource-variable", name);
+  const from = dirname(fromApp.resolve(`@fontsource-variable/${name}/wght.css`));
   const sheet = readFileSync(join(from, "wght.css"), "utf8");
   return [...sheet.matchAll(/\/\* [\w-]+-latin(?:-ext)?-wght-normal \*\/\s*(@font-face\s*\{[^}]*\})/g)].map(([, face]) => {
     const file = /url\(\.\/files\/([^)]+)\)/.exec(face)[1];

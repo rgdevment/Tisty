@@ -310,6 +310,18 @@ the_packages_keep_to_themselves() {
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
 }
 
+the_app_holds_the_versions() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the versions the packages take from the app were not looked at"
+    return
+  fi
+  if node scripts/app-versions.mjs; then
+    went_well "what the packages take from the app, the app declares"
+  else
+    amiss "a version the packages take from the app is missing or has drifted"
+  fi
+}
+
 # The contracts: what is kept is what their YAML says, and their cases hold.
 the_contracts_hold() {
   if ! command -v node > /dev/null; then
@@ -336,6 +348,7 @@ no_token_kept_in_the_tree() {
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 the_packages_keep_to_themselves
+the_app_holds_the_versions
 nothing_past_what_a_person_holds
 written_in_english
 nothing_the_window_cannot_translate

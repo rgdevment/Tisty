@@ -80,7 +80,7 @@ and, for the window and the documents:
 
 ```sh
 npm ci && npm run lint:md
-cd app && npm run lint && npm run build && npm test && cd ..
+npm run lint --workspace app && npm run build --workspace app && npm test --workspace app
 npm run notices   # must leave THIRD-PARTY-*.md unchanged
 ```
 

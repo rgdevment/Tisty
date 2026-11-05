@@ -13,6 +13,7 @@
     "markdownlint-cli2": "^0.24.0"
   },
   "scripts": {
+    "postinstall": "node scripts/old-install.mjs",
     "prepare": "git config --get core.hooksPath || git config core.hooksPath hooks || echo the hooks are not set: this is not a git clone",
     "check": "node scripts/check.mjs",
     "check:quick": "node scripts/check.mjs --quick",

@@ -11,7 +11,7 @@
     "./side.css": "./src/side.css"
   },
   "dependencies": {
-    "tisty-diagrams": "*"
+    "tisty-diagrams": "file:../tisty-diagrams"
   },
   "peerDependencies": {
     "@codemirror/autocomplete": "*",
@@ -27,7 +27,7 @@
     "mermaid": "*"
   },
   "devDependencies": {
-    "@tisty/contracts": "*",
+    "@tisty/contracts": "file:../../contracts/dist/typescript",
     "vitest": "*"
   }
 }

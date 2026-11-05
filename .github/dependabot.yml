@@ -74,6 +74,10 @@ updates:
       - dependency-name: "@vitest/coverage-v8"
         update-types: ["version-update:semver-major"]
     groups:
+      tooling:
+        patterns:
+          - js-yaml
+          - markdownlint-cli2
       ui:
         patterns:
           - "*"
