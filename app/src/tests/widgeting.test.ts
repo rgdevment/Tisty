@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
+import {
+  heard,
+  lend,
+  lendKept,
+  notWidget,
+  openable,
+  SHORTEST,
+  TALLEST,
+  tall,
+} from "../ui/widgeting";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args?: Record<string, unknown> }[],
@@ -9,10 +18,10 @@ const ipc = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args });
-    if (cmd === "widget_lend") {
+    if (cmd === "widget_lend_kept") {
       return ipc.refuse
-        ? Promise.reject({ code: "widgetTooBig", name: "512 KB" })
-        : Promise.resolve("w1");
+        ? Promise.reject({ code: "pageTooBig", name: "8 MB" })
+        : Promise.resolve({ id: "w1", whole: false });
     }
     return Promise.resolve(null);
   },
@@ -36,10 +45,10 @@ const clickedOn = (frame: HTMLIFrameElement) => {
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-const mounted = async (source = "<p>hola</p>") => {
+const mounted = async (reference = "kept.html") => {
   const drawn = document.createElement("div");
   document.body.append(drawn);
-  const lending = lend(drawn, source);
+  const lending = lendKept(drawn, reference);
   await vi.waitFor(() => expect(drawn.querySelector("iframe")).toBeTruthy());
   const frame = drawn.querySelector("iframe") as HTMLIFrameElement;
   const from = (data: unknown, source: MessageEventSource | null = frame.contentWindow) =>
@@ -91,13 +100,67 @@ describe("what a widget may say to the window", () => {
   });
 });
 
-describe("the frame a widget is drawn in", () => {
+describe("a widget", () => {
+  const drawnFrom = (source: string) => {
+    const drawn = document.createElement("div");
+    document.body.append(drawn);
+    return { drawn, lending: lend(drawn, source) };
+  };
+
+  it("is drawn in a frame where nothing can run, and asks nobody for anything", () => {
+    const { drawn, lending } = drawnFrom('<div class="stat"><b>4</b></div>');
+    const frame = drawn.querySelector("iframe") as HTMLIFrameElement;
+
+    expect(frame.getAttribute("sandbox")).toBe("allow-same-origin");
+    expect(frame.srcdoc).toContain('<div class="stat"><b>4</b></div>');
+    expect(frame.srcdoc).toContain("default-src 'none'");
+    expect(frame.srcdoc).not.toContain("<script");
+    expect(ipc.calls).toEqual([]);
+    lending.drop();
+  });
+
+  it("comes dark in a dark window and follows the theme without being drawn again", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    const { drawn, lending } = drawnFrom("<p>a</p>");
+    const frame = drawn.querySelector("iframe") as HTMLIFrameElement;
+    expect(frame.srcdoc).toContain('<html class="dark">');
+    expect(frame.style.colorScheme).toBe("dark");
+
+    document.documentElement.removeAttribute("data-theme");
+    lending.retheme();
+    expect(frame.style.colorScheme).toBe("light");
+    lending.drop();
+  });
+
+  it("is never drawn in part: a block with anything else says what, and no frame is made", () => {
+    const { drawn } = drawnFrom(
+      '<p>a</p><script>alert(1)</script><link rel="preconnect" href="https://a.b">',
+    );
+
+    expect(drawn.querySelector("iframe")).toBeNull();
+    expect(drawn.querySelector(".lit-refused")?.textContent).toContain("<script>");
+    expect(drawn.querySelector(".lit-refused")?.textContent).toContain("<link>");
+  });
+
+  it("is told apart from what the browser would really make of it", () => {
+    expect(notWidget('<div class="stat"><b>4</b></div>')).toBeNull();
+    expect(notWidget("<p onclick=x>a</p>")).toContain("<p onclick>");
+    expect(notWidget('<a href="https://a.b">a</a>')).toContain("<a>");
+    expect(notWidget("<svg><script>a</script></svg>")).toContain("<script>");
+  });
+
+  it("says when it is too big to draw", () => {
+    expect(notWidget(`<p>${"x".repeat(600_000)}</p>`)).toContain("KB");
+  });
+});
+
+describe("the frame an attached page is drawn in", () => {
   it("runs scripts and nothing else, from its own scheme", async () => {
     const { frame, lending } = await mounted();
 
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
     expect(frame.src).toBe("http://widget.localhost/w1");
-    expect(asked("widget_lend")[0].args).toEqual({ body: "<p>hola</p>" });
+    expect(asked("widget_lend_kept")[0].args).toEqual({ reference: "kept.html" });
     lending.drop();
   });
 
@@ -251,10 +314,10 @@ describe("the frame a widget is drawn in", () => {
     expect(frame.style.height).toBe(`${SHORTEST}px`);
   });
 
-  it("says why when the widget is refused", async () => {
+  it("says why when the page is refused", async () => {
     ipc.refuse = true;
     const drawn = document.createElement("div");
-    lend(drawn, "x");
+    lendKept(drawn, "x.html");
 
     await vi.waitFor(() => expect(drawn.querySelector(".lit-refused")).toBeTruthy());
     expect(drawn.querySelector("iframe")).toBeNull();

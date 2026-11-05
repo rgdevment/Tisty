@@ -15,7 +15,7 @@ import { offeredAsParts } from "./staging";
 import { dragging, tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
-import { type Lending, lend, locked } from "./widgeting";
+import { type Lending, lend, notWidget } from "./widgeting";
 
 export type Reaching = Carding & {
   readonly body: string;
@@ -116,7 +116,7 @@ const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
     });
 };
 
-export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Lending[] => {
+export const widgets = (page: Document, reach?: Reaching): Lending[] => {
   const lent: Lending[] = [];
   for (const code of page.querySelectorAll<HTMLElement>(
     "figure.code > pre > code.language-widget",
@@ -124,8 +124,12 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
     const source = code.textContent ?? "";
     const figure = code.closest("figure");
     if (!figure || !source.trim()) continue;
-    if (stranger) {
-      figure.before(locked());
+    const why = notWidget(source);
+    if (why) {
+      const said = page.createElement("p");
+      said.className = "lit-locked";
+      said.textContent = why;
+      figure.before(said);
       continue;
     }
     const drawn = page.createElement("figure");
@@ -268,7 +272,7 @@ export const worn = (
         more: Boolean(reach?.onMore) && !stranger,
       });
       held = shown.held;
-      lent = widgets(page, stranger, reach).concat(shown.lent);
+      lent = widgets(page, reach).concat(shown.lent);
     },
     cards: known && cardsFor(page, known),
     parts: known?.part,

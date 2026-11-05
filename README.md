@@ -253,7 +253,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
 | A document with pages | a book, with its chapters in the order the text names them and an index |
 | Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
-| Widgets | small pages of HTML in Tisty's colours, sealed off from the network |
+| Widgets | fixed views of HTML and CSS in Tisty's colours, which run nothing and reach nothing |
 | PDF | its own: A4, Letter or Folio, with its pictures inside |
 | Any `.md` file | opens to read in a window of its own, without coming into your store |
 | Attachments | kept with the task, as themselves |
@@ -328,8 +328,8 @@ Tisty it holds a good deal more than text:
   wide you drew them, whose columns can say what they hold — money, dates,
   choices, ratings, yes or no — and add themselves up at the foot, written on
   the page cell by cell.
-- **Widgets**: a small page of HTML, styles and a little script, drawn in
-  Tisty's colours and sealed off from the network.
+- **Widgets**: a fixed view of HTML and CSS in Tisty's colours, which runs
+  nothing and names nothing outside itself.
 - **Callouts, highlights and icons** — the callouts GitHub reads, pens in
   several colours, an icon looked up by what it draws — and boxes you tick.
 - **Attachments that travel with it**: pictures, PDFs, sound and film, kept
@@ -383,10 +383,10 @@ beside the text rather than in it, so copying takes the code and nothing else.
 A block can carry a name; one whose language is `mermaid` draws the diagram it
 describes
 underneath — redrawn when you turn the light on or off — and one that says
-`math` sets the formula it holds. One that says `widget` is drawn as a small
-page — HTML, styles and a little script if you like — sealed off from the
-network and from the window, and an `.html` file attached to a document is drawn
-the same way.
+`math` sets the formula it holds. One that says `widget` is drawn as a fixed
+view, HTML and CSS and nothing else, the same wherever the document is read. What
+has to run goes in an `.html` file attached to the document, which Tisty runs in
+a frame of its own, away from the network and from the window.
 
 **A web link on a line of its own is drawn as a card**, made from the address
 itself — the site's name and the words you wrote. Nothing is fetched to draw it.

@@ -1217,7 +1217,6 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         news::news_seen,
         answers::settings::notices,
         answers::settings::licences,
-        widgets::widget_lend,
         widgets::widget_lend_kept,
         widgets::widget_take_back,
         answers::settings::settings,

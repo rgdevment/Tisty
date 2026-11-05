@@ -234,11 +234,10 @@ const trial = async (name, port, extraArgs) => {
     await until(() => opener.run(`document.readyState === "complete" && Boolean(window.__TAURI_INTERNALS__)`));
     const written = await opener.run(`window.__TAURI_INTERNALS__.invoke("attach", { path: ${JSON.stringify(pageFile)} })`);
     const reference = written.slice(written.lastIndexOf("(") + 1, written.lastIndexOf(")"));
-    const widget = await shownInItsOwnWindow(port, opener, { source: body });
     const page = await shownInItsOwnWindow(port, opener, { reference });
     await sleep(WIDGET_TAKES);
-    const said = { widget: await widget.run("window.__heard"), page: await page.run("window.__heard") };
-    for (const one of [widget, page, opener]) one.close();
+    const said = await page.run("window.__heard");
+    for (const one of [page, opener]) one.close();
     return { reached, said };
   } finally {
     spawnSync("taskkill", ["/F", "/T", "/PID", String(running.pid)], { stdio: "ignore" });
@@ -264,8 +263,7 @@ if (!fs.existsSync(appExe)) {
   process.exit(2);
 }
 
-const ran = (trialResult) =>
-  ["widget", "page"].every((kind) => trialResult.said[kind]?.[0]?.rtc === "function");
+const ran = (trialResult) => trialResult.said?.[0]?.rtc === "function";
 
 const closed = await trial("closed", FIRST_DEBUG_PORT, []);
 const reopened = await trial("reopened", FIRST_DEBUG_PORT + 1, ["--webrtc-ip-handling-policy=default", '--host-resolver-rules=""']);
@@ -277,7 +275,7 @@ console.log("with the arguments undone, reached:", reopened.reached);
 
 const failures = [
   !ran(closed) && "the hostile code never ran, so nothing was proved",
-  Object.keys(closed.reached).length > 0 && "a widget reached the network",
+  Object.keys(closed.reached).length > 0 && "a page reached the network",
   !silent && "the engine opened a connection of its own",
   !Object.keys(reopened.reached).length && "with the arguments undone nothing got out either, so this test proves nothing",
 ].filter(Boolean);

@@ -299,7 +299,7 @@ Todo esto se dibuja con código que viaja dentro de Tisty. No se pide nada a int
 
 #### Widgets
 
-Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, estilos y, si quieres, algo de script. Corre aislado, sin red y con los colores de Tisty, y trae clases listas como `grid`, `stat`, `card` o `badge`, así que con HTML sencillo ya se ve bien. El código queda plegado; ábrelo con «Ver código».
+Un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, HTML y CSS y nada más. No ejecuta nada ni nombra nada fuera de sí mismo, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae clases listas como `grid`, `stat`, `card` o `badge`, así que con HTML sencillo ya se ve bien. El código queda plegado; ábrelo con «Ver código».
 
 ```widget title="Rina este mes"
 <div class="grid">
@@ -309,7 +309,7 @@ Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, e
 </div>
 ```
 
-Si el widget crece mucho, adjúntalo: un archivo `.html` adjunto a un documento se dibuja igual.
+Lo que tenga que ejecutarse va en un archivo `.html` adjunto al documento, que Tisty ejecuta en su propio marco.
 
 #### Archivos, sonido y video
 

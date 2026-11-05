@@ -259,7 +259,6 @@ dose = \frac{weight \times 0.5}{2}
     <li><span class="box done"></span><span class="gone">Ticks</span></li>
     <li><span class="box"></span>Ears</li>
   </ul>
-  <div class="row"><button class="primary">Done</button><button>Later</button></div>
 </div>
 ```
 
@@ -285,7 +284,7 @@ Data:
 
 ![Walks in October](walks.csv)
 
-A page of HTML, drawn as a widget:
+A page of HTML, attached and run in a frame of its own:
 
 ![Walks in October](walks.html)
 

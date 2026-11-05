@@ -83,11 +83,12 @@ fn no_window_is_built_but_through_the_one_that_cuts_the_engine_off() {
 }
 
 #[test]
-fn a_lent_widget_is_served_inside_its_own_fence() {
+fn a_kept_fragment_is_served_inside_its_own_fence() {
     let lent = Lent::default();
     let id = lent
-        .lend("<div class=\"stat\"><b>4</b></div>".into())
-        .unwrap();
+        .lend_kept("<div class=\"stat\"><b>4</b></div>".into())
+        .unwrap()
+        .id;
 
     let answer = lent.shown(&asked(&format!("/{id}")));
 
@@ -95,7 +96,7 @@ fn a_lent_widget_is_served_inside_its_own_fence() {
     assert_eq!(
         answer.headers()[header::CONTENT_SECURITY_POLICY],
         FENCED,
-        "a widget served without its own policy inherits whatever the frame allows"
+        "a page served without its own policy inherits whatever the frame allows"
     );
     let page = said(&answer);
     assert!(page.contains("<div class=\"stat\"><b>4</b></div>"));
@@ -126,7 +127,7 @@ fn the_fence_lets_no_request_out() {
 #[test]
 fn a_dark_window_asks_for_the_dark_page() {
     let lent = Lent::default();
-    let id = lent.lend("<p>x</p>".into()).unwrap();
+    let id = lent.lend_kept("<p>x</p>".into()).unwrap().id;
 
     let page = said(&lent.shown(&asked(&format!("/{id}?dark=1"))));
 
@@ -141,7 +142,7 @@ fn nothing_is_served_for_a_name_never_lent_or_already_taken_back() {
     assert_eq!(unknown.headers()[header::CONTENT_SECURITY_POLICY], FENCED);
     assert!(said(&unknown).is_empty());
 
-    let id = lent.lend("<p>gone</p>".into()).unwrap();
+    let id = lent.lend_kept("<p>gone</p>".into()).unwrap().id;
     lent.take_back(&id);
     assert_eq!(
         lent.shown(&asked(&format!("/{id}"))).status(),
@@ -151,19 +152,11 @@ fn nothing_is_served_for_a_name_never_lent_or_already_taken_back() {
 }
 
 #[test]
-fn a_widget_past_the_ceiling_is_refused() {
-    let lent = Lent::default();
-    let refused = lent.lend("x".repeat(LENT_AT_MOST + 1)).unwrap_err();
-    assert_eq!(refused.code, "widgetTooBig");
-    assert!(lent.lend("x".repeat(LENT_AT_MOST)).is_ok());
-}
-
-#[test]
 fn no_more_than_so_many_are_held_at_once_and_the_oldest_goes_first() {
     let lent = Lent::default();
-    let first = lent.lend("<p>first</p>".into()).unwrap();
+    let first = lent.lend_kept("<p>first</p>".into()).unwrap().id;
     for _ in 0..OUT_AT_ONCE {
-        lent.lend("<p>more</p>".into()).unwrap();
+        lent.lend_kept("<p>more</p>".into()).unwrap();
     }
     assert_eq!(lent.out.lock().unwrap().len(), OUT_AT_ONCE);
     assert_eq!(
@@ -515,8 +508,8 @@ fn a_page_that_loads_again_reads_its_theme_from_its_address() {
 #[test]
 fn what_a_closed_window_borrowed_is_taken_back_and_nothing_else() {
     let lent = Lent::default();
-    let its = lent.lend("<p>apart</p>".into()).unwrap();
-    let kept = lent.lend("<p>main</p>".into()).unwrap();
+    let its = lent.lend_kept("<p>apart</p>".into()).unwrap().id;
+    let kept = lent.lend_kept("<p>main</p>".into()).unwrap().id;
     lent.owned_by("view-3", &its);
     lent.owned_by("main", &kept);
 
@@ -531,9 +524,9 @@ fn what_a_closed_window_borrowed_is_taken_back_and_nothing_else() {
 }
 
 #[test]
-fn only_a_widget_shown_on_its_own_measures_how_far_it_reaches() {
+fn only_a_page_shown_on_its_own_measures_how_far_it_reaches() {
     let lent = Lent::default();
-    let id = lent.lend("<p>x</p>".into()).unwrap();
+    let id = lent.lend_kept("<p>x</p>".into()).unwrap().id;
 
     assert!(said(&lent.shown(&asked(&format!("/{id}?span=1")))).contains("type:\"span\""));
     assert!(!said(&lent.shown(&asked(&format!("/{id}")))).contains("type:\"span\""));

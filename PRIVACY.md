@@ -282,16 +282,19 @@ of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
 If LinkUnbound is installed, a web link is handed to it instead, so it can ask
 which browser to use; nothing else changes, and nothing leaves through Tisty.
 
-A widget in a document, or an attached `.html` page, is drawn by its own code
-in a frame that is allowed no network at all: it cannot fetch anything, load a
-picture from an address or send what it shows anywhere. A link inside it opens
-your browser only when you click it, like any other.
+A widget in a document is HTML and CSS and nothing else: it runs nothing, names
+nothing outside itself, and a block with anything more is shown as its code. An
+attached `.html` page runs its own code in a frame whose policy allows no
+network: it cannot fetch anything, load a picture from an address or send what
+it shows anywhere. On Windows its engine has no way out either; on macOS that has
+not been put to the test. A link inside a page opens your browser only when you
+click it, like any other.
 
 A Markdown file you open from outside — with *Open with*, or a
 `tisty://open?path=…` link — is shown read-only in a window of its own and stays
 out of your store until you choose *Edit in Tisty*. Such a link opens only a
-readable text file on this computer, and a widget inside that file is not run
-until you bring the file in.
+readable text file on this computer, and an attached page inside that file does
+not run until you bring the file in.
 
 Tisty's own screens carry a few links of their own: the repository, the pages
 for sponsorship and for a coffee, the AlternativeTo listing, the pages of the

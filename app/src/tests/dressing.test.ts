@@ -47,6 +47,7 @@ vi.mock("../inUse", () => ({
 }));
 
 vi.mock("../ui/widgeting", () => ({
+  notWidget: (source: string) => (source.includes("<script") ? "no widget" : null),
   lend: (_: HTMLElement, source: string) => {
     calls.lent.push(source);
     return {
@@ -221,17 +222,25 @@ describe("dressing a drawn page", () => {
     expect(drawn.querySelector("img")?.hasAttribute("src")).toBe(false);
   });
 
-  it("lends a widget of one's own and only says why for a file from outside", () => {
+  it("draws a widget wherever it comes from, since nothing in it can run", () => {
     const code =
       '<figure class="code" data-at="4-40"><pre><code class="language-widget">&lt;p&gt;hi&lt;/p&gt;</code></pre></figure>';
     const own = page(code);
-    const lent = widgets(own, false);
+    const lent = widgets(own);
     expect(lent).toHaveLength(1);
     expect(calls.lent).toEqual(["<p>hi</p>"]);
     expect(own.querySelector<HTMLElement>("figure.widget")?.dataset.at).toBe("4-40");
-    const theirs = page(code);
-    expect(widgets(theirs, true)).toHaveLength(0);
-    expect(theirs.querySelector(".lit-locked + figure.code")).not.toBeNull();
+  });
+
+  it("leaves what is no widget as its code and says why, drawing none of it", () => {
+    const written = page(
+      '<figure class="code" data-at="4-40"><pre><code class="language-widget">&lt;script&gt;a&lt;/script&gt;</code></pre></figure>',
+    );
+    expect(widgets(written)).toHaveLength(0);
+    expect(calls.lent).toEqual([]);
+    expect(written.querySelector("figure.widget")).toBeNull();
+    expect(written.querySelector("figure.code code")?.textContent).toBe("<script>a</script>");
+    expect(written.querySelector(".lit-locked")?.textContent).toBe("no widget");
   });
 
   it("gives a widget a bar with its name, and ways to its code and apart only where they lead", () => {
@@ -246,7 +255,7 @@ describe("dressing a drawn page", () => {
         apart.push("source" in lent ? lent.source : lent.reference),
     };
     const own = page(code);
-    widgets(own, false, reach);
+    widgets(own, reach);
     const bar = own.querySelector(".widget-bar");
     expect(bar?.querySelector(".widget-name")?.textContent).toBe("Rina");
     expect(
@@ -257,7 +266,7 @@ describe("dressing a drawn page", () => {
     answered(own, { kind: "apart", at: [4, 40] }, reach);
     expect(apart).toEqual(["<b>42</b>"]);
     const read = page(code);
-    widgets(read, false, { body: "", onDoc: () => {} });
+    widgets(read, { body: "", onDoc: () => {} });
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
   });
 

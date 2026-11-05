@@ -339,7 +339,7 @@ Un archivo que arrastras queda guardado dentro de Tisty y se nombra con un sello
 ![La cartilla de Rina](cartilla-9d02e4b7c1f3a85e.pdf)
 ```
 
-- Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo como un widget, y cualquier otro archivo como una ficha con su tipo y su tamaño, que lo abre.
+- Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo en su propio marco, y cualquier otro archivo como una ficha con su tipo y su tamaño, que lo abre.
 - El sello son de 8 a 16 caracteres hexadecimales en minúscula después del último guion, y el nombre entero va en minúsculas.
 - Los documentos escritos por un Tisty anterior que dicen `attachments/ab/nombre` se siguen leyendo; cuando el documento se reescribe, queda solo el nombre.
 - Cuando un documento se escribe en una carpeta, sus adjuntos van al lado y los enlaces apuntan a ellos.
@@ -424,7 +424,7 @@ Corre `npm run guide` y abre `target/guide`.
 
 ## Diagramas, fórmulas y widgets
 
-Tres lenguajes se dibujan en vez de mostrarse como código: `mermaid` para diagramas, `math` para fórmulas y `widget` para una pequeña página propia.
+Tres lenguajes se dibujan en vez de mostrarse como código: `mermaid` para diagramas, `math` para fórmulas y `widget` para una vista fija de HTML y CSS.
 
 ### Diagramas
 
@@ -550,14 +550,14 @@ $$
 
 ### Widgets
 
-Un bloque `widget` dibuja una pequeña página aislada, sin acceso a la red; su nombre va en `title`. Trae estilos listos para usar: `stat`, `card`, `grid`, `two`, `head`, `badge` (con `ok`, `warn` y `bad`), `list`, `box`, `up` y `down`, además de tablas y botones.
+Un bloque `widget` dibuja una vista fija, hecha solo de HTML y CSS; su nombre va en `title`. No ejecuta nada, nunca, ni nombra nada fuera de sí mismo, así que se ve igual donde se lea el documento. Trae estilos listos para usar: `stat`, `card`, `grid`, `two`, `head`, `badge` (con `ok`, `warn` y `bad`), `list`, `box`, `up` y `down`, además de tablas.
 
 ````markdown
 ```widget title="Rina este mes"
 <div class="grid">
   <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6</em></div>
   <div class="stat"><small>Kilómetros</small><b>61</b><em class="down">−3</em></div>
-  <div class="stat"><small>Vacunas</small><b>al día</b><span class="badge ok">listo</span></div>
+  <div class="stat"><small>Vacunas</small><b>al día</b><span class="badge ok">hecho</span></div>
 </div>
 ```
 ````
@@ -565,17 +565,19 @@ Un bloque `widget` dibuja una pequeña página aislada, sin acceso a la red; su 
 ````markdown
 ```widget title="Vasos de agua"
 <div class="card">
-  <div class="head"><h3>Hoy</h3><span class="badge" id="n">0</span></div>
-  <div class="row">
-    <button class="primary" onclick="n.textContent = +n.textContent + 1">Uno más</button>
-    <button onclick="n.textContent = 0">De nuevo</button>
-  </div>
+  <div class="head"><h3>Hoy</h3><span class="badge ok">6 de 8</span></div>
+  <details>
+    <summary>Por hora</summary>
+    <p>Dos antes del mediodía y cuatro después.</p>
+  </details>
 </div>
 ```
 ````
 
-- Puede llevar su propio `<script>`, que corre dentro del widget y nunca en el documento.
-- No alcanza la ventana que lo rodea ni los demás documentos, y un enlace dentro de él abre el navegador solo con un clic.
+- Puede llevar texto, listas, tablas, `<details>`, dibujos `<svg>`, imágenes escritas dentro como `data:image/…` y un `<style>` propio.
+- No lleva `<script>`, ni `onclick` u otro manejador, ni enlaces, botones o formularios, ni marcos, sonido o video, ni nada que venga de una dirección, ni en su HTML ni en su CSS.
+- Un bloque con cualquier otra cosa no es un widget: se muestra como su código, con lo que está mal, y no se dibuja nada de él. La llamada de un agente que lo escriba se rechaza.
+- Lo que tenga que ejecutarse va en una página `.html` adjunta, que solo Tisty ejecuta.
 
 GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 

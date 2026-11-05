@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "id", "bool", "whole", "time", "moment", "name", "line", "file_name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
+const PRIMITIVES = new Set(["text", "widget_body", "id", "bool", "whole", "time", "moment", "name", "line", "file_name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {
@@ -119,6 +119,21 @@ const styleRules = (one) =>
     return [on].flat().map((tag) => ({ on: tag, property, ...said }));
   });
 
+// What a diagram may draw, a widget may draw too, and the two lists stay one.
+const widgetFrom = ({ fields, values }, diagram) => {
+  const tags = Object.fromEntries(values.tags.map((tag) => [tag, values.attributes_on[tag] ?? []]));
+  for (const { tag, attributes } of diagram.draws) if (tag !== "figure") tags[tag] = attributes ?? [];
+  return {
+    tags,
+    anywhere: values.attributes,
+    starts: values.attribute_starts,
+    css_never: values.css_never,
+    policy: values.policy,
+    bytes: fields.body.bytes_at_most,
+    kit: readFileSync(join(here, "documents", "contains", "widget.css"), "utf8"),
+  };
+};
+
 const whole = {
   version: VERSION,
   contracts: Object.fromEntries(contracts.map((one) => [one.contract, one])),
@@ -134,6 +149,7 @@ const whole = {
   styles: contracts.flatMap(styleRules),
   html_rules: htmlRules,
   plays: names.get("attachment").values.plays,
+  widget: widgetFrom(names.get("widget"), names.get("diagram")),
 };
 
 const pascal = (name) => name.replace(/(^|_)([a-z])/g, (_, __, letter) => letter.toUpperCase());
@@ -186,6 +202,12 @@ const typescriptTypes = () => {
     "export declare function checkHtml(html: string): string[];",
     "export declare function referencesIn(html: string): { kind: string; at: number }[];",
     "export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];",
+    "/** What a widget may hold, how it is framed, and the kit it is dressed with. */",
+    "export declare const WIDGET: { tags: Record<string, string[]>; anywhere: string[]; starts: string[]; css_never: string[]; policy: string; bytes: number; kit: string };",
+    "/** What in a widget's body makes it no widget, as code: nothing when it holds. */",
+    "export declare function checkWidget(body: string): string[];",
+    "/** The whole page a reader gives the frame of a widget, the same in every reader. */",
+    "export declare function widgetPage(body: string, dark: boolean): string;",
     "/** What a file's first bytes say it is, if a reader may play it. Its name and its kind have no say. */",
     'export declare function playableAs(bytes: Uint8Array): { format: string; player: "audio" | "video"; type: string } | null;',
     "",
@@ -217,7 +239,7 @@ const typescriptCheck = () => {
 };
 
 const typescriptCheckTypes = () =>
-  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, check, checkHtml, referencesIn, picturesIn, playableAs } from "./index.js";\n';
+  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, WIDGET, check, checkHtml, checkWidget, widgetPage, referencesIn, picturesIn, playableAs } from "./index.js";\n';
 
 const typescriptCases = () => `import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -229,7 +251,7 @@ test("the check entry leaves out what a verdict does not read", () => {
   assert.equal(entry.CONTRACTS, undefined);
   const held = readFileSync(new URL("./check.js", import.meta.url), "utf8");
   assert.doesNotMatch(held, /"(cases|html_cases)":/);
-  assert.ok(held.length < 48 * 1024, "check.js holds " + held.length + " bytes");
+  assert.ok(held.length < 56 * 1024, "check.js holds " + held.length + " bytes");
 });
 
 test("the check entry says the same as the full one", () => {

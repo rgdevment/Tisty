@@ -1,6 +1,6 @@
 # Widgets
 
-A code block whose language is `widget` is drawn as a small page: HTML, styles and, if you like, a little script. It is how a document holds a dashboard, a counter, a small calculator — something more than text.
+A code block whose language is `widget` is drawn as a fixed view: HTML and CSS, and nothing else. It is how a document holds a panel of figures, a summary or a small table in Tisty's colours — something more than text, which stays as you wrote it.
 
 Every form, with its examples drawn the way Tisty draws them, is in the Tisty Markdown guide: [diagrams, formulas and widgets](https://markdown.tisty.app/diagrams-formulas-and-widgets#widgets).
 
@@ -11,13 +11,17 @@ Every form, with its examples drawn the way Tisty draws them, is in the Tisty Ma
 ````
 
 > [!NOTE]
-> GitHub does not run widgets, so this page shows the code. In Tisty the block above is drawn as a card with its figure.
+> GitHub does not draw widgets, so this page shows the code. In Tisty the block above is drawn as a card with its figure.
 
-## Sealed off
+## Fixed, and the same everywhere
 
-- A widget runs in a frame that is allowed **no network at all**: it cannot fetch anything, load a picture from an address, or send what it shows anywhere.
-- It cannot reach the window around it or your other documents.
-- A link inside it opens your browser only when you click it.
+- A widget **runs nothing, ever**: no script, no `onclick`, no button or form.
+- It **names nothing outside itself**: no link, no picture, font or style from an address, no frame, sound or video. A picture goes inside it, as `data:image/…`.
+- It looks the same wherever the document is read.
+
+## When a block is not a widget
+
+A block with anything else is not a widget. It is shown as its code, with what is wrong, and none of it is drawn. An agent that tries to write one is told why, and nothing is written.
 
 ## Ready-made classes
 
@@ -27,10 +31,10 @@ It comes with Tisty's colours and ready-made classes, so plain HTML already look
 
 The widget's code stays folded under the drawing. Open it with **Show code**.
 
-## When it grows: attach an `.html` file
+## When it has to run: attach an `.html` file
 
-If a widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way, sealed off just the same, and its bar lets you show it as an attachment again.
+A widget never runs anything. If something has to run, attach an `.html` file to the document: Tisty draws it live in a frame of its own, with no way into the window or your other documents, and its bar lets you show it as an attachment again. Only Tisty runs it.
 
 ## In a window of its own
 
-**Open apart**, on a widget or an attached `.html` page, opens it in a window of its own, sealed off just the same. Its bar sizes it as **Fit**, **Phone**, **Tablet** or **Desktop** (`Ctrl`/`⌘` + `1` to `4`), and **More** has **Reload**, **View code**, **Show in the document**, **Try it dark** and **Zoom to 100 %**.
+**Open apart**, on a widget or an attached `.html` page, opens it in a window of its own. Its bar sizes it as **Fit**, **Phone**, **Tablet** or **Desktop** (`Ctrl`/`⌘` + `1` to `4`), and **More** has **Reload**, **View code**, **Show in the document**, **Try it dark** and **Zoom to 100 %**.

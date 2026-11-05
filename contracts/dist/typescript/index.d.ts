@@ -1,4 +1,4 @@
-export declare const VERSION: "1.3.0";
+export declare const VERSION: "1.4.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -38,7 +38,7 @@ export interface Picture {
   height: number;
 }
 
-/** A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty. */
+/** A fixed view inside a document, made only of the HTML and CSS listed here. It runs nothing, ever, and names nothing outside itself, and every reader draws it the same. A block with anything else is no widget: a reader shows it as its code and says what is wrong, and never draws it in part. What has to run is an attached page, never a widget. */
 export interface Widget {
   title?: string;
   body: string;
@@ -277,5 +277,11 @@ export declare function check(contract: ContractName, value: unknown): string[];
 export declare function checkHtml(html: string): string[];
 export declare function referencesIn(html: string): { kind: string; at: number }[];
 export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];
+/** What a widget may hold, how it is framed, and the kit it is dressed with. */
+export declare const WIDGET: { tags: Record<string, string[]>; anywhere: string[]; starts: string[]; css_never: string[]; policy: string; bytes: number; kit: string };
+/** What in a widget's body makes it no widget, as code: nothing when it holds. */
+export declare function checkWidget(body: string): string[];
+/** The whole page a reader gives the frame of a widget, the same in every reader. */
+export declare function widgetPage(body: string, dark: boolean): string;
 /** What a file's first bytes say it is, if a reader may play it. Its name and its kind have no say. */
 export declare function playableAs(bytes: Uint8Array): { format: string; player: "audio" | "video"; type: string } | null;

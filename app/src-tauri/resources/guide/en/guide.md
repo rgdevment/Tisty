@@ -299,7 +299,7 @@ They are all drawn by code that ships inside Tisty. Nothing is fetched, and it w
 
 #### Widgets
 
-A block that says `widget` is drawn as a small page: HTML, styles and, if you like, a little script. It runs sealed off, with no network and in Tisty's colours, and it comes with classes such as `grid`, `stat`, `card` and `badge`, so plain HTML already looks right. Its code stays folded; open it with «Show code».
+A block that says `widget` is drawn as a fixed view, HTML and CSS and nothing else. It runs nothing and names nothing outside itself, so it reads the same wherever the document is read. It takes Tisty's colours and comes with classes such as `grid`, `stat`, `card` and `badge`, so plain HTML already looks right. Its code stays folded; open it with «Show code».
 
 ```widget title="Rina this month"
 <div class="grid">
@@ -309,7 +309,7 @@ A block that says `widget` is drawn as a small page: HTML, styles and, if you li
 </div>
 ```
 
-If the widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way.
+What has to run goes in an `.html` file attached to the document, which Tisty runs in a frame of its own.
 
 #### Files, sound and film
 

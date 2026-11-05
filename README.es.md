@@ -259,7 +259,7 @@ artificial**, esto es Tisty:
 | Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
 | Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
-| Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
+| Widgets | vistas fijas de HTML y CSS con los colores de Tisty, que no ejecutan ni alcanzan nada |
 | PDF | propio: A4, Carta u Oficio, con sus imágenes dentro |
 | Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
@@ -336,8 +336,8 @@ editor— y en Tisty lleva bastante más que texto:
   se inclinan sus columnas y con qué ancho las dibujaste, cuyas columnas pueden
   decir qué guardan —dinero, fechas, opciones, valoraciones, sí o no— y sumarse
   al pie, escritas en la página celda por celda.
-- **Widgets**: una pequeña página de HTML, estilos y un poco de script, dibujada
-  con los colores de Tisty y aislada de la red.
+- **Widgets**: una vista fija de HTML y CSS con los colores de Tisty, que no
+  ejecuta nada ni nombra nada fuera de sí misma.
 - **Avisos, marcadores e íconos** —los avisos que GitHub lee, marcadores de
   varios colores, un ícono que se busca por lo que dibuja— y casillas que se
   marcan.
@@ -394,9 +394,9 @@ numeradas al lado del texto y no dentro, así copiar se lleva el código y nada
 más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
 debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
 `math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
-pequeña página —HTML, estilos y, si quieres, un poco de script— aislada de la
-red y de la ventana, y un archivo `.html` adjunto a un documento se dibuja
-igual.
+vista fija, HTML y CSS y nada más, igual donde se lea el documento. Lo que tenga
+que ejecutarse va en un archivo `.html` adjunto al documento, que Tisty ejecuta
+en su propio marco, lejos de la red y de la ventana.
 
 **Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
 misma: el nombre del sitio y las palabras que escribiste. No se descarga nada

@@ -19,7 +19,6 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
-    if (cmd === "widget_lend") return Promise.resolve("w1");
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
@@ -170,7 +169,7 @@ describe("the viewer", () => {
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
     expect(screen.getByText(t("viewSealed"))).toBeTruthy();
-    await waitFor(() => expect(asked("widget_lend")).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector("iframe.lit-widget")).not.toBeNull());
   });
 });
 
@@ -353,8 +352,9 @@ describe("reading in the viewer", () => {
     await screen.findByRole("button", { name: t("viewPhone") });
 
     await userEvent.click(screen.getByRole("button", { name: t("viewTablet") }));
+    const drawnFirst = document.querySelector("iframe.lit-widget");
     await userEvent.click(screen.getByRole("button", { name: t("viewReload") }));
-    await waitFor(() => expect(asked("widget_lend").length).toBeGreaterThan(1));
+    await waitFor(() => expect(document.querySelector("iframe.lit-widget")).not.toBe(drawnFirst));
     await picked(t("viewDark"));
     await picked(t("viewCode"));
     expect(screen.getByText("<p>hola</p>")).toBeTruthy();

@@ -191,6 +191,10 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
                 out.push(wrong("is not the name of a file"));
             }
         }
+        "widget_body" => match value.as_str() {
+            Some(body) => out.extend(check_widget(body).into_iter().map(|one| format!("{at} holds {one}"))),
+            None => out.push(wrong("is not text")),
+        },
         "text" => {
             if !value.is_string() {
                 out.push(wrong("is not text"));
@@ -653,6 +657,118 @@ pub struct Playable {
     pub format: String,
     pub player: String,
     pub media_type: String,
+}
+
+fn bare_of(said: &str) -> String {
+    said.chars().filter(|one| *one > ' ').collect()
+}
+
+// Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
+fn wrong_in_css(all: &Value, css: &str) -> Vec<String> {
+    let said = css.to_ascii_lowercase();
+    let mut out: Vec<String> = all["widget"]["css_never"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|one| said.contains(one))
+        .map(str::to_owned)
+        .collect();
+    let mut from = 0;
+    while let Some(found) = said[from..].find("url(") {
+        let at = from + found + 4;
+        let close = said[at..].find(')').map_or(said.len(), |end| at + end);
+        let held = bare_of(&said[at..close]);
+        let inside = held.strip_prefix(['"', '\'']).unwrap_or(&held);
+        if !inside.starts_with('#') && !inside.starts_with("data:image/") {
+            out.push(format!("url({})", inside.chars().take(40).collect::<String>()));
+        }
+        from = at;
+    }
+    out
+}
+
+fn sheets_in(html: &str) -> Vec<&str> {
+    let low = html.to_ascii_lowercase();
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(found) = low[from..].find("<style") {
+        let at = from + found;
+        let Some(opens) = low[at..].find('>').map(|end| at + end) else {
+            break;
+        };
+        let close = low[opens..].find("</style").map_or(html.len(), |end| opens + end);
+        out.push(&html[opens + 1..close]);
+        from = at + 1;
+    }
+    out
+}
+
+fn holds_picture(value: &str) -> bool {
+    !value.contains('&') && bare_of(value).to_ascii_lowercase().starts_with("data:image/")
+}
+
+fn wrong_in_tag(all: &Value, tag: &str, attributes: &[(String, String)]) -> Vec<String> {
+    let widget = &all["widget"];
+    let starts_as = |name: &str| {
+        widget["starts"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .any(|one| name.starts_with(one))
+    };
+    let mut out = Vec::new();
+    for (name, value) in attributes {
+        let listed = listed(&widget["anywhere"], name) || listed(&widget["tags"][tag], name) || starts_as(name);
+        if !listed {
+            out.push(format!("<{tag} {name}>"));
+        } else if name == "src" && !holds_picture(value) {
+            out.push(format!("<{tag} src>"));
+        } else if name == "style" {
+            if value.contains('&') {
+                out.push(format!("<{tag} style>"));
+            }
+            out.extend(wrong_in_css(all, value));
+        } else if listed_paint(all, name) && wrong_paint(value) {
+            out.push(format!("<{tag} {name}>"));
+        }
+    }
+    out
+}
+
+fn listed_paint(all: &Value, name: &str) -> bool {
+    listed(&all["urls"]["paints"], name)
+}
+
+/// What in a widget's body makes it no widget, as code: nothing when it holds.
+pub fn check_widget(body: &str) -> Vec<String> {
+    let all = whole();
+    let mut out: Vec<String> = Vec::new();
+    for Opened { tag, attributes, unclosed } in opened(body) {
+        if tag == "!" {
+            out.push("<!".to_owned());
+        } else if tag == "/" {
+            out.push("</".to_owned());
+        } else if let Some(closed) = tag.strip_prefix("</") {
+            if all["widget"]["tags"].get(closed).is_none() {
+                out.push(format!("{tag}>"));
+            }
+        } else if all["widget"]["tags"].get(tag.as_str()).is_none() {
+            out.push(format!("<{tag}>"));
+        } else {
+            if unclosed {
+                out.push(format!("<{tag} \""));
+            }
+            out.extend(wrong_in_tag(all, &tag, &attributes));
+        }
+    }
+    for sheet in sheets_in(body) {
+        out.extend(wrong_in_css(all, sheet));
+    }
+    let mut seen = std::collections::HashSet::new();
+    out.retain(|one| seen.insert(one.clone()));
+    out
 }
 
 fn says(bytes: &[u8], at: usize, said: &[u8]) -> bool {

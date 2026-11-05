@@ -468,7 +468,6 @@ export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Pro
   });
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
-export const widgetLend = (body: string): Promise<string> => invoke("widget_lend", { body });
 export type Borrowed = { id: string; whole: boolean };
 export const widgetLendKept = (reference: string): Promise<Borrowed> =>
   invoke("widget_lend_kept", { reference });

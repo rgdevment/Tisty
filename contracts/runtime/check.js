@@ -4,6 +4,7 @@ export const ALLOWED = WHOLE.allowed;
 export const PASSTHROUGH = WHOLE.passthrough;
 export const STYLES = WHOLE.styles;
 export const URLS = WHOLE.urls;
+export const WIDGET = WHOLE.widget;
 
 // A tag called constructor must not find what every object inherits.
 const own = (held, name) => (held && Object.hasOwn(held, name) ? held[name] : undefined);
@@ -82,6 +83,9 @@ const isTagWord = (said) =>
 const checkType = (type, value, at, out) => {
   if (type === "text") {
     if (typeof value !== "string") out.push(at + " is not text");
+  } else if (type === "widget_body") {
+    if (typeof value !== "string") out.push(at + " is not text");
+    else for (const one of checkWidget(value)) out.push(at + " holds " + one);
   } else if (type === "bool") {
     if (typeof value !== "boolean") out.push(at + " is not true or false");
   } else if (type === "whole") {
@@ -359,6 +363,77 @@ export function checkHtml(html) {
   }
   return [...new Set(out)];
 }
+
+const bareOf = (said) => [...said].filter((one) => one > " ").join("");
+
+// Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
+const wrongInCss = (css) => {
+  const said = lowered(css);
+  const out = WHOLE.widget.css_never.filter((one) => said.includes(one));
+  for (let at = said.indexOf("url("); at >= 0; at = said.indexOf("url(", at + 4)) {
+    const close = said.indexOf(")", at);
+    const inside = bareOf(said.slice(at + 4, close < 0 ? said.length : close)).replace(/^["']/, "");
+    if (!inside.startsWith("#") && !inside.startsWith("data:image/")) out.push("url(" + inside.slice(0, 40) + ")");
+  }
+  return out;
+};
+
+const sheetsIn = (html) => {
+  const low = lowered(html);
+  const out = [];
+  for (let at = low.indexOf("<style"); at >= 0; at = low.indexOf("<style", at + 1)) {
+    const opens = low.indexOf(">", at);
+    if (opens < 0) break;
+    const close = low.indexOf("</style", opens);
+    out.push(html.slice(opens + 1, close < 0 ? html.length : close));
+  }
+  return out;
+};
+
+const holdsPicture = (value) => !value.includes("&") && lowered(bareOf(value)).startsWith("data:image/");
+
+const wrongInTag = (tag, attributes) => {
+  const { tags, anywhere, starts } = WHOLE.widget;
+  const out = [];
+  for (const [name, value] of attributes) {
+    const listed = anywhere.includes(name) || own(tags, tag).includes(name) || starts.some((one) => name.startsWith(one));
+    if (!listed) out.push("<" + tag + " " + name + ">");
+    else if (name === "src" && !holdsPicture(value)) out.push("<" + tag + " src>");
+    else if (name === "style") {
+      if (value.includes("&")) out.push("<" + tag + " style>");
+      out.push(...wrongInCss(value));
+    } else if (WHOLE.urls.paints.includes(name) && wrongPaint(value)) out.push("<" + tag + " " + name + ">");
+  }
+  return out;
+};
+
+export function checkWidget(body) {
+  const out = [];
+  for (const { tag, attributes, unclosed } of opened(body)) {
+    if (tag === "!") out.push("<!");
+    else if (tag === "/") out.push("</");
+    else if (tag.startsWith("</")) {
+      if (!own(WHOLE.widget.tags, tag.slice(2))) out.push(tag + ">");
+    } else if (!own(WHOLE.widget.tags, tag)) out.push("<" + tag + ">");
+    else {
+      if (unclosed) out.push("<" + tag + ' "');
+      out.push(...wrongInTag(tag, attributes));
+    }
+  }
+  for (const sheet of sheetsIn(body)) out.push(...wrongInCss(sheet));
+  return [...new Set(out)];
+}
+
+export const widgetPage = (body, dark) =>
+  "<!doctype html><html" +
+  (dark ? ' class="dark"' : "") +
+  '><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' +
+  WHOLE.widget.policy +
+  '"><meta name="color-scheme" content="light dark"><style>' +
+  WHOLE.widget.kit +
+  '</style></head><body><main class="w">' +
+  body +
+  "</main></body></html>";
 
 const says = (bytes, at, said) => {
   for (let one = 0; one < said.length; one += 1) if (bytes[at + one] !== said.charCodeAt(one)) return false;

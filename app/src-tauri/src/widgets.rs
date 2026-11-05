@@ -5,7 +5,6 @@ use tauri::http::{Response, StatusCode, Uri, header};
 
 use crate::{Answer, Refusal, Session, finding, weighed};
 
-pub const LENT_AT_MOST: usize = 512 * 1024;
 pub const KEPT_AT_MOST: usize = 8 * 1024 * 1024;
 const OUT_AT_ONCE: usize = 256;
 
@@ -55,13 +54,6 @@ pub struct Lent {
 }
 
 impl Lent {
-    pub fn lend(&self, body: String) -> Answer<String> {
-        if body.len() > LENT_AT_MOST {
-            return Err(Refusal::about("widgetTooBig", weighed(LENT_AT_MOST as u64)));
-        }
-        Ok(self.held(body, Kind::Fenced))
-    }
-
     pub fn lend_kept(&self, body: Vec<u8>) -> Answer<Borrowed> {
         if body.len() > KEPT_AT_MOST {
             return Err(too_big_a_page());
@@ -154,21 +146,6 @@ impl Lent {
             .body(page.into_bytes())
             .unwrap_or_default()
     }
-}
-
-#[tauri::command]
-pub fn widget_lend(
-    window: tauri::WebviewWindow,
-    views: tauri::State<'_, crate::viewing::Views>,
-    lent: tauri::State<'_, Lent>,
-    body: String,
-) -> Answer<String> {
-    if views.stranger(window.label()) {
-        return Err(Refusal::of("notAllowed"));
-    }
-    let id = lent.lend(body)?;
-    lent.owned_by(window.label(), &id);
-    Ok(id)
 }
 
 fn too_big_a_page() -> Refusal {
@@ -284,8 +261,7 @@ pub fn paged(body: &str, spanned: bool) -> String {
     )
 }
 
-// The guide dresses its widgets from the same file, so a widget reads the same in both.
-const KIT: &str = include_str!("widget.css");
+const KIT: &str = include_str!("../../../contracts/documents/contains/widget.css");
 
 const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);const themed=()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")};themed();addEventListener("hashchange",themed);addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
 

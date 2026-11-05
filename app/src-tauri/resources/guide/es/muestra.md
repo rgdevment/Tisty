@@ -259,7 +259,6 @@ dosis = \frac{peso \times 0.5}{2}
     <li><span class="box done"></span><span class="gone">Garrapatas</span></li>
     <li><span class="box"></span>Orejas</li>
   </ul>
-  <div class="row"><button class="primary">Hecho</button><button>Después</button></div>
 </div>
 ```
 
@@ -285,7 +284,7 @@ Datos:
 
 ![Paseos de octubre](paseos.csv)
 
-Una página HTML, dibujada como widget:
+Una página HTML, adjunta y ejecutada en su propio marco:
 
 ![Paseos de octubre](paseos.html)
 

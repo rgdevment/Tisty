@@ -127,25 +127,29 @@ report will never be dismissed for being inconvenient.
   and never fetched. Neither lets remote code in: a blob has no origin to be
   loaded from, and there is no path by which one arrives.
 
-  The third does run code that was not shipped: a widget block in a document,
-  or an attached `.html` page, is drawn live — its own HTML, CSS and script —
-  in a frame of its own. That frame is sandboxed with scripts and nothing else,
-  so it has no origin and cannot reach into the window, and it is served under
-  a policy of its own that allows no network at all: no fetch, no remote
-  picture, font or frame, no form. An attached page that is a whole document
-  may also build scripts out of `blob:` and `data:` it makes itself, and frames
-  out of `blob:` only, which bundled pages need in order to unpack, and still
-  reaches no address.
+  The third does run code that was not shipped: an attached `.html` page is
+  drawn live — its own HTML, CSS and script — in a frame of its own. That frame
+  is sandboxed with scripts and nothing else, so it has no origin and cannot
+  reach into the window, and it is served under a policy of its own that allows
+  no network at all: no fetch, no remote picture, font or frame, no form. A page
+  that is a whole document may also build scripts out of `blob:` and `data:` it
+  makes itself, and frames out of `blob:` only, which bundled pages need in order
+  to unpack.
   A policy does not cover all an engine can do: WebRTC, `preconnect` and DNS
   prefetch go around it. So on Windows every window starts WebView2 with no name
   it can resolve and no WebRTC over UDP, and `scripts/widget-network.mjs` holds
-  a hostile widget to that in a real window. macOS has no such arguments and
+  a hostile page to that in a real window. macOS has no such arguments and
   WKWebView has not been put to that test, so there "no network" is the policy's
   word, not a proven fact.
-  All it can say to the window is how tall it is and which link was clicked
-  inside it, and a link is opened only after a real click there. A widget is as
-  trustworthy as the document that carries it, and a document can arrive
-  through the shared folder or in a parcel.
+  All a page can say to the window is how tall it is and which link was clicked
+  inside it, and a link is opened only after a real click there. A page is as
+  trustworthy as the document that carries it, and a document can arrive through
+  the shared folder or in a parcel.
+
+  A widget block is not code at all. It is HTML and CSS from a list the contract
+  fixes, and a block with anything else is shown as its code and never drawn in
+  part. What passes is drawn in a frame with no scripts, under a policy that lets
+  it load nothing, so a widget runs nothing and reaches nothing, whoever wrote it.
 
 ## What it deliberately does not protect
 
