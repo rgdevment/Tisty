@@ -106,6 +106,23 @@ fn is_name(said: &str) -> bool {
 const BASE64URL: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const WHOLE_AT_MOST: u64 = (1 << 53) - 1;
 
+const SMALL_ORDER: [&str; 14] = [
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+    "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+    "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_AU",
+    "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_IU",
+    "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o",
+    "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA_o",
+    "7P_______________________________________38",
+    "7P________________________________________8",
+    "7f_______________________________________38",
+    "7f________________________________________8",
+    "7v_______________________________________38",
+    "7v________________________________________8",
+];
+
 // The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
 fn base64url_of(said: &str, length: usize, spare: usize) -> bool {
     said.len() == length
@@ -220,7 +237,7 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
             }
         }
         "key" => {
-            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4) && !SMALL_ORDER.contains(&one)) {
                 out.push(wrong("is not a key"));
             }
         }

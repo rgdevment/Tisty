@@ -5,7 +5,7 @@ says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
   no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages, pictures, files, files_hash, cited, languages, signed_as]
+except: [pages, pictures, files, files_hash, cited, languages, signed_as, owner_name]
 fields:
   page_of: { type: id, required: true, at_most: 64, says: "The document it is a page of: its id, always." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
@@ -126,12 +126,14 @@ values:
     SHA-256 of tisty-share.person.v1, a zero byte and the root, whose first 9 bytes as a number, shifted right 6 bits, are
     written as 20 digits in four groups of five. Two people can read it to each other, and it is how a person is told apart.
   one_spelling: "Keys, hashes and signatures have one base64url spelling: the spare bits of the last character are zero."
+  small_order: "A key of small order answers for anything signed with it, and not every library refuses one, so a reader in a browser would open what a reader in Rust refuses. No key is one: the check refuses them all, in every spelling."
 fields:
   root: { type: key, required: true }
   machine: { type: key, required: true }
   since: { type: time, required: true }
   certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
   signed: { type: signed, required: true, says: "The machine's signature over the manifest and the index." }
+  permit_signed: { type: signed, says: "The edit token's signature, when this root is not the owner's." }
 cases:
   - says: "A whole signature."
     value:
@@ -141,11 +143,54 @@ cases:
       certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: true
+  - says: "A root of small order, which answers for anything."
+    value:
+      root: "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
   - says: "A date with a fraction of a second, which nobody signed."
     value:
       root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       since: "2026-11-03T12:00:00.5Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
+contract: owner
+group: documents
+checked_by: [writer, server, reader]
+says: >-
+  Who owns what is sealed, and who may edit it. It answers for the document and never for its words: an editor signs each
+  version, and the owner's signature says only that this root owns this id and let this permit edit it. A version holds if its
+  signature is under this root, or if it brings a permit_signed that holds against this permit.
+fields:
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  since: { type: time, required: true }
+  certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
+  permit: { type: key, says: "The public key of the edit token. Left out, only this root signs versions." }
+  name_tag: { type: hash, required: true, says: "What ties its owner_name and this block to the link's key: no one without the key can make one." }
+  signed: { type: signed, required: true, says: "The machine's signature over the id, the permit and the name_tag." }
+cases:
+  - says: "An owner who let someone edit."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      permit: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      name_tag: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "An owner with nothing tying it to the link."
+    value:
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
       certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: false
@@ -189,7 +234,7 @@ says: >-
   trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
 fields:
   received: { type: time, says: "When the server received this version. Nothing in the document can write this date." }
-  revocations: { type: list, of: revocation, says: "What the root of its signature has revoked, as far as the server knows." }
+  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines." }
 cases:
   - says: "A version received, with nothing revoked."
     value: { received: "2026-11-03T12:00:00Z", revocations: [] }

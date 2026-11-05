@@ -18,6 +18,7 @@ const VECTORS: &str = include_str!("../vectors.json");
 
 // This reader's own, and no number of the contract's: each reader knows what it can hold.
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
+const FIRST_SHARED: (&str, u64) = ("1", 2);
 
 pub struct Opened {
     pub manifest: Vec<u8>,
@@ -68,10 +69,93 @@ fn opens_here(said: &str) -> bool {
         return said == VERSION;
     }
     let major = |version: &'static str| version.split('.').next().unwrap_or_default();
-    said.split('.').next().unwrap_or_default() == major(VERSION)
+    let said_major = said.split('.').next().unwrap_or_default();
+    said_major == major(VERSION) && minor_of(said).is_some_and(|minor| said_major != FIRST_SHARED.0 || minor >= FIRST_SHARED.1)
+}
+
+fn minor_of(said: &str) -> Option<u64> {
+    let written = said.split('.').nth(1)?;
+    written.parse().ok().filter(|one: &u64| one.to_string() == written)
+}
+
+fn under_a_later_minor(bytes: &[u8]) -> bool {
+    let Some(size) = bytes.get(4..8).map(|one| u32::from_be_bytes(one.try_into().unwrap()) as usize) else {
+        return false;
+    };
+    let Some(manifest) = bytes.get(8..8 + size).and_then(|one| serde_json::from_slice::<Value>(one).ok()) else {
+        return false;
+    };
+    let said = manifest["contract"].as_str().unwrap_or_default();
+    let major = |version: &str| version.split('.').next().unwrap_or_default().to_owned();
+    !said.contains('-') && major(said) == major(VERSION) && minor_of(said) > minor_of(VERSION)
+}
+
+fn told_apart<T>(bytes: &[u8], result: Result<T, String>) -> Result<T, String> {
+    result.map_err(|wrong| if under_a_later_minor(bytes) { "newer: update to read it".to_owned() } else { wrong })
+}
+
+// The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
+fn owner_answers(manifest: &Value, signature: &Value, manifest_bytes: &[u8], index: &[u8]) -> Result<(), String> {
+    let owner = &manifest["owner"];
+    let root = b64(&owner["root"]);
+    let machine = b64(&owner["machine"]);
+    let since = seconds(owner["since"].as_str().unwrap());
+    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &since.to_be_bytes()].concat();
+    verified(&root, &b64(&owner["certificate"]), &certified)?;
+    let id = manifest["id"].as_str().unwrap().as_bytes();
+    let permit = if owner["permit"].is_string() { b64(&owner["permit"]) } else { vec![0; 32] };
+    let about = b"owner";
+    let said = [
+        b"tisty-share.signed.v1\0".as_slice(),
+        &root,
+        &machine,
+        &(about.len() as u64).to_be_bytes(),
+        about,
+        &(id.len() as u64).to_be_bytes(),
+        id,
+        &permit,
+        &b64(&owner["name_tag"]),
+    ]
+    .concat();
+    verified(&machine, &b64(&owner["signed"]), &said)?;
+    if owner["root"] == signature["root"] {
+        return Ok(());
+    }
+    if !owner["permit"].is_string() || !signature["permit_signed"].is_string() {
+        return Err("another root needs its owner's permit".into());
+    }
+    let hash = Sha256::digest(manifest_bytes);
+    let said = [
+        b"tisty-share.permit.v1\0".as_slice(),
+        &b64(&signature["root"]),
+        &b64(&signature["machine"]),
+        &hash,
+        index,
+    ]
+    .concat();
+    verified(&permit, &b64(&signature["permit_signed"]), &said)
+}
+
+fn owner_name_holds(manifest: &Value, first: &[u8], link_key: &[u8]) -> Result<(), String> {
+    let id = manifest["id"].as_str().unwrap().as_bytes();
+    let first: Value = serde_json::from_slice(first).map_err(|_| "its words")?;
+    let mut tag = Hmac::<Sha256>::new_from_slice(link_key).unwrap();
+    tag.update(b"tisty-owner-name\0");
+    tag.update(&(id.len() as u64).to_be_bytes());
+    tag.update(id);
+    tag.update(first["owner_name"].as_str().unwrap_or_default().as_bytes());
+    if tag.finalize().into_bytes().as_slice() == b64(&manifest["owner"]["name_tag"]) {
+        Ok(())
+    } else {
+        Err("its owner's name is not the one its owner signed".into())
+    }
 }
 
 pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+    told_apart(bytes, opened_as_said(bytes, asked, link_key))
+}
+
+fn opened_as_said(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     if bytes.len() < 4 || &bytes[..4] != b"TENV" {
         return Err("its mark".into());
     }
@@ -146,6 +230,9 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     verified(&machine, &b64(&signature["signed"]), &said)?;
 
     let sealed = manifest["sealed"] == true;
+    if sealed {
+        owner_answers(&manifest, &signature, manifest_bytes, index)?;
+    }
     let cipher = if sealed {
         let link_key = link_key.ok_or("no key")?;
         let head = b64(&manifest["head"]);
@@ -202,6 +289,9 @@ pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Res
     if piece(1).is_ok() {
         return Err("something follows its parts".into());
     }
+    if sealed && asked.1 == "main" {
+        owner_name_holds(&manifest, &out[0], link_key.ok_or("no key")?)?;
+    }
     Ok(Opened { manifest: manifest_bytes.to_vec(), index: index.to_vec(), parts: out })
 }
 
@@ -244,7 +334,7 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     };
     let first = words(&main.parts[0])?;
     let rest = words(&main.parts[1])?;
-    if first.contains_key("body") || first.contains_key("pages") || rest.keys().any(|one| one != "body" && one != "pages") {
+    if first.contains_key("body") || first.contains_key("pages") || rest.keys().any(|one| first.contains_key(one)) {
         return Err("a part says what is not its own".into());
     }
     let held = document_of(main);
@@ -254,6 +344,9 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     }
     if held["id"] != manifest["id"] {
         return Err("another document inside".into());
+    }
+    if manifest["sealed"] != true && held.get("owner_name").is_some() {
+        return Err("what is public has nothing to answer for its owner's name".into());
     }
     let empty = Vec::new();
     let pictures = held["pictures"].as_array().unwrap_or(&empty);
@@ -288,11 +381,15 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
 
 pub fn reading(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<(Opened, Value), String> {
     let main = opened(bytes, asked, link_key)?;
-    let held = document_in(&main)?;
+    let held = told_apart(bytes, document_in(&main))?;
     Ok((main, held))
 }
 
 pub fn files_for(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+    told_apart(bytes, files_as_said(held, bytes, asked, link_key))
+}
+
+fn files_as_said(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     let files = opened(bytes, asked, link_key)?;
     let hash = Sha256::digest([files.manifest.as_slice(), &files.index].concat());
     if URL_SAFE_NO_PAD.encode(hash) != held["files_hash"].as_str().unwrap_or_default() {
@@ -371,12 +468,18 @@ pub fn picture_holds(bytes: &[u8], said: &Value) -> bool {
 
 // The first two parts of a main envelope are its words; what follows them is pictures.
 pub fn document_of(opened: &Opened) -> Value {
-    let mut out = Map::new();
-    for part in &opened.parts[..2] {
+    let fields = |part: &[u8]| -> Map<String, Value> {
         let Value::Object(fields) = serde_json::from_slice(part).unwrap() else {
             panic!("the words of a main envelope are an object");
         };
-        out.extend(fields);
+        fields
+    };
+    let mut out = fields(&opened.parts[0]);
+    let mut rest = fields(&opened.parts[1]);
+    for name in ["body", "pages"] {
+        if let Some(said) = rest.remove(name) {
+            out.insert(name.to_owned(), said);
+        }
     }
     Value::Object(out)
 }
@@ -450,6 +553,91 @@ fn a_revocation_is_signed_by_the_root() {
     let at = seconds(said["at"].as_str().unwrap());
     let signed = [b"tisty-share.revocation.v1\0".as_slice(), &root, &b64(&said["machine"]), &at.to_be_bytes()].concat();
     verified(&root, &b64(&said["signed"]), &signed).unwrap();
+}
+
+#[test]
+fn only_its_owner_or_who_holds_its_token_signs_a_version() {
+    let all = vectors();
+    let editing = &all["editing"];
+    let id = editing["id"].as_str().unwrap();
+    let key = b64(&all["link_key"]);
+    for one in editing["opens"].as_array().unwrap() {
+        let bytes = hex(&one["envelope"]);
+        assert!(reading(&bytes, (id, "main"), Some(&key)).is_ok(), "{}", one["says"]);
+    }
+    for one in editing["refused"].as_array().unwrap() {
+        let bytes = hex(&one["envelope"]);
+        assert!(reading(&bytes, (id, "main"), Some(&key)).is_err(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn what_a_rest_says_beyond_its_body_and_pages_is_left_aside() {
+    let all = vectors();
+    let id = all["editing"]["id"].as_str().unwrap();
+    let bytes = hex(&all["editing"]["rest_left_aside"]);
+    let (_, held) = reading(&bytes, (id, "main"), Some(&b64(&all["link_key"]))).unwrap();
+    assert!(held.get("owner_name").is_none());
+    assert!(held.get("title").is_none());
+    assert_eq!(held["body"], "a");
+}
+
+#[test]
+fn under_a_later_minor_files_that_do_not_fit_read_as_newer() {
+    let all = vectors();
+    let said = &all["newer_files"];
+    let wrong = files_for(&said["document"], &hex(&said["files"]), ("hostile", "files"), None).err().unwrap();
+    assert!(wrong.starts_with("newer"), "{wrong}");
+}
+
+#[test]
+fn under_a_later_minor_what_it_would_refuse_reads_as_newer() {
+    let all = vectors();
+    for one in all["newer_than_this"].as_array().unwrap() {
+        let wrong = reading(&hex(&one["envelope"]), ("hostile", "main"), None).err().unwrap();
+        assert!(wrong.starts_with("newer"), "{}: {wrong}", one["says"]);
+    }
+}
+
+#[test]
+fn what_comes_before_the_first_version_shared_is_too_old_never_damaged() {
+    let all = vectors();
+    let said = &all["before_the_first_shared"];
+    let bytes = hex(&said["envelope"]);
+    let wrong = reading(&bytes, (said["id"].as_str().unwrap(), "main"), Some(&b64(&all["link_key"]))).err().unwrap();
+    assert!(wrong.contains("version"), "{wrong}");
+}
+
+#[test]
+fn no_key_of_small_order_passes() {
+    let all = vectors();
+    for one in all["small_order"].as_array().unwrap() {
+        let said = serde_json::json!({ "root": one, "machine": all["signed_by"]["machine"], "at": "2026-11-03T12:00:00Z", "signed": all["revocation"]["signed"] });
+        assert!(!check("revocation", &said).is_empty(), "{one}");
+    }
+}
+
+#[test]
+fn what_each_published_version_wrote_still_opens() {
+    let all = vectors();
+    for (version, said) in all["frozen"].as_object().unwrap() {
+        let key = b64(&said["link_key"]);
+        let (_, held) = reading(&hex(&said["main"]["envelope"]), MAIN, Some(&key)).expect(version);
+        assert_eq!(held, said["main"]["document"], "{version}");
+        files_for(&held, &hex(&said["files"]["envelope"]), FILES, Some(&key)).expect(version);
+        let (_, open) = reading(&hex(&said["public"]["envelope"]), PUBLIC, None).expect(version);
+        assert_eq!(open, said["public"]["document"], "{version}");
+    }
+}
+
+#[test]
+fn a_revocation_of_its_owner_s_machine_weighs_on_what_an_editor_signed() {
+    let all = vectors();
+    let said = &all["editing"]["owner_revoked"];
+    let id = all["editing"]["id"].as_str().unwrap();
+    let opened = opened(&hex(&said["envelope"]), (id, "main"), Some(&b64(&all["link_key"]))).unwrap();
+    let manifest: Value = serde_json::from_slice(&opened.manifest).unwrap();
+    assert_eq!(verdict_of(&manifest["owner"], &said["served"]), said["verdict"]);
 }
 
 #[test]

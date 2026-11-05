@@ -8,6 +8,7 @@ use zeroize::Zeroizing;
 const CERTIFIED: &[u8] = b"tisty-share.certificate.v1\0";
 const REVOKED: &[u8] = b"tisty-share.revocation.v1\0";
 const SIGNED: &[u8] = b"tisty-share.signed.v1\0";
+const PERMITTED: &[u8] = b"tisty-share.permit.v1\0";
 const FINGERPRINT: &[u8] = b"tisty-share.person.v1\0";
 const SUFFIX: &[u8] = b"tisty-share.suffix.v1\0";
 
@@ -84,6 +85,44 @@ impl ShareKey {
             sig: encoded(&self.0.sign(&message(about, &vouched, said)).to_bytes()),
         })
     }
+}
+
+/// The key an edit token is the seed of, so a link can sign without its token ever reaching the server.
+pub struct Permit(SigningKey);
+
+impl Permit {
+    pub fn from_token(token: &[u8; 32]) -> Self {
+        Self(SigningKey::from_bytes(token))
+    }
+
+    pub fn shown(&self) -> String {
+        encoded(self.0.verifying_key().as_bytes())
+    }
+
+    pub fn sign(&self, root: &str, machine: &str, said: &[u8]) -> Option<String> {
+        let message = permitted(root, machine, said)?;
+        Some(encoded(&self.0.sign(&message).to_bytes()))
+    }
+}
+
+pub fn permit_holds(permit: &str, signed: &str, root: &str, machine: &str, said: &[u8]) -> bool {
+    let (Some(key), Some(signed), Some(message)) = (
+        public_key(permit),
+        signature(signed),
+        permitted(root, machine, said),
+    ) else {
+        return false;
+    };
+    key.verify_strict(&message, &signed).is_ok()
+}
+
+// Who uploads is signed too, or anyone could put their own signature on an editor's version.
+fn permitted(root: &str, machine: &str, said: &[u8]) -> Option<Vec<u8>> {
+    let mut out = PERMITTED.to_vec();
+    out.extend_from_slice(&decoded::<32>(root)?);
+    out.extend_from_slice(&decoded::<32>(machine)?);
+    out.extend_from_slice(said);
+    Some(out)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -12,10 +12,10 @@ use rand_core::{OsRng, TryRngCore};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, PartName, Picture, Sealing,
-    Signature, VERSION, check, check_html, pictures_in, references_in,
+    Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, Owner, PartName, Picture,
+    Sealing, Signature, VERSION, check, check_html, pictures_in, references_in,
 };
-use tisty_share_proto::identity::{Certificate, ShareKey};
+use tisty_share_proto::identity::{self, Certificate, Permit, ShareKey, Signed};
 use zeroize::Zeroizing;
 
 pub(crate) const MARK: &[u8; 4] = b"TENV";
@@ -23,6 +23,9 @@ const TAG_BYTES: u64 = 16;
 const COMMITMENT: &[u8] = b"tisty-envelope-commit";
 const KEY_INFO: &[u8] = b"tisty-envelope-key";
 pub(crate) const ABOUT: &str = "envelope";
+pub(crate) const OWNER_ABOUT: &str = "owner";
+const NAME_TAG: &[u8] = b"tisty-owner-name\0";
+const NO_PERMIT: [u8; 32] = [0; 32];
 pub(crate) const MANIFEST_AT_MOST: usize = 16_384;
 pub(crate) const SIGNATURE_AT_MOST: usize = 2_048;
 
@@ -129,6 +132,60 @@ pub(crate) fn commitment_holds(link_key: &[u8], head: &[u8; 32], said: &[u8]) ->
     mac.update(COMMITMENT);
     mac.update(head);
     mac.verify_slice(said).is_ok()
+}
+
+pub(crate) fn name_tag(link_key: &[u8], id: &str, name: &str) -> Result<[u8; 32], Refused> {
+    let mut mac = Hmac::<Sha256>::new_from_slice(link_key).map_err(|_| Refused::LinkKey)?;
+    mac.update(NAME_TAG);
+    mac.update(&(id.len() as u64).to_be_bytes());
+    mac.update(id.as_bytes());
+    mac.update(name.as_bytes());
+    Ok(mac.finalize().into_bytes().into())
+}
+
+pub(crate) fn owner_said(id: &str, permit: Option<&[u8]>, tag: &[u8]) -> Vec<u8> {
+    let mut said = (id.len() as u64).to_be_bytes().to_vec();
+    said.extend_from_slice(id.as_bytes());
+    said.extend_from_slice(permit.unwrap_or(&NO_PERMIT));
+    said.extend_from_slice(tag);
+    said
+}
+
+// Sealing is the last look on this machine, so a block no reader would take goes no further.
+fn received_owner_holds(owner: &Owner, id: &str, tag: &[u8]) -> Result<(), Refused> {
+    checked("owner", &json!(owner))?;
+    let refused = Refused::DoesNotAdd("its owner's block does not hold");
+    let permit = owner
+        .permit
+        .as_deref()
+        .map(|one| URL_SAFE_NO_PAD.decode(one))
+        .transpose()
+        .map_err(|_| refused.clone())?;
+    let signed = Signed {
+        certificate: Certificate {
+            root: owner.root.clone(),
+            share: owner.machine.clone(),
+            since: owner.since.parse().map_err(|_| refused.clone())?,
+            sig: owner.certificate.clone(),
+        },
+        sig: owner.signed.clone(),
+    };
+    let said = owner_said(id, permit.as_deref(), tag);
+    match identity::check(&signed, OWNER_ABOUT, &said, &[]) {
+        identity::Verdict::Holds { .. } => Ok(()),
+        _ => Err(refused),
+    }
+}
+
+fn permit_of(token: &str) -> Result<Permit, Refused> {
+    let seed = Zeroizing::new(
+        URL_SAFE_NO_PAD
+            .decode(token)
+            .map_err(|_| Refused::DoesNotAdd("the token is not 32 bytes in base64url"))?,
+    );
+    let seed = <&[u8; 32]>::try_from(seed.as_slice())
+        .map_err(|_| Refused::DoesNotAdd("the token is not 32 bytes in base64url"))?;
+    Ok(Permit::from_token(seed))
 }
 
 pub(crate) fn cipher_of(link_key: &[u8], head: &[u8; 32]) -> Result<Aes256Gcm, Refused> {
@@ -357,6 +414,7 @@ impl<'a> Writer<'a> {
             ));
         }
         adds_up(&document, sealing)?;
+        let owner = self.owner_of(&document, sealing)?;
         pictures_are_what_they_say(document.pictures.as_deref().unwrap_or_default(), &pictures)?;
         files_are_what_they_say(&document, &files, sealing.files_hash.is_some())?;
         let files_envelope = if files.is_empty() {
@@ -367,7 +425,8 @@ impl<'a> Writer<'a> {
                 .into_iter()
                 .map(|one| as_it_is(PartName::File, one))
                 .collect();
-            let (bytes, hash) = self.envelope(EnvelopeKind::Files, parts, sealing)?;
+            let (bytes, hash) =
+                self.envelope(EnvelopeKind::Files, parts, sealing, owner.as_ref())?;
             document.files_hash = Some(URL_SAFE_NO_PAD.encode(hash));
             Some(bytes)
         };
@@ -391,7 +450,7 @@ impl<'a> Writer<'a> {
                 .into_iter()
                 .map(|one| as_it_is(PartName::Picture, one)),
         );
-        let (main, _) = self.envelope(EnvelopeKind::Main, parts, sealing)?;
+        let (main, _) = self.envelope(EnvelopeKind::Main, parts, sealing, owner.as_ref())?;
         Ok(Sealed {
             main,
             files: files_envelope,
@@ -399,11 +458,63 @@ impl<'a> Writer<'a> {
         })
     }
 
+    // What is public has no key to tie an owner to, so its signer still answers for it.
+    fn owner_of(&self, document: &Document, sealing: &Sealing) -> Result<Option<Owner>, Refused> {
+        let Some(link_key) = sealing.link_key.as_deref() else {
+            return if sealing.owner.is_some()
+                || sealing.token.is_some()
+                || document.owner_name.is_some()
+            {
+                Err(Refused::DoesNotAdd(
+                    "what is public has no owner's block yet",
+                ))
+            } else {
+                Ok(None)
+            };
+        };
+        let key = opening_of(link_key)?;
+        let name = document.owner_name.as_deref().unwrap_or_default();
+        let tag = name_tag(&key, &document.id, name)?;
+        if let Some(owner) = &sealing.owner {
+            if owner.name_tag != URL_SAFE_NO_PAD.encode(tag) {
+                return Err(Refused::DoesNotAdd(
+                    "its owner_name is not the one its owner signed",
+                ));
+            }
+            received_owner_holds(owner, &document.id, &tag)?;
+            return Ok(Some(owner.clone()));
+        }
+        let permit = sealing.token.as_deref().map(permit_of).transpose()?;
+        let permit = permit.as_ref().map(Permit::shown);
+        let permit_bytes = permit
+            .as_deref()
+            .map(|one| URL_SAFE_NO_PAD.decode(one))
+            .transpose()
+            .map_err(|_| Refused::Unsealed)?;
+        let said = owner_said(&document.id, permit_bytes.as_deref(), &tag);
+        let signed = self
+            .key
+            .sign(self.certificate, OWNER_ABOUT, &said)
+            .ok_or(Refused::Unsigned)?;
+        let owner = Owner {
+            root: signed.certificate.root,
+            machine: signed.certificate.share,
+            since: signed.certificate.since.to_string(),
+            certificate: signed.certificate.sig,
+            permit,
+            name_tag: URL_SAFE_NO_PAD.encode(tag),
+            signed: signed.sig,
+        };
+        checked("owner", &json!(owner))?;
+        Ok(Some(owner))
+    }
+
     fn envelope(
         &mut self,
         kind: EnvelopeKind,
         parts: Vec<Going>,
         sealing: &Sealing,
+        owner: Option<&Owner>,
     ) -> Result<(Vec<u8>, [u8; 32]), Refused> {
         let key = sealing.link_key.as_deref().map(opening_of).transpose()?;
         let head = key
@@ -423,6 +534,7 @@ impl<'a> Writer<'a> {
                 (Some(key), Some(head)) => Some(URL_SAFE_NO_PAD.encode(committed_to(key, head)?)),
                 _ => None,
             },
+            owner: owner.cloned(),
             parts: parts
                 .iter()
                 .map(|one| EnvelopePart {
@@ -464,7 +576,7 @@ impl<'a> Writer<'a> {
         for one in &going {
             index.extend_from_slice(&Sha256::digest(one));
         }
-        let signature = self.signature(&manifest, &index)?;
+        let signature = self.signature(&manifest, &index, sealing, owner)?;
         if signature.len() > SIGNATURE_AT_MOST {
             return Err(Refused::DoesNotAdd("its signature is past its size"));
         }
@@ -484,19 +596,42 @@ impl<'a> Writer<'a> {
         Ok((out, hash.finalize().into()))
     }
 
-    fn signature(&self, manifest: &[u8], index: &[u8]) -> Result<Vec<u8>, Refused> {
+    fn signature(
+        &self,
+        manifest: &[u8],
+        index: &[u8],
+        sealing: &Sealing,
+        owner: Option<&Owner>,
+    ) -> Result<Vec<u8>, Refused> {
         let mut said = Sha256::digest(manifest).to_vec();
         said.extend_from_slice(index);
         let signed = self
             .key
             .sign(self.certificate, ABOUT, &said)
             .ok_or(Refused::Unsigned)?;
+        let permit_signed = match owner.filter(|one| one.root != signed.certificate.root) {
+            None => None,
+            Some(owner) => {
+                let token = sealing.token.as_deref().ok_or(Refused::DoesNotAdd(
+                    "what is another's asks for its edit token",
+                ))?;
+                let permit = permit_of(token)?;
+                if owner.permit.as_deref() != Some(permit.shown().as_str()) {
+                    return Err(Refused::DoesNotAdd(
+                        "its token is not the one its owner allowed",
+                    ));
+                }
+                let made = permit.sign(&signed.certificate.root, &signed.certificate.share, &said);
+                Some(made.ok_or(Refused::Unsigned)?)
+            }
+        };
         let signature = Signature {
             root: signed.certificate.root,
             machine: signed.certificate.share,
             since: signed.certificate.since.to_string(),
             certificate: signed.certificate.sig,
             signed: signed.sig,
+            permit_signed,
         };
         checked("signature", &json!(signature))?;
         serde_json::to_vec(&signature).map_err(|_| Refused::Unsealed)

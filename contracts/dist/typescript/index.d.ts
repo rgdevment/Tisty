@@ -1,12 +1,10 @@
-export declare const VERSION: "1.1.0";
+export declare const VERSION: "1.2.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
 export type EnvelopeKind = "main" | "files";
 
 export type PartName = "first" | "rest" | "picture" | "file";
-
-export type SyncEvery = "off" | "every5" | "every10";
 
 export type SheetsWord = "on";
 
@@ -54,6 +52,7 @@ export interface Document {
   lang?: string;
   sheet?: Sheet;
   signed_as?: string;
+  owner_name?: string;
   made?: string;
   wrote?: string;
   body: string;
@@ -90,6 +89,7 @@ export interface Envelope {
   sealed: boolean;
   head?: string;
   commitment?: string;
+  owner?: Owner;
   parts: EnvelopePart[];
 }
 
@@ -109,6 +109,8 @@ export interface Sealing {
   link_key?: string;
   files_hash?: string;
   files_key?: string;
+  owner?: Owner;
+  token?: string;
 }
 
 /** What a reader asks for when it opens an envelope. */
@@ -128,7 +130,6 @@ export interface EnvelopePart {
 
 export interface SyncWriter {
   sync(): void;
-  setSync(every: SyncEvery): void;
 }
 
 /** The properties at the start of a document, between two lines of three dashes. The first line is ---, the words start right under it, and --- or ... closes them. Past their limits they stay as written and none is read. A value that says nothing Tisty knows stays written too and does nothing, so no document fails for its properties: the writer reads them and gives the document what they mean. This holds what they mean, once read. */
@@ -183,6 +184,18 @@ export interface Signature {
   machine: string;
   since: string;
   certificate: string;
+  signed: string;
+  permit_signed?: string;
+}
+
+/** Who owns what is sealed, and who may edit it. It answers for the document and never for its words: an editor signs each version, and the owner's signature says only that this root owns this id and let this permit edit it. A version holds if its signature is under this root, or if it brings a permit_signed that holds against this permit. */
+export interface Owner {
+  root: string;
+  machine: string;
+  since: string;
+  certificate: string;
+  permit?: string;
+  name_tag: string;
   signed: string;
 }
 
@@ -251,7 +264,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

@@ -290,3 +290,49 @@ fn unchecked_reads_what_a_record_claims_and_vouches_still_checks_it() {
     let revocation = root(1).revoke(&share(2).public(), at(2_000));
     assert_eq!(revocation.unchecked(), revocation.holds().ok());
 }
+
+#[test]
+fn a_permit_answers_for_who_uploads_and_what_they_upload_and_nothing_else() {
+    let permit = Permit::from_token(&[7; 32]);
+    let ana = encoded(&[1; 32]);
+    let machine = encoded(&[2; 32]);
+    let zorro = encoded(&[3; 32]);
+    let signed = permit.sign(&ana, &machine, b"said").unwrap();
+    assert!(permit_holds(
+        &permit.shown(),
+        &signed,
+        &ana,
+        &machine,
+        b"said"
+    ));
+    assert!(!permit_holds(
+        &permit.shown(),
+        &signed,
+        &zorro,
+        &machine,
+        b"said"
+    ));
+    assert!(!permit_holds(
+        &permit.shown(),
+        &signed,
+        &ana,
+        &zorro,
+        b"said"
+    ));
+    assert!(!permit_holds(
+        &permit.shown(),
+        &signed,
+        &ana,
+        &machine,
+        b"other"
+    ));
+    let other = Permit::from_token(&[8; 32]);
+    assert!(!permit_holds(
+        &other.shown(),
+        &signed,
+        &ana,
+        &machine,
+        b"said"
+    ));
+    assert!(permit.sign("not a key", &machine, b"said").is_none());
+}
