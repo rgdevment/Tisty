@@ -29,15 +29,16 @@ test("what is no version is refused", () => {
   assert.ok(wrong({ was: "1.0.0", now: "1.1", changed: true }));
 });
 
-test("only a new major version reminds who deploys first", () => {
-  assert.match(judged({ was: "1.4.0", now: "2.0.0", changed: true }).reminders[0], /Folio first/);
-  assert.deepEqual(judged({ was: "1.4.0", now: "1.5.0", changed: true }).reminders, []);
+test("every new version reminds who deploys first", () => {
+  assert.match(judged({ was: "1.4.0", now: "1.5.0", changed: true }).reminders[0], /Folio first/);
+  assert.match(judged({ was: "1.1.0-draft.3", now: "1.1.0", changed: true }).reminders[0], /Folio first/);
+  assert.deepEqual(judged({ was: "1.1.0-draft.1", now: "1.1.0-draft.2", changed: true }).reminders, []);
+  assert.deepEqual(judged({ was: "1.1.0", now: "1.1.0", changed: false }).reminders, []);
 });
 
-test("a major version that comes out of its draft reminds too, since that is the one that goes out", () => {
-  assert.match(judged({ was: "2.0.0-draft.3", now: "2.0.0", changed: true }).reminders[0], /Folio first/);
-  assert.deepEqual(judged({ was: "2.1.0-draft.1", now: "2.1.0", changed: true }).reminders, []);
-  assert.deepEqual(judged({ was: "2.0.0-draft.1", now: "2.0.0-draft.2", changed: true }).reminders, []);
+test("the major version stays at 1 while nothing has been shared for real", () => {
+  assert.ok(wrong({ was: "1.4.0", now: "2.0.0", changed: true }));
+  assert.ok(wrong({ was: "1.4.0", now: "2.0.0-draft.1", changed: true }));
 });
 
 const out = { version: "1.0.1", packaged: "1.0.1", releases: ["contracts-v1.0.0", "v1.41.1"], tags: ["contracts-v1.0.0", "v1.41.1"] };

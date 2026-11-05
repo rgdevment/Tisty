@@ -80,6 +80,7 @@ percent-encoding = "2"
 
 [dev-dependencies]
 tempfile.workspace = true
+tisty-contracts = { path = "../../contracts/dist/rust" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
