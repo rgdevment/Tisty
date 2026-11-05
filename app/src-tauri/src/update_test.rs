@@ -300,7 +300,7 @@ fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
     assert_eq!(offer.version, "0.3.0");
     assert_eq!(offer.route, Route::Store);
     assert!(offer.installs);
-    assert!(!offer.coming);
+    assert_eq!(offer.coming, None);
     assert!(
         !self_installs(Route::Store),
         "and the manifest still cannot offer one on the store's behalf"
@@ -316,7 +316,7 @@ fn an_offer_with_no_number_can_still_be_taken() {
         offer.installs,
         "the Store said it has one, and that is enough"
     );
-    assert!(!offer.coming);
+    assert_eq!(offer.coming, None);
 }
 
 fn catalog_naming(packages: &[&str]) -> String {
@@ -338,9 +338,9 @@ fn the_catalog_names_the_newest_of_ours_it_lists() {
         "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
     ]);
 
-    assert_eq!(listed("1.40.1", &said), Ahead::Is("1.41.1".into()));
-    assert_eq!(listed("1.41.1", &said), Ahead::Nothing);
-    assert_eq!(listed("1.42.0", &said), Ahead::Nothing);
+    assert_eq!(listed("1.40.1", "x64", &said), Ahead::Is("1.41.1".into()));
+    assert_eq!(listed("1.41.1", "x64", &said), Ahead::Nothing);
+    assert_eq!(listed("1.42.0", "x64", &said), Ahead::Nothing);
 }
 
 #[test]
@@ -352,11 +352,30 @@ fn a_package_that_is_not_ours_is_not_counted_as_the_catalog_answering() {
         "rgdevment.Tisty",
     ] {
         assert_eq!(
-            listed("1.40.1", &catalog_naming(&[full])),
+            listed("1.40.1", "x64", &catalog_naming(&[full])),
             Ahead::Unheard,
             "{full}"
         );
     }
+}
+
+#[test]
+fn a_package_built_for_another_machine_is_not_one_this_copy_can_be_given() {
+    let said = catalog_naming(&[
+        "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_9.0.0.0_arm64__kdjgfdc2rb3gc",
+    ]);
+    assert_eq!(listed("1.40.1", "x64", &said), Ahead::Is("1.41.1".into()));
+    assert_eq!(listed("1.40.1", "arm64", &said), Ahead::Is("9.0.0".into()));
+
+    let bundled = catalog_naming(&["rgdevment.Tisty_1.41.1.0_neutral_~_kdjgfdc2rb3gc"]);
+    assert_eq!(
+        listed("1.40.1", "x64", &bundled),
+        Ahead::Is("1.41.1".into())
+    );
+
+    let elsewhere = catalog_naming(&["rgdevment.Tisty_9.0.0.0_arm64__kdjgfdc2rb3gc"]);
+    assert_eq!(listed("1.40.1", "x64", &elsewhere), Ahead::Unheard);
 }
 
 #[test]
@@ -368,11 +387,12 @@ fn a_catalog_that_stopped_reading_as_it_did_says_nothing_rather_than_nothing_new
         r#"{"Product":null}"#,
         r#"{"Product":{"DisplaySkuAvailabilities":[]}}"#,
     ] {
-        assert_eq!(listed("1.40.1", said), Ahead::Unheard, "{said}");
+        assert_eq!(listed("1.40.1", "x64", said), Ahead::Unheard, "{said}");
     }
     assert_eq!(
         listed(
             "tomorrow",
+            "x64",
             &catalog_naming(&["rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc"])
         ),
         Ahead::Unheard

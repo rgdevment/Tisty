@@ -476,7 +476,7 @@ describe("the views nothing else opens", () => {
     };
     await started();
 
-    expect(asked[0]).toEqual({ nowPlease: true, pressed: undefined });
+    expect(asked[0]).toEqual({ look: "now" });
   });
 
   it("carries the offer of a newer Tisty through to About", async () => {

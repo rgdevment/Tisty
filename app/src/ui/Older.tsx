@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Ready, updateInstall, updateReady } from "../core";
+import { type About, about, type Ready, updateInstall, updateReady } from "../core";
 import { fill, t } from "../locales";
 
 interface Props {
@@ -18,10 +18,10 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
   const update = () => {
     setLooking(true);
     setFound(undefined);
-    updateReady(true, true)
-      .then((ready) => {
+    updateReady("pressed")
+      .then(async (ready) => {
         if (ready?.installs) return updateInstall();
-        setFound(t(!ready ? "lookNowNone" : waitingOn(ready)));
+        setFound(t(ready ? waitingOn(ready) : nothingFound(await about())));
       })
       .catch(onError)
       .finally(() => setLooking(false));
@@ -71,11 +71,18 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
   );
 }
 
+const WAITS = {
+  queued: "updateComingWhy",
+  paused: "updatePausedWhy",
+  notYet: "updateNotYetWhy",
+} as const;
+
 export const waitingOn = (ready: Ready) =>
-  ready.paused
-    ? "updatePausedWhy"
-    : ready.coming
-      ? "updateComingWhy"
-      : ready.route === "store"
-        ? "updateLanded"
-        : "updateFromTheDisk";
+  ready.coming
+    ? WAITS[ready.coming]
+    : ready.route === "store"
+      ? "updateLanded"
+      : "updateFromTheDisk";
+
+export const nothingFound = (build: About | null) =>
+  !build?.keptByTheStore ? "lookNowNone" : build.notSold ? "lookNotSold" : "lookNowNoneStore";

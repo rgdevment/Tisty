@@ -26,8 +26,7 @@ fn owner(app: &tauri::AppHandle) -> Option<isize> {
 pub async fn update_ready(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
-    now_please: Option<bool>,
-    pressed: Option<bool>,
+    look: Option<update::Look>,
 ) -> Answer<Option<update::Ready>> {
     let kept = update::route();
     let (last, found, the_shop_said, wants) = {
@@ -40,8 +39,8 @@ pub async fn update_ready(
         )
     };
     let now = jiff::Timestamp::now();
-    let pressed = pressed.unwrap_or(false);
-    let asked = pressed || now_please.unwrap_or(false);
+    let pressed = look == Some(update::Look::Pressed);
+    let asked = look.is_some();
 
     // A copy kept by the Store goes by what the Store has: a release it is still certifying is
     // out for everyone else, and being told of one this copy cannot take is a button that does
@@ -54,23 +53,33 @@ pub async fn update_ready(
         let Some(window) = owner(&app) else {
             return Ok(shop::last_said(HERE, &was));
         };
-        let ahead = tauri::async_runtime::spawn_blocking(move || {
-            update::ahead(HERE, wants, update::catalog(HERE), update::fetch)
-        })
-        .await
-        .unwrap_or(update::Ahead::Unheard);
-        // Only a person who pressed the button is waited for, and only if there may be something.
-        let waits = pressed && ahead != update::Ahead::Nothing;
-        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, waits))
+        let settled = tauri::async_runtime::spawn_blocking(shop::settled)
             .await
-            .unwrap_or(shop::Shelf::Silent);
+            .ok()
+            .flatten();
+        let (shelf, ahead) = match settled {
+            Some(shelf) => (shelf, update::Ahead::Unheard),
+            None => {
+                let ahead = tauri::async_runtime::spawn_blocking(move || {
+                    update::ahead(HERE, wants, update::catalog(HERE), update::fetch)
+                })
+                .await
+                .unwrap_or(update::Ahead::Unheard);
+                let waits = shop::waits(pressed, &ahead);
+                let shelf =
+                    tauri::async_runtime::spawn_blocking(move || shop::asked(window, waits))
+                        .await
+                        .unwrap_or(shop::Shelf::Silent);
+                (shelf, ahead)
+            }
+        };
         let verdict = shop::verdict(shelf, ahead, HERE, was);
         held(&session).keep(|c| {
             c.checked_at = Some(now);
             c.found_version = verdict.memory.version.clone();
             c.found_in_the_shop = verdict.memory.offered;
         })?;
-        if pressed && verdict.unanswered {
+        if verdict.refused(pressed) {
             return Err(Refusal::of("updateUnanswered"));
         }
         return Ok(verdict.ready);

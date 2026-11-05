@@ -251,7 +251,33 @@ describe("a newer version the Store itself offers", () => {
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
 
     expect(await screen.findByText(/Microsoft Store has nothing newer/i)).toBeTruthy();
-    expect(asked).toEqual([{ nowPlease: true, pressed: true }]);
+    expect(asked).toEqual([{ look: "pressed" }]);
+  });
+
+  it("lets what a later look finds replace the answer to an earlier press", async () => {
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "about" ? { ...build, keptByTheStore: true } : null);
+    const { rerender } = render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+    await screen.findByText(/Microsoft Store has nothing newer/i);
+
+    rerender(
+      <About ready={{ version: "1.15.0", route: "store", installs: true }} onError={() => {}} />,
+    );
+
+    expect(await screen.findByRole("button", { name: "Update" })).toBeTruthy();
+  });
+
+  it("tells a copy the Store did not sell that nobody brings it updates", async () => {
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "about" ? { ...build, keptByTheStore: true, notSold: true } : null);
+    render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    expect(screen.getByText(/did not come from the Microsoft Store/i)).toBeTruthy();
+    expect(screen.queryByText(/keeps this copy up to date/i)).toBeNull();
   });
 
   // «Could not ask» and «nothing for you» read the same on screen, and that is what hid a Store
@@ -282,7 +308,7 @@ describe("a newer version the Store itself offers", () => {
           version: "",
           route: "store",
           installs: false,
-          coming: true,
+          coming: "queued",
         }}
         onError={vi.fn()}
       />,
@@ -297,12 +323,7 @@ describe("a newer version the Store itself offers", () => {
   });
 
   it("offers the Store's update even when no number is known for it", async () => {
-    render(
-      <About
-        ready={{ version: "", route: "store", installs: true, coming: false }}
-        onError={vi.fn()}
-      />,
-    );
+    render(<About ready={{ version: "", route: "store", installs: true }} onError={vi.fn()} />);
 
     expect(await screen.findByText("The Store has a new version")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Update" })).toBeTruthy();
@@ -311,7 +332,7 @@ describe("a newer version the Store itself offers", () => {
   it("says an update paused in the Store will not finish by itself, and opens the Store", async () => {
     render(
       <About
-        ready={{ version: "", route: "store", installs: false, coming: true, paused: true }}
+        ready={{ version: "", route: "store", installs: false, coming: "paused" }}
         onError={vi.fn()}
       />,
     );
@@ -331,7 +352,7 @@ describe("a newer version the Store itself offers", () => {
           version: "1.22.1",
           route: "store",
           installs: false,
-          coming: true,
+          coming: "notYet",
         }}
         onError={vi.fn()}
       />,

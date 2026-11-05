@@ -16,6 +16,12 @@ pub const CANDIDATE: &str =
 /// Market and language are fixed, so the request says nothing of the person making it.
 const CATALOG: &str =
     "https://displaycatalog.mp.microsoft.com/v7.0/products/9PGVWXD8X93N?market=US&languages=en-US";
+/// The name the Store gives the architecture this copy was built for.
+const STORE_ARCH: &str = if cfg!(target_arch = "aarch64") {
+    "arm64"
+} else {
+    "x64"
+};
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
@@ -54,17 +60,32 @@ pub struct Ready {
     pub version: String,
     pub route: Route,
     pub installs: bool,
-    pub coming: bool,
-    pub paused: bool,
+    pub coming: Option<Coming>,
 }
 
-pub fn on_its_way(version: Option<&str>) -> Ready {
+/// Why a Store copy can only wait, which decides what it can honestly be told.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Coming {
+    Queued,
+    Paused,
+    NotYet,
+}
+
+/// How a look came about: on its own when left out, asked for, or pressed for by a person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Look {
+    Now,
+    Pressed,
+}
+
+pub fn on_its_way(version: Option<&str>, coming: Coming) -> Ready {
     Ready {
         version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         installs: false,
-        coming: true,
-        paused: false,
+        coming: Some(coming),
     }
 }
 
@@ -155,8 +176,7 @@ fn offered(version: String, kept: Kept) -> Ready {
         version,
         route: kept.route,
         installs: self_installs(kept.route) && !from_a_mount(),
-        coming: false,
-        paused: false,
+        coming: None,
     }
 }
 
@@ -166,8 +186,7 @@ pub fn from_the_shop(version: Option<&str>) -> Ready {
         version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         installs: true,
-        coming: false,
-        paused: false,
+        coming: None,
     }
 }
 
@@ -391,10 +410,17 @@ pub enum Ahead {
 }
 
 /// A full name reads `name_version_arch_resource_publisher`, and the family is its two ends.
-fn ours_in_the_catalog(full: &str) -> Option<semver::Version> {
+fn ours_in_the_catalog(full: &str, arch: &str) -> Option<semver::Version> {
     let mut parts = full.split('_');
-    let (name, version, publisher) = (parts.next()?, parts.next()?, parts.next_back()?);
-    if format!("{name}_{publisher}") != tisty_core::paths::STORE_PACKAGE {
+    let (name, version, built_for, publisher) = (
+        parts.next()?,
+        parts.next()?,
+        parts.next()?,
+        parts.next_back()?,
+    );
+    if format!("{name}_{publisher}") != tisty_core::paths::STORE_PACKAGE
+        || ![arch, "neutral"].contains(&built_for)
+    {
         return None;
     }
     let mut numbers = version.split('.');
@@ -409,7 +435,7 @@ fn ours_in_the_catalog(full: &str) -> Option<semver::Version> {
 }
 
 /// Microsoft does not document this answer, so one with no package of ours in it says nothing.
-pub fn listed(now: &str, said: &str) -> Ahead {
+pub fn listed(now: &str, arch: &str, said: &str) -> Ahead {
     let Ok(here) = now.parse::<semver::Version>() else {
         return Ahead::Unheard;
     };
@@ -425,7 +451,7 @@ pub fn listed(now: &str, said: &str) -> Ahead {
         .filter_map(|one| one.pointer("/Sku/Properties/Packages")?.as_array())
         .flatten()
         .filter_map(|package| package.get("PackageFullName")?.as_str())
-        .filter_map(ours_in_the_catalog)
+        .filter_map(|full| ours_in_the_catalog(full, arch))
         .max();
     match best {
         None => Ahead::Unheard,
@@ -438,7 +464,7 @@ pub fn catalog(now: &str) -> Ahead {
     let Some(said) = client().and_then(|client| asked(&client, CATALOG, &STORE_LISTING)) else {
         return Ahead::Unheard;
     };
-    let answer = listed(now, &String::from_utf8_lossy(&said));
+    let answer = listed(now, STORE_ARCH, &String::from_utf8_lossy(&said));
     match &answer {
         Ahead::Unheard => witness::warn(
             channel::UPDATE,

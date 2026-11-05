@@ -731,6 +731,7 @@ export interface About {
   candidates: boolean;
   candidatesApply: boolean;
   keptByTheStore: boolean;
+  notSold?: boolean;
 }
 
 export type Holds = "everywhere" | "mine" | "shared";
@@ -782,17 +783,18 @@ export interface Ready {
   version: string;
   route: Route;
   installs: boolean;
-  coming?: boolean;
-  paused?: boolean;
+  coming?: StoreWait | null;
 }
+
+export type StoreWait = "queued" | "paused" | "notYet";
 
 export interface Underway {
   stage: "getting" | "installing";
   far: number;
 }
 
-export const updateReady = (nowPlease?: boolean, pressed?: boolean): Promise<Ready | null> =>
-  invoke("update_ready", { nowPlease, pressed });
+export const updateReady = (look?: "now" | "pressed"): Promise<Ready | null> =>
+  invoke("update_ready", { look });
 
 export const updateInstall = (): Promise<void> => invoke("update_install");
 

@@ -2251,9 +2251,14 @@ const en = {
   updateOffered: "The Store has a new version",
   updateOpenShop: "Open the Store",
   updateComingWhy:
-    "The Store brings it on its own. It installs itself once it lands and this window is closed.",
+    "The Store brings it on its own. It installs itself once it lands and nothing is using Tisty: not its window in the tray, nor a connected assistant.",
   updatePausedWhy: "The Store has it paused. Open the Store to resume it.",
-  updateLanded: "It is already on this machine and takes over when you close Tisty",
+  updateNotYetWhy:
+    "The Store has not offered it to this computer yet. That usually takes a few hours, and you can check in the Store.",
+  updateLanded:
+    "It is already on this machine and takes over once nothing is using Tisty: not its window in the tray, nor a connected assistant",
+  lookNotSold:
+    "This copy did not come from the Microsoft Store, so the Store does not update it and it cannot update itself",
   lookStoreKeeps:
     "The Microsoft Store keeps this copy up to date. It is asked at every launch and every six hours",
   lookNowNoneStore:
@@ -4940,9 +4945,14 @@ const es: Catalog = {
   updateOffered: "La Store tiene una versión nueva",
   updateOpenShop: "Abrir la Store",
   updateComingWhy:
-    "La Store la trae por su cuenta. Se instala sola cuando llegue y esta ventana esté cerrada.",
+    "La Store la trae por su cuenta. Se instala sola cuando llegue y nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado.",
   updatePausedWhy: "La Store la tiene en pausa. Ábrela para reanudarla.",
-  updateLanded: "Ya está en esta máquina y entra cuando cierres Tisty",
+  updateNotYetWhy:
+    "La Store todavía no se la ofrece a este equipo. Suele tardar unas horas, y puedes mirarlo en la Store.",
+  updateLanded:
+    "Ya está en esta máquina y entra cuando nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado",
+  lookNotSold:
+    "Esta copia no vino de la Microsoft Store, así que la Store no la actualiza y ella no puede hacerlo sola",
   lookStoreKeeps:
     "La Microsoft Store mantiene esta copia al día. Se le pregunta en cada arranque y cada seis horas",
   lookNowNoneStore:
