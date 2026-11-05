@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { discard } from "../core";
-import { holds, queued } from "../saving";
+import { discard, keptForTheEnd } from "../core";
+import { holds, queued, settledThen } from "../saving";
 
 const ipc = vi.hoisted(() => ({ calls: [] as string[] }));
 
@@ -33,6 +33,44 @@ describe("letting a task go", () => {
     await going;
 
     expect(ipc.calls).toEqual(["doc_write", "discard"]);
+    release();
+  });
+});
+
+describe("being warned that Windows is closing the window", () => {
+  it("says it kept what was typed only once the last words have landed", async () => {
+    ipc.calls.length = 0;
+    let land = () => {};
+    const landed = new Promise<void>((done) => {
+      land = done;
+    });
+    const flushed = vi.fn(() => {
+      queued("words:t2", async () => {
+        await landed;
+        ipc.calls.push("doc_write");
+      });
+    });
+    const release = holds(flushed);
+
+    settledThen(keptForTheEnd)();
+    await Promise.resolve();
+    expect(flushed).toHaveBeenCalled();
+    expect(ipc.calls).toEqual([]);
+    land();
+
+    await vi.waitFor(() => expect(ipc.calls).toEqual(["doc_write", "kept_for_the_end"]));
+    release();
+  });
+
+  it("still answers when the words could not land, so Windows is not kept waiting", async () => {
+    ipc.calls.length = 0;
+    const release = holds(() => {
+      queued("words:t3", () => Promise.reject(new Error("the disk refused"))).catch(() => {});
+    });
+
+    settledThen(keptForTheEnd)();
+
+    await vi.waitFor(() => expect(ipc.calls).toEqual(["kept_for_the_end"]));
     release();
   });
 });

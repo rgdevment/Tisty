@@ -971,6 +971,7 @@ pub(crate) fn opened(
         } else if !viewing {
             tray::undock_unless_seen(app, "main");
         }
+        desktop::warned_first(&window);
     }
     Ok(())
 }
@@ -1293,6 +1294,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_away,
         answers::papers::doc_lock,
         desktop::parted,
+        desktop::kept_for_the_end,
         viewing::view_shown,
         viewing::ics_waiting,
         answers::calendar::ics_read,
@@ -1329,6 +1331,7 @@ pub fn run() {
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())
+        .manage(desktop::Ending::default())
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
         .invoke_handler(commands())

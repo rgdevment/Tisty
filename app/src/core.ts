@@ -1400,6 +1400,7 @@ export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 
 export const parted = (): Promise<void> => invoke("parted");
+export const keptForTheEnd = (): Promise<void> => invoke("kept_for_the_end");
 export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });
 
 export const docAway = (id: string, away: boolean): Promise<void> =>
