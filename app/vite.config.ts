@@ -1,4 +1,4 @@
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
@@ -7,7 +7,8 @@ import tailwindcss from "@tailwindcss/vite";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-const repository = dirname(dirname(fileURLToPath(import.meta.url)));
+const app = dirname(fileURLToPath(import.meta.url));
+const repository = dirname(app);
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
@@ -35,7 +36,9 @@ export default defineConfig(async () => ({
     strictPort: true,
     host: host || false,
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    fs: { allow: [repository] },
+    fs: {
+      allow: [app, ...["packages", "node_modules", "contracts/dist/typescript"].map((one) => join(repository, one))],
+    },
     watch: {
       ignored: ["**/src-tauri/**"],
     },

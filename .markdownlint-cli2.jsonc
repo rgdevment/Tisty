@@ -1,9 +1,8 @@
 {
   "globs": [
     "**/*.md",
-    "!node_modules",
+    "!**/node_modules",
     "!target",
-    "!packages/*/node_modules",
     "!app/.stryker-tmp",
     "!app/reports",
     "!mutants.out",

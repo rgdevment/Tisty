@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: npm ci --no-workspaces
+      - run: npm ci
       - run: npm run lint:md
       # The registry has rules of its own — a description over 100 characters is the one
       # that bites — and finding out after the release is announced is too late.
@@ -47,9 +47,7 @@ jobs:
           tar xzf publisher.tar.gz mcp-publisher
           ./mcp-publisher validate
       - name: Frontend style
-        run: |
-          npm ci
-          npm run lint --workspace app
+        run: npm run lint --workspace app
 
   tested:
     name: Tested when it landed

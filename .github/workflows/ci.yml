@@ -39,7 +39,7 @@ jobs:
             echo "rust=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|TERMS|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
+          aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|TERMS|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
           from=$(git merge-base "$BASE" HEAD)
           changed=$(git diff --name-only "$from" HEAD)
           first=$( { echo "$changed" | grep -x 'app/src/news.json'; echo "$changed" | grep -vE "$aside"; } \
@@ -261,22 +261,20 @@ jobs:
       # A warning, never a red check: an advisory published today would otherwise fail every pull request at once.
       - name: Advisories at moderate or above, in the window and in the repository tooling
         run: |
-          for dir in .; do
-            npm audit --prefix "$dir" --package-lock-only --json > "$RUNNER_TEMP/audit.json" || true
-            if ! jq -e '.vulnerabilities' "$RUNNER_TEMP/audit.json" > /dev/null; then
-              echo "::warning::npm audit gave no report for $dir/package-lock.json"
-              continue
-            fi
-            found=$(jq -r '[.vulnerabilities[].via[] | objects
-              | select(.severity != "low" and .severity != "info") | "\(.severity) \(.name) \(.url)"]
-              | unique[]' "$RUNNER_TEMP/audit.json")
-            if [ -n "$found" ]; then
-              echo "$found"
-              echo "::warning::npm advisories at moderate or above in $dir/package-lock.json"
-            else
-              echo "$dir/package-lock.json: nothing at moderate or above"
-            fi
-          done
+          npm audit --package-lock-only --json > "$RUNNER_TEMP/audit.json" || true
+          if ! jq -e '.vulnerabilities' "$RUNNER_TEMP/audit.json" > /dev/null; then
+            echo "::warning::npm audit gave no report for package-lock.json"
+            exit 0
+          fi
+          found=$(jq -r '[.vulnerabilities[].via[] | objects
+            | select(.severity != "low" and .severity != "info") | "\(.severity) \(.name) \(.url)"]
+            | unique[]' "$RUNNER_TEMP/audit.json")
+          if [ -n "$found" ]; then
+            echo "$found"
+            echo "::warning::npm advisories at moderate or above in package-lock.json"
+          else
+            echo "package-lock.json: nothing at moderate or above"
+          fi
 
   coverage:
     name: coverage
