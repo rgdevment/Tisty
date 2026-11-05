@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.0.1";
+pub const VERSION: &str = "1.1.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -193,7 +193,7 @@ pub trait DocumentReader {
     fn verdict(&mut self, file: Vec<u8>, served: Served) -> Result<Verdict, String>;
     fn go_to_page(&mut self, at: u64);
     fn set_language(&mut self, lang: String);
-    fn open_in_tisty(&mut self);
+    fn edit_in_tisty(&mut self);
     fn copy_link(&mut self) -> String;
 }
 

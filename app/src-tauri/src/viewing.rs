@@ -128,6 +128,39 @@ pub fn asked(said: &str, cwd: Option<&Path>) -> Option<PathBuf> {
     readable(&at).then_some(at)
 }
 
+// Any page can fire this address, and it carries a key: it takes its one link from Folio's servers, and it is never logged.
+pub fn asked_to_edit(said: &str) -> Option<url::Url> {
+    let link = url::Url::parse(said.trim()).ok()?;
+    if link.scheme() != "tisty"
+        || link.host_str() != Some("edit")
+        || !matches!(link.path(), "" | "/")
+        || link.fragment().is_some()
+    {
+        return None;
+    }
+    let mut parameters = link.query_pairs();
+    let (name, value) = parameters.next()?;
+    if name != "link" || parameters.next().is_some() {
+        return None;
+    }
+    let web = url::Url::parse(&value).ok()?;
+    (web.scheme() == "https" && matches!(web.host_str(), Some("tisty.cl" | "folio.tisty.app")))
+        .then_some(web)
+}
+
+// Bringing the document in needs the client that reaches Folio, so for now the person is told rather than left wondering.
+pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
+    use tauri_plugin_dialog::DialogExt;
+    let any = argv.iter().skip(1).any(|one| asked_to_edit(one).is_some());
+    if any {
+        app.dialog()
+            .message(crate::refusing::edit_not_yet_words(spanish(app)))
+            .title("Tisty")
+            .show(|_| {});
+    }
+    any
+}
+
 fn readable(at: &Path) -> bool {
     let local = match at.components().next() {
         Some(Component::Prefix(prefix)) => {
@@ -213,6 +246,7 @@ pub fn ics_waiting(views: tauri::State<'_, Views>) -> Vec<String> {
 }
 
 pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
+    told_of_edits(app, argv);
     let found = wanted(argv, cwd);
     let any = !found.is_empty();
     show(app, found);
@@ -224,6 +258,7 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     let said: Vec<String> = std::iter::once(String::new())
         .chain(links.iter().map(|one| one.to_string()))
         .collect();
+    let edits = told_of_edits(app, &said);
     let views = app.state::<Views>();
     let found = wanted(&said, None);
     if let Ok(mut held) = views.early.lock()
@@ -234,7 +269,7 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     }
     let any = !found.is_empty();
     show(app, found);
-    if !any {
+    if !any && !edits {
         witness::warn(
             channel::WINDOW,
             "a link Tisty was asked to open was not one it opens",

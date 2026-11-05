@@ -792,6 +792,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     opened(app.handle(), !wanted.is_empty())?;
+    viewing::told_of_edits(app.handle(), &argv);
     viewing::show(app.handle(), wanted);
     Ok(())
 }

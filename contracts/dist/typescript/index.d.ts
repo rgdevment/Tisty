@@ -1,4 +1,4 @@
-export declare const VERSION: "1.0.1";
+export declare const VERSION: "1.1.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -76,7 +76,7 @@ export interface DocumentReader {
   verdict(file: Uint8Array, served: Served): Promise<Verdict>;
   goToPage(at: number): void;
   setLanguage(lang: string): void;
-  openInTisty(): void;
+  editInTisty(): void;
   copyLink(): string;
 }
 

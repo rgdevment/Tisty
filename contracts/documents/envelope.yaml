@@ -56,7 +56,7 @@ values:
   who_checks_what:
     server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
     reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version."
+  versions: "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. It stays at 1 while nothing has been shared for real, so a version that changes what a reader expects goes out with Folio and Tisty updated together. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
@@ -188,10 +188,19 @@ contract: link
 group: documents
 checked_by: [writer, reader]
 says: >-
-  How a shared document is reached. A browser opens the web link, and only reads. The link for Tisty hands the document
-  over to a Tisty, and editing happens only there.
+  How a document is reached. A browser opens the web link, and only reads. Tisty answers to two addresses: open shows a
+  file of this machine, read only, and edit hands it a shared document. With edit, Tisty asks for the document itself,
+  checks its signature and takes in its body, the Tisty language, never its HTML. A Tisty that cannot do it yet says so.
 values:
   private: "https://tisty.cl/{id}#{link_key}"
   public: "https://folio.tisty.app/{id}"
-  in_tisty: "tisty://folio?link={the web link, percent-encoded}"
-  editing: "Never on the web. Who may edit from Tisty, and how editors and versions grow, is not defined yet."
+  open: "tisty://open?path={a file of this machine, percent-encoded}"
+  edit: "tisty://edit?link={the web link, percent-encoded}"
+  edit_example:
+    link: "https://tisty.cl/k7Qm2xPa#a-key_0"
+    address: "tisty://edit?link=https%3A%2F%2Ftisty.cl%2Fk7Qm2xPa%23a-key_0"
+  parameters: "Each address takes its one parameter, once. A repeated one or any other is refused: any page can fire an address, so it says nothing of folders, states or files."
+  inside_a_document: "Neither address works from inside a document. Its HTML refuses them, and in its body they are words, which Tisty never follows."
+  the_key: "The edit address carries the key of a private link, so nobody writes the address to a log, and whoever refuses one says so without it."
+  from_a_read_link: "Tisty keeps a guest copy, which is not shared again. The original stays as it was, whatever is done to the copy."
+  editing: "Never on the web. Who may edit the original from Tisty, and how editors and versions grow, is not defined yet."
