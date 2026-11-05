@@ -40,8 +40,8 @@ mod values;
 pub mod vocab;
 mod writing;
 
-#[cfg(feature = "outline")]
 pub use inline::filed;
+#[cfg(feature = "outline")]
 pub use outline::{Head, outline};
 pub use page::html;
 pub use printed::printed;

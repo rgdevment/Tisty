@@ -1016,6 +1016,54 @@ fn what_is_chosen_and_nobody_names_is_neither_gathered_nor_remembered() {
 }
 
 #[test]
+fn a_language_of_its_own_family_is_never_cited() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\n# Paseos\n\n[[Walks]]\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\n# Walks\n", None);
+    home.joined(en, es);
+    let mut asking = asked(es);
+    asking.cited = vec![en];
+
+    let reads = every_reader_opens(&sealed(&home, &asking));
+    assert_eq!(reads.len(), 2);
+    assert!(reads.iter().all(|one| one.held.get("cited").is_none()));
+}
+
+#[test]
+fn the_words_of_a_task_stay_with_the_task() {
+    let (_tmp, mut home) = home();
+    let body = "# De una tarea\n";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let id = ulid::Ulid::generate();
+    let task = ulid::Ulid::generate();
+    home.commit(Op::TaskAdd {
+        id: task,
+        d: tisty_core::event::TaskAdd::new("Una tarea", "a0"),
+    });
+    home.commit(Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            task_of: Some(task),
+            ..Default::default()
+        },
+    });
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+    };
+    let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
+    assert!(
+        matches!(refused, Some(Unshared::NotADocument)),
+        "{refused:?}"
+    );
+}
+
+#[test]
 fn a_family_chosen_twice_goes_once_under_one_identity() {
     let (_tmp, mut home) = home();
     let otro = home.wrote("---\nlang: es\n---\n\n# Otro\n", None);
