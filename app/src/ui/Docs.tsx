@@ -149,6 +149,7 @@ export default function Docs({
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
+  const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -412,8 +413,10 @@ export default function Docs({
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) {
       setComing(false);
+      setUnopened(asked);
       return;
     }
+    setUnopened(null);
     const before = open?.file;
     if (before && before !== asked) {
       const leaving = known.find((one) => one.file === before);
@@ -467,6 +470,7 @@ export default function Docs({
           setOpen(null);
           return;
         }
+        setUnopened(wanted.file);
         onError(saidPlainly(e));
       });
   }, [asked, known, open, flush, onError, fresh, behind, mark]);
@@ -964,7 +968,7 @@ export default function Docs({
               <span className="sliding block h-full w-1/3 rounded-full bg-soft" />
             </span>
           </div>
-        ) : (
+        ) : asked && unopened !== asked ? null : (
           <p style={wall} className="mx-auto w-full px-10 text-[12.5px] text-faint">
             {t("pickADoc")}
           </p>
