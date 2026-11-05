@@ -1,20 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import { broke } from "./broke";
 import { drawsHeicHere } from "./core";
 import { locale } from "./locales";
 import { drawsHeic } from "./previews";
-import Standing from "./Standing";
+import Standing, { fell } from "./Standing";
 import "tisty-editor/tokens.css";
 import "tisty-editor/side.css";
 import "./index.css";
-
-const App = lazy(() => import("./App"));
-const Moving = lazy(() => import("./Moving"));
-const Quick = lazy(() => import("./Quick"));
-const Viewing = lazy(() => import("./Viewing"));
 
 document.addEventListener("contextmenu", (e) => {
   const writes = (e.target as HTMLElement).closest("input, textarea, [contenteditable]");
@@ -49,22 +44,30 @@ const drawn = () =>
 // Whether a HEIC is a picture is known before anything is drawn, though never at the cost of starting.
 const READY_WITHIN = 300;
 
+const windows = {
+  moving: () => import("./Moving"),
+  viewing: () => import("./Viewing"),
+  quick: () => import("./Quick"),
+  main: () => import("./App"),
+};
+const own =
+  label === "moving"
+    ? windows.moving
+    : label.startsWith("view-")
+      ? windows.viewing
+      : quick
+        ? windows.quick
+        : windows.main;
+
 const shown = () =>
-  Promise.race([drawn(), new Promise((ready) => setTimeout(ready, READY_WITHIN))]).then(() =>
+  Promise.all([
+    own().catch(fell),
+    Promise.race([drawn(), new Promise((ready) => setTimeout(ready, READY_WITHIN))]),
+  ]).then(([{ default: Own }]) =>
     ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <React.StrictMode>
         <Standing>
-          <Suspense fallback={null}>
-            {label === "moving" ? (
-              <Moving />
-            ) : label.startsWith("view-") ? (
-              <Viewing />
-            ) : quick ? (
-              <Quick />
-            ) : (
-              <App />
-            )}
-          </Suspense>
+          <Own />
         </Standing>
       </React.StrictMode>,
     ),

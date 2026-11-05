@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
@@ -8,29 +7,11 @@ import tailwindcss from "@tailwindcss/vite";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// Stryker runs the tests from a copy of the app, so the packages are looked for up the folders.
-const packageAt = (name: string, from: string): string => {
-  const here = join(from, "packages", name);
-  if (existsSync(here)) return here;
-  const up = dirname(from);
-  if (up === from) throw new Error(`packages/${name} is not above the app`);
-  return packageAt(name, up);
-};
-const appAt = dirname(fileURLToPath(import.meta.url));
-const studio = packageAt("tisty-diagrams", appAt);
-const reader = packageAt("tisty-editor", appAt);
-// The contracts are generated beside the app and taken by path: nothing is published for Tisty to read them.
-const contracts = join(dirname(packageAt("tisty-editor", appAt)), "..", "contracts", "dist", "typescript");
+const app = dirname(fileURLToPath(import.meta.url));
+const repository = dirname(app);
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "tisty-diagrams": join(studio, "src"),
-      "tisty-editor": join(reader, "src"),
-      "@tisty/contracts": join(contracts, "index.js"),
-    },
-  },
 
   test: {
     environment: "jsdom",
@@ -55,7 +36,9 @@ export default defineConfig(async () => ({
     strictPort: true,
     host: host || false,
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    fs: { allow: [".", studio, reader] },
+    fs: {
+      allow: [app, ...["packages", "node_modules", "contracts/dist/typescript"].map((one) => join(repository, one))],
+    },
     watch: {
       ignored: ["**/src-tauri/**"],
     },

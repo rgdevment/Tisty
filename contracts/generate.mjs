@@ -437,4 +437,16 @@ for (const [name, said] of Object.entries(files)) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, said);
 }
+// The root lockfile names this package's version too, and the next install would rewrite it in an unrelated branch.
+const lockPath = join(here, "..", "package-lock.json");
+const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+const locked = lock.packages["contracts/dist/typescript"];
+if (!locked) stop("package-lock.json does not know contracts/dist/typescript; run npm install at the root");
+if (locked.version !== VERSION) {
+  if (checking) stale.push("../../package-lock.json");
+  else {
+    locked.version = VERSION;
+    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+  }
+}
 if (stale.length > 0) stop(`what is kept in dist is not what the YAML says: ${stale.join(", ")}; run node contracts/generate.mjs`);
