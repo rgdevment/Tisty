@@ -33,20 +33,20 @@ else
   echo "!  cargo is not here, so the formatting was not looked at"
 fi
 
-if [ -d app/node_modules ]; then
-  quietly "cd \"$staged/app\" && \"$PWD/app/node_modules/.bin/biome\" check src" \
+if [ -x node_modules/.bin/biome ]; then
+  quietly "cd \"$staged/app\" && \"$PWD/node_modules/.bin/biome\" check src" \
     "biome would change files, or is not installed; it is the first thing CI runs"
 else
-  echo "!  app/node_modules is not here, so biome did not look at the window"
+  echo "!  biome is not installed (npm ci at the root), so it did not look at the window"
 fi
 
 # The rules job refuses a lockfile the notices do not follow; written here, the fix is one `git add` away.
 if git diff --cached --name-only | grep -qE '(^|/)(Cargo\.lock|package-lock\.json)$'; then
-  if [ -d app/node_modules ]; then
+  if [ -x node_modules/.bin/biome ]; then
     quietly "node scripts/third-party.mjs > /dev/null && git diff --quiet -- THIRD-PARTY-BUNDLED.md THIRD-PARTY-LICENSES.md" \
       "the notices were behind the lockfiles; npm run notices just wrote them, so stage them"
   else
-    echo "!  app/node_modules is not here, so the notices were not checked against the lockfiles"
+    echo "!  the workspace is not installed (npm ci at the root), so the notices were not checked against the lockfiles"
   fi
 fi
 

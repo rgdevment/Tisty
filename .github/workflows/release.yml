@@ -47,10 +47,7 @@ jobs:
           tar xzf publisher.tar.gz mcp-publisher
           ./mcp-publisher validate
       - name: Frontend style
-        working-directory: app
-        run: |
-          npm ci
-          npm run lint
+        run: npm run lint --workspace app
 
   tested:
     name: Tested when it landed
@@ -466,7 +463,6 @@ jobs:
           package-manager-cache: false
 
       - name: Frontend
-        working-directory: app
         run: npm ci
 
       # The committed copy trails Dependabot's bumps; the one that ships is written from these lockfiles.
@@ -754,7 +750,6 @@ jobs:
           package-manager-cache: false
 
       - name: Frontend
-        working-directory: app
         run: npm ci
 
       # The committed copy trails Dependabot's bumps; the one that ships is written from these lockfiles.
@@ -993,7 +988,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: app/package-lock.json
+          sparse-checkout: package-lock.json
           sparse-checkout-cone-mode: false
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -1009,7 +1004,7 @@ jobs:
 
       - name: The signer the app was built with, and nothing else
         run: |
-          lock=app/package-lock.json
+          lock=package-lock.json
           v=$(jq -r '.packages["node_modules/@tauri-apps/cli"].version // ""' "$lock")
           if [ -z "$v" ]; then
             echo "::error::the lockfile names no @tauri-apps/cli"
