@@ -8,7 +8,9 @@ export type Told =
       name: string;
     }
   | { what: "notDrawn"; document: string; many: number }
-  | { what: "pageLeftBehind" | "languageLeftBehind"; document: string }
+  | { what: "pictureNotKept"; document: string; name: string }
+  | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
+  | { what: "languageLeftBehind"; language: string }
   | { what: "nameLeftOut" };
 
 export interface Sealed {
@@ -38,12 +40,20 @@ export const toldPlainly = (told: Told): string => {
       return fill("toldPictureAsLink", told.name, told.document);
     case "fileAsWords":
       return fill("toldFileAsWords", told.name, told.document);
+    case "pictureNotKept":
+      return told.name
+        ? fill("toldPictureNotKept", told.name, told.document)
+        : fill("toldSomePictureNotKept", told.document);
     case "notDrawn":
-      return fill("toldNotDrawn", String(told.many), told.document);
+      return told.many === 1
+        ? fill("toldOneNotDrawn", told.document)
+        : fill("toldNotDrawn", String(told.many), told.document);
     case "pageLeftBehind":
       return fill("toldPageLeftBehind", told.document);
     case "languageLeftBehind":
-      return fill("toldLanguageLeftBehind", told.document);
+      return fill("toldLanguageLeftBehind", told.language);
+    case "citedLeftBehind":
+      return fill("toldCitedLeftBehind", told.document);
     case "nameLeftOut":
       return t("toldNameLeftOut");
   }

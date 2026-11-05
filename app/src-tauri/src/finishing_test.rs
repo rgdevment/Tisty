@@ -37,13 +37,13 @@ fn waiting() -> (Finishers, Receiver<Heard>) {
 }
 
 #[test]
-fn only_the_window_opened_for_it_is_told_what_to_finish_and_only_once() {
+fn only_the_window_opened_for_it_is_told_what_to_finish_however_often_it_loads() {
     let (finishers, heard) = waiting();
     assert!(finishers.asked_of("main").is_none());
     assert!(heard.try_recv().is_err());
     assert_eq!(finishers.asked_of("finisher-1").unwrap(), asked());
     assert_eq!(heard.try_recv().unwrap(), Heard::Began);
-    assert!(finishers.asked_of("finisher-1").unwrap().is_empty());
+    assert_eq!(finishers.asked_of("finisher-1").unwrap(), asked());
 }
 
 #[test]
@@ -81,6 +81,23 @@ fn a_window_that_began_gets_the_long_wait_and_its_answer_arrives() {
     finishers.asked_of("finisher-1");
     finishers.answered("finisher-1", Some(vec![answer()]));
     assert_eq!(waited(&heard, AT_ONCE, AMPLY), Some(vec![answer()]));
+}
+
+#[test]
+fn a_page_that_loads_again_may_still_answer() {
+    let (finishers, heard) = waiting();
+    finishers.asked_of("finisher-1");
+    finishers.asked_of("finisher-1");
+    finishers.answered("finisher-1", Some(vec![answer()]));
+    assert_eq!(waited(&heard, AMPLY, AMPLY), Some(vec![answer()]));
+}
+
+#[test]
+fn a_page_that_keeps_loading_gets_no_more_time_for_it() {
+    let (finishers, heard) = waiting();
+    finishers.asked_of("finisher-1");
+    finishers.asked_of("finisher-1");
+    assert_eq!(waited(&heard, AMPLY, AT_ONCE), None);
 }
 
 #[test]

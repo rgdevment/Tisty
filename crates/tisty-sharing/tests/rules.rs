@@ -686,10 +686,11 @@ fn diagrams_a_window_could_not_draw_are_told() {
 #[test]
 fn a_window_that_leaves_something_unfinished_stops_it() {
     let (_tmp, mut home) = home();
-    let doc = home.wrote("# Paseos\n", None);
-    home.wrote("# Enero\n", Some(doc));
+    let doc = home.wrote("# Paseos\n\n```rust\nfn a() {}\n```\n", None);
+    home.wrote("# Enero\n\n```rust\nfn b() {}\n```\n", Some(doc));
     let mut gathered = home.gathered(&asked(doc));
     let mut answers = by_a_window_with_nothing_to_draw(&gathered);
+    assert_eq!(answers.len(), 2);
     answers.pop();
     assert!(matches!(
         gathered.finished(answers),
@@ -1013,6 +1014,162 @@ fn what_is_chosen_and_nobody_names_is_neither_gathered_nor_remembered() {
     assert_eq!(out.remembering.len(), 1);
     assert_eq!(out.told, [], "nothing to say of what does not travel");
     assert!(every_reader_opens(&out)[0].held.get("cited").is_none());
+}
+
+#[test]
+fn words_with_nothing_to_draw_ask_for_no_window() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("# Paseos\n\nSolo palabras.\n", None);
+    home.wrote("# Enero\n\n```mermaid\npie\n```\n", Some(doc));
+    home.wrote("# Febrero\n\n::dog orange:: y `code`\n", Some(doc));
+    let gathered = home.gathered(&asked(doc));
+    let asked_of_it = gathered.unfinished();
+    assert_eq!(asked_of_it.len(), 2, "{asked_of_it:?}");
+    assert!(
+        asked_of_it
+            .iter()
+            .all(|one| !one.html.contains("Solo palabras"))
+    );
+
+    let plain = home.wrote("# Paseos\n", None);
+    let gathered = home.gathered(&asked(plain));
+    assert!(gathered.unfinished().is_empty());
+    let out = home.sealed(gathered, vec![]);
+    assert_eq!(every_reader_opens(&out)[0].held["title"], "Paseos");
+}
+
+#[test]
+fn what_is_chosen_and_cannot_go_stays_as_its_words_and_stops_nothing() {
+    let (_tmp, mut home) = home();
+    let locked = home.wrote("# Cerrado\n\nprivado\n", None);
+    home.commit(Op::DocLock { id: locked });
+    let away = home.wrote("# Guardado\n\nprivado\n", None);
+    home.commit(Op::DocArchive { id: away });
+    let open = home.wrote("# Abierto\n", None);
+    let doc = home.wrote("# Paseos\n\n[[Cerrado]] [[Guardado]] [[Abierto]]\n", None);
+    let mut asking = asked(doc);
+    asking.cited = vec![locked, away, ulid::Ulid::generate(), open];
+
+    let out = sealed(&home, &asking);
+    let reads = every_reader_opens(&out);
+    assert_eq!(reads.len(), 2);
+    assert_eq!(reads[0].held["cited"].as_array().unwrap().len(), 1);
+    assert_eq!(reads[0].held["cited"][0]["title"], "Abierto");
+    let html = reads[0].held["html"].as_str().unwrap();
+    assert!(
+        html.contains("Cerrado") && html.contains("Guardado"),
+        "{html}"
+    );
+    assert!(reads.iter().all(|one| !all_text(one).contains("privado")));
+    let left: Vec<&Told> = out
+        .told
+        .iter()
+        .filter(|one| matches!(one, Told::CitedLeftBehind { .. }))
+        .collect();
+    assert_eq!(left.len(), 2, "{:?}", out.told);
+}
+
+#[test]
+fn a_machine_with_no_identity_makes_no_key_by_asking() {
+    let tmp = tempfile::tempdir().unwrap();
+    let home = Home::at(tmp.path());
+    assert!(signer(&home.paths, &home.state, &home.device).is_none());
+    assert!(tisty_core::person::kept_at(&home.paths, &home.device).is_some_and(|at| !at.exists()));
+}
+
+#[test]
+fn a_language_that_stays_is_told_by_its_language() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\n# Paseos\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\n# Walks\n", None);
+    home.joined(en, es);
+    home.commit(Op::DocLock { id: en });
+    let out = sealed(&home, &asked(es));
+    assert_eq!(
+        out.told,
+        [Told::LanguageLeftBehind {
+            language: "en".into()
+        }]
+    );
+}
+
+#[test]
+fn a_name_left_blank_signs_with_the_alias_and_no_alias_says_nothing() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("x\n", None);
+    let mut asking = asked(doc);
+    asking.signed_as = Some("  ".into());
+    let out = sealed(&home, &asking);
+    assert_eq!(out.told, []);
+    assert!(every_reader_opens(&out)[0].held.get("signed_as").is_none());
+
+    home.commit(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("Rina".into()),
+            ..Default::default()
+        },
+    });
+    let out = sealed(&home, &asking);
+    assert_eq!(out.told, []);
+    assert_eq!(every_reader_opens(&out)[0].held["signed_as"], "Rina");
+}
+
+#[test]
+fn a_picture_never_kept_is_told_by_what_it_said_and_not_as_gone() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("# Paseos\n\n![a](fotos/rina.png)\n", None);
+    let out = sealed(&home, &asked(doc));
+    every_reader_opens(&out);
+    assert_eq!(
+        out.told,
+        [Told::PictureNotKept {
+            document: "Paseos".into(),
+            name: "rina.png".into()
+        }]
+    );
+
+    let doc = home.wrote("# Datos\n\n![a](data:image/png;base64,AAAA)\n", None);
+    let out = sealed(&home, &asked(doc));
+    assert_eq!(
+        out.told,
+        [Told::PictureNotKept {
+            document: "Datos".into(),
+            name: String::new()
+        }]
+    );
+}
+
+#[test]
+fn the_person_is_told_of_a_document_by_its_words_and_never_its_markup() {
+    let (_tmp, mut home) = home();
+    let svg = home.attached("dibujo.svg", b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+    let cartilla = home.attached("cartilla.pdf", b"%PDF");
+    let doc = home.wrote(&format!("[La cartilla]({cartilla})\n\n![a]({svg})\n"), None);
+    let out = sealed(&home, &asked(doc));
+    assert!(
+        matches!(&out.told[..], [Told::PictureAsFile { document, .. }] if document == "La cartilla"),
+        "{:?}",
+        out.told
+    );
+}
+
+#[test]
+fn what_a_language_carries_is_held_to_one_ceiling_in_all() {
+    let (_tmp, mut home) = home();
+    let one = home.attached("uno.bin", b"uno");
+    let other = home.attached("dos.bin", b"dos");
+    let doc = home.wrote(&format!("[uno]({one}) [dos]({other})\n"), None);
+    for (leaf, size) in [(&one, 40), (&other, 41)] {
+        let at = home.paths.attachments().join(leaf);
+        let file = std::fs::OpenOptions::new().write(true).open(at).unwrap();
+        file.set_len(size * 1024 * 1024).unwrap();
+    }
+    let gathered = home.gathered(&asked(doc));
+    assert!(
+        matches!(gathered.told(), [Told::FileAsWords { name, .. }] if name == "dos.bin"),
+        "{:?}",
+        gathered.told()
+    );
 }
 
 #[test]

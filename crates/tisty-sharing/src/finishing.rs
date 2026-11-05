@@ -33,6 +33,13 @@ fn page_name(file: &str, at: u64) -> String {
     format!("{file}/{at}")
 }
 
+// Each thing `finished` in tisty-editor acts on. A word that only looks like one costs a window and nothing else.
+fn asks_for_a_window(html: &str) -> bool {
+    ["class=\"diagram\"", "language-", "data-ico="]
+        .iter()
+        .any(|one| html.contains(one))
+}
+
 impl Gathered {
     fn files_by_id(&self) -> BTreeMap<String, String> {
         self.remembering
@@ -67,6 +74,7 @@ impl Gathered {
                     }),
             );
         }
+        out.retain(|one| asks_for_a_window(&one.html));
         out
     }
 
@@ -80,15 +88,22 @@ impl Gathered {
             *not_drawn.entry(file).or_default() += one.not_drawn;
             html.insert(one.name, one.html);
         }
-        let taken = |name: String| html.get(&name).cloned().ok_or(Unshared::Unfinished(name));
+        let taken = |name: String, was: &mut String| match html.get(&name) {
+            Some(one) => {
+                one.clone_into(was);
+                Ok(())
+            }
+            None if asks_for_a_window(was) => Err(Unshared::Unfinished(name)),
+            None => Ok(()),
+        };
         let finish = |tongue: &mut Tongue| {
             let id = &tongue.document.id;
             let file = files
                 .get(id)
                 .ok_or_else(|| Unshared::Unfinished(id.clone()))?;
-            tongue.document.html = taken(file.clone())?;
+            taken(file.clone(), &mut tongue.document.html)?;
             for page in tongue.document.pages.iter_mut().flatten() {
-                page.html = taken(page_name(file, page.at))?;
+                taken(page_name(file, page.at), &mut page.html)?;
             }
             Ok::<(), Unshared>(())
         };

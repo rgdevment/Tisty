@@ -40,7 +40,11 @@ describe("what did not travel as it was written", () => {
     [{ what: "fileAsWords", document: "Paseos", name: "a.pdf" }, ["a.pdf", "Paseos", "words"]],
     [{ what: "notDrawn", document: "Paseos", many: 2 }, ["2", "Paseos", "code"]],
     [{ what: "pageLeftBehind", document: "Paseos" }, ["Paseos", "page"]],
-    [{ what: "languageLeftBehind", document: "Walks" }, ["Walks", "language"]],
+    [{ what: "languageLeftBehind", language: "en" }, ["en", "language"]],
+    [{ what: "citedLeftBehind", document: "Otro" }, ["Otro", "words"]],
+    [{ what: "pictureNotKept", document: "Paseos", name: "a.png" }, ["a.png", "Paseos", "kept"]],
+    [{ what: "pictureNotKept", document: "Paseos", name: "" }, ["a picture", "Paseos", "kept"]],
+    [{ what: "notDrawn", document: "Paseos", many: 1 }, ["One diagram", "Paseos", "code"]],
     [{ what: "nameLeftOut" }, ["name"]],
   ];
 

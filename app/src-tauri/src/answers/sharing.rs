@@ -82,7 +82,12 @@ pub async fn doc_sealed(
     .await
     .map_err(|_| Refusal::of("cannotSeal"))?
     .map_err(|wrong| refused(&wrong))?;
-    let answers = crate::finishing::in_hiding(&app, gathered.unfinished()).await?;
+    let asked = gathered.unfinished();
+    let answers = if asked.is_empty() {
+        Vec::new()
+    } else {
+        crate::finishing::in_hiding(&app, asked).await?
+    };
     gathered
         .finished(answers)
         .map_err(|wrong| refused(&wrong))?;

@@ -10,19 +10,21 @@ use tisty_envelope::travelling::{Placed, Places, leads_outside};
 use crate::gathering::Desk;
 
 const NO_NAME: &str = "file";
-// This machine's own and no rule of the contract's: all of a file is held in memory to seal it.
-const TRAVELS_AT_MOST: u64 = 64 * 1024 * 1024;
+// This machine's own and no rule of the contract's: all a language carries is held in memory to seal it.
+const HELD_AT_MOST: u64 = 64 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "what", rename_all = "camelCase")]
 pub enum Told {
     PictureAsFile { document: String, name: String },
     PictureAsWords { document: String, name: String },
+    PictureNotKept { document: String, name: String },
     PictureAsLink { document: String, name: String },
     FileAsWords { document: String, name: String },
     NotDrawn { document: String, many: usize },
     PageLeftBehind { document: String },
-    LanguageLeftBehind { document: String },
+    LanguageLeftBehind { language: String },
+    CitedLeftBehind { document: String },
     NameLeftOut,
 }
 
@@ -55,6 +57,14 @@ fn own_name(reference: &str) -> String {
     clean::file_name(&named).unwrap_or_else(|| NO_NAME.to_owned())
 }
 
+// What is no address and no path has nothing a person would recognise, as a picture written in the words themselves.
+fn name_of_what_is_not_kept(name: &str) -> String {
+    if name == "#" || name.trim().to_ascii_lowercase().starts_with("data:") {
+        return String::new();
+    }
+    clean::file_name(name).unwrap_or_default()
+}
+
 fn kind_of(kind: Kind) -> PictureKind {
     match kind {
         Kind::Png => PictureKind::ImagePng,
@@ -74,7 +84,11 @@ impl<'a> Packing<'a> {
 
     fn found(&self, name: &str) -> Option<(PathBuf, Vec<u8>)> {
         let at = attach::found(name, self.desk.paths.data(), self.desk.also).ok()?;
-        if std::fs::metadata(&at).ok()?.len() > TRAVELS_AT_MOST {
+        let held: u64 = (self.out.pictures.iter())
+            .chain(&self.out.files)
+            .map(|one| one.len() as u64)
+            .sum();
+        if held + std::fs::metadata(&at).ok()?.len() > HELD_AT_MOST {
             return None;
         }
         let bytes = std::fs::read(&at).ok()?;
@@ -91,14 +105,16 @@ impl<'a> Packing<'a> {
             return;
         }
         if !attach::names_an_attachment(name) {
-            let name = name.to_owned();
             let document = self.document();
-            self.told.push(if leads_outside(&name) {
-                Told::PictureAsLink { document, name }
-            } else {
-                Told::PictureAsWords {
+            self.told.push(if leads_outside(name) {
+                Told::PictureAsLink {
                     document,
-                    name: String::new(),
+                    name: name.to_owned(),
+                }
+            } else {
+                Told::PictureNotKept {
+                    document,
+                    name: name_of_what_is_not_kept(name),
                 }
             });
             return;

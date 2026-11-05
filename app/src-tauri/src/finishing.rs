@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::Manager;
 use tisty_sharing::{Finished, Unfinished};
@@ -36,10 +36,10 @@ impl Finishers {
     }
 
     fn asked_of(&self, label: &str) -> Option<Vec<Unfinished>> {
-        let mut held = self.held();
-        let errand = held.get_mut(label)?;
+        let held = self.held();
+        let errand = held.get(label)?;
         let _ = errand.told.send(Heard::Began);
-        Some(std::mem::take(&mut errand.asked))
+        Some(errand.asked.clone())
     }
 
     fn answered(&self, label: &str, answers: Option<Vec<Finished>>) {
@@ -49,13 +49,20 @@ impl Finishers {
     }
 }
 
+// A page that loads again starts over and may still answer, though it gets no more time for it.
 fn waited(heard: &Receiver<Heard>, begins: Duration, ends: Duration) -> Option<Vec<Finished>> {
-    match heard.recv_timeout(begins).ok()? {
-        Heard::Began => match heard.recv_timeout(ends).ok()? {
-            Heard::Ended(answers) => answers,
-            Heard::Began => None,
-        },
-        Heard::Ended(answers) => answers,
+    let mut until = Instant::now() + begins;
+    let mut began = false;
+    loop {
+        let left = until.saturating_duration_since(Instant::now());
+        match heard.recv_timeout(left).ok()? {
+            Heard::Began if began => {}
+            Heard::Began => {
+                began = true;
+                until = Instant::now() + ends;
+            }
+            Heard::Ended(answers) => return answers,
+        }
     }
 }
 

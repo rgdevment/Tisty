@@ -694,6 +694,12 @@ const en = {
   toldFileAsWords:
     "In {other}, the file {name} goes as its words, because it is no longer here or is too large to travel",
   toldNotDrawn: "In {other}, {name} diagrams could not be drawn and go as code",
+  toldOneNotDrawn: "One diagram in {name} could not be drawn and goes as code",
+  toldPictureNotKept:
+    "In {other}, the picture {name} goes as its words, because it is not kept in Tisty",
+  toldSomePictureNotKept: "In {name}, a picture goes as its words, because it is not kept in Tisty",
+  toldCitedLeftBehind:
+    "{name} is locked, put away or someone else's, so what names it goes as its words",
   toldPageLeftBehind:
     "A page of {name} stays here, because it is put away, locked or could not be read",
   awayNotShared: "That one is put away. Bring it back to share it",
@@ -3393,6 +3399,13 @@ const es: Catalog = {
   toldFileAsWords:
     "En {other}, el archivo {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
   toldNotDrawn: "En {other}, {name} diagramas no se pudieron dibujar y van como código",
+  toldOneNotDrawn: "Un diagrama de {name} no se pudo dibujar y va como código",
+  toldPictureNotKept:
+    "En {other}, la imagen {name} va como sus palabras, porque no está guardada en Tisty",
+  toldSomePictureNotKept:
+    "En {name}, una imagen va como sus palabras, porque no está guardada en Tisty",
+  toldCitedLeftBehind:
+    "{name} está bloqueado, archivado o es de otra persona, así que lo que lo nombra va como sus palabras",
   toldPageLeftBehind:
     "Una página de {name} se queda aquí, porque está archivada, bloqueada o no se pudo leer",
   awayNotShared: "Ese está archivado. Desarchívalo para compartirlo",

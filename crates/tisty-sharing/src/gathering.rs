@@ -56,9 +56,10 @@ pub fn signer(
     state: &State,
     device: &tisty_core::DeviceId,
 ) -> Option<(ShareKey, Certificate)> {
-    let key = person::mine(paths, device)?;
+    // Asked last: a machine makes its key only once the log names a person.
     let root = state.persons.person(device)?;
     let vouched = state.persons.vouched_by(device, &root)?;
+    let key = person::mine(paths, device)?;
     if vouched.share != key.public() {
         return None;
     }
@@ -313,7 +314,7 @@ impl Gathering<'_> {
 
     fn tongue(&mut self, kept: &Kept, chosen: &[Chosen]) -> Result<Tongue, Unshared> {
         let body = docs::read(&self.desk.paths.docs(), &kept.file).map_err(unread)?;
-        let shown = docs::titled(&body);
+        let shown = title_of(&body_ready(&body, &Places::default())).unwrap_or_default();
         let pages = self.pages_of(kept, &body, &shown);
         let html = drawn(&body);
         let mut all_named = vec![named(&html)];
@@ -394,7 +395,11 @@ impl Gathering<'_> {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
-                    document: one.title.clone().unwrap_or_default(),
+                    language: one
+                        .lang
+                        .clone()
+                        .or_else(|| one.title.clone())
+                        .unwrap_or_default(),
                 });
             }
         }
@@ -434,6 +439,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
     let wanted = asked
         .signed_as
         .clone()
+        .filter(|one| !one.trim().is_empty())
         .or_else(|| state.signed.alias.clone());
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {
@@ -455,8 +461,15 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
     let mut seen = BTreeSet::from([state.anchor_of(sharable(state, asked.doc)?)]);
     let mut chosen = Vec::new();
     for doc in &asked.cited {
-        let kept = sharable(state, *doc)?;
-        if seen.insert(state.anchor_of(kept)) {
+        let Some(kept) = state.docs.get(doc) else {
+            continue;
+        };
+        // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
+        if sharable(state, *doc).is_err() {
+            gathering.told.push(Told::CitedLeftBehind {
+                document: kept.title.clone().unwrap_or_default(),
+            });
+        } else if seen.insert(state.anchor_of(kept)) {
             chosen.push(gathering.chosen(kept));
         }
     }
