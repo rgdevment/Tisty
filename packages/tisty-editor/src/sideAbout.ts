@@ -1,8 +1,7 @@
-import { glyph } from "./cards";
+import { glyph, type ReadWord, type Say } from "tisty-sheet";
 import { offered, type Paper } from "./paper";
 import type { About, Book, Tongue } from "./side";
 import { made, pressed, toggle, tooled } from "./sideParts";
-import type { ReadWord, Say } from "./words";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
 

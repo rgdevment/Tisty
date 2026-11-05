@@ -14,7 +14,7 @@ const named = (): string[] => {
 };
 
 const drawn = (): string[] => {
-  const said = readFileSync(inTheRepo("packages/tisty-editor/src/glyphs.ts"), "utf8");
+  const said = readFileSync(inTheRepo("packages/tisty-sheet/src/glyphs.ts"), "utf8");
   const rows = said.matchAll(/^ {2}("[^"]+"|[a-z][a-z0-9]*): \d+,$/gm);
   return [...rows].map((found) => found[1].replace(/"/g, ""));
 };

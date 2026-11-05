@@ -1,7 +1,7 @@
 import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
-import { markup } from "../glyphs";
 import { coded, formless, wrapped } from "./formatting";
 import { type EditWord, type Hosted, hosted } from "./hosted";
 import { type Regrid, regrid } from "./regridding";

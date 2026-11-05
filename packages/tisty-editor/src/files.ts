@@ -1,5 +1,4 @@
-import { drawnGlyph, piece } from "./cards";
-import { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";
+import { drawnGlyph, piece, SHEET_GLYPHS, type SheetGlyph } from "tisty-sheet";
 
 // What a file is by its name: its kind, the family it is drawn as, and the glyph its card wears.
 export const KINDS: Record<string, string> = {

@@ -1,0 +1,27 @@
+{
+  "name": "tisty-sheet",
+  "private": true,
+  "version": "0.1.0",
+  "description": "What draws a document on its sheet, shared by Tisty's reader and the light viewer: the page's look and colours, and its code colours, diagrams, icons, tables and cards.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./glyphs": "./src/glyphs.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "dependencies": {
+    "tisty-diagrams": "file:../tisty-diagrams"
+  },
+  "peerDependencies": {
+    "lowlight": "*",
+    "mermaid": "*"
+  },
+  "devDependencies": {
+    "@tisty/contracts": "file:../../contracts/dist/typescript",
+    "jsdom": "*",
+    "vitest": "*"
+  }
+}
