@@ -37,7 +37,9 @@ export const frontLines = (body: string): string[] | null => {
 // Front matter past the caps is kept as written, but nothing in it is read.
 export const overgrown = (body: string): boolean => {
   const held = frontLines(body);
-  return held !== null && new TextEncoder().encode(`${held.join("\n")}\n`).length > BLOCK_AT_MOST;
+  if (!held) return false;
+  const breakAfter = body.split("\n").length > held.length ? 1 : 0;
+  return new TextEncoder().encode(held.join("\n")).length + breakAfter > BLOCK_AT_MOST;
 };
 
 export const fields = (body: string): Field[] => {
