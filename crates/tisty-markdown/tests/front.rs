@@ -107,3 +107,46 @@ fn the_paper_and_the_sheets_are_read_as_the_window_reads_them() {
     let loose = front::laid("---\npaper: A0\norientation: landscape\n---\n# a");
     assert_eq!(loose, front::Laid::default());
 }
+
+fn limit(name: &str) -> usize {
+    let contract: serde_json::Value =
+        serde_json::from_str(tisty_contracts::CONTRACT).expect("the contract is JSON");
+    contract["contracts"]["front_matter"]["values"][name]
+        .as_u64()
+        .expect("a limit the contract names") as usize
+}
+
+#[test]
+fn a_block_is_read_up_to_the_bytes_the_contract_gives_it() {
+    let frame = "---\ntitle: a\n#\n---\n".len();
+    let sized = |bytes: usize| format!("---\ntitle: a\n#{}\n---\n", "x".repeat(bytes - frame));
+    let at_most = limit("block_bytes_at_most");
+    assert_eq!(sized(at_most).len(), at_most);
+    assert_eq!(title(&sized(at_most)).as_deref(), Some("a"));
+    assert_eq!(title(&sized(at_most + 1)), None);
+    assert_eq!(title(sized(at_most + 1).trim_end()).as_deref(), Some("a"));
+    assert_eq!(title(sized(at_most + 2).trim_end()), None);
+}
+
+#[test]
+fn a_block_is_read_up_to_the_properties_the_contract_gives_it() {
+    let keyed = |keys: usize| {
+        let others: String = (1..keys).map(|one| format!("k{one}: v\n")).collect();
+        format!("---\ntitle: a\n{others}---\n")
+    };
+    let at_most = limit("properties_at_most");
+    assert_eq!(title(&keyed(at_most)).as_deref(), Some("a"));
+    assert_eq!(title(&keyed(at_most + 1)), None);
+}
+
+#[test]
+fn a_value_is_read_up_to_the_characters_the_contract_gives_it() {
+    // One emoji is one character but more than one byte, so counting bytes reads less than the contract says.
+    let said = |characters: usize| format!("---\ntitle: 😀{}\n---\n", "x".repeat(characters - 1));
+    let at_most = limit("value_characters_at_most");
+    assert_eq!(
+        title(&said(at_most)).map(|one| one.chars().count()),
+        Some(at_most)
+    );
+    assert_eq!(title(&said(at_most + 1)), None);
+}
