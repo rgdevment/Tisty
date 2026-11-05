@@ -72,6 +72,8 @@ pub struct About {
     candidates_apply: bool,
     /// Kept by the Microsoft Store: updates come from it alone, and «none» means it has none yet.
     kept_by_the_store: bool,
+    /// Installed where the Store installs, by other means: nobody brings this copy updates.
+    not_sold: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -237,6 +239,7 @@ pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         // switch wired to nothing.
         candidates_apply: update::self_installs(update::route().route),
         kept_by_the_store: update::route().route == update::Route::Store,
+        not_sold: update::route().route == update::Route::Store && !crate::shop::sold(),
     })
 }
 

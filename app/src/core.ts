@@ -731,6 +731,7 @@ export interface About {
   candidates: boolean;
   candidatesApply: boolean;
   keptByTheStore: boolean;
+  notSold?: boolean;
 }
 
 export type Holds = "everywhere" | "mine" | "shared";
@@ -782,16 +783,18 @@ export interface Ready {
   version: string;
   route: Route;
   installs: boolean;
-  coming?: boolean;
+  coming?: StoreWait | null;
 }
+
+export type StoreWait = "queued" | "paused" | "notYet";
 
 export interface Underway {
   stage: "getting" | "installing";
   far: number;
 }
 
-export const updateReady = (nowPlease?: boolean): Promise<Ready | null> =>
-  invoke("update_ready", { nowPlease });
+export const updateReady = (look?: "now" | "pressed"): Promise<Ready | null> =>
+  invoke("update_ready", { look });
 
 export const updateInstall = (): Promise<void> => invoke("update_install");
 
@@ -1400,6 +1403,8 @@ export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 
 export const parted = (): Promise<void> => invoke("parted");
+export const keptForTheEnd = (round: number): Promise<void> =>
+  invoke("kept_for_the_end", { round });
 export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });
 
 export const docAway = (id: string, away: boolean): Promise<void> =>

@@ -797,6 +797,16 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// Spent on the first look: kept, it would show a copy later reopened hidden until the next check.
+fn back_from_an_update(session: &mut Session) -> bool {
+    let found = session.config.found_version.as_deref();
+    let back = waking::came_back(update::route().route, found, HERE);
+    if back {
+        let _ = session.keep(|config| config.found_version = None);
+    }
+    back
+}
+
 pub(crate) fn opened(
     app: &tauri::AppHandle,
     viewing: bool,
@@ -891,10 +901,7 @@ pub(crate) fn opened(
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
     let session_keys = session.config.quick_keys.clone();
-    // An update relaunches with the arguments it was started with, so a copy that opened
-    // with the session comes back hidden — looking, to whoever pressed the button, like it
-    // never came back at all.
-    let came_back = session.config.found_version.as_deref() == Some(HERE);
+    let came_back = back_from_an_update(&mut session);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(app, telling, &quiet));
@@ -965,13 +972,16 @@ pub(crate) fn opened(
 
     if let Some(window) = app.get_webview_window("main") {
         desktop::proofread(&window);
-        if came_back || !(waking::hushed() || viewing) {
+        let seen = came_back || !(waking::hushed() || viewing);
+        waking::returns(seen);
+        if seen {
             desktop::fitted(&window);
             tray::docked(app, true);
             let _ = window.show();
         } else if !viewing {
             tray::undock_unless_seen(app, "main");
         }
+        desktop::warned_first(&window);
     }
     Ok(())
 }
@@ -1294,6 +1304,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_away,
         answers::papers::doc_lock,
         desktop::parted,
+        desktop::kept_for_the_end,
         viewing::view_shown,
         viewing::ics_waiting,
         answers::calendar::ics_read,
@@ -1330,6 +1341,7 @@ pub fn run() {
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())
+        .manage(desktop::Ending::default())
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
         .invoke_handler(commands())

@@ -1926,3 +1926,30 @@ fn leaving_sweeps_what_tisty_left_and_never_the_person_s_folder() {
     assert!(!paths.cache().exists(), "the cache stayed");
     assert!(!log.exists(), "the log stayed");
 }
+
+#[test]
+fn coming_back_from_an_update_shows_the_window_only_the_first_time() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+    session
+        .keep(|config| config.found_version = Some(HERE.to_string()))
+        .unwrap();
+
+    assert!(super::back_from_an_update(&mut session));
+    assert_eq!(session.config.found_version, None);
+    assert!(!super::back_from_an_update(&mut session));
+}
+
+#[test]
+fn a_version_still_ahead_is_not_spent_by_opening() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+    session
+        .keep(|config| config.found_version = Some("999.0.0".to_string()))
+        .unwrap();
+
+    assert!(!super::back_from_an_update(&mut session));
+    assert_eq!(session.config.found_version.as_deref(), Some("999.0.0"));
+}

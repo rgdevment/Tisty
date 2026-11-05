@@ -13,6 +13,15 @@ const MANIFEST: &str =
 pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
 pub const CANDIDATE: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
+/// Market and language are fixed, so the request says nothing of the person making it.
+const CATALOG: &str =
+    "https://displaycatalog.mp.microsoft.com/v7.0/products/9PGVWXD8X93N?market=US&languages=en-US";
+/// The name the Store gives the architecture this copy was built for.
+const STORE_ARCH: &str = if cfg!(target_arch = "aarch64") {
+    "arm64"
+} else {
+    "x64"
+};
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
@@ -51,15 +60,32 @@ pub struct Ready {
     pub version: String,
     pub route: Route,
     pub installs: bool,
-    pub coming: bool,
+    pub coming: Option<Coming>,
 }
 
-pub fn on_its_way(version: Option<&str>) -> Ready {
+/// Why a Store copy can only wait, which decides what it can honestly be told.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Coming {
+    Queued,
+    Paused,
+    NotYet,
+}
+
+/// How a look came about: on its own when left out, asked for, or pressed for by a person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Look {
+    Now,
+    Pressed,
+}
+
+pub fn on_its_way(version: Option<&str>, coming: Coming) -> Ready {
     Ready {
         version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         installs: false,
-        coming: true,
+        coming: Some(coming),
     }
 }
 
@@ -150,22 +176,18 @@ fn offered(version: String, kept: Kept) -> Ready {
         version,
         route: kept.route,
         installs: self_installs(kept.route) && !from_a_mount(),
-        coming: false,
+        coming: None,
     }
 }
 
-/// `self_installs` says no for the Store because a copy kept there cannot replace itself from a
-/// download; an offer the Store itself made is the one it can take without leaving the window.
-pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
-    let here: semver::Version = now.parse().ok()?;
-    let said: semver::Version = version.parse().ok()?;
-
-    (said > here).then(|| Ready {
-        version: said.to_string(),
+/// The one offer a Store copy can take from here; any number on it comes from elsewhere.
+pub fn from_the_shop(version: Option<&str>) -> Ready {
+    Ready {
+        version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         installs: true,
-        coming: false,
-    })
+        coming: None,
+    }
 }
 
 /// What the last look found, so closing the window does not take the offer away with it. The copy
@@ -251,13 +273,32 @@ pub enum Heard {
     Said(String),
 }
 
-fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
+/// How much of an answer to read, and what the log calls the one that does not come.
+struct Asking {
+    at_most: usize,
+    unreached: &'static str,
+    refused: &'static str,
+}
+
+const FEED_FILE: Asking = Asking {
+    at_most: tisty_carrier::policy::READ_AT_MOST,
+    unreached: "the release feed could not be reached",
+    refused: "the release feed answered with a refusal",
+};
+/// Its answer carries the whole listing, about 42 KB today, far past what a feed file may weigh.
+const STORE_LISTING: Asking = Asking {
+    at_most: 256 * 1024,
+    unreached: "the Store's catalog could not be reached",
+    refused: "the Store's catalog answered with a refusal",
+};
+
+fn asked(client: &reqwest::blocking::Client, url: &str, asking: &Asking) -> Option<Vec<u8>> {
     let answer = match client.get(url).send() {
         Ok(answer) => answer,
         Err(e) => {
             witness::standing(
                 channel::UPDATE,
-                "the release feed could not be reached",
+                asking.unreached,
                 &[
                     ("file", Fact::Id(named(url).to_string())),
                     (
@@ -272,7 +313,7 @@ fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
     if !answer.status().is_success() {
         witness::warn(
             channel::UPDATE,
-            "the release feed answered with a refusal",
+            asking.refused,
             &[
                 ("file", Fact::Id(named(url).to_string())),
                 ("code", Fact::Count(answer.status().as_u16() as usize)),
@@ -282,7 +323,7 @@ fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
     }
     let mut held = Vec::new();
     answer
-        .take(tisty_carrier::policy::READ_AT_MOST as u64 + 1)
+        .take(asking.at_most as u64 + 1)
         .read_to_end(&mut held)
         .ok()?;
     Some(held)
@@ -303,8 +344,8 @@ enum Signed {
 }
 
 fn pair(client: &reqwest::blocking::Client, url: &str, past: &str) -> Option<(Vec<u8>, Vec<u8>)> {
-    let said = asked(client, &format!("{url}{past}"))?;
-    let signature = asked(client, &format!("{url}.sig{past}"))?;
+    let said = asked(client, &format!("{url}{past}"), &FEED_FILE)?;
+    let signature = asked(client, &format!("{url}.sig{past}"), &FEED_FILE)?;
     Some((said, signature))
 }
 
@@ -348,7 +389,7 @@ pub fn fetch() -> Heard {
                 &[],
             );
         });
-        return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
+        return asked(&client, MANIFEST, &FEED_FILE).map_or(Heard::Nothing, text);
     };
     match read_signed(&client, MANIFEST, key, |_| true) {
         Signed::Said(said) => text(said),
@@ -357,6 +398,106 @@ pub fn fetch() -> Heard {
             set_aside(MANIFEST, "signature");
             Heard::Unsigned
         }
+    }
+}
+
+/// A newer version for a Store copy, which the Store may still not have handed it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Ahead {
+    Unheard,
+    Nothing,
+    Is(String),
+}
+
+/// A full name reads `name_version_arch_resource_publisher`, and the family is its two ends.
+fn ours_in_the_catalog(full: &str, arch: &str) -> Option<semver::Version> {
+    let mut parts = full.split('_');
+    let (name, version, built_for, publisher) = (
+        parts.next()?,
+        parts.next()?,
+        parts.next()?,
+        parts.next_back()?,
+    );
+    if format!("{name}_{publisher}") != tisty_core::paths::STORE_PACKAGE
+        || ![arch, "neutral"].contains(&built_for)
+    {
+        return None;
+    }
+    let mut numbers = version.split('.');
+    format!(
+        "{}.{}.{}",
+        numbers.next()?,
+        numbers.next()?,
+        numbers.next()?
+    )
+    .parse()
+    .ok()
+}
+
+/// Microsoft does not document this answer, so one with no package of ours in it says nothing.
+pub fn listed(now: &str, arch: &str, said: &str) -> Ahead {
+    let Ok(here) = now.parse::<semver::Version>() else {
+        return Ahead::Unheard;
+    };
+    let Ok(read) = serde_json::from_str::<serde_json::Value>(said) else {
+        return Ahead::Unheard;
+    };
+    // It can name older packages beside the newest.
+    let best = read
+        .pointer("/Product/DisplaySkuAvailabilities")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|one| one.pointer("/Sku/Properties/Packages")?.as_array())
+        .flatten()
+        .filter_map(|package| package.get("PackageFullName")?.as_str())
+        .filter_map(|full| ours_in_the_catalog(full, arch))
+        .max();
+    match best {
+        None => Ahead::Unheard,
+        Some(best) if best > here => Ahead::Is(best.to_string()),
+        Some(_) => Ahead::Nothing,
+    }
+}
+
+pub fn catalog(now: &str) -> Ahead {
+    let Some(said) = client().and_then(|client| asked(&client, CATALOG, &STORE_LISTING)) else {
+        return Ahead::Unheard;
+    };
+    let answer = listed(now, STORE_ARCH, &String::from_utf8_lossy(&said));
+    match &answer {
+        Ahead::Unheard => witness::warn(
+            channel::UPDATE,
+            "the Store's catalog answered with nothing this copy can read",
+            &[("bytes", Fact::Bytes(said.len() as u64))],
+        ),
+        Ahead::Nothing => witness::standing(
+            channel::UPDATE,
+            "the Store's catalog lists nothing newer than this copy",
+            &[],
+        ),
+        Ahead::Is(version) => witness::standing(
+            channel::UPDATE,
+            "the Store's catalog lists a newer version",
+            &[("version", Fact::Id(version.clone()))],
+        ),
+    }
+    answer
+}
+
+/// The feed also names what the Store is still certifying, so it only stands in for the catalog.
+pub fn ahead(
+    now: &str,
+    wants: Option<bool>,
+    catalog: Ahead,
+    feed: impl FnOnce() -> Heard,
+) -> Ahead {
+    if catalog != Ahead::Unheard {
+        return catalog;
+    }
+    match feed() {
+        Heard::Said(said) => published(now, &said, wants).map_or(Ahead::Nothing, Ahead::Is),
+        _ => Ahead::Unheard,
     }
 }
 
