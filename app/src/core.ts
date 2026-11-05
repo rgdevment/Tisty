@@ -783,6 +783,7 @@ export interface Ready {
   route: Route;
   installs: boolean;
   coming?: boolean;
+  paused?: boolean;
 }
 
 export interface Underway {
@@ -790,8 +791,8 @@ export interface Underway {
   far: number;
 }
 
-export const updateReady = (nowPlease?: boolean): Promise<Ready | null> =>
-  invoke("update_ready", { nowPlease });
+export const updateReady = (nowPlease?: boolean, pressed?: boolean): Promise<Ready | null> =>
+  invoke("update_ready", { nowPlease, pressed });
 
 export const updateInstall = (): Promise<void> => invoke("update_install");
 

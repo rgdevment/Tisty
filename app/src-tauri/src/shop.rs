@@ -1,5 +1,7 @@
 #![cfg_attr(not(windows), allow(dead_code))]
 
+use crate::update::{self, Ahead, Ready};
+
 /// A shop that answers it has nothing is not a shop that never answered: the first means this copy
 /// is current, the second that nothing is known and the old wording still stands.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,8 +12,88 @@ pub enum Shelf {
     /// closes. Nothing left to download, so nothing to offer but the closing.
     Landed(String),
     Queued,
+    /// In its queue, stopped for a reason that closing this window will not clear.
+    Paused,
     Current,
     Silent,
+    /// Installed by other means, so the Store will never have an update for it.
+    NotSold,
+}
+
+/// What the last look wrote down, and whether the Store itself made the offer.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Memory {
+    pub version: Option<String>,
+    pub offered: Option<bool>,
+}
+
+/// What a look comes to: what the window is told and what stays written for the next one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Verdict {
+    pub ready: Option<Ready>,
+    pub memory: Memory,
+    pub unanswered: bool,
+}
+
+/// An offer with no number is not kept: nothing would say when it stopped being true.
+pub fn last_said(now: &str, was: &Memory) -> Option<Ready> {
+    let version = was
+        .version
+        .as_deref()
+        .filter(|one| update::later(now, one))?;
+    Some(match was.offered? {
+        true => update::from_the_shop(Some(version)),
+        false => update::on_its_way(Some(version)),
+    })
+}
+
+pub fn verdict(shelf: Shelf, ahead: Ahead, now: &str, was: Memory) -> Verdict {
+    let number = match &ahead {
+        Ahead::Is(version) => Some(version.clone()),
+        Ahead::Nothing => None,
+        Ahead::Unheard => was.version.clone().filter(|one| update::later(now, one)),
+    };
+    let told = |ready: Ready, version: Option<String>, offered: bool| Verdict {
+        ready: Some(ready),
+        memory: Memory {
+            version,
+            offered: Some(offered),
+        },
+        unanswered: false,
+    };
+    let none = |unanswered: bool| Verdict {
+        ready: None,
+        memory: Memory::default(),
+        unanswered,
+    };
+    match (shelf, ahead) {
+        (Shelf::Waiting, _) => told(update::from_the_shop(number.as_deref()), number, true),
+        (Shelf::Landed(version), _) => {
+            let landed = Ready {
+                installs: false,
+                ..update::from_the_shop(Some(&version))
+            };
+            told(landed, Some(version), true)
+        }
+        (Shelf::Queued, _) => told(update::on_its_way(number.as_deref()), number, false),
+        (Shelf::Paused, _) => {
+            let paused = Ready {
+                paused: true,
+                ..update::on_its_way(number.as_deref())
+            };
+            told(paused, number, false)
+        }
+        (Shelf::NotSold, _) => none(true),
+        (_, Ahead::Is(version)) => told(update::on_its_way(Some(&version)), Some(version), false),
+        (_, Ahead::Nothing) => none(false),
+        // The Store just said it has no offer, so only a coming version it never spoke for stands.
+        (Shelf::Current, Ahead::Unheard) if was.offered != Some(false) => none(false),
+        (shelf, Ahead::Unheard) => Verdict {
+            ready: last_said(now, &was),
+            memory: was,
+            unanswered: shelf == Shelf::Silent,
+        },
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,8 +114,8 @@ pub fn step(far: f64) -> (&'static str, u64) {
     ("getting", (far.max(0.0) / DOWNLOADED * 100.0) as u64)
 }
 
-pub fn asked(window: isize, forced: bool) -> Shelf {
-    there::asked(window, forced)
+pub fn asked(window: isize, waits: bool) -> Shelf {
+    there::asked(window, waits)
 }
 
 pub fn take(
@@ -49,7 +131,8 @@ mod there {
     use tisty_core::witness::{self, Fact, channel};
     use windows::ApplicationModel::{Package, PackageSignatureKind, PackageVersion};
     use windows::Services::Store::{
-        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus, StoreQueueItemState,
+        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus,
+        StoreQueueItemExtendedState, StoreQueueItemState,
     };
     use windows::Win32::Foundation::HWND;
     use windows::Win32::System::Com::CoIncrementMTAUsage;
@@ -88,29 +171,36 @@ mod there {
             .is_ok_and(|kind| kind == PackageSignatureKind::Store)
     }
 
-    pub fn asked(window: isize, forced: bool) -> Shelf {
+    pub fn asked(window: isize, waits: bool) -> Shelf {
         if !sold_here() {
             witness::warn(
                 channel::UPDATE,
                 "this package did not come from the Store, so the Store answers for nothing in it",
                 &[],
             );
-            return Shelf::Silent;
+            return Shelf::NotSold;
         }
         if let Some(version) = beside_us() {
             return Shelf::Landed(version);
         }
+        match offers(window) {
+            Some(true) => Shelf::Waiting,
+            Some(false) if waits => waited_out(window),
+            Some(false) => in_its_queue(window),
+            None => Shelf::Silent,
+        }
+    }
+
+    fn offers(window: isize) -> Option<bool> {
         match apart(PATIENCE, move || waiting(window)) {
-            Some(Ok(true)) => Shelf::Waiting,
-            Some(Ok(false)) if forced => waited_out(window),
-            Some(Ok(false)) => in_its_queue(window),
+            Some(Ok(offers)) => Some(offers),
             Some(Err(why)) => {
                 witness::warn(
                     channel::UPDATE,
                     "the Store was asked what it has and refused",
                     &[("why", Fact::Why(why.message()))],
                 );
-                Shelf::Silent
+                None
             }
             None => {
                 witness::warn(
@@ -118,14 +208,12 @@ mod there {
                     "the Store was asked what it has and never answered",
                     &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
                 );
-                Shelf::Silent
+                None
             }
         }
     }
 
-    /// The Store was just asked and said nothing, which is what it says while its own errand is
-    /// still running. It allows one look every 30 minutes and ten a day, then repeats its last
-    /// answer, so the wait watches what costs no look and asks it only once more at the end.
+    /// The Store rations its looks and then repeats itself, so the wait watches what costs none.
     fn waited_out(window: isize) -> Shelf {
         let since = std::time::Instant::now();
         while since.elapsed() < UNTIL {
@@ -138,28 +226,29 @@ mod there {
                 );
                 return Shelf::Landed(version);
             }
-            if let Some(Ok(true)) = apart(PATIENCE, move || queued(window)) {
-                return Shelf::Queued;
+            if let Some(Ok(Some(found))) = apart(PATIENCE, move || queued(window)) {
+                return found;
             }
         }
-        match apart(PATIENCE, move || waiting(window)) {
-            Some(Ok(true)) => Shelf::Waiting,
-            _ => in_its_queue(window),
+        match offers(window) {
+            Some(true) => Shelf::Waiting,
+            Some(false) => in_its_queue(window),
+            None => Shelf::Silent,
         }
     }
 
     fn in_its_queue(window: isize) -> Shelf {
         let queued = apart(PATIENCE, move || queued(window));
         match queued {
-            Some(Ok(true)) => {
+            Some(Ok(Some(found))) => {
                 witness::note(
                     channel::UPDATE,
                     "the Store names no update because it already has one in its own queue",
                     &[],
                 );
-                Shelf::Queued
+                found
             }
-            Some(Ok(false)) => Shelf::Current,
+            Some(Ok(None)) => Shelf::Current,
             Some(Err(why)) => {
                 witness::warn(
                     channel::UPDATE,
@@ -179,7 +268,7 @@ mod there {
         }
     }
 
-    fn queued(window: isize) -> windows::core::Result<bool> {
+    fn queued(window: isize) -> windows::core::Result<Option<Shelf>> {
         let ours = Package::Current()?.Id()?.FamilyName()?;
         let items = shop(window)?.GetAssociatedStoreQueueItemsAsync()?.join()?;
         witness::standing(
@@ -198,23 +287,30 @@ mod there {
                 state,
                 StoreQueueItemState::Active | StoreQueueItemState::Paused
             ) {
+                let reason = status.PackageInstallExtendedState().unwrap_or_default();
                 witness::note(
                     channel::UPDATE,
                     "the Store has one of ours in its own queue",
                     &[
                         ("state", Fact::Count(state.0 as usize)),
-                        (
-                            "reason",
-                            Fact::Count(
-                                status.PackageInstallExtendedState().unwrap_or_default().0 as usize,
-                            ),
-                        ),
+                        ("reason", Fact::Count(reason.0 as usize)),
                     ],
                 );
-                return Ok(true);
+                // These two only wait for this window to close, as an update on its way does.
+                let held_up = state == StoreQueueItemState::Paused
+                    && !matches!(
+                        reason,
+                        StoreQueueItemExtendedState::PausedPackagesInUse
+                            | StoreQueueItemExtendedState::PausedReadyToInstall
+                    );
+                return Ok(Some(if held_up {
+                    Shelf::Paused
+                } else {
+                    Shelf::Queued
+                }));
             }
         }
-        Ok(false)
+        Ok(None)
     }
 
     /// A newer package of our own family already registered for this user is one the Store has

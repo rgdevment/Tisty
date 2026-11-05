@@ -36,6 +36,9 @@ const clicked = async (ready: Ready) => {
 describe("updating from the folder a newer Tisty wrote", () => {
   it("says what About says for every copy that cannot install itself", () => {
     expect(waitingOn(offered({ route: "store", coming: true }))).toBe("updateComingWhy");
+    expect(waitingOn(offered({ route: "store", coming: true, paused: true }))).toBe(
+      "updatePausedWhy",
+    );
     expect(waitingOn(offered({ route: "store" }))).toBe("updateLanded");
     expect(waitingOn(offered({ route: "download" }))).toBe("updateFromTheDisk");
   });

@@ -18,7 +18,7 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
   const update = () => {
     setLooking(true);
     setFound(undefined);
-    updateReady(true)
+    updateReady(true, true)
       .then((ready) => {
         if (ready?.installs) return updateInstall();
         setFound(t(!ready ? "lookNowNone" : waitingOn(ready)));
@@ -72,4 +72,10 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
 }
 
 export const waitingOn = (ready: Ready) =>
-  ready.coming ? "updateComingWhy" : ready.route === "store" ? "updateLanded" : "updateFromTheDisk";
+  ready.paused
+    ? "updatePausedWhy"
+    : ready.coming
+      ? "updateComingWhy"
+      : ready.route === "store"
+        ? "updateLanded"
+        : "updateFromTheDisk";

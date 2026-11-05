@@ -319,21 +319,6 @@ fn an_offer_with_no_number_can_still_be_taken() {
     assert!(!offer.coming);
 }
 
-#[test]
-fn a_copy_the_store_keeps_looks_on_every_tick_of_the_window_timer() {
-    let now: jiff::Timestamp = "2026-11-04T18:00:00Z".parse().unwrap();
-    let tick: jiff::Timestamp = "2026-11-04T12:00:00Z".parse().unwrap();
-    let pressed: jiff::Timestamp = "2026-11-04T17:00:00Z".parse().unwrap();
-
-    assert!(due_at_the_shop(None, now));
-    assert!(due_at_the_shop(Some(tick), now));
-    assert!(!due_at_the_shop(Some(pressed), now));
-    assert!(
-        !due(Some(tick), now),
-        "every other copy still looks once a day"
-    );
-}
-
 fn catalog_naming(packages: &[&str]) -> String {
     let named: Vec<_> = packages
         .iter()
@@ -353,9 +338,9 @@ fn the_catalog_names_the_newest_of_ours_it_lists() {
         "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
     ]);
 
-    assert_eq!(listed("1.40.1", &said), Catalog::Lists("1.41.1".into()));
-    assert_eq!(listed("1.41.1", &said), Catalog::NothingNewer);
-    assert_eq!(listed("1.42.0", &said), Catalog::NothingNewer);
+    assert_eq!(listed("1.40.1", &said), Ahead::Is("1.41.1".into()));
+    assert_eq!(listed("1.41.1", &said), Ahead::Nothing);
+    assert_eq!(listed("1.42.0", &said), Ahead::Nothing);
 }
 
 #[test]
@@ -368,7 +353,7 @@ fn a_package_that_is_not_ours_is_not_counted_as_the_catalog_answering() {
     ] {
         assert_eq!(
             listed("1.40.1", &catalog_naming(&[full])),
-            Catalog::Unheard,
+            Ahead::Unheard,
             "{full}"
         );
     }
@@ -383,14 +368,50 @@ fn a_catalog_that_stopped_reading_as_it_did_says_nothing_rather_than_nothing_new
         r#"{"Product":null}"#,
         r#"{"Product":{"DisplaySkuAvailabilities":[]}}"#,
     ] {
-        assert_eq!(listed("1.40.1", said), Catalog::Unheard, "{said}");
+        assert_eq!(listed("1.40.1", said), Ahead::Unheard, "{said}");
     }
     assert_eq!(
         listed(
             "tomorrow",
             &catalog_naming(&["rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc"])
         ),
-        Catalog::Unheard
+        Ahead::Unheard
+    );
+}
+
+#[test]
+fn a_catalog_that_answered_is_not_second_guessed_by_the_feed() {
+    let no_feed = || panic!("the catalog answered, so nothing should go to GitHub");
+
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Is("1.41.1".into()), no_feed),
+        Ahead::Is("1.41.1".into())
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Nothing, no_feed),
+        Ahead::Nothing
+    );
+}
+
+#[test]
+fn the_feed_stands_in_for_a_catalog_nobody_could_read() {
+    let feed = |said: &str| Heard::Said(format!(r#"{{"schema":1,"latest":"{said}"}}"#));
+
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || feed("1.41.1")),
+        Ahead::Is("1.41.1".into())
+    );
+    assert_eq!(
+        ahead("1.41.1", None, Ahead::Unheard, || feed("1.41.1")),
+        Ahead::Nothing
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || Heard::Unsigned),
+        Ahead::Unheard
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || Heard::Nothing),
+        Ahead::Unheard
     );
 }
 

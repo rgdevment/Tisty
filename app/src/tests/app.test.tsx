@@ -464,6 +464,21 @@ describe("the views nothing else opens", () => {
     expect(await screen.findByRole("heading", { name: /search|buscador/i })).toBeTruthy();
   });
 
+  it("looks for an update on opening without counting as the button being pressed", async () => {
+    const was = ipc.answer;
+    const asked: unknown[] = [];
+    ipc.answer = (cmd, args) => {
+      if (cmd === "update_ready") {
+        asked.push(args);
+        return Promise.resolve(null);
+      }
+      return was(cmd, args);
+    };
+    await started();
+
+    expect(asked[0]).toEqual({ nowPlease: true, pressed: undefined });
+  });
+
   it("carries the offer of a newer Tisty through to About", async () => {
     const was = ipc.answer;
     ipc.answer = (cmd, args) => {

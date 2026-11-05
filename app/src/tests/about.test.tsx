@@ -10,7 +10,8 @@ const opened = vi.hoisted(() => ({ urls: [] as string[] }));
 
 const ipc = vi.hoisted(() => ({
   tries: 0,
-  answer: (_cmd: string): Promise<unknown> => Promise.resolve(null),
+  answer: (_cmd: string, _args?: Record<string, unknown>): Promise<unknown> =>
+    Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -20,7 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       opened.urls.push(String(args?.url ?? ""));
       return Promise.resolve(null);
     }
-    return ipc.answer(cmd);
+    return ipc.answer(cmd, args);
   },
 }));
 
@@ -226,14 +227,31 @@ describe("the notice every bundled licence asks for", () => {
 // Only the Store speaks for a copy it keeps: what reaches here is what the Store itself has,
 // and that one this copy can take without leaving the window.
 describe("a newer version the Store itself offers", () => {
-  it("says who was asked when there is nothing, instead of calling the copy the newest", async () => {
+  it("claims nothing about what the Store has until a look has said so", async () => {
     ipc.answer = (cmd) =>
       Promise.resolve(cmd === "about" ? { ...build, keptByTheStore: true } : null);
     render(<About ready={null} onError={() => {}} />);
 
     await screen.findByText("0.1.0");
-    expect(screen.getByText(/Microsoft Store has nothing newer/i)).toBeTruthy();
+    expect(screen.getByText(/Microsoft Store keeps this copy up to date/i)).toBeTruthy();
+    expect(screen.queryByText(/nothing newer/i)).toBeNull();
     expect(screen.queryByText(/newest version/i)).toBeNull();
+  });
+
+  it("says who was asked when pressing the button finds nothing, and says it was pressed", async () => {
+    const asked: unknown[] = [];
+    ipc.answer = (cmd, args) => {
+      if (cmd !== "update_ready") return Promise.resolve({ ...build, keptByTheStore: true });
+      asked.push(args);
+      return Promise.resolve(null);
+    };
+    render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await screen.findByText(/Microsoft Store has nothing newer/i)).toBeTruthy();
+    expect(asked).toEqual([{ nowPlease: true, pressed: true }]);
   });
 
   // «Could not ask» and «nothing for you» read the same on screen, and that is what hid a Store
@@ -288,6 +306,22 @@ describe("a newer version the Store itself offers", () => {
 
     expect(await screen.findByText("The Store has a new version")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Update" })).toBeTruthy();
+  });
+
+  it("says an update paused in the Store will not finish by itself, and opens the Store", async () => {
+    render(
+      <About
+        ready={{ version: "", route: "store", installs: false, coming: true, paused: true }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("The Store has a new version")).toBeTruthy();
+    expect(screen.getByText("The Store has it paused. Open the Store to resume it.")).toBeTruthy();
+    expect(screen.queryByText(/installs itself/i)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open the Store" }));
+
+    expect(opened.urls).toContain("ms-windows-store://downloadsandupdates");
   });
 
   it("names the version it is waiting for, and opens the Store for whoever will not wait", async () => {

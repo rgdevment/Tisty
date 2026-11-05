@@ -77,7 +77,7 @@ export default function About({
   const lookAgain = () => {
     setLooking(true);
     setFound(null);
-    updateReady(true)
+    updateReady(true, true)
       .then((one) => setFound(one ?? "none"))
       .catch(onError)
       .finally(() => setLooking(false));
@@ -143,7 +143,7 @@ export default function About({
                 <span className="block text-[13px] font-semibold">
                   {newer.version
                     ? fill("updateThere", newer.version)
-                    : t(newer.installs ? "updateOffered" : "updateComing")}
+                    : t(newer.installs || newer.paused ? "updateOffered" : "updateComing")}
                 </span>
                 {step ? (
                   step.stage === "installing" ? (
@@ -212,7 +212,13 @@ export default function About({
               <span className="flex-1 text-[12.5px] text-soft">
                 {looking
                   ? t("lookingNow")
-                  : t(build?.keptByTheStore ? "lookNowNoneStore" : "lookNowNone")}
+                  : t(
+                      !build?.keptByTheStore
+                        ? "lookNowNone"
+                        : found === "none"
+                          ? "lookNowNoneStore"
+                          : "lookStoreKeeps",
+                    )}
               </span>
               <button type="button" disabled={looking} onClick={lookAgain} className={mild}>
                 {t("lookNow")}
