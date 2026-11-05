@@ -10,10 +10,12 @@ import {
 } from "react";
 import {
   type Asking,
+  BAR_CSS,
   caretAt,
   type Editing,
   FORMATS,
   flipped,
+  formatButtons,
   MARKED_FOR,
   markLately,
   pressed,
@@ -48,6 +50,8 @@ import { ASIDE_MARGIN, settles } from "./seeking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
+
+const BAR = { buttons: formatButtons, css: BAR_CSS };
 
 type Props = {
   readonly file?: string;
@@ -918,6 +922,7 @@ export default function Sheet(props: Readonly<Props>) {
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         <Page
+          bar={BAR}
           sheet={props.sheet}
           body={drawn}
           label={label}
