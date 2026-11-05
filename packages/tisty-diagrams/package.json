@@ -9,6 +9,13 @@
     "./studio": "./src/studio.ts"
   },
   "peerDependencies": {
-    "react": "^19.3.0"
+    "@xyflow/react": "*",
+    "@xyflow/system": "*",
+    "react": "*"
+  },
+  "devDependencies": {
+    "@testing-library/react": "*",
+    "mermaid": "*",
+    "vitest": "*"
   }
 }

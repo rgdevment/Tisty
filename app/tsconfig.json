@@ -17,12 +17,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "paths": {
-      "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"],
-      "tisty-editor/*": ["../packages/tisty-editor/src/*"],
-      "@tisty/contracts": ["../contracts/dist/typescript/index.d.ts"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src",

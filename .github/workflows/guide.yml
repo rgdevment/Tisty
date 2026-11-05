@@ -34,7 +34,6 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - name: Frontend
-        working-directory: app
         run: npm ci
       - name: Draw the guide
         env:

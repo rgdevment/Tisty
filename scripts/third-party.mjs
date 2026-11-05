@@ -10,16 +10,16 @@ const texts = join(root, "THIRD-PARTY-LICENSES.md");
 const REPO = "https://github.com/rgdevment/Tisty/blob/main";
 
 const shipped = () => {
-  const lock = JSON.parse(readFileSync(join(root, "app", "package-lock.json"), "utf8"));
+  const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
   const seen = new Map();
   for (const [at, one] of Object.entries(lock.packages ?? {})) {
-    if (!at || one.dev || one.devOptional || one.extraneous) continue;
+    if (!at.includes("node_modules/") || one.link || one.dev || one.devOptional || one.extraneous) continue;
     const name = one.name ?? at.slice(at.lastIndexOf("node_modules/") + 13);
     if (!name || seen.has(name)) continue;
     seen.set(name, {
       version: one.version ?? "?",
       licence: one.license ?? "see the package",
-      notice: noticed(join(root, "app", at)),
+      notice: noticed(join(root, at)),
     });
   }
   return seen;

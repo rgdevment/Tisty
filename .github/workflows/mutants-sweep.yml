@@ -291,9 +291,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
+        working-directory: .
 
       - name: One twenty-fourth of the window, dealt out so the shards weigh the same
         run: |
@@ -342,11 +343,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      # A package takes the app's dependencies, linked when the app installs.
       - run: npm ci
-        working-directory: app
 
       - name: Every mutant the package carries
         working-directory: packages/${{ matrix.package }}
