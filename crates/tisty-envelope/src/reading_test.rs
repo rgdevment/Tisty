@@ -7,7 +7,7 @@ use tisty_contracts::{
 };
 use tisty_share_proto::identity::{Root, ShareKey};
 
-use super::{Reader, Unopened, files_for, laid, opened, picture_holds, reading};
+use super::{Reader, Unopened, files_for, laid, opened, opens_under_this, picture_holds, reading};
 use crate::sealing::Writer;
 
 const VECTORS: &str = include_str!("../../../contracts/vectors/vectors.json");
@@ -170,6 +170,36 @@ fn under(version: &str) -> Vec<u8> {
 }
 
 #[test]
+fn the_first_version_shared_counts_only_under_its_own_major() {
+    assert_eq!(opens_under_this("2.0.0", "2.0.0"), Ok(()));
+    assert_eq!(opens_under_this("2.1.0", "2.0.0"), Ok(()));
+    assert_eq!(opens_under_this("1.2.0", "1.5.0"), Ok(()));
+    assert_eq!(opens_under_this("1.1.0", "1.5.0"), Err(Unopened::TooOld));
+    assert_eq!(opens_under_this("1.9.0", "2.0.0"), Err(Unopened::TooOld));
+}
+
+#[test]
+fn a_version_has_one_spelling() {
+    for said in ["1", "1.x.0", "1.+2.0", "01.2.0", "+1.2.0", "1.02.0"] {
+        let read = opens_under_this(said, "1.2.0");
+        assert!(matches!(read, Err(Unopened::Damaged(_))), "{said}");
+    }
+}
+
+#[test]
+fn files_that_do_not_fit_under_a_later_minor_read_as_newer() {
+    let all = all();
+    let said = &all["newer_files"];
+    let read = files_for(
+        &said["document"],
+        &hex(&said["files"]),
+        &hostile(EnvelopeKind::Files),
+        &nothing_served(),
+    );
+    assert_eq!(read.err(), Some(Unopened::Newer));
+}
+
+#[test]
 fn a_version_is_read_before_anything_else_in_the_manifest() {
     let any = asked("x", EnvelopeKind::Main, None);
     let read = |version: &str| opened(&under(version), &any, &nothing_served()).err();
@@ -179,8 +209,13 @@ fn a_version_is_read_before_anything_else_in_the_manifest() {
     assert_eq!(read("1.0.0-draft.8"), Some(Unopened::Draft));
     assert_eq!(read("2.0.0-draft.1"), Some(Unopened::Draft));
     assert!(matches!(read("uno"), Some(Unopened::Damaged(_))));
-    // The same major opens, so what stops it is the rest of a manifest that says nothing.
-    assert!(matches!(read("1.9.0"), Some(Unopened::Damaged(_))));
+    // A manifest that says nothing is what stops these: damaged here, and newer under a later minor.
+    assert!(matches!(
+        read(tisty_contracts::VERSION),
+        Some(Unopened::Damaged(_))
+    ));
+    assert_eq!(read("1.99.0"), Some(Unopened::Newer));
+    assert_eq!(read("1.1.0"), Some(Unopened::TooOld));
 }
 
 #[test]
@@ -313,6 +348,8 @@ fn what_tisty_seals_for_itself_it_also_reads() {
         link_key: None,
         files_hash: None,
         files_key: None,
+        owner: None,
+        token: None,
     };
     let sealed = writer
         .sealed(document.unwrap(), vec![], vec![], &sealing)

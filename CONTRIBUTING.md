@@ -236,11 +236,12 @@ does not count.
 
 On `main`, a new version goes out by itself as the pre-release
 `contracts-vX.Y.Z`, and what is out is never replaced, since Folio pins its
-hash. A draft is never published. Nothing has been shared for real yet, so there
-is no reader to keep: a later version may change what an earlier one said, the
-major version stays at 1, and CI refuses another. For every new version, Folio
-deploys first and Tisty after it. The first real share ends this rule and that
-check.
+hash. A draft is never published. From `1.2.0`, a later minor never breaks an
+earlier one, as `versions` in `contracts/documents/envelope.yaml` says, and what
+each published version wrote stays frozen in the samples: a later reader has to
+open it, and CI refuses a change to it. Nothing has been shared for real yet, so
+the major version stays at 1 and CI refuses another; the first real share ends
+that check. For every new version, Folio deploys first and Tisty after it.
 
 ## Security
 

@@ -49,6 +49,235 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
         link_key,
         files_hash: None,
         files_key: None,
+        owner: None,
+        token: None,
+    }
+}
+
+mod editing {
+    use serde_json::{Value, json};
+    use tisty_contracts::{Document, EnvelopeKind, Opening, Owner, Revocation, Served, Verdict};
+    use tisty_envelope::reading::{Unopened, reading};
+    use tisty_envelope::sealing::{Refused, Writer};
+    use tisty_share_proto::identity::{Certificate, Root, ShareKey};
+
+    use super::{key_text, sealing};
+
+    const ID: &str = "editado";
+    const LINK_KEY: u8 = 0x11;
+    const TOKEN: u8 = 0x70;
+    const OWNER: u8 = 0x30;
+    const EDITOR: u8 = 0x40;
+
+    fn person(byte: u8) -> (ShareKey, Certificate) {
+        let key = ShareKey::from_bytes(&[byte + 1; 32]);
+        let certificate = Root::from_bytes(&[byte; 32])
+            .certify(&key.public(), "2026-11-03T12:00:00Z".parse().unwrap());
+        (key, certificate)
+    }
+
+    fn words(owner_name: &str) -> Document {
+        serde_json::from_value(
+            json!({ "id": ID, "owner_name": owner_name, "html": "<p>a</p>", "body": "a" }),
+        )
+        .unwrap()
+    }
+
+    fn asked() -> Opening {
+        Opening {
+            id: ID.into(),
+            kind: EnvelopeKind::Main,
+            link_key: Some(key_text(LINK_KEY)),
+        }
+    }
+
+    fn nothing() -> Served {
+        Served {
+            received: None,
+            revocations: None,
+        }
+    }
+
+    fn owner_in(main: &[u8]) -> Owner {
+        let size = u32::from_be_bytes(main[4..8].try_into().unwrap()) as usize;
+        let manifest: Value = serde_json::from_slice(&main[8..8 + size]).unwrap();
+        serde_json::from_value(manifest["owner"].clone()).unwrap()
+    }
+
+    fn owned(token: Option<u8>) -> Vec<u8> {
+        let (key, certificate) = person(OWNER);
+        let mut going = sealing(ID, Some(key_text(LINK_KEY)));
+        going.token = token.map(key_text);
+        Writer::new(&key, &certificate)
+            .sealed(words("Mario"), vec![], vec![], &going)
+            .unwrap()
+            .main
+    }
+
+    fn edited(owner: Owner, token: Option<u8>, name: &str) -> Result<Vec<u8>, Refused> {
+        let (key, certificate) = person(EDITOR);
+        let mut going = sealing(ID, Some(key_text(LINK_KEY)));
+        going.owner = Some(owner);
+        going.token = token.map(key_text);
+        Writer::new(&key, &certificate)
+            .sealed(words(name), vec![], vec![], &going)
+            .map(|sealed| sealed.main)
+    }
+
+    fn unhexed(said: &Value) -> Vec<u8> {
+        let said = said.as_str().unwrap();
+        (0..said.len())
+            .step_by(2)
+            .map(|at| u8::from_str_radix(&said[at..at + 2], 16).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn an_owner_seals_and_its_reader_says_who_owns_it() {
+        let main = owned(Some(TOKEN));
+        let read = reading(&main, &asked(), &nothing()).unwrap();
+        assert_eq!(read.owner.as_deref(), Some(read.signer.as_str()));
+        assert_eq!(read.document["owner_name"], "Mario");
+        assert!(owner_in(&main).permit.is_some());
+        assert!(owner_in(&owned(None)).permit.is_none());
+    }
+
+    #[test]
+    fn an_editor_with_the_token_signs_under_its_own_root_and_the_owner_stays() {
+        let owner = owner_in(&owned(Some(TOKEN)));
+        let main = edited(owner.clone(), Some(TOKEN), "Mario").unwrap();
+        let read = reading(&main, &asked(), &nothing()).unwrap();
+        assert_eq!(read.owner.as_deref(), Some(owner.root.as_str()));
+        assert_ne!(read.signer, owner.root);
+        assert_eq!(read.verdict, Verdict::Holds);
+    }
+
+    #[test]
+    fn a_writer_does_not_seal_what_no_reader_would_open() {
+        let owner = owner_in(&owned(Some(TOKEN)));
+        for (token, name) in [
+            (None, "Mario"),
+            (Some(0x71), "Mario"),
+            (Some(TOKEN), "Zorro"),
+        ] {
+            let refused = edited(owner.clone(), token, name);
+            assert!(
+                matches!(refused, Err(Refused::DoesNotAdd(_))),
+                "{token:?} {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn what_is_public_has_no_owner_s_block_yet() {
+        let (key, certificate) = person(OWNER);
+        let mut going = sealing(ID, None);
+        going.token = Some(key_text(TOKEN));
+        let refused =
+            Writer::new(&key, &certificate).sealed(words("Mario"), vec![], vec![], &going);
+        assert!(matches!(refused, Err(Refused::DoesNotAdd(_))));
+        let refused = Writer::new(&key, &certificate).sealed(
+            words("Mario"),
+            vec![],
+            vec![],
+            &sealing(ID, None),
+        );
+        assert!(matches!(refused, Err(Refused::DoesNotAdd(_))));
+    }
+
+    #[test]
+    fn a_writer_does_not_carry_an_owner_s_block_that_does_not_hold() {
+        let owner = owner_in(&owned(Some(TOKEN)));
+        let (other, _) = person(EDITOR);
+        let mut no_signature = owner.clone();
+        no_signature.signed = owner.certificate.clone();
+        let mut other_machine = owner.clone();
+        other_machine.machine = other.shown();
+        let mut other_permit = owner;
+        other_permit.permit = Some(key_text(0x72));
+        for broken in [no_signature, other_machine, other_permit] {
+            let refused = edited(broken, Some(TOKEN), "Mario");
+            assert!(
+                matches!(refused, Err(Refused::DoesNotAdd(_))),
+                "{refused:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_revocation_of_its_owner_s_machine_weighs_on_what_an_editor_signed() {
+        let (owner_key, _) = person(OWNER);
+        let main = edited(owner_in(&owned(Some(TOKEN))), Some(TOKEN), "Mario").unwrap();
+        let revoked = Root::from_bytes(&[OWNER; 32])
+            .revoke(&owner_key.public(), "2026-11-04T00:00:00Z".parse().unwrap());
+        let served = Served {
+            received: Some("2026-11-05T00:00:00Z".into()),
+            revocations: Some(vec![Revocation {
+                root: revoked.root,
+                machine: revoked.share,
+                at: revoked.at.to_string(),
+                signed: revoked.sig,
+            }]),
+        };
+        let read = reading(&main, &asked(), &served).unwrap();
+        assert_eq!(read.verdict, Verdict::Doubtful);
+    }
+
+    #[test]
+    fn this_reader_opens_and_refuses_what_the_samples_say() {
+        let all: Value =
+            serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+        for one in all["editing"]["opens"].as_array().unwrap() {
+            let read = reading(&unhexed(&one["envelope"]), &asked(), &nothing()).unwrap();
+            assert_eq!(
+                read.signer,
+                one["signer"].as_str().unwrap(),
+                "{}",
+                one["says"]
+            );
+        }
+        for one in all["editing"]["refused"].as_array().unwrap() {
+            let refused = reading(&unhexed(&one["envelope"]), &asked(), &nothing());
+            assert!(refused.is_err(), "{}", one["says"]);
+        }
+    }
+
+    #[test]
+    fn this_reader_tells_a_later_version_from_a_damaged_one_and_leaves_a_rest_aside() {
+        let all: Value =
+            serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+        let hostile = Opening {
+            id: "hostile".into(),
+            kind: EnvelopeKind::Main,
+            link_key: None,
+        };
+        for one in all["newer_than_this"].as_array().unwrap() {
+            let read = reading(&unhexed(&one["envelope"]), &hostile, &nothing());
+            assert_eq!(read.err(), Some(Unopened::Newer), "{}", one["says"]);
+        }
+        let old = &all["before_the_first_shared"]["envelope"];
+        let read = reading(&unhexed(old), &asked(), &nothing());
+        assert_eq!(read.err(), Some(Unopened::TooOld));
+        let rest = &all["editing"]["rest_left_aside"];
+        let read = reading(&unhexed(rest), &asked(), &nothing()).unwrap();
+        assert!(read.document.get("owner_name").is_none());
+        assert_eq!(read.document["body"], "a");
+    }
+
+    #[test]
+    fn this_reader_still_opens_what_each_published_version_wrote() {
+        let all: Value =
+            serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+        for (version, said) in all["frozen"].as_object().unwrap() {
+            let main = Opening {
+                id: "k7Qm2xPa".into(),
+                kind: EnvelopeKind::Main,
+                link_key: said["link_key"].as_str().map(str::to_owned),
+            };
+            let read =
+                reading(&unhexed(&said["main"]["envelope"]), &main, &nothing()).expect(version);
+            assert_eq!(read.document, said["main"]["document"], "{version}");
+        }
     }
 }
 

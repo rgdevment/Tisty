@@ -25,6 +25,8 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Revocation | Revocación | The root saying it no longer answers for a machine key, since a moment. It deletes nothing and stops nothing. |
 | Verdict | Veredicto | What a reader says of a signature: holds, retired, doubtful, refused or unreadable. |
 | Cited | Citado | Another document shared along with this one, in its own envelopes, with its key. |
-| Sync | Sincronizar | Sending what changed in a document to what is shared. A button, or by itself every 5 or 10 minutes. |
+| Sync | Sincronizar | One button, and nothing by itself: it asks whether another version arrived, brings it apart and sends what changed. |
+| Owner | Dueño | The root that owns what is sealed. An editor signs a version; the owner never changes. |
+| Permit | Permiso | The public key of an edit token: whoever holds the token may sign a version under their own key. |
 | Writer | Quien escribe | Whoever turns words into a document ready to travel: Tisty, or a fork of it. |
 | Reader | Quien lee | Whoever shows a document: Tisty or Folio. |

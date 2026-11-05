@@ -15,7 +15,7 @@ values:
   index: "The SHA-256 of each part as it travels, 32 bytes each, in order."
   main_parts:
     first: "The document as JSON, without its body and its pages, so it can be drawn with the first bytes."
-    rest: "Its body and its pages as JSON, each page with its own HTML. Laid over first, they make the document."
+    rest: "Its body and its pages as JSON, each page with its own HTML. Laid over first, they make the document. Anything else in it is left aside, and never laid over first."
     picture: "One for each picture, after those two, in the order its pictures give. Never compressed."
   files_parts: "One file for each of its files, in the order they give. Never compressed."
   who_does_what:
@@ -39,6 +39,13 @@ values:
       Ed25519 by the machine, over these bytes in a row: tisty-share.signed.v1, a zero byte, root, machine, the number 8 in
       8 bytes, big endian, the 8 letters of the word envelope, the SHA-256 of the manifest alone, and then the index as it is.
     files: "The document's files_hash is one SHA-256 over the files envelope's manifest followed by its index, so one signature answers for both."
+    owner: >-
+      Ed25519 by the owner's machine, in the same row as signed, with the 5 letters of the word owner in place of envelope and,
+      after them: the id's length in 8 bytes, big endian, the id, the permit or 32 zero bytes, and the name_tag. It never depends
+      on the words, so it answers for who owns the document and who may edit it, and for nothing they say.
+    name_tag: "HMAC-SHA-256 with the link key over tisty-owner-name, a zero byte, the id's length in 8 bytes, big endian, the id and the owner_name, or nothing when it has none."
+    permit: "The public key of the Ed25519 key whose 32-byte seed is the token after the link key in an edit link."
+    permit_signed: "Ed25519 by the token's key, over tisty-share.permit.v1, a zero byte, the root and the machine of its signature, the SHA-256 of the manifest alone, and then the index as it is."
   reader_refuses:
     - "Under a link with a key, an envelope that is not sealed: the key would answer for nothing."
     - "A manifest whose id or kind is not what it asked for."
@@ -50,13 +57,26 @@ values:
     - "A manifest that says a head or a commitment while it is not sealed."
     - "A from that is not earlier than its version."
     - "A picture or a file that says it is compressed."
-    - "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid."
+    - "A first that holds a body or pages, and a rest that repeats what first says: laid over each other, one part would say what the other hid."
     - "A document, a page or an HTML outside the contract, pages out of their order or repeating a place or an id, a page that is not of this document, a picture drawn at another size than its own, files without the hash that answers for them or a hash without files, or a reference to what does not travel. Its words are not shown."
     - "A file at another place or of another size than its document says."
+    - "A sealed envelope whose owner's signature or certificate does not hold."
+    - "A version whose signature is not under the owner's root and brings no permit_signed that holds against the owner's permit."
+    - "A sealed document whose owner_name is not what the name_tag says, under the key that opens it, and a public document with an owner_name, which nothing answers for."
   who_checks_what:
-    server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes and the version."
-    reader: "It checks the signature and the certificate again, the hash of each part and, with the key, the commitment, the seal, the sizes once open, the document, its HTML, its references and its pictures. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. It stays at 1 while nothing has been shared for real, so a version that changes what a reader expects goes out with Folio and Tisty updated together. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version."
+    server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes, the version, the owner and the permit. Only it knows which permit is the current one, since a reader cannot: it keeps the owner's root and the permit, and refuses an upload that names another of either. The machine and the name_tag may change only under the owner's root, as when the owner uploads from another machine or takes another name."
+    reader: "It checks the signature and the certificate again, the owner and the permit, the hash of each part and, with the key, the commitment, the seal, the name_tag, the sizes once open, the document, its HTML, its references and its pictures. It gives the owner's machine the same verdict as the signer's, and shows the worse. Only the reader can, and a writer's word counts for nothing here."
+  versions: >-
+    The major version is the number before the first dot of contract, and it is read before anything else in the manifest.
+    It names the layout, the seal and the signatures, and it goes up only when a reader cannot open an envelope with what it
+    holds. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens if the reader
+    keeps its branch, and otherwise the reader says it is too old, never that it is damaged. A draft opens only under that
+    very draft, and a final version never opens one. A number has one spelling, and a version whose major or minor is written
+    any other way is no version. Within a major version, from 1.2.0, the first one shared, three things hold. A later reader opens all an earlier one wrote: what it left optional stays optional, and what it allowed stays
+    allowed. A later writer may add anything: a field, a part, a tag, an attribute, a class, a word. An earlier reader ignores
+    what it can, and what it would refuse under a minor above its own it reads as newer, never as damaged, and shows nothing.
+  sealing_again: "A writer never seals again what arrived under a minor above its own: it asks to update, or it would lose what it does not know."
+  floors: "A server may publish the oldest version it takes and the oldest it serves, in its signed limits, and refuses what is below them as outdated. It is for a mistake of ours, not against a fork: what protects a reader from a fork is the reader's own rules. A writer that holds something sent below a floor sends it again the next time it syncs."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
@@ -69,6 +89,7 @@ fields:
   sealed: { type: bool, required: true, says: "False only for what is public." }
   head: { type: hash, required_when: sealed, only_when: sealed, says: "32 random bytes." }
   commitment: { type: hash, required_when: sealed, only_when: sealed }
+  owner: { type: owner, required_when: sealed, only_when: sealed, says: "Who owns it, in the additional data of every part, so changing it without the key does not open. Who owns what is public, which has no key to tie this to, is not defined yet: its signer answers for it." }
   parts: { type: list, of: envelope_part, required: true, at_least: 1 }
 roles:
   writer:
@@ -86,8 +107,42 @@ cases:
       sealed: true
       head: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       commitment: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      owner:
+        root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        since: "2026-11-03T12:00:00Z"
+        certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+        name_tag: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       parts: [{ name: first, compressed: true, sealed_size: 40, open_size: 90 }, { name: rest, compressed: true, sealed_size: 50, open_size: 120 }]
     holds: true
+  - says: "A sealed one that says nobody owns it."
+    value:
+      contract: "1.0.0"
+      kind: main
+      id: "k7Qm2xPa"
+      version: 2
+      sealed: true
+      head: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      commitment: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      parts: [{ name: first, compressed: true, sealed_size: 40, open_size: 90 }, { name: rest, compressed: true, sealed_size: 50, open_size: 120 }]
+    holds: false
+  - says: "A public one that says who owns it, with no key to tie that to."
+    value:
+      contract: "1.0.0"
+      kind: main
+      id: "k7Qm2xPa"
+      version: 1
+      sealed: false
+      owner:
+        root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        since: "2026-11-03T12:00:00Z"
+        certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+        name_tag: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+        signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }]
+    holds: false
   - says: "A public one, with nothing to open it with."
     value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
     holds: true
@@ -124,6 +179,8 @@ fields:
   link_key: { type: key, says: "None for what is public." }
   files_hash: { type: hash, says: "The files envelope already sent, when no file changed." }
   files_key: { type: key, says: "The key that envelope was sealed with. None when it was public." }
+  owner: { type: owner, says: "The owner's block as it arrived, when someone edits what is another's. Left out, whoever seals owns it and signs a new one." }
+  token: { type: key, says: "The token of its edit link. From the owner, it names who may edit; from anyone else, it signs the version." }
 cases:
   - says: "A private version."
     value: { id: "k7Qm2xPa", version: 2, from: 1, link_key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
@@ -171,18 +228,15 @@ contract: sync
 group: documents
 checked_by: [writer]
 says: >-
-  How what is shared keeps up with its document. Whoever writes offers a button to sync it, and an option to sync it by
-  itself. Only what changed goes up: its files go up again only when they change.
-enums:
-  sync_every: [off, every5, every10]
+  How what is shared keeps up with its document. Whoever writes or edits presses one button, and nothing happens by itself:
+  it asks whether another version arrived, brings what is someone else's apart, and sends what changed. Its files go up again
+  only when they change.
 values:
-  default: "off"
-  minutes: { every5: 5, every10: 10 }
-  only_with_changes: "It compares the document with what it last sent. With no change, it asks nothing of the server."
+  only_with_changes: "It compares the document with what it last sent. With no change, nothing goes up, but it still asks, and what was sent below a server's floor counts as a change."
+  arrived_too: "When another version arrived and this one changed too, nothing goes up until the person settles it."
 roles:
   writer:
-    sync: { says: "Sends now what changed." }
-    set_sync: { takes: { every: sync_every } }
+    sync: { says: "Asks, brings and sends, once each time it is pressed." }
 ---
 contract: link
 group: documents
@@ -193,6 +247,7 @@ says: >-
   checks its signature and takes in its body, the Tisty language, never its HTML. A Tisty that cannot do it yet says so.
 values:
   private: "https://tisty.cl/{id}#{link_key}"
+  private_edit: "https://tisty.cl/{id}#{link_key}.{token}"
   public: "https://folio.tisty.app/{id}"
   open: "tisty://open?path={a file of this machine, percent-encoded}"
   edit: "tisty://edit?link={the web link, percent-encoded}"
@@ -201,6 +256,8 @@ values:
     address: "tisty://edit?link=https%3A%2F%2Ftisty.cl%2Fk7Qm2xPa%23a-key_0"
   parameters: "Each address takes its one parameter, once. A repeated one or any other is refused: any page can fire an address, so it says nothing of folders, states or files."
   inside_a_document: "Neither address works from inside a document. Its HTML refuses them, and in its body they are words, which Tisty never follows."
-  the_key: "The edit address carries the key of a private link, so nobody writes the address to a log, and whoever refuses one says so without it."
-  from_a_read_link: "Tisty keeps a guest copy, which is not shared again. The original stays as it was, whatever is done to the copy."
-  editing: "Never on the web. Who may edit the original from Tisty, and how editors and versions grow, is not defined yet."
+  the_key: "The edit address carries the key of a private link and its token, so nobody writes the address to a log, and whoever refuses one says so without them."
+  the_token: "32 random bytes in base64url, after the link key and a point. It never reaches the server: it signs. A page sees it as it sees the key, and it leaves it out of what it copies, reports or shows."
+  one_each: "One token for each document, and it covers its pages, which travel in its envelope. A language and a cited document are documents of their own, each with its token."
+  from_a_read_link: "Tisty keeps a guest copy, and the original stays as it was, whatever is done to the copy. The copy goes out only as a new document, under a notice, and never as the original's owner."
+  editing: "Never on the web. With an edit link, Tisty signs the next version with its own key and the token, and keeps the owner's block, the owner_name, its pictures, files, cited documents, languages and sheet as they arrived. The owner does not change, and the server refuses a version that says otherwise."

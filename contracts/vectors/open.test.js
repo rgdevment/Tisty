@@ -42,14 +42,61 @@ const inflated = async (bytes, size) => {
 };
 
 const majorOf = (said) => said.split(".")[0];
-const opensHere = (said) => (said.includes("-") || VERSION.includes("-") ? said === VERSION : majorOf(said) === majorOf(VERSION));
+const minorOf = (said) => {
+  const written = said.split(".")[1];
+  return String(Number(written)) === written ? Number(written) : Number.NaN;
+};
+const FIRST_SHARED = { major: "1", minor: 2 };
+const opensHere = (said) => {
+  if (said.includes("-") || VERSION.includes("-")) return said === VERSION;
+  if (majorOf(said) !== majorOf(VERSION) || Number.isNaN(minorOf(said))) return false;
+  return majorOf(said) !== FIRST_SHARED.major || minorOf(said) >= FIRST_SHARED.minor;
+};
+const underALaterMinor = (bytes) => {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const said = String(JSON.parse(new TextDecoder().decode(bytes.subarray(8, 8 + view.getUint32(4)))).contract);
+  return !said.includes("-") && majorOf(said) === majorOf(VERSION) && minorOf(said) > minorOf(VERSION);
+};
+const toldApart = async (bytes, going) => {
+  try {
+    return await going();
+  } catch (wrong) {
+    if (underALaterMinor(bytes)) throw new Error("newer: update to read it");
+    throw wrong;
+  }
+};
 
 const verified = async (key, signature, ...pieces) => {
   const held = await subtle.importKey("raw", key, "Ed25519", false, ["verify"]);
   assert.ok(await subtle.verify("Ed25519", held, signature, joined(...pieces)), "the signature holds");
 };
 
-const opened = async (bytes, asked, linkKey) => {
+// The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
+const ownerAnswers = async (manifest, signature, manifestBytes, index) => {
+  const { owner } = manifest;
+  const root = b64(owner.root);
+  const machine = b64(owner.machine);
+  await verified(root, b64(owner.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(owner.since) / 1000));
+  const about = words("owner");
+  const id = words(manifest.id);
+  const permit = owner.permit ? b64(owner.permit) : new Uint8Array(32);
+  await verified(machine, b64(owner.signed), words("tisty-share.signed.v1\0"), root, machine, be(about.length), about, be(id.length), id, permit, b64(owner.name_tag));
+  if (owner.root === signature.root) return;
+  assert.ok(owner.permit && signature.permit_signed, "another root needs its owner's permit");
+  await verified(permit, b64(signature.permit_signed), words("tisty-share.permit.v1\0"), b64(signature.root), b64(signature.machine), await sha(manifestBytes), index);
+};
+
+const ownerNameHolds = async (manifest, first, linkKey) => {
+  const id = words(manifest.id);
+  const name = words(JSON.parse(new TextDecoder().decode(first)).owner_name ?? "");
+  const held = await subtle.importKey("raw", linkKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const tag = new Uint8Array(await subtle.sign("HMAC", held, joined(words("tisty-owner-name\0"), be(id.length), id, name)));
+  assert.ok(same(tag, b64(manifest.owner.name_tag)), "its owner's name is the one its owner signed");
+};
+
+const opened = (bytes, asked, linkKey, signaturesOnly) => toldApart(bytes, () => openedAsSaid(bytes, asked, linkKey, signaturesOnly));
+
+const openedAsSaid = async (bytes, asked, linkKey, signaturesOnly) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   assert.ok(same(bytes.subarray(0, 4), words("TENV")), "its mark");
   let at = 4;
@@ -90,6 +137,8 @@ const opened = async (bytes, asked, linkKey) => {
   await verified(root, b64(signature.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(signature.since) / 1000));
   const about = words("envelope");
   await verified(machine, b64(signature.signed), words("tisty-share.signed.v1\0"), root, machine, be(about.length), about, await sha(manifestBytes), index);
+  if (manifest.sealed) await ownerAnswers(manifest, signature, manifestBytes, index);
+  if (signaturesOnly) return { manifest, signature };
   let key;
   if (manifest.sealed) {
     const held = await subtle.importKey("raw", linkKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -111,7 +160,8 @@ const opened = async (bytes, asked, linkKey) => {
     parts.push(part.compressed ? await inflated(held, part.open_size) : held);
   }
   assert.equal(at, bytes.length, "nothing follows its parts");
-  return { manifest, manifestBytes, index, parts };
+  if (manifest.sealed && asked.kind === "main") await ownerNameHolds(manifest, parts[0], linkKey);
+  return { manifest, manifestBytes, index, parts, signature };
 };
 
 const asJson = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
@@ -121,10 +171,11 @@ const atsOf = (list) => (list ?? []).map((one) => one.at);
 const documentIn = ({ manifest, parts }) => {
   const [first, rest] = parts.slice(0, 2).map(asJson);
   assert.ok(!("body" in first) && !("pages" in first), "the first part holds neither body nor pages");
-  assert.ok(Object.keys(rest).every((one) => one === "body" || one === "pages"), "the rest holds only those");
-  const held = { ...first, ...rest };
+  assert.ok(Object.keys(rest).every((one) => !(one in first)), "the rest repeats nothing of the first part");
+  const held = { ...first, ...(rest.body === undefined ? {} : { body: rest.body }), ...(rest.pages === undefined ? {} : { pages: rest.pages }) };
   assert.deepEqual(check("document", held), []);
   assert.equal(held.id, manifest.id, "the document inside is the one the manifest says");
+  assert.ok(manifest.sealed || held.owner_name === undefined, "what is public has nothing to answer for its owner's name");
   const pictures = held.pictures ?? [];
   assert.equal(pictures.length, parts.length - 2, "as many pictures as it says");
   pictures.forEach((one, at) => {
@@ -149,10 +200,12 @@ const documentIn = ({ manifest, parts }) => {
 
 const reading = async (bytes, asked, linkKey) => {
   const main = await opened(bytes, asked, linkKey);
-  return { main, held: documentIn(main) };
+  return { main, held: await toldApart(bytes, () => documentIn(main)) };
 };
 
-const filesFor = async (held, bytes, asked, linkKey) => {
+const filesFor = (held, bytes, asked, linkKey) => toldApart(bytes, () => filesAsSaid(held, bytes, asked, linkKey));
+
+const filesAsSaid = async (held, bytes, asked, linkKey) => {
   const files = await opened(bytes, asked, linkKey);
   assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)), "the envelope its document answers for");
   const said = held.files ?? [];
@@ -215,6 +268,80 @@ const linkKey = b64(VECTORS.link_key);
 const MAIN = { id: "k7Qm2xPa", kind: "main" };
 const FILES = { id: "k7Qm2xPa", kind: "files" };
 const PUBLIC = { id: "wordsOnly", kind: "main" };
+
+const EDITING = { id: VECTORS.editing.id, kind: "main" };
+
+for (const { says, signer, envelope } of VECTORS.editing.opens) {
+  test(`a reader opens ${says}`, async () => {
+    const { signature, manifest } = await opened(hex(envelope), EDITING, linkKey);
+    assert.equal(signature.root, signer);
+    assert.equal(manifest.owner.root, VECTORS.editing.owner);
+  });
+}
+
+for (const { says, envelope } of VECTORS.editing.refused) {
+  test(`a reader refuses ${says}`, async () => {
+    await assert.rejects(reading(hex(envelope), EDITING, linkKey));
+  });
+}
+
+for (const { says, envelope, without_the_key: withoutTheKey } of VECTORS.editing.refused) {
+  if (withoutTheKey) {
+    test(`a server refuses, with nothing open, ${says}`, async () => {
+      await assert.rejects(opened(hex(envelope), EDITING, undefined, true));
+    });
+  }
+}
+
+test("what a rest says beyond its body and pages is left aside", async () => {
+  const { held } = await reading(hex(VECTORS.editing.rest_left_aside), EDITING, linkKey);
+  assert.equal(held.owner_name, undefined);
+  assert.equal(held.title, undefined);
+  assert.equal(held.body, "a");
+});
+
+for (const { says, envelope } of VECTORS.newer_than_this) {
+  test(`under a later minor, ${says} reads as newer`, async () => {
+    await assert.rejects(reading(hex(envelope), { id: "hostile", kind: "main" }), /newer/);
+  });
+}
+
+test("under a later minor, files that do not fit read as newer", async () => {
+  const { document, files } = VECTORS.newer_files;
+  await assert.rejects(filesFor(document, hex(files), { id: "hostile", kind: "files" }), /newer/);
+});
+
+test("what comes before the first version shared is too old, never damaged", async () => {
+  const { id, envelope } = VECTORS.before_the_first_shared;
+  await assert.rejects(reading(hex(envelope), { id, kind: "main" }, linkKey), /version/);
+});
+
+test("no key of small order passes", () => {
+  for (const one of VECTORS.small_order) {
+    assert.notDeepEqual(check("revocation", { root: one, machine: VECTORS.signed_by.machine, at: "2026-11-03T12:00:00Z", signed: VECTORS.revocation.signed }), []);
+  }
+});
+
+for (const [version, { link_key: key, main, files, public: open }] of Object.entries(VECTORS.frozen)) {
+  test(`what ${version} wrote still opens`, async () => {
+    const { held } = await reading(hex(main.envelope), MAIN, b64(key));
+    assert.deepEqual(held, main.document);
+    await filesFor(held, hex(files.envelope), FILES, b64(key));
+    assert.deepEqual((await reading(hex(open.envelope), PUBLIC)).held, open.document);
+  });
+}
+
+test("a revocation of its owner's machine weighs on what an editor signed", async () => {
+  const { envelope, served, verdict } = VECTORS.editing.owner_revoked;
+  const { manifest, signature } = await opened(hex(envelope), EDITING, linkKey);
+  assert.equal(await verdictOf(signature, served), "holds");
+  assert.equal(await verdictOf(manifest.owner, served), verdict);
+});
+
+test("the token follows the key after a point, and neither has one of its own", () => {
+  const [, secret] = VECTORS.editing.link.split("#");
+  assert.deepEqual(secret.split("."), [VECTORS.link_key, VECTORS.editing.token]);
+});
 
 test("the samples are written under this very version", async () => {
   const { manifest } = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);

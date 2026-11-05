@@ -17,13 +17,15 @@ use tisty_contracts::{
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
 use crate::sealing::{
-    ABOUT, MANIFEST_AT_MOST, MARK, SIGNATURE_AT_MOST, cipher_of, commitment_holds, nonce,
+    ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
+    name_tag, nonce, owner_said,
 };
 
 // This reader's own, and no number of the contract's: each reader knows what it can hold.
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
 const PNG_MARK: &[u8] = b"\x89PNG\r\n\x1a\n";
 const JPEG_MARK: &[u8] = &[0xFF, 0xD8, 0xFF];
+const FIRST_SHARED: (u64, u64) = (1, 2);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum Unopened {
@@ -45,6 +47,8 @@ pub struct Opened {
     pub index: Vec<u8>,
     pub parts: Vec<Vec<u8>>,
     pub verdict: Verdict,
+    pub signer: String,
+    pub owner: Option<String>,
 }
 
 // It stays a `Value`: a later minor version adds what this one leaves aside, and a paper it does not know is no fault.
@@ -53,6 +57,8 @@ pub struct Reading {
     pub document: Value,
     pub pictures: Vec<Vec<u8>>,
     pub verdict: Verdict,
+    pub signer: String,
+    pub owner: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,22 +72,68 @@ const fn damaged<T>(why: &'static str) -> Result<T, Unopened> {
     Err(Unopened::Damaged(why))
 }
 
+// One spelling for a number, as every reader has to agree on which versions it opens.
+fn number_in(said: &str) -> Option<u64> {
+    said.parse()
+        .ok()
+        .filter(|one: &u64| one.to_string() == said)
+}
+
 fn major_of(version: &str) -> Option<u64> {
-    version.split('.').next()?.parse().ok()
+    number_in(version.split('.').next()?)
+}
+
+fn minor_of(said: &str) -> Option<u64> {
+    number_in(said.split('.').nth(1)?)
+}
+
+fn under_a_later_minor(bytes: &[u8]) -> bool {
+    let size = bytes
+        .get(4..8)
+        .and_then(|one| <[u8; 4]>::try_from(one).ok())
+        .map(|one| u32::from_be_bytes(one) as usize)
+        .filter(|one| *one <= MANIFEST_AT_MOST);
+    let manifest = size.and_then(|one| bytes.get(8..8 + one));
+    let manifest = manifest.and_then(|one| serde_json::from_slice::<Value>(one).ok());
+    let said = manifest.as_ref().and_then(|one| one["contract"].as_str());
+    said.filter(|one| !one.contains('-')).is_some_and(|one| {
+        major_of(one) == major_of(VERSION)
+            && minor_of(one)
+                .zip(minor_of(VERSION))
+                .is_some_and(|(said, here)| said > here)
+    })
+}
+
+// What a later minor may add, this reader cannot tell from what is broken, and it shows neither.
+fn told_apart<T>(bytes: &[u8], result: Result<T, Unopened>) -> Result<T, Unopened> {
+    result.map_err(|wrong| match wrong {
+        Unopened::Damaged(_) | Unopened::Signature(_) if under_a_later_minor(bytes) => {
+            Unopened::Newer
+        }
+        other => other,
+    })
 }
 
 // Before anything else: a newer version may say what this one would call damaged.
 fn opens_under(said: &str) -> Result<(), Unopened> {
-    if said.contains('-') || VERSION.contains('-') {
-        return if said == VERSION {
+    opens_under_this(said, VERSION)
+}
+
+fn opens_under_this(said: &str, version: &str) -> Result<(), Unopened> {
+    if said.contains('-') || version.contains('-') {
+        return if said == version {
             Ok(())
         } else {
             Err(Unopened::Draft)
         };
     }
-    match major_of(said).zip(major_of(VERSION)) {
-        Some((said, here)) if said == here => Ok(()),
-        Some((said, here)) if said > here => Err(Unopened::Newer),
+    match major_of(said).zip(major_of(version)) {
+        Some((major, here)) if major == here => match minor_of(said) {
+            None => damaged("its version is no version"),
+            Some(minor) if (major, minor) < FIRST_SHARED => Err(Unopened::TooOld),
+            Some(_) => Ok(()),
+        },
+        Some((major, here)) if major > here => Err(Unopened::Newer),
         Some(_) => Err(Unopened::TooOld),
         None => damaged("its version is no version"),
     }
@@ -196,7 +248,7 @@ fn weighed(root: &str, machine: &str, served: &Served) -> Vec<Revocation> {
         .collect()
 }
 
-fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
+fn verdict_on(signature: &Value, about: &str, said: &[u8], served: &Served) -> Verdict {
     let text = |name: &str| signature[name].as_str().unwrap_or_default().to_owned();
     let Ok(since) = text("since").parse::<Timestamp>() else {
         return Verdict::Unreadable;
@@ -211,7 +263,7 @@ fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
         sig: text("signed"),
     };
     let revoked = weighed(&text("root"), &text("machine"), served);
-    match identity::check(&signed, ABOUT, said, &revoked) {
+    match identity::check(&signed, about, said, &revoked) {
         identity::Verdict::Holds { .. } => Verdict::Holds,
         identity::Verdict::Refused => Verdict::Refused,
         identity::Verdict::Unreadable => Verdict::Unreadable,
@@ -225,6 +277,68 @@ fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
                 _ => Verdict::Doubtful,
             }
         }
+    }
+}
+
+fn said_in<'a>(value: &'a Value, name: &str) -> &'a str {
+    value[name].as_str().unwrap_or_default()
+}
+
+fn worse(one: Verdict, other: Verdict) -> Verdict {
+    match (one, other) {
+        (Verdict::Doubtful, _) | (_, Verdict::Doubtful) => Verdict::Doubtful,
+        (Verdict::Retired, _) | (_, Verdict::Retired) => Verdict::Retired,
+        _ => one,
+    }
+}
+
+// The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
+fn owner_answers(
+    manifest: &Value,
+    signature: &Value,
+    said: &[u8],
+    served: &Served,
+) -> Result<Verdict, Unopened> {
+    let owner = &manifest["owner"];
+    let decoded = |name: &str| URL_SAFE_NO_PAD.decode(owner[name].as_str().unwrap_or_default());
+    let permit = owner["permit"]
+        .is_string()
+        .then(|| decoded("permit"))
+        .transpose()
+        .map_err(|_| Unopened::Signature(Verdict::Unreadable))?;
+    let tag = decoded("name_tag").map_err(|_| Unopened::Signature(Verdict::Unreadable))?;
+    let id = manifest["id"].as_str().unwrap_or_default();
+    let owned = owner_said(id, permit.as_deref(), &tag);
+    let verdict = verdict_on(owner, OWNER_ABOUT, &owned, served);
+    if matches!(verdict, Verdict::Refused | Verdict::Unreadable) {
+        return Err(Unopened::Signature(verdict));
+    }
+    if said_in(owner, "root") == said_in(signature, "root") {
+        return Ok(verdict);
+    }
+    let allowed = identity::permit_holds(
+        said_in(owner, "permit"),
+        said_in(signature, "permit_signed"),
+        said_in(signature, "root"),
+        said_in(signature, "machine"),
+        said,
+    );
+    if allowed {
+        Ok(verdict)
+    } else {
+        Err(Unopened::Signature(Verdict::Refused))
+    }
+}
+
+fn owner_name_holds(manifest: &Value, first: &[u8], key: &[u8]) -> Result<(), Unopened> {
+    let name = serde_json::from_slice::<Value>(first).unwrap_or_default();
+    let name = name["owner_name"].as_str().unwrap_or_default();
+    let id = manifest["id"].as_str().unwrap_or_default();
+    let tag = name_tag(key, id, name).map_err(|_| Unopened::Damaged("its key is not one"))?;
+    if manifest["owner"]["name_tag"].as_str() == Some(URL_SAFE_NO_PAD.encode(tag).as_str()) {
+        Ok(())
+    } else {
+        damaged("its owner's name is not the one its owner signed")
     }
 }
 
@@ -307,6 +421,10 @@ fn part_opened(
 }
 
 pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened, Unopened> {
+    told_apart(bytes, opened_as_said(bytes, opening, served))
+}
+
+fn opened_as_said(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened, Unopened> {
     if bytes.get(..MARK.len()) != Some(MARK.as_slice()) {
         return damaged("it has no mark of an envelope");
     }
@@ -336,9 +454,16 @@ pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened
     let index = pieces.take(32 * parts.len())?;
     let mut said = Sha256::digest(manifest_bytes).to_vec();
     said.extend_from_slice(index);
-    let verdict = verdict_on(&signature, &said, served);
+    let mut verdict = verdict_on(&signature, ABOUT, &said, served);
     if matches!(verdict, Verdict::Refused | Verdict::Unreadable) {
         return Err(Unopened::Signature(verdict));
+    }
+    let sealed = manifest["sealed"] == true;
+    if sealed {
+        verdict = worse(
+            verdict,
+            owner_answers(&manifest, &signature, &said, served)?,
+        );
     }
     let cipher = cipher_for(&manifest, key.as_deref())?;
     let mut out = Vec::with_capacity(parts.len());
@@ -359,7 +484,14 @@ pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened
     if !pieces.all_taken() {
         return damaged("something follows its parts");
     }
+    if let (true, EnvelopeKind::Main, Some(first), Some(key)) =
+        (sealed, opening.kind, out.first(), key.as_deref())
+    {
+        owner_name_holds(&manifest, first, key)?;
+    }
     Ok(Opened {
+        signer: said_in(&signature, "root").to_owned(),
+        owner: manifest["owner"]["root"].as_str().map(str::to_owned),
         manifest: manifest_bytes.to_vec(),
         index: index.to_vec(),
         parts: out,
@@ -455,21 +587,29 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     let (Some(first), Some(rest)) = (main.parts.first(), main.parts.get(1)) else {
         return damaged("it holds no words");
     };
-    let first = words(first)?;
-    let rest = words(rest)?;
+    let mut first = words(first)?;
+    let mut rest = words(rest)?;
     if first.contains_key("body")
         || first.contains_key("pages")
-        || rest.keys().any(|one| one != "body" && one != "pages")
+        || rest.keys().any(|one| first.contains_key(one))
     {
         return damaged("a part says what is not its own");
     }
-    let held = Value::Object(first.into_iter().chain(rest).collect());
+    for name in ["body", "pages"] {
+        if let Some(said) = rest.remove(name) {
+            first.insert(name.to_owned(), said);
+        }
+    }
+    let held = Value::Object(first);
     if !check("document", &held).is_empty() {
         return damaged("its document is outside the contract");
     }
     let manifest: Value = serde_json::from_slice(&main.manifest).unwrap_or_default();
     if held["id"] != manifest["id"] {
         return damaged("another document is inside");
+    }
+    if manifest["sealed"] != true && held.get("owner_name").is_some() {
+        return damaged("what is public has nothing to answer for its owner's name");
     }
     pictures_in_place(&held, &main.parts[2..])?;
     let pages = pages_in_place(&held)?;
@@ -486,17 +626,34 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
 
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
-    let document = document_in(&main)?;
-    let verdict = main.verdict;
-    let pictures = main.parts.into_iter().skip(2).collect();
+    let document = told_apart(bytes, document_in(&main))?;
+    let Opened {
+        parts,
+        verdict,
+        signer,
+        owner,
+        ..
+    } = main;
+    let pictures = parts.into_iter().skip(2).collect();
     Ok(Reading {
         document,
         pictures,
         verdict,
+        signer,
+        owner,
     })
 }
 
 pub fn files_for(
+    document: &Value,
+    bytes: &[u8],
+    opening: &Opening,
+    served: &Served,
+) -> Result<Opened, Unopened> {
+    told_apart(bytes, files_as_said(document, bytes, opening, served))
+}
+
+fn files_as_said(
     document: &Value,
     bytes: &[u8],
     opening: &Opening,
@@ -610,7 +767,7 @@ impl EnvelopeReader for Reader {
     fn open(&mut self, file: Vec<u8>, opening: Opening) -> Result<Vec<Vec<u8>>, String> {
         let open = opened(&file, &opening, &self.served).map_err(|wrong| wrong.to_string())?;
         if opening.kind == EnvelopeKind::Main {
-            document_in(&open).map_err(|wrong| wrong.to_string())?;
+            told_apart(&file, document_in(&open)).map_err(|wrong| wrong.to_string())?;
         }
         Ok(open.parts)
     }
