@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
@@ -362,5 +362,112 @@ describe("reading in the viewer", () => {
 
     expect(screen.queryByText("<p>hola</p>")).toBeNull();
     expect(screen.getByText(new RegExp(`${t("viewTablet")} · 820 px`))).toBeTruthy();
+  });
+});
+
+describe("the reader comes only to a window with words to read", () => {
+  const READER = "../ui/viewer/Reader";
+
+  const counted = () => {
+    const loaded: string[] = [];
+    vi.doMock(READER, () => {
+      loaded.push("Reader");
+      return { default: () => "the reader" };
+    });
+    return loaded;
+  };
+
+  const viewed = async (shown: Showing) => {
+    ipc.shown = shown;
+    const { default: Standing } = await import("../Standing");
+    const { default: Fresh } = await import("../Viewing");
+    render(
+      <Standing>
+        <Fresh />
+      </Standing>,
+    );
+  };
+
+  beforeEach(() => {
+    vi.resetModules();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.doUnmock(READER);
+  });
+
+  it("is loaded for a document with words", async () => {
+    const loaded = counted();
+
+    await viewed(file);
+
+    expect(await screen.findByText("the reader")).toBeTruthy();
+    expect(loaded).toEqual(["Reader"]);
+  });
+
+  it("is not loaded for an empty file", async () => {
+    const loaded = counted();
+
+    await viewed({ ...file, body: " \n" } as Showing);
+
+    expect(await screen.findByText(t("viewEmptyTitle"))).toBeTruthy();
+    expect(loaded).toEqual([]);
+  });
+
+  it("is not loaded for a file that could not be read", async () => {
+    const loaded = counted();
+
+    await viewed({
+      kind: "missed",
+      name: "notas.md",
+      place: "Descargas",
+      path: "C:\\Descargas\\notas.md",
+      refusal: { code: "documentGone" },
+    });
+
+    expect(await screen.findByText(fill("viewUnreadTitle", "notas.md"))).toBeTruthy();
+    expect(loaded).toEqual([]);
+  });
+
+  it("is not loaded for a widget", async () => {
+    const loaded = counted();
+
+    await viewed({ kind: "widget", lent: { source: "<p>hola</p>" }, from: null });
+
+    expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
+    expect(loaded).toEqual([]);
+  });
+
+  it("keeps the window saying it is opening until it arrives", async () => {
+    let arrive: (reader: { default: () => string }) => void = () => {};
+    vi.doMock(
+      READER,
+      () =>
+        new Promise<{ default: () => string }>((resolve) => {
+          arrive = resolve;
+        }),
+    );
+
+    await viewed(file);
+
+    expect(await screen.findByText("notas.md")).toBeTruthy();
+    expect(screen.getByText(t("viewOpening"))).toBeTruthy();
+
+    arrive({ default: () => "the reader" });
+
+    expect(await screen.findByText("the reader")).toBeTruthy();
+    expect(screen.queryByText(t("viewOpening"))).toBeNull();
+  });
+
+  it("says so and offers to draw the window again when it cannot be loaded", async () => {
+    vi.doMock(READER, () => {
+      throw new Error("the reader cannot be loaded");
+    });
+
+    await viewed(file);
+
+    expect(await screen.findByText(t("windowFell"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("windowFellAgain") })).toBeTruthy();
   });
 });

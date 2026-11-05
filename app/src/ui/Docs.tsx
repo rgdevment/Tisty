@@ -1,5 +1,5 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { MARKED_FOR } from "tisty-editor/edit";
@@ -50,14 +50,13 @@ import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
+import Sheet from "./Sheet";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
-
-const Sheet = lazy(() => import("./Sheet"));
 
 const SETTLES = 700;
 
@@ -848,111 +847,109 @@ export default function Docs({
               data-keeps-writing=""
               className="absolute top-2 left-full z-10 ml-3"
             />
-            <Suspense fallback={<div className="min-h-0 flex-1" />}>
-              <Sheet
-                sheet={sheetOf}
-                onPage={(page) => {
-                  drawn.current = page;
-                }}
-                file={open.file}
-                place={place}
-                wholeable
-                wholeAsked={wholeAsked}
-                allAsked={allAsked}
-                lately={stirred ? lately : null}
-                looking={looking}
-                onOwn={(file) => {
-                  const page = known.find((one) => one.file === file);
-                  if (page)
-                    docPage(page.id)
-                      .then(() => onKept({ id: page.id, title: page.title }))
-                      .catch((e) => onError(saidPlainly(e)));
-                }}
-                onFail={(e) => onError(saidPlainly(e))}
-                onNote={onNote}
-                card={cards}
-                blurb={blurb}
-                again={again}
-                value={body}
-                seek={seek}
-                anchor={anchor}
-                onSeen={(at) => {
-                  if (own?.file) stood.current.set(own.file, at);
-                }}
-                reading={bolted}
-                label={called || t("untitledDoc")}
-                onDoc={onDoc}
-                onTag={onTag}
-                above={
-                  above ? (
-                    <Ribbon
-                      of={above}
-                      sisters={sisters}
-                      told={aboveTold}
-                      here={open.file}
-                      onOpen={(doc) => onDoc?.(doc.file)}
-                    >
-                      {!beside && spoken}
-                    </Ribbon>
-                  ) : spoken && !beside ? (
-                    <nav aria-label={t("tonguesOf")} className="ribbon">
-                      {spoken}
-                    </nav>
-                  ) : (
-                    own?.tongueApart && (
-                      <p role="note" className="ribbon">
-                        {t("tongueApart")}
-                      </p>
-                    )
+            <Sheet
+              sheet={sheetOf}
+              onPage={(page) => {
+                drawn.current = page;
+              }}
+              file={open.file}
+              place={place}
+              wholeable
+              wholeAsked={wholeAsked}
+              allAsked={allAsked}
+              lately={stirred ? lately : null}
+              looking={looking}
+              onOwn={(file) => {
+                const page = known.find((one) => one.file === file);
+                if (page)
+                  docPage(page.id)
+                    .then(() => onKept({ id: page.id, title: page.title }))
+                    .catch((e) => onError(saidPlainly(e)));
+              }}
+              onFail={(e) => onError(saidPlainly(e))}
+              onNote={onNote}
+              card={cards}
+              blurb={blurb}
+              again={again}
+              value={body}
+              seek={seek}
+              anchor={anchor}
+              onSeen={(at) => {
+                if (own?.file) stood.current.set(own.file, at);
+              }}
+              reading={bolted}
+              label={called || t("untitledDoc")}
+              onDoc={onDoc}
+              onTag={onTag}
+              above={
+                above ? (
+                  <Ribbon
+                    of={above}
+                    sisters={sisters}
+                    told={aboveTold}
+                    here={open.file}
+                    onOpen={(doc) => onDoc?.(doc.file)}
+                  >
+                    {!beside && spoken}
+                  </Ribbon>
+                ) : spoken && !beside ? (
+                  <nav aria-label={t("tonguesOf")} className="ribbon">
+                    {spoken}
+                  </nav>
+                ) : (
+                  own?.tongueApart && (
+                    <p role="note" className="ribbon">
+                      {t("tongueApart")}
+                    </p>
                   )
-                }
-                below={
-                  above
-                    ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
-                    : pages.length > 0 && (
-                        <Contents
-                          pages={pages}
-                          told={told}
-                          onOpen={(page) => onDoc?.(page.file)}
-                          onPut={
-                            bolted
-                              ? undefined
-                              : (page) => {
-                                  if (putting.current?.(page) === false) {
-                                    onError(t("leafNeedsTitle"));
-                                  }
+                )
+              }
+              below={
+                above
+                  ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
+                  : pages.length > 0 && (
+                      <Contents
+                        pages={pages}
+                        told={told}
+                        onOpen={(page) => onDoc?.(page.file)}
+                        onPut={
+                          bolted
+                            ? undefined
+                            : (page) => {
+                                if (putting.current?.(page) === false) {
+                                  onError(t("leafNeedsTitle"));
                                 }
-                          }
-                          onMove={
-                            bolted
-                              ? undefined
-                              : (page, before) => {
-                                  const how = ordering.current?.(page.file, before);
-                                  const named = page.title || t("untitledDoc");
-                                  if (how === "held") onError(fill("leafStaysPut", named));
-                                  if (how === "unseen") onError(fill("leafInText", named));
-                                  if (how === "titled") onError(fill("leafWouldName", named));
-                                  return how;
-                                }
-                          }
-                        />
-                      )
-                }
-                onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
-                onWrite={wrote}
-                onOutline={setHeads}
-                onInsert={(put) => {
-                  const named = put && !bolted ? (page: Filed) => put(page.file, page.title) : null;
-                  putting.current = named;
-                  paged.current?.(named);
-                }}
-                onOrder={(move) => {
-                  ordering.current = move;
-                }}
-                asking={slashAsks}
-                kept={!saving && !waiting}
-              />
-            </Suspense>
+                              }
+                        }
+                        onMove={
+                          bolted
+                            ? undefined
+                            : (page, before) => {
+                                const how = ordering.current?.(page.file, before);
+                                const named = page.title || t("untitledDoc");
+                                if (how === "held") onError(fill("leafStaysPut", named));
+                                if (how === "unseen") onError(fill("leafInText", named));
+                                if (how === "titled") onError(fill("leafWouldName", named));
+                                return how;
+                              }
+                        }
+                      />
+                    )
+              }
+              onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
+              onWrite={wrote}
+              onOutline={setHeads}
+              onInsert={(put) => {
+                const named = put && !bolted ? (page: Filed) => put(page.file, page.title) : null;
+                putting.current = named;
+                paged.current?.(named);
+              }}
+              onOrder={(move) => {
+                ordering.current = move;
+              }}
+              asking={slashAsks}
+              kept={!saving && !waiting}
+            />
           </div>
         ) : coming ? (
           <div role="status" aria-live="polite" style={wall} className="mx-auto w-full px-10">

@@ -1,14 +1,91 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import Standing from "../Standing";
 
-const store = vi.hoisted(() => ({ broke: [] as unknown[][] }));
+const store = vi.hoisted(() => ({ broke: [] as unknown[][], label: "main" }));
 
 vi.mock("../broke", () => ({
   broke: (...said: unknown[]) => store.broke.push(said),
 }));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({ label: store.label }),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(false) }));
+
+const WINDOWS: Record<string, string> = {
+  App: "../App",
+  Moving: "../Moving",
+  Quick: "../Quick",
+  Viewing: "../Viewing",
+};
+
+const loadedWith = (broken?: string) => {
+  const loaded: string[] = [];
+  for (const [name, path] of Object.entries(WINDOWS))
+    vi.doMock(path, () => {
+      if (name === broken) throw new Error(`${name} cannot be loaded`);
+      loaded.push(name);
+      return { default: () => name };
+    });
+  vi.doMock("../finishing", () => {
+    loaded.push("finishing");
+    return { finishWhatIsAsked: () => Promise.resolve() };
+  });
+  return loaded;
+};
+
+const started = async (label: string) => {
+  store.label = label;
+  document.body.innerHTML = '<div id="root"></div>';
+  await import("../main");
+};
+
+describe("a window loads its own code and no other's", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it.each([
+    ["main", "App"],
+    ["quick", "Quick"],
+    ["moving", "Moving"],
+    ["view-3", "Viewing"],
+  ])("%s draws %s and loads nothing else", async (label, name) => {
+    const loaded = loadedWith();
+
+    await started(label);
+
+    expect(await screen.findByText(name)).toBeTruthy();
+    expect(loaded).toEqual([name]);
+  });
+
+  it("a window that only finishes a document loads no window at all", async () => {
+    const loaded = loadedWith();
+
+    await started("finisher-1");
+
+    await waitFor(() => expect(loaded).toEqual(["finishing"]));
+    expect(document.getElementById("root")?.childElementCount).toBe(0);
+  });
+
+  it("a window whose code cannot be loaded says so and offers to draw it again", async () => {
+    loadedWith("Quick");
+
+    await started("quick");
+
+    expect(await screen.findByText(t("windowFell"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("windowFellAgain") })).toBeTruthy();
+  });
+});
 
 const Falls = () => {
   throw new TypeError("Cannot read properties of undefined (reading 'replace')");

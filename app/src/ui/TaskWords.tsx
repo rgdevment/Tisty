@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
@@ -17,11 +17,10 @@ import { fill, t } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
+import Sheet from "./Sheet";
 import Skeleton from "./Skeleton";
 import { useTaskAsks } from "./taskAsking";
 import { useWholeKeys } from "./wholeKeys";
-
-const Sheet = lazy(() => import("./Sheet"));
 
 const SETTLES = 700;
 
@@ -133,7 +132,6 @@ export default function TaskWords({
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
         shaping={shaping}
-        room={kept.height}
         asking={doc.held ? undefined : asking}
         dates={dates}
         onTask={onTask}
@@ -158,7 +156,6 @@ function Written({
   onDoc,
   onMoved,
   shaping,
-  room,
   asking,
   dates,
   onTask,
@@ -177,7 +174,6 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
-  room?: number;
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
   onTask?: (id: string) => void;
@@ -330,7 +326,7 @@ function Written({
   };
 
   return (
-    <Suspense fallback={<div style={{ minHeight: room }} />}>
+    <>
       {clash && (
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
           <span className="text-soft">{t("documentMoved")}</span>
@@ -370,6 +366,6 @@ function Written({
         onTask={onTask}
         onPart={onPart}
       />
-    </Suspense>
+    </>
   );
 }
