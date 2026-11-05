@@ -25,6 +25,7 @@ use crate::sealing::{
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
 const PNG_MARK: &[u8] = b"\x89PNG\r\n\x1a\n";
 const JPEG_MARK: &[u8] = &[0xFF, 0xD8, 0xFF];
+const FIRST_SHARED_MINOR: u64 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum Unopened {
@@ -76,6 +77,37 @@ fn major_of(version: &str) -> Option<u64> {
 }
 
 // Before anything else: a newer version may say what this one would call damaged.
+fn minor_of(said: &str) -> Option<u64> {
+    said.split('.').nth(1)?.parse().ok()
+}
+
+fn under_a_later_minor(bytes: &[u8]) -> bool {
+    let size = bytes
+        .get(4..8)
+        .and_then(|one| <[u8; 4]>::try_from(one).ok())
+        .map(|one| u32::from_be_bytes(one) as usize)
+        .filter(|one| *one <= MANIFEST_AT_MOST);
+    let manifest = size.and_then(|one| bytes.get(8..8 + one));
+    let manifest = manifest.and_then(|one| serde_json::from_slice::<Value>(one).ok());
+    let said = manifest.as_ref().and_then(|one| one["contract"].as_str());
+    said.filter(|one| !one.contains('-')).is_some_and(|one| {
+        major_of(one) == major_of(VERSION)
+            && minor_of(one)
+                .zip(minor_of(VERSION))
+                .is_some_and(|(said, here)| said > here)
+    })
+}
+
+// What a later minor may add, this reader cannot tell from what is broken, and it shows neither.
+fn told_apart<T>(bytes: &[u8], result: Result<T, Unopened>) -> Result<T, Unopened> {
+    result.map_err(|wrong| match wrong {
+        Unopened::Damaged(_) | Unopened::Signature(_) if under_a_later_minor(bytes) => {
+            Unopened::Newer
+        }
+        other => other,
+    })
+}
+
 fn opens_under(said: &str) -> Result<(), Unopened> {
     if said.contains('-') || VERSION.contains('-') {
         return if said == VERSION {
@@ -85,8 +117,13 @@ fn opens_under(said: &str) -> Result<(), Unopened> {
         };
     }
     match major_of(said).zip(major_of(VERSION)) {
-        Some((said, here)) if said == here => Ok(()),
-        Some((said, here)) if said > here => Err(Unopened::Newer),
+        Some((major, here))
+            if major == here && minor_of(said).is_some_and(|one| one < FIRST_SHARED_MINOR) =>
+        {
+            Err(Unopened::TooOld)
+        }
+        Some((major, here)) if major == here => Ok(()),
+        Some((major, here)) if major > here => Err(Unopened::Newer),
         Some(_) => Err(Unopened::TooOld),
         None => damaged("its version is no version"),
     }
@@ -371,6 +408,10 @@ fn part_opened(
 }
 
 pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened, Unopened> {
+    told_apart(bytes, opened_as_said(bytes, opening, served))
+}
+
+fn opened_as_said(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened, Unopened> {
     if bytes.get(..MARK.len()) != Some(MARK.as_slice()) {
         return damaged("it has no mark of an envelope");
     }
@@ -534,15 +575,20 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     let (Some(first), Some(rest)) = (main.parts.first(), main.parts.get(1)) else {
         return damaged("it holds no words");
     };
-    let first = words(first)?;
-    let rest = words(rest)?;
+    let mut first = words(first)?;
+    let mut rest = words(rest)?;
     if first.contains_key("body")
         || first.contains_key("pages")
-        || rest.keys().any(|one| one != "body" && one != "pages")
+        || rest.keys().any(|one| first.contains_key(one))
     {
         return damaged("a part says what is not its own");
     }
-    let held = Value::Object(first.into_iter().chain(rest).collect());
+    for name in ["body", "pages"] {
+        if let Some(said) = rest.remove(name) {
+            first.insert(name.to_owned(), said);
+        }
+    }
+    let held = Value::Object(first);
     if !check("document", &held).is_empty() {
         return damaged("its document is outside the contract");
     }
@@ -565,7 +611,7 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
 
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
-    let document = document_in(&main)?;
+    let document = told_apart(bytes, document_in(&main))?;
     let verdict = main.verdict;
     let signer = main.signer.clone();
     let owner = main.owner.clone();
@@ -693,7 +739,7 @@ impl EnvelopeReader for Reader {
     fn open(&mut self, file: Vec<u8>, opening: Opening) -> Result<Vec<Vec<u8>>, String> {
         let open = opened(&file, &opening, &self.served).map_err(|wrong| wrong.to_string())?;
         if opening.kind == EnvelopeKind::Main {
-            document_in(&open).map_err(|wrong| wrong.to_string())?;
+            told_apart(&file, document_in(&open)).map_err(|wrong| wrong.to_string())?;
         }
         Ok(open.parts)
     }

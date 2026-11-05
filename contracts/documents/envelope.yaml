@@ -15,7 +15,7 @@ values:
   index: "The SHA-256 of each part as it travels, 32 bytes each, in order."
   main_parts:
     first: "The document as JSON, without its body and its pages, so it can be drawn with the first bytes."
-    rest: "Its body and its pages as JSON, each page with its own HTML. Laid over first, they make the document."
+    rest: "Its body and its pages as JSON, each page with its own HTML. Laid over first, they make the document. Anything else in it is left aside, and never laid over first."
     picture: "One for each picture, after those two, in the order its pictures give. Never compressed."
   files_parts: "One file for each of its files, in the order they give. Never compressed."
   who_does_what:
@@ -57,16 +57,26 @@ values:
     - "A manifest that says a head or a commitment while it is not sealed."
     - "A from that is not earlier than its version."
     - "A picture or a file that says it is compressed."
-    - "A first that holds a body or pages, and a rest that holds anything else: laid over each other, one part would say what the other hid."
+    - "A first that holds a body or pages, and a rest that repeats what first says: laid over each other, one part would say what the other hid."
     - "A document, a page or an HTML outside the contract, pages out of their order or repeating a place or an id, a page that is not of this document, a picture drawn at another size than its own, files without the hash that answers for them or a hash without files, or a reference to what does not travel. Its words are not shown."
     - "A file at another place or of another size than its document says."
     - "A sealed envelope whose owner's signature or certificate does not hold."
     - "A version whose signature is not under the owner's root and brings no permit_signed that holds against the owner's permit."
     - "A sealed document whose owner_name is not what the name_tag says, under the key that opens it."
   who_checks_what:
-    server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes, the version, the owner and the permit. Only it knows which owner block is the current one: a reader cannot, so it keeps one and never lets an upload change it."
+    server: "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes, the version, the owner and the permit. Only it knows which permit is the current one, since a reader cannot: it keeps the owner's root and the permit, and refuses an upload that names another of either. The machine and the name_tag may change only under the owner's root, as when the owner uploads from another machine or takes another name."
     reader: "It checks the signature and the certificate again, the owner and the permit, the hash of each part and, with the key, the commitment, the seal, the name_tag, the sizes once open, the document, its HTML, its references and its pictures. It gives the owner's machine the same verdict as the signer's, and shows the worse. Only the reader can, and a writer's word counts for nothing here."
-  versions: "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. It stays at 1 while nothing has been shared for real, so a version that changes what a reader expects goes out with Folio and Tisty updated together. The same one opens, whatever its minor. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens under that version's own rules when the reader still holds them, and otherwise the reader says it is too old for it, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version a later one only adds what an earlier reader leaves aside: a field it does not know, in a manifest, a part, a document, a page or anything else, is ignored and never refused. Anything an earlier reader would refuse, as a new tag, attribute, class or rule, takes a new major version."
+  versions: >-
+    The major version is the number before the first dot of contract, and it is read before anything else in the manifest.
+    It names the layout, the seal and the signatures, and it goes up only when a reader cannot open an envelope with what it
+    holds. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens if the reader
+    keeps its branch, and otherwise the reader says it is too old, never that it is damaged. A draft opens only under that
+    very draft, and a final version never opens one. Within a major version, from 1.2.0, the first one shared, three things
+    hold. A later reader opens all an earlier one wrote: what it left optional stays optional, and what it allowed stays
+    allowed. A later writer may add anything: a field, a part, a tag, an attribute, a class, a word. An earlier reader ignores
+    what it can, and what it would refuse under a minor above its own it reads as newer, never as damaged, and shows nothing.
+  sealing_again: "A writer never seals again what arrived under a minor above its own: it asks to update, or it would lose what it does not know."
+  floors: "A server may publish the oldest version it takes and the oldest it serves, in its signed limits, and refuses what is below them as outdated. It is for a mistake of ours, not against a fork: what protects a reader from a fork is the reader's own rules. A writer that holds something sent below a floor sends it again the next time it syncs."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
   reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
@@ -222,7 +232,7 @@ says: >-
   it asks whether another version arrived, brings what is someone else's apart, and sends what changed. Its files go up again
   only when they change.
 values:
-  only_with_changes: "It compares the document with what it last sent. With no change, nothing goes up, but it still asks."
+  only_with_changes: "It compares the document with what it last sent. With no change, nothing goes up, but it still asks, and what was sent below a server's floor counts as a change."
   arrived_too: "When another version arrived and this one changed too, nothing goes up until the person settles it."
 roles:
   writer:

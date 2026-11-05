@@ -48,6 +48,23 @@ const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 const base64urlOf = (said, length, spare) =>
   said.length === length && /^[A-Za-z0-9_-]+$/.test(said) && BASE64URL.indexOf(said[length - 1]) % spare === 0;
 
+const SMALL_ORDER = new Set([
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+  "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+  "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_AU",
+  "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_IU",
+  "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o",
+  "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA_o",
+  "7P_______________________________________38",
+  "7P________________________________________8",
+  "7f_______________________________________38",
+  "7f________________________________________8",
+  "7v_______________________________________38",
+  "7v________________________________________8",
+]);
+
 const isId = (said) => /^[A-Za-z0-9_-]+$/.test(said);
 
 const spacesOff = (said) => said.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "");
@@ -86,7 +103,7 @@ const checkType = (type, value, at, out) => {
   } else if (type === "tag_word") {
     if (typeof value !== "string" || !isTagWord(value)) out.push(at + " is not a tag");
   } else if (type === "key") {
-    if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a key");
+    if (typeof value !== "string" || !base64urlOf(value, 43, 4) || SMALL_ORDER.has(value)) out.push(at + " is not a key");
   } else if (type === "hash") {
     if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a hash");
   } else if (type === "signed") {

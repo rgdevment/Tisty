@@ -1,6 +1,6 @@
 // Writes the sample envelopes every language must open. What it wrote is kept, since another zlib squeezes the same words differently.
 import { createHash, webcrypto } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 
 const { subtle } = webcrypto;
@@ -76,7 +76,7 @@ const ownerBlock = async ({ id, name, permit, tag, by = MARIO, forged }) => {
 
 const permitSigned = (token, by, manifest, index) => sign(token, words("tisty-share.permit.v1\0"), by.root.public, by.machine.public, sha(manifest), index);
 
-const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [], more = {}, spelled = (one) => one, forged, signatureBytes, owner, by = MARIO, token, permitBy = by, outerIsOwner, outerAsPermit }) => {
+const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [], more = {}, spelled = (one) => one, forged, signatureBytes, owner, by = MARIO, token, permitBy = by, outerIsOwner, outerAsPermit, permitSignedBytes }) => {
   const told = parts.map(({ name, compressed, bytes, saying, junk = [], more }) => {
     const squeezed = compressed ? Buffer.concat([deflateRawSync(bytes, { level: 9 }), Buffer.from(junk)]) : bytes;
     return { name, compressed, squeezed, open_size: saying ?? bytes.length, sealed_size: squeezed.length + (sealed ? 16 : 0), more };
@@ -120,6 +120,7 @@ const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRAC
         signed: outerIsOwner ? owner.signed : b64(signed),
         ...(token ? { permit_signed: b64(await permitSigned(token, permitBy, manifest, index)) } : {}),
         ...(outerAsPermit ? { permit_signed: b64(signed) } : {}),
+        ...(permitSignedBytes ? { permit_signed: b64(permitSignedBytes) } : {}),
       }),
     );
   const bytes = Buffer.concat([words("TENV"), u32(manifest.length), manifest, u32(signature.length), signature, index, ...travelling, ...after]);
@@ -268,6 +269,7 @@ const OPENING = [
       ],
     },
   ],
+  ["a rest that brings a field it does not know", { parts: asWords(fair, { ...fairRest, novel: 1 }) }],
   ["numbers written with a point", { parts: asWords(fair, { ...fairRest, pages: [{ ...page, at: 1 }] }), spelled: (one) => one.replace(/"(open_size|sealed_size|version)":(\d+)/g, '"$1":$2.0') }],
 ];
 const opening = [];
@@ -347,22 +349,38 @@ const wrapped = async (bytes, by, tag) => {
     return { bytes: Buffer.concat([words("TENV"), u32(manifest.length), manifest, u32(signature.length), signature, rest]) };
   });
 };
+const SMALL = { public: Buffer.concat([Buffer.from([1]), Buffer.alloc(31)]) };
 const refusedForEditing = [
   ["someone else's owner wrapped around it, without the key", await wrapped(anas.bytes, ZORRO, filled(0x72))],
-  ["another root where nobody may edit", await asEdited({ owner: withoutPermit, by: ZORRO })],
-  ["another root that brings no token", await asEdited({ by: ZORRO })],
-  ["a token its owner no longer allows", await asEdited({ token: oldPermit })],
-  ["a token that signed for someone else, its signature changed for another", await asEdited({ by: ZORRO, token: permit, permitBy: ANA })],
-  ["an owner that signed another document", await asEdited({ owner: await ownerBlock({ id: "otroDoc", name: "Mario", permit }) })],
-  ["its owner's signature that does not hold", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit, forged: "signed" }), by: MARIO }, asMario)],
-  ["its owner's certificate that does not hold", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit, forged: "certificate" }), by: MARIO }, asMario)],
+  ["another root where nobody may edit", await asEdited({ owner: withoutPermit, by: ZORRO }), "server"],
+  ["another root that brings no token", await asEdited({ by: ZORRO }), "server"],
+  ["a token its owner no longer allows", await asEdited({ token: oldPermit }), "server"],
+  ["a token that signed for someone else, its signature changed for another", await asEdited({ by: ZORRO, token: permit, permitBy: ANA }), "server"],
+  ["an owner that signed another document", await asEdited({ owner: await ownerBlock({ id: "otroDoc", name: "Mario", permit }) }), "server"],
+  ["its owner's signature that does not hold", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit, forged: "signed" }), by: MARIO }, asMario), "server"],
+  ["its owner's certificate that does not hold", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit, forged: "certificate" }), by: MARIO }, asMario), "server"],
+  ["a permit of small order, which answers for anything", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit: SMALL }), permitSignedBytes: Buffer.concat([SMALL.public, Buffer.alloc(32)]) }), "server"],
   ["an owner_name its owner did not sign", await asEdited({ token: permit }, { ...edited, owner_name: "Zorro" })],
   ["an owner tied to another key", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit, tag: filled(0x73) }), token: permit })],
-  ["its owner's signature passed off as the envelope's", await asEdited({ by: MARIO, outerIsOwner: true }, asMario)],
-  ["a machine's signature passed off as the token's", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit: ANA.machine }), outerAsPermit: true })],
-  ["no owner at all", await asEdited({ owner: undefined, by: MARIO }, asMario)],
+  ["its owner's signature passed off as the envelope's", await asEdited({ by: MARIO, outerIsOwner: true }, asMario), "server"],
+  ["a machine's signature passed off as the token's", await asEdited({ owner: await ownerBlock({ id: EDITED, name: "Mario", permit: ANA.machine }), outerAsPermit: true }), "server"],
+  ["no owner at all", await asEdited({ owner: undefined, by: MARIO }, asMario), "server"],
 ];
 const asHex = (one) => one.bytes.toString("hex");
+const noNameBlock = await ownerBlock({ id: EDITED, permit });
+const restSaysAName = await asEdited({ owner: noNameBlock, token: permit, parts: asWords({ id: EDITED, signed_as: "Ana", html: "<p>a</p>" }, { body: "a", owner_name: "Zorro", title: "Otro" }) });
+const newerThanThis = [
+  ["a tag this reader does not know", { parts: withHtml("<video></video>") }],
+  ["a rule this reader would refuse", { parts: asWords({ ...fair, pictures: [aPicture] }, fairRest) }],
+  ["a signature this reader would refuse", { parts: asWords(fair, fairRest), forged: "signed" }],
+];
+const newer = [];
+for (const [says, over] of newerThanThis) {
+  newer.push({ says, envelope: asHex(await seal({ kind: "main", id: HOSTILE, version: 1, sealed: false, contract: LATER_MINOR, ...over })) });
+}
+const beforeTheFirstShared = await asEdited({ owner: undefined, by: MARIO, contract: "1.1.0" }, asMario);
+const WRITTEN = new URL("./vectors.json", import.meta.url);
+const frozenBefore = existsSync(WRITTEN) ? (JSON.parse(readFileSync(WRITTEN, "utf8")).frozen ?? {}) : {};
 
 const png = PICTURES[0];
 const jpeg = Buffer.from("/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCAABAAIDAREAAhEBAxEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDk64z9KP/Z", "base64");
@@ -391,6 +409,9 @@ const said = {
   refused,
   opening,
   a_newer_major: aNewerMajor.bytes.toString("hex"),
+  newer_than_this: newer,
+  before_the_first_shared: { id: EDITED, envelope: asHex(beforeTheFirstShared) },
+  small_order: [...new Set(["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA", "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_AU", "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA_o", "7P_______________________________________38", "7f________________________________________8", "7v_______________________________________38"])],
   past_its_end: pastItsEnd.bytes.toString("hex"),
   signed_by: { root: b64(root.public), machine: b64(machine.public) },
   editing: {
@@ -399,7 +420,8 @@ const said = {
     token: b64(TOKEN),
     link: `https://tisty.cl/${EDITED}#${b64(LINK_KEY)}.${b64(TOKEN)}`,
     opens: opensForEditing.map(({ says, signer, envelope }) => ({ says, signer, envelope: asHex(envelope) })),
-    refused: refusedForEditing.map(([says, envelope]) => ({ says, envelope: asHex(envelope) })),
+    refused: refusedForEditing.map(([says, envelope, whoChecks]) => ({ says, envelope: asHex(envelope), ...(whoChecks ? { without_the_key: true } : {}) })),
+    rest_left_aside: asHex(restSaysAName),
     owner_revoked: { envelope: asHex(anas), served: { received: AFTER, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
   },
   verdicts,
@@ -418,4 +440,14 @@ const said = {
   files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
   public: { envelope: open.bytes.toString("hex"), document: plain },
 };
-writeFileSync(new URL("./vectors.json", import.meta.url), `${JSON.stringify(said, null, 2)}\n`);
+// What a published version wrote stays here as it was, so a later minor that stops opening it fails right away.
+said.frozen = {
+  ...frozenBefore,
+  [CONTRACT]: {
+    link_key: said.link_key,
+    main: { envelope: said.main.envelope, document: whole },
+    files: { envelope: said.files.envelope },
+    public: { envelope: said.public.envelope, document: plain },
+  },
+};
+writeFileSync(WRITTEN, `${JSON.stringify(said, null, 2)}\n`);

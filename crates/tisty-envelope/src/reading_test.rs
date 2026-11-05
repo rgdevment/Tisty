@@ -179,8 +179,13 @@ fn a_version_is_read_before_anything_else_in_the_manifest() {
     assert_eq!(read("1.0.0-draft.8"), Some(Unopened::Draft));
     assert_eq!(read("2.0.0-draft.1"), Some(Unopened::Draft));
     assert!(matches!(read("uno"), Some(Unopened::Damaged(_))));
-    // The same major opens, so what stops it is the rest of a manifest that says nothing.
-    assert!(matches!(read("1.9.0"), Some(Unopened::Damaged(_))));
+    // A manifest that says nothing is what stops these: damaged here, and newer under a later minor.
+    assert!(matches!(
+        read(tisty_contracts::VERSION),
+        Some(Unopened::Damaged(_))
+    ));
+    assert_eq!(read("1.99.0"), Some(Unopened::Newer));
+    assert_eq!(read("1.1.0"), Some(Unopened::TooOld));
 }
 
 #[test]

@@ -18,6 +18,7 @@ const VECTORS: &str = include_str!("../vectors.json");
 
 // This reader's own, and no number of the contract's: each reader knows what it can hold.
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
+const FIRST_SHARED_MINOR: u64 = 2;
 
 pub struct Opened {
     pub manifest: Vec<u8>,
@@ -68,7 +69,27 @@ fn opens_here(said: &str) -> bool {
         return said == VERSION;
     }
     let major = |version: &'static str| version.split('.').next().unwrap_or_default();
-    said.split('.').next().unwrap_or_default() == major(VERSION)
+    said.split('.').next().unwrap_or_default() == major(VERSION) && minor_of(said).is_some_and(|minor| minor >= FIRST_SHARED_MINOR)
+}
+
+fn minor_of(said: &str) -> Option<u64> {
+    said.split('.').nth(1)?.parse().ok()
+}
+
+fn under_a_later_minor(bytes: &[u8]) -> bool {
+    let Some(size) = bytes.get(4..8).map(|one| u32::from_be_bytes(one.try_into().unwrap()) as usize) else {
+        return false;
+    };
+    let Some(manifest) = bytes.get(8..8 + size).and_then(|one| serde_json::from_slice::<Value>(one).ok()) else {
+        return false;
+    };
+    let said = manifest["contract"].as_str().unwrap_or_default();
+    let major = |version: &str| version.split('.').next().unwrap_or_default().to_owned();
+    !said.contains('-') && major(said) == major(VERSION) && minor_of(said) > minor_of(VERSION)
+}
+
+fn told_apart<T>(bytes: &[u8], result: Result<T, String>) -> Result<T, String> {
+    result.map_err(|wrong| if under_a_later_minor(bytes) { "newer: update to read it".to_owned() } else { wrong })
 }
 
 // The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
@@ -129,6 +150,10 @@ fn owner_name_holds(manifest: &Value, first: &[u8], link_key: &[u8]) -> Result<(
 }
 
 pub fn opened(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+    told_apart(bytes, opened_as_said(bytes, asked, link_key))
+}
+
+fn opened_as_said(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     if bytes.len() < 4 || &bytes[..4] != b"TENV" {
         return Err("its mark".into());
     }
@@ -307,7 +332,7 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     };
     let first = words(&main.parts[0])?;
     let rest = words(&main.parts[1])?;
-    if first.contains_key("body") || first.contains_key("pages") || rest.keys().any(|one| one != "body" && one != "pages") {
+    if first.contains_key("body") || first.contains_key("pages") || rest.keys().any(|one| first.contains_key(one)) {
         return Err("a part says what is not its own".into());
     }
     let held = document_of(main);
@@ -351,7 +376,7 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
 
 pub fn reading(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<(Opened, Value), String> {
     let main = opened(bytes, asked, link_key)?;
-    let held = document_in(&main)?;
+    let held = told_apart(bytes, document_in(&main))?;
     Ok((main, held))
 }
 
@@ -434,12 +459,18 @@ pub fn picture_holds(bytes: &[u8], said: &Value) -> bool {
 
 // The first two parts of a main envelope are its words; what follows them is pictures.
 pub fn document_of(opened: &Opened) -> Value {
-    let mut out = Map::new();
-    for part in &opened.parts[..2] {
+    let fields = |part: &[u8]| -> Map<String, Value> {
         let Value::Object(fields) = serde_json::from_slice(part).unwrap() else {
             panic!("the words of a main envelope are an object");
         };
-        out.extend(fields);
+        fields
+    };
+    let mut out = fields(&opened.parts[0]);
+    let mut rest = fields(&opened.parts[1]);
+    for name in ["body", "pages"] {
+        if let Some(said) = rest.remove(name) {
+            out.insert(name.to_owned(), said);
+        }
     }
     Value::Object(out)
 }
@@ -528,6 +559,57 @@ fn only_its_owner_or_who_holds_its_token_signs_a_version() {
     for one in editing["refused"].as_array().unwrap() {
         let bytes = hex(&one["envelope"]);
         assert!(reading(&bytes, (id, "main"), Some(&key)).is_err(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn what_a_rest_says_beyond_its_body_and_pages_is_left_aside() {
+    let all = vectors();
+    let id = all["editing"]["id"].as_str().unwrap();
+    let bytes = hex(&all["editing"]["rest_left_aside"]);
+    let (_, held) = reading(&bytes, (id, "main"), Some(&b64(&all["link_key"]))).unwrap();
+    assert!(held.get("owner_name").is_none());
+    assert!(held.get("title").is_none());
+    assert_eq!(held["body"], "a");
+}
+
+#[test]
+fn under_a_later_minor_what_it_would_refuse_reads_as_newer() {
+    let all = vectors();
+    for one in all["newer_than_this"].as_array().unwrap() {
+        let wrong = reading(&hex(&one["envelope"]), ("hostile", "main"), None).err().unwrap();
+        assert!(wrong.starts_with("newer"), "{}: {wrong}", one["says"]);
+    }
+}
+
+#[test]
+fn what_comes_before_the_first_version_shared_is_too_old_never_damaged() {
+    let all = vectors();
+    let said = &all["before_the_first_shared"];
+    let bytes = hex(&said["envelope"]);
+    let wrong = reading(&bytes, (said["id"].as_str().unwrap(), "main"), Some(&b64(&all["link_key"]))).err().unwrap();
+    assert!(wrong.contains("version"), "{wrong}");
+}
+
+#[test]
+fn no_key_of_small_order_passes() {
+    let all = vectors();
+    for one in all["small_order"].as_array().unwrap() {
+        let said = serde_json::json!({ "root": one, "machine": all["signed_by"]["machine"], "at": "2026-11-03T12:00:00Z", "signed": all["revocation"]["signed"] });
+        assert!(!check("revocation", &said).is_empty(), "{one}");
+    }
+}
+
+#[test]
+fn what_each_published_version_wrote_still_opens() {
+    let all = vectors();
+    for (version, said) in all["frozen"].as_object().unwrap() {
+        let key = b64(&said["link_key"]);
+        let (_, held) = reading(&hex(&said["main"]["envelope"]), MAIN, Some(&key)).expect(version);
+        assert_eq!(held, said["main"]["document"], "{version}");
+        files_for(&held, &hex(&said["files"]["envelope"]), FILES, Some(&key)).expect(version);
+        let (_, open) = reading(&hex(&said["public"]["envelope"]), PUBLIC, None).expect(version);
+        assert_eq!(open, said["public"]["document"], "{version}");
     }
 }
 

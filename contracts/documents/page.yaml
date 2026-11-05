@@ -126,6 +126,7 @@ values:
     SHA-256 of tisty-share.person.v1, a zero byte and the root, whose first 9 bytes as a number, shifted right 6 bits, are
     written as 20 digits in four groups of five. Two people can read it to each other, and it is how a person is told apart.
   one_spelling: "Keys, hashes and signatures have one base64url spelling: the spare bits of the last character are zero."
+  small_order: "A key of small order answers for anything signed with it, and not every library refuses one, so a reader in a browser would open what a reader in Rust refuses. No key is one: the check refuses them all, in every spelling."
 fields:
   root: { type: key, required: true }
   machine: { type: key, required: true }
@@ -142,6 +143,14 @@ cases:
       certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: true
+  - says: "A root of small order, which answers for anything."
+    value:
+      root: "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
   - says: "A date with a fraction of a second, which nobody signed."
     value:
       root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
@@ -225,7 +234,7 @@ says: >-
   trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
 fields:
   received: { type: time, says: "When the server received this version. Nothing in the document can write this date." }
-  revocations: { type: list, of: revocation, says: "What the root of its signature has revoked, as far as the server knows." }
+  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines." }
 cases:
   - says: "A version received, with nothing revoked."
     value: { received: "2026-11-03T12:00:00Z", revocations: [] }

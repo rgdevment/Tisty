@@ -57,7 +57,7 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
 mod editing {
     use serde_json::{Value, json};
     use tisty_contracts::{Document, EnvelopeKind, Opening, Owner, Revocation, Served, Verdict};
-    use tisty_envelope::reading::reading;
+    use tisty_envelope::reading::{Unopened, reading};
     use tisty_envelope::sealing::{Refused, Writer};
     use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 
@@ -213,6 +213,44 @@ mod editing {
         for one in all["editing"]["refused"].as_array().unwrap() {
             let refused = reading(&unhexed(&one["envelope"]), &asked(), &nothing());
             assert!(refused.is_err(), "{}", one["says"]);
+        }
+    }
+
+    #[test]
+    fn this_reader_tells_a_later_version_from_a_damaged_one_and_leaves_a_rest_aside() {
+        let all: Value =
+            serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+        let hostile = Opening {
+            id: "hostile".into(),
+            kind: EnvelopeKind::Main,
+            link_key: None,
+        };
+        for one in all["newer_than_this"].as_array().unwrap() {
+            let read = reading(&unhexed(&one["envelope"]), &hostile, &nothing());
+            assert_eq!(read.err(), Some(Unopened::Newer), "{}", one["says"]);
+        }
+        let old = &all["before_the_first_shared"]["envelope"];
+        let read = reading(&unhexed(old), &asked(), &nothing());
+        assert_eq!(read.err(), Some(Unopened::TooOld));
+        let rest = &all["editing"]["rest_left_aside"];
+        let read = reading(&unhexed(rest), &asked(), &nothing()).unwrap();
+        assert!(read.document.get("owner_name").is_none());
+        assert_eq!(read.document["body"], "a");
+    }
+
+    #[test]
+    fn this_reader_still_opens_what_each_published_version_wrote() {
+        let all: Value =
+            serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
+        for (version, said) in all["frozen"].as_object().unwrap() {
+            let main = Opening {
+                id: "k7Qm2xPa".into(),
+                kind: EnvelopeKind::Main,
+                link_key: said["link_key"].as_str().map(str::to_owned),
+            };
+            let read =
+                reading(&unhexed(&said["main"]["envelope"]), &main, &nothing()).expect(version);
+            assert_eq!(read.document, said["main"]["document"], "{version}");
         }
     }
 }
