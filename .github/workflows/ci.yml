@@ -182,6 +182,8 @@ jobs:
         working-directory: .
       - run: npm run lint
       - run: npm run build
+      - name: Each window preloads only its own code
+        run: node scripts/windows-apart.mjs
 
   guide:
     name: the Markdown guide draws
