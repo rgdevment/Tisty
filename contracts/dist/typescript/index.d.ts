@@ -1,4 +1,4 @@
-export declare const VERSION: "1.2.0";
+export declare const VERSION: "1.3.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -20,7 +20,7 @@ export type Status = "open" | "done" | "dropped";
 
 export type Priority = "do" | "decide" | "delegate" | "unset" | "minor";
 
-/** A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. */
+/** A file a document names. A picture travels in its main envelope and is drawn with it. Any other file travels in its files envelope, shows as a card and is asked for the first time it is opened. A sound or a video can then play. */
 export interface Attachment {
   at: number;
   name: string;
@@ -277,3 +277,5 @@ export declare function check(contract: ContractName, value: unknown): string[];
 export declare function checkHtml(html: string): string[];
 export declare function referencesIn(html: string): { kind: string; at: number }[];
 export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];
+/** What a file's first bytes say it is, if a reader may play it. Its name and its kind have no say. */
+export declare function playableAs(bytes: Uint8Array): { format: string; player: "audio" | "video"; type: string } | null;

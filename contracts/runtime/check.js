@@ -359,3 +359,52 @@ export function checkHtml(html) {
   }
   return [...new Set(out)];
 }
+
+const says = (bytes, at, said) => {
+  for (let one = 0; one < said.length; one += 1) if (bytes[at + one] !== said.charCodeAt(one)) return false;
+  return true;
+};
+
+const OGG_SOUNDS = ["OpusHead", "\x01vorbis", "\x7fFLAC"];
+const EBML_HEADER = 64;
+
+const isOggSound = (bytes) => OGG_SOUNDS.some((said) => says(bytes, 27 + (bytes[26] ?? 0), said));
+
+const isWebm = (bytes) => {
+  for (let at = 4; at < Math.min(bytes.length, EBML_HEADER); at += 1) {
+    if (says(bytes, at, "\x42\x82\x84webm")) return true;
+  }
+  return false;
+};
+
+const brandedFormat = (bytes) => {
+  if (bytes[0] * 0x1000000 + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3] < 16) return null;
+  const brand = String.fromCharCode(...bytes.subarray(8, 12));
+  return Object.keys(WHOLE.plays).find((format) => WHOLE.plays[format].brands?.includes(brand)) ?? null;
+};
+
+// Two bytes of sync say little on their own, so the values no frame can hold rule it out.
+const frameFormat = (bytes) => {
+  if (bytes.length < 4 || bytes[0] !== 0xff || (bytes[1] & 0xe0) !== 0xe0) return null;
+  const layer = bytes[1] & 0x06;
+  if (layer === 0) return (bytes[1] & 0xf0) === 0xf0 && ((bytes[2] >> 2) & 0x0f) <= 12 ? "aac" : null;
+  const fair = layer === 0x02 && ((bytes[1] >> 3) & 0x03) !== 1 && bytes[2] >> 4 !== 0x0f && ((bytes[2] >> 2) & 0x03) !== 3;
+  return fair ? "mp3" : null;
+};
+
+const formatOf = (bytes) => {
+  if (says(bytes, 0, "RIFF") && says(bytes, 8, "WAVE")) return "wav";
+  if (says(bytes, 0, "fLaC")) return "flac";
+  if (says(bytes, 0, "OggS")) return isOggSound(bytes) ? "ogg" : null;
+  if (says(bytes, 0, "\x1a\x45\xdf\xa3")) return isWebm(bytes) ? "webm" : null;
+  if (says(bytes, 4, "ftyp")) return brandedFormat(bytes);
+  if (says(bytes, 0, "ID3") && bytes[3] < 0xff && bytes[4] < 0xff) return "mp3";
+  return frameFormat(bytes);
+};
+
+export function playableAs(bytes) {
+  const format = formatOf(bytes);
+  if (!format) return null;
+  const { player, type } = WHOLE.plays[format];
+  return { format, player, type };
+}

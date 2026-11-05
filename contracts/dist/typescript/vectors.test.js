@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, checkHtml, picturesIn, referencesIn, VERSION } from "./index.js";
+import { check, checkHtml, picturesIn, playableAs, referencesIn, VERSION } from "./index.js";
 
 const VECTORS = JSON.parse(readFileSync(new URL("./vectors.json", import.meta.url), "utf8"));
 const { subtle } = globalThis.crypto;
@@ -322,14 +322,31 @@ test("no key of small order passes", () => {
   }
 });
 
-for (const [version, { link_key: key, main, files, public: open }] of Object.entries(VECTORS.frozen)) {
+const playsAsItSays = async ({ document, files, is }, key) => {
+  const { parts } = await filesFor(document, hex(files), FILES, key);
+  for (const { at, says, is: said } of is) assert.deepEqual(playableAs(parts[at]), said, says);
+};
+
+for (const [version, { link_key: key, main, files, public: open, playing }] of Object.entries(VECTORS.frozen)) {
   test(`what ${version} wrote still opens`, async () => {
     const { held } = await reading(hex(main.envelope), MAIN, b64(key));
     assert.deepEqual(held, main.document);
     await filesFor(held, hex(files.envelope), FILES, b64(key));
     assert.deepEqual((await reading(hex(open.envelope), PUBLIC)).held, open.document);
+    if (playing) await playsAsItSays(playing, b64(key));
   });
 }
+
+test("a file's first bytes say whether it plays", () => {
+  for (const { says, bytes, format } of VECTORS.first_bytes) assert.equal(playableAs(hex(bytes))?.format ?? null, format, says);
+});
+
+test("a hostile widget travels as words that run nothing", () => {
+  const { id, html, body } = VECTORS.hostile_widget;
+  assert.deepEqual(check("document", { id, html, body }), []);
+  assert.deepEqual(checkHtml(html), []);
+  assert.doesNotMatch(html, /<script/i);
+});
 
 test("a revocation of its owner's machine weighs on what an editor signed", async () => {
   const { envelope, served, verdict } = VECTORS.editing.owner_revoked;

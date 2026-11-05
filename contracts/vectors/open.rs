@@ -12,7 +12,7 @@ use hkdf::Hkdf;
 use hmac::{Hmac, KeyInit as _, Mac};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
-use tisty_contracts::{VERSION, check, check_html, pictures_in, references_in};
+use tisty_contracts::{VERSION, check, check_html, pictures_in, playable_as, references_in};
 
 const VECTORS: &str = include_str!("../vectors.json");
 
@@ -627,7 +627,39 @@ fn what_each_published_version_wrote_still_opens() {
         files_for(&held, &hex(&said["files"]["envelope"]), FILES, Some(&key)).expect(version);
         let (_, open) = reading(&hex(&said["public"]["envelope"]), PUBLIC, None).expect(version);
         assert_eq!(open, said["public"]["document"], "{version}");
+        if said.get("playing").is_some() {
+            plays_as_it_says(&said["playing"], &key);
+        }
     }
+}
+
+fn plays_as_it_says(said: &Value, key: &[u8]) {
+    let files = files_for(&said["document"], &hex(&said["files"]), FILES, Some(key)).unwrap();
+    for one in said["is"].as_array().unwrap() {
+        let verdict = playable_as(&files.parts[one["at"].as_u64().unwrap() as usize]);
+        assert_eq!(verdict.as_ref().map(|it| it.format.as_str()), one["is"]["format"].as_str(), "{}", one["says"]);
+        assert_eq!(verdict.as_ref().map(|it| it.player.as_str()), one["is"]["player"].as_str(), "{}", one["says"]);
+        assert_eq!(verdict.as_ref().map(|it| it.media_type.as_str()), one["is"]["type"].as_str(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_file_s_first_bytes_say_whether_it_plays() {
+    let all = vectors();
+    for one in all["first_bytes"].as_array().unwrap() {
+        let verdict = playable_as(&hex(&one["bytes"]));
+        assert_eq!(verdict.as_ref().map(|it| it.format.as_str()), one["format"].as_str(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_hostile_widget_travels_as_words_that_run_nothing() {
+    let all = vectors();
+    let said = &all["hostile_widget"];
+    assert!(check("document", said).is_empty());
+    let html = said["html"].as_str().unwrap();
+    assert!(check_html(html).is_empty());
+    assert!(!html.to_lowercase().contains("<script"));
 }
 
 #[test]

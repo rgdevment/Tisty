@@ -18,6 +18,7 @@ test("the check entry says the same as the full one", () => {
   const html = '<a href="tisty:page/1">a</a><img src="tisty:picture/0" alt="a" width="1" height="1">';
   assert.deepEqual(entry.referencesIn(html), referencesIn(html));
   assert.deepEqual(entry.picturesIn(html), picturesIn(html));
+  assert.deepEqual(entry.playableAs(new TextEncoder().encode("fLaC")), { format: "flac", player: "audio", type: "audio/flac" });
 });
 
 test("the edit address hands over its link whole, key and all", () => {

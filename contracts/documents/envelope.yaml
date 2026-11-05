@@ -79,7 +79,7 @@ values:
   floors: "A server may publish the oldest version it takes and the oldest it serves, in its signed limits, and refuses what is below them as outdated. It is for a mistake of ours, not against a fork: what protects a reader from a fork is the reader's own rules. A writer that holds something sent below a floor sends it again the next time it syncs."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
-  reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone downloads it."
+  reading: "The words are drawn first, and the pictures arrive in the same download. A file is asked for the first time someone presses its card."
 fields:
   contract: { type: text, required: true, at_least: 1, at_most: 32, says: "The version of these contracts it was written under." }
   kind: { type: envelope_kind, required: true }
