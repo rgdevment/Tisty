@@ -16,6 +16,7 @@ import { paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
+import { fell } from "./Standing";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
@@ -28,7 +29,7 @@ import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
 import Preview from "./ui/viewer/Preview";
 import Problem, { type Trouble } from "./ui/viewer/Problem";
-import Reader from "./ui/viewer/Reader";
+import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
 import usePdf from "./ui/viewer/usePdf";
 import { useSheets } from "./ui/viewer/useSheets";
@@ -49,6 +50,26 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   }
 };
 
+type Readable = Extract<Showing, { kind: "file" | "doc" }>;
+
+const readable = (one: Showing | null): one is Readable =>
+  one?.kind === "doc" || (one?.kind === "file" && one.body.trim() !== "");
+
+const useReader = (wanted: boolean) => {
+  const [loaded, setLoaded] = useState<typeof ReaderWindow | null>(null);
+  useEffect(() => {
+    if (!wanted) return;
+    let live = true;
+    void import("./ui/viewer/Reader").catch(fell).then(({ default: ready }) => {
+      if (live) setLoaded(() => ready);
+    });
+    return () => {
+      live = false;
+    };
+  }, [wanted]);
+  return loaded;
+};
+
 const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
@@ -58,6 +79,7 @@ const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
+  const Reader = useReader(readable(shown));
   const [trouble, setTrouble] = useState<string | null>(null);
   // One look at a time: a second press, or a second mount in development, never fetches twice.
   const asking = useRef(false);
@@ -85,15 +107,17 @@ export default function Viewing() {
   );
 
   if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
-  return <Reading shown={shown} trouble={trouble} look={look} />;
+  return <Reading shown={shown} Reader={Reader} trouble={trouble} look={look} />;
 }
 
 function Reading({
   shown,
+  Reader,
   trouble,
   look,
 }: {
   shown: Showing | null;
+  Reader: typeof ReaderWindow | null;
   trouble: string | null;
   look: () => void;
 }) {
@@ -281,7 +305,7 @@ function Reading({
           {note}
         </p>
       )}
-      {reading && (shown.kind === "doc" || body.trim()) && (
+      {readable(shown) && Reader && (
         <Reader
           key={shown.kind === "doc" ? shown.paper.file : shown.path}
           body={body}
@@ -312,7 +336,7 @@ function Reading({
           }
         />
       )}
-      {!shown && !trouble && <Quill said={t("viewOpening")} />}
+      {!trouble && (!shown || (readable(shown) && !Reader)) && <Quill said={t("viewOpening")} />}
       {shown?.kind === "file" && !body.trim() && (
         <Problem
           trouble={{ kind: "empty" }}

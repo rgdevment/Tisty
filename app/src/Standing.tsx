@@ -10,6 +10,12 @@ interface Held {
   fell: boolean;
 }
 
+export const fell = (why: unknown) => ({
+  default: (): never => {
+    throw why;
+  },
+});
+
 export default class Standing extends Component<Props, Held> {
   state: Held = { fell: false };
 

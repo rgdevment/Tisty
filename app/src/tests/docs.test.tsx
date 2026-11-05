@@ -956,3 +956,72 @@ describe("a diagram made from the / menu", () => {
     expect(store.viewed).toEqual([]);
   });
 });
+
+describe("the sheet a document opens on", () => {
+  const paper = {
+    id: "a3f1-0001",
+    file: "a3f1-0001",
+    title: "Notes",
+    folder: null,
+    archived: false,
+    away: false,
+  };
+
+  const opened = async (open?: string) => {
+    const arriving: ((sheet: { default: () => string }) => void)[] = [];
+    vi.doMock(
+      "../ui/Sheet",
+      () =>
+        new Promise<{ default: () => string }>((resolve) => {
+          arriving.push(resolve);
+        }),
+    );
+    vi.resetModules();
+    const { default: Fresh } = await import("../ui/Docs");
+    render(<Fresh open={open} known={[paper]} onKept={vi.fn()} onError={vi.fn()} />);
+    return arriving;
+  };
+
+  const column = () => document.querySelector('[data-bar-slot="desk"]');
+
+  it("comes with the document's words, so the document is never open without it", async () => {
+    const before = store.reads;
+    const arriving = await opened(paper.file);
+
+    expect(screen.queryByText(t("pickADoc"))).toBeNull();
+    await waitFor(() => expect(arriving).toHaveLength(1));
+    await waitFor(() => expect(store.reads).toBeGreaterThan(before));
+    await new Promise((done) => setTimeout(done, 0));
+    expect(column()).toBeNull();
+    expect(screen.queryByText(t("pickADoc"))).toBeNull();
+
+    arriving[0]({ default: () => "the sheet" });
+
+    expect(await screen.findByText("the sheet")).toBeTruthy();
+    expect(column()).not.toBeNull();
+  });
+
+  it("stays away while no document is asked for, and the column says to pick one", async () => {
+    const arriving = await opened();
+
+    await new Promise((done) => setTimeout(done, 0));
+
+    expect(arriving).toEqual([]);
+    expect(screen.getByText(t("pickADoc"))).toBeTruthy();
+  });
+
+  it("does not leave the column empty when the document asked for is not there", async () => {
+    await opened("a3f1-9999");
+
+    expect(await screen.findByText(t("pickADoc"))).toBeTruthy();
+  });
+
+  it("does not leave the column empty when the document cannot be read", async () => {
+    store.refuse = { code: "documentGone", name: "" };
+
+    await opened(paper.file);
+
+    expect(await screen.findByText(t("pickADoc"))).toBeTruthy();
+    store.refuse = null;
+  });
+});
