@@ -49,6 +49,29 @@ const verified = async (key, signature, ...pieces) => {
   assert.ok(await subtle.verify("Ed25519", held, signature, joined(...pieces)), "the signature holds");
 };
 
+// The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
+const ownerAnswers = async (manifest, signature, manifestBytes, index) => {
+  const { owner } = manifest;
+  const root = b64(owner.root);
+  const machine = b64(owner.machine);
+  await verified(root, b64(owner.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(owner.since) / 1000));
+  const about = words("owner");
+  const id = words(manifest.id);
+  const permit = owner.permit ? b64(owner.permit) : new Uint8Array(32);
+  await verified(machine, b64(owner.signed), words("tisty-share.signed.v1\0"), root, machine, be(about.length), about, be(id.length), id, permit, b64(owner.name_tag));
+  if (owner.root === signature.root) return;
+  assert.ok(owner.permit && signature.permit_signed, "another root needs its owner's permit");
+  await verified(permit, b64(signature.permit_signed), words("tisty-share.permit.v1\0"), b64(signature.root), b64(signature.machine), await sha(manifestBytes), index);
+};
+
+const ownerNameHolds = async (manifest, first, linkKey) => {
+  const id = words(manifest.id);
+  const name = words(JSON.parse(new TextDecoder().decode(first)).owner_name ?? "");
+  const held = await subtle.importKey("raw", linkKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const tag = new Uint8Array(await subtle.sign("HMAC", held, joined(words("tisty-owner-name\0"), be(id.length), id, name)));
+  assert.ok(same(tag, b64(manifest.owner.name_tag)), "its owner's name is the one its owner signed");
+};
+
 const opened = async (bytes, asked, linkKey) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   assert.ok(same(bytes.subarray(0, 4), words("TENV")), "its mark");
@@ -90,6 +113,7 @@ const opened = async (bytes, asked, linkKey) => {
   await verified(root, b64(signature.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(signature.since) / 1000));
   const about = words("envelope");
   await verified(machine, b64(signature.signed), words("tisty-share.signed.v1\0"), root, machine, be(about.length), about, await sha(manifestBytes), index);
+  if (manifest.sealed) await ownerAnswers(manifest, signature, manifestBytes, index);
   let key;
   if (manifest.sealed) {
     const held = await subtle.importKey("raw", linkKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -111,7 +135,8 @@ const opened = async (bytes, asked, linkKey) => {
     parts.push(part.compressed ? await inflated(held, part.open_size) : held);
   }
   assert.equal(at, bytes.length, "nothing follows its parts");
-  return { manifest, manifestBytes, index, parts };
+  if (manifest.sealed && asked.kind === "main") await ownerNameHolds(manifest, parts[0], linkKey);
+  return { manifest, manifestBytes, index, parts, signature };
 };
 
 const asJson = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
@@ -215,6 +240,34 @@ const linkKey = b64(VECTORS.link_key);
 const MAIN = { id: "k7Qm2xPa", kind: "main" };
 const FILES = { id: "k7Qm2xPa", kind: "files" };
 const PUBLIC = { id: "wordsOnly", kind: "main" };
+
+const EDITING = { id: VECTORS.editing.id, kind: "main" };
+
+for (const { says, signer, envelope } of VECTORS.editing.opens) {
+  test(`a reader opens ${says}`, async () => {
+    const { signature, manifest } = await opened(hex(envelope), EDITING, linkKey);
+    assert.equal(signature.root, signer);
+    assert.equal(manifest.owner.root, VECTORS.editing.owner);
+  });
+}
+
+for (const { says, envelope } of VECTORS.editing.refused) {
+  test(`a reader refuses ${says}`, async () => {
+    await assert.rejects(reading(hex(envelope), EDITING, linkKey));
+  });
+}
+
+test("a revocation of its owner's machine weighs on what an editor signed", async () => {
+  const { envelope, served, verdict } = VECTORS.editing.owner_revoked;
+  const { manifest, signature } = await opened(hex(envelope), EDITING, linkKey);
+  assert.equal(await verdictOf(signature, served), "holds");
+  assert.equal(await verdictOf(manifest.owner, served), verdict);
+});
+
+test("the token follows the key after a point, and neither has one of its own", () => {
+  const [, secret] = VECTORS.editing.link.split("#");
+  assert.deepEqual(secret.split("."), [VECTORS.link_key, VECTORS.editing.token]);
+});
 
 test("the samples are written under this very version", async () => {
   const { manifest } = await opened(hex(VECTORS.main.envelope), MAIN, linkKey);

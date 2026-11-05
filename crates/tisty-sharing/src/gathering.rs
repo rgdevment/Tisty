@@ -186,6 +186,8 @@ fn sealing_for(
             link_key: key.clone(),
             files_key: kept.as_ref().and(key),
             files_hash: kept.clone(),
+            owner: None,
+            token: None,
         },
         kept.is_some(),
     ))
@@ -366,6 +368,7 @@ impl Gathering<'_> {
             lang: tisty_markdown::front::lang(&body),
             sheet: sheet_of(&body),
             signed_as: self.signed_as.clone(),
+            owner_name: self.signed_as.clone(),
             made: None,
             wrote: None,
             body: travelling,

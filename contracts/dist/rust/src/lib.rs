@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.1.0";
+pub const VERSION: &str = "1.2.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,16 +31,6 @@ pub enum PartName {
     Picture,
     #[serde(rename = "file")]
     File,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SyncEvery {
-    #[serde(rename = "off")]
-    Off,
-    #[serde(rename = "every5")]
-    Every5,
-    #[serde(rename = "every10")]
-    Every10,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -164,6 +154,8 @@ pub struct Document {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<String>,
@@ -211,6 +203,8 @@ pub struct Envelope {
     pub head: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub commitment: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<Owner>,
     pub parts: Vec<EnvelopePart>,
 }
 
@@ -235,6 +229,10 @@ pub struct Sealing {
     pub files_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<Owner>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 /// What a reader asks for when it opens an envelope.
@@ -257,7 +255,6 @@ pub struct EnvelopePart {
 
 pub trait SyncWriter {
     fn sync(&mut self);
-    fn set_sync(&mut self, every: SyncEvery);
 }
 
 /// The properties at the start of a document, between two lines of three dashes. The first line is ---, the words start right under it, and --- or ... closes them. Past their limits they stay as written and none is read. A value that says nothing Tisty knows stays written too and does nothing, so no document fails for its properties: the writer reads them and gives the document what they mean. This holds what they mean, once read.
@@ -339,6 +336,21 @@ pub struct Signature {
     pub machine: String,
     pub since: String,
     pub certificate: String,
+    pub signed: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub permit_signed: Option<String>,
+}
+
+/// Who owns what is sealed, and who may edit it. It answers for the document and never for its words: an editor signs each version, and the owner's signature says only that this root owns this id and let this permit edit it. A version holds if its signature is under this root, or if it brings a permit_signed that holds against this permit.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Owner {
+    pub root: String,
+    pub machine: String,
+    pub since: String,
+    pub certificate: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub permit: Option<String>,
+    pub name_tag: String,
     pub signed: String,
 }
 

@@ -17,7 +17,8 @@ use tisty_contracts::{
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
 use crate::sealing::{
-    ABOUT, MANIFEST_AT_MOST, MARK, SIGNATURE_AT_MOST, cipher_of, commitment_holds, nonce,
+    ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
+    name_tag, nonce, owner_said,
 };
 
 // This reader's own, and no number of the contract's: each reader knows what it can hold.
@@ -45,6 +46,8 @@ pub struct Opened {
     pub index: Vec<u8>,
     pub parts: Vec<Vec<u8>>,
     pub verdict: Verdict,
+    pub signer: String,
+    pub owner: Option<String>,
 }
 
 // It stays a `Value`: a later minor version adds what this one leaves aside, and a paper it does not know is no fault.
@@ -53,6 +56,8 @@ pub struct Reading {
     pub document: Value,
     pub pictures: Vec<Vec<u8>>,
     pub verdict: Verdict,
+    pub signer: String,
+    pub owner: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,7 +201,7 @@ fn weighed(root: &str, machine: &str, served: &Served) -> Vec<Revocation> {
         .collect()
 }
 
-fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
+fn verdict_on(signature: &Value, about: &str, said: &[u8], served: &Served) -> Verdict {
     let text = |name: &str| signature[name].as_str().unwrap_or_default().to_owned();
     let Ok(since) = text("since").parse::<Timestamp>() else {
         return Verdict::Unreadable;
@@ -211,7 +216,7 @@ fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
         sig: text("signed"),
     };
     let revoked = weighed(&text("root"), &text("machine"), served);
-    match identity::check(&signed, ABOUT, said, &revoked) {
+    match identity::check(&signed, about, said, &revoked) {
         identity::Verdict::Holds { .. } => Verdict::Holds,
         identity::Verdict::Refused => Verdict::Refused,
         identity::Verdict::Unreadable => Verdict::Unreadable,
@@ -225,6 +230,65 @@ fn verdict_on(signature: &Value, said: &[u8], served: &Served) -> Verdict {
                 _ => Verdict::Doubtful,
             }
         }
+    }
+}
+
+fn worse(one: Verdict, other: Verdict) -> Verdict {
+    match (one, other) {
+        (Verdict::Doubtful, _) | (_, Verdict::Doubtful) => Verdict::Doubtful,
+        (Verdict::Retired, _) | (_, Verdict::Retired) => Verdict::Retired,
+        _ => one,
+    }
+}
+
+// The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
+fn owner_answers(
+    manifest: &Value,
+    signature: &Value,
+    said: &[u8],
+    served: &Served,
+) -> Result<Verdict, Unopened> {
+    let owner = &manifest["owner"];
+    let decoded = |name: &str| URL_SAFE_NO_PAD.decode(owner[name].as_str().unwrap_or_default());
+    let permit = owner["permit"]
+        .is_string()
+        .then(|| decoded("permit"))
+        .transpose()
+        .map_err(|_| Unopened::Signature(Verdict::Unreadable))?;
+    let tag = decoded("name_tag").map_err(|_| Unopened::Signature(Verdict::Unreadable))?;
+    let id = manifest["id"].as_str().unwrap_or_default();
+    let owned = owner_said(id, permit.as_deref(), &tag);
+    let verdict = verdict_on(owner, OWNER_ABOUT, &owned, served);
+    if matches!(verdict, Verdict::Refused | Verdict::Unreadable) {
+        return Err(Unopened::Signature(verdict));
+    }
+    let text = |value: &Value, name: &str| value[name].as_str().unwrap_or_default().to_owned();
+    if text(owner, "root") == text(signature, "root") {
+        return Ok(verdict);
+    }
+    let allowed = identity::permit_holds(
+        &text(owner, "permit"),
+        &text(signature, "permit_signed"),
+        &text(signature, "root"),
+        &text(signature, "machine"),
+        said,
+    );
+    if allowed {
+        Ok(verdict)
+    } else {
+        Err(Unopened::Signature(Verdict::Refused))
+    }
+}
+
+fn owner_name_holds(manifest: &Value, first: &[u8], key: &[u8]) -> Result<(), Unopened> {
+    let name = serde_json::from_slice::<Value>(first).unwrap_or_default();
+    let name = name["owner_name"].as_str().unwrap_or_default();
+    let id = manifest["id"].as_str().unwrap_or_default();
+    let tag = name_tag(key, id, name).map_err(|_| Unopened::Damaged("its key is not one"))?;
+    if manifest["owner"]["name_tag"].as_str() == Some(URL_SAFE_NO_PAD.encode(tag).as_str()) {
+        Ok(())
+    } else {
+        damaged("its owner's name is not the one its owner signed")
     }
 }
 
@@ -336,9 +400,16 @@ pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened
     let index = pieces.take(32 * parts.len())?;
     let mut said = Sha256::digest(manifest_bytes).to_vec();
     said.extend_from_slice(index);
-    let verdict = verdict_on(&signature, &said, served);
+    let mut verdict = verdict_on(&signature, ABOUT, &said, served);
     if matches!(verdict, Verdict::Refused | Verdict::Unreadable) {
         return Err(Unopened::Signature(verdict));
+    }
+    let sealed = manifest["sealed"] == true;
+    if sealed {
+        verdict = worse(
+            verdict,
+            owner_answers(&manifest, &signature, &said, served)?,
+        );
     }
     let cipher = cipher_for(&manifest, key.as_deref())?;
     let mut out = Vec::with_capacity(parts.len());
@@ -359,7 +430,15 @@ pub fn opened(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Opened
     if !pieces.all_taken() {
         return damaged("something follows its parts");
     }
+    if let (true, EnvelopeKind::Main, Some(first), Some(key)) =
+        (sealed, opening.kind, out.first(), key.as_deref())
+    {
+        owner_name_holds(&manifest, first, key)?;
+    }
+    let text = |value: &Value, name: &str| value[name].as_str().map(str::to_owned);
     Ok(Opened {
+        signer: text(&signature, "root").unwrap_or_default(),
+        owner: text(&manifest["owner"], "root"),
         manifest: manifest_bytes.to_vec(),
         index: index.to_vec(),
         parts: out,
@@ -488,11 +567,15 @@ pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Readi
     let main = opened(bytes, opening, served)?;
     let document = document_in(&main)?;
     let verdict = main.verdict;
+    let signer = main.signer.clone();
+    let owner = main.owner.clone();
     let pictures = main.parts.into_iter().skip(2).collect();
     Ok(Reading {
         document,
         pictures,
         verdict,
+        signer,
+        owner,
     })
 }
 

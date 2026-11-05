@@ -13,7 +13,7 @@ values:
   says_nothing_unchosen: >-
     What travels names nobody who did not choose it and nothing of the writer's machine: no local id, path, task or name
     from its log, in the HTML or in the body, and what the person typed as words in a sentence is theirs. A picture is named by its place, a file by its own name and never its path, and no date goes in the manifest.
-  who_shares_it: "Whoever signs its envelope: the root in its signature, and nothing inside can say otherwise."
+  who_shares_it: "Whoever signs its envelope: the root in its signature, and nothing inside can say otherwise. What is sealed also says who owns it, in its manifest, and the owner and an editor it allowed are shown apart."
   anchor_language: "Paper, sheets and orientation are the group's: the anchor's, in every language."
 fields:
   id: { type: id, required: true, at_most: 64, says: "What names it, and what goes in its link. It says nothing of the machine it came from." }
@@ -22,6 +22,7 @@ fields:
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
   sheet: { type: sheet, says: "How it is laid on paper." }
   signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Where it is sealed, only a reader with the key sees it; what is public shows it to anyone. Never a proof." }
+  owner_name: { type: name, says: "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Sealed, only a reader with the key sees it." }
   made: { type: time }
   wrote: { type: time }
   body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone." }
