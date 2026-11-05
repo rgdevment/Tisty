@@ -2273,10 +2273,19 @@ const en = {
     "Nothing you wrote is lost: it is kept as it was, and opening the window again picks it up where it stands. What went wrong is written in the log",
   windowFellAgain: "Draw it again",
   updateComing: "The Store is bringing a new version",
+  updateOffered: "The Store has a new version",
   updateOpenShop: "Open the Store",
   updateComingWhy:
-    "It is in the Store's own queue — being fetched, or paused there. It installs itself once it lands and this window is closed.",
-  updateLanded: "It is already on this machine and takes over when you close Tisty",
+    "The Store brings it on its own. It installs itself once it lands and nothing is using Tisty: not its window in the tray, nor a connected assistant.",
+  updatePausedWhy: "The Store has it paused. Open the Store to resume it.",
+  updateNotYetWhy:
+    "The Store has not offered it to this computer yet. That usually takes a few hours, and you can check in the Store.",
+  updateLanded:
+    "It is already on this machine and takes over once nothing is using Tisty: not its window in the tray, nor a connected assistant",
+  lookNotSold:
+    "This copy did not come from the Microsoft Store, so the Store does not update it and it cannot update itself",
+  lookStoreKeeps:
+    "The Microsoft Store keeps this copy up to date. It is asked at every launch and every six hours",
   lookNowNoneStore:
     "The Microsoft Store has nothing newer for this copy right now. It is asked again at every launch and every few hours, and brings the update here when it has it",
   agentsTitle: "Tisty has no AI inside it",
@@ -4986,10 +4995,19 @@ const es: Catalog = {
     "No se perdió nada de lo que escribiste: queda tal como estaba, y al volver a abrir la ventana sigue donde lo dejaste. Lo que falló quedó escrito en el registro",
   windowFellAgain: "Volver a dibujarla",
   updateComing: "La Store está trayendo una versión nueva",
+  updateOffered: "La Store tiene una versión nueva",
   updateOpenShop: "Abrir la Store",
   updateComingWhy:
-    "Está en la cola de la propia Store —descargándose, o en pausa ahí—. Se instala sola cuando llegue y esta ventana esté cerrada.",
-  updateLanded: "Ya está en esta máquina y entra cuando cierres Tisty",
+    "La Store la trae por su cuenta. Se instala sola cuando llegue y nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado.",
+  updatePausedWhy: "La Store la tiene en pausa. Ábrela para reanudarla.",
+  updateNotYetWhy:
+    "La Store todavía no se la ofrece a este equipo. Suele tardar unas horas, y puedes mirarlo en la Store.",
+  updateLanded:
+    "Ya está en esta máquina y entra cuando nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado",
+  lookNotSold:
+    "Esta copia no vino de la Microsoft Store, así que la Store no la actualiza y ella no puede hacerlo sola",
+  lookStoreKeeps:
+    "La Microsoft Store mantiene esta copia al día. Se le pregunta en cada arranque y cada seis horas",
   lookNowNoneStore:
     "La Microsoft Store no tiene nada más nuevo para esta copia ahora mismo. Se le vuelve a preguntar en cada arranque y cada pocas horas, y trae la actualización aquí cuando la tiene",
   agentsTitle: "Tisty no lleva IA dentro",

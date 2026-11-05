@@ -42,7 +42,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 ## The network requests Tisty makes
 
-**On its own:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows instead, and makes no request of its own. While you sync with Google Drive, OneDrive or a WebDAV server, it also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours.
+**On its own:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows what the Store has, and reads the Store's public catalog to see which version that is: when it opens, every six hours, and when you ask. It downloads that same file only if the catalog does not answer. While you sync with Google Drive, OneDrive or a WebDAV server, it also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours.
 
 **Only when you ask:**
 
