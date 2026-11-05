@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MARKED_FOR } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
+import { MARK_FADES } from "../ui/anchoring";
 import { dressedAsWindow, framed } from "../ui/framed";
 import task from "../ui/taskpage.css?raw";
 
@@ -30,6 +32,12 @@ describe("a page in the window", () => {
     document.documentElement.dataset.theme = "light";
     dressedAsWindow(drawn);
     expect(drawn.documentElement.classList.contains("dark")).toBe(false);
+  });
+});
+
+describe("the mark an agent's words leave", () => {
+  it("fades when the editor lets it go", () => {
+    expect(MARK_FADES).toBe(MARKED_FOR);
   });
 });
 
@@ -64,14 +72,18 @@ describe("what only reads", () => {
     return [...named];
   };
 
-  it.each(["ui/Page.tsx", "ui/viewer/Reader.tsx", "ui/HelpArticle.tsx", "ui/MarkdownArticle.tsx"])(
-    "%s reaches nothing of the editor",
-    (root) => {
-      const reached = reachedFrom(root);
-      expect(reached).toContain("tisty-editor/read");
-      expect(reached.filter((one) => /^(tisty-editor\/edit|@codemirror|@lezer)/.test(one))).toEqual(
-        [],
-      );
-    },
-  );
+  it.each([
+    "ui/Page.tsx",
+    "ui/viewer/Reader.tsx",
+    "ui/HelpArticle.tsx",
+    "ui/MarkdownArticle.tsx",
+    "Viewing.tsx",
+    "App.tsx",
+  ])("%s reaches nothing of the editor", (root) => {
+    const reached = reachedFrom(root);
+    expect(reached).toContain("tisty-editor/read");
+    expect(reached.filter((one) => /^(tisty-editor\/edit|@codemirror|@lezer)/.test(one))).toEqual(
+      [],
+    );
+  });
 });

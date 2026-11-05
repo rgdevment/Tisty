@@ -17,9 +17,9 @@ import { fill, t } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
-import Sheet from "./Sheet";
 import Skeleton from "./Skeleton";
 import { useTaskAsks } from "./taskAsking";
+import { type LoadedSheet, useSheet } from "./useSheet";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -60,6 +60,7 @@ export default function TaskWords({
   onTask,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
+  const Sheet = useSheet(true);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
@@ -111,7 +112,7 @@ export default function TaskWords({
   }, [task.id, open, turn]);
 
   // While the page is read, its room stays as it last was, so what is under it never jumps.
-  if (!doc)
+  if (!doc || !Sheet)
     return (
       <div ref={kept.ref} className="task-words relative" style={{ minHeight: kept.height ?? 180 }}>
         <Skeleton inset="46px 32px" />
@@ -123,6 +124,7 @@ export default function TaskWords({
     <div ref={kept.ref} className="task-words">
       <Written
         key={`${doc.file}:${seen}`}
+        Sheet={Sheet}
         task={task}
         doc={doc}
         make={make}
@@ -147,6 +149,7 @@ export default function TaskWords({
 }
 
 function Written({
+  Sheet,
   task,
   doc,
   make,
@@ -161,6 +164,7 @@ function Written({
   onTask,
   onPart,
 }: {
+  Sheet: LoadedSheet;
   task: Task;
   doc: TaskDoc;
   make?: (body: string) => Promise<string>;
