@@ -440,12 +440,12 @@ describe("the reader comes only to a window with words to read", () => {
   });
 
   it("keeps the window saying it is opening until it arrives", async () => {
-    let arrive: (reader: { default: () => string }) => void = () => {};
+    const arriving: ((reader: { default: () => string }) => void)[] = [];
     vi.doMock(
       READER,
       () =>
         new Promise<{ default: () => string }>((resolve) => {
-          arrive = resolve;
+          arriving.push(resolve);
         }),
     );
 
@@ -454,10 +454,29 @@ describe("the reader comes only to a window with words to read", () => {
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(t("viewOpening"))).toBeTruthy();
 
-    arrive({ default: () => "the reader" });
+    await waitFor(() => expect(arriving).toHaveLength(1));
+    arriving[0]({ default: () => "the reader" });
 
     expect(await screen.findByText("the reader")).toBeTruthy();
     expect(screen.queryByText(t("viewOpening"))).toBeNull();
+  });
+
+  it("lets the window look again while it is still on its way", async () => {
+    vi.doMock(READER, () => new Promise(() => {}));
+    const focused = vi.spyOn(document, "hasFocus");
+
+    await viewed(tisty);
+    await waitFor(() => expect(asked("view_shown")).toHaveLength(1));
+    expect(await screen.findByText(t("viewOpening"))).toBeTruthy();
+
+    focused.mockReturnValue(false);
+    fireEvent.blur(window);
+    await new Promise((done) => setTimeout(done, 0));
+    focused.mockReturnValue(true);
+    fireEvent.focus(window);
+
+    await waitFor(() => expect(asked("view_shown")).toHaveLength(2));
+    focused.mockRestore();
   });
 
   it("says so and offers to draw the window again when it cannot be loaded", async () => {

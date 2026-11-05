@@ -44,53 +44,22 @@ const started = async (label: string) => {
   await import("../main");
 };
 
-describe("the sheet comes when it is wanted", () => {
-  const sheetIn = async (wanted: boolean) => {
-    const { useSheet } = await import("../ui/useSheet");
-    render(
-      <Standing>
-        <Showing useIt={useSheet} wanted={wanted} />
-      </Standing>,
-    );
-  };
-
-  beforeEach(() => {
+describe("a sheet that cannot be loaded", () => {
+  it("takes the window down, as anything drawn in it would", async () => {
     vi.resetModules();
     vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    vi.doUnmock("../ui/Sheet");
-  });
-
-  it("stays away while nothing asks for it", async () => {
-    const loaded: string[] = [];
-    vi.doMock("../ui/Sheet", () => {
-      loaded.push("Sheet");
-      return { default: () => "the sheet" };
-    });
-
-    await sheetIn(false);
-    await new Promise((done) => setTimeout(done, 0));
-
-    expect(screen.getByText("no sheet yet")).toBeTruthy();
-    expect(loaded).toEqual([]);
-  });
-
-  it("is drawn once it has arrived", async () => {
-    vi.doMock("../ui/Sheet", () => ({ default: () => "the sheet" }));
-
-    await sheetIn(true);
-
-    expect(await screen.findByText("the sheet")).toBeTruthy();
-  });
-
-  it("takes the window down when it cannot be loaded, as anything drawn in it would", async () => {
     vi.doMock("../ui/Sheet", () => {
       throw new Error("the sheet cannot be loaded");
     });
+    const { sheetLoaded } = await import("../ui/sheetLoaded");
+    const Fallen = (await sheetLoaded()) as unknown as () => string;
+    vi.doUnmock("../ui/Sheet");
 
-    await sheetIn(true);
+    render(
+      <Standing>
+        <Fallen />
+      </Standing>,
+    );
 
     expect(await screen.findByText(t("windowFell"))).toBeTruthy();
   });
@@ -138,11 +107,6 @@ describe("a window loads its own code and no other's", () => {
     expect(screen.getByRole("button", { name: t("windowFellAgain") })).toBeTruthy();
   });
 });
-
-const Showing = ({ useIt, wanted }: { useIt: (wanted: boolean) => unknown; wanted: boolean }) => {
-  const Sheet = useIt(wanted) as (() => string) | null;
-  return Sheet ? <Sheet /> : "no sheet yet";
-};
 
 const Falls = () => {
   throw new TypeError("Cannot read properties of undefined (reading 'replace')");

@@ -18,8 +18,8 @@ import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
+import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { useTaskAsks } from "./taskAsking";
-import { type LoadedSheet, useSheet } from "./useSheet";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -60,7 +60,7 @@ export default function TaskWords({
   onTask,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
-  const Sheet = useSheet(true);
+  const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
@@ -95,11 +95,11 @@ export default function TaskWords({
 
   useEffect(() => {
     let live = true;
-    taskDocOpen(task.id)
-      .then(real)
-      .then((found) => {
+    Promise.all([taskDocOpen(task.id).then(real), sheetLoaded()])
+      .then(([found, ready]) => {
         if (!live) return;
         if (found) holding.current?.(found.held);
+        setSheet(() => ready);
         setDoc(found);
         setSeen((one) => one + 1);
       })

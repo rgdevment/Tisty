@@ -289,3 +289,33 @@ describe("a settle that failed", () => {
     ]);
   });
 });
+
+describe("the sheet a task opens on", () => {
+  it("comes with the task's words, and until then the page keeps its place", async () => {
+    const arriving: ((sheet: { default: () => string }) => void)[] = [];
+    vi.doMock(
+      "../ui/Sheet",
+      () =>
+        new Promise<{ default: () => string }>((resolve) => {
+          arriving.push(resolve);
+        }),
+    );
+    vi.resetModules();
+    const { default: Fresh } = await import("../ui/TaskWords");
+    ipc.doc = { file: "t_one-0001", body: "Words it held.\n", held: false };
+
+    render(<Fresh task={task()} />);
+
+    await waitFor(() => expect(arriving).toHaveLength(1));
+    await waitFor(() => expect(sent("task_doc_open")).toHaveLength(1));
+    await settle();
+    expect(screen.queryByText("the sheet")).toBeNull();
+    expect(document.querySelector(".task-words.relative")).not.toBeNull();
+
+    arriving[0]({ default: () => "the sheet" });
+
+    expect(await screen.findByText("the sheet")).toBeTruthy();
+    expect(document.querySelector(".task-words.relative")).toBeNull();
+    vi.doUnmock("../ui/Sheet");
+  });
+});

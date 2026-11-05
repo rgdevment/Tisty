@@ -49,11 +49,11 @@ import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
+import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
-import { useSheet } from "./useSheet";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
@@ -148,7 +148,7 @@ export default function Docs({
   fresh = 0,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
-  const Sheet = useSheet(Boolean(open));
+  const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -428,8 +428,8 @@ export default function Docs({
     const wrote_at = typed.current;
     (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
-      .then(() => docOpened(wanted.file))
-      .then(({ body: text, print }) => {
+      .then(() => Promise.all([docOpened(wanted.file), sheetLoaded()]))
+      .then(([{ body: text, print }, ready]) => {
         if (turn.current !== mine) return;
         // Somebody typed while this was in flight: reading it back over them would lose the
         // words and drop the caret at the end.
@@ -443,6 +443,7 @@ export default function Docs({
         // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
         setStirred((was) => astir || (was && before === wanted.file));
         if (astir) mark(changedIn(last, text));
+        setSheet(() => ready);
         setOpen(wanted);
         setClashed(false);
         if (!same) {

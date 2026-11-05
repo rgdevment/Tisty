@@ -55,6 +55,21 @@ type Readable = Extract<Showing, { kind: "file" | "doc" }>;
 const readable = (one: Showing | null): one is Readable =>
   one?.kind === "doc" || (one?.kind === "file" && one.body.trim() !== "");
 
+const useReader = (wanted: boolean) => {
+  const [loaded, setLoaded] = useState<typeof ReaderWindow | null>(null);
+  useEffect(() => {
+    if (!wanted) return;
+    let live = true;
+    void import("./ui/viewer/Reader").catch(fell).then(({ default: ready }) => {
+      if (live) setLoaded(() => ready);
+    });
+    return () => {
+      live = false;
+    };
+  }, [wanted]);
+  return loaded;
+};
+
 const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
@@ -64,7 +79,7 @@ const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
-  const [Reader, setReader] = useState<typeof ReaderWindow | null>(null);
+  const Reader = useReader(readable(shown));
   const [trouble, setTrouble] = useState<string | null>(null);
   // One look at a time: a second press, or a second mount in development, never fetches twice.
   const asking = useRef(false);
@@ -72,12 +87,9 @@ export default function Viewing() {
     if (asking.current) return;
     asking.current = true;
     void viewShown()
-      .then(async (one) => {
+      .then((one) => {
         setShown(one);
         setTrouble(null);
-        if (!readable(one)) return;
-        const { default: ready } = await import("./ui/viewer/Reader").catch(fell);
-        setReader(() => ready);
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => {
