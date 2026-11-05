@@ -1,5 +1,6 @@
 import { CONTRACTS } from "@tisty/contracts";
 import { describe, expect, it } from "vitest";
+import { fields } from "../src/front";
 import { source } from "./source";
 
 type Blocks = Record<string, Record<string, string | number>>;
@@ -33,8 +34,17 @@ type Sheet = {
   };
 };
 
+type FrontMatter = {
+  values: {
+    block_bytes_at_most: number;
+    properties_at_most: number;
+    value_characters_at_most: number;
+  };
+};
+
 const style = (CONTRACTS.style as Style).values;
 const sheet = (CONTRACTS.sheet as Sheet).values;
+const frontMatter = (CONTRACTS.front_matter as FrontMatter).values;
 const page = source("page.css");
 const tables = source("tables.css");
 const tokens = source("tokens.css");
@@ -147,6 +157,46 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, ".ico svg", "width")).toBe(style.icon.size);
   });
 
+  describe("a diagram that arrives drawn twice", () => {
+    const drawings = each(page)
+      .filter((one) => one.selectors.some((selector) => selector.includes("> svg[data-theme")))
+      .map((one) => `${one.selectors.join(",")}{${one.body}}`)
+      .join("\n");
+
+    const shownIn = (theme: string | null) => {
+      if (theme) document.documentElement.setAttribute("data-theme", theme);
+      else document.documentElement.removeAttribute("data-theme");
+      const style = document.createElement("style");
+      style.textContent = drawings;
+      document.head.append(style);
+      document.body.innerHTML =
+        '<figure class="diagram"><svg data-theme="light"></svg><svg data-theme="dark"></svg></figure>';
+      const seen = [...document.querySelectorAll("svg")]
+        .filter((one) => getComputedStyle(one).display !== "none")
+        .map((one) => one.getAttribute("data-theme"));
+      style.remove();
+      document.body.innerHTML = "";
+      document.documentElement.removeAttribute("data-theme");
+      return seen;
+    };
+
+    it("shows only the one of the reader's theme", () => {
+      expect(shownIn("light")).toEqual(["light"]);
+      expect(shownIn("dark")).toEqual(["dark"]);
+      expect(shownIn(null)).toEqual(["light"]);
+    });
+
+    it("draws each at most at its width and at most at the width of the sheet", () => {
+      expect(said(page, "figure.diagram > svg[data-theme]", "max-width")).toBe("100%");
+      expect(said(page, "figure.diagram > svg[data-theme]", "width")).toBe("auto");
+      expect(said(page, "figure.diagram svg", "margin")).toBe("0 auto");
+    });
+
+    it("wears no frame of a diagram still waiting to be drawn", () => {
+      expect(page).toContain("figure.diagram:not(.drawn, :has(> svg[data-theme]))");
+    });
+  });
+
   it("its paper", () => {
     for (const [name, [wide, tall]] of Object.entries(sheet.millimetres)) {
       expect(paper).toContain(`${name}: [${wide}, ${tall}]`);
@@ -158,5 +208,36 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     );
     expect(page).toContain(`--wide, ${sheet.long_page_width_pixels}px`);
     expect(style.sheet.width).toBe(`${sheet.long_page_width_pixels}px`);
+  });
+});
+
+describe("the window reads a document's properties as far as the contract says", () => {
+  it("up to its bytes", () => {
+    const frame = "---\ntitle: a\n#\n---\n".length;
+    const sized = (bytes: number) => `---\ntitle: a\n#${"x".repeat(bytes - frame)}\n---\n`;
+    const atMost = frontMatter.block_bytes_at_most;
+    expect(sized(atMost)).toHaveLength(atMost);
+    expect(fields(sized(atMost))).toHaveLength(1);
+    expect(fields(sized(atMost + 1))).toEqual([]);
+    expect(fields(sized(atMost + 1).trimEnd())).toHaveLength(1);
+    expect(fields(sized(atMost + 2).trimEnd())).toEqual([]);
+  });
+
+  it("up to its properties", () => {
+    const keyed = (keys: number) => {
+      const others = Array.from({ length: keys - 1 }, (_, at) => `k${at}: v\n`).join("");
+      return `---\ntitle: a\n${others}---\n`;
+    };
+    const atMost = frontMatter.properties_at_most;
+    expect(fields(keyed(atMost))).toHaveLength(atMost);
+    expect(fields(keyed(atMost + 1))).toEqual([]);
+  });
+
+  it("up to the characters of a value", () => {
+    // One emoji is one character but two units of a string, so counting units reads less than the contract says.
+    const said = (characters: number) => `---\ntitle: 😀${"x".repeat(characters - 1)}\n---\n`;
+    const atMost = frontMatter.value_characters_at_most;
+    expect(fields(said(atMost))).toHaveLength(1);
+    expect(fields(said(atMost + 1))).toEqual([]);
   });
 });
