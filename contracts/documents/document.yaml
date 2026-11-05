@@ -154,7 +154,10 @@ html_cases:
     html: '<a href="tisty:doc/abc">a</a>'
     holds: false
   - says: "A link that hands something over to a Tisty, inside the words."
-    html: '<a href="tisty://folio?link=x">a</a>'
+    html: '<a href="tisty://edit?link=x">a</a>'
+    holds: false
+  - says: "A link that opens a file of the reader's machine, inside the words."
+    html: '<a href="tisty://open?path=x">a</a>'
     holds: false
   - says: "A reference with no place."
     html: '<a href="tisty:page/x">a</a>'
@@ -251,7 +254,7 @@ roles:
     verdict: { takes: { file: bytes, served: served }, gives: verdict, fails: true, says: "Who signed it, weighed with what the server serves beside it. Shown outside the document, where it cannot imitate it." }
     go_to_page: { takes: { at: whole } }
     set_language: { takes: { lang: language } }
-    open_in_tisty: { says: "Hands the document over to a Tisty." }
+    edit_in_tisty: { says: "Hands the document over to a Tisty to edit, with the edit address of the link contract." }
     copy_link: { gives: text }
 cases:
   - says: "A title that turns the text around beside the reader's frame."

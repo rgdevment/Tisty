@@ -236,9 +236,9 @@ does not count.
 
 On `main`, a new version goes out by itself as the pre-release
 `contracts-vX.Y.Z`, and what is out is never replaced, since Folio pins its
-hash. A draft is never published. Within a major version, a later one only adds
-what an earlier reader can leave aside. For a new major version, Folio deploys
-first and Tisty after it.
+hash. A draft is never published. Nothing has been shared for real yet, so there
+is no reader to keep: a later version may change what an earlier one said, and
+the major version stays at 1. Folio deploys first and Tisty after it.
 
 ## Security
 

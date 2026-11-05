@@ -188,10 +188,12 @@ contract: link
 group: documents
 checked_by: [writer, reader]
 says: >-
-  How a shared document is reached. A browser opens the web link, and only reads. The link for Tisty hands the document
-  over to a Tisty, and editing happens only there.
+  How a document is reached. A browser opens the web link, and only reads. Tisty answers to two addresses: open shows a
+  file of this machine, read only, and edit hands it a shared document to edit. With edit, Tisty asks for the document
+  itself, checks its signature and takes in its body, the Tisty language, never its HTML.
 values:
   private: "https://tisty.cl/{id}#{link_key}"
   public: "https://folio.tisty.app/{id}"
-  in_tisty: "tisty://folio?link={the web link, percent-encoded}"
+  open: "tisty://open?path={a file of this machine, percent-encoded}"
+  edit: "tisty://edit?link={the web link, percent-encoded}"
   editing: "Never on the web. Who may edit from Tisty, and how editors and versions grow, is not defined yet."

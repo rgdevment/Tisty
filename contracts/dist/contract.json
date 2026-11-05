@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.1.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -1853,7 +1853,12 @@
         },
         {
           "says": "A link that hands something over to a Tisty, inside the words.",
-          "html": "<a href=\"tisty://folio?link=x\">a</a>",
+          "html": "<a href=\"tisty://edit?link=x\">a</a>",
+          "holds": false
+        },
+        {
+          "says": "A link that opens a file of the reader's machine, inside the words.",
+          "html": "<a href=\"tisty://open?path=x\">a</a>",
           "holds": false
         },
         {
@@ -2047,8 +2052,8 @@
               "lang": "language"
             }
           },
-          "open_in_tisty": {
-            "says": "Hands the document over to a Tisty."
+          "edit_in_tisty": {
+            "says": "Hands the document over to a Tisty to edit, with the edit address of the link contract."
           },
           "copy_link": {
             "gives": "text"
@@ -2918,11 +2923,12 @@
         "writer",
         "reader"
       ],
-      "says": "How a shared document is reached. A browser opens the web link, and only reads. The link for Tisty hands the document over to a Tisty, and editing happens only there.",
+      "says": "How a document is reached. A browser opens the web link, and only reads. Tisty answers to two addresses: open shows a file of this machine, read only, and edit hands it a shared document to edit. With edit, Tisty asks for the document itself, checks its signature and takes in its body, the Tisty language, never its HTML.",
       "values": {
         "private": "https://tisty.cl/{id}#{link_key}",
         "public": "https://folio.tisty.app/{id}",
-        "in_tisty": "tisty://folio?link={the web link, percent-encoded}",
+        "open": "tisty://open?path={a file of this machine, percent-encoded}",
+        "edit": "tisty://edit?link={the web link, percent-encoded}",
         "editing": "Never on the web. Who may edit from Tisty, and how editors and versions grow, is not defined yet."
       }
     },
