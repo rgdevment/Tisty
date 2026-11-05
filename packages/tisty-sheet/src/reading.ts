@@ -2,9 +2,9 @@ import { type Cards, carded } from "./cards";
 import { celled, today } from "./cells";
 import { colored } from "./coloring";
 import { diagrams } from "./diagrams";
+import { HUES } from "./hues";
 import { iconed } from "./icons";
 import { type PartCarded, partCarded } from "./parts";
-import { HUES, saidKinds } from "./shell";
 import { sideways } from "./sideways";
 import { staged } from "./stages";
 import { type Glimpses, webCarded } from "./webCards";
@@ -26,6 +26,11 @@ export type Reading = {
 };
 
 export type Read = { readonly kept: (() => void)[]; readonly drawn: Promise<void> };
+
+export const saidKinds = (page: Document | HTMLElement, said: (kind: string) => string) => {
+  for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))
+    one.dataset.said = said(one.dataset.callout ?? "note");
+};
 
 // A step's words are read before anything is added to it, so a stage named by its number says only them.
 export const readAs = (page: Document, reading: Reading): Read => {
