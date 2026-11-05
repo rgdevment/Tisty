@@ -133,6 +133,7 @@ const whole = {
   },
   styles: contracts.flatMap(styleRules),
   html_rules: htmlRules,
+  plays: names.get("attachment").values.plays,
 };
 
 const pascal = (name) => name.replace(/(^|_)([a-z])/g, (_, __, letter) => letter.toUpperCase());
@@ -185,6 +186,8 @@ const typescriptTypes = () => {
     "export declare function checkHtml(html: string): string[];",
     "export declare function referencesIn(html: string): { kind: string; at: number }[];",
     "export declare function picturesIn(html: string): { at: number; width?: string; height?: string }[];",
+    "/** What a file's first bytes say it is, if a reader may play it. Its name and its kind have no say. */",
+    'export declare function playableAs(bytes: Uint8Array): { format: string; player: "audio" | "video"; type: string } | null;',
     "",
   );
   return out.join("\n");
@@ -214,7 +217,7 @@ const typescriptCheck = () => {
 };
 
 const typescriptCheckTypes = () =>
-  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, check, checkHtml, referencesIn, picturesIn } from "./index.js";\n';
+  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, check, checkHtml, referencesIn, picturesIn, playableAs } from "./index.js";\n';
 
 const typescriptCases = () => `import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -236,6 +239,7 @@ test("the check entry says the same as the full one", () => {
   const html = '<a href="tisty:page/1">a</a><img src="tisty:picture/0" alt="a" width="1" height="1">';
   assert.deepEqual(entry.referencesIn(html), referencesIn(html));
   assert.deepEqual(entry.picturesIn(html), picturesIn(html));
+  assert.deepEqual(entry.playableAs(new TextEncoder().encode("fLaC")), { format: "flac", player: "audio", type: "audio/flac" });
 });
 
 test("the edit address hands over its link whole, key and all", () => {

@@ -647,3 +647,92 @@ pub fn check_html(html: &str) -> Vec<String> {
     out.retain(|one| seen.insert(one.clone()));
     out
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Playable {
+    pub format: String,
+    pub player: String,
+    pub media_type: String,
+}
+
+fn says(bytes: &[u8], at: usize, said: &[u8]) -> bool {
+    bytes.get(at..at + said.len()) == Some(said)
+}
+
+const OGG_SOUNDS: [&[u8]; 3] = [b"OpusHead", b"\x01vorbis", b"\x7fFLAC"];
+const EBML_HEADER: usize = 64;
+
+fn is_ogg_sound(bytes: &[u8]) -> bool {
+    let packet = 27 + bytes.get(26).copied().map_or(0, usize::from);
+    OGG_SOUNDS.iter().any(|said| says(bytes, packet, said))
+}
+
+fn is_webm(bytes: &[u8]) -> bool {
+    (4..bytes.len().min(EBML_HEADER)).any(|at| says(bytes, at, b"\x42\x82\x84webm"))
+}
+
+fn branded_format(bytes: &[u8]) -> Option<String> {
+    let size = u32::from_be_bytes(bytes.get(..4)?.try_into().ok()?);
+    if size < 16 {
+        return None;
+    }
+    let brand = bytes.get(8..12)?;
+    whole()["plays"].as_object()?.iter().find_map(|(format, said)| {
+        let branded = said["brands"]
+            .as_array()?
+            .iter()
+            .any(|one| one.as_str().map(str::as_bytes) == Some(brand));
+        branded.then(|| format.clone())
+    })
+}
+
+// Two bytes of sync say little on their own, so the values no frame can hold rule it out.
+fn frame_format(bytes: &[u8]) -> Option<&'static str> {
+    let [first, second, third, _, ..] = *bytes else {
+        return None;
+    };
+    if first != 0xff || second & 0xe0 != 0xe0 {
+        return None;
+    }
+    let layer = second & 0x06;
+    if layer == 0 {
+        return (second & 0xf0 == 0xf0 && (third >> 2) & 0x0f <= 12).then_some("aac");
+    }
+    let fair = layer == 0x02 && (second >> 3) & 0x03 != 1 && third >> 4 != 0x0f && (third >> 2) & 0x03 != 3;
+    fair.then_some("mp3")
+}
+
+fn format_of(bytes: &[u8]) -> Option<String> {
+    if says(bytes, 0, b"RIFF") && says(bytes, 8, b"WAVE") {
+        return Some("wav".to_string());
+    }
+    if says(bytes, 0, b"fLaC") {
+        return Some("flac".to_string());
+    }
+    if says(bytes, 0, b"OggS") {
+        return is_ogg_sound(bytes).then(|| "ogg".to_string());
+    }
+    if says(bytes, 0, b"\x1a\x45\xdf\xa3") {
+        return is_webm(bytes).then(|| "webm".to_string());
+    }
+    if says(bytes, 4, b"ftyp") {
+        return branded_format(bytes);
+    }
+    let tagged = says(bytes, 0, b"ID3")
+        && bytes.get(3).is_some_and(|one| *one < 0xff)
+        && bytes.get(4).is_some_and(|one| *one < 0xff);
+    if tagged {
+        return Some("mp3".to_string());
+    }
+    frame_format(bytes).map(str::to_string)
+}
+
+pub fn playable_as(bytes: &[u8]) -> Option<Playable> {
+    let format = format_of(bytes)?;
+    let said = &whole()["plays"][&format];
+    Some(Playable {
+        player: said["player"].as_str()?.to_string(),
+        media_type: said["type"].as_str()?.to_string(),
+        format,
+    })
+}

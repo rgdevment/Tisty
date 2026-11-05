@@ -12,7 +12,7 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Page break | Salto de página | A line of three dashes, an `hr` among the blocks of the HTML. Despite its name, it cuts a sheet, not a page. |
 | Element | Elemento | What the words of a document or a page contain: text, table, code, diagram, formula, attachment, picture or widget. An icon is a mark inside the text. |
 | Diagram | Diagrama | A drawing inside a document. It is no document, and it travels drawn, as SVG. |
-| Attachment | Adjunto | A file a document names. A picture travels with the words and is drawn; any other file travels apart and is a card. |
+| Attachment | Adjunto | A file a document names. A picture travels with the words and is drawn; any other file travels apart and is a card, and a sound or a video can then play. |
 | Widget | Widget | A small isolated view inside a document, which can run its own script. Only Tisty runs it. |
 | Properties | Propiedades | The block between two lines of three dashes at the start of a document. |
 | Tag | Etiqueta | A word a document or a task is kept under, in the one form Tisty keeps it. |
