@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
@@ -42,10 +42,6 @@ const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const { SAY } = await vite.ssrLoadModule("/src/ui/saying.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
-// The packages beside the app are found by the app's own aliases, which a build with no config file would not have.
-const packages = vite.config.resolve.alias.filter(
-  ({ find }) => typeof find === "string" && existsSync(join(root, "packages", find)),
-);
 
 const drawn = (texts) =>
   JSON.parse(
@@ -276,7 +272,6 @@ const drawDiagrams = async (pages, files, style) => {
     root: app,
     configFile: false,
     logLevel: "error",
-    resolve: { alias: packages },
     build: {
       outDir: join(files, DRAWER),
       emptyOutDir: true,
@@ -314,7 +309,7 @@ const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 rmSync(out, { recursive: true, force: true });
 const printOf = (bytes) => createHash("sha256").update(bytes).digest("hex").slice(0, 10);
 const faces = ["inter", "space-grotesk", "jetbrains-mono"].flatMap((name) => {
-  const from = join(app, "node_modules", "@fontsource-variable", name);
+  const from = join(root, "node_modules", "@fontsource-variable", name);
   const sheet = readFileSync(join(from, "wght.css"), "utf8");
   return [...sheet.matchAll(/\/\* [\w-]+-latin(?:-ext)?-wght-normal \*\/\s*(@font-face\s*\{[^}]*\})/g)].map(([, face]) => {
     const file = /url\(\.\/files\/([^)]+)\)/.exec(face)[1];

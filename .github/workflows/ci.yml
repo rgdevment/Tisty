@@ -177,8 +177,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
+        working-directory: .
       - run: npm run lint
       - run: npm run build
 
@@ -197,9 +198,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
-        working-directory: app
       # guide.yml runs only on a tag, so a window change that breaks the script would otherwise wait for the release.
       # Mermaid lays out only in a browser, so only one can say that what travels speaks the contract.
       - run: node app/scripts/finished.mjs
@@ -226,7 +226,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
-      - run: npm ci
+      - run: npm ci --no-workspaces
       - run: npm run lint:md
 
   audit:
@@ -261,7 +261,7 @@ jobs:
       # A warning, never a red check: an advisory published today would otherwise fail every pull request at once.
       - name: Advisories at moderate or above, in the window and in the repository tooling
         run: |
-          for dir in app .; do
+          for dir in .; do
             npm audit --prefix "$dir" --package-lock-only --json > "$RUNNER_TEMP/audit.json" || true
             if ! jq -e '.vulnerabilities' "$RUNNER_TEMP/audit.json" > /dev/null; then
               echo "::warning::npm audit gave no report for $dir/package-lock.json"
@@ -324,13 +324,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: The window
-        working-directory: app
         run: |
           npm ci
-          npm run test:coverage
+          npm run test:coverage --workspace app
 
       - name: Every path is relative to the repository, which is what Sonar reads
         run: |

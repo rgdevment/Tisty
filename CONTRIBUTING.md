@@ -79,8 +79,8 @@ cargo deny check
 and, for the window and the documents:
 
 ```sh
-cd app && npm ci && npm run lint && npm run build && npm test
 npm ci && npm run lint:md
+cd app && npm run lint && npm run build && npm test && cd ..
 npm run notices   # must leave THIRD-PARTY-*.md unchanged
 ```
 
@@ -193,7 +193,7 @@ test that spawns the binary without pinning its language, and the English and
 Spanish README and guide drifting apart in shape. `scripts/commits.sh` holds
 the shape and the length of a subject, and that nothing sits under it. Run
 either whenever you like. They also run for you: `npm install` or `npm ci`, at
-the root or in `app/`, points git at the hooks unless git already has a hooks
+the root, points git at the hooks unless git already has a hooks
 path of yours, and `--ignore-scripts` skips it.
 Without npm it is one line:
 

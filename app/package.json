@@ -4,8 +4,6 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "postinstall": "node ../scripts/packages-link.mjs",
-    "prepare": "git config --get core.hooksPath || git config core.hooksPath hooks || echo the hooks are not set: this is not a git clone",
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "vitest run",
@@ -29,6 +27,7 @@
     "@tauri-apps/plugin-clipboard-manager": "^2.4.0",
     "@tauri-apps/plugin-dialog": "^2.8.0",
     "@tauri-apps/plugin-opener": "^2.6.0",
+    "@tisty/contracts": "*",
     "@xyflow/react": "^12.12.0",
     "@xyflow/system": "^0.0.83",
     "dompurify": "^3.4.17",
@@ -36,7 +35,9 @@
     "lowlight": "^3.3.0",
     "mermaid": "^12.1.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tisty-diagrams": "*",
+    "tisty-editor": "*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",
@@ -59,15 +60,6 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
-  },
-  "overrides": {
-    "typed-rest-client": {
-      "qs": "^6.15.2"
-    },
-    "@stryker-mutator/core": {
-      "minimatch": "^11.0.1"
-    },
-    "katex": "$katex"
   },
   "description": "Notes, documents and tasks, all local. No subscription, no telemetry",
   "license": "AGPL-3.0-only"

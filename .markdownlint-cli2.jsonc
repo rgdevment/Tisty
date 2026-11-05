@@ -3,7 +3,6 @@
     "**/*.md",
     "!node_modules",
     "!target",
-    "!app/node_modules",
     "!packages/*/node_modules",
     "!app/.stryker-tmp",
     "!app/reports",

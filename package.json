@@ -3,6 +3,11 @@
   "private": true,
   "homepage": "https://www.tisty.app/",
   "repository": "github:rgdevment/Tisty",
+  "workspaces": [
+    "app",
+    "packages/*",
+    "contracts/dist/typescript"
+  ],
   "devDependencies": {
     "js-yaml": "^5.5.0",
     "markdownlint-cli2": "^0.24.0"
@@ -17,9 +22,15 @@
     "format:md": "markdownlint-cli2 --fix"
   },
   "overrides": {
-    "katex": "^0.18.9",
+    "@stryker-mutator/core": {
+      "minimatch": "^11.0.1"
+    },
+    "katex": "^0.19.1",
     "markdown-it": "^15.0.3",
     "re2js": "^2.8.7",
-    "smol-toml": "^1.9.0"
+    "smol-toml": "^1.9.0",
+    "typed-rest-client": {
+      "qs": "^6.15.2"
+    }
   }
 }
