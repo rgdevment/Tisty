@@ -1,5 +1,6 @@
 import type { Shape } from "./flowshapes";
 import type { Size } from "./framing";
+import { linesSaid } from "./picture";
 
 /** A shape drawn in its own box from (0, 0): a body to fill and outline, and lines over it. */
 export interface Outline {
@@ -292,8 +293,7 @@ const WRAP = 24;
 /** The height each further line of words adds. */
 export const LINE = 17;
 
-/** A shape's words split into lines of at most `WRAP` characters, at spaces when it can. */
-export const linesOf = (text: string): string[] => {
+const wrapped = (text: string): string[] => {
   const lines: string[] = [];
   let line = "";
   for (const word of text.split(/\s+/).filter(Boolean)) {
@@ -314,6 +314,9 @@ export const linesOf = (text: string): string[] => {
   }
   return line || !lines.length ? [...lines, line] : lines;
 };
+
+/** A shape's words split where they say a line ends, then into lines of at most `WRAP` characters, at spaces when it can. */
+export const linesOf = (text: string): string[] => linesSaid(text).flatMap(wrapped);
 
 /** The size a shape takes for its words, the same in the window and in the picture. */
 export const sizeOf = (text: string, shape: Shape): Size => {
