@@ -1,5 +1,6 @@
 import { CONTRACTS } from "@tisty/contracts";
 import { describe, expect, it } from "vitest";
+import { fields } from "../src/front";
 import { source } from "./source";
 
 type Blocks = Record<string, Record<string, string | number>>;
@@ -33,8 +34,17 @@ type Sheet = {
   };
 };
 
+type FrontMatter = {
+  values: {
+    block_bytes_at_most: number;
+    properties_at_most: number;
+    value_characters_at_most: number;
+  };
+};
+
 const style = (CONTRACTS.style as Style).values;
 const sheet = (CONTRACTS.sheet as Sheet).values;
+const frontMatter = (CONTRACTS.front_matter as FrontMatter).values;
 const page = source("page.css");
 const tables = source("tables.css");
 const tokens = source("tokens.css");
@@ -198,5 +208,33 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     );
     expect(page).toContain(`--wide, ${sheet.long_page_width_pixels}px`);
     expect(style.sheet.width).toBe(`${sheet.long_page_width_pixels}px`);
+  });
+});
+
+describe("the window reads a document's properties as far as the contract says", () => {
+  it("up to its bytes", () => {
+    const frame = "---\ntitle: a\n#\n---\n".length;
+    const sized = (bytes: number) => `---\ntitle: a\n#${"x".repeat(bytes - frame)}\n---\n`;
+    const atMost = frontMatter.block_bytes_at_most;
+    expect(sized(atMost)).toHaveLength(atMost);
+    expect(fields(sized(atMost))).toHaveLength(1);
+    expect(fields(sized(atMost + 1))).toEqual([]);
+  });
+
+  it("up to its properties", () => {
+    const keyed = (keys: number) => {
+      const others = Array.from({ length: keys - 1 }, (_, at) => `k${at}: v\n`).join("");
+      return `---\ntitle: a\n${others}---\n`;
+    };
+    const atMost = frontMatter.properties_at_most;
+    expect(fields(keyed(atMost))).toHaveLength(atMost);
+    expect(fields(keyed(atMost + 1))).toEqual([]);
+  });
+
+  it("up to the characters of a value", () => {
+    const said = (characters: number) => `---\ntitle: ${"é".repeat(characters)}\n---\n`;
+    const atMost = frontMatter.value_characters_at_most;
+    expect(fields(said(atMost))).toHaveLength(1);
+    expect(fields(said(atMost + 1))).toEqual([]);
   });
 });
