@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { dressed, escaped, PAGE_CSS, saidKinds, shell, TITLED, TOKENS } from "../src/shell";
+import { saidKinds } from "../src/reading";
+import { dressed, escaped, PAGE_CSS, shell, TITLED, TOKENS } from "../src/shell";
 import { source } from "./source";
 
 const page = (html: string): Document =>

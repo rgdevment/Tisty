@@ -1,16 +1,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-// Stryker runs the tests from a copy of the app, so the reader's tokens are looked for up the folders.
+// Stryker runs the tests from a copy of the app, so the sheet's tokens are looked for up the folders.
 const tokensAt = (from: string): string => {
-  const here = join(from, "packages", "tisty-editor", "src", "tokens.css");
+  const here = join(from, "packages", "tisty-sheet", "src", "tokens.css");
   if (existsSync(here)) return here;
   const up = dirname(from);
-  if (up === from) throw new Error("packages/tisty-editor is not above the app");
+  if (up === from) throw new Error("packages/tisty-sheet is not above the app");
   return tokensAt(up);
 };
 
-// The window's colours live in two files: a drawn page's in the reader, which the web page shares, the rest here.
+// The window's colours live in two files: a drawn page's in tisty-sheet, the rest here.
 export const themeCss = (): string =>
   [tokensAt(process.cwd()), resolve(process.cwd(), "src/index.css")]
     .map((file) => readFileSync(file, "utf8"))

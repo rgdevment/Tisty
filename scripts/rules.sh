@@ -273,7 +273,8 @@ named_modules() {
 
 # A package is meant for other apps too, so it reaches nothing of Tisty's and is entered only by its doors.
 keeps_to_itself() {
-  local name=$1 said=$2 doors=$3 root=packages/$1/src named out
+  local name=$1 said=$2 doors=$3 root=packages/$1/src named out declared one
+  declared=$(grep -oE '"tisty-[a-z-]+"' "packages/$name/package.json" | tr -d '"' | grep -vx "$name" | tr '\n' ' ')
   named=$(named_modules "$root")
   [ $? -lt 2 ] && [ -n "$named" ] \
     || { amiss "$said could not be looked through for what it reaches"; return; }
@@ -293,6 +294,20 @@ keeps_to_itself() {
     amiss "$said reaches into the app; it takes what it needs from whoever holds it"
     return
   fi
+  # What a package does not declare may be what is built on it, and a viewer would end up installing the editor.
+  out=$(printf '%s\n' "$named" | awk -v mine=" $name $declared" '
+    $3 ~ /^tisty-/ { split($3, at, "/"); if (index(mine, " " at[1] " ") == 0) print }')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "$said takes a package it does not declare"
+    return
+  fi
+  for one in $declared; do
+    if grep -q "\"$name\"" "packages/$one/package.json"; then
+      amiss "$said and $one take each other"
+      return
+    fi
+  done
   named=$(named_modules app/src packages/*/src)
   [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters $said"; return; }
   out=$(printf '%s\n' "$named" | awk -v name="$name" -v doors=" $doors " -v root="$root/" '
@@ -308,6 +323,33 @@ keeps_to_itself() {
 the_packages_keep_to_themselves() {
   keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
+  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css"
+}
+
+# Each of these lists passes over a package it does not name, with nothing to say so.
+every_package_is_looked_at() {
+  local at name file wanted out=""
+  for at in packages/*/package.json; do
+    name=$(basename "${at%/package.json}")
+    while IFS='|' read -r file wanted; do
+      grep -qE "$wanted" "$file" || out+="$file does not name $name"$'\n'
+    done <<LISTS
+app/package.json|"lint":.*\.\./(packages/)?$name
+app/package.json|"format":.*\.\./(packages/)?$name
+app/tsconfig.json|\.\./packages/$name/src
+app/tsconfig.json|\.\./packages/$name/tests
+.github/workflows/ci.yml|sonar\.sources=.*packages/$name/src
+.github/workflows/ci.yml|sonar\.tests=.*packages/$name/tests
+.github/workflows/mutants-sweep.yml|package: \[.*$name
+scripts/rules.sh|^  keeps_to_itself $name
+LISTS
+  done
+  if [ -n "$out" ]; then
+    printf '%s' "$out"
+    amiss "a package is missing from a list that would pass over it"
+  else
+    went_well "every package is linted, typed, measured and kept to itself"
+  fi
 }
 
 the_app_holds_the_versions() {
@@ -348,6 +390,7 @@ no_token_kept_in_the_tree() {
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 the_packages_keep_to_themselves
+every_package_is_looked_at
 the_app_holds_the_versions
 nothing_past_what_a_person_holds
 written_in_english

@@ -1,7 +1,7 @@
+import type { Say } from "tisty-sheet";
 import type { Act, Facts, More } from "./side";
 import { wordsIn } from "./side";
 import { listed, made, pressed, rowed } from "./sideParts";
-import type { Say } from "./words";
 
 type Of<K extends More["kind"]> = Extract<More, { kind: K }>;
 

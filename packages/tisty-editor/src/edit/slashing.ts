@@ -8,8 +8,8 @@ import {
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
+import { markup } from "tisty-sheet/glyphs";
 import { matched } from "../finding";
-import { markup } from "../glyphs";
 import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
 import { type EditWord, type Hosted, hosted } from "./hosted";
 

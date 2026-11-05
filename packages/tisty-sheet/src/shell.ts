@@ -1,23 +1,6 @@
+import { HUES } from "./hues";
 import sheet from "./page.css?raw";
 import tables from "./tables.css?raw";
-
-export const HUES = [
-  "red",
-  "orange",
-  "amber",
-  "green",
-  "teal",
-  "blue",
-  "indigo",
-  "purple",
-  "pink",
-  "brown",
-  "gray",
-] as const;
-
-export type Hue = (typeof HUES)[number];
-
-export const isHue = (one: string): one is Hue => (HUES as readonly string[]).includes(one);
 
 const PENS = ["yellow", "green", "blue", "pink"];
 
@@ -68,9 +51,4 @@ export const dressed = (page: Document, dark: boolean) => {
   const root = page.documentElement;
   for (const token of TOKENS) root.style.setProperty(token, theirs.getPropertyValue(token));
   root.classList.toggle("dark", dark);
-};
-
-export const saidKinds = (page: Document | HTMLElement, said: (kind: string) => string) => {
-  for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))
-    one.dataset.said = said(one.dataset.callout ?? "note");
 };

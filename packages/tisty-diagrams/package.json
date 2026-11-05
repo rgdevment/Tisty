@@ -13,8 +13,20 @@
     "@xyflow/system": "*",
     "react": "*"
   },
+  "peerDependenciesMeta": {
+    "@xyflow/react": {
+      "optional": true
+    },
+    "@xyflow/system": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@testing-library/react": "*",
+    "jsdom": "*",
     "mermaid": "*",
     "vitest": "*"
   }

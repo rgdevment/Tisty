@@ -1,5 +1,4 @@
-import { coloredAll } from "./coloring";
-import { drawing } from "./diagrams";
+import { coloredAll, drawing } from "tisty-sheet";
 import { flattened } from "./flattening";
 
 /** A document's HTML as it travels, and how many of its diagrams could not be drawn, which the person is told. */
@@ -11,7 +10,7 @@ type Draw = (source: string, dark: boolean) => Promise<string | null>;
 const iconsIn = async (page: Document) => {
   const named = [...page.querySelectorAll<HTMLElement>("span.ico[data-ico]")];
   if (!named.length) return;
-  const { markup } = await import("./glyphs");
+  const { markup } = await import("tisty-sheet/glyphs");
   for (const one of named) {
     const drawn = markup(one.dataset.ico ?? "");
     if (drawn === null) continue;

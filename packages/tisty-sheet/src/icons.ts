@@ -1,4 +1,4 @@
-import { isHue } from "./shell";
+import { isHue } from "./hues";
 
 // The whole set outweighs the rest of the sheet, so it comes only for a page that names an icon.
 export const iconed = async (page: Document | HTMLElement): Promise<void> => {

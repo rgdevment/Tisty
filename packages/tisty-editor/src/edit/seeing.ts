@@ -9,9 +9,9 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
+import { isHue } from "tisty-sheet";
+import { known, markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
-import { known, markup } from "../glyphs";
-import { isHue } from "../shell";
 import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
 import { hosted } from "./hosted";
 import { waiting } from "./pending";
