@@ -295,10 +295,12 @@ fn the_manifest_says_nothing_to_a_copy_the_store_keeps() {
 
 #[test]
 fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
-    let offer = from_the_shop("0.3.0", "0.2.0").expect("0.3.0 is newer");
+    let offer = from_the_shop(Some("0.3.0"));
 
+    assert_eq!(offer.version, "0.3.0");
     assert_eq!(offer.route, Route::Store);
     assert!(offer.installs);
+    assert_eq!(offer.coming, None);
     assert!(
         !self_installs(Route::Store),
         "and the manifest still cannot offer one on the store's behalf"
@@ -306,17 +308,131 @@ fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
 }
 
 #[test]
-fn the_store_is_held_to_the_same_rule_as_the_manifest() {
+fn an_offer_with_no_number_can_still_be_taken() {
+    let offer = from_the_shop(None);
+
+    assert_eq!(offer.version, "");
     assert!(
-        from_the_shop("0.3.0", "0.3.0").is_none(),
-        "the version already running is not an update"
+        offer.installs,
+        "the Store said it has one, and that is enough"
     );
-    assert!(
-        from_the_shop("0.2.0", "0.3.0").is_none(),
-        "nor is one behind it"
+    assert_eq!(offer.coming, None);
+}
+
+fn catalog_naming(packages: &[&str]) -> String {
+    let named: Vec<_> = packages
+        .iter()
+        .map(|full| serde_json::json!({"PackageFullName": full, "PackageFormat": "Msix"}))
+        .collect();
+    serde_json::json!({"Product": {"DisplaySkuAvailabilities": [
+        {"Sku": {"SkuId": "0010", "Properties": {"Packages": named}}},
+        {"Sku": {"SkuId": "0011", "Properties": {"Packages": null}}},
+    ]}})
+    .to_string()
+}
+
+#[test]
+fn the_catalog_names_the_newest_of_ours_it_lists() {
+    let said = catalog_naming(&[
+        "rgdevment.Tisty_1.40.1.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
+    ]);
+
+    assert_eq!(listed("1.40.1", "x64", &said), Ahead::Is("1.41.1".into()));
+    assert_eq!(listed("1.41.1", "x64", &said), Ahead::Nothing);
+    assert_eq!(listed("1.42.0", "x64", &said), Ahead::Nothing);
+}
+
+#[test]
+fn a_package_that_is_not_ours_is_not_counted_as_the_catalog_answering() {
+    for full in [
+        "Another.App_9.0.0.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_9.0.0.0_x64__someoneelse",
+        "rgdevment.Tisty_9.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty",
+    ] {
+        assert_eq!(
+            listed("1.40.1", "x64", &catalog_naming(&[full])),
+            Ahead::Unheard,
+            "{full}"
+        );
+    }
+}
+
+#[test]
+fn a_package_built_for_another_machine_is_not_one_this_copy_can_be_given() {
+    let said = catalog_naming(&[
+        "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_9.0.0.0_arm64__kdjgfdc2rb3gc",
+    ]);
+    assert_eq!(listed("1.40.1", "x64", &said), Ahead::Is("1.41.1".into()));
+    assert_eq!(listed("1.40.1", "arm64", &said), Ahead::Is("9.0.0".into()));
+
+    let bundled = catalog_naming(&["rgdevment.Tisty_1.41.1.0_neutral_~_kdjgfdc2rb3gc"]);
+    assert_eq!(
+        listed("1.40.1", "x64", &bundled),
+        Ahead::Is("1.41.1".into())
     );
-    assert!(from_the_shop("tomorrow", "0.3.0").is_none());
-    assert!(from_the_shop("0.3.0", "tomorrow").is_none());
+
+    let elsewhere = catalog_naming(&["rgdevment.Tisty_9.0.0.0_arm64__kdjgfdc2rb3gc"]);
+    assert_eq!(listed("1.40.1", "x64", &elsewhere), Ahead::Unheard);
+}
+
+#[test]
+fn a_catalog_that_stopped_reading_as_it_did_says_nothing_rather_than_nothing_newer() {
+    for said in [
+        "",
+        "not json",
+        "{}",
+        r#"{"Product":null}"#,
+        r#"{"Product":{"DisplaySkuAvailabilities":[]}}"#,
+    ] {
+        assert_eq!(listed("1.40.1", "x64", said), Ahead::Unheard, "{said}");
+    }
+    assert_eq!(
+        listed(
+            "tomorrow",
+            "x64",
+            &catalog_naming(&["rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc"])
+        ),
+        Ahead::Unheard
+    );
+}
+
+#[test]
+fn a_catalog_that_answered_is_not_second_guessed_by_the_feed() {
+    let no_feed = || panic!("the catalog answered, so nothing should go to GitHub");
+
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Is("1.41.1".into()), no_feed),
+        Ahead::Is("1.41.1".into())
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Nothing, no_feed),
+        Ahead::Nothing
+    );
+}
+
+#[test]
+fn the_feed_stands_in_for_a_catalog_nobody_could_read() {
+    let feed = |said: &str| Heard::Said(format!(r#"{{"schema":1,"latest":"{said}"}}"#));
+
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || feed("1.41.1")),
+        Ahead::Is("1.41.1".into())
+    );
+    assert_eq!(
+        ahead("1.41.1", None, Ahead::Unheard, || feed("1.41.1")),
+        Ahead::Nothing
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || Heard::Unsigned),
+        Ahead::Unheard
+    );
+    assert_eq!(
+        ahead("1.40.1", None, Ahead::Unheard, || Heard::Nothing),
+        Ahead::Unheard
+    );
 }
 
 /// The offer and the refusal read the same thing, or the button is shown to somebody it will
