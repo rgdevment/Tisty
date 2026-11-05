@@ -14,8 +14,9 @@ that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, and one per picture if you press **Download** above the
 help. Never otherwise. A copy installed from the Microsoft Store asks Windows
-what the Store has and leaves the rest to the Store, and reads that same small
-file to put a number on what is coming. All of them are described in full below.
+what the Store has and leaves the rest to the Store, and reads the Store's public
+catalog to see which version that is; it reads that same small file only if the
+catalog does not answer. All of them are described in full below.
 
 Since version 1.30, Tisty can also sync through your own Google Drive, since
 1.31 through your own OneDrive, and since 1.32 through a WebDAV server of your
@@ -233,17 +234,18 @@ machine already uses for every other app it installed from there. Tisty adds
 nothing of its own: no identifier, no store, no task, no name. It is the question
 Windows asks on its own schedule anyway; the button only asks it now.
 
-Each time it asks, it also reads the file described above, to put a number on what
-the Store has and to know of a version the Store has not brought yet. It is the
-same request, with the same headers, and it sends nothing more.
+Each time it asks, it also reads Tisty's page in the Store's public catalog, to
+see which version the Store really has. That request goes from Tisty straight to
+Microsoft, and is the same for everyone who makes it. Only if it does not answer
+does Tisty read the file described above instead, with the same headers.
 
 | | |
 | :--- | :--- |
 | **Why** | To tell you a newer Tisty exists, and to install it if you say so |
-| **What it asks** | Windows, through `StoreContext`, and GitHub for the file above. No server of ours is involved |
-| **What it sends** | Nothing of Tisty's. What travels is what the Store already sends for any app installed from it, and the headers of the request above |
+| **What it asks** | Windows, through `StoreContext`, and `https://displaycatalog.mp.microsoft.com/v7.0/products/9PGVWXD8X93N?market=US&languages=en-US`. If that does not answer, GitHub for the file above. No server of ours is involved |
+| **What it sends** | To Windows, nothing of Tisty's: what travels is what the Store already sends for any app installed from it. To the catalog, the headers a request cannot avoid, and a user agent that says `tisty/<version>`. The market and language in the address are fixed, not yours |
 | **How often** | When Tisty opens, every six hours for as long as it keeps running, and whenever you ask *About* to look |
-| **Timeout** | 10 seconds to ask |
+| **Timeout** | 10 seconds to ask Windows, 5 seconds for the catalog |
 | **If it fails** | Nothing is said, and *About* falls back to sending you to the Store yourself |
 
 Pressing **Update** there downloads nothing through Tisty: the Store fetches and

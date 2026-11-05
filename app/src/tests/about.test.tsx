@@ -271,7 +271,7 @@ describe("a newer version the Store itself offers", () => {
     );
 
     expect(await screen.findByText("The Store is bringing a new version")).toBeTruthy();
-    expect(screen.getByText(/in the Store.s own queue/i)).toBeTruthy();
+    expect(screen.getByText(/The Store brings it on its own/)).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: /^update it$/i }),
       "there is nothing to press for: the Store is already on it",

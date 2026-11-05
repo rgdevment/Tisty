@@ -13,6 +13,11 @@ const MANIFEST: &str =
 pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
 pub const CANDIDATE: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
+/// Market and language are fixed, so the request says nothing of the person making it.
+const CATALOG: &str =
+    "https://displaycatalog.mp.microsoft.com/v7.0/products/9PGVWXD8X93N?market=US&languages=en-US";
+/// Its answer carries the whole listing, about 42 KB today, far past what a feed file may weigh.
+const CATALOG_AT_MOST: usize = 256 * 1024;
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 /// Short of the window's six-hour timer, so that a tick always finds the look due.
@@ -263,7 +268,7 @@ pub enum Heard {
     Said(String),
 }
 
-fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
+fn asked(client: &reqwest::blocking::Client, url: &str, at_most: usize) -> Option<Vec<u8>> {
     let answer = match client.get(url).send() {
         Ok(answer) => answer,
         Err(e) => {
@@ -294,7 +299,7 @@ fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
     }
     let mut held = Vec::new();
     answer
-        .take(tisty_carrier::policy::READ_AT_MOST as u64 + 1)
+        .take(at_most as u64 + 1)
         .read_to_end(&mut held)
         .ok()?;
     Some(held)
@@ -315,8 +320,9 @@ enum Signed {
 }
 
 fn pair(client: &reqwest::blocking::Client, url: &str, past: &str) -> Option<(Vec<u8>, Vec<u8>)> {
-    let said = asked(client, &format!("{url}{past}"))?;
-    let signature = asked(client, &format!("{url}.sig{past}"))?;
+    let at_most = tisty_carrier::policy::READ_AT_MOST;
+    let said = asked(client, &format!("{url}{past}"), at_most)?;
+    let signature = asked(client, &format!("{url}.sig{past}"), at_most)?;
     Some((said, signature))
 }
 
@@ -360,7 +366,8 @@ pub fn fetch() -> Heard {
                 &[],
             );
         });
-        return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
+        return asked(&client, MANIFEST, tisty_carrier::policy::READ_AT_MOST)
+            .map_or(Heard::Nothing, text);
     };
     match read_signed(&client, MANIFEST, key, |_| true) {
         Signed::Said(said) => text(said),
@@ -370,6 +377,79 @@ pub fn fetch() -> Heard {
             Heard::Unsigned
         }
     }
+}
+
+/// What the Store has published, which a Store copy may still not have been handed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Catalog {
+    Unheard,
+    NothingNewer,
+    Lists(String),
+}
+
+/// A full name reads `name_version_arch_resource_publisher`, and the family is its two ends.
+fn ours_in_the_catalog(full: &str) -> Option<semver::Version> {
+    let mut parts = full.split('_');
+    let (name, version, publisher) = (parts.next()?, parts.next()?, parts.next_back()?);
+    if format!("{name}_{publisher}") != tisty_core::paths::STORE_PACKAGE {
+        return None;
+    }
+    let mut numbers = version.split('.');
+    format!(
+        "{}.{}.{}",
+        numbers.next()?,
+        numbers.next()?,
+        numbers.next()?
+    )
+    .parse()
+    .ok()
+}
+
+/// Microsoft does not document this answer, so one with no package of ours in it says nothing.
+pub fn listed(now: &str, said: &str) -> Catalog {
+    let Ok(here) = now.parse::<semver::Version>() else {
+        return Catalog::Unheard;
+    };
+    let Ok(read) = serde_json::from_str::<serde_json::Value>(said) else {
+        return Catalog::Unheard;
+    };
+    // It can name older packages beside the newest.
+    let best = read
+        .pointer("/Product/DisplaySkuAvailabilities")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|one| one.pointer("/Sku/Properties/Packages")?.as_array())
+        .flatten()
+        .filter_map(|package| package.get("PackageFullName")?.as_str())
+        .filter_map(ours_in_the_catalog)
+        .max();
+    match best {
+        None => Catalog::Unheard,
+        Some(best) if best > here => Catalog::Lists(best.to_string()),
+        Some(_) => Catalog::NothingNewer,
+    }
+}
+
+pub fn catalog(now: &str) -> Catalog {
+    let Some(said) = client().and_then(|client| asked(&client, CATALOG, CATALOG_AT_MOST)) else {
+        return Catalog::Unheard;
+    };
+    let answer = listed(now, &String::from_utf8_lossy(&said));
+    match &answer {
+        Catalog::Unheard => set_aside(CATALOG, "no-package-of-ours"),
+        Catalog::NothingNewer => witness::standing(
+            channel::UPDATE,
+            "the Store's catalog lists nothing newer than this copy",
+            &[],
+        ),
+        Catalog::Lists(version) => witness::standing(
+            channel::UPDATE,
+            "the Store's catalog lists a newer version",
+            &[("version", Fact::Id(version.clone()))],
+        ),
+    }
+    answer
 }
 
 fn set_aside(url: &str, why: &'static str) {

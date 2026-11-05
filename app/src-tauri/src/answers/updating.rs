@@ -41,9 +41,9 @@ pub async fn update_ready(
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
 
-    // A copy kept by the Store asks the Store and nobody else: a release the Store is still
-    // certifying is out for everyone else, and being told of one this copy cannot take is a
-    // button that does nothing. What the Store last said stands until it says otherwise.
+    // A copy kept by the Store goes by what the Store has: a release it is still certifying is
+    // out for everyone else, and being told of one this copy cannot take is a button that does
+    // nothing. What the Store last said stands until it says otherwise.
     if kept.route == update::Route::Store {
         // An offer with no number is not kept: nothing would say when it stopped being true.
         let last_said = || match (the_shop_said, found.as_deref()) {
@@ -64,19 +64,12 @@ pub async fn update_ready(
         let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
             .await
             .unwrap_or(shop::Shelf::Silent);
-        let manifest = match tauri::async_runtime::spawn_blocking(update::fetch).await {
-            Ok(update::Heard::Said(said)) => Some(said),
-            _ => None,
-        };
-        let unheard = manifest.is_none();
-        let out = manifest
-            .as_deref()
-            .and_then(|said| update::published(HERE, said, wants));
-        // A feed that could not be read says nothing of the version, so the one known stays.
-        let number = if unheard {
-            found.clone().filter(|version| update::later(HERE, version))
-        } else {
+        let (out, heard) = known_ahead(wants).await;
+        // With nobody able to say which version it is, the one known stays.
+        let number = if heard {
             out.clone()
+        } else {
+            found.clone().filter(|version| update::later(HERE, version))
         };
         let waiting_for_it =
             |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
@@ -121,7 +114,7 @@ pub async fn update_ready(
                 Ok(Some(update::on_its_way(number.as_deref())))
             }
             shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
-            shop::Shelf::Current if manifest.is_some() => {
+            shop::Shelf::Current if heard => {
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
                     c.found_version = None;
@@ -181,6 +174,19 @@ pub async fn update_ready(
         c.found_in_the_shop = None;
     })?;
     Ok(seen)
+}
+
+/// The newer version a Store copy can know of, and whether anyone could say. The feed only stands
+/// in when the catalog cannot be read, since it also names what the Store is still certifying.
+async fn known_ahead(wants: Option<bool>) -> (Option<String>, bool) {
+    match tauri::async_runtime::spawn_blocking(|| update::catalog(HERE)).await {
+        Ok(update::Catalog::Lists(version)) => (Some(version), true),
+        Ok(update::Catalog::NothingNewer) => (None, true),
+        _ => match tauri::async_runtime::spawn_blocking(update::fetch).await {
+            Ok(update::Heard::Said(said)) => (update::published(HERE, &said, wants), true),
+            _ => (None, false),
+        },
+    }
 }
 
 #[derive(Clone, serde::Serialize)]

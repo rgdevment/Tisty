@@ -334,6 +334,66 @@ fn a_copy_the_store_keeps_looks_on_every_tick_of_the_window_timer() {
     );
 }
 
+fn catalog_naming(packages: &[&str]) -> String {
+    let named: Vec<_> = packages
+        .iter()
+        .map(|full| serde_json::json!({"PackageFullName": full, "PackageFormat": "Msix"}))
+        .collect();
+    serde_json::json!({"Product": {"DisplaySkuAvailabilities": [
+        {"Sku": {"SkuId": "0010", "Properties": {"Packages": named}}},
+        {"Sku": {"SkuId": "0011", "Properties": {"Packages": null}}},
+    ]}})
+    .to_string()
+}
+
+#[test]
+fn the_catalog_names_the_newest_of_ours_it_lists() {
+    let said = catalog_naming(&[
+        "rgdevment.Tisty_1.40.1.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc",
+    ]);
+
+    assert_eq!(listed("1.40.1", &said), Catalog::Lists("1.41.1".into()));
+    assert_eq!(listed("1.41.1", &said), Catalog::NothingNewer);
+    assert_eq!(listed("1.42.0", &said), Catalog::NothingNewer);
+}
+
+#[test]
+fn a_package_that_is_not_ours_is_not_counted_as_the_catalog_answering() {
+    for full in [
+        "Another.App_9.0.0.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty_9.0.0.0_x64__someoneelse",
+        "rgdevment.Tisty_9.0_x64__kdjgfdc2rb3gc",
+        "rgdevment.Tisty",
+    ] {
+        assert_eq!(
+            listed("1.40.1", &catalog_naming(&[full])),
+            Catalog::Unheard,
+            "{full}"
+        );
+    }
+}
+
+#[test]
+fn a_catalog_that_stopped_reading_as_it_did_says_nothing_rather_than_nothing_newer() {
+    for said in [
+        "",
+        "not json",
+        "{}",
+        r#"{"Product":null}"#,
+        r#"{"Product":{"DisplaySkuAvailabilities":[]}}"#,
+    ] {
+        assert_eq!(listed("1.40.1", said), Catalog::Unheard, "{said}");
+    }
+    assert_eq!(
+        listed(
+            "tomorrow",
+            &catalog_naming(&["rgdevment.Tisty_1.41.1.0_x64__kdjgfdc2rb3gc"])
+        ),
+        Catalog::Unheard
+    );
+}
+
 /// The offer and the refusal read the same thing, or the button is shown to somebody it will
 /// then be taken from, with a message saying somebody else looks after this copy — when the
 /// truth is that nobody does.
