@@ -150,6 +150,28 @@ pub(crate) fn reopened_with(line: &str) -> windows::core::Result<()> {
     }
 }
 
+#[cfg(all(test, windows))]
+#[allow(unsafe_code)]
+pub(crate) fn reopens_with() -> (String, u32) {
+    use windows::Win32::System::Recovery::GetApplicationRestartSettings;
+    use windows::Win32::System::Threading::GetCurrentProcess;
+
+    let mut line = [0u16; 1024];
+    let mut size = line.len() as u32;
+    let mut flags = 0;
+    unsafe {
+        GetApplicationRestartSettings(
+            GetCurrentProcess(),
+            Some(windows::core::PWSTR(line.as_mut_ptr())),
+            &raw mut size,
+            Some(&raw mut flags),
+        )
+    }
+    .expect("this process is registered");
+    let said = String::from_utf16_lossy(&line[..size as usize]);
+    (said.trim_end_matches('\0').to_string(), flags)
+}
+
 /// Blocks until anything under `key` is written or made; false once it can no longer be watched.
 #[cfg(windows)]
 #[allow(unsafe_code)]

@@ -293,6 +293,24 @@ mod tests {
     }
 
     #[test]
+    fn both_ways_the_window_goes_keep_windows_told() {
+        let here = include_str!("tray.rs");
+        for (way, told) in [
+            ("pub fn withdraw", "returns(false)"),
+            ("pub fn surface", "returns(true)"),
+        ] {
+            let body = here.split(way).nth(1).and_then(|rest| {
+                rest.split(
+                    "
+}",
+                )
+                .next()
+            });
+            assert!(body.is_some_and(|body| body.contains(told)), "{way}");
+        }
+    }
+
+    #[test]
     fn each_tray_icon_is_inked_against_the_bar_it_sits_on() {
         assert!(ink(ON_DARK) > 160, "on-dark must be pale: {}", ink(ON_DARK));
         assert!(

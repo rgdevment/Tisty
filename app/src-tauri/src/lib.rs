@@ -795,6 +795,16 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// Spent on the first look: kept, it would show a copy later reopened hidden until the next check.
+fn back_from_an_update(session: &mut Session) -> bool {
+    let found = session.config.found_version.as_deref();
+    let back = waking::came_back(update::route().route, found, HERE);
+    if back {
+        let _ = session.keep(|config| config.found_version = None);
+    }
+    back
+}
+
 pub(crate) fn opened(
     app: &tauri::AppHandle,
     viewing: bool,
@@ -889,11 +899,7 @@ pub(crate) fn opened(
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
     let session_keys = session.config.quick_keys.clone();
-    let came_back = waking::came_back(
-        update::route().route,
-        session.config.found_version.as_deref(),
-        HERE,
-    );
+    let came_back = back_from_an_update(&mut session);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(app, telling, &quiet));
