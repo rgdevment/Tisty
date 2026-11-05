@@ -23,7 +23,7 @@ export function useUpdates() {
     if (going.current) return;
     const first = !looked.current;
     looked.current = true;
-    updateReady(behind || first)
+    updateReady(behind || first ? "now" : undefined)
       .then(setReady)
       .catch(() => {});
   }, [behind]);
@@ -51,7 +51,7 @@ export function useUpdates() {
   }, []);
 
   const lookAgain = () =>
-    updateReady(true)
+    updateReady("now")
       .then(setReady)
       .catch(() => {});
 

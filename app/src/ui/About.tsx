@@ -17,7 +17,7 @@ import {
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
-import { waitingOn } from "./Older";
+import { nothingFound, waitingOn } from "./Older";
 import { ReportOpen } from "./Reporting";
 import { useCards } from "./useCards";
 import Written from "./Written";
@@ -74,10 +74,15 @@ export default function About({
 
   useEffect(look, [look]);
 
+  // A look made since outlives the answer to an earlier press.
+  useEffect(() => {
+    setFound(null);
+  }, [ready]);
+
   const lookAgain = () => {
     setLooking(true);
     setFound(null);
-    updateReady(true)
+    updateReady("pressed")
       .then((one) => setFound(one ?? "none"))
       .catch(onError)
       .finally(() => setLooking(false));
@@ -141,7 +146,13 @@ export default function About({
               <Pip />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold">
-                  {newer.version ? fill("updateThere", newer.version) : t("updateComing")}
+                  {newer.version
+                    ? fill("updateThere", newer.version)
+                    : t(
+                        newer.installs || newer.coming === "paused"
+                          ? "updateOffered"
+                          : "updateComing",
+                      )}
                 </span>
                 {step ? (
                   step.stage === "installing" ? (
@@ -210,7 +221,11 @@ export default function About({
               <span className="flex-1 text-[12.5px] text-soft">
                 {looking
                   ? t("lookingNow")
-                  : t(build?.keptByTheStore ? "lookNowNoneStore" : "lookNowNone")}
+                  : t(
+                      found === "none" || !build?.keptByTheStore || build.notSold
+                        ? nothingFound(build)
+                        : "lookStoreKeeps",
+                    )}
               </span>
               <button type="button" disabled={looking} onClick={lookAgain} className={mild}>
                 {t("lookNow")}

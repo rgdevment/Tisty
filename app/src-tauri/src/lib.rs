@@ -9,6 +9,7 @@ mod diagramming;
 mod drawn;
 mod entering;
 mod finding;
+mod finishing;
 mod glimpse;
 mod handed;
 mod hearing;
@@ -1265,6 +1266,9 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::keep_file,
         answers::papers::doc_word,
         answers::printing::page_pdf,
+        answers::sharing::doc_sealed,
+        finishing::finishing_asked,
+        finishing::finishing_answered,
         answers::papers::doc_back,
         answers::papers::doc_backable,
         answers::papers::doc_write,
@@ -1328,6 +1332,7 @@ pub fn run() {
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
+        .manage(finishing::Finishers::default())
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())

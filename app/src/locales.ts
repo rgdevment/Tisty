@@ -681,6 +681,31 @@ const en = {
   joinWhich: "The same document, in another language",
   partTongues: "Take out of its languages",
   tongueTaken: "That language is already one of its languages",
+  notOneOwnDoc: "Only what is your own can be shared",
+  onlyADocumentShared: "A page goes with its document, and a task's words stay with the task",
+  noIdentityToSign: "This computer has no identity to sign with yet",
+  cannotSeal: "This document could not be made ready to share",
+  cannotFinish: "Its code and diagrams could not be drawn. Try again in a moment.",
+  toldPictureAsFile:
+    "In {other}, the picture {name} goes as a file to download, because it cannot be drawn",
+  toldPictureAsWords:
+    "In {other}, the picture {name} goes as its words, because it is no longer here or is too large to travel",
+  toldPictureAsLink: "In {other}, the picture at {name} goes as a link to it",
+  toldFileAsWords:
+    "In {other}, the file {name} goes as its words, because it is no longer here or is too large to travel",
+  toldNotDrawn: "In {other}, {name} diagrams could not be drawn and go as code",
+  toldOneNotDrawn: "One diagram in {name} could not be drawn and goes as code",
+  toldPictureNotKept:
+    "In {other}, the picture {name} goes as its words, because it is not kept in Tisty",
+  toldSomePictureNotKept: "In {name}, a picture goes as its words, because it is not kept in Tisty",
+  toldCitedLeftBehind:
+    "{name} is locked, put away or someone else's, so what names it goes as its words",
+  toldPageLeftBehind:
+    "A page of {name} stays here, because it is put away, locked or could not be read",
+  awayNotShared: "That one is put away. Bring it back to share it",
+  toldLanguageLeftBehind:
+    "The language {name} is locked, put away or someone else's, so it stays here",
+  toldNameLeftOut: "That name cannot be used to sign, so it goes without a name",
   tongueUnsaid: "Say first which language it is in",
   notALanguage: "That is not a language Tisty knows how to name",
   pageHasNoTongue: "A page is in the language of its document",
@@ -2248,10 +2273,19 @@ const en = {
     "Nothing you wrote is lost: it is kept as it was, and opening the window again picks it up where it stands. What went wrong is written in the log",
   windowFellAgain: "Draw it again",
   updateComing: "The Store is bringing a new version",
+  updateOffered: "The Store has a new version",
   updateOpenShop: "Open the Store",
   updateComingWhy:
-    "It is in the Store's own queue — being fetched, or paused there. It installs itself once it lands and this window is closed.",
-  updateLanded: "It is already on this machine and takes over when you close Tisty",
+    "The Store brings it on its own. It installs itself once it lands and nothing is using Tisty: not its window in the tray, nor a connected assistant.",
+  updatePausedWhy: "The Store has it paused. Open the Store to resume it.",
+  updateNotYetWhy:
+    "The Store has not offered it to this computer yet. That usually takes a few hours, and you can check in the Store.",
+  updateLanded:
+    "It is already on this machine and takes over once nothing is using Tisty: not its window in the tray, nor a connected assistant",
+  lookNotSold:
+    "This copy did not come from the Microsoft Store, so the Store does not update it and it cannot update itself",
+  lookStoreKeeps:
+    "The Microsoft Store keeps this copy up to date. It is asked at every launch and every six hours",
   lookNowNoneStore:
     "The Microsoft Store has nothing newer for this copy right now. It is asked again at every launch and every few hours, and brings the update here when it has it",
   agentsTitle: "Tisty has no AI inside it",
@@ -3359,6 +3393,34 @@ const es: Catalog = {
   joinWhich: "El mismo documento, en otro idioma",
   partTongues: "Separar de sus idiomas",
   tongueTaken: "Ese idioma ya está entre sus idiomas",
+  notOneOwnDoc: "Solo se puede compartir lo propio",
+  onlyADocumentShared:
+    "Una página va con su documento, y las palabras de una tarea se quedan con la tarea",
+  noIdentityToSign: "Este computador todavía no tiene una identidad con la que firmar",
+  cannotSeal: "Este documento no se pudo dejar listo para compartir",
+  cannotFinish:
+    "No se pudieron dibujar su código y sus diagramas. Inténtalo de nuevo en un momento.",
+  toldPictureAsFile:
+    "En {other}, la imagen {name} va como archivo para descargar, porque no se puede dibujar",
+  toldPictureAsWords:
+    "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
+  toldPictureAsLink: "En {other}, la imagen de {name} va como un enlace a ella",
+  toldFileAsWords:
+    "En {other}, el archivo {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
+  toldNotDrawn: "En {other}, {name} diagramas no se pudieron dibujar y van como código",
+  toldOneNotDrawn: "Un diagrama de {name} no se pudo dibujar y va como código",
+  toldPictureNotKept:
+    "En {other}, la imagen {name} va como sus palabras, porque no está guardada en Tisty",
+  toldSomePictureNotKept:
+    "En {name}, una imagen va como sus palabras, porque no está guardada en Tisty",
+  toldCitedLeftBehind:
+    "{name} está bloqueado, archivado o es de otra persona, así que lo que lo nombra va como sus palabras",
+  toldPageLeftBehind:
+    "Una página de {name} se queda aquí, porque está archivada, bloqueada o no se pudo leer",
+  awayNotShared: "Ese está archivado. Desarchívalo para compartirlo",
+  toldLanguageLeftBehind:
+    "El idioma {name} está bloqueado, archivado o es de otra persona, así que se queda aquí",
+  toldNameLeftOut: "Ese nombre no sirve para firmar, así que va sin nombre",
   tongueUnsaid: "Primero di en qué idioma está",
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",
   pageHasNoTongue: "Una página está en el idioma de su documento",
@@ -4933,10 +4995,19 @@ const es: Catalog = {
     "No se perdió nada de lo que escribiste: queda tal como estaba, y al volver a abrir la ventana sigue donde lo dejaste. Lo que falló quedó escrito en el registro",
   windowFellAgain: "Volver a dibujarla",
   updateComing: "La Store está trayendo una versión nueva",
+  updateOffered: "La Store tiene una versión nueva",
   updateOpenShop: "Abrir la Store",
   updateComingWhy:
-    "Está en la cola de la propia Store —descargándose, o en pausa ahí—. Se instala sola cuando llegue y esta ventana esté cerrada.",
-  updateLanded: "Ya está en esta máquina y entra cuando cierres Tisty",
+    "La Store la trae por su cuenta. Se instala sola cuando llegue y nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado.",
+  updatePausedWhy: "La Store la tiene en pausa. Ábrela para reanudarla.",
+  updateNotYetWhy:
+    "La Store todavía no se la ofrece a este equipo. Suele tardar unas horas, y puedes mirarlo en la Store.",
+  updateLanded:
+    "Ya está en esta máquina y entra cuando nada esté usando Tisty: ni su ventana en la bandeja ni un asistente conectado",
+  lookNotSold:
+    "Esta copia no vino de la Microsoft Store, así que la Store no la actualiza y ella no puede hacerlo sola",
+  lookStoreKeeps:
+    "La Microsoft Store mantiene esta copia al día. Se le pregunta en cada arranque y cada seis horas",
   lookNowNoneStore:
     "La Microsoft Store no tiene nada más nuevo para esta copia ahora mismo. Se le vuelve a preguntar en cada arranque y cada pocas horas, y trae la actualización aquí cuando la tiene",
   agentsTitle: "Tisty no lleva IA dentro",

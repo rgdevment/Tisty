@@ -26,7 +26,7 @@ fn owner(app: &tauri::AppHandle) -> Option<isize> {
 pub async fn update_ready(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
-    now_please: Option<bool>,
+    look: Option<update::Look>,
 ) -> Answer<Option<update::Ready>> {
     let kept = update::route();
     let (last, found, the_shop_said, wants) = {
@@ -39,109 +39,50 @@ pub async fn update_ready(
         )
     };
     let now = jiff::Timestamp::now();
-    let asked = now_please.unwrap_or(false);
+    let pressed = look == Some(update::Look::Pressed);
+    let asked = look.is_some();
 
-    // A copy kept by the Store asks the Store and nobody else: a release the Store is still
-    // certifying is out for everyone else, and being told of one this copy cannot take is a
-    // button that does nothing. What the Store last said stands until it says otherwise.
+    // A copy kept by the Store goes by what the Store has: a release it is still certifying is
+    // out for everyone else, and being told of one this copy cannot take is a button that does
+    // nothing. What the Store last said stands until it says otherwise.
     if kept.route == update::Route::Store {
-        let last_said = || match (the_shop_said, found.as_deref()) {
-            (Some(true), Some(version)) => update::from_the_shop(version, HERE),
-            (Some(false), Some(version)) if update::later(HERE, version) => {
-                Some(update::on_its_way(Some(version)))
-            }
-            _ => None,
+        let was = shop::Memory {
+            version: found,
+            offered: the_shop_said,
         };
         let Some(window) = owner(&app) else {
-            return Ok(last_said());
+            return Ok(shop::last_said(HERE, &was));
         };
-        if !asked && !update::due(last, now) {
-            return Ok(last_said());
-        }
-        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
+        let settled = tauri::async_runtime::spawn_blocking(shop::settled)
             .await
-            .unwrap_or(shop::Shelf::Silent);
-        let manifest = match tauri::async_runtime::spawn_blocking(update::fetch).await {
-            Ok(update::Heard::Said(said)) => Some(said),
-            _ => None,
-        };
-        let unheard = manifest.is_none();
-        let out = manifest
-            .as_deref()
-            .and_then(|said| update::published(HERE, said, wants));
-        let waiting_for_it =
-            |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
-                held(session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = out.clone();
-                    c.found_in_the_shop = out.as_ref().map(|_| false);
-                })?;
-                Ok(out
-                    .as_deref()
-                    .map(|version| update::on_its_way(Some(version))))
-            };
-        return match shelf {
-            shop::Shelf::Waiting(version) => {
-                let seen = update::from_the_shop(&version, HERE);
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
-                })?;
-                Ok(seen)
-            }
-            // Already down and waiting for this window to close: there is nothing to fetch, so
-            // it is announced without the button that would ask the Store for it again.
-            shop::Shelf::Landed(version) => {
-                let seen = update::from_the_shop(&version, HERE).map(|one| update::Ready {
-                    installs: false,
-                    ..one
-                });
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
-                })?;
-                Ok(seen)
-            }
-            shop::Shelf::Queued => {
-                // A feed that could not be read says nothing of the version, so the one known stays.
-                let version = if unheard {
-                    found.clone().filter(|version| update::later(HERE, version))
-                } else {
-                    out.clone()
-                };
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = version.clone();
-                    c.found_in_the_shop = Some(false);
-                })?;
-                Ok(Some(update::on_its_way(version.as_deref())))
-            }
-            shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
-            shop::Shelf::Current if manifest.is_some() => {
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = None;
-                    c.found_in_the_shop = None;
-                })?;
-                Ok(None)
-            }
-            shop::Shelf::Current => {
-                held(&session).keep(|c| c.checked_at = Some(now))?;
-                Ok(last_said())
-            }
-            // Asked and not answered is still asked: the next look waits its turn like any other,
-            // and a copy the Store never signed is not asked again every few hours.
-            shop::Shelf::Silent if out.is_some() => waiting_for_it(&session),
-            shop::Shelf::Silent => {
-                held(&session).keep(|c| c.checked_at = Some(now))?;
-                if asked {
-                    return Err(Refusal::of("updateUnanswered"));
-                }
-                Ok(last_said())
+            .ok()
+            .flatten();
+        let (shelf, ahead) = match settled {
+            Some(shelf) => (shelf, update::Ahead::Unheard),
+            None => {
+                let ahead = tauri::async_runtime::spawn_blocking(move || {
+                    update::ahead(HERE, wants, update::catalog(HERE), update::fetch)
+                })
+                .await
+                .unwrap_or(update::Ahead::Unheard);
+                let waits = shop::waits(pressed, &ahead);
+                let shelf =
+                    tauri::async_runtime::spawn_blocking(move || shop::asked(window, waits))
+                        .await
+                        .unwrap_or(shop::Shelf::Silent);
+                (shelf, ahead)
             }
         };
+        let verdict = shop::verdict(shelf, ahead, HERE, was);
+        held(&session).keep(|c| {
+            c.checked_at = Some(now);
+            c.found_version = verdict.memory.version.clone();
+            c.found_in_the_shop = verdict.memory.offered;
+        })?;
+        if verdict.refused(pressed) {
+            return Err(Refusal::of("updateUnanswered"));
+        }
+        return Ok(verdict.ready);
     }
 
     if !asked && !update::due(last, now) {
