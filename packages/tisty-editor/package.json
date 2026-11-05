@@ -20,7 +20,7 @@
     "@codemirror/language": "*",
     "@codemirror/state": "*",
     "@codemirror/view": "*",
-    "@lezer/common": "*",
+    "@lezer/common": "^1.5.4",
     "@lezer/highlight": "*",
     "@lezer/markdown": "*",
     "lowlight": "*",
