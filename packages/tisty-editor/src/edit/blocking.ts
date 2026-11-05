@@ -23,8 +23,8 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { known } from "../glyphs";
-import { HUES, isHue } from "../shell";
+import { HUES, isHue } from "tisty-sheet";
+import { known } from "tisty-sheet/glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";

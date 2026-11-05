@@ -1,9 +1,8 @@
+import type { Head, Say } from "tisty-sheet";
 import type { Field } from "./front";
-import type { Head } from "./heads";
 import type { Paper } from "./paper";
 import { besideAbout } from "./sideAbout";
 import { besideMore } from "./sideRows";
-import type { Say } from "./words";
 
 // The words a body holds, its code and its marks left out, as the details count them.
 export const wordsIn = (body: string): number =>

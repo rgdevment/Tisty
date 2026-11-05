@@ -1,6 +1,6 @@
+import type { ReadWord } from "tisty-sheet";
 import { describe, expect, it } from "vitest";
 import { type Panel, sided, wordsIn } from "../src/side";
-import type { ReadWord } from "../src/words";
 
 const say = (word: ReadWord, ...filled: string[]) => [word, ...filled].join(" ");
 
