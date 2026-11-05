@@ -176,6 +176,32 @@ mod editing {
         let refused =
             Writer::new(&key, &certificate).sealed(words("Mario"), vec![], vec![], &going);
         assert!(matches!(refused, Err(Refused::DoesNotAdd(_))));
+        let refused = Writer::new(&key, &certificate).sealed(
+            words("Mario"),
+            vec![],
+            vec![],
+            &sealing(ID, None),
+        );
+        assert!(matches!(refused, Err(Refused::DoesNotAdd(_))));
+    }
+
+    #[test]
+    fn a_writer_does_not_carry_an_owner_s_block_that_does_not_hold() {
+        let owner = owner_in(&owned(Some(TOKEN)));
+        let (other, _) = person(EDITOR);
+        let mut no_signature = owner.clone();
+        no_signature.signed = owner.certificate.clone();
+        let mut other_machine = owner.clone();
+        other_machine.machine = other.shown();
+        let mut other_permit = owner;
+        other_permit.permit = Some(key_text(0x72));
+        for broken in [no_signature, other_machine, other_permit] {
+            let refused = edited(broken, Some(TOKEN), "Mario");
+            assert!(
+                matches!(refused, Err(Refused::DoesNotAdd(_))),
+                "{refused:?}"
+            );
+        }
     }
 
     #[test]

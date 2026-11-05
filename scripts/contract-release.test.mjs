@@ -24,6 +24,14 @@ test("a version only goes up", () => {
   assert.ok(!wrong({ was: "1.1.0-draft.2", now: "1.1.0", changed: true }));
 });
 
+test("what a version wrote stays frozen", () => {
+  const frozenBefore = { "1.2.0": { main: "a" } };
+  const same = { was: "1.2.0", now: "1.3.0", changed: true, frozenBefore };
+  assert.ok(!wrong({ ...same, frozenNow: { "1.2.0": { main: "a" }, "1.3.0": { main: "b" } } }));
+  assert.ok(wrong({ ...same, frozenNow: { "1.2.0": { main: "c" }, "1.3.0": { main: "b" } } }));
+  assert.ok(wrong({ ...same, frozenNow: { "1.3.0": { main: "b" } } }));
+});
+
 test("what is no version is refused", () => {
   assert.ok(wrong({ was: "1.0.0", now: "uno", changed: true }));
   assert.ok(wrong({ was: "1.0.0", now: "1.1", changed: true }));

@@ -18,7 +18,7 @@ const VECTORS: &str = include_str!("../vectors.json");
 
 // This reader's own, and no number of the contract's: each reader knows what it can hold.
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
-const FIRST_SHARED_MINOR: u64 = 2;
+const FIRST_SHARED: (&str, u64) = ("1", 2);
 
 pub struct Opened {
     pub manifest: Vec<u8>,
@@ -69,11 +69,13 @@ fn opens_here(said: &str) -> bool {
         return said == VERSION;
     }
     let major = |version: &'static str| version.split('.').next().unwrap_or_default();
-    said.split('.').next().unwrap_or_default() == major(VERSION) && minor_of(said).is_some_and(|minor| minor >= FIRST_SHARED_MINOR)
+    let said_major = said.split('.').next().unwrap_or_default();
+    said_major == major(VERSION) && minor_of(said).is_some_and(|minor| said_major != FIRST_SHARED.0 || minor >= FIRST_SHARED.1)
 }
 
 fn minor_of(said: &str) -> Option<u64> {
-    said.split('.').nth(1)?.parse().ok()
+    let written = said.split('.').nth(1)?;
+    written.parse().ok().filter(|one: &u64| one.to_string() == written)
 }
 
 fn under_a_later_minor(bytes: &[u8]) -> bool {
@@ -343,6 +345,9 @@ pub fn document_in(main: &Opened) -> Result<Value, String> {
     if held["id"] != manifest["id"] {
         return Err("another document inside".into());
     }
+    if manifest["sealed"] != true && held.get("owner_name").is_some() {
+        return Err("what is public has nothing to answer for its owner's name".into());
+    }
     let empty = Vec::new();
     let pictures = held["pictures"].as_array().unwrap_or(&empty);
     if pictures.len() != main.parts.len() - 2 {
@@ -381,6 +386,10 @@ pub fn reading(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Re
 }
 
 pub fn files_for(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
+    told_apart(bytes, files_as_said(held, bytes, asked, link_key))
+}
+
+fn files_as_said(held: &Value, bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) -> Result<Opened, String> {
     let files = opened(bytes, asked, link_key)?;
     let hash = Sha256::digest([files.manifest.as_slice(), &files.index].concat());
     if URL_SAFE_NO_PAD.encode(hash) != held["files_hash"].as_str().unwrap_or_default() {
@@ -571,6 +580,14 @@ fn what_a_rest_says_beyond_its_body_and_pages_is_left_aside() {
     assert!(held.get("owner_name").is_none());
     assert!(held.get("title").is_none());
     assert_eq!(held["body"], "a");
+}
+
+#[test]
+fn under_a_later_minor_files_that_do_not_fit_read_as_newer() {
+    let all = vectors();
+    let said = &all["newer_files"];
+    let wrong = files_for(&said["document"], &hex(&said["files"]), ("hostile", "files"), None).err().unwrap();
+    assert!(wrong.starts_with("newer"), "{wrong}");
 }
 
 #[test]

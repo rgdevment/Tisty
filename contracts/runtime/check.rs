@@ -106,7 +106,6 @@ fn is_name(said: &str) -> bool {
 const BASE64URL: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const WHOLE_AT_MOST: u64 = (1 << 53) - 1;
 
-// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
 const SMALL_ORDER: [&str; 14] = [
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
@@ -124,6 +123,7 @@ const SMALL_ORDER: [&str; 14] = [
     "7v________________________________________8",
 ];
 
+// The last character holds spare bits, and they are zero: one key has one spelling, so comparing two is comparing them.
 fn base64url_of(said: &str, length: usize, spare: usize) -> bool {
     said.len() == length
         && said.bytes().all(|one| BASE64URL.as_bytes().contains(&one))

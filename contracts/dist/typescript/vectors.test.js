@@ -42,11 +42,15 @@ const inflated = async (bytes, size) => {
 };
 
 const majorOf = (said) => said.split(".")[0];
-const minorOf = (said) => Number(said.split(".")[1]);
-const FIRST_SHARED_MINOR = 2;
+const minorOf = (said) => {
+  const written = said.split(".")[1];
+  return String(Number(written)) === written ? Number(written) : Number.NaN;
+};
+const FIRST_SHARED = { major: "1", minor: 2 };
 const opensHere = (said) => {
   if (said.includes("-") || VERSION.includes("-")) return said === VERSION;
-  return majorOf(said) === majorOf(VERSION) && minorOf(said) >= FIRST_SHARED_MINOR;
+  if (majorOf(said) !== majorOf(VERSION) || Number.isNaN(minorOf(said))) return false;
+  return majorOf(said) !== FIRST_SHARED.major || minorOf(said) >= FIRST_SHARED.minor;
 };
 const underALaterMinor = (bytes) => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -171,6 +175,7 @@ const documentIn = ({ manifest, parts }) => {
   const held = { ...first, ...(rest.body === undefined ? {} : { body: rest.body }), ...(rest.pages === undefined ? {} : { pages: rest.pages }) };
   assert.deepEqual(check("document", held), []);
   assert.equal(held.id, manifest.id, "the document inside is the one the manifest says");
+  assert.ok(manifest.sealed || held.owner_name === undefined, "what is public has nothing to answer for its owner's name");
   const pictures = held.pictures ?? [];
   assert.equal(pictures.length, parts.length - 2, "as many pictures as it says");
   pictures.forEach((one, at) => {
@@ -198,7 +203,9 @@ const reading = async (bytes, asked, linkKey) => {
   return { main, held: await toldApart(bytes, () => documentIn(main)) };
 };
 
-const filesFor = async (held, bytes, asked, linkKey) => {
+const filesFor = (held, bytes, asked, linkKey) => toldApart(bytes, () => filesAsSaid(held, bytes, asked, linkKey));
+
+const filesAsSaid = async (held, bytes, asked, linkKey) => {
   const files = await opened(bytes, asked, linkKey);
   assert.ok(same(await sha(files.manifestBytes, files.index), b64(held.files_hash)), "the envelope its document answers for");
   const said = held.files ?? [];
@@ -298,6 +305,11 @@ for (const { says, envelope } of VECTORS.newer_than_this) {
     await assert.rejects(reading(hex(envelope), { id: "hostile", kind: "main" }), /newer/);
   });
 }
+
+test("under a later minor, files that do not fit read as newer", async () => {
+  const { document, files } = VECTORS.newer_files;
+  await assert.rejects(filesFor(document, hex(files), { id: "hostile", kind: "files" }), /newer/);
+});
 
 test("what comes before the first version shared is too old, never damaged", async () => {
   const { id, envelope } = VECTORS.before_the_first_shared;

@@ -15,7 +15,7 @@ use tisty_contracts::{
     Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, Owner, PartName, Picture,
     Sealing, Signature, VERSION, check, check_html, pictures_in, references_in,
 };
-use tisty_share_proto::identity::{Certificate, Permit, ShareKey};
+use tisty_share_proto::identity::{self, Certificate, Permit, ShareKey, Signed};
 use zeroize::Zeroizing;
 
 pub(crate) const MARK: &[u8; 4] = b"TENV";
@@ -149,6 +149,32 @@ pub(crate) fn owner_said(id: &str, permit: Option<&[u8]>, tag: &[u8]) -> Vec<u8>
     said.extend_from_slice(permit.unwrap_or(&NO_PERMIT));
     said.extend_from_slice(tag);
     said
+}
+
+// Sealing is the last look on this machine, so a block no reader would take goes no further.
+fn received_owner_holds(owner: &Owner, id: &str, tag: &[u8]) -> Result<(), Refused> {
+    checked("owner", &json!(owner))?;
+    let refused = Refused::DoesNotAdd("its owner's block does not hold");
+    let permit = owner
+        .permit
+        .as_deref()
+        .map(|one| URL_SAFE_NO_PAD.decode(one))
+        .transpose()
+        .map_err(|_| refused.clone())?;
+    let signed = Signed {
+        certificate: Certificate {
+            root: owner.root.clone(),
+            share: owner.machine.clone(),
+            since: owner.since.parse().map_err(|_| refused.clone())?,
+            sig: owner.certificate.clone(),
+        },
+        sig: owner.signed.clone(),
+    };
+    let said = owner_said(id, permit.as_deref(), tag);
+    match identity::check(&signed, OWNER_ABOUT, &said, &[]) {
+        identity::Verdict::Holds { .. } => Ok(()),
+        _ => Err(refused),
+    }
 }
 
 fn permit_of(token: &str) -> Result<Permit, Refused> {
@@ -435,7 +461,10 @@ impl<'a> Writer<'a> {
     // What is public has no key to tie an owner to, so its signer still answers for it.
     fn owner_of(&self, document: &Document, sealing: &Sealing) -> Result<Option<Owner>, Refused> {
         let Some(link_key) = sealing.link_key.as_deref() else {
-            return if sealing.owner.is_some() || sealing.token.is_some() {
+            return if sealing.owner.is_some()
+                || sealing.token.is_some()
+                || document.owner_name.is_some()
+            {
                 Err(Refused::DoesNotAdd(
                     "what is public has no owner's block yet",
                 ))
@@ -452,6 +481,7 @@ impl<'a> Writer<'a> {
                     "its owner_name is not the one its owner signed",
                 ));
             }
+            received_owner_holds(owner, &document.id, &tag)?;
             return Ok(Some(owner.clone()));
         }
         let permit = sealing.token.as_deref().map(permit_of).transpose()?;

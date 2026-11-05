@@ -1,6 +1,6 @@
 // Writes the sample envelopes every language must open. What it wrote is kept, since another zlib squeezes the same words differently.
 import { createHash, webcrypto } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 
 const { subtle } = webcrypto;
@@ -228,6 +228,11 @@ const CASES = [
   ["a newer major version", { parts: asWords(fair, fairRest), contract: "99.0.0" }],
   ["an older major version", { parts: asWords(fair, fairRest), contract: "0.9.0" }],
   ["a version that is none", { parts: asWords(fair, fairRest), contract: "paseos" }],
+  ["a version with no minor", { parts: asWords(fair, fairRest), contract: "1" }],
+  ["a minor that is no number", { parts: asWords(fair, fairRest), contract: "1.x.0" }],
+  ["a minor with a sign", { parts: asWords(fair, fairRest), contract: "1.+2.0" }],
+  ["a major with a zero before it", { parts: asWords(fair, fairRest), contract: "01.2.0" }],
+  ["an owner_name where nothing answers for it", { parts: asWords({ ...fair, owner_name: "Mario" }, fairRest) }],
   ["a signature that does not hold", { parts: asWords(fair, fairRest), forged: "signed" }],
   ["a certificate that does not hold", { parts: asWords(fair, fairRest), forged: "certificate" }],
   ["a signature that cannot be read", { parts: asWords(fair, fairRest), signatureBytes: words("no es una firma") }],
@@ -380,7 +385,8 @@ for (const [says, over] of newerThanThis) {
 }
 const beforeTheFirstShared = await asEdited({ owner: undefined, by: MARIO, contract: "1.1.0" }, asMario);
 const WRITTEN = new URL("./vectors.json", import.meta.url);
-const frozenBefore = existsSync(WRITTEN) ? (JSON.parse(readFileSync(WRITTEN, "utf8")).frozen ?? {}) : {};
+const frozenBefore = JSON.parse(readFileSync(WRITTEN, "utf8")).frozen ?? {};
+const moreUnderALaterMinor = await seal({ kind: "files", id: HOSTILE, version: 1, sealed: false, contract: LATER_MINOR, parts: [...FILES, ...FILES].map((bytes) => ({ name: "file", compressed: false, bytes })) });
 
 const png = PICTURES[0];
 const jpeg = Buffer.from("/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCAABAAIDAREAAhEBAxEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDk64z9KP/Z", "base64");
@@ -411,7 +417,23 @@ const said = {
   a_newer_major: aNewerMajor.bytes.toString("hex"),
   newer_than_this: newer,
   before_the_first_shared: { id: EDITED, envelope: asHex(beforeTheFirstShared) },
-  small_order: [...new Set(["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA", "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_AU", "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA_o", "7P_______________________________________38", "7f________________________________________8", "7v_______________________________________38"])],
+  newer_files: { document: { id: HOSTILE, html: "<p>a</p>", body: "a", files: [aFile], files_hash: moreUnderALaterMinor.hash }, files: asHex(moreUnderALaterMinor) },
+  small_order: [
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+    "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA",
+    "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_AU",
+    "JuiVj8KyJ7BFw_SJ8u-Y8NXfrAXTxjM5sTgCiG1T_IU",
+    "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o",
+    "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA_o",
+    "7P_______________________________________38",
+    "7P________________________________________8",
+    "7f_______________________________________38",
+    "7f________________________________________8",
+    "7v_______________________________________38",
+    "7v________________________________________8",
+  ],
   past_its_end: pastItsEnd.bytes.toString("hex"),
   signed_by: { root: b64(root.public), machine: b64(machine.public) },
   editing: {

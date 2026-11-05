@@ -22,7 +22,7 @@ fields:
   lang: { type: language, says: "The language it is written in, as a tag: es, en, pt-BR." }
   sheet: { type: sheet, says: "How it is laid on paper." }
   signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Where it is sealed, only a reader with the key sees it; what is public shows it to anyone. Never a proof." }
-  owner_name: { type: name, says: "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Sealed, only a reader with the key sees it." }
+  owner_name: { type: name, says: "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Only what is sealed has one, and only a reader with the key sees it." }
   made: { type: time }
   wrote: { type: time }
   body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone." }

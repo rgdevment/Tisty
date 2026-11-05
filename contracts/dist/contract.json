@@ -1598,7 +1598,7 @@
         },
         "owner_name": {
           "type": "name",
-          "says": "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Sealed, only a reader with the key sees it."
+          "says": "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Only what is sealed has one, and only a reader with the key sees it."
         },
         "made": {
           "type": "time"
@@ -2472,13 +2472,13 @@
           "A file at another place or of another size than its document says.",
           "A sealed envelope whose owner's signature or certificate does not hold.",
           "A version whose signature is not under the owner's root and brings no permit_signed that holds against the owner's permit.",
-          "A sealed document whose owner_name is not what the name_tag says, under the key that opens it."
+          "A sealed document whose owner_name is not what the name_tag says, under the key that opens it, and a public document with an owner_name, which nothing answers for."
         ],
         "who_checks_what": {
           "server": "With nothing open, it checks the layout, the manifest, the signature, the certificate, the revocations, the hash of each part, the sizes, the version, the owner and the permit. Only it knows which permit is the current one, since a reader cannot: it keeps the owner's root and the permit, and refuses an upload that names another of either. The machine and the name_tag may change only under the owner's root, as when the owner uploads from another machine or takes another name.",
           "reader": "It checks the signature and the certificate again, the owner and the permit, the hash of each part and, with the key, the commitment, the seal, the name_tag, the sizes once open, the document, its HTML, its references and its pictures. It gives the owner's machine the same verdict as the signer's, and shows the worse. Only the reader can, and a writer's word counts for nothing here."
         },
-        "versions": "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. It names the layout, the seal and the signatures, and it goes up only when a reader cannot open an envelope with what it holds. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens if the reader keeps its branch, and otherwise the reader says it is too old, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. Within a major version, from 1.2.0, the first one shared, three things hold. A later reader opens all an earlier one wrote: what it left optional stays optional, and what it allowed stays allowed. A later writer may add anything: a field, a part, a tag, an attribute, a class, a word. An earlier reader ignores what it can, and what it would refuse under a minor above its own it reads as newer, never as damaged, and shows nothing.",
+        "versions": "The major version is the number before the first dot of contract, and it is read before anything else in the manifest. It names the layout, the seal and the signatures, and it goes up only when a reader cannot open an envelope with what it holds. A higher one is read as newer, which asks the reader to update and opens nothing. A lower one opens if the reader keeps its branch, and otherwise the reader says it is too old, never that it is damaged. A draft opens only under that very draft, and a final version never opens one. A number has one spelling, and a version whose major or minor is written any other way is no version. Within a major version, from 1.2.0, the first one shared, three things hold. A later reader opens all an earlier one wrote: what it left optional stays optional, and what it allowed stays allowed. A later writer may add anything: a field, a part, a tag, an attribute, a class, a word. An earlier reader ignores what it can, and what it would refuse under a minor above its own it reads as newer, never as damaged, and shows nothing.",
         "sealing_again": "A writer never seals again what arrived under a minor above its own: it asks to update, or it would lose what it does not know.",
         "floors": "A server may publish the oldest version it takes and the oldest it serves, in its signed limits, and refuses what is below them as outdated. It is for a mistake of ours, not against a fork: what protects a reader from a fork is the reader's own rules. A writer that holds something sent below a floor sends it again the next time it syncs.",
         "sizes_at_most": {

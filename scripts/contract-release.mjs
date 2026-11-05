@@ -24,13 +24,16 @@ const isAfter = (now, was) => {
 };
 
 /** What a pull request has to hear about the version it leaves. */
-export const judged = ({ was, now, changed }) => {
+export const judged = ({ was, now, changed, frozenBefore = {}, frozenNow = {} }) => {
   const [before, after] = [read(was), read(now)];
   if (!after) return { wrong: [`contracts/VERSION says ${now}, which is no version`], reminders: [] };
   const wrong = [];
   if (changed && was === now) wrong.push(`what the package publishes changed, and contracts/VERSION is still ${now}`);
   if (was !== now && before && !isAfter(after, before)) wrong.push(`contracts/VERSION goes from ${was} to ${now}, and it only goes up`);
   if (after.numbers[0] !== 1) wrong.push(`contracts/VERSION says ${now}, and the major version stays at 1 while nothing has been shared for real`);
+  for (const [version, said] of Object.entries(frozenBefore)) {
+    if (JSON.stringify(frozenNow[version]) !== JSON.stringify(said)) wrong.push(`what ${version} wrote is frozen, and it changed`);
+  }
   const goesOut = was !== now && !after.draft;
   return {
     wrong,
@@ -57,6 +60,8 @@ const publishedPaths = (revision) => {
   return [...[...files, "package.json"].map((one) => `${PACKAGE}/${one}`), ...ALSO_PUBLISHED];
 };
 
+const frozenAt = (revision) => JSON.parse(atRevision(revision, "contracts/vectors/vectors.json")).frozen ?? {};
+
 const pullRequest = (base, head) => {
   const paths = [...new Set([...publishedPaths(base), ...publishedPaths(head)])];
   const differs = spawnSync("git", ["diff", "--quiet", base, head, "--", ...paths]);
@@ -65,6 +70,8 @@ const pullRequest = (base, head) => {
     was: atRevision(base, "contracts/VERSION"),
     now: atRevision(head, "contracts/VERSION"),
     changed: differs.status === 1,
+    frozenBefore: frozenAt(base),
+    frozenNow: frozenAt(head),
   });
   for (const one of reminders) console.log(`::warning::${one}`);
   for (const one of wrong) console.log(`::error::${one}`);

@@ -368,7 +368,7 @@ impl Gathering<'_> {
             lang: tisty_markdown::front::lang(&body),
             sheet: sheet_of(&body),
             signed_as: self.signed_as.clone(),
-            owner_name: self.signed_as.clone(),
+            owner_name: self.signed_as.clone().filter(|_| !self.public),
             made: None,
             wrote: None,
             body: travelling,

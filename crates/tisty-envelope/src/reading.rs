@@ -25,7 +25,7 @@ use crate::sealing::{
 const OPENS_AT_MOST: u64 = 64 * 1024 * 1024;
 const PNG_MARK: &[u8] = b"\x89PNG\r\n\x1a\n";
 const JPEG_MARK: &[u8] = &[0xFF, 0xD8, 0xFF];
-const FIRST_SHARED_MINOR: u64 = 2;
+const FIRST_SHARED: (u64, u64) = (1, 2);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum Unopened {
@@ -72,13 +72,19 @@ const fn damaged<T>(why: &'static str) -> Result<T, Unopened> {
     Err(Unopened::Damaged(why))
 }
 
-fn major_of(version: &str) -> Option<u64> {
-    version.split('.').next()?.parse().ok()
+// One spelling for a number, as every reader has to agree on which versions it opens.
+fn number_in(said: &str) -> Option<u64> {
+    said.parse()
+        .ok()
+        .filter(|one: &u64| one.to_string() == said)
 }
 
-// Before anything else: a newer version may say what this one would call damaged.
+fn major_of(version: &str) -> Option<u64> {
+    number_in(version.split('.').next()?)
+}
+
 fn minor_of(said: &str) -> Option<u64> {
-    said.split('.').nth(1)?.parse().ok()
+    number_in(said.split('.').nth(1)?)
 }
 
 fn under_a_later_minor(bytes: &[u8]) -> bool {
@@ -108,21 +114,25 @@ fn told_apart<T>(bytes: &[u8], result: Result<T, Unopened>) -> Result<T, Unopene
     })
 }
 
+// Before anything else: a newer version may say what this one would call damaged.
 fn opens_under(said: &str) -> Result<(), Unopened> {
-    if said.contains('-') || VERSION.contains('-') {
-        return if said == VERSION {
+    opens_under_this(said, VERSION)
+}
+
+fn opens_under_this(said: &str, version: &str) -> Result<(), Unopened> {
+    if said.contains('-') || version.contains('-') {
+        return if said == version {
             Ok(())
         } else {
             Err(Unopened::Draft)
         };
     }
-    match major_of(said).zip(major_of(VERSION)) {
-        Some((major, here))
-            if major == here && minor_of(said).is_some_and(|one| one < FIRST_SHARED_MINOR) =>
-        {
-            Err(Unopened::TooOld)
-        }
-        Some((major, here)) if major == here => Ok(()),
+    match major_of(said).zip(major_of(version)) {
+        Some((major, here)) if major == here => match minor_of(said) {
+            None => damaged("its version is no version"),
+            Some(minor) if (major, minor) < FIRST_SHARED => Err(Unopened::TooOld),
+            Some(_) => Ok(()),
+        },
         Some((major, here)) if major > here => Err(Unopened::Newer),
         Some(_) => Err(Unopened::TooOld),
         None => damaged("its version is no version"),
@@ -270,6 +280,10 @@ fn verdict_on(signature: &Value, about: &str, said: &[u8], served: &Served) -> V
     }
 }
 
+fn said_in<'a>(value: &'a Value, name: &str) -> &'a str {
+    value[name].as_str().unwrap_or_default()
+}
+
 fn worse(one: Verdict, other: Verdict) -> Verdict {
     match (one, other) {
         (Verdict::Doubtful, _) | (_, Verdict::Doubtful) => Verdict::Doubtful,
@@ -299,15 +313,14 @@ fn owner_answers(
     if matches!(verdict, Verdict::Refused | Verdict::Unreadable) {
         return Err(Unopened::Signature(verdict));
     }
-    let text = |value: &Value, name: &str| value[name].as_str().unwrap_or_default().to_owned();
-    if text(owner, "root") == text(signature, "root") {
+    if said_in(owner, "root") == said_in(signature, "root") {
         return Ok(verdict);
     }
     let allowed = identity::permit_holds(
-        &text(owner, "permit"),
-        &text(signature, "permit_signed"),
-        &text(signature, "root"),
-        &text(signature, "machine"),
+        said_in(owner, "permit"),
+        said_in(signature, "permit_signed"),
+        said_in(signature, "root"),
+        said_in(signature, "machine"),
         said,
     );
     if allowed {
@@ -476,10 +489,9 @@ fn opened_as_said(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Op
     {
         owner_name_holds(&manifest, first, key)?;
     }
-    let text = |value: &Value, name: &str| value[name].as_str().map(str::to_owned);
     Ok(Opened {
-        signer: text(&signature, "root").unwrap_or_default(),
-        owner: text(&manifest["owner"], "root"),
+        signer: said_in(&signature, "root").to_owned(),
+        owner: manifest["owner"]["root"].as_str().map(str::to_owned),
         manifest: manifest_bytes.to_vec(),
         index: index.to_vec(),
         parts: out,
@@ -596,6 +608,9 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     if held["id"] != manifest["id"] {
         return damaged("another document is inside");
     }
+    if manifest["sealed"] != true && held.get("owner_name").is_some() {
+        return damaged("what is public has nothing to answer for its owner's name");
+    }
     pictures_in_place(&held, &main.parts[2..])?;
     let pages = pages_in_place(&held)?;
     let files = held["files"].as_array().map_or(0, Vec::len);
@@ -612,10 +627,14 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
     let document = told_apart(bytes, document_in(&main))?;
-    let verdict = main.verdict;
-    let signer = main.signer.clone();
-    let owner = main.owner.clone();
-    let pictures = main.parts.into_iter().skip(2).collect();
+    let Opened {
+        parts,
+        verdict,
+        signer,
+        owner,
+        ..
+    } = main;
+    let pictures = parts.into_iter().skip(2).collect();
     Ok(Reading {
         document,
         pictures,
@@ -626,6 +645,15 @@ pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Readi
 }
 
 pub fn files_for(
+    document: &Value,
+    bytes: &[u8],
+    opening: &Opening,
+    served: &Served,
+) -> Result<Opened, Unopened> {
+    told_apart(bytes, files_as_said(document, bytes, opening, served))
+}
+
+fn files_as_said(
     document: &Value,
     bytes: &[u8],
     opening: &Opening,
