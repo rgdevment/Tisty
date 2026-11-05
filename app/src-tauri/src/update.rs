@@ -15,6 +15,8 @@ pub const CANDIDATE: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
+/// Short of the window's six-hour timer, so that a tick always finds the look due.
+const APART_AT_THE_SHOP: jiff::SignedDuration = jiff::SignedDuration::from_hours(5);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -156,16 +158,14 @@ fn offered(version: String, kept: Kept) -> Ready {
 
 /// `self_installs` says no for the Store because a copy kept there cannot replace itself from a
 /// download; an offer the Store itself made is the one it can take without leaving the window.
-pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
-    let here: semver::Version = now.parse().ok()?;
-    let said: semver::Version = version.parse().ok()?;
-
-    (said > here).then(|| Ready {
-        version: said.to_string(),
+/// Any number comes from elsewhere, since the Store's offer names the package installed here.
+pub fn from_the_shop(version: Option<&str>) -> Ready {
+    Ready {
+        version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         installs: true,
         coming: false,
-    })
+    }
 }
 
 /// What the last look found, so closing the window does not take the offer away with it. The copy
@@ -189,7 +189,19 @@ pub fn remembered(now: &str, said: Option<&str>, kept: Kept, wants: Option<bool>
 /// A clock put back leaves the last look in the future, and a copy that only counts forward from
 /// it would wait out the difference before ever looking again.
 pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
-    last.is_none_or(|at| at > now || now.duration_since(at) >= APART)
+    passed(last, now, APART)
+}
+
+pub fn due_at_the_shop(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
+    passed(last, now, APART_AT_THE_SHOP)
+}
+
+fn passed(
+    last: Option<jiff::Timestamp>,
+    now: jiff::Timestamp,
+    apart: jiff::SignedDuration,
+) -> bool {
+    last.is_none_or(|at| at > now || now.duration_since(at) >= apart)
 }
 
 pub fn route() -> Kept {

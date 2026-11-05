@@ -2248,6 +2248,7 @@ const en = {
     "Nothing you wrote is lost: it is kept as it was, and opening the window again picks it up where it stands. What went wrong is written in the log",
   windowFellAgain: "Draw it again",
   updateComing: "The Store is bringing a new version",
+  updateOffered: "The Store has a new version",
   updateOpenShop: "Open the Store",
   updateComingWhy:
     "It is in the Store's own queue — being fetched, or paused there. It installs itself once it lands and this window is closed.",
@@ -4933,6 +4934,7 @@ const es: Catalog = {
     "No se perdió nada de lo que escribiste: queda tal como estaba, y al volver a abrir la ventana sigue donde lo dejaste. Lo que falló quedó escrito en el registro",
   windowFellAgain: "Volver a dibujarla",
   updateComing: "La Store está trayendo una versión nueva",
+  updateOffered: "La Store tiene una versión nueva",
   updateOpenShop: "Abrir la Store",
   updateComingWhy:
     "Está en la cola de la propia Store —descargándose, o en pausa ahí—. Se instala sola cuando llegue y esta ventana esté cerrada.",

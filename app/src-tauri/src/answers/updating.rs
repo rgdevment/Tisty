@@ -45,8 +45,11 @@ pub async fn update_ready(
     // certifying is out for everyone else, and being told of one this copy cannot take is a
     // button that does nothing. What the Store last said stands until it says otherwise.
     if kept.route == update::Route::Store {
+        // An offer with no number is not kept: nothing would say when it stopped being true.
         let last_said = || match (the_shop_said, found.as_deref()) {
-            (Some(true), Some(version)) => update::from_the_shop(version, HERE),
+            (Some(true), Some(version)) if update::later(HERE, version) => {
+                Some(update::from_the_shop(Some(version)))
+            }
             (Some(false), Some(version)) if update::later(HERE, version) => {
                 Some(update::on_its_way(Some(version)))
             }
@@ -55,7 +58,7 @@ pub async fn update_ready(
         let Some(window) = owner(&app) else {
             return Ok(last_said());
         };
-        if !asked && !update::due(last, now) {
+        if !asked && !update::due_at_the_shop(last, now) {
             return Ok(last_said());
         }
         let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
@@ -69,6 +72,12 @@ pub async fn update_ready(
         let out = manifest
             .as_deref()
             .and_then(|said| update::published(HERE, said, wants));
+        // A feed that could not be read says nothing of the version, so the one known stays.
+        let number = if unheard {
+            found.clone().filter(|version| update::later(HERE, version))
+        } else {
+            out.clone()
+        };
         let waiting_for_it =
             |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
                 held(session).keep(|c| {
@@ -81,42 +90,35 @@ pub async fn update_ready(
                     .map(|version| update::on_its_way(Some(version))))
             };
         return match shelf {
-            shop::Shelf::Waiting(version) => {
-                let seen = update::from_the_shop(&version, HERE);
+            shop::Shelf::Waiting => {
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
+                    c.found_version = number.clone();
+                    c.found_in_the_shop = Some(true);
                 })?;
-                Ok(seen)
+                Ok(Some(update::from_the_shop(number.as_deref())))
             }
             // Already down and waiting for this window to close: there is nothing to fetch, so
             // it is announced without the button that would ask the Store for it again.
             shop::Shelf::Landed(version) => {
-                let seen = update::from_the_shop(&version, HERE).map(|one| update::Ready {
+                let seen = update::Ready {
                     installs: false,
-                    ..one
-                });
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
-                })?;
-                Ok(seen)
-            }
-            shop::Shelf::Queued => {
-                // A feed that could not be read says nothing of the version, so the one known stays.
-                let version = if unheard {
-                    found.clone().filter(|version| update::later(HERE, version))
-                } else {
-                    out.clone()
+                    ..update::from_the_shop(Some(&version))
                 };
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
-                    c.found_version = version.clone();
+                    c.found_version = Some(version);
+                    c.found_in_the_shop = Some(true);
+                })?;
+                Ok(Some(seen))
+            }
+            shop::Shelf::Queued => {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = number.clone();
                     c.found_in_the_shop = Some(false);
                 })?;
-                Ok(Some(update::on_its_way(version.as_deref())))
+                Ok(Some(update::on_its_way(number.as_deref())))
             }
             shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
             shop::Shelf::Current if manifest.is_some() => {

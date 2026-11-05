@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 3, 2026
+**Last updated:** November 4, 2026
 
 ## The short version
 
@@ -13,9 +13,9 @@ exists. It sends nothing. Two more requests follow only if you press the button
 that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, and one per picture if you press **Download** above the
-help. Never otherwise. A copy installed from the Microsoft Store makes no
-update request: it asks Windows what the Store has, and the Store does the
-rest. All of them are described in full below.
+help. Never otherwise. A copy installed from the Microsoft Store asks Windows
+what the Store has and leaves the rest to the Store, and reads that same small
+file to put a number on what is coming. All of them are described in full below.
 
 Since version 1.30, Tisty can also sync through your own Google Drive, since
 1.31 through your own OneDrive, and since 1.32 through a WebDAV server of your
@@ -227,18 +227,21 @@ them: nothing else changes, and nothing more is sent.
 
 ## If Tisty came from the Microsoft Store
 
-That copy asks GitHub nothing. It asks Windows what the Store has for it,
-through the system's own Store interface, and Windows is what talks to
-Microsoft — with the identity that machine already uses for every other app it
-installed from there. Tisty adds nothing of its own: no identifier, no store, no
-task, no name. It is the question Windows asks on its own schedule anyway; the
-button only asks it now.
+That copy asks Windows what the Store has for it, through the system's own Store
+interface, and Windows is what talks to Microsoft — with the identity that
+machine already uses for every other app it installed from there. Tisty adds
+nothing of its own: no identifier, no store, no task, no name. It is the question
+Windows asks on its own schedule anyway; the button only asks it now.
+
+Each time it asks, it also reads the file described above, to put a number on what
+the Store has and to know of a version the Store has not brought yet. It is the
+same request, with the same headers, and it sends nothing more.
 
 | | |
 | :--- | :--- |
 | **Why** | To tell you a newer Tisty exists, and to install it if you say so |
-| **What it asks** | Windows, through `StoreContext`. No server of ours is involved |
-| **What it sends** | Nothing of Tisty's. What travels is what the Store already sends for any app installed from it |
+| **What it asks** | Windows, through `StoreContext`, and GitHub for the file above. No server of ours is involved |
+| **What it sends** | Nothing of Tisty's. What travels is what the Store already sends for any app installed from it, and the headers of the request above |
 | **How often** | When Tisty opens, every six hours for as long as it keeps running, and whenever you ask *About* to look |
 | **Timeout** | 10 seconds to ask |
 | **If it fails** | Nothing is said, and *About* falls back to sending you to the Store yourself |

@@ -4,7 +4,8 @@
 /// is current, the second that nothing is known and the old wording still stands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Shelf {
-    Waiting(String),
+    /// The offer carries no number: the package it names is the one installed here.
+    Waiting,
     /// Already on this machine, staged beside the copy in use, and it takes over when this one
     /// closes. Nothing left to download, so nothing to offer but the closing.
     Landed(String),
@@ -100,9 +101,9 @@ mod there {
             return Shelf::Landed(version);
         }
         match apart(PATIENCE, move || waiting(window)) {
-            Some(Ok(Some(version))) => Shelf::Waiting(version),
-            Some(Ok(None)) if forced => waited_out(window),
-            Some(Ok(None)) => in_its_queue(window),
+            Some(Ok(true)) => Shelf::Waiting,
+            Some(Ok(false)) if forced => waited_out(window),
+            Some(Ok(false)) => in_its_queue(window),
             Some(Err(why)) => {
                 witness::warn(
                     channel::UPDATE,
@@ -123,7 +124,8 @@ mod there {
     }
 
     /// The Store was just asked and said nothing, which is what it says while its own errand is
-    /// still running. Waiting it out turns «nothing for you» into what it actually found.
+    /// still running. It allows one look every 30 minutes and ten a day, then repeats its last
+    /// answer, so the wait watches what costs no look and asks it only once more at the end.
     fn waited_out(window: isize) -> Shelf {
         let since = std::time::Instant::now();
         while since.elapsed() < UNTIL {
@@ -136,19 +138,14 @@ mod there {
                 );
                 return Shelf::Landed(version);
             }
-            if let Some(Ok(Some(version))) = apart(PATIENCE, move || waiting(window)) {
-                witness::note(
-                    channel::UPDATE,
-                    "the Store named an update only after its own errand had run",
-                    &[
-                        ("version", Fact::Id(version.clone())),
-                        ("waited", Fact::Count(since.elapsed().as_secs() as usize)),
-                    ],
-                );
-                return Shelf::Waiting(version);
+            if let Some(Ok(true)) = apart(PATIENCE, move || queued(window)) {
+                return Shelf::Queued;
             }
         }
-        in_its_queue(window)
+        match apart(PATIENCE, move || waiting(window)) {
+            Some(Ok(true)) => Shelf::Waiting,
+            _ => in_its_queue(window),
+        }
     }
 
     fn in_its_queue(window: isize) -> Shelf {
@@ -185,6 +182,11 @@ mod there {
     fn queued(window: isize) -> windows::core::Result<bool> {
         let ours = Package::Current()?.Id()?.FamilyName()?;
         let items = shop(window)?.GetAssociatedStoreQueueItemsAsync()?.join()?;
+        witness::standing(
+            channel::UPDATE,
+            "the Store's queue was read",
+            &[("items", Fact::Count(items.Size()? as usize))],
+        );
         for one in 0..items.Size()? {
             let item = items.GetAt(one)?;
             if item.PackageFamilyName().unwrap_or_default() != ours {
@@ -242,9 +244,8 @@ mod there {
         newest.map(|one| one.to_string())
     }
 
-    /// The errand covers optional packages too, and the version of one of those is not a version
-    /// of Tisty to put in front of anybody.
-    fn waiting(window: isize) -> windows::core::Result<Option<String>> {
+    /// The errand covers optional packages too, and an update to one of those is not one to Tisty.
+    fn waiting(window: isize) -> windows::core::Result<bool> {
         let updates = shop(window)?
             .GetAppAndOptionalStorePackageUpdatesAsync()?
             .join()?;
@@ -254,7 +255,12 @@ mod there {
             let id = updates.GetAt(one)?.Package()?.Id()?;
             let name = id.FamilyName()?;
             if name == ours {
-                return Ok(Some(numbered(&id.Version()?)));
+                witness::note(
+                    channel::UPDATE,
+                    "the Store offers an update for this package",
+                    &[("named", Fact::Id(numbered(&id.Version()?)))],
+                );
+                return Ok(true);
             }
             offered.push(name.to_string());
         }
@@ -276,7 +282,7 @@ mod there {
                 ),
             ],
         );
-        Ok(None)
+        Ok(false)
     }
 
     pub fn take(

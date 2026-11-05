@@ -295,10 +295,12 @@ fn the_manifest_says_nothing_to_a_copy_the_store_keeps() {
 
 #[test]
 fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
-    let offer = from_the_shop("0.3.0", "0.2.0").expect("0.3.0 is newer");
+    let offer = from_the_shop(Some("0.3.0"));
 
+    assert_eq!(offer.version, "0.3.0");
     assert_eq!(offer.route, Route::Store);
     assert!(offer.installs);
+    assert!(!offer.coming);
     assert!(
         !self_installs(Route::Store),
         "and the manifest still cannot offer one on the store's behalf"
@@ -306,17 +308,30 @@ fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
 }
 
 #[test]
-fn the_store_is_held_to_the_same_rule_as_the_manifest() {
+fn an_offer_with_no_number_can_still_be_taken() {
+    let offer = from_the_shop(None);
+
+    assert_eq!(offer.version, "");
     assert!(
-        from_the_shop("0.3.0", "0.3.0").is_none(),
-        "the version already running is not an update"
+        offer.installs,
+        "the Store said it has one, and that is enough"
     );
+    assert!(!offer.coming);
+}
+
+#[test]
+fn a_copy_the_store_keeps_looks_on_every_tick_of_the_window_timer() {
+    let now: jiff::Timestamp = "2026-11-04T18:00:00Z".parse().unwrap();
+    let tick: jiff::Timestamp = "2026-11-04T12:00:00Z".parse().unwrap();
+    let pressed: jiff::Timestamp = "2026-11-04T17:00:00Z".parse().unwrap();
+
+    assert!(due_at_the_shop(None, now));
+    assert!(due_at_the_shop(Some(tick), now));
+    assert!(!due_at_the_shop(Some(pressed), now));
     assert!(
-        from_the_shop("0.2.0", "0.3.0").is_none(),
-        "nor is one behind it"
+        !due(Some(tick), now),
+        "every other copy still looks once a day"
     );
-    assert!(from_the_shop("tomorrow", "0.3.0").is_none());
-    assert!(from_the_shop("0.3.0", "tomorrow").is_none());
 }
 
 /// The offer and the refusal read the same thing, or the button is shown to somebody it will

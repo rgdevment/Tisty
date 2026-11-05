@@ -278,6 +278,18 @@ describe("a newer version the Store itself offers", () => {
     ).toBeNull();
   });
 
+  it("offers the Store's update even when no number is known for it", async () => {
+    render(
+      <About
+        ready={{ version: "", route: "store", installs: true, coming: false }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("The Store has a new version")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Update" })).toBeTruthy();
+  });
+
   it("names the version it is waiting for, and opens the Store for whoever will not wait", async () => {
     render(
       <About
