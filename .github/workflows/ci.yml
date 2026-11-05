@@ -317,7 +317,7 @@ jobs:
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
-            -p tisty-cli -p tisty-share-proto \
+            -p tisty-cli -p tisty-share-proto -p tisty-envelope -p tisty-sharing \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

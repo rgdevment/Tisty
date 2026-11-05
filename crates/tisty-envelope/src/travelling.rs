@@ -50,6 +50,8 @@ pub struct Places {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Named {
     pub pictures: Vec<String>,
+    /// What the person laid in as a file, however its bytes read: it goes as a card and never as a picture.
+    pub files: Vec<String>,
     pub links: Vec<String>,
     pub documents: Vec<String>,
 }
@@ -58,7 +60,7 @@ fn opens_a_doc(href: &str) -> Option<&str> {
     href.strip_prefix("tisty:doc/")
 }
 
-fn leads_outside(href: &str) -> bool {
+pub fn leads_outside(href: &str) -> bool {
     let lowered = href.trim().to_ascii_lowercase();
     ["http://", "https://", "mailto:"]
         .iter()
@@ -76,7 +78,13 @@ pub fn named(html: &str) -> Named {
             return;
         };
         match tag.name {
-            "img" => out.pictures.extend(tag.said("src").map(unescaped)),
+            "img" => {
+                let into = match tag.said("data-as") {
+                    Some("file") => &mut out.files,
+                    _ => &mut out.pictures,
+                };
+                into.extend(tag.said("src").map(unescaped));
+            }
             "a" => {
                 if let Some(doc) = tag.said("data-doc") {
                     out.documents.push(unescaped(doc));
@@ -92,6 +100,12 @@ pub fn named(html: &str) -> Named {
             _ => {}
         }
     });
+    out
+}
+
+pub fn words_in(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    walk(html, |words, _| out.push_str(&unescaped(words)));
     out
 }
 
@@ -428,20 +442,24 @@ fn image_said(at: &Range<usize>, said: &str, src: &str, places: &Places, out: &m
     let alt = closing_of(said)
         .and_then(|closing| said.get(2..closing))
         .unwrap_or_default();
-    match (reached_as(src, places), address_after(said, "](")) {
+    // Laid in as a file it reads as the HTML draws it, even when the same attachment is a picture elsewhere.
+    let filed = tisty_markdown::filed(said) && opens_a_doc(src).is_none();
+    let is_a_picture = !filed && places.pictures.contains_key(src);
+    let place = if filed {
+        places.files.get(src).map(|at| format!("tisty:file/{at}"))
+    } else {
+        reached_as(src, places)
+    };
+    match (place, address_after(said, "](")) {
         // A file is a card, as the HTML draws it, and no picture.
         (Some(place), Some(address)) => {
-            if !places.pictures.contains_key(src) {
+            if !is_a_picture {
                 out.push((at.start..at.start + 1, String::new()));
             }
             out.push((within(at, &address), place));
         }
         (Some(place), None) => {
-            let mark = if places.pictures.contains_key(src) {
-                "!"
-            } else {
-                ""
-            };
+            let mark = if is_a_picture { "!" } else { "" };
             out.push((at.clone(), format!("{mark}[{alt}]({place})")));
         }
         (None, _) if leads_outside(src) => out.push((at.start..at.start + 1, String::new())),

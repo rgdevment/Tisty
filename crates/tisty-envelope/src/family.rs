@@ -1,27 +1,27 @@
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use tisty_contracts::{Cited, Document, Sealing, Translation};
 
 use crate::sealing::{Refused, Sealed, Writer};
 
-/// One language of a document, ready to seal, and what it shares along.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tongue {
     pub document: Document,
     pub pictures: Vec<Vec<u8>>,
     pub files: Vec<Vec<u8>>,
     pub sealing: Sealing,
-    pub cited: Vec<Family>,
+    // Shared, since two languages may cite one document and its bytes need not be held twice.
+    pub cited: Vec<Arc<Family>>,
 }
 
-/// A document and its other languages. Only the anchor holds the map, so a reader reaches each language from it.
+// Only the anchor holds the map, so a reader reaches each language from it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Family {
     pub anchor: Tongue,
     pub others: Vec<Tongue>,
 }
 
-/// Each envelope that has to go, under the id it asks for.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Going {
     pub id: String,
@@ -102,7 +102,7 @@ fn languages_sealed(
     writer: &mut Writer,
     family: Family,
     going: &mut Vec<Going>,
-) -> Result<Vec<Family>, Refused> {
+) -> Result<Vec<Arc<Family>>, Refused> {
     let Family {
         mut anchor,
         mut others,
@@ -147,6 +147,7 @@ fn tongues(family: &Family) -> impl Iterator<Item = &Tongue> {
 fn each_goes_once(family: &Family) -> Result<(), Refused> {
     let mut going = vec![family];
     for one in tongues(family).flat_map(|tongue| &tongue.cited) {
+        let one: &Family = one;
         if going.contains(&one) {
             continue;
         }
@@ -161,16 +162,17 @@ fn each_goes_once(family: &Family) -> Result<(), Refused> {
     Ok(())
 }
 
-/// Seals a family: each language in its own envelopes, signed here, with the anchor carrying the map to them, and each document cited in its own, once however many cite it.
 pub fn sealed_family(writer: &mut Writer, family: Family) -> Result<Vec<Going>, Refused> {
     each_goes_once(&family)?;
     let mut going = Vec::new();
     let cited = languages_sealed(writer, family, &mut going)?;
     let mut seen = BTreeSet::new();
-    for one in cited {
-        if seen.insert(one.anchor.sealing.id.clone()) {
-            languages_sealed(writer, one, &mut going)?;
-        }
+    let once_each: Vec<Arc<Family>> = cited
+        .into_iter()
+        .filter(|one| seen.insert(one.anchor.sealing.id.clone()))
+        .collect();
+    for one in once_each {
+        languages_sealed(writer, Arc::unwrap_or_clone(one), &mut going)?;
     }
     Ok(going)
 }

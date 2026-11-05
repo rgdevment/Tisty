@@ -232,7 +232,7 @@ pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
 }
 
 // A title of "file" asks for the attachment as a file, where a page would otherwise be drawn live.
-fn filed(said: &str) -> bool {
+pub fn filed(said: &str) -> bool {
     let said = said.trim_end().trim_end_matches(')').trim_end();
     ["\"file\"", "'file'", "(file"]
         .iter()

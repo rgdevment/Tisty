@@ -17,6 +17,27 @@ fn places() -> Places {
 }
 
 #[test]
+fn what_is_laid_in_as_a_file_reads_as_a_card_even_when_it_is_a_picture_elsewhere() {
+    let mut places = places();
+    places.files.insert("rina.png".into(), 3);
+    let said = body_ready("![a](rina.png) ![b](rina.png \"file\")\n", &places);
+    assert_eq!(said, "![a](tisty:picture/0) [b](tisty:file/3 \"file\")\n");
+    let drawn = tisty_markdown::html(&tisty_markdown::read("![b](rina.png \"file\")\n"));
+    assert!(ready(&drawn, &places).contains("href=\"tisty:file/3\""));
+}
+
+#[test]
+fn what_is_laid_in_as_a_file_and_cannot_go_reads_as_its_words_in_both() {
+    let said = body_ready("![b](rina.png \"file\")\n", &places());
+    assert!(
+        !said.contains("picture") && !said.contains("rina"),
+        "{said}"
+    );
+    let drawn = tisty_markdown::html(&tisty_markdown::read("![b](rina.png \"file\")\n"));
+    assert!(!ready(&drawn, &places()).contains("picture"));
+}
+
+#[test]
 fn a_formula_keeps_its_empty_parts_closed() {
     let html = tisty_markdown::html(&tisty_markdown::read(r"texto $a\,b$ fin"));
     assert!(ready(&html, &places()).contains(r#"<mspace width="0.16666667em"/><mi>b</mi>"#));

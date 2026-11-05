@@ -47,7 +47,9 @@ tisty-google.workspace = true
 tisty-onedrive.workspace = true
 tisty-webdav.workspace = true
 tisty-core.workspace = true
+tisty-envelope.workspace = true
 tisty-share-proto = { workspace = true, features = ["mint"] }
+tisty-sharing.workspace = true
 tisty-help.workspace = true
 tisty-markdown = { workspace = true, features = ["default"] }
 tisty-nl.workspace = true

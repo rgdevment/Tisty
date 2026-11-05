@@ -450,7 +450,7 @@ figure.diagram:hover .diagram-bar,
     display: none;
   }
 }
-figure.diagram:not(.drawn) {
+figure.diagram:not(.drawn, :has(> svg[data-theme])) {
   border: 1px solid var(--tisty-hair);
   border-radius: 10px;
   background: var(--tisty-hover);
@@ -465,6 +465,16 @@ figure.diagram svg {
   width: 100%;
   height: auto;
   cursor: zoom-in;
+}
+figure.diagram > svg[data-theme] {
+  display: none;
+  width: auto;
+  max-width: 100%;
+  cursor: default;
+}
+:root[data-theme="dark"] figure.diagram > svg[data-theme="dark"],
+:root:not([data-theme="dark"]) figure.diagram > svg[data-theme="light"] {
+  display: block;
 }
 figure.widget iframe {
   display: block;

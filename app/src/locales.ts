@@ -681,6 +681,31 @@ const en = {
   joinWhich: "The same document, in another language",
   partTongues: "Take out of its languages",
   tongueTaken: "That language is already one of its languages",
+  notOneOwnDoc: "Only what is your own can be shared",
+  onlyADocumentShared: "A page goes with its document, and a task's words stay with the task",
+  noIdentityToSign: "This computer has no identity to sign with yet",
+  cannotSeal: "This document could not be made ready to share",
+  cannotFinish: "Its code and diagrams could not be drawn. Try again in a moment.",
+  toldPictureAsFile:
+    "In {other}, the picture {name} goes as a file to download, because it cannot be drawn",
+  toldPictureAsWords:
+    "In {other}, the picture {name} goes as its words, because it is no longer here or is too large to travel",
+  toldPictureAsLink: "In {other}, the picture at {name} goes as a link to it",
+  toldFileAsWords:
+    "In {other}, the file {name} goes as its words, because it is no longer here or is too large to travel",
+  toldNotDrawn: "In {other}, {name} diagrams could not be drawn and go as code",
+  toldOneNotDrawn: "One diagram in {name} could not be drawn and goes as code",
+  toldPictureNotKept:
+    "In {other}, the picture {name} goes as its words, because it is not kept in Tisty",
+  toldSomePictureNotKept: "In {name}, a picture goes as its words, because it is not kept in Tisty",
+  toldCitedLeftBehind:
+    "{name} is locked, put away or someone else's, so what names it goes as its words",
+  toldPageLeftBehind:
+    "A page of {name} stays here, because it is put away, locked or could not be read",
+  awayNotShared: "That one is put away. Bring it back to share it",
+  toldLanguageLeftBehind:
+    "The language {name} is locked, put away or someone else's, so it stays here",
+  toldNameLeftOut: "That name cannot be used to sign, so it goes without a name",
   tongueUnsaid: "Say first which language it is in",
   notALanguage: "That is not a language Tisty knows how to name",
   pageHasNoTongue: "A page is in the language of its document",
@@ -3359,6 +3384,34 @@ const es: Catalog = {
   joinWhich: "El mismo documento, en otro idioma",
   partTongues: "Separar de sus idiomas",
   tongueTaken: "Ese idioma ya está entre sus idiomas",
+  notOneOwnDoc: "Solo se puede compartir lo propio",
+  onlyADocumentShared:
+    "Una página va con su documento, y las palabras de una tarea se quedan con la tarea",
+  noIdentityToSign: "Este computador todavía no tiene una identidad con la que firmar",
+  cannotSeal: "Este documento no se pudo dejar listo para compartir",
+  cannotFinish:
+    "No se pudieron dibujar su código y sus diagramas. Inténtalo de nuevo en un momento.",
+  toldPictureAsFile:
+    "En {other}, la imagen {name} va como archivo para descargar, porque no se puede dibujar",
+  toldPictureAsWords:
+    "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
+  toldPictureAsLink: "En {other}, la imagen de {name} va como un enlace a ella",
+  toldFileAsWords:
+    "En {other}, el archivo {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
+  toldNotDrawn: "En {other}, {name} diagramas no se pudieron dibujar y van como código",
+  toldOneNotDrawn: "Un diagrama de {name} no se pudo dibujar y va como código",
+  toldPictureNotKept:
+    "En {other}, la imagen {name} va como sus palabras, porque no está guardada en Tisty",
+  toldSomePictureNotKept:
+    "En {name}, una imagen va como sus palabras, porque no está guardada en Tisty",
+  toldCitedLeftBehind:
+    "{name} está bloqueado, archivado o es de otra persona, así que lo que lo nombra va como sus palabras",
+  toldPageLeftBehind:
+    "Una página de {name} se queda aquí, porque está archivada, bloqueada o no se pudo leer",
+  awayNotShared: "Ese está archivado. Desarchívalo para compartirlo",
+  toldLanguageLeftBehind:
+    "El idioma {name} está bloqueado, archivado o es de otra persona, así que se queda aquí",
+  toldNameLeftOut: "Ese nombre no sirve para firmar, así que va sin nombre",
   tongueUnsaid: "Primero di en qué idioma está",
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",
   pageHasNoTongue: "Una página está en el idioma de su documento",

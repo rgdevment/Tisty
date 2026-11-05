@@ -5926,12 +5926,14 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
+ "tisty-envelope",
  "tisty-google",
  "tisty-help",
  "tisty-markdown",
  "tisty-nl",
  "tisty-onedrive",
  "tisty-share-proto",
+ "tisty-sharing",
  "tisty-webdav",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
@@ -6008,6 +6010,31 @@ dependencies = [
  "tisty-share-proto",
  "unicode-normalization",
  "zeroize",
+]
+
+[[package]]
+name = "tisty-sharing"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64 0.23.1",
+ "ed25519-dalek",
+ "flate2",
+ "hkdf",
+ "hmac",
+ "image",
+ "jiff",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tisty-contracts",
+ "tisty-core",
+ "tisty-envelope",
+ "tisty-markdown",
+ "tisty-share-proto",
+ "ulid",
 ]
 
 [[package]]
