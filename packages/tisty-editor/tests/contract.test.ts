@@ -219,6 +219,8 @@ describe("the window reads a document's properties as far as the contract says",
     expect(sized(atMost)).toHaveLength(atMost);
     expect(fields(sized(atMost))).toHaveLength(1);
     expect(fields(sized(atMost + 1))).toEqual([]);
+    expect(fields(sized(atMost + 1).trimEnd())).toHaveLength(1);
+    expect(fields(sized(atMost + 2).trimEnd())).toEqual([]);
   });
 
   it("up to its properties", () => {
@@ -232,7 +234,8 @@ describe("the window reads a document's properties as far as the contract says",
   });
 
   it("up to the characters of a value", () => {
-    const said = (characters: number) => `---\ntitle: ${"é".repeat(characters)}\n---\n`;
+    // One emoji is one character but two units of a string, so counting units reads less than the contract says.
+    const said = (characters: number) => `---\ntitle: 😀${"x".repeat(characters - 1)}\n---\n`;
     const atMost = frontMatter.value_characters_at_most;
     expect(fields(said(atMost))).toHaveLength(1);
     expect(fields(said(atMost + 1))).toEqual([]);

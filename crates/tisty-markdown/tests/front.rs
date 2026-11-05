@@ -124,6 +124,8 @@ fn a_block_is_read_up_to_the_bytes_the_contract_gives_it() {
     assert_eq!(sized(at_most).len(), at_most);
     assert_eq!(title(&sized(at_most)).as_deref(), Some("a"));
     assert_eq!(title(&sized(at_most + 1)), None);
+    assert_eq!(title(sized(at_most + 1).trim_end()).as_deref(), Some("a"));
+    assert_eq!(title(sized(at_most + 2).trim_end()), None);
 }
 
 #[test]
@@ -139,8 +141,12 @@ fn a_block_is_read_up_to_the_properties_the_contract_gives_it() {
 
 #[test]
 fn a_value_is_read_up_to_the_characters_the_contract_gives_it() {
-    let said = |characters: usize| format!("---\ntitle: {}\n---\n", "é".repeat(characters));
+    // One emoji is one character but more than one byte, so counting bytes reads less than the contract says.
+    let said = |characters: usize| format!("---\ntitle: 😀{}\n---\n", "x".repeat(characters - 1));
     let at_most = limit("value_characters_at_most");
-    assert_eq!(title(&said(at_most)), Some("é".repeat(at_most)));
+    assert_eq!(
+        title(&said(at_most)).map(|one| one.chars().count()),
+        Some(at_most)
+    );
     assert_eq!(title(&said(at_most + 1)), None);
 }
