@@ -44,6 +44,8 @@ fn only_a_link_of_the_web_is_handed_over() {
     assert!(!on_the_web("file:///C:/one.txt"));
     assert!(!on_the_web("ms-windows-store://review/?ProductId=9"));
     assert!(!on_the_web("tisty://whatever"));
+    assert!(!openable("tisty://edit?link=x"));
+    assert!(!openable("tisty://open?path=x"));
     assert!(!on_the_web("https:"));
     assert!(!on_the_web("nothing at all"));
 }

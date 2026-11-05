@@ -209,7 +209,7 @@ for (const [says, { parts, ...over }] of CASES) {
   refused.push({ says, envelope: bytes.toString("hex") });
 }
 
-// What a reader opens all the same: a later minor only adds what it can leave aside, and a number is a number however it is written.
+// What a reader opens all the same: a later minor of its major, and a number is a number however it is written.
 const OPENING = [
   ["a later minor version", { parts: asWords(fair, fairRest), contract: LATER_MINOR }],
   [

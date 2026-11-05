@@ -238,6 +238,14 @@ test("the check entry says the same as the full one", () => {
   assert.deepEqual(entry.picturesIn(html), picturesIn(html));
 });
 
+test("the edit address hands over its link whole, key and all", () => {
+  const { edit, edit_example: { link, address } } = CONTRACTS.link.values;
+  assert.equal(address, edit.split("{")[0] + encodeURIComponent(link));
+  const read = new URL(address);
+  assert.deepEqual([...read.searchParams], [["link", link]]);
+  assert.equal(read.hash, "");
+});
+
 test("every entry of the package is a file it holds", () => {
   const { exports: entries, files } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
   for (const entry of Object.values(entries)) {

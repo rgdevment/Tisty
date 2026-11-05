@@ -30,12 +30,11 @@ export const judged = ({ was, now, changed }) => {
   const wrong = [];
   if (changed && was === now) wrong.push(`what the package publishes changed, and contracts/VERSION is still ${now}`);
   if (was !== now && before && !isAfter(after, before)) wrong.push(`contracts/VERSION goes from ${was} to ${now}, and it only goes up`);
-  const [majorNow, minorNow, patchNow] = after.numbers;
-  const draftBecomesMajor = before?.draft && !after.draft && minorNow === 0 && patchNow === 0;
-  const major = before && (majorNow > before.numbers[0] || draftBecomesMajor);
+  if (after.numbers[0] !== 1) wrong.push(`contracts/VERSION says ${now}, and the major version stays at 1 while nothing has been shared for real`);
+  const goesOut = was !== now && !after.draft;
   return {
     wrong,
-    reminders: major ? [`a new major version: deploy Folio first, and Tisty after it, since a reader refuses what is newer than it`] : [],
+    reminders: goesOut ? [`a new version: deploy Folio first, and Tisty after it`] : [],
   };
 };
 

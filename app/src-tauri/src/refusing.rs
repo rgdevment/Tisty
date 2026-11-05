@@ -115,6 +115,14 @@ pub fn takes_itself_there() -> bool {
     update::self_installs(update::route().route) && !update::from_a_mount()
 }
 
+pub fn edit_not_yet_words(spanish: bool) -> &'static str {
+    if spanish {
+        "Este Tisty todavía no puede traer documentos compartidos para editarlos. Sigues pudiendo leerlo en el navegador."
+    } else {
+        "This Tisty cannot bring in shared documents to edit yet. You can still read it in your browser."
+    }
+}
+
 pub fn not_moved_words(spanish: bool, why: &str) -> String {
     let said = if spanish {
         "Tisty no pudo mover tus datos fuera de AppData, así que no abrió para no arriesgar la copia que ya tenías. Nada se perdió.
