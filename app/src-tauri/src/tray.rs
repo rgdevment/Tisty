@@ -250,6 +250,7 @@ pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
+    crate::waking::returns(false);
     undock_unless_seen(window.app_handle(), window.label());
 }
 
@@ -264,6 +265,7 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     };
     docked(app, true);
     let _ = window.show();
+    crate::waking::returns(true);
     let _ = window.unminimize();
     let _ = window.set_focus();
 }

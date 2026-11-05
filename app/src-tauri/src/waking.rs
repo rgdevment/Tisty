@@ -26,6 +26,28 @@ pub fn unreaching(args: &[String]) -> bool {
     matches!(args, [_, one] if one == UNREACH)
 }
 
+/// The plugin relaunches with the arguments it was started with, so a copy that opened with the
+/// session would come back hidden to whoever pressed the button. A Store copy is not relaunched
+/// by the plugin: Windows brings it back as it was left, and one left hidden stays hidden.
+pub fn came_back(route: crate::update::Route, found: Option<&str>, here: &str) -> bool {
+    route != crate::update::Route::Store && found == Some(here)
+}
+
+/// Kept current as the window comes and goes, because Windows reads it only when it closes this
+/// copy to replace a file in use, the Store's updates among them, and nothing else reopens it.
+pub fn returns(seen: bool) {
+    #[cfg(windows)]
+    if let Err(why) = there::returns(seen) {
+        witness::warn(
+            channel::WINDOW,
+            "the machine was not told how to reopen Tisty after an update",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
+    #[cfg(not(windows))]
+    let _ = seen;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Waking {
@@ -193,6 +215,14 @@ mod there {
 
     fn packaged() -> bool {
         crate::update::route().route == crate::update::Route::Store
+    }
+
+    pub fn back_with(seen: bool) -> &'static str {
+        if seen { "" } else { HUSHED }
+    }
+
+    pub fn returns(seen: bool) -> std::io::Result<()> {
+        crate::desktop::reopened_with(back_with(seen)).map_err(sour)
     }
 
     fn tasked() -> Waking {
@@ -380,10 +410,24 @@ mod tests {
 
 #[cfg(all(test, windows))]
 mod tests {
-    use super::there::{approves, ours};
+    use super::there::{approves, back_with, ours};
+    use super::{HUSHED, told};
     use std::path::Path;
 
     const EXE: &str = r"C:\Program Files\Tisty\Tisty.exe";
+
+    fn started_with(line: &str) -> Vec<String> {
+        std::iter::once(EXE)
+            .chain(line.split_whitespace())
+            .map(str::to_string)
+            .collect()
+    }
+
+    #[test]
+    fn a_copy_comes_back_from_an_update_as_it_was_left() {
+        assert!(told(&started_with(back_with(false)), HUSHED));
+        assert!(!told(&started_with(back_with(true)), HUSHED));
+    }
 
     #[test]
     fn the_quoted_program_is_read_apart_from_its_arguments() {

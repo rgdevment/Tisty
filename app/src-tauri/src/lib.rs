@@ -889,10 +889,11 @@ pub(crate) fn opened(
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
     let session_keys = session.config.quick_keys.clone();
-    // An update relaunches with the arguments it was started with, so a copy that opened
-    // with the session comes back hidden — looking, to whoever pressed the button, like it
-    // never came back at all.
-    let came_back = session.config.found_version.as_deref() == Some(HERE);
+    let came_back = waking::came_back(
+        update::route().route,
+        session.config.found_version.as_deref(),
+        HERE,
+    );
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(app, telling, &quiet));
@@ -963,7 +964,9 @@ pub(crate) fn opened(
 
     if let Some(window) = app.get_webview_window("main") {
         desktop::proofread(&window);
-        if came_back || !(waking::hushed() || viewing) {
+        let seen = came_back || !(waking::hushed() || viewing);
+        waking::returns(seen);
+        if seen {
             desktop::fitted(&window);
             tray::docked(app, true);
             let _ = window.show();

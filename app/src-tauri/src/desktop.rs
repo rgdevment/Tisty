@@ -133,6 +133,23 @@ fn a_package(id: &str) -> bool {
         || id.contains('!')
 }
 
+/// A crash, a hang and a reboot are left out: only being closed to be replaced reopens it.
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub(crate) fn reopened_with(line: &str) -> windows::core::Result<()> {
+    use windows::Win32::System::Recovery::{
+        RESTART_NO_CRASH, RESTART_NO_HANG, RESTART_NO_REBOOT, RegisterApplicationRestart,
+    };
+
+    // Windows keeps its own copy of the line, so it need not outlive the call.
+    unsafe {
+        RegisterApplicationRestart(
+            &windows::core::HSTRING::from(line),
+            RESTART_NO_CRASH | RESTART_NO_HANG | RESTART_NO_REBOOT,
+        )
+    }
+}
+
 /// Blocks until anything under `key` is written or made; false once it can no longer be watched.
 #[cfg(windows)]
 #[allow(unsafe_code)]
