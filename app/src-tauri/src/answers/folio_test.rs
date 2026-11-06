@@ -1,7 +1,134 @@
-use tisty_carrier::folio_client::{Refused, Stopped, Why};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, VecDeque};
+
+use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Why};
+use tisty_core::Paths;
+use tisty_envelope::family::Going;
+use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
-use super::{Card, card_of, headings_over, said};
+use super::{Card, card_of, delivered, headings_over, said};
+
+type Heard = (String, Vec<(&'static str, String)>);
+
+#[derive(Default)]
+struct FakeFolio {
+    answers: RefCell<VecDeque<(u16, &'static str)>>,
+    asked: RefCell<Vec<Heard>>,
+}
+
+impl Door for FakeFolio {
+    fn ask(&self, asked: &Asked<'_>) -> Option<Answered> {
+        self.asked
+            .borrow_mut()
+            .push((asked.path.clone(), asked.headers.clone()));
+        let (status, body) = self.answers.borrow_mut().pop_front()?;
+        Some(Answered {
+            status,
+            headers: Vec::new(),
+            body: body.as_bytes().to_vec(),
+        })
+    }
+}
+
+fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
+    tisty_sharing::Sealed {
+        going: vec![Going {
+            id: "Ab3xK9pQ".to_owned(),
+            sealed: Envelopes {
+                main: vec![1],
+                files_hash: files.as_ref().map(|_| "hash".to_owned()),
+                files,
+            },
+        }],
+        told: Vec::new(),
+        remembering: vec![("file".to_owned(), remembered(Some("key"), None))],
+        anchors: BTreeMap::new(),
+    }
+}
+
+fn starts() -> BTreeMap<String, String> {
+    BTreeMap::from([("Ab3xK9pQ".to_owned(), "mac".to_owned())])
+}
+
+fn paths_in(room: &tempfile::TempDir) -> Paths {
+    Paths::new(room.path().join("data"), room.path().join("config"))
+}
+
+#[test]
+fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = paths_in(&room);
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":1}"#));
+
+    delivered(&folio, &paths, &sealed_for(None), &starts(), 3).unwrap();
+
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, "/docs/Ab3xK9pQ");
+    assert!(asked[0].1.contains(&("Folio-Start", "mac".to_owned())));
+    assert!(asked[0].1.contains(&("Folio-Ttl-Days", "3".to_owned())));
+    assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
+    assert!(
+        tisty_sharing::remembered(&paths)
+            .unwrap()
+            .contains_key("file")
+    );
+}
+
+#[test]
+fn its_files_go_when_folio_wants_them() {
+    let room = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().extend([
+        (200, r#"{"stored":true,"version":1,"filesWanted":true}"#),
+        (200, r#"{"stored":true,"hash":"hash"}"#),
+    ]);
+
+    delivered(
+        &folio,
+        &paths_in(&room),
+        &sealed_for(Some(vec![2])),
+        &starts(),
+        1,
+    )
+    .unwrap();
+
+    assert_eq!(folio.asked.borrow()[1].0, "/docs/Ab3xK9pQ/files");
+}
+
+#[test]
+fn what_folio_refused_is_not_remembered_as_sent() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = paths_in(&room);
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((409, r#"{"refused":"shares_full"}"#));
+
+    let told = delivered(&folio, &paths, &sealed_for(None), &starts(), 1).unwrap_err();
+
+    assert_eq!(told.code, "folioFull");
+    assert!(tisty_sharing::remembered(&paths).unwrap().is_empty());
+}
+
+#[test]
+fn files_folio_wants_and_this_side_does_not_hold_are_not_passed_over() {
+    let room = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":1,"filesWanted":true}"#));
+
+    let told = delivered(&folio, &paths_in(&room), &sealed_for(None), &starts(), 1).unwrap_err();
+
+    assert_eq!(told.code, "folioGarbled");
+}
 
 fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
     Remembered {

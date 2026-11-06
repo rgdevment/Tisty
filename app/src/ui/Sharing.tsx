@@ -1,6 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Panel } from "tisty-editor/read";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { copied } from "../core";
 import { weigh } from "../format";
 import { helpDrawn } from "../guide/calls";
@@ -9,14 +8,8 @@ import {
   docShared,
   type ShareCard,
   type ShareLook,
-  type ShareStatus,
-  shareAppeal,
-  shareCard,
   shareLook,
-  sharePause,
-  shareStatus,
   shareStop,
-  shareSync,
   type TermsNow,
   termsAccepted,
   termsNow,
@@ -29,7 +22,6 @@ const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
 };
-const DAY_MS = 86_400_000;
 
 const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
 
@@ -72,16 +64,17 @@ function Terms({
   }, [terms.text, onError]);
 
   useEffect(() => {
-    if (box.current) box.current.innerHTML = drawn;
+    const here = box.current;
+    if (!here) return;
+    here.innerHTML = drawn;
+    for (const link of here.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        const url = new URL(link.getAttribute("href") ?? "", onTheWeb());
+        if (url.protocol === "https:") void openUrl(url.href).catch(() => {});
+      });
+    }
   }, [drawn]);
-
-  const followed = (event: React.MouseEvent) => {
-    const link = (event.target as Element).closest("a[href]");
-    if (!link) return;
-    event.preventDefault();
-    const url = new URL(link.getAttribute("href") ?? "", onTheWeb());
-    if (url.protocol === "https:") void openUrl(url.href).catch(() => {});
-  };
 
   const accept = () => {
     termsAccepted(terms.version)
@@ -101,10 +94,8 @@ function Terms({
           : fill("termsFirstWhy", terms.version)}
       </p>
       <div className="flex flex-col gap-4">
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: a link inside it takes the keys itself */}
         <div
           ref={box}
-          onClick={followed}
           className="scroller max-h-[306px] rounded-[10px] border border-hair bg-sheet px-4 py-3.5 text-[12.5px] leading-relaxed"
         />
         <label className="flex cursor-pointer items-start gap-2 text-[12.5px]">
@@ -219,9 +210,9 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
   return (
     <Modal title={t("shareGoing")} wide>
       <div className="flex flex-col gap-4">
-        <p role="status" className="text-[13px]">
+        <output className="text-[13px]">
           {until === null ? t("shareGoingWhy") : t("shareWaiting")}
-        </p>
+        </output>
         {until !== null && (
           <p className="text-[11.5px] text-soft">{fill("shareWaitingWhy", said)}</p>
         )}
@@ -282,7 +273,8 @@ function Choosing({
   const most = look.limits.shares_at_most;
   const full = !already && most !== undefined && others.length >= most;
   const named = look.alias || look.name;
-  const signedAs = named ? ((signs === "alias" ? look.alias : look.name) ?? undefined) : asked;
+  const chosenName = signs === "alias" ? look.alias : look.name;
+  const signedAs = named ? (chosenName ?? undefined) : asked;
   const over = pastTheLimits(look);
   const ready = !full && !over && Boolean(signedAs?.trim());
 
@@ -584,9 +576,7 @@ export default function Sharing({
     case "reading":
       return (
         <Modal title={t("shareTitle")} onClose={onClose} wide>
-          <p role="status" className="text-[13px] text-soft">
-            {t("shareLooking")}
-          </p>
+          <output className="text-[13px] text-soft">{t("shareLooking")}</output>
         </Modal>
       );
     case "terms":
@@ -609,222 +599,3 @@ export default function Sharing({
       return <Done card={step.card} onClose={onClose} />;
   }
 }
-
-export const useSharedRow = (
-  doc: string | undefined,
-  onError?: (problem: unknown) => void,
-  onKeep?: () => Promise<unknown> | undefined,
-) => {
-  const [card, setCard] = useState<ShareCard | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [told, setTold] = useState<string | null>(null);
-  const [status, setStatus] = useState<ShareStatus | null>(null);
-  const [stopping, setStopping] = useState(false);
-  const [waitUntil, setWaitUntil] = useState(0);
-
-  useEffect(() => {
-    let gone = false;
-    setCard(null);
-    setTold(null);
-    setStatus(null);
-    setStopping(false);
-    if (!doc) return;
-    shareCard(doc)
-      .then((now) => {
-        if (!gone) setCard(now);
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [doc]);
-
-  useEffect(() => {
-    if (!waitUntil) return;
-    const ending = setTimeout(() => setWaitUntil(0), Math.max(0, waitUntil - Date.now()));
-    return () => clearTimeout(ending);
-  }, [waitUntil]);
-
-  const failing = useCallback(
-    (problem: unknown) => {
-      const until = Number((problem as { name?: string } | null)?.name);
-      if (codeOf(problem) === "folioWait" && until > 0) setWaitUntil(until);
-      if (codeOf(problem) === "folioTermsToAccept") {
-        setAsking(true);
-        return;
-      }
-      onError?.(problem);
-    },
-    [onError],
-  );
-
-  const panel = useMemo((): Panel | null => {
-    if (!doc) return null;
-    if (!card)
-      return {
-        kind: "held",
-        key: "shared",
-        label: t("sharedLabel"),
-        gist: t("sharedNot"),
-        open: true,
-        said: [t("sharedWhy")],
-        acts: [
-          {
-            key: "share",
-            label: t("shareIt"),
-            main: true,
-            onPick: () => {
-              const kept = onKeep?.();
-              void Promise.resolve(kept).finally(() => setAsking(true));
-            },
-          },
-        ],
-      };
-    const paused = status?.paused ?? false;
-    const blocked = status?.blocked ?? false;
-    const copying = (url: string) => () => void copied(url).catch(() => {});
-    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / 60_000)) : 0;
-    const said = [
-      blocked && t("sharedBlockedWhy"),
-      paused && t("sharedPausedWhy"),
-      status &&
-        !blocked &&
-        fill(
-          "sharedStatus",
-          new Date(status.diesOn * DAY_MS).toLocaleDateString(locale()),
-          String(status.reads),
-        ),
-      told,
-      stopping && t("shareStopAsk"),
-    ].filter((one): one is string => Boolean(one));
-    return {
-      kind: "held",
-      key: "shared",
-      label: t("sharedLabel"),
-      gist: blocked
-        ? t("sharedBlockedGist")
-        : paused
-          ? t("sharedPausedGist")
-          : t(card.edit ? "sharedCanEdit" : "sharedReadOnly"),
-      tone: blocked ? "bad" : paused ? "warn" : undefined,
-      open: true,
-      said,
-      links: blocked
-        ? []
-        : [
-            {
-              key: "read",
-              label: t("shareLinkRead"),
-              url: card.read,
-              copy: t("shareCopy"),
-              onCopy: copying(card.read),
-            },
-            ...(card.edit
-              ? [
-                  {
-                    key: "edit",
-                    label: t("shareLinkEdit"),
-                    url: card.edit,
-                    note: t("shareLinkEditNote"),
-                    copy: t("shareCopy"),
-                    onCopy: copying(card.edit),
-                  },
-                ]
-              : []),
-          ],
-      acts: stopping
-        ? [
-            { key: "keep", label: t("shareCancel"), onPick: () => setStopping(false) },
-            {
-              key: "stop",
-              label: t("shareStop"),
-              danger: true,
-              onPick: () =>
-                shareStop(doc)
-                  .then(() => {
-                    setStopping(false);
-                    setCard(null);
-                    setStatus(null);
-                    setTold(null);
-                  })
-                  .catch(failing),
-            },
-          ]
-        : [
-            {
-              key: "sync",
-              label: minutes ? fill("shareSyncWait", String(minutes)) : t("shareSync"),
-              main: true,
-              off: blocked || paused || minutes > 0,
-              onPick: () => {
-                setTold(null);
-                void Promise.resolve(onKeep?.())
-                  .then(() => shareSync(doc))
-                  .then((synced) => {
-                    if (synced.state === "unchanged") setTold(t("shareSyncUnchanged"));
-                    else if (synced.state === "sent")
-                      setTold(fill("shareSyncSent", String(synced.version)));
-                    else setTold(fill("shareSyncOther", String(synced.version), synced.signer));
-                  })
-                  .catch(failing);
-              },
-            },
-            ...(card.taken
-              ? []
-              : [
-                  {
-                    key: "status",
-                    label: t("sharedSeeStatus"),
-                    onPick: () => shareStatus(doc).then(setStatus).catch(failing),
-                  },
-                ]),
-            ...(card.taken
-              ? [
-                  {
-                    key: "leave",
-                    label: t("shareStopEditing"),
-                    danger: true,
-                    onPick: () => setStopping(true),
-                  },
-                ]
-              : blocked
-                ? [
-                    {
-                      key: "appeal",
-                      label: t("shareAppeal"),
-                      onPick: () =>
-                        shareAppeal(doc)
-                          .then((accepted) =>
-                            setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
-                          )
-                          .catch(failing),
-                    },
-                  ]
-                : [
-                    {
-                      key: "pause",
-                      label: t(paused ? "shareResume" : "sharePause"),
-                      onPick: () =>
-                        sharePause(doc, !paused)
-                          .then(() => shareStatus(doc))
-                          .then(setStatus)
-                          .catch(failing),
-                    },
-                    {
-                      key: "ask",
-                      label: t("shareStop"),
-                      danger: true,
-                      onPick: () => setStopping(true),
-                    },
-                  ]),
-          ],
-    };
-  }, [doc, card, status, told, stopping, waitUntil, onKeep, failing]);
-
-  return {
-    panel,
-    asking,
-    onShared: (now: ShareCard) => setCard(now),
-    onClosed: () => setAsking(false),
-  };
-};

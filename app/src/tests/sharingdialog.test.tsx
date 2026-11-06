@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adopt, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Sharing from "../ui/Sharing";
 
 const invoked = vi.hoisted(() => vi.fn());
@@ -78,7 +78,8 @@ describe("sharing a document with Folio", () => {
     });
     shown();
 
-    await screen.findByRole("heading", { name: t("termsChangedTitle") });
+    expect(await screen.findByRole("heading", { name: t("termsChangedTitle") })).toBeTruthy();
+    expect(screen.getByText(fill("termsChangedWhy", "1", "2"))).toBeTruthy();
   });
 
   it("asks for nothing when the current terms are already accepted", async () => {

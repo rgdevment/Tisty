@@ -8,8 +8,9 @@ import { t } from "../locales";
 import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
-import Sharing, { useSharedRow } from "./Sharing";
+import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
+import { useSharedRow } from "./sharedRow";
 import { often } from "./tagging";
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
