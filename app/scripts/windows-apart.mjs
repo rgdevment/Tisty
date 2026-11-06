@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 
-const NEVER_PRELOADS = {
-  Quick: ["App", "Page", "Sheet"],
-  Moving: ["App", "Viewing"],
-  Viewing: ["App", "Sheet"],
+const HELD_ONLY_BY = {
+  Page: ["App", "Viewing"],
+  Sheet: ["App"],
 };
 
-const dist = new URL("../dist/", import.meta.url);
+const app = new URL("../", import.meta.url);
+const dist = new URL("dist/", app);
 
 const refuse = (why) => {
   console.error(`x  ${why}`);
@@ -15,39 +15,70 @@ const refuse = (why) => {
 
 const isChunkOf = (name) => (file) => file.split("/").pop().startsWith(`${name}-`);
 
-const entryChunk = () => {
-  const page = readFileSync(new URL("index.html", dist), "utf8");
-  const src = page.match(/<script type="module"[^>]*\ssrc="\/(assets\/index-[^"]+\.js)"/)?.[1];
+const builtFile = (file) => readFileSync(new URL(file, dist), "utf8");
+
+const entryFile = () => {
+  const src = builtFile("index.html").match(/<script type="module"[^>]*\ssrc="\/(assets\/index-[^"]+\.js)"/)?.[1];
   if (!src) refuse("dist/index.html names no assets/index-*.js");
-  return readFileSync(new URL(src, dist), "utf8");
+  return src;
 };
 
-const preloadTable = (entry) => {
-  const table = entry.match(/__vite__mapDeps=.*?m\.f=(\[.*?\])/s)?.[1];
-  if (!table) refuse("the entry chunk has no __vite__mapDeps table");
-  return JSON.parse(table);
+const windowsOfMain = () => {
+  const main = readFileSync(new URL("src/main.tsx", app), "utf8");
+  const names = [...main.matchAll(/import\("\.\/(\w+)"\)/g)].map(([, name]) => name);
+  if (names.length === 0) refuse("src/main.tsx imports no window");
+  return names;
 };
 
-const preloadedWith = (name, entry, table) => {
-  const at = entry.search(new RegExp(`import\\(.\\./${name}-`));
-  if (at < 0) refuse(`the entry chunk does not import ${name}`);
-  const indexes = entry.slice(at).match(/__vite__mapDeps\(\[([\d,]*)\]\)/)?.[1];
-  if (!indexes) refuse(`the import of ${name} has no preload list`);
-  return indexes.split(",").map((index) => table[Number(index)]);
+const preloadTable = (code) => {
+  const table = code.match(/__vite__mapDeps=.*?m\.f=(\[.*?\])/s)?.[1];
+  return table ? JSON.parse(table) : [];
 };
+
+const preloadListsOf = (name, entry, table) => {
+  const sites = [...entry.matchAll(new RegExp(`import\\(.\\./${name}-`, "g"))];
+  if (sites.length === 0) refuse(`the entry chunk does not import ${name}`);
+  return sites.map(({ index }) => {
+    const indexes = entry.slice(index).match(/__vite__mapDeps\(\[([\d,]*)\]\)/)?.[1];
+    if (!indexes) refuse(`an import of ${name} has no preload list`);
+    return indexes.split(",").map((one) => table[Number(one)]);
+  });
+};
+
+const reachedFrom = (list, entry) => {
+  const reached = new Set(list);
+  for (const file of reached) {
+    if (!file.endsWith(".js") || file === entry) continue;
+    for (const more of preloadTable(builtFile(file))) reached.add(more);
+  }
+  return [...reached];
+};
+
+const windows = windowsOfMain();
+const forbiddenTo = (name) => [
+  ...windows.filter((other) => other !== name),
+  ...Object.keys(HELD_ONLY_BY).filter((chunk) => !HELD_ONLY_BY[chunk].includes(name)),
+];
 
 const built = readdirSync(new URL("assets/", dist));
-for (const name of new Set(Object.entries(NEVER_PRELOADS).flat(2))) {
+for (const name of [...windows, ...Object.keys(HELD_ONLY_BY)]) {
   if (!built.some(isChunkOf(name))) refuse(`no chunk is called ${name}, so this check would look at nothing`);
 }
 
-const entry = entryChunk();
-const table = preloadTable(entry);
-const wrong = Object.entries(NEVER_PRELOADS).flatMap(([name, others]) => {
-  const list = preloadedWith(name, entry, table);
-  const crossed = others.filter((other) => list.some(isChunkOf(other))).map((other) => `${name} preloads ${other}`);
-  return list.some(isChunkOf(name)) ? crossed : [...crossed, `${name} does not preload itself`];
-});
+const entry = entryFile();
+const entryCode = builtFile(entry);
+const table = preloadTable(entryCode);
+if (table.length === 0) refuse("the entry chunk has no __vite__mapDeps table");
 
-if (wrong.length > 0) refuse(`the windows are not apart: ${wrong.join(", ")}`);
-console.log("ok each window preloads only its own code");
+const wrong = windows.flatMap((name) =>
+  preloadListsOf(name, entryCode, table).flatMap((list) => {
+    const reached = reachedFrom(list, entry);
+    const crossed = forbiddenTo(name)
+      .filter((other) => reached.some(isChunkOf(other)))
+      .map((other) => `${name} reaches ${other}`);
+    return list.some(isChunkOf(name)) ? crossed : [...crossed, `${name} does not preload itself`];
+  }),
+);
+
+if (wrong.length > 0) refuse(`the windows are not apart: ${[...new Set(wrong)].join(", ")}`);
+console.log(`ok each of ${windows.join(", ")} reaches only its own code`);
