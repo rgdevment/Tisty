@@ -1,9 +1,13 @@
 import { closeCompletion } from "@codemirror/autocomplete";
+import { syntaxTree } from "@codemirror/language";
+import type { EditorState, Line } from "@codemirror/state";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
 import { coded, formless, wrapped } from "./formatting";
 import { type EditWord, type Hosted, hosted } from "./hosted";
+import { outOfPairs } from "./pairing";
+import { pending } from "./pending";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
@@ -101,6 +105,45 @@ const fronted = (text: string, head: number): boolean => {
   return lines !== null && head <= lines.join("\n").length;
 };
 
+const PARTED = /^(Paragraph|ATXHeading\d)$/;
+const NESTED = /^(ListItem|Blockquote)$/;
+
+const stands = (state: EditorState, line: Line): boolean => {
+  const first = line.from + line.text.length - line.text.trimStart().length;
+  let found = false;
+  for (let one = syntaxTree(state).resolveInner(first, 1); one.parent; one = one.parent) {
+    if (NESTED.test(one.name)) return false;
+    found ||= PARTED.test(one.name);
+  }
+  return found;
+};
+
+// In a block Enter starts the next paragraph, a title's included; Shift+Enter is what breaks a line.
+export const paragraphKeys: KeyBinding[] = [
+  {
+    key: "Enter",
+    run: (view) => {
+      const { state } = view;
+      const { main } = state.selection;
+      const line = state.doc.lineAt(main.head);
+      if (!main.empty || !line.text.trim() || state.field(pending, false)) return false;
+      if (coded(state, main.head) || fronted(state.doc.toString(), main.head)) return false;
+      if (!stands(state, line)) return false;
+      const lead = LEADS.exec(line.text)?.[0].length ?? 0;
+      const at = main.head <= line.from + lead ? line.from : outOfPairs(state, main.head);
+      if (at === null) return false;
+      const gap = state.lineBreak.repeat(2);
+      view.dispatch({
+        changes: { from: at, insert: gap },
+        selection: { anchor: at === line.from ? main.head + 2 : at + 2 },
+        scrollIntoView: true,
+        userEvent: "input",
+      });
+      return true;
+    },
+  },
+];
+
 export const blockKeys: KeyBinding[] = [
   {
     key: "Mod-Enter",
@@ -176,12 +219,20 @@ export const FORMATS = [
 
 const FOLDED = "tisty.barFolded";
 
-const foldedBefore = (): boolean => {
+const KEPT_OPEN = "tisty.barKeptOpen";
+
+const remembered = (name: string): boolean => {
   try {
-    return localStorage.getItem(FOLDED) === "1";
+    return localStorage.getItem(name) === "1";
   } catch {
     return false;
   }
+};
+
+const remember = (name: string, yes: boolean) => {
+  try {
+    localStorage.setItem(name, yes ? "1" : "0");
+  } catch {}
 };
 
 export type Barred = {
@@ -365,18 +416,26 @@ export const barred = (
   const tableIt = tabling && button("cm-bar-button cm-bar-table", say("table"), tabling);
   tableIt?.append(drawnIn(page, "table"));
 
-  let folded = false;
-  const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => folding(!folded));
-  const folding = (now: boolean) => {
-    folded = now;
+  // In a block the bar waits folded and opens with a selection; the whole document keeps it as it was left.
+  let keptOpen = whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
+  let chosen = false;
+  let shutOver = false;
+  const opened = () => keptOpen || (!whole && chosen && !shutOver);
+  const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => {
+    const was = opened();
+    keptOpen = !was;
+    shutOver = was && chosen;
+    if (whole) remember(FOLDED, !keptOpen);
+    else remember(KEPT_OPEN, keptOpen);
+    folding();
+  });
+  const folding = () => {
+    const now = !opened();
     bar.classList.toggle("folded", now);
     fold.textContent = now ? "Aa" : "‹";
     fold.setAttribute("aria-label", say(now ? "barOpen" : "barFold"));
     fold.title = say(now ? "barOpen" : "barFold");
     fold.setAttribute("aria-expanded", String(!now));
-    try {
-      localStorage.setItem(FOLDED, now ? "1" : "0");
-    } catch {}
   };
 
   // Pressed while the whole document is open, so the bar says which of the two is being written.
@@ -430,7 +489,7 @@ export const barred = (
   if (tableIt) bar.append(tableIt);
   if (wide) bar.append(wide);
   bar.append(marks, ...(diagram ? [diagram] : []), slash, fold);
-  folding(foldedBefore());
+  folding();
 
   const hint = made("div", "cm-hint");
   const key = (keys: string, said: string) => {
@@ -451,6 +510,9 @@ export const barred = (
   const follow = (current: EditorView) => {
     const { head } = current.state.selection.main;
     bar.hidden = formless(current.state);
+    chosen = !current.state.selection.main.empty;
+    if (!chosen) shutOver = false;
+    folding();
     tabled = tableHere(current.state) !== null;
     if (tableIt) tableIt.hidden = tabled;
     kindSaid.textContent = tabled ? say("table") : say(kindOf(current.state.doc.lineAt(head).text));

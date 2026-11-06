@@ -111,8 +111,6 @@ html.sheeted .page > .sheet-turn {
   font-weight: 640;
   line-height: 1.25;
   letter-spacing: -0.01em;
-}
-.editing.titled {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--tisty-hair);
 }

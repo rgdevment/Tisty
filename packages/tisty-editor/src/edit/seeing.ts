@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import { type EditorState, type Range, StateEffect, StateField } from "@codemirror/state";
+import { type EditorState, Facet, type Range, StateEffect, StateField } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -43,8 +43,20 @@ export const marksShown = StateField.define<boolean>({
   },
 });
 
+// The whole document is Markdown being written, so there a format opens under the selection.
+export const revealing = Facet.define<boolean, boolean>({ combine: (all) => all.some(Boolean) });
+
+export type Span = { readonly from: number; readonly to: number };
+export type Pair = { readonly open: Span; readonly shut: Span };
+
 const HEADING = /^ATXHeading(\d)$/;
-const INLINE = new Set(["Emphasis", "StrongEmphasis", "InlineCode", "Strikethrough", "Link"]);
+export const INLINE = new Set([
+  "Emphasis",
+  "StrongEmphasis",
+  "InlineCode",
+  "Strikethrough",
+  "Link",
+]);
 const MARKS = new Set([
   "EmphasisMark",
   "StrikethroughMark",
@@ -277,14 +289,17 @@ const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) =>
   }
 };
 
-// A format opens up while any selection touches it, edges included, so a letter typed there lands where it is seen.
+// A selection opens nothing in a block: only the caret reaches what has no other way to be written.
 const touched = (state: EditorState, from: number, to: number) =>
-  state.selection.ranges.some((one) => one.from <= to && one.to >= from);
+  state.selection.ranges.some(
+    (one) => (one.empty || state.facet(revealing)) && one.from <= to && one.to >= from,
+  );
 
 // Nested formats open together, so `***k***` never shows half its marks.
 const opened = (state: EditorState, node: SyntaxNode) => {
   for (let one: SyntaxNode | null = node; one && INLINE.has(one.name); one = one.parent) {
-    if (touched(state, one.from, one.to)) return true;
+    if ((one.name === "Link" || state.facet(revealing)) && touched(state, one.from, one.to))
+      return true;
   }
   return false;
 };
@@ -320,6 +335,14 @@ const quoted = (
   out.push(Decoration.replace({ widget: new Said(kind) }).range(head, head + callout[2].length));
 };
 
+export const ownPair = (state: EditorState, found: RegExpMatchArray, at: number): Pair | null => {
+  if (found[4] !== undefined || coded(state, at)) return null;
+  if (found[2] !== undefined && found[2] !== "yellow" && !isHue(found[2])) return null;
+  const end = at + found[0].length;
+  const tail = found[3] !== undefined ? 2 : found[0].length - 2 - (found[1]?.length ?? 0);
+  return { open: { from: at, to: at + 2 }, shut: { from: end - tail, to: end } };
+};
+
 const owned = (
   state: EditorState,
   from: number,
@@ -331,17 +354,17 @@ const owned = (
   for (const found of text.matchAll(owning())) {
     const at = from + (found.index ?? 0);
     const end = at + found[0].length;
-    if (shown || coded(state, at) || touched(state, at, end)) continue;
+    if (shown || coded(state, at) || (state.facet(revealing) && touched(state, at, end))) continue;
     if (found[4] !== undefined) {
       const hue = found[5];
       if (!known(found[4]) || (hue !== undefined && !isHue(hue))) continue;
       out.push(Decoration.replace({ widget: new Glyph(found[4], hue) }).range(at, end));
       continue;
     }
-    if (found[2] !== undefined && found[2] !== "yellow" && !isHue(found[2])) continue;
-    const tail = found[3] !== undefined ? 2 : found[0].length - 2 - found[1].length;
-    out.push(Decoration.replace({}).range(at, at + 2));
-    out.push(Decoration.replace({}).range(end - tail, end));
+    const pair = ownPair(state, found, at);
+    if (!pair) continue;
+    out.push(Decoration.replace({}).range(pair.open.from, pair.open.to));
+    out.push(Decoration.replace({}).range(pair.shut.from, pair.shut.to));
   }
 };
 

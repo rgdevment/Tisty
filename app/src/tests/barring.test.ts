@@ -152,6 +152,78 @@ describe("the bar over the block being written", () => {
     editor.destroy();
   });
 
+  describe("folded", () => {
+    const opened = (bar: HTMLElement) => !bar.classList.contains("folded");
+    const press = (bar: HTMLElement) =>
+      bar.querySelector<HTMLButtonElement>(".cm-bar-fold")?.click();
+    const beginning = () => {
+      localStorage.removeItem("tisty.barKeptOpen");
+      localStorage.removeItem("tisty.barFolded");
+    };
+
+    it("waits folded in a block, opens with a selection and folds again without one", () => {
+      beginning();
+      const editor = view("leche y pan");
+      const { bar, follow } = barred(editor);
+      expect(opened(bar)).toBe(false);
+      editor.dispatch({ selection: { anchor: 0, head: 5 } });
+      follow(editor);
+      expect(opened(bar)).toBe(true);
+      expect(localStorage.getItem("tisty.barKeptOpen")).toBeNull();
+      editor.dispatch({ selection: { anchor: 5 } });
+      follow(editor);
+      expect(opened(bar)).toBe(false);
+      editor.destroy();
+    });
+
+    it("stays open once the person opens it, from one block to the next", () => {
+      beginning();
+      const editor = view("leche y pan");
+      const { bar } = barred(editor);
+      press(bar);
+      expect(opened(bar)).toBe(true);
+      expect(localStorage.getItem("tisty.barKeptOpen")).toBe("1");
+      expect(opened(barred(editor).bar)).toBe(true);
+      press(bar);
+      expect(opened(bar)).toBe(false);
+      expect(localStorage.getItem("tisty.barKeptOpen")).toBe("0");
+      editor.destroy();
+    });
+
+    it("folded by hand over a selection, waits for the next selection", () => {
+      beginning();
+      const editor = view("leche y pan");
+      const { bar, follow } = barred(editor);
+      editor.dispatch({ selection: { anchor: 0, head: 5 } });
+      follow(editor);
+      press(bar);
+      expect(opened(bar)).toBe(false);
+      editor.dispatch({ selection: { anchor: 0, head: 7 } });
+      follow(editor);
+      expect(opened(bar)).toBe(false);
+      editor.dispatch({ selection: { anchor: 0 } });
+      follow(editor);
+      editor.dispatch({ selection: { anchor: 0, head: 5 } });
+      follow(editor);
+      expect(opened(bar)).toBe(true);
+      editor.destroy();
+    });
+
+    it("stays as left in the whole document, whatever is selected", () => {
+      beginning();
+      const editor = view("leche y pan");
+      const { bar, follow } = barred(editor, true);
+      expect(opened(bar)).toBe(true);
+      press(bar);
+      expect(localStorage.getItem("tisty.barFolded")).toBe("1");
+      editor.dispatch({ selection: { anchor: 0, head: 5 } });
+      follow(editor);
+      expect(opened(bar)).toBe(false);
+      editor.destroy();
+      beginning();
+    });
+  });
+
   it("offers the marks only where a block has some, with its key beside it", () => {
     localStorage.removeItem("tisty.marksShown");
     const plain = view("leche y pan");

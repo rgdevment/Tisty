@@ -8,6 +8,7 @@ export {
   KINDS,
   kindOf,
   PENS,
+  paragraphKeys,
   retyped,
 } from "./edit/barring";
 export { aimed, caretAt, type Editing, edited, shaped, worded } from "./edit/blocking";
@@ -25,6 +26,7 @@ export {
 } from "./edit/formatting";
 export { type EditWord, type Hosted, hosted, type TableEdit } from "./edit/hosted";
 export { latelyMarked, MARKED_FOR, markLately } from "./edit/lately";
+export { outOfPairs, pairsKept } from "./edit/pairing";
 export {
   pend,
   pending,
@@ -35,7 +37,7 @@ export {
   waiting,
 } from "./edit/pending";
 export { gridFailed, gridKeys, type Regrid, regrid } from "./edit/regridding";
-export { keepShown, marked, marksShown, seen, showMarks, visual } from "./edit/seeing";
+export { keepShown, marked, marksShown, revealing, seen, showMarks, visual } from "./edit/seeing";
 export {
   type Asked,
   type Asking,

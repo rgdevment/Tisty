@@ -81,6 +81,16 @@
 .cm-bar.folded > :not(.cm-bar-fold) {
   display: none;
 }
+.cm-bar.folded {
+  padding: 0;
+  border-radius: 6px;
+}
+.cm-bar.folded .cm-bar-fold {
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+}
 .cm-bar .cm-bar-fold {
   color: var(--tisty-faint);
 }
