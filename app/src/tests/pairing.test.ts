@@ -1,7 +1,9 @@
 import {
   deleteCharBackward,
   deleteCharForward,
+  history,
   insertNewlineAndIndent,
+  undo,
 } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
@@ -171,6 +173,88 @@ describe("deleting beside marks out of sight", () => {
     const whole = written("un **dato** ya", 9, 9, revealing.of(true));
     deleteCharForward(whole);
     expect(text(whole)).toBe("un **dato* ya");
+  });
+});
+
+describe("deleting what kept a format apart from a word", () => {
+  it("takes the word inside when a closing mark would be undone", () => {
+    const back = written("**a.** bcd efg", 7);
+    deleteCharBackward(back);
+    expect(text(back)).toBe("**a.bcd** efg");
+    expect(caret(back)).toBe(4);
+    const forward = written("**a.** bcd", 6);
+    deleteCharForward(forward);
+    expect(text(forward)).toBe("**a.bcd**");
+    const inside = written("**a.** bcd", 4);
+    deleteCharForward(inside);
+    expect(text(inside)).toBe("**a.bcd**");
+    expect(caret(inside)).toBe(4);
+  });
+
+  it("takes the word inside when an opening mark would be undone", () => {
+    const under = written("el ++dato++", 3);
+    deleteCharBackward(under);
+    expect(text(under)).toBe("++eldato++");
+    expect(caret(under)).toBe(4);
+    const bold = written("b **.a**", 2);
+    deleteCharBackward(bold);
+    expect(text(bold)).toBe("**b.a**");
+  });
+
+  it("does the same for Tisty's own marks and for marks inside marks", () => {
+    const under = written("++dato++ y", 9);
+    deleteCharBackward(under);
+    expect(text(under)).toBe("++datoy++");
+    const nested = written("***a.*** b", 9);
+    deleteCharBackward(nested);
+    expect(text(nested)).toBe("***a.b***");
+  });
+
+  it("does the same when a selection is what kept them apart", () => {
+    const view = written("**a.** y b", 6, 9);
+    cut(view);
+    expect(text(view)).toBe("**a.b**");
+    expect(caret(view)).toBe(4);
+  });
+
+  it("leaves the marks where they are when the format holds", () => {
+    const plain = written("**a** b", 6);
+    deleteCharBackward(plain);
+    expect(text(plain)).toBe("**a**b");
+    const sign = written("**a.** (b", 7);
+    deleteCharBackward(sign);
+    expect(text(sign)).toBe("**a.**(b");
+  });
+
+  it("leaves code alone", () => {
+    const inline = written("`**a.** b`", 8);
+    deleteCharBackward(inline);
+    expect(text(inline)).toBe("`**a.**b`");
+    const fenced = written("```\n**a.** b\n```", 11);
+    deleteCharBackward(fenced);
+    expect(text(fenced)).toBe("```\n**a.**b\n```");
+  });
+
+  it("leaves the marks alone when they are shown", () => {
+    const shown = written(
+      "**a.** b",
+      7,
+      7,
+      marksShown.init(() => true),
+    );
+    deleteCharBackward(shown);
+    expect(text(shown)).toBe("**a.**b");
+    const whole = written("**a.** b", 7, 7, revealing.of(true));
+    deleteCharBackward(whole);
+    expect(text(whole)).toBe("**a.**b");
+  });
+
+  it("undoes in one step", () => {
+    const view = written("**a.** b", 7, 7, history());
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.b**");
+    undo(view);
+    expect(text(view)).toBe("**a.** b");
   });
 });
 

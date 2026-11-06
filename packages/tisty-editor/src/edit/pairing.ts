@@ -1,6 +1,13 @@
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxTree } from "@codemirror/language";
-import { EditorState, findClusterBreak, Transaction } from "@codemirror/state";
-import { owning } from "./formatting";
+import {
+  ChangeSet,
+  EditorState,
+  findClusterBreak,
+  Transaction,
+  type TransactionSpec,
+} from "@codemirror/state";
+import { coded, owning } from "./formatting";
 import { pending } from "./pending";
 import { fencePairs, INLINE, marksShown, ownPair, type Pair, revealing, type Span } from "./seeing";
 
@@ -134,15 +141,76 @@ const insideFormat = (done: Transaction, at: number): number | null => {
   return Math.max(...lost.map(({ open }) => open.to));
 };
 
-// With the marks out of sight a deletion must not leave half a format lying in the words.
-export const pairsKept = EditorState.transactionFilter.of((done) => {
+const GRAMMAR = markdown({ base: markdownLanguage, addKeymap: false });
+const WORD_AHEAD = /^[\p{L}\p{M}\p{N}]+/u;
+const WORD_BEHIND = /[\p{L}\p{M}\p{N}]+$/u;
+
+const pairsIn = (doc: string) =>
+  inlinePairs(EditorState.create({ doc, extensions: GRAMMAR }), 0, doc.length);
+
+const closedFrom = (pairs: Pair[], at: number): number => {
+  const closing = pairs.find(({ shut }) => shut.to === at);
+  return closing ? closedFrom(pairs, closing.shut.from) : at;
+};
+
+const openedTo = (pairs: Pair[], at: number): number => {
+  const opening = pairs.find(({ open }) => open.from === at);
+  return opening ? openedTo(pairs, opening.open.to) : at;
+};
+
+// A word brought up against a format's marks can undo it, so the format takes the word in.
+export const heldTogether = (
+  left: string,
+  right: string,
+): { left: string; right: string } | null => {
+  if (!/\S$/.test(left) || !/^\S/.test(right)) return null;
+  const ahead = WORD_AHEAD.exec(right)?.[0];
+  const behind = WORD_BEHIND.exec(left)?.[0];
+  if (Boolean(ahead) === Boolean(behind)) return null;
+  const before = pairsIn(left);
+  const after = pairsIn(right);
+  const count = before.length + after.length;
+  if (pairsIn(left + right).length >= count) return null;
+  const closing = closedFrom(before, left.length);
+  const opening = openedTo(after, 0);
+  const moved = ahead
+    ? {
+        left: left.slice(0, closing),
+        right: `${ahead}${left.slice(closing)}${right.slice(ahead.length)}`,
+      }
+    : {
+        left: `${left.slice(0, left.length - (behind ?? "").length)}${right.slice(0, opening)}${behind}`,
+        right: right.slice(opening),
+      };
+  return pairsIn(moved.left + moved.right).length >= count ? moved : null;
+};
+
+const heldAfter = (done: Transaction): TransactionSpec | null => {
+  const seams: number[] = [];
+  done.changes.iterChangedRanges((_fromA, _toA, fromB) => seams.push(fromB));
+  for (const seam of seams) {
+    const line = done.newDoc.lineAt(seam);
+    const cut = seam - line.from;
+    const held = heldTogether(line.text.slice(0, cut), line.text.slice(cut));
+    if (held && !coded(done.state, seam))
+      return {
+        changes: done.changes.compose(
+          ChangeSet.of(
+            { from: line.from, to: line.to, insert: held.left + held.right },
+            done.newDoc.length,
+          ),
+        ),
+        selection: { anchor: line.from + held.left.length },
+        effects: done.effects,
+        scrollIntoView: done.scrollIntoView,
+        annotations: Transaction.userEvent.of(done.annotation(Transaction.userEvent) ?? "delete"),
+      };
+  }
+  return null;
+};
+
+const marksSpared = (done: Transaction): Transaction | TransactionSpec => {
   const state = done.startState;
-  if (!done.docChanged) return done;
-  if (done.isUserEvent("input.type.compose")) return done;
-  const deleting = done.isUserEvent("delete");
-  if (!deleting && !done.isUserEvent("input.type") && !done.isUserEvent("input.paste")) return done;
-  if (state.field(marksShown, false) || state.facet(revealing) || state.field(pending, false))
-    return done;
   const changed: { from: number; to: number; insert: string }[] = [];
   done.changes.iterChanges((from, to, _a, _b, text) => {
     changed.push({ from, to, insert: text.sliceString(0, undefined, state.lineBreak) });
@@ -180,6 +248,22 @@ export const pairsKept = EditorState.transactionFilter.of((done) => {
     scrollIntoView: done.scrollIntoView,
     annotations: Transaction.userEvent.of(done.annotation(Transaction.userEvent) ?? "delete"),
   };
+};
+
+// With the marks out of sight a deletion must not leave half a format lying in the words.
+export const pairsKept = EditorState.transactionFilter.of((done) => {
+  const state = done.startState;
+  if (!done.docChanged) return done;
+  if (done.isUserEvent("input.type.compose")) return done;
+  const deleting = done.isUserEvent("delete");
+  if (!deleting && !done.isUserEvent("input.type") && !done.isUserEvent("input.paste")) return done;
+  if (state.field(marksShown, false) || state.facet(revealing) || state.field(pending, false))
+    return done;
+  const spared = marksSpared(done);
+  if (!deleting) return spared;
+  const applied =
+    spared instanceof Transaction ? spared : state.update({ ...spared, filter: false });
+  return heldAfter(applied) ?? spared;
 });
 
 export const outOfPairs = (state: EditorState, head: number): number | null => {

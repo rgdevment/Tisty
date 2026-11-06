@@ -28,7 +28,7 @@ export {
 } from "./edit/formatting";
 export { type EditWord, type Hosted, hosted, type TableEdit } from "./edit/hosted";
 export { latelyMarked, MARKED_FOR, markLately } from "./edit/lately";
-export { outOfPairs, pairsKept } from "./edit/pairing";
+export { heldTogether, outOfPairs, pairsKept } from "./edit/pairing";
 export {
   pend,
   pending,

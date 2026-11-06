@@ -150,6 +150,16 @@ describe("deleting across a block's edge", () => {
     expect(joined("uno\n\n## dos", 3)).toEqual({ text: "unodos", at: 3 });
     expect(joined("# uno\n\n- dos\n- tres", 5)).toEqual({ text: "# unodos\n- tres", at: 5 });
   });
+
+  it("takes the word inside when a format at the seam would be undone", () => {
+    expect(joined("**a.**\n\nbcd efg\n", 6)).toEqual({ text: "**a.bcd** efg\n", at: 4 });
+    expect(joined("el\n\n++dato++", 2)).toEqual({ text: "++eldato++", at: 4 });
+    expect(joined("uno\n\n**a.**\n\n- b", 11)).toEqual({ text: "uno\n\n**a.b**", at: 9 });
+  });
+
+  it("leaves the marks where they are when a format at the seam holds", () => {
+    expect(joined("**a**\n\nb", 5)).toEqual({ text: "**a**b", at: 5 });
+  });
 });
 
 describe("arriving at a block by its column", () => {
