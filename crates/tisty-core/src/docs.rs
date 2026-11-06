@@ -30,6 +30,8 @@ const MOST_DIGITS: u64 = 999_999_999_999;
 // Room for the largest front matter that is still read, and the heading after it.
 const TITLE_AT_MOST: u64 = 8 * 1024;
 pub const BODY_AT_MOST: u64 = 500 * 1024;
+// Reading keeps no copy and writes nothing, so it can take more than a document may hold.
+pub const READ_AT_MOST: u64 = 1024 * 1024;
 pub const BODY_ROOMY: u64 = 300 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -431,6 +433,14 @@ pub fn importable(at: &Path) -> bool {
 }
 
 pub fn read_outside(at: &Path) -> Result<String> {
+    outside_within(at, BODY_AT_MOST)
+}
+
+pub fn read_to_show(at: &Path) -> Result<String> {
+    outside_within(at, READ_AT_MOST)
+}
+
+fn outside_within(at: &Path, ceiling: u64) -> Result<String> {
     if !importable(at) {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
@@ -439,12 +449,19 @@ pub fn read_outside(at: &Path) -> Result<String> {
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
+    let weighs = file.metadata()?.len();
+    if weighs > ceiling {
+        return Err(Error::DocumentTooBig {
+            bytes: weighs,
+            limit: ceiling,
+        });
+    }
     let mut body = String::new();
-    let read = file.take(BODY_AT_MOST + 1).read_to_string(&mut body)? as u64;
-    if read > BODY_AT_MOST {
+    let read = file.take(ceiling + 1).read_to_string(&mut body)? as u64;
+    if read > ceiling {
         return Err(Error::DocumentTooBig {
             bytes: read,
-            limit: BODY_AT_MOST,
+            limit: ceiling,
         });
     }
     Ok(body)

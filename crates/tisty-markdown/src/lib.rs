@@ -21,6 +21,7 @@ pub mod math;
 mod old;
 #[cfg(feature = "outline")]
 mod outline;
+mod outside;
 mod page;
 #[cfg(feature = "pens")]
 mod pens;
@@ -43,7 +44,8 @@ mod writing;
 pub use inline::filed;
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
-pub use page::html;
+pub use outside::{file_as_tisty, read_file};
+pub use page::{html, pieces};
 pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]

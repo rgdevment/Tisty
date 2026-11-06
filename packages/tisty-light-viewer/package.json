@@ -1,0 +1,34 @@
+{
+  "name": "tisty-light-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Reads a Markdown file from disk, as it was written and without changing it. It has its own build, with Solid and without React, and the app opens it by address.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "./src/main.tsx"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@solidjs/web": "2.0.0-rc.21",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2.6.0",
+    "lowlight": "^3.3.0",
+    "mermaid": "^12.1.0",
+    "solid-js": "2.0.0-rc.21",
+    "tisty-sheet": "file:../tisty-sheet"
+  },
+  "devDependencies": {
+    "@solidjs/testing-library": "1.0.0-rc.2",
+    "@vitest/coverage-v8": "*",
+    "jsdom": "*",
+    "typescript": "*",
+    "vite": "*",
+    "vite-plugin-solid": "3.0.0-next.27",
+    "vitest": "*"
+  }
+}

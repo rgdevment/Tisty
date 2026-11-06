@@ -6,17 +6,39 @@ use crate::{Block, Callout, Column, Doc, Holds, Kind, Lean, values};
 
 struct Drawing {
     anchors: HashMap<usize, String>,
+    aligned: bool,
 }
 
 pub fn html(doc: &Doc) -> String {
     let drawing = Drawing {
         anchors: anchors(doc),
+        aligned: false,
     };
     let mut out = String::new();
     for block in doc.blocks() {
         draw(block, doc.text(), &drawing, &mut out);
     }
     out
+}
+
+// Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
+pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
+    let drawing = Drawing {
+        anchors: anchors(doc),
+        aligned: true,
+    };
+    let mut all = Vec::new();
+    let mut out = String::new();
+    for block in doc.blocks() {
+        draw(block, doc.text(), &drawing, &mut out);
+        if out.len() >= about {
+            all.push(std::mem::take(&mut out));
+        }
+    }
+    if !out.is_empty() {
+        all.push(out);
+    }
+    all
 }
 
 fn anchors(doc: &Doc) -> HashMap<usize, String> {
@@ -111,7 +133,7 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
             let _ = write!(
                 out,
                 "<div {at}>{}</div>",
-                cleaned(&unquoted_lines(&text[block.at.clone()]))
+                cleaned(&unquoted_lines(&text[block.at.clone()]), drawing.aligned)
             );
         }
         Kind::Rule => {
@@ -380,14 +402,22 @@ fn unquoted_lines(source: &str) -> String {
         .join("\n")
 }
 
-fn cleaned(html: &str) -> String {
+#[cfg_attr(not(feature = "html"), allow(unused_variables))]
+fn cleaned(html: &str, aligned: bool) -> String {
     #[cfg(feature = "html")]
-    return ammonia::Builder::default()
-        .url_schemes(crate::inline::SCHEMES.iter().copied().collect())
-        .add_tag_attributes("span", ["data-ico", "data-hue"])
-        .add_tag_attributes("mark", ["data-pen"])
-        .clean(html)
-        .to_string();
+    {
+        let mut builder = ammonia::Builder::default();
+        builder
+            .url_schemes(crate::inline::SCHEMES.iter().copied().collect())
+            .add_tag_attributes("span", ["data-ico", "data-hue"])
+            .add_tag_attributes("mark", ["data-pen"]);
+        if aligned {
+            builder
+                .add_tag_attributes("div", ["align"])
+                .add_tag_attributes("p", ["align"]);
+        }
+        builder.clean(html).to_string()
+    }
     #[cfg(not(feature = "html"))]
     format!("<pre>{}</pre>", escaped(html))
 }

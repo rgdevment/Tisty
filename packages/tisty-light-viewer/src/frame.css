@@ -1,0 +1,689 @@
+/* The look of Folio's frame, so both feel like one family: only the rules a window that reads a file uses. */
+:root {
+  --orange: #f97c3d;
+  --desk: light-dark(#f5f5f7, #161618);
+  --desk-glow: light-dark(rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.045));
+  --glass: light-dark(rgb(250 250 252 / 0.8), rgb(36 36 39 / 0.74));
+  --glass-thick: light-dark(rgb(250 250 252 / 0.84), rgb(44 44 48 / 0.8));
+  --glass-solid: light-dark(#fbfbfd, #242427);
+  --track: light-dark(rgb(0 0 0 / 0.055), rgb(255 255 255 / 0.07));
+  --shade-near: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.3));
+  --shade-far: light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
+  --bar-height: 52px;
+  --bar-float: 10px;
+  --bar-edge: calc(var(--bar-float) + var(--bar-height) + 18px);
+  --panels-foot: 16px;
+  --sheet-width: 820px;
+  --panels-width: 268px;
+  --desk-gap: 28px;
+  --layout-width: calc(var(--sheet-width) + var(--desk-gap) + var(--panels-width));
+  --quick: 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --quick: 0ms;
+  }
+}
+
+html,
+html:not(.tall) {
+  background: var(--desk);
+  scrollbar-color: var(--tisty-line) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scroll-behavior: auto;
+}
+
+html:not(.tall):hover {
+  scrollbar-color: var(--tisty-line) transparent;
+}
+
+html:not(.tall) body,
+body {
+  min-height: 100vh;
+  padding: 0;
+  background: radial-gradient(1100px 520px at 50% -160px, var(--desk-glow), transparent) no-repeat;
+  color: var(--tisty-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: 2px;
+}
+
+.icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bar {
+  position: sticky;
+  top: var(--bar-float);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(var(--layout-width), 100% - 2 * var(--desk-gap));
+  height: var(--bar-height);
+  margin: var(--bar-float) auto 0;
+  padding: 0 10px 0 12px;
+  overflow: clip;
+  background: var(--glass-thick);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px var(--tisty-hair),
+    0 10px 30px -18px var(--shade-far);
+  font-size: 13px;
+  line-height: 1.45;
+  backdrop-filter: saturate(180%) blur(24px);
+}
+
+/* What scrolls away melts into the desk before it reaches the bar, so no letters show around the glass. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: var(--bar-edge);
+  background: linear-gradient(var(--desk) 55%, transparent);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+
+@supports (animation-timeline: scroll()) {
+  .bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-bottom: 2px solid var(--orange);
+    border-radius: inherit;
+    pointer-events: none;
+    mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+    mask-repeat: no-repeat;
+    animation: read-on linear both;
+    animation-timeline: scroll(root);
+  }
+
+  @keyframes read-on {
+    from {
+      mask-size: 0 100%;
+    }
+
+    to {
+      mask-size: calc(100% + 32px) 100%;
+    }
+  }
+}
+
+.brand {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.brand-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+}
+
+.brand-by {
+  margin-left: 6px;
+  color: var(--tisty-faint);
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.brand-mark {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+}
+
+.logo-back,
+.logo-front,
+.logo-fold {
+  stroke: #b3ab9e;
+  stroke-width: 2;
+}
+
+.logo-back,
+.logo-fold {
+  fill: #f1ede6;
+}
+
+.logo-front {
+  fill: #ffffff;
+}
+
+.logo-lines {
+  fill: none;
+  stroke: rgb(110 104 96 / 0.4);
+  stroke-width: 6;
+}
+
+.logo-note {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 6;
+}
+
+.logo-badge {
+  fill: var(--orange);
+}
+
+.logo-check {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 4.5;
+}
+
+.bar-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.window {
+  display: flex;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--tisty-hair);
+}
+
+.tool {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--tisty-soft);
+  cursor: pointer;
+  transition:
+    background var(--quick),
+    color var(--quick);
+}
+
+.tool:hover {
+  background: var(--track);
+  color: var(--tisty-ink);
+}
+
+.tool-side {
+  display: none;
+}
+
+.tool .icon {
+  grid-area: 1 / 1;
+}
+
+.tool .theme-to-dark {
+  stroke: light-dark(currentColor, transparent);
+}
+
+.tool .theme-to-light {
+  stroke: light-dark(transparent, currentColor);
+}
+
+.desk {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--desk-gap);
+  padding: var(--desk-gap) var(--desk-gap) 64px;
+}
+
+.sheet-column {
+  flex: 0 1 var(--sheet-width);
+  min-width: 0;
+  max-width: 100%;
+}
+
+html:not(.tall) .page,
+.page {
+  width: 100%;
+  max-width: var(--sheet-width);
+  min-height: 60vh;
+  margin: 0;
+  padding: 36px 40px;
+  background: var(--tisty-sheet);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px var(--tisty-hair),
+    0 18px 50px -24px var(--shade-far),
+    0 4px 14px -8px var(--shade-near);
+}
+
+.page > :is(h1, h2, h3, h4, h5, h6),
+.page [id] {
+  scroll-margin-top: calc(var(--bar-edge) + 8px);
+}
+
+.page .front {
+  display: none;
+}
+
+.far-pictures {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: var(--track);
+  border: 0;
+  border-radius: 10px;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.far-pictures:hover {
+  color: var(--tisty-ink);
+}
+
+.written {
+  margin: 0;
+  padding: 36px 40px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  background: var(--tisty-sheet);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--tisty-hair);
+  color: var(--tisty-ink);
+  font:
+    13px / 1.65 ui-monospace,
+    "Cascadia Mono",
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+}
+
+.panels {
+  position: sticky;
+  top: var(--bar-edge);
+  flex: 0 0 var(--panels-width);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--bar-edge) - var(--panels-foot));
+  background: var(--glass);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px var(--tisty-hair),
+    0 10px 30px -18px var(--shade-far);
+  font-size: 13px;
+  line-height: 1.45;
+  backdrop-filter: saturate(180%) blur(24px);
+}
+
+.panel {
+  flex: none;
+  padding: 14px;
+  border-top: 1px solid var(--tisty-hair);
+}
+
+.panel:has(.index) {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+}
+
+.panel h2 {
+  margin: 0 0 6px;
+  color: var(--tisty-faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-top: 0;
+}
+
+.actions-note {
+  flex: 0 0 100%;
+  margin: 2px 0 0;
+  color: var(--tisty-faint);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.action {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  background: var(--track);
+  border: 0;
+  border-radius: 8px;
+  color: var(--tisty-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity var(--quick);
+}
+
+.action:hover {
+  opacity: 0.82;
+}
+
+.action-main {
+  background: var(--tisty-ink);
+  color: var(--tisty-sheet);
+}
+
+/* A long list is a window on itself, so the page keeps the only scrollbar anyone sees. */
+.index {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 0 -6px;
+  padding: 6px 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: none;
+  mask-image: linear-gradient(transparent, #000 6px, #000 calc(100% - 10px), transparent);
+}
+
+.index button {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 100%;
+  padding: 4px 8px 4px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0 6px 6px 0;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-align: left;
+  text-wrap: pretty;
+  cursor: pointer;
+  transition: color var(--quick);
+}
+
+.index button:hover {
+  color: var(--tisty-ink);
+}
+
+.outline {
+  border-left: 1px solid var(--tisty-hair);
+}
+
+.outline [aria-current] {
+  color: var(--tisty-ink);
+  font-weight: 500;
+}
+
+.outline [aria-current]::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 2px;
+  background: var(--orange);
+  border-radius: 1px;
+}
+
+.outline [data-level="3"] button {
+  padding-left: 24px;
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.facts dt {
+  flex: none;
+  color: var(--tisty-soft);
+}
+
+.facts dt::first-letter {
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.menu,
+.finder {
+  position: fixed;
+  top: calc(var(--bar-float) + var(--bar-height) + 6px);
+  right: max(var(--desk-gap), (100% - var(--layout-width)) / 2);
+  z-index: 4;
+  display: flex;
+  background: var(--glass-solid);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px var(--tisty-hair),
+    0 12px 32px -10px var(--shade-far);
+  font-size: 13px;
+}
+
+.menu {
+  flex-direction: column;
+  min-width: 240px;
+  padding: 6px;
+}
+
+.menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--track);
+}
+
+.menu kbd {
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 12px;
+}
+
+.finder {
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 12px;
+}
+
+.finder input {
+  width: 200px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--tisty-ink);
+  font: inherit;
+}
+
+.finder-count {
+  padding: 0 8px;
+  color: var(--tisty-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+::highlight(tisty-found) {
+  background: var(--tisty-pen-yellow);
+}
+
+::highlight(tisty-found-here) {
+  background: var(--orange);
+  color: #1d1d1f;
+}
+
+.note {
+  width: min(var(--layout-width), 100% - 2 * var(--desk-gap));
+  margin: 10px auto 0;
+  padding: 8px 12px;
+  background: var(--track);
+  border-radius: 10px;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+}
+
+.problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: min(68vh, 640px);
+  padding: 24px;
+  background: var(--tisty-sheet);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--tisty-hair);
+  color: var(--tisty-soft);
+  font-size: 14px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.problem p {
+  margin: 0;
+}
+
+.problem-acts {
+  display: flex;
+  gap: 6px;
+}
+
+/* Below this the panels no longer fit beside the sheet, so they come over it on request. */
+@media (max-width: 1180px) {
+  :root {
+    --desk-gap: 16px;
+    --layout-width: var(--sheet-width);
+  }
+
+  .tool-side {
+    display: grid;
+  }
+
+  .panels {
+    display: none;
+    position: fixed;
+    top: calc(var(--bar-float) + var(--bar-height) + 6px);
+    right: 16px;
+    z-index: 4;
+    width: var(--panels-width);
+    background: var(--glass-solid);
+  }
+
+  .panels[data-open] {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  html:not(.tall) .page,
+  .page,
+  .written {
+    padding: 24px 18px;
+  }
+
+  .brand-by {
+    display: none;
+  }
+}
+
+/* Paper is light, whichever theme the screen was in. */
+@media print {
+  :root,
+  :root[data-theme] {
+    color-scheme: light;
+  }
+
+  html,
+  html:not(.tall),
+  body {
+    background: none;
+  }
+
+  body::before,
+  .bar,
+  .panels,
+  .menu,
+  .finder,
+  .note {
+    display: none;
+  }
+
+  .desk {
+    display: block;
+    padding: 0;
+  }
+
+  html:not(.tall) .page,
+  .page {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+  }
+}
+
+[hidden][hidden] {
+  display: none;
+}

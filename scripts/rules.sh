@@ -273,14 +273,14 @@ named_modules() {
 
 # A package is meant for other apps too, so it reaches nothing of Tisty's and is entered only by its doors.
 keeps_to_itself() {
-  local name=$1 said=$2 doors=$3 root=packages/$1/src named out declared one
+  local name=$1 said=$2 doors=$3 host=${4:-} root=packages/$1/src named out declared one
   declared=$(grep -oE '"tisty-[a-z-]+"' "packages/$name/package.json" | tr -d '"' | grep -vx "$name" | tr '\n' ' ')
   named=$(named_modules "$root")
   [ $? -lt 2 ] && [ -n "$named" ] \
     || { amiss "$said could not be looked through for what it reaches"; return; }
   # A relative path may climb only as far as the folders the file sits in below src/.
-  out=$(printf '%s\n' "$named" | awk -v root="$root/" '
-    $3 ~ /^@tauri-apps\// { print; next }
+  out=$(printf '%s\n' "$named" | awk -v root="$root/" -v host="$host" '
+    $3 ~ /^@tauri-apps\// { if ($1 != host) print; next }
     $3 ~ /^\.\.\// {
       folders = substr($1, length(root) + 1)
       depth = gsub("/", "/", folders)
@@ -323,21 +323,46 @@ keeps_to_itself() {
 the_packages_keep_to_themselves() {
   keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
-  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css"
+  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css"
+  keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts"
+}
+
+# Two frameworks in one bundle would cost the viewer the speed it exists for, and the app a second runtime.
+the_light_viewer_stays_apart() {
+  local named out
+  named=$(named_modules packages/tisty-light-viewer/src)
+  out=$(printf '%s\n' "$named" | awk '$3 ~ /^(react|react-dom)(\/|$)/')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "the light viewer takes React"
+    return
+  fi
+  named=$(named_modules app/src packages/tisty-diagrams/src packages/tisty-editor/src packages/tisty-sheet/src)
+  out=$(printf '%s\n' "$named" | awk '$3 ~ /^(solid-js|@solidjs\/)/')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "Solid reached past the light viewer"
+    return
+  fi
+  went_well "the light viewer has no React, and only it has Solid"
 }
 
 # Each of these lists passes over a package it does not name, with nothing to say so.
 every_package_is_looked_at() {
-  local at name file wanted out=""
+  local at name file wanted typed typed_src typed_tests out=""
   for at in packages/*/package.json; do
     name=$(basename "${at%/package.json}")
+    typed=app/tsconfig.json typed_src="\.\./packages/$name/src" typed_tests="\.\./packages/$name/tests"
+    if [ -f "packages/$name/tsconfig.json" ]; then
+      typed=packages/$name/tsconfig.json typed_src='"src"' typed_tests='"tests"'
+    fi
     while IFS='|' read -r file wanted; do
       grep -qE "$wanted" "$file" || out+="$file does not name $name"$'\n'
     done <<LISTS
 app/package.json|"lint":.*\.\./(packages/)?$name
 app/package.json|"format":.*\.\./(packages/)?$name
-app/tsconfig.json|\.\./packages/$name/src
-app/tsconfig.json|\.\./packages/$name/tests
+$typed|$typed_src
+$typed|$typed_tests
 .github/workflows/ci.yml|sonar\.sources=.*packages/$name/src
 .github/workflows/ci.yml|sonar\.tests=.*packages/$name/tests
 .github/workflows/mutants-sweep.yml|package: \[.*$name
@@ -402,6 +427,7 @@ no_token_kept_in_the_tree() {
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 the_packages_keep_to_themselves
+the_light_viewer_stays_apart
 every_package_is_looked_at
 the_app_holds_the_versions
 nothing_past_what_a_person_holds

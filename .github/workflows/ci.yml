@@ -184,6 +184,10 @@ jobs:
       - run: npm run build
       - name: Each window reaches only its own code
         run: node scripts/windows-apart.mjs
+      - name: The light viewer's own tests
+        run: npm test -w tisty-light-viewer
+      - name: The light viewer stays light, with no React, and the app has no Solid
+        run: node scripts/light-viewer.mjs
 
   guide:
     name: the Markdown guide draws
@@ -330,6 +334,7 @@ jobs:
         run: |
           npm ci
           npm run test:coverage --workspace app
+          npm run test:coverage --workspace tisty-light-viewer
 
       - name: Every path is relative to the repository, which is what Sonar reads
         run: |
@@ -337,6 +342,9 @@ jobs:
           sed -i -e "s|^SF:$PWD/app/|SF:app/|" -e "s|^SF:$PWD/packages/|SF:packages/|" \
             -e "s|^SF:src/|SF:app/src/|" -e "s|^SF:\.\./packages/|SF:packages/|" \
             app/coverage/lcov.info
+          sed -i -e "s|^SF:$PWD/packages/|SF:packages/|" \
+            -e "s|^SF:src/|SF:packages/tisty-light-viewer/src/|" \
+            packages/tisty-light-viewer/coverage/lcov.info
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -344,6 +352,7 @@ jobs:
           path: |
             lcov-rust.info
             app/coverage/lcov.info
+            packages/tisty-light-viewer/coverage/lcov.info
           retention-days: 1
 
   sonar:
@@ -373,15 +382,15 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-sheet/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-sheet/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-sheet/src,packages/tisty-light-viewer/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-sheet/tests,packages/tisty-light-viewer/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
-            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-sheet/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
+            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info,packages/tisty-light-viewer/coverage/lcov.info
+            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-light-viewer/src/words.ts,packages/tisty-sheet/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
-            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
+            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**,packages/tisty-light-viewer/src/main.tsx,packages/tisty-light-viewer/src/host.ts
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
