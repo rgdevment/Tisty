@@ -27,7 +27,7 @@ const status = {
   mayCorrect: false,
   fixBy: null,
 };
-const today = Math.floor(Date.now() / 86_400_000);
+const today = () => Math.floor(Date.now() / 86_400_000);
 
 const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) =>
@@ -241,7 +241,7 @@ describe("the Shared row", () => {
 
   it("warns of reports and the day to correct them by", async () => {
     const { panel, pressed } = await held(card, {
-      doc_share_status: { ...status, fixBy: today + 3 },
+      doc_share_status: { ...status, fixBy: today() + 3 },
     });
 
     await pressed("status");
@@ -251,25 +251,25 @@ describe("the Shared row", () => {
     expect(panel().said?.[0]).toBe(
       fill(
         "sharedFixBy",
-        new Date((today + 3) * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
+        new Date((today() + 3) * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
       ),
     );
     expect(panel().links).toHaveLength(1);
   });
 
   it("still counts the last day to correct, and says so once it passed", async () => {
-    const onTheDay = await held(card, { doc_share_status: { ...status, fixBy: today } });
+    const onTheDay = await held(card, { doc_share_status: { ...status, fixBy: today() } });
     await onTheDay.pressed("status");
     await waitFor(() =>
       expect(onTheDay.panel().said?.[0]).toBe(
         fill(
           "sharedFixBy",
-          new Date(today * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
+          new Date(today() * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
         ),
       ),
     );
 
-    const late = await held(card, { doc_share_status: { ...status, fixBy: today - 1 } });
+    const late = await held(card, { doc_share_status: { ...status, fixBy: today() - 1 } });
     await late.pressed("status");
     await waitFor(() => expect(late.panel().said?.[0]).toBe(t("sharedFixLate")));
     expect(late.panel().acts?.find((one) => one.key === "sync")?.off).toBe(false);
@@ -290,7 +290,7 @@ describe("the Shared row", () => {
   it("looks at the status after Sync when it holds the link to manage", async () => {
     const { panel, pressed } = await held(card, {
       doc_share_sync: { state: "unchanged" },
-      doc_share_status: { ...status, fixBy: today + 3 },
+      doc_share_status: { ...status, fixBy: today() + 3 },
     });
 
     await pressed("sync");

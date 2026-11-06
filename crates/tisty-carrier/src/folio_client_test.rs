@@ -245,7 +245,7 @@ fn what_cannot_be_read_never_passes_for_stored() {
         (200, "<html>"),
         (200, r#"{"stored":true}"#),
         (502, "Bad gateway"),
-        (403, r#"{"refused":"said_later"}"#),
+        (403, r#"{"said":"no refusal at all"}"#),
     ] {
         let folio = FakeFolio::answering(&[(status, body)]);
 
@@ -255,6 +255,16 @@ fn what_cannot_be_read_never_passes_for_stored() {
             "{body}"
         );
     }
+}
+
+#[test]
+fn a_refusal_from_a_later_folio_is_told_as_a_refusal_and_never_as_stored() {
+    let folio = FakeFolio::answering(&[(403, r#"{"refused":"said_later"}"#)]);
+
+    assert_eq!(
+        send_version(&folio, &next_version()),
+        Err(Stopped::Refused(Refused::Unknown))
+    );
 }
 
 #[test]
