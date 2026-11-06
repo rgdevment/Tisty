@@ -5,12 +5,14 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tisty_carrier::folio_client::{
-    self, Answered, Asked, BASE, Door, First, Refused, Stopped, Verb, Version,
+    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version,
 };
 use tisty_carrier::folio_limits::{self, FolioLimits};
+use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::policy;
 use tisty_core::Paths;
+use tisty_share_proto::identity::REVOCATIONS_AT_ONCE;
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
 use super::sharing::{doc_id, refused, sealed_by, turned};
@@ -47,9 +49,13 @@ impl Door for ToFolio {
         for (name, value) in &asked.headers {
             request = request.header(*name, value);
         }
-        if asked.verb == Verb::Put {
+        if !asked.body.is_empty() {
+            let kind = match asked.verb {
+                Verb::Post => "application/json",
+                _ => "application/octet-stream",
+            };
             request = request
-                .header("Content-Type", "application/octet-stream")
+                .header("Content-Type", kind)
                 .body(asked.body.to_vec());
         }
         let answer = request.send().ok()?;
@@ -76,6 +82,7 @@ fn said(stopped: &Stopped) -> Refusal {
             Refused::Behind => Refusal::of("folioBehind"),
             Refused::Outdated => Refusal::of("folioOutdated"),
             Refused::Revoked => Refusal::of("folioRevoked"),
+            Refused::NotBlocked | Refused::Appealed => Refusal::of("folioAppealed"),
             Refused::Missing => Refusal::of("folioGone"),
             Refused::NotYours => Refusal::of("notOneOwnDoc"),
             Refused::BadUpload
@@ -389,6 +396,28 @@ fn delivered(
     Ok(())
 }
 
+// Sent again on each sync (81): the server keeps them only while it holds something of that root, and a late one still counts.
+fn told_of_taken_back(door: &dyn Door, state: &tisty_core::State, device: &tisty_core::DeviceId) {
+    let Some(root) = state.persons.person(device) else {
+        return;
+    };
+    let taken: Vec<Taken> = state
+        .persons
+        .revocations
+        .iter()
+        .filter(|one| one.unchecked().is_some_and(|(person, _)| person == root))
+        .map(|one| Taken {
+            root: one.root.clone(),
+            machine: one.share.clone(),
+            at: one.at.to_string(),
+            signed: one.sig.clone(),
+        })
+        .collect();
+    for some in taken.chunks(REVOCATIONS_AT_ONCE) {
+        let _ = folio_client::taken_back(door, some);
+    }
+}
+
 async fn sealed_for_folio(
     app: &tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
@@ -462,9 +491,14 @@ pub async fn doc_shared(
         signed_as,
     };
     let (sealed, starts) = sealed_for_folio(&app, &session, asked, editable).await?;
+    let (state, device) = {
+        let session = held(&session);
+        (session.state.clone(), session.config.device_id.clone())
+    };
     apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &paths, &sealed, &starts, ttl_days)?;
+        told_of_taken_back(&door, &state, &device);
         let shelf = tisty_sharing::remembered(&paths).map_err(|e| refused(&e))?;
         shelf
             .get(&file)
@@ -507,6 +541,10 @@ pub async fn doc_share_sync(
             session.state.clone(),
         )
     };
+    let home = paths.private();
+    let limits = folio_limits::kept(&home);
+    folio_pace::press(&home, &was.id, policy::now(), limits.as_ref())
+        .map_err(|free| Refusal::about("folioWait", (free * 1000).to_string()))?;
     let remembered_id = was.id.clone();
     let remembered_version = was.version;
     let latest = apart(move || {
@@ -550,9 +588,15 @@ pub async fn doc_share_sync(
         .iter()
         .find(|(_, one)| one.id == was.id)
         .map_or(was.version + 1, |(_, one)| one.version);
+    let (state, device) = {
+        let session = held(&session);
+        (session.state.clone(), session.config.device_id.clone())
+    };
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &paths, &sealed, &starts, 0)
+        delivered(&door, &paths, &sealed, &starts, 0)?;
+        told_of_taken_back(&door, &state, &device);
+        Ok(())
     })
     .await?;
     Ok(Synced::Sent { version })
@@ -608,6 +652,20 @@ pub async fn doc_share_pause(
             folio_client::resume(&door, &id, &admin)
         };
         done.map_err(|stopped| said(&stopped))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn doc_share_appeal(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<bool> {
+    let (id, admin) = admin_of(&session, &id)?;
+    apart(move || {
+        let door = ToFolio::new()?;
+        let claim = folio_client::appeal(&door, &id, &admin).map_err(|stopped| said(&stopped))?;
+        Ok(claim == Claim::Accepted)
     })
     .await
 }

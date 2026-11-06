@@ -59,6 +59,7 @@ pub struct Carrying {
     pub pages: usize,
     pub pictures: usize,
     pub pictures_bytes: u64,
+    pub largest_picture: u64,
     pub files: usize,
     pub files_bytes: u64,
 }
@@ -74,6 +75,12 @@ impl Gathered {
             pages: anchor.document.pages.as_ref().map_or(0, Vec::len),
             pictures: anchor.pictures.len(),
             pictures_bytes: weight(&anchor.pictures),
+            largest_picture: anchor
+                .pictures
+                .iter()
+                .map(|one| one.len() as u64)
+                .max()
+                .unwrap_or(0),
             files: anchor.files.len(),
             files_bytes: weight(&anchor.files),
         }

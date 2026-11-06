@@ -38,6 +38,7 @@ export interface FolioLimits {
   ttl_days?: number[];
   shares_at_most?: number;
   pictures_at_most?: number;
+  picture_bytes_at_most?: number;
   pictures_bytes_at_most?: number;
   files_at_most?: number;
   files_bytes_at_most?: number;
@@ -51,6 +52,7 @@ export interface ShareLook {
     pages: number;
     pictures: number;
     picturesBytes: number;
+    largestPicture: number;
     files: number;
     filesBytes: number;
   };
@@ -99,6 +101,8 @@ export const shareStatus = (id: string): Promise<ShareStatus> => invoke("doc_sha
 
 export const sharePause = (id: string, paused: boolean): Promise<void> =>
   invoke("doc_share_pause", { id, paused });
+
+export const shareAppeal = (id: string): Promise<boolean> => invoke("doc_share_appeal", { id });
 
 export const shareStop = (id: string): Promise<void> => invoke("doc_share_stop", { id });
 

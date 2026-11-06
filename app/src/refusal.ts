@@ -213,6 +213,7 @@ const KNOWN = [
   "folioRevoked",
   "folioGone",
   "folioRefused",
+  "folioAppealed",
   "folioTermsNotPublished",
   "folioTermsUnmatched",
   "folioTermsToAccept",

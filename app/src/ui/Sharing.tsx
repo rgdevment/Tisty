@@ -10,6 +10,7 @@ import {
   type ShareCard,
   type ShareLook,
   type ShareStatus,
+  shareAppeal,
   shareCard,
   shareLook,
   sharePause,
@@ -240,6 +241,15 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
   );
 }
 
+const past = (carried: number, most?: number) => most !== undefined && carried > most;
+
+const pastTheLimits = ({ carrying, limits }: ShareLook) =>
+  past(carrying.pictures, limits.pictures_at_most) ||
+  past(carrying.picturesBytes, limits.pictures_bytes_at_most) ||
+  past(carrying.largestPicture, limits.picture_bytes_at_most) ||
+  past(carrying.files, limits.files_at_most) ||
+  past(carrying.filesBytes, limits.files_bytes_at_most);
+
 function Choosing({
   doc,
   title,
@@ -273,7 +283,8 @@ function Choosing({
   const full = !already && most !== undefined && others.length >= most;
   const named = look.alias || look.name;
   const signedAs = named ? ((signs === "alias" ? look.alias : look.name) ?? undefined) : asked;
-  const ready = !full && Boolean(signedAs?.trim());
+  const over = pastTheLimits(look);
+  const ready = !full && !over && Boolean(signedAs?.trim());
 
   const stopOne = (one: string) => {
     shareStop(one)
@@ -310,6 +321,15 @@ function Choosing({
             <span className="text-[11.5px] leading-relaxed text-soft">
               {fill("shareFullWhy", String(most))}
             </span>
+          </div>
+        )}
+        {over && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
+          >
+            <span className="text-[13px] font-semibold text-hue-amber">{t("shareOverHead")}</span>
+            <span className="text-[11.5px] leading-relaxed text-soft">{t("shareOverWhy")}</span>
           </div>
         )}
         {look.secrets.length > 0 && (
@@ -755,7 +775,18 @@ export const useSharedRow = (
               onPick: () => shareStatus(doc).then(setStatus).catch(failing),
             },
             ...(blocked
-              ? []
+              ? [
+                  {
+                    key: "appeal",
+                    label: t("shareAppeal"),
+                    onPick: () =>
+                      shareAppeal(doc)
+                        .then((accepted) =>
+                          setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
+                        )
+                        .catch(failing),
+                  },
+                ]
               : [
                   {
                     key: "pause",

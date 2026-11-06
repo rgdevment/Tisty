@@ -17,6 +17,7 @@ mod cloud;
 mod folder;
 pub mod folio_client;
 pub mod folio_limits;
+pub mod folio_pace;
 pub mod folio_terms;
 #[cfg(not(windows))]
 mod keychain;

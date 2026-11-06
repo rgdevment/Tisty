@@ -2,9 +2,9 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 
 use super::{
-    Answered, Asked, Door, First, Refused, Stopped, Stored, Verb, Version, Why, edit_link, latest,
-    pause, read_link, resume, send_files, send_version, solved, start, status, stop,
-    zero_bits_at_start,
+    Answered, Asked, Claim, Door, First, Refused, Stopped, Stored, Taken, Verb, Version, Why,
+    appeal, edit_link, latest, pause, read_link, resume, send_files, send_version, solved, start,
+    status, stop, taken_back, zero_bits_at_start,
 };
 
 type Heard = (Verb, String, Vec<(&'static str, String)>, Vec<u8>);
@@ -335,4 +335,39 @@ fn it_says_which_version_is_there() {
 
     assert_eq!(latest(&folio, "Ab3xK9pQ").map(|one| one.version), Ok(7));
     assert_eq!(folio.asked.borrow()[0].0, Verb::Get);
+}
+
+#[test]
+fn what_a_root_took_back_goes_as_folio_names_it() {
+    let folio = FakeFolio::answering(&[(200, r#"{"done":true}"#)]);
+
+    taken_back(
+        &folio,
+        &[Taken {
+            root: "r".to_owned(),
+            machine: "m".to_owned(),
+            at: "2026-11-06T12:00:00Z".to_owned(),
+            signed: "s".to_owned(),
+        }],
+    )
+    .unwrap();
+
+    assert_eq!(folio.asked.borrow()[0].1, "/revocations");
+    let sent: serde_json::Value = serde_json::from_slice(&folio.asked.borrow()[0].3).unwrap();
+    assert_eq!(sent[0]["machine"], "m");
+    assert_eq!(sent[0]["signed"], "s");
+}
+
+#[test]
+fn an_appeal_says_how_it_was_taken() {
+    let folio = FakeFolio::answering(&[
+        (200, r#"{"done":true,"claim":"accepted"}"#),
+        (409, r#"{"refused":"appealed"}"#),
+    ]);
+
+    assert_eq!(appeal(&folio, "Ab3xK9pQ", "t"), Ok(Claim::Accepted));
+    assert_eq!(
+        appeal(&folio, "Ab3xK9pQ", "t"),
+        Err(Stopped::Refused(Refused::Appealed))
+    );
 }

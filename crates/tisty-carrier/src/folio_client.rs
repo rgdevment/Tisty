@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const BASE: &str = "https://tisty.cl/api/v1";
@@ -64,6 +64,8 @@ pub enum Refused {
     Proof { salt: String, bits: u32 },
     Failed,
     UploadsOff,
+    NotBlocked,
+    Appealed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -280,6 +282,42 @@ pub fn stop(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
         Err(Stopped::Refused(Refused::Missing)) | Ok(_) => Ok(()),
         Err(other) => Err(other),
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Taken {
+    pub root: String,
+    pub machine: String,
+    pub at: String,
+    pub signed: String,
+}
+
+pub fn taken_back(door: &dyn Door, taken: &[Taken]) -> Result<(), Stopped> {
+    let body = serde_json::to_vec(taken).map_err(|_| Stopped::Garbled)?;
+    let asked = Asked {
+        verb: Verb::Post,
+        path: "/revocations".to_owned(),
+        headers: Vec::new(),
+        body: &body,
+    };
+    read::<Done>(&door.ask(&asked).ok_or(Stopped::Unreached)?).map(|_| ())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Claim {
+    Accepted,
+    Review,
+}
+
+#[derive(Deserialize)]
+struct Appealed {
+    claim: Claim,
+}
+
+pub fn appeal(door: &dyn Door, id: &str, admin: &str) -> Result<Claim, Stopped> {
+    let answered = asked_as_admin(door, Verb::Post, format!("/docs/{id}/appeal"), admin)?;
+    read::<Appealed>(&answered).map(|one| one.claim)
 }
 
 pub fn read_link(id: &str, key: &str) -> String {
