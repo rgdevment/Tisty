@@ -402,6 +402,16 @@ few_earlier_releases_are_met() {
   fi
 }
 
+every_package_says_its_licence() {
+  local missing
+  missing=$(grep -L '"license": "AGPL-3.0-only"' package.json app/package.json packages/*/package.json; grep -L '^license' crates/*/Cargo.toml app/src-tauri/Cargo.toml)
+  if [ -z "$missing" ]; then
+    went_well "every package and crate says its licence"
+  else
+    amiss "these do not say their licence: $missing"
+  fi
+}
+
 the_contracts_hold() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the contracts were not looked at"
@@ -440,6 +450,7 @@ the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 few_earlier_releases_are_met
+every_package_says_its_licence
 the_contracts_hold
 no_token_kept_in_the_tree
 exit $status

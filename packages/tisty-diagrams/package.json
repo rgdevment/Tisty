@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Tisty's diagram studio: reads and writes Mermaid, draws it, and edits it by hand.",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     "./read": "./src/read.ts",

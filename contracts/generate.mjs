@@ -405,7 +405,7 @@ const files = {
         "./vectors.json": "./vectors.json",
         "./written-by-tisty.json": "./written-by-tisty.json",
       },
-      files: ["index.js", "index.d.ts", "check.js", "check.d.ts", "vectors.json", "written-by-tisty.json"],
+      files: ["index.js", "index.d.ts", "check.js", "check.d.ts", "vectors.json", "written-by-tisty.json", "LICENSE"],
     },
     null,
     2,
@@ -418,6 +418,7 @@ const files = {
   "typescript/vectors.test.js": readFileSync(join(here, "vectors", "open.test.js"), "utf8"),
   "typescript/vectors.json": readFileSync(join(here, "vectors", "vectors.json"), "utf8"),
   "typescript/written-by-tisty.json": readFileSync(join(here, "vectors", "written-by-tisty.json"), "utf8"),
+  "typescript/LICENSE": readFileSync(join(here, "..", "LICENSE"), "utf8"),
   "rust/Cargo.toml": `[package]
 name = "tisty-contracts"
 version = "${VERSION}"
