@@ -413,8 +413,9 @@ lector ignora y pinta igual—. Donde Markdown no tiene palabra para algo, Tisty
 suma unas pocas y cortas, nunca HTML: `==texto==` es un resaltado y
 `==texto=={green}` uno de otro color, `++texto++` va subrayado, `::star::` es un
 ícono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
-El editor muestra el archivo tal como está escrito, bloque a bloque, así que lo
-que ves al escribir es lo que hay en el disco. **Copiar como Markdown** y sacar
+El editor escribe el archivo bloque a bloque, con las marcas fuera de la vista
+hasta que las pides, y `Ctrl`/`⌘` + `E` lo abre entero como texto, así que lo que
+hay en el disco siempre es tuyo para leerlo. **Copiar como Markdown** y sacar
 un documento dicen esas pocas palabras como las entiende cualquier otro lector,
 y un archivo antiguo, una importación o un asistente que escriba en Markdown
 corriente se traduce a ellas al entrar.

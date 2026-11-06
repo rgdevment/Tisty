@@ -141,7 +141,7 @@ Un documento es texto tuyo, guardado en Markdown, que puedes escribir aquí o le
 
 La primera línea del documento es su título. No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama. Encima, si las quieres, van sus propiedades, entre dos líneas `---`, como las escriben muchas herramientas de Markdown: `tags:`, el papel en que se imprime. Tisty no las muestra en la página; las muestra en el panel de al lado, en **Sobre este documento**.
 
-Se escribe de a un bloque. Haz clic en un párrafo y se abre para escribir, con su barra encima; pulsa `Esc` y vuelve a leerse como página. Elige unas palabras en la página y una barra pequeña te ofrece negrita, cursiva, un enlace o un rotulador ahí mismo, y el botón derecho ofrece lo mismo junto con copiar y editar el bloque. Leída en el visor, la página solo se lee: no aparece nada.
+Se escribe de a un bloque. Haz clic en un párrafo y se abre para escribir, con un pequeño **Aa** a su lado que se abre en la barra al seleccionar palabras; pulsa `Esc` y vuelve a leerse como página. Las marcas no se ven hasta que las pides con `Ctrl`/`⌘` + `Shift` + `M`, las flechas siguen de un bloque al siguiente, y `Ctrl`/`⌘` + `E` abre todo el documento como un solo texto. Elige unas palabras en la página y una barra pequeña te ofrece negrita, cursiva, un enlace o un rotulador ahí mismo, y el botón derecho ofrece lo mismo junto con copiar y editar el bloque. Leída en el visor, la página solo se lee: no aparece nada.
 
 Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 
@@ -224,7 +224,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo, desparasitación cada tres 
 
 #### Destacar
 
-Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}. Eliges el color en la barra que sale mientras escribes un bloque.
+Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}. Eliges el color en la barra que se abre al seleccionar palabras en un bloque.
 
 #### Iconos
 
