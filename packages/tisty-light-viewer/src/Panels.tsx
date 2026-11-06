@@ -26,6 +26,7 @@ export default function Panels(props: {
   const { say, locale } = props.words;
   const listed = () => props.heads.filter((one) => one.level <= LISTED_UP_TO);
   const [current, setCurrent] = createSignal<string | null>(null);
+  let list: HTMLOListElement | undefined;
 
   const follow = () => {
     const root = document.documentElement;
@@ -37,7 +38,13 @@ export default function Panels(props: {
       const top = document.getElementById(one.id)?.getBoundingClientRect().top;
       if (top !== undefined && top <= line) reached = one.id;
     }
-    setCurrent(atEnd ? (listed().at(-1)?.id ?? null) : reached);
+    const now = atEnd ? (listed().at(-1)?.id ?? null) : reached;
+    if (now === current()) return;
+    setCurrent(now);
+    const item = list?.children[listed().findIndex((one) => one.id === now)] as
+      | HTMLElement
+      | undefined;
+    if (list && item) list.scrollTop = item.offsetTop - list.clientHeight / 2;
   };
 
   let queued = false;
@@ -71,7 +78,7 @@ export default function Panels(props: {
       <Show when={listed().length > 0}>
         <section class="panel">
           <h2>{say("index")}</h2>
-          <ol class="index outline">
+          <ol class="index outline" ref={list}>
             <For each={listed()}>
               {(one) => (
                 <li data-level={one.level}>
