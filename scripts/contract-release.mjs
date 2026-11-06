@@ -9,12 +9,12 @@ const PACKAGE = "contracts/dist/typescript";
 // Tisty takes the crate by path and nothing is released of it, but it gives the same verdicts.
 const ALSO_PUBLISHED = ["contracts/dist/contract.json", "contracts/dist/rust/src", "contracts/dist/rust/Cargo.toml"];
 
-const read = (said) => {
+export const read = (said) => {
   const found = /^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/.exec(said);
   return found && { numbers: found.slice(1, 4).map(Number), draft: found[4] ?? null };
 };
 
-const isAfter = (now, was) => {
+export const isAfter = (now, was) => {
   for (const [at, one] of now.numbers.entries()) {
     if (one !== was.numbers[at]) return one > was.numbers[at];
   }
@@ -42,18 +42,18 @@ export const judged = ({ was, now, changed, frozenBefore = {}, frozenNow = {} })
 };
 
 /** What the workflow does with the version on main. */
-export const planned = ({ version, packaged, releases, tags }) => {
+export const planned = ({ version, packaged, releases, tags, prefix = "contracts-v" }) => {
   if (version !== packaged) throw new Error(`contracts/VERSION says ${version} and its package says ${packaged}`);
-  const tag = `contracts-v${version}`;
+  const tag = `${prefix}${version}`;
   if (version.includes("-")) return { publish: false, tag, why: "a draft is never published" };
   if (releases.includes(tag)) return { publish: false, tag, why: `${tag} is out, and what is out is never replaced` };
   if (tags.includes(tag)) throw new Error(`the tag ${tag} is there with no release: look at it by hand before anything goes on it`);
   return { publish: true, tag, why: `${tag} goes out` };
 };
 
-const lines = (said) => (said ?? "").split(/\r?\n/).filter(Boolean);
+export const lines = (said) => (said ?? "").split(/\r?\n/).filter(Boolean);
 
-const atRevision = (revision, path) => execFileSync("git", ["show", `${revision}:${path}`], { encoding: "utf8" }).trim();
+export const atRevision = (revision, path) => execFileSync("git", ["show", `${revision}:${path}`], { encoding: "utf8" }).trim();
 
 const publishedPaths = (revision) => {
   const { files } = JSON.parse(atRevision(revision, `${PACKAGE}/package.json`));

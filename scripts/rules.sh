@@ -402,6 +402,18 @@ few_earlier_releases_are_met() {
   fi
 }
 
+the_sheet_says_its_version() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the version of the sheet was not looked at"
+    return
+  fi
+  if node scripts/sheet-release.mjs check && node --test scripts/sheet-release.test.mjs > /dev/null; then
+    went_well "the sheet and the lockfile say the same version"
+  else
+    amiss "the version of tisty-sheet and package-lock.json do not agree; run npm install"
+  fi
+}
+
 the_contracts_hold() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the contracts were not looked at"
@@ -440,6 +452,7 @@ the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 few_earlier_releases_are_met
+the_sheet_says_its_version
 the_contracts_hold
 no_token_kept_in_the_tree
 exit $status

@@ -88,6 +88,15 @@ jobs:
           git fetch --quiet --depth=1 origin "$BASE"
           node scripts/contract-release.mjs pr "$BASE" HEAD
 
+      - name: The sheet's version says what its package holds
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet --depth=1 origin "$BASE"
+          node scripts/sheet-release.mjs pr "$BASE" HEAD
+
       # Nothing else looks at a subject that reached main without a pull request.
       - name: The subject that landed
         if: github.event_name == 'push'
