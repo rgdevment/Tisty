@@ -206,8 +206,12 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         held_by: None,
         ttl_days: None,
         carried: Some(
-            r#"{"lang":"es","languages":[{"lang":"en","document":"Lang1111","key":"k"}],"cited":null}"#
-                .to_owned(),
+            serde_json::json!({
+                "lang": "es",
+                "languages": [{"lang": "en", "document": "Lang1111", "key": shared.link_key}],
+                "cited": null,
+            })
+            .to_string(),
         ),
     };
     editor.sent(&[(file, entry)]);
