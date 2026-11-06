@@ -1,0 +1,12 @@
+[
+  { "release": "1.23.1", "schema": 15, "shape": 0, "every_pull_request": true },
+  { "release": "1.24.4", "schema": 16, "shape": 1, "every_pull_request": true },
+  { "release": "1.25.1", "schema": 17, "shape": 1, "every_pull_request": true },
+  { "release": "1.30.5", "schema": 17, "shape": 2, "accepts": "1.30.0", "every_pull_request": true },
+  { "release": "1.33.0", "schema": 18, "shape": 3, "accepts": "1.31.0", "built": true, "every_pull_request": true },
+  { "release": "1.36.2", "schema": 18, "shape": 3, "accepts": "1.36.2", "built": true },
+  { "release": "1.38.0", "schema": 18, "shape": 3, "accepts": "1.38.0", "built": true },
+  { "release": "1.39.1", "schema": 18, "shape": 3, "accepts": "1.39.1", "built": true },
+  { "release": "1.40.1", "schema": 18, "shape": 3, "accepts": "1.40.1", "built": true },
+  { "release": "1.41.1", "schema": 18, "shape": 3, "accepts": "1.41.1", "built": true, "every_pull_request": true }
+]
