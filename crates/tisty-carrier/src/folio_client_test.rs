@@ -339,6 +339,7 @@ fn the_status_tells_a_deadline_and_a_block_that_a_new_version_lifts() {
     let told = status(&folio, "Ab3xK9pQ", "token").unwrap();
 
     assert_eq!((told.may_correct, told.fix_by), (true, Some(20005)));
+    assert_eq!(told.appealed_at, Some(19991));
 }
 
 #[test]

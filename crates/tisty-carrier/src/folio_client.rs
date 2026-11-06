@@ -312,6 +312,8 @@ pub struct Status {
     pub blocked_at: Option<u64>,
     pub read_total: u64,
     #[serde(default)]
+    pub appealed_at: Option<u64>,
+    #[serde(default)]
     pub may_correct: bool,
     #[serde(default)]
     pub fix_by: Option<u64>,

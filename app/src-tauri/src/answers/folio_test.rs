@@ -303,7 +303,7 @@ fn a_refusal_this_version_does_not_know_asks_to_update_it() {
 }
 
 #[test]
-fn only_a_refusal_over_the_terms_gives_the_press_back() {
+fn a_press_comes_back_only_when_nothing_reached_folio() {
     let home = tempfile::tempdir().unwrap();
     tisty_carrier::folio_pace::press(home.path(), "d", 100, None).unwrap();
 
@@ -311,14 +311,12 @@ fn only_a_refusal_over_the_terms_gives_the_press_back() {
     assert_eq!(kept.code, "folioFull");
     assert_eq!(pressed_in(home.path()), 1);
 
-    let given = press_given_back(
-        crate::Refusal::of("folioTermsToAccept"),
-        home.path(),
-        "d",
-        100,
-    );
-    assert_eq!(given.code, "folioTermsToAccept");
-    assert_eq!(pressed_in(home.path()), 0);
+    for code in ["folioTermsToAccept", "folioUnreached", "folioUploadsOff"] {
+        let given = press_given_back(crate::Refusal::of(code), home.path(), "d", 100);
+        assert_eq!(given.code, code);
+        assert_eq!(pressed_in(home.path()), 0, "{code}");
+        tisty_carrier::folio_pace::press(home.path(), "d", 100, None).unwrap();
+    }
 }
 
 fn pressed_in(home: &std::path::Path) -> usize {
@@ -344,7 +342,7 @@ fn only_an_open_folio_lets_a_new_share_start() {
 
 #[test]
 fn terms_cut_at_a_column_read_as_paragraphs_under_their_headings() {
-    let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n\n[English](TERMS.md)\n";
+    let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n\nDenuncias: <abuso@tisty.app>.\n\n[English](TERMS.md)\n";
 
     let drawn = folio_terms_drawn(terms.to_owned());
 
@@ -352,6 +350,7 @@ fn terms_cut_at_a_column_read_as_paragraphs_under_their_headings() {
     assert!(drawn.contains("<ul"), "{drawn}");
     assert!(!drawn.contains("<br"), "{drawn}");
     assert!(!drawn.contains("English"), "{drawn}");
+    assert!(drawn.contains("mailto:abuso@tisty.app"), "{drawn}");
 }
 
 #[test]

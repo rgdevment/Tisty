@@ -177,8 +177,12 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     }
 }
 
+// The waits pace what reaches Folio, so a press stopped before that leaves them as they were.
 fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
-    if refused.code == TERMS_TO_ACCEPT {
+    if matches!(
+        refused.code,
+        TERMS_TO_ACCEPT | "folioUnreached" | "folioUploadsOff"
+    ) {
         folio_pace::take_back(home, id, at);
     }
     refused
@@ -882,7 +886,9 @@ pub async fn doc_share_sync(
             return Ok(Synced::Gone);
         }
         Err(_) if correcting => None,
-        Err(stopped) => return Err(said(&stopped)),
+        Err(stopped) => {
+            return Err(press_given_back(said(&stopped), &home, &was.id, pressed_at));
+        }
     };
     if latest.is_some_and(|latest| latest.version > remembered_version) {
         return other_version_brought(&session, &id, &was).await;
@@ -1038,6 +1044,7 @@ pub struct ShareStatus {
     paused: bool,
     blocked: bool,
     reads: u64,
+    appealed: bool,
     may_correct: bool,
     fix_by: Option<u64>,
 }
@@ -1068,6 +1075,7 @@ pub async fn doc_share_status(
             paused: told.paused_at.is_some(),
             blocked: told.blocked_at.is_some(),
             reads: told.read_total,
+            appealed: told.appealed_at.is_some(),
             may_correct: told.may_correct,
             fix_by: told.fix_by,
         })

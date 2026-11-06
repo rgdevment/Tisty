@@ -107,7 +107,8 @@ function Terms({
       link.addEventListener("click", (event) => {
         event.preventDefault();
         const url = new URL(link.getAttribute("href") ?? "", onTheWeb());
-        if (url.protocol === "https:") void openUrl(url.href).catch(() => {});
+        if (url.protocol === "https:" || url.protocol === "mailto:")
+          void openUrl(url.href).catch(() => {});
       });
     }
   }, [drawn]);

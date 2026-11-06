@@ -103,7 +103,7 @@ const checkType = (type, value, at, out) => {
   } else if (type === "file_name") {
     if (typeof value !== "string" || !isFileName(value)) out.push(at + " is not the name of a file");
   } else if (type === "digits") {
-    if (typeof value !== "string" || !/^[0-9]+$/.test(value)) out.push(at + " is not a whole number written as text");
+    if (typeof value !== "string" || !/^(0|[1-9][0-9]*)$/.test(value)) out.push(at + " is not a whole number written as text");
   } else if (type === "language") {
     if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
   } else if (type === "tag_word") {

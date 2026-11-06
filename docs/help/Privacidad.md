@@ -15,6 +15,7 @@ Todo vive en una carpeta de tu disco:
 - **Adjuntos**: los archivos tal cual, sin modificar.
 - **Configuración local**: incluye el identificador de este equipo y su clave de firma. La mitad privada de la clave nunca sale del equipo.
 - **Tu frase, si creas una**: las 24 palabras que cifran tu nube, guardadas en el equipo donde la creaste, en el llavero del sistema en macOS o en un archivo sellado para tu usuario en Windows. Nunca se sincroniza, se respalda ni va en un paquete.
+- **Lo que compartes por link**: la llave de cada link y los tokens que lo administran o editan viven en el registro, para que tus otros equipos puedan manejarlo. Viajan con tu sincronización, así que quien pueda leer una copia sin cifrar puede abrir esos links.
 - **Una carpeta `private/`**: lo que pongas ahí nunca sale del equipo, por ningún camino.
 
 Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.

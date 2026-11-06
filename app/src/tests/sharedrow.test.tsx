@@ -24,6 +24,7 @@ const status = {
   paused: false,
   blocked: false,
   reads: 3,
+  appealed: false,
   mayCorrect: false,
   fixBy: null,
 };
@@ -316,6 +317,18 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().said).toEqual([t("sharedMayCorrect")]));
     expect(panel().acts?.find((one) => one.key === "sync")?.off).toBe(false);
     expect(panel().acts?.some((one) => one.key === "appeal")).toBe(false);
+  });
+
+  it("says an appeal is under review and does not offer it again", async () => {
+    const { panel, pressed } = await held(card, {
+      doc_share_status: { ...status, blocked: true, appealed: true },
+    });
+
+    await pressed("status");
+
+    await waitFor(() => expect(panel().said).toEqual([t("sharedAppealWaiting")]));
+    expect(panel().acts?.some((one) => one.key === "appeal")).toBe(false);
+    expect(panel().acts?.find((one) => one.key === "sync")?.off).toBe(true);
   });
 
   it("looks at the status after Sync when it holds the link to manage", async () => {

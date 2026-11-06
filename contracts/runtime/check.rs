@@ -233,7 +233,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
         "digits" => {
             if !value
                 .as_str()
-                .is_some_and(|said| !said.is_empty() && said.bytes().all(|one| one.is_ascii_digit()))
+                .is_some_and(|said| {
+                    !said.is_empty()
+                        && said.bytes().all(|one| one.is_ascii_digit())
+                        && (said.len() == 1 || !said.starts_with('0'))
+                })
             {
                 out.push(wrong("is not a whole number written as text"));
             }

@@ -189,6 +189,35 @@ fn links_wait_their_turn_and_only_the_first_goes_through_them() {
 }
 
 #[test]
+fn a_link_fired_again_while_it_is_handled_is_not_asked_about_twice() {
+    let views = Views::default();
+    assert!(views.link_arrived(link_numbered(1)));
+    assert_eq!(views.next_link(), Some(link_numbered(1)));
+
+    assert!(!views.link_arrived(link_numbered(1)));
+    assert_eq!(views.next_link(), None);
+
+    assert!(views.link_arrived(link_numbered(1)));
+    assert_eq!(views.next_link(), Some(link_numbered(1)));
+}
+
+#[test]
+fn a_link_that_breaks_does_not_stop_the_ones_after_it() {
+    let views = Views::default();
+    views.link_arrived(link_numbered(1));
+    views.link_arrived(link_numbered(2));
+    let brought = std::cell::RefCell::new(Vec::new());
+
+    views.go_through_links(|link| {
+        assert_ne!(link, &link_numbered(1), "this one breaks");
+        brought.borrow_mut().push(link.clone());
+    });
+
+    assert_eq!(brought.into_inner(), [link_numbered(2)]);
+    assert!(views.link_arrived(link_numbered(3)));
+}
+
+#[test]
 fn a_page_firing_links_cannot_line_up_more_than_a_few() {
     let views = Views::default();
 

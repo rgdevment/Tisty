@@ -15,6 +15,7 @@ Everything lives in one folder on your disk:
 - **Attachments** — the files themselves, unmodified.
 - **Local settings** — including this machine's identifier and signing key. The private half of the key never leaves the machine.
 - **Your phrase, if you make one** — the 24 words that encrypt your cloud, kept on the computer where you made them, in the system keychain on macOS or a file sealed for your user on Windows. Never synced, backed up or put in a parcel.
+- **What you share by link**: each link's key and the tokens that manage or edit it live in the log, so your other computers can manage it. They travel with your sync, so whoever can read an unencrypted copy can open those links.
 - **A `private/` folder** — anything placed there never leaves the machine, by any route.
 
 Nothing is obfuscated, and nothing is in a format only Tisty can read.

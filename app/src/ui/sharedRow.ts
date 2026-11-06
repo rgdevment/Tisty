@@ -41,9 +41,14 @@ const gistOf = (card: ShareCard, status: ShareStatus | null) => {
   return { gist: t(card.edit ? "sharedCanEdit" : "sharedReadOnly"), tone: undefined };
 };
 
+const blockedSaid = ({ mayCorrect, appealed }: ShareStatus) => {
+  if (mayCorrect) return t("sharedMayCorrect");
+  return t(appealed ? "sharedAppealWaiting" : "sharedBlockedWhy");
+};
+
 const saidOf = (status: ShareStatus | null, told: string | null, stopping: boolean) =>
   [
-    status?.blocked && t(status.mayCorrect ? "sharedMayCorrect" : "sharedBlockedWhy"),
+    status?.blocked && blockedSaid(status),
     status?.paused && t("sharedPausedWhy"),
     status && !status.blocked && fixSaid(status),
     status && !status.blocked && fill("sharedStatus", dayOf(status.diesOn), String(status.reads)),
@@ -167,7 +172,7 @@ const managingActs = (h: Hands): Act[] => {
     label: t("sharedSeeStatus"),
     onPick: () => void statusNow(h).catch(h.failing),
   };
-  if (h.status?.blocked && h.status.mayCorrect) return [see];
+  if (h.status?.blocked && (h.status.mayCorrect || h.status.appealed)) return [see];
   if (h.status?.blocked)
     return [
       see,
@@ -176,9 +181,10 @@ const managingActs = (h: Hands): Act[] => {
         label: t("shareAppeal"),
         onPick: () =>
           void shareAppeal(h.doc)
-            .then((accepted) =>
-              h.setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
-            )
+            .then((accepted) => {
+              h.setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview"));
+              return statusNow(h);
+            })
             .catch(h.failing),
       },
     ];
@@ -289,7 +295,7 @@ export const useSharedRow = (
 
   const panel = useMemo((): Panel | null => {
     if (!doc) return null;
-    if (!card)
+    if (!hands)
       return {
         kind: "held",
         key: "shared",
@@ -310,7 +316,7 @@ export const useSharedRow = (
           },
         ],
       };
-    if (card.held)
+    if (hands.card.held)
       return {
         kind: "held",
         key: "shared",
@@ -318,21 +324,20 @@ export const useSharedRow = (
         gist: t("sharedHeldGist"),
         open: true,
         said: [t("sharedHeldWhy")],
-        links: linksOf(card, status),
+        links: linksOf(hands.card, hands.status),
       };
-    if (!hands) return null;
-    const rest = card.taken ? leavingActs(hands) : managingActs(hands);
+    const rest = hands.card.taken ? leavingActs(hands) : managingActs(hands);
     return {
       kind: "held",
       key: "shared",
       label: t("sharedLabel"),
-      ...gistOf(card, status),
+      ...gistOf(hands.card, hands.status),
       open: true,
-      said: saidOf(status, told, stopping),
-      links: linksOf(card, status),
+      said: saidOf(hands.status, told, stopping),
+      links: linksOf(hands.card, hands.status),
       acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
     };
-  }, [doc, card, status, told, stopping, hands, onKeep]);
+  }, [doc, told, stopping, hands, onKeep]);
 
   return {
     panel,

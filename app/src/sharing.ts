@@ -85,6 +85,7 @@ export interface ShareStatus {
   paused: boolean;
   blocked: boolean;
   reads: number;
+  appealed: boolean;
   mayCorrect: boolean;
   fixBy: number | null;
 }

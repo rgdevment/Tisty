@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -417,6 +418,30 @@ describe("sharing a document with Folio", () => {
     await screen.findByRole("heading", { name: t("sharedDone") });
     expect(sends).toBe(2);
     expect(invoked.mock.calls.filter(([one]) => one === "doc_share_look")).toHaveLength(1);
+  });
+
+  it("opens a web or mail link in the terms and nothing else", async () => {
+    answering({
+      folio_terms_standing: {
+        state: "toAccept",
+        version: "2",
+        text: "Los términos",
+        acceptedBefore: null,
+      },
+      folio_terms_drawn:
+        '<p><a href="mailto:abuso@tisty.app">correo</a> <a href="https://tisty.cl/x">web</a> <a href="tisty://open?path=x">otro</a></p>',
+    });
+    shown();
+    vi.mocked(openUrl).mockClear();
+
+    await userEvent.click(await screen.findByRole("link", { name: "correo" }));
+    await userEvent.click(screen.getByRole("link", { name: "web" }));
+    await userEvent.click(screen.getByRole("link", { name: "otro" }));
+
+    expect(vi.mocked(openUrl).mock.calls.map(([url]) => url)).toEqual([
+      "mailto:abuso@tisty.app",
+      "https://tisty.cl/x",
+    ]);
   });
 
   it("hands over to whoever asked when only the terms were needed", async () => {
