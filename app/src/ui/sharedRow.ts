@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Panel } from "tisty-editor/read";
 import { copied } from "../core";
 import { fill, locale, t } from "../locales";
@@ -107,18 +107,20 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
   h.setTold(syncedWords(synced));
 };
 
+const syncNow = (h: Hands) => {
+  h.setTold(null);
+  void Promise.resolve(h.onKeep?.())
+    .then(() => shareSync(h.doc, h.accepted))
+    .then((synced) => syncAnswered(h, synced))
+    .catch(h.failing);
+};
+
 const syncAct = (h: Hands): Act => ({
   key: "sync",
   label: syncLabel(h),
   main: true,
   off: Boolean(h.status?.blocked || h.status?.paused || h.minutes > 0),
-  onPick: () => {
-    h.setTold(null);
-    void Promise.resolve(h.onKeep?.())
-      .then(() => shareSync(h.doc, h.accepted))
-      .then((synced) => syncAnswered(h, synced))
-      .catch(h.failing);
-  },
+  onPick: () => syncNow(h),
 });
 
 const stoppingActs = (h: Hands): Act[] => [
@@ -187,6 +189,7 @@ export const useSharedRow = (
   const [card, setCard] = useState<ShareCard | null>(null);
   const [asking, setAsking] = useState(false);
   const [termsOnly, setTermsOnly] = useState(false);
+  const syncing = useRef<(() => void) | null>(null);
   const [accepted, setAccepted] = useState<string | undefined>(undefined);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
@@ -289,6 +292,7 @@ export const useSharedRow = (
       failing,
       onKeep,
     };
+    syncing.current = () => syncNow(hands);
     const rest = card.taken ? leavingActs(hands) : managingActs(hands);
     return {
       kind: "held",
@@ -307,6 +311,11 @@ export const useSharedRow = (
     asking,
     termsOnly,
     onShared: (now: ShareCard) => setCard(now),
+    onTermsAccepted: () => {
+      setAsking(false);
+      setTermsOnly(false);
+      syncing.current?.();
+    },
     onClosed: () => {
       setAsking(false);
       if (doc)

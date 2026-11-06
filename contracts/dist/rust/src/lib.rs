@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.4.3";
+pub const VERSION: &str = "1.5.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -205,6 +205,8 @@ pub struct Envelope {
     pub commitment: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<Owner>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<String>,
     pub parts: Vec<EnvelopePart>,
 }
 
@@ -233,6 +235,8 @@ pub struct Sealing {
     pub owner: Option<Owner>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<String>,
 }
 
 /// What a reader asks for when it opens an envelope.

@@ -130,6 +130,37 @@ describe("the Shared row", () => {
     });
   });
 
+  it("syncs again by itself once the terms Folio asked for are accepted", async () => {
+    let tries = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_card") return Promise.resolve(card);
+      if (command === "doc_share_sync") {
+        tries += 1;
+        return tries === 1
+          ? Promise.reject({ code: "folioTermsToAccept" })
+          : Promise.resolve({ state: "unchanged" });
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    const { result } = renderHook(() => useSharedRow("d1", vi.fn()));
+    await waitFor(() => {
+      const now = result.current.panel;
+      expect(now?.kind === "held" && now.links?.length).toBe(1);
+    });
+    await act(async () => {
+      const now = result.current.panel;
+      if (now?.kind === "held")
+        now.acts?.find((one) => one.key === "sync")?.onPick?.(document.body);
+    });
+    await waitFor(() => expect(result.current.termsOnly).toBe(true));
+
+    await act(async () => result.current.onTermsAccepted());
+
+    await waitFor(() => expect(tries).toBe(2));
+    expect(result.current.asking).toBe(false);
+    expect(result.current.termsOnly).toBe(false);
+  });
+
   it("asks for the terms again when Folio changed them", async () => {
     invoked.mockImplementation((command: string) =>
       command === "doc_share_card"

@@ -3,13 +3,14 @@ use std::collections::{BTreeMap, VecDeque};
 
 use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Why};
 use tisty_carrier::folio_limits::SharingNow;
+use tisty_carrier::folio_terms::{Standing, Unsure};
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, card_of, counted_as_shared, delivered, folio_terms_drawn, going_with, headings_over,
-    may_start, said,
+    Card, after_terms_refused, card_of, counted_as_shared, delivered, folio_terms_drawn,
+    going_with, headings_over, may_start, said,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -302,11 +303,28 @@ fn only_an_open_folio_lets_a_new_share_start() {
 
 #[test]
 fn terms_cut_at_a_column_read_as_paragraphs_under_their_headings() {
-    let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n";
+    let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n\n[English](TERMS.md)\n";
 
     let drawn = folio_terms_drawn(terms.to_owned());
 
     assert!(drawn.contains("<h2"), "{drawn}");
     assert!(drawn.contains("<ul"), "{drawn}");
     assert!(!drawn.contains("<br"), "{drawn}");
+    assert!(!drawn.contains("English"), "{drawn}");
+}
+
+#[test]
+fn a_refusal_over_the_terms_shows_them_when_they_changed_and_says_so_when_they_did_not() {
+    let to_accept = Ok(Standing::ToAccept {
+        version: "2".to_owned(),
+        text: "t".to_owned(),
+        accepted_before: Some("1".to_owned()),
+    });
+    let said_of = |standing| after_terms_refused(standing).code;
+
+    assert_eq!(said_of(to_accept), "folioTermsToAccept");
+    assert_eq!(said_of(Ok(Standing::Accepted)), "folioTermsUnmatched");
+    assert_eq!(said_of(Err(Unsure::Unmatched)), "folioTermsUnmatched");
+    assert_eq!(said_of(Err(Unsure::NoWord)), "folioUnreached");
+    assert_eq!(said_of(Err(Unsure::NotPublished)), "folioTermsNotPublished");
 }

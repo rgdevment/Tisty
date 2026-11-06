@@ -1,4 +1,4 @@
-export declare const VERSION: "1.4.3";
+export declare const VERSION: "1.5.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -90,6 +90,7 @@ export interface Envelope {
   head?: string;
   commitment?: string;
   owner?: Owner;
+  terms?: string;
   parts: EnvelopePart[];
 }
 
@@ -111,6 +112,7 @@ export interface Sealing {
   files_key?: string;
   owner?: Owner;
   token?: string;
+  terms?: string;
 }
 
 /** What a reader asks for when it opens an envelope. */

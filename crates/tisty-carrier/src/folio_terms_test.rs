@@ -1,7 +1,8 @@
 use std::cell::Cell;
 
 use super::{
-    Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, Unkept, Unsure, accept, print_of, standing,
+    Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, Unkept, Unsure, accept, accepted_version,
+    print_of, read_again, standing,
 };
 use crate::folio_limits::{self, FolioLimits, FolioTerms, KEPT, LIMITS_URL, SIGNATURE_URL};
 
@@ -34,6 +35,32 @@ fn only_the_terms(url: &str) -> Option<Vec<u8>> {
         TERMS_EN_URL => Some(b"Test terms\n".to_vec()),
         _ => None,
     }
+}
+
+#[test]
+fn a_refusal_reads_the_limits_again_within_the_hour_and_says_what_stands() {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    std::fs::write(home.path().join("folio-limits-asked"), b"").unwrap();
+    let asked = Cell::new(0);
+
+    let told = read_again(home.path(), Tongue::Es, |url| {
+        if url == LIMITS_URL {
+            asked.set(asked.get() + 1);
+        }
+        None
+    });
+
+    assert_eq!(told, Ok(Standing::Accepted));
+    assert_eq!(asked.get(), 1);
+    assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
+}
+
+#[test]
+fn nothing_accepted_names_no_version() {
+    let home = seeded(Some(terms("1")));
+
+    assert_eq!(accepted_version(home.path()), None);
 }
 
 #[test]

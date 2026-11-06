@@ -51,6 +51,7 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
         files_key: None,
         owner: None,
         token: None,
+        terms: None,
     }
 }
 

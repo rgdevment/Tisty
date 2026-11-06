@@ -74,6 +74,7 @@ pub enum Refused {
     Proof { salt: String, bits: u32 },
     Failed,
     UploadsOff,
+    Terms { version: String },
     NotBlocked,
     Appealed,
 }

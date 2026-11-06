@@ -125,6 +125,20 @@ pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
         .ok_or(Unsure::Unmatched)
 }
 
+pub fn accepted_version(home: &Path) -> Option<String> {
+    accepted(home).map(|one| one.version)
+}
+
+// Folio refused the terms this computer holds as accepted, so the hour since the last reading counts for nothing.
+pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
+    home: &Path,
+    tongue: Tongue,
+    bring: F,
+) -> Result<Standing, Unsure> {
+    let _ = folio_limits::heed_now(home, &bring);
+    standing(home, tongue, bring)
+}
+
 pub fn accept(home: &Path, tongue: Tongue, version: &str) -> Result<(), Unkept> {
     let terms = folio_limits::kept(home)
         .and_then(|limits| limits.terms)

@@ -52,6 +52,7 @@ fn carried_by(was: Option<&Remembered>) -> Carried {
 pub struct Under<'a> {
     pub mint: &'a dyn Fn() -> Result<String, Unshared>,
     pub editable: bool,
+    pub terms: Option<&'a str>,
 }
 
 #[derive(Debug)]
@@ -251,6 +252,7 @@ fn sealing_for(
                 .and_then(|one| one.owner.as_deref())
                 .and_then(|said| serde_json::from_str(said).ok()),
             token,
+            terms: under.terms.map(str::to_owned),
         },
         kept.is_some(),
     ))
@@ -540,6 +542,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
         &Under {
             mint: &new_id,
             editable: false,
+            terms: None,
         },
     )
 }

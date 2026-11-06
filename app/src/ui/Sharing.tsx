@@ -635,6 +635,7 @@ export default function Sharing({
   doc,
   title,
   termsOnly = false,
+  onTermsAccepted,
   onShared,
   onClose,
   onError,
@@ -642,6 +643,7 @@ export default function Sharing({
   doc: string;
   title: string;
   termsOnly?: boolean;
+  onTermsAccepted?: () => void;
   onShared: (card: ShareCard) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -649,6 +651,7 @@ export default function Sharing({
   const [step, setStep] = useState<Step>({ at: "reading" });
   const live = useRef(true);
   const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const again = useRef<Parameters<typeof docShared>[1] | null>(null);
 
   const [changed, setChanged] = useState(false);
   const asked = useRef({ onClose, onError, termsOnly });
@@ -660,6 +663,7 @@ export default function Sharing({
   }, []);
 
   const lookOver = useCallback(() => {
+    again.current = null;
     setStep({ at: "reading" });
     shareLook(doc)
       .then((look) => {
@@ -722,6 +726,7 @@ export default function Sharing({
           return;
         }
         if (codeOf(problem) === "folioTermsToAccept") {
+          again.current = chosen;
           termsOver();
           return;
         }
@@ -738,6 +743,15 @@ export default function Sharing({
       });
   };
 
+  const termsTaken = () => {
+    if (termsOnly) {
+      (onTermsAccepted ?? onClose)();
+      return;
+    }
+    if (again.current) share(again.current);
+    else lookOver();
+  };
+
   switch (step.at) {
     case "reading":
       return (
@@ -751,12 +765,7 @@ export default function Sharing({
       return <NoAnswer onRetry={begin} onClose={onClose} />;
     case "terms":
       return (
-        <Terms
-          terms={step.terms}
-          onAccepted={termsOnly ? onClose : lookOver}
-          onLater={onClose}
-          onError={failed}
-        />
+        <Terms terms={step.terms} onAccepted={termsTaken} onLater={onClose} onError={failed} />
       );
     case "choosing":
       return (

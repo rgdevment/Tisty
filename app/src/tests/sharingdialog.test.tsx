@@ -356,6 +356,78 @@ describe("sharing a document with Folio", () => {
     expect(screen.getByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
   });
 
+  it("shows the terms Folio refused over and sends again once they are accepted", async () => {
+    let sends = 0;
+    let readings = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "doc_share_look") return Promise.resolve(look);
+      if (command === "folio_terms_accept") return Promise.resolve(null);
+      if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
+      if (command === "folio_terms_standing") {
+        readings += 1;
+        return Promise.resolve(
+          readings === 1
+            ? { state: "accepted" }
+            : { state: "toAccept", version: "2", text: "Los términos", acceptedBefore: "1" },
+        );
+      }
+      if (command === "doc_shared") {
+        sends += 1;
+        return sends === 1
+          ? Promise.reject({ code: "folioTermsToAccept" })
+          : Promise.resolve({
+              read: "https://tisty.cl/Ab3xK9pQ#key",
+              edit: null,
+              version: 1,
+              taken: false,
+              held: false,
+              told: [],
+            });
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
+
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(sends).toBe(2);
+    expect(invoked.mock.calls.filter(([one]) => one === "doc_share_look")).toHaveLength(1);
+  });
+
+  it("hands over to whoever asked when only the terms were needed", async () => {
+    answering({
+      folio_terms_standing: {
+        state: "toAccept",
+        version: "2",
+        text: "Los términos",
+        acceptedBefore: "1",
+      },
+      folio_terms_accept: null,
+    });
+    const onClose = vi.fn();
+    const onTermsAccepted = vi.fn();
+    render(
+      <Sharing
+        doc="d1"
+        title="Viaje"
+        termsOnly
+        onTermsAccepted={onTermsAccepted}
+        onShared={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
+
+    await waitFor(() => expect(onTermsAccepted).toHaveBeenCalled());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("asks only for the terms when that is all that was needed", async () => {
     answering({
       folio_terms_standing: {
