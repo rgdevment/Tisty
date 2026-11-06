@@ -312,8 +312,8 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         .title(title)
         .inner_size(wide, sized.1)
         .min_inner_size(520.0, 380.0)
-        .decorations(false)
-        .transparent(true)
+        .decorations(light)
+        .transparent(!light)
         .shadow(true)
         .center()
         // Shown by its page once drawn: a transparent window the system shows first is painted black meanwhile.

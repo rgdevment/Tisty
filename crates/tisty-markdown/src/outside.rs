@@ -14,6 +14,7 @@ pub fn read_file(text: &str) -> Doc {
 
 fn settled(blocks: &mut Vec<Block>, text: &str) {
     blocks.retain(|one| !matches!(one.kind, Kind::Definition { .. }));
+    rejoined_html(blocks, text);
     for block in blocks {
         if column_cut(&text[block.at.clone()]) {
             rejoined(block, text);
@@ -42,6 +43,42 @@ fn column_cut(said: &str) -> bool {
         }
     }
     false
+}
+
+fn opened_divs(said: &str) -> isize {
+    let lowered = said.to_ascii_lowercase();
+    let opens = lowered.matches("<div").count();
+    let shuts = lowered.matches("</div").count();
+    opens as isize - shuts as isize
+}
+
+// A blank line ends an HTML block, and each block is cleaned on its own, so a centred header would stop at its first gap.
+fn rejoined_html(blocks: &mut Vec<Block>, text: &str) {
+    let mut at = 0;
+    while at < blocks.len() {
+        let mut open = html_opened(&blocks[at], text);
+        let mut last = at;
+        while open > 0
+            && blocks
+                .get(last + 1)
+                .is_some_and(|one| one.kind == Kind::Html)
+        {
+            last += 1;
+            open += html_opened(&blocks[last], text);
+        }
+        if open == 0 && last > at {
+            blocks[at].at.end = blocks[last].at.end;
+            blocks.drain(at + 1..=last);
+        }
+        at += 1;
+    }
+}
+
+fn html_opened(block: &Block, text: &str) -> isize {
+    match block.kind {
+        Kind::Html => opened_divs(&text[block.at.clone()]),
+        _ => 0,
+    }
 }
 
 fn rejoined(block: &mut Block, text: &str) {

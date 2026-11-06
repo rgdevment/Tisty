@@ -244,3 +244,20 @@ fn a_link_never_shut_leaves_its_words() {
     assert!(page.contains("esto ya."));
     assert!(!page.contains("x.y"));
 }
+
+#[test]
+fn a_centred_header_stays_whole_across_its_blank_lines() {
+    let file = "<div align=\"center\">\n  <img src=\"a.png\"/>\n\n  <h1>Título</h1>\n\n  <p>Texto</p>\n</div>\n\nDespués.\n";
+    let page = pieces(&read_file(file), 4096).concat();
+    let shut = page.find("</div>").unwrap();
+    assert!(page.find("<h1>").unwrap() < shut);
+    assert!(page.find("Texto").unwrap() < shut);
+    assert!(page.find("Después").unwrap() > shut);
+    assert!(page.contains("align=\"center\""));
+}
+
+#[test]
+fn a_div_never_shut_stays_as_it_was() {
+    let file = "<div align=\"center\">\n\n<p>Uno</p>\n\nPárrafo.\n";
+    assert!(pieces(&read_file(file), 4096).concat().contains("Párrafo."));
+}

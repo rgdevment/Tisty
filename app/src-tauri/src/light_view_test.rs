@@ -1,4 +1,4 @@
-use super::{PIECE_ABOUT, body_of, drawn_from, far_kind, near_picture, neighbour};
+use super::{PIECE_ABOUT, body_of, drawn_from, far_kind, far_picture, near_picture, neighbour};
 
 fn file_of_size(room: &tempfile::TempDir, bytes: usize) -> std::path::PathBuf {
     let at = room.path().join("long.md");
@@ -131,4 +131,10 @@ fn a_file_cut_inside_a_letter_at_the_ceiling_is_still_too_big() {
     said.push('é');
     std::fs::write(&at, said).unwrap();
     assert_eq!(body_of(&at).unwrap_err().code, "documentTooBig");
+}
+
+#[test]
+fn only_an_address_on_the_web_is_fetched() {
+    assert!(far_picture("file:///C:/secret.png").is_err());
+    assert!(far_picture("./a.png").is_err());
 }

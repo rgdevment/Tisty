@@ -195,15 +195,21 @@ fn far_kind(said: Option<&str>) -> Option<String> {
     kind.starts_with("image/").then_some(kind)
 }
 
-#[tauri::command(async)]
-pub fn view_picture_far(
+#[tauri::command]
+pub async fn view_picture_far(
     app: AppHandle,
     window: tauri::WebviewWindow,
     src: String,
 ) -> Answer<String> {
     file_of(&app, window.label())?;
+    tauri::async_runtime::spawn_blocking(move || far_picture(&src))
+        .await
+        .map_err(|_| Refusal::of("notAllowed"))?
+}
+
+fn far_picture(src: &str) -> Answer<String> {
     let refused = || Refusal::of("notAllowed");
-    if !crate::linking::on_the_web(&src) {
+    if !crate::linking::on_the_web(src) {
         return Err(refused());
     }
     let answer = reqwest::blocking::Client::builder()
@@ -211,7 +217,7 @@ pub fn view_picture_far(
         .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|_| refused())?
-        .get(&src)
+        .get(src)
         .send()
         .map_err(|_| refused())?;
     let kind = far_kind(
