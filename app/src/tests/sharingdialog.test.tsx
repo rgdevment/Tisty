@@ -99,7 +99,7 @@ describe("what travels with a document", () => {
     );
 
     expect(screen.getByText(t("shareCarriesWhole"))).toBeTruthy();
-    expect(screen.getAllByText(t("shareCarriesNoPictures"), { exact: false })).toHaveLength(2);
+    expect(screen.getAllByText(t("shareCarriesNoPictures"))).toHaveLength(2);
     expect(screen.getByText(fill("shareRoomUpTo", "10", weigh(5_000_000)))).toBeTruthy();
     expect(screen.getByText(fill("shareRoomUpTo", "2", weigh(5_000_000)))).toBeTruthy();
   });
