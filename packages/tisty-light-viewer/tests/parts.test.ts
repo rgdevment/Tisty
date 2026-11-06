@@ -1,0 +1,152 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { keyHeard } from "../src/keys";
+import { blockAt, remember, remembered } from "../src/place";
+import { wordsFor } from "../src/words";
+
+const host = vi.hoisted(() => ({ openLink: vi.fn() }));
+vi.mock("../src/host", () => host);
+
+const { linkPressed } = await import("../src/links");
+
+const keyed = () => ({
+  find: vi.fn(),
+  side: vi.fn(),
+  theme: vi.fn(),
+  zoom: vi.fn(),
+  head: vi.fn(),
+  source: vi.fn(),
+  print: vi.fn(),
+  close: vi.fn(),
+  escape: vi.fn(),
+});
+
+const press = (init: KeyboardEventInit) => {
+  const acts = keyed();
+  const event = new KeyboardEvent("keydown", { cancelable: true, ...init });
+  keyHeard(acts)(event);
+  return { acts, event };
+};
+
+describe("the keys", () => {
+  it("takes what it answers and leaves the rest alone", () => {
+    const { acts, event } = press({ key: "f", ctrlKey: true });
+    expect(acts.find).toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
+    const plain = press({ key: "f" });
+    expect(plain.acts.find).not.toHaveBeenCalled();
+    expect(plain.event.defaultPrevented).toBe(false);
+  });
+
+  it("zooms each way and back", () => {
+    expect(press({ key: "=", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(1);
+    expect(press({ key: "-", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(-1);
+    expect(press({ key: "0", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(0);
+  });
+
+  it("goes from heading to heading", () => {
+    expect(press({ key: "ArrowDown", altKey: true }).acts.head).toHaveBeenCalledWith(1);
+    expect(press({ key: "ArrowUp", altKey: true }).acts.head).toHaveBeenCalledWith(-1);
+  });
+
+  it("keeps the shifted keys apart from the plain ones", () => {
+    const { acts } = press({ key: "M", ctrlKey: true, shiftKey: true });
+    expect(acts.source).toHaveBeenCalled();
+    expect(press({ key: "L", ctrlKey: true, shiftKey: true }).acts.theme).toHaveBeenCalled();
+    expect(press({ key: "F", ctrlKey: true, shiftKey: true }).acts.find).not.toHaveBeenCalled();
+  });
+
+  it("answers Escape, whatever else is held", () => {
+    expect(press({ key: "Escape" }).acts.escape).toHaveBeenCalled();
+  });
+});
+
+describe("where the reading was left", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("is kept per file", () => {
+    remember("a.md", 3);
+    remember("b.md", 8);
+    expect(remembered("a.md")).toBe(3);
+    expect(remembered("b.md")).toBe(8);
+  });
+
+  it("is forgotten at the top, where a file opens anyway", () => {
+    remember("a.md", 3);
+    remember("a.md", 0);
+    expect(remembered("a.md")).toBeUndefined();
+  });
+
+  it("keeps the latest two hundred files", () => {
+    for (let at = 0; at < 205; at++) remember(`${at}.md`, 1);
+    expect(remembered("0.md")).toBeUndefined();
+    expect(remembered("204.md")).toBe(1);
+    expect(
+      Object.keys(JSON.parse(localStorage.getItem("tisty.viewer.places") ?? "{}")),
+    ).toHaveLength(200);
+  });
+
+  it("survives what was kept being broken", () => {
+    localStorage.setItem("tisty.viewer.places", "{");
+    expect(remembered("a.md")).toBeUndefined();
+  });
+
+  it("names the block at the top of the view", () => {
+    const page = document.createElement("article");
+    page.innerHTML = "<p>a</p><p><b>b</b></p><p>c</p>";
+    document.elementFromPoint = () => page.querySelector("b");
+    expect(blockAt(page, 90)).toBe(1);
+    document.elementFromPoint = () => null;
+    expect(blockAt(page, 90)).toBe(0);
+  });
+});
+
+describe("a link in the document", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const pressed = (href: string) => {
+    const page = document.createElement("article");
+    page.innerHTML = `<h2 id="a b">t</h2><a href="${href}"><span>go</span></a>`;
+    document.body.append(page);
+    const heading = page.querySelector("h2") as HTMLElement;
+    heading.scrollIntoView = vi.fn();
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    page.addEventListener("click", (e) => linkPressed(e, () => {}));
+    page.querySelector("span")?.dispatchEvent(event);
+    page.remove();
+    return { event, heading };
+  };
+
+  it("opens the web outside the window", () => {
+    host.openLink.mockResolvedValue(undefined);
+    const { event } = pressed("https://example.com/x");
+    expect(host.openLink).toHaveBeenCalledWith("https://example.com/x");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("jumps to an anchor, encoded or not", () => {
+    const { heading } = pressed("#a%20b");
+    expect(heading.scrollIntoView).toHaveBeenCalled();
+    expect(host.openLink).not.toHaveBeenCalled();
+  });
+
+  it("never navigates the window, nor opens what it does not know", () => {
+    const { event } = pressed("file:///C:/secret.md");
+    expect(event.defaultPrevented).toBe(true);
+    expect(host.openLink).not.toHaveBeenCalled();
+    pressed("javascript:alert(1)");
+    expect(host.openLink).not.toHaveBeenCalled();
+  });
+});
+
+describe("the words", () => {
+  it("fill in a value wherever it is named", () => {
+    expect(wordsFor("es").say("editTooBig", "500 KB")).toContain("500 KB");
+    expect(wordsFor("en").say("editTooBig", "500 KB")).toContain("500 KB");
+  });
+
+  it("speak to the sheet in the same language", () => {
+    expect(wordsFor("es").sayToSheet("saidnote")).toBe("Nota");
+    expect(wordsFor("en").sayToSheet("saidnote")).toBe("Note");
+    expect(wordsFor(null).locale).toBe("en");
+  });
+});

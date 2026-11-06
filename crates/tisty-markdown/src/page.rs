@@ -19,6 +19,25 @@ pub fn html(doc: &Doc) -> String {
     out
 }
 
+// Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
+pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
+    let drawing = Drawing {
+        anchors: anchors(doc),
+    };
+    let mut all = Vec::new();
+    let mut out = String::new();
+    for block in doc.blocks() {
+        draw(block, doc.text(), &drawing, &mut out);
+        if out.len() >= about {
+            all.push(std::mem::take(&mut out));
+        }
+    }
+    if !out.is_empty() {
+        all.push(out);
+    }
+    all
+}
+
 fn anchors(doc: &Doc) -> HashMap<usize, String> {
     #[cfg(feature = "outline")]
     return crate::outline(doc)

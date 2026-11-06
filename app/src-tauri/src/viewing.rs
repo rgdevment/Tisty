@@ -73,6 +73,7 @@ pub struct Views {
     early: Mutex<Vec<PathBuf>>,
     calendars: Mutex<Vec<PathBuf>>,
     unsaved: Mutex<std::collections::HashSet<String>>,
+    pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
 }
 
 impl Views {
@@ -163,13 +164,13 @@ fn readable(at: &Path) -> bool {
         && at.is_file()
 }
 
-fn named(at: &Path) -> String {
+pub(crate) fn named(at: &Path) -> String {
     at.file_name()
         .map(|one| one.to_string_lossy().into_owned())
         .unwrap_or_default()
 }
 
-fn place_of(at: &Path) -> String {
+pub(crate) fn place_of(at: &Path) -> String {
     at.parent()
         .and_then(|up| up.file_name())
         .map(|one| one.to_string_lossy().into_owned())
@@ -302,25 +303,26 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         Shown::Diagram(drawn) => drawn.paper.title.clone(),
         Shown::Widget { .. } => "Tisty".into(),
     };
+    let spanish = spanish(app);
+    let page = match &shown {
+        Shown::File(_) => crate::refusing::light_page(spanish),
+        _ => crate::refusing::page(spanish),
+    };
     if let Ok(mut held) = views.shown.lock() {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
-    let made = crate::engine::window(
-        app,
-        &label,
-        tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
-    )
-    .title(title)
-    .inner_size(sized.0, sized.1)
-    .min_inner_size(520.0, 380.0)
-    .decorations(false)
-    .transparent(true)
-    .shadow(true)
-    .center()
-    // Shown by its page once drawn: a transparent window the system shows first is painted black meanwhile.
-    .visible(false)
-    .build();
+    let made = crate::engine::window(app, &label, tauri::WebviewUrl::App(page.into()))
+        .title(title)
+        .inner_size(sized.0, sized.1)
+        .min_inner_size(520.0, 380.0)
+        .decorations(false)
+        .transparent(true)
+        .shadow(true)
+        .center()
+        // Shown by its page once drawn: a transparent window the system shows first is painted black meanwhile.
+        .visible(false)
+        .build();
     match made {
         Ok(window) => {
             // Should the page never say so, the window is not left hidden for good.
@@ -341,6 +343,10 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
                     held.remove(&named);
                 }
                 mark_unsaved(&views, &named, false);
+                if let Ok(mut held) = views.waiting_pieces.lock() {
+                    held.remove(&named);
+                }
+                gone.state::<widgets::Lent>().release(&named);
                 crate::tray::undock_unless_seen(&gone, &named);
             });
         }

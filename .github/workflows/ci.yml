@@ -184,6 +184,10 @@ jobs:
       - run: npm run build
       - name: Each window reaches only its own code
         run: node scripts/windows-apart.mjs
+      - name: The light viewer's own tests
+        run: npm test -w tisty-light-viewer
+      - name: The light viewer stays light, with no React, and the app has no Solid
+        run: node scripts/light-viewer.mjs
 
   guide:
     name: the Markdown guide draws
@@ -373,8 +377,8 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-sheet/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-sheet/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-sheet/src,packages/tisty-light-viewer/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-sheet/tests,packages/tisty-light-viewer/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info

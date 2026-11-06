@@ -17,6 +17,7 @@ mod hearing;
 mod herald;
 mod identity;
 mod leaving;
+mod light_view;
 mod linking;
 mod moving;
 mod news;
@@ -1304,6 +1305,9 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         desktop::parted,
         desktop::kept_for_the_end,
         viewing::view_shown,
+        light_view::view_read,
+        light_view::view_rest,
+        light_view::view_source,
         viewing::ics_waiting,
         answers::calendar::ics_read,
         answers::calendar::ics_take,
