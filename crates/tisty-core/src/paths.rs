@@ -349,7 +349,7 @@ fn tucked(home: &Path) -> std::io::Result<()> {
 fn account_sid() -> std::io::Result<String> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
     let me = Pid::from_u32(std::process::id());
-    let mut system = System::new();
+    let mut system = System::new().map_err(std::io::Error::other)?;
     system.refresh_processes_specifics(
         ProcessesToUpdate::Some(&[me]),
         false,
