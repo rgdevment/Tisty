@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "What draws a document on its sheet, shared by Tisty's reader and the light viewer: the page's look and colours, and its code colours, diagrams, icons, tables and cards.",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "sideEffects": [
     "**/*.css"
