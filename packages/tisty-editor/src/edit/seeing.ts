@@ -449,6 +449,8 @@ export const seen = (
         if (MARKS.has(node.name)) {
           const parent = node.node.parent;
           if (parent?.name === "Link" && !parent.getChild("URL")) return true;
+          // An address written bare is words, also inside bold: only a link's own is a mark.
+          if (node.name === "URL" && parent?.name !== "Link") return true;
           if (parent && INLINE.has(parent.name) && !opened(state, parent)) hide(node.from, node.to);
         }
         return true;

@@ -1,6 +1,5 @@
 import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import {
   EditorState,
@@ -31,7 +30,7 @@ import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { type Hosted, hosted } from "./hosted";
 import { latelyMarked } from "./lately";
-import { pairsKept } from "./pairing";
+import { GRAMMAR, pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { revealing, visual } from "./seeing";
@@ -406,7 +405,7 @@ export const edited = (
           ...historyKeymap,
           indentWithTab,
         ]),
-        markdown({ base: markdownLanguage }),
+        GRAMMAR,
         hosted.of(owner),
         gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,

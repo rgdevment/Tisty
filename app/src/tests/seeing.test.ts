@@ -71,6 +71,13 @@ describe("a block written as it reads", () => {
     expect(looked(state("# "))).toContainEqual({ from: 0, to: 0, line: "cm-h1" });
   });
 
+  it("keeps a bare address in sight inside a format, and a link's own out of it", () => {
+    expect(read(state("**a http://x.y** fin", 0))).toBe("a http://x.y fin");
+    expect(read(state("*http://x.y* fin", 0))).toBe("http://x.y fin");
+    expect(read(state("~~http://x.y~~ fin", 0))).toBe("http://x.y fin");
+    expect(read(state("**[a](http://x.y)** fin", 0))).toBe("a fin");
+  });
+
   it("keeps a format's marks hidden wherever the caret or the selection stands", () => {
     expect(read(state("toca **ordenar** hoy", 0))).toBe("toca ordenar hoy");
     expect(read(state("toca **ordenar** hoy", 9))).toBe("toca ordenar hoy");

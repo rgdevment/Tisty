@@ -1,13 +1,17 @@
 import {
   deleteCharBackward,
   deleteCharForward,
+  history,
   insertNewlineAndIndent,
+  undo,
 } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import {
   hosted,
+  latelyMarked,
+  markLately,
   marksShown,
   outOfPairs,
   pairsKept,
@@ -171,6 +175,174 @@ describe("deleting beside marks out of sight", () => {
     const whole = written("un **dato** ya", 9, 9, revealing.of(true));
     deleteCharForward(whole);
     expect(text(whole)).toBe("un **dato* ya");
+  });
+});
+
+describe("deleting what kept a format apart from a word", () => {
+  it("takes the word inside when a closing mark would be undone", () => {
+    const back = written("**a.** bcd efg", 7);
+    deleteCharBackward(back);
+    expect(text(back)).toBe("**a.bcd** efg");
+    expect(caret(back)).toBe(4);
+    const forward = written("**a.** bcd", 6);
+    deleteCharForward(forward);
+    expect(text(forward)).toBe("**a.bcd**");
+    const inside = written("**a.** bcd", 4);
+    deleteCharForward(inside);
+    expect(text(inside)).toBe("**a.bcd**");
+    expect(caret(inside)).toBe(4);
+  });
+
+  it("takes the word inside when an opening mark would be undone", () => {
+    const under = written("el ++dato++", 3);
+    deleteCharBackward(under);
+    expect(text(under)).toBe("++eldato++");
+    expect(caret(under)).toBe(4);
+    const bold = written("b **.a**", 2);
+    deleteCharBackward(bold);
+    expect(text(bold)).toBe("**b.a**");
+  });
+
+  it("does the same for Tisty's own marks and for marks inside marks", () => {
+    const under = written("++dato++ y", 9);
+    deleteCharBackward(under);
+    expect(text(under)).toBe("++datoy++");
+    const nested = written("***a.*** b", 9);
+    deleteCharBackward(nested);
+    expect(text(nested)).toBe("***a.b***");
+  });
+
+  it("does the same when a selection is what kept them apart", () => {
+    const view = written("**a.** y b", 6, 9);
+    cut(view);
+    expect(text(view)).toBe("**a.b**");
+    expect(caret(view)).toBe(4);
+  });
+
+  it("leaves the marks where they are when the format holds", () => {
+    const plain = written("**a** b", 6);
+    deleteCharBackward(plain);
+    expect(text(plain)).toBe("**a**b");
+    const sign = written("**a.** (b", 7);
+    deleteCharBackward(sign);
+    expect(text(sign)).toBe("**a.**(b");
+  });
+
+  it("leaves code alone", () => {
+    const inline = written("`**a.** b`", 8);
+    deleteCharBackward(inline);
+    expect(text(inline)).toBe("`**a.**b`");
+    const fenced = written("```\n**a.** b\n```", 11);
+    deleteCharBackward(fenced);
+    expect(text(fenced)).toBe("```\n**a.**b\n```");
+  });
+
+  it("leaves the marks alone when they are shown", () => {
+    const shown = written(
+      "**a.** b",
+      7,
+      7,
+      marksShown.init(() => true),
+    );
+    deleteCharBackward(shown);
+    expect(text(shown)).toBe("**a.**b");
+    const whole = written("**a.** b", 7, 7, revealing.of(true));
+    deleteCharBackward(whole);
+    expect(text(whole)).toBe("**a.**b");
+  });
+
+  it("undoes in one step", () => {
+    const view = written("**a.** b", 7, 7, history());
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.b**");
+    undo(view);
+    expect(text(view)).toBe("**a.** b");
+  });
+
+  const backspacedAt = (doc: string, at: string) => {
+    const view = written(doc, doc.indexOf(at) + at.length);
+    deleteCharBackward(view);
+    return text(view);
+  };
+
+  it("leaves code and links out of it, with the word beside them", () => {
+    expect(backspacedAt("**`c`** bcd", "** ")).toBe("**`c`bcd**");
+    expect(backspacedAt("**[a](http://x.y)** bcd", "** ")).toBe("**[a](http://x.y)bcd**");
+    expect(backspacedAt("x **`c`**", "x ")).toBe("**x`c`**");
+  });
+
+  it("leaves what is written literally alone", () => {
+    expect(backspacedAt("$$\n**a.** b\n$$", "** ")).toBe("$$\n**a.**b\n$$");
+    expect(backspacedAt("<div>\n**a.** b\n</div>", "** ")).toBe("<div>\n**a.**b\n</div>");
+    expect(backspacedAt("---\ntitle: **a.** b\n---\n", "** ")).toBe("---\ntitle: **a.**b\n---\n");
+  });
+
+  it("takes everything up to the next space, whatever it holds", () => {
+    expect(backspacedAt("**a.** http://x.y fin", "** ")).toBe("**a.http://x.y** fin");
+    expect(backspacedAt("**a.** foo-bar", "** ")).toBe("**a.foo-bar**");
+    expect(backspacedAt("foo-bar **.a**", "bar ")).toBe("**foo-bar.a**");
+  });
+
+  it("holds a format that started on a line above", () => {
+    expect(backspacedAt("**uno\ndos.** b", "** ")).toBe("**uno\ndos.b**");
+  });
+
+  it("joins a format with one of its kind right after the word", () => {
+    const view = written("**a.** b**c**", 7);
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.bc**");
+    expect(caret(view)).toBe(4);
+    expect(backspacedAt("**c**b **.a**", "b ")).toBe("**cb.a**");
+  });
+
+  it("holds a format when the letter before its closing mark goes", () => {
+    const view = written("**a.b**c", 5);
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.c**");
+    expect(caret(view)).toBe(4);
+  });
+
+  it("holds a paragraph indented in a list", () => {
+    expect(backspacedAt("- x\n\n    **a.** b", "** ")).toBe("- x\n\n    **a.b**");
+  });
+
+  it("gives the space back with the format as it was", () => {
+    const closing = written("**a.** bcd", 7);
+    deleteCharBackward(closing);
+    expect(text(closing)).toBe("**a.bcd**");
+    typed(closing, " ");
+    expect(text(closing)).toBe("**a.** bcd");
+    expect(caret(closing)).toBe(7);
+    const opening = written("el ++dato++", 3);
+    deleteCharBackward(opening);
+    typed(opening, " ");
+    expect(text(opening)).toBe("el ++dato++");
+    expect(caret(opening)).toBe(3);
+  });
+
+  it("writes a space inside once the caret has moved or something else was typed", () => {
+    const moved = written("**a.** bcd", 7);
+    deleteCharBackward(moved);
+    moved.dispatch({ selection: { anchor: 5 } });
+    moved.dispatch({ selection: { anchor: 4 } });
+    typed(moved, " ");
+    expect(text(moved)).toBe("**a. bcd**");
+    const other = written("**a.** bcd", 7);
+    deleteCharBackward(other);
+    typed(other, "x");
+    typed(other, " ");
+    expect(text(other)).toBe("**a. xbcd**");
+  });
+
+  it("does not disturb what is marked elsewhere on the line", () => {
+    const view = written("**a.** bcd fin", 7, 7, latelyMarked);
+    view.dispatch({ effects: markLately.of({ from: 11, to: 14 }) });
+    deleteCharBackward(view);
+    const spans: string[] = [];
+    view.state.field(latelyMarked).between(0, view.state.doc.length, (from, to) => {
+      spans.push(view.state.sliceDoc(from, to));
+    });
+    expect(spans).toEqual(["fin"]);
   });
 });
 
