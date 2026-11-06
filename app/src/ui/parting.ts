@@ -37,12 +37,11 @@ export const closed = (text: string, from: number, end: number): string => {
 export const joined = (text: string, at: number): { text: string; at: number } => {
   const head = headOf(text.slice(0, at));
   const rest = restOf(text.slice(at)).replace(LEADS, "");
-  const start = head.lastIndexOf("\n") + 1;
+  const held = heldTogether(head, rest);
+  if (!held) return { text: `${head}${rest}`, at: head.length };
   const lineEnd = rest.search(/\r?\n/);
   const first = lineEnd < 0 ? rest : rest.slice(0, lineEnd);
-  const held = heldTogether(head.slice(start), first);
-  if (!held) return { text: `${head}${rest}`, at: head.length };
-  const before = `${head.slice(0, start)}${held.left}`;
+  const before = `${head.slice(0, head.lastIndexOf("\n") + 1)}${held.left}`;
   return { text: `${before}${held.right}${rest.slice(first.length)}`, at: before.length };
 };
 

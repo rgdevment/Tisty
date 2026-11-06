@@ -10,6 +10,8 @@ import { EditorSelection, EditorState, type Extension } from "@codemirror/state"
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import {
   hosted,
+  latelyMarked,
+  markLately,
   marksShown,
   outOfPairs,
   pairsKept,
@@ -255,6 +257,92 @@ describe("deleting what kept a format apart from a word", () => {
     expect(text(view)).toBe("**a.b**");
     undo(view);
     expect(text(view)).toBe("**a.** b");
+  });
+
+  const backspacedAt = (doc: string, at: string) => {
+    const view = written(doc, doc.indexOf(at) + at.length);
+    deleteCharBackward(view);
+    return text(view);
+  };
+
+  it("leaves code and links out of it, with the word beside them", () => {
+    expect(backspacedAt("**`c`** bcd", "** ")).toBe("**`c`bcd**");
+    expect(backspacedAt("**[a](http://x.y)** bcd", "** ")).toBe("**[a](http://x.y)bcd**");
+    expect(backspacedAt("x **`c`**", "x ")).toBe("**x`c`**");
+  });
+
+  it("leaves what is written literally alone", () => {
+    expect(backspacedAt("$$\n**a.** b\n$$", "** ")).toBe("$$\n**a.**b\n$$");
+    expect(backspacedAt("<div>\n**a.** b\n</div>", "** ")).toBe("<div>\n**a.**b\n</div>");
+    expect(backspacedAt("---\ntitle: **a.** b\n---\n", "** ")).toBe("---\ntitle: **a.**b\n---\n");
+  });
+
+  it("takes everything up to the next space, whatever it holds", () => {
+    expect(backspacedAt("**a.** http://x.y fin", "** ")).toBe("**a.http://x.y** fin");
+    expect(backspacedAt("**a.** foo-bar", "** ")).toBe("**a.foo-bar**");
+    expect(backspacedAt("foo-bar **.a**", "bar ")).toBe("**foo-bar.a**");
+  });
+
+  it("holds a format that started on a line above", () => {
+    expect(backspacedAt("**uno\ndos.** b", "** ")).toBe("**uno\ndos.b**");
+  });
+
+  it("joins a format with one of its kind right after the word", () => {
+    const view = written("**a.** b**c**", 7);
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.bc**");
+    expect(caret(view)).toBe(4);
+    expect(backspacedAt("**c**b **.a**", "b ")).toBe("**cb.a**");
+  });
+
+  it("holds a format when the letter before its closing mark goes", () => {
+    const view = written("**a.b**c", 5);
+    deleteCharBackward(view);
+    expect(text(view)).toBe("**a.c**");
+    expect(caret(view)).toBe(4);
+  });
+
+  it("holds a paragraph indented in a list", () => {
+    expect(backspacedAt("- x\n\n    **a.** b", "** ")).toBe("- x\n\n    **a.b**");
+  });
+
+  it("gives the space back with the format as it was", () => {
+    const closing = written("**a.** bcd", 7);
+    deleteCharBackward(closing);
+    expect(text(closing)).toBe("**a.bcd**");
+    typed(closing, " ");
+    expect(text(closing)).toBe("**a.** bcd");
+    expect(caret(closing)).toBe(7);
+    const opening = written("el ++dato++", 3);
+    deleteCharBackward(opening);
+    typed(opening, " ");
+    expect(text(opening)).toBe("el ++dato++");
+    expect(caret(opening)).toBe(3);
+  });
+
+  it("writes a space inside once the caret has moved or something else was typed", () => {
+    const moved = written("**a.** bcd", 7);
+    deleteCharBackward(moved);
+    moved.dispatch({ selection: { anchor: 5 } });
+    moved.dispatch({ selection: { anchor: 4 } });
+    typed(moved, " ");
+    expect(text(moved)).toBe("**a. bcd**");
+    const other = written("**a.** bcd", 7);
+    deleteCharBackward(other);
+    typed(other, "x");
+    typed(other, " ");
+    expect(text(other)).toBe("**a. xbcd**");
+  });
+
+  it("does not disturb what is marked elsewhere on the line", () => {
+    const view = written("**a.** bcd fin", 7, 7, latelyMarked);
+    view.dispatch({ effects: markLately.of({ from: 11, to: 14 }) });
+    deleteCharBackward(view);
+    const spans: string[] = [];
+    view.state.field(latelyMarked).between(0, view.state.doc.length, (from, to) => {
+      spans.push(view.state.sliceDoc(from, to));
+    });
+    expect(spans).toEqual(["fin"]);
   });
 });
 
