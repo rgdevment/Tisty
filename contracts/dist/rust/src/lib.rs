@@ -131,7 +131,7 @@ pub struct Picture {
     pub height: u64,
 }
 
-/// A fixed view inside a document, made only of the HTML and CSS listed here. It runs nothing, ever, and names nothing outside itself, and every reader draws it the same. A block with anything else is no widget: a reader shows it as its code and says what is wrong, and never draws it in part. What has to run is an attached page, never a widget.
+/// A fixed view inside a document, made only of the HTML and CSS listed here. It runs nothing, ever, and names nothing outside itself, and every reader draws it the same. A block with anything else is no widget: a reader shows it as its code and says what is wrong, and never draws it in part. Nothing a document holds ever runs: an attached .html file is a file like any other.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Widget {
     #[serde(default, skip_serializing_if = "Option::is_none")]

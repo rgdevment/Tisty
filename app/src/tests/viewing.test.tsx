@@ -164,7 +164,7 @@ describe("the viewer", () => {
   });
 
   it("draws a widget on a stage with its widths to try", async () => {
-    ipc.shown = { kind: "widget", lent: { source: "<p>hola</p>" }, from: null } satisfies Showing;
+    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
@@ -347,7 +347,7 @@ describe("reading in the viewer", () => {
   });
 
   it("shows a widget's code over the stage and closes it on Esc", async () => {
-    ipc.shown = { kind: "widget", lent: { source: "<p>hola</p>" }, from: null } satisfies Showing;
+    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
     render(<Viewing />);
     await screen.findByRole("button", { name: t("viewPhone") });
 
@@ -433,7 +433,7 @@ describe("the reader comes only to a window with words to read", () => {
   it("is not loaded for a widget", async () => {
     const loaded = counted();
 
-    await viewed({ kind: "widget", lent: { source: "<p>hola</p>" }, from: null });
+    await viewed({ kind: "widget", source: "<p>hola</p>", from: null });
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
     expect(loaded).toEqual([]);

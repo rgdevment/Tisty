@@ -7,16 +7,9 @@ use tauri::{AppHandle, Emitter, Manager};
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::answers::carrying::Left;
-use crate::{Answer, Refusal, Session, held, widgets};
+use crate::{Answer, Refusal, Session, held};
 
 const OPENS: [&str; 5] = ["md", "markdown", "txt", "ics", "ical"];
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Lent {
-    Source(String),
-    Reference(String),
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +24,7 @@ pub struct Paper {
 pub enum Shown {
     File(PathBuf),
     Doc(Paper),
-    Widget { lent: Lent, from: Option<Paper> },
+    Widget { source: String, from: Option<Paper> },
     Diagram(crate::diagramming::Drawn),
 }
 
@@ -55,7 +48,7 @@ pub enum Showing {
         body: String,
     },
     Widget {
-        lent: Lent,
+        source: String,
         from: Option<Paper>,
     },
     Diagram {
@@ -88,14 +81,6 @@ impl Views {
         let mut held = self.early.lock().unwrap_or_else(|e| e.into_inner());
         wanted.append(&mut held);
         self.ready.store(true, Ordering::SeqCst);
-    }
-
-    // A file from outside is someone else's word: its window borrows no widget, whatever its body names.
-    pub fn stranger(&self, label: &str) -> bool {
-        self.shown
-            .lock()
-            .ok()
-            .is_some_and(|held| matches!(held.get(label), Some(Shown::File(_))))
     }
 }
 
@@ -321,7 +306,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
-    let made = widgets::window(
+    let made = crate::engine::window(
         app,
         &label,
         tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
@@ -356,7 +341,6 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
                     held.remove(&named);
                 }
                 mark_unsaved(&views, &named, false);
-                gone.state::<widgets::Lent>().release(&named);
                 crate::tray::undock_unless_seen(&gone, &named);
             });
         }
@@ -450,7 +434,7 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
             body: doc_body(&app, &paper.file)?,
             paper,
         },
-        Shown::Widget { lent, from } => Showing::Widget { lent, from },
+        Shown::Widget { source, from } => Showing::Widget { source, from },
         Shown::Diagram(drawn) => Showing::Diagram {
             paper: drawn.paper,
             source: drawn.was,
@@ -562,14 +546,8 @@ pub fn view_go(app: AppHandle, file: String) {
 }
 
 #[tauri::command(async)]
-pub fn view_widget(app: AppHandle, lent: Lent, from: Option<Paper>) -> Answer<()> {
-    if let Lent::Reference(reference) = &lent
-        && !widgets::a_page(reference)
-    {
-        return Err(Refusal::of("notAllowed"));
-    }
-    open(&app, Shown::Widget { lent, from });
-    Ok(())
+pub fn view_widget(app: AppHandle, source: String, from: Option<Paper>) {
+    open(&app, Shown::Widget { source, from });
 }
 
 #[tauri::command(async)]

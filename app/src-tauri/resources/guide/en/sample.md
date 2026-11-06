@@ -284,13 +284,9 @@ Data:
 
 ![Walks in October](walks.csv)
 
-A page of HTML, attached and run in a frame of its own:
+A page of HTML, attached like any other file:
 
 ![Walks in October](walks.html)
-
-The same page, kept as a file:
-
-![Walks in October](walks.html "file")
 
 ## A link alone
 

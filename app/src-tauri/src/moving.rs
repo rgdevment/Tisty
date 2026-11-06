@@ -11,7 +11,7 @@ pub struct Along {
 
 /// The first start after the store's home changed copies it all, so the window says how far it is.
 pub fn begin(app: tauri::AppHandle) {
-    let shown = crate::widgets::window(
+    let shown = crate::engine::window(
         &app,
         "moving",
         tauri::WebviewUrl::App(crate::refusing::page(crate::refusing::speaks_spanish()).into()),

@@ -64,11 +64,11 @@ Un documento lleva etiquetas igual que una tarea: escribe `#contrato` en medio d
 
 Arrastra un archivo a un documento o a una tarea para adjuntarlo: la foto del veterinario, el PDF del seguro, la grabación de una reunión. Una tarea admite archivos de hasta 650 MB, igual que un documento. Se guarda tal cual, dentro de Tisty, y viaja con el documento cuando lo exportas.
 
-Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo en su propio marco, y cualquier otro archivo como una tarjeta con su tipo y su tamaño.
+Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, y cualquier otro archivo, también una página `.html`, como una tarjeta con su tipo y su tamaño.
 
 Un sonido o un video que ya está en este equipo se reproduce desde aquí, sin tocar tu nube. Uno que todavía está solo en tu nube muestra **Traer de tu nube** con su tamaño, y se descarga solo cuando lo pulsas; una vez aquí, se queda. Si no puede llegar (sin conexión, o porque nunca terminó de subir), el reproductor dice por qué y ofrece **Reintentar**. Una imagen que no puede llegar avisa de la misma forma.
 
-El **⋯** de una tarjeta guarda una copia, muestra una página como archivo o la vuelve a dibujar en vivo, convierte la tarjeta en un enlace simple o la quita de la página. En la tarjeta de una página, además, puede hacerla un documento propio.
+El **⋯** de una tarjeta guarda una copia, convierte la tarjeta en un enlace simple o la quita de la página. En la tarjeta de una página, además, puede hacerla un documento propio.
 
 ## Páginas
 
@@ -100,7 +100,7 @@ Tisty no necesita quedarse con un archivo para mostrarlo. Elige Tisty en **Abrir
 - **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar, igual que desde un documento), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…**, **Importar sin abrir** y **Mostrar en la carpeta**.
 - **Editar en Tisty** lo trae como documento y lo abre; el original se queda donde estaba.
 
-Un [widget](Widgets-en-documentos) dentro de un archivo así se dibuja, porque nada en él se ejecuta; una página `.html` adjunta no se ejecuta hasta que editas el archivo en Tisty. Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo.
+Un [widget](Widgets-en-documentos) dentro de un archivo así se dibuja, porque nada en él se ejecuta. Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo.
 
 ### Un documento en una ventana aparte
 

@@ -339,7 +339,7 @@ Un archivo que arrastras queda guardado dentro de Tisty y se nombra con un sello
 ![La cartilla de Rina](cartilla-9d02e4b7c1f3a85e.pdf)
 ```
 
-- Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo en su propio marco, y cualquier otro archivo como una ficha con su tipo y su tamaño, que lo abre.
+- Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, y cualquier otro archivo, también una página `.html`, como una ficha con su tipo y su tamaño, que lo abre.
 - El sello son de 8 a 16 caracteres hexadecimales en minúscula después del último guion, y el nombre entero va en minúsculas.
 - Los documentos escritos por un Tisty anterior que dicen `attachments/ab/nombre` se siguen leyendo; cuando el documento se reescribe, queda solo el nombre.
 - Cuando un documento se escribe en una carpeta, sus adjuntos van al lado y los enlaces apuntan a ellos.
@@ -577,7 +577,7 @@ Un bloque `widget` dibuja una vista fija, hecha solo de HTML y CSS; su nombre va
 - Puede llevar texto, listas, tablas, `<details>`, dibujos `<svg>`, imágenes escritas dentro como `data:image/…` y un `<style>` propio.
 - No lleva `<script>`, ni `onclick` u otro manejador, ni enlaces, botones o formularios, ni marcos, sonido o video, ni nada que venga de una dirección, ni en su HTML ni en su CSS.
 - Un bloque con cualquier otra cosa no es un widget: se muestra como su código, con lo que está mal, y no se dibuja nada de él. La llamada de un agente que lo escriba se rechaza.
-- Lo que tenga que ejecutarse va en una página `.html` adjunta, que solo Tisty ejecuta.
+- Un archivo `.html` adjunto es un archivo como cualquier otro, y se muestra como ficha; nada de lo que lleva un documento se ejecuta.
 
 GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 

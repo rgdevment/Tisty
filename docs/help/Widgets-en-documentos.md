@@ -31,10 +31,10 @@ Trae los colores de Tisty y clases listas, así que con HTML sencillo ya se ve b
 
 El código del widget queda plegado bajo el dibujo. Ábrelo con **Ver código**.
 
-## Cuando tiene que ejecutarse: adjunta un `.html`
+## Un `.html` es solo un archivo
 
-Un widget nunca ejecuta nada. Si algo tiene que ejecutarse, adjunta un archivo `.html` al documento: Tisty lo dibuja en vivo en su propio marco, sin acceso a la ventana ni a tus otros documentos, y desde su barra puedes volver a verlo como adjunto con **Ver como adjunto**. Solo Tisty lo ejecuta.
+Un archivo `.html` adjunto a un documento es un adjunto como cualquier otro: una tarjeta con su nombre y su tamaño. Tisty nunca lo ejecuta ni lo dibuja. Nada de lo que lleva un documento se ejecuta.
 
 ## En una ventana aparte
 
-**Abrir aparte**, en un widget o en una página `.html` adjunta, lo abre en una ventana propia. Su barra lo ajusta a **Ajustar**, **Móvil**, **Tablet** o **Escritorio** (`Ctrl`/`⌘` + `1` a `4`), y **Más** tiene **Recargar**, **Ver código**, **Ver en el documento**, **Probar en oscuro** y **Zoom al 100 %**.
+**Abrir aparte**, en un widget, lo abre en una ventana propia. Su barra lo ajusta a **Ajustar**, **Móvil**, **Tablet** o **Escritorio** (`Ctrl`/`⌘` + `1` a `4`), y **Más** tiene **Recargar**, **Ver código**, **Ver en el documento**, **Probar en oscuro** y **Zoom al 100 %**.

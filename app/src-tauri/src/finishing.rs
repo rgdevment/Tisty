@@ -97,7 +97,7 @@ pub async fn in_hiding(app: &tauri::AppHandle, asked: Vec<Unfinished>) -> Answer
         .held()
         .insert(label.clone(), Errand { asked, told });
     let page = tauri::WebviewUrl::App(crate::refusing::page(false).into());
-    let window = crate::widgets::window(app, &label, page)
+    let window = crate::engine::window(app, &label, page)
         .visible(false)
         .skip_taskbar(true)
         .build();

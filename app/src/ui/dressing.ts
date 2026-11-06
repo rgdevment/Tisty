@@ -1,12 +1,12 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { PartCarded } from "tisty-editor/read";
 import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
-import { type Lent, openLink } from "../core";
+import { openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
-import { type Attaching, attachedAs, lents, pressed } from "./attached";
+import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
@@ -30,7 +30,7 @@ export type Reaching = Carding & {
     seed?: string,
     read?: string,
   ) => void;
-  readonly onApart?: (lent: Lent) => void;
+  readonly onApart?: (source: string) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
   // Where on the window's own screen its choices open, under the bar of the figure.
@@ -67,21 +67,20 @@ export const fitted = (page: Document, wide?: number, zoom?: number) => {
   root.style.setProperty("zoom", String(zoom ?? 1));
 };
 
-const STRANGER: Attaching = { stranger: true, apart: false, more: false };
+const STRANGER: Attaching = { more: false };
+const sources = new WeakMap<Element, string>();
 
 export const pictures = (
   page: Document,
   live: () => boolean,
   attaching: Attaching = STRANGER,
-): { held: (() => void)[]; lent: Lending[] } => {
+): (() => void)[] => {
   const held: (() => void)[] = [];
-  const lent: Lending[] = [];
   for (const img of page.querySelectorAll<HTMLImageElement>(".page img[src]")) {
     const at = img.getAttribute("src") ?? "";
     if (!at || /^(https?|data|asset|blob|file|tauri):/i.test(at)) continue;
     if (!pictured(at)) {
-      const drawnLive = attachedAs(page, img, at, live, held, attaching);
-      if (drawnLive) lent.push(drawnLive);
+      attachedAs(page, img, at, live, held, attaching);
       continue;
     }
     img.dataset.kept = at;
@@ -89,7 +88,7 @@ export const pictures = (
     held.push(showing(at));
     fetched(img, at, live);
   }
-  return { held, lent };
+  return held;
 };
 
 // A picture that cannot be brought says why where it would be, instead of leaving a hole.
@@ -135,7 +134,7 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     const drawn = page.createElement("figure");
     drawn.className = "widget";
     drawn.dataset.at = figure.dataset.at ?? "";
-    lents.set(drawn, { source });
+    sources.set(drawn, source);
     const bar = page.createElement("div");
     bar.className = "widget-bar";
     const name = page.createElement("span");
@@ -266,13 +265,8 @@ export const worn = (
     live,
     writable,
     brought: () => {
-      const shown = pictures(page, live, {
-        stranger,
-        apart: Boolean(reach?.onApart),
-        more: Boolean(reach?.onMore) && !stranger,
-      });
-      held = shown.held;
-      lent = widgets(page, reach).concat(shown.lent);
+      held = pictures(page, live, { more: Boolean(reach?.onMore) && !stranger });
+      lent = widgets(page, reach);
     },
     cards: known && cardsFor(page, known),
     parts: known?.part,
@@ -404,8 +398,8 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
-    const lent = drawn ? lents.get(drawn) : undefined;
-    if (lent) reach.onApart?.(lent);
+    const source = drawn ? sources.get(drawn) : undefined;
+    if (source) reach.onApart?.(source);
   }
 };
 
@@ -541,10 +535,6 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();
-  });
-  page.addEventListener("widgetdoc", (event) => {
-    const id = (event as CustomEvent<string>).detail;
-    if (id) reach().onDoc(id);
   });
 };
 

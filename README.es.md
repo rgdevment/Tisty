@@ -394,9 +394,8 @@ numeradas al lado del texto y no dentro, así copiar se lleva el código y nada
 más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
 debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
 `math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
-vista fija, HTML y CSS y nada más, igual donde se lea el documento. Lo que tenga
-que ejecutarse va en un archivo `.html` adjunto al documento, que Tisty ejecuta
-en su propio marco, lejos de la red y de la ventana.
+vista fija, HTML y CSS y nada más, igual donde se lea el documento. Un archivo
+`.html` adjunto a un documento es solo un archivo: Tisty nunca lo ejecuta.
 
 **Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
 misma: el nombre del sitio y las palabras que escribiste. No se descarga nada

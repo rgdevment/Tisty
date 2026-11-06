@@ -339,7 +339,7 @@ A file you drag in is kept inside Tisty and named by a stamp of its bytes. It is
 ![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)
 ```
 
-- An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, an `.html` page live in a frame of its own, and any other file as a chip with its kind and size that opens it.
+- An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, and any other file, an `.html` page among them, as a chip with its kind and size that opens it.
 - The stamp is 8 to 16 lowercase hexadecimal characters after the last dash, and the whole name is lowercase.
 - Documents written by an older Tisty that say `attachments/ab/name` still read; when the document is rewritten, only the name is kept.
 - When a document is written out to a folder, its attachments go beside it and the links point at them.
@@ -577,7 +577,7 @@ A `widget` block draws a fixed view, made only of HTML and CSS; its name goes in
 - It may hold text, lists, tables, `<details>`, `<svg>` drawings, pictures written into it as `data:image/…`, and a `<style>` of its own.
 - It holds no `<script>`, no `onclick` or other handler, no link, button or form, no frame, sound or video, and nothing that comes from an address, in its HTML or in its CSS.
 - A block with anything else is not a widget: it is shown as its code, with what is wrong, and none of it is drawn. An agent's call that writes one is refused.
-- What has to run goes in an attached `.html` page, which only Tisty runs.
+- An attached `.html` file is a file like any other, shown as a chip; nothing a document holds ever runs.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 

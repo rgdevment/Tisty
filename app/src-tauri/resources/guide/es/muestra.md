@@ -284,13 +284,9 @@ Datos:
 
 ![Paseos de octubre](paseos.csv)
 
-Una página HTML, adjunta y ejecutada en su propio marco:
+Una página HTML, adjunta como cualquier otro archivo:
 
 ![Paseos de octubre](paseos.html)
-
-La misma página, guardada como archivo:
-
-![Paseos de octubre](paseos.html "file")
 
 ## Un enlace solo
 

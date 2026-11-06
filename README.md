@@ -384,9 +384,8 @@ A block can carry a name; one whose language is `mermaid` draws the diagram it
 describes
 underneath — redrawn when you turn the light on or off — and one that says
 `math` sets the formula it holds. One that says `widget` is drawn as a fixed
-view, HTML and CSS and nothing else, the same wherever the document is read. What
-has to run goes in an `.html` file attached to the document, which Tisty runs in
-a frame of its own, away from the network and from the window.
+view, HTML and CSS and nothing else, the same wherever the document is read. An
+`.html` file attached to a document is only a file: Tisty never runs it.
 
 **A web link on a line of its own is drawn as a card**, made from the address
 itself — the site's name and the words you wrote. Nothing is fetched to draw it.

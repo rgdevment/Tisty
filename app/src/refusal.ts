@@ -149,7 +149,6 @@ const KNOWN = [
   "cannotWrite",
   "attachmentTooBig",
   "textTooLong",
-  "pageTooBig",
   "documentTooBig",
   "documentTooLong",
   "archivedList",

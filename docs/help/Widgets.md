@@ -31,10 +31,10 @@ It comes with Tisty's colours and ready-made classes, so plain HTML already look
 
 The widget's code stays folded under the drawing. Open it with **Show code**.
 
-## When it has to run: attach an `.html` file
+## An `.html` file is only a file
 
-A widget never runs anything. If something has to run, attach an `.html` file to the document: Tisty draws it live in a frame of its own, with no way into the window or your other documents, and its bar lets you show it as an attachment again. Only Tisty runs it.
+An `.html` file attached to a document is an attachment like any other: a card with its name and size. Tisty never runs it or draws it. Nothing a document holds ever runs.
 
 ## In a window of its own
 
-**Open apart**, on a widget or an attached `.html` page, opens it in a window of its own. Its bar sizes it as **Fit**, **Phone**, **Tablet** or **Desktop** (`Ctrl`/`⌘` + `1` to `4`), and **More** has **Reload**, **View code**, **Show in the document**, **Try it dark** and **Zoom to 100 %**.
+**Open apart**, on a widget, opens it in a window of its own. Its bar sizes it as **Fit**, **Phone**, **Tablet** or **Desktop** (`Ctrl`/`⌘` + `1` to `4`), and **More** has **Reload**, **View code**, **Show in the document**, **Try it dark** and **Zoom to 100 %**.

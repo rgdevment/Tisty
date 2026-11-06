@@ -309,11 +309,11 @@ A block that says `widget` is drawn as a fixed view, HTML and CSS and nothing el
 </div>
 ```
 
-What has to run goes in an `.html` file attached to the document, which Tisty runs in a frame of its own.
+An `.html` file attached to a document is only a file: Tisty never runs it.
 
 #### Files, sound and film
 
-An attached file is drawn as what it is: a picture as itself, opened large with a click, a sound or a film with its player, an `.html` page live, and anything else as a card with its kind and size. Every card has a **⋯**: save a copy, show the page as a file or live again, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
+An attached file is drawn as what it is: a picture as itself, opened large with a click, a sound or a film with its player, and anything else, an `.html` page among them, as a card with its kind and size. Every card has a **⋯**: save a copy, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
 
 #### Code, with a name and a colour
 
