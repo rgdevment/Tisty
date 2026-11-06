@@ -255,7 +255,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
 | Widgets | fixed views of HTML and CSS in Tisty's colours, which run nothing and reach nothing |
 | PDF | its own: A4, Letter or Folio, with its pictures inside |
-| Any `.md` file | opens to read in a window of its own, without coming into your store |
+| Any `.md` file | opens to read in a viewer of its own, up to 1 MB, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
 | Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of ours |
@@ -418,13 +418,16 @@ export it.
 
 **A Markdown file from anywhere opens to read.** Pick Tisty under *Open with*
 for a `.md` file, or follow a `tisty://open?path=…` link, and it opens
-read-only in a window of its own without coming into your store: its contents
-at the side, what the file is, the width of the page, and the PDF it would make,
-with **← Back to the document**. **Edit in Tisty** brings it in as a document
-and leaves the original where it was. A document of yours opens the same way
-from its panel, *Open in a window of its own*, and its PDF there is signed
-unless you untick **Signed**. A widget opens apart too, at phone, tablet or
-desktop width. More in [the help](https://www.tisty.app/docs/documents/#opening-a-markdown-file-from-outside).
+read-only in a light viewer of its own, up to 1 MB, without coming into your
+store and without setting anything up first: its contents at the side, what the
+file is, a search, and its Markdown a press away. It reads the file the way its
+writer meant, so a paragraph cut at 80 columns is one paragraph and `#ff0000` is
+a colour rather than a tag. Pictures beside it come straight in, and those on
+the internet wait until you ask. **Edit** makes a copy in your store and leaves
+the original where it was. A document of yours opens from its panel, *Open in a
+window of its own*, read-only with the width of the page and the PDF it would
+make, and that PDF is signed unless you untick **Signed**. A widget opens apart
+too, at phone, tablet or desktop width. More in [the help](https://www.tisty.app/docs/documents/#opening-a-markdown-file-from-outside).
 
 **And they leave whole.** A document copies as standard Markdown, the way
 GitHub and CommonMark read it, writes out into a folder with its pages and

@@ -261,7 +261,7 @@ artificial**, esto es Tisty:
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
 | Widgets | vistas fijas de HTML y CSS con los colores de Tisty, que no ejecutan ni alcanzan nada |
 | PDF | propio: A4, Carta u Oficio, con sus imágenes dentro |
-| Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
+| Cualquier archivo `.md` | se abre para leer en un visor propio, hasta 1 MB, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
 | Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor nuestro |
@@ -429,13 +429,17 @@ de exportarlo.
 
 **Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
 *Abrir con* para un archivo `.md`, o sigue un enlace `tisty://open?path=…`, y se
-abre en solo lectura en una ventana propia, sin entrar a tu almacén: su índice
-al costado, qué es el archivo, el ancho de la página y el PDF que saldría, con
-**← Volver al documento**. **Editar en Tisty** lo trae como documento y deja el
-original donde estaba. Un documento tuyo se abre igual desde su panel, *Abrir en
-una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
-firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
-un escritorio. Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
+abre en solo lectura en un visor liviano propio, hasta 1 MB, sin entrar a tu
+almacén y sin configurar nada antes: su índice al costado, qué es el archivo,
+una búsqueda y su Markdown a un clic. Lee el archivo como lo quiso quien lo
+escribió: un párrafo cortado a 80 columnas es un solo párrafo, y `#ff0000` es un
+color y no una etiqueta. Las imágenes de al lado entran directo, y las de
+internet esperan a que las pidas. **Editar** crea una copia en tu almacén y deja
+el original donde estaba. Un documento tuyo se abre desde su panel, *Abrir en
+una ventana aparte*, en solo lectura con el ancho de la página y el PDF que
+saldría, y ese PDF lleva firma salvo que desmarques **Con firma**. Un widget
+también se abre aparte, al ancho de un móvil, una tablet o un escritorio.
+Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
 
 **Y salen enteros.** Un documento se copia como Markdown estándar, como lo
 leen GitHub y CommonMark, se escribe en una carpeta con sus páginas y sus
