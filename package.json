@@ -2,6 +2,7 @@
   "name": "tisty",
   "private": true,
   "homepage": "https://www.tisty.app/",
+  "license": "AGPL-3.0-only",
   "repository": "github:rgdevment/Tisty",
   "workspaces": [
     "app",

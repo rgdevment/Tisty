@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Reads a Markdown file from disk, as it was written and without changing it. It has its own build, with Solid and without React, and the app opens it by address.",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "sideEffects": [
     "**/*.css",

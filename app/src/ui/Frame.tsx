@@ -8,7 +8,6 @@ type Props = {
   readonly html: string;
   readonly turn: number;
   readonly label: string;
-  readonly stranger: boolean;
   readonly tall: boolean;
   readonly untitled?: boolean;
   readonly viewing?: boolean;
@@ -51,7 +50,6 @@ export default function Frame(props: Readonly<Props>) {
     html,
     turn,
     label,
-    stranger,
     tall,
     hidden,
     wide,
@@ -86,7 +84,7 @@ export default function Frame(props: Readonly<Props>) {
     const dress = (page: Document) => {
       drawing += 1;
       const mine = drawing;
-      dressedUp = worn(page, stranger, () => live && drawing === mine, said.current.reach());
+      dressedUp = worn(page, () => live && drawing === mine, said.current.reach());
     };
     const retheme = () => {
       const page = held.contentDocument;
@@ -151,7 +149,7 @@ export default function Frame(props: Readonly<Props>) {
       held.removeEventListener("load", loaded);
       undressed();
     };
-  }, [stranger, tall, untitled, viewing]);
+  }, [tall, untitled, viewing]);
 
   // Every drawing is dressed anew before it is painted, even one drawn the same: what it leans on may have changed.
   useLayoutEffect(() => swap.current(html), [html, turn]);

@@ -1,5 +1,4 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PAPERS } from "tisty-editor/read";
 import {
@@ -9,12 +8,10 @@ import {
   type Showing,
   viewFacts,
   viewGo,
-  viewImport,
   viewShown,
 } from "./core";
 import { paperIn } from "./front";
-import { leftBehind } from "./leftBehind";
-import { adopt, fill, t } from "./locales";
+import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { fell } from "./Standing";
 import Diagramming from "./ui/drawing/Diagramming";
@@ -28,7 +25,6 @@ import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/v
 import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
 import Preview from "./ui/viewer/Preview";
-import Problem, { type Trouble } from "./ui/viewer/Problem";
 import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
 import usePdf from "./ui/viewer/usePdf";
@@ -50,11 +46,6 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   }
 };
 
-type Readable = Extract<Showing, { kind: "file" | "doc" }>;
-
-const readable = (one: Showing | null): one is Readable =>
-  one?.kind === "doc" || (one?.kind === "file" && one.body.trim() !== "");
-
 const useReader = (wanted: boolean) => {
   const [loaded, setLoaded] = useState<typeof ReaderWindow | null>(null);
   useEffect(() => {
@@ -70,16 +61,11 @@ const useReader = (wanted: boolean) => {
   return loaded;
 };
 
-const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
-  refusal.code === "documentTooBig"
-    ? { kind: "big", limit: refusal.name ?? "" }
-    : { kind: "unreadable" };
-
 // A diagram's window is its own thing: none of the reader's state is set up for it.
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
-  const Reader = useReader(readable(shown));
+  const Reader = useReader(shown?.kind === "doc");
   const [trouble, setTrouble] = useState<string | null>(null);
   // One look at a time: a second press, or a second mount in development, never fetches twice.
   const asking = useRef(false);
@@ -124,7 +110,6 @@ function Reading({
   const [note, setNote] = useState<string | null>(null);
   // Each answer from the window, good or bad, replaces what the last one said.
   useEffect(() => setNote(trouble), [trouble, shown]);
-  const [band, setBand] = useState<string | null>(null);
   const [kept, setKept] = useState(remembered);
   const { side } = kept;
   const [raw, setRaw] = useState(false);
@@ -136,7 +121,6 @@ function Reading({
   const [dark, setDark] = useState<boolean | null>(null);
   const [again, setAgain] = useState(0);
   const [code, setCode] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [facts, setFacts] = useState<DocFacts | null>(null);
 
   useEffect(() => {
@@ -147,7 +131,7 @@ function Reading({
     }
   }, [kept.leaf]);
 
-  const reading = shown?.kind === "file" || shown?.kind === "doc";
+  const reading = shown?.kind === "doc";
 
   useEffect(() => {
     setFacts(null);
@@ -163,17 +147,15 @@ function Reading({
     };
   }, [reading, shown]);
   const body = reading ? shown.body : "";
-  const which =
-    shown?.kind === "doc" ? shown.paper.file : shown?.kind === "file" ? shown.path : null;
-  const shape = useSheets(which, body);
+  const paper = reading ? shown.paper : null;
+  const shape = useSheets(paper?.file ?? null, body);
   const turned = shape.landscape;
   // The paper a document names is its own; the one kept here only fills in when it names none.
   const leaf = paperIn(body) ?? kept.leaf;
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
-  const paper = shown?.kind === "doc" ? shown.paper : null;
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
-  const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
+  const named = paper?.title ?? "";
   const pdf = usePdf({
     ready: reading,
     body,
@@ -206,20 +188,8 @@ function Reading({
     };
   }, [shown?.kind, look]);
 
-  const editIn = (open: boolean) => {
-    if (paper) return void viewGo(paper.file).catch(fail);
-    if (busy) return;
-    const place = shown?.kind === "file" ? shown.place : "";
-    setBusy(true);
-    viewImport(open)
-      .then((made) => {
-        look();
-        const left = leftBehind(made);
-        const said = `${t(open ? "viewNowIn" : "viewSavedIn")} · ${fill("viewOriginal", place)}`;
-        setBand(left ? `${said} · ${left}` : said);
-      })
-      .catch(fail)
-      .finally(() => setBusy(false));
+  const edit = () => {
+    if (paper) void viewGo(paper.file).catch(fail);
   };
 
   const acts: Acts = {
@@ -228,7 +198,6 @@ function Reading({
     dark,
     actual,
     fail,
-    look,
     find: () => setFinding(true),
     zoom: (step) =>
       setZoom((at) => (step === 0 ? PLAIN : Math.max(0, Math.min(ZOOMS.length - 1, at + step)))),
@@ -238,8 +207,7 @@ function Reading({
     keep: () => void pdf.keep(),
     html: () => void leaveAsHtml([body], named || t("untitledDoc")).catch(fail),
     word: () => void leaveAsWord([body], named || t("untitledDoc")).catch(fail),
-    quietly: () => editIn(false),
-    edit: () => editIn(true),
+    edit,
     again: () => setAgain((n) => n + 1),
     code: () => setCode(true),
     shade: () => setDark((was) => !(was ?? darkNow())),
@@ -278,40 +246,26 @@ function Reading({
         shown={shown}
         side={side}
         raw={raw}
-        busy={busy}
         preset={preset}
         menu={Boolean(menu)}
         onSide={acts.side}
         onRaw={setRaw}
-        onEdit={() => editIn(true)}
+        onEdit={edit}
         onPreset={setPreset}
         onAgain={acts.again}
         onMore={setMenu}
       />
-      {band && (
-        <div className="flex shrink-0 items-center gap-2.5 border-b border-hair bg-accent-soft px-4 py-[7px] text-[12.5px] text-soft">
-          <span>{band}</span>
-          <button
-            type="button"
-            className="ml-auto text-[12.5px] font-semibold text-accent"
-            onClick={() => setBand(null)}
-          >
-            {t("viewGotIt")}
-          </button>
-        </div>
-      )}
       {note && (
         <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-urgent" role="alert">
           {note}
         </p>
       )}
-      {readable(shown) && Reader && (
+      {reading && Reader && (
         <Reader
-          key={shown.kind === "doc" ? shown.paper.file : shown.path}
+          key={shown.paper.file}
           body={body}
           title={title}
           under={under}
-          stranger={shown.kind === "file"}
           side={side}
           raw={raw}
           zoom={ZOOMS[zoom]}
@@ -327,34 +281,14 @@ function Reading({
           onSheets={shape.onSheets}
           onLandscape={shape.onLandscape}
           onRaw={setRaw}
-          onEdit={() => editIn(true)}
+          onEdit={edit}
           onExport={(at) => setMenu({ ...at, only: "export" })}
           onFound={() => setFinding(false)}
           onDoc={(file) => void viewGo(file).catch(fail)}
-          onOpen={
-            shown.kind === "doc" ? (reference) => void opened(reference).catch(fail) : undefined
-          }
+          onOpen={(reference) => void opened(reference).catch(fail)}
         />
       )}
-      {!trouble && (!shown || (readable(shown) && !Reader)) && <Quill said={t("viewOpening")} />}
-      {shown?.kind === "file" && !body.trim() && (
-        <Problem
-          trouble={{ kind: "empty" }}
-          name={shown.name}
-          place={shown.place}
-          onRetry={look}
-          onEdit={() => editIn(true)}
-        />
-      )}
-      {shown?.kind === "missed" && (
-        <Problem
-          trouble={troubleOf(shown.refusal)}
-          name={shown.name}
-          place={shown.place}
-          onReveal={() => void revealItemInDir(shown.path).catch(fail)}
-          onRetry={look}
-        />
-      )}
+      {!trouble && (!shown || (reading && !Reader)) && <Quill said={t("viewOpening")} />}
       {shown?.kind === "widget" && (
         <Stage source={shown.source} preset={preset} actual={actual} dark={dark} again={again} />
       )}

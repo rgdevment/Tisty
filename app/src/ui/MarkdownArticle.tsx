@@ -94,7 +94,6 @@ export default function MarkdownArticle({
       body={linkedHere(topic.body, spanish)}
       draw={drawGuide}
       label={topic.heading ?? t("helpMarkdown")}
-      stranger={false}
       card={card}
       onDoc={() => undefined}
       onHere={onHere}

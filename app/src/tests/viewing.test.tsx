@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
-import { fill, t } from "../locales";
+import { t } from "../locales";
 import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
@@ -17,8 +17,6 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
-    if (cmd === "view_import")
-      return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
@@ -60,10 +58,6 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   message: () => Promise.resolve(),
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  revealItemInDir: () => Promise.resolve(),
-}));
-
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     label: "view-0",
@@ -73,14 +67,6 @@ vi.mock("@tauri-apps/api/window", () => ({
     close: () => Promise.resolve(),
   }),
 }));
-
-const file: Showing = {
-  kind: "file",
-  name: "notas.md",
-  place: "Descargas",
-  path: "C:\\Descargas\\notas.md",
-  body: "# Notas\n\nUn texto.\n\n## Más\n",
-};
 
 URL.createObjectURL = () => "blob:pdf";
 URL.revokeObjectURL = () => {};
@@ -93,6 +79,8 @@ const picked = async (label: string) => {
   await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(label) }));
 };
 
+const SEEN = `Proyectos · ${t("viewOnlyReading")}`;
+
 const tisty: Showing = {
   kind: "doc",
   paper: { id: "D1", file: "f1", title: "Notas", place: "Proyectos" },
@@ -101,7 +89,7 @@ const tisty: Showing = {
 
 beforeEach(() => {
   ipc.calls = [];
-  ipc.shown = file;
+  ipc.shown = tisty;
   ipc.facts = null;
   window.innerWidth = SIDE_FROM - 1;
   localStorage.clear();
@@ -110,57 +98,25 @@ beforeEach(() => {
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("the viewer", () => {
-  it("shows a file from outside, read only, with its contents and page a press away", async () => {
+  it("shows a document, read only, with its contents and page a press away", async () => {
     render(<Viewing />);
 
-    expect(await screen.findByText("notas.md")).toBeTruthy();
-    expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
+    expect(await screen.findByText(SEEN)).toBeTruthy();
     await userEvent.click(await screen.findByRole("button", { name: t("viewIndex") }));
     expect(await screen.findByText(t("outline"))).toBeTruthy();
     expect(await screen.findByRole("group", { name: t("leafIs") })).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
 
-  it("shows the file as Markdown with its lines numbered", async () => {
+  it("shows the document as Markdown with its lines numbered", async () => {
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
     await userEvent.click(await screen.findByRole("button", { name: t("viewSource") }));
 
     expect(screen.getByText("# Notas")).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewCopy") })).toBeTruthy();
-  });
-
-  it("brings a file into Tisty to edit it, and becomes that document", async () => {
-    render(<Viewing />);
-    await screen.findByText("notas.md");
-    ipc.shown = {
-      kind: "doc",
-      paper: { id: "D1", file: "f1", title: "Notas", place: "" },
-      body: "# Notas",
-    } satisfies Showing;
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-
-    await userEvent.click(await screen.findByRole("button", { name: t("viewEditIn") }));
-
-    expect(asked("view_import")[0].args).toEqual({ open: true });
-    await waitFor(() => expect(screen.getByText(new RegExp(t("viewNowIn")))).toBeTruthy());
-    await waitFor(() => expect(document.querySelector(".side-title")?.textContent).toBe("Notas"));
-  });
-
-  it("says plainly why a file could not be opened", async () => {
-    ipc.shown = {
-      kind: "missed",
-      name: "grande.md",
-      place: "Descargas",
-      path: "C:\\Descargas\\grande.md",
-      refusal: { code: "documentTooBig", name: "500 KB" },
-    } satisfies Showing;
-    render(<Viewing />);
-
-    expect(await screen.findByText(t("viewBigTitle").replace("{name}", "grande.md"))).toBeTruthy();
-    expect(screen.getByRole("button", { name: t("viewRetry") })).toBeTruthy();
   });
 
   it("draws a widget on a stage with its widths to try", async () => {
@@ -187,7 +143,7 @@ describe("reading in the viewer", () => {
   it("previews a Tisty document as a PDF with no credit by default, adds it, saves it and closes on Esc", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
-    await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await screen.findByText(SEEN);
 
     pressed("p");
     expect(await screen.findByTitle(t("seePdf"))).toBeTruthy();
@@ -206,7 +162,7 @@ describe("reading in the viewer", () => {
 
   it("opens with the contents folded in a narrow window, shows and hides them, sizes the page, and reads the source by keys", async () => {
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
 
     expect(screen.queryByText(t("outline"))).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
@@ -225,7 +181,7 @@ describe("reading in the viewer", () => {
   it("shows sheets turned across only on screen, and the PDF follows them", async () => {
     window.innerWidth = SIDE_FROM;
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
 
     const sheets = () => screen.getByRole("button", { name: t("sheetsShown") });
     // The column draws its rows once the document's facts arrive, which a slow run reaches after the title.
@@ -237,14 +193,13 @@ describe("reading in the viewer", () => {
     await waitFor(() => expect(sheets().getAttribute("aria-pressed")).toBe("true"));
     pressed("p");
     await waitFor(() => expect(asked("pdf").map((one) => one.args.landscape)).toContain(true));
-    expect(asked("view_import")).toHaveLength(0);
   });
 
   it("opens with the contents beside the page only in a window wide enough for both", async () => {
     const was = window.innerWidth;
     window.innerWidth = SIDE_FROM;
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
     window.innerWidth = was;
 
     expect(await screen.findByText(t("outline"))).toBeTruthy();
@@ -254,7 +209,7 @@ describe("reading in the viewer", () => {
     const was = window.innerWidth;
     window.innerWidth = SIDE_FROM - 1;
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
     window.innerWidth = was;
 
     expect(screen.queryByText(t("outline"))).toBeNull();
@@ -272,7 +227,7 @@ describe("reading in the viewer", () => {
       born: null,
     };
     render(<Viewing />);
-    await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await screen.findByText(SEEN);
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
     expect(await screen.findByText("rgdevment")).toBeTruthy();
@@ -281,28 +236,9 @@ describe("reading in the viewer", () => {
     expect(ipc.calls.filter((one) => one.cmd === "view_facts")).toHaveLength(1);
   });
 
-  it("tells what the disk knows of a file from outside, with no author it cannot know", async () => {
-    ipc.facts = {
-      made: 1_790_000_000,
-      wrote: 1_790_000_600,
-      bytes: 2_600,
-      pages: 0,
-      author: null,
-      editor: null,
-      born: null,
-    };
-    render(<Viewing />);
-    await screen.findByText("notas.md");
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-
-    expect(await screen.findByText(t("besideDetails"))).toBeTruthy();
-    expect(screen.getByText(t("paperMade"))).toBeTruthy();
-    expect(screen.queryByText(t("paperAuthor"))).toBeNull();
-  });
-
   it("finds in the text from the menu, and lets go of the search on Esc", async () => {
     render(<Viewing />);
-    await screen.findByText("notas.md");
+    await screen.findByText(SEEN);
 
     await picked(t("viewFind"));
     const field = screen.getByPlaceholderText(t("viewFind"));
@@ -312,38 +248,15 @@ describe("reading in the viewer", () => {
     expect(screen.queryByPlaceholderText(t("viewFind"))).toBeNull();
   });
 
-  it("brings a file in without opening it, and says where the original stays", async () => {
-    render(<Viewing />);
-    await screen.findByText("notas.md");
-
-    await picked(t("viewImportQuiet"));
-
-    expect(asked("view_import")[0].args).toEqual({ open: false });
-    expect(await screen.findByText(new RegExp(t("viewSavedIn")))).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: t("viewGotIt") }));
-    expect(screen.queryByText(new RegExp(t("viewSavedIn")))).toBeNull();
-  });
-
-  it("offers to write an empty file in Tisty", async () => {
-    ipc.shown = { ...file, body: "  " };
-    render(<Viewing />);
-
-    expect(await screen.findByText(t("viewEmptyTitle"))).toBeTruthy();
-    const offered = screen.getAllByRole("button", { name: t("viewEditIn") });
-    await userEvent.click(offered[offered.length - 1]);
-    await waitFor(() => expect(asked("view_import").length).toBeGreaterThan(0));
-  });
-
   it("goes back to the main window to edit a Tisty document", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
-    await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await screen.findByText(SEEN);
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
     await userEvent.click(await screen.findByRole("button", { name: t("viewEditIn") }));
 
     expect(asked("view_go")[0].args).toEqual({ file: "f1" });
-    expect(asked("view_import")).toHaveLength(0);
   });
 
   it("shows a widget's code over the stage and closes it on Esc", async () => {
@@ -400,34 +313,10 @@ describe("the reader comes only to a window with words to read", () => {
   it("is loaded for a document with words", async () => {
     const loaded = counted();
 
-    await viewed(file);
+    await viewed(tisty);
 
     expect(await screen.findByText("the reader")).toBeTruthy();
     expect(loaded).toEqual(["Reader"]);
-  });
-
-  it("is not loaded for an empty file", async () => {
-    const loaded = counted();
-
-    await viewed({ ...file, body: " \n" } as Showing);
-
-    expect(await screen.findByText(t("viewEmptyTitle"))).toBeTruthy();
-    expect(loaded).toEqual([]);
-  });
-
-  it("is not loaded for a file that could not be read", async () => {
-    const loaded = counted();
-
-    await viewed({
-      kind: "missed",
-      name: "notas.md",
-      place: "Descargas",
-      path: "C:\\Descargas\\notas.md",
-      refusal: { code: "documentGone" },
-    });
-
-    expect(await screen.findByText(fill("viewUnreadTitle", "notas.md"))).toBeTruthy();
-    expect(loaded).toEqual([]);
   });
 
   it("is not loaded for a widget", async () => {
@@ -449,9 +338,9 @@ describe("the reader comes only to a window with words to read", () => {
         }),
     );
 
-    await viewed(file);
+    await viewed(tisty);
 
-    expect(await screen.findByText("notas.md")).toBeTruthy();
+    expect(await screen.findByText(SEEN)).toBeTruthy();
     expect(screen.getByText(t("viewOpening"))).toBeTruthy();
 
     await waitFor(() => expect(arriving).toHaveLength(1));
@@ -484,7 +373,7 @@ describe("the reader comes only to a window with words to read", () => {
       throw new Error("the reader cannot be loaded");
     });
 
-    await viewed(file);
+    await viewed(tisty);
 
     expect(await screen.findByText(t("windowFell"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("windowFellAgain") })).toBeTruthy();

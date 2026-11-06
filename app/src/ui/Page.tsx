@@ -8,7 +8,6 @@ import { SAY } from "./saying";
 
 type Props = Reaching & {
   readonly label: string;
-  readonly stranger: boolean;
   readonly tall?: boolean;
   readonly untitled?: boolean;
   readonly viewing?: boolean;
@@ -28,7 +27,7 @@ type Drawn = { html: string; turn: number; body: string; mends: Promise<readonly
 
 // One page is kept and its words change in place, so a redraw never blinks, jumps or builds a new document.
 export default function Page(props: Readonly<Props>) {
-  const { body, label, stranger, wide, zoom, tall = false, again } = props;
+  const { body, label, wide, zoom, tall = false, again } = props;
   const reach = useRef(props);
   reach.current = props;
   const [drawing, setDrawing] = useState<Drawn | null>(null);
@@ -55,8 +54,8 @@ export default function Page(props: Readonly<Props>) {
   useEffect(() => {
     const page = held.current?.contentDocument;
     const part = reach.current.part;
-    if (page && part && !stranger) recarded(page, { part, say: SAY });
-  }, [cards, stranger]);
+    if (page && part) recarded(page, { part, say: SAY });
+  }, [cards]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
@@ -109,7 +108,6 @@ export default function Page(props: Readonly<Props>) {
           html={drawing.html}
           turn={drawing.turn}
           label={label}
-          stranger={stranger}
           tall={tall}
           untitled={props.untitled}
           viewing={props.viewing}
