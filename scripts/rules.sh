@@ -403,12 +403,17 @@ few_earlier_releases_are_met() {
 }
 
 every_package_says_its_licence() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the licences were not looked at"
+    return
+  fi
   local missing
-  missing=$(grep -L '"license": "AGPL-3.0-only"' package.json app/package.json packages/*/package.json; grep -L '^license' crates/*/Cargo.toml app/src-tauri/Cargo.toml)
-  if [ -z "$missing" ]; then
+  if ! node --test scripts/licences-declared.test.mjs > /dev/null; then
+    amiss "the check on licences does not do what its tests say"
+  elif missing=$(node scripts/licences-declared.mjs 2>&1); then
     went_well "every package and crate says its licence"
   else
-    amiss "these do not say their licence: $missing"
+    amiss "these do not say their licence, or could not be read: $missing"
   fi
 }
 
