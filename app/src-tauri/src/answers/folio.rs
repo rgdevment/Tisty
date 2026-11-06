@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::Serialize;
 use tauri::Manager;
 use tisty_carrier::folio_client::{
-    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version,
+    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version, Why,
 };
 use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
@@ -22,6 +22,7 @@ use super::sharing::{doc_id, refused, sealed_by, turned};
 use crate::{Answer, Refusal, Session, held};
 
 const PATIENCE: Duration = Duration::from_secs(120);
+const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
 const FIRST_TERM_DAYS: u64 = 1;
 
@@ -90,10 +91,13 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
                 Refusal::about("folioWait", until.to_string())
             }
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
+            Refused::Terms => Refusal::of(TERMS_TO_ACCEPT),
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
-            Refused::Outdated => Refusal::of("folioOutdated"),
+            Refused::Outdated | Refused::Unknown | Refused::Envelope { why: Why::Unknown } => {
+                Refusal::of("folioOutdated")
+            }
             Refused::Revoked => Refusal::of("folioRevoked"),
             Refused::NotBlocked | Refused::Appealed => Refusal::of("folioAppealed"),
             Refused::Missing => Refusal::of("folioGone"),
@@ -151,17 +155,55 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
 }
 
 // Asked before anything leaves: terms that changed stop an upload, never a link already out.
-fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<()> {
+fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
     let home = paths.private();
     match terms_now(&home, tongue)? {
         TermsNow::Accepted => {}
-        TermsNow::ToAccept { .. } => return Err(Refusal::of("folioTermsToAccept")),
+        TermsNow::ToAccept { .. } => return Err(Refusal::of(TERMS_TO_ACCEPT)),
     }
     let limits = folio_limits::kept(&home);
     if folio_limits::uploads_halted(limits.as_ref(), policy::now()) {
         return Err(Refusal::of("folioUploadsOff"));
     }
-    Ok(())
+    folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
+}
+
+fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
+    match standing {
+        Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
+        Ok(Standing::Accepted) | Err(Unsure::Unmatched) => Refusal::of("folioTermsUnmatched"),
+        Err(Unsure::NoWord) => Refusal::of("folioUnreached"),
+        Err(Unsure::NotPublished) => Refusal::of("folioTermsNotPublished"),
+    }
+}
+
+// The waits pace what reaches Folio, so a press stopped before that leaves them as they were.
+fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
+    if matches!(
+        refused.code,
+        TERMS_TO_ACCEPT | "folioUnreached" | "folioUploadsOff"
+    ) {
+        folio_pace::take_back(home, id, at);
+    }
+    refused
+}
+
+fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
+    if refused.code != TERMS_TO_ACCEPT {
+        return refused;
+    }
+    after_terms_refused(folio_terms::read_again(
+        home,
+        tongue,
+        crate::reaching::brought,
+    ))
+}
+
+const OTHER_LANGUAGE_ENDS: [&str; 2] = ["](TERMS.md)", "](TERMINOS.md)"];
+
+fn names_the_other_language(line: &str) -> bool {
+    let line = line.trim();
+    line.starts_with('[') && OTHER_LANGUAGE_ENDS.iter().any(|end| line.ends_with(end))
 }
 
 fn may_start(now: SharingNow) -> Answer<()> {
@@ -185,6 +227,16 @@ pub async fn folio_terms_standing(session: tauri::State<'_, Mutex<Session>>) -> 
         (session.paths.private(), tongue_of(&session))
     };
     apart(move || terms_now(&home, tongue)).await
+}
+
+// Folio writes them for any Markdown reader, cut at a column, and Tisty's own reading would keep each cut as a break.
+#[tauri::command(async)]
+pub fn folio_terms_drawn(text: String) -> String {
+    let shown: Vec<&str> = text
+        .lines()
+        .filter(|line| !names_the_other_language(line))
+        .collect();
+    tisty_markdown::html(&tisty_markdown::read_file(&shown.join("\n")))
 }
 
 #[tauri::command]
@@ -608,6 +660,7 @@ async fn sealed_for_folio(
     session: &tauri::State<'_, Mutex<Session>>,
     asked: tisty_sharing::Asked,
     editable: bool,
+    terms: String,
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
@@ -634,6 +687,7 @@ async fn sealed_for_folio(
             &Under {
                 mint: &mint,
                 editable,
+                terms: Some(&terms),
             },
         )
     })
@@ -679,7 +733,7 @@ pub async fn doc_shared(
         )
     };
     let checking = paths.clone();
-    apart(move || {
+    let terms = apart(move || {
         may_start(folio_limits::sharing_now(
             &checking.private(),
             crate::reaching::brought,
@@ -696,7 +750,7 @@ pub async fn doc_shared(
             .collect::<Answer<Vec<_>>>()?,
         signed_as,
     };
-    let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, editable).await?;
+    let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, editable, terms).await?;
     let print = sealed.remembering.iter().find(|(at, _)| *at == file);
     if seen.is_some() && seen != print.and_then(|(_, one)| one.words_print.clone()) {
         return Err(Refusal::of("folioChanged"));
@@ -713,9 +767,11 @@ pub async fn doc_shared(
         (session.state.clone(), session.config.device_id.clone())
     };
     let keep = keeping(&app);
+    let home = paths.private();
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &keep, &sealed, &starts, ttl_days)?;
+        delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         told_of_taken_back(&door, &state, &device);
         let top = sealed
             .remembering
@@ -812,7 +868,8 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let limits = folio_limits::kept(&home);
-    folio_pace::press(&home, &was.id, policy::now(), limits.as_ref())
+    let pressed_at = policy::now();
+    folio_pace::press(&home, &was.id, pressed_at, limits.as_ref())
         .map_err(|free| Refusal::about("folioWait", (free * 1000).to_string()))?;
     let remembered_id = was.id.clone();
     let remembered_version = was.version;
@@ -821,23 +878,29 @@ pub async fn doc_share_sync(
         Ok(folio_client::latest(&door, &remembered_id))
     })
     .await?;
+    let correcting = blocked_but_correctable(&latest, &was).await;
     let latest = match latest {
-        Ok(latest) => latest,
+        Ok(latest) => Some(latest),
         Err(Stopped::Refused(Refused::Missing)) => {
             forget_share(&app, &file);
             return Ok(Synced::Gone);
         }
-        Err(stopped) => return Err(said(&stopped)),
+        Err(_) if correcting => None,
+        Err(stopped) => {
+            return Err(press_given_back(said(&stopped), &home, &was.id, pressed_at));
+        }
     };
-    if latest.version > remembered_version {
+    if latest.is_some_and(|latest| latest.version > remembered_version) {
         return other_version_brought(&session, &id, &was).await;
     }
     if unchanged {
         return Ok(Synced::Unchanged);
     }
     let checking = paths.clone();
-    apart(move || may_upload(&checking, tongue)).await?;
-    let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false).await?;
+    let terms = apart(move || may_upload(&checking, tongue))
+        .await
+        .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
+    let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
     for (_, one) in &mut sealed.remembering {
         one.ttl_days = Some(ttl_days);
@@ -853,14 +916,34 @@ pub async fn doc_share_sync(
         (session.state.clone(), session.config.device_id.clone())
     };
     let keep = keeping(&app);
+    let pressed_id = was.id.clone();
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &keep, &sealed, &starts, ttl_days)?;
+        delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
+            .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         told_of_taken_back(&door, &state, &device);
         Ok(())
     })
     .await?;
     Ok(Synced::Sent { version, told })
+}
+
+// An appeal accepted leaves the document blocked until its owner sends a version, which Folio's latest will not name.
+async fn blocked_but_correctable<T>(latest: &Result<T, Stopped>, was: &Remembered) -> bool {
+    if !matches!(latest, Err(Stopped::Refused(Refused::Blocked))) {
+        return false;
+    }
+    let Some(admin) = was.admin_token.clone() else {
+        return false;
+    };
+    let id = was.id.clone();
+    apart(move || {
+        let door = ToFolio::new()?;
+        Ok(folio_client::status(&door, &id, &admin).is_ok_and(|told| told.may_correct))
+    })
+    .await
+    .unwrap_or(false)
 }
 
 fn doc_of_file(session: &Session, file: &str) -> Option<tisty_core::model::DocId> {
@@ -961,6 +1044,9 @@ pub struct ShareStatus {
     paused: bool,
     blocked: bool,
     reads: u64,
+    appealed: bool,
+    may_correct: bool,
+    fix_by: Option<u64>,
 }
 
 fn admin_of(
@@ -989,6 +1075,9 @@ pub async fn doc_share_status(
             paused: told.paused_at.is_some(),
             blocked: told.blocked_at.is_some(),
             reads: told.read_total,
+            appealed: told.appealed_at.is_some(),
+            may_correct: told.may_correct,
+            fix_by: told.fix_by,
         })
     })
     .await

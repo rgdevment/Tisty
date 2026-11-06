@@ -117,6 +117,8 @@ This one is a new paragraph.
 
 GitHub joins those two lines into one when it shows a file; Tisty keeps them apart. A backslash at the end of a line breaks it everywhere.
 
+Writing in a block, `Enter` leaves that blank line and starts a paragraph, and `Shift` + `Enter` writes the single break.
+
 To write a line that would otherwise start something — a heading, a list, a quote — put a backslash before it: `\#`, `\-`, `1\.`, `\>`.
 
 ## Bold, italic, struck through and code
@@ -282,6 +284,7 @@ Booster due in March #rina #vet
 
 - `#Hola` is a tag; `# Hola`, with a space, is a heading.
 - Accents and case come off: `#Camión` and `#camion` are one tag, `camion`. An underscore becomes a dash: `#mi_tag` is `mi-tag`.
+- Accents only come off in the Latin, Greek, Cyrillic, Hebrew and Arabic alphabets, where a letter stands without them. In other scripts those marks are part of the word and stay: `#हिन्दी` keeps its vowels.
 - Two characters at least, one of them a letter: `#1234` is a ticket number, not a tag, and neither is `#a`. `#2026x` is a tag.
 - A `#` stuck to what comes before it is not a tag: `C#`, `bg-#fff`, `page.html#top` and the anchor in a link's address are all left alone.
 - Nothing inside code is a tag, and neither is the `#2` in a [reference](#references) like `[[#2]]`.
@@ -466,6 +469,7 @@ gantt
 ````
 
 - In Tisty, mind maps, schemas, freeform and class diagrams are drawn just as the diagram window draws them, with a small margin; other kinds, and a freeform diagram with icons or images, are drawn by the official Mermaid. All fit the width of the page, turn dark when Tisty is dark, and open large with a click.
+- A `<br/>` or `<br>` inside a diagram's words breaks the line.
 - When the document leaves Tisty as plain Markdown, an `mmd` block is written `mermaid`, the one word GitHub draws.
 - One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
 
@@ -550,7 +554,7 @@ $$
 
 ### Widgets
 
-A `widget` block draws a fixed view, made only of HTML and CSS; its name goes in `title`. It runs nothing, ever, and names nothing outside itself, so it reads the same wherever the document is read. It comes with styles ready to use: `stat`, `card`, `grid`, `two`, `head`, `badge` (with `ok`, `warn` and `bad`), `list`, `box`, `up` and `down`, as well as tables.
+A `widget` block draws a fixed view, made only of HTML and CSS; its name goes in `title`. It runs nothing, ever, and names nothing outside itself, so it reads the same wherever the document is read. It comes with styles ready to use: `stat`, `card`, `grid`, `two`, `head`, `badge` (with `ok`, `warn` and `bad`), `list`, `box` (with `done`), `gone`, `row`, `num`, `up` and `down`, as well as tables.
 
 ````markdown
 ```widget title="Rina this month"
@@ -576,7 +580,7 @@ A `widget` block draws a fixed view, made only of HTML and CSS; its name goes in
 
 - It may hold text, lists, tables, `<details>`, `<svg>` drawings, pictures written into it as `data:image/…`, and a `<style>` of its own.
 - It holds no `<script>`, no `onclick` or other handler, no link, button or form, no frame, sound or video, and nothing that comes from an address, in its HTML or in its CSS.
-- A block with anything else is not a widget: it is shown as its code, with what is wrong, and none of it is drawn. An agent's call that writes one is refused.
+- A block with anything else, or over 512 KB, is not a widget: it is shown as its code, with what is wrong, and none of it is drawn. An agent's call that writes one is refused.
 - An attached `.html` file is a file like any other, shown as a chip; nothing a document holds ever runs.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.

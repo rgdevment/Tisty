@@ -54,12 +54,14 @@ Configuración ocupa la barra lateral con sus secciones:
 
 ## Actualizaciones
 
-Tisty revisa al abrirse, y una vez al día después, si hay una versión más nueva; no envía nada para preguntar. Si la hay, aparece una línea en *Acerca de*:
+Tisty revisa al abrirse, y una vez al día después, si hay una versión más nueva; no envía nada para preguntar. Una copia de la Microsoft Store le pregunta a la Store al abrirse y cada seis horas. Si la hay, aparece una línea en *Acerca de*:
 
-- una copia de la Microsoft Store la actualiza la Store;
+- una copia de la Microsoft Store la actualiza la Store, y la línea trae un botón **Actualizar** cuando la Store se la ofrece a este equipo;
 - una copia dueña de su propia carpeta recibe un botón.
 
-No se descarga nada hasta que lo pulsas. Las versiones candidatas se activan en *Acerca de*. Más detalle en [[Privacidad]].
+Tisty no descarga nada hasta que lo pulsas. Las versiones candidatas se activan en *Acerca de*. Más detalle en [[Privacidad]].
+
+En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Windows lo vuelve a abrir solo: una ventana a la vista vuelve a la vista, y una oculta en la bandeja vuelve oculta. Lo que acababas de escribir en un documento o en la página de una tarea se conserva, y lo mismo cuando Windows se apaga. Un fallo o un reinicio no lo reabren, ni tampoco una copia que llevaba menos de un minuto abierta.
 
 ## Dónde viven tus datos
 

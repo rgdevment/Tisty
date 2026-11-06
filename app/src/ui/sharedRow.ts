@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Panel } from "tisty-editor/read";
 import { copied } from "../core";
 import { fill, locale, t } from "../locales";
@@ -23,29 +23,41 @@ type Act = NonNullable<HeldPanel["acts"]>[number];
 const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
 const untilOf = (problem: unknown) => Number((problem as { name?: string } | null)?.name);
 
+// Folio counts days from 1970 in UTC, and elsewhere its midnight falls on the day before.
+const dayOf = (day: number) =>
+  new Date(day * DAY_MS).toLocaleDateString(locale(), { timeZone: "UTC" });
+
+const fixSaid = ({ fixBy }: ShareStatus) => {
+  if (fixBy === null) return null;
+  return Date.now() >= (fixBy + 1) * DAY_MS
+    ? t("sharedFixLate")
+    : fill("sharedFixBy", dayOf(fixBy));
+};
+
 const gistOf = (card: ShareCard, status: ShareStatus | null) => {
   if (status?.blocked) return { gist: t("sharedBlockedGist"), tone: "bad" as const };
   if (status?.paused) return { gist: t("sharedPausedGist"), tone: "warn" as const };
+  if (status && fixSaid(status)) return { gist: t("sharedReportedGist"), tone: "warn" as const };
   return { gist: t(card.edit ? "sharedCanEdit" : "sharedReadOnly"), tone: undefined };
+};
+
+const blockedSaid = ({ mayCorrect, appealed }: ShareStatus) => {
+  if (mayCorrect) return t("sharedMayCorrect");
+  return t(appealed ? "sharedAppealWaiting" : "sharedBlockedWhy");
 };
 
 const saidOf = (status: ShareStatus | null, told: string | null, stopping: boolean) =>
   [
-    status?.blocked && t("sharedBlockedWhy"),
+    status?.blocked && blockedSaid(status),
     status?.paused && t("sharedPausedWhy"),
-    status &&
-      !status.blocked &&
-      fill(
-        "sharedStatus",
-        new Date(status.diesOn * DAY_MS).toLocaleDateString(locale()),
-        String(status.reads),
-      ),
+    status && !status.blocked && fixSaid(status),
+    status && !status.blocked && fill("sharedStatus", dayOf(status.diesOn), String(status.reads)),
     told,
     stopping && t("shareStopAsk"),
   ].filter((one): one is string => Boolean(one));
 
 const linksOf = (card: ShareCard, status: ShareStatus | null): HeldPanel["links"] => {
-  if (status?.blocked) return [];
+  if (status?.blocked || card.taken) return [];
   const held = (key: string, label: string, url: string, note?: string) => ({
     key,
     label,
@@ -71,6 +83,7 @@ interface Hands {
   setStopping: (stopping: boolean) => void;
   setCard: (card: ShareCard | null) => void;
   failing: (problem: unknown) => void;
+  stillHeld: () => boolean;
   onKeep?: () => Promise<unknown> | undefined;
 }
 
@@ -107,18 +120,32 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
   h.setTold(syncedWords(synced));
 };
 
+// The row outlives the document it shows, so an answer that arrives late may no longer be about it.
+const statusNow = (h: Hands) =>
+  shareStatus(h.doc).then((now) => {
+    if (h.stillHeld()) h.setStatus(now);
+  });
+
+// Whoever holds the link to manage hears of reports when pressing, since Tisty never asks on its own.
+const statusAfterSync = (h: Hands) => {
+  if (!h.card.taken) void statusNow(h).catch(() => {});
+};
+
+const syncNow = (h: Hands) => {
+  h.setTold(null);
+  void Promise.resolve(h.onKeep?.())
+    .then(() => shareSync(h.doc, h.accepted))
+    .then((synced) => syncAnswered(h, synced))
+    .catch(h.failing)
+    .finally(() => statusAfterSync(h));
+};
+
 const syncAct = (h: Hands): Act => ({
   key: "sync",
   label: syncLabel(h),
   main: true,
-  off: Boolean(h.status?.blocked || h.status?.paused || h.minutes > 0),
-  onPick: () => {
-    h.setTold(null);
-    void Promise.resolve(h.onKeep?.())
-      .then(() => shareSync(h.doc, h.accepted))
-      .then((synced) => syncAnswered(h, synced))
-      .catch(h.failing);
-  },
+  off: Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0),
+  onPick: () => syncNow(h),
 });
 
 const stoppingActs = (h: Hands): Act[] => [
@@ -143,8 +170,9 @@ const managingActs = (h: Hands): Act[] => {
   const see: Act = {
     key: "status",
     label: t("sharedSeeStatus"),
-    onPick: () => void shareStatus(h.doc).then(h.setStatus).catch(h.failing),
+    onPick: () => void statusNow(h).catch(h.failing),
   };
+  if (h.status?.blocked && (h.status.mayCorrect || h.status.appealed)) return [see];
   if (h.status?.blocked)
     return [
       see,
@@ -153,9 +181,10 @@ const managingActs = (h: Hands): Act[] => {
         label: t("shareAppeal"),
         onPick: () =>
           void shareAppeal(h.doc)
-            .then((accepted) =>
-              h.setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
-            )
+            .then((accepted) => {
+              h.setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview"));
+              return statusNow(h);
+            })
             .catch(h.failing),
       },
     ];
@@ -167,8 +196,7 @@ const managingActs = (h: Hands): Act[] => {
       label: t(paused ? "shareResume" : "sharePause"),
       onPick: () =>
         void sharePause(h.doc, !paused)
-          .then(() => shareStatus(h.doc))
-          .then(h.setStatus)
+          .then(() => statusNow(h))
           .catch(h.failing),
     },
     { key: "ask", label: t("shareStop"), danger: true, onPick: () => h.setStopping(true) },
@@ -187,6 +215,10 @@ export const useSharedRow = (
   const [card, setCard] = useState<ShareCard | null>(null);
   const [asking, setAsking] = useState(false);
   const [termsOnly, setTermsOnly] = useState(false);
+  const cardNow = useRef(card);
+  cardNow.current = card;
+  const docNow = useRef(doc);
+  docNow.current = doc;
   const [accepted, setAccepted] = useState<string | undefined>(undefined);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
@@ -241,9 +273,29 @@ export const useSharedRow = (
     [onError],
   );
 
+  const hands = useMemo((): Hands | null => {
+    if (!doc || !card) return null;
+    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / MINUTE_MS)) : 0;
+    return {
+      doc,
+      card,
+      status,
+      minutes,
+      accepted,
+      setAccepted,
+      setStatus,
+      setTold,
+      setStopping,
+      setCard,
+      failing,
+      stillHeld: () => docNow.current === doc && cardNow.current !== null,
+      onKeep,
+    };
+  }, [doc, card, status, waitUntil, accepted, onKeep, failing]);
+
   const panel = useMemo((): Panel | null => {
     if (!doc) return null;
-    if (!card)
+    if (!hands)
       return {
         kind: "held",
         key: "shared",
@@ -264,7 +316,7 @@ export const useSharedRow = (
           },
         ],
       };
-    if (card.held)
+    if (hands.card.held)
       return {
         kind: "held",
         key: "shared",
@@ -272,41 +324,31 @@ export const useSharedRow = (
         gist: t("sharedHeldGist"),
         open: true,
         said: [t("sharedHeldWhy")],
-        links: linksOf(card, status),
+        links: linksOf(hands.card, hands.status),
       };
-    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / MINUTE_MS)) : 0;
-    const hands: Hands = {
-      doc,
-      card,
-      status,
-      minutes,
-      accepted,
-      setAccepted,
-      setStatus,
-      setTold,
-      setStopping,
-      setCard,
-      failing,
-      onKeep,
-    };
-    const rest = card.taken ? leavingActs(hands) : managingActs(hands);
+    const rest = hands.card.taken ? leavingActs(hands) : managingActs(hands);
     return {
       kind: "held",
       key: "shared",
       label: t("sharedLabel"),
-      ...gistOf(card, status),
+      ...gistOf(hands.card, hands.status),
       open: true,
-      said: saidOf(status, told, stopping),
-      links: linksOf(card, status),
+      said: saidOf(hands.status, told, stopping),
+      links: linksOf(hands.card, hands.status),
       acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
     };
-  }, [doc, card, status, told, stopping, waitUntil, accepted, onKeep, failing]);
+  }, [doc, told, stopping, hands, onKeep]);
 
   return {
     panel,
     asking,
     termsOnly,
     onShared: (now: ShareCard) => setCard(now),
+    onTermsAccepted: () => {
+      setAsking(false);
+      setTermsOnly(false);
+      if (hands) syncNow(hands);
+    },
     onClosed: () => {
       setAsking(false);
       if (doc)

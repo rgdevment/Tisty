@@ -1,6 +1,6 @@
 # Privacy
 
-Tisty collects nothing and has no server to send anything to. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
+Tisty collects nothing and keeps nothing of yours on a server. The one exception is yours to make: a document you share by link goes, sealed, to [Folio](https://github.com/rgdevment/Folio-by-Tisty), a separate service. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
 
 This page is a summary. The full policy, including the parts that are not reassuring, is [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md), and the security reasoning is in [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
@@ -15,6 +15,7 @@ Everything lives in one folder on your disk:
 - **Attachments** — the files themselves, unmodified.
 - **Local settings** — including this machine's identifier and signing key. The private half of the key never leaves the machine.
 - **Your phrase, if you make one** — the 24 words that encrypt your cloud, kept on the computer where you made them, in the system keychain on macOS or a file sealed for your user on Windows. Never synced, backed up or put in a parcel.
+- **What you share by link**: each link's key and the tokens that manage or edit it live in the log, so your other computers can manage it. They travel with your sync, so whoever can read an unencrypted copy can open those links.
 - **A `private/` folder** — anything placed there never leaves the machine, by any route.
 
 Nothing is obfuscated, and nothing is in a format only Tisty can read.
@@ -35,6 +36,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 | **Your own WebDAV server, connected from Tisty** | Whoever runs that server ([how it works](Sync-and-Backup#syncing-through-your-own-webdav-server)) |
 | **Any of those three, encrypted with your phrase** | Nobody can read your files without your phrase or one of your computers. The provider still sees their names, sizes and how many computers you have, and may keep earlier unencrypted versions for a while |
 | **A folder on your own hardware** (NAS, external drive) | Whoever can reach that hardware |
+| **A document you share by link, through Folio** | Whoever has the link. Folio holds it sealed and cannot read it, but sees what [the full policy](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md#sharing-by-link) lists |
 | **A backup zip** | Wherever you put it |
 | **A `.tistyx` parcel you hand to someone** | Them, and whoever they hand it to |
 | **A `.tistyx` locked with six digits** | Whoever has both the file and the number |

@@ -55,9 +55,55 @@ pub struct Views {
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
     links_owed: Mutex<Vec<url::Url>>,
+    links_arriving: Mutex<LinksArriving>,
 }
 
+#[derive(Default)]
+struct LinksArriving {
+    waiting: Vec<url::Url>,
+    running: bool,
+    handling: Option<url::Url>,
+}
+
+// Any page can fire a link, over and over, and each would stand a question on the desktop.
+const LINKS_WAITING_AT_MOST: usize = 8;
+
 impl Views {
+    // True for whoever has to go through them: the others only leave theirs in line.
+    pub(crate) fn link_arrived(&self, link: url::Url) -> bool {
+        let mut links = self
+            .links_arriving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let known = links.waiting.contains(&link) || links.handling.as_ref() == Some(&link);
+        if !known && links.waiting.len() < LINKS_WAITING_AT_MOST {
+            links.waiting.push(link);
+        }
+        !std::mem::replace(&mut links.running, true)
+    }
+
+    fn next_link(&self) -> Option<url::Url> {
+        let mut links = self
+            .links_arriving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if links.waiting.is_empty() {
+            links.running = false;
+            links.handling = None;
+            return None;
+        }
+        let next = links.waiting.remove(0);
+        links.handling = Some(next.clone());
+        Some(next)
+    }
+
+    pub(crate) fn go_through_links(&self, bring: impl Fn(&url::Url)) {
+        while let Some(link) = self.next_link() {
+            // One that breaks must not leave every later link waiting for a restart.
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| bring(&link)));
+        }
+    }
+
     fn owe_edit(&self, label: &str) {
         let mut owed = self.edits_owed.lock().unwrap_or_else(|e| e.into_inner());
         if !owed.iter().any(|one| one == label) {

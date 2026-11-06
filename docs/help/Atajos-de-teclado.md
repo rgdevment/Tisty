@@ -24,3 +24,20 @@ Toda la ventana funciona con el teclado.
 | `Esc` | Cerrar lo que esté abierto |
 
 Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en Configuración.
+
+## En el visor liviano
+
+Un [archivo abierto desde afuera](Documentos#abrir-un-archivo-markdown-de-afuera) tiene sus propias teclas:
+
+| Atajo | Qué hace |
+| :-- | :-- |
+| `Ctrl`/`⌘` + `F` | Buscar en el texto |
+| `Ctrl`/`⌘` + `\` | Abrir o cerrar la columna junto a la página |
+| `Ctrl`/`⌘` + `Shift` + `M` | Cambiar entre la página y su Markdown |
+| `Ctrl`/`⌘` + `Shift` + `L` | Cambiar el tema |
+| `Ctrl`/`⌘` + `=` · `-` · `0` | Texto más grande, más pequeño, tamaño normal |
+| `Alt` + ↑ ↓ | Ir al título anterior o al siguiente |
+| `Alt` + ← | Volver después de seguir un enlace |
+| `Ctrl`/`⌘` + `P` | Imprimir |
+| `Ctrl`/`⌘` + `W` | Cerrar la ventana |
+| `Esc` | Cerrar el menú, la búsqueda, el Markdown o la columna |

@@ -245,7 +245,7 @@ fn what_cannot_be_read_never_passes_for_stored() {
         (200, "<html>"),
         (200, r#"{"stored":true}"#),
         (502, "Bad gateway"),
-        (403, r#"{"refused":"said_later"}"#),
+        (403, r#"{"said":"no refusal at all"}"#),
     ] {
         let folio = FakeFolio::answering(&[(status, body)]);
 
@@ -255,6 +255,16 @@ fn what_cannot_be_read_never_passes_for_stored() {
             "{body}"
         );
     }
+}
+
+#[test]
+fn a_refusal_from_a_later_folio_is_told_as_a_refusal_and_never_as_stored() {
+    let folio = FakeFolio::answering(&[(403, r#"{"refused":"said_later"}"#)]);
+
+    assert_eq!(
+        send_version(&folio, &next_version()),
+        Err(Stopped::Refused(Refused::Unknown))
+    );
 }
 
 #[test]
@@ -316,6 +326,27 @@ fn managing_carries_the_admin_token_to_each_route() {
     assert_eq!(folio.asked.borrow()[1].1, "/docs/Ab3xK9pQ/resume");
     assert_eq!(folio.asked.borrow()[2].1, "/docs/Ab3xK9pQ/admin");
     assert_eq!((told.latest, told.read_total, told.paused_at), (2, 3, None));
+    assert_eq!((told.may_correct, told.fix_by), (false, None));
+}
+
+#[test]
+fn the_status_tells_a_deadline_and_a_block_that_a_new_version_lifts() {
+    let folio = FakeFolio::answering(&[(
+        200,
+        r#"{"status":{"latest":2,"diesOn":20000,"pausedAt":null,"blockedAt":19990,"appealedAt":19991,"mayCorrect":true,"fixBy":20005,"readTotal":3,"days":{}}}"#,
+    )]);
+
+    let told = status(&folio, "Ab3xK9pQ", "token").unwrap();
+
+    assert_eq!((told.may_correct, told.fix_by), (true, Some(20005)));
+    assert_eq!(told.appealed_at, Some(19991));
+}
+
+#[test]
+fn a_refusal_this_version_does_not_know_is_still_a_refusal() {
+    let refused: Refused = serde_json::from_str(r#"{"refused":"from_the_future"}"#).unwrap();
+
+    assert_eq!(refused, Refused::Unknown);
 }
 
 #[test]
@@ -409,4 +440,24 @@ fn a_hash_that_could_change_the_path_is_never_asked_for() {
         Err(Stopped::Garbled)
     );
     assert!(folio.asked.borrow().is_empty());
+}
+
+#[test]
+fn a_refusal_over_the_terms_reads_the_same_whatever_else_it_says() {
+    for said in [
+        r#"{"refused":"terms","version":"2"}"#,
+        r#"{"refused":"terms","version":2}"#,
+        r#"{"refused":"terms"}"#,
+    ] {
+        let refused: Refused = serde_json::from_str(said).unwrap();
+        assert_eq!(refused, Refused::Terms, "{said}");
+    }
+}
+
+#[test]
+fn an_envelope_refused_for_a_reason_this_version_does_not_know_is_still_a_refusal() {
+    let refused: Refused =
+        serde_json::from_str(r#"{"refused":"envelope","why":"from_the_future"}"#).unwrap();
+
+    assert_eq!(refused, Refused::Envelope { why: Why::Unknown });
 }

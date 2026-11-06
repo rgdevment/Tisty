@@ -51,12 +51,28 @@ pub fn press(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> R
     }
     presses.retain(|at| now.saturating_sub(*at) < HOUR + QUIET_STARTS_OVER);
     presses.push(now);
-    // The server holds to its own numbers, so a disk that will not keep these costs nothing but a wait.
-    if let Ok(bytes) = serde_json::to_vec(&all) {
+    kept_again(home, &all);
+    Ok(())
+}
+
+// A press that the terms stopped before anything went up is no upload for the waits to count.
+pub fn take_back(home: &Path, id: &str, at: u64) {
+    let mut all = kept(home);
+    let Some(presses) = all.get_mut(id) else {
+        return;
+    };
+    if presses.last() == Some(&at) {
+        presses.pop();
+        kept_again(home, &all);
+    }
+}
+
+// The server holds to its own numbers, so a disk that will not keep these costs nothing but a wait.
+fn kept_again(home: &Path, all: &BTreeMap<String, Vec<u64>>) {
+    if let Ok(bytes) = serde_json::to_vec(all) {
         let _ = std::fs::create_dir_all(home);
         let _ = tisty_core::store::write_atomic(&home.join(KEPT), &bytes);
     }
-    Ok(())
 }
 
 #[cfg(test)]

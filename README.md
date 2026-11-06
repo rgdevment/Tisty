@@ -245,7 +245,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Your tasks live | in plain files on your own disk |
 | Account | none, ever |
 | Subscription | none. There is no paid tier and no upgrade |
-| Offline | always. There is no server to be away from |
+| Offline | always. Only sharing a document by link needs a connection |
 | AI inside | **none**, and none is coming |
 | Your own assistant | yes, over **MCP**, if you choose to open the door |
 | Priorities | the **Eisenhower matrix**, by its name |
@@ -606,6 +606,11 @@ and Settings turns it off.
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
 
+**When Windows closes Tisty for an update**, what you just typed is kept first,
+and Tisty comes back by itself: in view if it was in view, hidden if it was
+hidden. A shutdown keeps what you typed too. A crash or a hang does not bring it
+back.
+
 **A calendar comes in as tasks.** Drop an `.ics` on the window, or open one with
 Tisty: it shows each event and to-do with when, where, how it repeats and its
 reminder, and makes the ones you pick into tasks — time zones, Outlook's
@@ -653,10 +658,14 @@ installer — and Tisty refuses to install anything not signed with a key
 compiled into the copy you already have. There are a few more, listed in
 [PRIVACY.md](PRIVACY.md).
 
-**Folio by Tisty** is a separate service for sharing a document by an
-anonymous, end-to-end encrypted link, with its own terms and policies in
-[its own repository](https://github.com/rgdevment/Folio-by-Tisty). Tisty does
-not share by link, and has no code that talks to it.
+**Folio by Tisty** is a separate service for sharing a document by a link with
+no account, end-to-end encrypted, with its own terms and policies in
+[its own repository](https://github.com/rgdevment/Folio-by-Tisty). Every document
+shows a **Shared** row; pressing **Share** reads a small signed file to learn
+whether Folio has opened and, while it has not, tells you so, with a link to
+[folio.tisty.app](https://folio.tisty.app). Nothing of your document leaves until
+Folio is open, you accept its terms and you confirm.
+[PRIVACY.md](PRIVACY.md#sharing-by-link) says what each step sends.
 
 ## Two Machines, If You Have Two
 
@@ -919,11 +928,11 @@ Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
 later version, no trial that runs out.
 
 **Does it need an account or a connection?**
-Neither. There is nothing to sign up for and no server to be away from. Tisty
-makes one network request you did not ask for — when it opens, and once a day
-after that — to see whether a newer version exists, and it sends nothing in
-order to ask. Take the machine off the network and everything else works the
-same.
+Neither. There is nothing to sign up for, and only sharing a document by link
+needs a connection. Tisty makes one network request you did not ask for — when
+it opens, and once a day after that — to see whether a newer version exists, and
+it sends nothing in order to ask. Take the machine off the network and
+everything else works the same.
 
 **Where is my data kept?**
 In one folder on your own disk: an append-only log of what happened, your
@@ -1122,6 +1131,8 @@ sorts by time and needs no coordination.
 
 **The window** — [React](https://react.dev) draws it and
 [Tailwind CSS](https://tailwindcss.com) styles it;
+[Solid](https://www.solidjs.com) draws the light viewer, which has a build of
+its own;
 [CodeMirror](https://codemirror.net) is where a document is written, a block at
 a time, while [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
 reads the Markdown in the core and [ammonia](https://github.com/rust-ammonia/ammonia)

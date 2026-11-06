@@ -691,6 +691,8 @@ const en = {
   folioAppealed: "This block was already appealed, or nothing is blocked now.",
   shareOverHead: "It carries more than Folio takes for now",
   shareOverWhy: "Take out some pictures or attachments to share it.",
+  shareOverPicture:
+    "One picture weighs {name}, and each can weigh up to {other}. Make it smaller or take it out.",
   shareAppeal: "Appeal…",
   shareAppealAccepted:
     "Your appeal was accepted: someone else signed what was reported. Press Sync to send your own version, which lifts the block.",
@@ -719,6 +721,14 @@ const en = {
     "Paused: nobody can open it. Folio deletes it after 30 days unless you resume it.",
   sharedBlockedWhy:
     "People who read it reported it, so Folio stopped serving it and its links do not open. Your document stays here, unchanged.",
+  sharedAppealWaiting: "Your appeal is under review. Your document stays here, unchanged.",
+  sharedMayCorrect:
+    "Your appeal was accepted. Correct it and press Sync: a new version lifts the block.",
+  sharedReportedGist: "With reports",
+  sharedFixBy:
+    "People reported it. Correct it and press Sync by {name}, or it stops showing until you send a new version.",
+  sharedFixLate:
+    "People reported it and the time to correct it has passed: it does not show until you send a new version with Sync.",
   sharedStatus: "Expires on {name} · {other} reads",
   sharedSeeStatus: "See reads and expiry",
   shareLinkRead: "Link to read",
@@ -779,10 +789,16 @@ const en = {
   shareEndsDay: "After 1 day without activity",
   shareEndsDays: "After {name} days without activity",
   shareCarries: "What travels",
-  shareCarriesPages: "Pages",
   shareCarriesPictures: "Pictures",
   shareCarriesFiles: "Attachments",
-  shareCarriedOf: "{name} of {other}",
+  shareCarriesText: "Text",
+  shareCarriesWhole: "The document",
+  shareCarriesWholeAndPage: "The document and 1 page",
+  shareCarriesWholeAndPages: "The document and {name} pages",
+  shareCarriesNoPictures: "None",
+  shareCarriesNoFiles: "None",
+  shareRoomUpTo: "up to {name} · {other}",
+  shareRoomOf: "of {name} · {other}",
   shareCites: "Share the {name} documents it cites too",
   shareCitesOne: "Share the document it cites too",
   shareCitesWhy:
@@ -3529,6 +3545,8 @@ const es: Catalog = {
   folioAppealed: "Este bloqueo ya se reclamó, o ya no hay nada bloqueado.",
   shareOverHead: "Lleva más de lo que Folio acepta por ahora",
   shareOverWhy: "Quita algunas imágenes o adjuntos para compartirlo.",
+  shareOverPicture:
+    "Una imagen pesa {name}, y cada una puede pesar hasta {other}. Redúcela o quítala.",
   shareAppeal: "Reclamar…",
   shareAppealAccepted:
     "Se aceptó tu reclamo: otra persona firmó lo denunciado. Presiona Sincronizar para enviar tu propia versión, que levanta el bloqueo.",
@@ -3556,6 +3574,14 @@ const es: Catalog = {
   sharedPausedWhy: "En pausa: nadie puede abrirlo. Folio lo borra a los 30 días si no lo reanudas.",
   sharedBlockedWhy:
     "Quienes lo leyeron lo denunciaron, así que Folio dejó de servirlo y sus links no abren. Tu documento sigue aquí, sin cambios.",
+  sharedAppealWaiting: "Tu reclamo está en revisión. Tu documento sigue aquí, sin cambios.",
+  sharedMayCorrect:
+    "Tu reclamo fue aceptado. Corrígelo y presiona Sincronizar: una versión nueva levanta el bloqueo.",
+  sharedReportedGist: "Con denuncias",
+  sharedFixBy:
+    "Lo denunciaron. Corrígelo y presiona Sincronizar hasta el {name}, o dejará de mostrarse hasta que subas una versión nueva.",
+  sharedFixLate:
+    "Lo denunciaron y pasó el plazo para corregirlo: no se muestra hasta que subas una versión nueva con Sincronizar.",
   sharedStatus: "Caduca el {name} · {other} lecturas",
   sharedSeeStatus: "Ver lecturas y caducidad",
   shareLinkRead: "Link para leer",
@@ -3617,10 +3643,16 @@ const es: Catalog = {
   shareEndsDay: "Tras 1 día sin actividad",
   shareEndsDays: "Tras {name} días sin actividad",
   shareCarries: "Lo que viaja",
-  shareCarriesPages: "Páginas",
   shareCarriesPictures: "Imágenes",
   shareCarriesFiles: "Adjuntos",
-  shareCarriedOf: "{name} de {other}",
+  shareCarriesText: "Texto",
+  shareCarriesWhole: "El documento",
+  shareCarriesWholeAndPage: "El documento y 1 página",
+  shareCarriesWholeAndPages: "El documento y {name} páginas",
+  shareCarriesNoPictures: "Ninguna",
+  shareCarriesNoFiles: "Ninguno",
+  shareRoomUpTo: "hasta {name} · {other}",
+  shareRoomOf: "de {name} · {other}",
   shareCites: "Compartir también los {name} documentos que cita",
   shareCitesOne: "Compartir también el documento que cita",
   shareCitesWhy:

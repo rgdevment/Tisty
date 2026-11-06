@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "dist");
 const VERSION = readFileSync(join(here, "VERSION"), "utf8").trim();
 
-const PRIMITIVES = new Set(["text", "widget_body", "id", "bool", "whole", "time", "moment", "name", "line", "file_name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
+const PRIMITIVES = new Set(["text", "digits", "widget_body", "id", "bool", "whole", "time", "moment", "name", "line", "file_name", "language", "tag_word", "key", "hash", "signed", "bytes"]);
 
 const yamlFiles = (folder) =>
   readdirSync(folder).flatMap((name) => {

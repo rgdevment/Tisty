@@ -40,6 +40,40 @@ fn given(minted: &Cell<u32>) -> impl Fn() -> Result<String, Unshared> + '_ {
 }
 
 #[test]
+fn what_it_seals_says_which_terms_its_signer_accepted() {
+    let (_tmp, home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let sealed = home.sealed(
+        under_folio(
+            &home,
+            doc,
+            &Under {
+                mint: &mint,
+                editable: false,
+                terms: Some("3"),
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: sealed.remembering[0].1.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+
+    let opened = reading::opened(&sealed.going[0].sealed.main, &opening, &served).unwrap();
+
+    let manifest: serde_json::Value = serde_json::from_slice(&opened.manifest).unwrap();
+    assert_eq!(manifest["terms"], "3");
+}
+
+#[test]
 fn a_first_version_goes_under_the_id_folio_gave() {
     let (_tmp, home, doc) = written();
     let minted = Cell::new(0);
@@ -47,6 +81,7 @@ fn a_first_version_goes_under_the_id_folio_gave() {
     let under = Under {
         mint: &mint,
         editable: false,
+        terms: None,
     };
 
     let sealed = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
@@ -67,6 +102,7 @@ fn only_what_may_be_edited_has_a_token() {
     let under = Under {
         mint: &mint,
         editable: true,
+        terms: None,
     };
 
     let sealed = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
@@ -86,6 +122,7 @@ fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
             &Under {
                 mint: &mint,
                 editable: true,
+                terms: None,
             },
         )
         .unwrap(),
@@ -100,6 +137,7 @@ fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
             &Under {
                 mint: &mint,
                 editable: false,
+                terms: None,
             },
         )
         .unwrap(),
@@ -130,6 +168,7 @@ fn an_id_that_does_not_arrive_stops_it_before_anything_is_sealed() {
         &Under {
             mint: &mint,
             editable: false,
+            terms: None,
         },
     );
 
@@ -163,6 +202,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             &Under {
                 mint: &mint,
                 editable: true,
+                terms: None,
             },
         )
         .unwrap(),
@@ -224,6 +264,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             &Under {
                 mint: &nobody,
                 editable: false,
+                terms: None,
             },
         )
         .unwrap(),
@@ -252,6 +293,7 @@ fn the_document_that_was_shared_is_held_by_nothing() {
             &Under {
                 mint: &mint,
                 editable: false,
+                terms: None,
             },
         )
         .unwrap(),
@@ -310,6 +352,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         &Under {
             mint: &nobody,
             editable: false,
+            terms: None,
         },
     )
     .unwrap();

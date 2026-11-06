@@ -1,11 +1,13 @@
 # Privacy policy
 
-**Last updated:** November 4, 2026
+**Last updated:** November 6, 2026
 
 ## The short version
 
-Tisty does not collect anything and has no server to transmit to. No account,
-no telemetry, no analytics, no crash reporting.
+Tisty does not collect anything and sends nothing of yours to a server of ours.
+No account, no telemetry, no analytics, no crash reporting. The one exception is
+yours to make: a document you choose to share by link goes, sealed, to Folio,
+when Folio has opened for new documents.
 
 It makes **one** check on its own — when it opens, and once a day after that:
 it downloads a small file and its signature to see whether a newer version
@@ -14,8 +16,10 @@ that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, one per picture if you press **Download** above the help,
 one per picture from the internet if you ask for them in the viewer of a
-Markdown file from outside, and those of Folio if you press **Share** or open a
-shared link. Never otherwise. A copy installed from the Microsoft
+Markdown file from outside, and those of sharing by link if you press **Share**
+or **Sync**, manage a share, open a shared link or delete a document you shared.
+Never otherwise. A copy installed
+from the Microsoft
 Store asks Windows
 what the Store has and leaves the rest to the Store, and reads the Store's public
 catalog to see which version that is; it reads that same small file only if the
@@ -67,6 +71,7 @@ What you can choose, and what each implies:
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive |
+| **A document you share by link through Folio** | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -76,11 +81,13 @@ directly is the one way that changes this, and each provider is described in
 its own section below. Encrypting is offered only for those clouds, never for a
 folder.
 
-There is no option where Tisty hosts anything of yours. There is no paid tier
-that changes this. **Nothing you keep reaches a server of ours**: the one site
-of ours Tisty ever asks is markdown.tisty.app, for the guide, and that request
-carries nothing of yours. So there is nothing on our side to breach, subpoena,
-sell, or lose.
+There is no option where Tisty hosts your store. There is no paid tier that
+changes this. **Nothing you keep reaches a server of ours unless you press Share
+on a document**. Then that document goes to Folio, sealed so that Folio cannot
+read it. Apart from Folio, the one site of ours
+Tisty ever asks is markdown.tisty.app, for the guide, and that request carries
+nothing of yours. So there is nothing on our side to breach, subpoena, sell, or
+lose, beyond the sealed copies of what you chose to share.
 
 Choosing a destination is choosing who you trust. Tisty makes that choice
 visible instead of making it for you.
@@ -142,15 +149,22 @@ visible instead of making it for you.
   goes out with the sync before you hand anything over, which is why it should
   be a name you are content for others to read.
   A log only ever grows: an alias you write today can be changed tomorrow, but
-  the old one stays written. Your real name and your address are **not** asked
-  for anywhere, and the two fields reserved for them in the log are written by
-  nothing in this version.
+  the old one stays written. The same goes for a name to sign with, which is
+  also optional, lives in the log and goes on a PDF's card in place of your
+  alias. Your address is **not** asked for anywhere, and the field reserved for
+  it in the log is written by nothing in this version.
 - **The time zone you were in** — every event carries the IANA zone of whoever
   wrote it, so an hour reads back where it happened instead of drifting when you
   travel. It goes to the shared folder with the rest, and a long enough history
   shows where you have been. It is named here because it is the one field that
   says something about you rather than about your work; everything else in that
   folder is already your own words.
+- **What you share by link** — so that your other computers can manage a share,
+  the log keeps, for each one, its identifier, its version, the key of its link
+  and the tokens that manage or edit it. They travel with the log to the folder
+  or cloud you sync through, so whoever can read the log can open that link.
+  They are not put in a parcel. The limits Folio last published and the terms
+  you accepted stay in `private/`.
 - **A `private/` folder** — anything placed here never leaves the machine
   under any transport.
 - **The guide** — the one thing Tisty writes for you rather than the other way
@@ -187,12 +201,12 @@ defence, because the remedy barely exists.
 ## What Tisty does not do
 
 - Does not send data to any server you did not choose: only your cloud, if you
-  connect one.
+  connect one, and Folio, for a document you press **Share** on.
 - Does not share a document unless you press **Share** on it. See "Sharing by
   link" below.
 - Does not create accounts or profiles.
 - Does not use cookies, analytics, advertising, or tracking of any kind.
-- Does not share anything with third parties.
+- Does not share anything with third parties on its own.
 - Does not use AI or machine learning on your data. The natural-language
   parser is deterministic rules running locally, and Tisty itself sends nothing
   to any model. If you connect an assistant of your own, read "the door you can
@@ -211,14 +225,24 @@ repository, and this section was written before the release that carries it.
 ## Sharing by link
 
 Sharing goes through [Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty),
-a separate service with its own terms and its own privacy policy. Tisty does not
-reach it, or anything about it, until you ask.
+a separate service with its own terms and its own privacy policy. Folio decides
+when it opens for new documents. Tisty does not reach it, or anything about it,
+until you ask.
+
+Every document shows a **Shared** row. Pressing **Share** reads the file in the
+first row below. While that file does not say sharing is open, Tisty shows a
+notice instead, with a link to `folio.tisty.app` that opens in your browser only
+if you click it. Only starting a new share waits for that file: a link reaching
+Tisty and a share already out do not.
 
 | | |
 | :--- | :--- |
-| **When you press Share** | Tisty reads `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json` and its signature, `limits.json.minisig`, at most once an hour, to learn whether sharing is open and what it allows. Nothing is uploaded, and GitHub serves them, not Folio. If that file says sharing is closed, or it cannot be read, it stops there. If sharing is open and you have not accepted the current terms, it reads `TERMINOS.md` or `TERMS.md` from the same place |
-| **When you confirm** | What you chose goes to `https://tisty.cl/api/v1`, encrypted on this computer. The key travels in the link, after the `#`, and never reaches the server |
-| **When you open a link, press Sync, Pause or Stop** | Tisty talks to that same address, for that document only |
+| **When you press Share** | Tisty reads `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json` and its signature, `limits.json.minisig`, to learn whether sharing is open and what it allows. An answer counts for an hour; a try that reached nothing does not count, so the next press asks again. Nothing is uploaded, GitHub serves them, not Folio, and the request says only `tisty/<version>`. If that file says sharing is closed, or it cannot be read, it stops there. If sharing is open and you have not accepted the current terms, it reads `TERMINOS.md` or `TERMS.md` from the same place |
+| **When you confirm** | Tisty asks `https://tisty.cl/api/v1` for an identifier, then sends what you chose, sealed on this computer: the document with its pages, pictures and files, its other languages, the documents it cites and the name you sign it with. The key travels in the link, after the `#`, and never reaches the server. Neither does the token of an edit link, which signs on this computer. Requests to that address follow no redirect, wait at most two minutes and say `tisty/<version>` |
+| **What Folio sees** | Not the title, the words, the pictures or the files: those are inside the seal. In the clear it gets each envelope's manifest (identifier, version, sizes, signature, the version of Folio's terms you accepted, with no date, and the public keys of your identity and of this computer, so it can tell that two documents come from one person), how many days the link lasts, the token that manages it, a print of the sealed files, and any notice that your identity took back a computer's key. Like any server, it also gets the address and the time of each request |
+| **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and whether sharing is open does not change it. Tisty accepts only an `https` link on `tisty.cl` or `folio.tisty.app`, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://tisty.cl/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, and nothing is kept unless you press **Bring it**. A share Tisty already remembers asks nothing, and on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
+| **When you press Sync, See reads and expiry, Pause, Resume, Appeal or Stop** | Tisty talks to that same address, for that document and for those that travel with it. Sync first asks for the latest version and brings a newer one in apart, and sends your changes only if there are any, repeating with them any notice that your identity took back a computer's key |
+| **When you delete a shared document** | Tisty asks that same address to stop its share. If the document was deleted on another of your computers, this one asks the next time you delete any document or go through **Share** here. A share you only held through an edit link is forgotten with no request |
 | **On its own** | Nothing. A shared row does not check on Folio by itself; it finds out when you press something |
 
 ## The request Tisty makes on its own
@@ -498,14 +522,15 @@ happens on its own:
 The part worth knowing before you open it: **whatever that assistant reads, it
 takes with it.** If it runs against a service, then the moment you ask it to
 look, what it looks at is on its way to that service. Tisty still sends
-nothing — but this door is real, and besides syncing it is the only thing here
-that can carry your data off this machine. Which is why it stays shut until you
-open it, and why closing it is one click.
+nothing — but this door is real, and besides syncing and sharing a document by
+link it is the only thing here that can carry your data off this machine. Which
+is why it stays shut until you open it, and why closing it is one click.
 
 ## Children's privacy
 
 Tisty collects no personal information from anyone, of any age. There are no
-accounts and no registration, and nothing of yours is sent to us.
+accounts and no registration, and nothing of yours is sent to us, short of a
+document you share by link, which goes sealed.
 
 ## Changes to this policy
 
