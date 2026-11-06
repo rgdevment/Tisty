@@ -26,6 +26,7 @@ vi.mock("../inUse", () => ({
 }));
 
 vi.mock("../ui/widgeting", () => ({
+  notWidget: () => null,
   lend: () => ({
     retheme: () => {},
     shade: () => {},
@@ -33,7 +34,6 @@ vi.mock("../ui/widgeting", () => ({
       ipc.dropped += 1;
     },
   }),
-  locked: () => document.createElement("div"),
 }));
 
 const BODY = "# Título\n\nÁrbol.\n";

@@ -1129,6 +1129,27 @@ mod naming;
 #[path = "docs_test.rs"]
 mod tests;
 
+/// What the widgets of a body hold that a widget cannot, said as the contract says it.
+pub fn widgets_hold(body: &str) -> std::result::Result<(), String> {
+    let doc = tisty_markdown::read(body);
+    let wrong: Vec<String> = doc
+        .blocks()
+        .iter()
+        .filter(|block| {
+            matches!(&block.kind, tisty_markdown::Kind::Code { tongue: Some(tongue), .. } if tongue == "widget")
+        })
+        .flat_map(|block| {
+            let held: String = block.spans.iter().map(|one| &body[one.at.clone()]).collect();
+            tisty_contracts::check_widget(&held)
+        })
+        .collect();
+    if wrong.is_empty() {
+        Ok(())
+    } else {
+        Err(wrong.join(", "))
+    }
+}
+
 pub fn speaks(body: &str) -> std::result::Result<(), &'static str> {
     let body = body.trim_start_matches('\u{feff}');
     let body = &body[tisty_markdown::front::span(body).map_or(0, |at| at.end)..];

@@ -299,7 +299,7 @@ They are all drawn by code that ships inside Tisty. Nothing is fetched, and it w
 
 #### Widgets
 
-A block that says `widget` is drawn as a small page: HTML, styles and, if you like, a little script. It runs sealed off, with no network and in Tisty's colours, and it comes with classes such as `grid`, `stat`, `card` and `badge`, so plain HTML already looks right. Its code stays folded; open it with «Show code».
+A block that says `widget` is drawn as a fixed view, HTML and CSS and nothing else. It runs nothing and names nothing outside itself, so it reads the same wherever the document is read. It takes Tisty's colours and comes with classes such as `grid`, `stat`, `card` and `badge`, so plain HTML already looks right. Its code stays folded; open it with «Show code».
 
 ```widget title="Rina this month"
 <div class="grid">
@@ -309,11 +309,11 @@ A block that says `widget` is drawn as a small page: HTML, styles and, if you li
 </div>
 ```
 
-If the widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way.
+An `.html` file attached to a document is only a file: Tisty never runs it.
 
 #### Files, sound and film
 
-An attached file is drawn as what it is: a picture as itself, opened large with a click, a sound or a film with its player, an `.html` page live, and anything else as a card with its kind and size. Every card has a **⋯**: save a copy, show the page as a file or live again, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
+An attached file is drawn as what it is: a picture as itself, opened large with a click, a sound or a film with its player, and anything else, an `.html` page among them, as a card with its kind and size. Every card has a **⋯**: save a copy, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
 
 #### Code, with a name and a colour
 

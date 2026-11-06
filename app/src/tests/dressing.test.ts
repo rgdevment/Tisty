@@ -47,6 +47,7 @@ vi.mock("../inUse", () => ({
 }));
 
 vi.mock("../ui/widgeting", () => ({
+  notWidget: (source: string) => (source.includes("<script") ? "no widget" : null),
   lend: (_: HTMLElement, source: string) => {
     calls.lent.push(source);
     return {
@@ -56,15 +57,6 @@ vi.mock("../ui/widgeting", () => ({
         calls.dropped += 1;
       },
     };
-  },
-  lendKept: (_: HTMLElement, reference: string) => {
-    calls.lent.push(reference);
-    return { retheme: () => {}, shade: () => {}, drop: () => {} };
-  },
-  locked: () => {
-    const said = document.createElement("div");
-    said.className = "lit-locked";
-    return said;
   },
 }));
 
@@ -117,7 +109,7 @@ describe("dressing a drawn page", () => {
     const drawn = page(
       '<p><img src="attachments/a.png" alt="A"><img src="https://x.y/b.png" alt="B"></p>',
     );
-    const { held } = pictures(drawn, () => true);
+    const held = pictures(drawn, () => true);
     expect(calls.shown).toEqual(["attachments/a.png"]);
     await vi.waitFor(() =>
       expect(drawn.querySelector('img[alt="A"]')?.getAttribute("src")).toBe(
@@ -148,7 +140,7 @@ describe("dressing a drawn page", () => {
     const drawn = page(
       '<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p><p><img src="attachments/bark-0006bf10.mp3" alt="Bark"></p>',
     );
-    const { held } = pictures(drawn, () => true);
+    const held = pictures(drawn, () => true);
     const video = drawn.querySelector<HTMLVideoElement>(".media.is-video video");
     const audio = drawn.querySelector<HTMLAudioElement>(".media.is-audio audio");
     expect(video?.controls).toBe(true);
@@ -161,7 +153,7 @@ describe("dressing a drawn page", () => {
   it("brings a film still in the cloud only when asked, saying so while it comes", async () => {
     calls.here = false;
     const drawn = page('<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p>');
-    const { held } = pictures(drawn, () => true);
+    const held = pictures(drawn, () => true);
     const box = drawn.querySelector<HTMLElement>(".media.is-video");
     await vi.waitFor(() => expect(box?.dataset.state).toBe("away"));
     expect(calls.served).toEqual([]);
@@ -196,21 +188,20 @@ describe("dressing a drawn page", () => {
     await vi.waitFor(() => expect(box?.dataset.state).toBeUndefined());
   });
 
-  it("draws an attached page live, unless it asks to be a file or comes from outside", () => {
+  it("shows an attached page as a file like any other, whatever it asks and wherever it comes from", () => {
     const drawn = page(
       '<p><img src="walks-0006bf09.html" alt="Walks"></p><p><img src="walks-0006bf09.html" alt="Walks" data-as="file"></p>',
     );
-    const { lent } = pictures(drawn, () => true, { stranger: false, apart: true, more: true });
-    expect(lent).toHaveLength(1);
-    expect(drawn.querySelector("figure.widget .widget-name")?.textContent).toBe("Walks");
-    expect(drawn.querySelector('figure.widget button[data-asked="apart"]')).not.toBeNull();
+    pictures(drawn, () => true, { more: true });
+    expect(drawn.querySelector("figure.widget, iframe")).toBeNull();
+    expect(drawn.querySelectorAll("a.doc-card.is-file")).toHaveLength(2);
     expect(drawn.querySelector("a.doc-card.is-file")?.getAttribute("href")).toBe(
       "walks-0006bf09.html",
     );
 
     const outside = page('<p><img src="walks-0006bf09.html" alt="Walks"></p>');
-    expect(pictures(outside, () => true).lent).toHaveLength(0);
-    expect(outside.querySelector("figure.widget")).toBeNull();
+    pictures(outside, () => true);
+    expect(outside.querySelector("figure.widget, iframe")).toBeNull();
   });
 
   it("does not dress a picture once the page is gone", async () => {
@@ -221,17 +212,25 @@ describe("dressing a drawn page", () => {
     expect(drawn.querySelector("img")?.hasAttribute("src")).toBe(false);
   });
 
-  it("lends a widget of one's own and only says why for a file from outside", () => {
+  it("draws a widget wherever it comes from, since nothing in it can run", () => {
     const code =
       '<figure class="code" data-at="4-40"><pre><code class="language-widget">&lt;p&gt;hi&lt;/p&gt;</code></pre></figure>';
     const own = page(code);
-    const lent = widgets(own, false);
+    const lent = widgets(own);
     expect(lent).toHaveLength(1);
     expect(calls.lent).toEqual(["<p>hi</p>"]);
     expect(own.querySelector<HTMLElement>("figure.widget")?.dataset.at).toBe("4-40");
-    const theirs = page(code);
-    expect(widgets(theirs, true)).toHaveLength(0);
-    expect(theirs.querySelector(".lit-locked + figure.code")).not.toBeNull();
+  });
+
+  it("leaves what is no widget as its code and says why, drawing none of it", () => {
+    const written = page(
+      '<figure class="code" data-at="4-40"><pre><code class="language-widget">&lt;script&gt;a&lt;/script&gt;</code></pre></figure>',
+    );
+    expect(widgets(written)).toHaveLength(0);
+    expect(calls.lent).toEqual([]);
+    expect(written.querySelector("figure.widget")).toBeNull();
+    expect(written.querySelector("figure.code code")?.textContent).toBe("<script>a</script>");
+    expect(written.querySelector(".lit-locked")?.textContent).toBe("no widget");
   });
 
   it("gives a widget a bar with its name, and ways to its code and apart only where they lead", () => {
@@ -242,11 +241,10 @@ describe("dressing a drawn page", () => {
       body: "",
       onDoc: () => {},
       onBlock: () => {},
-      onApart: (lent: { source: string } | { reference: string }) =>
-        apart.push("source" in lent ? lent.source : lent.reference),
+      onApart: (source: string) => apart.push(source),
     };
     const own = page(code);
-    widgets(own, false, reach);
+    widgets(own, reach);
     const bar = own.querySelector(".widget-bar");
     expect(bar?.querySelector(".widget-name")?.textContent).toBe("Rina");
     expect(
@@ -257,7 +255,7 @@ describe("dressing a drawn page", () => {
     answered(own, { kind: "apart", at: [4, 40] }, reach);
     expect(apart).toEqual(["<b>42</b>"]);
     const read = page(code);
-    widgets(read, false, { body: "", onDoc: () => {} });
+    widgets(read, { body: "", onDoc: () => {} });
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
   });
 
@@ -380,15 +378,6 @@ describe("a drawn page wired to the window", () => {
     );
     window.removeEventListener("keydown", listen);
     expect(heard).toEqual(["w"]);
-  });
-
-  it("opens the document a widget asks for", () => {
-    const drawn = page("<p>x</p>");
-    const { heard, reach } = reaching();
-    wired(drawn, () => reach);
-    drawn.body.dispatchEvent(new CustomEvent("widgetdoc", { bubbles: true, detail: "ab12-0003" }));
-    drawn.body.dispatchEvent(new CustomEvent("widgetdoc", { bubbles: true, detail: "" }));
-    expect(heard.docs).toEqual(["ab12-0003"]);
   });
 });
 

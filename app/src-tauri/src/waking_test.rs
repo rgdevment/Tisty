@@ -1,8 +1,15 @@
-use super::{HUSHED, UNREACH, came_back, told, unreaching};
+use super::{HUSHED, UNREACH, came_back, stays_off_the_machine, told, unreaching};
 use crate::update::Route;
 
 fn said(args: &[&str]) -> Vec<String> {
     args.iter().map(|one| one.to_string()).collect()
+}
+
+#[test]
+fn only_a_release_build_outside_a_sandbox_takes_the_startup_of_the_machine() {
+    assert!(!stays_off_the_machine(false, None));
+    assert!(stays_off_the_machine(true, None));
+    assert!(stays_off_the_machine(false, Some("widget-network")));
 }
 
 #[test]

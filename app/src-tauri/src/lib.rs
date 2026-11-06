@@ -7,6 +7,7 @@ mod command;
 mod desktop;
 mod diagramming;
 mod drawn;
+mod engine;
 mod entering;
 mod finding;
 mod finishing;
@@ -37,7 +38,6 @@ mod update;
 mod viewing;
 mod vouching;
 mod waking;
-mod widgets;
 mod wiring;
 
 use tauri::{Emitter, Manager};
@@ -1034,6 +1034,12 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     }
 }
 
+fn context() -> tauri::Context<tauri::Wry> {
+    let mut context = tauri::generate_context!();
+    engine::cut_off(context.config_mut());
+    context
+}
+
 fn plugged() -> tauri::Builder<tauri::Wry> {
     let mut building = tauri::Builder::default();
     if tisty_core::paths::profile().is_none() {
@@ -1050,11 +1056,6 @@ fn plugged() -> tauri::Builder<tauri::Wry> {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .register_uri_scheme_protocol("widget", |ctx, request| {
-            ctx.app_handle()
-                .state::<widgets::Lent>()
-                .shown(request.uri())
-        })
 }
 
 // Every command the window calls sits in one list: Tauri takes one handler and two cannot be chained.
@@ -1211,9 +1212,6 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         news::news_seen,
         answers::settings::notices,
         answers::settings::licences,
-        widgets::widget_lend,
-        widgets::widget_lend_kept,
-        widgets::widget_take_back,
         answers::settings::settings,
         answers::settings::keep_settings,
         answers::reporting::facts,
@@ -1333,7 +1331,6 @@ pub fn run() {
         .manage(OneAtATime::default())
         .manage(answers::attaching::Keeping::default())
         .manage(answers::clouding::Consenting::default())
-        .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(finishing::Finishers::default())
         .manage(Packing::default())
@@ -1345,7 +1342,7 @@ pub fn run() {
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
         .invoke_handler(commands())
-        .build(tauri::generate_context!())
+        .build(context())
         .expect("error while running tauri application")
         .run(|_app, _event| {
             #[cfg(target_os = "macos")]
