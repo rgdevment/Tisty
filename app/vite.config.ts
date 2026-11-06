@@ -15,7 +15,9 @@ const lightViewer: Plugin = {
   name: "tisty-light-viewer",
   apply: "serve",
   async configureServer(server) {
-    if (process.env.VITEST) return;
+    // A script that runs Vite as a middleware has no server whose closing would close this one, and never asks for the viewer.
+    const { httpServer } = server;
+    if (process.env.VITEST || !httpServer) return;
     const own = await createServer({
       configFile: join(repository, "packages/tisty-light-viewer/vite.config.ts"),
       server: { middlewareMode: true, hmr: false },
@@ -24,7 +26,7 @@ const lightViewer: Plugin = {
     server.middlewares.use((request, response, next) =>
       request.url?.startsWith("/viewer/") ? own.middlewares(request, response, next) : next(),
     );
-    server.httpServer?.once("close", () => void own.close());
+    httpServer.once("close", () => void own.close());
   },
 };
 
