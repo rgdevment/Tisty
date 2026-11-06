@@ -30,3 +30,15 @@ One word, one thing. The YAML binds; this says the same in a line.
 | Permit | Permiso | The public key of an edit token: whoever holds the token may sign a version under their own key. |
 | Writer | Quien escribe | Whoever turns words into a document ready to travel: Tisty, or a fork of it. |
 | Reader | Quien lee | Whoever shows a document: Tisty or Folio. |
+
+## Words of the project
+
+These are not in the YAML and bind nothing: they say what each thing is called.
+
+| Word | Palabra | What it is |
+| --- | --- | --- |
+| Welcome guide | Guía de bienvenida | What Tisty writes in a person's store and opens the first time it runs, from `app/src-tauri/resources/guide/`. The only thing called a guide. |
+| Help | Ayuda | How Tisty works, from `docs/help/`. On the web it goes alone, at `www.tisty.app/docs`, and in Spanish at `www.tisty.app/es/ayuda`. |
+| Markdown language | Lenguaje Markdown | How one writes in Tisty, from `crates/tisty-markdown/reference/`. On the web it goes apart, at `markdown.tisty.app`. In the app it goes together with the Help, and works offline from the copy it ships. |
+| README | README | The cover of the repository. |
+| Architecture | Arquitectura | How Tisty is built, for whoever builds it: the document «Arquitectura de Tisty», kept outside this repository. |
