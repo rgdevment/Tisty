@@ -1,6 +1,6 @@
 export type Paper = "a4" | "letter" | "folio" | "tabloid";
 
-const MILLIMETRES: Record<Paper, [number, number]> = {
+export const MILLIMETRES: Record<Paper, [number, number]> = {
   a4: [210, 297],
   letter: [215.9, 279.4],
   folio: [215.9, 330.2],

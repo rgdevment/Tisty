@@ -117,7 +117,7 @@ jobs:
           sccache --stop-server > /dev/null 2>&1 || true
           sccache --start-server || echo "::warning::sccache did not start; this job compiles without it"
       - uses: ./.github/actions/sidecar
-      - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: nextest
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs; a branch needs it once per system.
@@ -182,6 +182,8 @@ jobs:
         working-directory: .
       - run: npm run lint
       - run: npm run build
+      - name: Each window reaches only its own code
+        run: node scripts/windows-apart.mjs
 
   guide:
     name: the Markdown guide draws
@@ -296,11 +298,11 @@ jobs:
         if: needs.changes.outputs.rust == 'true'
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         if: needs.changes.outputs.rust == 'true'
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         if: needs.changes.outputs.rust == 'true'
         with:
           tool: nextest
@@ -371,13 +373,13 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-sheet/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-sheet/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-editor/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
+            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-sheet/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
             -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
