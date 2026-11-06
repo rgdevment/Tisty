@@ -17,7 +17,7 @@ pub fn read_old(text: &str) -> Doc {
     reading(text, OLD)
 }
 
-fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
+pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
     let mut skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut open: Vec<Block> = Vec::new();
@@ -93,6 +93,15 @@ const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     crate::emoji::fold,
     #[cfg(feature = "refs")]
     crate::marks::named,
+];
+
+pub(crate) const FILE_PASSES: &[fn(&mut Vec<Span>, &str)] = &[
+    crate::bare::fold,
+    crate::short::fold,
+    #[cfg(feature = "pens")]
+    crate::pens::fold,
+    #[cfg(feature = "emoji")]
+    crate::emoji::fold,
 ];
 
 // The same passes after the old tags are folded, which only the transformer asks for.

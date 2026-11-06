@@ -10,7 +10,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./glyphs": "./src/glyphs.ts",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./page.css": "./src/page.css",
+    "./tables.css": "./src/tables.css"
   },
   "dependencies": {
     "tisty-diagrams": "file:../tisty-diagrams"

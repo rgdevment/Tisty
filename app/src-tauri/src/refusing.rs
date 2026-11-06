@@ -44,6 +44,13 @@ pub fn page(spanish: bool) -> &'static str {
     }
 }
 
+pub fn light_page(spanish: bool) -> &'static str {
+    match spanish {
+        true => "viewer/index.html?locale=es",
+        false => "viewer/index.html?locale=en",
+    }
+}
+
 pub fn speaks_spanish() -> bool {
     let chosen = tisty_core::Paths::resolve()
         .ok()
