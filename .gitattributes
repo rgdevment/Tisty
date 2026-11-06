@@ -10,6 +10,7 @@
 
 # Signed bytes: a conversion that touches one of them is a signature that no longer answers.
 fixtures/stores/** -text
+crates/tisty-carrier/src/folio_signed/** -text
 
 *.png binary
 *.ico binary

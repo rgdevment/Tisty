@@ -15,6 +15,7 @@ pub use tisty_sync::{
 
 mod cloud;
 mod folder;
+pub mod folio_limits;
 #[cfg(not(windows))]
 mod keychain;
 pub mod loopback;
