@@ -34,6 +34,8 @@ const EN = {
   failed: "That could not be done. Try again.",
   unreadable: "This file could not be read. It may have been moved or be in use.",
   retry: "Try again",
+  back: "Back",
+  farPictures: "There are pictures from the internet not shown ({name}). Show them",
   importMissed:
     "The document came in, but {name} file(s) beside it could not: their links now read as plain words.",
   importNotes:
@@ -76,6 +78,8 @@ const ES: Record<Own, string> = {
   failed: "No se pudo hacer. Intenta de nuevo.",
   unreadable: "No se pudo leer este archivo. Puede que se haya movido o esté en uso.",
   retry: "Intentar de nuevo",
+  back: "Volver",
+  farPictures: "Hay imágenes de internet sin mostrar ({name}). Mostrarlas",
   importMissed:
     "El documento entró, pero {name} archivo(s) de al lado no se pudieron traer: sus enlaces quedaron como texto.",
   importNotes: "{name} nota(s) que enlaza quedaron como texto: impórtalas una por una.",

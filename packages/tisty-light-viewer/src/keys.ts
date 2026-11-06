@@ -4,6 +4,7 @@ export type Keyed = {
   readonly theme: () => void;
   readonly zoom: (step: number) => void;
   readonly head: (by: number) => void;
+  readonly back: () => void;
   readonly source: () => void;
   readonly print: () => void;
   readonly close: () => void;
@@ -38,6 +39,7 @@ export const keyHeard =
     else if (e.ctrlKey || e.metaKey) act = withControl(keyed, e);
     else if (e.altKey && e.key === "ArrowDown") act = () => keyed.head(1);
     else if (e.altKey && e.key === "ArrowUp") act = () => keyed.head(-1);
+    else if (e.altKey && e.key === "ArrowLeft") act = keyed.back;
     if (!act) return;
     e.preventDefault();
     act();

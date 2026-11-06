@@ -13,10 +13,11 @@ import {
   theRest,
 } from "./host";
 import { keyHeard } from "./keys";
-import { linkPressed } from "./links";
+import { arrivingAt, canGoBack, goBack, linkPressed } from "./links";
 import MoreMenu from "./MoreMenu";
 import Panels from "./Panels";
 import Problem from "./Problem";
+import { bringFar, bringNearPictures, farPictures } from "./pictures";
 import { blockAt, remember, remembered } from "./place";
 import { dress, laidIn, redraw, turnTheme } from "./sheet";
 import { type Words, wordsFor } from "./words";
@@ -61,7 +62,13 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const [side, setSide] = createSignal(false);
   const [note, setNote] = createSignal<string | null>(null);
   const [fields, setFields] = createSignal<readonly (readonly [string, string])[]>([]);
+  const [far, setFar] = createSignal<readonly HTMLImageElement[]>([]);
   let page!: HTMLElement;
+
+  let everyPiece = () => {};
+  const laid = new Promise<void>((done) => {
+    everyPiece = done;
+  });
 
   const fail = (problem: unknown) => setNote(saidOf(words, problem));
 
@@ -79,8 +86,13 @@ export default function App(props: { readonly asked: string | null; readonly clo
     void facts().then(setAbout, () => {});
     await laidIn(page, now.more ? await theRest() : []);
     setWhole(true);
+    everyPiece();
+    bringNearPictures(page);
+    setFar(farPictures(page));
+    const anchor = arrivingAt();
     const block = remembered(now.path);
-    if (block !== undefined) page.children[block]?.scrollIntoView({ block: "start" });
+    if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: "start" });
+    else if (block !== undefined) page.children[block]?.scrollIntoView({ block: "start" });
     await dress(words.sayToSheet, words.locale);
   };
 
@@ -117,7 +129,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const go = (id: string) => {
     setWritten(null);
     flush();
-    document.getElementById(id)?.scrollIntoView({ block: "start" });
+    void laid.then(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
   };
 
   const stepHead = (by: number) => {
@@ -144,6 +156,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     theme: turn,
     zoom: scale,
     head: stepHead,
+    back: () => void goBack().catch(fail),
     source: toSource,
     print: () => window.print(),
     close: props.close,
@@ -182,6 +195,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
         onTheme={turn}
         onMore={() => setMore((was) => !was)}
         onSide={() => setSide((was) => !was)}
+        onBack={canGoBack() ? () => void goBack().catch(fail) : undefined}
         onClose={props.close}
       />
       <Show when={more()}>
@@ -195,7 +209,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
           fail={fail}
         />
       </Show>
-      <Show when={finding()}>
+      <Show when={finding() && whole()}>
         <Finder words={words} within={page} onClose={() => setFinding(false)} />
       </Show>
       <Show when={note()}>
@@ -205,11 +219,23 @@ export default function App(props: { readonly asked: string | null; readonly clo
       </Show>
       <main class="desk">
         <div class="sheet-column">
+          <Show when={far().length > 0}>
+            <button
+              class="far-pictures"
+              type="button"
+              onClick={() => {
+                bringFar(far());
+                setFar([]);
+              }}
+            >
+              {words.say("farPictures", String(far().length))}
+            </button>
+          </Show>
           <article
             class="page"
             ref={(sheet) => {
               page = sheet;
-              sheet.addEventListener("click", (e) => linkPressed(e, fail));
+              sheet.addEventListener("click", (e) => linkPressed(e, one()?.path ?? "", fail));
             }}
             hidden={drawn() === null || empty() || written() !== null}
           />

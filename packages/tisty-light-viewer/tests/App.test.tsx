@@ -12,6 +12,9 @@ const host = vi.hoisted(() => ({
   shown: vi.fn(),
   openLink: vi.fn(),
   reveal: vi.fn(),
+  pictureNear: vi.fn(),
+  pictureFar: vi.fn(),
+  follow: vi.fn(),
   minimized: vi.fn(),
   maximized: vi.fn(),
 }));
@@ -161,6 +164,22 @@ describe("the light viewer", () => {
     open();
     await waitFor(() => expect(host.shown).toHaveBeenCalled());
     expect((await screen.findByRole("alert")).textContent).toContain("broken");
+  });
+
+  it("brings a picture beside the file, and leaves one from the web until it is asked for", async () => {
+    host.opened.mockResolvedValue(
+      drawn('<p><img src="./a.png" alt="near"><img src="https://x.y/b.png" alt="far"></p>'),
+    );
+    host.pictureNear.mockResolvedValue("data:image/png;base64,AA==");
+    host.pictureFar.mockResolvedValue("data:image/png;base64,BB==");
+    open();
+    await waitFor(() => expect(host.pictureNear).toHaveBeenCalledWith("./a.png"));
+    expect(host.pictureFar).not.toHaveBeenCalled();
+    (await screen.findByRole("button", { name: /imágenes de internet/ })).click();
+    await waitFor(() => expect(host.pictureFar).toHaveBeenCalledWith("https://x.y/b.png"));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /imágenes de internet/ })).toBeNull(),
+    );
   });
 
   it("speaks English when not asked for Spanish", async () => {

@@ -58,6 +58,12 @@ export const Crossed = () => (
   </Icon>
 );
 
+export const Back = () => (
+  <Icon>
+    <path d="M10 3.5 5.5 8l4.5 4.5" />
+  </Icon>
+);
+
 export const Up = () => (
   <Icon>
     <path d="m4.5 10 3.5-3.5 3.5 3.5" />

@@ -36,6 +36,10 @@ export const facts = (): Promise<Facts> => invoke("view_facts");
 export const editCopy = (): Promise<Left> => invoke("view_import", { open: true });
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 
+export const pictureNear = (src: string): Promise<string> => invoke("view_picture", { src });
+export const pictureFar = (src: string): Promise<string> => invoke("view_picture_far", { src });
+export const follow = (to: string): Promise<void> => invoke("view_follow", { to });
+
 export const reveal = (path: string): Promise<void> =>
   import("@tauri-apps/plugin-opener").then(({ revealItemInDir }) => revealItemInDir(path));
 

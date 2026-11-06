@@ -1,4 +1,4 @@
-use super::{PIECE_ABOUT, body_of, drawn_from};
+use super::{PIECE_ABOUT, body_of, drawn_from, far_kind, near_picture, neighbour};
 
 fn file_of_size(room: &tempfile::TempDir, bytes: usize) -> std::path::PathBuf {
     let at = room.path().join("long.md");
@@ -64,4 +64,61 @@ fn an_empty_file_is_no_pieces_at_all() {
     let (pieces, heads) = drawn_from("");
     assert!(pieces.is_empty());
     assert!(heads.is_empty());
+}
+
+fn folder_with_a_file() -> (tempfile::TempDir, std::path::PathBuf) {
+    let room = tempfile::tempdir().unwrap();
+    let inside = room.path().join("project");
+    std::fs::create_dir_all(inside.join("img")).unwrap();
+    let file = inside.join("readme.md");
+    std::fs::write(&file, "# hi").unwrap();
+    std::fs::write(inside.join("img").join("a b.png"), [1, 2, 3]).unwrap();
+    std::fs::write(room.path().join("secret.png"), [9]).unwrap();
+    std::fs::write(inside.join("notes.txt"), "text").unwrap();
+    (room, file)
+}
+
+#[test]
+fn a_picture_beside_the_file_arrives_as_data() {
+    let (_room, file) = folder_with_a_file();
+    let said = near_picture(&file, "./img/a%20b.png").unwrap();
+    assert_eq!(said, "data:image/png;base64,AQID");
+}
+
+#[test]
+fn a_picture_is_never_read_from_above_the_files_folder() {
+    let (room, file) = folder_with_a_file();
+    assert!(near_picture(&file, "../secret.png").is_err());
+    let whole = room.path().join("secret.png");
+    assert!(near_picture(&file, &whole.display().to_string()).is_err());
+    assert!(near_picture(&file, "img/../../secret.png").is_err());
+}
+
+#[test]
+fn only_a_picture_is_read_as_one() {
+    let (_room, file) = folder_with_a_file();
+    assert!(near_picture(&file, "notes.txt").is_err());
+    assert!(near_picture(&file, "readme.md").is_err());
+    assert!(near_picture(&file, "missing.png").is_err());
+}
+
+#[test]
+fn what_the_web_answers_counts_only_if_it_says_it_is_a_picture() {
+    assert_eq!(
+        far_kind(Some("IMAGE/png; x=1")).as_deref(),
+        Some("image/png")
+    );
+    assert_eq!(far_kind(Some("text/html")), None);
+    assert_eq!(far_kind(None), None);
+}
+
+#[test]
+fn a_neighbour_is_only_what_the_window_could_open() {
+    let (room, file) = folder_with_a_file();
+    let above = room.path().join("other.md");
+    std::fs::write(&above, "# other").unwrap();
+    assert_eq!(neighbour(&file, "../other.md"), Some(above));
+    assert!(neighbour(&file, "./notes.txt").is_some());
+    assert_eq!(neighbour(&file, "img/a%20b.png"), None);
+    assert_eq!(neighbour(&file, "missing.md"), None);
 }

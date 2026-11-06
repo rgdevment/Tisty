@@ -3,10 +3,10 @@ import { keyHeard } from "../src/keys";
 import { blockAt, remember, remembered } from "../src/place";
 import { wordsFor } from "../src/words";
 
-const host = vi.hoisted(() => ({ openLink: vi.fn() }));
+const host = vi.hoisted(() => ({ openLink: vi.fn(), follow: vi.fn() }));
 vi.mock("../src/host", () => host);
 
-const { linkPressed } = await import("../src/links");
+const { arrivingAt, canGoBack, goBack, linkPressed } = await import("../src/links");
 
 const keyed = () => ({
   find: vi.fn(),
@@ -14,6 +14,7 @@ const keyed = () => ({
   theme: vi.fn(),
   zoom: vi.fn(),
   head: vi.fn(),
+  back: vi.fn(),
   source: vi.fn(),
   print: vi.fn(),
   close: vi.fn(),
@@ -110,7 +111,7 @@ describe("a link in the document", () => {
     const heading = page.querySelector("h2") as HTMLElement;
     heading.scrollIntoView = vi.fn();
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-    page.addEventListener("click", (e) => linkPressed(e, () => {}));
+    page.addEventListener("click", (e) => linkPressed(e, "C:/here.md", () => {}));
     page.querySelector("span")?.dispatchEvent(event);
     page.remove();
     return { event, heading };
@@ -127,6 +128,23 @@ describe("a link in the document", () => {
     const { heading } = pressed("#a%20b");
     expect(heading.scrollIntoView).toHaveBeenCalled();
     expect(host.openLink).not.toHaveBeenCalled();
+  });
+
+  it("takes a neighbouring file into the same window, and remembers the way back", async () => {
+    host.follow.mockResolvedValue(undefined);
+    const reload = vi.fn();
+    vi.stubGlobal("location", { reload });
+    sessionStorage.clear();
+    pressed("./other.md#part%202");
+    expect(host.follow).toHaveBeenCalledWith("./other.md");
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    expect(canGoBack()).toBe(true);
+    expect(arrivingAt()).toBe("part 2");
+    expect(arrivingAt()).toBeNull();
+    await goBack();
+    expect(host.follow).toHaveBeenLastCalledWith("C:/here.md");
+    expect(canGoBack()).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   it("never navigates the window, nor opens what it does not know", () => {

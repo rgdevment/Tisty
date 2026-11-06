@@ -154,8 +154,18 @@ pub(crate) fn arrived(
     from: &std::path::Path,
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
+    arrived_as(session, from, folder, |raw| raw)
+}
+
+pub(crate) fn arrived_as(
+    session: &tauri::State<'_, Mutex<Session>>,
+    from: &std::path::Path,
+    folder: Option<tisty_core::model::FolderId>,
+    turned: impl FnOnce(String) -> String,
+) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
     let paths = held(session).paths.clone();
     let (raw, room) = read_any(from)?;
+    let raw = turned(raw);
     let near = room
         .as_ref()
         .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));

@@ -147,7 +147,7 @@ pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
     any
 }
 
-fn readable(at: &Path) -> bool {
+pub(crate) fn readable(at: &Path) -> bool {
     let local = match at.components().next() {
         Some(Component::Prefix(prefix)) => {
             matches!(prefix.kind(), Prefix::Disk(_) | Prefix::VerbatimDisk(_))
@@ -346,7 +346,6 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
                 if let Ok(mut held) = views.waiting_pieces.lock() {
                     held.remove(&named);
                 }
-                gone.state::<widgets::Lent>().release(&named);
                 crate::tray::undock_unless_seen(&gone, &named);
             });
         }
@@ -527,7 +526,9 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
     {
         return Ok((known.paper, Left::default()));
     }
-    let (made, id, left) = crate::answers::carrying::arrived(&session, at, None)?;
+    let (made, id, left) = crate::answers::carrying::arrived_as(&session, at, None, |raw| {
+        tisty_markdown::file_as_tisty(&raw)
+    })?;
     let paper = Paper {
         id: id.to_string(),
         file: made.id,
