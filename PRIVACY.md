@@ -6,8 +6,8 @@
 
 Tisty does not collect anything and sends nothing of yours to a server of ours.
 No account, no telemetry, no analytics, no crash reporting. The one exception is
-yours to make, and it is not open yet: a document you choose to share by link
-goes, sealed, to Folio.
+yours to make: a document you choose to share by link goes, sealed, to Folio,
+when Folio has opened for new documents.
 
 It makes **one** check on its own — when it opens, and once a day after that:
 it downloads a small file and its signature to see whether a newer version
@@ -70,7 +70,7 @@ What you can choose, and what each implies:
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive |
-| **A document you share by link through Folio** (not open yet) | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
+| **A document you share by link through Folio** | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -82,8 +82,8 @@ folder.
 
 There is no option where Tisty hosts your store. There is no paid tier that
 changes this. **Nothing you keep reaches a server of ours unless you press Share
-on a document**, and sharing is not open yet. Then that document goes to Folio,
-sealed so that Folio cannot read it. Apart from Folio, the one site of ours
+on a document**. Then that document goes to Folio, sealed so that Folio cannot
+read it. Apart from Folio, the one site of ours
 Tisty ever asks is markdown.tisty.app, for the guide, and that request carries
 nothing of yours. So there is nothing on our side to breach, subpoena, sell, or
 lose, beyond the sealed copies of what you chose to share.
@@ -224,22 +224,22 @@ repository, and this section was written before the release that carries it.
 ## Sharing by link
 
 Sharing goes through [Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty),
-a separate service with its own terms and its own privacy policy. **It is not
-open yet.** Tisty does not reach it, or anything about it, until you ask.
+a separate service with its own terms and its own privacy policy. Folio decides
+when it opens for new documents. Tisty does not reach it, or anything about it,
+until you ask.
 
-Every document shows a **Shared** row. While sharing is closed, pressing
-**Share** reads the file in the first row below and shows a notice that sharing
-is not available yet, with a link to `folio.tisty.app` that opens in your browser
-only if you click it. Only starting a new share waits for that file to say it is
-open. The rows after the first describe what the code does once sharing opens,
-except the one about a link reaching Tisty, which that file does not hold back.
+Every document shows a **Shared** row. Pressing **Share** reads the file in the
+first row below. While that file does not say sharing is open, Tisty shows a
+notice instead, with a link to `folio.tisty.app` that opens in your browser only
+if you click it. Only starting a new share waits for that file: a link reaching
+Tisty and a share already out do not.
 
 | | |
 | :--- | :--- |
 | **When you press Share** | Tisty reads `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json` and its signature, `limits.json.minisig`, to learn whether sharing is open and what it allows. An answer counts for an hour; a try that reached nothing does not count, so the next press asks again. Nothing is uploaded, GitHub serves them, not Folio, and the request says only `tisty/<version>`. If that file says sharing is closed, or it cannot be read, it stops there. If sharing is open and you have not accepted the current terms, it reads `TERMINOS.md` or `TERMS.md` from the same place |
 | **When you confirm** | Tisty asks `https://tisty.cl/api/v1` for an identifier, then sends what you chose, sealed on this computer: the document with its pages, pictures and files, its other languages, the documents it cites and the name you sign it with. The key travels in the link, after the `#`, and never reaches the server. Neither does the token of an edit link, which signs on this computer. Requests to that address follow no redirect, wait at most two minutes and say `tisty/<version>` |
 | **What Folio sees** | Not the title, the words, the pictures or the files: those are inside the seal. In the clear it gets each envelope's manifest (identifier, version, sizes, signature, the version of Folio's terms you accepted, with no date, and the public keys of your identity and of this computer, so it can tell that two documents come from one person), how many days the link lasts, the token that manages it, a print of the sealed files, and any notice that your identity took back a computer's key. Like any server, it also gets the address and the time of each request |
-| **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and sharing being closed does not stop it. Tisty accepts only an `https` link on `tisty.cl` or `folio.tisty.app`, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://tisty.cl/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, and nothing is kept unless you press **Bring it**. A share Tisty already remembers asks nothing, and on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
+| **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and whether sharing is open does not change it. Tisty accepts only an `https` link on `tisty.cl` or `folio.tisty.app`, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://tisty.cl/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, and nothing is kept unless you press **Bring it**. A share Tisty already remembers asks nothing, and on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
 | **When you press Sync, See reads and expiry, Pause, Resume, Appeal or Stop** | Tisty talks to that same address, for that document and for those that travel with it. Sync first asks for the latest version and brings a newer one in apart, and sends your changes only if there are any, repeating with them any notice that your identity took back a computer's key |
 | **When you delete a shared document** | Tisty asks that same address to stop its share. If the document was deleted on another of your computers, this one asks the next time you delete any document or go through **Share** here. A share you only held through an edit link is forgotten with no request |
 | **On its own** | Nothing. A shared row does not check on Folio by itself; it finds out when you press something |

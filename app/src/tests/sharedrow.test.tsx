@@ -209,6 +209,36 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().said?.[0]).toContain("3"));
   });
 
+  it("says Folio's day as it is, wherever this computer stands", async () => {
+    const { panel, pressed } = await held(card, { doc_share_status: status });
+
+    await pressed("status");
+
+    await waitFor(() => expect(panel().said?.[0]).toBe(fill("sharedStatus", "10/4/2024", "3")));
+  });
+
+  it("drops a status that arrives after the share was stopped", async () => {
+    let answer: (now: unknown) => void = () => {};
+    const { hook, panel, pressed } = await held(card, {
+      doc_share_sync: { state: "unchanged" },
+      doc_share_status: new Promise((resolve) => {
+        answer = resolve;
+      }),
+      doc_share_stop: null,
+    });
+    await pressed("sync");
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("doc_share_status", { id: "d1" }));
+    await pressed("ask");
+    await pressed("stop");
+    await waitFor(() => expect(hook.result.current.panel?.kind).toBe("held"));
+
+    await act(async () => answer({ ...status, blocked: true }));
+    await act(async () => hook.result.current.onShared(card));
+
+    expect(panel().gist).not.toBe(t("sharedBlockedGist"));
+    expect(panel().links).toHaveLength(1);
+  });
+
   it("warns of reports and the day to correct them by", async () => {
     const { panel, pressed } = await held(card, {
       doc_share_status: { ...status, fixBy: today + 3 },
@@ -219,7 +249,10 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().gist).toBe(t("sharedReportedGist")));
     expect(panel().tone).toBe("warn");
     expect(panel().said?.[0]).toBe(
-      fill("sharedFixBy", new Date((today + 3) * 86_400_000).toLocaleDateString("en")),
+      fill(
+        "sharedFixBy",
+        new Date((today + 3) * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
+      ),
     );
     expect(panel().links).toHaveLength(1);
   });
@@ -229,7 +262,10 @@ describe("the Shared row", () => {
     await onTheDay.pressed("status");
     await waitFor(() =>
       expect(onTheDay.panel().said?.[0]).toBe(
-        fill("sharedFixBy", new Date(today * 86_400_000).toLocaleDateString("en")),
+        fill(
+          "sharedFixBy",
+          new Date(today * 86_400_000).toLocaleDateString("en", { timeZone: "UTC" }),
+        ),
       ),
     );
 

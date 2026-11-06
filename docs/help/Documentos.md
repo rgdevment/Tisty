@@ -129,7 +129,7 @@ Exportarlos todos pregunta para quién son: **abiertos**, **para entregárselos 
 
 ## Compartir
 
-El panel junto a un documento tiene una fila **Compartido** con **Compartir…**. Compartir pasa por Folio, un servicio aparte de Tisty, y todavía no está abierto. Al pulsar **Compartir…**, Tisty lee un archivo firmado pequeño para saber si Folio ya abrió y, mientras no abra, dice que todavía no está disponible, con un enlace a [folio.tisty.app](https://folio.tisty.app). Si ese archivo no se puede alcanzar, lo dice y ofrece reintentar. Nada de tu documento sale de este equipo. Para entregarle un documento a alguien hoy, usa las salidas de arriba.
+El panel junto a un documento tiene una fila **Compartido** con **Compartir…**. Compartir pasa por Folio, un servicio aparte de Tisty. Al pulsar **Compartir…**, Tisty lee un archivo firmado pequeño para saber si Folio ya abrió. Mientras no abra, te lo dice, con un enlace a [folio.tisty.app](https://folio.tisty.app), y nada de tu documento sale de este equipo; las salidas de arriba siguen sirviendo para entregárselo a alguien. Si ese archivo no se puede alcanzar, lo dice y ofrece reintentar. Cuando Folio esté abierto, aceptas sus términos la primera vez, eliges qué puede hacer la otra persona y cuánto dura, y recibes un link.
 
 ## Tu alias
 

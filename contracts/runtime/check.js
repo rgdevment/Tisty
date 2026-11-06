@@ -102,6 +102,8 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "string" || !isLine(value)) out.push(at + " is not one line a person can read as written");
   } else if (type === "file_name") {
     if (typeof value !== "string" || !isFileName(value)) out.push(at + " is not the name of a file");
+  } else if (type === "digits") {
+    if (typeof value !== "string" || !/^[0-9]+$/.test(value)) out.push(at + " is not a whole number written as text");
   } else if (type === "language") {
     if (typeof value !== "string" || !isLanguage(value)) out.push(at + " is not a language tag");
   } else if (type === "tag_word") {

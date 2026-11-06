@@ -1,4 +1,4 @@
-use super::{asked, asked_to_edit, wanted};
+use super::{Views, asked, asked_to_edit, wanted};
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
     let at = room.path().join(name);
@@ -168,4 +168,16 @@ fn only_a_file_from_outside_gets_the_systems_title_bar() {
             }
         );
     }
+}
+
+#[test]
+fn a_link_waits_for_no_second_question_while_one_stands() {
+    let views = Views::default();
+
+    let asking = views.asking_of_a_link();
+    assert!(asking.is_some());
+    assert!(views.asking_of_a_link().is_none());
+
+    drop(asking);
+    assert!(views.asking_of_a_link().is_some());
 }

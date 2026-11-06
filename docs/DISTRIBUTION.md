@@ -126,7 +126,7 @@ to a server of ours. Synchronisation, when you turn it on, copies files into a
 place **you choose** — your own Google Drive, OneDrive or WebDAV server, or a
 folder something else keeps in step — and what happens there is between you and
 whoever runs it. The one exception is a document you press **Share** on, which
-goes sealed to Folio, a separate service; sharing is not open yet. See
+goes sealed to Folio, a separate service. See
 [PRIVACY.md](../PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to

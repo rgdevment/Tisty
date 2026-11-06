@@ -23,7 +23,9 @@ type Act = NonNullable<HeldPanel["acts"]>[number];
 const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
 const untilOf = (problem: unknown) => Number((problem as { name?: string } | null)?.name);
 
-const dayOf = (day: number) => new Date(day * DAY_MS).toLocaleDateString(locale());
+// Folio counts days from 1970 in UTC, and elsewhere its midnight falls on the day before.
+const dayOf = (day: number) =>
+  new Date(day * DAY_MS).toLocaleDateString(locale(), { timeZone: "UTC" });
 
 const fixSaid = ({ fixBy }: ShareStatus) => {
   if (fixBy === null) return null;
@@ -76,6 +78,7 @@ interface Hands {
   setStopping: (stopping: boolean) => void;
   setCard: (card: ShareCard | null) => void;
   failing: (problem: unknown) => void;
+  stillHeld: () => boolean;
   onKeep?: () => Promise<unknown> | undefined;
 }
 
@@ -116,7 +119,9 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
 const statusAfterSync = (h: Hands) => {
   if (!h.card.taken)
     void shareStatus(h.doc)
-      .then(h.setStatus)
+      .then((now) => {
+        if (h.stillHeld()) h.setStatus(now);
+      })
       .catch(() => {});
 };
 
@@ -205,6 +210,8 @@ export const useSharedRow = (
   const [asking, setAsking] = useState(false);
   const [termsOnly, setTermsOnly] = useState(false);
   const syncing = useRef<(() => void) | null>(null);
+  const cardNow = useRef(card);
+  cardNow.current = card;
   const [accepted, setAccepted] = useState<string | undefined>(undefined);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
@@ -305,6 +312,7 @@ export const useSharedRow = (
       setStopping,
       setCard,
       failing,
+      stillHeld: () => cardNow.current !== null,
       onKeep,
     };
     syncing.current = () => syncNow(hands);

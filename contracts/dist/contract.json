@@ -2968,8 +2968,7 @@
           "says": "Who owns it, in the additional data of every part, so changing it without the key does not open. Who owns what is public, which has no key to tie this to, is not defined yet: its signer answers for it."
         },
         "terms": {
-          "type": "text",
-          "at_least": 1,
+          "type": "digits",
           "at_most": 16,
           "says": "The version of the service's terms that whoever signs accepted, a whole number written as text, as its signed limits name it. It is signed with the manifest and holds no date, since the manifest travels in clear."
         },
@@ -3283,6 +3282,58 @@
           "holds": false
         },
         {
+          "says": "One that says it accepted terms named by anything but a whole number.",
+          "value": {
+            "contract": "1.5.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 1,
+            "sealed": false,
+            "terms": "1.0",
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              },
+              {
+                "name": "rest",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
+        },
+        {
+          "says": "One that writes the version of its terms as a number.",
+          "value": {
+            "contract": "1.5.0",
+            "kind": "main",
+            "id": "k7Qm2xPa",
+            "version": 1,
+            "sealed": false,
+            "terms": 2,
+            "parts": [
+              {
+                "name": "first",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              },
+              {
+                "name": "rest",
+                "compressed": true,
+                "sealed_size": 24,
+                "open_size": 90
+              }
+            ]
+          },
+          "holds": false
+        },
+        {
           "says": "An envelope with nothing inside.",
           "value": {
             "contract": "1.0.0",
@@ -3357,8 +3408,7 @@
           "says": "The token of its edit link. From the owner, it names who may edit; from anyone else, it signs the version."
         },
         "terms": {
-          "type": "text",
-          "at_least": 1,
+          "type": "digits",
           "at_most": 16,
           "says": "The version of the service's terms that whoever seals accepted. Left out, the manifest says none."
         }

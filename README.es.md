@@ -677,13 +677,14 @@ compilada dentro de la copia que ya tienes.
 Hay unas pocas más, listadas en [PRIVACY.md](PRIVACY.md).
 
 **Folio by Tisty** es un servicio aparte para compartir un documento con un
-enlace sin cuenta y cifrado de punta a punta, con sus propios términos y políticas
-en [su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Todavía
-no está abierto. Cada documento muestra una fila **Compartido**; al presionar
-**Compartir** Tisty lee un archivo pequeño y firmado para saber si compartir está
-abierto y, mientras siga cerrado, te avisa que todavía no está disponible, con un
-enlace a [folio.tisty.app](https://folio.tisty.app). Nada de tu documento sale
-hasta que compartir se abra, aceptes sus términos y lo confirmes.
+enlace sin cuenta y cifrado de punta a punta, con sus propios términos y
+políticas en
+[su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Cada
+documento muestra una fila **Compartido**; al presionar **Compartir** Tisty lee
+un archivo pequeño y firmado para saber si Folio ya abrió y, mientras no abra,
+te lo dice, con un enlace a [folio.tisty.app](https://folio.tisty.app). Nada de
+tu documento sale hasta que Folio esté abierto, aceptes sus términos y lo
+confirmes.
 [PRIVACY.md](PRIVACY.md#sharing-by-link) dice qué envía cada paso.
 
 ## Dos equipos, si tienes dos

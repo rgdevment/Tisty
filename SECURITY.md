@@ -31,7 +31,7 @@ report will never be dismissed for being inconvenient.
 
 - **The data never leaves your machine unless you tell it to.** No account, no
   telemetry. Nothing you keep reaches a service of ours unless you press Share
-  on a document, and sharing is not open yet; then that document reaches Folio
+  on a document; then that document reaches Folio
   sealed, so nothing readable sits on our side to breach. Tisty makes one check
   of its own — a daily GET for a version manifest and one for its signature,
   carrying nothing but the version you are running — and two more requests only
@@ -421,10 +421,10 @@ handed, and deletes the encrypted copy. While a turn either way is under way,
 `tisty.toml` says so, and for its last steps the other computers wait rather
 than write; until the very last, cancelling loses nothing.
 
-## A shared document, once sharing opens
+## A shared document
 
-Sharing by link goes through Folio, which is not open yet: no new share starts
-until its signed limits say so. What follows is what holds it. What each step
+Sharing by link goes through Folio: no new share starts until its signed limits
+say it is open. What follows is what holds it. What each step
 sends is in [PRIVACY.md](PRIVACY.md).
 
 **What seals it.** A document is sealed on your computer with AES-256-GCM, under

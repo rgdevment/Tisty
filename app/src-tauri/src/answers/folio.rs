@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::Serialize;
 use tauri::Manager;
 use tisty_carrier::folio_client::{
-    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version,
+    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version, Why,
 };
 use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
@@ -90,11 +90,13 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
                 Refusal::about("folioWait", until.to_string())
             }
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
-            Refused::Terms { .. } => Refusal::of("folioTermsToAccept"),
+            Refused::Terms => Refusal::of("folioTermsToAccept"),
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
-            Refused::Outdated | Refused::Unknown => Refusal::of("folioOutdated"),
+            Refused::Outdated | Refused::Unknown | Refused::Envelope { why: Why::Unknown } => {
+                Refusal::of("folioOutdated")
+            }
             Refused::Revoked => Refusal::of("folioRevoked"),
             Refused::NotBlocked | Refused::Appealed => Refusal::of("folioAppealed"),
             Refused::Missing => Refusal::of("folioGone"),
@@ -172,6 +174,13 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
         Err(Unsure::NoWord) => Refusal::of("folioUnreached"),
         Err(Unsure::NotPublished) => Refusal::of("folioTermsNotPublished"),
     }
+}
+
+fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
+    if refused.code == "folioTermsToAccept" {
+        folio_pace::take_back(home, id, at);
+    }
+    refused
 }
 
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
@@ -854,7 +863,8 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let limits = folio_limits::kept(&home);
-    folio_pace::press(&home, &was.id, policy::now(), limits.as_ref())
+    let pressed_at = policy::now();
+    folio_pace::press(&home, &was.id, pressed_at, limits.as_ref())
         .map_err(|free| Refusal::about("folioWait", (free * 1000).to_string()))?;
     let remembered_id = was.id.clone();
     let remembered_version = was.version;
@@ -880,7 +890,9 @@ pub async fn doc_share_sync(
         return Ok(Synced::Unchanged);
     }
     let checking = paths.clone();
-    let terms = apart(move || may_upload(&checking, tongue)).await?;
+    let terms = apart(move || may_upload(&checking, tongue))
+        .await
+        .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
     let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
     for (_, one) in &mut sealed.remembering {
@@ -897,10 +909,12 @@ pub async fn doc_share_sync(
         (session.state.clone(), session.config.device_id.clone())
     };
     let keep = keeping(&app);
+    let pressed_id = was.id.clone();
     apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
-            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
+            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
+            .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         told_of_taken_back(&door, &state, &device);
         Ok(())
     })

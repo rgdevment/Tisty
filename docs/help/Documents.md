@@ -129,7 +129,7 @@ Exporting all of them asks who they are for: **open**, **to hand to somebody**, 
 
 ## Sharing
 
-The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service apart from Tisty, and it is not open yet. Pressing **Share…** reads a small signed file to learn whether Folio has opened and, while it has not, says it is not available yet, with a link to [folio.tisty.app](https://folio.tisty.app). If that file cannot be reached, it says so and offers to try again. Nothing of your document leaves this computer. To hand a document to someone today, use the ways out above.
+The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service apart from Tisty. Pressing **Share…** reads a small signed file to learn whether Folio has opened. While it has not, it says so, with a link to [folio.tisty.app](https://folio.tisty.app), and nothing of your document leaves this computer; the ways out above still hand a document to someone. If that file cannot be reached, it says so and offers to try again. Once Folio is open, you accept its terms the first time, choose what the other person can do and how long it lasts, and get a link.
 
 ## Your alias
 

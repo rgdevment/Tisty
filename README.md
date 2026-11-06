@@ -660,12 +660,11 @@ compiled into the copy you already have. There are a few more, listed in
 
 **Folio by Tisty** is a separate service for sharing a document by a link with
 no account, end-to-end encrypted, with its own terms and policies in
-[its own repository](https://github.com/rgdevment/Folio-by-Tisty). It is not
-open yet. Every document shows a **Shared** row; pressing **Share** reads a small
-signed file to learn whether sharing is open and, while it is closed, tells you
-it is not available yet, with a link to
+[its own repository](https://github.com/rgdevment/Folio-by-Tisty). Every document
+shows a **Shared** row; pressing **Share** reads a small signed file to learn
+whether Folio has opened and, while it has not, tells you so, with a link to
 [folio.tisty.app](https://folio.tisty.app). Nothing of your document leaves until
-sharing opens, you accept its terms and you confirm.
+Folio is open, you accept its terms and you confirm.
 [PRIVACY.md](PRIVACY.md#sharing-by-link) says what each step sends.
 
 ## Two Machines, If You Have Two

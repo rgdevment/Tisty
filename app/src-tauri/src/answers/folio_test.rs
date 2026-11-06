@@ -10,7 +10,7 @@ use tisty_sharing::Remembered;
 
 use super::{
     Card, after_terms_refused, card_of, counted_as_shared, delivered, folio_terms_drawn,
-    going_with, headings_over, may_start, said,
+    going_with, headings_over, may_start, press_given_back, said,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -292,6 +292,39 @@ fn a_refusal_this_version_does_not_know_asks_to_update_it() {
         said(&Stopped::Refused(Refused::Unknown)).code,
         "folioOutdated"
     );
+    assert_eq!(
+        said(&Stopped::Refused(Refused::Envelope { why: Why::Unknown })).code,
+        "folioOutdated"
+    );
+    assert_eq!(
+        said(&Stopped::Refused(Refused::Envelope { why: Why::Damaged })).code,
+        "folioRefused"
+    );
+}
+
+#[test]
+fn only_a_refusal_over_the_terms_gives_the_press_back() {
+    let home = tempfile::tempdir().unwrap();
+    tisty_carrier::folio_pace::press(home.path(), "d", 100, None).unwrap();
+
+    let kept = press_given_back(crate::Refusal::of("folioFull"), home.path(), "d", 100);
+    assert_eq!(kept.code, "folioFull");
+    assert_eq!(pressed_in(home.path()), 1);
+
+    let given = press_given_back(
+        crate::Refusal::of("folioTermsToAccept"),
+        home.path(),
+        "d",
+        100,
+    );
+    assert_eq!(given.code, "folioTermsToAccept");
+    assert_eq!(pressed_in(home.path()), 0);
+}
+
+fn pressed_in(home: &std::path::Path) -> usize {
+    let said = std::fs::read_to_string(home.join("folio-sync-presses.json")).unwrap();
+    let all: BTreeMap<String, Vec<u64>> = serde_json::from_str(&said).unwrap();
+    all.values().map(Vec::len).sum()
 }
 
 #[test]

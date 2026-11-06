@@ -360,6 +360,10 @@ fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<Stri
 pub fn bring_apart(app: &AppHandle, web: url::Url) {
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
+        let views = app.state::<crate::viewing::Views>();
+        let Some(_asking) = views.asking_of_a_link() else {
+            return;
+        };
         let spanish = app
             .try_state::<Mutex<Session>>()
             .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));

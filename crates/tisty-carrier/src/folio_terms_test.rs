@@ -38,10 +38,9 @@ fn only_the_terms(url: &str) -> Option<Vec<u8>> {
 }
 
 #[test]
-fn a_refusal_reads_the_limits_again_within_the_hour_and_says_what_stands() {
+fn a_refusal_reads_the_limits_once_and_says_what_stands() {
     let home = seeded(Some(terms("1")));
     accept(home.path(), Tongue::Es, "1").unwrap();
-    std::fs::write(home.path().join("folio-limits-asked"), b"").unwrap();
     let asked = Cell::new(0);
 
     let told = read_again(home.path(), Tongue::Es, |url| {
@@ -54,6 +53,23 @@ fn a_refusal_reads_the_limits_again_within_the_hour_and_says_what_stands() {
     assert_eq!(told, Ok(Standing::Accepted));
     assert_eq!(asked.get(), 1);
     assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
+}
+
+#[test]
+fn a_refusal_reads_the_limits_even_within_the_hour() {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    std::fs::write(home.path().join("folio-limits-asked"), b"").unwrap();
+    let asked = Cell::new(0);
+
+    let _ = read_again(home.path(), Tongue::Es, |url| {
+        if url == LIMITS_URL {
+            asked.set(asked.get() + 1);
+        }
+        None
+    });
+
+    assert_eq!(asked.get(), 1);
 }
 
 #[test]

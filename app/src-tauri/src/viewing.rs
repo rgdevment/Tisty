@@ -55,9 +55,31 @@ pub struct Views {
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
     links_owed: Mutex<Vec<url::Url>>,
+    asking_of_a_link: std::sync::atomic::AtomicBool,
+}
+
+pub(crate) struct AskingOfALink<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for AskingOfALink<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::Release);
+    }
 }
 
 impl Views {
+    // Any page can fire a link, over and over, and each would stand a question on the desktop.
+    pub(crate) fn asking_of_a_link(&self) -> Option<AskingOfALink<'_>> {
+        self.asking_of_a_link
+            .compare_exchange(
+                false,
+                true,
+                std::sync::atomic::Ordering::Acquire,
+                std::sync::atomic::Ordering::Relaxed,
+            )
+            .ok()
+            .map(|_| AskingOfALink(&self.asking_of_a_link))
+    }
+
     fn owe_edit(&self, label: &str) {
         let mut owed = self.edits_owed.lock().unwrap_or_else(|e| e.into_inner());
         if !owed.iter().any(|one| one == label) {

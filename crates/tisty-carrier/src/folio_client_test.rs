@@ -432,13 +432,21 @@ fn a_hash_that_could_change_the_path_is_never_asked_for() {
 }
 
 #[test]
-fn a_refusal_over_the_terms_names_the_version_it_wants() {
-    let refused: Refused = serde_json::from_str(r#"{"refused":"terms","version":"2"}"#).unwrap();
+fn a_refusal_over_the_terms_reads_the_same_whatever_else_it_says() {
+    for said in [
+        r#"{"refused":"terms","version":"2"}"#,
+        r#"{"refused":"terms","version":2}"#,
+        r#"{"refused":"terms"}"#,
+    ] {
+        let refused: Refused = serde_json::from_str(said).unwrap();
+        assert_eq!(refused, Refused::Terms, "{said}");
+    }
+}
 
-    assert_eq!(
-        refused,
-        Refused::Terms {
-            version: "2".to_owned()
-        }
-    );
+#[test]
+fn an_envelope_refused_for_a_reason_this_version_does_not_know_is_still_a_refusal() {
+    let refused: Refused =
+        serde_json::from_str(r#"{"refused":"envelope","why":"from_the_future"}"#).unwrap();
+
+    assert_eq!(refused, Refused::Envelope { why: Why::Unknown });
 }

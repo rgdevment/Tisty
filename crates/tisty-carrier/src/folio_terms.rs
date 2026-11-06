@@ -109,7 +109,17 @@ pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
     tongue: Tongue,
     bring: F,
 ) -> Result<Standing, Unsure> {
-    let limits = heard(home, &bring).ok_or(Unsure::NoWord)?;
+    let limits = heard(home, &bring);
+    standing_under(home, limits, tongue, bring)
+}
+
+fn standing_under<F: Fn(&str) -> Option<Vec<u8>>>(
+    home: &Path,
+    limits: Option<FolioLimits>,
+    tongue: Tongue,
+    bring: F,
+) -> Result<Standing, Unsure> {
+    let limits = limits.ok_or(Unsure::NoWord)?;
     let terms = limits.terms.as_ref().ok_or(Unsure::NotPublished)?;
     let before = accepted(home);
     if let Some(standing) = under(terms, before.as_ref(), tongue, &bring) {
@@ -135,8 +145,11 @@ pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
     tongue: Tongue,
     bring: F,
 ) -> Result<Standing, Unsure> {
-    let _ = folio_limits::heed_now(home, &bring);
-    standing(home, tongue, bring)
+    let limits = match folio_limits::heed_now(home, &bring) {
+        Some(Ok(limits)) => Some(limits),
+        _ => folio_limits::kept(home),
+    };
+    standing_under(home, limits, tongue, bring)
 }
 
 pub fn accept(home: &Path, tongue: Tongue, version: &str) -> Result<(), Unkept> {

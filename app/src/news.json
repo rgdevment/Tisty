@@ -1175,8 +1175,8 @@
         "said": "si Windows cierra Tisty por una actualización o al apagar, lo que acababas de escribir se guarda. Y desde la próxima actualización Tisty vuelve solo, oculto si estaba oculto."
       },
       {
-        "title": "Compartir, en camino",
-        "said": "verás la fila «Compartido» en el panel del documento. Compartir con un link cifrado todavía no está disponible: al presionarlo te lo dice, sin subir nada. Conoce más en folio.tisty.app."
+        "title": "Compartir con un link",
+        "said": "la fila «Compartido» del panel lleva a Folio, que entrega tu documento con un link cifrado. Tisty consulta a Folio solo al presionar Compartir, y si todavía no abrió te lo dice, sin subir nada. Conoce más en folio.tisty.app."
       },
       {
         "title": "Y varios arreglos",
@@ -1209,8 +1209,8 @@
         "said": "if Windows closes Tisty for an update or a shutdown, what you just typed is kept. And from the next update on, Tisty comes back by itself, hidden if it was hidden."
       },
       {
-        "title": "Sharing, on its way",
-        "said": "you will see the Shared row in a document's panel. Sharing with an encrypted link is not available yet: pressing it tells you so and uploads nothing. Learn more at folio.tisty.app."
+        "title": "Sharing with a link",
+        "said": "the Shared row in a document's panel leads to Folio, which hands over your document with an encrypted link. Tisty asks Folio only when you press Share, and if it has not opened yet it tells you so and uploads nothing. Learn more at folio.tisty.app."
       },
       {
         "title": "And several fixes",

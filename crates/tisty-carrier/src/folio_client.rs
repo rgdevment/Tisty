@@ -53,6 +53,8 @@ pub enum Why {
     Damaged,
     Unsigned,
     Key,
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -83,9 +85,7 @@ pub enum Refused {
     },
     Failed,
     UploadsOff,
-    Terms {
-        version: String,
-    },
+    Terms,
     NotBlocked,
     Appealed,
     #[serde(other)]
