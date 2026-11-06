@@ -65,3 +65,26 @@ fn what_could_not_be_kept_or_was_never_there_stays_as_it_travelled() {
 
     assert_eq!(told.body, "tisty:picture/0 tisty:picture/1");
 }
+
+#[test]
+fn how_readers_reach_other_languages_and_cited_documents_comes_along() {
+    let document = json!({
+        "body": "[otro](tisty:cited/0)",
+        "cited": [{"document": "d", "key": "k"}],
+        "languages": [{"lang": "en", "document": "e"}],
+    });
+
+    let told = received(&document, &[], &[], &mut kept_as_named);
+
+    assert_eq!(told.body, "[otro](tisty:doc/folio-cited-0)");
+    let carried: serde_json::Value = serde_json::from_str(&told.carried.unwrap()).unwrap();
+    assert_eq!(carried["cited"][0]["document"], "d");
+    assert_eq!(carried["languages"][0]["lang"], "en");
+}
+
+#[test]
+fn a_document_with_nothing_beyond_itself_carries_nothing() {
+    let told = received(&json!({"body": "x"}), &[], &[], &mut kept_as_named);
+
+    assert_eq!(told.carried, None);
+}

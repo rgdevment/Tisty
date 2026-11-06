@@ -6,7 +6,7 @@ use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
-use super::{Card, card_of, delivered, going_with, headings_over, said};
+use super::{Card, card_of, counted_as_shared, delivered, going_with, headings_over, said};
 
 type Heard = (String, Vec<(&'static str, String)>);
 
@@ -141,6 +141,20 @@ fn a_version_stored_stays_remembered_when_its_files_fail_and_they_go_again_next_
 }
 
 #[test]
+fn only_what_one_shared_oneself_takes_a_place_among_ones_shares() {
+    let own = remembered(Some("key"), None);
+    assert!(counted_as_shared(&own));
+
+    let mut taken = remembered(Some("key"), Some("token"));
+    taken.admin_token = None;
+    assert!(!counted_as_shared(&taken));
+
+    let mut held = remembered(Some("key"), None);
+    held.held_by = Some("Top11111".to_owned());
+    assert!(!counted_as_shared(&held));
+}
+
+#[test]
 fn what_a_share_holds_goes_with_it_unless_another_still_cites_it() {
     let top = remembered(Some("key"), None);
     let held = |id: &str| {
@@ -195,6 +209,8 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         owner_name: None,
         cited: Vec::new(),
         held_by: None,
+        ttl_days: None,
+        carried: None,
     }
 }
 

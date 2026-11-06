@@ -14,6 +14,16 @@ use super::folio::{ToFolio, said};
 use super::sharing::turned;
 use crate::{Answer, Refusal, Session, held};
 
+pub(super) fn guest_page(
+    session: &mut Session,
+    body: &str,
+    by: Option<String>,
+    up: tisty_core::model::DocId,
+) -> Answer<()> {
+    let file = written(session, body)?;
+    guest_added(session, file, body, by, Some(up)).map(|_| ())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
     pub id: String,
@@ -64,6 +74,7 @@ fn unopened(wrong: &Unopened) -> Refusal {
     }
 }
 
+#[derive(Clone)]
 pub(super) struct Opened {
     pub document: serde_json::Value,
     pub pictures: Vec<Vec<u8>>,
@@ -118,8 +129,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
     })
 }
 
-pub(super) fn kept_here(session: &mut Session, opened: &Opened) -> Received {
-    let data = session.paths.data().to_path_buf();
+pub(super) fn kept_here(data: &std::path::Path, opened: &Opened) -> (Received, Vec<Op>) {
     let room = std::env::temp_dir().join(format!("tisty-received-{}", ulid::Ulid::generate()));
     let mut told = Vec::new();
     let received = tisty_sharing::received(
@@ -131,26 +141,22 @@ pub(super) fn kept_here(session: &mut Session, opened: &Opened) -> Received {
             std::fs::create_dir_all(&room).ok()?;
             let beside = room.join(leaf);
             std::fs::write(&beside, bytes).ok()?;
-            let kept = attach::keep(&beside, &data, attach::COPIED_IN_DOC).ok()?;
+            let kept = attach::keep(&beside, data, attach::COPIED_IN_DOC).ok()?;
             told.push(kept.told(Via::Window));
             Some(attach::leaf_of(&kept.at)?.to_owned())
         },
     );
     let _ = std::fs::remove_dir_all(&room);
-    for op in told {
-        let _ = session.commit(op);
-    }
-    received
+    (received, told)
 }
 
-pub(super) fn guest_doc(
+fn guest_added(
     session: &mut Session,
+    file: String,
     body: &str,
     by: Option<String>,
     page_of: Option<tisty_core::model::DocId>,
-) -> Answer<(tisty_core::model::DocId, String)> {
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
-        .map_err(|_| Refusal::of("folioGarbled"))?;
+) -> Answer<tisty_core::model::DocId> {
     let order = tisty_core::order::last_of(
         session
             .state
@@ -167,7 +173,7 @@ pub(super) fn guest_doc(
             guest: true,
             made: None,
             by,
-            file: made.id.clone(),
+            file,
             order,
             said: Some(tisty_core::event::Said::of(body)),
             folder: None,
@@ -175,14 +181,77 @@ pub(super) fn guest_doc(
             task_of: None,
         },
     })?;
-    Ok((id, made.id))
+    Ok(id)
 }
 
-fn with_its_print(session: &Session, doc: tisty_core::model::DocId, file: &str) -> Option<String> {
+fn written(session: &Session, body: &str) -> Answer<String> {
+    tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
+        .map(|made| made.id)
+        .map_err(|_| Refusal::of("folioGarbled"))
+}
+
+// Pages are written first, so the document's words can point at them as this store does.
+pub(super) fn guests_kept(
+    session: &mut Session,
+    received: &Received,
+    by: Option<String>,
+) -> Answer<(tisty_core::model::DocId, String)> {
+    let files = received
+        .pages
+        .iter()
+        .map(|page| written(session, page))
+        .collect::<Answer<Vec<_>>>()?;
+    let body = files
+        .iter()
+        .enumerate()
+        .rev()
+        .fold(received.body.clone(), |text, (at, file)| {
+            text.replace(
+                &format!("tisty:page/{}", at + 1),
+                &format!("tisty:doc/{file}"),
+            )
+        });
+    let file = written(session, &body)?;
+    let doc = guest_added(session, file.clone(), &body, by.clone(), None)?;
+    for (page, its) in received.pages.iter().zip(files) {
+        guest_added(session, its, page, by.clone(), Some(doc))?;
+    }
+    Ok((doc, file))
+}
+
+fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
+    let files_hash = opened.document["files_hash"].as_str().map(str::to_owned);
+    Remembered {
+        id: link.id.clone(),
+        version: opened.version,
+        link_key: Some(link.key.clone()),
+        files_print: None,
+        files_key: files_hash.as_ref().map(|_| link.key.clone()),
+        files_hash,
+        admin_token: None,
+        edit_token: link.token.clone(),
+        words_print: None,
+        signed_as: None,
+        owner: opened.owner.clone(),
+        owner_name: received.owner_name.clone(),
+        cited: Vec::new(),
+        held_by: None,
+        ttl_days: None,
+        carried: received.carried.clone(),
+    }
+}
+
+// Reading a document whole takes a while, so it never holds the session.
+fn with_its_print(app: &AppHandle, doc: tisty_core::model::DocId, entry: (String, Remembered)) {
+    let session = app.state::<Mutex<Session>>();
+    let (paths, state, also) = {
+        let session = held(&session);
+        (session.paths.clone(), session.state.clone(), session.dest())
+    };
     let desk = Desk {
-        paths: &session.paths,
-        state: &session.state,
-        also: None,
+        paths: &paths,
+        state: &state,
+        also: also.as_deref(),
         turned: &turned,
     };
     let asked = Asked {
@@ -191,44 +260,33 @@ fn with_its_print(session: &Session, doc: tisty_core::model::DocId, file: &str) 
         cited: Vec::new(),
         signed_as: None,
     };
-    let gathered = tisty_sharing::gathered(&desk, &asked).ok()?;
-    gathered.print_of(file)
+    let print = tisty_sharing::gathered(&desk, &asked)
+        .ok()
+        .and_then(|gathered| gathered.print_of(&entry.0));
+    let (file, mut entry) = entry;
+    entry.words_print = print;
+    let _ = held(&session).commit_all(tisty_sharing::sent(&[(file, entry)]));
 }
 
-fn taken_in(session: &mut Session, link: &Link, opened: &Opened) -> Answer<String> {
-    let received = kept_here(session, opened);
+fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
+    let session = app.state::<Mutex<Session>>();
+    let data = held(&session).paths.data().to_path_buf();
+    let (received, told) = kept_here(&data, opened);
     let by = received.owner_name.clone().or(received.signed_as.clone());
-    let (doc, file) = guest_doc(session, &received.body, by.clone(), None)?;
-    for page in &received.pages {
-        guest_doc(session, page, by.clone(), Some(doc))?;
-    }
-    // A link to read only leaves a copy of one's own to change: nothing of it goes back (80).
-    if link.token.is_some() {
-        let entry = Remembered {
-            id: link.id.clone(),
-            version: opened.version,
-            link_key: Some(link.key.clone()),
-            files_print: None,
-            files_hash: opened.document["files_hash"].as_str().map(str::to_owned),
-            files_key: opened.document["files_hash"]
-                .as_str()
-                .map(|_| link.key.clone()),
-            admin_token: None,
-            edit_token: link.token.clone(),
-            words_print: None,
-            signed_as: None,
-            owner: opened.owner.clone(),
-            owner_name: received.owner_name.clone(),
-            cited: Vec::new(),
-            held_by: None,
-        };
-        let as_of_now = (file.clone(), entry);
-        session.commit_all(tisty_sharing::sent(std::slice::from_ref(&as_of_now)))?;
-        if let Some(print) = with_its_print(session, doc, &as_of_now.0) {
-            let (file, mut entry) = as_of_now;
-            entry.words_print = Some(print);
-            session.commit_all(tisty_sharing::sent(&[(file, entry)]))?;
+    let (doc, file) = {
+        let mut session = held(&session);
+        session.commit_all(told)?;
+        let (doc, file) = guests_kept(&mut session, &received, by)?;
+        // A link to read only leaves a copy of one's own to change: nothing of it goes back (80).
+        if link.token.is_some() {
+            let entry = (file.clone(), entry_for(link, opened, &received));
+            session.commit_all(tisty_sharing::sent(&[entry]))?;
         }
+        (doc, file)
+    };
+    if link.token.is_some() {
+        let entry = (file.clone(), entry_for(link, opened, &received));
+        with_its_print(app, doc, entry);
     }
     Ok(file)
 }
@@ -270,11 +328,7 @@ fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<Stri
     if !asked_to_keep(app, spanish, &opened) {
         return Ok(None);
     }
-    let session = app
-        .try_state::<Mutex<Session>>()
-        .ok_or_else(|| Refusal::of("internal"))?;
-    let mut session = held(&session);
-    taken_in(&mut session, &link, &opened).map(Some)
+    taken_in(app, &link, &opened).map(Some)
 }
 
 pub fn bring_apart(app: &AppHandle, web: url::Url) {

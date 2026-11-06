@@ -46,6 +46,7 @@ export interface FolioLimits {
 
 export interface ShareLook {
   secrets: { named: string; under: string | null }[];
+  citedSecrets: { named: string; under: string | null }[];
   name: string | null;
   alias: string | null;
   carrying: {
@@ -74,6 +75,8 @@ export interface ShareCard {
 
 export type Synced =
   | { state: "unchanged" }
+  | { state: "secrets"; place: string; print: string }
+  | { state: "gone" }
   | { state: "sent"; version: number; told: Told[] }
   | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
 
@@ -99,8 +102,8 @@ export const docShared = (
   chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number; seen?: string },
 ): Promise<ShareCard> => invoke("doc_shared", { id, chosen });
 
-export const shareSync = (id: string, anyway = false): Promise<Synced> =>
-  invoke("doc_share_sync", { id, anyway });
+export const shareSync = (id: string, accepted?: string): Promise<Synced> =>
+  invoke("doc_share_sync", { id, accepted });
 
 export const shareStatus = (id: string): Promise<ShareStatus> => invoke("doc_share_status", { id });
 

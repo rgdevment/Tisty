@@ -64,8 +64,8 @@ interface Hands {
   card: ShareCard;
   status: ShareStatus | null;
   minutes: number;
-  anyway: boolean;
-  setAnyway: (anyway: boolean) => void;
+  accepted: string | undefined;
+  setAccepted: (accepted: string | undefined) => void;
   setStatus: (status: ShareStatus | null) => void;
   setTold: (told: string | null) => void;
   setStopping: (stopping: boolean) => void;
@@ -74,7 +74,9 @@ interface Hands {
   onKeep?: () => Promise<unknown> | undefined;
 }
 
-const syncedWords = (synced: Awaited<ReturnType<typeof shareSync>>) => {
+type Told = Exclude<Awaited<ReturnType<typeof shareSync>>, { state: "secrets" | "gone" }>;
+
+const syncedWords = (synced: Told) => {
   if (synced.state === "unchanged") return t("shareSyncUnchanged");
   if (synced.state === "sent")
     return [fill("shareSyncSent", String(synced.version)), ...synced.told.map(toldPlainly)].join(
@@ -84,9 +86,25 @@ const syncedWords = (synced: Awaited<ReturnType<typeof shareSync>>) => {
   return synced.doubtful ? `${other} ${t("shareSyncOtherDoubt")}` : other;
 };
 
-const syncLabel = ({ minutes, anyway }: Hands) => {
+const syncLabel = ({ minutes, accepted }: Hands) => {
   if (minutes) return fill("shareSyncWait", String(minutes));
-  return t(anyway ? "shareGoAnyway" : "shareSync");
+  return t(accepted ? "shareGoAnyway" : "shareSync");
+};
+
+const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) => {
+  if (synced.state === "secrets") {
+    h.setAccepted(synced.print);
+    h.setTold(fill("shareSecretsSync", synced.place));
+    return;
+  }
+  h.setAccepted(undefined);
+  if (synced.state === "gone") {
+    h.setCard(null);
+    h.setStatus(null);
+    h.setTold(t("folioGone"));
+    return;
+  }
+  h.setTold(syncedWords(synced));
 };
 
 const syncAct = (h: Hands): Act => ({
@@ -97,11 +115,8 @@ const syncAct = (h: Hands): Act => ({
   onPick: () => {
     h.setTold(null);
     void Promise.resolve(h.onKeep?.())
-      .then(() => shareSync(h.doc, h.anyway))
-      .then((synced) => {
-        h.setAnyway(false);
-        h.setTold(syncedWords(synced));
-      })
+      .then(() => shareSync(h.doc, h.accepted))
+      .then((synced) => syncAnswered(h, synced))
       .catch(h.failing);
   },
 });
@@ -172,7 +187,7 @@ export const useSharedRow = (
   const [card, setCard] = useState<ShareCard | null>(null);
   const [asking, setAsking] = useState(false);
   const [termsOnly, setTermsOnly] = useState(false);
-  const [anyway, setAnyway] = useState(false);
+  const [accepted, setAccepted] = useState<string | undefined>(undefined);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
   const [stopping, setStopping] = useState(false);
@@ -184,7 +199,7 @@ export const useSharedRow = (
     setTold(null);
     setStatus(null);
     setStopping(false);
-    setAnyway(false);
+    setAccepted(undefined);
     if (!doc) return;
     shareCard(doc)
       .then((now) => {
@@ -211,9 +226,10 @@ export const useSharedRow = (
         setTold(t("shareSyncAfterTerms"));
         return;
       }
-      if (code === "folioSecrets") {
-        setAnyway(true);
-        setTold(fill("shareSecretsSync", (problem as { name?: string }).name ?? ""));
+      if (code === "folioGone") {
+        setCard(null);
+        setStatus(null);
+        setTold(t("folioGone"));
         return;
       }
       if (code === "folioWait" && untilOf(problem) > 0) {
@@ -234,7 +250,7 @@ export const useSharedRow = (
         label: t("sharedLabel"),
         gist: t("sharedNot"),
         open: true,
-        said: [t("sharedWhy")],
+        said: told ? [told, t("sharedWhy")] : [t("sharedWhy")],
         acts: [
           {
             key: "share",
@@ -264,8 +280,8 @@ export const useSharedRow = (
       card,
       status,
       minutes,
-      anyway,
-      setAnyway,
+      accepted,
+      setAccepted,
       setStatus,
       setTold,
       setStopping,
@@ -284,7 +300,7 @@ export const useSharedRow = (
       links: linksOf(card, status),
       acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
     };
-  }, [doc, card, status, told, stopping, waitUntil, anyway, onKeep, failing]);
+  }, [doc, card, status, told, stopping, waitUntil, accepted, onKeep, failing]);
 
   return {
     panel,

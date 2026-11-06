@@ -279,6 +279,7 @@ function Choosing({
   const [asked, setAsked] = useState("");
   const [days, setDays] = useState(look.limits.ttl_days?.[0] ?? DAYS_FALLBACK[0]);
   const [cites, setCites] = useState(false);
+  const secrets = cites ? [...look.secrets, ...look.citedSecrets] : look.secrets;
   const others = look.shared.filter((one) => one.doc !== doc);
   const already = others.length !== look.shared.length;
   const most = look.limits.shares_at_most;
@@ -337,21 +338,21 @@ function Choosing({
             <span className="text-[11.5px] leading-relaxed text-soft">{t("shareOverWhy")}</span>
           </div>
         )}
-        {look.secrets.length > 0 && (
+        {secrets.length > 0 && (
           <div
             role="alert"
             className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
           >
             <span className="text-[13px] font-semibold text-hue-amber">{t("shareSecrets")}</span>
             <ul className="text-[12.5px]">
-              {look.secrets.slice(0, SECRETS_SHOWN).map((one) => (
+              {secrets.slice(0, SECRETS_SHOWN).map((one) => (
                 <li key={`${one.under}:${one.named}`}>
                   {one.under ? fill("shareSecretUnder", one.under) : t("shareSecretTop")}
                   {one.named && <code className="ml-1.5 font-mono text-[11.5px]">{one.named}</code>}
                 </li>
               ))}
-              {look.secrets.length > SECRETS_SHOWN && (
-                <li>{fill("shareSecretsMore", String(look.secrets.length - SECRETS_SHOWN))}</li>
+              {secrets.length > SECRETS_SHOWN && (
+                <li>{fill("shareSecretsMore", String(secrets.length - SECRETS_SHOWN))}</li>
               )}
             </ul>
             <span className="text-[11.5px] leading-relaxed text-soft">{t("shareSecretsWhy")}</span>
@@ -493,7 +494,7 @@ function Choosing({
             }
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
           >
-            {t(look.secrets.length > 0 ? "shareGoAnyway" : "shareGo")}
+            {t(secrets.length > 0 ? "shareGoAnyway" : "shareGo")}
           </button>
         </div>
       </div>

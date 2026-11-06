@@ -214,7 +214,6 @@ const KNOWN = [
   "folioGone",
   "folioRefused",
   "folioChanged",
-  "folioSecrets",
   "folioUnopened",
   "folioAppealed",
   "folioTermsNotPublished",

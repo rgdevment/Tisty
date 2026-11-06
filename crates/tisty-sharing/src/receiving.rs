@@ -1,5 +1,7 @@
 use serde_json::Value;
 
+pub const CARRIED_CITED: &str = "folio-cited-";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Received {
     pub title: Option<String>,
@@ -7,6 +9,27 @@ pub struct Received {
     pub pages: Vec<String>,
     pub owner_name: Option<String>,
     pub signed_as: Option<String>,
+    pub carried: Option<String>,
+}
+
+// Nobody here holds what a document's other languages and cited documents are, only how readers reach them.
+fn carried_from(document: &Value) -> Option<String> {
+    let (languages, cited) = (&document["languages"], &document["cited"]);
+    (!languages.is_null() || !cited.is_null())
+        .then(|| serde_json::json!({ "languages": languages, "cited": cited }).to_string())
+}
+
+fn cited_places(document: &Value) -> Vec<(String, String)> {
+    let many = document["cited"].as_array().map_or(0, Vec::len);
+    (0..many)
+        .rev()
+        .map(|at| {
+            (
+                format!("tisty:cited/{at}"),
+                format!("tisty:doc/{CARRIED_CITED}{at}"),
+            )
+        })
+        .collect()
 }
 
 fn said(value: &Value, field: &str) -> Option<String> {
@@ -57,6 +80,7 @@ pub fn received(
 ) -> Received {
     let mut places = places_kept(document, "pictures", "tisty:picture/", pictures, keep);
     places.extend(places_kept(document, "files", "tisty:file/", files, keep));
+    places.extend(cited_places(document));
     let body = document["body"].as_str().unwrap_or_default();
     let pages = document["pages"]
         .as_array()
@@ -71,6 +95,7 @@ pub fn received(
         pages,
         owner_name: said(document, "owner_name"),
         signed_as: said(document, "signed_as"),
+        carried: carried_from(document),
     }
 }
 

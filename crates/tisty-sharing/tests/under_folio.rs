@@ -204,6 +204,11 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         owner_name: arrived.document["owner_name"].as_str().map(str::to_owned),
         cited: Vec::new(),
         held_by: None,
+        ttl_days: None,
+        carried: Some(
+            r#"{"languages":[{"lang":"en","document":"Lang1111","key":"k"}],"cited":null}"#
+                .to_owned(),
+        ),
     };
     editor.sent(&[(file, entry)]);
 
@@ -226,6 +231,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
     assert_ne!(read.signer, arrived.signer);
     assert_eq!(second.remembering[0].1.version, 2);
     assert_eq!(second.remembering[0].1.admin_token, None);
+    assert_eq!(read.document["languages"][0]["document"], "Lang1111");
 }
 
 #[test]
@@ -248,4 +254,64 @@ fn the_document_that_was_shared_is_held_by_nothing() {
     );
 
     assert_eq!(sealed.remembering[0].1.held_by, None);
+}
+
+#[test]
+fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
+    let (_tmp, mut home, doc) = written();
+    let body = "# Una página\n\nPalabras.\n";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    home.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "a9".to_owned(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            wrote: None,
+            made: None,
+            by: None,
+            folder: None,
+            page_of: Some(doc),
+            task_of: None,
+        },
+    });
+    let file = home.state.docs[&doc].file.clone();
+    let mut entry = Remembered {
+        id: GIVEN.to_owned(),
+        version: 1,
+        link_key: Some("a".repeat(43)),
+        files_print: None,
+        files_hash: None,
+        files_key: None,
+        admin_token: None,
+        edit_token: Some("b".repeat(43)),
+        words_print: None,
+        signed_as: None,
+        owner: None,
+        owner_name: None,
+        cited: Vec::new(),
+        held_by: None,
+        ttl_days: None,
+        carried: None,
+    };
+    entry.link_key = reading_key();
+    home.sent(&[(file, entry)]);
+    let nobody = || Err(Unshared::Unread("it has its id".to_owned()));
+
+    let gathered = under_folio(
+        &home,
+        doc,
+        &Under {
+            mint: &nobody,
+            editable: false,
+        },
+    )
+    .unwrap();
+
+    assert!(gathered.told().is_empty(), "{:?}", gathered.told());
+}
+
+fn reading_key() -> Option<String> {
+    tisty_envelope::sealing::link_key().ok()
 }

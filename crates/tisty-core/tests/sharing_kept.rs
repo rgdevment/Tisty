@@ -17,6 +17,8 @@ fn one(version: u64) -> Remembered {
         owner_name: None,
         cited: Vec::new(),
         held_by: None,
+        ttl_days: None,
+        carried: None,
     }
 }
 
@@ -60,21 +62,37 @@ fn an_older_version_from_another_computer_never_replaces_a_newer_one() {
 }
 
 #[test]
-fn a_stopped_share_is_forgotten_and_a_new_one_may_start_lower() {
+fn a_stopped_share_is_forgotten_and_another_computers_late_word_does_not_bring_it_back() {
     let (_tmp, paths, mut store) = opened();
     store.append(kept(3)).unwrap();
     store
         .append(Op::SharingForgotten {
             file: "file".to_owned(),
+            stopped: Some("Ab3xK9pQ".to_owned()),
         })
         .unwrap();
+    store.append(kept(4)).unwrap();
 
-    let gone = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
-    assert!(gone.sharing.is_empty());
+    let state = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+    assert!(state.sharing.is_empty());
+    let again = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+    assert!(again.sharing_stopped.contains("Ab3xK9pQ"));
+}
 
-    store.append(kept(1)).unwrap();
-    let back = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
-    assert_eq!(back.sharing["file"].version, 1);
+#[test]
+fn leaving_a_link_one_only_edited_lets_it_come_back() {
+    let (_tmp, paths, mut store) = opened();
+    store.append(kept(3)).unwrap();
+    store
+        .append(Op::SharingForgotten {
+            file: "file".to_owned(),
+            stopped: None,
+        })
+        .unwrap();
+    store.append(kept(3)).unwrap();
+
+    let state = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+    assert_eq!(state.sharing["file"].version, 3);
 }
 
 #[test]
@@ -82,7 +100,8 @@ fn an_earlier_build_is_told_it_may_skip_them() {
     assert!(kept(1).is_optional());
     assert!(
         Op::SharingForgotten {
-            file: "file".to_owned()
+            file: "file".to_owned(),
+            stopped: None,
         }
         .is_optional()
     );

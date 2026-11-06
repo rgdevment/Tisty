@@ -1,9 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+use serde::Deserialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use tisty_contracts::{Attachment, Document, Orientation, Page, Paper, Sealing, Sheet};
+use tisty_contracts::{
+    Attachment, Cited, Document, Orientation, Page, Paper, Sealing, Sheet, Translation,
+};
 use tisty_core::model::{DocId, Kept};
 use tisty_core::{Paths, State, docs, person};
 use tisty_envelope::clean;
@@ -13,7 +16,7 @@ use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, read
 use tisty_share_proto::identity::{Certificate, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
-use crate::{Remembered, Unshared, remembered};
+use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
@@ -31,6 +34,18 @@ pub struct Asked {
     pub public: bool,
     pub cited: Vec<DocId>,
     pub signed_as: Option<String>,
+}
+
+#[derive(Default, Deserialize)]
+struct Carried {
+    languages: Option<Vec<Translation>>,
+    cited: Option<Vec<Cited>>,
+}
+
+fn carried_by(was: Option<&Remembered>) -> Carried {
+    was.and_then(|one| one.carried.as_deref())
+        .and_then(|said| serde_json::from_str(said).ok())
+        .unwrap_or_default()
 }
 
 pub struct Under<'a> {
@@ -303,8 +318,13 @@ impl Gathering<'_> {
         let state = self.desk.state;
         let root = self.desk.paths.docs();
         let mut out = Vec::new();
+        let edits_through_a_link = self
+            .shelf
+            .get(&kept.file)
+            .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let stays = page.guest || state.shut(page.id) || state.held_away(page);
+            let not_ours = page.guest && !edits_through_a_link;
+            let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
                 .flatten();
@@ -377,9 +397,13 @@ impl Gathering<'_> {
             let page = pages.iter().position(|page| {
                 page.file == *name || docs::titled(&page.body).eq_ignore_ascii_case(name)
             });
-            let reached = match page {
-                Some(at) => Some(Reached::Page(at as u64 + 1)),
-                None => self
+            let carried = name
+                .strip_prefix(CARRIED_CITED)
+                .and_then(|at| at.parse().ok());
+            let reached = match (page, carried) {
+                (Some(at), _) => Some(Reached::Page(at as u64 + 1)),
+                (None, Some(at)) => Some(Reached::Cited(at)),
+                (None, None) => self
                     .cited_place(name, chosen, &mut cites)?
                     .map(Reached::Cited),
             };
@@ -399,6 +423,7 @@ impl Gathering<'_> {
             None => Some(link_key()?),
         };
         let its_owner = was.and_then(|one| one.owner.clone());
+        let carried = carried_by(was);
         let owner_name = match (&its_owner, was) {
             (Some(_), Some(one)) => one.owner_name.clone(),
             _ => self.signed_as.clone().filter(|_| !self.public),
@@ -417,6 +442,8 @@ impl Gathering<'_> {
                 owner_name: owner_name.clone(),
                 cited: was.map_or_else(Vec::new, |one| one.cited.clone()),
                 held_by: None,
+                ttl_days: was.and_then(|one| one.ttl_days),
+                carried: was.and_then(|one| one.carried.clone()),
                 edit_token: sealing.token.clone(),
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),
@@ -446,8 +473,8 @@ impl Gathering<'_> {
             pictures: (!packed.said_pictures.is_empty()).then_some(packed.said_pictures),
             files: (!packed.said_files.is_empty()).then_some(packed.said_files),
             files_hash: None,
-            cited: None,
-            languages: None,
+            cited: carried.cited,
+            languages: carried.languages,
         };
         Ok(Tongue {
             document,

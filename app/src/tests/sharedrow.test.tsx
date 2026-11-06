@@ -243,11 +243,11 @@ describe("the Shared row", () => {
 });
 
 describe("what Sync warns of", () => {
-  it("names a key it found and sends only once told to", async () => {
-    invoked.mockImplementation((command: string, asked: { anyway?: boolean }) => {
+  it("names a key it found and sends only what the answer was about", async () => {
+    invoked.mockImplementation((command: string, asked: { accepted?: string }) => {
       if (command === "doc_share_card") return Promise.resolve(card);
-      if (asked.anyway) return Promise.resolve({ state: "sent", version: 2, told: [] });
-      return Promise.reject({ code: "folioSecrets", name: "Reservas" });
+      if (asked.accepted === "p1") return Promise.resolve({ state: "sent", version: 2, told: [] });
+      return Promise.resolve({ state: "secrets", place: "Reservas", print: "p1" });
     });
     const { result } = renderHook(() => useSharedRow("d1"));
     const row = () => {
@@ -266,10 +266,20 @@ describe("what Sync warns of", () => {
     await press();
     await waitFor(() => expect(row().said).toContain(fill("shareSecretsSync", "Reservas")));
     expect(row().acts?.find((one) => one.key === "sync")?.label).toBe(t("shareGoAnyway"));
+    expect(invoked).not.toHaveBeenCalledWith("doc_share_sync", { id: "d1", accepted: "other" });
 
     await press();
     await waitFor(() => expect(row().said).toContain(fill("shareSyncSent", "2")));
-    expect(invoked).toHaveBeenCalledWith("doc_share_sync", { id: "d1", anyway: true });
+    expect(invoked).toHaveBeenCalledWith("doc_share_sync", { id: "d1", accepted: "p1" });
+  });
+
+  it("forgets a link that ran out and says so", async () => {
+    const { panel, pressed } = await held(card, { doc_share_sync: { state: "gone" } });
+
+    await pressed("sync");
+
+    await waitFor(() => expect(panel().gist).toBe(t("sharedNot")));
+    expect(panel().said).toContain(t("folioGone"));
   });
 
   it("says what stayed out and when a signature is in doubt", async () => {

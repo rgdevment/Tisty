@@ -17,9 +17,12 @@ pub fn sent(went: &[(String, Remembered)]) -> Vec<Op> {
         .collect()
 }
 
-pub fn forgotten(files: &[String]) -> Vec<Op> {
-    files
-        .iter()
-        .map(|file| Op::SharingForgotten { file: file.clone() })
+// Only what its owner stopped stays stopped: whoever edits through a link may be handed it again.
+pub fn forgotten(gone: &[(String, Remembered)]) -> Vec<Op> {
+    gone.iter()
+        .map(|(file, was)| Op::SharingForgotten {
+            file: file.clone(),
+            stopped: was.admin_token.as_ref().map(|_| was.id.clone()),
+        })
         .collect()
 }

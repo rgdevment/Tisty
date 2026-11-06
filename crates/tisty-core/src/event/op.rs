@@ -130,6 +130,10 @@ pub struct Remembered {
     pub cited: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub held_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_days: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carried: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -300,7 +304,11 @@ pub enum Op {
     SharingKept { file: String, d: Remembered },
 
     #[serde(rename = "sharing.forgotten")]
-    SharingForgotten { file: String },
+    SharingForgotten {
+        file: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stopped: Option<String>,
+    },
 
     #[serde(rename = "attach.kept")]
     AttachKept { d: Held },

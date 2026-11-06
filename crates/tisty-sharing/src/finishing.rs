@@ -86,6 +86,13 @@ impl Gathered {
         }
     }
 
+    pub fn whole_print(&self) -> String {
+        self.remembering
+            .iter()
+            .filter_map(|(_, one)| one.words_print.as_deref())
+            .collect()
+    }
+
     pub fn print_of(&self, file: &str) -> Option<String> {
         let (_, now) = self.remembering.iter().find(|(at, _)| at == file)?;
         now.words_print.clone()

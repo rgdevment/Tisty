@@ -14,6 +14,7 @@ vi.mock("../core", async (original) => ({
 
 const look = {
   secrets: [],
+  citedSecrets: [],
   name: "Rina Soto",
   alias: "rina",
   carrying: { pages: 1, pictures: 0, picturesBytes: 0, files: 0, filesBytes: 0 },
@@ -126,6 +127,26 @@ describe("sharing a document with Folio", () => {
 
     await screen.findByRole("button", { name: t("shareGoAnyway") });
     expect(screen.getByText("api_key")).toBeTruthy();
+  });
+
+  it("warns of a secret in what it cites only once that is going along", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: {
+        ...look,
+        cited: ["d2"],
+        citedSecrets: [{ named: "api_key", under: "Reservas" }],
+      },
+    });
+    shown();
+
+    await screen.findByRole("button", { name: t("shareGo") });
+    expect(screen.queryByText("api_key")).toBeNull();
+
+    await userEvent.click(screen.getByRole("checkbox"));
+
+    expect(screen.getByText("api_key")).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("shareGoAnyway") })).toBeTruthy();
   });
 
   it("will not share past what Folio takes", async () => {

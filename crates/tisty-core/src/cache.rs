@@ -216,6 +216,7 @@ impl Cache {
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.sharing = serde_json::from_str(&self.meta("sharing")?).ok()?;
+        state.sharing_stopped = serde_json::from_str(&self.meta("sharing_stopped")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -380,7 +381,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?), ('sharing_stopped', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -402,6 +403,7 @@ impl Cache {
                     serde_json::to_string(&state.sealed).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
                     serde_json::to_string(&state.sharing).unwrap_or_default(),
+                    serde_json::to_string(&state.sharing_stopped).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
