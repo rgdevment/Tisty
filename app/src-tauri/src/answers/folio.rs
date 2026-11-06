@@ -187,6 +187,12 @@ pub async fn folio_terms_standing(session: tauri::State<'_, Mutex<Session>>) -> 
     apart(move || terms_now(&home, tongue)).await
 }
 
+// Folio writes them for any Markdown reader, cut at a column, and Tisty's own reading would keep each cut as a break.
+#[tauri::command(async)]
+pub fn folio_terms_drawn(text: String) -> String {
+    tisty_markdown::html(&tisty_markdown::read_file(&text))
+}
+
 #[tauri::command]
 pub fn folio_terms_accept(
     session: tauri::State<'_, Mutex<Session>>,

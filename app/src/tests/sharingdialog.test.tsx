@@ -30,7 +30,7 @@ const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) => {
     if (command in answers) return Promise.resolve(answers[command]);
     if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
-    if (command === "help_drawn") return Promise.resolve("<p>Los términos</p>");
+    if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
     return Promise.reject({ code: "internal" });
   });
 

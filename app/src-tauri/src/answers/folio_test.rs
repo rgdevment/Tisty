@@ -8,7 +8,8 @@ use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, card_of, counted_as_shared, delivered, going_with, headings_over, may_start, said,
+    Card, card_of, counted_as_shared, delivered, folio_terms_drawn, going_with, headings_over,
+    may_start, said,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -297,4 +298,15 @@ fn only_an_open_folio_lets_a_new_share_start() {
         may_start(SharingNow::Unreached).unwrap_err().code,
         "folioUnreached"
     );
+}
+
+#[test]
+fn terms_cut_at_a_column_read_as_paragraphs_under_their_headings() {
+    let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n";
+
+    let drawn = folio_terms_drawn(terms.to_owned());
+
+    assert!(drawn.contains("<h2"), "{drawn}");
+    assert!(drawn.contains("<ul"), "{drawn}");
+    assert!(!drawn.contains("<br"), "{drawn}");
 }

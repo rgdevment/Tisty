@@ -2,7 +2,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copied } from "../core";
 import { weigh } from "../format";
-import { helpDrawn } from "../guide/calls";
 import { fill, locale, t } from "../locales";
 import {
   docShared,
@@ -14,6 +13,7 @@ import {
   sharingNow,
   type TermsNow,
   termsAccepted,
+  termsDrawn,
   termsNow,
   toldPlainly,
 } from "../sharing";
@@ -57,7 +57,7 @@ function Terms({
 
   useEffect(() => {
     let live = true;
-    helpDrawn(terms.text)
+    termsDrawn(terms.text)
       .then((html) => {
         if (live) setDrawn(html);
       })
@@ -100,7 +100,7 @@ function Terms({
       <div className="flex flex-col gap-4">
         <div
           ref={box}
-          className="scroller max-h-[306px] rounded-[10px] border border-hair bg-sheet px-4 py-3.5 text-[12.5px] leading-relaxed"
+          className="prose scroller max-h-[306px] rounded-[10px] border border-hair bg-sheet px-4 py-3.5 text-[12.5px] leading-relaxed"
         />
         <label className="flex cursor-pointer items-start gap-2 text-[12.5px]">
           <input

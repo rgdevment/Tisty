@@ -131,6 +131,8 @@ export const sharingNow = (): Promise<SharingNow> => invoke("folio_sharing_now")
 
 export const termsNow = (): Promise<TermsNow> => invoke("folio_terms_standing");
 
+export const termsDrawn = (text: string): Promise<string> => invoke("folio_terms_drawn", { text });
+
 export const termsAccepted = (version: string): Promise<void> =>
   invoke("folio_terms_accept", { version });
 
