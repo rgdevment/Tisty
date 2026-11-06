@@ -60,6 +60,7 @@ export interface ShareLook {
   shared: { doc: string; title: string }[];
   limits: FolioLimits;
   told: Told[];
+  seen: string | null;
 }
 
 export interface ShareCard {
@@ -67,12 +68,14 @@ export interface ShareCard {
   edit: string | null;
   version: number;
   taken: boolean;
+  held: boolean;
+  told: Told[];
 }
 
 export type Synced =
   | { state: "unchanged" }
-  | { state: "sent"; version: number }
-  | { state: "otherVersion"; version: number; signer: string };
+  | { state: "sent"; version: number; told: Told[] }
+  | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
 
 export interface ShareStatus {
   diesOn: number;
@@ -93,10 +96,11 @@ export const shareCard = (id: string): Promise<ShareCard | null> =>
 
 export const docShared = (
   id: string,
-  chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number },
-): Promise<ShareCard> => invoke("doc_shared", { id, ...chosen });
+  chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number; seen?: string },
+): Promise<ShareCard> => invoke("doc_shared", { id, chosen });
 
-export const shareSync = (id: string): Promise<Synced> => invoke("doc_share_sync", { id });
+export const shareSync = (id: string, anyway = false): Promise<Synced> =>
+  invoke("doc_share_sync", { id, anyway });
 
 export const shareStatus = (id: string): Promise<ShareStatus> => invoke("doc_share_status", { id });
 

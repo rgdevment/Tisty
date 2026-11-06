@@ -11,6 +11,7 @@ import {
   shareStatus,
   shareStop,
   shareSync,
+  toldPlainly,
 } from "../sharing";
 
 const DAY_MS = 86_400_000;
@@ -63,6 +64,8 @@ interface Hands {
   card: ShareCard;
   status: ShareStatus | null;
   minutes: number;
+  anyway: boolean;
+  setAnyway: (anyway: boolean) => void;
   setStatus: (status: ShareStatus | null) => void;
   setTold: (told: string | null) => void;
   setStopping: (stopping: boolean) => void;
@@ -73,20 +76,32 @@ interface Hands {
 
 const syncedWords = (synced: Awaited<ReturnType<typeof shareSync>>) => {
   if (synced.state === "unchanged") return t("shareSyncUnchanged");
-  if (synced.state === "sent") return fill("shareSyncSent", String(synced.version));
-  return fill("shareSyncOther", String(synced.version), synced.signer);
+  if (synced.state === "sent")
+    return [fill("shareSyncSent", String(synced.version)), ...synced.told.map(toldPlainly)].join(
+      " ",
+    );
+  const other = fill("shareSyncOther", String(synced.version), synced.signer);
+  return synced.doubtful ? `${other} ${t("shareSyncOtherDoubt")}` : other;
+};
+
+const syncLabel = ({ minutes, anyway }: Hands) => {
+  if (minutes) return fill("shareSyncWait", String(minutes));
+  return t(anyway ? "shareGoAnyway" : "shareSync");
 };
 
 const syncAct = (h: Hands): Act => ({
   key: "sync",
-  label: h.minutes ? fill("shareSyncWait", String(h.minutes)) : t("shareSync"),
+  label: syncLabel(h),
   main: true,
   off: Boolean(h.status?.blocked || h.status?.paused || h.minutes > 0),
   onPick: () => {
     h.setTold(null);
     void Promise.resolve(h.onKeep?.())
-      .then(() => shareSync(h.doc))
-      .then((synced) => h.setTold(syncedWords(synced)))
+      .then(() => shareSync(h.doc, h.anyway))
+      .then((synced) => {
+        h.setAnyway(false);
+        h.setTold(syncedWords(synced));
+      })
       .catch(h.failing);
   },
 });
@@ -156,6 +171,8 @@ export const useSharedRow = (
 ) => {
   const [card, setCard] = useState<ShareCard | null>(null);
   const [asking, setAsking] = useState(false);
+  const [termsOnly, setTermsOnly] = useState(false);
+  const [anyway, setAnyway] = useState(false);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
   const [stopping, setStopping] = useState(false);
@@ -167,6 +184,7 @@ export const useSharedRow = (
     setTold(null);
     setStatus(null);
     setStopping(false);
+    setAnyway(false);
     if (!doc) return;
     shareCard(doc)
       .then((now) => {
@@ -188,7 +206,14 @@ export const useSharedRow = (
     (problem: unknown) => {
       const code = codeOf(problem);
       if (code === "folioTermsToAccept") {
+        setTermsOnly(true);
         setAsking(true);
+        setTold(t("shareSyncAfterTerms"));
+        return;
+      }
+      if (code === "folioSecrets") {
+        setAnyway(true);
+        setTold(fill("shareSecretsSync", (problem as { name?: string }).name ?? ""));
         return;
       }
       if (code === "folioWait" && untilOf(problem) > 0) {
@@ -215,9 +240,23 @@ export const useSharedRow = (
             key: "share",
             label: t("shareIt"),
             main: true,
-            onPick: () => void Promise.resolve(onKeep?.()).finally(() => setAsking(true)),
+            onPick: () =>
+              void Promise.resolve(onKeep?.()).finally(() => {
+                setTermsOnly(false);
+                setAsking(true);
+              }),
           },
         ],
+      };
+    if (card.held)
+      return {
+        kind: "held",
+        key: "shared",
+        label: t("sharedLabel"),
+        gist: t("sharedHeldGist"),
+        open: true,
+        said: [t("sharedHeldWhy")],
+        links: linksOf(card, status),
       };
     const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / MINUTE_MS)) : 0;
     const hands: Hands = {
@@ -225,6 +264,8 @@ export const useSharedRow = (
       card,
       status,
       minutes,
+      anyway,
+      setAnyway,
       setStatus,
       setTold,
       setStopping,
@@ -243,12 +284,19 @@ export const useSharedRow = (
       links: linksOf(card, status),
       acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
     };
-  }, [doc, card, status, told, stopping, waitUntil, onKeep, failing]);
+  }, [doc, card, status, told, stopping, waitUntil, anyway, onKeep, failing]);
 
   return {
     panel,
     asking,
+    termsOnly,
     onShared: (now: ShareCard) => setCard(now),
-    onClosed: () => setAsking(false),
+    onClosed: () => {
+      setAsking(false);
+      if (doc)
+        void shareCard(doc)
+          .then(setCard)
+          .catch(() => {});
+    },
   };
 };

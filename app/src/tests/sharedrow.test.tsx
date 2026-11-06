@@ -11,7 +11,14 @@ vi.mock("../core", async (original) => ({
   copied: copying,
 }));
 
-const card = { read: "https://tisty.cl/a#k", edit: null, version: 1, taken: false };
+const card = {
+  read: "https://tisty.cl/a#k",
+  edit: null,
+  version: 1,
+  taken: false,
+  held: false,
+  told: [],
+};
 const status = { diesOn: 20_000, paused: false, blocked: false, reads: 3 };
 
 const answering = (answers: Record<string, unknown>) =>
@@ -82,9 +89,9 @@ describe("the Shared row", () => {
 
   it.each([
     [{ state: "unchanged" }, () => t("shareSyncUnchanged")],
-    [{ state: "sent", version: 2 }, () => fill("shareSyncSent", "2")],
+    [{ state: "sent", version: 2, told: [] }, () => fill("shareSyncSent", "2")],
     [
-      { state: "otherVersion", version: 3, signer: "Ana" },
+      { state: "otherVersion", version: 3, signer: "Ana", doubtful: false },
       () => fill("shareSyncOther", "3", "Ana"),
     ],
   ])("says what Sync did: %j", async (synced, words) => {
@@ -232,5 +239,77 @@ describe("the Shared row", () => {
     await pressed("stop");
 
     await waitFor(() => expect(panel().gist).toBe(t("sharedNot")));
+  });
+});
+
+describe("what Sync warns of", () => {
+  it("names a key it found and sends only once told to", async () => {
+    invoked.mockImplementation((command: string, asked: { anyway?: boolean }) => {
+      if (command === "doc_share_card") return Promise.resolve(card);
+      if (asked.anyway) return Promise.resolve({ state: "sent", version: 2, told: [] });
+      return Promise.reject({ code: "folioSecrets", name: "Reservas" });
+    });
+    const { result } = renderHook(() => useSharedRow("d1"));
+    const row = () => {
+      const now = result.current.panel;
+      if (now?.kind !== "held") throw new Error("no row");
+      return now;
+    };
+    await waitFor(() => expect(row().links?.length).toBe(1));
+    const press = () =>
+      act(async () => {
+        row()
+          .acts?.find((one) => one.key === "sync")
+          ?.onPick?.(document.body);
+      });
+
+    await press();
+    await waitFor(() => expect(row().said).toContain(fill("shareSecretsSync", "Reservas")));
+    expect(row().acts?.find((one) => one.key === "sync")?.label).toBe(t("shareGoAnyway"));
+
+    await press();
+    await waitFor(() => expect(row().said).toContain(fill("shareSyncSent", "2")));
+    expect(invoked).toHaveBeenCalledWith("doc_share_sync", { id: "d1", anyway: true });
+  });
+
+  it("says what stayed out and when a signature is in doubt", async () => {
+    const { panel, pressed } = await held(card, {
+      doc_share_sync: { state: "otherVersion", version: 3, signer: "Ana", doubtful: true },
+    });
+
+    await pressed("sync");
+
+    await waitFor(() => expect(panel().said?.join(" ")).toContain(t("shareSyncOtherDoubt")));
+  });
+
+  it("leaves nothing to manage in what another share holds", async () => {
+    const { panel } = await held({ ...card, held: true });
+
+    expect(panel().gist).toBe(t("sharedHeldGist"));
+    expect(panel().acts).toBeUndefined();
+    expect(panel().links?.length).toBe(1);
+  });
+
+  it("asks only for the terms when Sync finds them changed", async () => {
+    invoked.mockImplementation((command: string) =>
+      command === "doc_share_card"
+        ? Promise.resolve(card)
+        : Promise.reject({ code: "folioTermsToAccept" }),
+    );
+    const { result } = renderHook(() => useSharedRow("d1"));
+    await waitFor(() => {
+      const now = result.current.panel;
+      expect(now?.kind === "held" && now.links?.length).toBe(1);
+    });
+
+    await act(async () => {
+      const now = result.current.panel;
+      if (now?.kind === "held")
+        now.acts?.find((one) => one.key === "sync")?.onPick?.(document.body);
+    });
+
+    await waitFor(() => expect(result.current.termsOnly).toBe(true));
+    act(() => result.current.onClosed());
+    expect(result.current.asking).toBe(false);
   });
 });

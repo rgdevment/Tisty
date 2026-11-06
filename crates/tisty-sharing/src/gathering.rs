@@ -416,7 +416,7 @@ impl Gathering<'_> {
                 owner: its_owner,
                 owner_name: owner_name.clone(),
                 cited: was.map_or_else(Vec::new, |one| one.cited.clone()),
-                held: false,
+                held_by: None,
                 edit_token: sealing.token.clone(),
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),

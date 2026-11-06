@@ -13,6 +13,7 @@ import {
   type TermsNow,
   termsAccepted,
   termsNow,
+  toldPlainly,
 } from "../sharing";
 import Modal from "./Modal";
 
@@ -170,6 +171,18 @@ function LinkLine({ label, url }: Readonly<{ label: string; url: string }>) {
   );
 }
 
+function LeftOut({ told }: Readonly<{ told: ShareCard["told"] }>) {
+  if (told.length === 0) return null;
+  return (
+    <ul className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5 text-[12.5px]">
+      {told.map((one) => {
+        const said = toldPlainly(one);
+        return <li key={said}>{said}</li>;
+      })}
+    </ul>
+  );
+}
+
 function Done({ card, onClose }: Readonly<{ card: ShareCard; onClose: () => void }>) {
   return (
     <Modal title={t("sharedDone")} onClose={onClose} wide>
@@ -177,6 +190,7 @@ function Done({ card, onClose }: Readonly<{ card: ShareCard; onClose: () => void
       <div className="flex flex-col gap-4">
         <Links card={card} />
         <p className="text-[11.5px] leading-relaxed text-faint">{t("sharedDoneKey")}</p>
+        <LeftOut told={card.told} />
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -245,6 +259,7 @@ function Choosing({
   doc,
   title,
   look,
+  changed,
   onShare,
   onClose,
   onLookAgain,
@@ -253,12 +268,8 @@ function Choosing({
   doc: string;
   title: string;
   look: ShareLook;
-  onShare: (chosen: {
-    cited: string[];
-    signedAs?: string;
-    editable: boolean;
-    ttlDays: number;
-  }) => void;
+  changed: boolean;
+  onShare: (chosen: Parameters<typeof docShared>[1]) => void;
   onClose: () => void;
   onLookAgain: () => void;
   onError?: (problem: unknown) => void;
@@ -315,6 +326,8 @@ function Choosing({
             </span>
           </div>
         )}
+        {changed && <output className="text-[12.5px] text-soft">{t("folioChanged")}</output>}
+        <LeftOut told={look.told} />
         {over && (
           <div
             role="alert"
@@ -475,6 +488,7 @@ function Choosing({
                 signedAs: signedAs?.trim(),
                 editable,
                 ttlDays: days,
+                seen: look.seen ?? undefined,
               })
             }
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
@@ -497,12 +511,14 @@ type Step =
 export default function Sharing({
   doc,
   title,
+  termsOnly = false,
   onShared,
   onClose,
   onError,
 }: Readonly<{
   doc: string;
   title: string;
+  termsOnly?: boolean;
   onShared: (card: ShareCard) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -511,8 +527,9 @@ export default function Sharing({
   const live = useRef(true);
   const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const asked = useRef({ onClose, onError });
-  asked.current = { onClose, onError };
+  const [changed, setChanged] = useState(false);
+  const asked = useRef({ onClose, onError, termsOnly });
+  asked.current = { onClose, onError, termsOnly };
 
   const failed = useCallback((problem: unknown) => {
     asked.current.onClose();
@@ -533,6 +550,7 @@ export default function Sharing({
       .then((terms) => {
         if (!live.current) return;
         if (terms.state === "toAccept") setStep({ at: "terms", terms });
+        else if (asked.current.termsOnly) asked.current.onClose();
         else lookOver();
       })
       .catch(failed);
@@ -568,6 +586,11 @@ export default function Sharing({
           begin();
           return;
         }
+        if (codeOf(problem) === "folioChanged") {
+          setChanged(true);
+          lookOver();
+          return;
+        }
         failed(problem);
       });
   };
@@ -580,13 +603,21 @@ export default function Sharing({
         </Modal>
       );
     case "terms":
-      return <Terms terms={step.terms} onAccepted={lookOver} onLater={onClose} onError={failed} />;
+      return (
+        <Terms
+          terms={step.terms}
+          onAccepted={termsOnly ? onClose : lookOver}
+          onLater={onClose}
+          onError={failed}
+        />
+      );
     case "choosing":
       return (
         <Choosing
           doc={doc}
           title={title}
           look={step.look}
+          changed={changed}
           onShare={share}
           onClose={onClose}
           onLookAgain={lookOver}

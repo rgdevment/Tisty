@@ -36,8 +36,8 @@ pub struct Remembered {
     pub owner_name: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cited: Vec<String>,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub held: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub held_by: Option<String>,
 }
 
 fn shelf_at(paths: &Paths) -> PathBuf {
@@ -55,22 +55,24 @@ pub fn remembered(paths: &Paths) -> Result<BTreeMap<String, Remembered>, Unshare
 
 // Called once the envelopes have reached where they go, and never before: only then can the next version count on them.
 pub fn sent(paths: &Paths, went: &[(String, Remembered)]) -> Result<(), Unshared> {
-    let unwritten = |e: &dyn std::fmt::Display| Unshared::Unwritten(e.to_string());
     let mut shelf = remembered(paths)?;
     shelf.extend(went.iter().cloned());
-    std::fs::create_dir_all(paths.private()).map_err(|e| unwritten(&e))?;
-    let written = serde_json::to_vec(&shelf).map_err(|e| unwritten(&e))?;
-    let at = shelf_at(paths);
-    tisty_core::store::write_atomic(&at, &written).map_err(|e| unwritten(&e))?;
-    tisty_core::paths::ours_alone(&at).map_err(|e| unwritten(&e))
+    written(paths, &shelf)
 }
 
-pub fn forgotten(paths: &Paths, file: &str) -> Result<(), Unshared> {
-    let unwritten = |e: &dyn std::fmt::Display| Unshared::Unwritten(e.to_string());
+pub fn forgotten(paths: &Paths, files: &[String]) -> Result<(), Unshared> {
     let mut shelf = remembered(paths)?;
-    if shelf.remove(file).is_none() {
-        return Ok(());
+    for file in files {
+        shelf.remove(file);
     }
-    let written = serde_json::to_vec(&shelf).map_err(|e| unwritten(&e))?;
-    tisty_core::store::write_atomic(&shelf_at(paths), &written).map_err(|e| unwritten(&e))
+    written(paths, &shelf)
+}
+
+fn written(paths: &Paths, shelf: &BTreeMap<String, Remembered>) -> Result<(), Unshared> {
+    let unwritten = |e: &dyn std::fmt::Display| Unshared::Unwritten(e.to_string());
+    std::fs::create_dir_all(paths.private()).map_err(|e| unwritten(&e))?;
+    let bytes = serde_json::to_vec(shelf).map_err(|e| unwritten(&e))?;
+    let at = shelf_at(paths);
+    tisty_core::store::write_atomic(&at, &bytes).map_err(|e| unwritten(&e))?;
+    tisty_core::paths::ours_alone(&at).map_err(|e| unwritten(&e))
 }

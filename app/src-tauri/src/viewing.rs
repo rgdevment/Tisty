@@ -54,6 +54,7 @@ pub struct Views {
     unsaved: Mutex<std::collections::HashSet<String>>,
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
+    links_owed: Mutex<Vec<url::Url>>,
 }
 
 impl Views {
@@ -62,6 +63,17 @@ impl Views {
         if !owed.iter().any(|one| one == label) {
             owed.push(label.to_string());
         }
+    }
+
+    fn owe_link(&self, link: url::Url) {
+        let mut owed = self.links_owed.lock().unwrap_or_else(|e| e.into_inner());
+        if !owed.contains(&link) {
+            owed.push(link);
+        }
+    }
+
+    fn links_due(&self) -> Vec<url::Url> {
+        std::mem::take(&mut *self.links_owed.lock().unwrap_or_else(|e| e.into_inner()))
     }
 
     fn edits_due(&self) -> Vec<String> {
@@ -125,7 +137,7 @@ pub fn asked_to_edit(said: &str) -> Option<url::Url> {
         .then_some(web)
 }
 
-// Bringing the document in needs the client that reaches Folio, so for now the person is told rather than left wondering.
+// A first copy would make the store look used before the welcome has said where the copies go, so a link waits for it.
 pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
     let links: Vec<url::Url> = argv
         .iter()
@@ -133,8 +145,18 @@ pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
         .filter_map(|one| asked_to_edit(one))
         .collect();
     let any = !links.is_empty();
+    let welcomed = app
+        .try_state::<Mutex<Session>>()
+        .is_some_and(|session| held(&session).config.sync.is_some());
     for link in links {
-        crate::answers::folio_receiving::bring_apart(app, link);
+        if welcomed {
+            crate::answers::folio_receiving::bring_apart(app, link);
+        } else {
+            app.state::<Views>().owe_link(link);
+        }
+    }
+    if any && !welcomed {
+        crate::tray::surface(app);
     }
     any
 }
@@ -491,6 +513,9 @@ pub fn view_import(
 pub fn view_welcomed(app: AppHandle, views: tauri::State<'_, Views>) {
     for label in views.edits_due() {
         let _ = app.emit_to(label.as_str(), "view-edit", ());
+    }
+    for link in views.links_due() {
+        crate::answers::folio_receiving::bring_apart(&app, link);
     }
 }
 

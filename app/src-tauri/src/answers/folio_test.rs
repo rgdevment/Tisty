@@ -7,7 +7,7 @@ use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
-use super::{Card, card_of, delivered, headings_over, said};
+use super::{Card, card_of, delivered, going_with, headings_over, said};
 
 type Heard = (String, Vec<(&'static str, String)>);
 
@@ -117,6 +117,51 @@ fn what_folio_refused_is_not_remembered_as_sent() {
 }
 
 #[test]
+fn a_version_stored_stays_remembered_when_its_files_fail_and_they_go_again_next_time() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = paths_in(&room);
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().extend([
+        (200, r#"{"stored":true,"version":1,"filesWanted":true}"#),
+        (500, r#"{"refused":"failed"}"#),
+    ]);
+
+    let told = delivered(&folio, &paths, &sealed_for(Some(vec![2])), &starts(), 1).unwrap_err();
+
+    assert_eq!(told.code, "folioRefused");
+    let shelf = tisty_sharing::remembered(&paths).unwrap();
+    let kept = &shelf["file"];
+    assert_eq!(kept.admin_token.as_deref(), Some("admin"));
+    assert_eq!(kept.files_hash, None);
+    assert_eq!(kept.words_print, None);
+}
+
+#[test]
+fn what_a_share_holds_goes_with_it_unless_another_still_cites_it() {
+    let top = remembered(Some("key"), None);
+    let held = |id: &str| {
+        let mut one = remembered(Some("key"), None);
+        one.id = id.to_owned();
+        one.held_by = Some(top.id.clone());
+        one
+    };
+    let mut other = remembered(Some("key"), None);
+    other.id = "Other111".to_owned();
+    other.cited = vec!["doc-kept".to_owned()];
+    let shelf = BTreeMap::from([
+        ("top".to_owned(), top.clone()),
+        ("lang".to_owned(), held("Lang1111")),
+        ("kept".to_owned(), held("Kept1111")),
+        ("other".to_owned(), other),
+    ]);
+
+    let going = going_with(&shelf, "top", &top.id, |file| Some(format!("doc-{file}")));
+
+    let files: Vec<&str> = going.iter().map(|(file, _)| file.as_str()).collect();
+    assert_eq!(files, ["lang"]);
+}
+
+#[test]
 fn files_folio_wants_and_this_side_does_not_hold_are_not_passed_over() {
     let room = tempfile::tempdir().unwrap();
     let folio = FakeFolio::default();
@@ -145,7 +190,7 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         owner: None,
         owner_name: None,
         cited: Vec::new(),
-        held: false,
+        held_by: None,
     }
 }
 
@@ -191,6 +236,8 @@ fn the_edit_link_exists_only_where_a_token_does() {
             edit: None,
             version: 2,
             taken: false,
+            held: false,
+            told: Vec::new(),
         })
     );
     assert_eq!(

@@ -203,7 +203,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         owner: block,
         owner_name: arrived.document["owner_name"].as_str().map(str::to_owned),
         cited: Vec::new(),
-        held: false,
+        held_by: None,
     };
     sent(&editor.paths, &[(file, entry)]).unwrap();
 
@@ -247,5 +247,5 @@ fn the_document_that_was_shared_is_held_by_nothing() {
         vec![],
     );
 
-    assert!(!sealed.remembering[0].1.held);
+    assert_eq!(sealed.remembering[0].1.held_by, None);
 }

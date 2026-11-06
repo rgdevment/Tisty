@@ -86,8 +86,9 @@ impl Gathered {
         }
     }
 
-    pub fn print_of_first(&self) -> Option<String> {
-        self.remembering.first()?.1.words_print.clone()
+    pub fn print_of(&self, file: &str) -> Option<String> {
+        let (_, now) = self.remembering.iter().find(|(at, _)| at == file)?;
+        now.words_print.clone()
     }
 
     pub fn same_as_sent(&self, shelf: &BTreeMap<String, Remembered>) -> bool {
@@ -209,7 +210,7 @@ impl Gathered {
                     .and_then(|one| one.sealed.files_hash.clone());
                 was.files_key = hash.as_ref().and_then(|_| was.link_key.clone());
                 was.files_hash = hash;
-                was.held = was.id != top;
+                was.held_by = (was.id != top).then(|| top.clone());
                 (file, was)
             })
             .collect();

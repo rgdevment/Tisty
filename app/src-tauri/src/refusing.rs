@@ -127,19 +127,30 @@ pub fn edit_asked_words(
     title: &str,
     name: &str,
     print: &str,
+    doubtful: bool,
 ) -> (String, &'static str, &'static str) {
     if spanish {
+        let doubt = if doubtful {
+            " Ojo: esa llave fue retirada o no se puede confirmar, así que no lo des por suyo sin preguntar."
+        } else {
+            ""
+        };
         (
             format!(
-                "¿Traer «{title}» a tu Tisty? Lo firmó {name}, con la huella {print}. Compárala con quien te lo compartió."
+                "¿Traer «{title}» a tu Tisty? Lo firmó {name}, con la huella {print}. Compárala con quien te lo compartió.{doubt}"
             ),
             "Traer",
             "Ahora no",
         )
     } else {
+        let doubt = if doubtful {
+            " Careful: that key was taken back or cannot be confirmed, so do not take it as theirs without asking."
+        } else {
+            ""
+        };
         (
             format!(
-                "Bring «{title}» into your Tisty? It was signed by {name}, with the fingerprint {print}. Compare it with whoever shared it."
+                "Bring «{title}» into your Tisty? It was signed by {name}, with the fingerprint {print}. Compare it with whoever shared it.{doubt}"
             ),
             "Bring it",
             "Not now",

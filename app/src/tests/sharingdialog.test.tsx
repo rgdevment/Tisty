@@ -21,6 +21,7 @@ const look = {
   shared: [],
   limits: { ttl_days: [1, 3, 7, 15], shares_at_most: 2 },
   told: [],
+  seen: "print",
 };
 
 const answering = (answers: Record<string, unknown>) =>
@@ -94,7 +95,14 @@ describe("sharing a document with Folio", () => {
     answering({
       folio_terms_standing: { state: "accepted" },
       doc_share_look: look,
-      doc_shared: { read: "https://tisty.cl/Ab3xK9pQ#key", edit: null, version: 1, taken: false },
+      doc_shared: {
+        read: "https://tisty.cl/Ab3xK9pQ#key",
+        edit: null,
+        version: 1,
+        taken: false,
+        held: false,
+        told: [],
+      },
     });
     const { onShared } = shown();
 
@@ -103,10 +111,7 @@ describe("sharing a document with Folio", () => {
     await screen.findByRole("heading", { name: t("sharedDone") });
     expect(invoked).toHaveBeenCalledWith("doc_shared", {
       id: "d1",
-      cited: [],
-      signedAs: "rina",
-      editable: false,
-      ttlDays: 1,
+      chosen: { cited: [], signedAs: "rina", editable: false, ttlDays: 1, seen: "print" },
     });
     expect(onShared).toHaveBeenCalled();
     expect(screen.getByText("https://tisty.cl/Ab3xK9pQ#key")).toBeTruthy();
@@ -139,6 +144,66 @@ describe("sharing a document with Folio", () => {
     const go = await screen.findByRole<HTMLButtonElement>("button", { name: t("shareGo") });
     expect(go.disabled).toBe(true);
     expect(screen.getByText("Uno")).toBeTruthy();
+  });
+
+  it("looks again when the document changed while choosing", async () => {
+    let tries = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
+      if (command === "doc_share_look") {
+        tries += 1;
+        return Promise.resolve(look);
+      }
+      return Promise.reject({ code: "folioChanged" });
+    });
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+
+    expect(await screen.findByText(t("folioChanged"))).toBeTruthy();
+    expect(tries).toBe(2);
+  });
+
+  it("says what could not go, before and after sharing", async () => {
+    const told = { what: "pageLeftBehind", document: "Viaje" };
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: { ...look, told: [told] },
+      doc_shared: {
+        read: "https://tisty.cl/Ab3xK9pQ#key",
+        edit: null,
+        version: 1,
+        taken: false,
+        held: false,
+        told: [told],
+      },
+    });
+    shown();
+
+    expect(await screen.findByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("shareGo") }));
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(screen.getByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
+  });
+
+  it("asks only for the terms when that is all that was needed", async () => {
+    answering({
+      folio_terms_standing: {
+        state: "toAccept",
+        version: "2",
+        text: "Los términos",
+        acceptedBefore: "1",
+      },
+      folio_terms_accept: null,
+    });
+    const onClose = vi.fn();
+    render(<Sharing doc="d1" title="Viaje" termsOnly onShared={vi.fn()} onClose={onClose} />);
+
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(invoked).not.toHaveBeenCalledWith("doc_share_look", expect.anything());
   });
 
   it("closes and tells why when the terms cannot be read", async () => {

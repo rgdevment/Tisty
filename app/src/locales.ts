@@ -697,6 +697,15 @@ const en = {
     "Your appeal was sent. The operator will review it, and the block stays until then.",
   folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
   shareStopEditing: "Stop editing it",
+  folioChanged: "The document changed while you chose, so it was looked over again.",
+  folioSecrets: "What you were about to send seems to hold a secret key or a password.",
+  shareSecretsSync:
+    "What you were about to send seems to hold a secret key or a password ({name}). Anyone with the link could read it. Take it out, or send it anyway if it is only an example.",
+  shareSyncAfterTerms: "Once you accept the terms, press Sync again.",
+  shareSyncOtherDoubt: "Careful: the key that signed it was taken back or cannot be confirmed.",
+  sharedHeldGist: "Goes with another share",
+  sharedHeldWhy:
+    "It is shared because a document you shared holds it: it opens from that one, goes up with it and goes when that one does.",
   sharedLabel: "Shared",
   sharedNot: "Not shared",
   sharedWhy:
@@ -3515,6 +3524,15 @@ const es: Catalog = {
     "Se envió tu reclamo. Lo revisará quien opera el servicio, y el bloqueo sigue hasta entonces.",
   folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
   shareStopEditing: "Dejar de editarlo",
+  folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
+  folioSecrets: "Lo que ibas a subir parece tener una clave secreta o una contraseña.",
+  shareSecretsSync:
+    "Lo que ibas a subir parece tener una clave secreta o una contraseña ({name}). Cualquiera con el link podría leerla. Quítala, o súbelo de todos modos si es solo un ejemplo.",
+  shareSyncAfterTerms: "Cuando aceptes los términos, vuelve a presionar Sincronizar.",
+  shareSyncOtherDoubt: "Ojo: la llave que la firmó fue retirada o no se puede confirmar.",
+  sharedHeldGist: "Va con otro compartido",
+  sharedHeldWhy:
+    "Está compartido porque lo lleva un documento que compartiste: se abre desde ese, sube con él y se va cuando ese se va.",
   sharedLabel: "Compartido",
   sharedNot: "Sin compartir",
   sharedWhy:

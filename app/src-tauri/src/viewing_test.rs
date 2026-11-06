@@ -116,6 +116,17 @@ fn an_edit_address_with_anything_more_or_from_elsewhere_is_refused() {
 }
 
 #[test]
+fn a_link_owed_to_the_welcome_is_due_once_however_often_it_was_fired() {
+    let views = super::Views::default();
+    let link = url::Url::parse("https://tisty.cl/Ab3xK9pQ#key").unwrap();
+    assert!(views.links_due().is_empty());
+    views.owe_link(link.clone());
+    views.owe_link(link.clone());
+    assert_eq!(views.links_due(), [link]);
+    assert!(views.links_due().is_empty());
+}
+
+#[test]
 fn an_edit_owed_to_the_welcome_is_due_once_however_often_it_was_asked_for() {
     let views = super::Views::default();
     assert!(views.edits_due().is_empty());

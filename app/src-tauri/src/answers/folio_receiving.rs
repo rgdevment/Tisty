@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tisty_carrier::folio_client::{self, Door, Fetched};
-use tisty_contracts::{EnvelopeKind, Opening, Served};
+use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
 use tisty_core::Op;
 use tisty_core::attach::{self, Via};
 use tisty_core::witness::{self, Fact, channel};
@@ -71,6 +71,13 @@ pub(super) struct Opened {
     pub owner: Option<String>,
     pub signer: String,
     pub version: u64,
+    pub verdict: Verdict,
+}
+
+impl Opened {
+    pub(super) fn doubtful(&self) -> bool {
+        self.verdict != Verdict::Holds
+    }
 }
 
 pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
@@ -107,6 +114,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
         owner,
         signer: read.signer,
         version: fetched.version,
+        verdict: read.verdict,
     })
 }
 
@@ -135,7 +143,7 @@ pub(super) fn kept_here(session: &mut Session, opened: &Opened) -> Received {
     received
 }
 
-fn guest_doc(
+pub(super) fn guest_doc(
     session: &mut Session,
     body: &str,
     by: Option<String>,
@@ -170,7 +178,7 @@ fn guest_doc(
     Ok((id, made.id))
 }
 
-fn with_its_print(session: &Session, doc: tisty_core::model::DocId) -> Option<String> {
+fn with_its_print(session: &Session, doc: tisty_core::model::DocId, file: &str) -> Option<String> {
     let desk = Desk {
         paths: &session.paths,
         state: &session.state,
@@ -184,7 +192,7 @@ fn with_its_print(session: &Session, doc: tisty_core::model::DocId) -> Option<St
         signed_as: None,
     };
     let gathered = tisty_sharing::gathered(&desk, &asked).ok()?;
-    gathered.print_of_first()
+    gathered.print_of(file)
 }
 
 fn taken_in(session: &mut Session, link: &Link, opened: &Opened) -> Answer<String> {
@@ -212,12 +220,12 @@ fn taken_in(session: &mut Session, link: &Link, opened: &Opened) -> Answer<Strin
             owner: opened.owner.clone(),
             owner_name: received.owner_name.clone(),
             cited: Vec::new(),
-            held: false,
+            held_by: None,
         };
         let as_of_now = (file.clone(), entry);
         tisty_sharing::sent(&session.paths, std::slice::from_ref(&as_of_now))
             .map_err(|e| refused(&e))?;
-        if let Some(print) = with_its_print(session, doc) {
+        if let Some(print) = with_its_print(session, doc, &as_of_now.0) {
             let (file, mut entry) = as_of_now;
             entry.words_print = Some(print);
             tisty_sharing::sent(&session.paths, &[(file, entry)]).map_err(|e| refused(&e))?;
@@ -233,7 +241,7 @@ fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
         .or(opened.document["signed_as"].as_str())
         .unwrap_or_default();
     let (words, keep, leave) =
-        crate::refusing::edit_asked_words(spanish, title, name, &opened.signer);
+        crate::refusing::edit_asked_words(spanish, title, name, &opened.signer, opened.doubtful());
     app.dialog()
         .message(words)
         .title("Tisty")
@@ -244,8 +252,21 @@ fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
         .blocking_show()
 }
 
+fn already_here(app: &AppHandle, id: &str) -> Option<String> {
+    let session = app.try_state::<Mutex<Session>>()?;
+    let session = held(&session);
+    let shelf = tisty_sharing::remembered(&session.paths).ok()?;
+    shelf
+        .into_iter()
+        .find(|(_, one)| one.id == id)
+        .map(|(file, _)| file)
+}
+
 fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<String>> {
     let link = link_of(web).ok_or_else(|| Refusal::of("folioUnopened"))?;
+    if let Some(file) = already_here(app, &link.id) {
+        return Ok(Some(file));
+    }
     let door = ToFolio::new()?;
     let opened = opened_from(&door, &link.id, &link.key)?;
     if !asked_to_keep(app, spanish, &opened) {

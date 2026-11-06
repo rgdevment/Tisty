@@ -582,7 +582,6 @@ fn pages_in_place(held: &Value) -> Result<&[Value], Unopened> {
     Ok(pages)
 }
 
-// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
 pub fn owner_block(main: &Opened) -> Option<String> {
     let manifest: Value = serde_json::from_slice(&main.manifest).ok()?;
     manifest
@@ -591,6 +590,7 @@ pub fn owner_block(main: &Opened) -> Option<String> {
         .map(Value::to_string)
 }
 
+// All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
 pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     let (Some(first), Some(rest)) = (main.parts.first(), main.parts.get(1)) else {
         return damaged("it holds no words");
