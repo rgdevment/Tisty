@@ -33,7 +33,8 @@ export const opened = (): Promise<Opened> => invoke("view_read");
 export const theRest = (): Promise<string[]> => invoke("view_rest");
 export const source = (): Promise<string> => invoke("view_source");
 export const facts = (): Promise<Facts> => invoke("view_facts");
-export const editCopy = (): Promise<Left> => invoke("view_import");
+export const editCopy = (): Promise<Left | null> => invoke("view_import");
+export const editAsked = (act: () => void): Promise<() => void> => here.listen("view-edit", act);
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 
 export const pictureNear = (src: string): Promise<string> => invoke("view_picture", { src });

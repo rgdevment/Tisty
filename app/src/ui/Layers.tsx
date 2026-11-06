@@ -8,6 +8,7 @@ import {
   type Rift,
   reopen,
   updateInstall,
+  viewWelcomed,
 } from "../core";
 import { useDesk } from "../desk";
 import { fill, t } from "../locales";
@@ -286,6 +287,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
             lookPapers();
             carries.current?.recheck();
             if (paper) openDoc(paper);
+            void viewWelcomed().catch(() => {});
           }}
         />
       )}

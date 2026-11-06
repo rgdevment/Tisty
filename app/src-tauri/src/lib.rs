@@ -1316,6 +1316,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::calendar::ics_take,
         viewing::view_facts,
         viewing::view_import,
+        viewing::view_welcomed,
         viewing::view_widget,
         viewing::view_doc,
         diagramming::view_diagram,

@@ -53,9 +53,21 @@ pub struct Views {
     calendars: Mutex<Vec<PathBuf>>,
     unsaved: Mutex<std::collections::HashSet<String>>,
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
+    edits_owed: Mutex<Vec<String>>,
 }
 
 impl Views {
+    fn owe_edit(&self, label: &str) {
+        let mut owed = self.edits_owed.lock().unwrap_or_else(|e| e.into_inner());
+        if !owed.iter().any(|one| one == label) {
+            owed.push(label.to_string());
+        }
+    }
+
+    fn edits_due(&self) -> Vec<String> {
+        std::mem::take(&mut *self.edits_owed.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
     // Finder hands over the file a launch was for before the app has finished starting, so it waits for the start.
     pub fn started(&self, wanted: &mut Vec<PathBuf>) {
         let mut held = self.early.lock().unwrap_or_else(|e| e.into_inner());
@@ -442,14 +454,27 @@ pub fn view_import(
     app: AppHandle,
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
-) -> Answer<Converted> {
+) -> Answer<Option<Converted>> {
     let _one_at_a_time = views.importing.lock().unwrap_or_else(|e| e.into_inner());
     let Shown::File(at) = shown_in(&views, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
+    // A first copy would make the store look used before the welcome has said where the copies go.
+    if held(&*session_of(&app)?).config.sync.is_none() {
+        views.owe_edit(window.label());
+        crate::tray::surface(&app);
+        return Ok(None);
+    }
     let (paper, left) = imported_once(&app, &views, &at)?;
     bring(&app, &paper.file);
-    Ok(Converted { paper, left })
+    Ok(Some(Converted { paper, left }))
+}
+
+#[tauri::command(async)]
+pub fn view_welcomed(app: AppHandle, views: tauri::State<'_, Views>) {
+    for label in views.edits_due() {
+        let _ = app.emit_to(label.as_str(), "view-edit", ());
+    }
 }
 
 #[derive(serde::Serialize)]

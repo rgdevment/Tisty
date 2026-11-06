@@ -477,6 +477,7 @@ export type Showing =
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
+export const viewWelcomed = (): Promise<void> => invoke("view_welcomed");
 export const viewWidget = (source: string, from?: Viewed): Promise<void> =>
   invoke("view_widget", { source, from: from ?? null });
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
