@@ -7,7 +7,7 @@ mod packing;
 mod remembering;
 
 pub use finishing::{Finished, Sealed, Unfinished};
-pub use gathering::{Asked, Desk, Gathered, gathered, signer};
+pub use gathering::{Asked, Desk, Gathered, Under, gathered, gathered_under, signer};
 pub use packing::Told;
 pub use remembering::{Remembered, remembered, sent};
 

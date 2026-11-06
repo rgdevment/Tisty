@@ -27,6 +27,19 @@ pub struct Sealed {
     pub going: Vec<Going>,
     pub told: Vec<Told>,
     pub remembering: Vec<(String, Remembered)>,
+    pub anchors: BTreeMap<String, String>,
+}
+
+fn anchors_of<'a>(families: impl Iterator<Item = &'a Family>) -> BTreeMap<String, String> {
+    families
+        .flat_map(|family| {
+            let anchor = &family.anchor.sealing.id;
+            family
+                .others
+                .iter()
+                .map(|one| (one.sealing.id.clone(), anchor.clone()))
+        })
+        .collect()
 }
 
 fn page_name(file: &str, at: u64) -> String {
@@ -132,6 +145,7 @@ impl Gathered {
             remembering,
             ..
         } = self;
+        let anchors = anchors_of(std::iter::once(&family).chain(&cited));
         let cited: Vec<Arc<Family>> = cited.into_iter().map(Arc::new).collect();
         for tongue in std::iter::once(&mut family.anchor).chain(&mut family.others) {
             let said = cites.get(&tongue.document.id).into_iter().flatten();
@@ -156,6 +170,7 @@ impl Gathered {
             going,
             told,
             remembering,
+            anchors,
         })
     }
 }

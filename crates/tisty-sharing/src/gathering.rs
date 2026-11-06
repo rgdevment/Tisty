@@ -33,6 +33,11 @@ pub struct Asked {
     pub signed_as: Option<String>,
 }
 
+pub struct Under<'a> {
+    pub mint: &'a dyn Fn() -> Result<String, Unshared>,
+    pub editable: bool,
+}
+
 #[derive(Debug)]
 pub struct Gathered {
     pub(crate) family: Family,
@@ -164,6 +169,8 @@ fn sealing_for(
     was: Option<&Remembered>,
     public: bool,
     print: Option<&str>,
+    under: &Under,
+    editable: bool,
 ) -> Result<(Sealing, bool), Unshared> {
     let key = match (public, was.and_then(|one| one.link_key.clone())) {
         (true, _) => None,
@@ -178,16 +185,22 @@ fn sealing_for(
                 && one.files_key == key
         })
         .and_then(|one| one.files_hash.clone());
+    // Folio never changes who may edit once a document is there, so only a first version can grant it.
+    let token = match was {
+        Some(one) => one.edit_token.clone(),
+        None if editable && !public => Some(link_key()?),
+        None => None,
+    };
     Ok((
         Sealing {
-            id: was.map_or_else(new_id, |one| Ok(one.id.clone()))?,
+            id: was.map_or_else(under.mint, |one| Ok(one.id.clone()))?,
             version: was.map_or(1, |one| one.version + 1),
             from: was.map(|one| one.version),
             link_key: key.clone(),
             files_key: kept.as_ref().and(key),
             files_hash: kept.clone(),
             owner: None,
-            token: None,
+            token,
         },
         kept.is_some(),
     ))
@@ -238,6 +251,8 @@ fn pages_going(pages: &[WrittenPage], id: &str, places: &Places) -> Vec<Page> {
 
 struct Gathering<'a> {
     desk: &'a Desk<'a>,
+    under: &'a Under<'a>,
+    editable_anchor: Option<DocId>,
     shelf: BTreeMap<String, Remembered>,
     public: bool,
     signed_as: Option<String>,
@@ -341,7 +356,13 @@ impl Gathering<'_> {
 
         let print = print_of(&packed.said_files, &packed.files);
         let was = self.shelf.get(&kept.file);
-        let (sealing, keeps_files) = sealing_for(was, self.public, print.as_deref())?;
+        let editable = self.editable_anchor == Some(kept.id);
+        let (sealing, keeps_files) =
+            sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
+        let admin_token = match was.and_then(|one| one.admin_token.clone()) {
+            Some(kept) => kept,
+            None => link_key()?,
+        };
         self.remembering.push((
             kept.file.clone(),
             Remembered {
@@ -351,6 +372,8 @@ impl Gathering<'_> {
                 files_print: print,
                 files_hash: None,
                 files_key: None,
+                admin_token: Some(admin_token),
+                edit_token: sealing.token.clone(),
             },
         ));
         self.titles.insert(kept.file.clone(), shown);
@@ -436,9 +459,22 @@ impl Gathering<'_> {
     }
 }
 
-// It sends nothing and remembers nothing.
 pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
+    gathered_under(
+        desk,
+        asked,
+        &Under {
+            mint: &new_id,
+            editable: false,
+        },
+    )
+}
+
+// It sends nothing and remembers nothing.
+pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
+    let top = sharable(state, asked.doc)?;
+    let editable_anchor = under.editable.then(|| state.anchor_of(top));
     let wanted = asked
         .signed_as
         .clone()
@@ -447,6 +483,8 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {
         desk,
+        under,
+        editable_anchor,
         shelf: remembered(desk.paths)?,
         public: asked.public,
         signed_as: signed_as.clone(),
@@ -461,7 +499,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
         gathering.told.push(Told::NameLeftOut);
     }
     // One family goes once, whichever of its languages was ticked and however many times.
-    let mut seen = BTreeSet::from([state.anchor_of(sharable(state, asked.doc)?)]);
+    let mut seen = BTreeSet::from([state.anchor_of(top)]);
     let mut chosen = Vec::new();
     for doc in &asked.cited {
         let Some(kept) = state.docs.get(doc) else {

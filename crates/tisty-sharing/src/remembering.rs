@@ -22,6 +22,10 @@ pub struct Remembered {
     // Without it, files sent under another key could be kept by mistake.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admin_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_token: Option<String>,
 }
 
 fn shelf_at(paths: &Paths) -> PathBuf {
