@@ -431,7 +431,7 @@ serde_json = "1"
 unicode-normalization = "0.1"
 
 [dev-dependencies]
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 base64 = "0.23"
 ed25519-dalek = "3"
 flate2 = "1"
