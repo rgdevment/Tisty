@@ -66,12 +66,13 @@ export interface ShareCard {
   read: string;
   edit: string | null;
   version: number;
+  taken: boolean;
 }
 
 export type Synced =
   | { state: "unchanged" }
   | { state: "sent"; version: number }
-  | { state: "otherVersion"; version: number };
+  | { state: "otherVersion"; version: number; signer: string };
 
 export interface ShareStatus {
   diesOn: number;

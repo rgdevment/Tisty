@@ -76,12 +76,19 @@ pub fn signer(
     Some((key, certificate.clone()))
 }
 
-fn sharable(state: &State, id: DocId) -> Result<&Kept, Unshared> {
+fn sharable<'a>(
+    state: &'a State,
+    id: DocId,
+    shelf: &BTreeMap<String, Remembered>,
+) -> Result<&'a Kept, Unshared> {
     let kept = state.docs.get(&id).ok_or(Unshared::NoSuchDoc)?;
     if kept.page_of.is_some() || kept.task_of.is_some() {
         return Err(Unshared::NotADocument);
     }
-    if kept.guest {
+    let edits_through_a_link = shelf
+        .get(&kept.file)
+        .is_some_and(|one| one.edit_token.is_some());
+    if kept.guest && !edits_through_a_link {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -224,7 +231,9 @@ fn sealing_for(
             link_key: key.clone(),
             files_key: kept.as_ref().and(key),
             files_hash: kept.clone(),
-            owner: None,
+            owner: was
+                .and_then(|one| one.owner.as_deref())
+                .and_then(|said| serde_json::from_str(said).ok()),
             token,
         },
         kept.is_some(),
@@ -385,9 +394,14 @@ impl Gathering<'_> {
         let editable = self.editable_anchor == Some(kept.id);
         let (sealing, keeps_files) =
             sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
-        let admin_token = match was.and_then(|one| one.admin_token.clone()) {
-            Some(kept) => kept,
-            None => link_key()?,
+        let admin_token = match was {
+            Some(one) => one.admin_token.clone(),
+            None => Some(link_key()?),
+        };
+        let its_owner = was.and_then(|one| one.owner.clone());
+        let owner_name = match (&its_owner, was) {
+            (Some(_), Some(one)) => one.owner_name.clone(),
+            _ => self.signed_as.clone().filter(|_| !self.public),
         };
         self.remembering.push((
             kept.file.clone(),
@@ -398,7 +412,11 @@ impl Gathering<'_> {
                 files_print: print,
                 files_hash: None,
                 files_key: None,
-                admin_token: Some(admin_token),
+                admin_token,
+                owner: its_owner,
+                owner_name: owner_name.clone(),
+                cited: was.map_or_else(Vec::new, |one| one.cited.clone()),
+                held: false,
                 edit_token: sealing.token.clone(),
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),
@@ -419,7 +437,7 @@ impl Gathering<'_> {
             lang: tisty_markdown::front::lang(&body),
             sheet: sheet_of(&body),
             signed_as: self.signed_as.clone(),
-            owner_name: self.signed_as.clone().filter(|_| !self.public),
+            owner_name,
             made: None,
             wrote: None,
             body: travelling,
@@ -442,10 +460,10 @@ impl Gathering<'_> {
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
-        let kept = sharable(state, doc)?;
+        let kept = sharable(state, doc, &self.shelf)?;
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
-            if sharable(state, one.id).is_ok() {
+            if sharable(state, one.id, &self.shelf).is_ok() {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
@@ -501,7 +519,8 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
 // It sends nothing and remembers nothing.
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
-    let top = sharable(state, asked.doc)?;
+    let shelf = remembered(desk.paths)?;
+    let top = sharable(state, asked.doc, &shelf)?;
     let editable_anchor = under.editable.then(|| state.anchor_of(top));
     let wanted = asked
         .signed_as
@@ -513,7 +532,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         desk,
         under,
         editable_anchor,
-        shelf: remembered(desk.paths)?,
+        shelf,
         public: asked.public,
         signed_as: signed_as.clone(),
         told: Vec::new(),
@@ -534,7 +553,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
             continue;
         };
         // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
-        if sharable(state, *doc).is_err() {
+        if sharable(state, *doc, &gathering.shelf).is_err() {
             gathering.told.push(Told::CitedLeftBehind {
                 document: kept.title.clone().unwrap_or_default(),
             });
@@ -556,7 +575,8 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
 // Only what can go along is offered, and a page already goes with its document.
 pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
     let state = desk.state;
-    let kept = sharable(state, doc)?;
+    let shelf = remembered(desk.paths)?;
+    let kept = sharable(state, doc, &shelf)?;
     let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
     let names = named(&drawn(&body)).documents;
     let pages = state.pages_read(kept.id, &body);
@@ -567,7 +587,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .filter(|one| {
             !group.iter().any(|same| same.id == one.id)
                 && !pages.iter().any(|page| page.id == one.id)
-                && sharable(state, one.id).is_ok()
+                && sharable(state, one.id, &shelf).is_ok()
                 && names.iter().any(|name| {
                     *name == one.file
                         || one

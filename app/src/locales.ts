@@ -695,6 +695,8 @@ const en = {
     "Your appeal was accepted: someone else signed what was reported. Press Sync to send your own version, which lifts the block.",
   shareAppealReview:
     "Your appeal was sent. The operator will review it, and the block stays until then.",
+  folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
+  shareStopEditing: "Stop editing it",
   sharedLabel: "Shared",
   sharedNot: "Not shared",
   sharedWhy:
@@ -719,7 +721,7 @@ const en = {
   shareSyncUnchanged: "Nothing changed, so nothing went up.",
   shareSyncSent: "Version {name} went up.",
   shareSyncOther:
-    "Someone else sent version {name}. Bringing it here comes in a later version of Tisty; your changes did not go up.",
+    "Version {name}, signed by {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
   sharePause: "Pause",
   shareResume: "Resume",
   shareStop: "Stop sharing",
@@ -3511,6 +3513,8 @@ const es: Catalog = {
     "Se aceptó tu reclamo: otra persona firmó lo denunciado. Presiona Sincronizar para enviar tu propia versión, que levanta el bloqueo.",
   shareAppealReview:
     "Se envió tu reclamo. Lo revisará quien opera el servicio, y el bloqueo sigue hasta entonces.",
+  folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
+  shareStopEditing: "Dejar de editarlo",
   sharedLabel: "Compartido",
   sharedNot: "Sin compartir",
   sharedWhy:
@@ -3534,7 +3538,7 @@ const es: Catalog = {
   shareSyncUnchanged: "Nada cambió, así que no subió nada.",
   shareSyncSent: "Subió la versión {name}.",
   shareSyncOther:
-    "Otra persona envió la versión {name}. Traerla aquí llega en una próxima versión de Tisty; tus cambios no subieron.",
+    "Llegó la versión {name}, firmada por {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
   sharePause: "Pausar",
   shareResume: "Reanudar",
   shareStop: "Dejar de compartir",

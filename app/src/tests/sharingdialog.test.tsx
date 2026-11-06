@@ -93,7 +93,7 @@ describe("sharing a document with Folio", () => {
     answering({
       folio_terms_standing: { state: "accepted" },
       doc_share_look: look,
-      doc_shared: { read: "https://tisty.cl/Ab3xK9pQ#key", edit: null, version: 1 },
+      doc_shared: { read: "https://tisty.cl/Ab3xK9pQ#key", edit: null, version: 1, taken: false },
     });
     const { onShared } = shown();
 

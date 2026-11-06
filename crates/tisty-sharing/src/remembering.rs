@@ -30,6 +30,14 @@ pub struct Remembered {
     pub words_print: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signed_as: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cited: Vec<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub held: bool,
 }
 
 fn shelf_at(paths: &Paths) -> PathBuf {

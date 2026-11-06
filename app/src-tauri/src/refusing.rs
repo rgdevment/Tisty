@@ -122,11 +122,36 @@ pub fn takes_itself_there() -> bool {
     update::self_installs(update::route().route) && !update::from_a_mount()
 }
 
-pub fn edit_not_yet_words(spanish: bool) -> &'static str {
+pub fn edit_asked_words(
+    spanish: bool,
+    title: &str,
+    name: &str,
+    print: &str,
+) -> (String, &'static str, &'static str) {
     if spanish {
-        "Este Tisty todavía no puede traer documentos compartidos para editarlos. Sigues pudiendo leerlo en el navegador."
+        (
+            format!(
+                "¿Traer «{title}» a tu Tisty? Lo firmó {name}, con la huella {print}. Compárala con quien te lo compartió."
+            ),
+            "Traer",
+            "Ahora no",
+        )
     } else {
-        "This Tisty cannot bring in shared documents to edit yet. You can still read it in your browser."
+        (
+            format!(
+                "Bring «{title}» into your Tisty? It was signed by {name}, with the fingerprint {print}. Compare it with whoever shared it."
+            ),
+            "Bring it",
+            "Not now",
+        )
+    }
+}
+
+pub fn edit_failed_words(spanish: bool) -> &'static str {
+    if spanish {
+        "No se pudo traer ese documento. Revisa tu conexión, o léelo en el navegador."
+    } else {
+        "That document could not be brought in. Check your connection, or read it in your browser."
     }
 }
 

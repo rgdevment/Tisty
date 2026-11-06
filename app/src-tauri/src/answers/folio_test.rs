@@ -15,6 +15,10 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         edit_token: edit_token.map(str::to_owned),
         words_print: None,
         signed_as: None,
+        owner: None,
+        owner_name: None,
+        cited: Vec::new(),
+        held: false,
     }
 }
 
@@ -59,6 +63,7 @@ fn the_edit_link_exists_only_where_a_token_does() {
             read: "https://tisty.cl/Ab3xK9pQ#key".to_owned(),
             edit: None,
             version: 2,
+            taken: false,
         })
     );
     assert_eq!(

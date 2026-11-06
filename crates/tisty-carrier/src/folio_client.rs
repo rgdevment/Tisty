@@ -28,7 +28,17 @@ pub struct Asked<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Answered {
     pub status: u16,
+    pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+}
+
+impl Answered {
+    fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(one, _)| one.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.as_str())
+    }
 }
 
 pub trait Door {
@@ -141,23 +151,84 @@ pub(crate) fn solved(salt: &str, bits: u32) -> Option<u64> {
 }
 
 // Sent twice, Folio stores it once, so asking again with the proof is safe.
-fn asked_with_proof<T: DeserializeOwned>(
-    door: &dyn Door,
-    mut asked: Asked<'_>,
-) -> Result<T, Stopped> {
+fn answered_with_proof(door: &dyn Door, mut asked: Asked<'_>) -> Result<Answered, Stopped> {
     for _ in 0..PROOFS_AT_MOST {
         let answered = door.ask(&asked).ok_or(Stopped::Unreached)?;
-        match read(&answered) {
+        if (200..300).contains(&answered.status) {
+            return Ok(answered);
+        }
+        match read::<serde_json::Value>(&answered) {
             Err(Stopped::Refused(Refused::Proof { salt, bits })) => {
                 let number = solved(&salt, bits).ok_or(Stopped::Garbled)?;
                 asked.headers.retain(|(name, _)| *name != "Folio-Proof");
                 asked.headers.push(("Folio-Proof", number.to_string()));
             }
-            other => return other,
+            Err(other) => return Err(other),
+            Ok(_) => return Err(Stopped::Garbled),
         }
     }
     let answered = door.ask(&asked).ok_or(Stopped::Unreached)?;
-    read(&answered)
+    if (200..300).contains(&answered.status) {
+        return Ok(answered);
+    }
+    read::<serde_json::Value>(&answered).and(Err(Stopped::Garbled))
+}
+
+fn asked_with_proof<T: DeserializeOwned>(door: &dyn Door, asked: Asked<'_>) -> Result<T, Stopped> {
+    read(&answered_with_proof(door, asked)?)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Fetched {
+    pub bytes: Vec<u8>,
+    pub version: u64,
+    pub arrived_ms: i64,
+    pub revocations: Option<String>,
+}
+
+pub fn fetch(door: &dyn Door, id: &str) -> Result<Fetched, Stopped> {
+    let answered = answered_with_proof(
+        door,
+        Asked {
+            verb: Verb::Get,
+            path: format!("/docs/{id}"),
+            headers: Vec::new(),
+            body: &[],
+        },
+    )?;
+    let number = |name| answered.header(name)?.parse().ok();
+    let version = number("Folio-Version").ok_or(Stopped::Garbled)?;
+    let arrived_ms = answered
+        .header("Folio-Arrived")
+        .and_then(|said| said.parse().ok())
+        .ok_or(Stopped::Garbled)?;
+    let revocations = answered.header("Folio-Revocations").map(str::to_owned);
+    Ok(Fetched {
+        bytes: answered.body,
+        version,
+        arrived_ms,
+        revocations,
+    })
+}
+
+pub fn fetch_files(door: &dyn Door, id: &str, hash: &str) -> Result<Vec<u8>, Stopped> {
+    if hash.len() != 43
+        || !hash
+            .chars()
+            .all(|one| one.is_ascii_alphanumeric() || one == '-' || one == '_')
+    {
+        return Err(Stopped::Garbled);
+    }
+    let answered = answered_with_proof(
+        door,
+        Asked {
+            verb: Verb::Get,
+            path: format!("/docs/{id}/files/{hash}"),
+            headers: Vec::new(),
+            body: &[],
+        },
+    )?;
+    Ok(answered.body)
 }
 
 pub fn start(door: &dyn Door) -> Result<Start, Stopped> {

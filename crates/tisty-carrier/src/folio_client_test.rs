@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 
 use super::{
     Answered, Asked, Claim, Door, First, Refused, Stopped, Stored, Taken, Verb, Version, Why,
-    appeal, edit_link, latest, pause, read_link, resume, send_files, send_version, solved, start,
-    status, stop, taken_back, zero_bits_at_start,
+    appeal, edit_link, fetch, fetch_files, latest, pause, read_link, resume, send_files,
+    send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
 };
 
 type Heard = (Verb, String, Vec<(&'static str, String)>, Vec<u8>);
@@ -21,6 +21,7 @@ impl FakeFolio {
         for (status, body) in answers {
             fake.answers.borrow_mut().push_back(Some(Answered {
                 status: *status,
+                headers: Vec::new(),
                 body: body.as_bytes().to_vec(),
             }));
         }
@@ -370,4 +371,42 @@ fn an_appeal_says_how_it_was_taken() {
         appeal(&folio, "Ab3xK9pQ", "t"),
         Err(Stopped::Refused(Refused::Appealed))
     );
+}
+
+#[test]
+fn a_document_comes_with_what_its_headers_say() {
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().push_back(Some(Answered {
+        status: 200,
+        headers: vec![
+            ("folio-version".to_owned(), "4".to_owned()),
+            ("folio-arrived".to_owned(), "1000".to_owned()),
+            ("folio-revocations".to_owned(), "[]".to_owned()),
+        ],
+        body: b"sealed".to_vec(),
+    }));
+
+    let fetched = fetch(&folio, "Ab3xK9pQ").unwrap();
+
+    assert_eq!(fetched.bytes, b"sealed");
+    assert_eq!((fetched.version, fetched.arrived_ms), (4, 1000));
+    assert_eq!(fetched.revocations.as_deref(), Some("[]"));
+}
+
+#[test]
+fn a_document_without_its_version_is_not_believed() {
+    let folio = FakeFolio::answering(&[(200, "sealed")]);
+
+    assert_eq!(fetch(&folio, "Ab3xK9pQ"), Err(Stopped::Garbled));
+}
+
+#[test]
+fn a_hash_that_could_change_the_path_is_never_asked_for() {
+    let folio = FakeFolio::default();
+
+    assert_eq!(
+        fetch_files(&folio, "Ab3xK9pQ", "../admin"),
+        Err(Stopped::Garbled)
+    );
+    assert!(folio.asked.borrow().is_empty());
 }

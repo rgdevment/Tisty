@@ -86,6 +86,10 @@ impl Gathered {
         }
     }
 
+    pub fn print_of_first(&self) -> Option<String> {
+        self.remembering.first()?.1.words_print.clone()
+    }
+
     pub fn same_as_sent(&self, shelf: &BTreeMap<String, Remembered>) -> bool {
         self.remembering.iter().all(|(file, now)| {
             now.words_print.is_some()
@@ -187,6 +191,7 @@ impl Gathered {
             ..
         } = self;
         let anchors = anchors_of(std::iter::once(&family).chain(&cited));
+        let top = family.anchor.sealing.id.clone();
         let cited: Vec<Arc<Family>> = cited.into_iter().map(Arc::new).collect();
         for tongue in std::iter::once(&mut family.anchor).chain(&mut family.others) {
             let said = cites.get(&tongue.document.id).into_iter().flatten();
@@ -204,6 +209,7 @@ impl Gathered {
                     .and_then(|one| one.sealed.files_hash.clone());
                 was.files_key = hash.as_ref().and_then(|_| was.link_key.clone());
                 was.files_hash = hash;
+                was.held = was.id != top;
                 (file, was)
             })
             .collect();

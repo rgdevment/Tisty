@@ -764,46 +764,59 @@ export const useSharedRow = (
                     if (synced.state === "unchanged") setTold(t("shareSyncUnchanged"));
                     else if (synced.state === "sent")
                       setTold(fill("shareSyncSent", String(synced.version)));
-                    else setTold(fill("shareSyncOther", String(synced.version)));
+                    else setTold(fill("shareSyncOther", String(synced.version), synced.signer));
                   })
                   .catch(failing);
               },
             },
-            {
-              key: "status",
-              label: t("sharedSeeStatus"),
-              onPick: () => shareStatus(doc).then(setStatus).catch(failing),
-            },
-            ...(blocked
-              ? [
-                  {
-                    key: "appeal",
-                    label: t("shareAppeal"),
-                    onPick: () =>
-                      shareAppeal(doc)
-                        .then((accepted) =>
-                          setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
-                        )
-                        .catch(failing),
-                  },
-                ]
+            ...(card.taken
+              ? []
               : [
                   {
-                    key: "pause",
-                    label: t(paused ? "shareResume" : "sharePause"),
-                    onPick: () =>
-                      sharePause(doc, !paused)
-                        .then(() => shareStatus(doc))
-                        .then(setStatus)
-                        .catch(failing),
+                    key: "status",
+                    label: t("sharedSeeStatus"),
+                    onPick: () => shareStatus(doc).then(setStatus).catch(failing),
                   },
+                ]),
+            ...(card.taken
+              ? [
                   {
-                    key: "ask",
-                    label: t("shareStop"),
+                    key: "leave",
+                    label: t("shareStopEditing"),
                     danger: true,
                     onPick: () => setStopping(true),
                   },
-                ]),
+                ]
+              : blocked
+                ? [
+                    {
+                      key: "appeal",
+                      label: t("shareAppeal"),
+                      onPick: () =>
+                        shareAppeal(doc)
+                          .then((accepted) =>
+                            setTold(t(accepted ? "shareAppealAccepted" : "shareAppealReview")),
+                          )
+                          .catch(failing),
+                    },
+                  ]
+                : [
+                    {
+                      key: "pause",
+                      label: t(paused ? "shareResume" : "sharePause"),
+                      onPick: () =>
+                        sharePause(doc, !paused)
+                          .then(() => shareStatus(doc))
+                          .then(setStatus)
+                          .catch(failing),
+                    },
+                    {
+                      key: "ask",
+                      label: t("shareStop"),
+                      danger: true,
+                      onPick: () => setStopping(true),
+                    },
+                  ]),
           ],
     };
   }, [doc, card, status, told, stopping, waitUntil, onKeep, failing]);

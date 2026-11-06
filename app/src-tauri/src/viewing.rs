@@ -127,13 +127,14 @@ pub fn asked_to_edit(said: &str) -> Option<url::Url> {
 
 // Bringing the document in needs the client that reaches Folio, so for now the person is told rather than left wondering.
 pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
-    use tauri_plugin_dialog::DialogExt;
-    let any = argv.iter().skip(1).any(|one| asked_to_edit(one).is_some());
-    if any {
-        app.dialog()
-            .message(crate::refusing::edit_not_yet_words(spanish(app)))
-            .title("Tisty")
-            .show(|_| {});
+    let links: Vec<url::Url> = argv
+        .iter()
+        .skip(1)
+        .filter_map(|one| asked_to_edit(one))
+        .collect();
+    let any = !links.is_empty();
+    for link in links {
+        crate::answers::folio_receiving::bring_apart(app, link);
     }
     any
 }
