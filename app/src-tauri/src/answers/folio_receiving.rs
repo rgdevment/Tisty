@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_dialog::{DialogExt, MessageDialogBuilder, MessageDialogButtons};
 use tisty_carrier::folio_client::{self, Door, Fetched};
 use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
 use tisty_core::Op;
@@ -299,14 +299,43 @@ fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
         .unwrap_or_default();
     let (words, keep, leave) =
         crate::refusing::edit_asked_words(spanish, title, name, &opened.signer, opened.doubtful());
-    app.dialog()
-        .message(words)
-        .title("Tisty")
+    question(app, &words, keep, leave)
+}
+
+// A link arrives from the browser, so a question without a window of its own can open behind it.
+fn said_over_tisty(app: &AppHandle, words: &str) -> MessageDialogBuilder<tauri::Wry> {
+    crate::tray::surface(app);
+    let said = app.dialog().message(words).title("Tisty");
+    match app.get_webview_window("main") {
+        Some(window) => said.parent(&window),
+        None => said,
+    }
+}
+
+fn question(app: &AppHandle, words: &str, yes: &str, no: &str) -> bool {
+    said_over_tisty(app, words)
         .buttons(MessageDialogButtons::OkCancelCustom(
-            keep.to_owned(),
-            leave.to_owned(),
+            yes.to_owned(),
+            no.to_owned(),
         ))
         .blocking_show()
+}
+
+fn asked_to_look(app: &AppHandle, spanish: bool) -> bool {
+    let (words, look, leave) = crate::refusing::edit_look_words(spanish);
+    question(app, words, look, leave)
+}
+
+// Any page can fire a link, and the request tells Folio this computer's network address, so nothing goes out unasked.
+fn looked_for(
+    door: &dyn Door,
+    link: &Link,
+    asked_first: impl FnOnce() -> bool,
+) -> Answer<Option<Opened>> {
+    if !asked_first() {
+        return Ok(None);
+    }
+    opened_from(door, &link.id, &link.key).map(Some)
 }
 
 fn already_here(app: &AppHandle, id: &str) -> Option<String> {
@@ -324,32 +353,43 @@ fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<Stri
         return Ok(Some(file));
     }
     let door = ToFolio::new()?;
-    let opened = opened_from(&door, &link.id, &link.key)?;
+    let Some(opened) = looked_for(&door, &link, || asked_to_look(app, spanish))? else {
+        return Ok(None);
+    };
     if !asked_to_keep(app, spanish, &opened) {
         return Ok(None);
     }
     taken_in(app, &link, &opened).map(Some)
 }
 
+fn bring_one(app: &AppHandle, web: &url::Url) {
+    let spanish = app
+        .try_state::<Mutex<Session>>()
+        .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));
+    match brought(app, web, spanish) {
+        Ok(Some(file)) => {
+            let _ = app.emit_to("main", "showdoc", file);
+            crate::tray::surface(app);
+        }
+        Ok(None) => {}
+        Err(refused) => {
+            said_over_tisty(
+                app,
+                crate::refusing::edit_failed_words(spanish, refused.code),
+            )
+            .blocking_show();
+        }
+    }
+}
+
 pub fn bring_apart(app: &AppHandle, web: url::Url) {
+    if !app.state::<crate::viewing::Views>().link_arrived(web) {
+        return;
+    }
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let spanish = app
-            .try_state::<Mutex<Session>>()
-            .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));
-        match brought(&app, &web, spanish) {
-            Ok(Some(file)) => {
-                let _ = app.emit_to("main", "showdoc", file);
-                crate::tray::surface(&app);
-            }
-            Ok(None) => {}
-            Err(_) => {
-                app.dialog()
-                    .message(crate::refusing::edit_failed_words(spanish))
-                    .title("Tisty")
-                    .show(|_| {});
-            }
-        }
+        app.state::<crate::viewing::Views>()
+            .go_through_links(|web| bring_one(&app, web));
     });
 }
 

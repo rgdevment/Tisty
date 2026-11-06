@@ -240,6 +240,7 @@ export default function Beside(props: Props) {
           doc={props.doc}
           title={props.title || t("untitledDoc")}
           termsOnly={shared.termsOnly}
+          onTermsAccepted={shared.onTermsAccepted}
           onShared={shared.onShared}
           onClose={shared.onClosed}
           onError={props.onError}

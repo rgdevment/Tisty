@@ -535,6 +535,7 @@ impl<'a> Writer<'a> {
                 _ => None,
             },
             owner: owner.cloned(),
+            terms: sealing.terms.clone(),
             parts: parts
                 .iter()
                 .map(|one| EnvelopePart {

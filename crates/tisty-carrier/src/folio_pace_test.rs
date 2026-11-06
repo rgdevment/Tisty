@@ -1,7 +1,37 @@
-use super::{QUIET_STARTS_OVER, free_at, press};
+use super::{QUIET_STARTS_OVER, free_at, press, take_back};
 use crate::folio_limits::FolioLimits;
 
 const WAITS: &[u64] = &[1, 1, 1, 2, 4, 8, 15];
+
+#[test]
+fn a_press_taken_back_leaves_the_next_one_free() {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        upload_waits_minutes: Some(vec![1, 2]),
+        ..FolioLimits::default()
+    };
+    press(home.path(), "d", 1000, Some(&limits)).unwrap();
+    assert!(press(home.path(), "d", 1001, Some(&limits)).is_err());
+
+    take_back(home.path(), "d", 1000);
+
+    assert_eq!(press(home.path(), "d", 1001, Some(&limits)), Ok(()));
+}
+
+#[test]
+fn only_the_press_named_is_taken_back() {
+    let home = tempfile::tempdir().unwrap();
+    press(home.path(), "d", 1000, None).unwrap();
+    let limits = FolioLimits {
+        upload_waits_minutes: Some(vec![1]),
+        ..FolioLimits::default()
+    };
+
+    take_back(home.path(), "d", 999);
+    take_back(home.path(), "other", 1000);
+
+    assert!(press(home.path(), "d", 1001, Some(&limits)).is_err());
+}
 
 #[test]
 fn a_first_press_never_waits() {

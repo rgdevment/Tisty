@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.4.3";
+pub const VERSION: &str = "1.5.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -186,7 +186,7 @@ pub trait DocumentReader {
     fn go_to_page(&mut self, at: u64);
     fn set_language(&mut self, lang: String);
     fn edit_in_tisty(&mut self);
-    fn copy_link(&mut self) -> String;
+    fn print(&mut self);
 }
 
 /// How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads.
@@ -205,6 +205,8 @@ pub struct Envelope {
     pub commitment: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<Owner>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<String>,
     pub parts: Vec<EnvelopePart>,
 }
 
@@ -233,6 +235,8 @@ pub struct Sealing {
     pub owner: Option<Owner>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<String>,
 }
 
 /// What a reader asks for when it opens an envelope.
@@ -677,6 +681,18 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
         "name" => {
             if !value.as_str().is_some_and(is_name) {
                 out.push(wrong("is not a name a person can read as written"));
+            }
+        }
+        "digits" => {
+            if !value
+                .as_str()
+                .is_some_and(|said| {
+                    !said.is_empty()
+                        && said.bytes().all(|one| one.is_ascii_digit())
+                        && (said.len() == 1 || !said.starts_with('0'))
+                })
+            {
+                out.push(wrong("is not a whole number written as text"));
             }
         }
         "language" => {

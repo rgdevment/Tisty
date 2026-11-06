@@ -90,6 +90,7 @@ fields:
   head: { type: hash, required_when: sealed, only_when: sealed, says: "32 random bytes." }
   commitment: { type: hash, required_when: sealed, only_when: sealed }
   owner: { type: owner, required_when: sealed, only_when: sealed, says: "Who owns it, in the additional data of every part, so changing it without the key does not open. Who owns what is public, which has no key to tie this to, is not defined yet: its signer answers for it." }
+  terms: { type: digits, at_most: 16, says: "The version of the service's terms that whoever signs accepted, a whole number written as text, as its signed limits name it. It is signed with the manifest and holds no date, since the manifest travels in clear." }
   parts: { type: list, of: envelope_part, required: true, at_least: 1 }
 roles:
   writer:
@@ -161,6 +162,21 @@ cases:
   - says: "A sealed one that lost what opens it."
     value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: true, parts: [{ name: first, compressed: true, sealed_size: 40, open_size: 90 }] }
     holds: false
+  - says: "One that says which terms its signer accepted."
+    value: { contract: "1.5.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, terms: "2", parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: true
+  - says: "One that says it accepted terms of no version."
+    value: { contract: "1.5.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, terms: "", parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "One that says it accepted terms named by anything but a whole number."
+    value: { contract: "1.5.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, terms: "1.0", parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "One that spells the version of its terms another way."
+    value: { contract: "1.5.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, terms: "02", parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
+  - says: "One that writes the version of its terms as a number."
+    value: { contract: "1.5.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, terms: 2, parts: [{ name: first, compressed: true, sealed_size: 24, open_size: 90 }, { name: rest, compressed: true, sealed_size: 24, open_size: 90 }] }
+    holds: false
   - says: "An envelope with nothing inside."
     value: { contract: "1.0.0", kind: main, id: "k7Qm2xPa", version: 1, sealed: false, parts: [] }
     holds: false
@@ -181,6 +197,7 @@ fields:
   files_key: { type: key, says: "The key that envelope was sealed with. None when it was public." }
   owner: { type: owner, says: "The owner's block as it arrived, when someone edits what is another's. Left out, whoever seals owns it and signs a new one." }
   token: { type: key, says: "The token of its edit link. From the owner, it names who may edit; from anyone else, it signs the version." }
+  terms: { type: digits, at_most: 16, says: "The version of the service's terms that whoever seals accepted. Left out, the manifest says none." }
 cases:
   - says: "A private version."
     value: { id: "k7Qm2xPa", version: 2, from: 1, link_key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }

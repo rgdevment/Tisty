@@ -53,6 +53,8 @@ pub enum Why {
     Damaged,
     Unsigned,
     Key,
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -67,15 +69,27 @@ pub enum Refused {
     Behind,
     SharesFull,
     TooBig,
-    Envelope { why: Why },
+    Envelope {
+        why: Why,
+    },
     Outdated,
-    Slow { until: u64 },
-    Quota { until: u64 },
-    Proof { salt: String, bits: u32 },
+    Slow {
+        until: u64,
+    },
+    Quota {
+        until: u64,
+    },
+    Proof {
+        salt: String,
+        bits: u32,
+    },
     Failed,
     UploadsOff,
+    Terms,
     NotBlocked,
     Appealed,
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -297,6 +311,12 @@ pub struct Status {
     pub paused_at: Option<u64>,
     pub blocked_at: Option<u64>,
     pub read_total: u64,
+    #[serde(default)]
+    pub appealed_at: Option<u64>,
+    #[serde(default)]
+    pub may_correct: bool,
+    #[serde(default)]
+    pub fix_by: Option<u64>,
 }
 
 #[derive(Deserialize)]

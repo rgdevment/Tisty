@@ -1,6 +1,8 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { noteParts } from "../sharing";
 import Sharing from "../ui/Sharing";
@@ -30,7 +32,7 @@ const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) => {
     if (command in answers) return Promise.resolve(answers[command]);
     if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
-    if (command === "help_drawn") return Promise.resolve("<p>Los términos</p>");
+    if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
     return Promise.reject({ code: "internal" });
   });
 
@@ -73,6 +75,80 @@ describe("what Folio signs to say while closed", () => {
   it("leaves anything else of Markdown or HTML as words", () => {
     const said = "**fuerte** <b>x</b> # y ![i](https://tisty.app/a.png)";
     expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+  });
+});
+
+describe("what travels with a document", () => {
+  const opened = async (carrying: object, limits: object = look.limits) => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: { ...look, carrying: { ...look.carrying, ...carrying }, limits },
+    });
+    shown();
+    await screen.findByRole("button", { name: t("shareGo") });
+  };
+
+  it("says a document of words carries its text, and what room is left for the rest", async () => {
+    await opened(
+      { pages: 0 },
+      {
+        pictures_at_most: 10,
+        pictures_bytes_at_most: 5_000_000,
+        files_at_most: 2,
+        files_bytes_at_most: 5_000_000,
+      },
+    );
+
+    expect(screen.getByText(t("shareCarriesWhole"))).toBeTruthy();
+    expect(screen.getAllByText(t("shareCarriesNoPictures"))).toHaveLength(2);
+    expect(screen.getByText(fill("shareRoomUpTo", "10", weigh(5_000_000)))).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomUpTo", "2", weigh(5_000_000)))).toBeTruthy();
+  });
+
+  it("counts what it carries against the room there is", async () => {
+    await opened(
+      { pages: 2, pictures: 4, picturesBytes: 1_200_000, files: 1, filesBytes: 2_400_000 },
+      {
+        pictures_at_most: 10,
+        pictures_bytes_at_most: 5_000_000,
+        files_at_most: 2,
+        files_bytes_at_most: 5_000_000,
+      },
+    );
+
+    expect(screen.getByText(fill("shareCarriesWholeAndPages", "2"))).toBeTruthy();
+    expect(screen.getByText(`4 · ${weigh(1_200_000)}`, { exact: false })).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomOf", "10", weigh(5_000_000)))).toBeTruthy();
+    expect(screen.getByText(`1 · ${weigh(2_400_000)}`, { exact: false })).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomOf", "2", weigh(5_000_000)))).toBeTruthy();
+  });
+
+  it("says which limit a picture passed, since the row counts only the total", async () => {
+    await opened(
+      { pictures: 1, picturesBytes: 1_200_000, largestPicture: 1_200_000 },
+      { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverPicture", weigh(1_200_000), weigh(1_000_000))),
+    ).toBeTruthy();
+    expect(screen.queryByText(t("shareOverWhy"))).toBeNull();
+  });
+
+  it("asks to take something out when it is the total that passed", async () => {
+    await opened(
+      { pictures: 11, picturesBytes: 1_200_000, largestPicture: 500_000 },
+      { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(screen.getByText(t("shareOverWhy"))).toBeTruthy();
+  });
+
+  it("names one page apart, and says no room it was not told of", async () => {
+    await opened({ pages: 1 }, {});
+
+    expect(screen.getByText(t("shareCarriesWholeAndPage"))).toBeTruthy();
+    expect(screen.queryByText(fill("shareRoomUpTo", "10", weigh(5_000_000)))).toBeNull();
   });
 });
 
@@ -300,6 +376,102 @@ describe("sharing a document with Folio", () => {
     await userEvent.click(screen.getByRole("button", { name: t("shareGo") }));
     await screen.findByRole("heading", { name: t("sharedDone") });
     expect(screen.getByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
+  });
+
+  it("shows the terms Folio refused over and sends again once they are accepted", async () => {
+    let sends = 0;
+    let readings = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "doc_share_look") return Promise.resolve(look);
+      if (command === "folio_terms_accept") return Promise.resolve(null);
+      if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
+      if (command === "folio_terms_standing") {
+        readings += 1;
+        return Promise.resolve(
+          readings === 1
+            ? { state: "accepted" }
+            : { state: "toAccept", version: "2", text: "Los términos", acceptedBefore: "1" },
+        );
+      }
+      if (command === "doc_shared") {
+        sends += 1;
+        return sends === 1
+          ? Promise.reject({ code: "folioTermsToAccept" })
+          : Promise.resolve({
+              read: "https://tisty.cl/Ab3xK9pQ#key",
+              edit: null,
+              version: 1,
+              taken: false,
+              held: false,
+              told: [],
+            });
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
+
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(sends).toBe(2);
+    expect(invoked.mock.calls.filter(([one]) => one === "doc_share_look")).toHaveLength(1);
+  });
+
+  it("opens a web or mail link in the terms and nothing else", async () => {
+    answering({
+      folio_terms_standing: {
+        state: "toAccept",
+        version: "2",
+        text: "Los términos",
+        acceptedBefore: null,
+      },
+      folio_terms_drawn:
+        '<p><a href="mailto:abuso@tisty.app">correo</a> <a href="https://tisty.cl/x">web</a> <a href="tisty://open?path=x">otro</a></p>',
+    });
+    shown();
+    vi.mocked(openUrl).mockClear();
+
+    await userEvent.click(await screen.findByRole("link", { name: "correo" }));
+    await userEvent.click(screen.getByRole("link", { name: "web" }));
+    await userEvent.click(screen.getByRole("link", { name: "otro" }));
+
+    expect(vi.mocked(openUrl).mock.calls.map(([url]) => url)).toEqual([
+      "mailto:abuso@tisty.app",
+      "https://tisty.cl/x",
+    ]);
+  });
+
+  it("hands over to whoever asked when only the terms were needed", async () => {
+    answering({
+      folio_terms_standing: {
+        state: "toAccept",
+        version: "2",
+        text: "Los términos",
+        acceptedBefore: "1",
+      },
+      folio_terms_accept: null,
+    });
+    const onClose = vi.fn();
+    const onTermsAccepted = vi.fn();
+    render(
+      <Sharing
+        doc="d1"
+        title="Viaje"
+        termsOnly
+        onTermsAccepted={onTermsAccepted}
+        onShared={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
+
+    await waitFor(() => expect(onTermsAccepted).toHaveBeenCalled());
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("asks only for the terms when that is all that was needed", async () => {

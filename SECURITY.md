@@ -30,15 +30,18 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry, no remote server. Nothing you keep reaches a service of ours, so
-  nothing sits on our side to breach. Tisty makes one check of its own — a
-  daily GET for a version manifest and one for its signature, carrying nothing
-  but the version you are running — and two more requests only if you press the
-  button that offers you an update. A copy from the Microsoft Store makes none
-  of them: it asks Windows what the Store has for it. It is written out in full
-  in [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few others —
-  the guide, the help's pictures, a link's preview, and the signed `cloud.json`
-  at most once an hour while you sync.
+  telemetry. Nothing you keep reaches a service of ours unless you press Share
+  on a document; then that document reaches Folio
+  sealed, so nothing readable sits on our side to breach. Tisty makes one check
+  of its own — a daily GET for a version manifest and one for its signature,
+  carrying nothing but the version you are running — and two more requests only
+  if you press the button that offers you an update. A copy from the Microsoft
+  Store makes none of them unless the Store's catalog does not answer: it asks
+  Windows what the Store has for it and reads that catalog. It is written out in
+  full in [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few
+  others — the guide, the help's pictures, a link's preview, the pictures from
+  the internet in the viewer of a file from outside, the signed `cloud.json` at
+  most once an hour while you sync, and those of Folio.
 - **A cloud account is reached only if you choose it.** Tisty can sync straight
   with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
   WebDAV server of your own since 1.32; Dropbox is reached only through a folder
@@ -75,19 +78,31 @@ report will never be dismissed for being inconvenient.
   installer at all: it asks the Store what it has and lets the Store install it,
   so what stands behind that package is Microsoft's signature rather than the
   key below. The rule that nothing older than what is running may be offered
-  holds there too.
-- **What the world sends is read to a limit, never to the end.** One preview of
-  one link, asked for by a button, is the only request Tisty makes to an address
-  it did not choose. A page is read to 256 KiB and the picture it offers to
+  belongs to the feed: what the Store offers is the Store's to decide, and Tisty
+  shows that offer whatever number comes with it.
+- **What the world sends is read to a limit, never to the end.** Two kinds of
+  request go to an address Tisty did not choose, each asked for by a button: one
+  preview of one link, and the pictures from the internet in the viewer of a
+  file from outside. A page is read to 256 KiB and the picture it offers to
   400 KiB — read *to* the cap off the wire, not fetched whole and measured
   afterwards, so how much of your memory a page takes is not that page's
   decision. The request has a deadline of six seconds, the answer is parsed
   without executing anything, and what is kept is bounded by weight as well as
   by count, so the cache cannot quietly become a folder of somebody else's
-  pictures.
+  pictures. A picture in the viewer is read to 20 MB under a deadline of ten
+  seconds, is taken only if the answer says it is a picture, and is kept nowhere.
+  An address that leads to this computer or to your own network is refused, and
+  checked again on each redirect.
+- **What reaches Tisty from outside is a stranger's word.** Tisty answers to two
+  addresses, and any page can fire them. `tisty://open?path=…` shows, read-only,
+  only an absolute path on a local disk to an existing `.md`, `.markdown`, `.txt`,
+  `.ics` or `.ical` file, with no `..` in it. `tisty://edit?link=…` takes only an
+  `https` link on `tisty.cl` or `folio.tisty.app`. Tisty asks you before anything
+  leaves, and then asks its own fixed address, never the one the link names. That
+  link carries the key of a private document, so it is not written to Tisty's log.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
-  them — or into a cloud of your own that it reaches itself. There is no
+  them — or into a cloud of your own that it reaches itself. Syncing has no
   Tisty-operated backend at any tier, and no transport of ours to attack: with a
   folder, the code that syncs reads and writes local paths, and with a cloud it
   speaks only to that provider or that server, plus, at most once an hour, the
@@ -111,8 +126,9 @@ report will never be dismissed for being inconvenient.
   too, and lets it in only where the operating system offers no other door — the
   webview on both systems, `sysctl` on macOS, and on Windows the shell, the
   imaging component, a program's version information, the notice that the
-  path changed, DPAPI and the Store's dialog — each function marked one by one,
-  in six files, and a test fails if a mark appears in any other.
+  path changed, DPAPI, the Store's dialog, asking to be reopened after an update
+  and the warning that comes before Windows closes it — each function marked one
+  by one, in six files, and a test fails if a mark appears in any other.
 - **A release is held to what CI already proved.** A tag on a commit that did
   not pass CI on `main` is not released. The updater's signature is checked
   against the key the build ships before anything is published, and every file
@@ -404,6 +420,46 @@ the signed notice so your other computers follow, lets go of a key it was
 handed, and deletes the encrypted copy. While a turn either way is under way,
 `tisty.toml` says so, and for its last steps the other computers wait rather
 than write; until the very last, cancelling loses nothing.
+
+## A shared document
+
+Sharing by link goes through Folio: no new share starts until its signed limits
+say it is open. What follows is what holds it. What each step
+sends is in [PRIVACY.md](PRIVACY.md).
+
+**What seals it.** A document is sealed on your computer with AES-256-GCM, under
+a key drawn by HKDF-SHA256 from 32 random bytes that live after the `#` of the
+link and never reach the server. Folio stores the file unopened. Its manifest
+stays in the clear, and that is all Folio can read of it.
+
+**Who wrote it.** Every version is signed with the key of the computer that sent
+it, which your identity's root has certified. A sealed document names its owner
+in a signed block that stays through every version. An edit link adds a token
+that never reaches Folio: an editor signs the next version with their own key and
+that token, and the owner does not change.
+
+**What Tisty takes in.** A document that arrives through a link is checked and
+opened on your computer, and what comes in is its body in Tisty's own language,
+never its HTML. One that does not hold is refused. Before anything is kept, Tisty
+shows who signed it and the fingerprint to compare, and warns if that key was
+taken back or cannot be confirmed. A read link leaves a copy of your own, and
+nothing of it goes back.
+
+**What the limits can do.** `limits.json` says whether sharing is open and what
+it allows. It is refused unless it is signed with minisign against a key fixed in
+the source, read to 16 KiB at most and following no redirect, and an older one
+never replaces a newer one. A note it carries is shown only if it is short and
+holds no character that can hide text. The terms you are asked to accept are
+checked against a print in that same signed file. Folio applies its own limits
+either way.
+
+**What this does not protect.** The link is the key: whoever holds it reads the
+document, and stopping a share does not take back what they already read. The
+key and the tokens of each share sit in your log, as plain as the rest of it, and
+go wherever the log goes; an encrypted cloud seals them with everything else.
+Folio can tell that two documents come from one person, because the manifest
+carries your identity's public key. And a server that hides that a key was taken
+back cannot be caught by a reader on the web.
 
 ## An assistant, if you admit one
 

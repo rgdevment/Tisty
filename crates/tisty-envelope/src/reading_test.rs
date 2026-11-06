@@ -350,6 +350,7 @@ fn what_tisty_seals_for_itself_it_also_reads() {
         files_key: None,
         owner: None,
         token: None,
+        terms: None,
     };
     let sealed = writer
         .sealed(document.unwrap(), vec![], vec![], &sealing)

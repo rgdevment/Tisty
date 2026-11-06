@@ -24,3 +24,20 @@ The whole window works from the keyboard.
 | `Esc` | Close whatever is open |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.
+
+## In the light viewer
+
+A [file opened from outside](Documents#opening-a-markdown-file-from-outside) has keys of its own:
+
+| Shortcut | What it does |
+| :-- | :-- |
+| `Ctrl`/`⌘` + `F` | Find in the text |
+| `Ctrl`/`⌘` + `\` | Open or close the column beside the page |
+| `Ctrl`/`⌘` + `Shift` + `M` | Switch between the page and its Markdown |
+| `Ctrl`/`⌘` + `Shift` + `L` | Change the theme |
+| `Ctrl`/`⌘` + `=` · `-` · `0` | Larger text, smaller text, normal size |
+| `Alt` + ↑ ↓ | Go to the previous or the next heading |
+| `Alt` + ← | Go back after following a link |
+| `Ctrl`/`⌘` + `P` | Print |
+| `Ctrl`/`⌘` + `W` | Close the window |
+| `Esc` | Close the menu, the search, the Markdown or the column |

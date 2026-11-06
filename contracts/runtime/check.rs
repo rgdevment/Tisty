@@ -230,6 +230,18 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
                 out.push(wrong("is not a name a person can read as written"));
             }
         }
+        "digits" => {
+            if !value
+                .as_str()
+                .is_some_and(|said| {
+                    !said.is_empty()
+                        && said.bytes().all(|one| one.is_ascii_digit())
+                        && (said.len() == 1 || !said.starts_with('0'))
+                })
+            {
+                out.push(wrong("is not a whole number written as text"));
+            }
+        }
         "language" => {
             if !value.as_str().is_some_and(is_language) {
                 out.push(wrong("is not a language tag"));

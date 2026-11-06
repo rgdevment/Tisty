@@ -6,7 +6,7 @@
 Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back, no trial that runs out. [Commercial terms](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) exist only for organisations that cannot comply with the AGPL.
 
 **Does it need an account or a connection?**
-Neither. Tisty makes one request you did not ask for — to see whether a newer version exists — and sends nothing to ask it. Take the machine off the network and everything else works the same. See [[Privacy]].
+Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Take the machine off the network and everything else works the same. See [[Privacy]].
 
 **Where is my data kept?**
 In one folder on your own disk. **Settings › Your data** prints the path and *Show folder* opens it. See [Installation](Installation#where-your-data-lives).
@@ -52,7 +52,7 @@ Only over the version it read. To replace a whole document it must send back the
 Documents, yes: *Import a document* takes `.md`, `.markdown`, `.txt`, `.html` or Word `.docx`, one at a time, and turns it into Markdown — Word to Markdown, HTML to Markdown, Obsidian to Markdown. Pasting from Word, Google Docs or a web page converts too. A `.tistyx` from another Tisty unpacks whole. Tasks have to be typed. See [Documents](Documents#importing).
 
 **Can I read a Markdown file without bringing it into Tisty?**
-Yes: choose Tisty under **Open with**, or follow a `tisty://open?path=…` link. It opens read only in a window of its own, and **Edit in Tisty** brings it in when you want it. See [Documents](Documents#opening-a-markdown-file-from-outside).
+Yes: choose Tisty under **Open with**, or follow a `tisty://open?path=…` link. It opens read only in a light viewer of its own, up to 1 MB, and **Edit** brings a copy in when you want it. See [Documents](Documents#opening-a-markdown-file-from-outside).
 
 **A document opened read-only and I did not ask for that.**
 It is archived, or a page of it (or its document) is archived. The bar at the foot says which. A document holding HTML tags is not read-only: it opens, edits and saves whole. See [The Markdown editor](Markdown-Editor#when-a-document-opens-read-only).

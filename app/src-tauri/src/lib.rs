@@ -1270,6 +1270,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::sharing::doc_sealed,
         answers::folio::folio_sharing_now,
         answers::folio::folio_terms_standing,
+        answers::folio::folio_terms_drawn,
         answers::folio::folio_terms_accept,
         answers::folio::doc_share_look,
         answers::folio::doc_share_card,
