@@ -323,7 +323,7 @@ describe("writing a block in place", () => {
     const classes = Array.from(page.querySelectorAll(".editing .cm-content span")).map(
       (one) => `${one.className}:${one.textContent}`,
     );
-    expect(classes).toContain("cm-pen cm-pen-yellow:==a==");
+    expect(classes).toContain("cm-pen cm-pen-yellow:a");
     expect(classes).toContain("cm-pen cm-pen-green:b");
     expect(classes).toContain("cm-under:d");
     const icons = Array.from(page.querySelectorAll(".editing .cm-glyph")).map(
@@ -337,6 +337,47 @@ describe("writing a block in place", () => {
     expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("==e=="))).toBe(false);
     editing.leave();
     page.remove();
+  });
+
+  it("leaves a block untouched when nothing was written in it, however wide its gaps", () => {
+    const { page, one } = block();
+    const left: string[] = [];
+    const editing = edited(
+      one,
+      ":::details A\n\n\n\nx\n\n:::",
+      () => {},
+      (text) => left.push(text),
+    );
+    editing.leave();
+    expect(left).toEqual([":::details A\n\n\n\nx\n\n:::"]);
+    page.remove();
+  });
+
+  it("closes the gaps Enter left unwritten, and keeps the ones inside HTML", () => {
+    const { page, one } = block();
+    const left: string[] = [];
+    const editing = edited(
+      one,
+      "uno\n\n\n\ndos",
+      () => {},
+      (text) => left.push(text),
+    );
+    editing.view.dispatch({ changes: { from: 0, insert: "\n\n" } });
+    editing.leave();
+    expect(left).toEqual(["uno\n\ndos"]);
+    page.remove();
+    const again = block();
+    const held: string[] = [];
+    const html = edited(
+      again.one,
+      "<pre>\n\n\n\nx</pre>",
+      () => {},
+      (text) => held.push(text),
+    );
+    html.view.dispatch({ changes: { from: html.view.state.doc.length, insert: "!" } });
+    html.leave();
+    expect(held).toEqual(["<pre>\n\n\n\nx</pre>!"]);
+    again.page.remove();
   });
 
   it("keeps the line endings the block was written with", () => {

@@ -1,7 +1,7 @@
 import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import {
   EditorState,
   type Line,
@@ -25,14 +25,16 @@ import {
 import { tags } from "@lezer/highlight";
 import { HUES, isHue } from "tisty-sheet";
 import { known } from "tisty-sheet/glyphs";
-import { barred, blockKeys, flipped } from "./barring";
+import { barred, blockKeys, flipped, paragraphKeys } from "./barring";
+import { type Crossing, crossingKeys } from "./crossing";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { type Hosted, hosted } from "./hosted";
 import { latelyMarked } from "./lately";
+import { pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
-import { visual } from "./seeing";
+import { revealing, visual } from "./seeing";
 import { type Asking, BOX, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
@@ -261,7 +263,7 @@ const labelled = EditorState.transactionFilter.of((tr) => {
 const EMPTY_STEP = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s*$/;
 
 // A step with no words is no step, and a blank line between steps splits them into two lists.
-export const tightened = (state: EditorState): string => {
+export const tightened = (state: EditorState, keepsGaps = false): string => {
   const { doc } = state;
   const lines: Line[] = [];
   for (let at = 1; at <= doc.lines; at++) {
@@ -269,12 +271,17 @@ export const tightened = (state: EditorState): string => {
     if (coded(state, line.from) || !EMPTY_STEP.test(line.text)) lines.push(line);
   }
   const blank = (line: Line) => !line.text.trim() && !coded(state, line.from);
+  const inHtml = (line: Line) => syntaxTree(state).resolve(line.from, 1).name === "HTMLBlock";
   const kept = lines.filter((line, at) => {
     if (!blank(line)) return true;
+    // Enter leaves a blank line behind it, and one left unwritten must not reach the file as a wider gap.
+    const before = lines[at - 1];
+    if (!keepsGaps && before && blank(before) && !inHtml(line)) return false;
     const back = lines
       .slice(0, at)
       .reverse()
       .find((one) => !blank(one));
+    if (!keepsGaps && !back) return false;
     const ahead = lines.slice(at + 1).find((one) => !blank(one));
     if (!ahead) return false;
     return !(back && BOX.test(back.text) && BOX.test(ahead.text));
@@ -300,6 +307,7 @@ export const edited = (
   oneLine = false,
   whole = false,
   onWhole?: (all: boolean) => void,
+  onCross?: (one: Crossing) => void,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -328,7 +336,7 @@ export const edited = (
     gone = true;
     if (oneLine) held(view, said);
     settle(view);
-    const tight = tightened(view.state);
+    const tight = tightened(view.state, whole || view.state.doc.eq(opening));
     if (tight !== view.state.sliceDoc()) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: tight } });
     }
@@ -387,6 +395,8 @@ export const edited = (
             ...blockKeys,
             ...gridKeys,
             ...tableKeys,
+            ...(whole || stepping ? [] : paragraphKeys),
+            ...(onCross && !whole && !stepping ? crossingKeys(host, onCross) : []),
             { key: "Mod-Shift-z", run: redo },
           ]),
         ),
@@ -400,6 +410,7 @@ export const edited = (
         hosted.of(owner),
         gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,
+        whole ? revealing.of(true) : pairsKept,
         latelyMarked,
         pendingFormat,
         syntaxHighlighting(inked),
@@ -426,6 +437,7 @@ export const edited = (
       ],
     }),
   });
+  const opening = view.state.doc;
   const bar = barred(
     view,
     whole,

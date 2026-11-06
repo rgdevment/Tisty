@@ -9,17 +9,19 @@ A document in Tisty is text of yours, kept as a plain `.md` file, that you write
 There is one way of writing, and it happens on the page itself.
 
 - **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu. A diagram brings its own bar when the pointer is over it: **Export**, **Edit as Markdown**, which opens its text right there, and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]].
-- **The marks stay out of sight.** Bold looks bold and a heading looks like a heading; the `**` or the `#` only show where the caret touches that format, so you can see what you are changing.
+- **The marks stay out of sight.** Bold looks bold and a heading looks like a heading; the `**` or the `#` show only when you ask for them, and selecting or deleting text leaves a format whole. A link is the one exception: with the caret in it you see its address, which you can change there.
 - **Headings, lists, stages, quotes and callouts are always drawn**, even while you write them: a bullet is a bullet, a box is a box you can tick, a callout wears its colour and its name.
 - **Esc, or a click outside, goes back to reading.** What you write is saved as you go, and the foot of the page says so.
-- **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called.
+- **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called. Enter takes you from it to the body.
+- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** Lists, quotes and code keep their own Enter.
+- **The arrows go on from one block to the next** in a document, past a picture, a table or a diagram, which you open with a click. `Backspace` at the start of a block joins it to the one before, and `Delete` at its end joins the next.
 - **`Ctrl`/`⌘` + `Shift` + `M` shows every mark** in the block, for when you want to see the Markdown itself. Press it again to hide them.
 
 A line at the foot of the page keeps the keys in sight: `/` to insert, `#` and a space for a heading, the shortcut for every mark, and Esc to read.
 
 ## The bar
 
-While a block is open, a bar floats over it (not inside a code block or a `$$` formula, where it would write nothing):
+While a block is open, a small **Aa** waits over it, and it opens into the whole bar when you select text or press it. Opened by hand, it stays open until you fold it. The bar floats over the block (not inside a code block or a `$$` formula, where it would write nothing):
 
 - **The kind of block**: Paragraph, Heading, Subheading, Small heading, Bulleted list, Numbered list, Stages or Quote. Every line you have selected changes at once. Inside a table it reads **Table** and offers a row above or below, a column on either side, the column's alignment, and removing a row or a column. The dashes under the header stay as you drew them, so the widths do too.
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
@@ -68,6 +70,7 @@ Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it d
 | `Ctrl`/`⌘` + `E` | Code |
 | `Ctrl`/`⌘` + `K` | Link |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` | Undo · redo |
+| `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `Shift` + `M` | Show or hide every mark |
 | `Esc` | Back to reading |
 

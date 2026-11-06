@@ -1,7 +1,16 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { hosted, keepShown, marked, marksShown, seen, showMarks, visual } from "tisty-editor/edit";
+import {
+  hosted,
+  keepShown,
+  marked,
+  marksShown,
+  revealing,
+  seen,
+  showMarks,
+  visual,
+} from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { HOST } from "../ui/hosting";
 
@@ -13,6 +22,18 @@ const state = (doc: string, at = doc.length, shown = false) =>
       hosted.of(HOST),
       markdown({ base: markdownLanguage }),
       marksShown.init(() => shown),
+    ],
+  });
+
+const wholly = (doc: string, at: number) =>
+  EditorState.create({
+    doc,
+    selection: EditorSelection.cursor(at),
+    extensions: [
+      hosted.of(HOST),
+      markdown({ base: markdownLanguage }),
+      marksShown.init(() => false),
+      revealing.of(true),
     ],
   });
 
@@ -50,16 +71,43 @@ describe("a block written as it reads", () => {
     expect(looked(state("# "))).toContainEqual({ from: 0, to: 0, line: "cm-h1" });
   });
 
-  it("hides the marks of a format until the caret steps into it", () => {
+  it("keeps a format's marks hidden wherever the caret or the selection stands", () => {
     expect(read(state("toca **ordenar** hoy", 0))).toBe("toca ordenar hoy");
-    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca **ordenar** hoy");
-    expect(read(state("toca **ordenar** hoy", 16))).toBe("toca **ordenar** hoy");
-    expect(read(state("toca **ordenar** hoy", 18))).toBe("toca ordenar hoy");
-    expect(read(state("un ***k*** ya", 10))).toBe("un ***k*** ya");
-    expect(read(state("un ***k*** ya", 0))).toBe("un k ya");
-    expect(read(state("el ==dato=={green} y", 6))).toBe("el ==dato=={green} y");
-    expect(read(state("el ==dato=={green} y", 0))).toBe("el dato y");
+    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca ordenar hoy");
+    expect(read(state("toca **ordenar** hoy", 16))).toBe("toca ordenar hoy");
+    expect(read(state("un ***k*** ya", 10))).toBe("un k ya");
+    expect(read(state("el ==dato=={green} y", 6))).toBe("el dato y");
     expect(read(state("un ~~no~~ y `si`", 0))).toBe("un no y si");
+    const chosen = state("toca **ordenar** hoy").update({
+      selection: { anchor: 8, head: 12 },
+    }).state;
+    expect(read(chosen)).toBe("toca ordenar hoy");
+    const across = state(":::details A\n\nx\n\n:::").update({
+      selection: { anchor: 0, head: 20 },
+    }).state;
+    expect(read(across)).toBe("A\n\nx\n\n");
+  });
+
+  it("opens a link where the caret stands, whose address has no other way to be written", () => {
+    expect(read(state("ver [el plano](https://x.y) hoy", 7))).toBe(
+      "ver [el plano](https://x.y) hoy",
+    );
+    expect(read(state("ver [el plano](https://x.y) hoy", 0))).toBe("ver el plano hoy");
+    const chosen = state("ver [el plano](https://x.y) hoy").update({
+      selection: { anchor: 6, head: 9 },
+    }).state;
+    expect(read(chosen)).toBe("ver el plano hoy");
+  });
+
+  it("opens a format under the caret and the selection in the whole document", () => {
+    expect(read(wholly("toca **ordenar** hoy", 9))).toBe("toca **ordenar** hoy");
+    expect(read(wholly("toca **ordenar** hoy", 18))).toBe("toca ordenar hoy");
+    expect(read(wholly("un ***k*** ya", 10))).toBe("un ***k*** ya");
+    expect(read(wholly("el ==dato=={green} y", 6))).toBe("el ==dato=={green} y");
+    const chosen = wholly("toca **ordenar** hoy", 0).update({
+      selection: { anchor: 8, head: 12 },
+    }).state;
+    expect(read(chosen)).toBe("toca **ordenar** hoy");
   });
 
   it("shows every mark while Markdown is switched on, sizes still drawn", () => {

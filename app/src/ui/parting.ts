@@ -1,3 +1,5 @@
+import { LEADS } from "tisty-editor/edit";
+
 const breaks = (one: string | undefined) => one === "\n" || one === "\r";
 
 const headOf = (text: string) => {
@@ -30,6 +32,12 @@ export const closed = (text: string, from: number, end: number): string => {
   if (!head) return rest;
   if (!rest) return `${head}${line}`;
   return `${head}${line}${line}${rest}`;
+};
+
+export const joined = (text: string, at: number): { text: string; at: number } => {
+  const head = headOf(text.slice(0, at));
+  const rest = restOf(text.slice(at)).replace(LEADS, "");
+  return { text: `${head}${rest}`, at: head.length };
 };
 
 export const laid = (text: string, at: number, block: string): string => {
