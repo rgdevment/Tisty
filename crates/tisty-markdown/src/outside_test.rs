@@ -261,3 +261,58 @@ fn a_div_never_shut_stays_as_it_was() {
     let file = "<div align=\"center\">\n\n<p>Uno</p>\n\nPárrafo.\n";
     assert!(pieces(&read_file(file), 4096).concat().contains("Párrafo."));
 }
+
+#[test]
+fn a_centred_block_holds_the_markdown_inside_it() {
+    let file =
+        "<div align=\"center\">\n\n[![Build](b.svg)](ci)\n\n## Título\n\n</div>\n\nDespués.\n";
+    let doc = read_file(file);
+    let page = pieces(&doc, 4096).concat();
+    let opened = page.find("<div align=\"center\"").unwrap();
+    let shut = page.find("</div>").unwrap();
+    let picture = page.find("<img").unwrap();
+    assert!(opened < picture && picture < shut);
+    assert!(page.find("Después").unwrap() > shut);
+    assert!(page.contains("<h2 id=\"título\""));
+    assert_eq!(page.matches("</div>").count(), 1);
+    assert_eq!(crate::outline(&doc).len(), 1);
+}
+
+#[test]
+fn a_centred_paragraph_holds_across_its_blank_line() {
+    let page =
+        drawn("<p align=\"center\">\n  <img src=\"a.png\">\n\n  <a href=\"b\">c</a>\n</p>\n");
+    let shut = page.rfind("</div>").unwrap();
+    assert!(page.starts_with("<div align=\"center\""));
+    assert!(page.find("<img").unwrap() < shut);
+    assert!(page.find(">c</a>").unwrap() < shut);
+}
+
+#[test]
+fn the_old_centre_tag_centres_markdown_too() {
+    let page = drawn("<center>\n\n**Hola**\n\n</center>\n");
+    assert!(page.contains("<div align=\"center\""));
+    assert!(page.contains("<strong>Hola</strong>"));
+}
+
+#[test]
+fn a_block_with_no_alignment_leaves_its_markdown_alone() {
+    let page = drawn("<div class=\"x\">\n\n**Hola**\n\n</div>\n");
+    assert!(!page.contains("align="));
+    assert!(page.contains("<strong>Hola</strong>"));
+}
+
+#[test]
+fn a_tag_in_a_comment_or_another_name_does_not_count() {
+    let page = drawn("<div align=\"center\">\n<!-- </div> -->\n<divider>\n\n**Hola**\n\n</div>\n");
+    let opened = page.find("<div align=\"center\"").unwrap();
+    assert!(opened < page.find("<strong>").unwrap());
+    assert!(page.find("<strong>").unwrap() < page.rfind("</div>").unwrap());
+}
+
+#[test]
+fn an_alignment_that_is_not_one_is_left_out() {
+    let page = drawn("<div align=\"x\" onclick=\"y\">\n\n**Hola**\n\n</div>\n");
+    assert!(!page.contains("align="));
+    assert!(!page.contains("onclick"));
+}

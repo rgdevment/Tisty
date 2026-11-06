@@ -320,12 +320,12 @@ html:not(.tall) .page,
 }
 
 .page [align="center"],
-.page [align="center"] * {
+.page [align="center"] > :is(h1, h2, h3, h4, h5, h6, p) {
   text-align: center;
 }
 
 .page [align="right"],
-.page [align="right"] * {
+.page [align="right"] > :is(h1, h2, h3, h4, h5, h6, p) {
   text-align: right;
 }
 

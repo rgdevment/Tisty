@@ -125,3 +125,36 @@ fn an_edit_owed_to_the_welcome_is_due_once_however_often_it_was_asked_for() {
     assert_eq!(views.edits_due(), ["view-1", "view-2"]);
     assert!(views.edits_due().is_empty());
 }
+
+#[test]
+fn only_a_file_from_outside_gets_the_systems_title_bar() {
+    let file = super::Shown::File(std::path::PathBuf::from("a.md"));
+    assert_eq!(
+        super::look_of(&file),
+        super::Look {
+            framed: true,
+            clear: false
+        }
+    );
+    let paper = super::Paper {
+        id: "D1".into(),
+        file: "f1".into(),
+        title: "Notas".into(),
+        place: String::new(),
+    };
+    for own in [
+        super::Shown::Doc(paper.clone()),
+        super::Shown::Widget {
+            source: "<p>x</p>".into(),
+            from: Some(paper),
+        },
+    ] {
+        assert_eq!(
+            super::look_of(&own),
+            super::Look {
+                framed: false,
+                clear: true
+            }
+        );
+    }
+}

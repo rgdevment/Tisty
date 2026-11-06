@@ -1,4 +1,5 @@
 use std::io::Read as _;
+use std::net::{IpAddr, ToSocketAddrs};
 use std::path::{Component, Path, PathBuf};
 
 use base64::Engine as _;
@@ -132,6 +133,7 @@ const PICTURES: [(&str, &str); 9] = [
 ];
 const PICTURE_AT_MOST: u64 = 20 * 1024 * 1024;
 const FAR_PATIENCE: std::time::Duration = std::time::Duration::from_secs(10);
+const FAR_REDIRECTS: usize = 5;
 
 fn as_data(kind: &str, bytes: &[u8]) -> String {
     format!("data:{kind};base64,{}", BASE64.encode(bytes))
@@ -207,13 +209,71 @@ pub async fn view_picture_far(
         .map_err(|_| Refusal::of("notAllowed"))?
 }
 
+fn public_address(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(one) => {
+            let [first, second, ..] = one.octets();
+            !(one.is_loopback()
+                || one.is_private()
+                || one.is_link_local()
+                || one.is_unspecified()
+                || one.is_broadcast()
+                || one.is_multicast()
+                || one.is_documentation()
+                || first == 0
+                || (first == 100 && (64..128).contains(&second)))
+        }
+        IpAddr::V6(one) => match one.to_ipv4_mapped() {
+            Some(mapped) => public_address(IpAddr::V4(mapped)),
+            None => {
+                let head = one.segments()[0];
+                !(one.is_loopback()
+                    || one.is_unspecified()
+                    || one.is_multicast()
+                    || (head & 0xfe00) == 0xfc00
+                    || (head & 0xffc0) == 0xfe80)
+            }
+        },
+    }
+}
+
+// A stranger's file chooses the address, and a press here must not reach this machine or its network.
+fn reaches_outside(address: &reqwest::Url) -> bool {
+    let Some(port) = address.port_or_known_default() else {
+        return false;
+    };
+    match address.host() {
+        Some(url::Host::Ipv4(one)) => public_address(IpAddr::V4(one)),
+        Some(url::Host::Ipv6(one)) => public_address(IpAddr::V6(one)),
+        Some(url::Host::Domain(name)) => (name, port).to_socket_addrs().is_ok_and(|mut all| {
+            let mut any = false;
+            all.all(|one| {
+                any = true;
+                public_address(one.ip())
+            }) && any
+        }),
+        None => false,
+    }
+}
+
 fn far_picture(src: &str) -> Answer<String> {
     let refused = || Refusal::of("notAllowed");
     if !crate::linking::on_the_web(src) {
         return Err(refused());
     }
+    let address = reqwest::Url::parse(src).map_err(|_| refused())?;
+    if !reaches_outside(&address) {
+        return Err(refused());
+    }
     let answer = reqwest::blocking::Client::builder()
         .timeout(FAR_PATIENCE)
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() < FAR_REDIRECTS && reaches_outside(attempt.url()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
         .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|_| refused())?

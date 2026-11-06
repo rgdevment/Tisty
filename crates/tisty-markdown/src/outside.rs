@@ -14,7 +14,7 @@ pub fn read_file(text: &str) -> Doc {
 
 fn settled(blocks: &mut Vec<Block>, text: &str) {
     blocks.retain(|one| !matches!(one.kind, Kind::Definition { .. }));
-    rejoined_html(blocks, text);
+    held_together(blocks, text);
     for block in blocks {
         if column_cut(&text[block.at.clone()]) {
             rejoined(block, text);
@@ -45,39 +45,120 @@ fn column_cut(said: &str) -> bool {
     false
 }
 
-fn opened_divs(said: &str) -> isize {
-    let lowered = said.to_ascii_lowercase();
-    let opens = lowered.matches("<div").count();
-    let shuts = lowered.matches("</div").count();
-    opens as isize - shuts as isize
+const HOLDERS: [&str; 3] = ["div", "p", "center"];
+
+fn without_comments(said: &str) -> String {
+    let mut out = String::new();
+    let mut rest = said;
+    while let Some(from) = rest.find("<!--") {
+        out.push_str(&rest[..from]);
+        rest = rest[from..]
+            .find("-->")
+            .map_or("", |to| &rest[from + to + 3..]);
+    }
+    out.push_str(rest);
+    out
 }
 
-// A blank line ends an HTML block, and each block is cleaned on its own, so a centred header would stop at its first gap.
-fn rejoined_html(blocks: &mut Vec<Block>, text: &str) {
+fn tags_named(lowered: &str, opening: &str) -> isize {
+    lowered
+        .match_indices(opening)
+        .filter(|(at, _)| {
+            lowered[at + opening.len()..]
+                .chars()
+                .next()
+                .is_none_or(|one| one.is_ascii_whitespace() || matches!(one, '>' | '/'))
+        })
+        .count() as isize
+}
+
+fn still_open(said: &str, name: &str) -> isize {
+    let lowered = without_comments(said).to_ascii_lowercase();
+    tags_named(&lowered, &format!("<{name}")) - tags_named(&lowered, &format!("</{name}"))
+}
+
+fn holder_in(said: &str) -> Option<&'static str> {
+    let lowered = without_comments(said).to_ascii_lowercase();
+    let lowered = lowered.trim_start();
+    HOLDERS.into_iter().find(|name| {
+        lowered
+            .strip_prefix('<')
+            .and_then(|rest| rest.strip_prefix(name))
+            .is_some_and(|rest| {
+                rest.chars()
+                    .next()
+                    .is_none_or(|one| one.is_ascii_whitespace() || matches!(one, '>' | '/'))
+            })
+    })
+}
+
+fn where_it_closes(blocks: &[Block], at: usize, text: &str) -> Option<usize> {
+    if blocks[at].kind != Kind::Html {
+        return None;
+    }
+    let said = &text[blocks[at].at.clone()];
+    let name = holder_in(said)?;
+    let mut open = still_open(said, name);
+    if open <= 0 {
+        return None;
+    }
+    for (later, block) in blocks.iter().enumerate().skip(at + 1) {
+        if block.kind == Kind::Html {
+            open += still_open(&text[block.at.clone()], name);
+            if open <= 0 {
+                return Some(later);
+            }
+        }
+    }
+    None
+}
+
+fn alignment_of(said: &str) -> Option<&'static str> {
+    let trimmed = said.trim_start();
+    let tag = &trimmed[..trimmed.find('>')? + 1];
+    if tag.to_ascii_lowercase().starts_with("<center") {
+        return Some("center");
+    }
+    let found = attributes(tag, 0);
+    let (_, at) = found.iter().find(|(name, _)| name == "align")?;
+    ["center", "right", "left"]
+        .into_iter()
+        .find(|how| tag[at.clone()].eq_ignore_ascii_case(how))
+}
+
+fn only_a_tag(said: &str) -> bool {
+    let said = said.trim();
+    said.starts_with('<') && said.find('>') == Some(said.len() - 1)
+}
+
+// A blank line ends an HTML block and each block is cleaned on its own, so what a tag holds across one would fall out of it.
+fn held_together(blocks: &mut Vec<Block>, text: &str) {
     let mut at = 0;
     while at < blocks.len() {
-        let mut open = html_opened(&blocks[at], text);
-        let mut last = at;
-        while open > 0
-            && blocks
-                .get(last + 1)
-                .is_some_and(|one| one.kind == Kind::Html)
-        {
-            last += 1;
-            open += html_opened(&blocks[last], text);
-        }
-        if open == 0 && last > at {
-            blocks[at].at.end = blocks[last].at.end;
-            blocks.drain(at + 1..=last);
+        if let Some(last) = where_it_closes(blocks, at, text) {
+            let whole = blocks[at].at.start..blocks[last].at.end;
+            if blocks[at..=last].iter().all(|one| one.kind == Kind::Html) {
+                blocks[at].at = whole;
+                blocks.drain(at + 1..=last);
+            } else if let Some(how) = alignment_of(&text[blocks[at].at.clone()]) {
+                let inner: Vec<Block> = blocks
+                    .drain(at..=last)
+                    .filter(|one| one.kind != Kind::Html || !only_a_tag(&text[one.at.clone()]))
+                    .collect();
+                blocks.insert(
+                    at,
+                    Block {
+                        kind: Kind::Aligned {
+                            how: how.to_string(),
+                        },
+                        at: whole,
+                        inner,
+                        spans: Vec::new(),
+                    },
+                );
+            }
         }
         at += 1;
-    }
-}
-
-fn html_opened(block: &Block, text: &str) -> isize {
-    match block.kind {
-        Kind::Html => opened_divs(&text[block.at.clone()]),
-        _ => 0,
     }
 }
 
