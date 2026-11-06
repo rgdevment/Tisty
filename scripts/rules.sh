@@ -390,6 +390,18 @@ the_app_holds_the_versions() {
 }
 
 # The contracts: what is kept is what their YAML says, and their cases hold.
+few_earlier_releases_are_met() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the earlier releases were not looked at"
+    return
+  fi
+  if node scripts/earlier-releases.mjs check && node --test scripts/earlier-releases.test.mjs > /dev/null; then
+    went_well "the earlier releases that are met stay within their maximums"
+  else
+    amiss "the list in .github/earlier-releases.json goes past what it may hold"
+  fi
+}
+
 the_contracts_hold() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the contracts were not looked at"
@@ -427,6 +439,7 @@ every_spawn_pins_its_language
 the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
+few_earlier_releases_are_met
 the_contracts_hold
 no_token_kept_in_the_tree
 exit $status

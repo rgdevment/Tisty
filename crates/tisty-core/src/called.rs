@@ -70,7 +70,7 @@ fn computer_name() -> Option<String> {
 
 #[cfg(not(target_os = "macos"))]
 fn computer_name() -> Option<String> {
-    sysinfo::System::host_name()
+    sysinfo::System::host_name().ok()
 }
 
 #[cfg(test)]

@@ -34,7 +34,7 @@ written once with the crates that carry it.
 | `@codemirror/view` | 6.43.15 | MIT |
 | `@iconify/types` | 2.0.0 | MIT |
 | `@iconify/utils` | 3.1.7 | MIT |
-| `@lezer/common` | 1.5.3 | MIT |
+| `@lezer/common` | 1.5.5 | MIT |
 | `@lezer/css` | 1.3.9 | MIT |
 | `@lezer/highlight` | 1.2.5 | MIT |
 | `@lezer/html` | 1.3.13 | MIT |
@@ -47,7 +47,7 @@ written once with the crates that carry it.
 | `@solidjs/web` | 2.0.0-rc.21 | MIT |
 | `@tauri-apps/api` | 2.12.4 | Apache-2.0 OR MIT |
 | `@tauri-apps/plugin-clipboard-manager` | 2.5.0 | MIT OR Apache-2.0 |
-| `@tauri-apps/plugin-dialog` | 2.8.3 | MIT OR Apache-2.0 |
+| `@tauri-apps/plugin-dialog` | 2.8.4 | MIT OR Apache-2.0 |
 | `@tauri-apps/plugin-opener` | 2.7.2 | MIT OR Apache-2.0 |
 | `@types/d3` | 7.4.3 | MIT |
 | `@types/d3-array` | 3.2.2 | MIT |
@@ -171,15 +171,14 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (372 crates)
+## In the core (357 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
 | `adler2` | 2.0.1 | 0BSD OR MIT OR Apache-2.0 |
-| `aead` | 0.5.2 | MIT OR Apache-2.0 |
 | `aead` | 0.6.1 | MIT OR Apache-2.0 |
-| `aes` | 0.8.4 | MIT OR Apache-2.0 |
-| `aes-gcm` | 0.10.3 | Apache-2.0 OR MIT |
+| `aes` | 0.9.3 | MIT OR Apache-2.0 |
+| `aes-gcm` | 0.11.1 | Apache-2.0 OR MIT |
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
 | `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
 | `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
@@ -191,7 +190,6 @@ written once with the crates that carry it.
 | `atomic-waker` | 1.1.2 | Apache-2.0 OR MIT |
 | `aws-lc-rs` | 1.18.2 | ISC AND (Apache-2.0 OR ISC) |
 | `aws-lc-sys` | 0.46.0 | ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0) |
-| `base64` | 0.22.1 | MIT OR Apache-2.0 |
 | `base64` | 0.23.1 | MIT OR Apache-2.0 |
 | `bip39` | 3.0.0 | CC0-1.0 |
 | `bitcoin_hashes` | 0.14.101 | CC0-1.0 |
@@ -208,7 +206,6 @@ written once with the crates that carry it.
 | `cfg-if` | 1.0.5 | MIT OR Apache-2.0 |
 | `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
 | `chacha20poly1305` | 0.11.0 | Apache-2.0 OR MIT |
-| `cipher` | 0.4.4 | MIT OR Apache-2.0 |
 | `cipher` | 0.5.2 | MIT OR Apache-2.0 |
 | `clipboard-win` | 5.4.3 | BSL-1.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
@@ -221,16 +218,15 @@ written once with the crates that carry it.
 | `core-foundation-sys` | 0.8.7 | MIT OR Apache-2.0 |
 | `core-graphics` | 0.25.0 | MIT OR Apache-2.0 |
 | `core-graphics-types` | 0.2.0 | MIT OR Apache-2.0 |
-| `cpufeatures` | 0.2.17 | MIT OR Apache-2.0 |
+| `cpubits` | 0.1.1 | MIT OR Apache-2.0 |
 | `cpufeatures` | 0.3.1 | MIT OR Apache-2.0 |
 | `crc32fast` | 1.5.2 | MIT OR Apache-2.0 |
 | `crossbeam-channel` | 0.5.17 | MIT OR Apache-2.0 |
 | `crossbeam-utils` | 0.8.23 | MIT OR Apache-2.0 |
-| `crypto-common` | 0.1.7 | MIT OR Apache-2.0 |
 | `crypto-common` | 0.2.2 | MIT OR Apache-2.0 |
 | `cssparser` | 0.38.0 | MPL-2.0 |
 | `ctor` | 1.0.13 | Apache-2.0 OR MIT |
-| `ctr` | 0.9.2 | MIT OR Apache-2.0 |
+| `ctr` | 0.10.1 | MIT OR Apache-2.0 |
 | `ctutils` | 0.4.5 | Apache-2.0 OR MIT |
 | `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
 | `deranged` | 0.5.9 | MIT OR Apache-2.0 |
@@ -271,11 +267,10 @@ written once with the crates that carry it.
 | `futures-sink` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-task` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-util` | 0.3.34 | MIT OR Apache-2.0 |
-| `generic-array` | 0.14.7 | MIT |
 | `getrandom` | 0.2.17 | MIT OR Apache-2.0 |
 | `getrandom` | 0.3.4 | MIT OR Apache-2.0 |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 |
-| `ghash` | 0.5.1 | Apache-2.0 OR MIT |
+| `ghash` | 0.6.0 | Apache-2.0 OR MIT |
 | `gif` | 0.14.2 | MIT OR Apache-2.0 |
 | `glob` | 0.3.4 | MIT OR Apache-2.0 |
 | `global-hotkey` | 0.8.0 | Apache-2.0 OR MIT |
@@ -312,7 +307,6 @@ written once with the crates that carry it.
 | `image-webp` | 0.2.4 | MIT OR Apache-2.0 |
 | `indexmap` | 2.14.2 | Apache-2.0 OR MIT |
 | `infer` | 0.22.0 | MIT |
-| `inout` | 0.1.4 | MIT OR Apache-2.0 |
 | `inout` | 0.2.4 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 |
@@ -364,7 +358,6 @@ written once with the crates that carry it.
 | `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
-| `opaque-debug` | 0.3.1 | MIT OR Apache-2.0 |
 | `open` | 5.4.4 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
 | `osakit` | 0.3.1 | MIT OR Apache-2.0 |
@@ -380,19 +373,15 @@ written once with the crates that carry it.
 | `plist` | 1.10.1 | MIT |
 | `png` | 0.18.1 | MIT OR Apache-2.0 |
 | `poly1305` | 0.9.1 | Apache-2.0 OR MIT |
-| `polyval` | 0.6.2 | Apache-2.0 OR MIT |
+| `polyval` | 0.7.3 | Apache-2.0 OR MIT |
 | `potential_utf` | 0.1.6 | Unicode-3.0 |
 | `powerfmt` | 0.2.1 | MIT OR Apache-2.0 |
-| `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
 | `precomputed-hash` | 0.1.1 | MIT |
 | `pulldown-cmark` | 0.13.6 | MIT |
 | `pxfm` | 0.1.30 | BSD-3-Clause OR Apache-2.0 |
 | `quick-error` | 2.0.1 | MIT/Apache-2.0 |
 | `quick-xml` | 0.42.0 | MIT |
-| `rand` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand` | 0.10.3 | MIT OR Apache-2.0 |
-| `rand_chacha` | 0.9.0 | MIT OR Apache-2.0 |
-| `rand_core` | 0.6.4 | MIT OR Apache-2.0 |
 | `rand_core` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_core` | 0.10.1 | MIT OR Apache-2.0 |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib |
@@ -400,7 +389,7 @@ written once with the crates that carry it.
 | `regex-automata` | 0.4.18 | MIT OR Apache-2.0 |
 | `regex-syntax` | 0.8.11 | MIT OR Apache-2.0 |
 | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
-| `rfd` | 0.16.0 | MIT |
+| `rfd` | 0.17.2 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `roxmltree` | 0.21.2 | MIT OR Apache-2.0 |
 | `rusqlite` | 0.41.1 | MIT |
@@ -444,20 +433,20 @@ written once with the crates that carry it.
 | `subtle` | 2.6.1 | BSD-3-Clause |
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
 | `sys-locale` | 0.3.2 | MIT OR Apache-2.0 |
-| `sysinfo` | 0.39.6 | MIT |
+| `sysinfo` | 0.40.1 | MIT |
 | `system-configuration` | 0.7.0 | MIT OR Apache-2.0 |
 | `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 |
 | `tao` | 0.37.1 | Apache-2.0 |
 | `tar` | 0.4.46 | MIT OR Apache-2.0 |
 | `tauri` | 2.12.5 | Apache-2.0 OR MIT |
 | `tauri-plugin-clipboard-manager` | 2.5.0 | Apache-2.0 OR MIT |
-| `tauri-plugin-dialog` | 2.8.3 | Apache-2.0 OR MIT |
+| `tauri-plugin-dialog` | 2.8.4 | Apache-2.0 OR MIT |
 | `tauri-plugin-fs` | 2.7.1 | Apache-2.0 OR MIT |
 | `tauri-plugin-global-shortcut` | 2.4.1 | Apache-2.0 OR MIT |
-| `tauri-plugin-notification` | 2.7.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-notification` | 2.8.0 | Apache-2.0 OR MIT |
 | `tauri-plugin-opener` | 2.7.2 | Apache-2.0 OR MIT |
-| `tauri-plugin-single-instance` | 2.5.4 | Apache-2.0 OR MIT |
-| `tauri-plugin-updater` | 2.14.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-single-instance` | 2.5.5 | Apache-2.0 OR MIT |
+| `tauri-plugin-updater` | 2.14.1 | Apache-2.0 OR MIT |
 | `tauri-runtime` | 2.12.2 | Apache-2.0 OR MIT |
 | `tauri-runtime-wry` | 2.12.3 | Apache-2.0 OR MIT |
 | `tauri-utils` | 2.10.2 | Apache-2.0 OR MIT |
@@ -493,7 +482,6 @@ written once with the crates that carry it.
 | `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
-| `universal-hash` | 0.5.1 | MIT OR Apache-2.0 |
 | `universal-hash` | 0.6.1 | MIT OR Apache-2.0 |
 | `untrusted` | 0.9.0 | ISC |
 | `url` | 2.5.8 | MIT OR Apache-2.0 |
@@ -513,7 +501,6 @@ written once with the crates that carry it.
 | `window-vibrancy` | 0.8.1 | Apache-2.0 OR MIT |
 | `windows` | 0.62.2 | MIT OR Apache-2.0 |
 | `windows_x86_64_msvc` | 0.52.6 | MIT OR Apache-2.0 |
-| `windows_x86_64_msvc` | 0.53.1 | MIT OR Apache-2.0 |
 | `windows-collections` | 0.3.2 | MIT OR Apache-2.0 |
 | `windows-core` | 0.62.2 | MIT OR Apache-2.0 |
 | `windows-future` | 0.3.2 | MIT OR Apache-2.0 |
@@ -523,10 +510,8 @@ written once with the crates that carry it.
 | `windows-result` | 0.4.1 | MIT OR Apache-2.0 |
 | `windows-strings` | 0.5.1 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |
-| `windows-sys` | 0.60.2 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.61.2 | MIT OR Apache-2.0 |
 | `windows-targets` | 0.52.6 | MIT OR Apache-2.0 |
-| `windows-targets` | 0.53.5 | MIT OR Apache-2.0 |
 | `windows-threading` | 0.2.1 | MIT OR Apache-2.0 |
 | `windows-version` | 0.1.7 | MIT OR Apache-2.0 |
 | `winnow` | 1.0.4 | MIT |

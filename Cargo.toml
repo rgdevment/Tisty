@@ -68,7 +68,7 @@ zeroize = "1"
 hmac = { version = "0.13", features = ["zeroize"] }
 hkdf = "0.13"
 # What seals an envelope, and what opens it in every browser with nothing but WebCrypto.
-aes-gcm = "0.10"
+aes-gcm = { version = "0.11", features = ["zeroize"] }
 flate2 = "1"
 # Only what reads and rewrites a picture for what travels, with no system codec.
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
@@ -87,7 +87,7 @@ sys-locale = "0.3"
 machine-uid = "0.6"
 # Only for walking the process tree on Windows, where doing it by hand takes a system
 # call this workspace forbids itself; the other platforms read /proc or ask ps.
-sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+sysinfo = { version = "0.40", default-features = false, features = ["system"] }
 unicode-normalization = "0.1"
 pulldown-cmark = { version = "0.13", default-features = false }
 # Formulas drawn here, so the window shows them without running any script.
