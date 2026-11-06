@@ -2,6 +2,7 @@ import type { Say } from "tisty-sheet";
 
 const PAINT_WAIT = 100;
 const FRAME_BUDGET = 12;
+const SETTLED_A_FRAME = 400;
 const THEME = "tisty.viewer.theme";
 
 const painted = (): Promise<void> =>
@@ -23,6 +24,17 @@ export const laidIn = async (page: HTMLElement, pieces: readonly string[]): Prom
       page.insertAdjacentHTML("beforeend", pieces[at]);
       at += 1;
     } while (at < pieces.length && performance.now() - started < FRAME_BUDGET);
+  }
+};
+
+// A block left to content-visibility only guesses its height, so the bar and the orange line would jump while reading.
+export const settled = async (page: HTMLElement): Promise<void> => {
+  const blocks = Array.from(page.children) as HTMLElement[];
+  for (let at = 0; at < blocks.length; at += SETTLED_A_FRAME) {
+    await painted();
+    for (const block of blocks.slice(at, at + SETTLED_A_FRAME)) {
+      block.style.contentVisibility = "visible";
+    }
   }
 };
 

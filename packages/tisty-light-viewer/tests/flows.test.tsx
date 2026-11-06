@@ -250,6 +250,21 @@ describe("the index", () => {
     vi.restoreAllMocks();
   });
 
+  it("keeps the section being read in sight inside its own list", async () => {
+    await open();
+    const list = document.querySelector(".index") as HTMLElement;
+    Object.defineProperty(list, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(list.children[1], "offsetTop", { configurable: true, value: 300 });
+    placedAt("one", -500);
+    placedAt("two", 0);
+    window.dispatchEvent(new Event("scroll"));
+    await waitFor(() => expect(list.scrollTop).toBe(250));
+    list.scrollTop = 40;
+    window.dispatchEvent(new Event("scroll"));
+    await new Promise((done) => requestAnimationFrame(done));
+    expect(list.scrollTop).toBe(40);
+  });
+
   it("goes from heading to heading by keys", async () => {
     await open();
     await waitFor(() => expect(drawing.readAs).toHaveBeenCalled());
@@ -259,6 +274,18 @@ describe("the index", () => {
     expect(jumped).toContain("two");
     pressed({ key: "ArrowUp", altKey: true });
     expect(jumped).toContain("one");
+  });
+});
+
+describe("the height of the page", () => {
+  it("stops being a guess for every block, without blocking on a long page", async () => {
+    const blocks = Array.from({ length: 450 }, (_, at) => `<p>${at}</p>`).join("");
+    await open(drawn(blocks));
+    await waitFor(() => {
+      const all = Array.from(page().children) as HTMLElement[];
+      expect(all).toHaveLength(450);
+      expect(all.every((one) => one.style.contentVisibility === "visible")).toBe(true);
+    });
   });
 });
 

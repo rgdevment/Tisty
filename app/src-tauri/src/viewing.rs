@@ -267,6 +267,8 @@ fn beside_main(app: &AppHandle) -> (f64, f64) {
 }
 
 const WIDE: f64 = 1400.0;
+// The sheet and its panels side by side, with their gaps and the scrollbar, and nothing to spare.
+const LIGHT_WIDE: f64 = 1200.0;
 const SIZED: (f64, f64) = (WIDE, 656.0);
 
 fn scaled(height: f64) -> (f64, f64) {
@@ -283,17 +285,20 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         Shown::Widget { .. } => "Tisty".into(),
     };
     let spanish = spanish(app);
-    let page = match &shown {
-        Shown::File(_) => crate::refusing::light_page(spanish),
-        _ => crate::refusing::page(spanish),
+    let light = matches!(shown, Shown::File(_));
+    let page = if light {
+        crate::refusing::light_page(spanish)
+    } else {
+        crate::refusing::page(spanish)
     };
     if let Ok(mut held) = views.shown.lock() {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
+    let wide = if light { LIGHT_WIDE } else { sized.0 };
     let made = crate::engine::window(app, &label, tauri::WebviewUrl::App(page.into()))
         .title(title)
-        .inner_size(sized.0, sized.1)
+        .inner_size(wide, sized.1)
         .min_inner_size(520.0, 380.0)
         .decorations(false)
         .transparent(true)

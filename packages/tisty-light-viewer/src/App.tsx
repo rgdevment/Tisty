@@ -19,7 +19,7 @@ import Panels from "./Panels";
 import Problem from "./Problem";
 import { bringFar, bringNearPictures, farPictures } from "./pictures";
 import { blockAt, remember, remembered } from "./place";
-import { dress, laidIn, printed, redraw, turnTheme } from "./sheet";
+import { dress, laidIn, printed, redraw, settled, turnTheme } from "./sheet";
 import { type Words, wordsFor } from "./words";
 
 const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
@@ -93,6 +93,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     const block = remembered(now.path);
     if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: "start" });
     else if (block !== undefined) page.children[block]?.scrollIntoView({ block: "start" });
+    void settled(page).catch(fail);
     await dress(words.sayToSheet, words.locale);
   };
 
