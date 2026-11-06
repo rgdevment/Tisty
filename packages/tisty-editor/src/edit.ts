@@ -2,6 +2,7 @@ export { default as BAR_CSS } from "./edit/bar.css?raw";
 export {
   barred,
   blockKeys,
+  LEADS,
   FORMATS,
   flipped,
   formatButtons,
@@ -26,6 +27,7 @@ export {
 } from "./edit/formatting";
 export { type EditWord, type Hosted, hosted, type TableEdit } from "./edit/hosted";
 export { latelyMarked, MARKED_FOR, markLately } from "./edit/lately";
+export { type Crossing, crossingKeys, enteredAt, WRITTEN } from "./edit/crossing";
 export { outOfPairs, pairsKept } from "./edit/pairing";
 export {
   pend,

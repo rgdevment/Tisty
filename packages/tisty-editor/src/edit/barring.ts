@@ -86,7 +86,7 @@ export const retyped = (view: EditorView, prefix: string): boolean => {
 };
 
 const BARE = /^((> ?)+|(> ?)*([-*+] (\[[ xX]\] )?|\d+[.)] ))\s*$/;
-const LEADS = /^(?:>\s?|#{1,6}\s|[-*+]\s(?:\[[ xX]\]\s)?|\d+[.)]\s)+/;
+export const LEADS = /^(?:>\s?|#{1,6}\s|[-*+]\s(?:\[[ xX]\]\s)?|\d+[.)]\s)+/;
 
 const home = (view: EditorView, extend: boolean) => {
   const { main } = view.state.selection;

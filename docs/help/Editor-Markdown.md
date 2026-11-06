@@ -14,6 +14,7 @@ Hay una sola forma de escribir, y ocurre en la misma página.
 - **Esc, o un clic fuera, vuelve a la lectura.** Lo que escribes se guarda sobre la marcha, y el pie de la página te lo dice.
 - **La primera línea es el título.** No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama. Enter te lleva de ahí al cuerpo.
 - **Enter empieza un párrafo nuevo, y `Shift` + `Enter` solo salta de línea.** Las listas, las citas y el código conservan su propio Enter.
+- **Las flechas siguen de un bloque al siguiente** en un documento, saltando una imagen, una tabla o un diagrama, que se abren con un clic. `Retroceso` al inicio de un bloque lo une con el anterior, y `Supr` al final une el siguiente.
 - **`Ctrl`/`⌘` + `Shift` + `M` muestra todas las marcas** del bloque, para cuando quieres ver el Markdown tal cual. Vuelve a pulsarlo para ocultarlas.
 
 Una línea al pie de la página deja las teclas a la vista: `/` para insertar, `#` y un espacio para un título, el atajo de todas las marcas y Esc para leer.

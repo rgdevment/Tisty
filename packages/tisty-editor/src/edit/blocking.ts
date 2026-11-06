@@ -26,6 +26,7 @@ import { tags } from "@lezer/highlight";
 import { HUES, isHue } from "tisty-sheet";
 import { known } from "tisty-sheet/glyphs";
 import { barred, blockKeys, flipped, paragraphKeys } from "./barring";
+import { type Crossing, crossingKeys } from "./crossing";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { type Hosted, hosted } from "./hosted";
@@ -304,6 +305,7 @@ export const edited = (
   oneLine = false,
   whole = false,
   onWhole?: (all: boolean) => void,
+  onCross?: (one: Crossing) => void,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -392,6 +394,7 @@ export const edited = (
             ...gridKeys,
             ...tableKeys,
             ...(whole || stepping ? [] : paragraphKeys),
+            ...(onCross && !whole && !stepping ? crossingKeys(host, onCross) : []),
             { key: "Mod-Shift-z", run: redo },
           ]),
         ),

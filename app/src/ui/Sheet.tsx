@@ -11,8 +11,10 @@ import {
 import {
   type Asking,
   BAR_CSS,
+  type Crossing,
   caretAt,
   type Editing,
+  enteredAt,
   FORMATS,
   flipped,
   formatButtons,
@@ -21,6 +23,7 @@ import {
   pressed,
   putBlock,
   stagesIn,
+  WRITTEN,
   widened,
   wrapped,
 } from "tisty-editor/edit";
@@ -42,7 +45,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Went } from "./paging";
-import { closed, laid, parting } from "./parting";
+import { closed, joined, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -140,6 +143,7 @@ export default function Sheet(props: Readonly<Props>) {
   // Asked while the page was still being drawn again, so it opens once the new one is shown.
   const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
+  const arriving = useRef<(Crossing & { at: number; turn: number }) | null>(null);
   const caretNow = useRef<(() => number) | null>(null);
   // One fading at a time: a mark laid again outlives the timer of the one before.
   const fading = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -241,6 +245,7 @@ export default function Sheet(props: Readonly<Props>) {
     pending.current = null;
     // Another document keeps this sheet, so its page stays in view until the next one is drawn.
     onFile.current = file;
+    arriving.current = null;
     left();
     latest.current = value;
     echoes.current = [];
@@ -277,8 +282,10 @@ export default function Sheet(props: Readonly<Props>) {
     read = "",
     asked?: Pick<Formatting, "said" | "open" | "close">,
     whole?: { caret: number; all?: boolean },
+    entering?: Crossing & { at: number },
   ) => {
     if (open.current) return left();
+    arriving.current = null;
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
     let [from, end] = at;
@@ -304,6 +311,7 @@ export default function Sheet(props: Readonly<Props>) {
     const home = onFile.current;
     let before = latest.current;
     let mine = latest.current;
+    let going: Crossing | null = null;
     const spliced = (text: string) => {
       const now = latest.current;
       const said = fresh && (text === seed || !text.trim()) ? "" : text;
@@ -324,11 +332,22 @@ export default function Sheet(props: Readonly<Props>) {
         veiled.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
+        let at = going?.forward ? end : from;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
           written(closed(latest.current, from, end));
+          at = from;
+        }
+        if (ours && going?.join) {
+          const merged = joined(latest.current, at);
+          written(merged.text);
+          at = merged.at;
         }
         setDrawn(latest.current);
         if (ours) settled(before, latest.current, renamed);
+        if (!ours || !going) return;
+        const arrival = { ...going, at };
+        if (showing.current === latest.current) arrive(arrival);
+        else arriving.current = { ...arrival, turn: turnedNow.current };
       },
       () => {
         const asking = said.current.asking;
@@ -356,6 +375,12 @@ export default function Sheet(props: Readonly<Props>) {
       fixed || !said.current.wholeable
         ? undefined
         : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(undefined, all))),
+      whole || said.current.inline
+        ? undefined
+        : (one) => {
+            going = one;
+            left();
+          },
     );
     follows.current = (was, now) => {
       // The whole document takes the words in place, the caret carried along, instead of ending.
@@ -407,7 +432,11 @@ export default function Sheet(props: Readonly<Props>) {
       ? inEditor(latest.current, whole.caret)
       : seed
         ? seed.length
-        : inEditor(editing.state.sliceDoc(), caretAt(editing.state.sliceDoc(), read));
+        : entering
+          ? entering.join
+            ? inEditor(editing.state.sliceDoc(), entering.at - from)
+            : enteredAt(editing, entering.forward, entering.x)
+          : inEditor(editing.state.sliceDoc(), caretAt(editing.state.sliceDoc(), read));
     const length = editing.state.doc.length;
     editing.dispatch({
       selection: whole?.all ? { anchor: 0, head: length } : { anchor: Math.min(caret, length) },
@@ -474,6 +503,33 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return;
     veiled.current();
     veiled.current = null;
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new drawing may be the one the caret waits for.
+  useEffect(() => {
+    const waiting = arriving.current;
+    if (!waiting || drawn !== latest.current || turned === waiting.turn) return;
+    arriving.current = null;
+    arrive(waiting);
+  }, [turned, drawn]);
+
+  const arrive = (one: Crossing & { at: number }) => {
+    const text = latest.current;
+    const bytes = new TextEncoder().encode(text.slice(0, one.at)).length;
+    const blocks = Array.from(
+      shown.current?.document.querySelectorAll<HTMLElement>(WRITTEN) ?? [],
+    ).flatMap((element) => {
+      const span = spanned(element.dataset.at ?? null);
+      return span ? [{ element, span }] : [];
+    });
+    const target = one.join
+      ? blocks.find(({ span }) => span[0] <= bytes && bytes <= span[1])
+      : one.forward
+        ? blocks.find(({ span }) => span[0] >= bytes)
+        : blocks.filter(({ span }) => span[1] <= bytes).pop();
+    if (!target) return;
+    const at: [number, number] = [charsAt(text, target.span[0]), charsAt(text, target.span[1])];
+    block(at, target.element, "", "", undefined, undefined, one);
   };
 
   const formatted = (

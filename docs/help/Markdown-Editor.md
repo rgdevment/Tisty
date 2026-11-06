@@ -14,6 +14,7 @@ There is one way of writing, and it happens on the page itself.
 - **Esc, or a click outside, goes back to reading.** What you write is saved as you go, and the foot of the page says so.
 - **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called. Enter takes you from it to the body.
 - **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** Lists, quotes and code keep their own Enter.
+- **The arrows go on from one block to the next** in a document, past a picture, a table or a diagram, which you open with a click. `Backspace` at the start of a block joins it to the one before, and `Delete` at its end joins the next.
 - **`Ctrl`/`⌘` + `Shift` + `M` shows every mark** in the block, for when you want to see the Markdown itself. Press it again to hide them.
 
 A line at the foot of the page keeps the keys in sight: `/` to insert, `#` and a space for a heading, the shortcut for every mark, and Esc to read.
