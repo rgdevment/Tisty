@@ -9,7 +9,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ed25519_dalek::{Signature, VerifyingKey};
 use flate2::read::DeflateDecoder;
 use hkdf::Hkdf;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit as _, Mac};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{VERSION, check, check_html, pictures_in, playable_as, references_in};
@@ -262,7 +262,7 @@ fn opened_as_said(bytes: &[u8], asked: (&str, &str), link_key: Option<&[u8]>) ->
                 let mut nonce = [0u8; 12];
                 nonce[8..].copy_from_slice(&(number as u32).to_be_bytes());
                 let payload = Payload { msg: travelled, aad: manifest_bytes };
-                cipher.decrypt(&Nonce::from(nonce), payload).map_err(|_| "it does not open")?
+                cipher.decrypt(Nonce::from_slice(&nonce), payload).map_err(|_| "it does not open")?
             }
             None => travelled.to_vec(),
         };
