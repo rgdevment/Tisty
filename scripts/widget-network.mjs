@@ -22,6 +22,7 @@ const TCP_OVER_IPV6 = { "preconnect-ipv6": 41020, "turn-tcp-ipv6": 41021 };
 const HTTP = 41010;
 const FIRST_DEBUG_PORT = 9471;
 const WIDGET_TAKES = 12000;
+const HOSTILE_TAKES = 8000;
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BY_HAND = process.argv[2] === "--by-hand";
@@ -34,7 +35,7 @@ const lanAddress = () =>
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
-const hostile = (canary, token) => `<p>hostile</p>
+const hostile = (canary, token, staysToBeSeen = false) => `<p>hostile</p>
 <link rel="preconnect" href="http://${canary}:${TCP["preconnect-in-markup"]}">
 <link rel="dns-prefetch" href="http://dns-in-markup-${token}.invalid">
 <script>
@@ -44,10 +45,12 @@ const hostile = (canary, token) => `<p>hostile</p>
   const note = (k, v) => { seen[k] = v; };
   const url = (name) => "http://" + C + ":${HTTP}/" + name;
   const ice = (label, server) => {
-    const pc = new RTCPeerConnection({ iceServers: [server] });
-    pc.onicecandidate = (e) => { if (!e.candidate) note(label, "gathered"); };
-    pc.createDataChannel("x");
-    pc.createOffer().then((o) => pc.setLocalDescription(o));
+    try {
+      const pc = new RTCPeerConnection({ iceServers: [server] });
+      pc.onicecandidate = (e) => { if (!e.candidate) note(label, "gathered"); };
+      pc.createDataChannel("x");
+      pc.createOffer().then((o) => pc.setLocalDescription(o));
+    } catch (why) { note(label, String(why)); }
   };
   const relay = (urls) => ({ urls, username: "u", credential: "p" });
   const head = (rel, href) => {
@@ -76,10 +79,10 @@ const hostile = (canary, token) => `<p>hostile</p>
     await pc.setRemoteDescription({ type: "answer", sdp: offer.sdp.replace("a=setup:actpass", "a=setup:active") + candidates });
   })().catch((why) => note("direct", String(why)));
   const inner = "<!doctype html><script>" +
+    "const l = document.createElement('link'); l.rel = 'preconnect'; l.href = 'http://" + C + ":${TCP["preconnect-in-a-frame"]}'; document.head.append(l);" +
     "const a = new RTCPeerConnection({ iceServers: [{ urls: 'stun:" + C + ":${UDP["stun-in-a-frame"]}' }] });" +
     "const b = new RTCPeerConnection({ iceServers: [{ urls: 'turn:" + C + ":${TCP["turn-tcp-in-a-frame"]}?transport=tcp', username: 'u', credential: 'p' }] });" +
     "for (const pc of [a, b]) { pc.createDataChannel('x'); pc.createOffer().then((o) => pc.setLocalDescription(o)); }" +
-    "const l = document.createElement('link'); l.rel = 'preconnect'; l.href = 'http://" + C + ":${TCP["preconnect-in-a-frame"]}'; document.head.append(l);" +
     "</scr" + "ipt>";
   const frame = document.createElement("iframe");
   frame.src = URL.createObjectURL(new Blob([inner], { type: "text/html" }));
@@ -93,8 +96,11 @@ const hostile = (canary, token) => `<p>hostile</p>
     () => head("stylesheet", url("stylesheet")),
     () => head("prefetch", url("prefetch")),
   ]) { try { send(); } catch {} }
-  setTimeout(() => parent.postMessage({ probe: true, seen }, "*"), 8000);
-  setTimeout(() => { location.href = url("navigated"); }, 9000);
+  setTimeout(() => {
+    parent.postMessage({ probe: true, seen }, "*");
+    document.body.prepend("RAN: RTCPeerConnection is " + seen.rtc);
+  }, 8000);
+  ${staysToBeSeen ? "" : 'setTimeout(() => { location.href = url("navigated"); }, 9000);'}
 })();
 </script>`;
 
@@ -251,16 +257,22 @@ const trial = async (name, port, extraArgs) => {
 
 const openedByHand = async () => {
   const token = Date.now().toString(36);
-  const page = path.join(os.tmpdir(), "tisty-hostile-page.html");
-  fs.writeFileSync(page, `<!doctype html><html><head></head><body>${hostile(lan, token)}</body></html>`);
+  const page = path.join(os.homedir(), "tisty-hostile-page.html");
+  fs.writeFileSync(page, `<!doctype html><html><head></head><body>${hostile(lan, token, true)}</body></html>`);
   const reached = {};
   const stopListening = listening(reached);
-  console.log(`Attach ${page} to a document in Tisty, draw it live, and wait 15 seconds.`);
-  console.log(`What the listeners cannot see goes to the DNS server: sudo tcpdump -n -l -i any port 53 | grep ${token}`);
-  console.log("Then press Enter.");
+  const began = Date.now();
+  console.log(`1. Attach ${page} to a document in Tisty, as an attachment made in this run.`);
+  console.log(`2. Wait until it says RAN at its top, which takes ${HOSTILE_TAKES / 1000} seconds. Nothing is proved until it does.`);
+  console.log(`3. Press Enter. For the DNS, keep this open beside it: sudo tcpdump -n -l -i any port 53 | grep ${token}`);
   await new Promise((pressed) => process.stdin.once("data", pressed));
   stopListening();
+  fs.rmSync(page, { force: true });
   console.log("reached:", reached);
+  if (Date.now() - began < HOSTILE_TAKES) {
+    console.error("x  Enter came before the page could have run, so this proves nothing");
+    process.exit(2);
+  }
   process.exit(Object.keys(reached).length ? 1 : 0);
 };
 
