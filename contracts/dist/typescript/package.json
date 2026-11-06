@@ -1,6 +1,6 @@
 {
   "name": "@tisty/contracts",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "What a Tisty document and task are. Generated from Tisty's contracts.",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -30,6 +30,7 @@
     "check.d.ts",
     "vectors.json",
     "written-by-tisty.json",
-    "LICENSE"
+    "LICENSE",
+    "ADDITIONAL-PERMISSION.md"
   ]
 }

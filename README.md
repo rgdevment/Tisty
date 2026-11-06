@@ -1151,6 +1151,10 @@ Everyone taking part — in issues, pull requests or discussions — follows the
 [AGPL-3.0](LICENSE). Using Tisty is covered by short [terms of use](TERMS.md)
 that take nothing away from it.
 
+The contract in `contracts/` is AGPL-3.0 too, with an
+[additional permission](contracts/ADDITIONAL-PERMISSION.md) so Folio can
+include it under its own licence.
+
 ### Other terms
 
 [Commercial terms](docs/COMMERCIAL.md) exist for organisations that cannot

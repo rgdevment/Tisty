@@ -1172,6 +1172,10 @@ Quien participe —en issues, pull requests o discusiones— sigue el
 [AGPL-3.0](LICENSE). El uso de Tisty se rige por unos
 [términos de uso](TERMS.md) breves, en inglés, que no le quitan nada.
 
+El contrato de `contracts/` también es AGPL-3.0, con un
+[permiso adicional](contracts/ADDITIONAL-PERMISSION.md), en inglés, para que
+Folio pueda incluirlo bajo su propia licencia.
+
 ### Otros términos
 
 Hay [términos comerciales](docs/COMMERCIAL.md) para organizaciones que no
