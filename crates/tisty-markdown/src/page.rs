@@ -156,6 +156,10 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
             );
             wrapped(&head, "</details>", block, text, drawing, out);
         }
+        Kind::Aligned { how } => {
+            let head = format!("<div align=\"{how}\" {at}>");
+            wrapped(&head, "</div>", block, text, drawing, out);
+        }
         Kind::Note { label } => {
             let head = format!(
                 "<div class=\"footnote\" id=\"fn-{0}\" {at}><span class=\"fn-label\">{1}</span>",

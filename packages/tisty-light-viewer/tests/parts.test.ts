@@ -262,8 +262,8 @@ describe("the pictures", () => {
     const far = farPictures(page);
     expect(far).toHaveLength(2);
     expect(host.pictureFar).not.toHaveBeenCalled();
-    bringFar(far);
-    await vi.waitFor(() => expect(far[0].getAttribute("src")).toBe("data:one"));
+    expect(await bringFar(far)).toBe(1);
+    expect(far[0].getAttribute("src")).toBe("data:one");
     expect(far[1].getAttribute("src")).toBe("http://x.y/b.png");
   });
 });

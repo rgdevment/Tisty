@@ -42,13 +42,11 @@ export const bringNearPictures = (page: HTMLElement): void => {
 export const farPictures = (page: HTMLElement): HTMLImageElement[] =>
   Array.from(page.querySelectorAll("img")).filter((one) => onTheWeb(said(one)));
 
-export const bringFar = (pictures: readonly HTMLImageElement[]): void => {
-  for (const one of pictures) {
-    void pictureFar(said(one)).then(
-      (data) => {
-        one.src = data;
-      },
-      () => {},
-    );
-  }
+export const bringFar = async (pictures: readonly HTMLImageElement[]): Promise<number> => {
+  const brought = await Promise.allSettled(
+    pictures.map(async (one) => {
+      one.src = await pictureFar(said(one));
+    }),
+  );
+  return brought.filter((one) => one.status === "rejected").length;
 };

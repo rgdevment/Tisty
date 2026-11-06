@@ -144,6 +144,9 @@ pub enum Kind {
     Note {
         label: String,
     },
+    Aligned {
+        how: String,
+    },
     Definition {
         label: String,
         to: String,

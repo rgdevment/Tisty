@@ -45,6 +45,5 @@ export const reveal = (path: string): Promise<void> =>
   import("@tauri-apps/plugin-opener").then(({ revealItemInDir }) => revealItemInDir(path));
 
 export const shown = (): Promise<void> => here.show();
-export const minimized = (): Promise<void> => here.minimize();
-export const maximized = (): Promise<void> => here.toggleMaximize();
+export const themed = (dark: boolean): Promise<void> => here.setTheme(dark ? "dark" : "light");
 export const closed = (): Promise<void> => here.close();

@@ -66,7 +66,12 @@ fn node(block: &Block, text: &str) -> Option<Value> {
             content.extend(inner(block));
             json!({ "type": "blockquote", "content": content })
         }
-        Kind::Html | Kind::Front | Kind::Definition { .. } | Kind::Row { .. } | Kind::Cell => {
+        Kind::Aligned { .. }
+        | Kind::Html
+        | Kind::Front
+        | Kind::Definition { .. }
+        | Kind::Row { .. }
+        | Kind::Cell => {
             return None;
         }
     })

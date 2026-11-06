@@ -22,8 +22,6 @@ const EN = {
   copy: "Copy Markdown",
   print: "Print",
   revealIt: "Show in folder",
-  minimize: "Minimize",
-  maximize: "Maximize",
   close: "Close",
   sidePanel: "Contents and details",
   empty: "This file is empty.",
@@ -32,6 +30,7 @@ const EN = {
   editTooBig:
     "It can be read here, but to edit it in Tisty it cannot go past {name}. Split it in two or try another editor.",
   failed: "That could not be done. Try again.",
+  farFailed: "Pictures from the internet that could not be brought: {name}.",
   editAfterWelcome:
     "Finish setting up Tisty in its window first. Your copy is made as soon as you do.",
   unreadable: "This file could not be read. It may have been moved or be in use.",
@@ -68,8 +67,6 @@ const ES: Record<Own, string> = {
   copy: "Copiar el Markdown",
   print: "Imprimir",
   revealIt: "Mostrar en la carpeta",
-  minimize: "Minimizar",
-  maximize: "Maximizar",
   close: "Cerrar",
   sidePanel: "Índice y detalles",
   empty: "Este archivo está vacío.",
@@ -78,6 +75,7 @@ const ES: Record<Own, string> = {
   editTooBig:
     "Se puede leer aquí, pero para editarlo en Tisty no puede pasar de {name}. Divídelo en dos o intenta con otro editor.",
   failed: "No se pudo hacer. Intenta de nuevo.",
+  farFailed: "Imágenes de internet que no se pudieron traer: {name}.",
   editAfterWelcome:
     "Primero termina de configurar Tisty en su ventana. Tu copia se crea en cuanto termines.",
   unreadable: "No se pudo leer este archivo. Puede que se haya movido o esté en uso.",

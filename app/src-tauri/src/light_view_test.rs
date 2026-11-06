@@ -1,4 +1,7 @@
-use super::{PIECE_ABOUT, body_of, drawn_from, far_kind, near_picture, neighbour};
+use super::{
+    PIECE_ABOUT, body_of, drawn_from, far_kind, far_picture, near_picture, neighbour,
+    reaches_outside,
+};
 
 fn file_of_size(room: &tempfile::TempDir, bytes: usize) -> std::path::PathBuf {
     let at = room.path().join("long.md");
@@ -131,4 +134,47 @@ fn a_file_cut_inside_a_letter_at_the_ceiling_is_still_too_big() {
     said.push('é');
     std::fs::write(&at, said).unwrap();
     assert_eq!(body_of(&at).unwrap_err().code, "documentTooBig");
+}
+
+#[test]
+fn only_an_address_on_the_web_is_fetched() {
+    assert!(far_picture("file:///C:/secret.png").is_err());
+    assert!(far_picture("./a.png").is_err());
+}
+
+#[test]
+fn a_picture_never_reaches_this_machine_or_its_network() {
+    for inside in [
+        "http://localhost/a.png",
+        "http://127.0.0.1:8080/a.png",
+        "http://0.0.0.0/a.png",
+        "http://10.0.0.8/a.png",
+        "http://172.16.3.1/a.png",
+        "http://192.168.1.1/reboot",
+        "http://169.254.169.254/latest",
+        "http://100.64.0.1/a.png",
+        "http://[::1]/a.png",
+        "http://[fe80::1]/a.png",
+        "http://[fd00::1]/a.png",
+        "http://[::ffff:127.0.0.1]/a.png",
+        "http://[::ffff:192.168.1.1]/a.png",
+    ] {
+        let address = reqwest::Url::parse(inside).unwrap();
+        assert!(!reaches_outside(&address), "{inside}");
+        assert!(far_picture(inside).is_err(), "{inside}");
+    }
+}
+
+#[test]
+fn a_public_address_is_outside() {
+    for outside in [
+        "https://1.1.1.1/a.png",
+        "http://8.8.8.8/",
+        "https://[2606:4700::1111]/",
+    ] {
+        assert!(
+            reaches_outside(&reqwest::Url::parse(outside).unwrap()),
+            "{outside}"
+        );
+    }
 }
