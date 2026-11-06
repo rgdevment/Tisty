@@ -22,6 +22,7 @@ use super::sharing::{doc_id, refused, sealed_by, turned};
 use crate::{Answer, Refusal, Session, held};
 
 const PATIENCE: Duration = Duration::from_secs(120);
+const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
 const FIRST_TERM_DAYS: u64 = 1;
 
@@ -90,7 +91,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
                 Refusal::about("folioWait", until.to_string())
             }
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
-            Refused::Terms => Refusal::of("folioTermsToAccept"),
+            Refused::Terms => Refusal::of(TERMS_TO_ACCEPT),
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
@@ -158,18 +159,18 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
     let home = paths.private();
     match terms_now(&home, tongue)? {
         TermsNow::Accepted => {}
-        TermsNow::ToAccept { .. } => return Err(Refusal::of("folioTermsToAccept")),
+        TermsNow::ToAccept { .. } => return Err(Refusal::of(TERMS_TO_ACCEPT)),
     }
     let limits = folio_limits::kept(&home);
     if folio_limits::uploads_halted(limits.as_ref(), policy::now()) {
         return Err(Refusal::of("folioUploadsOff"));
     }
-    folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of("folioTermsToAccept"))
+    folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
 }
 
 fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     match standing {
-        Ok(Standing::ToAccept { .. }) => Refusal::of("folioTermsToAccept"),
+        Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
         Ok(Standing::Accepted) | Err(Unsure::Unmatched) => Refusal::of("folioTermsUnmatched"),
         Err(Unsure::NoWord) => Refusal::of("folioUnreached"),
         Err(Unsure::NotPublished) => Refusal::of("folioTermsNotPublished"),
@@ -177,14 +178,14 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
 }
 
 fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
-    if refused.code == "folioTermsToAccept" {
+    if refused.code == TERMS_TO_ACCEPT {
         folio_pace::take_back(home, id, at);
     }
     refused
 }
 
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
-    if refused.code != "folioTermsToAccept" {
+    if refused.code != TERMS_TO_ACCEPT {
         return refused;
     }
     after_terms_refused(folio_terms::read_again(

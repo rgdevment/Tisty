@@ -245,7 +245,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Your tasks live | in plain files on your own disk |
 | Account | none, ever |
 | Subscription | none. There is no paid tier and no upgrade |
-| Offline | always. There is no server to be away from |
+| Offline | always. Only sharing a document by link needs a connection |
 | AI inside | **none**, and none is coming |
 | Your own assistant | yes, over **MCP**, if you choose to open the door |
 | Priorities | the **Eisenhower matrix**, by its name |
@@ -928,11 +928,11 @@ Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
 later version, no trial that runs out.
 
 **Does it need an account or a connection?**
-Neither. There is nothing to sign up for and no server to be away from. Tisty
-makes one network request you did not ask for — when it opens, and once a day
-after that — to see whether a newer version exists, and it sends nothing in
-order to ask. Take the machine off the network and everything else works the
-same.
+Neither. There is nothing to sign up for, and only sharing a document by link
+needs a connection. Tisty makes one network request you did not ask for — when
+it opens, and once a day after that — to see whether a newer version exists, and
+it sends nothing in order to ask. Take the machine off the network and
+everything else works the same.
 
 **Where is my data kept?**
 In one folder on your own disk: an append-only log of what happened, your

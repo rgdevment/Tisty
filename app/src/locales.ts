@@ -691,6 +691,8 @@ const en = {
   folioAppealed: "This block was already appealed, or nothing is blocked now.",
   shareOverHead: "It carries more than Folio takes for now",
   shareOverWhy: "Take out some pictures or attachments to share it.",
+  shareOverPicture:
+    "One picture weighs {name}, and each can weigh up to {other}. Make it smaller or take it out.",
   shareAppeal: "Appeal…",
   shareAppealAccepted:
     "Your appeal was accepted: someone else signed what was reported. Press Sync to send your own version, which lifts the block.",
@@ -3542,6 +3544,8 @@ const es: Catalog = {
   folioAppealed: "Este bloqueo ya se reclamó, o ya no hay nada bloqueado.",
   shareOverHead: "Lleva más de lo que Folio acepta por ahora",
   shareOverWhy: "Quita algunas imágenes o adjuntos para compartirlo.",
+  shareOverPicture:
+    "Una imagen pesa {name}, y cada una puede pesar hasta {other}. Redúcela o quítala.",
   shareAppeal: "Reclamar…",
   shareAppealAccepted:
     "Se aceptó tu reclamo: otra persona firmó lo denunciado. Presiona Sincronizar para enviar tu propia versión, que levanta el bloqueo.",

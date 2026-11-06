@@ -115,14 +115,15 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
   h.setTold(syncedWords(synced));
 };
 
+// The row outlives the document it shows, so an answer that arrives late may no longer be about it.
+const statusNow = (h: Hands) =>
+  shareStatus(h.doc).then((now) => {
+    if (h.stillHeld()) h.setStatus(now);
+  });
+
 // Whoever holds the link to manage hears of reports when pressing, since Tisty never asks on its own.
 const statusAfterSync = (h: Hands) => {
-  if (!h.card.taken)
-    void shareStatus(h.doc)
-      .then((now) => {
-        if (h.stillHeld()) h.setStatus(now);
-      })
-      .catch(() => {});
+  if (!h.card.taken) void statusNow(h).catch(() => {});
 };
 
 const syncNow = (h: Hands) => {
@@ -164,7 +165,7 @@ const managingActs = (h: Hands): Act[] => {
   const see: Act = {
     key: "status",
     label: t("sharedSeeStatus"),
-    onPick: () => void shareStatus(h.doc).then(h.setStatus).catch(h.failing),
+    onPick: () => void statusNow(h).catch(h.failing),
   };
   if (h.status?.blocked && h.status.mayCorrect) return [see];
   if (h.status?.blocked)
@@ -189,8 +190,7 @@ const managingActs = (h: Hands): Act[] => {
       label: t(paused ? "shareResume" : "sharePause"),
       onPick: () =>
         void sharePause(h.doc, !paused)
-          .then(() => shareStatus(h.doc))
-          .then(h.setStatus)
+          .then(() => statusNow(h))
           .catch(h.failing),
     },
     { key: "ask", label: t("shareStop"), danger: true, onPick: () => h.setStopping(true) },
@@ -209,9 +209,10 @@ export const useSharedRow = (
   const [card, setCard] = useState<ShareCard | null>(null);
   const [asking, setAsking] = useState(false);
   const [termsOnly, setTermsOnly] = useState(false);
-  const syncing = useRef<(() => void) | null>(null);
   const cardNow = useRef(card);
   cardNow.current = card;
+  const docNow = useRef(doc);
+  docNow.current = doc;
   const [accepted, setAccepted] = useState<string | undefined>(undefined);
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
@@ -266,6 +267,26 @@ export const useSharedRow = (
     [onError],
   );
 
+  const hands = useMemo((): Hands | null => {
+    if (!doc || !card) return null;
+    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / MINUTE_MS)) : 0;
+    return {
+      doc,
+      card,
+      status,
+      minutes,
+      accepted,
+      setAccepted,
+      setStatus,
+      setTold,
+      setStopping,
+      setCard,
+      failing,
+      stillHeld: () => docNow.current === doc && cardNow.current !== null,
+      onKeep,
+    };
+  }, [doc, card, status, waitUntil, accepted, onKeep, failing]);
+
   const panel = useMemo((): Panel | null => {
     if (!doc) return null;
     if (!card)
@@ -299,23 +320,7 @@ export const useSharedRow = (
         said: [t("sharedHeldWhy")],
         links: linksOf(card, status),
       };
-    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / MINUTE_MS)) : 0;
-    const hands: Hands = {
-      doc,
-      card,
-      status,
-      minutes,
-      accepted,
-      setAccepted,
-      setStatus,
-      setTold,
-      setStopping,
-      setCard,
-      failing,
-      stillHeld: () => cardNow.current !== null,
-      onKeep,
-    };
-    syncing.current = () => syncNow(hands);
+    if (!hands) return null;
     const rest = card.taken ? leavingActs(hands) : managingActs(hands);
     return {
       kind: "held",
@@ -327,7 +332,7 @@ export const useSharedRow = (
       links: linksOf(card, status),
       acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
     };
-  }, [doc, card, status, told, stopping, waitUntil, accepted, onKeep, failing]);
+  }, [doc, card, status, told, stopping, hands, onKeep]);
 
   return {
     panel,
@@ -337,7 +342,7 @@ export const useSharedRow = (
     onTermsAccepted: () => {
       setAsking(false);
       setTermsOnly(false);
-      syncing.current?.();
+      if (hands) syncNow(hands);
     },
     onClosed: () => {
       setAsking(false);

@@ -251,7 +251,7 @@ artificial**, esto es Tisty:
 | Tus tareas viven | en archivos de texto, en tu propio disco |
 | Cuenta | ninguna, nunca |
 | Suscripción | ninguna. No hay plan de pago ni mejora |
-| Sin conexión | siempre. No hay servidor del que estar lejos |
+| Sin conexión | siempre. Solo compartir un documento por link necesita conexión |
 | Con IA dentro | **ninguna**, y no la va a llevar |
 | Tu propio asistente | sí, por **MCP**, si decides abrir la puerta |
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
@@ -952,7 +952,8 @@ Sí, y lo seguirá siendo. AGPL-3.0, sin versión de pago, sin funciones
 reservadas para más adelante, sin versión de prueba que caduque.
 
 **¿Necesita una cuenta o conexión?**
-Ninguna de las dos. No hay a qué suscribirse ni servidor del que estar lejos.
+Ninguna de las dos. No hay a qué suscribirse, y solo compartir un documento por
+link necesita conexión.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
 preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.

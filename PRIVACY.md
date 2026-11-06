@@ -16,8 +16,9 @@ that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, one per picture if you press **Download** above the help,
 one per picture from the internet if you ask for them in the viewer of a
-Markdown file from outside, and those of Folio if you press **Share**, open a
-shared link or delete a document you shared. Never otherwise. A copy installed
+Markdown file from outside, and those of sharing by link if you press **Share**
+or **Sync**, manage a share, open a shared link or delete a document you shared.
+Never otherwise. A copy installed
 from the Microsoft
 Store asks Windows
 what the Store has and leaves the rest to the Store, and reads the Store's public

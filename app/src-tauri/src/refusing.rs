@@ -174,11 +174,28 @@ pub fn edit_asked_words(
     }
 }
 
-pub fn edit_failed_words(spanish: bool) -> &'static str {
-    if spanish {
-        "No se pudo traer ese documento. Revisa tu conexión, o léelo en el navegador."
-    } else {
-        "That document could not be brought in. Check your connection, or read it in your browser."
+pub fn edit_failed_words(spanish: bool, code: &str) -> &'static str {
+    match (code, spanish) {
+        ("folioGone", true) => "Ese link ya no existe: caducó o se dejó de compartir.",
+        ("folioGone", false) => "That link no longer exists: it ran out or it was stopped.",
+        ("folioBlocked", true) => "Folio dejó de servir ese documento por denuncias.",
+        ("folioBlocked", false) => "Folio stopped serving that document after reports.",
+        ("folioPaused", true) => "Quien lo compartió lo dejó en pausa, así que por ahora no abre.",
+        ("folioPaused", false) => "Whoever shared it paused it, so it does not open for now.",
+        ("folioOutdated", true) => {
+            "Este Tisty es demasiado antiguo para ese documento. Actualízalo."
+        }
+        ("folioOutdated", false) => "This Tisty is too old for that document. Update it.",
+        ("folioUnopened", true) => {
+            "No se pudo abrir ese documento: su firma o su contenido no calzan."
+        }
+        ("folioUnopened", false) => {
+            "That document could not be opened: its signature or its contents do not hold."
+        }
+        (_, true) => "No se pudo traer ese documento. Revisa tu conexión, o léelo en el navegador.",
+        (_, false) => {
+            "That document could not be brought in. Check your connection, or read it in your browser."
+        }
     }
 }
 

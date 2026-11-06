@@ -170,14 +170,35 @@ fn only_a_file_from_outside_gets_the_systems_title_bar() {
     }
 }
 
+fn link_numbered(at: usize) -> url::Url {
+    url::Url::parse(&format!("https://tisty.cl/d{at}#k")).unwrap()
+}
+
 #[test]
-fn a_link_waits_for_no_second_question_while_one_stands() {
+fn links_wait_their_turn_and_only_the_first_goes_through_them() {
     let views = Views::default();
 
-    let asking = views.asking_of_a_link();
-    assert!(asking.is_some());
-    assert!(views.asking_of_a_link().is_none());
+    assert!(views.link_arrived(link_numbered(1)));
+    assert!(!views.link_arrived(link_numbered(2)));
+    assert!(!views.link_arrived(link_numbered(1)));
 
-    drop(asking);
-    assert!(views.asking_of_a_link().is_some());
+    assert_eq!(views.next_link(), Some(link_numbered(1)));
+    assert_eq!(views.next_link(), Some(link_numbered(2)));
+    assert_eq!(views.next_link(), None);
+    assert!(views.link_arrived(link_numbered(3)));
+}
+
+#[test]
+fn a_page_firing_links_cannot_line_up_more_than_a_few() {
+    let views = Views::default();
+
+    for at in 0..100 {
+        views.link_arrived(link_numbered(at));
+    }
+
+    let mut waiting = 0;
+    while views.next_link().is_some() {
+        waiting += 1;
+    }
+    assert_eq!(waiting, super::LINKS_WAITING_AT_MOST);
 }

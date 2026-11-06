@@ -39,6 +39,28 @@ fn on_a_yes_it_asks_folio_for_that_link() {
 }
 
 #[test]
+fn a_link_that_failed_says_why_and_only_a_failed_connection_blames_it() {
+    use crate::refusing::edit_failed_words;
+    for spanish in [true, false] {
+        let connection = edit_failed_words(spanish, "folioUnreached");
+        for code in [
+            "folioGone",
+            "folioBlocked",
+            "folioPaused",
+            "folioOutdated",
+            "folioUnopened",
+        ] {
+            assert_ne!(edit_failed_words(spanish, code), connection, "{code}");
+            assert_ne!(
+                edit_failed_words(spanish, code),
+                edit_failed_words(!spanish, code),
+                "{code}"
+            );
+        }
+    }
+}
+
+#[test]
 fn the_question_before_looking_tells_who_will_be_asked_in_both_languages() {
     for spanish in [true, false] {
         let (words, look, leave) = crate::refusing::edit_look_words(spanish);

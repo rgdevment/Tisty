@@ -364,6 +364,13 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
 
 const past = (carried: number, most?: number) => most !== undefined && carried > most;
 
+const overSaid = ({ carrying, limits }: ShareLook) => {
+  const most = limits.picture_bytes_at_most;
+  return most !== undefined && past(carrying.largestPicture, most)
+    ? fill("shareOverPicture", weigh(carrying.largestPicture), weigh(most))
+    : t("shareOverWhy");
+};
+
 const pastTheLimits = ({ carrying, limits }: ShareLook) =>
   past(carrying.pictures, limits.pictures_at_most) ||
   past(carrying.picturesBytes, limits.pictures_bytes_at_most) ||
@@ -451,7 +458,7 @@ function Choosing({
             className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
           >
             <span className="text-[13px] font-semibold text-hue-amber">{t("shareOverHead")}</span>
-            <span className="text-[11.5px] leading-relaxed text-soft">{t("shareOverWhy")}</span>
+            <span className="text-[11.5px] leading-relaxed text-soft">{overSaid(look)}</span>
           </div>
         )}
         {secrets.length > 0 && (

@@ -1,6 +1,6 @@
 # Privacy
 
-Tisty collects nothing and has no server to send anything to. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
+Tisty collects nothing and keeps nothing of yours on a server. The one exception is yours to make: a document you share by link goes, sealed, to [Folio](https://github.com/rgdevment/Folio-by-Tisty), a separate service. No account, no telemetry, no analytics, no crash reports. That is not a promise you have to take on trust — it is a property of the code, which is [public](https://github.com/rgdevment/Tisty). Run a network monitor against it if you like.
 
 This page is a summary. The full policy, including the parts that are not reassuring, is [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md), and the security reasoning is in [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
@@ -35,6 +35,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 | **Your own WebDAV server, connected from Tisty** | Whoever runs that server ([how it works](Sync-and-Backup#syncing-through-your-own-webdav-server)) |
 | **Any of those three, encrypted with your phrase** | Nobody can read your files without your phrase or one of your computers. The provider still sees their names, sizes and how many computers you have, and may keep earlier unencrypted versions for a while |
 | **A folder on your own hardware** (NAS, external drive) | Whoever can reach that hardware |
+| **A document you share by link, through Folio** | Whoever has the link. Folio holds it sealed and cannot read it, but sees what [the full policy](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md#sharing-by-link) lists |
 | **A backup zip** | Wherever you put it |
 | **A `.tistyx` parcel you hand to someone** | Them, and whoever they hand it to |
 | **A `.tistyx` locked with six digits** | Whoever has both the file and the number |

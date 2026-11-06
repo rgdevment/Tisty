@@ -55,29 +55,41 @@ pub struct Views {
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
     links_owed: Mutex<Vec<url::Url>>,
-    asking_of_a_link: std::sync::atomic::AtomicBool,
+    links_arriving: Mutex<LinksArriving>,
 }
 
-pub(crate) struct AskingOfALink<'a>(&'a std::sync::atomic::AtomicBool);
-
-impl Drop for AskingOfALink<'_> {
-    fn drop(&mut self) {
-        self.0.store(false, std::sync::atomic::Ordering::Release);
-    }
+#[derive(Default)]
+struct LinksArriving {
+    waiting: Vec<url::Url>,
+    running: bool,
 }
+
+// Any page can fire a link, over and over, and each would stand a question on the desktop.
+const LINKS_WAITING_AT_MOST: usize = 8;
 
 impl Views {
-    // Any page can fire a link, over and over, and each would stand a question on the desktop.
-    pub(crate) fn asking_of_a_link(&self) -> Option<AskingOfALink<'_>> {
-        self.asking_of_a_link
-            .compare_exchange(
-                false,
-                true,
-                std::sync::atomic::Ordering::Acquire,
-                std::sync::atomic::Ordering::Relaxed,
-            )
-            .ok()
-            .map(|_| AskingOfALink(&self.asking_of_a_link))
+    // True for whoever has to go through them: the others only leave theirs in line.
+    pub(crate) fn link_arrived(&self, link: url::Url) -> bool {
+        let mut links = self
+            .links_arriving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if links.waiting.len() < LINKS_WAITING_AT_MOST && !links.waiting.contains(&link) {
+            links.waiting.push(link);
+        }
+        !std::mem::replace(&mut links.running, true)
+    }
+
+    pub(crate) fn next_link(&self) -> Option<url::Url> {
+        let mut links = self
+            .links_arriving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if links.waiting.is_empty() {
+            links.running = false;
+            return None;
+        }
+        Some(links.waiting.remove(0))
     }
 
     fn owe_edit(&self, label: &str) {

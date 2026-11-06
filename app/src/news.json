@@ -1176,7 +1176,7 @@
       },
       {
         "title": "Compartir con un link",
-        "said": "la fila «Compartido» del panel lleva a Folio, que entrega tu documento con un link cifrado. Tisty consulta a Folio solo al presionar Compartir, y si todavía no abrió te lo dice, sin subir nada. Conoce más en folio.tisty.app."
+        "said": "la fila «Compartido» del panel lleva a Folio, que entrega tu documento con un link cifrado. Tisty solo habla con Folio cuando usas esa fila o abres un link, y si Folio todavía no abrió te lo dice, sin subir nada. Conoce más en folio.tisty.app."
       },
       {
         "title": "Y varios arreglos",
@@ -1210,7 +1210,7 @@
       },
       {
         "title": "Sharing with a link",
-        "said": "the Shared row in a document's panel leads to Folio, which hands over your document with an encrypted link. Tisty asks Folio only when you press Share, and if it has not opened yet it tells you so and uploads nothing. Learn more at folio.tisty.app."
+        "said": "the Shared row in a document's panel leads to Folio, which hands over your document with an encrypted link. Tisty talks to Folio only when you use that row or open a link, and if Folio has not opened yet it tells you so and uploads nothing. Learn more at folio.tisty.app."
       },
       {
         "title": "And several fixes",

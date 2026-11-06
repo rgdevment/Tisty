@@ -357,28 +357,34 @@ fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<Stri
     taken_in(app, &link, &opened).map(Some)
 }
 
+fn bring_one(app: &AppHandle, web: &url::Url) {
+    let spanish = app
+        .try_state::<Mutex<Session>>()
+        .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));
+    match brought(app, web, spanish) {
+        Ok(Some(file)) => {
+            let _ = app.emit_to("main", "showdoc", file);
+            crate::tray::surface(app);
+        }
+        Ok(None) => {}
+        Err(refused) => {
+            app.dialog()
+                .message(crate::refusing::edit_failed_words(spanish, refused.code))
+                .title("Tisty")
+                .blocking_show();
+        }
+    }
+}
+
 pub fn bring_apart(app: &AppHandle, web: url::Url) {
+    if !app.state::<crate::viewing::Views>().link_arrived(web) {
+        return;
+    }
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let views = app.state::<crate::viewing::Views>();
-        let Some(_asking) = views.asking_of_a_link() else {
-            return;
-        };
-        let spanish = app
-            .try_state::<Mutex<Session>>()
-            .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));
-        match brought(&app, &web, spanish) {
-            Ok(Some(file)) => {
-                let _ = app.emit_to("main", "showdoc", file);
-                crate::tray::surface(&app);
-            }
-            Ok(None) => {}
-            Err(_) => {
-                app.dialog()
-                    .message(crate::refusing::edit_failed_words(spanish))
-                    .title("Tisty")
-                    .show(|_| {});
-            }
+        while let Some(web) = views.next_link() {
+            bring_one(&app, &web);
         }
     });
 }

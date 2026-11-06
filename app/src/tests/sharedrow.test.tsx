@@ -217,6 +217,37 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().said?.[0]).toBe(fill("sharedStatus", "10/4/2024", "3")));
   });
 
+  it("keeps a late status off the next document the row shows", async () => {
+    let answer: (now: unknown) => void = () => {};
+    answering({
+      doc_share_card: card,
+      doc_share_sync: { state: "unchanged" },
+      doc_share_status: new Promise((resolve) => {
+        answer = resolve;
+      }),
+    });
+    const hook = renderHook(({ doc }) => useSharedRow(doc), { initialProps: { doc: "d1" } });
+    await act(async () => {});
+    const shown = () => {
+      const now = hook.result.current.panel;
+      if (now?.kind !== "held") throw new Error("no row");
+      return now;
+    };
+    await act(async () => {
+      shown()
+        .acts?.find((one) => one.key === "sync")
+        ?.onPick?.(document.body);
+    });
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("doc_share_status", { id: "d1" }));
+
+    hook.rerender({ doc: "d2" });
+    await act(async () => {});
+    await act(async () => answer({ ...status, blocked: true }));
+
+    expect(shown().gist).not.toBe(t("sharedBlockedGist"));
+    expect(shown().links).toHaveLength(1);
+  });
+
   it("drops a status that arrives after the share was stopped", async () => {
     let answer: (now: unknown) => void = () => {};
     const { hook, panel, pressed } = await held(card, {

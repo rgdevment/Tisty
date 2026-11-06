@@ -122,6 +122,27 @@ describe("what travels with a document", () => {
     expect(screen.getByText(fill("shareRoomOf", "2", weigh(5_000_000)))).toBeTruthy();
   });
 
+  it("says which limit a picture passed, since the row counts only the total", async () => {
+    await opened(
+      { pictures: 1, picturesBytes: 1_200_000, largestPicture: 1_200_000 },
+      { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverPicture", weigh(1_200_000), weigh(1_000_000))),
+    ).toBeTruthy();
+    expect(screen.queryByText(t("shareOverWhy"))).toBeNull();
+  });
+
+  it("asks to take something out when it is the total that passed", async () => {
+    await opened(
+      { pictures: 11, picturesBytes: 1_200_000, largestPicture: 500_000 },
+      { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(screen.getByText(t("shareOverWhy"))).toBeTruthy();
+  });
+
   it("names one page apart, and says no room it was not told of", async () => {
     await opened({ pages: 1 }, {});
 
