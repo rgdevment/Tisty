@@ -24,6 +24,7 @@ const FIRST_DEBUG_PORT = 9471;
 const WIDGET_TAKES = 12000;
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const BY_HAND = process.argv[2] === "--by-hand";
 const appExe = process.argv[2] ?? path.join(repo, "target", "debug", "tisty-gui.exe");
 
 const lanAddress = () =>
@@ -248,14 +249,30 @@ const trial = async (name, port, extraArgs) => {
   }
 };
 
+const openedByHand = async () => {
+  const token = Date.now().toString(36);
+  const page = path.join(os.tmpdir(), "tisty-hostile-page.html");
+  fs.writeFileSync(page, `<!doctype html><html><head></head><body>${hostile(lan, token)}</body></html>`);
+  const reached = {};
+  const stopListening = listening(reached);
+  console.log(`Attach ${page} to a document in Tisty, draw it live, and wait 15 seconds.`);
+  console.log(`What the listeners cannot see goes to the DNS server: sudo tcpdump -n -l -i any port 53 | grep ${token}`);
+  console.log("Then press Enter.");
+  await new Promise((pressed) => process.stdin.once("data", pressed));
+  stopListening();
+  console.log("reached:", reached);
+  process.exit(Object.keys(reached).length ? 1 : 0);
+};
+
 const reachedByTheEngine = new Map();
 const lan = lanAddress();
-if (process.platform !== "win32") {
-  console.error("Only WebView2 can be driven from here: WKWebView has no debugging port to attach to.");
+if (!lan) {
+  console.error("This machine has no network address for the page to aim at.");
   process.exit(2);
 }
-if (!lan) {
-  console.error("This machine has no network address for the widget to aim at.");
+if (BY_HAND) await openedByHand();
+if (process.platform !== "win32") {
+  console.error("Only WebView2 can be driven from here: on macOS run this with --by-hand.");
   process.exit(2);
 }
 if (!fs.existsSync(appExe)) {
