@@ -6,7 +6,6 @@ import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "../ui/viewer/actin
 
 const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args?: Record<string, unknown> }[] }));
 const shown = vi.hoisted(() => ({
-  revealed: [] as string[],
   copied: [] as string[],
 }));
 
@@ -17,12 +16,6 @@ vi.mock("@tauri-apps/api/core", () => ({
     return Promise.resolve(cmd === "doc_copy" ? { id: "f2", title: "Copia" } : null);
   },
 }));
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  revealItemInDir: (at: string) => {
-    shown.revealed.push(at);
-    return Promise.resolve();
-  },
-}));
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   writeText: (text: string) => {
     shown.copied.push(text);
@@ -30,13 +23,6 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   },
 }));
 
-const file: Showing = {
-  kind: "file",
-  name: "a.md",
-  place: "Descargas",
-  path: "C:\\a.md",
-  body: "# A",
-};
 const doc: Showing = {
   kind: "doc",
   paper: { id: "D1", file: "f1", title: "Notas", place: "" },
@@ -56,7 +42,6 @@ const acts = (on: Showing | null): Acts & Record<string, ReturnType<typeof vi.fn
     dark: null,
     actual: false,
     fail: spy(),
-    look: spy(),
     find: spy(),
     zoom: spy(),
     side: spy(),
@@ -65,7 +50,7 @@ const acts = (on: Showing | null): Acts & Record<string, ReturnType<typeof vi.fn
     keep: spy(),
     html: spy(),
     word: spy(),
-    quietly: spy(),
+    edit: spy(),
     again: spy(),
     code: spy(),
     shade: spy(),
@@ -79,7 +64,6 @@ const settled = () => new Promise((done) => setTimeout(done, 0));
 
 beforeEach(() => {
   ipc.calls = [];
-  shown.revealed = [];
   shown.copied = [];
   document.documentElement.removeAttribute("data-theme");
 });
@@ -91,10 +75,11 @@ const picked = (all: ReturnType<typeof choicesFor>, label: string) => {
 };
 
 describe("the viewer's menu", () => {
-  it("offers a file from outside its reading tools, its ways out as standard Markdown, a web page or Word, a quiet import and its folder", async () => {
-    const a = acts(file);
+  it("offers a document its reading tools and its ways out as standard Markdown, a web page or Word", async () => {
+    const a = acts(doc);
     const all = choicesFor(a);
 
+    picked(all, t("viewEditIn"));
     picked(all, t("viewFind"));
     picked(all, t("viewBigger"));
     picked(all, t("viewSmaller"));
@@ -103,20 +88,16 @@ describe("the viewer's menu", () => {
     picked(all, t("toPdf"));
     picked(all, t("toHtml"));
     picked(all, t("toWord"));
-    picked(all, t("viewImportQuiet"));
-    picked(all, t("viewReveal"));
     await settled();
 
+    expect(a.edit).toHaveBeenCalled();
     expect(a.find).toHaveBeenCalled();
     expect(vi.mocked(a.zoom).mock.calls).toEqual([[1], [-1]]);
     expect(a.preview).toHaveBeenCalled();
     expect(a.keep).toHaveBeenCalled();
     expect(a.html).toHaveBeenCalled();
     expect(a.word).toHaveBeenCalled();
-    expect(a.quietly).toHaveBeenCalled();
-    expect(shown.copied).toEqual(["standard # A"]);
-    expect(shown.revealed).toEqual(["C:\\a.md"]);
-    expect(all.some((one) => one.label === t("viewDuplicate"))).toBe(false);
+    expect(shown.copied).toEqual(["standard # Notas"]);
   });
 
   it("offers a Tisty document a copy of itself, opened in the main window", async () => {
@@ -127,23 +108,6 @@ describe("the viewer's menu", () => {
 
     expect(ipc.calls.map((one) => one.cmd)).toEqual(["doc_copy", "view_go"]);
     expect(ipc.calls[1].args).toEqual({ file: "f2" });
-    expect(all.some((one) => one.label === t("viewImportQuiet"))).toBe(false);
-  });
-
-  it("offers a file that could not be read only its folder and another try", () => {
-    const a = acts({
-      kind: "missed",
-      name: "a.md",
-      place: "Descargas",
-      path: "C:\\a.md",
-      refusal: { code: "cannotRead" },
-    });
-    const all = choicesFor(a);
-
-    picked(all, t("viewRetry"));
-
-    expect(all.map((one) => one.key)).toEqual(["reveal", "retry"]);
-    expect(a.look).toHaveBeenCalled();
   });
 
   it("offers a widget its code, its document and how it is drawn", async () => {
@@ -178,7 +142,7 @@ const key = (key: string, shiftKey = false) => new KeyboardEvent("keydown", { ke
 
 describe("the viewer's keys", () => {
   it("reads, finds, zooms and prints a document", () => {
-    const a = acts(file);
+    const a = acts(doc);
     for (const one of ["f", "\\", "p", "=", "+", "-", "0", "w", "r"]) keysFor(a, key(one))?.();
     keysFor(a, key("M", true))?.();
 
