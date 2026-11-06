@@ -264,6 +264,7 @@ describe("sharing a document with Folio", () => {
   it("looks again when the document changed while choosing", async () => {
     let tries = 0;
     invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
       if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
       if (command === "doc_share_look") {
         tries += 1;
