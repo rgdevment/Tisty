@@ -1,14 +1,11 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { alone, ending, fileCard, KINDS, piece } from "tisty-editor/read";
-import { keptHere, type Lent, weighs } from "../core";
+import { ending, fileCard, KINDS, piece } from "tisty-editor/read";
+import { keptHere, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
 import { named, previewOf, weighed } from "../previews";
 import { plainly } from "../refusal";
 import { more } from "./carding";
-import { type Lending, lendKept, locked } from "./widgeting";
-
-export const lents = new WeakMap<Element, Lent>();
 
 export const pressed = (page: Document, className: string, said: string, run: () => void) => {
   const one = page.createElement("button");
@@ -125,37 +122,7 @@ const filed = (page: Document, img: Element, at: string, live: () => boolean, as
     .catch(() => undefined);
 };
 
-const paged = (
-  page: Document,
-  img: Element,
-  at: string,
-  apart: boolean,
-  asking: boolean,
-): Lending | null => {
-  const name = img.getAttribute("alt") || named(at);
-  const shown = page.createElement("figure");
-  shown.className = "widget";
-  lents.set(shown, { reference: at });
-  const bar = page.createElement("div");
-  bar.className = "widget-bar";
-  bar.append(piece(page, "widget-name", name));
-  if (apart) {
-    const ask = page.createElement("button");
-    ask.type = "button";
-    ask.dataset.asked = "apart";
-    ask.textContent = t("viewApart");
-    bar.append(ask);
-  }
-  if (asking) bar.append(more(page, at));
-  const held = page.createElement("div");
-  shown.append(bar, held);
-  img.replaceWith(shown);
-  return lendKept(held, at);
-};
-
 export type Attaching = {
-  readonly stranger: boolean;
-  readonly apart: boolean;
   readonly more: boolean;
 };
 
@@ -165,21 +132,12 @@ export const attachedAs = (
   at: string,
   live: () => boolean,
   held: (() => void)[],
-  { stranger, apart, more: asking }: Attaching,
-): Lending | null => {
+  { more: asking }: Attaching,
+): void => {
   const seen = previewOf(at);
   if (seen?.as === "video" || seen?.as === "audio") {
     played(page, img, seen.as, at, live, held, asking);
-    return null;
-  }
-  const drawnLive = ending(at) === "html" || ending(at) === "htm";
-  if (drawnLive && (img as HTMLElement).dataset.as !== "file" && alone(img)) {
-    if (stranger) {
-      img.replaceWith(locked());
-      return null;
-    }
-    return paged(page, img, at, apart, asking);
+    return;
   }
   filed(page, img, at, live, asking);
-  return null;
 };

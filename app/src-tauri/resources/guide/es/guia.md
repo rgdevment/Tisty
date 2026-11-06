@@ -299,7 +299,7 @@ Todo esto se dibuja con código que viaja dentro de Tisty. No se pide nada a int
 
 #### Widgets
 
-Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, estilos y, si quieres, algo de script. Corre aislado, sin red y con los colores de Tisty, y trae clases listas como `grid`, `stat`, `card` o `badge`, así que con HTML sencillo ya se ve bien. El código queda plegado; ábrelo con «Ver código».
+Un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, HTML y CSS y nada más. No ejecuta nada ni nombra nada fuera de sí mismo, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae clases listas como `grid`, `stat`, `card` o `badge`, así que con HTML sencillo ya se ve bien. El código queda plegado; ábrelo con «Ver código».
 
 ```widget title="Rina este mes"
 <div class="grid">
@@ -309,11 +309,11 @@ Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, e
 </div>
 ```
 
-Si el widget crece mucho, adjúntalo: un archivo `.html` adjunto a un documento se dibuja igual.
+Un archivo `.html` adjunto a un documento es solo un archivo: Tisty nunca lo ejecuta.
 
 #### Archivos, sonido y video
 
-Un archivo adjunto se dibuja como lo que es: una imagen tal cual, que un clic abre en grande, un sonido o un video con su reproductor, una página `.html` en vivo, y cualquier otro como una tarjeta con su tipo y su tamaño. Cada tarjeta tiene un **⋯**: guardar una copia, mostrar la página como archivo o de nuevo en vivo, convertir la tarjeta en un enlace simple o quitarla de la página. Un video que todavía está en tu nube se descarga solo cuando le das play, y si no puede llegar te dice por qué.
+Un archivo adjunto se dibuja como lo que es: una imagen tal cual, que un clic abre en grande, un sonido o un video con su reproductor, y cualquier otro, también una página `.html`, como una tarjeta con su tipo y su tamaño. Cada tarjeta tiene un **⋯**: guardar una copia, convertir la tarjeta en un enlace simple o quitarla de la página. Un video que todavía está en tu nube se descarga solo cuando le das play, y si no puede llegar te dice por qué.
 
 #### Código, con nombre y con color
 

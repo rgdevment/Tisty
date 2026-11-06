@@ -63,17 +63,24 @@ impl Waking {
     }
 }
 
-/// A copy served by `tauri dev` only opens while the dev server runs; registered at login it
-/// would greet the person with a refused connection to localhost.
+// A dev copy only opens beside its dev server and a sandbox leaves only itself, so neither takes the machine's startup.
+fn stays_off_the_machine(dev: bool, sandbox: Option<&str>) -> bool {
+    dev || sandbox.is_some()
+}
+
+fn off_the_machine() -> bool {
+    stays_off_the_machine(tauri::is_dev(), tisty_core::paths::profile().as_deref())
+}
+
 pub fn waking() -> Waking {
-    if tauri::is_dev() {
+    if off_the_machine() {
         return Waking::none();
     }
     there::waking()
 }
 
 pub fn wake(wanted: bool) -> std::io::Result<Waking> {
-    if tauri::is_dev() {
+    if off_the_machine() {
         return Ok(Waking::none());
     }
     there::wake(wanted).inspect_err(|why| {

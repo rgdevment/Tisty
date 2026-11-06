@@ -6626,3 +6626,24 @@ fn once_the_whole_task_is_said_done_its_steps_keep_the_word() {
     assert_eq!(back["result"]["isError"], true, "{back}");
     assert!(served.person().state().tasks[&task].steps[0].said);
 }
+
+#[test]
+fn a_widget_that_holds_what_a_widget_cannot_is_refused_and_says_what() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+
+    let refused = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Agua\n\n```widget\n<script>x()</script>\n```\n" }),
+    );
+    let said = refused["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("<script>"), "{said}");
+    assert!(said.contains("nothing was written"), "{said}");
+    assert_eq!(refused["result"]["isError"], true);
+
+    let kept = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Agua\n\n```widget\n<div class=\"stat\"><b>6</b></div>\n```\n" }),
+    );
+    assert_eq!(kept["result"]["structuredContent"]["title"], "Agua");
+}
