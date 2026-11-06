@@ -32,6 +32,8 @@ const EN = {
   editTooBig:
     "It can be read here, but to edit it in Tisty it cannot go past {name}. Split it in two or try another editor.",
   failed: "That could not be done. Try again.",
+  editAfterWelcome:
+    "Finish setting up Tisty in its window first. Your copy is made as soon as you do.",
   unreadable: "This file could not be read. It may have been moved or be in use.",
   retry: "Try again",
   back: "Back",
@@ -76,6 +78,8 @@ const ES: Record<Own, string> = {
   editTooBig:
     "Se puede leer aquí, pero para editarlo en Tisty no puede pasar de {name}. Divídelo en dos o intenta con otro editor.",
   failed: "No se pudo hacer. Intenta de nuevo.",
+  editAfterWelcome:
+    "Primero termina de configurar Tisty en su ventana. Tu copia se crea en cuanto termines.",
   unreadable: "No se pudo leer este archivo. Puede que se haya movido o esté en uso.",
   retry: "Intentar de nuevo",
   back: "Volver",

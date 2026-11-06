@@ -9,6 +9,7 @@ const host = vi.hoisted(() => ({
   source: vi.fn(),
   facts: vi.fn(),
   editCopy: vi.fn(),
+  editAsked: vi.fn(),
   shown: vi.fn(),
   openLink: vi.fn(),
   reveal: vi.fn(),
@@ -63,6 +64,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   host.facts.mockResolvedValue({ wrote: 1_700_000_000, bytes: 3 * 1024 * 1024 });
+  host.editAsked.mockResolvedValue(() => {});
   host.shown.mockResolvedValue(undefined);
   host.theRest.mockResolvedValue([]);
   host.reveal.mockResolvedValue(undefined);
