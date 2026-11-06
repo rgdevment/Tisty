@@ -12,6 +12,7 @@
     "core:window:allow-close",
     "core:window:allow-destroy",
     "core:window:allow-show",
+    "core:window:allow-set-theme",
     "opener:default",
     "opener:allow-reveal-item-in-dir",
     "dialog:allow-ask",

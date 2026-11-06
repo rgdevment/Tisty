@@ -11,6 +11,7 @@ import {
   type Refused,
   shown,
   source,
+  themed,
   theRest,
 } from "./host";
 import { keyHeard } from "./keys";
@@ -20,7 +21,7 @@ import Panels from "./Panels";
 import Problem from "./Problem";
 import { bringFar, bringNearPictures, farPictures } from "./pictures";
 import { blockAt, remember, remembered } from "./place";
-import { dress, laidIn, printed, redraw, settled, turnTheme } from "./sheet";
+import { dress, isDark, laidIn, printed, redraw, settled, turnTheme } from "./sheet";
 import { type Words, wordsFor } from "./words";
 
 const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
@@ -116,8 +117,11 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const stopListening = editAsked(edit);
   onCleanup(() => void stopListening.then((stop) => stop()));
 
+  void themed(isDark()).catch(() => {});
+
   const turn = () => {
     turnTheme();
+    void themed(isDark()).catch(() => {});
     if (whole()) void redraw().catch(fail);
   };
 
@@ -204,7 +208,6 @@ export default function App(props: { readonly asked: string | null; readonly clo
         onMore={() => setMore((was) => !was)}
         onSide={() => setSide((was) => !was)}
         onBack={canGoBack() ? () => void goBack().catch(fail) : undefined}
-        onClose={props.close}
       />
       <Show when={more()}>
         <MoreMenu
@@ -232,7 +235,9 @@ export default function App(props: { readonly asked: string | null; readonly clo
               class="far-pictures"
               type="button"
               onClick={() => {
-                bringFar(far());
+                void bringFar(far()).then((failed) => {
+                  if (failed > 0) setNote(words.say("farFailed", String(failed)));
+                });
                 setFar([]);
               }}
             >

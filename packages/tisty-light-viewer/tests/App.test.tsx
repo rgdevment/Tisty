@@ -16,8 +16,7 @@ const host = vi.hoisted(() => ({
   pictureNear: vi.fn(),
   pictureFar: vi.fn(),
   follow: vi.fn(),
-  minimized: vi.fn(),
-  maximized: vi.fn(),
+  themed: vi.fn(),
 }));
 
 vi.mock("../src/host", () => host);
@@ -50,6 +49,7 @@ describe("the light viewer", () => {
     localStorage.clear();
     host.facts.mockResolvedValue({ wrote: 1_700_000_000, bytes: 2048 });
     host.editAsked.mockResolvedValue(() => {});
+    host.themed.mockResolvedValue(undefined);
     host.shown.mockResolvedValue(undefined);
     host.theRest.mockResolvedValue([]);
     window.scrollTo = vi.fn();
@@ -204,6 +204,9 @@ describe("the light viewer", () => {
     (await screen.findByRole("button", { name: /imágenes de internet/ })).click();
     await waitFor(() => expect(host.pictureFar).toHaveBeenCalledWith("https://x.y/b.png"));
     await waitFor(() =>
+      expect(document.querySelector('img[alt="far"]')?.getAttribute("src")).toContain("data:"),
+    );
+    await waitFor(() =>
       expect(screen.queryByRole("button", { name: /imágenes de internet/ })).toBeNull(),
     );
   });
@@ -226,6 +229,14 @@ describe("the light viewer", () => {
     expect(root.classList.contains("dark")).toBe(true);
     root.classList.remove("dark");
     delete root.dataset.theme;
+  });
+
+  it("says how many pictures from the web could not be brought", async () => {
+    host.opened.mockResolvedValue(drawn('<p><img src="https://x.y/b.png"></p>'));
+    host.pictureFar.mockRejectedValue({ code: "notAllowed" });
+    open();
+    (await screen.findByRole("button", { name: /imágenes de internet/ })).click();
+    expect((await screen.findByRole("alert")).textContent).toContain("1");
   });
 
   it("speaks English when not asked for Spanish", async () => {

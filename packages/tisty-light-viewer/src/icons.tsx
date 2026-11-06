@@ -40,18 +40,6 @@ export const Lines = () => (
   </Icon>
 );
 
-export const Barred = () => (
-  <Icon>
-    <path d="M4 8h8" />
-  </Icon>
-);
-
-export const Square = () => (
-  <Icon>
-    <rect x="4" y="4" width="8" height="8" rx="1" />
-  </Icon>
-);
-
 export const Crossed = () => (
   <Icon>
     <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" />

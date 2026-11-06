@@ -13,8 +13,7 @@ const host = vi.hoisted(() => ({
   shown: vi.fn(),
   openLink: vi.fn(),
   reveal: vi.fn(),
-  minimized: vi.fn(),
-  maximized: vi.fn(),
+  themed: vi.fn(),
   pictureNear: vi.fn(),
   pictureFar: vi.fn(),
   follow: vi.fn(),
@@ -65,6 +64,7 @@ beforeEach(() => {
   sessionStorage.clear();
   host.facts.mockResolvedValue({ wrote: 1_700_000_000, bytes: 3 * 1024 * 1024 });
   host.editAsked.mockResolvedValue(() => {});
+  host.themed.mockResolvedValue(undefined);
   host.shown.mockResolvedValue(undefined);
   host.theRest.mockResolvedValue([]);
   host.reveal.mockResolvedValue(undefined);
@@ -177,13 +177,13 @@ describe("Escape", () => {
 });
 
 describe("the bar", () => {
-  it("works the window", async () => {
+  it("leaves the window's buttons to the system, and still closes by keys", async () => {
     const close = await open();
-    (await button("Minimizar")).click();
-    (await button("Maximizar")).click();
-    (await button("Cerrar")).click();
-    expect(host.minimized).toHaveBeenCalled();
-    expect(host.maximized).toHaveBeenCalled();
+    await button("Editar");
+    expect(screen.queryByRole("button", { name: "Minimizar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Maximizar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cerrar" })).toBeNull();
+    pressed({ key: "w", ctrlKey: true });
     expect(close).toHaveBeenCalled();
   });
 
@@ -193,6 +193,7 @@ describe("the bar", () => {
     (await button("Cambiar el tema")).click();
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("tisty.viewer.theme")).toBe("dark");
+    expect(host.themed).toHaveBeenLastCalledWith(true);
     await waitFor(() => expect(drawing.diagrams).toHaveBeenCalled());
     pressed({ key: "L", ctrlKey: true, shiftKey: true });
     expect(document.documentElement.dataset.theme).toBe("light");

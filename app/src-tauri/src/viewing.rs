@@ -287,6 +287,21 @@ fn scaled(height: f64) -> (f64, f64) {
     (WIDE, (height * 0.8).max(560.0))
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct Look {
+    framed: bool,
+    clear: bool,
+}
+
+// The light viewer takes the system's own title bar; the rest draw theirs.
+fn look_of(shown: &Shown) -> Look {
+    let light = matches!(shown, Shown::File(_));
+    Look {
+        framed: light,
+        clear: !light,
+    }
+}
+
 pub(crate) fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
@@ -298,6 +313,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
     };
     let spanish = spanish(app);
     let light = matches!(shown, Shown::File(_));
+    let look = look_of(&shown);
     let page = if light {
         crate::refusing::light_page(spanish)
     } else {
@@ -312,11 +328,11 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         .title(title)
         .inner_size(wide, sized.1)
         .min_inner_size(520.0, 380.0)
-        .decorations(false)
-        .transparent(true)
+        .decorations(look.framed)
+        .transparent(look.clear)
         .shadow(true)
         .center()
-        // Shown by its page once drawn: a transparent window the system shows first is painted black meanwhile.
+        // Shown by its page once drawn, so nobody sees it empty; a transparent one would even be painted black.
         .visible(false)
         .build();
     match made {

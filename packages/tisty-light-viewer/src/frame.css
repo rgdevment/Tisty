@@ -231,13 +231,6 @@ body::before {
   gap: 6px;
 }
 
-.window {
-  display: flex;
-  margin-left: 4px;
-  padding-left: 6px;
-  border-left: 1px solid var(--tisty-hair);
-}
-
 .tool {
   display: grid;
   flex: none;
@@ -308,6 +301,32 @@ html:not(.tall) .page,
 .page > :is(h1, h2, h3, h4, h5, h6),
 .page [id] {
   scroll-margin-top: calc(var(--bar-edge) + 8px);
+}
+
+/* A linked picture or one in a file's own HTML is a badge or a logo in a line, not a figure on its own card. */
+.page a > img,
+.page > div[data-at] img {
+  display: inline-block;
+  margin: 2px;
+  padding: 0;
+  vertical-align: middle;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.page a:has(> img) {
+  text-decoration: none;
+}
+
+.page [align="center"],
+.page [align="center"] > :is(h1, h2, h3, h4, h5, h6, p) {
+  text-align: center;
+}
+
+.page [align="right"],
+.page [align="right"] > :is(h1, h2, h3, h4, h5, h6, p) {
+  text-align: right;
 }
 
 .page .front {
