@@ -39,7 +39,7 @@ pub async fn page_pdf(
         "paper-{}",
         ulid::Ulid::generate().to_string().to_lowercase()
     );
-    let window = tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::External(url))
+    let window = crate::engine::window(&app, label, tauri::WebviewUrl::External(url))
         .visible(false)
         .on_page_load(move |window, loaded| {
             if loaded.event() != tauri::webview::PageLoadEvent::Finished {

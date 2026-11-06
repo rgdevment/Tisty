@@ -114,8 +114,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
     };
     let new = new.as_str();
     if !as_sent {
-        tisty_core::docs::speaks(new)
-            .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
+        super::writing::keeps(new)?;
     }
 
     if by_place {

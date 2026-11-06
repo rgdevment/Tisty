@@ -53,7 +53,7 @@ Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, 
 - [[The editor|Markdown-Editor]] — writing where you read, the bar, the `/` menu, tables and shortcuts.
 - [[Pages and PDF|Pages-and-PDF]] — a document in chapters, page breaks, and Tisty's own PDF.
 - [[Diagrams]] — the diagram window: a mind map, a schema, a freeform diagram or a class diagram drawn by hand, and exported as an image.
-- [[Widgets]] — a small page inside a document, sealed off from the network, and opening it apart.
+- [[Widgets]] — a fixed view of HTML and CSS inside a document, and opening it apart.
 - [Tisty Markdown guide ↗](https://markdown.tisty.app) — every mark a document can hold, with its examples drawn.
 
 ## Your data

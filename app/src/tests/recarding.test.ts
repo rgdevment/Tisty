@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filedAs, reshaped } from "../ui/recarding";
+import { reshaped } from "../ui/recarding";
 
 const text =
   '# Plan\n\nVer ![Acta](acta-0006bf09.pdf) aquí.\n\n![Paseos](paseos-0006bf10.html "file")\n\nFin.';
@@ -23,23 +23,11 @@ describe("changing a card by its own line of Markdown", () => {
     );
   });
 
-  it("switches a page between drawn live and kept as a file", () => {
-    const at = span('![Paseos](paseos-0006bf10.html "file")');
-    expect(filedAs(text, at, "paseos-0006bf10.html")).toBe(true);
-    const live = reshaped(text, at, "paseos-0006bf10.html", "live") ?? "";
-    expect(live).toContain("![Paseos](paseos-0006bf10.html)\n");
-    const back = live.indexOf("![Paseos]");
-    const line: [number, number] = [back, back + "![Paseos](paseos-0006bf10.html)".length];
-    expect(filedAs(live, line, "paseos-0006bf10.html")).toBe(false);
-    expect(reshaped(live, line, "paseos-0006bf10.html", "file")).toBe(text);
-  });
-
-  it("keeps a card's own title through every change but the file one", () => {
+  it("keeps a card's own title when it becomes a link", () => {
     const titled = '![Acta](acta.pdf "Q3 plan")';
     expect(reshaped(titled, [0, titled.length], "acta.pdf", "link")).toBe(
       '[Acta](acta.pdf "Q3 plan")',
     );
-    expect(reshaped(titled, [0, titled.length], "acta.pdf", "live")).toBe(titled);
   });
 
   it("takes away the blank line a removed card leaves, with Windows line ends too", () => {
