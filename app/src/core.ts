@@ -471,27 +471,11 @@ export const openLink = (url: string): Promise<void> => invoke("open_link", { ur
 
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
-  | {
-      kind: "file";
-      name: string;
-      place: string;
-      path: string;
-      body: string;
-    }
-  | {
-      kind: "missed";
-      name: string;
-      place: string;
-      path: string;
-      refusal: { code: string; name?: string };
-    }
   | { kind: "doc"; paper: Viewed; body: string }
   | { kind: "widget"; source: string; from: Viewed | null }
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
-export const viewImport = (open: boolean): Promise<Viewed & Left> =>
-  invoke("view_import", { open });
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWidget = (source: string, from?: Viewed): Promise<void> =>
   invoke("view_widget", { source, from: from ?? null });

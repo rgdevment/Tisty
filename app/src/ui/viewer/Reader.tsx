@@ -21,7 +21,6 @@ interface Props {
   body: string;
   title: string;
   under: string;
-  stranger: boolean;
   side: boolean;
   raw: boolean;
   zoom: number;
@@ -118,7 +117,7 @@ function Finder({ onClose, within }: { onClose: () => void; within: () => Window
 }
 
 export default function Reader(props: Readonly<Props>) {
-  const { body, title, stranger, side, raw, zoom, leaf, sheets, landscape, finding } = props;
+  const { body, title, side, raw, zoom, leaf, sheets, landscape, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
   const pictures = usePictures({ open: props.onOpen });
   const shown = useRef<Window | null>(null);
@@ -196,7 +195,6 @@ export default function Reader(props: Readonly<Props>) {
             viewing
             body={body}
             label={title}
-            stranger={stranger}
             wide={wide}
             zoom={zoom}
             sheet={sheet}

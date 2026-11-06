@@ -31,30 +31,9 @@ pub enum Shown {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    File {
-        name: String,
-        place: String,
-        path: String,
-        body: String,
-    },
-    Missed {
-        name: String,
-        place: String,
-        path: String,
-        refusal: Refusal,
-    },
-    Doc {
-        paper: Paper,
-        body: String,
-    },
-    Widget {
-        source: String,
-        from: Option<Paper>,
-    },
-    Diagram {
-        paper: Paper,
-        source: String,
-    },
+    Doc { paper: Paper, body: String },
+    Widget { source: String, from: Option<Paper> },
+    Diagram { paper: Paper, source: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -421,20 +400,7 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
     let label = window.label().to_owned();
     let shown = shown_in(&app.state::<Views>(), &label)?;
     Ok(match shown {
-        Shown::File(at) => match crate::answers::carrying::read_outside(&at) {
-            Ok(body) => Showing::File {
-                name: named(&at),
-                place: place_of(&at),
-                path: at.display().to_string(),
-                body,
-            },
-            Err(refusal) => Showing::Missed {
-                name: named(&at),
-                place: place_of(&at),
-                path: at.display().to_string(),
-                refusal,
-            },
-        },
+        Shown::File(_) => return Err(Refusal::of("notAllowed")),
         Shown::Doc(paper) => Showing::Doc {
             body: doc_body(&app, &paper.file)?,
             paper,
@@ -471,21 +437,13 @@ pub fn view_import(
     app: AppHandle,
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
-    open: bool,
 ) -> Answer<Converted> {
     let _one_at_a_time = views.importing.lock().unwrap_or_else(|e| e.into_inner());
-    let (paper, left) = match shown_in(&views, window.label())? {
-        Shown::Doc(paper) => (paper, Left::default()),
-        Shown::File(at) => imported_once(&app, &views, &at)?,
-        Shown::Widget { .. } | Shown::Diagram(_) => {
-            return Err(Refusal::of("notAllowed"));
-        }
+    let Shown::File(at) = shown_in(&views, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
     };
-    if open {
-        bring(&app, &paper.file);
-    } else {
-        let _ = app.emit_to("main", "papered", ());
-    }
+    let (paper, left) = imported_once(&app, &views, &at)?;
+    bring(&app, &paper.file);
     Ok(Converted { paper, left })
 }
 

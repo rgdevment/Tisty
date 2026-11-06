@@ -203,13 +203,10 @@ export function usePapers({
 
   const opening = useRef(openDoc);
   opening.current = openDoc;
-  const changing = useRef<() => void>(() => {});
   useEffect(() => {
     const off = listen<string>("showdoc", ({ payload }) => opening.current(payload));
-    const fresh = listen("papered", () => changing.current());
     return () => {
       void off.then((stop) => stop());
-      void fresh.then((stop) => stop());
     };
   }, []);
 
@@ -237,7 +234,6 @@ export function usePapers({
     lookPapers();
     carries.current?.changed();
   }, [lookPapers, carries]);
-  changing.current = papersChanged;
 
   const hangIt = async (doc: string, pageOf: string) => {
     const named = (id: string) =>
