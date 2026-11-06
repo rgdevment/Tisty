@@ -12,7 +12,7 @@ pub const SIGNATURE_URL: &str =
 
 const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";
-const KEPT: &str = "folio-limits.json";
+pub(crate) const KEPT: &str = "folio-limits.json";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
 
@@ -49,6 +49,15 @@ pub struct FolioLimits {
     pub oldest_contract_taken: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oldest_contract_served: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<FolioTerms>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolioTerms {
+    pub version: String,
+    pub es: String,
+    pub en: String,
 }
 
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
@@ -90,6 +99,13 @@ pub fn heed(
     if !policy::ask_now(&home.join(ASKED), ASKED_EVERY) {
         return None;
     }
+    heed_now(home, bring)
+}
+
+pub fn heed_now(
+    home: &Path,
+    bring: impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<Result<FolioLimits, Refused>> {
     // The two files are asked for apart, so a publish between them looks like a bad signature.
     match brought_and_accepted(home, &bring)? {
         Err(Refused::Unsigned) => brought_and_accepted(home, &bring),

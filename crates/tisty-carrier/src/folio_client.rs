@@ -1,0 +1,213 @@
+use serde::Deserialize;
+use serde::de::DeserializeOwned;
+use sha2::{Digest, Sha256};
+
+pub const BASE: &str = "https://tisty.cl/api/v1";
+
+const ID_CHARACTERS: usize = 8;
+const PROOF_BITS_AT_MOST: u32 = 32;
+const PROOFS_AT_MOST: usize = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verb {
+    Post,
+    Put,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Asked<'a> {
+    pub verb: Verb,
+    pub path: String,
+    pub headers: Vec<(&'static str, String)>,
+    pub body: &'a [u8],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Answered {
+    pub status: u16,
+    pub body: Vec<u8>,
+}
+
+pub trait Door {
+    fn ask(&self, asked: &Asked<'_>) -> Option<Answered>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Why {
+    Newer,
+    Older,
+    Damaged,
+    Unsigned,
+    Key,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(tag = "refused", rename_all = "snake_case")]
+pub enum Refused {
+    BadUpload,
+    Paused,
+    Blocked,
+    NotYours,
+    Revoked,
+    Missing,
+    Behind,
+    SharesFull,
+    TooBig,
+    Envelope { why: Why },
+    Outdated,
+    Slow { until: u64 },
+    Quota { until: u64 },
+    Proof { salt: String, bits: u32 },
+    Failed,
+    UploadsOff,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Stopped {
+    Unreached,
+    Garbled,
+    Refused(Refused),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Start {
+    pub id: String,
+    pub mac: String,
+    pub salt: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct First<'a> {
+    pub mac: &'a str,
+    pub admin: &'a str,
+    pub ttl_days: u64,
+    pub anchor: Option<&'a str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Version<'a> {
+    pub id: &'a str,
+    pub envelope: &'a [u8],
+    pub files_hash: Option<&'a str>,
+    pub first: Option<First<'a>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct Stored {
+    pub version: u64,
+    #[serde(default, rename = "filesWanted")]
+    pub files_wanted: bool,
+}
+
+// An id goes into every path asked for afterwards, so a server's word for it is checked first.
+fn holds_as_id(id: &str) -> bool {
+    id.len() == ID_CHARACTERS && id.chars().all(|one| one.is_ascii_alphanumeric())
+}
+
+fn read<T: DeserializeOwned>(answered: &Answered) -> Result<T, Stopped> {
+    if (200..300).contains(&answered.status) {
+        return serde_json::from_slice(&answered.body).map_err(|_| Stopped::Garbled);
+    }
+    let refused = serde_json::from_slice(&answered.body).map_err(|_| Stopped::Garbled)?;
+    Err(Stopped::Refused(refused))
+}
+
+fn zero_bits_at_start(digest: &[u8], bits: u32) -> bool {
+    let whole = (bits / 8) as usize;
+    let rest = bits % 8;
+    digest.len() >= whole + usize::from(rest > 0)
+        && digest[..whole].iter().all(|one| *one == 0)
+        && (rest == 0 || digest[whole] >> (8 - rest) == 0)
+}
+
+pub(crate) fn solved(salt: &str, bits: u32) -> Option<u64> {
+    if bits > PROOF_BITS_AT_MOST {
+        return None;
+    }
+    let mut salted = Sha256::new();
+    salted.update(salt.as_bytes());
+    salted.update(b"|");
+    (0..=u64::MAX).find(|number| {
+        let mut hash = salted.clone();
+        hash.update(number.to_string().as_bytes());
+        zero_bits_at_start(&hash.finalize(), bits)
+    })
+}
+
+// Sent twice, Folio stores it once, so asking again with the proof is safe.
+fn asked_with_proof<T: DeserializeOwned>(
+    door: &dyn Door,
+    mut asked: Asked<'_>,
+) -> Result<T, Stopped> {
+    for _ in 0..PROOFS_AT_MOST {
+        let answered = door.ask(&asked).ok_or(Stopped::Unreached)?;
+        match read(&answered) {
+            Err(Stopped::Refused(Refused::Proof { salt, bits })) => {
+                let number = solved(&salt, bits).ok_or(Stopped::Garbled)?;
+                asked.headers.retain(|(name, _)| *name != "Folio-Proof");
+                asked.headers.push(("Folio-Proof", number.to_string()));
+            }
+            other => return other,
+        }
+    }
+    let answered = door.ask(&asked).ok_or(Stopped::Unreached)?;
+    read(&answered)
+}
+
+pub fn start(door: &dyn Door) -> Result<Start, Stopped> {
+    let asked = Asked {
+        verb: Verb::Post,
+        path: "/start".to_owned(),
+        headers: Vec::new(),
+        body: &[],
+    };
+    let start: Start = read(&door.ask(&asked).ok_or(Stopped::Unreached)?)?;
+    if holds_as_id(&start.id) {
+        Ok(start)
+    } else {
+        Err(Stopped::Garbled)
+    }
+}
+
+pub fn send_version(door: &dyn Door, version: &Version<'_>) -> Result<Stored, Stopped> {
+    let mut headers = Vec::new();
+    if let Some(hash) = version.files_hash {
+        headers.push(("Folio-Files", hash.to_owned()));
+    }
+    if let Some(first) = &version.first {
+        headers.push(("Folio-Start", first.mac.to_owned()));
+        headers.push(("Folio-Admin", first.admin.to_owned()));
+        headers.push(("Folio-Ttl-Days", first.ttl_days.to_string()));
+        if let Some(anchor) = first.anchor {
+            headers.push(("Folio-Anchor", anchor.to_owned()));
+        }
+    }
+    asked_with_proof(
+        door,
+        Asked {
+            verb: Verb::Put,
+            path: format!("/docs/{}", version.id),
+            headers,
+            body: version.envelope,
+        },
+    )
+}
+
+pub fn send_files(door: &dyn Door, id: &str, envelope: &[u8]) -> Result<(), Stopped> {
+    #[derive(Deserialize)]
+    struct FilesStored {}
+
+    let asked = Asked {
+        verb: Verb::Put,
+        path: format!("/docs/{id}/files"),
+        headers: Vec::new(),
+        body: envelope,
+    };
+    let _: FilesStored = read(&door.ask(&asked).ok_or(Stopped::Unreached)?)?;
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "folio_client_test.rs"]
+mod tests;

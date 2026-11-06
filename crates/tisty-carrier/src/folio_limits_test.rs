@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, kept,
-    read_under, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, heed_now,
+    kept, read_under, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -117,6 +117,34 @@ fn a_pause_holds_only_while_ahead_and_never_past_a_week() {
     assert!(!uploads_halted(Some(&until(now + PAUSED_AT_MOST + 1)), now));
     assert!(!uploads_halted(Some(&FolioLimits::default()), now));
     assert!(!uploads_halted(None, now));
+}
+
+#[test]
+fn asked_now_it_reads_again_past_the_hourly_mark() {
+    let home = tempfile::tempdir().unwrap();
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        SIGNATURE_URL => Some(REAL_SIG.as_bytes().to_vec()),
+        _ => None,
+    };
+
+    assert!(matches!(heed(home.path(), bring), Some(Ok(_))));
+    assert_eq!(heed(home.path(), bring), None);
+    assert!(matches!(heed_now(home.path(), bring), Some(Ok(_))));
+}
+
+#[test]
+fn it_reads_the_terms_folio_signs_and_keeps_them() {
+    let limits: FolioLimits = serde_json::from_str(
+        r#"{"serial": 4, "terms": {"version": "2026-11-06", "es": "a", "en": "b"}}"#,
+    )
+    .unwrap();
+
+    let terms = limits.terms.unwrap();
+    assert_eq!(
+        (terms.version.as_str(), terms.es.as_str(), terms.en.as_str()),
+        ("2026-11-06", "a", "b")
+    );
 }
 
 #[test]
