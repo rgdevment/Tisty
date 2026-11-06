@@ -38,6 +38,7 @@ pub struct Asked {
 
 #[derive(Default, Deserialize)]
 struct Carried {
+    lang: Option<String>,
     languages: Option<Vec<Translation>>,
     cited: Option<Vec<Cited>>,
 }
@@ -461,7 +462,7 @@ impl Gathering<'_> {
             id: sealing.id.clone(),
             title: title_of(&travelling),
             tags: tags_of(&body),
-            lang: tisty_markdown::front::lang(&body),
+            lang: tisty_markdown::front::lang(&body).or(carried.lang),
             sheet: sheet_of(&body),
             signed_as: self.signed_as.clone(),
             owner_name,

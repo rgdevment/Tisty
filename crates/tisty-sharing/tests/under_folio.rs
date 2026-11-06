@@ -206,7 +206,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         held_by: None,
         ttl_days: None,
         carried: Some(
-            r#"{"languages":[{"lang":"en","document":"Lang1111","key":"k"}],"cited":null}"#
+            r#"{"lang":"es","languages":[{"lang":"en","document":"Lang1111","key":"k"}],"cited":null}"#
                 .to_owned(),
         ),
     };
@@ -232,6 +232,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
     assert_eq!(second.remembering[0].1.version, 2);
     assert_eq!(second.remembering[0].1.admin_token, None);
     assert_eq!(read.document["languages"][0]["document"], "Lang1111");
+    assert_eq!(read.document["lang"], "es");
 }
 
 #[test]

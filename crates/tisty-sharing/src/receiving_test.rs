@@ -70,6 +70,7 @@ fn what_could_not_be_kept_or_was_never_there_stays_as_it_travelled() {
 fn how_readers_reach_other_languages_and_cited_documents_comes_along() {
     let document = json!({
         "body": "[otro](tisty:cited/0)",
+        "lang": "es",
         "cited": [{"document": "d", "key": "k"}],
         "languages": [{"lang": "en", "document": "e"}],
     });
@@ -80,6 +81,7 @@ fn how_readers_reach_other_languages_and_cited_documents_comes_along() {
     let carried: serde_json::Value = serde_json::from_str(&told.carried.unwrap()).unwrap();
     assert_eq!(carried["cited"][0]["document"], "d");
     assert_eq!(carried["languages"][0]["lang"], "en");
+    assert_eq!(carried["lang"], "es");
 }
 
 #[test]

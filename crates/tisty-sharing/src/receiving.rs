@@ -15,8 +15,10 @@ pub struct Received {
 // Nobody here holds what a document's other languages and cited documents are, only how readers reach them.
 fn carried_from(document: &Value) -> Option<String> {
     let (languages, cited) = (&document["languages"], &document["cited"]);
-    (!languages.is_null() || !cited.is_null())
-        .then(|| serde_json::json!({ "languages": languages, "cited": cited }).to_string())
+    (!languages.is_null() || !cited.is_null()).then(|| {
+        serde_json::json!({ "lang": document["lang"], "languages": languages, "cited": cited })
+            .to_string()
+    })
 }
 
 fn cited_places(document: &Value) -> Vec<(String, String)> {
