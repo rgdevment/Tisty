@@ -2,6 +2,7 @@ import { createSignal, flush, onCleanup, Show } from "solid-js";
 import Bar from "./Bar";
 import Finder from "./Finder";
 import {
+  editAsked,
   editCopy,
   type Facts,
   facts,
@@ -105,11 +106,15 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const edit = () =>
     editCopy()
       .then((left) => {
+        if (!left) return setNote(words.say("editAfterWelcome"));
         const said = leftWords(words, left.missed, left.notes);
         if (said) setNote(said);
         else props.close();
       })
       .catch(fail);
+
+  const stopListening = editAsked(edit);
+  onCleanup(() => void stopListening.then((stop) => stop()));
 
   const turn = () => {
     turnTheme();
