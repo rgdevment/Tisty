@@ -15,6 +15,7 @@ const steps = [
   ["advisories and licences", "cargo", ["deny", "check"]],
   ["the window is linted", "npm", ["run", "lint"], "app"],
   ["the window builds", "npm", ["run", "build"], "app"],
+  ["each window reaches only its own code", "node", ["scripts/windows-apart.mjs"], "app"],
   ["the documents are linted", "npm", ["run", "lint:md"]],
   ["the house rules hold", bash, ["scripts/rules.sh"]],
   ["the notices match the lockfiles", "node", ["scripts/third-party.mjs"]],
