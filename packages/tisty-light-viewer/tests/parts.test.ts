@@ -91,13 +91,29 @@ describe("where the reading was left", () => {
     expect(remembered("a.md")).toBeUndefined();
   });
 
-  it("names the block at the top of the view", () => {
+  const laid = (bottoms: number[]) => {
     const page = document.createElement("article");
-    page.innerHTML = "<p>a</p><p><b>b</b></p><p>c</p>";
-    document.elementFromPoint = () => page.querySelector("b");
-    expect(blockAt(page, 90)).toBe(1);
-    document.elementFromPoint = () => null;
-    expect(blockAt(page, 90)).toBe(0);
+    for (const bottom of bottoms) {
+      const block = document.createElement("p");
+      block.getBoundingClientRect = () => ({ bottom }) as DOMRect;
+      page.append(block);
+    }
+    return page;
+  };
+
+  it("names the block at the top of the view", () => {
+    expect(blockAt(laid([50, 120, 300]), 90)).toBe(1);
+    expect(blockAt(laid([50, 120, 300]), 10)).toBe(0);
+  });
+
+  it("names the next block when the top of the view falls between two", () => {
+    expect(blockAt(laid([85, 95, 300]), 90)).toBe(1);
+    expect(blockAt(laid([60, 80, 100, 300]), 90)).toBe(2);
+  });
+
+  it("names the last block past the end, and nothing on an empty page", () => {
+    expect(blockAt(laid([10, 20]), 90)).toBe(1);
+    expect(blockAt(laid([]), 90)).toBe(0);
   });
 });
 

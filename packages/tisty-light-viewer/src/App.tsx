@@ -19,7 +19,7 @@ import Panels from "./Panels";
 import Problem from "./Problem";
 import { bringFar, bringNearPictures, farPictures } from "./pictures";
 import { blockAt, remember, remembered } from "./place";
-import { dress, laidIn, redraw, turnTheme } from "./sheet";
+import { dress, laidIn, printed, redraw, turnTheme } from "./sheet";
 import { type Words, wordsFor } from "./words";
 
 const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
@@ -120,6 +120,8 @@ export default function App(props: { readonly asked: string | null; readonly clo
     void source().then(setWritten, fail);
   };
 
+  const toPaper = () => void printed().catch(fail);
+
   const scale = (step: number) => {
     const at = step === 0 ? PLAIN : Math.max(0, Math.min(ZOOMS.length - 1, zoom() + step));
     setZoom(at);
@@ -158,7 +160,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     head: stepHead,
     back: () => void goBack().catch(fail),
     source: toSource,
-    print: () => window.print(),
+    print: toPaper,
     close: props.close,
     escape: leave,
   });
@@ -205,7 +207,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
           onClose={() => setMore(false)}
           onFind={() => setFinding(true)}
           onZoom={scale}
-          onPrint={() => window.print()}
+          onPrint={toPaper}
           fail={fail}
         />
       </Show>

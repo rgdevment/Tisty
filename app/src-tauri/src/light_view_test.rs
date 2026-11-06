@@ -122,3 +122,13 @@ fn a_neighbour_is_only_what_the_window_could_open() {
     assert_eq!(neighbour(&file, "img/a%20b.png"), None);
     assert_eq!(neighbour(&file, "missing.md"), None);
 }
+
+#[test]
+fn a_file_cut_inside_a_letter_at_the_ceiling_is_still_too_big() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("largo.md");
+    let mut said = "x".repeat(tisty_core::docs::READ_AT_MOST as usize);
+    said.push('é');
+    std::fs::write(&at, said).unwrap();
+    assert_eq!(body_of(&at).unwrap_err().code, "documentTooBig");
+}

@@ -179,3 +179,68 @@ fn a_document_of_tisty_comes_in_as_it_was() {
     let file = "# Título\n\nUna línea corta\ny otra.\n\n- [x] hecho\n";
     assert_eq!(file_as_tisty(file), file);
 }
+
+#[test]
+fn a_picture_by_reference_says_the_same_in_tisty() {
+    let file = "Mira ![logo][pic] aquí.\n\n[pic]: https://a.b/c.png\n";
+    says_the_same(file);
+    assert!(file_as_tisty(file).contains("![logo](https://a.b/c.png)"));
+}
+
+#[test]
+fn a_badge_says_the_same_in_tisty_however_it_is_written() {
+    let refs = "\n\n[ci]: https://a.b/ci\n[b]: https://a.b/b.svg\n";
+    says_the_same(&format!("[![Build][b]][ci] listo.{refs}"));
+    says_the_same(&format!("[![Build](https://a.b/x.svg)][ci] listo.{refs}"));
+    says_the_same(&format!("[![Build][b]](https://a.b/ci) listo.{refs}"));
+    says_the_same(&format!(
+        "![Build][] y ![b] listo.\n\n[build]: https://a.b/c.png{refs}"
+    ));
+}
+
+#[test]
+fn an_address_with_spaces_or_brackets_stays_one_address() {
+    says_the_same("Ve [al sitio][1].\n\n[1]: <./mis notas.md>\n");
+    says_the_same("Ve [a wiki][1].\n\n[1]: https://a.b/x_(y)\n");
+}
+
+#[test]
+fn an_inline_picture_is_drawn_and_says_the_same_in_tisty() {
+    let file = "Mira <img src=\"./a.png\" alt=\"un mapa\" width=\"20\"> aquí.\n";
+    let page = drawn(file);
+    assert!(page.contains("src=\"./a.png\""));
+    assert!(page.contains("alt=\"un mapa\""));
+    assert!(!page.contains("&lt;img"));
+    says_the_same(file);
+}
+
+#[test]
+fn an_inline_link_is_drawn_and_says_the_same_in_tisty() {
+    let file = "Lee <A HREF='https://x.y/a?b=1&amp;c=2'>la <b>guía</b></A> ya.\n";
+    let page = drawn(file);
+    assert!(page.contains("href=\"https://x.y/a?b=1&amp;c=2\""));
+    assert!(page.contains("la guía"));
+    says_the_same(file);
+}
+
+#[test]
+fn a_linked_inline_picture_keeps_both() {
+    let file = "Va <a href=\"https://x.y\"><img src=\"a.png\"></a> aquí.\n";
+    assert!(drawn(file).contains("<a href=\"https://x.y\"><img src=\"a.png\""));
+    says_the_same(file);
+}
+
+#[test]
+fn an_address_that_could_run_keeps_only_the_words() {
+    let page = drawn("Mira <img src=\"javascript:x\"> y <a href=\"javascript:y\">esto</a>.\n");
+    assert!(!page.contains("javascript"));
+    assert!(!page.contains("<img"));
+    assert!(page.contains("esto"));
+}
+
+#[test]
+fn a_link_never_shut_leaves_its_words() {
+    let page = drawn("Mira <a href=\"https://x.y\">esto ya.\n");
+    assert!(page.contains("esto ya."));
+    assert!(!page.contains("x.y"));
+}

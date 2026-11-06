@@ -449,6 +449,13 @@ fn outside_within(at: &Path, ceiling: u64) -> Result<String> {
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
+    let weighs = file.metadata()?.len();
+    if weighs > ceiling {
+        return Err(Error::DocumentTooBig {
+            bytes: weighs,
+            limit: ceiling,
+        });
+    }
     let mut body = String::new();
     let read = file.take(ceiling + 1).read_to_string(&mut body)? as u64;
     if read > ceiling {

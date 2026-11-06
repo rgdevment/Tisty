@@ -182,6 +182,26 @@ describe("the light viewer", () => {
     );
   });
 
+  it("prints a dark window on light paper, and goes back to dark after", async () => {
+    host.opened.mockResolvedValue(drawn("<p>all</p>"));
+    const root = document.documentElement;
+    root.classList.add("dark");
+    root.dataset.theme = "dark";
+    let themeOnPaper = "";
+    window.print = () => {
+      themeOnPaper = root.dataset.theme ?? "";
+    };
+    open();
+    await screen.findByRole("button", { name: "Editar" });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", ctrlKey: true }));
+    await waitFor(() => expect(themeOnPaper).toBe("light"));
+    window.dispatchEvent(new Event("afterprint"));
+    expect(root.dataset.theme).toBe("dark");
+    expect(root.classList.contains("dark")).toBe(true);
+    root.classList.remove("dark");
+    delete root.dataset.theme;
+  });
+
   it("speaks English when not asked for Spanish", async () => {
     host.opened.mockResolvedValue(drawn("<p>all</p>"));
     open("en");

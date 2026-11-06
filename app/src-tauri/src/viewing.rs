@@ -476,13 +476,7 @@ pub fn view_import(
     let _one_at_a_time = views.importing.lock().unwrap_or_else(|e| e.into_inner());
     let (paper, left) = match shown_in(&views, window.label())? {
         Shown::Doc(paper) => (paper, Left::default()),
-        Shown::File(at) => {
-            let (paper, left) = imported_once(&app, &views, &at)?;
-            if let Ok(mut held) = views.shown.lock() {
-                held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
-            }
-            (paper, left)
-        }
+        Shown::File(at) => imported_once(&app, &views, &at)?,
         Shown::Widget { .. } | Shown::Diagram(_) => {
             return Err(Refusal::of("notAllowed"));
         }

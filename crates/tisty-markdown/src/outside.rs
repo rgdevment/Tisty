@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::inline::paired;
+use crate::inline::{paired, safe};
 use crate::{Block, Doc, Kind, Mark, Span};
 
 const COLUMN_CUT: usize = 60;
@@ -19,11 +19,16 @@ fn settled(blocks: &mut Vec<Block>, text: &str) {
             rejoined(block, text);
         }
         let kept = paired(&block.spans, text);
+        let drawn = html_drawn(&block.spans, text);
         block.spans.retain(|one| match &one.mark {
             Mark::Html => kept.contains(&one.at.start) || text[one.at.clone()].starts_with("<!--"),
             Mark::Tag { name } => !numbered(name),
             _ => true,
         });
+        block.spans.extend(drawn.iter().flat_map(HtmlDrawn::spans));
+        block
+            .spans
+            .sort_by_key(|one| (one.at.start, std::cmp::Reverse(one.at.end)));
         settled(&mut block.inner, text);
     }
 }
@@ -78,19 +83,28 @@ fn turned(blocks: &[Block], text: &str, edits: &mut Vec<(Range<usize>, String)>)
 fn spans_turned(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {
     let cut = column_cut(&text[block.at.clone()]);
     let kept = paired(&block.spans, text);
+    let drawn = html_drawn(&block.spans, text);
+    let rewritten: Vec<usize> = drawn.iter().flat_map(HtmlDrawn::tags).collect();
+    edits.extend(drawn.iter().flat_map(|one| one.written(text)));
     for span in &block.spans {
         let said = &text[span.at.clone()];
         match &span.mark {
             Mark::Break if cut && said.trim_matches(['\r', '\n']).is_empty() => {
                 edits.push((with_its_margin(span.at.clone(), text), " ".to_string()));
             }
-            Mark::Html if !kept.contains(&span.at.start) && !said.starts_with("<!--") => {
+            Mark::Html
+                if !kept.contains(&span.at.start)
+                    && !rewritten.contains(&span.at.start)
+                    && !said.starts_with("<!--") =>
+            {
                 edits.push((span.at.clone(), String::new()));
             }
             Mark::Tag { name } if numbered(name) => {
                 edits.push((span.at.start..span.at.start + 1, "&#35;".to_string()));
             }
-            Mark::Link { to } => edits.extend(linked_in_place(span, text, to)),
+            Mark::Link { to } | Mark::Image { src: to } => {
+                edits.extend(linked_in_place(span, text, to));
+            }
             _ => {}
         }
     }
@@ -104,22 +118,186 @@ fn with_its_margin(at: Range<usize>, text: &str) -> Range<usize> {
     at.start..at.end + margin
 }
 
+fn destination(to: &str) -> String {
+    if to.contains([' ', '(', ')']) {
+        format!("<{to}>")
+    } else {
+        to.to_string()
+    }
+}
+
+fn last_group(said: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    for (at, one) in said.bytes().enumerate().rev() {
+        match one {
+            b']' => depth += 1,
+            b'[' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(at);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 fn linked_in_place(span: &Span, text: &str, to: &str) -> Option<(Range<usize>, String)> {
     let said = &text[span.at.clone()];
-    if !said.starts_with('[') || said.contains("](") {
+    let first = usize::from(said.starts_with('!'));
+    if !said[first..].starts_with('[') || !said.ends_with(']') {
         return None;
     }
-    let inline = format!("]({to})");
-    match said.rfind("][") {
-        Some(from) => Some((span.at.start + from..span.at.end, inline)),
-        None => said.ends_with(']').then(|| {
-            let collapsed = text[span.at.end..].starts_with("[]");
-            (
-                span.at.end - 1..span.at.end + if collapsed { 2 } else { 0 },
-                inline,
-            )
-        }),
+    let inline = format!("]({})", destination(to));
+    let label = last_group(said)?;
+    if label == first {
+        let collapsed = text[span.at.end..].starts_with("[]");
+        let end = span.at.end + if collapsed { 2 } else { 0 };
+        return Some((span.at.end - 1..end, inline));
     }
+    Some((span.at.start + label - 1..span.at.end, inline))
+}
+
+// What an inline tag means and Markdown can say, so neither the page nor the copy loses it.
+enum HtmlDrawn {
+    Picture {
+        at: Range<usize>,
+        src: String,
+        alt: Option<Range<usize>>,
+    },
+    Link {
+        open: Range<usize>,
+        shut: Range<usize>,
+        to: String,
+    },
+}
+
+impl HtmlDrawn {
+    fn spans(&self) -> Vec<Span> {
+        match self {
+            Self::Picture { at, src, alt } => std::iter::once(Span {
+                mark: Mark::Image { src: src.clone() },
+                at: at.clone(),
+            })
+            .chain(alt.iter().map(|at| Span {
+                mark: Mark::Text,
+                at: at.clone(),
+            }))
+            .collect(),
+            Self::Link { open, shut, to } => vec![Span {
+                mark: Mark::Link { to: to.clone() },
+                at: open.start..shut.end,
+            }],
+        }
+    }
+
+    fn tags(&self) -> Vec<usize> {
+        match self {
+            Self::Picture { at, .. } => vec![at.start],
+            Self::Link { open, shut, .. } => vec![open.start, shut.start],
+        }
+    }
+
+    fn written(&self, text: &str) -> Vec<(Range<usize>, String)> {
+        match self {
+            Self::Picture { at, src, alt } => {
+                let alt = alt.as_ref().map_or("", |at| &text[at.clone()]);
+                vec![(at.clone(), format!("![{alt}]({})", destination(src)))]
+            }
+            Self::Link { open, shut, to } => vec![
+                (open.clone(), "[".to_string()),
+                (shut.clone(), format!("]({})", destination(to))),
+            ],
+        }
+    }
+}
+
+fn html_drawn(spans: &[Span], text: &str) -> Vec<HtmlDrawn> {
+    let mut drawn = Vec::new();
+    let mut open: Vec<(Range<usize>, String)> = Vec::new();
+    for span in spans.iter().filter(|one| one.mark == Mark::Html) {
+        let tag = &text[span.at.clone()];
+        let lowered = tag.to_ascii_lowercase();
+        if lowered.starts_with("<img") {
+            let found = attributes(tag, span.at.start);
+            if let Some(src) = wanted_address(&found, "src", text) {
+                drawn.push(HtmlDrawn::Picture {
+                    at: span.at.clone(),
+                    src,
+                    alt: found
+                        .iter()
+                        .find(|(name, _)| name == "alt")
+                        .map(|(_, at)| at.clone()),
+                });
+            }
+        } else if lowered.starts_with("<a ") || lowered.starts_with("<a\t") {
+            if let Some(to) = wanted_address(&attributes(tag, span.at.start), "href", text) {
+                open.push((span.at.clone(), to));
+            }
+        } else if lowered == "</a>"
+            && let Some((tag, to)) = open.pop()
+        {
+            drawn.push(HtmlDrawn::Link {
+                open: tag,
+                shut: span.at.clone(),
+                to,
+            });
+        }
+    }
+    drawn
+}
+
+fn wanted_address(found: &[(String, Range<usize>)], name: &str, text: &str) -> Option<String> {
+    let (_, at) = found.iter().find(|(one, _)| one == name)?;
+    let said = text[at.clone()].trim().replace("&amp;", "&");
+    (!said.is_empty() && safe(&said) != "#").then_some(said)
+}
+
+fn attributes(tag: &str, offset: usize) -> Vec<(String, Range<usize>)> {
+    let bytes = tag.as_bytes();
+    let mut found = Vec::new();
+    let mut at = tag
+        .find(|one: char| one.is_ascii_whitespace())
+        .unwrap_or(tag.len());
+    while at < bytes.len() {
+        while at < bytes.len() && (bytes[at].is_ascii_whitespace() || bytes[at] == b'/') {
+            at += 1;
+        }
+        let name_at = at;
+        while at < bytes.len()
+            && !matches!(bytes[at], b'=' | b'>' | b'/')
+            && !bytes[at].is_ascii_whitespace()
+        {
+            at += 1;
+        }
+        let name = tag[name_at..at].to_ascii_lowercase();
+        if at >= bytes.len() || bytes[at] != b'=' {
+            if at < bytes.len() && bytes[at] == b'>' {
+                break;
+            }
+            at += usize::from(name.is_empty());
+            continue;
+        }
+        at += 1;
+        let quote = bytes
+            .get(at)
+            .copied()
+            .filter(|one| matches!(one, b'"' | b'\''));
+        at += usize::from(quote.is_some());
+        let value_at = at;
+        while at < bytes.len()
+            && match quote {
+                Some(quote) => bytes[at] != quote,
+                None => !bytes[at].is_ascii_whitespace() && bytes[at] != b'>',
+            }
+        {
+            at += 1;
+        }
+        found.push((name, offset + value_at..offset + at));
+        at += usize::from(quote.is_some());
+    }
+    found
 }
 
 fn brackets_kept(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {

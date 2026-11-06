@@ -39,11 +39,33 @@ export const redraw = async (): Promise<void> => {
   await diagrams(document, isDark(), () => true);
 };
 
-export const turnTheme = (): void => {
+const shaded = (dark: boolean): void => {
   const root = document.documentElement;
-  const dark = !isDark();
   root.dataset.theme = dark ? "dark" : "light";
   root.classList.toggle("dark", dark);
+};
+
+// Paper is light, and a dark theme's near-white words would be printed on it.
+export const printed = async (): Promise<void> => {
+  const dark = isDark();
+  if (dark) {
+    shaded(false);
+    await redraw();
+    window.addEventListener(
+      "afterprint",
+      () => {
+        shaded(true);
+        void redraw();
+      },
+      { once: true },
+    );
+  }
+  window.print();
+};
+
+export const turnTheme = (): void => {
+  const dark = !isDark();
+  shaded(dark);
   try {
     localStorage.setItem(THEME, dark ? "dark" : "light");
   } catch {

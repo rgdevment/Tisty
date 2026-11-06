@@ -29,8 +29,12 @@ export const remember = (path: string, block: number): void => {
 };
 
 export const blockAt = (page: HTMLElement, y: number): number => {
-  const x = page.getBoundingClientRect().left + page.clientWidth / 2;
-  let there = document.elementFromPoint(x, y);
-  while (there && there.parentElement !== page) there = there.parentElement;
-  return there ? Array.prototype.indexOf.call(page.children, there) : 0;
+  let low = 0;
+  let high = page.children.length - 1;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (page.children[middle].getBoundingClientRect().bottom >= y) high = middle;
+    else low = middle + 1;
+  }
+  return Math.max(low, 0);
 };
