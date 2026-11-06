@@ -236,21 +236,16 @@ const titled = (page: Document) => {
   sheet.prepend(slot);
 };
 
-export const worn = (
-  page: Document,
-  stranger: boolean,
-  live: () => boolean,
-  reach?: Reaching,
-): Worn => {
+export const worn = (page: Document, live: () => boolean, reach?: Reaching): Worn => {
   if (reach?.onBlock) titled(page);
   if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
-  if (reach?.onWiden && !stranger) gripped(page);
-  const writable = Boolean(reach?.onTable) && !stranger;
+  if (reach?.onWiden) gripped(page);
+  const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);
-  if ((reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock) && !stranger)
+  if (reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock)
     diagramBars(page, {
       open: Boolean(reach.onDiagram),
       out: Boolean(reach.onDiagramExport),
@@ -258,21 +253,20 @@ export const worn = (
     });
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
-  const known = reach && !stranger ? reach : undefined;
   const read = readAs(page, {
     say: SAY,
     locale: locale(),
     live,
     writable,
     brought: () => {
-      held = pictures(page, live, { more: Boolean(reach?.onMore) && !stranger });
+      held = pictures(page, live, { more: Boolean(reach?.onMore) });
       lent = widgets(page, reach);
     },
-    cards: known && cardsFor(page, known),
-    parts: known?.part,
-    sites: known && { glimpses: GLIMPSES },
+    cards: reach && cardsFor(page, reach),
+    parts: reach?.part,
+    sites: reach && { glimpses: GLIMPSES },
   });
-  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
+  if (reach?.onPart) offeredAsParts(page, t("stepToPart"), reach.body);
   return { lent, kept: [...held, ...read.kept] };
 };
 

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type { Showing } from "../../core";
 import { fill, t } from "../../locales";
-import { button, Glyph, Segments, tinted, tool } from "./Glyphs";
+import { button, Glyph, Segments, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
 import TitleBar from "./TitleBar";
 
@@ -9,7 +9,6 @@ interface Props {
   shown: Showing | null;
   side: boolean;
   raw: boolean;
-  busy: boolean;
   preset: Preset;
   menu: boolean;
   onSide: () => void;
@@ -22,10 +21,6 @@ interface Props {
 
 export const titled = (shown: Showing | null): { title: string; under: string } => {
   switch (shown?.kind) {
-    case "file":
-      return { title: shown.name, under: `${shown.place} · ${t("viewOnlyReading")}` };
-    case "missed":
-      return { title: shown.name, under: shown.place };
     case "doc":
       return {
         title: shown.paper.title || t("untitledDoc"),
@@ -44,7 +39,7 @@ export default function Header(props: Props) {
   const { shown, side, preset, menu } = props;
   const more = useRef<HTMLButtonElement>(null);
   const { title, under } = titled(shown);
-  const reading = shown?.kind === "file" || shown?.kind === "doc";
+  const reading = shown?.kind === "doc";
   const kind = shown?.kind === "doc" ? "doc" : shown?.kind === "widget" ? "widget" : null;
 
   return (
@@ -83,12 +78,7 @@ export default function Header(props: Props) {
             ]}
             onPick={(one) => props.onRaw(one === "raw")}
           />
-          <button
-            type="button"
-            disabled={props.busy}
-            className={shown.kind === "doc" ? button : tinted}
-            onClick={props.onEdit}
-          >
+          <button type="button" className={button} onClick={props.onEdit}>
             {t("viewEditIn")}
           </button>
         </>

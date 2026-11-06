@@ -918,7 +918,6 @@ export default function Sheet(props: Readonly<Props>) {
           sheet={props.sheet}
           body={drawn}
           label={label}
-          stranger={false}
           tall
           untitled={props.inline}
           shaping={props.shaping}

@@ -263,7 +263,7 @@ describe("dressing a drawn page", () => {
     const drawn = page(
       '<blockquote class="callout" data-callout="note"><p>x</p></blockquote><figure class="code" data-at="1-2"><pre><code class="language-widget">w</code></pre></figure><p><img src="attachments/a.png" alt=""></p>',
     );
-    const done = worn(drawn, false, () => true);
+    const done = worn(drawn, () => true);
     expect(done.lent).toHaveLength(1);
     expect(done.kept).toHaveLength(1);
     expect(drawn.querySelector("blockquote")?.dataset.said).toBeTruthy();
@@ -403,23 +403,23 @@ const press = (on: Element | null, clientY = 900) =>
 describe("a sheet with nothing written yet", () => {
   it("shows where the title goes on an empty sheet, and nowhere else", () => {
     const empty = page("");
-    worn(empty, false, () => true, writer().reach);
+    worn(empty, () => true, writer().reach);
     expect(empty.querySelector(".page > h1[data-title]")).not.toBeNull();
     expect(empty.querySelector<HTMLElement>(".page")?.dataset.empty).toBeTruthy();
 
     const said = page('<p data-at="0-5">Leche</p>');
-    worn(said, false, () => true, writer().reach);
+    worn(said, () => true, writer().reach);
     expect(said.querySelector("h1[data-title]")).toBeNull();
 
     const reading = page("");
-    worn(reading, false, () => true, { body: "", onDoc: () => {} });
+    worn(reading, () => true, { body: "", onDoc: () => {} });
     expect(reading.querySelector("h1[data-title]")).toBeNull();
   });
 
   it("writes the title from its own slot, starting with its mark", () => {
     const empty = page("");
     const { asked, reach } = writer();
-    worn(empty, false, () => true, reach);
+    worn(empty, () => true, reach);
     wired(empty, () => reach);
     press(empty.querySelector("h1[data-title]"), 0);
     expect(asked).toEqual([{ at: [0, 0], seed: "# " }]);
@@ -513,7 +513,7 @@ describe("a task's template hints", () => {
 
   it("shows a hint while its section is empty, and hides one whose section has words", () => {
     const one = drawn();
-    worn(one, false, () => true, writer(body).reach);
+    worn(one, () => true, writer(body).reach);
 
     const [first, second] = Array.from(one.querySelectorAll<HTMLElement>(".page > div[data-at]"));
     expect(first.classList.contains("hint")).toBe(true);
@@ -524,7 +524,7 @@ describe("a task's template hints", () => {
   it("leaves a document's comments alone", () => {
     const one = drawn();
     one.documentElement.classList.remove("untitled");
-    worn(one, false, () => true, writer(body).reach);
+    worn(one, () => true, writer(body).reach);
 
     expect(one.querySelector(".hint, .hint-gone")).toBeNull();
   });
@@ -532,7 +532,7 @@ describe("a task's template hints", () => {
   it("begins writing right after the hint, keeping the comment", () => {
     const one = drawn();
     const { asked, reach } = writer(body);
-    worn(one, false, () => true, reach);
+    worn(one, () => true, reach);
     wired(one, () => reach);
     press(one.querySelector(".hint"), 0);
 
@@ -547,7 +547,7 @@ describe("a task's steps on its page", () => {
     const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
     one.documentElement.classList.add("untitled");
     const { asked, reach } = writer(body);
-    worn(one, false, () => true, reach);
+    worn(one, () => true, reach);
     wired(one, () => reach);
 
     const hint = one.querySelector<HTMLElement>(".hint");
@@ -565,7 +565,7 @@ describe("a task's steps on its page", () => {
     );
     one.documentElement.classList.add("untitled");
     const { asked, reach } = writer(body);
-    worn(one, false, () => true, reach);
+    worn(one, () => true, reach);
     wired(one, () => reach);
 
     expect(one.querySelector<HTMLElement>("ul")?.style.getPropertyValue("--done")).toBe("50%");
@@ -582,7 +582,7 @@ describe("a task's steps on its page", () => {
     );
     one.documentElement.classList.add("untitled");
     const { asked, reach } = writer(body);
-    worn(one, false, () => true, reach);
+    worn(one, () => true, reach);
     wired(one, () => reach);
 
     press(one.querySelector<HTMLElement>(".page > .add-step"), 0);
@@ -593,7 +593,7 @@ describe("a task's steps on its page", () => {
     const one = page(
       '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>one</li></ul>',
     );
-    worn(one, false, () => true, writer("- [ ] one\n").reach);
+    worn(one, () => true, writer("- [ ] one\n").reach);
 
     expect(one.querySelector(".add-step")).toBeNull();
   });
@@ -604,7 +604,7 @@ describe("a task page only read", () => {
     const body = "## Steps\n<!-- - [ ] The first step -->\n";
     const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
     one.documentElement.classList.add("untitled");
-    worn(one, false, () => true, { body, onDoc: () => {} });
+    worn(one, () => true, { body, onDoc: () => {} });
 
     expect(one.querySelector(".hint, .add-step")).toBeNull();
   });

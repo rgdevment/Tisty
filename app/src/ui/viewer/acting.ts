@@ -1,4 +1,3 @@
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
@@ -14,7 +13,6 @@ export interface Acts {
   dark: boolean | null;
   actual: boolean;
   fail: (problem: unknown) => void;
-  look: () => void;
   find: () => void;
   zoom: (step: number) => void;
   side: () => void;
@@ -23,7 +21,6 @@ export interface Acts {
   keep: () => void;
   html: () => void;
   word: () => void;
-  quietly: () => void;
   edit: () => void;
   again: () => void;
   code: () => void;
@@ -60,15 +57,6 @@ export const choicesFor = (a: Acts): Choice[] => {
       },
     ];
   }
-  const path = shown?.kind === "file" || shown?.kind === "missed" ? shown.path : null;
-  const reveal: Choice = {
-    key: "reveal",
-    label: t("viewReveal"),
-    off: !path,
-    onPick: () => path && void revealItemInDir(path).catch(a.fail),
-  };
-  if (shown?.kind === "missed")
-    return [reveal, { key: "retry", label: t("viewRetry"), onPick: a.look }];
   const own: Choice[] =
     shown?.kind === "doc"
       ? [
@@ -82,7 +70,7 @@ export const choicesFor = (a: Acts): Choice[] => {
                 .catch(a.fail),
           },
         ]
-      : [{ key: "quiet", label: t("viewImportQuiet"), apart: true, onPick: a.quietly }, reveal];
+      : [];
   return [
     { key: "edit", label: t("viewEditIn"), onPick: a.edit },
     { key: "find", label: t("viewFind"), hint: "Ctrl+F", apart: true, onPick: a.find },
@@ -111,7 +99,7 @@ export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => 
   const key = e.key.toLowerCase();
   const doing: Record<string, () => void> = { w: a.close, r: a.again };
   const kind = a.shown?.kind;
-  if (kind === "file" || kind === "doc") {
+  if (kind === "doc") {
     Object.assign(doing, {
       f: a.find,
       "\\": a.side,
