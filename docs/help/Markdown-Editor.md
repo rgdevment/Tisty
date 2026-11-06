@@ -6,7 +6,7 @@ A document in Tisty is text of yours, kept as a plain `.md` file, that you write
 
 ## Writing where you read
 
-There is one way of writing, and it happens on the page itself.
+You write on the page itself, a block at a time.
 
 - **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu. A diagram brings its own bar when the pointer is over it: **Export**, **Edit as Markdown**, which opens its text right there, and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]].
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading; the `**` or the `#` show only when you ask for them, and selecting or deleting text leaves a format whole. If deleting a space would bring a word up against a format and undo it, the word goes inside the format, and typing the space again right away puts it back as it was. A link is the one exception: with the caret in it you see its address, which you can change there.
@@ -16,12 +16,13 @@ There is one way of writing, and it happens on the page itself.
 - **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** Lists, quotes and code keep their own Enter.
 - **The arrows go on from one block to the next** in a document, past a picture, a table or a diagram, which you open with a click. `Backspace` at the start of a block joins it to the one before, and `Delete` at its end joins the next.
 - **`Ctrl`/`⌘` + `Shift` + `M` shows every mark** in the block, for when you want to see the Markdown itself. Press it again to hide them.
+- **`Ctrl`/`⌘` + `E` opens the whole document** as one text, with the marks opening where the caret stands. It is there for changes that run across blocks. Press it again, or Esc, to go back to reading. A task's page is always written block by block.
 
-A line at the foot of the page keeps the keys in sight: `/` to insert, `#` and a space for a heading, the shortcut for every mark, and Esc to read.
+A line under the block keeps the keys in sight: `/` to insert, the shortcut for every mark, and the one for the whole document.
 
 ## The bar
 
-While a block is open, a small **Aa** waits over it, and it opens into the whole bar when you select text or press it. Opened by hand, it stays open until you fold it. The bar floats over the block (not inside a code block or a `$$` formula, where it would write nothing):
+While a block is open, a small **Aa** waits in the margin beside it, or above it in a narrow window, and it opens into the whole bar when you select text or press it. Opened by hand, it stays open until you fold it, and inside a table it stands open, since it holds the table's own menu. The bar floats over the block (not inside a code block or a `$$` formula, where it would write nothing):
 
 - **The kind of block**: Paragraph, Heading, Subheading, Small heading, Bulleted list, Numbered list, Stages or Quote. Every line you have selected changes at once. Inside a table it reads **Table** and offers a row above or below, a column on either side, the column's alignment, and removing a row or a column. The dashes under the header stay as you drew them, so the widths do too.
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
@@ -29,6 +30,7 @@ While a block is open, a small **Aa** waits over it, and it opens into the whole
 - **Table**, which puts a table where the caret is and opens it on the page. Inside a table it steps aside.
 - **Diagram**, in a document: a new diagram of each kind or an existing one, as in the `/` menu.
 - **/ More**, which opens the `/` menu.
+- **⤢**, which opens the whole document, as `Ctrl`/`⌘` + `E` does.
 
 With words selected, a format wraps them; pressed on words that already have it, it takes it away. Formats never cross: one that reaches another of its kind joins it into one.
 
@@ -67,11 +69,12 @@ Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it d
 | `Ctrl`/`⌘` + `I` | Italic |
 | `Ctrl`/`⌘` + `U` | Underline |
 | `Ctrl`/`⌘` + `Shift` + `X` | Strikethrough |
-| `Ctrl`/`⌘` + `E` | Code |
+| `Ctrl`/`⌘` + `Shift` + `C` | Code |
 | `Ctrl`/`⌘` + `K` | Link |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` | Undo · redo |
 | `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `Shift` + `M` | Show or hide every mark |
+| `Ctrl`/`⌘` + `E` | Open or leave the whole document |
 | `Esc` | Back to reading |
 
 The writing sits on a lit page. When the window is wide enough, a column opens beside it with what the document is, its tags, its outline and the way to its PDF.

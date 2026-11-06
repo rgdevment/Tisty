@@ -141,7 +141,7 @@ A document is text of yours, kept as Markdown, that you can write here and read 
 
 The first line of the document is its title. There is no name to fill in anywhere: whatever you write at the top is what it is called. Above it, if you want them, go its properties, between two `---` lines, the way many Markdown tools write them: `tags:`, the paper it prints on. Tisty does not show them on the page; it shows them in the panel beside it, under **About this document**.
 
-You write a block at a time. Click a paragraph and it opens for writing, with its bar above it; press `Esc` and it reads as a page again. Pick a few words on the page and a small bar offers bold, italic, a link or a pen right there, and the right button offers the same along with copy and editing the block. Read in the viewer, the page is only read: nothing pops up.
+You write a block at a time. Click a paragraph and it opens for writing, with a small **Aa** beside it that opens into the bar when you select words; press `Esc` and it reads as a page again. The marks stay out of sight until you ask for them with `Ctrl`/`⌘` + `Shift` + `M`, the arrows go on from one block to the next, and `Ctrl`/`⌘` + `E` opens the whole document as one text. Pick a few words on the page and a small bar offers bold, italic, a link or a pen right there, and the right button offers the same along with copy and editing the block. Read in the viewer, the page is only read: nothing pops up.
 
 Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 
@@ -224,7 +224,7 @@ Born in 2023. Six-in-one and rabies every March, worming every three months.
 
 #### Highlighting
 
-Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that appears while you write a block.
+Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that opens when you select words in a block.
 
 #### Icons
 
