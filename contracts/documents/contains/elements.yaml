@@ -308,21 +308,130 @@ cases:
 contract: widget
 group: documents
 checked_by: [writer, reader]
-says: A small isolated view inside a document, which can run its own script. Tisty runs it. Whoever does not implement this contract never runs it, and shows a card that says it is seen in Tisty.
+says: >-
+  A fixed view inside a document, made only of the HTML and CSS listed here. It runs nothing, ever, and names nothing
+  outside itself, and every reader draws it the same. A block with anything else is no widget: a reader shows it as its
+  code and says what is wrong, and never draws it in part. Nothing a document holds ever runs: an attached .html file is a file like any other.
 fields:
   title: { type: text }
-  body: { type: text, required: true }
+  body: { type: widget_body, required: true, bytes_at_most: 512000 }
 values:
   drawn_as: "A block of code in the language widget."
-  on_the_web: >-
-    A reader on the web never runs it, and writes its card from nothing of its code. The page holds the link key and
-    the token, and a frame with allow-scripts keeps those from a hostile widget, but not the network: a CSP does not cover
-    WebRTC, a preconnect or the connection a refused navigation opens, so it can tell another server who is reading, and on
-    some browsers it can freeze the page. Running it is for a later minor that closes those.
+  frame: >-
+    An iframe with sandbox allow-same-origin, never allow-scripts: the reader can measure it, and nothing in it can run.
+    Its page is what widgetPage makes: the policy below, the kit, and the body as it was written. It goes in srcdoc where
+    the reader's own policy lets the styles through, and otherwise in an empty page of its own served under the policy below.
+  policy: "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+  tags: [abbr, article, aside, b, blockquote, br, caption, code, col, colgroup, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hr, i, img, ins, kbd, li, main, mark, meter, nav, ol, p, pre, progress, q, s, samp, section, small, span, strong, style, sub, summary, sup, table, tbody, td, tfoot, th, thead, time, tr, u, ul, var, wbr]
+  attributes: [class, dir, id, lang, role, style, title]
+  attribute_starts: [aria-]
+  attributes_on:
+    col: [span]
+    colgroup: [span]
+    details: [open]
+    img: [alt, height, src, width]
+    li: [value]
+    meter: [high, low, max, min, optimum, value]
+    ol: [reversed, start, type]
+    progress: [max, value]
+    td: [colspan, headers, rowspan]
+    th: [abbr, colspan, headers, rowspan, scope]
+    time: [datetime]
+  drawings: "Inside an svg, what a diagram may draw, under its rule for paints."
+  pictures: "An img holds its picture in src, as a data: address of an image."
+  css_never: ["@import", "@namespace", "@font-face", "\\", "image(", "image-set(", "src("]
+  css_urls: "In CSS, url() holds a data: address of an image, or names something in its own drawing as url(#name)."
 cases:
   - says: "A widget with its words."
     value: { title: "Rina este mes", body: "<div></div>" }
     holds: true
   - says: "No words."
     value: { title: "x" }
+    holds: false
+  - says: "The kit's own figures and a table."
+    value: { body: '<div class="grid"><div class="stat"><small>Paseos</small><b>42</b><em class="up">+6</em></div></div><table class="list"><tr><th scope="col">Mes</th><td colspan="2">Agosto</td></tr></table>' }
+    holds: true
+  - says: "Its own styles, and a section that folds."
+    value: { body: '<style>.a{color:red;background:url(data:image/gif;base64,R0lGOD)}</style><details open><summary>Mas</summary><p class="a" style="margin:0">Hola</p></details>' }
+    holds: true
+  - says: "A picture it holds itself, and a drawing painted from within."
+    value: { body: '<img src="data:image/png;base64,iVBOR" alt="Rina" width="16" height="16"><svg viewBox="0 0 9 9"><defs><lineargradient id="g"><stop offset="0"/></lineargradient></defs><rect width="9" height="9" fill="url(#g)"/></svg>' }
+    holds: true
+  - says: "A comparison in its words, which opens no tag."
+    value: { body: "<p>1 < 2</p>" }
+    holds: true
+  - says: "A script."
+    value: { body: "<script>alert(1)</script>" }
+    holds: false
+  - says: "A script written with other letters."
+    value: { body: "<ScRiPt src=x></ScRiPt>" }
+    holds: false
+  - says: "A handler."
+    value: { body: '<p onclick="alert(1)">a</p>' }
+    holds: false
+  - says: "A handler behind a slash."
+    value: { body: '<img/onerror=alert(1) src="data:image/png;base64,iVBOR">' }
+    holds: false
+  - says: "A preconnect, which runs nothing and still reaches a server."
+    value: { body: '<link rel="preconnect" href="https://example.com">' }
+    holds: false
+  - says: "A meta that navigates."
+    value: { body: '<meta http-equiv="refresh" content="0;url=https://example.com">' }
+    holds: false
+  - says: "A frame of its own."
+    value: { body: '<iframe srcdoc="<p>a</p>"></iframe>' }
+    holds: false
+  - says: "A link, which leads outside."
+    value: { body: '<a href="https://example.com">a</a>' }
+    holds: false
+  - says: "A button, which promises what nothing can do."
+    value: { body: "<button>Hecho</button>" }
+    holds: false
+  - says: "A form."
+    value: { body: '<form action="https://example.com"><input name="a"></form>' }
+    holds: false
+  - says: "A picture from an address."
+    value: { body: '<img src="https://example.com/a.png">' }
+    holds: false
+  - says: "A picture hiding its scheme behind an entity."
+    value: { body: '<img src="&#104;ttps://example.com/a.png">' }
+    holds: false
+  - says: "A sound or a video."
+    value: { body: '<video src="https://example.com/a.mp4"></video>' }
+    holds: false
+  - says: "A style that imports another."
+    value: { body: "<style>@import url(https://example.com/a.css);</style>" }
+    holds: false
+  - says: "A style that fetches a picture."
+    value: { body: "<style>p{background:URL( 'https://example.com/a.png' )}</style>" }
+    holds: false
+  - says: "A style hiding a word behind an escape."
+    value: { body: '<style>p{background:u\72l(https://example.com/a.png)}</style>' }
+    holds: false
+  - says: "A style attribute that fetches a picture."
+    value: { body: '<p style="background:url(https://example.com/a.png)">a</p>' }
+    holds: false
+  - says: "A style attribute hiding a word behind an entity."
+    value: { body: '<p style="background:&#117;rl(https://example.com/a.png)">a</p>' }
+    holds: false
+  - says: "A font from an address."
+    value: { body: "<style>@font-face{font-family:a;src:url(https://example.com/a.woff)}</style>" }
+    holds: false
+  - says: "A picture set from an address."
+    value: { body: '<style>p{background:image-set("https://example.com/a.png" 1x)}</style>' }
+    holds: false
+  - says: "A drawing that paints from an address."
+    value: { body: '<svg><rect fill="url(https://example.com/a.svg#g)"/></svg>' }
+    holds: false
+  - says: "A drawing that names something outside."
+    value: { body: '<svg><image href="https://example.com/a.png"/></svg>' }
+    holds: false
+  - says: "A comment, where a browser and a reader could disagree."
+    value: { body: "<!-- a --><p>b</p>" }
+    holds: false
+  - says: "A quote left open."
+    value: { body: '<p title="a>b</p>' }
+    holds: false
+  - says: "A closing tag that says more than its name."
+    value: { body: '<p>a</p x="y">' }
     holds: false
