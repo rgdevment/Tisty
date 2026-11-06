@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { checkWidget, WIDGET, widgetPage } from "@tisty/contracts/check";
+import { checkWidget, strayInWidget, WIDGET, widgetPage } from "@tisty/contracts/check";
 import { type Borrowed, openLink, widgetLendKept, widgetTakeBack } from "../core";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
@@ -56,35 +56,11 @@ export type Lending = {
   drop: () => void;
 };
 
-const LISTED_TAGS = new Set(Object.keys(WIDGET.tags));
-
-const strayIn = (source: string): string[] => {
-  const parsed = new DOMParser().parseFromString(widgetPage(source, false), "text/html");
-  const out: string[] = [];
-  for (const one of parsed.body.querySelectorAll("*")) {
-    const tag = one.localName.toLowerCase();
-    if (!LISTED_TAGS.has(tag)) {
-      out.push(`<${tag}>`);
-      continue;
-    }
-    for (const said of one.getAttributeNames()) {
-      const name = said.toLowerCase();
-      const listed =
-        WIDGET.anywhere.includes(name) ||
-        WIDGET.tags[tag].includes(name) ||
-        WIDGET.starts.some((start) => name.startsWith(start));
-      if (!listed) out.push(`<${tag} ${name}>`);
-    }
-  }
-  return out;
-};
-
 const WEIGHT_SHOWN = `${Math.round(WIDGET.bytes / 1000)} KB`;
 
-// Said in the reader's words, and the browser has the last say on what the words parse into.
 export const notWidget = (source: string): string | null => {
   if (new Blob([source]).size > WIDGET.bytes) return fill("widgetTooBig", WEIGHT_SHOWN);
-  const wrong = [...new Set([...checkWidget(source), ...strayIn(source)])];
+  const wrong = [...new Set([...checkWidget(source), ...strayInWidget(source)])];
   return wrong.length ? fill("widgetNot", wrong.slice(0, 3).join(", ")) : null;
 };
 

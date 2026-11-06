@@ -318,8 +318,9 @@ fields:
 values:
   drawn_as: "A block of code in the language widget."
   frame: >-
-    An iframe with srcdoc and sandbox allow-same-origin, never allow-scripts: the reader can measure it, and nothing in
-    it can run. Its page is what widgetPage makes: the policy below, the kit, and the body as it was written.
+    An iframe with sandbox allow-same-origin, never allow-scripts: the reader can measure it, and nothing in it can run.
+    Its page is what widgetPage makes: the policy below, the kit, and the body as it was written. It goes in srcdoc where
+    the reader's own policy lets the styles through, and otherwise in an empty page of its own served under the policy below.
   policy: "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
   tags: [abbr, article, aside, b, blockquote, br, caption, code, col, colgroup, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, footer, h1, h2, h3, h4, h5, h6, header, hr, i, img, ins, kbd, li, main, mark, meter, nav, ol, p, pre, progress, q, s, samp, section, small, span, strong, style, sub, summary, sup, table, tbody, td, tfoot, th, thead, time, tr, u, ul, var, wbr]
   attributes: [class, dir, id, lang, role, style, title]

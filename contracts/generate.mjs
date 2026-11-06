@@ -206,6 +206,8 @@ const typescriptTypes = () => {
     "export declare const WIDGET: { tags: Record<string, string[]>; anywhere: string[]; starts: string[]; css_never: string[]; policy: string; bytes: number; kit: string };",
     "/** What in a widget's body makes it no widget, as code: nothing when it holds. */",
     "export declare function checkWidget(body: string): string[];",
+    "/** What a browser's own parsing finds that the list does not hold: nothing when it holds. Only where there is a DOMParser. */",
+    "export declare function strayInWidget(body: string): string[];",
     "/** The whole page a reader gives the frame of a widget, the same in every reader. */",
     "export declare function widgetPage(body: string, dark: boolean): string;",
     "/** What a file's first bytes say it is, if a reader may play it. Its name and its kind have no say. */",
@@ -239,7 +241,7 @@ const typescriptCheck = () => {
 };
 
 const typescriptCheckTypes = () =>
-  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, WIDGET, check, checkHtml, checkWidget, widgetPage, referencesIn, picturesIn, playableAs } from "./index.js";\n';
+  'export { VERSION, ALLOWED, PASSTHROUGH, STYLES, URLS, WIDGET, check, checkHtml, checkWidget, strayInWidget, widgetPage, referencesIn, picturesIn, playableAs } from "./index.js";\n';
 
 const typescriptCases = () => `import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";

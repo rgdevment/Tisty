@@ -435,6 +435,25 @@ export const widgetPage = (body, dark) =>
   body +
   "</main></body></html>";
 
+// What a browser makes of the words has the last say, for a reader that has one.
+export function strayInWidget(body) {
+  const { tags, anywhere, starts } = WHOLE.widget;
+  const out = [];
+  for (const one of new DOMParser().parseFromString(widgetPage(body, false), "text/html").body.querySelectorAll("*")) {
+    const tag = lowered(one.localName);
+    if (!own(tags, tag)) {
+      out.push("<" + tag + ">");
+      continue;
+    }
+    for (const said of one.getAttributeNames()) {
+      const name = lowered(said);
+      const listed = anywhere.includes(name) || own(tags, tag).includes(name) || starts.some((start) => name.startsWith(start));
+      if (!listed) out.push("<" + tag + " " + name + ">");
+    }
+  }
+  return [...new Set(out)];
+}
+
 const says = (bytes, at, said) => {
   for (let one = 0; one < said.length; one += 1) if (bytes[at + one] !== said.charCodeAt(one)) return false;
   return true;
