@@ -171,7 +171,7 @@ fn near_picture(file: &Path, src: &str) -> Answer<String> {
     }
     let extension = at
         .extension()
-        .and_then(|one| one.to_str())
+        .and_then(std::ffi::OsStr::to_str)
         .unwrap_or_default()
         .to_ascii_lowercase();
     let (_, kind) = PICTURES

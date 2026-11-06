@@ -1,12 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { keyHeard } from "../src/keys";
 import { blockAt, remember, remembered } from "../src/place";
 import { wordsFor } from "../src/words";
 
-const host = vi.hoisted(() => ({ openLink: vi.fn(), follow: vi.fn() }));
+const host = vi.hoisted(() => ({
+  openLink: vi.fn(),
+  follow: vi.fn(),
+  pictureNear: vi.fn(),
+  pictureFar: vi.fn(),
+}));
 vi.mock("../src/host", () => host);
 
 const { arrivingAt, canGoBack, goBack, linkPressed } = await import("../src/links");
+const { bringFar, bringNearPictures, farPictures } = await import("../src/pictures");
 
 const keyed = () => ({
   find: vi.fn(),
@@ -42,6 +48,11 @@ describe("the keys", () => {
     expect(press({ key: "=", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(1);
     expect(press({ key: "-", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(-1);
     expect(press({ key: "0", ctrlKey: true }).acts.zoom).toHaveBeenCalledWith(0);
+  });
+
+  it("goes back with Alt and the left arrow", () => {
+    expect(press({ key: "ArrowLeft", altKey: true }).acts.back).toHaveBeenCalled();
+    expect(press({ key: "ArrowLeft" }).acts.back).not.toHaveBeenCalled();
   });
 
   it("goes from heading to heading", () => {
@@ -182,5 +193,77 @@ describe("the words", () => {
     expect(wordsFor("es").sayToSheet("saidnote")).toBe("Nota");
     expect(wordsFor("en").sayToSheet("saidnote")).toBe("Note");
     expect(wordsFor(null).locale).toBe("en");
+  });
+});
+
+describe("the pictures", () => {
+  const seen: { watch?: (entries: { isIntersecting: boolean; target: Element }[]) => void } = {};
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(watch: (entries: { isIntersecting: boolean; target: Element }[]) => void) {
+          seen.watch = watch;
+        }
+        observe = vi.fn();
+        unobserve = vi.fn();
+      },
+    );
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  const sheet = (html: string) => {
+    const page = document.createElement("article");
+    page.innerHTML = html;
+    return page;
+  };
+
+  it("brings one beside the file only when it comes near, and leaves the others", async () => {
+    host.pictureNear.mockResolvedValue("data:image/png;base64,AA==");
+    const page = sheet(
+      '<img src="./a.png"><img src="tisty:b"><img src="data:x"><img src="https://x.y/c.png"><img>',
+    );
+    bringNearPictures(page);
+    const first = page.querySelector("img") as HTMLImageElement;
+    seen.watch?.([{ isIntersecting: false, target: first }]);
+    expect(host.pictureNear).not.toHaveBeenCalled();
+    seen.watch?.([{ isIntersecting: true, target: first }]);
+    expect(host.pictureNear).toHaveBeenCalledTimes(1);
+    expect(host.pictureNear).toHaveBeenCalledWith("./a.png");
+    await vi.waitFor(() => expect(first.src).toContain("data:image/png"));
+  });
+
+  it("leaves its words when one beside the file cannot be read", async () => {
+    host.pictureNear.mockRejectedValue({ code: "notAllowed" });
+    const page = sheet('<img src="../secret.png" alt="x">');
+    bringNearPictures(page);
+    const only = page.querySelector("img") as HTMLImageElement;
+    seen.watch?.([{ isIntersecting: true, target: only }]);
+    await vi.waitFor(() => expect(host.pictureNear).toHaveBeenCalled());
+    expect(only.getAttribute("src")).toBe("../secret.png");
+  });
+
+  it("brings all at once without an observer", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    delete (window as unknown as Record<string, unknown>).IntersectionObserver;
+    host.pictureNear.mockResolvedValue("data:x");
+    bringNearPictures(sheet('<img src="a.png"><img src="b.png">'));
+    expect(host.pictureNear).toHaveBeenCalledTimes(2);
+  });
+
+  it("brings those from the web only when asked, and keeps each failure to itself", async () => {
+    host.pictureFar.mockResolvedValueOnce("data:one").mockRejectedValueOnce({ code: "x" });
+    const page = sheet(
+      '<img src="HTTPS://x.y/a.png"><img src="http://x.y/b.png"><img src="c.png">',
+    );
+    const far = farPictures(page);
+    expect(far).toHaveLength(2);
+    expect(host.pictureFar).not.toHaveBeenCalled();
+    bringFar(far);
+    await vi.waitFor(() => expect(far[0].getAttribute("src")).toBe("data:one"));
+    expect(far[1].getAttribute("src")).toBe("http://x.y/b.png");
   });
 });

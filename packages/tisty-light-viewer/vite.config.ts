@@ -20,5 +20,12 @@ export default defineConfig(({ command }) => ({
     include: ["tests/**/*.test.ts?(x)"],
     env: { TZ: "UTC" },
     server: { deps: { inline: [/solid-js/, /@solidjs/] } },
+    coverage: {
+      provider: "v8" as const,
+      reporter: ["text-summary", "lcov"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/main.tsx", "src/host.ts"],
+    },
   },
 }));

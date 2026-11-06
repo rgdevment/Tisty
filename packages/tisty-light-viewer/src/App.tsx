@@ -96,8 +96,8 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await dress(words.sayToSheet, words.locale);
   };
 
-  void look().catch(async (problem) => {
-    fail(problem);
+  void look().catch(async (error_) => {
+    fail(error_);
     await shown();
   });
 

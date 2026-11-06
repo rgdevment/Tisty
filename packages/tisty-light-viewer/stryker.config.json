@@ -1,6 +1,7 @@
 {
   "$schema": "../../node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "packageManager": "npm",
+  "tsconfigFile": "tsconfig.none.json",
   "testRunner": "vitest",
   "vitest": {
     "configFile": "vite.config.ts",

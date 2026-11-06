@@ -212,7 +212,7 @@ export type Words = {
 };
 
 const filled = (text: string, name = "", other = ""): string =>
-  text.replace(/\{name\}/g, () => name).replace(/\{other\}/g, () => other);
+  text.replaceAll("{name}", () => name).replaceAll("{other}", () => other);
 
 export const wordsFor = (asked: string | null): Words => {
   const spanish = asked === "es";

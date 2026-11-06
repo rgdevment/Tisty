@@ -10,11 +10,13 @@
   ],
   "scripts": {
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@solidjs/web": "2.0.0-rc.21",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2.6.0",
     "lowlight": "^3.3.0",
     "mermaid": "^12.1.0",
     "solid-js": "2.0.0-rc.21",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@solidjs/testing-library": "1.0.0-rc.2",
+    "@vitest/coverage-v8": "*",
     "jsdom": "*",
     "typescript": "*",
     "vite": "*",
