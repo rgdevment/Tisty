@@ -52,19 +52,13 @@ pub struct FolioLimits {
 }
 
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
-    if said.len() > policy::READ_AT_MOST || signature.len() > policy::READ_AT_MOST {
-        return Err(Refused::TooBig);
-    }
-    if !policy::signed_as(said, signature, key, SIGNED_AS) {
-        return Err(Refused::Unsigned);
-    }
-    serde_json::from_slice(said).map_err(|_| Refused::Unreadable)
+    policy::believed(said, signature, || {
+        policy::signed_as(said, signature, key, SIGNED_AS)
+    })
 }
 
 pub fn kept(home: &Path) -> Option<FolioLimits> {
-    std::fs::read(home.join(KEPT))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    policy::kept_at(&home.join(KEPT))
 }
 
 pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits, Refused> {
@@ -77,34 +71,36 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
             said: limits.serial,
         });
     }
-    let bytes = serde_json::to_vec(&limits).map_err(|_| Refused::Unreadable)?;
-    let _ = std::fs::create_dir_all(home);
-    tisty_core::store::write_atomic(&home.join(KEPT), &bytes).map_err(|_| Refused::Unreadable)?;
+    // These limits only warn, and Folio applies its own, so a disk that will not keep them costs nothing here.
+    if let Ok(bytes) = serde_json::to_vec(&limits) {
+        let _ = std::fs::create_dir_all(home);
+        let _ = tisty_core::store::write_atomic(&home.join(KEPT), &bytes);
+    }
     Ok(limits)
 }
 
 pub fn uploads_halted(limits: Option<&FolioLimits>, now: u64) -> bool {
-    limits
-        .and_then(|one| one.uploads_halted_until)
-        .is_some_and(|until| until > now && until <= now.saturating_add(policy::PAUSED_AT_MOST))
+    policy::pause_holds(limits.and_then(|one| one.uploads_halted_until), now)
 }
 
-/// Returns nothing when it was asked within the hour, or when either file did not arrive.
 pub fn heed(
     home: &Path,
     bring: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Option<Result<FolioLimits, Refused>> {
-    let asked = home.join(ASKED);
-    let recently = std::fs::metadata(&asked)
-        .and_then(|one| one.modified())
-        .ok()
-        .and_then(|at| at.elapsed().ok())
-        .is_some_and(|since| since < ASKED_EVERY);
-    if recently {
+    if !policy::ask_now(&home.join(ASKED), ASKED_EVERY) {
         return None;
     }
-    let _ = std::fs::create_dir_all(home);
-    let _ = std::fs::write(&asked, b"");
+    // The two files are asked for apart, so a publish between them looks like a bad signature.
+    match brought_and_accepted(home, &bring)? {
+        Err(Refused::Unsigned) => brought_and_accepted(home, &bring),
+        told => Some(told),
+    }
+}
+
+fn brought_and_accepted(
+    home: &Path,
+    bring: &impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<Result<FolioLimits, Refused>> {
     let said = bring(LIMITS_URL)?;
     let signed = bring(SIGNATURE_URL)?;
     Some(accepted(home, &said, &String::from_utf8_lossy(&signed)))

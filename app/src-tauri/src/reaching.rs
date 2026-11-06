@@ -375,17 +375,9 @@ pub fn heed(home: &Path, provider: &str) {
     let Some(key) = policy_key() else {
         return;
     };
-    let asked = home.join(POLICY_ASKED);
-    let recently = std::fs::metadata(&asked)
-        .and_then(|one| one.modified())
-        .ok()
-        .and_then(|at| at.elapsed().ok())
-        .is_some_and(|since| since < POLICY_EVERY);
-    if recently {
+    if !policy::ask_now(&home.join(POLICY_ASKED), POLICY_EVERY) {
         return;
     }
-    let _ = std::fs::create_dir_all(home);
-    let _ = std::fs::write(&asked, b"");
     let (Some(said), Some(signed)) = (brought(POLICY), brought(POLICY_SIGNED)) else {
         return;
     };

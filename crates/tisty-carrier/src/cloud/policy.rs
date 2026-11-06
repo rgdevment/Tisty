@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use minisign_verify::{PublicKey, Signature};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::Limits;
@@ -97,19 +98,49 @@ fn verified(said: &[u8], signature: &str, key: &str) -> Option<Signature> {
 
 // The signature is checked on the bytes as they came, before a single field is believed.
 pub fn read(said: &[u8], signature: &str, key: &str) -> Result<Policy, Refused> {
+    believed(said, signature, || signed(said, signature, key))
+}
+
+pub(crate) fn believed<T: DeserializeOwned>(
+    said: &[u8],
+    signature: &str,
+    signed: impl FnOnce() -> bool,
+) -> Result<T, Refused> {
     if said.len() > READ_AT_MOST || signature.len() > READ_AT_MOST {
         return Err(Refused::TooBig);
     }
-    if !signed(said, signature, key) {
+    if !signed() {
         return Err(Refused::Unsigned);
     }
     serde_json::from_slice(said).map_err(|_| Refused::Unreadable)
 }
 
 pub fn kept(home: &Path) -> Option<Policy> {
-    std::fs::read(home.join(KEPT))
+    kept_at(&home.join(KEPT))
+}
+
+pub(crate) fn kept_at<T: DeserializeOwned>(path: &Path) -> Option<T> {
+    std::fs::read(path)
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+}
+
+/// The mark goes down before anything is asked, so a word that fails to arrive is not asked for again at once.
+pub fn ask_now(asked: &Path, every: Duration) -> bool {
+    let recently = std::fs::metadata(asked)
+        .and_then(|one| one.modified())
+        .ok()
+        .and_then(|at| at.elapsed().ok())
+        .is_some_and(|since| since < every);
+    if recently {
+        return false;
+    }
+    if let Some(home) = asked.parent() {
+        let _ = std::fs::create_dir_all(home);
+    }
+    // On Windows, fs::write of nothing over an empty file leaves its date where it was.
+    let _ = std::fs::File::create(asked).and_then(|mark| mark.set_modified(SystemTime::now()));
+    true
 }
 
 /// The newest signed word is kept for good; one older than it is a replay and is refused.
@@ -151,9 +182,11 @@ pub(super) fn within(shipped: u64, said: Option<u64>) -> u64 {
 
 /// A pause from afar holds only while its date is ahead and never more than a week out, so a lost word cannot stop Tisty for good.
 pub fn halted(policy: Option<&Policy>, now: u64) -> bool {
-    policy
-        .and_then(|one| one.halted_until)
-        .is_some_and(|until| until > now && until <= now.saturating_add(PAUSED_AT_MOST))
+    pause_holds(policy.and_then(|one| one.halted_until), now)
+}
+
+pub(crate) fn pause_holds(until: Option<u64>, now: u64) -> bool {
+    until.is_some_and(|until| until > now && until <= now.saturating_add(PAUSED_AT_MOST))
 }
 
 pub fn paused_here(home: &Path) -> bool {

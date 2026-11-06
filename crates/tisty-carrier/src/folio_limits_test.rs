@@ -1,7 +1,9 @@
 use std::cell::Cell;
+use std::time::{Duration, SystemTime};
 
 use super::{
-    FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, kept, read_under, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, kept,
+    read_under, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -153,4 +155,90 @@ fn what_is_kept_stands_when_nothing_arrives_or_the_signature_fails() {
     };
     assert_eq!(heed(forged.path(), bring), Some(Err(Refused::Unsigned)));
     assert_eq!(kept(forged.path()).map(|one| one.serial), Some(real));
+}
+
+#[test]
+fn a_file_that_met_the_signature_of_another_publish_is_read_again_once() {
+    let home = tempfile::tempdir().unwrap();
+    let asked = Cell::new(0);
+    let bring = |url: &str| {
+        asked.set(asked.get() + 1);
+        match (url, asked.get()) {
+            (LIMITS_URL, 1) => Some(OTHER.to_vec()),
+            (LIMITS_URL, _) => Some(REAL.to_vec()),
+            _ => Some(REAL_SIG.as_bytes().to_vec()),
+        }
+    };
+
+    assert!(matches!(heed(home.path(), bring), Some(Ok(_))));
+    assert_eq!(asked.get(), 4);
+}
+
+#[test]
+fn a_signature_that_keeps_failing_is_read_again_only_once() {
+    let home = tempfile::tempdir().unwrap();
+    let asked = Cell::new(0);
+    let bring = |url: &str| {
+        asked.set(asked.get() + 1);
+        match url {
+            LIMITS_URL => Some(OTHER.to_vec()),
+            _ => Some(REAL_SIG.as_bytes().to_vec()),
+        }
+    };
+
+    assert_eq!(heed(home.path(), bring), Some(Err(Refused::Unsigned)));
+    assert_eq!(asked.get(), 4);
+}
+
+#[test]
+fn past_the_hour_it_asks_again() {
+    let home = tempfile::tempdir().unwrap();
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        _ => Some(REAL_SIG.as_bytes().to_vec()),
+    };
+    assert!(heed(home.path(), bring).is_some());
+    assert!(heed(home.path(), bring).is_none());
+
+    let marked = std::fs::File::options()
+        .write(true)
+        .open(home.path().join(ASKED))
+        .unwrap();
+    let long_ago = SystemTime::now() - ASKED_EVERY - Duration::from_secs(60);
+    marked.set_modified(long_ago).unwrap();
+    drop(marked);
+
+    assert!(heed(home.path(), bring).is_some());
+    assert!(heed(home.path(), bring).is_none());
+}
+
+#[test]
+fn a_mark_dated_ahead_costs_one_read_and_then_holds_again() {
+    let home = tempfile::tempdir().unwrap();
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        _ => Some(REAL_SIG.as_bytes().to_vec()),
+    };
+    assert!(heed(home.path(), bring).is_some());
+    let marked = std::fs::File::options()
+        .write(true)
+        .open(home.path().join(ASKED))
+        .unwrap();
+    marked
+        .set_modified(SystemTime::now() + Duration::from_secs(24 * 60 * 60))
+        .unwrap();
+    drop(marked);
+
+    assert!(heed(home.path(), bring).is_some());
+    assert!(heed(home.path(), bring).is_none());
+}
+
+#[test]
+fn limits_that_passed_their_signature_are_given_even_if_they_cannot_be_kept() {
+    let home = tempfile::tempdir().unwrap();
+    let not_a_folder = home.path().join("a-file");
+    std::fs::write(&not_a_folder, b"").unwrap();
+
+    assert!(accepted(&not_a_folder, REAL, REAL_SIG).is_ok());
+    assert_eq!(kept(&not_a_folder), None);
 }
