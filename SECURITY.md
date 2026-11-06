@@ -121,25 +121,22 @@ report will never be dismissed for being inconvenient.
 - **The window is fenced by a content policy.** Everything it runs is shipped
   inside the program: no script from anywhere else, no page from anywhere else,
   and the only address it may talk to is the local channel to the Rust side.
-  Three openings are worth naming because they are real. Scripts may compile
+  Two openings are worth naming because they are real. Scripts may compile
   WebAssembly, which is what draws the PDF you see before exporting it; and a
   frame may show a `blob:`, which is that PDF, built in memory on your machine
   and never fetched. Neither lets remote code in: a blob has no origin to be
   loaded from, and there is no path by which one arrives.
 
-  The third does run code that was not shipped: a widget block in a document,
-  or an attached `.html` page, is drawn live — its own HTML, CSS and script —
-  in a frame of its own. That frame is sandboxed with scripts and nothing else,
-  so it has no origin and cannot reach into the window, and it is served under
-  a policy of its own that allows no network at all: no fetch, no remote
-  picture, font or frame, no form. An attached page that is a whole document
-  may also build scripts out of `blob:` and `data:` it makes itself, and frames
-  out of `blob:` only, which bundled pages need in order to unpack, and still
-  reaches no address.
-  All it can say to the window is how tall it is and which link was clicked
-  inside it, and a link is opened only after a real click there. A widget is as
-  trustworthy as the document that carries it, and a document can arrive
-  through the shared folder or in a parcel.
+  Nothing a document holds ever runs. A widget block is not code at all: it is
+  HTML and CSS from a list the contract fixes, a block with anything else is
+  shown as its code and never drawn in part, and what passes is drawn in a frame
+  with no scripts, under a policy that lets it load nothing. An attached `.html`
+  file is a file like any other: a card with its name and size, and Tisty never
+  runs it or draws it. Opened from its card, it goes to the program your system
+  chose for it, outside Tisty.
+  On Windows every window also starts WebView2 with no name it can resolve and no
+  WebRTC over UDP, as a second lock. macOS has no such arguments, which holds
+  because nothing foreign runs there to reach for them.
 
 ## What it deliberately does not protect
 

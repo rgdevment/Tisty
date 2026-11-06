@@ -64,11 +64,11 @@ A document takes tags the way a task does: write `#contract` in the middle of a 
 
 Drag a file into a document or onto a task to attach it — the photo from the vet, the insurance PDF, the recording of a meeting. A task takes files up to 650 MB, the same as a document. It is kept as itself, inside Tisty, and travels with the document when you export it.
 
-An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, an `.html` page live like a [widget](Widgets), and any other file as a card with its kind and size.
+An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, and any other file, an `.html` page among them, as a card with its kind and size.
 
 A sound or a video already on this computer plays from here, without touching your cloud. One that is still only in your cloud shows **Bring it from your cloud** with its size, and comes down only when you press it; once here, it stays. If it cannot come — no connection, or it never arrived — the player says why and offers **Try again**. A picture that cannot come says so the same way.
 
-The **⋯** on a card saves a copy, shows a page as a file or draws it live again, turns the card into a plain link, or takes it off the page. On the card of a page, it can also make that page a document of its own.
+The **⋯** on a card saves a copy, turns the card into a plain link, or takes it off the page. On the card of a page, it can also make that page a document of its own.
 
 ## Pages
 
@@ -100,7 +100,7 @@ Tisty does not need to own a file to show it. Pick Tisty under **Open with** for
 - **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown, as from a document), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…**, **Import without opening** and **Show in folder**.
 - **Edit in Tisty** brings it in as a document and opens it; the original stays where it was.
 
-A widget inside such a file is not run until you edit it in Tisty. A `tisty://open` link reaches only a readable text file on this computer.
+A [widget](Widgets) inside such a file is drawn, since nothing in it runs. A `tisty://open` link reaches only a readable text file on this computer.
 
 ### A document in a window of its own
 

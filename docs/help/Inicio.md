@@ -53,7 +53,7 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 - [[El editor|Editor-Markdown]]: escribir donde lees, la barra, el menú `/`, las tablas y los atajos.
 - [[Páginas y PDF|Páginas-y-PDF]]: un documento por capítulos, saltos de página y el PDF propio de Tisty.
 - [[Diagramas]]: la ventana de diagramas: un mapa mental, un esquema, un diagrama libre o un diagrama de clases dibujados a mano, y exportados como imagen.
-- [[Widgets|Widgets-en-documentos]]: una pequeña página dentro de un documento, aislada de la red, y cómo abrirla aparte.
+- [[Widgets|Widgets-en-documentos]]: una vista fija de HTML y CSS dentro de un documento, y cómo abrirla aparte.
 - [Guía de Markdown de Tisty ↗](https://markdown.tisty.app/es/): cada marca que puede llevar un documento, con sus ejemplos dibujados.
 
 ## Tus datos

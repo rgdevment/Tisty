@@ -8,7 +8,7 @@ test("the check entry leaves out what a verdict does not read", () => {
   assert.equal(entry.CONTRACTS, undefined);
   const held = readFileSync(new URL("./check.js", import.meta.url), "utf8");
   assert.doesNotMatch(held, /"(cases|html_cases)":/);
-  assert.ok(held.length < 48 * 1024, "check.js holds " + held.length + " bytes");
+  assert.ok(held.length < 56 * 1024, "check.js holds " + held.length + " bytes");
 });
 
 test("the check entry says the same as the full one", () => {

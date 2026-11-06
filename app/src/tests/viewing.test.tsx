@@ -19,7 +19,6 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
-    if (cmd === "widget_lend") return Promise.resolve("w1");
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
@@ -165,12 +164,12 @@ describe("the viewer", () => {
   });
 
   it("draws a widget on a stage with its widths to try", async () => {
-    ipc.shown = { kind: "widget", lent: { source: "<p>hola</p>" }, from: null } satisfies Showing;
+    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
     expect(screen.getByText(t("viewSealed"))).toBeTruthy();
-    await waitFor(() => expect(asked("widget_lend")).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector("iframe.lit-widget")).not.toBeNull());
   });
 });
 
@@ -348,13 +347,14 @@ describe("reading in the viewer", () => {
   });
 
   it("shows a widget's code over the stage and closes it on Esc", async () => {
-    ipc.shown = { kind: "widget", lent: { source: "<p>hola</p>" }, from: null } satisfies Showing;
+    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
     render(<Viewing />);
     await screen.findByRole("button", { name: t("viewPhone") });
 
     await userEvent.click(screen.getByRole("button", { name: t("viewTablet") }));
+    const drawnFirst = document.querySelector("iframe.lit-widget");
     await userEvent.click(screen.getByRole("button", { name: t("viewReload") }));
-    await waitFor(() => expect(asked("widget_lend").length).toBeGreaterThan(1));
+    await waitFor(() => expect(document.querySelector("iframe.lit-widget")).not.toBe(drawnFirst));
     await picked(t("viewDark"));
     await picked(t("viewCode"));
     expect(screen.getByText("<p>hola</p>")).toBeTruthy();
@@ -433,7 +433,7 @@ describe("the reader comes only to a window with words to read", () => {
   it("is not loaded for a widget", async () => {
     const loaded = counted();
 
-    await viewed({ kind: "widget", lent: { source: "<p>hola</p>" }, from: null });
+    await viewed({ kind: "widget", source: "<p>hola</p>", from: null });
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
     expect(loaded).toEqual([]);

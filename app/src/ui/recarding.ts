@@ -1,4 +1,4 @@
-export type Reshape = "link" | "remove" | "file" | "live";
+export type Reshape = "link" | "remove";
 
 const quoted = (said: string): string => said.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
@@ -8,9 +8,6 @@ const found = (said: string, target: string): RegExpExecArray | null =>
   ).exec(said);
 
 const FILED = /^\s+["'(]file["')]$/;
-
-export const filedAs = (text: string, [from, end]: [number, number], target: string): boolean =>
-  FILED.test(found(text.slice(from, end), target)?.[2] ?? "");
 
 // A card is one picture-shaped line of Markdown; every change to it is made to that line and nothing else.
 export const reshaped = (
@@ -30,8 +27,6 @@ export const reshaped = (
   const made = {
     link: `[${label}${named}${kept})`,
     remove: "",
-    file: `![${label}${named} "file")`,
-    live: `![${label}${named}${kept})`,
   }[how];
   let next = `${text.slice(0, at)}${made}${text.slice(at + whole.length)}`;
   if (how === "remove" && !next.slice(from, end - whole.length).trim()) {

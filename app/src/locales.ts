@@ -365,8 +365,6 @@ const en = {
   cardKeepCopy: "Save a copy…",
   mediaBring: "Bring it from your cloud",
   mediaBringing: "Bringing it from your cloud…",
-  cardAsWidget: "Draw it live",
-  cardAsFile: "Show it as a file",
   cardAsLink: "Show as a link",
   cardOwn: "Make it a document of its own",
   cardRemove: "Remove from the page",
@@ -434,8 +432,6 @@ const en = {
   viewUnreadWhy: "Another program may be using it, or it is no longer in {name}.",
   viewEmptyTitle: "This file is empty",
   viewEmptyWhy: "There is nothing to show yet. If you like, start writing it in Tisty.",
-  viewWidgetLocked: "Widget not run.",
-  viewWidgetLockedWhy: "It comes from a file outside Tisty; it is drawn once you edit it in Tisty.",
   viewOnlyReading: "Read only",
   viewDocApart: "Open in a window of its own",
   everyPaper: "All documents",
@@ -1575,8 +1571,8 @@ const en = {
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   widgetTooBig: "A widget can hold up to {name}; this one is bigger, so it is shown as code.",
-  pageTooBig:
-    "This page is over {name}, too large to draw as a widget; show it as an attachment to open it.",
+  widgetNot:
+    "This block is not a widget, so it is shown as code: {name}. A widget is only HTML and CSS, with nothing that runs and nothing from elsewhere.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
   docCrowded: "{count} attachments in view — enough to feel while typing",
   cannotWrite: "{name} could not be written",
@@ -3077,8 +3073,6 @@ const es: Catalog = {
   cardKeepCopy: "Guardar una copia…",
   mediaBring: "Traer de tu nube",
   mediaBringing: "Trayendo de tu nube…",
-  cardAsWidget: "Dibujarla en vivo",
-  cardAsFile: "Mostrarla como archivo",
   cardAsLink: "Mostrar como enlace",
   cardOwn: "Hacerla un documento propio",
   cardRemove: "Quitar de la página",
@@ -3146,9 +3140,6 @@ const es: Catalog = {
   viewUnreadWhy: "Puede estar en uso por otro programa o ya no estar en {name}.",
   viewEmptyTitle: "Este archivo está vacío",
   viewEmptyWhy: "No hay nada que mostrar todavía. Si quieres, empieza a escribirlo en Tisty.",
-  viewWidgetLocked: "Widget sin ejecutar.",
-  viewWidgetLockedWhy:
-    "Viene de un archivo de fuera de Tisty; se dibujará cuando lo edites en Tisty.",
   viewOnlyReading: "Solo lectura",
   viewDocApart: "Abrir en una ventana aparte",
   everyPaper: "Todos los documentos",
@@ -4300,8 +4291,8 @@ const es: Catalog = {
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
   widgetTooBig:
     "Un widget puede tener hasta {name}; este pasa de ahí, así que se muestra como código.",
-  pageTooBig:
-    "Esta página pasa de {name}, demasiado para dibujarla como widget; muéstrala como adjunto para abrirla.",
+  widgetNot:
+    "Este bloque no es un widget y por eso se muestra como código: {name}. Un widget es solo HTML y CSS, sin nada que se ejecute ni venga de afuera.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",
   docCrowded: "{count} adjuntos a la vista — suficientes para que se note al escribir",
   cannotWrite: "No se pudo escribir {name}",

@@ -53,7 +53,7 @@ const drawn = (texts) =>
     }).toString(),
   );
 
-const kit = readFileSync(join(app, "src-tauri", "src", "widget.css"), "utf8");
+const kit = readFileSync(join(app, "..", "contracts", "documents", "contains", "widget.css"), "utf8");
 
 // The examples name files only a store holds, so a picture shows the guide's own and a file its card.
 const kept = (page) => {

@@ -106,3 +106,27 @@ fn colours_and_icons_the_language_has_go_through_and_so_do_double_colons_in_word
         assert_eq!(super::speaks(body), Ok(()), "{body:?}");
     }
 }
+
+#[test]
+fn a_widget_of_html_and_css_holds_and_anything_else_says_what_it_holds() {
+    let fixed = "# Rina\n\n```widget title=\"Paseos\"\n<div class=\"stat\"><b>42</b></div>\n```\n";
+    assert_eq!(super::widgets_hold(fixed), Ok(()));
+
+    let running = "```widget\n<p onclick=\"x()\">a</p><script>x()</script>\n```\n";
+    let said = super::widgets_hold(running).unwrap_err();
+    assert!(said.contains("<p onclick>"), "{said}");
+    assert!(said.contains("<script>"), "{said}");
+
+    let reaching = "```widget\n<img src=\"https://a.b/c.png\">\n```\n";
+    assert!(
+        super::widgets_hold(reaching)
+            .unwrap_err()
+            .contains("<img src>")
+    );
+}
+
+#[test]
+fn only_a_widget_block_is_read_as_a_widget() {
+    let code = "```html\n<script>x()</script>\n```\n\nAnd a widget is `<script>` too.\n";
+    assert_eq!(super::widgets_hold(code), Ok(()));
+}

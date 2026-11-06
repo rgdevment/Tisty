@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { Lent } from "../../core";
 import { fill, t } from "../../locales";
-import { type Lending, lend, lendKept, type Span } from "../widgeting";
+import { type Lending, lend, type Span } from "../widgeting";
 
 export type Preset = "fit" | "390" | "820" | "1280";
 
@@ -22,14 +21,14 @@ export const natural = (span: Span): number | null => {
 };
 
 interface Props {
-  lent: Lent;
+  source: string;
   preset: Preset;
   actual: boolean;
   dark: boolean | null;
   again: number;
 }
 
-export default function Stage({ lent, preset, actual, dark, again }: Props) {
+export default function Stage({ source, preset, actual, dark, again }: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const drawn = useRef<HTMLDivElement>(null);
   const lending = useRef<Lending | null>(null);
@@ -54,12 +53,11 @@ export default function Stage({ lent, preset, actual, dark, again }: Props) {
     if (!at || again < 0) return;
     setOwn(null);
     const spanned = (span: Span) => setOwn(natural(span));
-    const made =
-      "reference" in lent ? lendKept(at, lent.reference, spanned) : lend(at, lent.source, spanned);
+    const made = lend(at, source, spanned);
     made.shade(shading.current);
     lending.current = made;
     return () => made.drop();
-  }, [lent, again]);
+  }, [source, again]);
 
   const shading = useRef(dark);
   shading.current = dark;

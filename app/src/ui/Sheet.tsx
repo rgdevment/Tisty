@@ -44,7 +44,7 @@ import Page from "./Page";
 import type { Went } from "./paging";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
-import { filedAs, type Reshape, reshaped } from "./recarding";
+import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { useTables } from "./tableSheet";
@@ -764,16 +764,8 @@ export default function Sheet(props: Readonly<Props>) {
         ...plain,
       ];
     }
-    const filed = filedAs(latest.current, one.at, one.target);
     return [
       { key: "keep", label: t("cardKeepCopy"), icon: "↧", onPick: () => void keepCopy(one.target) },
-      {
-        key: "live",
-        label: filed ? t("cardAsWidget") : t("cardAsFile"),
-        icon: "▣",
-        off: !/\.html?$/i.test(one.target),
-        onPick: () => reshape(one, filed ? "live" : "file"),
-      },
       ...plain,
     ];
   };
@@ -955,12 +947,12 @@ export default function Sheet(props: Readonly<Props>) {
           cards={props.cards}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
-          onApart={(lent) => {
+          onApart={(source) => {
             const named = said.current.file;
             // A task page not written yet has no file the widget could lead back to.
             const from = named?.startsWith("unwritten:") ? undefined : named;
             viewWidget(
-              lent,
+              source,
               from ? { id: "", file: from, title: said.current.label, place: "" } : undefined,
             ).catch(() => {});
           }}

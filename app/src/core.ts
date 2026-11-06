@@ -468,13 +468,7 @@ export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Pro
   });
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
-export const widgetLend = (body: string): Promise<string> => invoke("widget_lend", { body });
-export type Borrowed = { id: string; whole: boolean };
-export const widgetLendKept = (reference: string): Promise<Borrowed> =>
-  invoke("widget_lend_kept", { reference });
-export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take_back", { id });
 
-export type Lent = { source: string } | { reference: string };
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
   | {
@@ -492,15 +486,15 @@ export type Showing =
       refusal: { code: string; name?: string };
     }
   | { kind: "doc"; paper: Viewed; body: string }
-  | { kind: "widget"; lent: Lent; from: Viewed | null }
+  | { kind: "widget"; source: string; from: Viewed | null }
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed & Left> =>
   invoke("view_import", { open });
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
-export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
-  invoke("view_widget", { lent, from: from ?? null });
+export const viewWidget = (source: string, from?: Viewed): Promise<void> =>
+  invoke("view_widget", { source, from: from ?? null });
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });

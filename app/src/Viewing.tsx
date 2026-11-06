@@ -356,9 +356,9 @@ function Reading({
         />
       )}
       {shown?.kind === "widget" && (
-        <Stage lent={shown.lent} preset={preset} actual={actual} dark={dark} again={again} />
+        <Stage source={shown.source} preset={preset} actual={actual} dark={dark} again={again} />
       )}
-      {code && shown?.kind === "widget" && "source" in shown.lent && (
+      {code && shown?.kind === "widget" && (
         <div className="absolute inset-x-0 top-11 bottom-0 z-20 flex flex-col bg-desk">
           <div className="flex h-10 shrink-0 items-center border-b border-hair bg-panel pr-2.5 pl-4 text-[12.5px]">
             <b className="font-semibold">{t("viewCode")}</b>
@@ -371,7 +371,7 @@ function Reading({
             </button>
           </div>
           <pre className="scroller m-0 min-h-0 flex-1 whitespace-pre-wrap break-words px-6 py-5 font-mono text-[12.5px] leading-relaxed">
-            {shown.lent.source}
+            {shown.source}
           </pre>
         </div>
       )}

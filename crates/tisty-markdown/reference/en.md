@@ -339,7 +339,7 @@ A file you drag in is kept inside Tisty and named by a stamp of its bytes. It is
 ![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)
 ```
 
-- An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, an `.html` page live like a widget, and any other file as a chip with its kind and size that opens it.
+- An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, and any other file, an `.html` page among them, as a chip with its kind and size that opens it.
 - The stamp is 8 to 16 lowercase hexadecimal characters after the last dash, and the whole name is lowercase.
 - Documents written by an older Tisty that say `attachments/ab/name` still read; when the document is rewritten, only the name is kept.
 - When a document is written out to a folder, its attachments go beside it and the links point at them.
@@ -424,7 +424,7 @@ Run `npm run guide` and open `target/guide`.
 
 ## Diagrams, formulas and widgets
 
-Three languages are drawn instead of shown as code: `mermaid` for diagrams, `math` for formulas and `widget` for a small page of its own.
+Three languages are drawn instead of shown as code: `mermaid` for diagrams, `math` for formulas and `widget` for a fixed view of HTML and CSS.
 
 ### Diagrams
 
@@ -550,7 +550,7 @@ $$
 
 ### Widgets
 
-A `widget` block draws a small page sealed off from the network; its name goes in `title`. It comes with styles ready to use: `stat`, `card`, `grid`, `two`, `head`, `badge` (with `ok`, `warn` and `bad`), `list`, `box`, `up` and `down`, as well as tables and buttons.
+A `widget` block draws a fixed view, made only of HTML and CSS; its name goes in `title`. It runs nothing, ever, and names nothing outside itself, so it reads the same wherever the document is read. It comes with styles ready to use: `stat`, `card`, `grid`, `two`, `head`, `badge` (with `ok`, `warn` and `bad`), `list`, `box`, `up` and `down`, as well as tables.
 
 ````markdown
 ```widget title="Rina this month"
@@ -565,17 +565,19 @@ A `widget` block draws a small page sealed off from the network; its name goes i
 ````markdown
 ```widget title="Glasses of water"
 <div class="card">
-  <div class="head"><h3>Today</h3><span class="badge" id="n">0</span></div>
-  <div class="row">
-    <button class="primary" onclick="n.textContent = +n.textContent + 1">One more</button>
-    <button onclick="n.textContent = 0">Start over</button>
-  </div>
+  <div class="head"><h3>Today</h3><span class="badge ok">6 of 8</span></div>
+  <details>
+    <summary>By the hour</summary>
+    <p>Two before noon and four after.</p>
+  </details>
 </div>
 ```
 ````
 
-- It may carry a `<script>` of its own, which runs inside the widget and never in the document.
-- It cannot reach the window around it or other documents, and a link inside it opens the browser only on a click.
+- It may hold text, lists, tables, `<details>`, `<svg>` drawings, pictures written into it as `data:image/…`, and a `<style>` of its own.
+- It holds no `<script>`, no `onclick` or other handler, no link, button or form, no frame, sound or video, and nothing that comes from an address, in its HTML or in its CSS.
+- A block with anything else is not a widget: it is shown as its code, with what is wrong, and none of it is drawn. An agent's call that writes one is refused.
+- An attached `.html` file is a file like any other, shown as a chip; nothing a document holds ever runs.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 

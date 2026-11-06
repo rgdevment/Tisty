@@ -39,7 +39,7 @@ export const choicesFor = (a: Acts): Choice[] => {
     const from = shown.from;
     return [
       { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
-      { key: "code", label: t("viewCode"), off: !("source" in shown.lent), onPick: a.code },
+      { key: "code", label: t("viewCode"), onPick: a.code },
       {
         key: "doc",
         label: t("viewInDocGo"),

@@ -44,7 +44,7 @@ const doc: Showing = {
 };
 const widget: Showing = {
   kind: "widget",
-  lent: { source: "<p>x</p>" },
+  source: "<p>x</p>",
   from: { id: "", file: "f1", title: "Notas", place: "" },
 };
 
@@ -171,15 +171,6 @@ describe("the viewer's menu", () => {
 
     expect(darkNow()).toBe(true);
     expect(ticked?.label.startsWith("✓")).toBe(true);
-  });
-
-  it("offers no code nor document for a page drawn from an attachment", () => {
-    const all = choicesFor(
-      acts({ kind: "widget", lent: { reference: "attachments/a.html" }, from: null }),
-    );
-
-    expect(all.find((one) => one.key === "code")?.off).toBe(true);
-    expect(all.find((one) => one.key === "doc")?.off).toBe(true);
   });
 });
 

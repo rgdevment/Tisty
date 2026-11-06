@@ -1276,14 +1276,7 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
             leaves.iter().any(|(_, one)| one.contains("```rust")),
             "no {tongue} page shows any code"
         );
-        for kind in [
-            ".pdf)",
-            ".mp3)",
-            ".mp4)",
-            ".csv)",
-            ".html)",
-            ".html \"file\")",
-        ] {
+        for kind in [".pdf)", ".mp3)", ".mp4)", ".csv)", ".html)"] {
             assert!(
                 leaves.iter().any(|(_, one)| one.contains(kind)),
                 "no {tongue} page attaches a {kind}"
