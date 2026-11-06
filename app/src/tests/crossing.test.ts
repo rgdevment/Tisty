@@ -150,6 +150,30 @@ describe("deleting across a block's edge", () => {
     expect(joined("uno\n\n## dos", 3)).toEqual({ text: "unodos", at: 3 });
     expect(joined("# uno\n\n- dos\n- tres", 5)).toEqual({ text: "# unodos\n- tres", at: 5 });
   });
+
+  it("takes the word inside when a format at the seam would be undone", () => {
+    expect(joined("**a.**\n\nbcd efg\n", 6)).toEqual({ text: "**a.bcd** efg\n", at: 4 });
+    expect(joined("el\n\n++dato++", 2)).toEqual({ text: "++eldato++", at: 4 });
+    expect(joined("uno\n\n**a.**\n\n- b", 11)).toEqual({ text: "uno\n\n**a.b**", at: 9 });
+    expect(joined("uno\r\n\r\n**a.**\r\n\r\nb c\r\n", 13)).toEqual({
+      text: "uno\r\n\r\n**a.b** c\r\n",
+      at: 11,
+    });
+  });
+
+  it("keeps code, links and addresses whole at the seam", () => {
+    expect(joined("**`c`**\n\nbcd", 7).text).toBe("**`c`bcd**");
+    expect(joined("**[a](http://x.y)**\n\nbcd", 19).text).toBe("**[a](http://x.y)bcd**");
+    expect(joined("**a.**\n\nhttp://x.y", 6).text).toBe("**a.http://x.y**");
+  });
+
+  it("holds a format that started on a line above the seam", () => {
+    expect(joined("**uno\ndos.**\n\nb", 12)).toEqual({ text: "**uno\ndos.b**", at: 10 });
+  });
+
+  it("leaves the marks where they are when a format at the seam holds", () => {
+    expect(joined("**a**\n\nb", 5)).toEqual({ text: "**a**b", at: 5 });
+  });
 });
 
 describe("arriving at a block by its column", () => {
