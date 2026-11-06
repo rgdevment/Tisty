@@ -265,6 +265,7 @@ describe("the Shared row", () => {
     const { panel, pressed } = await held({ ...card, taken: true }, { doc_share_stop: null });
 
     expect(panel().acts?.map((one) => one.key)).toEqual(["sync", "leave"]);
+    expect(panel().links).toEqual([]);
 
     await pressed("leave");
     await pressed("stop");

@@ -45,7 +45,7 @@ const saidOf = (status: ShareStatus | null, told: string | null, stopping: boole
   ].filter((one): one is string => Boolean(one));
 
 const linksOf = (card: ShareCard, status: ShareStatus | null): HeldPanel["links"] => {
-  if (status?.blocked) return [];
+  if (status?.blocked || card.taken) return [];
   const held = (key: string, label: string, url: string, note?: string) => ({
     key,
     label,

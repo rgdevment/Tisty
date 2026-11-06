@@ -2490,8 +2490,8 @@
           "edit_in_tisty": {
             "says": "Hands the document over to a Tisty to edit, with the edit address of the link contract."
           },
-          "copy_link": {
-            "gives": "text"
+          "print": {
+            "says": "Prints the document as it is laid: on its paper, in its orientation and in the language shown."
           }
         }
       },

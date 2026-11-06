@@ -186,7 +186,7 @@ pub trait DocumentReader {
     fn go_to_page(&mut self, at: u64);
     fn set_language(&mut self, lang: String);
     fn edit_in_tisty(&mut self);
-    fn copy_link(&mut self) -> String;
+    fn print(&mut self);
 }
 
 /// How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads.

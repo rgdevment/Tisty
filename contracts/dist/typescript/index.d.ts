@@ -76,7 +76,7 @@ export interface DocumentReader {
   goToPage(at: number): void;
   setLanguage(lang: string): void;
   editInTisty(): void;
-  copyLink(): string;
+  print(): void;
 }
 
 /** How a document travels, as one file the server stores unopened. Per language, the main envelope holds its words, all its pages and its pictures, with references ready, so reading them takes no other request. A second one holds its other files, and exists only when it has any. These fields are the manifest, written in clear, and all the server reads. */
