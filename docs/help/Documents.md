@@ -93,18 +93,26 @@ Tasks have to be typed: there is no importer for another program's task list.
 
 ## Opening a Markdown file from outside
 
-Tisty does not need to own a file to show it. Pick Tisty under **Open with** for a `.md` or `.markdown` file — it never takes over as the default program — or follow a `tisty://open?path=…` link, and the file opens **read only** in a window of its own, without coming into your store.
+Tisty does not need to own a file to show it. Pick Tisty under **Open with** for a `.md` or `.markdown` file — it never takes over as the default program — or follow a `tisty://open?path=…` link, and the file opens **read only** in a light viewer of its own, with the system's title bar, without coming into your store. It reads up to 1 MB, about a million characters, and says so when a file is heavier.
 
-- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with the file's headings, what the file is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, beside the paper, shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
-- **Reading** and **Markdown** switch between the drawn page and its text.
-- **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown, as from a document), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…**, **Import without opening** and **Show in folder**.
-- **Edit in Tisty** brings it in as a document and opens it; the original stays where it was.
+- **The column beside the page** holds **Edit**, **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **See the document** returns from it), the file's headings and its details: its folder, size, date and properties. In a narrow window it folds away, and its button in the bar (`Ctrl`/`⌘` + `\`) opens it.
+- **The bar** has **Find in the text** (`Ctrl`/`⌘` + `F`), the theme and **More**, which also holds larger and smaller text, **Copy Markdown**, **Print** and **Show in folder**. The theme and your place in the file are remembered.
+- **It reads the file as it was written for other programs.** A centred header stays centred, a badge sits in its line, lines an editor cut at a column join up, and `#ff0000` or `[[x]]` stay as words. Diagrams and formulas are drawn, and so is a [widget](Widgets), since nothing in it runs.
+- **Pictures** beside the file show when they sit in its folder or below it. Pictures from the internet wait: a line above the page says how many, and **Show them** fetches them. It asks again each time you open the file ([what that sends](Privacy#the-network-requests-tisty-makes)).
+- **Links**: a link to another `.md` beside it opens in the same window, with **Back** (`Alt` + ←). A web link opens your browser.
+- **Edit** makes a copy in your store, written in Tisty Markdown, and opens it; the file stays as it is and the viewer closes. A file over 500 KB can be read but not edited, and **Edit** says so. If a file beside it could not come along, the viewer stays open and says how many.
+- **On a Tisty not set up yet**, the file reads at once and **Edit** makes no copy: it brings up the welcome, and the viewer says to finish it first. When the welcome ends, the copy is made and opened.
 
-A [widget](Widgets) inside such a file is drawn, since nothing in it runs. A `tisty://open` link reaches only a readable text file on this computer.
+A `tisty://open` link reaches only a readable text file on this computer.
 
 ### A document in a window of its own
 
-A document of yours opens the same way: **Open in a window of its own**, under **Window** in its panel, shows it read only beside your work, with the same column, menu and preview. **Edit in Tisty** takes you back to it, and **Duplicate** makes a copy. Its PDF there carries who wrote it and when unless you untick **Signed** in the preview.
+**Open in a window of its own**, under **Window** in a document's panel, shows it read only beside your work.
+
+- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, beside the paper, shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
+- **Reading** and **Markdown** switch between the drawn page and its text.
+- **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…** and **Duplicate**, which makes a copy.
+- **Edit in Tisty** takes you back to the document. Its PDF there carries who wrote it and when unless you untick **Signed** in the preview.
 
 ## Taking documents out
 
@@ -118,6 +126,10 @@ A document leaves whole — every conversion is in [Convert to and from Markdown
 - **Markdown to PDF** — see [Pages and PDF](Pages-and-PDF#tistys-own-pdf).
 
 Exporting all of them asks who they are for: **open**, **to hand to somebody**, or **locked with six digits for another machine of your own** — which is what makes them arrive there as yours rather than as a stranger's. Either way, not one line of the history travels inside.
+
+## Sharing
+
+The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service apart from Tisty, and it is not open yet. Pressing **Share…** reads a small signed file to learn whether Folio has opened and, while it has not, says it is not available yet, with a link to [folio.tisty.app](https://folio.tisty.app). If that file cannot be reached, it says so and offers to try again. Nothing of your document leaves this computer. To hand a document to someone today, use the ways out above.
 
 ## Your alias
 

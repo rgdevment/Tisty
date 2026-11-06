@@ -10,6 +10,7 @@ terms. This page exists so nobody has to guess which one applies.
 | A **signed build** from the releases page, or from a package manager that takes it from there | [AGPL-3.0](../LICENSE) |
 | A **signed build** kept by an app store | The terms below, plus the store's own |
 | A build under a **commercial licence** | [COMMERCIAL.md](COMMERCIAL.md) |
+| The **contract** in `contracts/`, or a package made from it | [AGPL-3.0](../LICENSE), with an [additional permission](../contracts/ADDITIONAL-PERMISSION.md) that lets Folio include it under its own licence |
 
 ## The signed build on the releases page is the AGPL one
 
@@ -76,14 +77,17 @@ Little, and all of it reversible.
   your other per-user programs, and deliberately **not** in the folder your
   tasks live in.
 - The `tisty` binary your assistants start travels inside the installer, but
-  **nothing is added to your PATH**; an entry an older version put there is left
-  alone, since an assistant may still call it, and goes when you uninstall. (An
-  installer did it once and destroyed a PATH doing it: the tool that builds
-  Windows installers reads at most 1024 characters and writes back what it
-  managed to read.)
+  **the installer adds nothing to your PATH**. While an assistant has a voice,
+  Tisty itself adds its folder there, and taking the voice away takes it off
+  again. (An installer did it once and destroyed a PATH doing it: the tool
+  that builds Windows installers reads at most 1024 characters and writes back
+  what it managed to read.)
+- It registers the `tisty://` address and joins *Open with* for Markdown and
+  calendar files. The default program for those files stays your choice, and
+  uninstalling takes all of it away.
 - **Uninstalling removes the program and leaves your data alone.** It takes
-  its own settings and cache with it, and the PATH entry if an older version
-  added one; your tasks, documents and attachments stay. Wanting the program
+  its own settings and cache with it, and the PATH entry if there was one; your
+  tasks, documents and attachments stay. Wanting the program
   gone is not the same as wanting your history gone. If you do want it gone,
   the folder is yours to delete.
 - On macOS, `brew uninstall --cask tisty` closes Tisty first and leaves your
@@ -117,11 +121,13 @@ Little, and all of it reversible.
 
 ## What it does with your data
 
-Nothing. Tisty stores your tasks on your own machine and speaks to no server of
-ours — there is none. Synchronisation, when you turn it on, copies files into a
+Nothing. Tisty stores your tasks on your own machine and sends nothing of yours
+to a server of ours. Synchronisation, when you turn it on, copies files into a
 place **you choose** — your own Google Drive, OneDrive or WebDAV server, or a
 folder something else keeps in step — and what happens there is between you and
-whoever runs it. See [PRIVACY.md](../PRIVACY.md).
+whoever runs it. The one exception is a document you press **Share** on, which
+goes sealed to Folio, a separate service; sharing is not open yet. See
+[PRIVACY.md](../PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to
 the developer account. That comes from the store, not from the program, and it
@@ -177,6 +183,9 @@ limits the program ships with and never asks for `cloud.json`. Without the
 feed key, the build reads the update feed without checking its signature. To
 offer the cloud in a build of your own, register your own Google and Microsoft
 clients and set your own keys; this project's are not to be reused.
+
+Sharing with Folio needs nothing compiled in: its address and the key that checks
+its limits are in the source, so a build of your own reads the same file.
 
 ## Questions
 

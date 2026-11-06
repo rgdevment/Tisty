@@ -6,7 +6,7 @@
 Sí, y lo va a seguir siendo. AGPL-3.0, sin versión de pago, sin funciones guardadas para después, sin prueba que caduque. Los [términos comerciales](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) existen solo para organizaciones que no pueden cumplir la AGPL.
 
 **¿Necesita cuenta o conexión?**
-Ninguna de las dos. Tisty hace una sola petición que no pediste (ver si hay una versión más nueva) y no envía nada para hacerla. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
+Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
@@ -52,7 +52,7 @@ Solo encima de la versión que leyó. Para reemplazar un documento entero tiene 
 Los documentos sí: *Importar un documento* toma `.md`, `.markdown`, `.txt`, `.html` o de Word (`.docx`), de a uno, y lo pasa a Markdown: de Word a Markdown, de HTML a Markdown, de Obsidian a Markdown. Pegar desde Word, Google Docs o una página web también lo convierte. Un `.tistyx` de otro Tisty se desempaca entero. Las tareas hay que escribirlas. Mira [Documentos](Documentos#importar).
 
 **¿Puedo leer un archivo Markdown sin traerlo a Tisty?**
-Sí: elige Tisty en **Abrir con**, o sigue un enlace `tisty://open?path=…`. Se abre en solo lectura en una ventana propia, y **Editar en Tisty** lo trae cuando quieras. Mira [Documentos](Documentos#abrir-un-archivo-markdown-de-afuera).
+Sí: elige Tisty en **Abrir con**, o sigue un enlace `tisty://open?path=…`. Se abre en solo lectura en un visor liviano propio, hasta 1 MB, y **Editar** trae una copia cuando quieras. Mira [Documentos](Documentos#abrir-un-archivo-markdown-de-afuera).
 
 **Un documento se abrió solo para leer y yo no lo pedí.**
 Está archivado, o lo está una página suya (o su documento). La barra del pie dice cuál es. Un documento con etiquetas HTML no queda solo para leer: se abre, se edita y se guarda entero. Mira [El editor Markdown](Editor-Markdown#cuando-un-documento-se-abre-solo-para-leer).

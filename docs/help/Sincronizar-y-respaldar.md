@@ -2,7 +2,7 @@
 
 Tisty trabaja siempre en este equipo. Para alcanzar tu trabajo desde otro, dile dónde dejar las copias, y del resto se encarga solo.
 
-No hay nada por medio: ni cuenta, ni servidor, ni servicio nuestro. Si no sincronizas nada, Tisty nunca abre una conexión.
+No hay nada por medio: ni cuenta, ni servidor, ni servicio nuestro. Si no sincronizas nada, sincronizar no abre ninguna conexión; las pocas otras peticiones que hace Tisty están en [[Privacidad]].
 
 ## Elegir la carpeta
 

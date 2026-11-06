@@ -93,18 +93,26 @@ Las tareas hay que escribirlas: no hay importador para la lista de tareas de otr
 
 ## Abrir un archivo Markdown de afuera
 
-Tisty no necesita quedarse con un archivo para mostrarlo. Elige Tisty en **Abrir con** para un archivo `.md` o `.markdown` (nunca se pone como programa predeterminado) o sigue un enlace `tisty://open?path=…`, y el archivo se abre en **solo lectura** en una ventana propia, sin entrar a tu almacén.
+Tisty no necesita quedarse con un archivo para mostrarlo. Elige Tisty en **Abrir con** para un archivo `.md` o `.markdown` (nunca se pone como programa predeterminado) o sigue un enlace `tisty://open?path=…`, y el archivo se abre en **solo lectura** en un visor liviano propio, con la barra de título del sistema, sin entrar a tu almacén. Lee hasta 1 MB, cerca de un millón de caracteres, y avisa cuando un archivo pesa más.
 
-- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con los títulos del archivo, qué es el archivo y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, junto al papel, lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
-- **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
-- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar, igual que desde un documento), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…**, **Importar sin abrir** y **Mostrar en la carpeta**.
-- **Editar en Tisty** lo trae como documento y lo abre; el original se queda donde estaba.
+- **La columna junto a la página** tiene **Editar**, **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **Ver el documento** regresa de ahí), los títulos del archivo y sus detalles: su carpeta, peso, fecha y propiedades. En una ventana angosta se pliega, y su botón en la barra (`Ctrl`/`⌘` + `\`) la abre.
+- **La barra** tiene **Buscar en el texto** (`Ctrl`/`⌘` + `F`), el tema y **Más**, que además trae texto más grande y más pequeño, **Copiar el Markdown**, **Imprimir** y **Mostrar en la carpeta**. El tema y tu lugar en el archivo se recuerdan.
+- **Lee el archivo como se escribió para otros programas.** Un encabezado centrado sigue centrado, una insignia queda en su línea, las líneas que un editor cortó por columnas se juntan, y `#ff0000` o `[[x]]` quedan como palabras. Los diagramas y las fórmulas se dibujan, y también un [widget](Widgets-en-documentos), porque nada en él se ejecuta.
+- **Las imágenes** junto al archivo se muestran si están en su carpeta o más abajo. Las imágenes de internet esperan: una línea sobre la página dice cuántas hay, y **Mostrarlas** las trae. Vuelve a preguntar cada vez que abres el archivo ([qué envía eso](Privacidad#las-peticiones-de-red-que-hace-tisty)).
+- **Los enlaces**: uno a otro `.md` de al lado se abre en la misma ventana, con **Volver** (`Alt` + ←). Uno a la web abre tu navegador.
+- **Editar** hace una copia en tu almacén, escrita en Markdown de Tisty, y la abre; el archivo sigue igual y el visor se cierra. Un archivo de más de 500 KB se puede leer pero no editar, y **Editar** lo dice. Si un archivo de al lado no pudo venir, el visor sigue abierto y dice cuántos.
+- **En un Tisty todavía sin configurar**, el archivo se lee de inmediato y **Editar** no hace ninguna copia: trae la bienvenida, y el visor dice que primero la termines. Cuando la bienvenida termina, la copia se hace y se abre.
 
-Un [widget](Widgets-en-documentos) dentro de un archivo así se dibuja, porque nada en él se ejecuta. Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo.
+Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo.
 
 ### Un documento en una ventana aparte
 
-Un documento tuyo se abre igual: **Abrir en una ventana aparte**, bajo **Ventana** en su panel, lo muestra en solo lectura junto a tu trabajo, con la misma columna, el mismo menú y la misma vista previa. **Editar en Tisty** te lleva de vuelta a él, y **Duplicar** hace una copia. Su PDF ahí lleva quién lo escribió y cuándo, salvo que desmarques **Con firma** en la vista previa.
+**Abrir en una ventana aparte**, bajo **Ventana** en el panel de un documento, lo muestra en solo lectura junto a tu trabajo.
+
+- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, junto al papel, lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
+- **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
+- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…** y **Duplicar**, que hace una copia.
+- **Editar en Tisty** te lleva de vuelta al documento. Su PDF ahí lleva quién lo escribió y cuándo, salvo que desmarques **Con firma** en la vista previa.
 
 ## Sacar documentos
 
@@ -118,6 +126,10 @@ Un documento sale entero; cada conversión está en [Convertir a y desde Markdow
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
 Exportarlos todos pregunta para quién son: **abiertos**, **para entregárselos a alguien**, o **cerrados con seis dígitos para otro equipo tuyo**, que es lo que hace que lleguen ahí como tuyos y no como de un extraño. En cualquier caso, ni una línea de la historia viaja dentro.
+
+## Compartir
+
+El panel junto a un documento tiene una fila **Compartido** con **Compartir…**. Compartir pasa por Folio, un servicio aparte de Tisty, y todavía no está abierto. Al pulsar **Compartir…**, Tisty lee un archivo firmado pequeño para saber si Folio ya abrió y, mientras no abra, dice que todavía no está disponible, con un enlace a [folio.tisty.app](https://folio.tisty.app). Si ese archivo no se puede alcanzar, lo dice y ofrece reintentar. Nada de tu documento sale de este equipo. Para entregarle un documento a alguien hoy, usa las salidas de arriba.
 
 ## Tu alias
 

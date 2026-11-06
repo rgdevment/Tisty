@@ -54,12 +54,14 @@ Settings takes over the sidebar with its sections:
 
 ## Updates
 
-Tisty checks once when it opens, and once a day after that, whether a newer version exists — it sends nothing to ask. If one exists, a line appears in *About*:
+Tisty checks once when it opens, and once a day after that, whether a newer version exists — it sends nothing to ask. A Microsoft Store copy asks the Store when it opens and every six hours. If one exists, a line appears in *About*:
 
-- a Microsoft Store copy is updated by the Store;
+- a Microsoft Store copy is updated by the Store, and the line has an **Update** button once the Store offers it to this computer;
 - a copy that owns its own folder gets a button.
 
-Nothing is downloaded unless you press it. Release candidates can be turned on in *About*. Details in [[Privacy]].
+Tisty downloads nothing unless you press it. Release candidates can be turned on in *About*. Details in [[Privacy]].
+
+On Windows, when the Store or an installer closes Tisty to replace it, Windows opens it again by itself: a window in view comes back in view, and one hidden in the tray comes back hidden. What you had just typed on a document or a task's page is kept, and the same goes when Windows shuts down. A crash or a restart does not reopen it, and neither does a copy that ran for less than a minute.
 
 ## Where your data lives
 

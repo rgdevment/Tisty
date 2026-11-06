@@ -117,6 +117,8 @@ Este ya es un párrafo nuevo.
 
 GitHub junta esas dos líneas en una cuando muestra un archivo; Tisty las deja separadas. Una barra invertida al final de la línea la corta en todas partes.
 
+Escribiendo en un bloque, `Enter` deja esa línea en blanco y empieza un párrafo, y `Shift` + `Enter` escribe el salto simple.
+
 Para escribir una línea que si no empezaría otra cosa (un título, una lista, una cita), pon una barra invertida delante: `\#`, `\-`, `1\.`, `\>`.
 
 ## Negrita, cursiva, tachado y código
@@ -282,6 +284,7 @@ Refuerzo en marzo #rina #veterinario
 
 - `#Hola` es una etiqueta; `# Hola`, con espacio, es un título.
 - Se quitan los acentos y las mayúsculas: `#Camión` y `#camion` son una sola etiqueta, `camion`. Un guion bajo pasa a ser guion: `#mi_etiqueta` es `mi-etiqueta`.
+- Los acentos solo se quitan en los alfabetos latino, griego, cirílico, hebreo y árabe, donde una letra existe sin ellos. En otras escrituras esas marcas son parte de la palabra y se quedan: `#हिन्दी` guarda sus vocales.
 - Dos caracteres como mínimo, uno de ellos una letra: `#1234` es un número de ticket, no una etiqueta, y `#a` tampoco. `#2026x` sí lo es.
 - Un `#` pegado a lo que va antes no es etiqueta: `C#`, `bg-#fff`, `pagina.html#arriba` y el ancla en la dirección de un enlace no cuentan.
 - Nada dentro de código es etiqueta, ni tampoco el `#2` de una [referencia](#referencias) como `[[#2]]`.
@@ -466,6 +469,7 @@ gantt
 ````
 
 - En Tisty, el mapa mental, el esquema, el diagrama libre y el de clases se dibujan tal como en la ventana de diagramas, con un pequeño margen; los demás tipos, y un diagrama libre con iconos o imágenes, los dibuja el Mermaid oficial. Todos se ajustan al ancho de la página, se oscurecen cuando Tisty está en modo oscuro y un clic los abre en grande.
+- Un `<br/>` o `<br>` dentro de un texto del diagrama corta la línea.
 - Cuando el documento sale de Tisty como Markdown llano, un bloque `mmd` se escribe `mermaid`, la única palabra que GitHub dibuja.
 - Uno demasiado grande para acomodarlo (más de 32 KiB, o mil cajas y flechas) o que no se entiende, se muestra como código.
 
@@ -550,7 +554,7 @@ $$
 
 ### Widgets
 
-Un bloque `widget` dibuja una vista fija, hecha solo de HTML y CSS; su nombre va en `title`. No ejecuta nada, nunca, ni nombra nada fuera de sí mismo, así que se ve igual donde se lea el documento. Trae estilos listos para usar: `stat`, `card`, `grid`, `two`, `head`, `badge` (con `ok`, `warn` y `bad`), `list`, `box`, `up` y `down`, además de tablas.
+Un bloque `widget` dibuja una vista fija, hecha solo de HTML y CSS; su nombre va en `title`. No ejecuta nada, nunca, ni nombra nada fuera de sí mismo, así que se ve igual donde se lea el documento. Trae estilos listos para usar: `stat`, `card`, `grid`, `two`, `head`, `badge` (con `ok`, `warn` y `bad`), `list`, `box` (con `done`), `gone`, `row`, `num`, `up` y `down`, además de tablas.
 
 ````markdown
 ```widget title="Rina este mes"
@@ -576,7 +580,7 @@ Un bloque `widget` dibuja una vista fija, hecha solo de HTML y CSS; su nombre va
 
 - Puede llevar texto, listas, tablas, `<details>`, dibujos `<svg>`, imágenes escritas dentro como `data:image/…` y un `<style>` propio.
 - No lleva `<script>`, ni `onclick` u otro manejador, ni enlaces, botones o formularios, ni marcos, sonido o video, ni nada que venga de una dirección, ni en su HTML ni en su CSS.
-- Un bloque con cualquier otra cosa no es un widget: se muestra como su código, con lo que está mal, y no se dibuja nada de él. La llamada de un agente que lo escriba se rechaza.
+- Un bloque con cualquier otra cosa, o de más de 512 KB, no es un widget: se muestra como su código, con lo que está mal, y no se dibuja nada de él. La llamada de un agente que lo escriba se rechaza.
 - Un archivo `.html` adjunto es un archivo como cualquier otro, y se muestra como ficha; nada de lo que lleva un documento se ejecuta.
 
 GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
