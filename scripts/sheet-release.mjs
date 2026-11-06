@@ -69,6 +69,7 @@ const main = () => {
     const [into] = rest;
     mkdirSync(into, { recursive: true });
     writeFileSync(join(into, "package.json"), `${JSON.stringify(manifestOf(version), null, 2)}\n`);
+    copyFileSync(join(root, "LICENSE"), join(into, "LICENSE"));
     for (const one of STYLES) copyFileSync(join(root, SHEET, "src", one), join(into, one));
   } else {
     throw new Error("say pr <base> <head>, check, plan, or pack <folder>");
