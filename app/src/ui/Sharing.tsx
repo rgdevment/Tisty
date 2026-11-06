@@ -6,6 +6,7 @@ import { helpDrawn } from "../guide/calls";
 import { fill, locale, t } from "../locales";
 import {
   docShared,
+  noteParts,
   type ShareCard,
   type ShareLook,
   shareLook,
@@ -139,12 +140,34 @@ function Terms({
   );
 }
 
+function NoteWords({ note }: Readonly<{ note: string }>) {
+  return (
+    <span className="whitespace-pre-line">
+      {noteParts(note).map(({ at, text, url }) =>
+        url ? (
+          <button
+            key={at}
+            type="button"
+            title={url}
+            onClick={() => void openUrl(url).catch(() => {})}
+            className="text-accent"
+          >
+            {text}
+          </button>
+        ) : (
+          <span key={at}>{text}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
 function NotOpenYet({ note, onClose }: Readonly<{ note?: string; onClose: () => void }>) {
   return (
     <Modal title={t("shareClosedTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
         <p className="text-[13px] leading-relaxed">
-          {note ?? t("shareClosedWhat")}
+          {note ? <NoteWords note={note} /> : t("shareClosedWhat")}
           <br />
           {!note && `${t("shareClosedYet")} `}
           {t("shareClosedMore")}{" "}

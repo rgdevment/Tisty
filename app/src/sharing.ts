@@ -92,6 +92,41 @@ export type SharingNow =
   | { state: "closed"; note: Record<string, string | undefined> | null }
   | { state: "unreached" };
 
+export interface NotePart {
+  at: number;
+  text: string;
+  url?: string;
+}
+
+const NOTE_LINK = /(?<!!)\[([^\]\n]+)\]\((https:\/\/[^\s()]+)\)/g;
+
+const noteLinkAllowed = (said: string) => {
+  try {
+    const url = new URL(said);
+    const ours =
+      url.hostname === "tisty.cl" ||
+      url.hostname === "tisty.app" ||
+      url.hostname.endsWith(".tisty.app");
+    return ours && !url.username && !url.password && !url.port;
+  } catch {
+    return false;
+  }
+};
+
+export const noteParts = (note: string): NotePart[] => {
+  const parts: NotePart[] = [];
+  let done = 0;
+  for (const found of note.matchAll(NOTE_LINK)) {
+    const [whole, text, url] = found;
+    if (!noteLinkAllowed(url)) continue;
+    if (found.index > done) parts.push({ at: done, text: note.slice(done, found.index) });
+    parts.push({ at: found.index, text, url });
+    done = found.index + whole.length;
+  }
+  if (done < note.length) parts.push({ at: done, text: note.slice(done) });
+  return parts;
+};
+
 export const sharingNow = (): Promise<SharingNow> => invoke("folio_sharing_now");
 
 export const termsNow = (): Promise<TermsNow> => invoke("folio_terms_standing");

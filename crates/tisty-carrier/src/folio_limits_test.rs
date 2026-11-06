@@ -2,8 +2,9 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, SIGNATURE_URL,
-    SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, NOTE_LINES_AT_MOST,
+    SIGNATURE_URL, SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now,
+    uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -76,6 +77,37 @@ fn what_folio_signs_to_say_while_closed_comes_along_without_its_spaces() {
             }),
         }
     );
+}
+
+fn said_back(words: &str) -> Option<String> {
+    let SharingNow::Closed { note: Some(note) } = closed_saying(Some(words.to_owned()), None)
+    else {
+        panic!("it was not closed with a note");
+    };
+    note.es
+}
+
+#[test]
+fn a_note_keeps_its_line_breaks_up_to_the_most_lines_it_may_have() {
+    let most = ["a"; NOTE_LINES_AT_MOST].join("\n");
+
+    assert_eq!(said_back("uno\r\n\r\ndos").as_deref(), Some("uno\n\ndos"));
+    assert_eq!(said_back(&most), Some(most.clone()));
+    assert_eq!(said_back(&format!("{most}\na")), None);
+}
+
+#[test]
+fn a_note_with_characters_that_hide_or_turn_text_is_left_out_whole() {
+    for hidden in [
+        "a\u{202e}b",
+        "a\u{200b}b",
+        "a\u{2066}b",
+        "a\tb",
+        "a\u{0007}b",
+        "a\u{feff}b",
+    ] {
+        assert_eq!(said_back(hidden), None, "{hidden:?}");
+    }
 }
 
 #[test]

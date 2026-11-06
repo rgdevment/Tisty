@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { adopt, fill, t } from "../locales";
+import { noteParts } from "../sharing";
 import Sharing from "../ui/Sharing";
 
 const invoked = vi.hoisted(() => vi.fn());
@@ -43,6 +44,36 @@ const shown = (onError = vi.fn(), onClose = vi.fn(), onShared = vi.fn()) => {
 beforeEach(() => {
   invoked.mockReset();
   adopt("en");
+});
+
+describe("what Folio signs to say while closed", () => {
+  it("makes a link only of Tisty's own https addresses", () => {
+    expect(noteParts("Mira [aquí](https://folio.tisty.app/hoy) hoy")).toEqual([
+      { at: 0, text: "Mira " },
+      { at: 5, text: "aquí", url: "https://folio.tisty.app/hoy" },
+      { at: 40, text: " hoy" },
+    ]);
+    expect(noteParts("[a](https://tisty.cl)")[0].url).toBe("https://tisty.cl");
+    expect(noteParts("[a](https://tisty.app)")[0].url).toBe("https://tisty.app");
+  });
+
+  it.each([
+    "[a](https://otro.example)",
+    "[a](http://tisty.app)",
+    "[a](https://tisty.app@otro.example)",
+    "[a](https://tisty.app.otro.example)",
+    "[a](https://eviltisty.app)",
+    "[a](https://folio.tisty.app:8443)",
+    "[a](mailto:hola@tisty.app)",
+    "[a](javascript:alert)",
+  ])("leaves %s as the words it is", (said) => {
+    expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+  });
+
+  it("leaves anything else of Markdown or HTML as words", () => {
+    const said = "**fuerte** <b>x</b> # y ![i](https://tisty.app/a.png)";
+    expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+  });
 });
 
 describe("sharing a document with Folio", () => {

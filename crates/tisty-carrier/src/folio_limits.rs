@@ -16,6 +16,7 @@ pub(crate) const KEPT: &str = "folio-limits.json";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
 const NOTE_AT_MOST: usize = 400;
+const NOTE_LINES_AT_MOST: usize = 6;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct FolioLimits {
@@ -75,9 +76,23 @@ impl FolioNote {
     }
 }
 
+// These can make a line read differently from what it says, or hide part of it.
+fn hides_text(one: char) -> bool {
+    one.is_control() && one != '\n'
+        || matches!(
+            one,
+            '\u{061c}' | '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{2069}' | '\u{feff}'
+        )
+}
+
 fn fit_note(said: Option<String>) -> Option<String> {
-    let said = said?.trim().to_owned();
-    (!said.is_empty() && said.chars().count() <= NOTE_AT_MOST).then_some(said)
+    let said = said?.replace("\r\n", "\n");
+    let said = said.trim();
+    let fits = !said.is_empty()
+        && said.chars().count() <= NOTE_AT_MOST
+        && said.lines().count() <= NOTE_LINES_AT_MOST
+        && !said.chars().any(hides_text);
+    fits.then(|| said.to_owned())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
