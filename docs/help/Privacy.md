@@ -55,7 +55,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 - **Checking the way to OneDrive** works the same as the check for Google Drive below, with one request to `graph.microsoft.com` that carries nothing of yours.
 - **Checking the way to Google Drive** — only while you connect Google Drive or move to it, Tisty sends one request to Google's API host, `www.googleapis.com`, with no account, no token and nothing of yours in it. It waits at most 10 seconds and goes through your system's proxy, never around it. It only lets Tisty tell you whether a proxy, a filter at work or an antivirus is in the way, or Google itself is having trouble. It never runs while syncing. When a round of syncing cannot reach Google, Tisty reads the failure the same way, sending nothing more, and keeps on this computer only a word for what stood in the way, how many rounds in a row failed and since when, to warn you once it lasts. A connection cut halfway through a transfer leaves no word at all.
 
-A [widget](Widgets) runs nothing and names nothing outside itself. An attached `.html` page runs in a frame whose policy allows no network; on Windows its engine has no way out either, and on macOS that has not been put to the test.
+A [widget](Widgets) runs nothing and names nothing outside itself. An attached `.html` page runs in a frame whose policy allows no network; on Windows its engine has no way out either. On macOS it can still reach an address through WebRTC or a preconnect, which tells that server your IP address and that someone is reading.
 
 ## No AI
 

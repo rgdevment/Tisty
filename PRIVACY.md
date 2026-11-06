@@ -286,9 +286,10 @@ A widget in a document is HTML and CSS and nothing else: it runs nothing, names
 nothing outside itself, and a block with anything more is shown as its code. An
 attached `.html` page runs its own code in a frame whose policy allows no
 network: it cannot fetch anything, load a picture from an address or send what
-it shows anywhere. On Windows its engine has no way out either; on macOS that has
-not been put to the test. A link inside a page opens your browser only when you
-click it, like any other.
+it shows anywhere. On Windows its engine has no way out either. On macOS it still
+can reach an address through WebRTC or a preconnect, which tells that server your
+IP address and that someone is reading. A link inside a page opens your browser
+only when you click it, like any other.
 
 A Markdown file you open from outside — with *Open with*, or a
 `tisty://open?path=…` link — is shown read-only in a window of its own and stays

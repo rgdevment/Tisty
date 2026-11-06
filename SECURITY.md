@@ -138,9 +138,10 @@ report will never be dismissed for being inconvenient.
   A policy does not cover all an engine can do: WebRTC, `preconnect` and DNS
   prefetch go around it. So on Windows every window starts WebView2 with no name
   it can resolve and no WebRTC over UDP, and `scripts/widget-network.mjs` holds
-  a hostile page to that in a real window. macOS has no such arguments and
-  WKWebView has not been put to that test, so there "no network" is the policy's
-  word, not a proven fact.
+  a hostile page to that in a real window. macOS has no such arguments, and there
+  a hostile page was measured reaching an address through WebRTC and `preconnect`.
+  WKWebView also let a page past the policy when it came only as a header, so the
+  page carries it inside as well, which stops fetch, pictures and the like there.
   All a page can say to the window is how tall it is and which link was clicked
   inside it, and a link is opened only after a real click there. A page is as
   trustworthy as the document that carries it, and a document can arrive through
