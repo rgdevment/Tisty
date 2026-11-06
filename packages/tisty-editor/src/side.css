@@ -385,6 +385,49 @@ details[open] > .side-row-head::after {
 .side-act:hover {
   background: var(--tisty-hover);
 }
+.side-act:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.side-act.is-danger {
+  color: var(--tisty-hue-red);
+}
+.side-acts.is-inside {
+  padding: 2px 0 0;
+}
+.side-gist.is-warn {
+  color: var(--tisty-hue-amber);
+}
+.side-gist.is-bad {
+  color: var(--tisty-hue-red);
+}
+.side-said {
+  margin: 0 0 10px;
+}
+.side-held {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.side-held-label {
+  color: var(--tisty-ink);
+  font-weight: 500;
+}
+.side-held-url {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--tisty-hover);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-held-note {
+  color: var(--tisty-faint);
+  font-size: 11.5px;
+}
 .side-act.is-main {
   border-color: transparent;
   background: var(--tisty-accent);

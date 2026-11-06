@@ -12,9 +12,11 @@ pub const SIGNATURE_URL: &str =
 
 const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";
-const KEPT: &str = "folio-limits.json";
+pub(crate) const KEPT: &str = "folio-limits.json";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
+const NOTE_AT_MOST: usize = 400;
+const NOTE_LINES_AT_MOST: usize = 6;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct FolioLimits {
@@ -49,6 +51,63 @@ pub struct FolioLimits {
     pub oldest_contract_taken: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oldest_contract_served: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terms: Option<FolioTerms>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sharing_open: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sharing_closed_note: Option<FolioNote>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct FolioNote {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub es: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en: Option<String>,
+}
+
+impl FolioNote {
+    fn fit(self) -> Self {
+        Self {
+            es: fit_note(self.es),
+            en: fit_note(self.en),
+        }
+    }
+}
+
+// These can make a line read differently from what it says, or hide part of it.
+fn hides_text(one: char) -> bool {
+    one.is_control() && one != '\n'
+        || matches!(
+            one,
+            '\u{061c}' | '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{2069}' | '\u{feff}'
+        )
+}
+
+fn fit_note(said: Option<String>) -> Option<String> {
+    let said = said?.replace("\r\n", "\n");
+    let said = said.trim();
+    let fits = !said.is_empty()
+        && said.chars().count() <= NOTE_AT_MOST
+        && said.lines().count() <= NOTE_LINES_AT_MOST
+        && !said.chars().any(hides_text);
+    fits.then(|| said.to_owned())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolioTerms {
+    pub version: String,
+    pub es: String,
+    pub en: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "state", rename_all = "camelCase")]
+pub enum SharingNow {
+    Open,
+    Closed { note: Option<FolioNote> },
+    Unreached,
 }
 
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
@@ -90,10 +149,48 @@ pub fn heed(
     if !policy::ask_now(&home.join(ASKED), ASKED_EVERY) {
         return None;
     }
+    heed_now(home, bring)
+}
+
+pub fn heed_now(
+    home: &Path,
+    bring: impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<Result<FolioLimits, Refused>> {
     // The two files are asked for apart, so a publish between them looks like a bad signature.
     match brought_and_accepted(home, &bring)? {
         Err(Refused::Unsigned) => brought_and_accepted(home, &bring),
         told => Some(told),
+    }
+}
+
+pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> SharingNow {
+    let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
+    match limits_for_sharing(home, due, &bring) {
+        Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
+        Some(limits) => SharingNow::Closed {
+            note: limits.sharing_closed_note.map(FolioNote::fit),
+        },
+        None => {
+            // A look that reached nothing must not hold the next try back for an hour.
+            let _ = std::fs::remove_file(home.join(ASKED));
+            SharingNow::Unreached
+        }
+    }
+}
+
+fn limits_for_sharing(
+    home: &Path,
+    due: bool,
+    bring: &impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<FolioLimits> {
+    let held = kept(home);
+    if !due && held.is_some() {
+        return held;
+    }
+    match heed_now(home, bring)? {
+        Ok(limits) => Some(limits),
+        Err(Refused::Behind { .. }) => held,
+        Err(_) => None,
     }
 }
 

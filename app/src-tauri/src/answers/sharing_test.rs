@@ -42,6 +42,7 @@ fn it_sums_up_all_its_envelopes_and_what_the_person_is_told() {
         going: vec![going(10, Some(5)), going(1, None)],
         told: vec![Told::NameLeftOut],
         remembering: vec![],
+        anchors: std::collections::BTreeMap::new(),
     });
     assert_eq!(said.envelopes, 3);
     assert_eq!(said.bytes, 16);

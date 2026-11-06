@@ -365,6 +365,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::CloudSealed { .. }
         | Op::DeviceRemove { .. }
         | Op::Signed { .. }
+        | Op::SharingKept { .. }
+        | Op::SharingForgotten { .. }
         | Op::AttachKept { .. }
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }

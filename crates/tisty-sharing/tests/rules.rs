@@ -13,7 +13,7 @@ use serde_json::Value;
 use tisty_contracts::{EnvelopeKind, Opening, Served, check, check_html};
 use tisty_core::Op;
 use tisty_envelope::reading::{files_for, reading};
-use tisty_sharing::{Finished, Remembered, Sealed, Told, Unshared, remembered, sent, signer};
+use tisty_sharing::{Finished, Remembered, Sealed, Told, Unshared, remembered, signer};
 
 struct Read {
     id: String,
@@ -729,12 +729,12 @@ fn a_comma_does_not_send_its_files_again_and_what_was_sent_is_remembered_with_it
     assert_eq!(was.files_key, was.link_key);
     assert!(was.files_hash.is_some());
     assert!(
-        remembered(&home.paths).unwrap().is_empty(),
+        remembered(&home.state).is_empty(),
         "nothing is remembered until it went"
     );
-    sent(&home.paths, &first.remembering).unwrap();
+    home.sent(&first.remembering);
     let file = &first.remembering[0].0;
-    assert_eq!(remembered(&home.paths).unwrap()[file], was);
+    assert_eq!(remembered(&home.state)[file], was);
 
     let file_name = home.state.docs[&doc].file.clone();
     tisty_core::docs::write(
@@ -776,11 +776,8 @@ fn a_comma_does_not_send_its_files_again_and_what_was_sent_is_remembered_with_it
     .unwrap();
     assert_eq!(manifest["from"], 1);
     assert_eq!(manifest["version"], 2);
-    sent(&home.paths, &second.remembering).unwrap();
-    assert_eq!(
-        remembered(&home.paths).unwrap()[file].files_key,
-        was.link_key
-    );
+    home.sent(&second.remembering);
+    assert_eq!(remembered(&home.state)[file].files_key, was.link_key);
 }
 
 #[test]
@@ -789,7 +786,7 @@ fn a_file_that_changed_is_sent_again() {
     let leaf = home.attached("cartilla.pdf", b"%PDF uno");
     let doc = home.wrote(&format!("[c]({leaf})\n"), None);
     let first = sealed(&home, &asked(doc));
-    sent(&home.paths, &first.remembering).unwrap();
+    home.sent(&first.remembering);
 
     let other = home.attached("cartilla.pdf", b"%PDF dos");
     let file = home.state.docs[&doc].file.clone();
@@ -809,7 +806,7 @@ fn turning_public_or_private_sends_its_files_again() {
     let leaf = home.attached("cartilla.pdf", b"%PDF uno");
     let doc = home.wrote(&format!("[c]({leaf})\n"), None);
     let first = sealed(&home, &asked(doc));
-    sent(&home.paths, &first.remembering).unwrap();
+    home.sent(&first.remembering);
 
     let mut public = asked(doc);
     public.public = true;
@@ -817,7 +814,7 @@ fn turning_public_or_private_sends_its_files_again() {
     assert!(second.going[0].sealed.files.is_some());
     assert_eq!(only_one(&second.remembering).files_key, None);
     every_reader_opens(&second);
-    sent(&home.paths, &second.remembering).unwrap();
+    home.sent(&second.remembering);
 
     let third = sealed(&home, &asked(doc));
     assert!(third.going[0].sealed.files.is_some());
@@ -831,7 +828,7 @@ fn no_head_is_used_twice_across_what_it_seals() {
     let leaf = home.attached("cartilla.pdf", b"%PDF uno");
     let doc = home.wrote(&format!("[c]({leaf})\n"), None);
     let one = sealed(&home, &asked(doc));
-    sent(&home.paths, &one.remembering).unwrap();
+    home.sent(&one.remembering);
     let other = sealed(&home, &asked(doc));
     let head_of = |bytes: &[u8]| -> String {
         let size = u32::from_be_bytes(bytes[4..8].try_into().unwrap()) as usize;
@@ -1352,20 +1349,12 @@ fn it_signs_as_the_root_this_machine_answers_to_under_its_certificate() {
 }
 
 #[test]
-fn what_it_remembers_stays_in_this_machines_private_folder() {
+fn what_it_remembers_goes_with_the_log_and_keeps_no_file_of_its_own() {
     let (_tmp, mut home) = home();
     let doc = home.wrote("x\n", None);
     let out = sealed(&home, &asked(doc));
-    sent(&home.paths, &out.remembering).unwrap();
-    assert!(home.paths.private().join("sharing.json").is_file());
-    let store = home.paths.data();
-    let walked = std::fs::read_dir(store)
-        .unwrap()
-        .flatten()
-        .map(|one| one.file_name())
-        .collect::<Vec<_>>();
-    assert!(
-        !walked.iter().any(|one| one == "sharing.json"),
-        "{walked:?}"
-    );
+    home.sent(&out.remembering);
+
+    assert_eq!(remembered(&home.state).len(), 1);
+    assert!(!home.paths.private().join("sharing.json").exists());
 }
