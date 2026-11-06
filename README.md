@@ -402,8 +402,9 @@ draws the same. Where Markdown has no word for a thing, Tisty adds a few short
 ones of its own, never HTML: `==words==` is a highlight and `==words=={green}`
 one in another colour, `++words++` is underlined, `::star::` is an icon, and an
 attachment is named by its own name, `![plan](plan-0006bf09.png)`. The editor
-shows the file exactly as it is written, a block at a time, so what you see while
-writing is what is on disk. **Copy as Markdown** and taking a document out say
+writes the file a block at a time with its marks out of sight until you ask for
+them, and `Ctrl`/`⌘` + `E` opens the whole of it as text, so what is on disk is
+always yours to read. **Copy as Markdown** and taking a document out say
 those few words the way any other reader understands them, and an older file, an
 import or an assistant writing in plain Markdown is turned into them on the way
 in.
