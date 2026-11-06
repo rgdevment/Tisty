@@ -149,6 +149,8 @@ impl Sown {
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { machine: false, .. }
+            | Op::SharingKept { .. }
+            | Op::SharingForgotten { .. }
             | Op::Signed { .. } => true,
             _ if self.agents.contains(&event.device.0) => false,
             Op::ListAdd { id, d } => a_first_list(d) && self.lists.insert(*id),

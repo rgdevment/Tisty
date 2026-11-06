@@ -92,6 +92,12 @@ impl Home {
         attach::leaf_of(&kept.at).unwrap().to_owned()
     }
 
+    pub fn sent(&mut self, went: &[(String, tisty_sharing::Remembered)]) {
+        for op in tisty_sharing::sent(went) {
+            self.commit(op);
+        }
+    }
+
     pub fn signer(&self) -> (ShareKey, Certificate) {
         signer(&self.paths, &self.state, &self.device).expect("this machine answers to a root")
     }

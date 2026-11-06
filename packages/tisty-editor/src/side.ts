@@ -55,7 +55,18 @@ export type Act = {
   readonly key: string;
   readonly label: string;
   readonly main?: boolean;
+  readonly danger?: boolean;
+  readonly off?: boolean;
   readonly onPick?: (at: HTMLElement) => void;
+};
+
+export type Held = {
+  readonly key: string;
+  readonly label: string;
+  readonly url: string;
+  readonly note?: string;
+  readonly copy: string;
+  readonly onCopy: () => void;
 };
 
 // Every panel a sheet can have beside it; each place shows the ones it needs, in its order, and the rest are left out.
@@ -81,7 +92,18 @@ export type Panel =
     }
   | { readonly kind: "index"; readonly heads: readonly Head[]; readonly book?: Book }
   | { readonly kind: "details"; readonly facts: Facts; readonly open?: boolean }
-  | { readonly kind: "acts"; readonly acts: readonly Act[] };
+  | { readonly kind: "acts"; readonly acts: readonly Act[] }
+  | {
+      readonly kind: "held";
+      readonly key: string;
+      readonly label: string;
+      readonly gist: string;
+      readonly tone?: "warn" | "bad";
+      readonly said?: readonly string[];
+      readonly links?: readonly Held[];
+      readonly acts?: readonly Act[];
+      readonly open?: boolean;
+    };
 
 export type About = Extract<Panel, { kind: "title" | "paper" | "index" }>;
 export type More = Exclude<Panel, About>;

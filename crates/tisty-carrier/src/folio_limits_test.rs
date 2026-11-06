@@ -2,8 +2,9 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, kept,
-    read_under, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, NOTE_LINES_AT_MOST,
+    SIGNATURE_URL, SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now,
+    uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -11,6 +12,7 @@ use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 const REAL: &[u8] = include_bytes!("folio_signed/limits.json");
 const REAL_SIG: &str = include_str!("folio_signed/limits.json.minisig");
 const KEY: &str = super::KEY;
+const CLOSED: SharingNow = SharingNow::Closed { note: None };
 
 const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const OTHER: &[u8] = include_bytes!("cloud/signed/lowered.json");
@@ -24,6 +26,168 @@ fn seeded(serial: u64) -> tempfile::TempDir {
     };
     std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
     home
+}
+
+fn opened(home: &std::path::Path, serial: u64) {
+    let limits = FolioLimits {
+        serial,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+}
+
+fn answering_real(url: &str) -> Option<Vec<u8>> {
+    match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        SIGNATURE_URL => Some(REAL_SIG.as_bytes().to_vec()),
+        _ => None,
+    }
+}
+
+#[test]
+fn signed_limits_that_say_nothing_of_sharing_leave_it_closed() {
+    let home = tempfile::tempdir().unwrap();
+
+    assert_eq!(sharing_now(home.path(), answering_real), CLOSED);
+}
+
+fn closed_saying(es: Option<String>, en: Option<String>) -> SharingNow {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        serial: 1,
+        sharing_closed_note: Some(FolioNote { es, en }),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    sharing_now(home.path(), |_| None)
+}
+
+#[test]
+fn what_folio_signs_to_say_while_closed_comes_along_without_its_spaces() {
+    let told = closed_saying(Some("  Abrimos el lunes.\n".to_owned()), None);
+
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote {
+                es: Some("Abrimos el lunes.".to_owned()),
+                en: None,
+            }),
+        }
+    );
+}
+
+fn said_back(words: &str) -> Option<String> {
+    let SharingNow::Closed { note: Some(note) } = closed_saying(Some(words.to_owned()), None)
+    else {
+        panic!("it was not closed with a note");
+    };
+    note.es
+}
+
+#[test]
+fn a_note_keeps_its_line_breaks_up_to_the_most_lines_it_may_have() {
+    let most = ["a"; NOTE_LINES_AT_MOST].join("\n");
+
+    assert_eq!(said_back("uno\r\n\r\ndos").as_deref(), Some("uno\n\ndos"));
+    assert_eq!(said_back(&most), Some(most.clone()));
+    assert_eq!(said_back(&format!("{most}\na")), None);
+}
+
+#[test]
+fn a_note_with_characters_that_hide_or_turn_text_is_left_out_whole() {
+    for hidden in [
+        "a\u{202e}b",
+        "a\u{200b}b",
+        "a\u{2066}b",
+        "a\tb",
+        "a\u{0007}b",
+        "a\u{feff}b",
+    ] {
+        assert_eq!(said_back(hidden), None, "{hidden:?}");
+    }
+}
+
+#[test]
+fn a_blank_or_oversized_word_from_folio_leaves_the_standard_notice() {
+    let longest = "a".repeat(NOTE_AT_MOST);
+    let told = closed_saying(Some("   ".to_owned()), Some(format!("{longest}a")));
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote::default()),
+        }
+    );
+
+    let told = closed_saying(None, Some(longest.clone()));
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote {
+                es: None,
+                en: Some(longest),
+            }),
+        }
+    );
+}
+
+#[test]
+fn signed_limits_that_open_sharing_are_believed_within_the_hour_without_asking() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+
+    let told = sharing_now(home.path(), |_| panic!("it asked within the hour"));
+
+    assert_eq!(told, SharingNow::Open);
+}
+
+#[test]
+fn closed_is_kept_within_the_hour_without_asking() {
+    let home = seeded(1);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+
+    let told = sharing_now(home.path(), |_| panic!("it asked within the hour"));
+
+    assert_eq!(told, CLOSED);
+}
+
+#[test]
+fn past_the_hour_an_unreached_look_is_not_taken_from_what_is_kept() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+
+    assert_eq!(sharing_now(home.path(), |_| None), SharingNow::Unreached);
+}
+
+#[test]
+fn a_look_that_reached_nothing_does_not_hold_back_the_next_try() {
+    let home = tempfile::tempdir().unwrap();
+
+    assert_eq!(sharing_now(home.path(), |_| None), SharingNow::Unreached);
+    assert_eq!(sharing_now(home.path(), answering_real), CLOSED);
+}
+
+#[test]
+fn a_bad_signature_never_opens_sharing() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(OTHER.to_vec()),
+        _ => Some(REAL_SIG.as_bytes().to_vec()),
+    };
+
+    assert_eq!(sharing_now(home.path(), bring), SharingNow::Unreached);
+}
+
+#[test]
+fn an_older_file_leaves_what_is_kept_standing() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), u64::MAX);
+
+    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Open);
 }
 
 #[test]
@@ -117,6 +281,34 @@ fn a_pause_holds_only_while_ahead_and_never_past_a_week() {
     assert!(!uploads_halted(Some(&until(now + PAUSED_AT_MOST + 1)), now));
     assert!(!uploads_halted(Some(&FolioLimits::default()), now));
     assert!(!uploads_halted(None, now));
+}
+
+#[test]
+fn asked_now_it_reads_again_past_the_hourly_mark() {
+    let home = tempfile::tempdir().unwrap();
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        SIGNATURE_URL => Some(REAL_SIG.as_bytes().to_vec()),
+        _ => None,
+    };
+
+    assert!(matches!(heed(home.path(), bring), Some(Ok(_))));
+    assert_eq!(heed(home.path(), bring), None);
+    assert!(matches!(heed_now(home.path(), bring), Some(Ok(_))));
+}
+
+#[test]
+fn it_reads_the_terms_folio_signs_and_keeps_them() {
+    let limits: FolioLimits = serde_json::from_str(
+        r#"{"serial": 4, "terms": {"version": "2026-11-06", "es": "a", "en": "b"}}"#,
+    )
+    .unwrap();
+
+    let terms = limits.terms.unwrap();
+    assert_eq!(
+        (terms.version.as_str(), terms.es.as_str(), terms.en.as_str()),
+        ("2026-11-06", "a", "b")
+    );
 }
 
 #[test]

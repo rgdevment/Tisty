@@ -1,9 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+use serde::Deserialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use tisty_contracts::{Attachment, Document, Orientation, Page, Paper, Sealing, Sheet};
+use tisty_contracts::{
+    Attachment, Cited, Document, Orientation, Page, Paper, Sealing, Sheet, Translation,
+};
 use tisty_core::model::{DocId, Kept};
 use tisty_core::{Paths, State, docs, person};
 use tisty_envelope::clean;
@@ -13,7 +16,7 @@ use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, read
 use tisty_share_proto::identity::{Certificate, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
-use crate::{Remembered, Unshared, remembered};
+use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
@@ -31,6 +34,24 @@ pub struct Asked {
     pub public: bool,
     pub cited: Vec<DocId>,
     pub signed_as: Option<String>,
+}
+
+#[derive(Default, Deserialize)]
+struct Carried {
+    lang: Option<String>,
+    languages: Option<Vec<Translation>>,
+    cited: Option<Vec<Cited>>,
+}
+
+fn carried_by(was: Option<&Remembered>) -> Carried {
+    was.and_then(|one| one.carried.as_deref())
+        .and_then(|said| serde_json::from_str(said).ok())
+        .unwrap_or_default()
+}
+
+pub struct Under<'a> {
+    pub mint: &'a dyn Fn() -> Result<String, Unshared>,
+    pub editable: bool,
 }
 
 #[derive(Debug)]
@@ -71,12 +92,19 @@ pub fn signer(
     Some((key, certificate.clone()))
 }
 
-fn sharable(state: &State, id: DocId) -> Result<&Kept, Unshared> {
+fn sharable<'a>(
+    state: &'a State,
+    id: DocId,
+    shelf: &BTreeMap<String, Remembered>,
+) -> Result<&'a Kept, Unshared> {
     let kept = state.docs.get(&id).ok_or(Unshared::NoSuchDoc)?;
     if kept.page_of.is_some() || kept.task_of.is_some() {
         return Err(Unshared::NotADocument);
     }
-    if kept.guest {
+    let edits_through_a_link = shelf
+        .get(&kept.file)
+        .is_some_and(|one| one.edit_token.is_some());
+    if kept.guest && !edits_through_a_link {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -155,6 +183,31 @@ fn print_of(said: &[Attachment], files: &[Vec<u8>]) -> Option<String> {
     )
 }
 
+fn hex_of(said: impl AsRef<[u8]>) -> String {
+    said.as_ref()
+        .iter()
+        .map(|one| format!("{one:02x}"))
+        .collect()
+}
+
+fn words_print_of(
+    body: &str,
+    pages: &[WrittenPage],
+    pictures: &[Vec<u8>],
+    files: Option<&str>,
+) -> String {
+    let mut print = Sha256::new();
+    print.update(body.as_bytes());
+    for page in pages {
+        print.update(page.body.as_bytes());
+    }
+    for picture in pictures {
+        print.update(picture);
+    }
+    print.update(files.unwrap_or_default().as_bytes());
+    hex_of(print.finalize())
+}
+
 fn new_id() -> Result<String, Unshared> {
     Ok(link_key()?.chars().take(ID_CHARACTERS).collect())
 }
@@ -164,6 +217,8 @@ fn sealing_for(
     was: Option<&Remembered>,
     public: bool,
     print: Option<&str>,
+    under: &Under,
+    editable: bool,
 ) -> Result<(Sealing, bool), Unshared> {
     let key = match (public, was.and_then(|one| one.link_key.clone())) {
         (true, _) => None,
@@ -178,16 +233,24 @@ fn sealing_for(
                 && one.files_key == key
         })
         .and_then(|one| one.files_hash.clone());
+    // Folio never changes who may edit once a document is there, so only a first version can grant it.
+    let token = match was {
+        Some(one) => one.edit_token.clone(),
+        None if editable && !public => Some(link_key()?),
+        None => None,
+    };
     Ok((
         Sealing {
-            id: was.map_or_else(new_id, |one| Ok(one.id.clone()))?,
+            id: was.map_or_else(under.mint, |one| Ok(one.id.clone()))?,
             version: was.map_or(1, |one| one.version + 1),
             from: was.map(|one| one.version),
             link_key: key.clone(),
             files_key: kept.as_ref().and(key),
             files_hash: kept.clone(),
-            owner: None,
-            token: None,
+            owner: was
+                .and_then(|one| one.owner.as_deref())
+                .and_then(|said| serde_json::from_str(said).ok()),
+            token,
         },
         kept.is_some(),
     ))
@@ -238,6 +301,8 @@ fn pages_going(pages: &[WrittenPage], id: &str, places: &Places) -> Vec<Page> {
 
 struct Gathering<'a> {
     desk: &'a Desk<'a>,
+    under: &'a Under<'a>,
+    editable_anchor: Option<DocId>,
     shelf: BTreeMap<String, Remembered>,
     public: bool,
     signed_as: Option<String>,
@@ -254,8 +319,13 @@ impl Gathering<'_> {
         let state = self.desk.state;
         let root = self.desk.paths.docs();
         let mut out = Vec::new();
+        let edits_through_a_link = self
+            .shelf
+            .get(&kept.file)
+            .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let stays = page.guest || state.shut(page.id) || state.held_away(page);
+            let not_ours = page.guest && !edits_through_a_link;
+            let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
                 .flatten();
@@ -328,9 +398,13 @@ impl Gathering<'_> {
             let page = pages.iter().position(|page| {
                 page.file == *name || docs::titled(&page.body).eq_ignore_ascii_case(name)
             });
-            let reached = match page {
-                Some(at) => Some(Reached::Page(at as u64 + 1)),
-                None => self
+            let carried = name
+                .strip_prefix(CARRIED_CITED)
+                .and_then(|at| at.parse().ok());
+            let reached = match (page, carried) {
+                (Some(at), _) => Some(Reached::Page(at as u64 + 1)),
+                (None, Some(at)) => Some(Reached::Cited(at)),
+                (None, None) => self
                     .cited_place(name, chosen, &mut cites)?
                     .map(Reached::Cited),
             };
@@ -340,8 +414,21 @@ impl Gathering<'_> {
         }
 
         let print = print_of(&packed.said_files, &packed.files);
+        let words_print = words_print_of(&body, &pages, &packed.pictures, print.as_deref());
         let was = self.shelf.get(&kept.file);
-        let (sealing, keeps_files) = sealing_for(was, self.public, print.as_deref())?;
+        let editable = self.editable_anchor == Some(kept.id);
+        let (sealing, keeps_files) =
+            sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
+        let admin_token = match was {
+            Some(one) => one.admin_token.clone(),
+            None => Some(link_key()?),
+        };
+        let its_owner = was.and_then(|one| one.owner.clone());
+        let carried = carried_by(was);
+        let owner_name = match (&its_owner, was) {
+            (Some(_), Some(one)) => one.owner_name.clone(),
+            _ => self.signed_as.clone().filter(|_| !self.public),
+        };
         self.remembering.push((
             kept.file.clone(),
             Remembered {
@@ -351,6 +438,16 @@ impl Gathering<'_> {
                 files_print: print,
                 files_hash: None,
                 files_key: None,
+                admin_token,
+                owner: its_owner,
+                owner_name: owner_name.clone(),
+                cited: was.map_or_else(Vec::new, |one| one.cited.clone()),
+                held_by: None,
+                ttl_days: was.and_then(|one| one.ttl_days),
+                carried: was.and_then(|one| one.carried.clone()),
+                edit_token: sealing.token.clone(),
+                words_print: Some(words_print),
+                signed_as: self.signed_as.clone(),
             },
         ));
         self.titles.insert(kept.file.clone(), shown);
@@ -365,10 +462,10 @@ impl Gathering<'_> {
             id: sealing.id.clone(),
             title: title_of(&travelling),
             tags: tags_of(&body),
-            lang: tisty_markdown::front::lang(&body),
+            lang: tisty_markdown::front::lang(&body).or(carried.lang),
             sheet: sheet_of(&body),
             signed_as: self.signed_as.clone(),
-            owner_name: self.signed_as.clone().filter(|_| !self.public),
+            owner_name,
             made: None,
             wrote: None,
             body: travelling,
@@ -377,8 +474,8 @@ impl Gathering<'_> {
             pictures: (!packed.said_pictures.is_empty()).then_some(packed.said_pictures),
             files: (!packed.said_files.is_empty()).then_some(packed.said_files),
             files_hash: None,
-            cited: None,
-            languages: None,
+            cited: carried.cited,
+            languages: carried.languages,
         };
         Ok(Tongue {
             document,
@@ -391,10 +488,10 @@ impl Gathering<'_> {
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
-        let kept = sharable(state, doc)?;
+        let kept = sharable(state, doc, &self.shelf)?;
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
-            if sharable(state, one.id).is_ok() {
+            if sharable(state, one.id, &self.shelf).is_ok() {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
@@ -436,9 +533,23 @@ impl Gathering<'_> {
     }
 }
 
-// It sends nothing and remembers nothing.
 pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
+    gathered_under(
+        desk,
+        asked,
+        &Under {
+            mint: &new_id,
+            editable: false,
+        },
+    )
+}
+
+// It sends nothing and remembers nothing.
+pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
+    let shelf = remembered(state).clone();
+    let top = sharable(state, asked.doc, &shelf)?;
+    let editable_anchor = under.editable.then(|| state.anchor_of(top));
     let wanted = asked
         .signed_as
         .clone()
@@ -447,7 +558,9 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {
         desk,
-        shelf: remembered(desk.paths)?,
+        under,
+        editable_anchor,
+        shelf,
         public: asked.public,
         signed_as: signed_as.clone(),
         told: Vec::new(),
@@ -461,14 +574,14 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
         gathering.told.push(Told::NameLeftOut);
     }
     // One family goes once, whichever of its languages was ticked and however many times.
-    let mut seen = BTreeSet::from([state.anchor_of(sharable(state, asked.doc)?)]);
+    let mut seen = BTreeSet::from([state.anchor_of(top)]);
     let mut chosen = Vec::new();
     for doc in &asked.cited {
         let Some(kept) = state.docs.get(doc) else {
             continue;
         };
         // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
-        if sharable(state, *doc).is_err() {
+        if sharable(state, *doc, &gathering.shelf).is_err() {
             gathering.told.push(Told::CitedLeftBehind {
                 document: kept.title.clone().unwrap_or_default(),
             });
@@ -485,4 +598,32 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
         remembering: gathering.remembering,
         titles: gathering.titles,
     })
+}
+
+// Only what can go along is offered, and a page already goes with its document.
+pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
+    let state = desk.state;
+    let shelf = remembered(state);
+    let kept = sharable(state, doc, shelf)?;
+    let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
+    let names = named(&drawn(&body)).documents;
+    let pages = state.pages_read(kept.id, &body);
+    let group = languages_of(state, kept);
+    Ok(state
+        .docs
+        .values()
+        .filter(|one| {
+            !group.iter().any(|same| same.id == one.id)
+                && !pages.iter().any(|page| page.id == one.id)
+                && sharable(state, one.id, shelf).is_ok()
+                && names.iter().any(|name| {
+                    *name == one.file
+                        || one
+                            .title
+                            .as_deref()
+                            .is_some_and(|title| title.eq_ignore_ascii_case(name))
+                })
+        })
+        .map(|one| one.id)
+        .collect())
 }

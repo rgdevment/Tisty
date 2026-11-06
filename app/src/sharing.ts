@@ -30,6 +30,132 @@ export const docSealed = (
   { public: isPublic, cited, signedAs }: Sharing,
 ): Promise<Sealed> => invoke("doc_sealed", { id, public: isPublic, cited, signedAs });
 
+export type TermsNow =
+  | { state: "accepted" }
+  | { state: "toAccept"; version: string; text: string; acceptedBefore: string | null };
+
+export interface FolioLimits {
+  ttl_days?: number[];
+  shares_at_most?: number;
+  pictures_at_most?: number;
+  picture_bytes_at_most?: number;
+  pictures_bytes_at_most?: number;
+  files_at_most?: number;
+  files_bytes_at_most?: number;
+}
+
+export interface ShareLook {
+  secrets: { named: string; under: string | null }[];
+  citedSecrets: { named: string; under: string | null }[];
+  name: string | null;
+  alias: string | null;
+  carrying: {
+    pages: number;
+    pictures: number;
+    picturesBytes: number;
+    largestPicture: number;
+    files: number;
+    filesBytes: number;
+  };
+  cited: string[];
+  shared: { doc: string; title: string }[];
+  limits: FolioLimits;
+  told: Told[];
+  seen: string | null;
+}
+
+export interface ShareCard {
+  read: string;
+  edit: string | null;
+  version: number;
+  taken: boolean;
+  held: boolean;
+  told: Told[];
+}
+
+export type Synced =
+  | { state: "unchanged" }
+  | { state: "secrets"; place: string; print: string }
+  | { state: "gone" }
+  | { state: "sent"; version: number; told: Told[] }
+  | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
+
+export interface ShareStatus {
+  diesOn: number;
+  paused: boolean;
+  blocked: boolean;
+  reads: number;
+}
+
+export type SharingNow =
+  | { state: "open" }
+  | { state: "closed"; note: Record<string, string | undefined> | null }
+  | { state: "unreached" };
+
+export interface NotePart {
+  at: number;
+  text: string;
+  url?: string;
+}
+
+const NOTE_LINK = /(?<!!)\[([^\]\n]+)\]\((https:\/\/[^\s()]+)\)/g;
+
+const noteLinkAllowed = (said: string) => {
+  try {
+    const url = new URL(said);
+    const ours =
+      url.hostname === "tisty.cl" ||
+      url.hostname === "tisty.app" ||
+      url.hostname.endsWith(".tisty.app");
+    return ours && !url.username && !url.password && !url.port;
+  } catch {
+    return false;
+  }
+};
+
+export const noteParts = (note: string): NotePart[] => {
+  const parts: NotePart[] = [];
+  let done = 0;
+  for (const found of note.matchAll(NOTE_LINK)) {
+    const [whole, text, url] = found;
+    if (!noteLinkAllowed(url)) continue;
+    if (found.index > done) parts.push({ at: done, text: note.slice(done, found.index) });
+    parts.push({ at: found.index, text, url });
+    done = found.index + whole.length;
+  }
+  if (done < note.length) parts.push({ at: done, text: note.slice(done) });
+  return parts;
+};
+
+export const sharingNow = (): Promise<SharingNow> => invoke("folio_sharing_now");
+
+export const termsNow = (): Promise<TermsNow> => invoke("folio_terms_standing");
+
+export const termsAccepted = (version: string): Promise<void> =>
+  invoke("folio_terms_accept", { version });
+
+export const shareLook = (id: string): Promise<ShareLook> => invoke("doc_share_look", { id });
+
+export const shareCard = (id: string): Promise<ShareCard | null> =>
+  invoke("doc_share_card", { id });
+
+export const docShared = (
+  id: string,
+  chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number; seen?: string },
+): Promise<ShareCard> => invoke("doc_shared", { id, chosen });
+
+export const shareSync = (id: string, accepted?: string): Promise<Synced> =>
+  invoke("doc_share_sync", { id, accepted });
+
+export const shareStatus = (id: string): Promise<ShareStatus> => invoke("doc_share_status", { id });
+
+export const sharePause = (id: string, paused: boolean): Promise<void> =>
+  invoke("doc_share_pause", { id, paused });
+
+export const shareAppeal = (id: string): Promise<boolean> => invoke("doc_share_appeal", { id });
+
+export const shareStop = (id: string): Promise<void> => invoke("doc_share_stop", { id });
+
 export const toldPlainly = (told: Told): string => {
   switch (told.what) {
     case "pictureAsFile":

@@ -1189,6 +1189,9 @@ export default function Docs({
         <Beside
           title={called}
           paper={open.file}
+          doc={known.find((one) => one.file === open.file)?.id}
+          onError={onError}
+          onKeep={flush}
           body={body}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}

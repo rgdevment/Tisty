@@ -27,6 +27,19 @@ pub struct Sealed {
     pub going: Vec<Going>,
     pub told: Vec<Told>,
     pub remembering: Vec<(String, Remembered)>,
+    pub anchors: BTreeMap<String, String>,
+}
+
+fn anchors_of<'a>(families: impl Iterator<Item = &'a Family>) -> BTreeMap<String, String> {
+    families
+        .flat_map(|family| {
+            let anchor = &family.anchor.sealing.id;
+            family
+                .others
+                .iter()
+                .map(|one| (one.sealing.id.clone(), anchor.clone()))
+        })
+        .collect()
 }
 
 fn page_name(file: &str, at: u64) -> String {
@@ -40,7 +53,60 @@ fn asks_for_a_window(html: &str) -> bool {
         .any(|one| html.contains(one))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Carrying {
+    pub pages: usize,
+    pub pictures: usize,
+    pub pictures_bytes: u64,
+    pub largest_picture: u64,
+    pub files: usize,
+    pub files_bytes: u64,
+}
+
+fn weight(bytes: &[Vec<u8>]) -> u64 {
+    bytes.iter().map(|one| one.len() as u64).sum()
+}
+
 impl Gathered {
+    pub fn carrying(&self) -> Carrying {
+        let anchor = &self.family.anchor;
+        Carrying {
+            pages: anchor.document.pages.as_ref().map_or(0, Vec::len),
+            pictures: anchor.pictures.len(),
+            pictures_bytes: weight(&anchor.pictures),
+            largest_picture: anchor
+                .pictures
+                .iter()
+                .map(|one| one.len() as u64)
+                .max()
+                .unwrap_or(0),
+            files: anchor.files.len(),
+            files_bytes: weight(&anchor.files),
+        }
+    }
+
+    pub fn whole_print(&self) -> String {
+        self.remembering
+            .iter()
+            .filter_map(|(_, one)| one.words_print.as_deref())
+            .collect()
+    }
+
+    pub fn print_of(&self, file: &str) -> Option<String> {
+        let (_, now) = self.remembering.iter().find(|(at, _)| at == file)?;
+        now.words_print.clone()
+    }
+
+    pub fn same_as_sent(&self, shelf: &BTreeMap<String, Remembered>) -> bool {
+        self.remembering.iter().all(|(file, now)| {
+            now.words_print.is_some()
+                && shelf
+                    .get(file)
+                    .is_some_and(|was| was.words_print == now.words_print)
+        })
+    }
+
     fn files_by_id(&self) -> BTreeMap<String, String> {
         self.remembering
             .iter()
@@ -132,6 +198,8 @@ impl Gathered {
             remembering,
             ..
         } = self;
+        let anchors = anchors_of(std::iter::once(&family).chain(&cited));
+        let top = family.anchor.sealing.id.clone();
         let cited: Vec<Arc<Family>> = cited.into_iter().map(Arc::new).collect();
         for tongue in std::iter::once(&mut family.anchor).chain(&mut family.others) {
             let said = cites.get(&tongue.document.id).into_iter().flatten();
@@ -149,6 +217,7 @@ impl Gathered {
                     .and_then(|one| one.sealed.files_hash.clone());
                 was.files_key = hash.as_ref().and_then(|_| was.link_key.clone());
                 was.files_hash = hash;
+                was.held_by = (was.id != top).then(|| top.clone());
                 (file, was)
             })
             .collect();
@@ -156,6 +225,7 @@ impl Gathered {
             going,
             told,
             remembering,
+            anchors,
         })
     }
 }

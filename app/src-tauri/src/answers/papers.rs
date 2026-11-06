@@ -677,8 +677,16 @@ pub fn doc_page(
 }
 
 #[tauri::command]
-pub fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    held(&session).drop_doc(&id)
+pub fn doc_drop(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<()> {
+    let dropped = held(&session).drop_doc(&id);
+    if dropped.is_ok() {
+        super::folio::stops_what_lost_its_document(&app);
+    }
+    dropped
 }
 
 #[tauri::command]

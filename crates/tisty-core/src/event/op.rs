@@ -95,9 +95,46 @@ pub const KNOWN_OPS: &[&str] = &[
     "share.certified",
     "share.revoked",
     "doc.tongue",
+    "sharing.kept",
+    "sharing.forgotten",
 ];
 
 pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
+
+// What a person's computers need to keep managing a share; its keys travel as safe as the rest of the log (52 and 88).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Remembered {
+    pub id: String,
+    pub version: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admin_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub words_print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_as: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cited: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub held_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_days: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carried: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
@@ -263,6 +300,16 @@ pub enum Op {
     #[serde(rename = "person.signed")]
     Signed { d: Signature },
 
+    #[serde(rename = "sharing.kept")]
+    SharingKept { file: String, d: Remembered },
+
+    #[serde(rename = "sharing.forgotten")]
+    SharingForgotten {
+        file: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stopped: Option<String>,
+    },
+
     #[serde(rename = "attach.kept")]
     AttachKept { d: Held },
     #[serde(rename = "attach.let_go")]
@@ -370,6 +417,8 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::Signed { .. }
+                | Op::SharingKept { .. }
+                | Op::SharingForgotten { .. }
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceKey { .. }
@@ -396,6 +445,8 @@ impl Op {
         matches!(
             self,
             Op::Signed { .. }
+                | Op::SharingKept { .. }
+                | Op::SharingForgotten { .. }
                 | Op::ShareKey { .. }
                 | Op::ShareRoot { .. }
                 | Op::ShareCertified { .. }
@@ -475,6 +526,8 @@ impl Op {
             | Op::DeviceRelease { .. }
             | Op::CloudSealed { .. }
             | Op::Signed { .. }
+            | Op::SharingKept { .. }
+            | Op::SharingForgotten { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
             | Op::AttachLetGo { .. }
@@ -623,6 +676,8 @@ impl Op {
             | Op::DeviceRelease { .. }
             | Op::CloudSealed { .. }
             | Op::Signed { .. }
+            | Op::SharingKept { .. }
+            | Op::SharingForgotten { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
             | Op::AttachLetGo { .. }

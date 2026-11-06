@@ -13,8 +13,9 @@ exists. It sends nothing. Two more requests follow only if you press the button
 that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, one per picture if you press **Download** above the help,
-and one per picture from the internet if you ask for them in the viewer of a
-Markdown file from outside. Never otherwise. A copy installed from the Microsoft
+one per picture from the internet if you ask for them in the viewer of a
+Markdown file from outside, and those of Folio if you press **Share** or open a
+shared link. Never otherwise. A copy installed from the Microsoft
 Store asks Windows
 what the Store has and leaves the rest to the Store, and reads the Store's public
 catalog to see which version that is; it reads that same small file only if the
@@ -187,9 +188,8 @@ defence, because the remedy barely exists.
 
 - Does not send data to any server you did not choose: only your cloud, if you
   connect one.
-- Does not share documents by link, and has no code that talks to
-  [Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty), the separate
-  service that does.
+- Does not share a document unless you press **Share** on it. See "Sharing by
+  link" below.
 - Does not create accounts or profiles.
 - Does not use cookies, analytics, advertising, or tracking of any kind.
 - Does not share anything with third parties.
@@ -207,6 +207,19 @@ An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
 as a code change first. That is what happened: the check went into the public
 repository, and this section was written before the release that carries it.
+
+## Sharing by link
+
+Sharing goes through [Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty),
+a separate service with its own terms and its own privacy policy. Tisty does not
+reach it, or anything about it, until you ask.
+
+| | |
+| :--- | :--- |
+| **When you press Share** | Tisty reads `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json` and its signature, `limits.json.minisig`, at most once an hour, to learn whether sharing is open and what it allows. Nothing is uploaded, and GitHub serves them, not Folio. If that file says sharing is closed, or it cannot be read, it stops there. If sharing is open and you have not accepted the current terms, it reads `TERMINOS.md` or `TERMS.md` from the same place |
+| **When you confirm** | What you chose goes to `https://tisty.cl/api/v1`, encrypted on this computer. The key travels in the link, after the `#`, and never reaches the server |
+| **When you open a link, press Sync, Pause or Stop** | Tisty talks to that same address, for that document only |
+| **On its own** | Nothing. A shared row does not check on Folio by itself; it finds out when you press something |
 
 ## The request Tisty makes on its own
 

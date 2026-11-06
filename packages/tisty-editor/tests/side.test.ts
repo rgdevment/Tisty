@@ -223,6 +223,128 @@ describe("the panels beside a sheet", () => {
     side.remove();
   });
 
+  it("draws a held row with what it says, its links and what can be pressed", () => {
+    const side = host();
+    const asked: string[] = [];
+    sided(side, say, [
+      {
+        kind: "held",
+        key: "shared",
+        label: "Compartido",
+        gist: "Solo leer",
+        tone: "warn",
+        open: true,
+        said: ["Caduca el lunes", "3 lecturas"],
+        links: [
+          {
+            key: "read",
+            label: "Leer",
+            url: "https://tisty.cl/a",
+            copy: "Copiar",
+            onCopy: () => asked.push("copy read"),
+          },
+          {
+            key: "edit",
+            label: "Editar",
+            url: "https://tisty.cl/b",
+            note: "Solo en Tisty",
+            copy: "Copiar",
+            onCopy: () => asked.push("copy edit"),
+          },
+        ],
+        acts: [
+          { key: "sync", label: "Sincronizar", main: true, onPick: () => asked.push("sync") },
+          {
+            key: "stop",
+            label: "Dejar",
+            danger: true,
+            onPick: (at) => asked.push(`at ${at.textContent}`),
+          },
+          { key: "wait", label: "Espera", off: true, onPick: () => asked.push("wait") },
+          { key: "still", label: "Sin nada" },
+        ],
+      },
+    ]);
+
+    const row = side.querySelector<HTMLDetailsElement>("details[data-row]") as HTMLDetailsElement;
+    expect(row.dataset.row).toBe("shared");
+    expect(row.open).toBe(true);
+    expect(text(side, ".side-row-label")).toEqual(["Compartido"]);
+    expect(text(side, ".side-gist")).toEqual(["Solo leer"]);
+    expect(side.querySelector(".side-gist")?.className).toBe("side-gist is-warn");
+    expect(text(side, "p.side-said")).toEqual(["Caduca el lunes", "3 lecturas"]);
+    expect(text(side, ".side-held .side-held-label")).toEqual(["Leer", "Editar"]);
+    expect(text(side, ".side-held .side-held-url")).toEqual([
+      "https://tisty.cl/a",
+      "https://tisty.cl/b",
+    ]);
+    expect(text(side, ".side-held .side-held-note")).toEqual(["Solo en Tisty"]);
+
+    const copies = side.querySelectorAll<HTMLButtonElement>(".side-held .side-link");
+    expect(Array.from(copies, (one) => one.textContent)).toEqual(["Copiar", "Copiar"]);
+    for (const copy of copies) copy.click();
+
+    const acts = Array.from(
+      side.querySelectorAll<HTMLButtonElement>(".side-acts.is-inside > button"),
+    );
+    expect(acts.map((one) => [one.textContent, one.className, one.disabled])).toEqual([
+      ["Sincronizar", "side-act is-main", false],
+      ["Dejar", "side-act is-danger", false],
+      ["Espera", "side-act", true],
+      ["Sin nada", "side-act", false],
+    ]);
+    for (const act of acts) act.click();
+
+    expect(asked).toEqual(["copy read", "copy edit", "sync", "at Dejar"]);
+  });
+
+  it("leaves out of a held row what it was not given, and starts it shut", () => {
+    const side = host();
+    sided(side, say, [
+      { kind: "held", key: "shared", label: "Compartido", gist: "Sin compartir", acts: [] },
+    ]);
+
+    expect(side.querySelector<HTMLDetailsElement>("details[data-row]")?.open).toBe(false);
+    expect(side.querySelector(".side-gist")?.className).toBe("side-gist");
+    expect(side.querySelector(".side-said")).toBeNull();
+    expect(side.querySelector(".side-held")).toBeNull();
+    expect(side.querySelector(".side-acts")).toBeNull();
+  });
+
+  it("tells the bad tone of a held row apart from the warning", () => {
+    const side = host();
+    sided(side, say, [{ kind: "held", key: "s", label: "L", gist: "G", tone: "bad" }]);
+
+    expect(side.querySelector(".side-gist")?.className).toBe("side-gist is-bad");
+  });
+
+  it("keeps a held row as the reader left it when the panels are drawn again", () => {
+    const side = host();
+    const panels: Panel[] = [
+      { kind: "held", key: "shared", label: "Compartido", gist: "G", open: true },
+    ];
+    sided(side, say, panels);
+    const row = side.querySelector<HTMLDetailsElement>("details[data-row]") as HTMLDetailsElement;
+    row.querySelector("summary")?.click();
+    row.open = false;
+
+    sided(side, say, panels);
+
+    expect(side.querySelector<HTMLDetailsElement>("details[data-row]")?.open).toBe(false);
+  });
+
+  it("draws a row of acts out in the open, not inside a held row", () => {
+    const side = host();
+    const asked: string[] = [];
+    sided(side, say, [
+      { kind: "acts", acts: [{ key: "a", label: "Abrir", onPick: () => asked.push("a") }] },
+    ]);
+
+    expect(side.querySelector(".side-acts")?.className).toBe("side-acts");
+    side.querySelector<HTMLButtonElement>(".side-act")?.click();
+    expect(asked).toEqual(["a"]);
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);
