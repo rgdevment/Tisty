@@ -59,7 +59,7 @@ describe("opening a diagram of the page in its own window", () => {
 
   it("gives each diagram a way to its window, only where the page can be written", () => {
     const own = page(BODY);
-    worn(own, false, () => true, reaching().reach);
+    worn(own, () => true, reaching().reach);
     const buttons = own.querySelectorAll(
       'figure.diagram > .diagram-bar > button[data-asked="diagram"]',
     );
@@ -69,11 +69,8 @@ describe("opening a diagram of the page in its own window", () => {
     ]);
     expect(own.body.textContent).not.toContain(t("diagramOpen"));
 
-    const stranger = page(BODY);
-    worn(stranger, true, () => true, reaching().reach);
     const reading = page(BODY);
-    worn(reading, false, () => true, reaching(false).reach);
-    expect(stranger.querySelector(".diagram-bar")).toBeNull();
+    worn(reading, () => true, reaching(false).reach);
     expect(reading.querySelector(".diagram-bar")).toBeNull();
   });
 
@@ -179,7 +176,7 @@ describe("exporting a diagram from the page", () => {
       ...reaching(false).reach,
       onDiagramExport: (nth, source, at) => heard.push([nth, source, at]),
     };
-    worn(own, false, () => true, reach);
+    worn(own, () => true, reach);
     wired(own, () => reach);
 
     const outs = own.querySelectorAll('.diagram-bar > button[data-asked="diagramExport"]');
@@ -217,7 +214,7 @@ describe("writing a diagram as Markdown from the page", () => {
       body: "x".repeat(80),
       onBlock: (at, block) => heard.push([at, block]),
     };
-    worn(own, false, () => true, reach);
+    worn(own, () => true, reach);
 
     const words = own.querySelectorAll('.diagram-bar > button[data-asked="diagramMarkdown"]');
     expect(words[0].getAttribute("aria-label")).toBe(t("diagramMarkdown"));

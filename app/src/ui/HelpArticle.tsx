@@ -47,7 +47,6 @@ export default function HelpArticle({
       body={`# ${entry.title}\n\n${body}`}
       draw={draw}
       label={entry.title}
-      stranger={false}
       card={card}
       onDoc={() => undefined}
       onOutline={onOutline}

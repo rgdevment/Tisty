@@ -61,7 +61,6 @@ const drawn = async (more: Partial<Parameters<typeof Page>[0]> = {}) => {
     <Page
       body={BODY}
       label="Notas"
-      stranger={false}
       wide={900}
       zoom={1}
       onDoc={(file) => heard.docs.push(file)}
@@ -107,9 +106,7 @@ describe("a drawn page in the viewer", () => {
   it("follows a new sheet size or zoom without drawing again", async () => {
     const { frame, view } = await drawn();
     const page = await loaded(frame);
-    view.rerender(
-      <Page body={BODY} label="Notas" stranger={false} wide={1200} zoom={1.5} onDoc={() => {}} />,
-    );
+    view.rerender(<Page body={BODY} label="Notas" wide={1200} zoom={1.5} onDoc={() => {}} />);
     expect(page.documentElement.style.getPropertyValue("--wide")).toBe("1200px");
     expect(page.documentElement.style.getPropertyValue("zoom")).toBe("1.5");
   });
@@ -143,7 +140,7 @@ describe("a drawn page in the viewer", () => {
     const page = await loaded(frame);
     const before = frame.srcdoc;
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
-    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    view.rerender(<Page body="Nuevo" label="Notas" onDoc={() => {}} />);
     expect(page.querySelector(".page")?.textContent).toContain("Árbol");
     await waitFor(() => expect(page.querySelector(".page")?.textContent).toContain("Nuevo"));
     expect(Array.from(view.container.querySelectorAll("iframe"))).toEqual([frame]);
@@ -158,13 +155,7 @@ describe("a drawn page in the viewer", () => {
     const old = page.querySelector('p[data-at="11-19"]');
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
     view.rerender(
-      <Page
-        body="Nuevo"
-        label="Notas"
-        stranger={false}
-        onDoc={() => {}}
-        onBlock={(at) => blocks.push(at)}
-      />,
+      <Page body="Nuevo" label="Notas" onDoc={() => {}} onBlock={(at) => blocks.push(at)} />,
     );
     await waitFor(() => expect(page.querySelector('p[data-at="0-5"]')).not.toBeNull());
     old?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -180,7 +171,7 @@ describe("a drawn page in the viewer", () => {
     await loaded(frame);
     const [dropped, released] = [ipc.dropped, ipc.released];
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
-    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    view.rerender(<Page body="Nuevo" label="Notas" onDoc={() => {}} />);
     await waitFor(() => expect(ipc.dropped).toBe(dropped + 1));
     expect(ipc.released).toBe(released + 1);
   });
@@ -193,7 +184,6 @@ describe("a drawn page in the viewer", () => {
       <Page
         body={BODY}
         label="Notas"
-        stranger={false}
         onDoc={() => {}}
         onShown={(at) => heard.shown.push(at)}
         again="b"
@@ -210,7 +200,7 @@ describe("a drawn page in the viewer", () => {
     sheet.dataset.empty = "Vacía";
     sheet.classList.add("whole");
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
-    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    view.rerender(<Page body="Nuevo" label="Notas" onDoc={() => {}} />);
     await waitFor(() => expect(sheet.textContent).toContain("Nuevo"));
     expect(sheet.hasAttribute("data-empty")).toBe(false);
     expect(sheet.className).toBe("page");
@@ -222,13 +212,7 @@ describe("a drawn page in the viewer", () => {
     await loaded(frame);
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
     view.rerender(
-      <Page
-        body="Nuevo"
-        label="Notas"
-        stranger={false}
-        onDoc={() => {}}
-        onBlock={(at) => blocks.push(at)}
-      />,
+      <Page body="Nuevo" label="Notas" onDoc={() => {}} onBlock={(at) => blocks.push(at)} />,
     );
     await waitFor(() =>
       expect(frame.contentDocument?.querySelector(".page")?.textContent).toContain("Nuevo"),
@@ -247,7 +231,7 @@ describe("a drawn page in the viewer", () => {
     const was = document.documentElement.lang;
     document.documentElement.lang = "en";
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
-    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    view.rerender(<Page body="Nuevo" label="Notas" onDoc={() => {}} />);
     await waitFor(() => expect(page.documentElement.lang).toBe("en"));
     document.documentElement.lang = was;
   });
