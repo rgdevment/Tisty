@@ -2,7 +2,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorState, findClusterBreak, Transaction } from "@codemirror/state";
 import { owning } from "./formatting";
 import { pending } from "./pending";
-import { INLINE, marksShown, ownPair, type Pair, revealing, type Span } from "./seeing";
+import { fencePairs, INLINE, marksShown, ownPair, type Pair, revealing, type Span } from "./seeing";
 
 const treePairs = (state: EditorState, from: number, to: number, out: Pair[]) => {
   const { main } = state.selection;
@@ -29,7 +29,7 @@ const treePairs = (state: EditorState, from: number, to: number, out: Pair[]) =>
   });
 };
 
-export const pairsIn = (state: EditorState, from: number, to: number): Pair[] => {
+const inlinePairs = (state: EditorState, from: number, to: number): Pair[] => {
   const start = state.doc.lineAt(from).from;
   const end = state.doc.lineAt(to).to;
   const out: Pair[] = [];
@@ -39,6 +39,15 @@ export const pairsIn = (state: EditorState, from: number, to: number): Pair[] =>
     if (pair) out.push(pair);
   }
   return out;
+};
+
+const hiddenFences = (state: EditorState): Pair[] => {
+  const { main } = state.selection;
+  const onLine = (mark: Span) => {
+    const line = state.doc.lineAt(mark.from);
+    return main.empty && main.head >= line.from && main.head <= line.to;
+  };
+  return fencePairs(state).filter(({ open, shut }) => !onLine(open) && !onLine(shut));
 };
 
 const hit = (mark: Span, from: number, to: number) => mark.from < to && mark.to > from;
@@ -82,11 +91,11 @@ const spared = (
   from: number,
   to: number,
   inserted: boolean,
-  forward: boolean,
+  forward: boolean | null,
 ): Span[] | null => {
   const going: Span[] = [{ from, to }];
   const kept: Span[] = [];
-  for (const { open, shut } of pairsIn(state, from, to)) {
+  for (const { open, shut } of [...inlinePairs(state, from, to), ...hiddenFences(state)]) {
     const inOpen = hit(open, from, to);
     const inShut = hit(shut, from, to);
     if (!inserted && from <= open.to && to >= shut.from) going.push(open, shut);
@@ -98,7 +107,7 @@ const spared = (
   if (widened && (widened.from < from || widened.to > to))
     return spared(state, widened.from, widened.to, false, forward) ?? whole;
   const left = without(whole, kept);
-  if (left.length || inserted) return left;
+  if (left.length || inserted || forward === null) return left;
   const edge = forward
     ? Math.max(to, ...kept.map((mark) => mark.to))
     : Math.min(from, ...kept.map((mark) => mark.from));
@@ -107,10 +116,29 @@ const spared = (
   return spared(state, next.from, next.to, false, forward) ?? [next];
 };
 
+// Written against a format's edge, a letter that would undo it goes inside it instead.
+const insideFormat = (done: Transaction, at: number): number | null => {
+  const state = done.startState;
+  const edge = inlinePairs(state, at, at).filter(
+    ({ open, shut }) => at === shut.to || at === open.from,
+  );
+  if (!edge.length) return null;
+  const line = done.newDoc.lineAt(done.changes.mapPos(at, 1));
+  const after = inlinePairs(done.state, line.from, line.to);
+  const lost = edge.filter(
+    ({ open }) => !after.some((one) => one.open.from === done.changes.mapPos(open.from, 1)),
+  );
+  if (!lost.length) return null;
+  const closing = lost.filter(({ shut }) => at === shut.to).map(({ shut }) => shut.from);
+  if (closing.length) return Math.min(...closing);
+  return Math.max(...lost.map(({ open }) => open.to));
+};
+
 // With the marks out of sight a deletion must not leave half a format lying in the words.
 export const pairsKept = EditorState.transactionFilter.of((done) => {
   const state = done.startState;
   if (!done.docChanged) return done;
+  if (done.isUserEvent("input.type.compose")) return done;
   const deleting = done.isUserEvent("delete");
   if (!deleting && !done.isUserEvent("input.type") && !done.isUserEvent("input.paste")) return done;
   if (state.field(marksShown, false) || state.facet(revealing) || state.field(pending, false))
@@ -120,9 +148,20 @@ export const pairsKept = EditorState.transactionFilter.of((done) => {
     changed.push({ from, to, insert: text.sliceString(0, undefined, state.lineBreak) });
   });
   const only = changed[0];
-  if (changed.length !== 1 || !only || only.from === only.to) return done;
+  if (changed.length !== 1 || !only) return done;
+  if (only.from === only.to) {
+    const inside = done.isUserEvent("input.type") ? insideFormat(done, only.from) : null;
+    if (inside === null) return done;
+    return {
+      changes: { from: inside, insert: only.insert },
+      selection: { anchor: inside + state.toText(only.insert).length },
+      scrollIntoView: done.scrollIntoView,
+      annotations: Transaction.userEvent.of("input.type"),
+    };
+  }
   const forward = done.isUserEvent("delete.forward");
-  const left = spared(state, only.from, only.to, Boolean(only.insert), forward);
+  const walks = state.selection.main.empty ? forward : null;
+  const left = spared(state, only.from, only.to, Boolean(only.insert), walks);
   if (!left) return done;
   const at = left[0]?.from ?? only.from;
   const changes = state.changes([
@@ -147,7 +186,7 @@ export const outOfPairs = (state: EditorState, head: number): number | null => {
   let at = head;
   for (let moved = true; moved; ) {
     moved = false;
-    for (const { open, shut } of pairsIn(state, at, at)) {
+    for (const { open, shut } of inlinePairs(state, at, at)) {
       if (at <= open.from || at >= shut.to) continue;
       if (at === shut.from) at = shut.to;
       else if (at === open.to) at = open.from;

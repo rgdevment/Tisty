@@ -174,6 +174,74 @@ describe("deleting beside marks out of sight", () => {
   });
 });
 
+describe("keeping a section's fences out of sight", () => {
+  const section = ":::details A\n\nuno\n\n:::";
+
+  it("keeps the closing fence when a selection runs out of the body", () => {
+    const view = written(`${section}\n\nfin`, 14, section.length);
+    cut(view);
+    expect(text(view)).toBe(":::details A\n\n:::\n\nfin");
+  });
+
+  it("deletes a whole section when all of it is selected", () => {
+    const view = written(`a\n\n${section}\n\nb`, 3, 3 + section.length);
+    cut(view);
+    expect(text(view)).toBe("a\n\n\n\nb");
+  });
+
+  it("leaves a fence the caret stands on to be written", () => {
+    const view = written(section, section.length);
+    deleteCharBackward(view);
+    expect(text(view)).toBe(":::details A\n\nuno\n\n::");
+  });
+
+  it("deletes nothing past a selection made only of a fence", () => {
+    const view = written(`${section}\n\nfin`, section.length - 3, section.length);
+    cut(view);
+    expect(text(view)).toBe(`${section}\n\nfin`);
+  });
+
+  it("lets Enter start a paragraph inside the section", () => {
+    const view = written(section, 17);
+    expect(enter(view)).toBe(true);
+    expect(text(view)).toBe(":::details A\n\nuno\n\n\n\n:::");
+  });
+});
+
+describe("writing against a format's edge", () => {
+  it("takes a letter inside when it would undo the format", () => {
+    const end = written("el ++dato++ y", 11);
+    typed(end, "s");
+    expect(text(end)).toBe("el ++datos++ y");
+    expect(caret(end)).toBe(10);
+    const start = written("el ++dato++", 3);
+    typed(start, "x");
+    expect(text(start)).toBe("el ++xdato++");
+    expect(caret(start)).toBe(6);
+  });
+
+  it("leaves a letter outside when the format holds", () => {
+    const bold = written("**dato** y", 8);
+    typed(bold, "s");
+    expect(text(bold)).toBe("**dato**s y");
+    const pen = written("==dato== y", 8);
+    typed(pen, "s");
+    expect(text(pen)).toBe("==dato==s y");
+    const spaced = written("el ++dato++", 11);
+    typed(spaced, " ");
+    expect(text(spaced)).toBe("el ++dato++ ");
+  });
+
+  it("leaves what is composed alone, with its accents", () => {
+    const view = written("**dato** y", 4, 9);
+    view.dispatch({
+      changes: { from: 4, to: 9, insert: "á" },
+      userEvent: "input.type.compose",
+    });
+    expect(text(view)).toBe("**daáy");
+  });
+});
+
 describe("Enter in a block", () => {
   it("takes a title's words to the body with a paragraph between", () => {
     const view = written("# Plan", 6);
@@ -196,6 +264,20 @@ describe("Enter in a block", () => {
     const other = written("leche", 5);
     enter(other, true);
     expect(text(other)).toBe("leche\n");
+  });
+
+  it("goes on to the body from a title with no words yet", () => {
+    const view = written("# ", 2);
+    expect(enter(view)).toBe(true);
+    expect(text(view)).toBe("# \n\n");
+    expect(caret(view)).toBe(4);
+  });
+
+  it("pushes a title down from its start, the caret staying with it", () => {
+    const view = written("# Plan", 2);
+    expect(enter(view)).toBe(true);
+    expect(text(view)).toBe("\n\n# Plan");
+    expect(caret(view)).toBe(4);
   });
 
   it("uses the line ends the block was written with", () => {

@@ -302,6 +302,20 @@ describe("the sheet in the main window", () => {
     expect(settled).toEqual([[BODY, "# Compras\n\nleche y fruta\n\npan\n"]]);
   });
 
+  it("keeps the blank line a list's span ends with, so the words after it stay apart", async () => {
+    const list = "# Compras\n\n- uno\n\npan\n";
+    ipc.drawn =
+      '<h1 data-at="0-11">Compras</h1><ul data-at="11-18"><li>uno</li></ul><p data-at="18-22">pan</p>';
+    const said: string[] = [];
+    const view = render(<Sheet value={list} label="Compras" onWrite={(text) => said.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('ul[data-at="11-18"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("- dos");
+    expect(said[said.length - 1]).toBe("# Compras\n\n- dos\n\npan\n");
+  });
+
   it("leaves the block open when another is clicked, instead of opening a second one", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));

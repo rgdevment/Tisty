@@ -244,6 +244,17 @@ const sections = (state: EditorState): [Fence, Fence][] => {
   return found;
 };
 
+export const fencePairs = (state: EditorState): Pair[] => {
+  if (!state.sliceDoc().includes(":::")) return [];
+  return sections(state).map(([head, end]) => {
+    const top = state.doc.line(head.at);
+    const from = top.from + top.text.length - top.text.trimStart().length;
+    const shut = state.doc.line(end.at);
+    const openTo = head.called ? top.to : from + (head.head?.[0].length ?? 0);
+    return { open: { from, to: openTo }, shut: { from: shut.from, to: shut.to } };
+  });
+};
+
 const called = (
   state: EditorState,
   shown: boolean,

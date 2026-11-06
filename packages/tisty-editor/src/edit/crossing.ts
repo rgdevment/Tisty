@@ -10,6 +10,8 @@ export type Crossing = {
   readonly join: boolean;
 };
 
+const CALLOUT_HEAD = /^\s*(>\s?\[!|:::)/;
+
 export const WRITTEN =
   ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote)[data-at]:not(:has(> img:only-child))";
 
@@ -63,8 +65,9 @@ export const crossingKeys = (host: Element, cross: (one: Crossing) => void): Key
       cross({ forward, x: null, join: false });
       return true;
     }
-    if (coded(state, head) || tableHere(state) || !beside(host, forward)?.matches(WRITTEN))
-      return false;
+    const next = beside(host, forward);
+    if (coded(state, head) || tableHere(state) || !next?.matches(WRITTEN)) return false;
+    if (next.matches(".callout") || CALLOUT_HEAD.test(state.doc.line(1).text)) return false;
     cross({ forward, x: null, join: true });
     return true;
   };
@@ -84,5 +87,8 @@ export const enteredAt = (view: EditorView, forward: boolean, x: number | null):
   const box = view.contentDOM.getBoundingClientRect();
   const y = forward ? box.top + 4 : box.bottom - 8;
   const found = view.posAtCoords({ x, y });
-  return found ?? edge;
+  if (found === null) return edge;
+  if (coded(view.state, found)) return found;
+  const line = view.state.doc.lineAt(found);
+  return Math.max(found, line.from + (LEADS.exec(line.text)?.[0].length ?? 0));
 };

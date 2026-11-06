@@ -1,6 +1,6 @@
 import { closeCompletion } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
-import type { EditorState, Line } from "@codemirror/state";
+import { EditorSelection, type EditorState, type Line } from "@codemirror/state";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
@@ -94,7 +94,9 @@ const home = (view: EditorView, extend: boolean) => {
   const start = line.from + (LEADS.exec(line.text)?.[0].length ?? 0);
   if (start === line.from || main.head <= start) return false;
   view.dispatch({
-    selection: extend ? { anchor: main.anchor, head: start } : { anchor: start },
+    selection: extend
+      ? { anchor: main.anchor, head: start }
+      : EditorSelection.create([EditorSelection.cursor(start, 1)]),
     scrollIntoView: true,
   });
   return true;
@@ -130,12 +132,14 @@ export const paragraphKeys: KeyBinding[] = [
       if (coded(state, main.head) || fronted(state.doc.toString(), main.head)) return false;
       if (!stands(state, line)) return false;
       const lead = LEADS.exec(line.text)?.[0].length ?? 0;
-      const at = main.head <= line.from + lead ? line.from : outOfPairs(state, main.head);
+      const titleless = line.from + lead === line.to;
+      const inFront = main.head <= line.from + lead && !titleless;
+      const at = titleless ? line.to : inFront ? line.from : outOfPairs(state, main.head);
       if (at === null) return false;
       const gap = state.lineBreak.repeat(2);
       view.dispatch({
         changes: { from: at, insert: gap },
-        selection: { anchor: at === line.from ? main.head + 2 : at + 2 },
+        selection: { anchor: inFront ? main.head + 2 : at + 2 },
         scrollIntoView: true,
         userEvent: "input",
       });
@@ -420,11 +424,11 @@ export const barred = (
   let keptOpen = whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
   let chosen = false;
   let shutOver = false;
-  const opened = () => keptOpen || (!whole && chosen && !shutOver);
+  const opened = () => keptOpen || (!whole && (chosen || tabled) && !shutOver);
   const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => {
     const was = opened();
     keptOpen = !was;
-    shutOver = was && chosen;
+    shutOver = was && (chosen || tabled);
     if (whole) remember(FOLDED, !keptOpen);
     else remember(KEPT_OPEN, keptOpen);
     folding();
@@ -511,9 +515,9 @@ export const barred = (
     const { head } = current.state.selection.main;
     bar.hidden = formless(current.state);
     chosen = !current.state.selection.main.empty;
-    if (!chosen) shutOver = false;
-    folding();
     tabled = tableHere(current.state) !== null;
+    if (!chosen && !tabled) shutOver = false;
+    folding();
     if (tableIt) tableIt.hidden = tabled;
     kindSaid.textContent = tabled ? say("table") : say(kindOf(current.state.doc.lineAt(head).text));
     marking(current.state);

@@ -124,6 +124,19 @@ describe("deleting across a block's edge", () => {
     expect(press(table.view, "Backspace")).toBe(false);
   });
 
+  it("never joins a callout, from either side", () => {
+    const next = onPage(
+      "uno",
+      3,
+      '<HOST/><blockquote class="callout" data-at="4-9">x</blockquote>',
+    );
+    expect(press(next.view, "Delete")).toBe(false);
+    const own = onPage("> [!NOTE]\n> uno", 0);
+    expect(press(own.view, "Backspace")).toBe(false);
+    const colon = onPage(":::tip\nuno\n:::", 0);
+    expect(press(colon.view, "Backspace")).toBe(false);
+  });
+
   it("leaves the middle of the words to their own keys", () => {
     const { view, cross } = onPage("uno", 1);
     expect(press(view, "Backspace")).toBe(false);
@@ -136,6 +149,26 @@ describe("deleting across a block's edge", () => {
     expect(joined("uno\r\n\r\ndos", 7)).toEqual({ text: "unodos", at: 3 });
     expect(joined("uno\n\n## dos", 3)).toEqual({ text: "unodos", at: 3 });
     expect(joined("# uno\n\n- dos\n- tres", 5)).toEqual({ text: "# unodos\n- tres", at: 5 });
+  });
+});
+
+describe("arriving at a block by its column", () => {
+  it("lands past a hidden mark, so the next letter stays in the words", () => {
+    const list = onPage("- uno\n- dos", 0);
+    vi.spyOn(list.view, "posAtCoords").mockReturnValue(0);
+    expect(enteredAt(list.view, true, 5)).toBe(2);
+    const low = onPage("- uno\n- dos", 0);
+    vi.spyOn(low.view, "posAtCoords").mockReturnValue(6);
+    expect(enteredAt(low.view, false, 5)).toBe(8);
+    const words = onPage("# Plan", 0);
+    vi.spyOn(words.view, "posAtCoords").mockReturnValue(4);
+    expect(enteredAt(words.view, true, 5)).toBe(4);
+  });
+
+  it("leaves code as it is written", () => {
+    const code = onPage("```\n- uno\n```", 0);
+    vi.spyOn(code.view, "posAtCoords").mockReturnValue(4);
+    expect(enteredAt(code.view, true, 5)).toBe(4);
   });
 });
 

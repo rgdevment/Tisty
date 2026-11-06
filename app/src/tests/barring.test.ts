@@ -209,6 +209,24 @@ describe("the bar over the block being written", () => {
       editor.destroy();
     });
 
+    it("stands open inside a table, whose own menu it holds", () => {
+      beginning();
+      const editor = view("| a |\n| - |\n| b |\n\nfin");
+      const { bar, follow } = barred(editor);
+      editor.dispatch({ selection: { anchor: 2 } });
+      follow(editor);
+      expect(opened(bar)).toBe(true);
+      press(bar);
+      expect(opened(bar)).toBe(false);
+      editor.dispatch({ selection: { anchor: editor.state.doc.length } });
+      follow(editor);
+      expect(opened(bar)).toBe(false);
+      editor.dispatch({ selection: { anchor: 2 } });
+      follow(editor);
+      expect(opened(bar)).toBe(true);
+      editor.destroy();
+    });
+
     it("stays as left in the whole document, whatever is selected", () => {
       beginning();
       const editor = view("leche y pan");

@@ -100,7 +100,7 @@ export const docked = (
     const margin = (Number.parseFloat(look.paddingLeft) || 0) - bar.offsetWidth - RAIL;
     // Folded it waits in the margin beside the line, where it covers none of the words above.
     if (bar.classList.contains("folded") && line != null && margin >= 0) {
-      bar.style.top = `${Math.min(bottom, Math.max(top, (line + view.scrollY) / zoom + 2))}px`;
+      bar.style.top = `${Math.min(bottom, Math.max(top, stuck, (line + view.scrollY) / zoom + 2))}px`;
       bar.style.left = `${(box.left + view.scrollX) / zoom + margin}px`;
       return;
     }
