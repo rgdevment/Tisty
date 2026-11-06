@@ -87,7 +87,10 @@ export interface ShareStatus {
   reads: number;
 }
 
-export type SharingNow = "open" | "closed" | "unreached";
+export type SharingNow =
+  | { state: "open" }
+  | { state: "closed"; note: Record<string, string | undefined> | null }
+  | { state: "unreached" };
 
 export const sharingNow = (): Promise<SharingNow> => invoke("folio_sharing_now");
 

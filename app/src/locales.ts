@@ -751,7 +751,8 @@ const en = {
   shareLooking: "Looking it over…",
   shareClosedTitle: "Share with Folio",
   shareClosedWhat: "Folio lets you share documents privately with anyone, using an encrypted link.",
-  shareClosedYet: "It isn’t available yet. Learn more at",
+  shareClosedYet: "It isn’t available yet.",
+  shareClosedMore: "Learn more at",
   shareClosedOk: "Got it",
   shareUnreachedTitle: "Couldn't check whether you can share",
   shareUnreachedWhy:
@@ -3588,7 +3589,8 @@ const es: Catalog = {
   shareClosedTitle: "Compartir con Folio",
   shareClosedWhat:
     "Folio te permite compartir documentos en privado con quien quieras, con un link y cifrados de forma segura.",
-  shareClosedYet: "Todavía no está disponible. Conoce más en",
+  shareClosedYet: "Todavía no está disponible.",
+  shareClosedMore: "Conoce más en",
   shareClosedOk: "Entendido",
   shareUnreachedTitle: "No se pudo comprobar si puedes compartir",
   shareUnreachedWhy:

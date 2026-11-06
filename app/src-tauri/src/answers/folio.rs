@@ -167,7 +167,7 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<()> {
 fn may_start(now: SharingNow) -> Answer<()> {
     match now {
         SharingNow::Open => Ok(()),
-        SharingNow::Closed => Err(Refusal::of("folioClosed")),
+        SharingNow::Closed { .. } => Err(Refusal::of("folioClosed")),
         SharingNow::Unreached => Err(Refusal::of("folioUnreached")),
     }
 }

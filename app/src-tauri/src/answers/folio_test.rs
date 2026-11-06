@@ -288,7 +288,9 @@ fn a_secret_is_placed_under_its_heading_past_properties_and_code() {
 fn only_an_open_folio_lets_a_new_share_start() {
     assert!(may_start(SharingNow::Open).is_ok());
     assert_eq!(
-        may_start(SharingNow::Closed).unwrap_err().code,
+        may_start(SharingNow::Closed { note: None })
+            .unwrap_err()
+            .code,
         "folioClosed"
     );
     assert_eq!(

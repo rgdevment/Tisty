@@ -139,14 +139,15 @@ function Terms({
   );
 }
 
-function NotOpenYet({ onClose }: Readonly<{ onClose: () => void }>) {
+function NotOpenYet({ note, onClose }: Readonly<{ note?: string; onClose: () => void }>) {
   return (
     <Modal title={t("shareClosedTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
         <p className="text-[13px] leading-relaxed">
-          {t("shareClosedWhat")}
+          {note ?? t("shareClosedWhat")}
           <br />
-          {t("shareClosedYet")}{" "}
+          {!note && `${t("shareClosedYet")} `}
+          {t("shareClosedMore")}{" "}
           <button
             type="button"
             onClick={() => void openUrl(`https://${FOLIO_SITE}`).catch(() => {})}
@@ -564,7 +565,7 @@ function Choosing({
 
 type Step =
   | { at: "reading" }
-  | { at: "closed" }
+  | { at: "closed"; note?: string }
   | { at: "unreached" }
   | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
   | { at: "choosing"; look: ShareLook }
@@ -628,8 +629,9 @@ export default function Sharing({
     sharingNow()
       .then((now) => {
         if (!live.current) return;
-        if (now === "open") termsOver();
-        else setStep({ at: now });
+        if (now.state === "open") termsOver();
+        else if (now.state === "closed") setStep({ at: "closed", note: now.note?.[locale()] });
+        else setStep({ at: "unreached" });
       })
       .catch(failed);
   }, [failed, termsOver]);
@@ -685,7 +687,7 @@ export default function Sharing({
         </Modal>
       );
     case "closed":
-      return <NotOpenYet onClose={onClose} />;
+      return <NotOpenYet note={step.note} onClose={onClose} />;
     case "unreached":
       return <NoAnswer onRetry={begin} onClose={onClose} />;
     case "terms":

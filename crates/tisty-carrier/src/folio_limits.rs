@@ -15,6 +15,7 @@ const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
+const NOTE_AT_MOST: usize = 400;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct FolioLimits {
@@ -53,6 +54,30 @@ pub struct FolioLimits {
     pub terms: Option<FolioTerms>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharing_open: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sharing_closed_note: Option<FolioNote>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct FolioNote {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub es: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub en: Option<String>,
+}
+
+impl FolioNote {
+    fn fit(self) -> Self {
+        Self {
+            es: fit_note(self.es),
+            en: fit_note(self.en),
+        }
+    }
+}
+
+fn fit_note(said: Option<String>) -> Option<String> {
+    let said = said?.trim().to_owned();
+    (!said.is_empty() && said.chars().count() <= NOTE_AT_MOST).then_some(said)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -62,11 +87,11 @@ pub struct FolioTerms {
     pub en: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "state", rename_all = "camelCase")]
 pub enum SharingNow {
     Open,
-    Closed,
+    Closed { note: Option<FolioNote> },
     Unreached,
 }
 
@@ -127,7 +152,9 @@ pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> Shar
     let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
     match limits_for_sharing(home, due, &bring) {
         Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
-        Some(_) => SharingNow::Closed,
+        Some(limits) => SharingNow::Closed {
+            note: limits.sharing_closed_note.map(FolioNote::fit),
+        },
         None => {
             // A look that reached nothing must not hold the next try back for an hour.
             let _ = std::fs::remove_file(home.join(ASKED));

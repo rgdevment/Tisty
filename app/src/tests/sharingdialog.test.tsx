@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { adopt, fill, t } from "../locales";
@@ -28,7 +28,7 @@ const look = {
 const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) => {
     if (command in answers) return Promise.resolve(answers[command]);
-    if (command === "folio_sharing_now") return Promise.resolve("open");
+    if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
     if (command === "help_drawn") return Promise.resolve("<p>Los términos</p>");
     return Promise.reject({ code: "internal" });
   });
@@ -47,7 +47,7 @@ beforeEach(() => {
 
 describe("sharing a document with Folio", () => {
   it("says it is not available yet and asks for no terms while Folio is closed", async () => {
-    answering({ folio_sharing_now: "closed" });
+    answering({ folio_sharing_now: { state: "closed", note: null } });
     const { onClose } = shown();
 
     await screen.findByText(t("shareClosedWhat"), { exact: false });
@@ -58,12 +58,29 @@ describe("sharing a document with Folio", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("shows what Folio signed to say in this language, and the standard notice without it", async () => {
+    answering({
+      folio_sharing_now: { state: "closed", note: { en: "We open on Monday.", es: "El lunes." } },
+    });
+    shown();
+    await screen.findByText("We open on Monday.", { exact: false });
+    expect(screen.queryByText(t("shareClosedWhat"), { exact: false })).toBeNull();
+    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+
+    cleanup();
+    answering({ folio_sharing_now: { state: "closed", note: { es: "El lunes." } } });
+    shown();
+    await screen.findByText(t("shareClosedWhat"), { exact: false });
+  });
+
   it("asks again when the first look reached nothing", async () => {
     let looks = 0;
     invoked.mockImplementation((command: string) => {
       if (command === "folio_sharing_now") {
         looks += 1;
-        return Promise.resolve(looks === 1 ? "unreached" : "closed");
+        return Promise.resolve(
+          looks === 1 ? { state: "unreached" } : { state: "closed", note: null },
+        );
       }
       return Promise.reject({ code: "internal" });
     });

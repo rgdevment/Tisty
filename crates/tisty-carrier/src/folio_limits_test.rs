@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, SharingNow, accepted, heed,
-    heed_now, kept, read_under, sharing_now, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, SIGNATURE_URL,
+    SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -11,6 +11,7 @@ use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 const REAL: &[u8] = include_bytes!("folio_signed/limits.json");
 const REAL_SIG: &str = include_str!("folio_signed/limits.json.minisig");
 const KEY: &str = super::KEY;
+const CLOSED: SharingNow = SharingNow::Closed { note: None };
 
 const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const OTHER: &[u8] = include_bytes!("cloud/signed/lowered.json");
@@ -47,7 +48,57 @@ fn answering_real(url: &str) -> Option<Vec<u8>> {
 fn signed_limits_that_say_nothing_of_sharing_leave_it_closed() {
     let home = tempfile::tempdir().unwrap();
 
-    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Closed);
+    assert_eq!(sharing_now(home.path(), answering_real), CLOSED);
+}
+
+fn closed_saying(es: Option<String>, en: Option<String>) -> SharingNow {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        serial: 1,
+        sharing_closed_note: Some(FolioNote { es, en }),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    sharing_now(home.path(), |_| None)
+}
+
+#[test]
+fn what_folio_signs_to_say_while_closed_comes_along_without_its_spaces() {
+    let told = closed_saying(Some("  Abrimos el lunes.\n".to_owned()), None);
+
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote {
+                es: Some("Abrimos el lunes.".to_owned()),
+                en: None,
+            }),
+        }
+    );
+}
+
+#[test]
+fn a_blank_or_oversized_word_from_folio_leaves_the_standard_notice() {
+    let longest = "a".repeat(NOTE_AT_MOST);
+    let told = closed_saying(Some("   ".to_owned()), Some(format!("{longest}a")));
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote::default()),
+        }
+    );
+
+    let told = closed_saying(None, Some(longest.clone()));
+    assert_eq!(
+        told,
+        SharingNow::Closed {
+            note: Some(FolioNote {
+                es: None,
+                en: Some(longest),
+            }),
+        }
+    );
 }
 
 #[test]
@@ -68,7 +119,7 @@ fn closed_is_kept_within_the_hour_without_asking() {
 
     let told = sharing_now(home.path(), |_| panic!("it asked within the hour"));
 
-    assert_eq!(told, SharingNow::Closed);
+    assert_eq!(told, CLOSED);
 }
 
 #[test]
@@ -84,7 +135,7 @@ fn a_look_that_reached_nothing_does_not_hold_back_the_next_try() {
     let home = tempfile::tempdir().unwrap();
 
     assert_eq!(sharing_now(home.path(), |_| None), SharingNow::Unreached);
-    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Closed);
+    assert_eq!(sharing_now(home.path(), answering_real), CLOSED);
 }
 
 #[test]
