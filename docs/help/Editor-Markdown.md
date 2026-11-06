@@ -6,22 +6,23 @@ Un documento en Tisty es texto tuyo, guardado como un archivo `.md` normal, que 
 
 ## Escribir donde lees
 
-Hay una sola forma de escribir, y ocurre en la misma página.
+Se escribe en la misma página, de a un bloque.
 
 - **Haz clic en un bloque y se abre ahí mismo**, con el cursor donde hiciste clic. El resto de la página sigue como se lee. Un clic sobre una imagen o un diagrama, en cambio, lo abre en grande para acercarlo, moverlo y pasar al siguiente; para editarlo, usa el menú del bloque. Un diagrama trae su propia barra al pasar el puntero: **Exportar**, **Editar como Markdown**, que abre su texto ahí mismo, y **Abrir en la ventana de diagramas**; un doble clic también lo abre en la [[ventana de diagramas|Diagramas]].
-- **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título; los `**` o el `#` solo aparecen cuando los pides, y seleccionar o borrar texto deja el formato entero. Un enlace es la única excepción: con el cursor en él ves su dirección, que puedes cambiar ahí.
+- **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título; los `**` o el `#` solo aparecen cuando los pides, y seleccionar o borrar texto deja el formato entero. Si al borrar un espacio una palabra queda pegada a un formato y lo desharía, la palabra entra en el formato, y volver a escribir el espacio enseguida lo deja como estaba. Un enlace es la única excepción: con el cursor en él ves su dirección, que puedes cambiar ahí.
 - **Los títulos, las listas, las etapas, las citas y los avisos siempre se dibujan**, también mientras los escribes: una viñeta es una viñeta, una casilla es una casilla que puedes marcar, un aviso lleva su color y su nombre.
 - **Esc, o un clic fuera, vuelve a la lectura.** Lo que escribes se guarda sobre la marcha, y el pie de la página te lo dice.
 - **La primera línea es el título.** No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama. Enter te lleva de ahí al cuerpo.
 - **Enter empieza un párrafo nuevo, y `Shift` + `Enter` solo salta de línea.** Las listas, las citas y el código conservan su propio Enter.
 - **Las flechas siguen de un bloque al siguiente** en un documento, saltando una imagen, una tabla o un diagrama, que se abren con un clic. `Retroceso` al inicio de un bloque lo une con el anterior, y `Supr` al final une el siguiente.
 - **`Ctrl`/`⌘` + `Shift` + `M` muestra todas las marcas** del bloque, para cuando quieres ver el Markdown tal cual. Vuelve a pulsarlo para ocultarlas.
+- **`Ctrl`/`⌘` + `E` abre todo el documento** como un solo texto, con las marcas abriéndose donde está el cursor. Sirve para los cambios que cruzan varios bloques. Vuelve a pulsarlo, o pulsa Esc, para volver a leer. La página de una tarea siempre se escribe por bloques.
 
-Una línea al pie de la página deja las teclas a la vista: `/` para insertar, `#` y un espacio para un título, el atajo de todas las marcas y Esc para leer.
+Una línea bajo el bloque deja las teclas a la vista: `/` para insertar, el atajo de todas las marcas y el de todo el documento.
 
 ## La barra
 
-Mientras un bloque está abierto, espera sobre él un pequeño **Aa**, que se abre en la barra completa cuando seleccionas texto o lo pulsas. Abierta a mano, sigue abierta hasta que la pliegues. La barra flota sobre el bloque (no dentro de un bloque de código ni de una fórmula `$$`, donde no escribiría nada):
+Mientras un bloque está abierto, espera en el margen a su lado un pequeño **Aa**, o encima de él en una ventana angosta, que se abre en la barra completa cuando seleccionas texto o lo pulsas. Abierta a mano, sigue abierta hasta que la pliegues, y dentro de una tabla queda abierta, porque lleva el menú de la tabla. La barra flota sobre el bloque (no dentro de un bloque de código ni de una fórmula `$$`, donde no escribiría nada):
 
 - **El tipo de bloque**: Párrafo, Título, Subtítulo, Título pequeño, Lista con viñetas, Lista numerada, Etapas o Cita. Todas las líneas que tengas seleccionadas cambian de una vez. Dentro de una tabla dice **Tabla** y ofrece una fila arriba o abajo, una columna a cada lado, la alineación de la columna, y quitar una fila o una columna. Los guiones bajo el encabezado quedan como los dibujaste, y con ellos los anchos.
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
@@ -29,6 +30,7 @@ Mientras un bloque está abierto, espera sobre él un pequeño **Aa**, que se ab
 - **Tabla**, que pone una tabla donde está el cursor y la abre en la página. Dentro de una tabla no aparece.
 - **Diagrama**, en un documento: un diagrama nuevo de cada tipo o uno existente, como en el menú `/`.
 - **/ Más**, que abre el menú `/`.
+- **⤢**, que abre todo el documento, igual que `Ctrl`/`⌘` + `E`.
 
 Con palabras seleccionadas, un formato las envuelve; pulsado sobre palabras que ya lo tienen, se lo quita. Los formatos nunca se cruzan: uno que alcanza a otro igual se junta con él en uno solo.
 
@@ -58,7 +60,7 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo
 - **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Adjuntar un archivo** en el menú `/`. Queda donde está el cursor, o después del bloque donde lo sueltas, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
 - **Pega con su formato.** Lo que copias de una página web, un correo o un procesador de texto conserva sus títulos, listas, negritas, enlaces, tablas y palabras de color, escrito en el Markdown de Tisty: un color pasa al rotulador más cercano de la paleta. El texto plano también conserva su forma: una tabla que una terminal dibujó con líneas (`┌ │ ├`) pasa a ser una tabla, y las líneas que se leen como código, copiadas de un editor de código o de una terminal, entran como bloque de código, salvo que el cursor ya esté dentro de uno.
 - **Marca una casilla en la página** con un clic, sin abrir el bloque.
-- **Tab y Mayús + Tab recorren las celdas de una tabla**, y Tab pasada la última empieza una fila nueva.
+- **Tab y Shift + Tab recorren las celdas de una tabla**, y Tab pasada la última empieza una fila nueva.
 - **Arrastra el borde de una columna** de la tabla en la página para ensancharla o angostarla. El ancho se escribe como los guiones de su raya, diez píxeles cada uno.
 
 | Atajo | Qué hace |
@@ -67,11 +69,12 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo
 | `Ctrl`/`⌘` + `I` | Cursiva |
 | `Ctrl`/`⌘` + `U` | Subrayado |
 | `Ctrl`/`⌘` + `Shift` + `X` | Tachado |
-| `Ctrl`/`⌘` + `E` | Código |
+| `Ctrl`/`⌘` + `Shift` + `C` | Código |
 | `Ctrl`/`⌘` + `K` | Enlace |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` | Deshacer · rehacer |
 | `Enter` · `Shift` + `Enter` | Párrafo nuevo · salto de línea |
 | `Ctrl`/`⌘` + `Shift` + `M` | Mostrar u ocultar todas las marcas |
+| `Ctrl`/`⌘` + `E` | Abrir o dejar todo el documento |
 | `Esc` | Volver a la lectura |
 
 El texto va sobre una hoja iluminada. Cuando la ventana es lo bastante ancha, se abre una columna al lado con qué es el documento, sus etiquetas, su índice y el camino a su PDF.
