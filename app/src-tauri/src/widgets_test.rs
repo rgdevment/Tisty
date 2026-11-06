@@ -1,5 +1,9 @@
 use super::*;
 
+fn page_policy() -> String {
+    format!("<meta http-equiv=\"Content-Security-Policy\" content=\"{PAGED}\">")
+}
+
 fn asked(path: &str) -> Uri {
     format!("http://widget.localhost{path}").parse().unwrap()
 }
@@ -245,7 +249,8 @@ fn an_attached_whole_page_is_served_as_itself_under_the_page_policy() {
         "a whole page wrapped inside the widget kit nests one document in another"
     );
     assert!(
-        page.starts_with("<!DOCTYPE html><script>") && page.ends_with("<p>hola</p></body></html>"),
+        page.starts_with(&format!("<!DOCTYPE html>{}<script>", page_policy()))
+            && page.ends_with("<p>hola</p></body></html>"),
         "the measurer goes right after the declaration, before anything the page holds"
     );
 }
@@ -298,7 +303,7 @@ fn a_whole_page_is_told_by_how_it_opens() {
 #[test]
 fn a_page_without_a_body_still_gets_its_measurer() {
     let page = paged("<p>sin cuerpo</p>", false);
-    assert!(page.starts_with("<script>") && page.ends_with("</script><p>sin cuerpo</p>"));
+    assert!(page.starts_with(&page_policy()) && page.ends_with("</script><p>sin cuerpo</p>"));
 }
 
 #[test]
@@ -308,7 +313,7 @@ fn the_measurer_cannot_land_inside_a_script_of_the_page() {
         false,
     );
     assert!(
-        page.starts_with("<!doctype html><script>(()=>"),
+        page.starts_with(&format!("<!doctype html>{}<script>(()=>", page_policy())),
         "the measurer went after the page's own markup, where a string could swallow it"
     );
     assert!(page.ends_with("<script>const t = \"</body>\";</script><p>x</p>"));
@@ -321,7 +326,10 @@ fn the_measurer_keeps_the_declaration_first_after_comments() {
         false,
     );
     assert!(
-        page.starts_with("<!-- hecho a mano -->\n<!DOCTYPE html><script>"),
+        page.starts_with(&format!(
+            "<!-- hecho a mano -->\n<!DOCTYPE html>{}<script>",
+            page_policy()
+        )),
         "a script before the doctype would drop the page into quirks mode"
     );
 }
@@ -543,4 +551,21 @@ fn a_page_measures_its_reach_before_anything_it_holds_can_swallow_the_measure() 
 
     let span = shown.find("type:\"span\"").unwrap();
     assert!(span < shown.find("<p>x</p>").unwrap(), "{shown}");
+}
+
+#[test]
+fn a_page_carries_its_policy_inside_it_before_anything_it_holds() {
+    let lent = Lent::default();
+    let whole = lent
+        .lend_kept(b"<!doctype html><script>fetch('x')</script>".to_vec())
+        .unwrap();
+    let fragment = lent.lend_kept(b"<p>x</p>".to_vec()).unwrap();
+
+    let page = said(&lent.shown(&asked(&format!("/{}", whole.id))));
+    let policy = page.find(&format!("content=\"{PAGED}\"")).unwrap();
+    assert!(policy < page.find("fetch('x')").unwrap(), "{page}");
+
+    let kept = said(&lent.shown(&asked(&format!("/{}", fragment.id))));
+    let policy = kept.find(&format!("content=\"{FENCED}\"")).unwrap();
+    assert!(policy < kept.find("<p>x</p>").unwrap(), "{kept}");
 }

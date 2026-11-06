@@ -204,6 +204,7 @@ pub fn shell(body: &str, dark: bool, spanned: bool) -> String {
     let span = if spanned { SPAN } else { "" };
     format!(
         "<!doctype html><html{theme}><head><meta charset=\"utf-8\">\
+<meta http-equiv=\"Content-Security-Policy\" content=\"{FENCED}\">\
 <meta name=\"color-scheme\" content=\"light dark\"><style>{KIT}</style></head>\
 <body><main class=\"w\">{body}</main><script>{BRIDGE}{span}</script></body></html>"
     )
@@ -250,12 +251,12 @@ fn opens_tag(text: &str, tag: &str) -> bool {
             .is_some_and(|after| after == '>' || after == '/' || after.is_whitespace())
 }
 
-// Before anything the page holds, so no script or string of its own can swallow the measurer.
+// Before anything the page holds, so no script or string of its own can swallow the measurer or the policy, which macOS let a page's code past when it came only as a header.
 pub fn paged(body: &str, spanned: bool) -> String {
     let (at, _) = prelude(body);
     let span = if spanned { SPAN } else { "" };
     format!(
-        "{}<script>{MEASURER}{span}</script>{}",
+        "{}<meta http-equiv=\"Content-Security-Policy\" content=\"{PAGED}\"><script>{MEASURER}{span}</script>{}",
         &body[..at],
         &body[at..]
     )
