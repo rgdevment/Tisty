@@ -12,8 +12,10 @@ it downloads a small file and its signature to see whether a newer version
 exists. It sends nothing. Two more requests follow only if you press the button
 that offers you an update, one or two only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
-guide inside Tisty, and one per picture if you press **Download** above the
-help. Never otherwise. A copy installed from the Microsoft Store asks Windows
+guide inside Tisty, one per picture if you press **Download** above the help,
+and one per picture from the internet if you ask for them in the viewer of a
+Markdown file from outside. Never otherwise. A copy installed from the Microsoft
+Store asks Windows
 what the Store has and leaves the rest to the Store, and reads the Store's public
 catalog to see which version that is; it reads that same small file only if the
 catalog does not answer. All of them are described in full below.
@@ -287,9 +289,21 @@ nothing outside itself, and a block with anything more is shown as its code. An
 attached `.html` file is a file like any other: Tisty never runs it or draws it.
 
 A Markdown file you open from outside — with *Open with*, or a
-`tisty://open?path=…` link — is shown read-only in a window of its own and stays
-out of your store until you choose *Edit in Tisty*. Such a link opens only a
-readable text file on this computer.
+`tisty://open?path=…` link — is shown read-only in a viewer of its own and stays
+out of your store until you choose **Edit**, which makes a copy and leaves the
+file where it was. Such a link opens only a readable text file on this computer.
+
+Its pictures come from one of two places. One beside the file is read from the
+file's folder or below it, and from nowhere else. One on the internet is not
+fetched when the file opens: the viewer offers a button above the page, and
+only if you press it does Tisty make one request per picture to the address the
+file names, with a user agent that says `tisty/<version>`. That site sees your
+IP address, as with any picture a browser loads. Tisty refuses an address that
+leads to this computer or to your own network, and checks again on a redirect.
+It takes only an answer that says it is a picture, up to 20 MB, and keeps
+nothing: the picture is gone when the window closes, and the next time you open
+the file it asks again. This is the viewer's alone. A document in your store
+draws no picture from the internet.
 
 Tisty's own screens carry a few links of their own: the repository, the pages
 for sponsorship and for a coffee, the AlternativeTo listing, the pages of the
