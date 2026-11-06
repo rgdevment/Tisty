@@ -28,6 +28,7 @@ const look = {
 const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) => {
     if (command in answers) return Promise.resolve(answers[command]);
+    if (command === "folio_sharing_now") return Promise.resolve("open");
     if (command === "help_drawn") return Promise.resolve("<p>Los términos</p>");
     return Promise.reject({ code: "internal" });
   });
@@ -45,6 +46,51 @@ beforeEach(() => {
 });
 
 describe("sharing a document with Folio", () => {
+  it("says it is not available yet and asks for no terms while Folio is closed", async () => {
+    answering({ folio_sharing_now: "closed" });
+    const { onClose } = shown();
+
+    await screen.findByText(t("shareClosedWhat"), { exact: false });
+    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+    expect(invoked).not.toHaveBeenCalledWith("folio_terms_standing");
+
+    await userEvent.click(screen.getByRole("button", { name: t("shareClosedOk") }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("asks again when the first look reached nothing", async () => {
+    let looks = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") {
+        looks += 1;
+        return Promise.resolve(looks === 1 ? "unreached" : "closed");
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareUnreachedRetry") }));
+
+    await screen.findByRole("button", { name: t("shareClosedOk") });
+    expect(looks).toBe(2);
+  });
+
+  it("turns to the notice when Folio closes between the look and the upload", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: look,
+    });
+    const answered = invoked.getMockImplementation();
+    invoked.mockImplementation((command: string) =>
+      command === "doc_shared" ? Promise.reject({ code: "folioClosed" }) : answered?.(command),
+    );
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+
+    await screen.findByRole("button", { name: t("shareClosedOk") });
+  });
+
   it("shows the current terms first and goes on only once they are accepted", async () => {
     answering({
       folio_terms_standing: {

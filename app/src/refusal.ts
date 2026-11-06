@@ -206,6 +206,7 @@ const KNOWN = [
   "folioTooBig",
   "folioWait",
   "folioUploadsOff",
+  "folioClosed",
   "folioPaused",
   "folioBlocked",
   "folioBehind",

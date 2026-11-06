@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, accepted, heed, heed_now,
-    kept, read_under, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, KEPT, LIMITS_URL, SIGNATURE_URL, SharingNow, accepted, heed,
+    heed_now, kept, read_under, sharing_now, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -24,6 +24,87 @@ fn seeded(serial: u64) -> tempfile::TempDir {
     };
     std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
     home
+}
+
+fn opened(home: &std::path::Path, serial: u64) {
+    let limits = FolioLimits {
+        serial,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+}
+
+fn answering_real(url: &str) -> Option<Vec<u8>> {
+    match url {
+        LIMITS_URL => Some(REAL.to_vec()),
+        SIGNATURE_URL => Some(REAL_SIG.as_bytes().to_vec()),
+        _ => None,
+    }
+}
+
+#[test]
+fn signed_limits_that_say_nothing_of_sharing_leave_it_closed() {
+    let home = tempfile::tempdir().unwrap();
+
+    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Closed);
+}
+
+#[test]
+fn signed_limits_that_open_sharing_are_believed_within_the_hour_without_asking() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+
+    let told = sharing_now(home.path(), |_| panic!("it asked within the hour"));
+
+    assert_eq!(told, SharingNow::Open);
+}
+
+#[test]
+fn closed_is_kept_within_the_hour_without_asking() {
+    let home = seeded(1);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+
+    let told = sharing_now(home.path(), |_| panic!("it asked within the hour"));
+
+    assert_eq!(told, SharingNow::Closed);
+}
+
+#[test]
+fn past_the_hour_an_unreached_look_is_not_taken_from_what_is_kept() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+
+    assert_eq!(sharing_now(home.path(), |_| None), SharingNow::Unreached);
+}
+
+#[test]
+fn a_look_that_reached_nothing_does_not_hold_back_the_next_try() {
+    let home = tempfile::tempdir().unwrap();
+
+    assert_eq!(sharing_now(home.path(), |_| None), SharingNow::Unreached);
+    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Closed);
+}
+
+#[test]
+fn a_bad_signature_never_opens_sharing() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), 1);
+    let bring = |url: &str| match url {
+        LIMITS_URL => Some(OTHER.to_vec()),
+        _ => Some(REAL_SIG.as_bytes().to_vec()),
+    };
+
+    assert_eq!(sharing_now(home.path(), bring), SharingNow::Unreached);
+}
+
+#[test]
+fn an_older_file_leaves_what_is_kept_standing() {
+    let home = tempfile::tempdir().unwrap();
+    opened(home.path(), u64::MAX);
+
+    assert_eq!(sharing_now(home.path(), answering_real), SharingNow::Open);
 }
 
 #[test]

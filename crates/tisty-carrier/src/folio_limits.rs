@@ -51,6 +51,8 @@ pub struct FolioLimits {
     pub oldest_contract_served: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terms: Option<FolioTerms>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sharing_open: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +60,14 @@ pub struct FolioTerms {
     pub version: String,
     pub es: String,
     pub en: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SharingNow {
+    Open,
+    Closed,
+    Unreached,
 }
 
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
@@ -110,6 +120,35 @@ pub fn heed_now(
     match brought_and_accepted(home, &bring)? {
         Err(Refused::Unsigned) => brought_and_accepted(home, &bring),
         told => Some(told),
+    }
+}
+
+pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> SharingNow {
+    let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
+    match limits_for_sharing(home, due, &bring) {
+        Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
+        Some(_) => SharingNow::Closed,
+        None => {
+            // A look that reached nothing must not hold the next try back for an hour.
+            let _ = std::fs::remove_file(home.join(ASKED));
+            SharingNow::Unreached
+        }
+    }
+}
+
+fn limits_for_sharing(
+    home: &Path,
+    due: bool,
+    bring: &impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<FolioLimits> {
+    let held = kept(home);
+    if !due && held.is_some() {
+        return held;
+    }
+    match heed_now(home, bring)? {
+        Ok(limits) => Some(limits),
+        Err(Refused::Behind { .. }) => held,
+        Err(_) => None,
     }
 }
 

@@ -2,11 +2,14 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 
 use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Why};
+use tisty_carrier::folio_limits::SharingNow;
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
 
-use super::{Card, card_of, counted_as_shared, delivered, going_with, headings_over, said};
+use super::{
+    Card, card_of, counted_as_shared, delivered, going_with, headings_over, may_start, said,
+};
 
 type Heard = (String, Vec<(&'static str, String)>);
 
@@ -279,4 +282,17 @@ fn a_secret_is_placed_under_its_heading_past_properties_and_code() {
     assert_eq!(over[3], None);
     assert_eq!(over[4].as_deref(), Some("Reservas"));
     assert_eq!(over[8].as_deref(), Some("Reservas"));
+}
+
+#[test]
+fn only_an_open_folio_lets_a_new_share_start() {
+    assert!(may_start(SharingNow::Open).is_ok());
+    assert_eq!(
+        may_start(SharingNow::Closed).unwrap_err().code,
+        "folioClosed"
+    );
+    assert_eq!(
+        may_start(SharingNow::Unreached).unwrap_err().code,
+        "folioUnreached"
+    );
 }

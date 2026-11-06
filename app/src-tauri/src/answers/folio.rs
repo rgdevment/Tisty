@@ -8,7 +8,7 @@ use tauri::Manager;
 use tisty_carrier::folio_client::{
     self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version,
 };
-use tisty_carrier::folio_limits::{self, FolioLimits};
+use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::policy;
@@ -162,6 +162,20 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<()> {
         return Err(Refusal::of("folioUploadsOff"));
     }
     Ok(())
+}
+
+fn may_start(now: SharingNow) -> Answer<()> {
+    match now {
+        SharingNow::Open => Ok(()),
+        SharingNow::Closed => Err(Refusal::of("folioClosed")),
+        SharingNow::Unreached => Err(Refusal::of("folioUnreached")),
+    }
+}
+
+#[tauri::command]
+pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
+    let home = held(&session).paths.private();
+    apart(move || Ok(folio_limits::sharing_now(&home, crate::reaching::brought))).await
 }
 
 #[tauri::command]
@@ -665,7 +679,14 @@ pub async fn doc_shared(
         )
     };
     let checking = paths.clone();
-    apart(move || may_upload(&checking, tongue)).await?;
+    apart(move || {
+        may_start(folio_limits::sharing_now(
+            &checking.private(),
+            crate::reaching::brought,
+        ))?;
+        may_upload(&checking, tongue)
+    })
+    .await?;
     let asked = tisty_sharing::Asked {
         doc,
         public: false,

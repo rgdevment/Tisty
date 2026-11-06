@@ -10,6 +10,7 @@ import {
   type ShareLook,
   shareLook,
   shareStop,
+  sharingNow,
   type TermsNow,
   termsAccepted,
   termsNow,
@@ -18,6 +19,7 @@ import {
 import Modal from "./Modal";
 
 const SECRETS_SHOWN = 3;
+const FOLIO_SITE = "folio.tisty.app";
 const DAYS_FALLBACK = [1, 3, 7, 15];
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
@@ -130,6 +132,64 @@ function Terms({
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
           >
             {t("termsGo")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function NotOpenYet({ onClose }: Readonly<{ onClose: () => void }>) {
+  return (
+    <Modal title={t("shareClosedTitle")} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <p className="text-[13px] leading-relaxed">
+          {t("shareClosedWhat")}
+          <br />
+          {t("shareClosedYet")}{" "}
+          <button
+            type="button"
+            onClick={() => void openUrl(`https://${FOLIO_SITE}`).catch(() => {})}
+            className="text-accent"
+          >
+            {FOLIO_SITE}
+          </button>
+          .
+        </p>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
+          >
+            {t("shareClosedOk")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function NoAnswer({ onRetry, onClose }: Readonly<{ onRetry: () => void; onClose: () => void }>) {
+  return (
+    <Modal title={t("shareUnreachedTitle")} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <p className="text-[13px] leading-relaxed">{t("shareUnreachedWhy")}</p>
+        <p className="text-[11.5px] text-soft">{t("shareUnreachedSent")}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+          >
+            {t("shareUnreachedClose")}
+          </button>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
+          >
+            {t("shareUnreachedRetry")}
           </button>
         </div>
       </div>
@@ -504,6 +564,8 @@ function Choosing({
 
 type Step =
   | { at: "reading" }
+  | { at: "closed" }
+  | { at: "unreached" }
   | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
   | { at: "choosing"; look: ShareLook }
   | { at: "going"; until: number | null }
@@ -546,7 +608,7 @@ export default function Sharing({
       .catch(failed);
   }, [doc, failed]);
 
-  const begin = useCallback(() => {
+  const termsOver = useCallback(() => {
     termsNow()
       .then((terms) => {
         if (!live.current) return;
@@ -556,6 +618,21 @@ export default function Sharing({
       })
       .catch(failed);
   }, [failed, lookOver]);
+
+  const begin = useCallback(() => {
+    if (asked.current.termsOnly) {
+      termsOver();
+      return;
+    }
+    setStep({ at: "reading" });
+    sharingNow()
+      .then((now) => {
+        if (!live.current) return;
+        if (now === "open") termsOver();
+        else setStep({ at: now });
+      })
+      .catch(failed);
+  }, [failed, termsOver]);
 
   useEffect(() => {
     live.current = true;
@@ -584,7 +661,11 @@ export default function Sharing({
           return;
         }
         if (codeOf(problem) === "folioTermsToAccept") {
-          begin();
+          termsOver();
+          return;
+        }
+        if (codeOf(problem) === "folioClosed") {
+          setStep({ at: "closed" });
           return;
         }
         if (codeOf(problem) === "folioChanged") {
@@ -603,6 +684,10 @@ export default function Sharing({
           <output className="text-[13px] text-soft">{t("shareLooking")}</output>
         </Modal>
       );
+    case "closed":
+      return <NotOpenYet onClose={onClose} />;
+    case "unreached":
+      return <NoAnswer onRetry={begin} onClose={onClose} />;
     case "terms":
       return (
         <Terms
