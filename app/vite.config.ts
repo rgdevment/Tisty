@@ -15,7 +15,7 @@ const lightViewer: Plugin = {
   name: "tisty-light-viewer",
   apply: "serve",
   async configureServer(server) {
-    if (process.env.VITEST) return;
+    if (process.env.VITEST || !server.httpServer) return;
     const own = await createServer({
       configFile: join(repository, "packages/tisty-light-viewer/vite.config.ts"),
       server: { middlewareMode: true, hmr: false },
@@ -24,7 +24,7 @@ const lightViewer: Plugin = {
     server.middlewares.use((request, response, next) =>
       request.url?.startsWith("/viewer/") ? own.middlewares(request, response, next) : next(),
     );
-    server.httpServer?.once("close", () => void own.close());
+    server.httpServer.once("close", () => void own.close());
   },
 };
 
