@@ -11,7 +11,8 @@ pub use finishing::{Carrying, Finished, Sealed, Unfinished};
 pub use gathering::{Asked, Desk, Gathered, Under, citable, gathered, gathered_under, signer};
 pub use packing::Told;
 pub use receiving::{Received, received};
-pub use remembering::{Remembered, forgotten, remembered, sent};
+pub use remembering::{forgotten, remembered, sent};
+pub use tisty_core::event::Remembered;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Unshared {

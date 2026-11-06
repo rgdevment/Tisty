@@ -11,7 +11,7 @@ use tisty_envelope::reading::{self, Unopened};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
-use super::sharing::{refused, turned};
+use super::sharing::turned;
 use crate::{Answer, Refusal, Session, held};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -223,12 +223,11 @@ fn taken_in(session: &mut Session, link: &Link, opened: &Opened) -> Answer<Strin
             held_by: None,
         };
         let as_of_now = (file.clone(), entry);
-        tisty_sharing::sent(&session.paths, std::slice::from_ref(&as_of_now))
-            .map_err(|e| refused(&e))?;
+        session.commit_all(tisty_sharing::sent(std::slice::from_ref(&as_of_now)))?;
         if let Some(print) = with_its_print(session, doc, &as_of_now.0) {
             let (file, mut entry) = as_of_now;
             entry.words_print = Some(print);
-            tisty_sharing::sent(&session.paths, &[(file, entry)]).map_err(|e| refused(&e))?;
+            session.commit_all(tisty_sharing::sent(&[(file, entry)]))?;
         }
     }
     Ok(file)
@@ -255,11 +254,10 @@ fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
 fn already_here(app: &AppHandle, id: &str) -> Option<String> {
     let session = app.try_state::<Mutex<Session>>()?;
     let session = held(&session);
-    let shelf = tisty_sharing::remembered(&session.paths).ok()?;
-    shelf
-        .into_iter()
+    tisty_sharing::remembered(&session.state)
+        .iter()
         .find(|(_, one)| one.id == id)
-        .map(|(file, _)| file)
+        .map(|(file, _)| file.clone())
 }
 
 fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<String>> {

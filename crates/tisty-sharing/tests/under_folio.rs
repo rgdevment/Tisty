@@ -10,7 +10,7 @@ use tisty_core::model::DocId;
 use tisty_core::{DeviceKind, Op, person};
 use tisty_envelope::reading;
 use tisty_share_proto::seed::Seed;
-use tisty_sharing::{Desk, Gathered, Remembered, Under, Unshared, gathered_under, sent};
+use tisty_sharing::{Desk, Gathered, Remembered, Under, Unshared, gathered_under};
 
 const GIVEN: &str = "Ab3xK9pQ";
 
@@ -76,7 +76,7 @@ fn only_what_may_be_edited_has_a_token() {
 
 #[test]
 fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
-    let (_tmp, home, doc) = written();
+    let (_tmp, mut home, doc) = written();
     let minted = Cell::new(0);
     let mint = given(&minted);
     let first = home.sealed(
@@ -91,7 +91,7 @@ fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
         .unwrap(),
         vec![],
     );
-    sent(&home.paths, &first.remembering).unwrap();
+    home.sent(&first.remembering);
 
     let later = home.sealed(
         under_folio(
@@ -205,7 +205,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         cited: Vec::new(),
         held_by: None,
     };
-    sent(&editor.paths, &[(file, entry)]).unwrap();
+    editor.sent(&[(file, entry)]);
 
     let nobody = || Err(Unshared::Unread("it has its id".to_owned()));
     let second = editor.sealed(

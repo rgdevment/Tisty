@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::Serialize;
+use tauri::Manager;
 use tisty_carrier::folio_client::{
     self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version,
 };
@@ -290,14 +291,13 @@ pub async fn doc_share_look(session: tauri::State<'_, Mutex<Session>>, id: Strin
     let doc = doc_id(&id)?;
     let (paths, state, also, name, alias, shared) = {
         let session = held(&session);
-        let shelf = tisty_sharing::remembered(&session.paths).map_err(|e| refused(&e))?;
         (
             session.paths.clone(),
             session.state.clone(),
             session.dest(),
             session.state.signed.name.clone(),
             session.state.signed.alias.clone(),
-            shared_elsewhere(&session, &shelf),
+            shared_elsewhere(&session, tisty_sharing::remembered(&session.state)),
         )
     };
     apart(move || {
@@ -384,10 +384,12 @@ pub fn doc_share_card(
 ) -> Answer<Option<Card>> {
     let session = held(&session);
     let file = file_of(&session, &id)?;
-    let shelf = tisty_sharing::remembered(&session.paths).map_err(|e| refused(&e))?;
-    Ok(shelf.get(&file).and_then(card_of))
+    Ok(tisty_sharing::remembered(&session.state)
+        .get(&file)
+        .and_then(card_of))
 }
 
+type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
 type Starts = Arc<Mutex<BTreeMap<String, String>>>;
 type Trouble = Arc<Mutex<Option<Stopped>>>;
 
@@ -399,9 +401,22 @@ fn files_still_owed((file, was): &(String, Remembered)) -> (String, Remembered) 
     (file.clone(), owed)
 }
 
+fn kept_on(session: &mut Session, went: &[(String, Remembered)]) -> Answer<()> {
+    session.commit_all(tisty_sharing::sent(went))?;
+    Ok(())
+}
+
+fn keeping(app: &tauri::AppHandle) -> impl Fn(&[(String, Remembered)]) -> Answer<()> + use<> {
+    let app = app.clone();
+    move |went| {
+        let session = app.state::<Mutex<Session>>();
+        kept_on(&mut held(&session), went)
+    }
+}
+
 fn delivered(
     door: &dyn Door,
-    paths: &Paths,
+    keep: Keep<'_>,
     sealed: &tisty_sharing::Sealed,
     starts: &BTreeMap<String, String>,
     ttl_days: u64,
@@ -433,7 +448,7 @@ fn delivered(
         .map_err(|stopped| said(&stopped))?;
         if stored.files_wanted {
             // Folio already holds this version, so it is remembered now; only its files are still owed.
-            tisty_sharing::sent(paths, &[files_still_owed(entry)]).map_err(|e| refused(&e))?;
+            keep(&[files_still_owed(entry)])?;
             let files = going
                 .sealed
                 .files
@@ -441,7 +456,7 @@ fn delivered(
                 .ok_or_else(|| Refusal::of("folioGarbled"))?;
             folio_client::send_files(door, &going.id, files).map_err(|stopped| said(&stopped))?;
         }
-        tisty_sharing::sent(paths, std::slice::from_ref(entry)).map_err(|e| refused(&e))?;
+        keep(std::slice::from_ref(entry))?;
     }
     Ok(())
 }
@@ -566,13 +581,14 @@ pub async fn doc_shared(
         let session = held(&session);
         (session.state.clone(), session.config.device_id.clone())
     };
+    let keep = keeping(&app);
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &paths, &sealed, &starts, ttl_days)?;
+        delivered(&door, &keep, &sealed, &starts, ttl_days)?;
         told_of_taken_back(&door, &state, &device);
-        let shelf = tisty_sharing::remembered(&paths).map_err(|e| refused(&e))?;
-        let card = shelf.get(&file).and_then(card_of);
-        card.map(|one| Card { told, ..one })
+        let top = sealed.remembering.iter().find(|(at, _)| *at == file);
+        top.and_then(|(_, one)| card_of(one))
+            .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })
     .await
@@ -595,8 +611,9 @@ pub enum Synced {
 
 fn remembered_of(session: &Session, id: &str) -> Answer<(String, Remembered)> {
     let file = file_of(session, id)?;
-    let shelf = tisty_sharing::remembered(&session.paths).map_err(|e| refused(&e))?;
-    let was = shelf.get(&file).cloned();
+    let was = tisty_sharing::remembered(&session.state)
+        .get(&file)
+        .cloned();
     was.map(|one| (file, one))
         .ok_or_else(|| Refusal::of("folioGone"))
 }
@@ -638,7 +655,7 @@ pub async fn doc_share_sync(
             also: also.as_deref(),
             turned: &turned,
         };
-        let shelf = tisty_sharing::remembered(&reading).map_err(|e| refused(&e))?;
+        let shelf = tisty_sharing::remembered(&state);
         let gathered = tisty_sharing::gathered(&desk, &looking).map_err(|e| refused(&e))?;
         let kept = state
             .docs
@@ -650,7 +667,7 @@ pub async fn doc_share_sync(
             .into_iter()
             .next()
             .map(|one| one.under.unwrap_or(one.named));
-        Ok((gathered.same_as_sent(&shelf), secret))
+        Ok((gathered.same_as_sent(shelf), secret))
     })
     .await?;
     // Looked at before a press counts, so answering the warning does not cost a wait (81).
@@ -687,9 +704,10 @@ pub async fn doc_share_sync(
         let session = held(&session);
         (session.state.clone(), session.config.device_id.clone())
     };
+    let keep = keeping(&app);
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &paths, &sealed, &starts, 0)?;
+        delivered(&door, &keep, &sealed, &starts, 0)?;
         told_of_taken_back(&door, &state, &device);
         Ok(())
     })
@@ -765,7 +783,7 @@ async fn other_version_brought(
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;
-    tisty_sharing::sent(&session.paths, &[(file, now)]).map_err(|e| refused(&e))?;
+    kept_on(&mut session, &[(file, now)])?;
     let doubtful = opened.doubtful();
     Ok(Synced::OtherVersion {
         version: opened.version,
@@ -866,15 +884,21 @@ fn going_with(
 }
 
 #[tauri::command]
-pub async fn doc_share_stop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let (file, paths, was, along) = {
+pub async fn doc_share_stop(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<()> {
+    let (file, was, along) = {
         let session = held(&session);
         let (file, was) = remembered_of(&session, &id)?;
-        let shelf = tisty_sharing::remembered(&session.paths).map_err(|e| refused(&e))?;
-        let along = going_with(&shelf, &file, &was.id, |at| {
-            doc_of_file(&session, at).map(|one| one.to_string())
-        });
-        (file, session.paths.clone(), was, along)
+        let along = going_with(
+            tisty_sharing::remembered(&session.state),
+            &file,
+            &was.id,
+            |at| doc_of_file(&session, at).map(|one| one.to_string()),
+        );
+        (file, was, along)
     };
     apart(move || {
         let door = ToFolio::new()?;
@@ -888,7 +912,9 @@ pub async fn doc_share_stop(session: tauri::State<'_, Mutex<Session>>, id: Strin
             }
             files.push(at);
         }
-        tisty_sharing::forgotten(&paths, &files).map_err(|e| refused(&e))
+        let session = app.state::<Mutex<Session>>();
+        held(&session).commit_all(tisty_sharing::forgotten(&files))?;
+        Ok(())
     })
     .await
 }

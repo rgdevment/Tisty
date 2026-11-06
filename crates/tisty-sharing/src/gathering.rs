@@ -519,7 +519,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
 // It sends nothing and remembers nothing.
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
-    let shelf = remembered(desk.paths)?;
+    let shelf = remembered(state).clone();
     let top = sharable(state, asked.doc, &shelf)?;
     let editable_anchor = under.editable.then(|| state.anchor_of(top));
     let wanted = asked
@@ -575,8 +575,8 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
 // Only what can go along is offered, and a page already goes with its document.
 pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
     let state = desk.state;
-    let shelf = remembered(desk.paths)?;
-    let kept = sharable(state, doc, &shelf)?;
+    let shelf = remembered(state);
+    let kept = sharable(state, doc, shelf)?;
     let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
     let names = named(&drawn(&body)).documents;
     let pages = state.pages_read(kept.id, &body);
@@ -587,7 +587,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .filter(|one| {
             !group.iter().any(|same| same.id == one.id)
                 && !pages.iter().any(|page| page.id == one.id)
-                && sharable(state, one.id, &shelf).is_ok()
+                && sharable(state, one.id, shelf).is_ok()
                 && names.iter().any(|name| {
                     *name == one.file
                         || one

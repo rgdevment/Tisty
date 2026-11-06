@@ -27,6 +27,7 @@ pub struct State {
     pub devices: BTreeSet<DeviceId>,
     pub signed: crate::event::Signature,
     pub signed_before: Vec<String>,
+    pub sharing: BTreeMap<String, crate::event::Remembered>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub hosts: BTreeMap<DeviceId, DeviceId>,
@@ -226,6 +227,17 @@ impl State {
         self.applied(event);
     }
 
+    // Another computer's older word never undoes a version this log already knows was sent.
+    fn sharing_kept(&mut self, file: &str, d: &crate::event::Remembered) {
+        let newer = self
+            .sharing
+            .get(file)
+            .is_none_or(|was| was.id != d.id || was.version <= d.version);
+        if newer {
+            self.sharing.insert(file.to_owned(), d.clone());
+        }
+    }
+
     fn applied(&mut self, event: &Event) {
         if let Some(id) = event.entity_id().filter(|id| self.tombstones.contains(id)) {
             crate::witness::trace(
@@ -420,6 +432,10 @@ impl State {
                 }
             }
             Op::Signed { d } => self.store_signed(d),
+            Op::SharingKept { file, d } => self.sharing_kept(file, d),
+            Op::SharingForgotten { file } => {
+                self.sharing.remove(file);
+            }
             Op::DeviceRemove { d } => self.device_removed(d),
             // Every key is the one name an attachment has now, whatever shelf an older event put it on.
             Op::AttachKept { d } => {

@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 
 use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Why};
-use tisty_core::Paths;
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_sharing::Remembered;
@@ -51,37 +50,37 @@ fn starts() -> BTreeMap<String, String> {
     BTreeMap::from([("Ab3xK9pQ".to_owned(), "mac".to_owned())])
 }
 
-fn paths_in(room: &tempfile::TempDir) -> Paths {
-    Paths::new(room.path().join("data"), room.path().join("config"))
+type Kept = RefCell<Vec<(String, Remembered)>>;
+
+fn kept_in(into: &Kept) -> impl Fn(&[(String, Remembered)]) -> crate::Answer<()> + '_ {
+    |went| {
+        into.borrow_mut().extend_from_slice(went);
+        Ok(())
+    }
 }
 
 #[test]
 fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
-    let room = tempfile::tempdir().unwrap();
-    let paths = paths_in(&room);
+    let kept = Kept::default();
     let folio = FakeFolio::default();
     folio
         .answers
         .borrow_mut()
         .push_back((200, r#"{"stored":true,"version":1}"#));
 
-    delivered(&folio, &paths, &sealed_for(None), &starts(), 3).unwrap();
+    delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 3).unwrap();
 
     let asked = folio.asked.borrow();
     assert_eq!(asked[0].0, "/docs/Ab3xK9pQ");
     assert!(asked[0].1.contains(&("Folio-Start", "mac".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Ttl-Days", "3".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
-    assert!(
-        tisty_sharing::remembered(&paths)
-            .unwrap()
-            .contains_key("file")
-    );
+    assert_eq!(kept.borrow()[0].0, "file");
 }
 
 #[test]
 fn its_files_go_when_folio_wants_them() {
-    let room = tempfile::tempdir().unwrap();
+    let kept = Kept::default();
     let folio = FakeFolio::default();
     folio.answers.borrow_mut().extend([
         (200, r#"{"stored":true,"version":1,"filesWanted":true}"#),
@@ -90,7 +89,7 @@ fn its_files_go_when_folio_wants_them() {
 
     delivered(
         &folio,
-        &paths_in(&room),
+        &kept_in(&kept),
         &sealed_for(Some(vec![2])),
         &starts(),
         1,
@@ -102,38 +101,43 @@ fn its_files_go_when_folio_wants_them() {
 
 #[test]
 fn what_folio_refused_is_not_remembered_as_sent() {
-    let room = tempfile::tempdir().unwrap();
-    let paths = paths_in(&room);
+    let kept = Kept::default();
     let folio = FakeFolio::default();
     folio
         .answers
         .borrow_mut()
         .push_back((409, r#"{"refused":"shares_full"}"#));
 
-    let told = delivered(&folio, &paths, &sealed_for(None), &starts(), 1).unwrap_err();
+    let told = delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 1).unwrap_err();
 
     assert_eq!(told.code, "folioFull");
-    assert!(tisty_sharing::remembered(&paths).unwrap().is_empty());
+    assert!(kept.borrow().is_empty());
 }
 
 #[test]
 fn a_version_stored_stays_remembered_when_its_files_fail_and_they_go_again_next_time() {
-    let room = tempfile::tempdir().unwrap();
-    let paths = paths_in(&room);
+    let kept = Kept::default();
     let folio = FakeFolio::default();
     folio.answers.borrow_mut().extend([
         (200, r#"{"stored":true,"version":1,"filesWanted":true}"#),
         (500, r#"{"refused":"failed"}"#),
     ]);
 
-    let told = delivered(&folio, &paths, &sealed_for(Some(vec![2])), &starts(), 1).unwrap_err();
+    let told = delivered(
+        &folio,
+        &kept_in(&kept),
+        &sealed_for(Some(vec![2])),
+        &starts(),
+        1,
+    )
+    .unwrap_err();
 
     assert_eq!(told.code, "folioRefused");
-    let shelf = tisty_sharing::remembered(&paths).unwrap();
-    let kept = &shelf["file"];
-    assert_eq!(kept.admin_token.as_deref(), Some("admin"));
-    assert_eq!(kept.files_hash, None);
-    assert_eq!(kept.words_print, None);
+    let shelf = kept.borrow();
+    let last = &shelf.last().unwrap().1;
+    assert_eq!(last.admin_token.as_deref(), Some("admin"));
+    assert_eq!(last.files_hash, None);
+    assert_eq!(last.words_print, None);
 }
 
 #[test]
@@ -163,14 +167,14 @@ fn what_a_share_holds_goes_with_it_unless_another_still_cites_it() {
 
 #[test]
 fn files_folio_wants_and_this_side_does_not_hold_are_not_passed_over() {
-    let room = tempfile::tempdir().unwrap();
+    let kept = Kept::default();
     let folio = FakeFolio::default();
     folio
         .answers
         .borrow_mut()
         .push_back((200, r#"{"stored":true,"version":1,"filesWanted":true}"#));
 
-    let told = delivered(&folio, &paths_in(&room), &sealed_for(None), &starts(), 1).unwrap_err();
+    let told = delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 1).unwrap_err();
 
     assert_eq!(told.code, "folioGarbled");
 }
