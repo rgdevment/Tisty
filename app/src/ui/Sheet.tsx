@@ -1,4 +1,4 @@
-import { Transaction } from "@codemirror/state";
+import { EditorSelection, Transaction } from "@codemirror/state";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import {
   type CSSProperties,
@@ -11,8 +11,10 @@ import {
 import {
   type Asking,
   BAR_CSS,
+  type Crossing,
   caretAt,
   type Editing,
+  enteredAt,
   FORMATS,
   flipped,
   formatButtons,
@@ -21,6 +23,7 @@ import {
   pressed,
   putBlock,
   stagesIn,
+  WRITTEN,
   widened,
   wrapped,
 } from "tisty-editor/edit";
@@ -42,7 +45,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Went } from "./paging";
-import { closed, laid, parting } from "./parting";
+import { closed, joined, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -101,6 +104,8 @@ type Props = {
   readonly allAsked?: number;
 };
 
+type Arrival = Crossing & { at: number };
+
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const fixed = Boolean(props.inline && props.shaping);
@@ -138,7 +143,9 @@ export default function Sheet(props: Readonly<Props>) {
   // The blocks the whole-document editor covers, shown again as it is left.
   const veiled = useRef<(() => void) | null>(null);
   // Asked while the page was still being drawn again, so it opens once the new one is shown.
-  const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
+  const pending = useRef<
+    ({ turn: number } & ({ caret: number; all: boolean } | { arrival: Arrival })) | null
+  >(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
   const caretNow = useRef<(() => number) | null>(null);
   // One fading at a time: a mark laid again outlives the timer of the one before.
@@ -277,13 +284,15 @@ export default function Sheet(props: Readonly<Props>) {
     read = "",
     asked?: Pick<Formatting, "said" | "open" | "close">,
     whole?: { caret: number; all?: boolean },
+    entering?: Arrival,
   ) => {
     if (open.current) return left();
+    if (pending.current && "arrival" in pending.current) pending.current = null;
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
     let [from, end] = at;
     const piece = latest.current.slice(from, end);
-    const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    const tail = /(\r?\n)+$/.exec(piece)?.[0] ?? "";
     // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
     const fresh = from === end;
     const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
@@ -304,6 +313,7 @@ export default function Sheet(props: Readonly<Props>) {
     const home = onFile.current;
     let before = latest.current;
     let mine = latest.current;
+    let going: Crossing | null = null;
     const spliced = (text: string) => {
       const now = latest.current;
       const said = fresh && (text === seed || !text.trim()) ? "" : text;
@@ -324,11 +334,22 @@ export default function Sheet(props: Readonly<Props>) {
         veiled.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
+        let at = going?.forward ? end : from;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
           written(closed(latest.current, from, end));
+          at = from;
+        }
+        if (ours && going?.join) {
+          const merged = joined(latest.current, at);
+          written(merged.text);
+          at = merged.at;
         }
         setDrawn(latest.current);
         if (ours) settled(before, latest.current, renamed);
+        if (!ours || !going) return;
+        const arrival = { ...going, at };
+        if (showing.current === latest.current) arrive(arrival);
+        else pending.current = { arrival, turn: turnedNow.current };
       },
       () => {
         const asking = said.current.asking;
@@ -356,6 +377,12 @@ export default function Sheet(props: Readonly<Props>) {
       fixed || !said.current.wholeable
         ? undefined
         : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(undefined, all))),
+      whole || said.current.inline
+        ? undefined
+        : (one) => {
+            going = one;
+            left();
+          },
     );
     follows.current = (was, now) => {
       // The whole document takes the words in place, the caret carried along, instead of ending.
@@ -407,10 +434,18 @@ export default function Sheet(props: Readonly<Props>) {
       ? inEditor(latest.current, whole.caret)
       : seed
         ? seed.length
-        : inEditor(editing.state.sliceDoc(), caretAt(editing.state.sliceDoc(), read));
+        : entering
+          ? entering.join
+            ? inEditor(editing.state.sliceDoc(), entering.at - from)
+            : enteredAt(editing, entering.forward, entering.x)
+          : inEditor(editing.state.sliceDoc(), caretAt(editing.state.sliceDoc(), read));
     const length = editing.state.doc.length;
     editing.dispatch({
-      selection: whole?.all ? { anchor: 0, head: length } : { anchor: Math.min(caret, length) },
+      selection: whole?.all
+        ? { anchor: 0, head: length }
+        : entering
+          ? EditorSelection.create([EditorSelection.cursor(Math.min(caret, length), 1)])
+          : { anchor: Math.min(caret, length) },
       scrollIntoView: true,
     });
     if (asked) formatted(editing, read, asked);
@@ -449,7 +484,8 @@ export default function Sheet(props: Readonly<Props>) {
     // Only a drawing made after the ask holds the words; the old page is about to be thrown away.
     if (!waiting || drawn !== latest.current || turned === waiting.turn) return;
     pending.current = null;
-    wholly(waiting.caret, waiting.all);
+    if ("arrival" in waiting) arrive(waiting.arrival);
+    else wholly(waiting.caret, waiting.all);
   }, [turned, drawn]);
 
   // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
@@ -474,6 +510,25 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return;
     veiled.current();
     veiled.current = null;
+  };
+
+  const arrive = (one: Arrival) => {
+    const text = latest.current;
+    const bytes = new TextEncoder().encode(text.slice(0, one.at)).length;
+    const blocks = Array.from(
+      shown.current?.document.querySelectorAll<HTMLElement>(WRITTEN) ?? [],
+    ).flatMap((element) => {
+      const span = spanned(element.dataset.at ?? null);
+      return span ? [{ element, span }] : [];
+    });
+    const target = one.join
+      ? blocks.find(({ span }) => span[0] <= bytes && bytes <= span[1])
+      : one.forward
+        ? blocks.find(({ span }) => span[0] >= bytes)
+        : blocks.filter(({ span }) => span[1] <= bytes).pop();
+    if (!target) return;
+    const at: [number, number] = [charsAt(text, target.span[0]), charsAt(text, target.span[1])];
+    block(at, target.element, "", "", undefined, undefined, one);
   };
 
   const formatted = (

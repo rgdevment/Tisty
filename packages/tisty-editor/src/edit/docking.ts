@@ -3,6 +3,7 @@ import dressed from "./bar.css?raw";
 const REST = 2;
 const LEFT = 6;
 const STUCK = 6;
+const RAIL = 14;
 
 const scrollerOf = (from: Element | null | undefined): Element | null => {
   for (let one = from?.parentElement; one; one = one.parentElement) {
@@ -96,6 +97,13 @@ export const docked = (
       return;
     }
     const line = aim?.();
+    const margin = (Number.parseFloat(look.paddingLeft) || 0) - bar.offsetWidth - RAIL;
+    // Folded it waits in the margin beside the line, where it covers none of the words above.
+    if (bar.classList.contains("folded") && line != null && margin >= 0) {
+      bar.style.top = `${Math.min(bottom, Math.max(top, stuck, (line + view.scrollY) / zoom + 2))}px`;
+      bar.style.left = `${(box.left + view.scrollX) / zoom + margin}px`;
+      return;
+    }
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;
     bar.style.top = `${Math.min(bottom, Math.max(top + REST, stuck, over))}px`;
     const right = edge?.();
@@ -123,6 +131,7 @@ export const docked = (
   const inner = Inner && sheet ? new Inner(place) : null;
   const around = Outer && frame ? new Outer(place) : null;
   if (sheet) inner?.observe(sheet);
+  inner?.observe(bar);
   if (frame) around?.observe(frame);
   // The panel opens and shuts without the page changing size; it comes and goes beside the sheet.
   const Watch = outer?.MutationObserver;

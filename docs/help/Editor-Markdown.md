@@ -9,17 +9,19 @@ Un documento en Tisty es texto tuyo, guardado como un archivo `.md` normal, que 
 Hay una sola forma de escribir, y ocurre en la misma página.
 
 - **Haz clic en un bloque y se abre ahí mismo**, con el cursor donde hiciste clic. El resto de la página sigue como se lee. Un clic sobre una imagen o un diagrama, en cambio, lo abre en grande para acercarlo, moverlo y pasar al siguiente; para editarlo, usa el menú del bloque. Un diagrama trae su propia barra al pasar el puntero: **Exportar**, **Editar como Markdown**, que abre su texto ahí mismo, y **Abrir en la ventana de diagramas**; un doble clic también lo abre en la [[ventana de diagramas|Diagramas]].
-- **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título; los `**` o el `#` solo aparecen donde el cursor toca ese formato, para que veas lo que estás cambiando.
+- **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título; los `**` o el `#` solo aparecen cuando los pides, y seleccionar o borrar texto deja el formato entero. Un enlace es la única excepción: con el cursor en él ves su dirección, que puedes cambiar ahí.
 - **Los títulos, las listas, las etapas, las citas y los avisos siempre se dibujan**, también mientras los escribes: una viñeta es una viñeta, una casilla es una casilla que puedes marcar, un aviso lleva su color y su nombre.
 - **Esc, o un clic fuera, vuelve a la lectura.** Lo que escribes se guarda sobre la marcha, y el pie de la página te lo dice.
-- **La primera línea es el título.** No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama.
+- **La primera línea es el título.** No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama. Enter te lleva de ahí al cuerpo.
+- **Enter empieza un párrafo nuevo, y `Shift` + `Enter` solo salta de línea.** Las listas, las citas y el código conservan su propio Enter.
+- **Las flechas siguen de un bloque al siguiente** en un documento, saltando una imagen, una tabla o un diagrama, que se abren con un clic. `Retroceso` al inicio de un bloque lo une con el anterior, y `Supr` al final une el siguiente.
 - **`Ctrl`/`⌘` + `Shift` + `M` muestra todas las marcas** del bloque, para cuando quieres ver el Markdown tal cual. Vuelve a pulsarlo para ocultarlas.
 
 Una línea al pie de la página deja las teclas a la vista: `/` para insertar, `#` y un espacio para un título, el atajo de todas las marcas y Esc para leer.
 
 ## La barra
 
-Mientras un bloque está abierto, flota sobre él una barra (no dentro de un bloque de código ni de una fórmula `$$`, donde no escribiría nada):
+Mientras un bloque está abierto, espera sobre él un pequeño **Aa**, que se abre en la barra completa cuando seleccionas texto o lo pulsas. Abierta a mano, sigue abierta hasta que la pliegues. La barra flota sobre el bloque (no dentro de un bloque de código ni de una fórmula `$$`, donde no escribiría nada):
 
 - **El tipo de bloque**: Párrafo, Título, Subtítulo, Título pequeño, Lista con viñetas, Lista numerada, Etapas o Cita. Todas las líneas que tengas seleccionadas cambian de una vez. Dentro de una tabla dice **Tabla** y ofrece una fila arriba o abajo, una columna a cada lado, la alineación de la columna, y quitar una fila o una columna. Los guiones bajo el encabezado quedan como los dibujaste, y con ellos los anchos.
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
@@ -68,6 +70,7 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo
 | `Ctrl`/`⌘` + `E` | Código |
 | `Ctrl`/`⌘` + `K` | Enlace |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` | Deshacer · rehacer |
+| `Enter` · `Shift` + `Enter` | Párrafo nuevo · salto de línea |
 | `Ctrl`/`⌘` + `Shift` + `M` | Mostrar u ocultar todas las marcas |
 | `Esc` | Volver a la lectura |
 
