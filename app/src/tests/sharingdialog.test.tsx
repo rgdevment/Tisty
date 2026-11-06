@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { noteParts } from "../sharing";
 import Sharing from "../ui/Sharing";
@@ -73,6 +74,59 @@ describe("what Folio signs to say while closed", () => {
   it("leaves anything else of Markdown or HTML as words", () => {
     const said = "**fuerte** <b>x</b> # y ![i](https://tisty.app/a.png)";
     expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+  });
+});
+
+describe("what travels with a document", () => {
+  const opened = async (carrying: object, limits: object = look.limits) => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: { ...look, carrying: { ...look.carrying, ...carrying }, limits },
+    });
+    shown();
+    await screen.findByRole("button", { name: t("shareGo") });
+  };
+
+  it("says a document of words carries its text, and what room is left for the rest", async () => {
+    await opened(
+      { pages: 0 },
+      {
+        pictures_at_most: 10,
+        pictures_bytes_at_most: 5_000_000,
+        files_at_most: 2,
+        files_bytes_at_most: 5_000_000,
+      },
+    );
+
+    expect(screen.getByText(t("shareCarriesWhole"))).toBeTruthy();
+    expect(screen.getAllByText(t("shareCarriesNoPictures"), { exact: false })).toHaveLength(2);
+    expect(screen.getByText(fill("shareRoomUpTo", "10", weigh(5_000_000)))).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomUpTo", "2", weigh(5_000_000)))).toBeTruthy();
+  });
+
+  it("counts what it carries against the room there is", async () => {
+    await opened(
+      { pages: 2, pictures: 4, picturesBytes: 1_200_000, files: 1, filesBytes: 2_400_000 },
+      {
+        pictures_at_most: 10,
+        pictures_bytes_at_most: 5_000_000,
+        files_at_most: 2,
+        files_bytes_at_most: 5_000_000,
+      },
+    );
+
+    expect(screen.getByText(fill("shareCarriesWholeAndPages", "2"))).toBeTruthy();
+    expect(screen.getByText(`4 · ${weigh(1_200_000)}`, { exact: false })).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomOf", "10", weigh(5_000_000)))).toBeTruthy();
+    expect(screen.getByText(`1 · ${weigh(2_400_000)}`, { exact: false })).toBeTruthy();
+    expect(screen.getByText(fill("shareRoomOf", "2", weigh(5_000_000)))).toBeTruthy();
+  });
+
+  it("names one page apart, and says no room it was not told of", async () => {
+    await opened({ pages: 1 }, {});
+
+    expect(screen.getByText(t("shareCarriesWholeAndPage"))).toBeTruthy();
+    expect(screen.queryByText(fill("shareRoomUpTo", "10", weigh(5_000_000)))).toBeNull();
   });
 });
 

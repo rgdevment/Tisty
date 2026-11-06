@@ -32,11 +32,43 @@ const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code
 const endsAfter = (days: number) =>
   days === 1 ? t("shareEndsDay") : fill("shareEndsDays", String(days));
 
-const countOf = (carried: number, most?: number) =>
-  most === undefined ? String(carried) : fill("shareCarriedOf", String(carried), String(most));
+const wholeSaid = (pages: number) => {
+  if (pages === 0) return t("shareCarriesWhole");
+  if (pages === 1) return t("shareCarriesWholeAndPage");
+  return fill("shareCarriesWholeAndPages", String(pages));
+};
 
-const weightOf = (carried: number, most?: number) =>
-  most === undefined ? weigh(carried) : fill("shareCarriedOf", weigh(carried), weigh(most));
+const roomSaid = (carried: number, most?: number, mostBytes?: number) => {
+  if (most === undefined || mostBytes === undefined) return null;
+  return fill(carried ? "shareRoomOf" : "shareRoomUpTo", String(most), weigh(mostBytes));
+};
+
+function CarriedRow({
+  label,
+  carried,
+  bytes,
+  none,
+  most,
+  mostBytes,
+}: Readonly<{
+  label: string;
+  carried: number;
+  bytes: number;
+  none: string;
+  most?: number;
+  mostBytes?: number;
+}>) {
+  const room = roomSaid(carried, most, mostBytes);
+  return (
+    <>
+      <dt className="text-faint">{label}</dt>
+      <dd className="text-right">
+        {carried ? `${carried} · ${weigh(bytes)}` : none}
+        {room && <span className="ml-1.5 text-[11.5px] text-faint">{room}</span>}
+      </dd>
+    </>
+  );
+}
 
 const onTheWeb = () => TERMS_ON_THE_WEB[locale()] ?? TERMS_ON_THE_WEB.en;
 
@@ -524,20 +556,24 @@ function Choosing({
         <div className="flex flex-col gap-2">
           <span className="text-[12.5px] font-semibold">{t("shareCarries")}</span>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1 rounded-[10px] border border-hair px-3.5 py-2.5 text-[12.5px]">
-            <dt className="text-faint">{t("shareCarriesPages")}</dt>
-            <dd className="text-right">{look.carrying.pages}</dd>
-            <dt className="text-faint">{t("shareCarriesPictures")}</dt>
-            <dd className="text-right">
-              {countOf(look.carrying.pictures, look.limits.pictures_at_most)}
-              {" · "}
-              {weightOf(look.carrying.picturesBytes, look.limits.pictures_bytes_at_most)}
-            </dd>
-            <dt className="text-faint">{t("shareCarriesFiles")}</dt>
-            <dd className="text-right">
-              {countOf(look.carrying.files, look.limits.files_at_most)}
-              {" · "}
-              {weightOf(look.carrying.filesBytes, look.limits.files_bytes_at_most)}
-            </dd>
+            <dt className="text-faint">{t("shareCarriesText")}</dt>
+            <dd className="text-right">{wholeSaid(look.carrying.pages)}</dd>
+            <CarriedRow
+              label={t("shareCarriesPictures")}
+              carried={look.carrying.pictures}
+              bytes={look.carrying.picturesBytes}
+              none={t("shareCarriesNoPictures")}
+              most={look.limits.pictures_at_most}
+              mostBytes={look.limits.pictures_bytes_at_most}
+            />
+            <CarriedRow
+              label={t("shareCarriesFiles")}
+              carried={look.carrying.files}
+              bytes={look.carrying.filesBytes}
+              none={t("shareCarriesNoFiles")}
+              most={look.limits.files_at_most}
+              mostBytes={look.limits.files_bytes_at_most}
+            />
           </dl>
           {look.cited.length > 0 && (
             <>
