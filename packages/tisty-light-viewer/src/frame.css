@@ -27,16 +27,39 @@
 }
 
 html,
-html:not(.tall) {
+html:not(.tall),
+html:not(.tall):hover {
   background: var(--desk);
-  scrollbar-color: var(--tisty-line) transparent;
+  scrollbar-color: auto;
   scrollbar-gutter: stable;
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scroll-behavior: auto;
+  scroll-padding-top: calc(var(--bar-edge) + 8px);
+  scroll-padding-bottom: 24px;
 }
 
-html:not(.tall):hover {
-  scrollbar-color: var(--tisty-line) transparent;
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tisty-line) content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tisty-faint);
 }
 
 html:not(.tall) body,
@@ -103,7 +126,6 @@ body::before {
   height: var(--bar-edge);
   background: linear-gradient(var(--desk) 55%, transparent);
   pointer-events: none;
-  backdrop-filter: blur(6px);
   mask-image: linear-gradient(#000 70%, transparent);
 }
 
@@ -342,7 +364,6 @@ html:not(.tall) .page,
     0 10px 30px -18px var(--shade-far);
   font-size: 13px;
   line-height: 1.45;
-  backdrop-filter: saturate(180%) blur(24px);
 }
 
 .panel {
