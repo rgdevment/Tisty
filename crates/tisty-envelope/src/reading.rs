@@ -403,7 +403,7 @@ fn part_opened(
                 aad: manifest,
             };
             cipher
-                .decrypt(Nonce::from_slice(&nonce), payload)
+                .decrypt(&Nonce::from(nonce), payload)
                 .map_err(|_| Unopened::Damaged("it does not open"))?
         }
         None => travelled.to_vec(),

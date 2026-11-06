@@ -7,7 +7,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use flate2::Compression;
 use flate2::write::DeflateEncoder;
 use hkdf::Hkdf;
-use hmac::{Hmac, KeyInit as _, Mac};
+use hmac::{Hmac, Mac};
 use rand_core::{OsRng, TryRngCore};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -566,7 +566,7 @@ impl<'a> Writer<'a> {
                         aad: &manifest,
                     };
                     cipher
-                        .encrypt(Nonce::from_slice(&nonce(number)?), payload)
+                        .encrypt(&Nonce::from(nonce(number)?), payload)
                         .map_err(|_| Refused::Unsealed)?
                 }
                 None => part.bytes,
