@@ -114,3 +114,14 @@ fn an_edit_address_with_anything_more_or_from_elsewhere_is_refused() {
         assert_eq!(asked_to_edit(said), None, "{said}");
     }
 }
+
+#[test]
+fn an_edit_owed_to_the_welcome_is_due_once_however_often_it_was_asked_for() {
+    let views = super::Views::default();
+    assert!(views.edits_due().is_empty());
+    views.owe_edit("view-1");
+    views.owe_edit("view-1");
+    views.owe_edit("view-2");
+    assert_eq!(views.edits_due(), ["view-1", "view-2"]);
+    assert!(views.edits_due().is_empty());
+}

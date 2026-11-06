@@ -9,6 +9,7 @@ const host = vi.hoisted(() => ({
   source: vi.fn(),
   facts: vi.fn(),
   editCopy: vi.fn(),
+  editAsked: vi.fn(),
   shown: vi.fn(),
   openLink: vi.fn(),
   reveal: vi.fn(),
@@ -48,6 +49,7 @@ describe("the light viewer", () => {
     vi.clearAllMocks();
     localStorage.clear();
     host.facts.mockResolvedValue({ wrote: 1_700_000_000, bytes: 2048 });
+    host.editAsked.mockResolvedValue(() => {});
     host.shown.mockResolvedValue(undefined);
     host.theRest.mockResolvedValue([]);
     window.scrollTo = vi.fn();
@@ -94,6 +96,30 @@ describe("the light viewer", () => {
     const close = open();
     (await screen.findByRole("button", { name: "Editar" })).click();
     await waitFor(() => expect(close).toHaveBeenCalled());
+  });
+
+  it("waits for the welcome on a Tisty not set up yet, and makes the copy when it ends", async () => {
+    host.opened.mockResolvedValue(drawn("<p>all</p>"));
+    host.editCopy.mockResolvedValue(null);
+    const close = open();
+    (await screen.findByRole("button", { name: "Editar" })).click();
+    expect((await screen.findByRole("alert")).textContent).toContain("configurar Tisty");
+    expect(close).not.toHaveBeenCalled();
+
+    host.editCopy.mockResolvedValue({ missed: 0, notes: 0 });
+    host.editAsked.mock.calls[0][0]();
+    await waitFor(() => expect(close).toHaveBeenCalled());
+    expect(host.editCopy).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops listening when it goes away", async () => {
+    const stop = vi.fn();
+    host.opened.mockResolvedValue(drawn("<p>all</p>"));
+    host.editAsked.mockResolvedValue(stop);
+    open();
+    await screen.findByRole("button", { name: "Editar" });
+    cleanup();
+    await waitFor(() => expect(stop).toHaveBeenCalled());
   });
 
   it("stays open to say what a copy left behind", async () => {
