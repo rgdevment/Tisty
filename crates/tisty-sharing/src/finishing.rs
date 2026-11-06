@@ -53,7 +53,41 @@ fn asks_for_a_window(html: &str) -> bool {
         .any(|one| html.contains(one))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Carrying {
+    pub pages: usize,
+    pub pictures: usize,
+    pub pictures_bytes: u64,
+    pub files: usize,
+    pub files_bytes: u64,
+}
+
+fn weight(bytes: &[Vec<u8>]) -> u64 {
+    bytes.iter().map(|one| one.len() as u64).sum()
+}
+
 impl Gathered {
+    pub fn carrying(&self) -> Carrying {
+        let anchor = &self.family.anchor;
+        Carrying {
+            pages: anchor.document.pages.as_ref().map_or(0, Vec::len),
+            pictures: anchor.pictures.len(),
+            pictures_bytes: weight(&anchor.pictures),
+            files: anchor.files.len(),
+            files_bytes: weight(&anchor.files),
+        }
+    }
+
+    pub fn same_as_sent(&self, shelf: &BTreeMap<String, Remembered>) -> bool {
+        self.remembering.iter().all(|(file, now)| {
+            now.words_print.is_some()
+                && shelf
+                    .get(file)
+                    .is_some_and(|was| was.words_print == now.words_print)
+        })
+    }
+
     fn files_by_id(&self) -> BTreeMap<String, String> {
         self.remembering
             .iter()

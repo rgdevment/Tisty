@@ -1,0 +1,786 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Panel } from "tisty-editor/read";
+import { copied } from "../core";
+import { weigh } from "../format";
+import { helpDrawn } from "../guide/calls";
+import { fill, locale, t } from "../locales";
+import {
+  docShared,
+  type ShareCard,
+  type ShareLook,
+  type ShareStatus,
+  shareCard,
+  shareLook,
+  sharePause,
+  shareStatus,
+  shareStop,
+  shareSync,
+  type TermsNow,
+  termsAccepted,
+  termsNow,
+} from "../sharing";
+import Modal from "./Modal";
+
+const SECRETS_SHOWN = 3;
+const DAYS_FALLBACK = [1, 3, 7, 15];
+const TERMS_ON_THE_WEB: Record<string, string> = {
+  es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
+  en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
+};
+const DAY_MS = 86_400_000;
+
+const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
+
+const endsAfter = (days: number) =>
+  days === 1 ? t("shareEndsDay") : fill("shareEndsDays", String(days));
+
+const countOf = (carried: number, most?: number) =>
+  most === undefined ? String(carried) : fill("shareCarriedOf", String(carried), String(most));
+
+const weightOf = (carried: number, most?: number) =>
+  most === undefined ? weigh(carried) : fill("shareCarriedOf", weigh(carried), weigh(most));
+
+const onTheWeb = () => TERMS_ON_THE_WEB[locale()] ?? TERMS_ON_THE_WEB.en;
+
+function Terms({
+  terms,
+  onAccepted,
+  onLater,
+  onError,
+}: Readonly<{
+  terms: Extract<TermsNow, { state: "toAccept" }>;
+  onAccepted: () => void;
+  onLater: () => void;
+  onError?: (problem: unknown) => void;
+}>) {
+  const [agreed, setAgreed] = useState(false);
+  const [drawn, setDrawn] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let live = true;
+    helpDrawn(terms.text)
+      .then((html) => {
+        if (live) setDrawn(html);
+      })
+      .catch((problem) => onError?.(problem));
+    return () => {
+      live = false;
+    };
+  }, [terms.text, onError]);
+
+  useEffect(() => {
+    if (box.current) box.current.innerHTML = drawn;
+  }, [drawn]);
+
+  const followed = (event: React.MouseEvent) => {
+    const link = (event.target as Element).closest("a[href]");
+    if (!link) return;
+    event.preventDefault();
+    const url = new URL(link.getAttribute("href") ?? "", onTheWeb());
+    if (url.protocol === "https:") void openUrl(url.href).catch(() => {});
+  };
+
+  const accept = () => {
+    termsAccepted(terms.version)
+      .then(onAccepted)
+      .catch((problem) => onError?.(problem));
+  };
+
+  return (
+    <Modal
+      title={t(terms.acceptedBefore ? "termsChangedTitle" : "termsFirstTitle")}
+      onClose={onLater}
+      wide
+    >
+      <p className="-mt-2 mb-4 text-[12.5px] text-soft">
+        {terms.acceptedBefore
+          ? fill("termsChangedWhy", terms.acceptedBefore, terms.version)
+          : fill("termsFirstWhy", terms.version)}
+      </p>
+      <div className="flex flex-col gap-4">
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: a link inside it takes the keys itself */}
+        <div
+          ref={box}
+          onClick={followed}
+          className="scroller max-h-[306px] rounded-[10px] border border-hair bg-sheet px-4 py-3.5 text-[12.5px] leading-relaxed"
+        />
+        <label className="flex cursor-pointer items-start gap-2 text-[12.5px]">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+          />
+          <span>{t("termsAgree")}</span>
+        </label>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void openUrl(onTheWeb()).catch(() => {})}
+            className="mr-auto text-[11.5px] text-accent"
+          >
+            {t("termsOnTheWeb")}
+          </button>
+          <button
+            type="button"
+            onClick={onLater}
+            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+          >
+            {t("termsLater")}
+          </button>
+          <button
+            type="button"
+            disabled={!agreed}
+            onClick={accept}
+            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
+          >
+            {t("termsGo")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Links({ card }: Readonly<{ card: ShareCard }>) {
+  return (
+    <div className="flex flex-col gap-3">
+      <LinkLine label={t("shareLinkRead")} url={card.read} />
+      {card.edit && (
+        <div className="flex flex-col gap-1">
+          <LinkLine label={t("shareLinkEdit")} url={card.edit} />
+          <p className="text-[11.5px] leading-relaxed text-faint">{t("sharedDoneEdit")}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LinkLine({ label, url }: Readonly<{ label: string; url: string }>) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-2 text-[12.5px] font-medium">
+        <span>{label}</span>
+        <button
+          type="button"
+          onClick={() => void copied(url).catch(() => {})}
+          className="text-[11.5px] font-normal text-accent"
+        >
+          {t("shareCopy")}
+        </button>
+      </div>
+      <span className="truncate rounded-md bg-hover px-2 py-1.5 font-mono text-[11.5px] text-soft">
+        {url}
+      </span>
+    </div>
+  );
+}
+
+function Done({ card, onClose }: Readonly<{ card: ShareCard; onClose: () => void }>) {
+  return (
+    <Modal title={t("sharedDone")} onClose={onClose} wide>
+      <p className="-mt-2 mb-4 text-[12.5px] text-soft">{t("sharedDoneCopied")}</p>
+      <div className="flex flex-col gap-4">
+        <Links card={card} />
+        <p className="text-[11.5px] leading-relaxed text-faint">{t("sharedDoneKey")}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void openUrl(card.read).catch(() => {})}
+            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+          >
+            {t("shareOpenWeb")}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
+          >
+            {t("shareFinish")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: () => void }>) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (until === null) return;
+    const ticking = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(ticking);
+  }, [until]);
+  const left = until === null ? 0 : Math.max(0, Math.ceil((until - now) / 1000));
+  const said = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  return (
+    <Modal title={t("shareGoing")} wide>
+      <div className="flex flex-col gap-4">
+        <p role="status" className="text-[13px]">
+          {until === null ? t("shareGoingWhy") : t("shareWaiting")}
+        </p>
+        {until !== null && (
+          <p className="text-[11.5px] text-soft">{fill("shareWaitingWhy", said)}</p>
+        )}
+        {until !== null && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+            >
+              {t("shareCancel")}
+            </button>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function Choosing({
+  doc,
+  title,
+  look,
+  onShare,
+  onClose,
+  onLookAgain,
+  onError,
+}: Readonly<{
+  doc: string;
+  title: string;
+  look: ShareLook;
+  onShare: (chosen: {
+    cited: string[];
+    signedAs?: string;
+    editable: boolean;
+    ttlDays: number;
+  }) => void;
+  onClose: () => void;
+  onLookAgain: () => void;
+  onError?: (problem: unknown) => void;
+}>) {
+  const [editable, setEditable] = useState(false);
+  const [signs, setSigns] = useState<"alias" | "name">(look.alias ? "alias" : "name");
+  const [asked, setAsked] = useState("");
+  const [days, setDays] = useState(look.limits.ttl_days?.[0] ?? DAYS_FALLBACK[0]);
+  const [cites, setCites] = useState(false);
+  const others = look.shared.filter((one) => one.doc !== doc);
+  const already = others.length !== look.shared.length;
+  const most = look.limits.shares_at_most;
+  const full = !already && most !== undefined && others.length >= most;
+  const named = look.alias || look.name;
+  const signedAs = named ? ((signs === "alias" ? look.alias : look.name) ?? undefined) : asked;
+  const ready = !full && Boolean(signedAs?.trim());
+
+  const stopOne = (one: string) => {
+    shareStop(one)
+      .then(onLookAgain)
+      .catch((problem) => onError?.(problem));
+  };
+
+  return (
+    <Modal title={t("shareTitle")} onClose={onClose} wide>
+      <p className="-mt-2 mb-4 truncate text-[12.5px] text-soft">{title}</p>
+      <div className="flex flex-col gap-5">
+        {full && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1.5 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
+          >
+            <span className="text-[13px] font-semibold text-hue-amber">
+              {fill("shareFullHead", String(others.length))}
+            </span>
+            <ul className="flex flex-col gap-1 text-[12.5px]">
+              {others.map((one) => (
+                <li key={one.doc} className="flex items-center justify-between gap-3">
+                  <span className="truncate">{one.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => stopOne(one.doc)}
+                    className="h-7 shrink-0 rounded-md border border-line px-2.5 text-[11.5px] hover:bg-hover"
+                  >
+                    {t("shareStop")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <span className="text-[11.5px] leading-relaxed text-soft">
+              {fill("shareFullWhy", String(most))}
+            </span>
+          </div>
+        )}
+        {look.secrets.length > 0 && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
+          >
+            <span className="text-[13px] font-semibold text-hue-amber">{t("shareSecrets")}</span>
+            <ul className="text-[12.5px]">
+              {look.secrets.slice(0, SECRETS_SHOWN).map((one) => (
+                <li key={`${one.under}:${one.named}`}>
+                  {one.under ? fill("shareSecretUnder", one.under) : t("shareSecretTop")}
+                  {one.named && <code className="ml-1.5 font-mono text-[11.5px]">{one.named}</code>}
+                </li>
+              ))}
+              {look.secrets.length > SECRETS_SHOWN && (
+                <li>{fill("shareSecretsMore", String(look.secrets.length - SECRETS_SHOWN))}</li>
+              )}
+            </ul>
+            <span className="text-[11.5px] leading-relaxed text-soft">{t("shareSecretsWhy")}</span>
+          </div>
+        )}
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareWhat")}</legend>
+          <div className="grid grid-cols-2 gap-1 rounded-[10px] bg-hover p-1">
+            {[false, true].map((one) => (
+              <label
+                key={String(one)}
+                className="flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md text-[12.5px] has-[:checked]:bg-bg has-[:checked]:font-semibold has-[:checked]:shadow-lift"
+              >
+                <input
+                  type="radio"
+                  name="what"
+                  className="sr-only"
+                  checked={editable === one}
+                  onChange={() => setEditable(one)}
+                />
+                {t(one ? "shareCanEdit" : "shareReadOnly")}
+              </label>
+            ))}
+          </div>
+          <p className="text-[11.5px] leading-relaxed text-faint">
+            {t(editable ? "shareEditWhy" : "shareReadWhy")}
+          </p>
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-2 text-[12.5px] font-semibold">{t("shareSign")}</legend>
+          {look.alias && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+              <input
+                type="radio"
+                name="signs"
+                checked={signs === "alias"}
+                onChange={() => setSigns("alias")}
+              />
+              {fill("shareSignAlias", look.alias)}
+            </label>
+          )}
+          {look.name && look.name !== look.alias && (
+            <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+              <input
+                type="radio"
+                name="signs"
+                checked={signs === "name"}
+                onChange={() => setSigns("name")}
+              />
+              {fill("shareSignName", look.name)}
+            </label>
+          )}
+          {!named && (
+            <label className="flex flex-col gap-1 text-[12.5px]">
+              {t("shareSignAsk")}
+              <input
+                value={asked}
+                onChange={(e) => setAsked(e.target.value)}
+                className="h-8 rounded-md border border-line bg-bg px-2.5 text-[13px]"
+              />
+            </label>
+          )}
+          <p className="text-[11.5px] leading-relaxed text-faint">
+            {t(named ? "shareSignWhy" : "shareSignAskWhy")}
+          </p>
+        </fieldset>
+
+        <label className="flex items-center justify-between gap-3 text-[13px] font-medium">
+          {t("shareEnds")}
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="h-8 rounded-md border border-line bg-bg px-2 text-[12.5px] font-normal"
+          >
+            {(look.limits.ttl_days ?? DAYS_FALLBACK).map((one) => (
+              <option key={one} value={one}>
+                {endsAfter(one)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[12.5px] font-semibold">{t("shareCarries")}</span>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1 rounded-[10px] border border-hair px-3.5 py-2.5 text-[12.5px]">
+            <dt className="text-faint">{t("shareCarriesPages")}</dt>
+            <dd className="text-right">{look.carrying.pages}</dd>
+            <dt className="text-faint">{t("shareCarriesPictures")}</dt>
+            <dd className="text-right">
+              {countOf(look.carrying.pictures, look.limits.pictures_at_most)}
+              {" · "}
+              {weightOf(look.carrying.picturesBytes, look.limits.pictures_bytes_at_most)}
+            </dd>
+            <dt className="text-faint">{t("shareCarriesFiles")}</dt>
+            <dd className="text-right">
+              {countOf(look.carrying.files, look.limits.files_at_most)}
+              {" · "}
+              {weightOf(look.carrying.filesBytes, look.limits.files_bytes_at_most)}
+            </dd>
+          </dl>
+          {look.cited.length > 0 && (
+            <>
+              <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
+                <input
+                  type="checkbox"
+                  checked={cites}
+                  onChange={(e) => setCites(e.target.checked)}
+                />
+                {look.cited.length === 1
+                  ? t("shareCitesOne")
+                  : fill("shareCites", String(look.cited.length))}
+              </label>
+              <p className="text-[11.5px] leading-relaxed text-faint">{t("shareCitesWhy")}</p>
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+          >
+            {t("shareCancel")}
+          </button>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() =>
+              onShare({
+                cited: cites ? look.cited : [],
+                signedAs: signedAs?.trim(),
+                editable,
+                ttlDays: days,
+              })
+            }
+            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
+          >
+            {t(look.secrets.length > 0 ? "shareGoAnyway" : "shareGo")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+type Step =
+  | { at: "reading" }
+  | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
+  | { at: "choosing"; look: ShareLook }
+  | { at: "going"; until: number | null }
+  | { at: "done"; card: ShareCard };
+
+export default function Sharing({
+  doc,
+  title,
+  onShared,
+  onClose,
+  onError,
+}: Readonly<{
+  doc: string;
+  title: string;
+  onShared: (card: ShareCard) => void;
+  onClose: () => void;
+  onError?: (problem: unknown) => void;
+}>) {
+  const [step, setStep] = useState<Step>({ at: "reading" });
+  const live = useRef(true);
+  const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const asked = useRef({ onClose, onError });
+  asked.current = { onClose, onError };
+
+  const failed = useCallback((problem: unknown) => {
+    asked.current.onClose();
+    asked.current.onError?.(problem);
+  }, []);
+
+  const lookOver = useCallback(() => {
+    setStep({ at: "reading" });
+    shareLook(doc)
+      .then((look) => {
+        if (live.current) setStep({ at: "choosing", look });
+      })
+      .catch(failed);
+  }, [doc, failed]);
+
+  const begin = useCallback(() => {
+    termsNow()
+      .then((terms) => {
+        if (!live.current) return;
+        if (terms.state === "toAccept") setStep({ at: "terms", terms });
+        else lookOver();
+      })
+      .catch(failed);
+  }, [failed, lookOver]);
+
+  useEffect(() => {
+    live.current = true;
+    begin();
+    return () => {
+      live.current = false;
+      clearTimeout(retry.current);
+    };
+  }, [begin]);
+
+  const share = (chosen: Parameters<typeof docShared>[1]) => {
+    setStep({ at: "going", until: null });
+    docShared(doc, chosen)
+      .then((card) => {
+        if (!live.current) return;
+        void copied(card.read).catch(() => {});
+        onShared(card);
+        setStep({ at: "done", card });
+      })
+      .catch((problem) => {
+        if (!live.current) return;
+        const until = Number((problem as { name?: string } | null)?.name);
+        if (codeOf(problem) === "folioWait" && until > 0) {
+          setStep({ at: "going", until });
+          retry.current = setTimeout(() => share(chosen), Math.max(0, until - Date.now()));
+          return;
+        }
+        if (codeOf(problem) === "folioTermsToAccept") {
+          begin();
+          return;
+        }
+        failed(problem);
+      });
+  };
+
+  switch (step.at) {
+    case "reading":
+      return (
+        <Modal title={t("shareTitle")} onClose={onClose} wide>
+          <p role="status" className="text-[13px] text-soft">
+            {t("shareLooking")}
+          </p>
+        </Modal>
+      );
+    case "terms":
+      return <Terms terms={step.terms} onAccepted={lookOver} onLater={onClose} onError={failed} />;
+    case "choosing":
+      return (
+        <Choosing
+          doc={doc}
+          title={title}
+          look={step.look}
+          onShare={share}
+          onClose={onClose}
+          onLookAgain={lookOver}
+          onError={failed}
+        />
+      );
+    case "going":
+      return <Going until={step.until} onCancel={onClose} />;
+    case "done":
+      return <Done card={step.card} onClose={onClose} />;
+  }
+}
+
+export const useSharedRow = (
+  doc: string | undefined,
+  onError?: (problem: unknown) => void,
+  onKeep?: () => Promise<unknown> | undefined,
+) => {
+  const [card, setCard] = useState<ShareCard | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [told, setTold] = useState<string | null>(null);
+  const [status, setStatus] = useState<ShareStatus | null>(null);
+  const [stopping, setStopping] = useState(false);
+  const [waitUntil, setWaitUntil] = useState(0);
+
+  useEffect(() => {
+    let gone = false;
+    setCard(null);
+    setTold(null);
+    setStatus(null);
+    setStopping(false);
+    if (!doc) return;
+    shareCard(doc)
+      .then((now) => {
+        if (!gone) setCard(now);
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, [doc]);
+
+  useEffect(() => {
+    if (!waitUntil) return;
+    const ending = setTimeout(() => setWaitUntil(0), Math.max(0, waitUntil - Date.now()));
+    return () => clearTimeout(ending);
+  }, [waitUntil]);
+
+  const failing = useCallback(
+    (problem: unknown) => {
+      const until = Number((problem as { name?: string } | null)?.name);
+      if (codeOf(problem) === "folioWait" && until > 0) setWaitUntil(until);
+      if (codeOf(problem) === "folioTermsToAccept") {
+        setAsking(true);
+        return;
+      }
+      onError?.(problem);
+    },
+    [onError],
+  );
+
+  const panel = useMemo((): Panel | null => {
+    if (!doc) return null;
+    if (!card)
+      return {
+        kind: "held",
+        key: "shared",
+        label: t("sharedLabel"),
+        gist: t("sharedNot"),
+        open: true,
+        said: [t("sharedWhy")],
+        acts: [
+          {
+            key: "share",
+            label: t("shareIt"),
+            main: true,
+            onPick: () => {
+              const kept = onKeep?.();
+              void Promise.resolve(kept).finally(() => setAsking(true));
+            },
+          },
+        ],
+      };
+    const paused = status?.paused ?? false;
+    const blocked = status?.blocked ?? false;
+    const copying = (url: string) => () => void copied(url).catch(() => {});
+    const minutes = waitUntil ? Math.max(1, Math.ceil((waitUntil - Date.now()) / 60_000)) : 0;
+    const said = [
+      blocked && t("sharedBlockedWhy"),
+      paused && t("sharedPausedWhy"),
+      status &&
+        !blocked &&
+        fill(
+          "sharedStatus",
+          new Date(status.diesOn * DAY_MS).toLocaleDateString(locale()),
+          String(status.reads),
+        ),
+      told,
+      stopping && t("shareStopAsk"),
+    ].filter((one): one is string => Boolean(one));
+    return {
+      kind: "held",
+      key: "shared",
+      label: t("sharedLabel"),
+      gist: blocked
+        ? t("sharedBlockedGist")
+        : paused
+          ? t("sharedPausedGist")
+          : t(card.edit ? "sharedCanEdit" : "sharedReadOnly"),
+      tone: blocked ? "bad" : paused ? "warn" : undefined,
+      open: true,
+      said,
+      links: blocked
+        ? []
+        : [
+            {
+              key: "read",
+              label: t("shareLinkRead"),
+              url: card.read,
+              copy: t("shareCopy"),
+              onCopy: copying(card.read),
+            },
+            ...(card.edit
+              ? [
+                  {
+                    key: "edit",
+                    label: t("shareLinkEdit"),
+                    url: card.edit,
+                    note: t("shareLinkEditNote"),
+                    copy: t("shareCopy"),
+                    onCopy: copying(card.edit),
+                  },
+                ]
+              : []),
+          ],
+      acts: stopping
+        ? [
+            { key: "keep", label: t("shareCancel"), onPick: () => setStopping(false) },
+            {
+              key: "stop",
+              label: t("shareStop"),
+              danger: true,
+              onPick: () =>
+                shareStop(doc)
+                  .then(() => {
+                    setStopping(false);
+                    setCard(null);
+                    setStatus(null);
+                    setTold(null);
+                  })
+                  .catch(failing),
+            },
+          ]
+        : [
+            {
+              key: "sync",
+              label: minutes ? fill("shareSyncWait", String(minutes)) : t("shareSync"),
+              main: true,
+              off: blocked || paused || minutes > 0,
+              onPick: () => {
+                setTold(null);
+                void Promise.resolve(onKeep?.())
+                  .then(() => shareSync(doc))
+                  .then((synced) => {
+                    if (synced.state === "unchanged") setTold(t("shareSyncUnchanged"));
+                    else if (synced.state === "sent")
+                      setTold(fill("shareSyncSent", String(synced.version)));
+                    else setTold(fill("shareSyncOther", String(synced.version)));
+                  })
+                  .catch(failing);
+              },
+            },
+            {
+              key: "status",
+              label: t("sharedSeeStatus"),
+              onPick: () => shareStatus(doc).then(setStatus).catch(failing),
+            },
+            ...(blocked
+              ? []
+              : [
+                  {
+                    key: "pause",
+                    label: t(paused ? "shareResume" : "sharePause"),
+                    onPick: () =>
+                      sharePause(doc, !paused)
+                        .then(() => shareStatus(doc))
+                        .then(setStatus)
+                        .catch(failing),
+                  },
+                  {
+                    key: "ask",
+                    label: t("shareStop"),
+                    danger: true,
+                    onPick: () => setStopping(true),
+                  },
+                ]),
+          ],
+    };
+  }, [doc, card, status, told, stopping, waitUntil, onKeep, failing]);
+
+  return {
+    panel,
+    asking,
+    onShared: (now: ShareCard) => setCard(now),
+    onClosed: () => setAsking(false),
+  };
+};

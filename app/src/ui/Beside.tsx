@@ -8,6 +8,7 @@ import { t } from "../locales";
 import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
+import Sharing, { useSharedRow } from "./Sharing";
 import SidePanels from "./SidePanels";
 import { often } from "./tagging";
 
@@ -69,6 +70,9 @@ interface Props {
   /** The languages the document is told in, the one open now marked. */
   tongues?: readonly Filed[];
   onTongue?: (tongue: Filed) => void;
+  doc?: string;
+  onError?: (problem: unknown) => void;
+  onKeep?: () => Promise<unknown> | undefined;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -129,6 +133,7 @@ export default function Beside(props: Props) {
   }, [paper, kept]);
 
   const details = useFacts({ ...props, body, heads }, facts);
+  const shared = useSharedRow(props.doc, props.onError, props.onKeep);
   const ways: Choice[] = [
     ...waysOut(false, props.making),
     { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: props.onCopy },
@@ -199,6 +204,7 @@ export default function Beside(props: Props) {
         },
       },
       { kind: "details", facts: details, open: short },
+      ...(shared.panel ? [shared.panel] : []),
     ],
     [
       props.title,
@@ -217,6 +223,7 @@ export default function Beside(props: Props) {
       paper,
       details,
       short,
+      shared.panel,
     ],
   );
 
@@ -227,6 +234,15 @@ export default function Beside(props: Props) {
       className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col"
     >
       <SidePanels key={paper} panels={panels} className="min-h-0 flex-1" />
+      {shared.asking && props.doc && (
+        <Sharing
+          doc={props.doc}
+          title={props.title || t("untitledDoc")}
+          onShared={shared.onShared}
+          onClose={shared.onClosed}
+          onError={props.onError}
+        />
+      )}
       {out && (
         <Menu
           at={out}

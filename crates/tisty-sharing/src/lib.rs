@@ -6,10 +6,10 @@ mod gathering;
 mod packing;
 mod remembering;
 
-pub use finishing::{Finished, Sealed, Unfinished};
-pub use gathering::{Asked, Desk, Gathered, Under, gathered, gathered_under, signer};
+pub use finishing::{Carrying, Finished, Sealed, Unfinished};
+pub use gathering::{Asked, Desk, Gathered, Under, citable, gathered, gathered_under, signer};
 pub use packing::Told;
-pub use remembering::{Remembered, remembered, sent};
+pub use remembering::{Remembered, forgotten, remembered, sent};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Unshared {

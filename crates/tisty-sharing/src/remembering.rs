@@ -26,6 +26,10 @@ pub struct Remembered {
     pub admin_token: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edit_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub words_print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_as: Option<String>,
 }
 
 fn shelf_at(paths: &Paths) -> PathBuf {
@@ -51,4 +55,14 @@ pub fn sent(paths: &Paths, went: &[(String, Remembered)]) -> Result<(), Unshared
     let at = shelf_at(paths);
     tisty_core::store::write_atomic(&at, &written).map_err(|e| unwritten(&e))?;
     tisty_core::paths::ours_alone(&at).map_err(|e| unwritten(&e))
+}
+
+pub fn forgotten(paths: &Paths, file: &str) -> Result<(), Unshared> {
+    let unwritten = |e: &dyn std::fmt::Display| Unshared::Unwritten(e.to_string());
+    let mut shelf = remembered(paths)?;
+    if shelf.remove(file).is_none() {
+        return Ok(());
+    }
+    let written = serde_json::to_vec(&shelf).map_err(|e| unwritten(&e))?;
+    tisty_core::store::write_atomic(&shelf_at(paths), &written).map_err(|e| unwritten(&e))
 }

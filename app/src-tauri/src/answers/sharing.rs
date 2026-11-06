@@ -5,7 +5,7 @@ use serde::Serialize;
 use tisty_core::model::DocId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_envelope::sealing::Writer;
-use tisty_sharing::{Asked, Desk, Told, Unshared, gathered, signer};
+use tisty_sharing::{Asked, Desk, Gathered, Told, Unshared, gathered, signer};
 
 use crate::{Answer, Refusal, Session, held};
 
@@ -17,7 +17,7 @@ pub struct Sealed {
     told: Vec<Told>,
 }
 
-fn refused(wrong: &Unshared) -> Refusal {
+pub(super) fn refused(wrong: &Unshared) -> Refusal {
     witness::warn(
         channel::WINDOW,
         "a document could not be sealed",
@@ -34,7 +34,7 @@ fn refused(wrong: &Unshared) -> Refusal {
     })
 }
 
-fn doc_id(said: &str) -> Answer<DocId> {
+pub(super) fn doc_id(said: &str) -> Answer<DocId> {
     said.parse().map_err(|_| Refusal::of("noSuchDoc"))
 }
 
@@ -57,9 +57,20 @@ pub async fn doc_sealed(
             .collect::<Answer<Vec<_>>>()?,
         signed_as,
     };
+    let sealed = sealed_by(&app, &session, asked, gathered).await?;
+    Ok(summed_up(sealed))
+}
+
+// Gathering is handed in: looking over reads and seals here, while sharing asks Folio for each new id.
+pub(super) async fn sealed_by(
+    app: &tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    asked: Asked,
+    gather: impl FnOnce(&Desk, &Asked) -> Result<Gathered, Unshared> + Send + 'static,
+) -> Answer<tisty_sharing::Sealed> {
     // A copy, so a picture being made anew never holds up whoever is writing.
     let (paths, state, device, also) = {
-        let session = held(&session);
+        let session = held(session);
         (
             session.paths.clone(),
             session.state.clone(),
@@ -77,7 +88,7 @@ pub async fn doc_sealed(
             also: also.as_deref(),
             turned: &turned,
         };
-        gathered(&desk, &asked)
+        gather(&desk, &asked)
     })
     .await
     .map_err(|_| Refusal::of("cannotSeal"))?
@@ -86,20 +97,19 @@ pub async fn doc_sealed(
     let answers = if asked.is_empty() {
         Vec::new()
     } else {
-        crate::finishing::in_hiding(&app, asked).await?
+        crate::finishing::in_hiding(app, asked).await?
     };
     gathered
         .finished(answers)
         .map_err(|wrong| refused(&wrong))?;
-    let sealed = tauri::async_runtime::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let mut writer = Writer::new(&key, &certificate);
         gathered
             .sealed(&mut writer)
             .map_err(|wrong| refused(&wrong))
     })
     .await
-    .map_err(|_| Refusal::of("cannotSeal"))??;
-    Ok(summed_up(sealed))
+    .map_err(|_| Refusal::of("cannotSeal"))?
 }
 
 fn summed_up(sealed: tisty_sharing::Sealed) -> Sealed {
@@ -114,7 +124,7 @@ fn summed_up(sealed: tisty_sharing::Sealed) -> Sealed {
 }
 
 // The machine's own converter is only a way in for what `image` cannot read: its bytes are read and made anew.
-fn turned(from: &Path) -> Option<Vec<u8>> {
+pub(super) fn turned(from: &Path) -> Option<Vec<u8>> {
     let made = crate::drawn::reshaped(from, "turned.jpg", false)?;
     let bytes = std::fs::read(&made).ok();
     if let Some(room) = made.parent() {

@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 
 use super::{
-    Answered, Asked, Door, First, Refused, Stopped, Stored, Verb, Version, Why, send_files,
-    send_version, solved, start, zero_bits_at_start,
+    Answered, Asked, Door, First, Refused, Stopped, Stored, Verb, Version, Why, edit_link, latest,
+    pause, read_link, resume, send_files, send_version, solved, start, status, stop,
+    zero_bits_at_start,
 };
 
 type Heard = (Verb, String, Vec<(&'static str, String)>, Vec<u8>);
@@ -283,4 +284,55 @@ fn files_that_the_latest_version_does_not_name_are_refused() {
         send_files(&folio, "Ab3xK9pQ", b"files"),
         Err(Stopped::Refused(Refused::Behind))
     );
+}
+
+#[test]
+fn a_second_stop_answers_missing_and_still_counts_as_stopped() {
+    let folio = FakeFolio::answering(&[(404, r#"{"refused":"missing"}"#)]);
+
+    assert_eq!(stop(&folio, "Ab3xK9pQ", "token"), Ok(()));
+    assert_eq!(folio.asked.borrow()[0].0, Verb::Delete);
+    assert_eq!(folio.asked.borrow()[0].1, "/docs/Ab3xK9pQ");
+    assert_eq!(folio.header(0, "Folio-Admin").as_deref(), Some("token"));
+}
+
+#[test]
+fn managing_carries_the_admin_token_to_each_route() {
+    let folio = FakeFolio::answering(&[
+        (200, r#"{"done":true}"#),
+        (200, r#"{"done":true}"#),
+        (
+            200,
+            r#"{"status":{"latest":2,"diesOn":20000,"pausedAt":null,"blockedAt":null,"appealedAt":null,"mayCorrect":false,"fixBy":null,"readTotal":3,"days":{}}}"#,
+        ),
+    ]);
+
+    assert_eq!(pause(&folio, "Ab3xK9pQ", "token"), Ok(()));
+    assert_eq!(resume(&folio, "Ab3xK9pQ", "token"), Ok(()));
+    let told = status(&folio, "Ab3xK9pQ", "token").unwrap();
+
+    assert_eq!(folio.asked.borrow()[0].1, "/docs/Ab3xK9pQ/pause");
+    assert_eq!(folio.asked.borrow()[1].1, "/docs/Ab3xK9pQ/resume");
+    assert_eq!(folio.asked.borrow()[2].1, "/docs/Ab3xK9pQ/admin");
+    assert_eq!((told.latest, told.read_total, told.paused_at), (2, 3, None));
+}
+
+#[test]
+fn the_links_keep_their_secrets_after_the_hash() {
+    assert_eq!(
+        read_link("Ab3xK9pQ", "key"),
+        "https://tisty.cl/Ab3xK9pQ#key"
+    );
+    assert_eq!(
+        edit_link("Ab3xK9pQ", "key", "token"),
+        "https://tisty.cl/Ab3xK9pQ#key.token"
+    );
+}
+
+#[test]
+fn it_says_which_version_is_there() {
+    let folio = FakeFolio::answering(&[(200, r#"{"version":7,"hash":"h"}"#)]);
+
+    assert_eq!(latest(&folio, "Ab3xK9pQ").map(|one| one.version), Ok(7));
+    assert_eq!(folio.asked.borrow()[0].0, Verb::Get);
 }

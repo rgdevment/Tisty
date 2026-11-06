@@ -3,6 +3,7 @@ use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 
 pub const BASE: &str = "https://tisty.cl/api/v1";
+const LINKS: &str = "https://tisty.cl";
 
 const ID_CHARACTERS: usize = 8;
 const PROOF_BITS_AT_MOST: u32 = 32;
@@ -10,8 +11,10 @@ const PROOFS_AT_MOST: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verb {
+    Get,
     Post,
     Put,
+    Delete,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -206,6 +209,85 @@ pub fn send_files(door: &dyn Door, id: &str, envelope: &[u8]) -> Result<(), Stop
     };
     let _: FilesStored = read(&door.ask(&asked).ok_or(Stopped::Unreached)?)?;
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct Latest {
+    pub version: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Status {
+    pub latest: u64,
+    pub dies_on: u64,
+    pub paused_at: Option<u64>,
+    pub blocked_at: Option<u64>,
+    pub read_total: u64,
+}
+
+#[derive(Deserialize)]
+struct Told {
+    status: Status,
+}
+
+#[derive(Deserialize)]
+struct Done {}
+
+fn asked_as_admin(
+    door: &dyn Door,
+    verb: Verb,
+    path: String,
+    admin: &str,
+) -> Result<Answered, Stopped> {
+    let asked = Asked {
+        verb,
+        path,
+        headers: vec![("Folio-Admin", admin.to_owned())],
+        body: &[],
+    };
+    door.ask(&asked).ok_or(Stopped::Unreached)
+}
+
+pub fn latest(door: &dyn Door, id: &str) -> Result<Latest, Stopped> {
+    let asked = Asked {
+        verb: Verb::Get,
+        path: format!("/docs/{id}/latest"),
+        headers: Vec::new(),
+        body: &[],
+    };
+    read(&door.ask(&asked).ok_or(Stopped::Unreached)?)
+}
+
+pub fn status(door: &dyn Door, id: &str, admin: &str) -> Result<Status, Stopped> {
+    let answered = asked_as_admin(door, Verb::Get, format!("/docs/{id}/admin"), admin)?;
+    read::<Told>(&answered).map(|told| told.status)
+}
+
+pub fn pause(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
+    let answered = asked_as_admin(door, Verb::Post, format!("/docs/{id}/pause"), admin)?;
+    read::<Done>(&answered).map(|_| ())
+}
+
+pub fn resume(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
+    let answered = asked_as_admin(door, Verb::Post, format!("/docs/{id}/resume"), admin)?;
+    read::<Done>(&answered).map(|_| ())
+}
+
+pub fn stop(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
+    let answered = asked_as_admin(door, Verb::Delete, format!("/docs/{id}"), admin)?;
+    match read::<Done>(&answered) {
+        Err(Stopped::Refused(Refused::Missing)) | Ok(_) => Ok(()),
+        Err(other) => Err(other),
+    }
+}
+
+pub fn read_link(id: &str, key: &str) -> String {
+    format!("{LINKS}/{id}#{key}")
+}
+
+pub fn edit_link(id: &str, key: &str, token: &str) -> String {
+    format!("{LINKS}/{id}#{key}.{token}")
 }
 
 #[cfg(test)]

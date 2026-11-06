@@ -1,5 +1,5 @@
 import type { Say } from "tisty-sheet";
-import type { Act, Facts, More } from "./side";
+import type { Act, Facts, Held, More } from "./side";
 import { wordsIn } from "./side";
 import { listed, made, pressed, rowed } from "./sideParts";
 
@@ -72,8 +72,37 @@ const detailed = (page: Document, say: Say, panel: Of<"details">) => {
   });
 };
 
-const acted = (page: Document, act: Act) =>
-  pressed(page, `side-act${act.main ? " is-main" : ""}`, act.label, (at) => act.onPick?.(at));
+const acted = (page: Document, act: Act) => {
+  const kinds = `${act.main ? " is-main" : ""}${act.danger ? " is-danger" : ""}`;
+  const one = pressed(page, `side-act${kinds}`, act.label, (at) => act.onPick?.(at));
+  one.disabled = Boolean(act.off);
+  return one;
+};
+
+const linked = (page: Document, held: Held) => {
+  const link = made(page, "div", "side-held");
+  const head = made(page, "div", "side-part-head");
+  head.append(made(page, "span", "side-held-label", held.label));
+  head.append(pressed(page, "side-link", held.copy, () => held.onCopy()));
+  link.append(head, made(page, "span", "side-held-url", held.url));
+  if (held.note) link.append(made(page, "span", "side-held-note", held.note));
+  return link;
+};
+
+const heldRow = (page: Document, panel: Of<"held">) => {
+  const line = { key: panel.key, label: panel.label, gist: panel.gist, open: panel.open };
+  const row = rowed(page, line, (into) => {
+    for (const said of panel.said ?? []) into.append(made(page, "p", "side-said", said));
+    for (const one of panel.links ?? []) into.append(linked(page, one));
+    if (panel.acts?.length) {
+      const acts = made(page, "div", "side-acts is-inside");
+      for (const act of panel.acts) acts.append(acted(page, act));
+      into.append(acts);
+    }
+  });
+  if (panel.tone) row.querySelector(".side-gist")?.classList.add(`is-${panel.tone}`);
+  return row;
+};
 
 export const besideMore = (page: Document, say: Say, panel: More): HTMLElement => {
   switch (panel.kind) {
@@ -84,5 +113,7 @@ export const besideMore = (page: Document, say: Say, panel: More): HTMLElement =
       for (const act of panel.acts) acts.append(acted(page, act));
       return acts;
     }
+    case "held":
+      return heldRow(page, panel);
   }
 };

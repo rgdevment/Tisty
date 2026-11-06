@@ -160,6 +160,31 @@ fn print_of(said: &[Attachment], files: &[Vec<u8>]) -> Option<String> {
     )
 }
 
+fn hex_of(said: impl AsRef<[u8]>) -> String {
+    said.as_ref()
+        .iter()
+        .map(|one| format!("{one:02x}"))
+        .collect()
+}
+
+fn words_print_of(
+    body: &str,
+    pages: &[WrittenPage],
+    pictures: &[Vec<u8>],
+    files: Option<&str>,
+) -> String {
+    let mut print = Sha256::new();
+    print.update(body.as_bytes());
+    for page in pages {
+        print.update(page.body.as_bytes());
+    }
+    for picture in pictures {
+        print.update(picture);
+    }
+    print.update(files.unwrap_or_default().as_bytes());
+    hex_of(print.finalize())
+}
+
 fn new_id() -> Result<String, Unshared> {
     Ok(link_key()?.chars().take(ID_CHARACTERS).collect())
 }
@@ -355,6 +380,7 @@ impl Gathering<'_> {
         }
 
         let print = print_of(&packed.said_files, &packed.files);
+        let words_print = words_print_of(&body, &pages, &packed.pictures, print.as_deref());
         let was = self.shelf.get(&kept.file);
         let editable = self.editable_anchor == Some(kept.id);
         let (sealing, keeps_files) =
@@ -374,6 +400,8 @@ impl Gathering<'_> {
                 files_key: None,
                 admin_token: Some(admin_token),
                 edit_token: sealing.token.clone(),
+                words_print: Some(words_print),
+                signed_as: self.signed_as.clone(),
             },
         ));
         self.titles.insert(kept.file.clone(), shown);
@@ -523,4 +551,31 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         remembering: gathering.remembering,
         titles: gathering.titles,
     })
+}
+
+// Only what can go along is offered, and a page already goes with its document.
+pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
+    let state = desk.state;
+    let kept = sharable(state, doc)?;
+    let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
+    let names = named(&drawn(&body)).documents;
+    let pages = state.pages_read(kept.id, &body);
+    let group = languages_of(state, kept);
+    Ok(state
+        .docs
+        .values()
+        .filter(|one| {
+            !group.iter().any(|same| same.id == one.id)
+                && !pages.iter().any(|page| page.id == one.id)
+                && sharable(state, one.id).is_ok()
+                && names.iter().any(|name| {
+                    *name == one.file
+                        || one
+                            .title
+                            .as_deref()
+                            .is_some_and(|title| title.eq_ignore_ascii_case(name))
+                })
+        })
+        .map(|one| one.id)
+        .collect())
 }
