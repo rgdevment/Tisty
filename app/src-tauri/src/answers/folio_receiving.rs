@@ -309,6 +309,30 @@ fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
         .blocking_show()
 }
 
+fn asked_to_look(app: &AppHandle, spanish: bool) -> bool {
+    let (words, look, leave) = crate::refusing::edit_look_words(spanish);
+    app.dialog()
+        .message(words)
+        .title("Tisty")
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            look.to_owned(),
+            leave.to_owned(),
+        ))
+        .blocking_show()
+}
+
+// Any page can fire a link, and the request tells Folio this computer's network address, so nothing goes out unasked.
+fn looked_for(
+    door: &dyn Door,
+    link: &Link,
+    asked_first: impl FnOnce() -> bool,
+) -> Answer<Option<Opened>> {
+    if !asked_first() {
+        return Ok(None);
+    }
+    opened_from(door, &link.id, &link.key).map(Some)
+}
+
 fn already_here(app: &AppHandle, id: &str) -> Option<String> {
     let session = app.try_state::<Mutex<Session>>()?;
     let session = held(&session);
@@ -324,7 +348,9 @@ fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<Stri
         return Ok(Some(file));
     }
     let door = ToFolio::new()?;
-    let opened = opened_from(&door, &link.id, &link.key)?;
+    let Some(opened) = looked_for(&door, &link, || asked_to_look(app, spanish))? else {
+        return Ok(None);
+    };
     if !asked_to_keep(app, spanish, &opened) {
         return Ok(None);
     }

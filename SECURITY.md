@@ -97,9 +97,9 @@ report will never be dismissed for being inconvenient.
   addresses, and any page can fire them. `tisty://open?path=…` shows, read-only,
   only an absolute path on a local disk to an existing `.md`, `.markdown`, `.txt`,
   `.ics` or `.ical` file, with no `..` in it. `tisty://edit?link=…` takes only an
-  `https` link on `tisty.cl` or `folio.tisty.app`, and Tisty then asks its own
-  fixed address, never the one the link names. That link carries the key of a
-  private document, so it is not written to Tisty's log.
+  `https` link on `tisty.cl` or `folio.tisty.app`. Tisty asks you before anything
+  leaves, and then asks its own fixed address, never the one the link names. That
+  link carries the key of a private document, so it is not written to Tisty's log.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them — or into a cloud of your own that it reaches itself. Syncing has no

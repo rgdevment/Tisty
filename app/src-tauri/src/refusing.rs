@@ -122,6 +122,22 @@ pub fn takes_itself_there() -> bool {
     update::self_installs(update::route().route) && !update::from_a_mount()
 }
 
+pub fn edit_look_words(spanish: bool) -> (&'static str, &'static str, &'static str) {
+    if spanish {
+        (
+            "Llegó a Tisty un link a un documento compartido. Para mostrarlo, Tisty tiene que pedírselo a Folio, que verá la dirección de red de este equipo. Si no lo esperabas, elige «Ahora no».",
+            "Buscarlo",
+            "Ahora no",
+        )
+    } else {
+        (
+            "A link to a shared document reached Tisty. To show it, Tisty has to ask Folio for it, and Folio will see this computer's network address. If you were not expecting it, choose Not now.",
+            "Look for it",
+            "Not now",
+        )
+    }
+}
+
 pub fn edit_asked_words(
     spanish: bool,
     title: &str,
