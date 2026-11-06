@@ -316,6 +316,26 @@ fn managing_carries_the_admin_token_to_each_route() {
     assert_eq!(folio.asked.borrow()[1].1, "/docs/Ab3xK9pQ/resume");
     assert_eq!(folio.asked.borrow()[2].1, "/docs/Ab3xK9pQ/admin");
     assert_eq!((told.latest, told.read_total, told.paused_at), (2, 3, None));
+    assert_eq!((told.may_correct, told.fix_by), (false, None));
+}
+
+#[test]
+fn the_status_tells_a_deadline_and_a_block_that_a_new_version_lifts() {
+    let folio = FakeFolio::answering(&[(
+        200,
+        r#"{"status":{"latest":2,"diesOn":20000,"pausedAt":null,"blockedAt":19990,"appealedAt":19991,"mayCorrect":true,"fixBy":20005,"readTotal":3,"days":{}}}"#,
+    )]);
+
+    let told = status(&folio, "Ab3xK9pQ", "token").unwrap();
+
+    assert_eq!((told.may_correct, told.fix_by), (true, Some(20005)));
+}
+
+#[test]
+fn a_refusal_this_version_does_not_know_is_still_a_refusal() {
+    let refused: Refused = serde_json::from_str(r#"{"refused":"from_the_future"}"#).unwrap();
+
+    assert_eq!(refused, Refused::Unknown);
 }
 
 #[test]

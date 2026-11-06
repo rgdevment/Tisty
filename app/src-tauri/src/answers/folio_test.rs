@@ -287,6 +287,14 @@ fn a_secret_is_placed_under_its_heading_past_properties_and_code() {
 }
 
 #[test]
+fn a_refusal_this_version_does_not_know_asks_to_update_it() {
+    assert_eq!(
+        said(&Stopped::Refused(Refused::Unknown)).code,
+        "folioOutdated"
+    );
+}
+
+#[test]
 fn only_an_open_folio_lets_a_new_share_start() {
     assert!(may_start(SharingNow::Open).is_ok());
     assert_eq!(

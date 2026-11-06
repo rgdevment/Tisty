@@ -85,6 +85,8 @@ export interface ShareStatus {
   paused: boolean;
   blocked: boolean;
   reads: number;
+  mayCorrect: boolean;
+  fixBy: number | null;
 }
 
 export type SharingNow =

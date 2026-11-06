@@ -19,7 +19,15 @@ const card = {
   held: false,
   told: [],
 };
-const status = { diesOn: 20_000, paused: false, blocked: false, reads: 3 };
+const status = {
+  diesOn: 20_000,
+  paused: false,
+  blocked: false,
+  reads: 3,
+  mayCorrect: false,
+  fixBy: null,
+};
+const today = Math.floor(Date.now() / 86_400_000);
 
 const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) =>
@@ -199,6 +207,71 @@ describe("the Shared row", () => {
     await pressed("status");
 
     await waitFor(() => expect(panel().said?.[0]).toContain("3"));
+  });
+
+  it("warns of reports and the day to correct them by", async () => {
+    const { panel, pressed } = await held(card, {
+      doc_share_status: { ...status, fixBy: today + 3 },
+    });
+
+    await pressed("status");
+
+    await waitFor(() => expect(panel().gist).toBe(t("sharedReportedGist")));
+    expect(panel().tone).toBe("warn");
+    expect(panel().said?.[0]).toBe(
+      fill("sharedFixBy", new Date((today + 3) * 86_400_000).toLocaleDateString("en")),
+    );
+    expect(panel().links).toHaveLength(1);
+  });
+
+  it("still counts the last day to correct, and says so once it passed", async () => {
+    const onTheDay = await held(card, { doc_share_status: { ...status, fixBy: today } });
+    await onTheDay.pressed("status");
+    await waitFor(() =>
+      expect(onTheDay.panel().said?.[0]).toBe(
+        fill("sharedFixBy", new Date(today * 86_400_000).toLocaleDateString("en")),
+      ),
+    );
+
+    const late = await held(card, { doc_share_status: { ...status, fixBy: today - 1 } });
+    await late.pressed("status");
+    await waitFor(() => expect(late.panel().said?.[0]).toBe(t("sharedFixLate")));
+    expect(late.panel().acts?.find((one) => one.key === "sync")?.off).toBe(false);
+  });
+
+  it("lets a block whose appeal was accepted be corrected with Sync", async () => {
+    const { panel, pressed } = await held(card, {
+      doc_share_status: { ...status, blocked: true, mayCorrect: true },
+    });
+
+    await pressed("status");
+
+    await waitFor(() => expect(panel().said).toEqual([t("sharedMayCorrect")]));
+    expect(panel().acts?.find((one) => one.key === "sync")?.off).toBe(false);
+    expect(panel().acts?.some((one) => one.key === "appeal")).toBe(false);
+  });
+
+  it("looks at the status after Sync when it holds the link to manage", async () => {
+    const { panel, pressed } = await held(card, {
+      doc_share_sync: { state: "unchanged" },
+      doc_share_status: { ...status, fixBy: today + 3 },
+    });
+
+    await pressed("sync");
+
+    await waitFor(() => expect(panel().gist).toBe(t("sharedReportedGist")));
+  });
+
+  it("never asks the status of a share held through an edit link", async () => {
+    const { pressed } = await held(
+      { ...card, taken: true },
+      { doc_share_sync: { state: "unchanged" }, doc_share_status: status },
+    );
+
+    await pressed("sync");
+
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("doc_share_sync", expect.anything()));
+    expect(invoked).not.toHaveBeenCalledWith("doc_share_status", expect.anything());
   });
 
   it("pauses and resumes, saying what a pause means", async () => {

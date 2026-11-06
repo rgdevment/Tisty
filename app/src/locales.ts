@@ -719,6 +719,13 @@ const en = {
     "Paused: nobody can open it. Folio deletes it after 30 days unless you resume it.",
   sharedBlockedWhy:
     "People who read it reported it, so Folio stopped serving it and its links do not open. Your document stays here, unchanged.",
+  sharedMayCorrect:
+    "Your appeal was accepted. Correct it and press Sync: a new version lifts the block.",
+  sharedReportedGist: "With reports",
+  sharedFixBy:
+    "People reported it. Correct it and press Sync by {name}, or it stops showing until you send a new version.",
+  sharedFixLate:
+    "People reported it and the time to correct it has passed: it does not show until you send a new version with Sync.",
   sharedStatus: "Expires on {name} · {other} reads",
   sharedSeeStatus: "See reads and expiry",
   shareLinkRead: "Link to read",
@@ -3562,6 +3569,13 @@ const es: Catalog = {
   sharedPausedWhy: "En pausa: nadie puede abrirlo. Folio lo borra a los 30 días si no lo reanudas.",
   sharedBlockedWhy:
     "Quienes lo leyeron lo denunciaron, así que Folio dejó de servirlo y sus links no abren. Tu documento sigue aquí, sin cambios.",
+  sharedMayCorrect:
+    "Tu reclamo fue aceptado. Corrígelo y presiona Sincronizar: una versión nueva levanta el bloqueo.",
+  sharedReportedGist: "Con denuncias",
+  sharedFixBy:
+    "Lo denunciaron. Corrígelo y presiona Sincronizar hasta el {name}, o dejará de mostrarse hasta que subas una versión nueva.",
+  sharedFixLate:
+    "Lo denunciaron y pasó el plazo para corregirlo: no se muestra hasta que subas una versión nueva con Sincronizar.",
   sharedStatus: "Caduca el {name} · {other} lecturas",
   sharedSeeStatus: "Ver lecturas y caducidad",
   shareLinkRead: "Link para leer",

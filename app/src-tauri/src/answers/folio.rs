@@ -94,7 +94,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
-            Refused::Outdated => Refusal::of("folioOutdated"),
+            Refused::Outdated | Refused::Unknown => Refusal::of("folioOutdated"),
             Refused::Revoked => Refusal::of("folioRevoked"),
             Refused::NotBlocked | Refused::Appealed => Refusal::of("folioAppealed"),
             Refused::Missing => Refusal::of("folioGone"),
@@ -863,15 +863,17 @@ pub async fn doc_share_sync(
         Ok(folio_client::latest(&door, &remembered_id))
     })
     .await?;
+    let correcting = blocked_but_correctable(&latest, &was).await;
     let latest = match latest {
-        Ok(latest) => latest,
+        Ok(latest) => Some(latest),
         Err(Stopped::Refused(Refused::Missing)) => {
             forget_share(&app, &file);
             return Ok(Synced::Gone);
         }
+        Err(_) if correcting => None,
         Err(stopped) => return Err(said(&stopped)),
     };
-    if latest.version > remembered_version {
+    if latest.is_some_and(|latest| latest.version > remembered_version) {
         return other_version_brought(&session, &id, &was).await;
     }
     if unchanged {
@@ -904,6 +906,23 @@ pub async fn doc_share_sync(
     })
     .await?;
     Ok(Synced::Sent { version, told })
+}
+
+// An appeal accepted leaves the document blocked until its owner sends a version, which Folio's latest will not name.
+async fn blocked_but_correctable<T>(latest: &Result<T, Stopped>, was: &Remembered) -> bool {
+    if !matches!(latest, Err(Stopped::Refused(Refused::Blocked))) {
+        return false;
+    }
+    let Some(admin) = was.admin_token.clone() else {
+        return false;
+    };
+    let id = was.id.clone();
+    apart(move || {
+        let door = ToFolio::new()?;
+        Ok(folio_client::status(&door, &id, &admin).is_ok_and(|told| told.may_correct))
+    })
+    .await
+    .unwrap_or(false)
 }
 
 fn doc_of_file(session: &Session, file: &str) -> Option<tisty_core::model::DocId> {
@@ -1004,6 +1023,8 @@ pub struct ShareStatus {
     paused: bool,
     blocked: bool,
     reads: u64,
+    may_correct: bool,
+    fix_by: Option<u64>,
 }
 
 fn admin_of(
@@ -1032,6 +1053,8 @@ pub async fn doc_share_status(
             paused: told.paused_at.is_some(),
             blocked: told.blocked_at.is_some(),
             reads: told.read_total,
+            may_correct: told.may_correct,
+            fix_by: told.fix_by,
         })
     })
     .await

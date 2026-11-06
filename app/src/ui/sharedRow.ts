@@ -23,23 +23,28 @@ type Act = NonNullable<HeldPanel["acts"]>[number];
 const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
 const untilOf = (problem: unknown) => Number((problem as { name?: string } | null)?.name);
 
+const dayOf = (day: number) => new Date(day * DAY_MS).toLocaleDateString(locale());
+
+const fixSaid = ({ fixBy }: ShareStatus) => {
+  if (fixBy === null) return null;
+  return Date.now() >= (fixBy + 1) * DAY_MS
+    ? t("sharedFixLate")
+    : fill("sharedFixBy", dayOf(fixBy));
+};
+
 const gistOf = (card: ShareCard, status: ShareStatus | null) => {
   if (status?.blocked) return { gist: t("sharedBlockedGist"), tone: "bad" as const };
   if (status?.paused) return { gist: t("sharedPausedGist"), tone: "warn" as const };
+  if (status && fixSaid(status)) return { gist: t("sharedReportedGist"), tone: "warn" as const };
   return { gist: t(card.edit ? "sharedCanEdit" : "sharedReadOnly"), tone: undefined };
 };
 
 const saidOf = (status: ShareStatus | null, told: string | null, stopping: boolean) =>
   [
-    status?.blocked && t("sharedBlockedWhy"),
+    status?.blocked && t(status.mayCorrect ? "sharedMayCorrect" : "sharedBlockedWhy"),
     status?.paused && t("sharedPausedWhy"),
-    status &&
-      !status.blocked &&
-      fill(
-        "sharedStatus",
-        new Date(status.diesOn * DAY_MS).toLocaleDateString(locale()),
-        String(status.reads),
-      ),
+    status && !status.blocked && fixSaid(status),
+    status && !status.blocked && fill("sharedStatus", dayOf(status.diesOn), String(status.reads)),
     told,
     stopping && t("shareStopAsk"),
   ].filter((one): one is string => Boolean(one));
@@ -107,19 +112,28 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
   h.setTold(syncedWords(synced));
 };
 
+// Whoever holds the link to manage hears of reports when pressing, since Tisty never asks on its own.
+const statusAfterSync = (h: Hands) => {
+  if (!h.card.taken)
+    void shareStatus(h.doc)
+      .then(h.setStatus)
+      .catch(() => {});
+};
+
 const syncNow = (h: Hands) => {
   h.setTold(null);
   void Promise.resolve(h.onKeep?.())
     .then(() => shareSync(h.doc, h.accepted))
     .then((synced) => syncAnswered(h, synced))
-    .catch(h.failing);
+    .catch(h.failing)
+    .finally(() => statusAfterSync(h));
 };
 
 const syncAct = (h: Hands): Act => ({
   key: "sync",
   label: syncLabel(h),
   main: true,
-  off: Boolean(h.status?.blocked || h.status?.paused || h.minutes > 0),
+  off: Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0),
   onPick: () => syncNow(h),
 });
 
@@ -147,6 +161,7 @@ const managingActs = (h: Hands): Act[] => {
     label: t("sharedSeeStatus"),
     onPick: () => void shareStatus(h.doc).then(h.setStatus).catch(h.failing),
   };
+  if (h.status?.blocked && h.status.mayCorrect) return [see];
   if (h.status?.blocked)
     return [
       see,
