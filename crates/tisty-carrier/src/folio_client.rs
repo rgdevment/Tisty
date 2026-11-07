@@ -102,7 +102,14 @@ pub enum Refused {
 fn said_as_text<'de, D: serde::Deserializer<'de>>(said: D) -> Result<Option<String>, D::Error> {
     Ok(match serde_json::Value::deserialize(said)? {
         serde_json::Value::String(text) => Some(text),
-        serde_json::Value::Number(number) => Some(number.to_string()),
+        serde_json::Value::Number(number) => {
+            number.as_u64().map(|whole| whole.to_string()).or_else(|| {
+                number
+                    .as_f64()
+                    .filter(|one| one.fract() == 0.0 && one.is_sign_positive())
+                    .map(|whole| format!("{whole:.0}"))
+            })
+        }
         _ => None,
     })
 }

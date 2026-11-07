@@ -476,6 +476,11 @@ fn a_refusal_over_the_terms_keeps_the_version_folio_asks_for_however_it_is_writt
         Some("12")
     );
     assert_eq!(version_of(r#"{"refused":"terms","version":null}"#), None);
+    assert_eq!(
+        version_of(r#"{"refused":"terms","version":12.0}"#).as_deref(),
+        Some("12")
+    );
+    assert_eq!(version_of(r#"{"refused":"terms","version":12.5}"#), None);
     assert_eq!(version_of(r#"{"refused":"terms"}"#), None);
 }
 

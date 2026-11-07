@@ -1200,19 +1200,8 @@ fn the_top_folio_signs_holds_over_the_one_written_here() {
         also: None,
         turned: &|_| None,
     };
-    let mint = || Ok(ulid::Ulid::generate().to_string());
 
-    let gathered = tisty_sharing::gathered_under(
-        &desk,
-        &asked(anchor),
-        &tisty_sharing::Under {
-            mint: &mint,
-            editable: false,
-            terms: Some("1"),
-            languages_at_most: Some(3),
-        },
-    )
-    .unwrap();
+    let gathered = tisty_sharing::gathered_within(&desk, &asked(anchor), Some(3)).unwrap();
 
     assert_eq!(
         gathered.told(),

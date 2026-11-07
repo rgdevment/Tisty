@@ -20,7 +20,6 @@ use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
-// Until Folio's signed limits are first read here.
 const LANGUAGES_AT_MOST: usize = 20;
 
 pub struct Desk<'a> {
@@ -568,6 +567,14 @@ impl Gathering<'_> {
 }
 
 pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
+    gathered_within(desk, asked, None)
+}
+
+pub fn gathered_within(
+    desk: &Desk,
+    asked: &Asked,
+    languages_at_most: Option<usize>,
+) -> Result<Gathered, Unshared> {
     gathered_under(
         desk,
         asked,
@@ -575,7 +582,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
             mint: &new_id,
             editable: false,
             terms: None,
-            languages_at_most: None,
+            languages_at_most,
         },
     )
 }

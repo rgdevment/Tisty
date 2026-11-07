@@ -402,11 +402,21 @@ describe("sharing a document with Folio", () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it("sends again by itself once Folio's terms settle after a refusal", async () => {
+  it("after a refused send waits on the terms alone and sends once they are accepted", async () => {
     let sends = 0;
+    let readings = 0;
     invoked.mockImplementation((command: string) => {
       if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
-      if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
+      if (command === "folio_terms_accept") return Promise.resolve(null);
+      if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
+      if (command === "folio_terms_standing") {
+        readings += 1;
+        return Promise.resolve(
+          readings === 1
+            ? { state: "accepted" }
+            : { state: "toAccept", version: "13", text: "Los términos", acceptedBefore: "12" },
+        );
+      }
       if (command === "doc_share_look") return Promise.resolve(look);
       if (command === "doc_shared") {
         sends += 1;
@@ -428,9 +438,13 @@ describe("sharing a document with Folio", () => {
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
     expect(await screen.findByText(t("shareTermsSettling"))).toBeTruthy();
     await vi.advanceTimersByTimeAsync(60_000);
+    expect(sends).toBe(1);
+    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
 
     await screen.findByRole("heading", { name: t("sharedDone") });
     expect(sends).toBe(2);
+    expect(readings).toBe(2);
     expect(onError).not.toHaveBeenCalled();
   });
 

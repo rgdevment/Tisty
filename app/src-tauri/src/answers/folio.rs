@@ -523,9 +523,10 @@ pub async fn doc_share_look(
             cited: Vec::new(),
             signed_as: None,
         };
-        let gathered = tisty_sharing::gathered(&desk, &asked).map_err(|e| refused(&e))?;
-        let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
         let home = paths.private();
+        let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
+            .map_err(|e| refused(&e))?;
+        let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
         let limits = match folio_limits::heed(&home, crate::reaching::brought) {
             Some(Ok(limits)) => Some(limits),
             _ => folio_limits::kept(&home),
@@ -733,6 +734,12 @@ fn first_time_without_room(home: &std::path::Path, many: usize) -> bool {
     true
 }
 
+fn languages_top(home: &std::path::Path) -> Option<usize> {
+    folio_limits::kept(home)
+        .and_then(|limits| limits.languages_at_most)
+        .and_then(|top| usize::try_from(top).ok())
+}
+
 async fn sealed_for_folio(
     app: &tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
@@ -740,9 +747,7 @@ async fn sealed_for_folio(
     editable: bool,
     terms: String,
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
-    let languages_at_most = folio_limits::kept(&held(session).paths.private())
-        .and_then(|limits| limits.languages_at_most)
-        .and_then(|top| usize::try_from(top).ok());
+    let languages_at_most = languages_top(&held(session).paths.private());
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -938,7 +943,9 @@ pub async fn doc_share_sync(
             turned: &turned,
         };
         let shelf = tisty_sharing::remembered(&state);
-        let gathered = tisty_sharing::gathered(&desk, &looking).map_err(|e| refused(&e))?;
+        let gathered =
+            tisty_sharing::gathered_within(&desk, &looking, languages_top(&reading.private()))
+                .map_err(|e| refused(&e))?;
         let mut docs = vec![doc];
         docs.extend(citing);
         let secret = secrets_of_docs(&reading, &state, &docs)

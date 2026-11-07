@@ -317,6 +317,11 @@ export function saidPlainly(problem: unknown): string {
 }
 
 const WEIGHED = ["folioRoomFull", "folioOwnerRoomFull"];
+const MEGABYTE = 1_000_000;
+
+// Folio's room is a round figure, and «25.0 MB» would read like something measured.
+const roomOf = (bytes: number) =>
+  bytes > 0 && bytes % MEGABYTE === 0 ? `${bytes / MEGABYTE} MB` : weigh(bytes);
 
 export function plainly(problem: unknown): string {
   if (problem instanceof Refused) return sayIn(locale())(problem.code);
@@ -329,7 +334,7 @@ export function plainly(problem: unknown): string {
   }
   if (refusal.code === "cloudSpent") return fill(refusal.code, refusal.name ?? "", budgetResets());
   if (WEIGHED.includes(refusal.code) && refusal.name) {
-    return fill(refusal.code, weigh(Number(refusal.name)));
+    return fill(refusal.code, roomOf(Number(refusal.name)));
   }
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }

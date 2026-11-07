@@ -228,11 +228,18 @@ function NotOpenYet({ note, onClose }: Readonly<{ note?: string; onClose: () => 
   );
 }
 
-function NoAnswer({ onRetry, onClose }: Readonly<{ onRetry: () => void; onClose: () => void }>) {
+function NothingSent({
+  title,
+  why,
+  onRetry,
+  onClose,
+}: Readonly<{ title: string; why: string; onRetry?: () => void; onClose: () => void }>) {
   return (
-    <Modal title={t("shareUnreachedTitle")} onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] leading-relaxed">{t("shareUnreachedWhy")}</p>
+        <p role="status" className="text-[13px] leading-relaxed">
+          {why}
+        </p>
         <p className="text-[11.5px] text-soft">{t("shareUnreachedSent")}</p>
         <div className="flex justify-end gap-2">
           <button
@@ -242,35 +249,15 @@ function NoAnswer({ onRetry, onClose }: Readonly<{ onRetry: () => void; onClose:
           >
             {t("shareUnreachedClose")}
           </button>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
-          >
-            {t("shareUnreachedRetry")}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function TermsSettling({ onClose }: Readonly<{ onClose: () => void }>) {
-  return (
-    <Modal title={t("shareTitle")} onClose={onClose}>
-      <div className="flex flex-col gap-4">
-        <p role="status" className="text-[13px] leading-relaxed">
-          {t("shareTermsSettling")}
-        </p>
-        <p className="text-[11.5px] text-soft">{t("shareUnreachedSent")}</p>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
-          >
-            {t("shareUnreachedClose")}
-          </button>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
+            >
+              {t("shareUnreachedRetry")}
+            </button>
+          )}
         </div>
       </div>
     </Modal>
@@ -777,7 +764,8 @@ export default function Sharing({
           return;
         }
         if (codeOf(problem) === "folioTermsUpdating") {
-          termsSettling(() => share(chosen));
+          again.current = chosen;
+          termsSettling(() => termsAgain.current());
           return;
         }
         if (codeOf(problem) === "folioClosed") {
@@ -812,9 +800,18 @@ export default function Sharing({
     case "closed":
       return <NotOpenYet note={step.note} onClose={onClose} />;
     case "unreached":
-      return <NoAnswer onRetry={begin} onClose={onClose} />;
+      return (
+        <NothingSent
+          title={t("shareUnreachedTitle")}
+          why={t("shareUnreachedWhy")}
+          onRetry={begin}
+          onClose={onClose}
+        />
+      );
     case "settling":
-      return <TermsSettling onClose={onClose} />;
+      return (
+        <NothingSent title={t("shareTitle")} why={t("shareTermsSettling")} onClose={onClose} />
+      );
     case "terms":
       return (
         <Terms terms={step.terms} onAccepted={termsTaken} onLater={onClose} onError={failed} />
