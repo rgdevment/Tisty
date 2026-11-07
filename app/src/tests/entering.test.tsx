@@ -36,6 +36,9 @@ describe("typing the phrase on a computer that cannot open the cloud", () => {
 
     expect(await screen.findByText(/Mac de la oficina · macOS/)).toBeTruthy();
     expect(screen.getByText(/^last heard /)).toBeTruthy();
+    expect(screen.getByRole("textbox").getAttribute("aria-describedby")).toBe(
+      screen.getByText(/Type it only here, in your own Tisty/).id,
+    );
     const go = screen.getByRole("button", { name: "Open my cloud" });
     expect(go.hasAttribute("disabled")).toBe(true);
     await userEvent.type(screen.getByRole("textbox"), "  abandon ability able  ");

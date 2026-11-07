@@ -106,7 +106,9 @@ describe("your identity", () => {
     render(<Shell />);
 
     await userEvent.click(await screen.findByRole("button", { name: "I already have my phrase" }));
-    expect(screen.getByText(/Type it only here, in your own Tisty/)).toBeTruthy();
+    expect(screen.getByLabelText(/Type your 24 words/).getAttribute("aria-describedby")).toBe(
+      screen.getByText(/Type it only here, in your own Tisty/).id,
+    );
     await userEvent.type(screen.getByLabelText(/Type your 24 words/), WORDS.join(" "));
     await userEvent.click(screen.getByRole("button", { name: "Give this computer its key" }));
     await waitFor(() =>

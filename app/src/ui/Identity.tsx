@@ -148,6 +148,7 @@ function PhraseTyped({
   const [said, setSaid] = useState("");
   const [going, setGoing] = useState(false);
   const fieldId = useId();
+  const onlyHere = useId();
   if (!open)
     return (
       <button
@@ -177,9 +178,12 @@ function PhraseTyped({
       <label htmlFor={fieldId} className="text-[11.5px] text-faint">
         {t("phraseTypeHow")}
       </label>
-      <p className="text-[11.5px] font-semibold">{t("phraseTypeOnlyHere")}</p>
+      <p id={onlyHere} className="text-[11.5px] font-semibold">
+        {t("phraseTypeOnlyHere")}
+      </p>
       <textarea
         id={fieldId}
+        aria-describedby={onlyHere}
         value={said}
         onChange={(e) => setSaid(e.target.value)}
         rows={3}
