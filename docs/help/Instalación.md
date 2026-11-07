@@ -6,6 +6,14 @@ Tisty funciona en **Windows** y **macOS**. Hoy no hay versión para Linux ni app
 
 **Microsoft Store**: [Tisty en la Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). La Store lo mantiene actualizado, y desde *Acerca de* puedes pedirle una actualización en el momento.
 
+**winget**: el gestor de paquetes de Windows toma el instalador firmado de GitHub Releases y después se aparta, porque Tisty se actualiza solo:
+
+```console
+> winget install rgdevment.Tisty
+```
+
+También sirven `winget upgrade rgdevment.Tisty` y `winget uninstall rgdevment.Tisty`, que lo quita como cualquier otra desinstalación.
+
 ## macOS
 
 **Homebrew**: el tap se añade y se marca como confiable una vez; Homebrew carga un tap que no es suyo solo cuando confías en él. Después Tisty se actualiza solo:

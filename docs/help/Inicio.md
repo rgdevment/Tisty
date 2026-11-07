@@ -26,7 +26,7 @@ Una tarea también es un documento, uno que termina: por eso tiene una página p
 
 ## Para empezar
 
-- [[Instalación]]: Microsoft Store, Homebrew o descarga directa.
+- [[Instalación]]: Microsoft Store, winget, Homebrew o descarga directa.
 - [Primeros pasos](Instalación#la-primera-vez-que-se-abre): lo que Tisty pregunta la primera vez y la guía que te escribe.
 - [[Atajos de teclado|Atajos-de-teclado]]
 
