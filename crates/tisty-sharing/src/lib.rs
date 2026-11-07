@@ -8,7 +8,9 @@ mod receiving;
 mod remembering;
 
 pub use finishing::{Carrying, Finished, Sealed, Unfinished};
-pub use gathering::{Asked, Desk, Gathered, Under, citable, gathered, gathered_under, signer};
+pub use gathering::{
+    Asked, Desk, Gathered, Under, citable, gathered, gathered_under, gathered_within, signer,
+};
 pub use packing::Told;
 pub use receiving::{CARRIED_CITED, Received, received};
 pub use remembering::{forgotten, remembered, sent};

@@ -690,6 +690,15 @@ const en = {
   folioTermsNotPublished:
     "Folio has not published its terms yet, so nothing can be shared for now.",
   folioTermsUnmatched: "Folio's terms could not be confirmed. Try again in a few minutes.",
+  folioTermsUpdating: "Folio is updating its terms. Try again in a few minutes.",
+  folioKeyBlocked:
+    "Folio blocked this key. What you already shared stays, but you can't upload more.",
+  folioOwnerKeyBlocked:
+    "Folio blocked the key of this document's owner. New versions can't be uploaded.",
+  folioRoomFull:
+    "While your key is new, your documents hold up to {name}. Wait for one to expire or stop sharing one.",
+  folioOwnerRoomFull:
+    "The key of this document's owner is new and their documents already hold {name}. More can be uploaded once one of them expires.",
   folioTermsToAccept: "Folio's terms changed. Read and accept them to keep uploading.",
   folioAppealed: "This block was already appealed, or nothing is blocked now.",
   shareOverHead: "It carries more than Folio takes for now",
@@ -795,6 +804,8 @@ const en = {
     "To know, Tisty needs an answer from Folio and none is arriving. Check your connection and try again.",
   shareUnreachedSent: "Nothing left this device.",
   shareUnreachedClose: "Close",
+  shareTermsSettling:
+    "Folio is updating its terms. Tisty tries again every minute, or you can close this and come back in a few minutes.",
   shareUnreachedRetry: "Try again",
   shareWhat: "What whoever gets it can do",
   shareReadOnly: "Read only",
@@ -3574,6 +3585,15 @@ const es: Catalog = {
     "Folio todavía no publica sus términos, así que por ahora no se puede compartir.",
   folioTermsUnmatched:
     "No se pudieron confirmar los términos de Folio. Vuelve a intentarlo en unos minutos.",
+  folioTermsUpdating: "Folio está actualizando sus términos. Vuelve a intentarlo en unos minutos.",
+  folioKeyBlocked:
+    "Folio bloqueó esta llave. Lo que ya compartiste sigue, pero no puedes subir más.",
+  folioOwnerKeyBlocked:
+    "Folio bloqueó la llave del dueño de este documento. No se pueden subir versiones nuevas.",
+  folioRoomFull:
+    "Mientras tu llave es nueva, tus documentos guardan hasta {name}. Espera a que alguno caduque o deja de compartir uno.",
+  folioOwnerRoomFull:
+    "La llave del dueño de este documento es nueva y sus documentos ya guardan {name}. Podrá subir más cuando alguno caduque.",
   folioTermsToAccept: "Folio cambió sus términos. Léelos y acéptalos para seguir subiendo.",
   folioAppealed: "Este bloqueo ya se reclamó, o ya no hay nada bloqueado.",
   shareOverHead: "Lleva más de lo que Folio acepta por ahora",
@@ -3679,6 +3699,8 @@ const es: Catalog = {
     "Para saberlo, Tisty necesita una respuesta de Folio y ahora no llega. Revisa tu conexión e inténtalo de nuevo.",
   shareUnreachedSent: "Nada salió de este equipo.",
   shareUnreachedClose: "Cerrar",
+  shareTermsSettling:
+    "Folio está actualizando sus términos. Tisty lo vuelve a intentar cada minuto, o puedes cerrar y volver en unos minutos.",
   shareUnreachedRetry: "Reintentar",
   shareWhat: "Qué puede hacer quien lo recibe",
   shareReadOnly: "Solo leer",

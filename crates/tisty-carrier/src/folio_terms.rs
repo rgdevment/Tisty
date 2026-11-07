@@ -11,6 +11,10 @@ const TERMS_ES_URL: &str =
 const TERMS_EN_URL: &str =
     "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/TERMS.md";
 const ACCEPTED: &str = "folio-terms-accepted.json";
+const SETTLING: &str = "folio-terms-settling";
+// GitHub keeps each of Folio's files apart for five minutes, so a new text and its print may arrive out of step.
+const SETTLING_FOR: u64 = 6 * 60;
+const SETTLING_FORGOTTEN: u64 = 60 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -57,6 +61,7 @@ pub enum Standing {
 pub enum Unsure {
     NoWord,
     NotPublished,
+    Settling,
     Unmatched,
 }
 
@@ -110,7 +115,32 @@ pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
     bring: F,
 ) -> Result<Standing, Unsure> {
     let limits = heard(home, &bring);
-    standing_under(home, limits, tongue, bring)
+    settled(home, standing_under(home, limits, tongue, bring))
+}
+
+fn settled(home: &Path, standing: Result<Standing, Unsure>) -> Result<Standing, Unsure> {
+    if standing.is_ok() {
+        let _ = std::fs::remove_file(home.join(SETTLING));
+    }
+    standing
+}
+
+fn unsettled(home: &Path) -> Unsure {
+    let kept = home.join(SETTLING);
+    let now = policy::now();
+    let since = std::fs::read_to_string(&kept)
+        .ok()
+        .and_then(|said| said.trim().parse::<u64>().ok())
+        .filter(|since| now.saturating_sub(*since) <= SETTLING_FORGOTTEN);
+    match since {
+        Some(since) if now.saturating_sub(since) >= SETTLING_FOR => Unsure::Unmatched,
+        Some(_) => Unsure::Settling,
+        None => {
+            let _ = std::fs::create_dir_all(home);
+            let _ = std::fs::write(&kept, now.to_string());
+            Unsure::Settling
+        }
+    }
 }
 
 fn standing_under<F: Fn(&str) -> Option<Vec<u8>>>(
@@ -132,7 +162,7 @@ fn standing_under<F: Fn(&str) -> Option<Vec<u8>>>(
             let terms = limits.terms.as_ref()?;
             under(terms, before.as_ref(), tongue, &bring)
         })
-        .ok_or(Unsure::Unmatched)
+        .ok_or_else(|| unsettled(home))
 }
 
 pub fn accepted_version(home: &Path) -> Option<String> {
@@ -144,12 +174,18 @@ pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
     home: &Path,
     tongue: Tongue,
     bring: F,
+    asked: Option<&str>,
 ) -> Result<Standing, Unsure> {
     let limits = match folio_limits::heed_now(home, &bring) {
         Some(Ok(limits)) => Some(limits),
         _ => folio_limits::kept(home),
     };
-    standing_under(home, limits, tongue, bring)
+    let standing = standing_under(home, limits, tongue, bring)?;
+    // Folio asks for terms its signed limits do not name yet: they are still on their way here.
+    if standing == Standing::Accepted && asked != accepted_version(home).as_deref() {
+        return Err(unsettled(home));
+    }
+    settled(home, Ok(standing))
 }
 
 pub fn accept(home: &Path, tongue: Tongue, version: &str) -> Result<(), Unkept> {

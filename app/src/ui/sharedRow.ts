@@ -259,6 +259,10 @@ export const useSharedRow = (
         setTold(t("shareSyncAfterTerms"));
         return;
       }
+      if (code === "folioTermsUpdating") {
+        setTold(t("folioTermsUpdating"));
+        return;
+      }
       if (code === "folioGone") {
         setCard(null);
         setStatus(null);

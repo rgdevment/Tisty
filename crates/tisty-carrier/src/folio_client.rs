@@ -68,6 +68,7 @@ pub enum Refused {
     Missing,
     Behind,
     SharesFull,
+    RoomFull,
     LanguagesFull,
     MachinesFull,
     TooBig,
@@ -87,11 +88,30 @@ pub enum Refused {
     },
     Failed,
     UploadsOff,
-    Terms,
+    Terms {
+        #[serde(default, deserialize_with = "said_as_text")]
+        version: Option<String>,
+    },
+    KeyBlocked,
     NotBlocked,
     Appealed,
     #[serde(other)]
     Unknown,
+}
+
+fn said_as_text<'de, D: serde::Deserializer<'de>>(said: D) -> Result<Option<String>, D::Error> {
+    Ok(match serde_json::Value::deserialize(said)? {
+        serde_json::Value::String(text) => Some(text),
+        serde_json::Value::Number(number) => {
+            number.as_u64().map(|whole| whole.to_string()).or_else(|| {
+                number
+                    .as_f64()
+                    .filter(|one| one.fract() == 0.0 && one.is_sign_positive())
+                    .map(|whole| format!("{whole:.0}"))
+            })
+        }
+        _ => None,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

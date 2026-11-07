@@ -6,6 +6,14 @@ describe("saidPlainly", () => {
     expect(saidPlainly({ code: "noSuchList", name: "work" })).toBe("No list matches work");
   });
 
+  it("says the room Folio leaves a new key as the round figure it is", () => {
+    expect(saidPlainly({ code: "folioRoomFull", name: "25000000" })).toContain("up to 25 MB.");
+    expect(saidPlainly({ code: "folioOwnerRoomFull", name: "30000000" })).toContain(
+      "already hold 30 MB.",
+    );
+    expect(saidPlainly({ code: "folioRoomFull", name: "2500000" })).toContain("up to 2.5 MB.");
+  });
+
   it("uses the bare sentence when there is no name to fill", () => {
     expect(saidPlainly({ code: "untitled" })).toBe("A title is required");
   });
