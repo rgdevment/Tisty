@@ -300,8 +300,9 @@ fn with_terms_accepted_a_text_that_cannot_be_brought_holds_nobody_back() {
 }
 
 #[test]
-fn a_mismatch_asks_the_limits_again_past_the_hourly_mark() {
+fn each_reading_asks_for_the_limits_afresh_within_the_hour() {
     let home = seeded(Some(terms("1")));
+    std::fs::write(home.path().join("folio-limits-asked"), b"").unwrap();
     let limits_asked = Cell::new(0);
 
     let told = standing(home.path(), Tongue::Es, |url: &str| match url {
@@ -314,7 +315,7 @@ fn a_mismatch_asks_the_limits_again_past_the_hourly_mark() {
     });
 
     assert_eq!(told, Err(Unsure::Settling));
-    assert_eq!(limits_asked.get(), 2);
+    assert_eq!(limits_asked.get(), 1);
 }
 
 #[test]

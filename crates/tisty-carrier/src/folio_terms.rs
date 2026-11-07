@@ -82,10 +82,11 @@ fn accepted(home: &Path) -> Option<Accepted> {
     policy::kept_at(&home.join(ACCEPTED))
 }
 
+// Read on every press, so newer terms are asked for as soon as they can be checked.
 fn heard<F: Fn(&str) -> Option<Vec<u8>>>(home: &Path, bring: &F) -> Option<FolioLimits> {
-    match folio_limits::heed(home, bring) {
+    match folio_limits::heed_now(home, bring) {
         Some(Ok(limits)) => Some(limits),
-        _ => folio_limits::kept(home).or_else(|| folio_limits::heed_now(home, bring)?.ok()),
+        _ => folio_limits::kept(home),
     }
 }
 
@@ -147,22 +148,10 @@ fn checked<F: Fn(&str) -> Option<Vec<u8>>>(
 ) -> Result<Checked, Unsure> {
     let limits = limits.ok_or(Unsure::NoWord)?;
     let terms = limits.terms.as_ref().ok_or(Unsure::NotPublished)?;
-    let mut wanted = tongue.print_in(terms).to_owned();
-    let mut told = under(terms, before, tongue, bring);
-    if told == Err(Unsure::Unmatched) {
-        // The limits kept here may be up to an hour older than the text just read.
-        if let Some(terms) = folio_limits::heed_now(home, bring)
-            .and_then(Result::ok)
-            .and_then(|newer| newer.terms)
-        {
-            wanted = tongue.print_in(&terms).to_owned();
-            told = under(&terms, before, tongue, bring);
-        }
-    }
-    match told {
+    match under(terms, before, tongue, bring) {
         Ok(standing) => Ok(Checked::Standing(standing)),
         Err(Unsure::Unmatched) => Ok(Checked::Unmet {
-            long: unmet_long(home, &wanted),
+            long: unmet_long(home, tongue.print_in(terms)),
         }),
         Err(unsure) => Err(unsure),
     }
@@ -199,10 +188,7 @@ pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
     bring: F,
     asked: Option<&str>,
 ) -> Result<Standing, Unsure> {
-    let limits = match folio_limits::heed_now(home, &bring) {
-        Some(Ok(limits)) => Some(limits),
-        _ => folio_limits::kept(home),
-    };
+    let limits = heard(home, &bring);
     // Only terms that check out can stand in for the ones Folio refused.
     let long = match checked(home, limits, accepted(home).as_ref(), tongue, &bring)? {
         Checked::Standing(standing @ Standing::ToAccept { .. }) => {

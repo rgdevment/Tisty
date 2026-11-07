@@ -994,7 +994,20 @@ pub async fn doc_share_sync(
     if latest.is_some_and(|latest| latest.version > remembered_version) {
         return other_version_brought(&session, &id, &was).await;
     }
+    let checking = paths.clone();
+    let terms = apart(move || may_upload(&checking, tongue)).await;
     if unchanged {
+        // Nothing goes, yet newer terms are still asked for as soon as they can be checked.
+        if let Err(refused) = terms.as_ref()
+            && refused.code == TERMS_TO_ACCEPT
+        {
+            return Err(press_given_back(
+                Refusal::of(TERMS_TO_ACCEPT),
+                &home,
+                &was.id,
+                pressed_at,
+            ));
+        }
         let (state, device, taking_home) = {
             let session = held(&session);
             (
@@ -1013,10 +1026,7 @@ pub async fn doc_share_sync(
             told: not_kept.into_iter().collect(),
         });
     }
-    let checking = paths.clone();
-    let terms = apart(move || may_upload(&checking, tongue))
-        .await
-        .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
+    let terms = terms.map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
     let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
     for (_, one) in &mut sealed.remembering {
