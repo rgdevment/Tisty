@@ -6,11 +6,13 @@ use tisty_carrier::folio_limits::SharingNow;
 use tisty_carrier::folio_terms::{Standing, Unsure};
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
-use tisty_sharing::{Remembered, Told};
+use tisty_share_proto::identity::Revocation;
+use tisty_sharing::Remembered;
 
 use super::{
-    Card, after_terms_refused, card_of, counted_as_shared, delivered, folio_terms_drawn,
-    going_with, headings_over, may_start, press_given_back, said, sent_taken_back,
+    Card, after_terms_refused, card_of, counted_as_shared, delivered, first_time_without_room,
+    folio_terms_drawn, going_with, headings_over, may_start, newest_first, press_given_back, said,
+    sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -123,11 +125,49 @@ fn a_key_folio_has_no_room_for_is_told_even_when_an_earlier_chunk_went() {
         (409, r#"{"refused":"machines_full"}"#),
     ]);
 
-    assert_eq!(
-        sent_taken_back(&folio, &taken(9)),
-        Some(Told::TakenBackNotKept)
-    );
+    assert!(sent_taken_back(&folio, &taken(9)));
     assert_eq!(folio.asked.borrow().len(), 2);
+}
+
+#[test]
+fn past_the_hour_it_asks_no_more_and_says_nothing_of_room() {
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().extend([
+        (200, r#"{"done":true}"#),
+        (429, r#"{"refused":"quota","until":1}"#),
+        (409, r#"{"refused":"machines_full"}"#),
+    ]);
+
+    assert!(!sent_taken_back(&folio, &taken(24)));
+    assert_eq!(folio.asked.borrow().len(), 2);
+}
+
+#[test]
+fn the_newest_key_taken_back_goes_first() {
+    let at = |day: u8| format!("2026-11-{day:02}T00:00:00Z").parse().unwrap();
+    let said = |machine: &str, day: u8| Revocation {
+        root: "root".to_owned(),
+        share: machine.to_owned(),
+        at: at(day),
+        sig: "signed".to_owned(),
+    };
+    let all = [said("old", 1), said("newest", 3), said("middle", 2)];
+
+    let order: Vec<String> = newest_first(all.iter())
+        .into_iter()
+        .map(|one| one.machine)
+        .collect();
+
+    assert_eq!(order, ["newest", "middle", "old"]);
+}
+
+#[test]
+fn no_room_is_said_once_for_each_key_that_finds_none() {
+    let home = tempfile::tempdir().unwrap();
+    assert!(first_time_without_room(home.path(), 65));
+    assert!(!first_time_without_room(home.path(), 65));
+    assert!(!first_time_without_room(home.path(), 64));
+    assert!(first_time_without_room(home.path(), 66));
 }
 
 #[test]
@@ -137,16 +177,16 @@ fn a_key_that_went_or_can_go_again_next_sync_is_not_told() {
         .answers
         .borrow_mut()
         .push_back((200, r#"{"done":true}"#));
-    assert_eq!(sent_taken_back(&folio, &taken(1)), None);
+    assert!(!sent_taken_back(&folio, &taken(1)));
 
     let unreachable = FakeFolio::default();
-    assert_eq!(sent_taken_back(&unreachable, &taken(1)), None);
+    assert!(!sent_taken_back(&unreachable, &taken(1)));
 
     let busy = FakeFolio::default();
     busy.answers
         .borrow_mut()
         .push_back((429, r#"{"refused":"quota","until":1}"#));
-    assert_eq!(sent_taken_back(&busy, &taken(1)), None);
+    assert!(!sent_taken_back(&busy, &taken(1)));
 }
 
 #[test]

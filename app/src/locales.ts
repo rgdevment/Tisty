@@ -674,7 +674,7 @@ const en = {
   folioFull:
     "You already share as many documents as Folio takes for now. Stop sharing one to share this one.",
   folioLanguagesFull:
-    "This document has as many languages as Folio takes. Separate one to add another.",
+    "Folio already holds as many languages of this document as it takes. Stop sharing one of them to add another.",
   folioTooBig: "This document is larger than Folio takes.",
   folioWait: "Folio asks to wait a moment before trying again.",
   folioUploadsOff: "Folio paused uploads for now. Links already out can still be read.",
@@ -872,9 +872,10 @@ const en = {
   awayNotShared: "That one is put away. Bring it back to share it",
   toldLanguageLeftBehind:
     "The language {name} is locked, put away or someone else's, so it stays here",
-  toldLanguageOverTheTop: "The language {name} stays here: Folio takes up to 20 for each document",
+  toldLanguageOverTheTop:
+    "The language {name} stays here: Folio takes up to {other} for each document",
   toldTakenBackNotKept:
-    "Folio has no more room for your retired keys, so readers won't be warned about the latest. If a device was stolen, create a new identity and share again",
+    "Folio has no more room for your retired keys, so readers won't be warned about your latest one. If it was on a stolen device, create a new identity and share again",
   toldNameLeftOut: "That name cannot be used to sign, so it goes without a name",
   tongueUnsaid: "Say first which language it is in",
   notALanguage: "That is not a language Tisty knows how to name",
@@ -3556,7 +3557,7 @@ const es: Catalog = {
   folioFull:
     "Ya compartes todos los documentos que Folio acepta por ahora. Deja de compartir uno para compartir este.",
   folioLanguagesFull:
-    "Este documento ya tiene todos los idiomas que acepta Folio. Separa uno para agregar otro.",
+    "Folio ya tiene todos los idiomas de este documento que acepta. Deja de compartir uno para agregar otro.",
   folioTooBig: "Este documento es más grande de lo que acepta Folio.",
   folioWait: "Folio pide esperar un poco antes de volver a intentarlo.",
   folioUploadsOff: "Folio pausó las subidas por ahora. Los links que ya existen se siguen leyendo.",
@@ -3757,9 +3758,10 @@ const es: Catalog = {
   awayNotShared: "Ese está archivado. Desarchívalo para compartirlo",
   toldLanguageLeftBehind:
     "El idioma {name} está bloqueado, archivado o es de otra persona, así que se queda aquí",
-  toldLanguageOverTheTop: "El idioma {name} se queda aquí: Folio acepta hasta 20 por documento",
+  toldLanguageOverTheTop:
+    "El idioma {name} se queda aquí: Folio acepta hasta {other} por documento",
   toldTakenBackNotKept:
-    "Folio ya no tiene lugar para tus llaves retiradas, así que no avisará a los lectores de la última. Si te robaron un equipo, crea una identidad nueva y vuelve a compartir",
+    "Folio ya no tiene lugar para tus llaves retiradas, así que no avisará a los lectores de la última. Si estaba en un equipo robado, crea una identidad nueva y vuelve a compartir",
   toldNameLeftOut: "Ese nombre no sirve para firmar, así que va sin nombre",
   tongueUnsaid: "Primero di en qué idioma está",
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",

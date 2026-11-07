@@ -97,7 +97,11 @@ describe("the Shared row", () => {
   });
 
   it.each([
-    [{ state: "unchanged" }, () => t("shareSyncUnchanged")],
+    [{ state: "unchanged", told: [] }, () => t("shareSyncUnchanged")],
+    [
+      { state: "unchanged", told: [{ what: "takenBackNotKept" }] },
+      () => `${t("shareSyncUnchanged")} ${t("toldTakenBackNotKept")}`,
+    ],
     [{ state: "sent", version: 2, told: [] }, () => fill("shareSyncSent", "2")],
     [
       { state: "otherVersion", version: 3, signer: "Ana", doubtful: false },
@@ -147,7 +151,7 @@ describe("the Shared row", () => {
         tries += 1;
         return tries === 1
           ? Promise.reject({ code: "folioTermsToAccept" })
-          : Promise.resolve({ state: "unchanged" });
+          : Promise.resolve({ state: "unchanged", told: [] });
       }
       return Promise.reject({ code: "internal" });
     });
@@ -222,7 +226,7 @@ describe("the Shared row", () => {
     let answer: (now: unknown) => void = () => {};
     answering({
       doc_share_card: card,
-      doc_share_sync: { state: "unchanged" },
+      doc_share_sync: { state: "unchanged", told: [] },
       doc_share_status: new Promise((resolve) => {
         answer = resolve;
       }),
@@ -252,7 +256,7 @@ describe("the Shared row", () => {
   it("drops a status that arrives after the share was stopped", async () => {
     let answer: (now: unknown) => void = () => {};
     const { hook, panel, pressed } = await held(card, {
-      doc_share_sync: { state: "unchanged" },
+      doc_share_sync: { state: "unchanged", told: [] },
       doc_share_status: new Promise((resolve) => {
         answer = resolve;
       }),
@@ -333,7 +337,7 @@ describe("the Shared row", () => {
 
   it("looks at the status after Sync when it holds the link to manage", async () => {
     const { panel, pressed } = await held(card, {
-      doc_share_sync: { state: "unchanged" },
+      doc_share_sync: { state: "unchanged", told: [] },
       doc_share_status: { ...status, fixBy: today() + 3 },
     });
 
@@ -345,7 +349,7 @@ describe("the Shared row", () => {
   it("never asks the status of a share held through an edit link", async () => {
     const { pressed } = await held(
       { ...card, taken: true },
-      { doc_share_sync: { state: "unchanged" }, doc_share_status: status },
+      { doc_share_sync: { state: "unchanged", told: [] }, doc_share_status: status },
     );
 
     await pressed("sync");

@@ -10,7 +10,8 @@ export type Told =
   | { what: "notDrawn"; document: string; many: number }
   | { what: "pictureNotKept"; document: string; name: string }
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
-  | { what: "languageLeftBehind" | "languageOverTheTop"; language: string }
+  | { what: "languageLeftBehind"; language: string }
+  | { what: "languageOverTheTop"; language: string; top: number }
   | { what: "nameLeftOut" | "takenBackNotKept" };
 
 export interface Sealed {
@@ -74,7 +75,7 @@ export interface ShareCard {
 }
 
 export type Synced =
-  | { state: "unchanged" }
+  | { state: "unchanged"; told: Told[] }
   | { state: "secrets"; place: string; print: string }
   | { state: "gone" }
   | { state: "sent"; version: number; told: Told[] }
@@ -184,7 +185,7 @@ export const toldPlainly = (told: Told): string => {
     case "languageLeftBehind":
       return fill("toldLanguageLeftBehind", told.language);
     case "languageOverTheTop":
-      return fill("toldLanguageOverTheTop", told.language);
+      return fill("toldLanguageOverTheTop", told.language, String(told.top));
     case "citedLeftBehind":
       return fill("toldCitedLeftBehind", told.document);
     case "nameLeftOut":

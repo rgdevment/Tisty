@@ -512,22 +512,30 @@ impl Gathering<'_> {
         }
         // An anchor that stays here hands the map to the first language that goes; `kept` always goes.
         let anchor_id = state.anchor_of(kept);
-        let must_go = |one: &Kept| one.id == kept.id || one.id == anchor_id;
-        let mut room =
-            LANGUAGES_AT_MOST.saturating_sub(going.iter().filter(|one| must_go(one)).count());
-        let mut within = Vec::with_capacity(going.len());
-        for one in going {
-            if must_go(one) {
-                within.push(one);
-            } else if room > 0 {
-                room -= 1;
-                within.push(one);
-            } else {
-                self.told.push(Told::LanguageOverTheTop {
-                    language: language_said(one),
-                });
-            }
+        // Folio counts what it already holds whether it goes again or not, so those keep their place before anything new.
+        let held_there = |one: &Kept| self.shelf.contains_key(&one.file);
+        let must_go = |one: &Kept| one.id == kept.id || one.id == anchor_id || held_there(one);
+        let taken = going.iter().filter(|one| must_go(one)).count()
+            + languages_of(state, kept)
+                .into_iter()
+                .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
+                .count();
+        if taken > LANGUAGES_AT_MOST {
+            return Err(Unshared::LanguagesFull);
         }
+        let mut room = LANGUAGES_AT_MOST - taken;
+        let (within, over): (Vec<&Kept>, Vec<&Kept>) = going.into_iter().partition(|one| {
+            let goes = must_go(one) || room > 0;
+            if goes && !must_go(one) {
+                room -= 1;
+            }
+            goes
+        });
+        self.told
+            .extend(over.into_iter().map(|one| Told::LanguageOverTheTop {
+                language: language_said(one),
+                top: LANGUAGES_AT_MOST,
+            }));
         let mut going = within;
         let at = going
             .iter()
