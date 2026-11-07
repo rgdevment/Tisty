@@ -1190,6 +1190,29 @@ fn a_language_that_stays_here_still_counts_if_folio_holds_it() {
 }
 
 #[test]
+fn the_top_folio_signs_holds_over_the_one_written_here() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    languages_joined(&mut home, anchor, 3);
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+    };
+
+    let gathered = tisty_sharing::gathered_within(&desk, &asked(anchor), Some(3)).unwrap();
+
+    assert_eq!(
+        gathered.told(),
+        [Told::LanguageOverTheTop {
+            language: "bc".into(),
+            top: 3,
+        }]
+    );
+}
+
+#[test]
 fn twenty_languages_all_go_and_nobody_is_told() {
     let (_tmp, mut home) = home();
     let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);

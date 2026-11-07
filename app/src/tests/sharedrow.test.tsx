@@ -471,6 +471,20 @@ describe("what Sync warns of", () => {
     expect(panel().said).toContain(t("folioGone"));
   });
 
+  it("says Folio is updating its terms rather than calling it a failure", async () => {
+    const { panel, pressed, onError } = await held(card);
+    invoked.mockImplementation((command: string) =>
+      command === "doc_share_sync"
+        ? Promise.reject({ code: "folioTermsUpdating" })
+        : Promise.reject({ code: "internal" }),
+    );
+
+    await pressed("sync");
+
+    await waitFor(() => expect(panel().said).toContain(t("folioTermsUpdating")));
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it("says what stayed out and when a signature is in doubt", async () => {
     const { panel, pressed } = await held(card, {
       doc_share_sync: { state: "otherVersion", version: 3, signer: "Ana", doubtful: true },

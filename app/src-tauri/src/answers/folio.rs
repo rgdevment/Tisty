@@ -24,6 +24,7 @@ use crate::{Answer, Refusal, Session, held};
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
 const PATIENCE: Duration = Duration::from_secs(120);
 const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
+const NEW_KEY_BYTES_AT_MOST: u64 = 25_000_000;
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
 const FIRST_TERM_DAYS: u64 = 1;
 
@@ -87,13 +88,18 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
         Stopped::Garbled => Refusal::of("folioGarbled"),
         Stopped::Refused(refused) => match refused {
             Refused::SharesFull => Refusal::of("folioFull"),
+            Refused::RoomFull => Refusal::of("folioRoomFull"),
             Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } | Refused::Quota { until } => {
                 Refusal::about("folioWait", until.to_string())
             }
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
-            Refused::Terms => Refusal::of(TERMS_TO_ACCEPT),
+            Refused::Terms { version } => version.clone().map_or_else(
+                || Refusal::of(TERMS_TO_ACCEPT),
+                |one| Refusal::about(TERMS_TO_ACCEPT, one),
+            ),
+            Refused::KeyBlocked => Refusal::of("folioKeyBlocked"),
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
@@ -151,9 +157,7 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
             text,
             accepted_before,
         }),
-        Err(Unsure::NoWord) => Err(Refusal::of("folioUnreached")),
-        Err(Unsure::NotPublished) => Err(Refusal::of("folioTermsNotPublished")),
-        Err(Unsure::Unmatched) => Err(Refusal::of("folioTermsUnmatched")),
+        Err(unsure) => Err(unsure_said(unsure)),
     }
 }
 
@@ -171,12 +175,20 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
     folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
 }
 
+fn unsure_said(unsure: Unsure) -> Refusal {
+    match unsure {
+        Unsure::NoWord => Refusal::of("folioUnreached"),
+        Unsure::NotPublished => Refusal::of("folioTermsNotPublished"),
+        Unsure::Settling => Refusal::of("folioTermsUpdating"),
+        Unsure::Unmatched => Refusal::of("folioTermsUnmatched"),
+    }
+}
+
 fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     match standing {
         Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
-        Ok(Standing::Accepted) | Err(Unsure::Unmatched) => Refusal::of("folioTermsUnmatched"),
-        Err(Unsure::NoWord) => Refusal::of("folioUnreached"),
-        Err(Unsure::NotPublished) => Refusal::of("folioTermsNotPublished"),
+        Ok(Standing::Accepted) => Refusal::of("folioTermsUnmatched"),
+        Err(unsure) => unsure_said(unsure),
     }
 }
 
@@ -184,11 +196,34 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
 fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
     if matches!(
         refused.code,
-        TERMS_TO_ACCEPT | "folioUnreached" | "folioUploadsOff"
+        TERMS_TO_ACCEPT
+            | "folioTermsUpdating"
+            | "folioTermsUnmatched"
+            | "folioUnreached"
+            | "folioUploadsOff"
     ) {
         folio_pace::take_back(home, id, at);
     }
     refused
+}
+
+// Folio holds both against the owner's key without saying whose, and an editor signs with their own.
+fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Path) -> Refusal {
+    match (refused.code, owning) {
+        ("folioKeyBlocked", false) => Refusal::of("folioOwnerKeyBlocked"),
+        ("folioRoomFull", _) => {
+            let most = folio_limits::kept(home)
+                .and_then(|limits| limits.new_key_bytes_at_most)
+                .unwrap_or(NEW_KEY_BYTES_AT_MOST);
+            let code = if owning {
+                "folioRoomFull"
+            } else {
+                "folioOwnerRoomFull"
+            };
+            Refusal::about(code, most.to_string())
+        }
+        _ => refused,
+    }
 }
 
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
@@ -199,6 +234,7 @@ fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: To
         home,
         tongue,
         crate::reaching::brought,
+        refused.name.as_deref(),
     ))
 }
 
@@ -487,9 +523,10 @@ pub async fn doc_share_look(
             cited: Vec::new(),
             signed_as: None,
         };
-        let gathered = tisty_sharing::gathered(&desk, &asked).map_err(|e| refused(&e))?;
-        let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
         let home = paths.private();
+        let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
+            .map_err(|e| refused(&e))?;
+        let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
         let limits = match folio_limits::heed(&home, crate::reaching::brought) {
             Some(Ok(limits)) => Some(limits),
             _ => folio_limits::kept(&home),
@@ -697,6 +734,12 @@ fn first_time_without_room(home: &std::path::Path, many: usize) -> bool {
     true
 }
 
+fn languages_top(home: &std::path::Path) -> Option<usize> {
+    folio_limits::kept(home)
+        .and_then(|limits| limits.languages_at_most)
+        .and_then(|top| usize::try_from(top).ok())
+}
+
 async fn sealed_for_folio(
     app: &tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
@@ -704,6 +747,7 @@ async fn sealed_for_folio(
     editable: bool,
     terms: String,
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
+    let languages_at_most = languages_top(&held(session).paths.private());
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -730,6 +774,7 @@ async fn sealed_for_folio(
                 mint: &mint,
                 editable,
                 terms: Some(&terms),
+                languages_at_most,
             },
         )
     })
@@ -813,6 +858,7 @@ pub async fn doc_shared(
     apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         let not_kept = told_of_taken_back(&door, &home, &state, &device);
         let told = told.into_iter().chain(not_kept).collect();
@@ -897,7 +943,9 @@ pub async fn doc_share_sync(
             turned: &turned,
         };
         let shelf = tisty_sharing::remembered(&state);
-        let gathered = tisty_sharing::gathered(&desk, &looking).map_err(|e| refused(&e))?;
+        let gathered =
+            tisty_sharing::gathered_within(&desk, &looking, languages_top(&reading.private()))
+                .map_err(|e| refused(&e))?;
         let mut docs = vec![doc];
         docs.extend(citing);
         let secret = secrets_of_docs(&reading, &state, &docs)
@@ -978,9 +1026,11 @@ pub async fn doc_share_sync(
     };
     let keep = keeping(&app);
     let pressed_id = was.id.clone();
+    let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         Ok(told_of_taken_back(&door, &home, &state, &device))
