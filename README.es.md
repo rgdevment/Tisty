@@ -72,6 +72,11 @@
     </a>
     <a href="#instalación">
       <img
+        src="https://img.shields.io/badge/Windows-winget-0078D4?style=for-the-badge&logo=windows"
+        alt="Instala el gestor de tareas Tisty con winget en Windows"/>
+    </a>
+    <a href="#instalación">
+      <img
         src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
         alt="Instala el gestor de tareas Tisty con Homebrew en macOS"/>
     </a>

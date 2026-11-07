@@ -26,7 +26,7 @@ A task is also a document, one with an end: that is why it has a page of its own
 
 ## Start here
 
-- [[Installation]] — Microsoft Store, Homebrew or a direct download.
+- [[Installation]] — Microsoft Store, winget, Homebrew or a direct download.
 - [First steps](Installation#the-first-time-it-opens) — what Tisty asks the first time, and the guide it writes for you.
 - [[Keyboard shortcuts|Keyboard-Shortcuts]]
 

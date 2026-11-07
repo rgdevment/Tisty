@@ -6,6 +6,14 @@ Tisty runs on **Windows** and **macOS**. There is no Linux build today and no mo
 
 **Microsoft Store** — [Tisty in the Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). The Store keeps it updated; *About* can ask the Store for an update on the spot.
 
+**winget** — the Windows Package Manager takes the signed installer from GitHub Releases and then stands aside, because Tisty keeps itself up to date:
+
+```console
+> winget install rgdevment.Tisty
+```
+
+`winget upgrade rgdevment.Tisty` works too, and `winget uninstall rgdevment.Tisty` takes it away like any other uninstall.
+
 ## macOS
 
 **Homebrew** — the tap is added and trusted once; Homebrew loads a tap that is not its own only once you trust it. After that Tisty keeps itself up to date:
