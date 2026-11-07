@@ -93,7 +93,11 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
                 Refusal::about("folioWait", until.to_string())
             }
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
-            Refused::Terms => Refusal::of(TERMS_TO_ACCEPT),
+            Refused::Terms { version } => version.clone().map_or_else(
+                || Refusal::of(TERMS_TO_ACCEPT),
+                |one| Refusal::about(TERMS_TO_ACCEPT, one),
+            ),
+            Refused::KeyBlocked => Refusal::of("folioKeyBlocked"),
             Refused::Paused => Refusal::of("folioPaused"),
             Refused::Blocked => Refusal::of("folioBlocked"),
             Refused::Behind => Refusal::of("folioBehind"),
@@ -151,9 +155,7 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
             text,
             accepted_before,
         }),
-        Err(Unsure::NoWord) => Err(Refusal::of("folioUnreached")),
-        Err(Unsure::NotPublished) => Err(Refusal::of("folioTermsNotPublished")),
-        Err(Unsure::Unmatched) => Err(Refusal::of("folioTermsUnmatched")),
+        Err(unsure) => Err(unsure_said(unsure)),
     }
 }
 
@@ -171,12 +173,20 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
     folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
 }
 
+fn unsure_said(unsure: Unsure) -> Refusal {
+    match unsure {
+        Unsure::NoWord => Refusal::of("folioUnreached"),
+        Unsure::NotPublished => Refusal::of("folioTermsNotPublished"),
+        Unsure::Settling => Refusal::of("folioTermsUpdating"),
+        Unsure::Unmatched => Refusal::of("folioTermsUnmatched"),
+    }
+}
+
 fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     match standing {
         Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
-        Ok(Standing::Accepted) | Err(Unsure::Unmatched) => Refusal::of("folioTermsUnmatched"),
-        Err(Unsure::NoWord) => Refusal::of("folioUnreached"),
-        Err(Unsure::NotPublished) => Refusal::of("folioTermsNotPublished"),
+        Ok(Standing::Accepted) => Refusal::of("folioTermsUnmatched"),
+        Err(unsure) => unsure_said(unsure),
     }
 }
 
@@ -184,7 +194,11 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
 fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64) -> Refusal {
     if matches!(
         refused.code,
-        TERMS_TO_ACCEPT | "folioUnreached" | "folioUploadsOff"
+        TERMS_TO_ACCEPT
+            | "folioTermsUpdating"
+            | "folioTermsUnmatched"
+            | "folioUnreached"
+            | "folioUploadsOff"
     ) {
         folio_pace::take_back(home, id, at);
     }
@@ -199,6 +213,7 @@ fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: To
         home,
         tongue,
         crate::reaching::brought,
+        refused.name.as_deref(),
     ))
 }
 
@@ -704,6 +719,9 @@ async fn sealed_for_folio(
     editable: bool,
     terms: String,
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
+    let languages_at_most = folio_limits::kept(&held(session).paths.private())
+        .and_then(|limits| limits.languages_at_most)
+        .and_then(|top| usize::try_from(top).ok());
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -730,6 +748,7 @@ async fn sealed_for_folio(
                 mint: &mint,
                 editable,
                 terms: Some(&terms),
+                languages_at_most,
             },
         )
     })

@@ -1,10 +1,11 @@
 use std::cell::Cell;
 
 use super::{
-    Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, Unkept, Unsure, accept, accepted_version,
-    print_of, read_again, standing,
+    SETTLING, SETTLING_FOR, Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, Unkept, Unsure, accept,
+    accepted_version, print_of, read_again, standing,
 };
 use crate::folio_limits::{self, FolioLimits, FolioTerms, KEPT, LIMITS_URL, SIGNATURE_URL};
+use crate::policy;
 
 const TEXT: &str = "Términos de prueba\n";
 const PRINT_MADE_BY_NODE: &str = "bb66e9e3c26bcb49f0678ff9e115b9d66bf04a26c0482f34c3bc06aa934de6de";
@@ -43,12 +44,17 @@ fn a_refusal_reads_the_limits_once_and_says_what_stands() {
     accept(home.path(), Tongue::Es, "1").unwrap();
     let asked = Cell::new(0);
 
-    let told = read_again(home.path(), Tongue::Es, |url| {
-        if url == LIMITS_URL {
-            asked.set(asked.get() + 1);
-        }
-        None
-    });
+    let told = read_again(
+        home.path(),
+        Tongue::Es,
+        |url| {
+            if url == LIMITS_URL {
+                asked.set(asked.get() + 1);
+            }
+            None
+        },
+        Some("1"),
+    );
 
     assert_eq!(told, Ok(Standing::Accepted));
     assert_eq!(asked.get(), 1);
@@ -62,12 +68,17 @@ fn a_refusal_reads_the_limits_even_within_the_hour() {
     std::fs::write(home.path().join("folio-limits-asked"), b"").unwrap();
     let asked = Cell::new(0);
 
-    let _ = read_again(home.path(), Tongue::Es, |url| {
-        if url == LIMITS_URL {
-            asked.set(asked.get() + 1);
-        }
-        None
-    });
+    let _ = read_again(
+        home.path(),
+        Tongue::Es,
+        |url| {
+            if url == LIMITS_URL {
+                asked.set(asked.get() + 1);
+            }
+            None
+        },
+        Some("1"),
+    );
 
     assert_eq!(asked.get(), 1);
 }
@@ -148,6 +159,78 @@ fn a_text_that_is_not_the_signed_one_is_never_shown() {
         (url == TERMS_ES_URL).then(|| b"otro texto".to_vec())
     });
 
+    assert_eq!(told, Err(Unsure::Settling));
+}
+
+fn settling_since(home: &std::path::Path, ago: u64) {
+    let since = policy::now() - ago;
+    std::fs::write(home.join(SETTLING), since.to_string()).unwrap();
+}
+
+fn another_text(url: &str) -> Option<Vec<u8>> {
+    (url == TERMS_ES_URL).then(|| b"otro texto".to_vec())
+}
+
+#[test]
+fn a_mismatch_waits_for_folio_a_while_and_then_says_so() {
+    let home = seeded(Some(terms("1")));
+
+    settling_since(home.path(), SETTLING_FOR - 30);
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Err(Unsure::Settling)
+    );
+
+    settling_since(home.path(), SETTLING_FOR);
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Err(Unsure::Unmatched)
+    );
+}
+
+#[test]
+fn a_mismatch_long_after_the_last_one_waits_again() {
+    let home = seeded(Some(terms("1")));
+    settling_since(home.path(), 2 * 60 * 60);
+
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Err(Unsure::Settling)
+    );
+}
+
+#[test]
+fn terms_that_match_again_end_the_wait() {
+    let home = seeded(Some(terms("1")));
+    settling_since(home.path(), SETTLING_FOR);
+
+    assert!(standing(home.path(), Tongue::Es, only_the_terms).is_ok());
+    assert!(!home.path().join(SETTLING).exists());
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Err(Unsure::Settling)
+    );
+}
+
+#[test]
+fn folio_asking_for_terms_its_limits_here_do_not_name_yet_is_waited_for() {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+
+    let told = read_again(home.path(), Tongue::Es, |_: &str| None, Some("2"));
+
+    assert_eq!(told, Err(Unsure::Settling));
+    assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
+}
+
+#[test]
+fn folio_asking_for_terms_without_naming_them_is_waited_for_too() {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    settling_since(home.path(), SETTLING_FOR);
+
+    let told = read_again(home.path(), Tongue::Es, |_: &str| None, None);
+
     assert_eq!(told, Err(Unsure::Unmatched));
 }
 
@@ -165,7 +248,7 @@ fn a_mismatch_asks_the_limits_again_past_the_hourly_mark() {
         _ => None,
     });
 
-    assert_eq!(told, Err(Unsure::Unmatched));
+    assert_eq!(told, Err(Unsure::Settling));
     assert_eq!(limits_asked.get(), 2);
 }
 

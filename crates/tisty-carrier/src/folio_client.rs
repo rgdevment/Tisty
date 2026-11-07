@@ -87,11 +87,23 @@ pub enum Refused {
     },
     Failed,
     UploadsOff,
-    Terms,
+    Terms {
+        #[serde(default, deserialize_with = "said_as_text")]
+        version: Option<String>,
+    },
+    KeyBlocked,
     NotBlocked,
     Appealed,
     #[serde(other)]
     Unknown,
+}
+
+fn said_as_text<'de, D: serde::Deserializer<'de>>(said: D) -> Result<Option<String>, D::Error> {
+    Ok(match serde_json::Value::deserialize(said)? {
+        serde_json::Value::String(text) => Some(text),
+        serde_json::Value::Number(number) => Some(number.to_string()),
+        _ => None,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

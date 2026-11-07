@@ -315,6 +315,7 @@ fn each_refusal_from_folio_is_said_in_words_the_window_knows() {
             "folioLanguagesFull",
         ),
         (Stopped::Refused(Refused::MachinesFull), "folioRefused"),
+        (Stopped::Refused(Refused::KeyBlocked), "folioKeyBlocked"),
         (Stopped::Refused(Refused::TooBig), "folioTooBig"),
         (Stopped::Refused(Refused::UploadsOff), "folioUploadsOff"),
         (Stopped::Refused(Refused::Paused), "folioPaused"),
@@ -332,6 +333,19 @@ fn each_refusal_from_folio_is_said_in_words_the_window_knows() {
     ] {
         assert_eq!(said(&stopped).code, code);
     }
+}
+
+#[test]
+fn a_refusal_over_the_terms_carries_the_version_folio_asked_for() {
+    let told = said(&Stopped::Refused(Refused::Terms {
+        version: Some("12".to_owned()),
+    }));
+    let unnamed = said(&Stopped::Refused(Refused::Terms { version: None }));
+
+    assert_eq!(told.code, "folioTermsToAccept");
+    assert_eq!(told.name.as_deref(), Some("12"));
+    assert_eq!(unnamed.code, "folioTermsToAccept");
+    assert_eq!(unnamed.name, None);
 }
 
 #[test]
@@ -401,7 +415,13 @@ fn a_press_comes_back_only_when_nothing_reached_folio() {
     assert_eq!(kept.code, "folioFull");
     assert_eq!(pressed_in(home.path()), 1);
 
-    for code in ["folioTermsToAccept", "folioUnreached", "folioUploadsOff"] {
+    for code in [
+        "folioTermsToAccept",
+        "folioTermsUpdating",
+        "folioTermsUnmatched",
+        "folioUnreached",
+        "folioUploadsOff",
+    ] {
         let given = press_given_back(crate::Refusal::of(code), home.path(), "d", 100);
         assert_eq!(given.code, code);
         assert_eq!(pressed_in(home.path()), 0, "{code}");
@@ -455,6 +475,7 @@ fn a_refusal_over_the_terms_shows_them_when_they_changed_and_says_so_when_they_d
     assert_eq!(said_of(to_accept), "folioTermsToAccept");
     assert_eq!(said_of(Ok(Standing::Accepted)), "folioTermsUnmatched");
     assert_eq!(said_of(Err(Unsure::Unmatched)), "folioTermsUnmatched");
+    assert_eq!(said_of(Err(Unsure::Settling)), "folioTermsUpdating");
     assert_eq!(said_of(Err(Unsure::NoWord)), "folioUnreached");
     assert_eq!(said_of(Err(Unsure::NotPublished)), "folioTermsNotPublished");
 }

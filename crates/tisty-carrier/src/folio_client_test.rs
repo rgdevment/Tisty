@@ -456,8 +456,34 @@ fn a_refusal_over_the_terms_reads_the_same_whatever_else_it_says() {
         r#"{"refused":"terms"}"#,
     ] {
         let refused: Refused = serde_json::from_str(said).unwrap();
-        assert_eq!(refused, Refused::Terms, "{said}");
+        assert!(matches!(refused, Refused::Terms { .. }), "{said}");
     }
+}
+
+#[test]
+fn a_refusal_over_the_terms_keeps_the_version_folio_asks_for_however_it_is_written() {
+    let version_of = |said: &str| match serde_json::from_str(said).unwrap() {
+        Refused::Terms { version } => version,
+        other => panic!("{other:?}"),
+    };
+
+    assert_eq!(
+        version_of(r#"{"refused":"terms","version":"12"}"#).as_deref(),
+        Some("12")
+    );
+    assert_eq!(
+        version_of(r#"{"refused":"terms","version":12}"#).as_deref(),
+        Some("12")
+    );
+    assert_eq!(version_of(r#"{"refused":"terms","version":null}"#), None);
+    assert_eq!(version_of(r#"{"refused":"terms"}"#), None);
+}
+
+#[test]
+fn a_blocked_key_is_a_refusal_of_its_own() {
+    let refused: Refused = serde_json::from_str(r#"{"refused":"key_blocked"}"#).unwrap();
+
+    assert_eq!(refused, Refused::KeyBlocked);
 }
 
 #[test]

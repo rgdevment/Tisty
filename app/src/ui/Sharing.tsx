@@ -22,6 +22,7 @@ import Modal from "./Modal";
 const SECRETS_SHOWN = 3;
 const FOLIO_SITE = "folio.tisty.app";
 const DAYS_FALLBACK = [1, 3, 7, 15];
+const TERMS_AGAIN_MS = 60_000;
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
@@ -247,6 +248,28 @@ function NoAnswer({ onRetry, onClose }: Readonly<{ onRetry: () => void; onClose:
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white"
           >
             {t("shareUnreachedRetry")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function TermsSettling({ onClose }: Readonly<{ onClose: () => void }>) {
+  return (
+    <Modal title={t("shareTitle")} onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <p role="status" className="text-[13px] leading-relaxed">
+          {t("shareTermsSettling")}
+        </p>
+        <p className="text-[11.5px] text-soft">{t("shareUnreachedSent")}</p>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover"
+          >
+            {t("shareUnreachedClose")}
           </button>
         </div>
       </div>
@@ -634,6 +657,7 @@ type Step =
   | { at: "reading" }
   | { at: "closed"; note?: string }
   | { at: "unreached" }
+  | { at: "settling" }
   | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
   | { at: "choosing"; look: ShareLook }
   | { at: "going"; until: number | null }
@@ -680,6 +704,13 @@ export default function Sharing({
       .catch(failed);
   }, [doc, failed]);
 
+  const termsSettling = useCallback((then: () => void) => {
+    setStep({ at: "settling" });
+    clearTimeout(retry.current);
+    retry.current = setTimeout(then, TERMS_AGAIN_MS);
+  }, []);
+
+  const termsAgain = useRef(() => {});
   const termsOver = useCallback(() => {
     termsNow()
       .then((terms) => {
@@ -688,8 +719,15 @@ export default function Sharing({
         else if (asked.current.termsOnly) asked.current.onClose();
         else lookOver();
       })
-      .catch(failed);
-  }, [failed, lookOver]);
+      .catch((problem) => {
+        if (live.current && codeOf(problem) === "folioTermsUpdating") {
+          termsSettling(() => termsAgain.current());
+          return;
+        }
+        failed(problem);
+      });
+  }, [failed, lookOver, termsSettling]);
+  termsAgain.current = termsOver;
 
   const begin = useCallback(() => {
     if (asked.current.termsOnly) {
@@ -738,6 +776,10 @@ export default function Sharing({
           termsOver();
           return;
         }
+        if (codeOf(problem) === "folioTermsUpdating") {
+          termsSettling(() => share(chosen));
+          return;
+        }
         if (codeOf(problem) === "folioClosed") {
           setStep({ at: "closed" });
           return;
@@ -771,6 +813,8 @@ export default function Sharing({
       return <NotOpenYet note={step.note} onClose={onClose} />;
     case "unreached":
       return <NoAnswer onRetry={begin} onClose={onClose} />;
+    case "settling":
+      return <TermsSettling onClose={onClose} />;
     case "terms":
       return (
         <Terms terms={step.terms} onAccepted={termsTaken} onLater={onClose} onError={failed} />

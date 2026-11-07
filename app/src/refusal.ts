@@ -220,6 +220,8 @@ const KNOWN = [
   "folioAppealed",
   "folioTermsNotPublished",
   "folioTermsUnmatched",
+  "folioTermsUpdating",
+  "folioKeyBlocked",
   "folioTermsToAccept",
   "awayNotShared",
   "tongueUnsaid",

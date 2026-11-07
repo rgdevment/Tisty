@@ -52,6 +52,7 @@ fn what_it_seals_says_which_terms_its_signer_accepted() {
                 mint: &mint,
                 editable: false,
                 terms: Some("3"),
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -82,6 +83,7 @@ fn a_first_version_goes_under_the_id_folio_gave() {
         mint: &mint,
         editable: false,
         terms: None,
+        languages_at_most: None,
     };
 
     let sealed = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
@@ -103,6 +105,7 @@ fn only_what_may_be_edited_has_a_token() {
         mint: &mint,
         editable: true,
         terms: None,
+        languages_at_most: None,
     };
 
     let sealed = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
@@ -123,6 +126,7 @@ fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
                 mint: &mint,
                 editable: true,
                 terms: None,
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -138,6 +142,7 @@ fn a_later_version_asks_for_no_id_and_keeps_its_tokens() {
                 mint: &mint,
                 editable: false,
                 terms: None,
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -169,6 +174,7 @@ fn an_id_that_does_not_arrive_stops_it_before_anything_is_sealed() {
             mint: &mint,
             editable: false,
             terms: None,
+            languages_at_most: None,
         },
     );
 
@@ -203,6 +209,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
                 mint: &mint,
                 editable: true,
                 terms: None,
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -265,6 +272,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
                 mint: &nobody,
                 editable: false,
                 terms: None,
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -294,6 +302,7 @@ fn the_document_that_was_shared_is_held_by_nothing() {
                 mint: &mint,
                 editable: false,
                 terms: None,
+                languages_at_most: None,
             },
         )
         .unwrap(),
@@ -353,6 +362,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
             mint: &nobody,
             editable: false,
             terms: None,
+            languages_at_most: None,
         },
     )
     .unwrap();

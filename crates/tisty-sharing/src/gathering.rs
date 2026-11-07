@@ -20,7 +20,7 @@ use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
-// Folio refuses past this, and its signed limits do not say so yet.
+// Until Folio's signed limits are first read here.
 const LANGUAGES_AT_MOST: usize = 20;
 
 pub struct Desk<'a> {
@@ -55,6 +55,7 @@ pub struct Under<'a> {
     pub mint: &'a dyn Fn() -> Result<String, Unshared>,
     pub editable: bool,
     pub terms: Option<&'a str>,
+    pub languages_at_most: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -520,10 +521,11 @@ impl Gathering<'_> {
                 .into_iter()
                 .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
                 .count();
-        if taken > LANGUAGES_AT_MOST {
+        let top = self.under.languages_at_most.unwrap_or(LANGUAGES_AT_MOST);
+        if taken > top {
             return Err(Unshared::LanguagesFull);
         }
-        let mut room = LANGUAGES_AT_MOST - taken;
+        let mut room = top - taken;
         let (within, over): (Vec<&Kept>, Vec<&Kept>) = going.into_iter().partition(|one| {
             let goes = must_go(one) || room > 0;
             if goes && !must_go(one) {
@@ -534,7 +536,7 @@ impl Gathering<'_> {
         self.told
             .extend(over.into_iter().map(|one| Told::LanguageOverTheTop {
                 language: language_said(one),
-                top: LANGUAGES_AT_MOST,
+                top,
             }));
         let mut going = within;
         let at = going
@@ -573,6 +575,7 @@ pub fn gathered(desk: &Desk, asked: &Asked) -> Result<Gathered, Unshared> {
             mint: &new_id,
             editable: false,
             terms: None,
+            languages_at_most: None,
         },
     )
 }
