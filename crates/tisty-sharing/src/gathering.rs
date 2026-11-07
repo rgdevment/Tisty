@@ -20,6 +20,8 @@ use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
+// Folio refuses past this, and its signed limits do not say so yet.
+const LANGUAGES_AT_MOST: usize = 20;
 
 pub struct Desk<'a> {
     pub paths: &'a Paths,
@@ -124,6 +126,13 @@ fn languages_of<'a>(state: &'a State, kept: &'a Kept) -> Vec<&'a Kept> {
     } else {
         vec![kept]
     }
+}
+
+fn language_said(one: &Kept) -> String {
+    one.lang
+        .clone()
+        .or_else(|| one.title.clone())
+        .unwrap_or_default()
 }
 
 fn unread(e: impl std::fmt::Display) -> Unshared {
@@ -497,16 +506,29 @@ impl Gathering<'_> {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
-                    language: one
-                        .lang
-                        .clone()
-                        .or_else(|| one.title.clone())
-                        .unwrap_or_default(),
+                    language: language_said(one),
                 });
             }
         }
         // An anchor that stays here hands the map to the first language that goes; `kept` always goes.
         let anchor_id = state.anchor_of(kept);
+        let must_go = |one: &Kept| one.id == kept.id || one.id == anchor_id;
+        let mut room =
+            LANGUAGES_AT_MOST.saturating_sub(going.iter().filter(|one| must_go(one)).count());
+        let mut within = Vec::with_capacity(going.len());
+        for one in going {
+            if must_go(one) {
+                within.push(one);
+            } else if room > 0 {
+                room -= 1;
+                within.push(one);
+            } else {
+                self.told.push(Told::LanguageOverTheTop {
+                    language: language_said(one),
+                });
+            }
+        }
+        let mut going = within;
         let at = going
             .iter()
             .position(|one| one.id == anchor_id)

@@ -1075,6 +1075,45 @@ fn a_machine_with_no_identity_makes_no_key_by_asking() {
 }
 
 #[test]
+fn past_the_languages_folio_takes_the_rest_stay_here_and_the_person_is_told() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    let mut asked_for = anchor;
+    for one in 0..20u8 {
+        let code = format!("a{}", char::from(b'a' + one));
+        let id = home.wrote(&format!("---\nlang: {code}\n---\n\nwords\n"), None);
+        home.joined(id, anchor);
+        asked_for = id;
+    }
+
+    let out = sealed(&home, &asked(asked_for));
+
+    assert_eq!(every_reader_opens(&out).len(), 20);
+    assert_eq!(
+        out.told,
+        [Told::LanguageOverTheTop {
+            language: "as".into()
+        }]
+    );
+}
+
+#[test]
+fn twenty_languages_all_go_and_nobody_is_told() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    for one in 0..19u8 {
+        let code = format!("a{}", char::from(b'a' + one));
+        let id = home.wrote(&format!("---\nlang: {code}\n---\n\nwords\n"), None);
+        home.joined(id, anchor);
+    }
+
+    let out = sealed(&home, &asked(anchor));
+
+    assert_eq!(every_reader_opens(&out).len(), 20);
+    assert_eq!(out.told, []);
+}
+
+#[test]
 fn a_language_that_stays_is_told_by_its_language() {
     let (_tmp, mut home) = home();
     let es = home.wrote("---\nlang: es\n---\n\n# Paseos\n", None);

@@ -203,6 +203,7 @@ const KNOWN = [
   "folioUnreached",
   "folioGarbled",
   "folioFull",
+  "folioLanguagesFull",
   "folioTooBig",
   "folioWait",
   "folioUploadsOff",

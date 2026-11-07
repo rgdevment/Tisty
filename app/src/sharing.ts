@@ -10,8 +10,8 @@ export type Told =
   | { what: "notDrawn"; document: string; many: number }
   | { what: "pictureNotKept"; document: string; name: string }
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
-  | { what: "languageLeftBehind"; language: string }
-  | { what: "nameLeftOut" };
+  | { what: "languageLeftBehind" | "languageOverTheTop"; language: string }
+  | { what: "nameLeftOut" | "takenBackNotKept" };
 
 export interface Sealed {
   envelopes: number;
@@ -183,9 +183,13 @@ export const toldPlainly = (told: Told): string => {
       return fill("toldPageLeftBehind", told.document);
     case "languageLeftBehind":
       return fill("toldLanguageLeftBehind", told.language);
+    case "languageOverTheTop":
+      return fill("toldLanguageOverTheTop", told.language);
     case "citedLeftBehind":
       return fill("toldCitedLeftBehind", told.document);
     case "nameLeftOut":
       return t("toldNameLeftOut");
+    case "takenBackNotKept":
+      return t("toldTakenBackNotKept");
   }
 };

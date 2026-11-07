@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 
-use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Why};
+use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Taken, Why};
 use tisty_carrier::folio_limits::SharingNow;
 use tisty_carrier::folio_terms::{Standing, Unsure};
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
-use tisty_sharing::Remembered;
+use tisty_sharing::{Remembered, Told};
 
 use super::{
     Card, after_terms_refused, card_of, counted_as_shared, delivered, folio_terms_drawn,
-    going_with, headings_over, may_start, press_given_back, said,
+    going_with, headings_over, may_start, press_given_back, said, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -102,6 +102,51 @@ fn its_files_go_when_folio_wants_them() {
     .unwrap();
 
     assert_eq!(folio.asked.borrow()[1].0, "/docs/Ab3xK9pQ/files");
+}
+
+fn taken(many: usize) -> Vec<Taken> {
+    (0..many)
+        .map(|one| Taken {
+            root: "root".to_owned(),
+            machine: format!("machine{one}"),
+            at: "1".to_owned(),
+            signed: "signed".to_owned(),
+        })
+        .collect()
+}
+
+#[test]
+fn a_key_folio_has_no_room_for_is_told_even_when_an_earlier_chunk_went() {
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().extend([
+        (200, r#"{"done":true}"#),
+        (409, r#"{"refused":"machines_full"}"#),
+    ]);
+
+    assert_eq!(
+        sent_taken_back(&folio, &taken(9)),
+        Some(Told::TakenBackNotKept)
+    );
+    assert_eq!(folio.asked.borrow().len(), 2);
+}
+
+#[test]
+fn a_key_that_went_or_can_go_again_next_sync_is_not_told() {
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    assert_eq!(sent_taken_back(&folio, &taken(1)), None);
+
+    let unreachable = FakeFolio::default();
+    assert_eq!(sent_taken_back(&unreachable, &taken(1)), None);
+
+    let busy = FakeFolio::default();
+    busy.answers
+        .borrow_mut()
+        .push_back((429, r#"{"refused":"quota","until":1}"#));
+    assert_eq!(sent_taken_back(&busy, &taken(1)), None);
 }
 
 #[test]
@@ -225,6 +270,11 @@ fn each_refusal_from_folio_is_said_in_words_the_window_knows() {
         (Stopped::Unreached, "folioUnreached"),
         (Stopped::Garbled, "folioGarbled"),
         (Stopped::Refused(Refused::SharesFull), "folioFull"),
+        (
+            Stopped::Refused(Refused::LanguagesFull),
+            "folioLanguagesFull",
+        ),
+        (Stopped::Refused(Refused::MachinesFull), "folioRefused"),
         (Stopped::Refused(Refused::TooBig), "folioTooBig"),
         (Stopped::Refused(Refused::UploadsOff), "folioUploadsOff"),
         (Stopped::Refused(Refused::Paused), "folioPaused"),
