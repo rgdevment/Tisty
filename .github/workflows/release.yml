@@ -1902,8 +1902,6 @@ jobs:
       KOMAC: "2.16.0"
       KOMAC_SHA256: 7d2707fa6210f2789a3702de49fbd150b736dbf426ee0b9bc8e098736f9fd82d
     steps:
-      # Komac refuses a package the community repository does not carry yet, so the first
-      # version has to be submitted by hand before this is worth turning on.
       - name: Open the pull request that adds this version
         shell: bash
         env:

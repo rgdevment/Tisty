@@ -71,6 +71,11 @@
     </a>
     <a href="#getting-started">
       <img
+        src="https://img.shields.io/badge/Windows-winget-0078D4?style=for-the-badge&logo=windows"
+        alt="Install Tisty — notes, documents and tasks — with winget on Windows"/>
+    </a>
+    <a href="#getting-started">
+      <img
         src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
         alt="Install Tisty — notes, documents and tasks — with Homebrew on macOS"/>
     </a>
