@@ -163,12 +163,12 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
     }
 }
 
-// Asked before anything leaves: terms that changed stop an upload, never a link already out.
 struct Agreed {
     version: String,
     newer_unchecked: bool,
 }
 
+// Asked before anything leaves: terms that changed stop an upload, never a link already out.
 fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<Agreed> {
     let home = paths.private();
     let newer_unchecked = match terms_now(&home, tongue)? {

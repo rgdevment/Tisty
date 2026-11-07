@@ -322,17 +322,64 @@ fn each_reading_asks_for_the_limits_afresh_within_the_hour() {
 fn a_press_within_a_minute_of_the_last_reads_what_was_kept() {
     let home = seeded(Some(terms("1")));
     let limits_asked = Cell::new(0);
-    let counting = |url: &str| {
-        if url == LIMITS_URL {
+    let counting = |url: &str| match url {
+        LIMITS_URL => {
             limits_asked.set(limits_asked.get() + 1);
+            Some(REAL.to_vec())
         }
-        only_the_terms(url)
+        SIGNATURE_URL => Some(REAL_SIG.as_bytes().to_vec()),
+        _ => only_the_terms(url),
     };
 
     let _ = standing(home.path(), Tongue::Es, counting);
     let _ = standing(home.path(), Tongue::Es, counting);
 
     assert_eq!(limits_asked.get(), 1);
+}
+
+#[test]
+fn a_press_that_reached_nothing_lets_the_next_one_read_again() {
+    let home = seeded(Some(terms("1")));
+    let limits_asked = Cell::new(0);
+    let unreached = |url: &str| {
+        if url == LIMITS_URL {
+            limits_asked.set(limits_asked.get() + 1);
+        }
+        None
+    };
+
+    let _ = standing(home.path(), Tongue::Es, unreached);
+    let _ = standing(home.path(), Tongue::Es, unreached);
+
+    assert_eq!(limits_asked.get(), 2);
+}
+
+fn accepted_then(current: &str) -> tempfile::TempDir {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    let newer = seeded(Some(terms(current)));
+    std::fs::copy(newer.path().join(KEPT), home.path().join(KEPT)).unwrap();
+    home
+}
+
+#[test]
+fn terms_accepted_one_version_back_still_stand() {
+    let home = accepted_then("2");
+
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Ok(Standing::Accepted)
+    );
+}
+
+#[test]
+fn a_version_that_is_not_a_number_is_taken_as_still_standing() {
+    let home = accepted_then("2026-11");
+
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Ok(Standing::Accepted)
+    );
 }
 
 #[test]

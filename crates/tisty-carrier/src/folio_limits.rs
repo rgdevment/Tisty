@@ -163,10 +163,16 @@ pub fn heed_on_press(
     home: &Path,
     bring: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Option<Result<FolioLimits, Refused>> {
-    if !policy::ask_now(&home.join(PRESSED), PRESSED_EVERY) {
+    let pressed = home.join(PRESSED);
+    if !policy::ask_now(&pressed, PRESSED_EVERY) {
         return None;
     }
-    heed_now(home, bring)
+    let heard = heed_now(home, bring);
+    if heard.is_none() {
+        // A press that reached nothing must not hold the next one back.
+        let _ = std::fs::remove_file(&pressed);
+    }
+    heard
 }
 
 pub fn heed_now(
