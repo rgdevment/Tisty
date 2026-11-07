@@ -378,7 +378,7 @@ describe("sharing a document with Folio", () => {
     expect(screen.getByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
   });
 
-  it("waits while Folio updates its terms and reads them again each minute", async () => {
+  it("says Folio is updating its terms and reads them again only when asked", async () => {
     let readings = 0;
     invoked.mockImplementation((command: string) => {
       if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
@@ -393,16 +393,17 @@ describe("sharing a document with Folio", () => {
     });
     const { onError } = shown();
 
-    expect(await screen.findByText(t("shareTermsSettling"))).toBeTruthy();
+    expect(await screen.findByText(t("folioTermsUpdating"))).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
     expect(readings).toBe(1);
-    await vi.advanceTimersByTimeAsync(60_000);
+    await userEvent.click(screen.getByRole("button", { name: t("shareUnreachedRetry") }));
 
     await screen.findByRole("button", { name: t("shareGo") });
     expect(readings).toBe(2);
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it("after a refused send waits on the terms alone and sends once they are accepted", async () => {
+  it("after a refused send sends again only once asked and the terms are accepted", async () => {
     let sends = 0;
     let readings = 0;
     invoked.mockImplementation((command: string) => {
@@ -436,9 +437,11 @@ describe("sharing a document with Folio", () => {
     const { onError } = shown();
 
     await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
-    expect(await screen.findByText(t("shareTermsSettling"))).toBeTruthy();
-    await vi.advanceTimersByTimeAsync(60_000);
+    expect(await screen.findByText(t("folioTermsUpdating"))).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
     expect(sends).toBe(1);
+    expect(readings).toBe(1);
+    await userEvent.click(screen.getByRole("button", { name: t("shareUnreachedRetry") }));
     await userEvent.click(await screen.findByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: t("termsGo") }));
 

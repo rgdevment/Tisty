@@ -804,8 +804,6 @@ const en = {
     "To know, Tisty needs an answer from Folio and none is arriving. Check your connection and try again.",
   shareUnreachedSent: "Nothing left this device.",
   shareUnreachedClose: "Close",
-  shareTermsSettling:
-    "Folio is updating its terms. Tisty tries again every minute, or you can close this and come back in a few minutes.",
   shareUnreachedRetry: "Try again",
   shareWhat: "What whoever gets it can do",
   shareReadOnly: "Read only",
@@ -3699,8 +3697,6 @@ const es: Catalog = {
     "Para saberlo, Tisty necesita una respuesta de Folio y ahora no llega. Revisa tu conexión e inténtalo de nuevo.",
   shareUnreachedSent: "Nada salió de este equipo.",
   shareUnreachedClose: "Cerrar",
-  shareTermsSettling:
-    "Folio está actualizando sus términos. Tisty lo vuelve a intentar cada minuto, o puedes cerrar y volver en unos minutos.",
   shareUnreachedRetry: "Reintentar",
   shareWhat: "Qué puede hacer quien lo recibe",
   shareReadOnly: "Solo leer",

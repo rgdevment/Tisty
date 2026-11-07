@@ -94,17 +94,17 @@ fn under<F: Fn(&str) -> Option<Vec<u8>>>(
     before: Option<&Accepted>,
     tongue: Tongue,
     bring: &F,
-) -> Option<Standing> {
+) -> Result<Standing, Unsure> {
     if before.is_some_and(|one| one.version == terms.version) {
-        return Some(Standing::Accepted);
+        return Ok(Standing::Accepted);
     }
-    let said = bring(tongue.url())?;
+    let said = bring(tongue.url()).ok_or(Unsure::NoWord)?;
     if print_of(&said) != tongue.print_in(terms) {
-        return None;
+        return Err(Unsure::Unmatched);
     }
-    Some(Standing::ToAccept {
+    Ok(Standing::ToAccept {
         version: terms.version.clone(),
-        text: String::from_utf8(said).ok()?,
+        text: String::from_utf8(said).map_err(|_| Unsure::Unmatched)?,
         accepted_before: before.map(|one| one.version.clone()),
     })
 }
@@ -152,17 +152,19 @@ fn standing_under<F: Fn(&str) -> Option<Vec<u8>>>(
     let limits = limits.ok_or(Unsure::NoWord)?;
     let terms = limits.terms.as_ref().ok_or(Unsure::NotPublished)?;
     let before = accepted(home);
-    if let Some(standing) = under(terms, before.as_ref(), tongue, &bring) {
-        return Ok(standing);
+    match under(terms, before.as_ref(), tongue, &bring) {
+        Err(Unsure::Unmatched) => {}
+        told => return told,
     }
     // The limits kept here may be up to an hour older than the text just read.
-    folio_limits::heed_now(home, &bring)
-        .and_then(Result::ok)
-        .and_then(|limits| {
-            let terms = limits.terms.as_ref()?;
-            under(terms, before.as_ref(), tongue, &bring)
-        })
-        .ok_or_else(|| unsettled(home))
+    let Some(Ok(limits)) = folio_limits::heed_now(home, &bring) else {
+        return Err(unsettled(home));
+    };
+    let terms = limits.terms.as_ref().ok_or(Unsure::NotPublished)?;
+    match under(terms, before.as_ref(), tongue, &bring) {
+        Err(Unsure::Unmatched) => Err(unsettled(home)),
+        told => told,
+    }
 }
 
 pub fn accepted_version(home: &Path) -> Option<String> {

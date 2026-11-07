@@ -235,6 +235,16 @@ fn folio_asking_for_terms_without_naming_them_is_waited_for_too() {
 }
 
 #[test]
+fn terms_that_cannot_be_brought_are_no_word_rather_than_a_wait() {
+    let home = seeded(Some(terms("1")));
+
+    let told = standing(home.path(), Tongue::Es, |_: &str| None);
+
+    assert_eq!(told, Err(Unsure::NoWord));
+    assert!(!home.path().join(SETTLING).exists());
+}
+
+#[test]
 fn a_mismatch_asks_the_limits_again_past_the_hourly_mark() {
     let home = seeded(Some(terms("1")));
     let limits_asked = Cell::new(0);

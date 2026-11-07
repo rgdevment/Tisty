@@ -146,7 +146,7 @@ pub enum TermsNow {
 }
 
 fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
-    match folio_terms::standing(home, tongue, crate::reaching::brought) {
+    match folio_terms::standing(home, tongue, crate::reaching::brought_from_folio) {
         Ok(Standing::Accepted) => Ok(TermsNow::Accepted),
         Ok(Standing::ToAccept {
             version,
@@ -233,7 +233,7 @@ fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: To
     after_terms_refused(folio_terms::read_again(
         home,
         tongue,
-        crate::reaching::brought,
+        crate::reaching::brought_from_folio,
         refused.name.as_deref(),
     ))
 }
@@ -256,7 +256,13 @@ fn may_start(now: SharingNow) -> Answer<()> {
 #[tauri::command]
 pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
     let home = held(&session).paths.private();
-    apart(move || Ok(folio_limits::sharing_now(&home, crate::reaching::brought))).await
+    apart(move || {
+        Ok(folio_limits::sharing_now(
+            &home,
+            crate::reaching::brought_from_folio,
+        ))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -527,7 +533,7 @@ pub async fn doc_share_look(
         let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
             .map_err(|e| refused(&e))?;
         let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
-        let limits = match folio_limits::heed(&home, crate::reaching::brought) {
+        let limits = match folio_limits::heed(&home, crate::reaching::brought_from_folio) {
             Some(Ok(limits)) => Some(limits),
             _ => folio_limits::kept(&home),
         }
@@ -823,7 +829,7 @@ pub async fn doc_shared(
     let terms = apart(move || {
         may_start(folio_limits::sharing_now(
             &checking.private(),
-            crate::reaching::brought,
+            crate::reaching::brought_from_folio,
         ))?;
         may_upload(&checking, tongue)
     })
