@@ -1075,6 +1075,137 @@ fn a_machine_with_no_identity_makes_no_key_by_asking() {
 }
 
 #[test]
+fn past_the_languages_folio_takes_the_rest_stay_here_and_the_person_is_told() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    let mut asked_for = anchor;
+    for one in 0..20u8 {
+        let code = format!("a{}", char::from(b'a' + one));
+        let id = home.wrote(&format!("---\nlang: {code}\n---\n\nwords\n"), None);
+        home.joined(id, anchor);
+        asked_for = id;
+    }
+
+    let out = sealed(&home, &asked(asked_for));
+
+    assert_eq!(every_reader_opens(&out).len(), 20);
+    assert_eq!(
+        out.told,
+        [Told::LanguageOverTheTop {
+            language: "as".into(),
+            top: 20,
+        }]
+    );
+}
+
+fn languages_joined(
+    home: &mut Home,
+    anchor: tisty_core::model::DocId,
+    many: u8,
+) -> Vec<tisty_core::model::DocId> {
+    (0..many)
+        .map(|one| {
+            let code = format!("b{}", char::from(b'a' + one));
+            let id = home.wrote(&format!("---\nlang: {code}\n---\n\nwords\n"), None);
+            home.joined(id, anchor);
+            id
+        })
+        .collect()
+}
+
+#[test]
+fn a_language_folio_already_holds_keeps_its_place_before_a_new_one() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    languages_joined(&mut home, anchor, 19);
+    let first = sealed(&home, &asked(anchor));
+    assert_eq!(first.told, []);
+    home.sent(&first.remembering);
+    let earlier = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
+    home.joined(earlier, anchor);
+
+    let again = sealed(&home, &asked(anchor));
+
+    assert_eq!(every_reader_opens(&again).len(), 20);
+    assert_eq!(
+        again.told,
+        [Told::LanguageOverTheTop {
+            language: "aa".into(),
+            top: 20,
+        }]
+    );
+}
+
+#[test]
+fn asking_for_a_new_language_when_folio_holds_as_many_as_it_takes_is_refused_before_anything_goes()
+{
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    languages_joined(&mut home, anchor, 19);
+    let first = sealed(&home, &asked(anchor));
+    home.sent(&first.remembering);
+    let new = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
+    home.joined(new, anchor);
+
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+    };
+    let refused = tisty_sharing::gathered(&desk, &asked(new)).err();
+
+    assert!(
+        matches!(refused, Some(Unshared::LanguagesFull)),
+        "{refused:?}"
+    );
+}
+
+#[test]
+fn a_language_that_stays_here_still_counts_if_folio_holds_it() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    let others = languages_joined(&mut home, anchor, 19);
+    let first = sealed(&home, &asked(anchor));
+    home.sent(&first.remembering);
+    home.commit(Op::DocLock { id: others[0] });
+    let new = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
+    home.joined(new, anchor);
+
+    let again = sealed(&home, &asked(anchor));
+
+    assert_eq!(every_reader_opens(&again).len(), 19);
+    assert!(
+        again
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::LanguageLeftBehind { .. }))
+    );
+    assert!(
+        again
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::LanguageOverTheTop { .. }))
+    );
+}
+
+#[test]
+fn twenty_languages_all_go_and_nobody_is_told() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    for one in 0..19u8 {
+        let code = format!("a{}", char::from(b'a' + one));
+        let id = home.wrote(&format!("---\nlang: {code}\n---\n\nwords\n"), None);
+        home.joined(id, anchor);
+    }
+
+    let out = sealed(&home, &asked(anchor));
+
+    assert_eq!(every_reader_opens(&out).len(), 20);
+    assert_eq!(out.told, []);
+}
+
+#[test]
 fn a_language_that_stays_is_told_by_its_language() {
     let (_tmp, mut home) = home();
     let es = home.wrote("---\nlang: es\n---\n\n# Paseos\n", None);

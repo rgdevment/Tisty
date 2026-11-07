@@ -207,6 +207,12 @@ fn each_refusal_folio_documents_is_told_apart() {
         (404, r#"{"refused":"missing"}"#, Refused::Missing),
         (409, r#"{"refused":"behind"}"#, Refused::Behind),
         (409, r#"{"refused":"shares_full"}"#, Refused::SharesFull),
+        (
+            409,
+            r#"{"refused":"languages_full"}"#,
+            Refused::LanguagesFull,
+        ),
+        (409, r#"{"refused":"machines_full"}"#, Refused::MachinesFull),
         (413, r#"{"refused":"too_big"}"#, Refused::TooBig),
         (
             422,

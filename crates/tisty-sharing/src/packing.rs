@@ -24,8 +24,10 @@ pub enum Told {
     NotDrawn { document: String, many: usize },
     PageLeftBehind { document: String },
     LanguageLeftBehind { language: String },
+    LanguageOverTheTop { language: String, top: usize },
     CitedLeftBehind { document: String },
     NameLeftOut,
+    TakenBackNotKept,
 }
 
 #[derive(Debug, Default)]

@@ -20,6 +20,8 @@ use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
+// Folio refuses past this, and its signed limits do not say so yet.
+const LANGUAGES_AT_MOST: usize = 20;
 
 pub struct Desk<'a> {
     pub paths: &'a Paths,
@@ -124,6 +126,13 @@ fn languages_of<'a>(state: &'a State, kept: &'a Kept) -> Vec<&'a Kept> {
     } else {
         vec![kept]
     }
+}
+
+fn language_said(one: &Kept) -> String {
+    one.lang
+        .clone()
+        .or_else(|| one.title.clone())
+        .unwrap_or_default()
 }
 
 fn unread(e: impl std::fmt::Display) -> Unshared {
@@ -497,16 +506,37 @@ impl Gathering<'_> {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
-                    language: one
-                        .lang
-                        .clone()
-                        .or_else(|| one.title.clone())
-                        .unwrap_or_default(),
+                    language: language_said(one),
                 });
             }
         }
         // An anchor that stays here hands the map to the first language that goes; `kept` always goes.
         let anchor_id = state.anchor_of(kept);
+        // Folio counts what it already holds whether it goes again or not, so those keep their place before anything new.
+        let held_there = |one: &Kept| self.shelf.contains_key(&one.file);
+        let must_go = |one: &Kept| one.id == kept.id || one.id == anchor_id || held_there(one);
+        let taken = going.iter().filter(|one| must_go(one)).count()
+            + languages_of(state, kept)
+                .into_iter()
+                .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
+                .count();
+        if taken > LANGUAGES_AT_MOST {
+            return Err(Unshared::LanguagesFull);
+        }
+        let mut room = LANGUAGES_AT_MOST - taken;
+        let (within, over): (Vec<&Kept>, Vec<&Kept>) = going.into_iter().partition(|one| {
+            let goes = must_go(one) || room > 0;
+            if goes && !must_go(one) {
+                room -= 1;
+            }
+            goes
+        });
+        self.told
+            .extend(over.into_iter().map(|one| Told::LanguageOverTheTop {
+                language: language_said(one),
+                top: LANGUAGES_AT_MOST,
+            }));
+        let mut going = within;
         let at = going
             .iter()
             .position(|one| one.id == anchor_id)

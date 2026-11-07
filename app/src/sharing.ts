@@ -11,7 +11,8 @@ export type Told =
   | { what: "pictureNotKept"; document: string; name: string }
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
   | { what: "languageLeftBehind"; language: string }
-  | { what: "nameLeftOut" };
+  | { what: "languageOverTheTop"; language: string; top: number }
+  | { what: "nameLeftOut" | "takenBackNotKept" };
 
 export interface Sealed {
   envelopes: number;
@@ -74,7 +75,7 @@ export interface ShareCard {
 }
 
 export type Synced =
-  | { state: "unchanged" }
+  | { state: "unchanged"; told: Told[] }
   | { state: "secrets"; place: string; print: string }
   | { state: "gone" }
   | { state: "sent"; version: number; told: Told[] }
@@ -183,9 +184,13 @@ export const toldPlainly = (told: Told): string => {
       return fill("toldPageLeftBehind", told.document);
     case "languageLeftBehind":
       return fill("toldLanguageLeftBehind", told.language);
+    case "languageOverTheTop":
+      return fill("toldLanguageOverTheTop", told.language, String(told.top));
     case "citedLeftBehind":
       return fill("toldCitedLeftBehind", told.document);
     case "nameLeftOut":
       return t("toldNameLeftOut");
+    case "takenBackNotKept":
+      return t("toldTakenBackNotKept");
   }
 };
