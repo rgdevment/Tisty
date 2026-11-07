@@ -177,6 +177,7 @@ function PhraseTyped({
       <label htmlFor={fieldId} className="text-[11.5px] text-faint">
         {t("phraseTypeHow")}
       </label>
+      <p className="text-[11.5px] font-semibold">{t("phraseTypeOnlyHere")}</p>
       <textarea
         id={fieldId}
         value={said}

@@ -2376,6 +2376,10 @@ const en = {
   phraseWhat:
     "These 24 words open your encrypted cloud and are the identity your computers answer to. Only you have them.",
   phraseOutside: "Keep it outside Tisty.",
+  phraseNeverAsked:
+    "Nobody from Tisty or Folio will ever ask you for this phrase, by email, chat or any page. Anyone who does is trying to trick you.",
+  phraseTypeOnlyHere:
+    "Type it only here, in your own Tisty. Nobody from Tisty or Folio will ever ask you for it.",
   phraseOutsideWhy:
     "On paper or in a PDF you keep apart, never in a Tisty document. It never passes through our hands, so nobody can give it back to you: if you lose the phrase and all your computers, you lose your encrypted data and your identity.",
   phrasePdf: "Save as PDF",
@@ -5280,6 +5284,10 @@ const es: Catalog = {
   phraseWhat:
     "Estas 24 palabras abren tu nube cifrada y son la identidad a la que responden tus equipos. Solo tú las tienes.",
   phraseOutside: "Guárdala fuera de Tisty.",
+  phraseNeverAsked:
+    "Nadie de Tisty ni de Folio te pedirá esta frase, ni por correo, ni por chat, ni en una página. Si alguien te la pide, es un engaño.",
+  phraseTypeOnlyHere:
+    "Escríbela solo aquí, en tu Tisty. Nadie de Tisty ni de Folio te la pedirá nunca.",
   phraseOutsideWhy:
     "En papel o en un PDF que guardes aparte, nunca en un documento de Tisty. Nunca pasa por nuestras manos, así que nadie te la puede devolver: si pierdes la frase y todos tus equipos, pierdes tus datos cifrados y tu identidad.",
   phrasePdf: "Guardar como PDF",
