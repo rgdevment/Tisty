@@ -95,6 +95,7 @@ describe("the panels beside a sheet", () => {
       ]);
 
       expect(leaves(side).every((one) => one.disabled)).toBe(true);
+      expect(side.querySelector<HTMLElement>(".side-leaves")?.title).toBe("leafNeedsSheets");
       expect(leaves(side)[1].getAttribute("aria-pressed")).toBe("true");
       leaves(side)[0].click();
       expect(asked).toEqual([]);
@@ -108,6 +109,7 @@ describe("the panels beside a sheet", () => {
       ]);
 
       expect(leaves(side).some((one) => one.disabled)).toBe(false);
+      expect(side.querySelector<HTMLElement>(".side-leaves")?.title).toBe("");
       leaves(side)[1].click();
       expect(asked).toEqual(["letter"]);
     });

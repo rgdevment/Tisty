@@ -297,10 +297,8 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
         app,
         LinkQuestion::Keep {
             title: said("title").unwrap_or_default().to_owned(),
-            name: said("owner_name")
-                .or(said("signed_as"))
-                .unwrap_or_default()
-                .to_owned(),
+            owner: said("owner_name").unwrap_or_default().to_owned(),
+            signer: said("signed_as").unwrap_or_default().to_owned(),
             print: opened.signer.clone(),
             doubtful: opened.doubtful(),
         },

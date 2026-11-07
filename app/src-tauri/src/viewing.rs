@@ -56,8 +56,24 @@ pub struct Views {
     edits_owed: Mutex<Vec<String>>,
     links_owed: Mutex<Vec<url::Url>>,
     links_arriving: Mutex<LinksArriving>,
-    link_asking: Mutex<Option<(LinkQuestion, std::sync::mpsc::Sender<bool>)>>,
+    link_asking: Mutex<Option<LinkAsking>>,
+    link_asked: AtomicU64,
 }
+
+struct LinkAsking {
+    id: u64,
+    question: LinkQuestion,
+    answer: std::sync::mpsc::Sender<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LinkAsked {
+    id: u64,
+    #[serde(flatten)]
+    question: LinkQuestion,
+}
+
+const LINK_ASKS_IN: &str = "main";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -65,7 +81,8 @@ pub enum LinkQuestion {
     Look,
     Keep {
         title: String,
-        name: String,
+        owner: String,
+        signer: String,
         print: String,
         doubtful: bool,
     },
@@ -100,23 +117,30 @@ impl Views {
 
     pub(crate) fn ask_of_a_link(&self, question: LinkQuestion) -> std::sync::mpsc::Receiver<bool> {
         let (answer, answered) = std::sync::mpsc::channel();
-        *self.link_asking.lock().unwrap_or_else(|e| e.into_inner()) = Some((question, answer));
+        let id = self.link_asked.fetch_add(1, Ordering::SeqCst);
+        *self.link_asking.lock().unwrap_or_else(|e| e.into_inner()) = Some(LinkAsking {
+            id,
+            question,
+            answer,
+        });
         answered
     }
 
-    fn link_standing(&self) -> Option<LinkQuestion> {
+    fn link_standing(&self) -> Option<LinkAsked> {
         let asking = self.link_asking.lock().unwrap_or_else(|e| e.into_inner());
-        asking.as_ref().map(|(question, _)| question.clone())
+        asking.as_ref().map(|one| LinkAsked {
+            id: one.id,
+            question: one.question.clone(),
+        })
     }
 
-    fn link_answered(&self, yes: bool) {
-        let asking = self
-            .link_asking
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
-        if let Some((_, answer)) = asking {
-            let _ = answer.send(yes);
+    // An answer holds only for the question it was shown: the next one in line has not been read.
+    fn link_answered(&self, id: u64, yes: bool) {
+        let mut asking = self.link_asking.lock().unwrap_or_else(|e| e.into_inner());
+        if asking.as_ref().is_some_and(|one| one.id == id)
+            && let Some(one) = asking.take()
+        {
+            let _ = one.answer.send(yes);
         }
     }
 
@@ -555,13 +579,20 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
 
 // Asked rather than told only by the event: the window may still be loading when a link opens Tisty.
 #[tauri::command]
-pub fn link_question_standing(views: tauri::State<'_, Views>) -> Option<LinkQuestion> {
+pub fn link_question_standing(views: tauri::State<'_, Views>) -> Option<LinkAsked> {
     views.link_standing()
 }
 
 #[tauri::command]
-pub fn link_question_answered(views: tauri::State<'_, Views>, yes: bool) {
-    views.link_answered(yes);
+pub fn link_question_answered(
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+    id: u64,
+    yes: bool,
+) {
+    if window.label() == LINK_ASKS_IN {
+        views.link_answered(id, yes);
+    }
 }
 
 #[tauri::command]

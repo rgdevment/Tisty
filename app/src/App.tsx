@@ -68,7 +68,6 @@ export default function App() {
         <WindowChrome />
 
         <Layers parcels={desk.parcels.shown} />
-        <LinkQuestions />
         <News />
         <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
@@ -134,6 +133,7 @@ export default function App() {
             </div>
           )}
         </div>
+        <LinkQuestions />
       </div>
     </DeskProvider>
   );

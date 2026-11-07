@@ -1,13 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fill, t, type Word } from "../locales";
 import Modal from "./Modal";
 
-type Question =
+type Question = { id: number } & (
   | { kind: "look" }
-  | { kind: "keep"; title: string; name: string; print: string; doubtful: boolean }
-  | { kind: "failed"; code: string };
+  | { kind: "keep"; title: string; owner: string; signer: string; print: string; doubtful: boolean }
+  | { kind: "failed"; code: string }
+);
+
+// The second press of a double click must not answer the question that opens under it.
+const READ_FOR_AT_LEAST_MS = 400;
 
 const FAILED: Record<string, Word> = {
   folioGone: "linkFailedGone",
@@ -49,8 +53,11 @@ function Keeping({
   return (
     <Modal title={t("linkKeepTitle")} onClose={() => onAnswer(false)}>
       <div className="flex flex-col gap-3 text-[13px] leading-relaxed">
-        <p className="font-semibold">{asked.title}</p>
-        {asked.name && <p>{fill("linkKeepSigned", asked.name)}</p>}
+        <p className="break-words font-semibold">{asked.title || t("untitledDoc")}</p>
+        {asked.owner && asked.owner !== asked.signer && (
+          <p className="break-words">{fill("linkKeepOwner", asked.owner)}</p>
+        )}
+        {asked.signer && <p className="break-words">{fill("linkKeepSigned", asked.signer)}</p>}
         <div className="flex flex-col gap-1">
           <span className="text-[11.5px] text-soft">{t("linkKeepPrint")}</span>
           <code className="break-all rounded-md bg-hover px-2 py-1.5 font-mono text-[11.5px]">
@@ -74,26 +81,42 @@ function Keeping({
 
 export default function LinkQuestions() {
   const [asked, setAsked] = useState<Question | null>(null);
+  const [looking, setLooking] = useState(false);
+  const shownAt = useRef(0);
 
   const look = useCallback(() => {
     invoke<Question | null>("link_question_standing")
-      .then(setAsked)
+      .then((now) => {
+        if (!now) return;
+        shownAt.current = Date.now();
+        setLooking(false);
+        setAsked(now);
+      })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    look();
+    // Read only once it listens: a question asked in between would never be heard of.
     const off = listen("linkquestion", look);
+    void off.then(look);
     return () => {
       void off.then((stop) => stop());
     };
   }, [look]);
 
   const answer = (yes: boolean) => {
+    if (!asked || Date.now() - shownAt.current < READ_FOR_AT_LEAST_MS) return;
     setAsked(null);
-    void invoke("link_question_answered", { yes }).catch(() => {});
+    setLooking(yes && asked.kind === "look");
+    void invoke("link_question_answered", { id: asked.id, yes }).catch(() => {});
   };
 
+  if (looking)
+    return (
+      <Modal title={t("linkLookingTitle")} onClose={() => setLooking(false)}>
+        <output className="text-[13px] leading-relaxed">{t("linkLookingWhy")}</output>
+      </Modal>
+    );
   if (!asked) return null;
   if (asked.kind === "keep") return <Keeping asked={asked} onAnswer={answer} />;
   if (asked.kind === "failed")

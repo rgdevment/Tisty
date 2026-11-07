@@ -56,6 +56,7 @@ const papered = (page: Document, say: Say, panel: Of<"paper">) => {
   leaves.setAttribute("aria-label", say("leafIs"));
   // Only where sheets can be turned on: elsewhere the paper would have no way to change at all.
   const waiting = panel.sheets !== undefined && !panel.sheets.on;
+  if (waiting) leaves.title = say("leafNeedsSheets");
   for (const one of offered(panel.leaf)) {
     const leaf = pressed(page, "side-leaf", say(LEAF[one]), () => panel.onLeaf(one));
     leaf.setAttribute("aria-pressed", String(one === panel.leaf));
