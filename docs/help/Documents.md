@@ -109,7 +109,7 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 **Open in a window of its own**, under **Window** in a document's panel, shows it read only beside your work.
 
-- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, beside the paper, shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
+- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, first in that row, unlocks the paper and shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
 - **Reading** and **Markdown** switch between the drawn page and its text.
 - **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…** and **Duplicate**, which makes a copy.
 - **Edit in Tisty** takes you back to the document. Its PDF there carries who wrote it and when unless you untick **Signed** in the preview.

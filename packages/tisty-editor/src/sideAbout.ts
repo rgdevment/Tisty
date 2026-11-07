@@ -54,13 +54,16 @@ const papered = (page: Document, say: Say, panel: Of<"paper">) => {
   const leaves = made(page, "div", "side-leaves");
   leaves.setAttribute("role", "group");
   leaves.setAttribute("aria-label", say("leafIs"));
+  // Only where sheets can be turned on: elsewhere the paper would have no way to change at all.
+  const waiting = panel.sheets !== undefined && !panel.sheets.on;
   for (const one of offered(panel.leaf)) {
     const leaf = pressed(page, "side-leaf", say(LEAF[one]), () => panel.onLeaf(one));
     leaf.setAttribute("aria-pressed", String(one === panel.leaf));
+    leaf.disabled = waiting;
     leaves.append(leaf);
   }
-  row.append(leaves);
   if (panel.sheets) row.append(toggle(page, panel.sheets, say("sheetsShown"), "⇕"));
+  row.append(leaves);
   if (panel.landscape) row.append(toggle(page, panel.landscape, say("sheetsAcross"), "⇔"));
   if (panel.raw) row.append(toggle(page, panel.raw, say("viewSource"), "</>", "side-tool is-code"));
   const { onExport } = panel;
