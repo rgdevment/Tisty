@@ -68,6 +68,7 @@ pub enum Refused {
     Missing,
     Behind,
     SharesFull,
+    RoomFull,
     LanguagesFull,
     MachinesFull,
     TooBig,

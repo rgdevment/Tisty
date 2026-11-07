@@ -480,6 +480,13 @@ fn a_refusal_over_the_terms_keeps_the_version_folio_asks_for_however_it_is_writt
 }
 
 #[test]
+fn a_new_key_out_of_room_is_a_refusal_of_its_own() {
+    let refused: Refused = serde_json::from_str(r#"{"refused":"room_full"}"#).unwrap();
+
+    assert_eq!(refused, Refused::RoomFull);
+}
+
+#[test]
 fn a_blocked_key_is_a_refusal_of_its_own() {
     let refused: Refused = serde_json::from_str(r#"{"refused":"key_blocked"}"#).unwrap();
 

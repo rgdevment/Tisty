@@ -87,6 +87,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
         Stopped::Garbled => Refusal::of("folioGarbled"),
         Stopped::Refused(refused) => match refused {
             Refused::SharesFull => Refusal::of("folioFull"),
+            Refused::RoomFull => Refusal::of("folioRoomFull"),
             Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } | Refused::Quota { until } => {

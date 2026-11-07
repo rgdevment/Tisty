@@ -310,6 +310,7 @@ fn each_refusal_from_folio_is_said_in_words_the_window_knows() {
         (Stopped::Unreached, "folioUnreached"),
         (Stopped::Garbled, "folioGarbled"),
         (Stopped::Refused(Refused::SharesFull), "folioFull"),
+        (Stopped::Refused(Refused::RoomFull), "folioRoomFull"),
         (
             Stopped::Refused(Refused::LanguagesFull),
             "folioLanguagesFull",
