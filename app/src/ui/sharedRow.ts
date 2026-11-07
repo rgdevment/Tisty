@@ -90,7 +90,8 @@ interface Hands {
 type Told = Exclude<Awaited<ReturnType<typeof shareSync>>, { state: "secrets" | "gone" }>;
 
 const syncedWords = (synced: Told) => {
-  if (synced.state === "unchanged") return t("shareSyncUnchanged");
+  if (synced.state === "unchanged")
+    return [t("shareSyncUnchanged"), ...synced.told.map(toldPlainly)].join(" ");
   if (synced.state === "sent")
     return [fill("shareSyncSent", String(synced.version)), ...synced.told.map(toldPlainly)].join(
       " ",

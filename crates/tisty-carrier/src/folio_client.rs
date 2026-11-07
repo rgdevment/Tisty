@@ -68,6 +68,8 @@ pub enum Refused {
     Missing,
     Behind,
     SharesFull,
+    LanguagesFull,
+    MachinesFull,
     TooBig,
     Envelope {
         why: Why,

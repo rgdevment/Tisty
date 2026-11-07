@@ -30,6 +30,8 @@ pub enum Unshared {
     Unread(String),
     #[error("what is remembered of it could not be written: {0}")]
     Unwritten(String),
+    #[error("Folio already holds as many languages of it as it takes")]
+    LanguagesFull,
     #[error("the window did not finish {0}")]
     Unfinished(String),
     #[error(transparent)]

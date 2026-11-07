@@ -13,7 +13,7 @@ use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::policy;
 use tisty_core::Paths;
-use tisty_share_proto::identity::REVOCATIONS_AT_ONCE;
+use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Received, Remembered, Told, Under, Unshared};
 
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
@@ -21,6 +21,7 @@ use super::papers::other_version_kept;
 use super::sharing::{doc_id, refused, sealed_by, turned};
 use crate::{Answer, Refusal, Session, held};
 
+const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
 const PATIENCE: Duration = Duration::from_secs(120);
 const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
@@ -86,6 +87,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
         Stopped::Garbled => Refusal::of("folioGarbled"),
         Stopped::Refused(refused) => match refused {
             Refused::SharesFull => Refusal::of("folioFull"),
+            Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } | Refused::Quota { until } => {
                 Refusal::about("folioWait", until.to_string())
@@ -103,6 +105,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
             Refused::Missing => Refusal::of("folioGone"),
             Refused::NotYours => Refusal::of("notOneOwnDoc"),
             Refused::BadUpload
+            | Refused::MachinesFull
             | Refused::Envelope { .. }
             | Refused::Proof { .. }
             | Refused::Failed => Refusal::of("folioRefused"),
@@ -634,25 +637,64 @@ fn delivered(
 }
 
 // Sent again on each sync (81): the server keeps them only while it holds something of that root, and a late one still counts.
-fn told_of_taken_back(door: &dyn Door, state: &tisty_core::State, device: &tisty_core::DeviceId) {
-    let Some(root) = state.persons.person(device) else {
-        return;
-    };
-    let taken: Vec<Taken> = state
-        .persons
-        .revocations
-        .iter()
-        .filter(|one| one.unchecked().is_some_and(|(person, _)| person == root))
+fn told_of_taken_back(
+    door: &dyn Door,
+    home: &std::path::Path,
+    state: &tisty_core::State,
+    device: &tisty_core::DeviceId,
+) -> Option<Told> {
+    let root = state.persons.person(device)?;
+    let taken = newest_first(
+        state
+            .persons
+            .revocations
+            .iter()
+            .filter(|one| one.unchecked().is_some_and(|(person, _)| person == root)),
+    );
+    let no_room = sent_taken_back(door, &taken);
+    (no_room && first_time_without_room(home, taken.len())).then_some(Told::TakenBackNotKept)
+}
+
+// Folio counts all of them against its hour, so the one that matters most cannot wait behind the old ones.
+fn newest_first<'a>(revocations: impl Iterator<Item = &'a Revocation>) -> Vec<Taken> {
+    let mut mine: Vec<&Revocation> = revocations.collect();
+    mine.sort_by_key(|one| std::cmp::Reverse(one.at));
+    mine.into_iter()
         .map(|one| Taken {
             root: one.root.clone(),
             machine: one.share.clone(),
             at: one.at.to_string(),
             signed: one.sig.clone(),
         })
-        .collect();
+        .collect()
+}
+
+// Whether Folio had no room: any other failure goes again on the next sync, and past its hour the rest would only be refused too.
+fn sent_taken_back(door: &dyn Door, taken: &[Taken]) -> bool {
+    let mut no_room = false;
     for some in taken.chunks(REVOCATIONS_AT_ONCE) {
-        let _ = folio_client::taken_back(door, some);
+        match folio_client::taken_back(door, some) {
+            Err(Stopped::Refused(Refused::MachinesFull)) => no_room = true,
+            Err(Stopped::Refused(Refused::Quota { .. } | Refused::Slow { .. })) => break,
+            _ => {}
+        }
     }
+    no_room
+}
+
+// Said once for each key that finds no room, or it would turn into a line nobody reads.
+fn first_time_without_room(home: &std::path::Path, many: usize) -> bool {
+    let kept = home.join(TAKEN_BACK_TOLD);
+    let told = std::fs::read_to_string(&kept)
+        .ok()
+        .and_then(|said| said.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    if many <= told {
+        return false;
+    }
+    let _ = std::fs::create_dir_all(home);
+    let _ = std::fs::write(&kept, many.to_string());
+    true
 }
 
 async fn sealed_for_folio(
@@ -772,7 +814,8 @@ pub async fn doc_shared(
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
-        told_of_taken_back(&door, &state, &device);
+        let not_kept = told_of_taken_back(&door, &home, &state, &device);
+        let told = told.into_iter().chain(not_kept).collect();
         let top = sealed
             .remembering
             .iter()
@@ -787,7 +830,9 @@ pub async fn doc_shared(
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum Synced {
-    Unchanged,
+    Unchanged {
+        told: Vec<Told>,
+    },
     Secrets {
         place: String,
         print: String,
@@ -894,7 +939,23 @@ pub async fn doc_share_sync(
         return other_version_brought(&session, &id, &was).await;
     }
     if unchanged {
-        return Ok(Synced::Unchanged);
+        let (state, device, taking_home) = {
+            let session = held(&session);
+            (
+                session.state.clone(),
+                session.config.device_id.clone(),
+                home.clone(),
+            )
+        };
+        let not_kept = apart(move || {
+            Ok(ToFolio::new()
+                .ok()
+                .and_then(|door| told_of_taken_back(&door, &taking_home, &state, &device)))
+        })
+        .await?;
+        return Ok(Synced::Unchanged {
+            told: not_kept.into_iter().collect(),
+        });
     }
     let checking = paths.clone();
     let terms = apart(move || may_upload(&checking, tongue))
@@ -917,15 +978,15 @@ pub async fn doc_share_sync(
     };
     let keep = keeping(&app);
     let pressed_id = was.id.clone();
-    apart(move || {
+    let not_kept = apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
-        told_of_taken_back(&door, &state, &device);
-        Ok(())
+        Ok(told_of_taken_back(&door, &home, &state, &device))
     })
     .await?;
+    let told = told.into_iter().chain(not_kept).collect();
     Ok(Synced::Sent { version, told })
 }
 
