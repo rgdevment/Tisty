@@ -1316,6 +1316,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_lock,
         desktop::parted,
         desktop::kept_for_the_end,
+        viewing::link_question_standing,
+        viewing::link_question_answered,
         viewing::view_shown,
         light_view::view_read,
         light_view::view_rest,

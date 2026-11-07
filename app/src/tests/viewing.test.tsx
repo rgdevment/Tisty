@@ -170,8 +170,14 @@ describe("reading in the viewer", () => {
     pressed("\\");
     expect(screen.queryByText(t("outline"))).toBeNull();
     pressed("\\");
-    await userEvent.click(await screen.findByRole("button", { name: t("leafLetter") }));
-    expect(JSON.parse(localStorage.getItem("tisty.viewer") ?? "{}")).toEqual({ leaf: "letter" });
+    const letter = await screen.findByRole<HTMLButtonElement>("button", { name: t("leafLetter") });
+    expect(letter.disabled).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: t("sheetsShown") }));
+    await userEvent.click(screen.getByRole("button", { name: t("leafLetter") }));
+    expect(JSON.parse(localStorage.getItem("tisty.viewer") ?? "{}")).toMatchObject({
+      leaf: "letter",
+    });
+    await userEvent.click(screen.getByRole("button", { name: t("sheetsShown") }));
     pressed("M", { shiftKey: true });
     expect(await screen.findByRole("button", { name: t("viewCopy") })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewCopy") }));

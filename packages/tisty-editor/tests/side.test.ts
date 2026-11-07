@@ -62,6 +62,66 @@ describe("the panels beside a sheet", () => {
     expect(asked).toEqual(["pasos", "a4", "sheets false", "across true", "raw false", "shut"]);
   });
 
+  describe("the paper and the sheets", () => {
+    const turned = (on: boolean) => ({ on, onTurn: () => undefined });
+    const leaves = (side: HTMLElement) =>
+      Array.from(side.querySelectorAll<HTMLButtonElement>(".side-leaf"));
+
+    it("puts the sheets first, the papers after them and the turn of the page last", () => {
+      const side = host();
+      sided(side, say, [
+        {
+          kind: "paper",
+          leaf: "a4",
+          onLeaf: () => undefined,
+          sheets: turned(true),
+          landscape: turned(false),
+        },
+      ]);
+
+      const order = Array.from(side.querySelector(".side-paper")?.children ?? []);
+      expect(order.map((one) => one.getAttribute("aria-label") ?? one.className)).toEqual([
+        "sheetsShown",
+        "leafIs",
+        "sheetsAcross",
+      ]);
+    });
+
+    it("keeps the papers from being pressed until the sheets are on, and shows which it is", () => {
+      const side = host();
+      const asked: string[] = [];
+      sided(side, say, [
+        { kind: "paper", leaf: "letter", onLeaf: (one) => asked.push(one), sheets: turned(false) },
+      ]);
+
+      expect(leaves(side).every((one) => one.disabled)).toBe(true);
+      expect(side.querySelector<HTMLElement>(".side-leaves")?.title).toBe("leafNeedsSheets");
+      expect(leaves(side)[1].getAttribute("aria-pressed")).toBe("true");
+      leaves(side)[0].click();
+      expect(asked).toEqual([]);
+    });
+
+    it("lets a paper be pressed once the sheets are on", () => {
+      const side = host();
+      const asked: string[] = [];
+      sided(side, say, [
+        { kind: "paper", leaf: "a4", onLeaf: (one) => asked.push(one), sheets: turned(true) },
+      ]);
+
+      expect(leaves(side).some((one) => one.disabled)).toBe(false);
+      expect(side.querySelector<HTMLElement>(".side-leaves")?.title).toBe("");
+      leaves(side)[1].click();
+      expect(asked).toEqual(["letter"]);
+    });
+
+    it("never locks the paper where sheets cannot be turned on", () => {
+      const side = host();
+      sided(side, say, [{ kind: "paper", leaf: "a4", onLeaf: () => undefined }]);
+
+      expect(leaves(side).some((one) => one.disabled)).toBe(false);
+    });
+  });
+
   it("tells the details it is given, the front matter's fields among them", () => {
     const side = host();
     sided(side, say, [

@@ -109,7 +109,7 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 
 **Abrir en una ventana aparte**, bajo **Ventana** en el panel de un documento, lo muestra en solo lectura junto a tu trabajo.
 
-- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, junto al papel, lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
+- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, primero en esa fila, desbloquea el papel y lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
 - **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
 - **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…** y **Duplicar**, que hace una copia.
 - **Editar en Tisty** te lleva de vuelta al documento. Su PDF ahí lleva quién lo escribió y cuándo, salvo que desmarques **Con firma** en la vista previa.
