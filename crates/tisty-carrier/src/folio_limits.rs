@@ -168,8 +168,8 @@ pub fn heed_on_press(
         return None;
     }
     let heard = heed_now(home, bring);
-    if heard.is_none() {
-        // A press that reached nothing must not hold the next one back.
+    if !matches!(heard, Some(Ok(_))) {
+        // A press that brought nothing it could take must not hold the next one back.
         let _ = std::fs::remove_file(&pressed);
     }
     heard

@@ -354,6 +354,30 @@ fn a_press_that_reached_nothing_lets_the_next_one_read_again() {
     assert_eq!(limits_asked.get(), 2);
 }
 
+#[test]
+fn a_press_whose_limits_were_refused_lets_the_next_one_read_again() {
+    let home = seeded(Some(terms("1")));
+    let limits_asked = Cell::new(0);
+    let unsigned = |url: &str| match url {
+        LIMITS_URL => {
+            limits_asked.set(limits_asked.get() + 1);
+            Some(REAL.to_vec())
+        }
+        SIGNATURE_URL => Some(b"not a signature".to_vec()),
+        _ => None,
+    };
+
+    let _ = standing(home.path(), Tongue::Es, unsigned);
+    let first = limits_asked.get();
+    let _ = standing(home.path(), Tongue::Es, unsigned);
+
+    assert!(
+        limits_asked.get() > first,
+        "{first} then {}",
+        limits_asked.get()
+    );
+}
+
 fn accepted_then(current: &str) -> tempfile::TempDir {
     let home = seeded(Some(terms("1")));
     accept(home.path(), Tongue::Es, "1").unwrap();
