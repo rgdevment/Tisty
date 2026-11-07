@@ -33,6 +33,7 @@ export const docSealed = (
 
 export type TermsNow =
   | { state: "accepted" }
+  | { state: "stillAccepted" }
   | { state: "toAccept"; version: string; text: string; acceptedBefore: string | null };
 
 export interface FolioLimits {

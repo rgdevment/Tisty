@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use super::{
-    SETTLING, SETTLING_FOR, Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, Unkept, Unsure, accept,
+    Standing, TERMS_EN_URL, TERMS_ES_URL, Tongue, UNMET, UNMET_FOR, Unkept, Unsure, accept,
     accepted_version, print_of, read_again, standing,
 };
 use crate::folio_limits::{self, FolioLimits, FolioTerms, KEPT, LIMITS_URL, SIGNATURE_URL};
@@ -39,7 +39,7 @@ fn only_the_terms(url: &str) -> Option<Vec<u8>> {
 }
 
 #[test]
-fn a_refusal_reads_the_limits_once_and_says_what_stands() {
+fn a_refusal_reads_the_limits_once_and_never_stands_on_what_was_refused() {
     let home = seeded(Some(terms("1")));
     accept(home.path(), Tongue::Es, "1").unwrap();
     let asked = Cell::new(0);
@@ -56,7 +56,7 @@ fn a_refusal_reads_the_limits_once_and_says_what_stands() {
         Some("1"),
     );
 
-    assert_eq!(told, Ok(Standing::Accepted));
+    assert_eq!(told, Err(Unsure::Settling));
     assert_eq!(asked.get(), 1);
     assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
 }
@@ -162,26 +162,35 @@ fn a_text_that_is_not_the_signed_one_is_never_shown() {
     assert_eq!(told, Err(Unsure::Settling));
 }
 
-fn settling_since(home: &std::path::Path, ago: u64) {
+fn unmet_since(home: &std::path::Path, ago: u64, print: &str) {
     let since = policy::now() - ago;
-    std::fs::write(home.join(SETTLING), since.to_string()).unwrap();
+    std::fs::write(home.join(UNMET), format!("{since} {print}")).unwrap();
 }
 
 fn another_text(url: &str) -> Option<Vec<u8>> {
     (url == TERMS_ES_URL).then(|| b"otro texto".to_vec())
 }
 
-#[test]
-fn a_mismatch_waits_for_folio_a_while_and_then_says_so() {
+fn accepted_then_moved_on() -> tempfile::TempDir {
     let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    let newer = seeded(Some(terms("2")));
+    std::fs::copy(newer.path().join(KEPT), home.path().join(KEPT)).unwrap();
+    home
+}
 
-    settling_since(home.path(), SETTLING_FOR - 30);
+#[test]
+fn with_nothing_accepted_an_unmet_print_waits_an_hour_and_then_says_so() {
+    let home = seeded(Some(terms("1")));
+    let wanted = print_of(TEXT.as_bytes());
+
+    unmet_since(home.path(), UNMET_FOR - 30, &wanted);
     assert_eq!(
         standing(home.path(), Tongue::Es, another_text),
         Err(Unsure::Settling)
     );
 
-    settling_since(home.path(), SETTLING_FOR);
+    unmet_since(home.path(), UNMET_FOR, &wanted);
     assert_eq!(
         standing(home.path(), Tongue::Es, another_text),
         Err(Unsure::Unmatched)
@@ -189,9 +198,27 @@ fn a_mismatch_waits_for_folio_a_while_and_then_says_so() {
 }
 
 #[test]
-fn a_mismatch_long_after_the_last_one_waits_again() {
+fn with_terms_accepted_an_unmet_print_holds_nobody_back() {
+    let home = accepted_then_moved_on();
+    let wanted = print_of(TEXT.as_bytes());
+
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Ok(Standing::Accepted)
+    );
+
+    unmet_since(home.path(), UNMET_FOR, &wanted);
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Ok(Standing::StillAccepted)
+    );
+    assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
+}
+
+#[test]
+fn a_newer_print_starts_its_own_hour() {
     let home = seeded(Some(terms("1")));
-    settling_since(home.path(), 2 * 60 * 60);
+    unmet_since(home.path(), 2 * UNMET_FOR, "an earlier print");
 
     assert_eq!(
         standing(home.path(), Tongue::Es, another_text),
@@ -202,10 +229,10 @@ fn a_mismatch_long_after_the_last_one_waits_again() {
 #[test]
 fn terms_that_match_again_end_the_wait() {
     let home = seeded(Some(terms("1")));
-    settling_since(home.path(), SETTLING_FOR);
+    unmet_since(home.path(), UNMET_FOR, &print_of(TEXT.as_bytes()));
 
     assert!(standing(home.path(), Tongue::Es, only_the_terms).is_ok());
-    assert!(!home.path().join(SETTLING).exists());
+    assert!(!home.path().join(UNMET).exists());
     assert_eq!(
         standing(home.path(), Tongue::Es, another_text),
         Err(Unsure::Settling)
@@ -213,25 +240,44 @@ fn terms_that_match_again_end_the_wait() {
 }
 
 #[test]
-fn folio_asking_for_terms_its_limits_here_do_not_name_yet_is_waited_for() {
+fn folio_refusing_what_was_accepted_waits_for_terms_that_check_out() {
     let home = seeded(Some(terms("1")));
     accept(home.path(), Tongue::Es, "1").unwrap();
 
-    let told = read_again(home.path(), Tongue::Es, |_: &str| None, Some("2"));
-
+    let told = read_again(home.path(), Tongue::Es, |_: &str| None, Some("3"));
     assert_eq!(told, Err(Unsure::Settling));
     assert_eq!(accepted_version(home.path()).as_deref(), Some("1"));
+
+    unmet_since(home.path(), UNMET_FOR, "asked:3");
+    let told = read_again(home.path(), Tongue::Es, |_: &str| None, Some("3"));
+    assert_eq!(told, Err(Unsure::Unmatched));
 }
 
 #[test]
-fn folio_asking_for_terms_without_naming_them_is_waited_for_too() {
+fn folio_refusing_without_naming_a_version_is_timed_too() {
     let home = seeded(Some(terms("1")));
     accept(home.path(), Tongue::Es, "1").unwrap();
-    settling_since(home.path(), SETTLING_FOR);
+    unmet_since(home.path(), UNMET_FOR, "asked:");
 
     let told = read_again(home.path(), Tongue::Es, |_: &str| None, None);
 
     assert_eq!(told, Err(Unsure::Unmatched));
+}
+
+#[test]
+fn a_refusal_shows_the_newer_terms_once_they_check_out() {
+    let home = accepted_then_moved_on();
+
+    let told = read_again(home.path(), Tongue::Es, only_the_terms, Some("2"));
+
+    assert_eq!(
+        told,
+        Ok(Standing::ToAccept {
+            version: "2".to_owned(),
+            text: TEXT.to_owned(),
+            accepted_before: Some("1".to_owned()),
+        })
+    );
 }
 
 #[test]
@@ -241,7 +287,16 @@ fn terms_that_cannot_be_brought_are_no_word_rather_than_a_wait() {
     let told = standing(home.path(), Tongue::Es, |_: &str| None);
 
     assert_eq!(told, Err(Unsure::NoWord));
-    assert!(!home.path().join(SETTLING).exists());
+    assert!(!home.path().join(UNMET).exists());
+}
+
+#[test]
+fn with_terms_accepted_a_text_that_cannot_be_brought_holds_nobody_back() {
+    let home = accepted_then_moved_on();
+
+    let told = standing(home.path(), Tongue::Es, |_: &str| None);
+
+    assert_eq!(told, Ok(Standing::Accepted));
 }
 
 #[test]

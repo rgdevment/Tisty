@@ -713,6 +713,8 @@ const en = {
   folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
   shareStopEditing: "Stop editing it",
   folioChanged: "The document changed while you chose, so it was looked over again.",
+  shareTermsUnchecked:
+    "Folio's new terms could not be verified. You can keep sharing under the ones you accepted.",
   shareSecretsSync:
     "What you were about to send seems to hold a secret key or a password ({name}). Anyone with the link could read it. Take it out, or send it anyway if it is only an example.",
   shareSyncAfterTerms: "Once you accept the terms, press Sync again.",
@@ -3606,6 +3608,8 @@ const es: Catalog = {
   folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
   shareStopEditing: "Dejar de editarlo",
   folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
+  shareTermsUnchecked:
+    "No se pudieron verificar los términos nuevos de Folio. Puedes seguir compartiendo con los que aceptaste.",
   shareSecretsSync:
     "Lo que ibas a subir parece tener una clave secreta o una contraseña ({name}). Cualquiera con el link podría leerla. Quítala, o súbelo de todos modos si es solo un ejemplo.",
   shareSyncAfterTerms: "Cuando aceptes los términos, vuelve a presionar Sincronizar.",

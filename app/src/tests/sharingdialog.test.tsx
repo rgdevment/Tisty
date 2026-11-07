@@ -378,6 +378,25 @@ describe("sharing a document with Folio", () => {
     expect(screen.getByText(fill("toldPageLeftBehind", "Viaje"))).toBeTruthy();
   });
 
+  it("lets terms already accepted stand when the new ones cannot be verified, and says so quietly", async () => {
+    answering({ folio_terms_standing: { state: "stillAccepted" }, doc_share_look: look });
+    const { onError } = shown();
+
+    await screen.findByRole("button", { name: t("shareGo") });
+
+    expect(screen.getByText(t("shareTermsUnchecked"))).toBeTruthy();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("says nothing of the terms when the accepted ones are the latest", async () => {
+    answering({ folio_terms_standing: { state: "accepted" }, doc_share_look: look });
+    shown();
+
+    await screen.findByRole("button", { name: t("shareGo") });
+
+    expect(screen.queryByText(t("shareTermsUnchecked"))).toBeNull();
+  });
+
   it("says Folio is updating its terms and reads them again only when asked", async () => {
     let readings = 0;
     invoked.mockImplementation((command: string) => {

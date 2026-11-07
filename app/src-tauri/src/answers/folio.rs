@@ -137,6 +137,7 @@ async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'sta
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum TermsNow {
     Accepted,
+    StillAccepted,
     #[serde(rename_all = "camelCase")]
     ToAccept {
         version: String,
@@ -148,6 +149,7 @@ pub enum TermsNow {
 fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
     match folio_terms::standing(home, tongue, crate::reaching::brought_from_folio) {
         Ok(Standing::Accepted) => Ok(TermsNow::Accepted),
+        Ok(Standing::StillAccepted) => Ok(TermsNow::StillAccepted),
         Ok(Standing::ToAccept {
             version,
             text,
@@ -165,7 +167,7 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
 fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
     let home = paths.private();
     match terms_now(&home, tongue)? {
-        TermsNow::Accepted => {}
+        TermsNow::Accepted | TermsNow::StillAccepted => {}
         TermsNow::ToAccept { .. } => return Err(Refusal::of(TERMS_TO_ACCEPT)),
     }
     let limits = folio_limits::kept(&home);
@@ -187,7 +189,7 @@ fn unsure_said(unsure: Unsure) -> Refusal {
 fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     match standing {
         Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
-        Ok(Standing::Accepted) => Refusal::of("folioTermsUnmatched"),
+        Ok(Standing::Accepted | Standing::StillAccepted) => Refusal::of("folioTermsUnmatched"),
         Err(unsure) => unsure_said(unsure),
     }
 }

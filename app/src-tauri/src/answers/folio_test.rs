@@ -513,6 +513,7 @@ fn a_refusal_over_the_terms_shows_them_when_they_changed_and_says_so_when_they_d
 
     assert_eq!(said_of(to_accept), "folioTermsToAccept");
     assert_eq!(said_of(Ok(Standing::Accepted)), "folioTermsUnmatched");
+    assert_eq!(said_of(Ok(Standing::StillAccepted)), "folioTermsUnmatched");
     assert_eq!(said_of(Err(Unsure::Unmatched)), "folioTermsUnmatched");
     assert_eq!(said_of(Err(Unsure::Settling)), "folioTermsUpdating");
     assert_eq!(said_of(Err(Unsure::NoWord)), "folioUnreached");

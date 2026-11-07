@@ -393,6 +393,7 @@ function Choosing({
   title,
   look,
   changed,
+  termsUnchecked,
   onShare,
   onClose,
   onLookAgain,
@@ -402,6 +403,7 @@ function Choosing({
   title: string;
   look: ShareLook;
   changed: boolean;
+  termsUnchecked: boolean;
   onShare: (chosen: Parameters<typeof docShared>[1]) => void;
   onClose: () => void;
   onLookAgain: () => void;
@@ -461,6 +463,9 @@ function Choosing({
           </div>
         )}
         {changed && <output className="text-[12.5px] text-soft">{t("folioChanged")}</output>}
+        {termsUnchecked && (
+          <output className="text-[12.5px] text-soft">{t("shareTermsUnchecked")}</output>
+        )}
         <LeftOut told={look.told} />
         {over && (
           <div
@@ -672,6 +677,7 @@ export default function Sharing({
   const again = useRef<Parameters<typeof docShared>[1] | null>(null);
 
   const [changed, setChanged] = useState(false);
+  const [termsUnchecked, setTermsUnchecked] = useState(false);
   const asked = useRef({ onClose, onError, termsOnly });
   asked.current = { onClose, onError, termsOnly };
 
@@ -694,8 +700,12 @@ export default function Sharing({
     termsNow()
       .then((terms) => {
         if (!live.current) return;
-        if (terms.state === "toAccept") setStep({ at: "terms", terms });
-        else if (asked.current.termsOnly) asked.current.onClose();
+        if (terms.state === "toAccept") {
+          setStep({ at: "terms", terms });
+          return;
+        }
+        setTermsUnchecked(terms.state === "stillAccepted");
+        if (asked.current.termsOnly) asked.current.onClose();
         else lookOver();
       })
       .catch((problem) => {
@@ -819,6 +829,7 @@ export default function Sharing({
           title={title}
           look={step.look}
           changed={changed}
+          termsUnchecked={termsUnchecked}
           onShare={share}
           onClose={onClose}
           onLookAgain={lookOver}
