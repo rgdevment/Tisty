@@ -696,7 +696,9 @@ const en = {
   folioOwnerKeyBlocked:
     "Folio blocked the key of this document's owner. New versions can't be uploaded.",
   folioRoomFull:
-    "While your key is new, your documents hold up to 25 MB. Wait for one to expire or stop sharing one.",
+    "While your key is new, your documents hold up to {name}. Wait for one to expire or stop sharing one.",
+  folioOwnerRoomFull:
+    "The key of this document's owner is new and their documents already hold {name}. More can be uploaded once one of them expires.",
   folioTermsToAccept: "Folio's terms changed. Read and accept them to keep uploading.",
   folioAppealed: "This block was already appealed, or nothing is blocked now.",
   shareOverHead: "It carries more than Folio takes for now",
@@ -3589,7 +3591,9 @@ const es: Catalog = {
   folioOwnerKeyBlocked:
     "Folio bloqueó la llave del dueño de este documento. No se pueden subir versiones nuevas.",
   folioRoomFull:
-    "Mientras tu llave es nueva, tus documentos guardan hasta 25 MB. Espera a que alguno caduque o deja de compartir uno.",
+    "Mientras tu llave es nueva, tus documentos guardan hasta {name}. Espera a que alguno caduque o deja de compartir uno.",
+  folioOwnerRoomFull:
+    "La llave del dueño de este documento es nueva y sus documentos ya guardan {name}. Podrá subir más cuando alguno caduque.",
   folioTermsToAccept: "Folio cambió sus términos. Léelos y acéptalos para seguir subiendo.",
   folioAppealed: "Este bloqueo ya se reclamó, o ya no hay nada bloqueado.",
   shareOverHead: "Lleva más de lo que Folio acepta por ahora",

@@ -1,6 +1,6 @@
 import { Refused, sayIn } from "tisty-diagrams/read";
 import { noteTrouble } from "./core";
-import { budgetResets } from "./format";
+import { budgetResets, weigh } from "./format";
 import { fill, locale, t } from "./locales";
 
 export interface Refusal {
@@ -224,6 +224,7 @@ const KNOWN = [
   "folioKeyBlocked",
   "folioOwnerKeyBlocked",
   "folioRoomFull",
+  "folioOwnerRoomFull",
   "folioTermsToAccept",
   "awayNotShared",
   "tongueUnsaid",
@@ -315,6 +316,8 @@ export function saidPlainly(problem: unknown): string {
   return plainly(problem);
 }
 
+const WEIGHED = ["folioRoomFull", "folioOwnerRoomFull"];
+
 export function plainly(problem: unknown): string {
   if (problem instanceof Refused) return sayIn(locale())(problem.code);
   const refusal = problem as Refusal | undefined;
@@ -325,6 +328,9 @@ export function plainly(problem: unknown): string {
     return technical(refusal.name ?? refusal.code);
   }
   if (refusal.code === "cloudSpent") return fill(refusal.code, refusal.name ?? "", budgetResets());
+  if (WEIGHED.includes(refusal.code) && refusal.name) {
+    return fill(refusal.code, weigh(Number(refusal.name)));
+  }
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }
 

@@ -24,6 +24,7 @@ use crate::{Answer, Refusal, Session, held};
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
 const PATIENCE: Duration = Duration::from_secs(120);
 const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
+const NEW_KEY_BYTES_AT_MOST: u64 = 25_000_000;
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
 const FIRST_TERM_DAYS: u64 = 1;
 
@@ -206,12 +207,23 @@ fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64)
     refused
 }
 
-// Folio blocks the signer's key or the owner's without saying which, and an editor signs with their own.
-fn blocked_key_said(refused: Refusal, owning: bool) -> Refusal {
-    if refused.code == "folioKeyBlocked" && !owning {
-        return Refusal::of("folioOwnerKeyBlocked");
+// Folio holds both against the owner's key without saying whose, and an editor signs with their own.
+fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Path) -> Refusal {
+    match (refused.code, owning) {
+        ("folioKeyBlocked", false) => Refusal::of("folioOwnerKeyBlocked"),
+        ("folioRoomFull", _) => {
+            let most = folio_limits::kept(home)
+                .and_then(|limits| limits.new_key_bytes_at_most)
+                .unwrap_or(NEW_KEY_BYTES_AT_MOST);
+            let code = if owning {
+                "folioRoomFull"
+            } else {
+                "folioOwnerRoomFull"
+            };
+            Refusal::about(code, most.to_string())
+        }
+        _ => refused,
     }
-    refused
 }
 
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
@@ -841,6 +853,7 @@ pub async fn doc_shared(
     apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         let not_kept = told_of_taken_back(&door, &home, &state, &device);
         let told = told.into_iter().chain(not_kept).collect();
@@ -1010,7 +1023,7 @@ pub async fn doc_share_sync(
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
-            .map_err(|refused| blocked_key_said(refused, owning))
+            .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         Ok(told_of_taken_back(&door, &home, &state, &device))

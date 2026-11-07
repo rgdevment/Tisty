@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, after_terms_refused, blocked_key_said, card_of, counted_as_shared, delivered,
-    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start, newest_first,
-    press_given_back, said, sent_taken_back,
+    Card, after_terms_refused, card_of, counted_as_shared, delivered, first_time_without_room,
+    folio_terms_drawn, going_with, headings_over, may_start, newest_first, press_given_back, said,
+    said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -351,17 +351,40 @@ fn a_refusal_over_the_terms_carries_the_version_folio_asked_for() {
 
 #[test]
 fn a_blocked_key_names_the_owner_when_an_editor_uploads() {
+    let home = tempfile::tempdir().unwrap();
     let blocked = || crate::Refusal::of("folioKeyBlocked");
 
-    assert_eq!(blocked_key_said(blocked(), true).code, "folioKeyBlocked");
     assert_eq!(
-        blocked_key_said(blocked(), false).code,
+        said_to_whom(blocked(), true, home.path()).code,
+        "folioKeyBlocked"
+    );
+    assert_eq!(
+        said_to_whom(blocked(), false, home.path()).code,
         "folioOwnerKeyBlocked"
     );
     assert_eq!(
-        blocked_key_said(crate::Refusal::of("folioFull"), false).code,
+        said_to_whom(crate::Refusal::of("folioFull"), false, home.path()).code,
         "folioFull"
     );
+}
+
+#[test]
+fn a_new_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
+    let home = tempfile::tempdir().unwrap();
+    let full = || crate::Refusal::of("folioRoomFull");
+
+    let owner = said_to_whom(full(), true, home.path());
+    assert_eq!(owner.code, "folioRoomFull");
+    assert_eq!(owner.name.as_deref(), Some("25000000"));
+
+    std::fs::write(
+        home.path().join("folio-limits.json"),
+        r#"{"serial":19,"new_key_bytes_at_most":30000000}"#,
+    )
+    .unwrap();
+    let editor = said_to_whom(full(), false, home.path());
+    assert_eq!(editor.code, "folioOwnerRoomFull");
+    assert_eq!(editor.name.as_deref(), Some("30000000"));
 }
 
 #[test]
