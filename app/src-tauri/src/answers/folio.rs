@@ -205,6 +205,14 @@ fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64)
     refused
 }
 
+// Folio blocks the signer's key or the owner's without saying which, and an editor signs with their own.
+fn blocked_key_said(refused: Refusal, owning: bool) -> Refusal {
+    if refused.code == "folioKeyBlocked" && !owning {
+        return Refusal::of("folioOwnerKeyBlocked");
+    }
+    refused
+}
+
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {
     if refused.code != TERMS_TO_ACCEPT {
         return refused;
@@ -997,9 +1005,11 @@ pub async fn doc_share_sync(
     };
     let keep = keeping(&app);
     let pressed_id = was.id.clone();
+    let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| blocked_key_said(refused, owning))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         Ok(told_of_taken_back(&door, &home, &state, &device))

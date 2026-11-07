@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, after_terms_refused, card_of, counted_as_shared, delivered, first_time_without_room,
-    folio_terms_drawn, going_with, headings_over, may_start, newest_first, press_given_back, said,
-    sent_taken_back,
+    Card, after_terms_refused, blocked_key_said, card_of, counted_as_shared, delivered,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start, newest_first,
+    press_given_back, said, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -346,6 +346,21 @@ fn a_refusal_over_the_terms_carries_the_version_folio_asked_for() {
     assert_eq!(told.name.as_deref(), Some("12"));
     assert_eq!(unnamed.code, "folioTermsToAccept");
     assert_eq!(unnamed.name, None);
+}
+
+#[test]
+fn a_blocked_key_names_the_owner_when_an_editor_uploads() {
+    let blocked = || crate::Refusal::of("folioKeyBlocked");
+
+    assert_eq!(blocked_key_said(blocked(), true).code, "folioKeyBlocked");
+    assert_eq!(
+        blocked_key_said(blocked(), false).code,
+        "folioOwnerKeyBlocked"
+    );
+    assert_eq!(
+        blocked_key_said(crate::Refusal::of("folioFull"), false).code,
+        "folioFull"
+    );
 }
 
 #[test]
