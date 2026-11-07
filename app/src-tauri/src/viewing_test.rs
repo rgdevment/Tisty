@@ -1,4 +1,4 @@
-use super::{Views, asked, asked_to_edit, wanted};
+use super::{LinkQuestion, Views, asked, asked_to_edit, wanted};
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
     let at = room.path().join(name);
@@ -230,4 +230,26 @@ fn a_page_firing_links_cannot_line_up_more_than_a_few() {
         waiting += 1;
     }
     assert_eq!(waiting, super::LINKS_WAITING_AT_MOST);
+}
+
+#[test]
+fn a_question_stands_until_it_is_answered_and_says_the_answer() {
+    let views = Views::default();
+    assert_eq!(views.link_standing(), None);
+
+    let answer = views.ask_of_a_link(LinkQuestion::Look);
+    assert_eq!(views.link_standing(), Some(LinkQuestion::Look));
+
+    views.link_answered(true);
+    assert_eq!(answer.recv(), Ok(true));
+    assert_eq!(views.link_standing(), None);
+}
+
+#[test]
+fn an_answer_with_no_question_standing_goes_nowhere() {
+    let views = Views::default();
+
+    views.link_answered(true);
+
+    assert_eq!(views.link_standing(), None);
 }

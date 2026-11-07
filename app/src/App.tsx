@@ -8,6 +8,7 @@ import { WEEK } from "./ui/Ahead";
 import Calendars from "./ui/Calendars";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
+import LinkQuestions from "./ui/LinkQuestions";
 import Margins from "./ui/Margins";
 import News from "./ui/News";
 import Sidebar from "./ui/Sidebar";
@@ -67,6 +68,7 @@ export default function App() {
         <WindowChrome />
 
         <Layers parcels={desk.parcels.shown} />
+        <LinkQuestions />
         <News />
         <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
