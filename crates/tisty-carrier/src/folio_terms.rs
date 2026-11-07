@@ -82,11 +82,22 @@ fn accepted(home: &Path) -> Option<Accepted> {
     policy::kept_at(&home.join(ACCEPTED))
 }
 
-// Read on every press, so newer terms are asked for as soon as they can be checked.
+// Read again on each press, so newer terms are asked for as soon as they can be checked.
 fn heard<F: Fn(&str) -> Option<Vec<u8>>>(home: &Path, bring: &F) -> Option<FolioLimits> {
-    match folio_limits::heed_now(home, bring) {
+    match folio_limits::heed_on_press(home, bring) {
         Some(Ok(limits)) => Some(limits),
         _ => folio_limits::kept(home),
+    }
+}
+
+// Folio takes the version just before its current one, never one further back.
+fn still_taken(before: &Accepted, limits: Option<&FolioLimits>) -> bool {
+    let Some(terms) = limits.and_then(|limits| limits.terms.as_ref()) else {
+        return true;
+    };
+    match (before.version.parse::<u64>(), terms.version.parse::<u64>()) {
+        (Ok(taken), Ok(current)) => current <= taken.saturating_add(1),
+        _ => true,
     }
 }
 
@@ -122,19 +133,22 @@ pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
 ) -> Result<Standing, Unsure> {
     let limits = heard(home, &bring);
     let before = accepted(home);
+    let standing_by = before
+        .as_ref()
+        .is_some_and(|one| still_taken(one, limits.as_ref()));
     match checked(home, limits, before.as_ref(), tongue, &bring) {
         Ok(Checked::Standing(standing)) => {
             met(home);
             Ok(standing)
         }
-        Ok(Checked::Unmet { long }) => match (before.is_some(), long) {
+        Ok(Checked::Unmet { long }) => match (standing_by, long) {
             (true, false) => Ok(Standing::Accepted),
             (true, true) => Ok(Standing::StillAccepted),
             (false, false) => Err(Unsure::Settling),
             (false, true) => Err(Unsure::Unmatched),
         },
         // Sharing under the terms already accepted needs no text, so one that cannot be brought holds nobody back.
-        Err(Unsure::NoWord) if before.is_some() => Ok(Standing::Accepted),
+        Err(Unsure::NoWord) if standing_by => Ok(Standing::Accepted),
         Err(unsure) => Err(unsure),
     }
 }
@@ -188,7 +202,10 @@ pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
     bring: F,
     asked: Option<&str>,
 ) -> Result<Standing, Unsure> {
-    let limits = heard(home, &bring);
+    let limits = match folio_limits::heed_now(home, &bring) {
+        Some(Ok(limits)) => Some(limits),
+        _ => folio_limits::kept(home),
+    };
     // Only terms that check out can stand in for the ones Folio refused.
     let long = match checked(home, limits, accepted(home).as_ref(), tongue, &bring)? {
         Checked::Standing(standing @ Standing::ToAccept { .. }) => {

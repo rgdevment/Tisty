@@ -319,6 +319,40 @@ fn each_reading_asks_for_the_limits_afresh_within_the_hour() {
 }
 
 #[test]
+fn a_press_within_a_minute_of_the_last_reads_what_was_kept() {
+    let home = seeded(Some(terms("1")));
+    let limits_asked = Cell::new(0);
+    let counting = |url: &str| {
+        if url == LIMITS_URL {
+            limits_asked.set(limits_asked.get() + 1);
+        }
+        only_the_terms(url)
+    };
+
+    let _ = standing(home.path(), Tongue::Es, counting);
+    let _ = standing(home.path(), Tongue::Es, counting);
+
+    assert_eq!(limits_asked.get(), 1);
+}
+
+#[test]
+fn terms_accepted_two_versions_back_hold_nobody_up_as_accepted() {
+    let home = seeded(Some(terms("1")));
+    accept(home.path(), Tongue::Es, "1").unwrap();
+    let newer = seeded(Some(terms("3")));
+    std::fs::copy(newer.path().join(KEPT), home.path().join(KEPT)).unwrap();
+
+    assert_eq!(
+        standing(home.path(), Tongue::Es, another_text),
+        Err(Unsure::Settling)
+    );
+    assert_eq!(
+        standing(home.path(), Tongue::Es, |_: &str| None),
+        Err(Unsure::NoWord)
+    );
+}
+
+#[test]
 fn signed_limits_without_terms_let_nobody_through() {
     let home = tempfile::tempdir().unwrap();
 

@@ -15,6 +15,9 @@ const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
+const PRESSED: &str = "folio-limits-pressed";
+// GitHub keeps them five minutes anyway, so a press within a minute of the last learns nothing newer.
+const PRESSED_EVERY: Duration = Duration::from_secs(60);
 const NOTE_AT_MOST: usize = 400;
 const NOTE_LINES_AT_MOST: usize = 6;
 
@@ -151,6 +154,16 @@ pub fn heed(
     bring: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Option<Result<FolioLimits, Refused>> {
     if !policy::ask_now(&home.join(ASKED), ASKED_EVERY) {
+        return None;
+    }
+    heed_now(home, bring)
+}
+
+pub fn heed_on_press(
+    home: &Path,
+    bring: impl Fn(&str) -> Option<Vec<u8>>,
+) -> Option<Result<FolioLimits, Refused>> {
+    if !policy::ask_now(&home.join(PRESSED), PRESSED_EVERY) {
         return None;
     }
     heed_now(home, bring)

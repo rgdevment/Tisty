@@ -164,17 +164,33 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
 }
 
 // Asked before anything leaves: terms that changed stop an upload, never a link already out.
-fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
+struct Agreed {
+    version: String,
+    newer_unchecked: bool,
+}
+
+fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<Agreed> {
     let home = paths.private();
-    match terms_now(&home, tongue)? {
-        TermsNow::Accepted | TermsNow::StillAccepted => {}
+    let newer_unchecked = match terms_now(&home, tongue)? {
+        TermsNow::Accepted => false,
+        TermsNow::StillAccepted => true,
         TermsNow::ToAccept { .. } => return Err(Refusal::of(TERMS_TO_ACCEPT)),
-    }
+    };
     let limits = folio_limits::kept(&home);
     if folio_limits::uploads_halted(limits.as_ref(), policy::now()) {
         return Err(Refusal::of("folioUploadsOff"));
     }
-    folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
+    let version =
+        folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))?;
+    Ok(Agreed {
+        version,
+        newer_unchecked,
+    })
+}
+
+// Nothing goes on a Sync with no changes, yet newer terms are still asked for as soon as they check out.
+fn new_terms_asked(agreed: &Answer<Agreed>) -> bool {
+    matches!(agreed, Err(refused) if refused.code == TERMS_TO_ACCEPT)
 }
 
 fn unsure_said(unsure: Unsure) -> Refusal {
@@ -833,7 +849,7 @@ pub async fn doc_shared(
             &checking.private(),
             crate::reaching::brought_from_folio,
         ))?;
-        may_upload(&checking, tongue)
+        may_upload(&checking, tongue).map(|agreed| agreed.version)
     })
     .await?;
     let asked = tisty_sharing::Asked {
@@ -884,16 +900,20 @@ pub async fn doc_shared(
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum Synced {
+    #[serde(rename_all = "camelCase")]
     Unchanged {
         told: Vec<Told>,
+        terms_unchecked: bool,
     },
     Secrets {
         place: String,
         print: String,
     },
+    #[serde(rename_all = "camelCase")]
     Sent {
         version: u64,
         told: Vec<Told>,
+        terms_unchecked: bool,
     },
     Gone,
     OtherVersion {
@@ -995,12 +1015,10 @@ pub async fn doc_share_sync(
         return other_version_brought(&session, &id, &was).await;
     }
     let checking = paths.clone();
-    let terms = apart(move || may_upload(&checking, tongue)).await;
+    let agreed = apart(move || may_upload(&checking, tongue)).await;
+    let terms_unchecked = agreed.as_ref().is_ok_and(|one| one.newer_unchecked);
     if unchanged {
-        // Nothing goes, yet newer terms are still asked for as soon as they can be checked.
-        if let Err(refused) = terms.as_ref()
-            && refused.code == TERMS_TO_ACCEPT
-        {
+        if new_terms_asked(&agreed) {
             return Err(press_given_back(
                 Refusal::of(TERMS_TO_ACCEPT),
                 &home,
@@ -1024,9 +1042,12 @@ pub async fn doc_share_sync(
         .await?;
         return Ok(Synced::Unchanged {
             told: not_kept.into_iter().collect(),
+            terms_unchecked,
         });
     }
-    let terms = terms.map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
+    let terms = agreed
+        .map(|one| one.version)
+        .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
     let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
     for (_, one) in &mut sealed.remembering {
@@ -1055,7 +1076,11 @@ pub async fn doc_share_sync(
     })
     .await?;
     let told = told.into_iter().chain(not_kept).collect();
-    Ok(Synced::Sent { version, told })
+    Ok(Synced::Sent {
+        version,
+        told,
+        terms_unchecked,
+    })
 }
 
 // An appeal accepted leaves the document blocked until its owner sends a version, which Folio's latest will not name.

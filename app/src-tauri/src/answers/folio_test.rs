@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, after_terms_refused, card_of, counted_as_shared, delivered, first_time_without_room,
-    folio_terms_drawn, going_with, headings_over, may_start, newest_first, press_given_back, said,
-    said_to_whom, sent_taken_back,
+    Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
+    new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -385,6 +385,25 @@ fn a_new_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
     let editor = said_to_whom(full(), false, home.path());
     assert_eq!(editor.code, "folioOwnerRoomFull");
     assert_eq!(editor.name.as_deref(), Some("30000000"));
+}
+
+#[test]
+fn a_sync_with_nothing_to_send_stops_only_for_new_terms() {
+    let agreed = Ok(Agreed {
+        version: "1".to_owned(),
+        newer_unchecked: true,
+    });
+
+    assert!(new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsToAccept"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioUploadsOff"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsUpdating"
+    ))));
+    assert!(!new_terms_asked(&agreed));
 }
 
 #[test]
