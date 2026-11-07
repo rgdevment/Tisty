@@ -32,6 +32,7 @@ export type ReadWord =
   | "paperWords"
   | "paperWrote"
   | "sheetsAcross"
+  | "leafNeedsSheets"
   | "sheetsShown"
   | "viewSource"
   | "cardAway"

@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_dialog::{DialogExt, MessageDialogBuilder, MessageDialogButtons};
 use tisty_carrier::folio_client::{self, Door, Fetched};
 use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
 use tisty_core::Op;
@@ -12,6 +11,7 @@ use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
 use super::sharing::turned;
+use crate::viewing::{LinkQuestion, Views};
 use crate::{Answer, Refusal, Session, held};
 
 pub(super) fn guest_page(
@@ -291,39 +291,29 @@ fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
     Ok(file)
 }
 
-fn asked_to_keep(app: &AppHandle, spanish: bool, opened: &Opened) -> bool {
-    let title = opened.document["title"].as_str().unwrap_or_default();
-    let name = opened.document["owner_name"]
-        .as_str()
-        .or(opened.document["signed_as"].as_str())
-        .unwrap_or_default();
-    let (words, keep, leave) =
-        crate::refusing::edit_asked_words(spanish, title, name, &opened.signer, opened.doubtful());
-    question(app, &words, keep, leave)
+fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
+    let said = |field: &str| opened.document[field].as_str();
+    question(
+        app,
+        LinkQuestion::Keep {
+            title: said("title").unwrap_or_default().to_owned(),
+            owner: said("owner_name").unwrap_or_default().to_owned(),
+            signer: said("signed_as").unwrap_or_default().to_owned(),
+            print: opened.signer.clone(),
+            doubtful: opened.doubtful(),
+        },
+    )
 }
 
-// A link arrives from the browser, so a question without a window of its own can open behind it.
-fn said_over_tisty(app: &AppHandle, words: &str) -> MessageDialogBuilder<tauri::Wry> {
-    crate::tray::surface(app);
-    let said = app.dialog().message(words).title("Tisty");
-    match app.get_webview_window("main") {
-        Some(window) => said.parent(&window),
-        None => said,
+// It waits for the person, and the window is what asks: a link can arrive while Tisty is out of sight.
+fn question(app: &AppHandle, asked: LinkQuestion) -> bool {
+    if app.get_webview_window("main").is_none() {
+        return false;
     }
-}
-
-fn question(app: &AppHandle, words: &str, yes: &str, no: &str) -> bool {
-    said_over_tisty(app, words)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            yes.to_owned(),
-            no.to_owned(),
-        ))
-        .blocking_show()
-}
-
-fn asked_to_look(app: &AppHandle, spanish: bool) -> bool {
-    let (words, look, leave) = crate::refusing::edit_look_words(spanish);
-    question(app, words, look, leave)
+    crate::tray::surface(app);
+    let answer = app.state::<Views>().ask_of_a_link(asked);
+    let _ = app.emit_to("main", "linkquestion", ());
+    answer.recv().unwrap_or(false)
 }
 
 // Any page can fire a link, and the request tells Folio this computer's network address, so nothing goes out unasked.
@@ -347,48 +337,46 @@ fn already_here(app: &AppHandle, id: &str) -> Option<String> {
         .map(|(file, _)| file.clone())
 }
 
-fn brought(app: &AppHandle, web: &url::Url, spanish: bool) -> Answer<Option<String>> {
+fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
     let link = link_of(web).ok_or_else(|| Refusal::of("folioUnopened"))?;
     if let Some(file) = already_here(app, &link.id) {
         return Ok(Some(file));
     }
     let door = ToFolio::new()?;
-    let Some(opened) = looked_for(&door, &link, || asked_to_look(app, spanish))? else {
+    let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
         return Ok(None);
     };
-    if !asked_to_keep(app, spanish, &opened) {
+    if !asked_to_keep(app, &opened) {
         return Ok(None);
     }
     taken_in(app, &link, &opened).map(Some)
 }
 
 fn bring_one(app: &AppHandle, web: &url::Url) {
-    let spanish = app
-        .try_state::<Mutex<Session>>()
-        .is_some_and(|session| crate::refusing::spanish(held(&session).locale.as_deref()));
-    match brought(app, web, spanish) {
+    match brought(app, web) {
         Ok(Some(file)) => {
             let _ = app.emit_to("main", "showdoc", file);
             crate::tray::surface(app);
         }
         Ok(None) => {}
         Err(refused) => {
-            said_over_tisty(
+            question(
                 app,
-                crate::refusing::edit_failed_words(spanish, refused.code),
-            )
-            .blocking_show();
+                LinkQuestion::Failed {
+                    code: refused.code.to_owned(),
+                },
+            );
         }
     }
 }
 
 pub fn bring_apart(app: &AppHandle, web: url::Url) {
-    if !app.state::<crate::viewing::Views>().link_arrived(web) {
+    if !app.state::<Views>().link_arrived(web) {
         return;
     }
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        app.state::<crate::viewing::Views>()
+        app.state::<Views>()
             .go_through_links(|web| bring_one(&app, web));
     });
 }
