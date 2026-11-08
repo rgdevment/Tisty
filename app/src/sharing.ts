@@ -33,6 +33,7 @@ export const docSealed = (
 
 export type TermsNow =
   | { state: "accepted" }
+  | { state: "stillAccepted" }
   | { state: "toAccept"; version: string; text: string; acceptedBefore: string | null };
 
 export interface FolioLimits {
@@ -75,10 +76,10 @@ export interface ShareCard {
 }
 
 export type Synced =
-  | { state: "unchanged"; told: Told[] }
+  | { state: "unchanged"; told: Told[]; termsUnchecked: boolean }
   | { state: "secrets"; place: string; print: string }
   | { state: "gone" }
-  | { state: "sent"; version: number; told: Told[] }
+  | { state: "sent"; version: number; told: Told[]; termsUnchecked: boolean }
   | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
 
 export interface ShareStatus {

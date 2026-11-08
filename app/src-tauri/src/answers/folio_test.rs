@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Card, after_terms_refused, card_of, counted_as_shared, delivered, first_time_without_room,
-    folio_terms_drawn, going_with, headings_over, may_start, newest_first, press_given_back, said,
-    said_to_whom, sent_taken_back,
+    Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
+    new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -388,6 +388,25 @@ fn a_new_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
 }
 
 #[test]
+fn a_sync_with_nothing_to_send_stops_only_for_new_terms() {
+    let agreed = Ok(Agreed {
+        version: "1".to_owned(),
+        newer_unchecked: true,
+    });
+
+    assert!(new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsToAccept"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioUploadsOff"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsUpdating"
+    ))));
+    assert!(!new_terms_asked(&agreed));
+}
+
+#[test]
 fn a_wait_tells_the_window_until_when() {
     let told = said(&Stopped::Refused(Refused::Slow { until: 99 }));
 
@@ -513,6 +532,7 @@ fn a_refusal_over_the_terms_shows_them_when_they_changed_and_says_so_when_they_d
 
     assert_eq!(said_of(to_accept), "folioTermsToAccept");
     assert_eq!(said_of(Ok(Standing::Accepted)), "folioTermsUnmatched");
+    assert_eq!(said_of(Ok(Standing::StillAccepted)), "folioTermsUnmatched");
     assert_eq!(said_of(Err(Unsure::Unmatched)), "folioTermsUnmatched");
     assert_eq!(said_of(Err(Unsure::Settling)), "folioTermsUpdating");
     assert_eq!(said_of(Err(Unsure::NoWord)), "folioUnreached");

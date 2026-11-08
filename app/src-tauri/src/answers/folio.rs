@@ -137,6 +137,7 @@ async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'sta
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum TermsNow {
     Accepted,
+    StillAccepted,
     #[serde(rename_all = "camelCase")]
     ToAccept {
         version: String,
@@ -146,8 +147,9 @@ pub enum TermsNow {
 }
 
 fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
-    match folio_terms::standing(home, tongue, crate::reaching::brought) {
+    match folio_terms::standing(home, tongue, crate::reaching::brought_from_folio) {
         Ok(Standing::Accepted) => Ok(TermsNow::Accepted),
+        Ok(Standing::StillAccepted) => Ok(TermsNow::StillAccepted),
         Ok(Standing::ToAccept {
             version,
             text,
@@ -161,18 +163,34 @@ fn terms_now(home: &std::path::Path, tongue: Tongue) -> Answer<TermsNow> {
     }
 }
 
+struct Agreed {
+    version: String,
+    newer_unchecked: bool,
+}
+
 // Asked before anything leaves: terms that changed stop an upload, never a link already out.
-fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<String> {
+fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<Agreed> {
     let home = paths.private();
-    match terms_now(&home, tongue)? {
-        TermsNow::Accepted => {}
+    let newer_unchecked = match terms_now(&home, tongue)? {
+        TermsNow::Accepted => false,
+        TermsNow::StillAccepted => true,
         TermsNow::ToAccept { .. } => return Err(Refusal::of(TERMS_TO_ACCEPT)),
-    }
+    };
     let limits = folio_limits::kept(&home);
     if folio_limits::uploads_halted(limits.as_ref(), policy::now()) {
         return Err(Refusal::of("folioUploadsOff"));
     }
-    folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))
+    let version =
+        folio_terms::accepted_version(&home).ok_or_else(|| Refusal::of(TERMS_TO_ACCEPT))?;
+    Ok(Agreed {
+        version,
+        newer_unchecked,
+    })
+}
+
+// Nothing goes on a Sync with no changes, yet newer terms are still asked for as soon as they check out.
+fn new_terms_asked(agreed: &Answer<Agreed>) -> bool {
+    matches!(agreed, Err(refused) if refused.code == TERMS_TO_ACCEPT)
 }
 
 fn unsure_said(unsure: Unsure) -> Refusal {
@@ -187,7 +205,7 @@ fn unsure_said(unsure: Unsure) -> Refusal {
 fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     match standing {
         Ok(Standing::ToAccept { .. }) => Refusal::of(TERMS_TO_ACCEPT),
-        Ok(Standing::Accepted) => Refusal::of("folioTermsUnmatched"),
+        Ok(Standing::Accepted | Standing::StillAccepted) => Refusal::of("folioTermsUnmatched"),
         Err(unsure) => unsure_said(unsure),
     }
 }
@@ -233,7 +251,7 @@ fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: To
     after_terms_refused(folio_terms::read_again(
         home,
         tongue,
-        crate::reaching::brought,
+        crate::reaching::brought_from_folio,
         refused.name.as_deref(),
     ))
 }
@@ -256,7 +274,13 @@ fn may_start(now: SharingNow) -> Answer<()> {
 #[tauri::command]
 pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
     let home = held(&session).paths.private();
-    apart(move || Ok(folio_limits::sharing_now(&home, crate::reaching::brought))).await
+    apart(move || {
+        Ok(folio_limits::sharing_now(
+            &home,
+            crate::reaching::brought_from_folio,
+        ))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -527,7 +551,7 @@ pub async fn doc_share_look(
         let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
             .map_err(|e| refused(&e))?;
         let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
-        let limits = match folio_limits::heed(&home, crate::reaching::brought) {
+        let limits = match folio_limits::heed(&home, crate::reaching::brought_from_folio) {
             Some(Ok(limits)) => Some(limits),
             _ => folio_limits::kept(&home),
         }
@@ -823,9 +847,9 @@ pub async fn doc_shared(
     let terms = apart(move || {
         may_start(folio_limits::sharing_now(
             &checking.private(),
-            crate::reaching::brought,
+            crate::reaching::brought_from_folio,
         ))?;
-        may_upload(&checking, tongue)
+        may_upload(&checking, tongue).map(|agreed| agreed.version)
     })
     .await?;
     let asked = tisty_sharing::Asked {
@@ -876,16 +900,20 @@ pub async fn doc_shared(
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum Synced {
+    #[serde(rename_all = "camelCase")]
     Unchanged {
         told: Vec<Told>,
+        terms_unchecked: bool,
     },
     Secrets {
         place: String,
         print: String,
     },
+    #[serde(rename_all = "camelCase")]
     Sent {
         version: u64,
         told: Vec<Told>,
+        terms_unchecked: bool,
     },
     Gone,
     OtherVersion {
@@ -986,7 +1014,18 @@ pub async fn doc_share_sync(
     if latest.is_some_and(|latest| latest.version > remembered_version) {
         return other_version_brought(&session, &id, &was).await;
     }
+    let checking = paths.clone();
+    let agreed = apart(move || may_upload(&checking, tongue)).await;
+    let terms_unchecked = agreed.as_ref().is_ok_and(|one| one.newer_unchecked);
     if unchanged {
+        if new_terms_asked(&agreed) {
+            return Err(press_given_back(
+                Refusal::of(TERMS_TO_ACCEPT),
+                &home,
+                &was.id,
+                pressed_at,
+            ));
+        }
         let (state, device, taking_home) = {
             let session = held(&session);
             (
@@ -1003,11 +1042,11 @@ pub async fn doc_share_sync(
         .await?;
         return Ok(Synced::Unchanged {
             told: not_kept.into_iter().collect(),
+            terms_unchecked,
         });
     }
-    let checking = paths.clone();
-    let terms = apart(move || may_upload(&checking, tongue))
-        .await
+    let terms = agreed
+        .map(|one| one.version)
         .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
     let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
@@ -1037,7 +1076,11 @@ pub async fn doc_share_sync(
     })
     .await?;
     let told = told.into_iter().chain(not_kept).collect();
-    Ok(Synced::Sent { version, told })
+    Ok(Synced::Sent {
+        version,
+        told,
+        terms_unchecked,
+    })
 }
 
 // An appeal accepted leaves the document blocked until its owner sends a version, which Folio's latest will not name.
