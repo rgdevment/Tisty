@@ -67,7 +67,16 @@ pub struct FolioLimits {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharing_closed_note: Option<FolioNote>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub maker_root: Option<String>,
+    pub maker: Option<FolioMaker>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct FolioMaker {
+    pub root: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -164,7 +173,10 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
 pub fn maker_root(home: &Path) -> Option<String> {
     let said = std::fs::read(home.join(SIGNED_KEPT)).ok()?;
     let signature = std::fs::read_to_string(home.join(SIGNATURE_KEPT)).ok()?;
-    read_under(&said, &signature, KEY).ok()?.maker_root
+    read_under(&said, &signature, KEY)
+        .ok()?
+        .maker
+        .map(|maker| maker.root)
 }
 
 pub fn uploads_halted(limits: Option<&FolioLimits>, now: u64) -> bool {

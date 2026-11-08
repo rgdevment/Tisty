@@ -80,7 +80,10 @@ fn limits_naming(session: &crate::Session, root: &str) {
     std::fs::create_dir_all(&home).unwrap();
     let limits = tisty_carrier::folio_limits::FolioLimits {
         serial: 1,
-        maker_root: Some(root.to_owned()),
+        maker: Some(tisty_carrier::folio_limits::FolioMaker {
+            root: root.to_owned(),
+            ..Default::default()
+        }),
         ..Default::default()
     };
     let said = serde_json::to_vec(&limits).unwrap();

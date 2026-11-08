@@ -2,9 +2,9 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, NOTE_LINES_AT_MOST,
-    SIGNATURE_KEPT, SIGNATURE_URL, SIGNED_KEPT, SharingNow, accepted, heed, heed_now, kept,
-    maker_root, read_under, sharing_now, uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, FolioMaker, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST,
+    NOTE_LINES_AT_MOST, SIGNATURE_KEPT, SIGNATURE_URL, SIGNED_KEPT, SharingNow, accepted, heed,
+    heed_now, kept, maker_root, read_under, sharing_now, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -440,13 +440,16 @@ fn the_maker_root_folio_signed_is_kept_with_the_rest() {
     let home = tempfile::tempdir().unwrap();
     let limits = FolioLimits {
         serial: 1,
-        maker_root: Some("AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into()),
+        maker: Some(FolioMaker {
+            root: "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into(),
+            ..FolioMaker::default()
+        }),
         ..FolioLimits::default()
     };
     std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
 
     assert_eq!(kept(home.path()), Some(limits));
-    assert_eq!(kept(seeded(1).path()).and_then(|one| one.maker_root), None);
+    assert_eq!(kept(seeded(1).path()).and_then(|one| one.maker), None);
 }
 
 #[test]
@@ -474,7 +477,10 @@ fn the_maker_is_read_only_from_what_folio_signed() {
 
     let claimed = FolioLimits {
         serial: 99,
-        maker_root: Some("AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into()),
+        maker: Some(FolioMaker {
+            root: "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into(),
+            ..FolioMaker::default()
+        }),
         ..FolioLimits::default()
     };
     let forged = serde_json::to_vec(&claimed).unwrap();
@@ -495,4 +501,17 @@ fn the_maker_is_read_only_from_what_folio_signed() {
     std::fs::write(home.path().join(SIGNED_KEPT), REAL).unwrap();
     std::fs::remove_file(home.path().join(SIGNATURE_KEPT)).unwrap();
     assert_eq!(maker_root(home.path()), None);
+}
+
+#[test]
+fn the_maker_comes_as_one_object_with_its_root_and_optionally_its_name_and_domain() {
+    let said = br#"{"serial":30,"maker":{"root":"AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s","name":"rgdevment","domain":"rgdevment.dev"}}"#;
+    let limits: FolioLimits = serde_json::from_slice(said).unwrap();
+    let maker = limits.maker.unwrap();
+    assert_eq!(maker.root, "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s");
+    assert_eq!(maker.name.as_deref(), Some("rgdevment"));
+    assert_eq!(maker.domain.as_deref(), Some("rgdevment.dev"));
+
+    let bare: FolioLimits = serde_json::from_slice(br#"{"serial":30,"maker_root":"x"}"#).unwrap();
+    assert_eq!(bare.maker, None, "the field it once was names nobody");
 }
