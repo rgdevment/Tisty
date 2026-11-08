@@ -893,17 +893,10 @@ const en = {
   cannotFinish: "Its code and diagrams could not be drawn. Try again in a moment.",
   toldPictureAsFile:
     "In {other}, the picture {name} goes as a file to download, because it cannot be drawn",
-  toldAsAttachment: "In {other}, {name} goes as an attachment to download",
-  toldAsAttachments: "In {other}, {name} go as attachments to download",
-  toldPlaysSound: "In {other}, {name} can be heard on the web",
-  toldPlaysVideo: "In {other}, {name} can be watched on the web",
-  toldPlaysOther: "In {other}, {name} can be opened on the web",
   shareOverSomePicture:
     "One picture weighs {name} and Folio takes up to {other} for each picture. Make it smaller or take it out.",
   shareNoTerms:
     "Folio has not said how long a link can last, so it cannot be shared yet. Try again in a moment.",
-  toldMore: "{name} more",
-  toldAnd: " and ",
   toldPictureAsWords:
     "In {other}, the picture {name} goes as its words, because it is no longer here or is too large to travel",
   toldPictureAsLink: "In {other}, the picture at {name} goes as a link to it",
@@ -3833,17 +3826,10 @@ const es: Catalog = {
     "No se pudieron dibujar su código y sus diagramas. Inténtalo de nuevo en un momento.",
   toldPictureAsFile:
     "En {other}, la imagen {name} va como archivo para descargar, porque no se puede dibujar",
-  toldAsAttachment: "En {other}, {name} va como adjunto para descargar",
-  toldAsAttachments: "En {other}, {name} van como adjuntos para descargar",
-  toldPlaysSound: "En {other}, {name} se podrá escuchar en la web",
-  toldPlaysVideo: "En {other}, {name} se podrá ver en la web",
-  toldPlaysOther: "En {other}, {name} se podrá abrir en la web",
   shareOverSomePicture:
     "Una imagen pesa {name} y Folio acepta hasta {other} por imagen. Redúcela o quítala.",
   shareNoTerms:
     "Folio no ha dicho cuánto puede durar un link, así que todavía no se puede compartir. Vuelve a intentarlo en un momento.",
-  toldMore: "{name} más",
-  toldAnd: " y ",
   toldPictureAsWords:
     "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
   toldPictureAsLink: "En {other}, la imagen de {name} va como un enlace a ella",
