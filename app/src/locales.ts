@@ -881,6 +881,8 @@ const en = {
   shareRoomOf: "of {name} · {other}",
   shareCites: "Share the {name} documents it cites too",
   shareCitesOne: "Share the document it cites too",
+  shareCitesOver:
+    "With what it cites, that makes {name} documents shared at once, and Folio takes up to {other}. Untick this or stop sharing one.",
   shareCitesWhy:
     "If unmarked, what it cites reads as plain text. Marked, each is shared apart, in its own envelope: it counts as one more shared document, takes room of its own and expires on its own.",
   shareSecrets: "This document seems to hold a secret key or a password",
@@ -3829,6 +3831,8 @@ const es: Catalog = {
   shareRoomOf: "de {name} · {other}",
   shareCites: "Compartir también los {name} documentos que cita",
   shareCitesOne: "Compartir también el documento que cita",
+  shareCitesOver:
+    "Con lo que cita serían {name} documentos compartidos a la vez, y Folio acepta hasta {other}. Desmarca esta opción o deja de compartir alguno.",
   shareCitesWhy:
     "Sin marcarlo, lo que cita se ve como texto. Marcado, cada uno se comparte aparte, en su propio sobre: cuenta como un compartido más, ocupa su propio espacio y caduca por su cuenta.",
   shareSecrets: "Este documento parece tener una clave secreta o una contraseña",
