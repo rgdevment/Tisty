@@ -721,7 +721,7 @@ const en = {
   shareOverFilesBytes:
     "Its attachments weigh {name} and Folio takes up to {other} for each document. Take some out to share it.",
   shareOverWhole:
-    "This document weighs {name} and Folio takes up to {other} for each document. Take some pictures or attachments out to share it.",
+    "Its words, pages and pictures weigh {name} and Folio takes up to {other} for them in each document, attachments apart. Take some pictures out to share it.",
   shareAppeal: "Appeal…",
   shareAppealAccepted:
     "Your appeal was accepted: someone else signed what was reported. Press Sync to send your own version, which lifts the block.",
@@ -3645,7 +3645,7 @@ const es: Catalog = {
   shareOverFilesBytes:
     "Sus adjuntos pesan {name} y Folio acepta hasta {other} por documento. Quita algunos para compartirlo.",
   shareOverWhole:
-    "Este documento pesa {name} y Folio acepta hasta {other} por documento. Quita imágenes o adjuntos para compartirlo.",
+    "Sus palabras, páginas e imágenes pesan {name} y Folio acepta hasta {other} por documento, aparte de los adjuntos. Quita algunas imágenes para compartirlo.",
   shareAppeal: "Reclamar…",
   shareAppealAccepted:
     "Se aceptó tu reclamo: otra persona firmó lo denunciado. Presiona Sincronizar para enviar tu propia versión, que levanta el bloqueo.",

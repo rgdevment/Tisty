@@ -61,6 +61,7 @@ pub struct Carrying {
     pub pictures_bytes: u64,
     pub largest_picture: u64,
     pub largest_picture_name: Option<String>,
+    pub main_bytes: u64,
     pub files: usize,
     pub files_bytes: u64,
 }
@@ -89,6 +90,9 @@ impl Gathered {
                 .flatten()
                 .max_by_key(|one| one.size)
                 .map(|one| one.name.clone()),
+            // The words, the pages and the pictures travel in one envelope; the attachments go in another.
+            main_bytes: serde_json::to_vec(&anchor.document).map_or(0, |said| said.len() as u64)
+                + weight(&anchor.pictures),
             files: anchor.files.len(),
             files_bytes: weight(&anchor.files),
         }

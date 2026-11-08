@@ -251,7 +251,7 @@ fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Path) -> Refus
 }
 
 fn key_room(limits: Option<folio_limits::FolioLimits>) -> Option<u64> {
-    limits.and_then(|one| one.key_bytes_at_most.or(one.new_key_bytes_at_most))
+    limits.and_then(|one| one.key_bytes_at_most)
 }
 
 // Folio's own figure when its signed limits name one, and words that need none when they do not.

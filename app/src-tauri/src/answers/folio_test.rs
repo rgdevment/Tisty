@@ -406,18 +406,12 @@ fn a_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
 
     std::fs::write(
         home.path().join("folio-limits.json"),
-        r#"{"serial":19,"new_key_bytes_at_most":30000000}"#,
+        r#"{"serial":30,"key_bytes_at_most":25000000}"#,
     )
     .unwrap();
     let editor = said_to_whom(full(), false, home.path());
     assert_eq!(editor.code, "folioOwnerRoomFull");
-    assert_eq!(editor.name.as_deref(), Some("30000000"));
-
-    std::fs::write(
-        home.path().join("folio-limits.json"),
-        r#"{"serial":30,"key_bytes_at_most":25000000,"new_key_bytes_at_most":30000000}"#,
-    )
-    .unwrap();
+    assert_eq!(editor.name.as_deref(), Some("25000000"));
     let owner = said_to_whom(full(), true, home.path());
     assert_eq!(owner.code, "folioRoomFull");
     assert_eq!(owner.name.as_deref(), Some("25000000"));

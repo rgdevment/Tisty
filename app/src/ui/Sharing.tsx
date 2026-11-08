@@ -372,8 +372,6 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
 
 const past = (carried: number, most?: number) => most !== undefined && carried > most;
 
-const whole = ({ carrying }: ShareLook) => carrying.picturesBytes + carrying.filesBytes;
-
 // Each says which ceiling, how much this one carries and how much Folio takes.
 const overSaid = (look: ShareLook): string | null => {
   const { carrying, limits } = look;
@@ -388,7 +386,7 @@ const overSaid = (look: ShareLook): string | null => {
       [carrying.picturesBytes, limits.pictures_bytes_at_most, "shareOverPicturesBytes", weigh],
       [carrying.files, limits.files_at_most, "shareOverFiles", String],
       [carrying.filesBytes, limits.files_bytes_at_most, "shareOverFilesBytes", weigh],
-      [whole(look), limits.envelope_bytes_at_most, "shareOverWhole", weigh],
+      [carrying.mainBytes, limits.envelope_bytes_at_most, "shareOverWhole", weigh],
     ];
   const first = counted.find(([carried, most]) => past(carried, most));
   if (!first) return null;

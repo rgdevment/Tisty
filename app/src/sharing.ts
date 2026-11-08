@@ -59,6 +59,7 @@ export interface ShareLook {
     picturesBytes: number;
     largestPicture: number;
     largestPictureName: string | null;
+    mainBytes: number;
     files: number;
     filesBytes: number;
   };

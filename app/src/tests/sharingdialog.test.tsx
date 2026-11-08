@@ -150,21 +150,30 @@ describe("what travels with a document", () => {
     expect(screen.getByText(fill("shareOverPictures", "11", "10"))).toBeTruthy();
   });
 
-  it("says what the whole document weighs against Folio's ceiling", async () => {
+  it("weighs the words, pages and pictures apart from the attachments", async () => {
     await opened(
       {
         pictures: 2,
         picturesBytes: 1_000_000,
-        largestPicture: 500_000,
+        mainBytes: 26_000_000,
         files: 1,
-        filesBytes: 25_000_000,
+        filesBytes: 20_000_000,
       },
-      { files_bytes_at_most: 30_000_000, envelope_bytes_at_most: 24_000_000 },
+      { files_bytes_at_most: 24_000_000, envelope_bytes_at_most: 24_000_000 },
     );
 
     expect(
       screen.getByText(fill("shareOverWhole", weigh(26_000_000), weigh(24_000_000))),
     ).toBeTruthy();
+  });
+
+  it("lets attachments under their own ceiling pass, whatever the words weigh", async () => {
+    await opened(
+      { mainBytes: 1_000_000, files: 1, filesBytes: 23_000_000 },
+      { files_bytes_at_most: 24_000_000, envelope_bytes_at_most: 24_000_000 },
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("names one page apart, and says no room it was not told of", async () => {
