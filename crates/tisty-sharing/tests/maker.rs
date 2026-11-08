@@ -4,12 +4,12 @@
 mod common;
 
 use common::{Home, asked};
-use tisty_core::event::{DocAdd, Said, Signature};
-use tisty_core::model::DocId;
+use tisty_core::event::{DocAdd, FolderAdd, Said, Signature};
+use tisty_core::model::{DocId, FolderId};
 use tisty_core::untouched::SOWN_BY;
 use tisty_core::{Op, docs};
 use tisty_share_proto::seed::Seed;
-use tisty_sharing::{Finished, Sealed, Told, Unshared, signs_for, sown_by_tisty};
+use tisty_sharing::{Finished, Sealed, Told, Unshared, signs_for};
 
 const MAKER_ALIAS: &str = "rgdevment";
 
@@ -34,7 +34,28 @@ fn another_root() -> String {
     Seed::from_bytes(&[0x44; 32]).root().person().shown()
 }
 
-fn added(home: &mut Home, body: &str, by: &str, page_of: Option<DocId>) -> DocId {
+fn guide_folder(home: &mut Home) -> FolderId {
+    let id = ulid::Ulid::generate();
+    home.commit(Op::FolderAdd {
+        id,
+        d: FolderAdd {
+            name: "Guía".into(),
+            order: "a0".into(),
+            parent: None,
+            icon: None,
+            color: None,
+        },
+    });
+    id
+}
+
+fn added(
+    home: &mut Home,
+    body: &str,
+    by: &str,
+    folder: Option<FolderId>,
+    page_of: Option<DocId>,
+) -> DocId {
     let made = docs::create(&home.paths.docs(), &home.device, body).unwrap();
     let id = ulid::Ulid::generate();
     home.commit(Op::DocAdd {
@@ -45,6 +66,7 @@ fn added(home: &mut Home, body: &str, by: &str, page_of: Option<DocId>) -> DocId
             file: made.id,
             order: format!("s{id}"),
             said: Some(Said::of(body)),
+            folder,
             page_of,
             ..Default::default()
         },
@@ -54,16 +76,19 @@ fn added(home: &mut Home, body: &str, by: &str, page_of: Option<DocId>) -> DocId
 
 fn sown_guide(home: &mut Home) -> DocId {
     let leaf = home.attached("atajos.pdf", b"%PDF atajos");
+    let folder = Some(guide_folder(home));
     let guide = added(
         home,
         &format!("# Guía\n\nEmpieza aquí.\n\n[Atajos]({leaf})\n"),
         SOWN_BY,
+        folder,
         None,
     );
     added(
         home,
         "# Primeros pasos\n\nUna tarea.\n",
         SOWN_BY,
+        folder,
         Some(guide),
     );
     guide
@@ -168,7 +193,7 @@ fn what_tisty_sowed_never_goes_out_signed_as_tisty() {
 fn the_maker_still_cannot_share_what_someone_else_wrote() {
     let (_tmp, mut home) = home();
     home.maker = true;
-    let theirs = added(&mut home, "# De Ana\n", "Ana", None);
+    let theirs = added(&mut home, "# De Ana\n", "Ana", None, None);
     assert!(matches!(refused(&home, theirs), Some(Unshared::NotOwn)));
 }
 
@@ -180,7 +205,7 @@ fn what_tisty_sowed_is_still_tistys_for_duplicating_even_for_the_maker() {
     let me = home.state.persons.person(&home.device);
     let kept = &home.state.docs[&guide];
 
-    assert!(sown_by_tisty(kept));
+    assert!(kept.sown);
     assert!(home.state.theirs(kept, me.as_ref()));
     assert!(home.state.theirs(kept, None));
     assert!(refused(&home, guide).is_none());
@@ -209,4 +234,34 @@ fn a_new_guide_text_goes_up_as_a_new_version_of_the_same_shared_document() {
     assert_eq!(now.id, was.id);
     assert_eq!(now.version, was.version + 1);
     assert_eq!(now.signed_as.as_deref(), Some(MAKER_ALIAS));
+}
+
+#[test]
+fn a_document_someone_signed_as_tisty_is_still_theirs_for_the_maker() {
+    let (_tmp, mut home) = home();
+    home.maker = true;
+    let received = added(&mut home, "# Guía\n\nOtra cosa.\n", SOWN_BY, None, None);
+
+    assert!(!home.state.docs[&received].sown);
+    assert!(matches!(refused(&home, received), Some(Unshared::NotOwn)));
+}
+
+#[test]
+fn a_sown_guide_cited_from_the_makers_own_document_goes_under_the_alias_too() {
+    let (_tmp, mut home) = home();
+    home.maker = true;
+    let guide = sown_guide(&mut home);
+    let title = home.state.docs[&guide].title.clone().unwrap();
+    let mine = home.wrote(&format!("# Mía\n\n[[{title}]]\n"), None);
+    let mut asking = asked(mine);
+    asking.cited = vec![guide];
+    asking.signed_as = Some(SOWN_BY.into());
+
+    let out = sealed(&home, &asking);
+    assert_eq!(out.remembering.len(), 2);
+    assert!(
+        out.remembering
+            .iter()
+            .all(|(_, one)| one.signed_as.as_deref() == Some(MAKER_ALIAS))
+    );
 }

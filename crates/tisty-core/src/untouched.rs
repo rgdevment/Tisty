@@ -4,7 +4,7 @@ use std::path::Path;
 use ulid::Ulid;
 
 use crate::event::{DeviceKind, DocAdd, Event, FolderAdd, ListAdd, Look, Op, Said};
-use crate::model::{DocId, FIRST, FolderId, ListId};
+use crate::model::{DocId, FIRST, Folder, FolderId, ListId};
 
 pub const SOWN_BY: &str = "Tisty";
 pub const GUIDE_FOLDERS: [&str; 2] = ["Guide", "Guía"];
@@ -48,6 +48,14 @@ const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
     "2997a07c296464e6c2e36f89fb6ac65d63c6ab87a797c1e2461e56a69026b98e",
     "e7e2ae0a01de129efbce385ae10e852d81f1de3b36c3dd5f41f262c952d7b3e6",
 ];
+
+pub fn written_as_sown(d: &DocAdd) -> bool {
+    d.by.as_deref() == Some(SOWN_BY) && d.guest && d.made.is_none() && d.wrote.is_none()
+}
+
+pub fn a_guide_folder_now(folder: &Folder) -> bool {
+    GUIDE_FOLDERS.contains(&folder.name.as_str()) && folder.parent.is_none()
+}
 
 struct Paper {
     file: String,
@@ -170,10 +178,7 @@ impl Sown {
     }
 
     fn paper_added(&mut self, id: DocId, d: &DocAdd) -> bool {
-        let sown = d.by.as_deref() == Some(SOWN_BY)
-            && d.guest
-            && d.made.is_none()
-            && d.wrote.is_none()
+        let sown = written_as_sown(d)
             && d.folder
                 .is_some_and(|folder| self.folders.contains(&folder))
             && d.page_of.is_none_or(|up| self.papers.contains_key(&up));

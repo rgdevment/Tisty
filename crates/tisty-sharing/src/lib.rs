@@ -12,7 +12,7 @@ pub use finishing::{Carrying, Finished, Sealed, Unfinished};
 pub use gathering::{
     Asked, Desk, Gathered, Under, citable, gathered, gathered_under, gathered_within, signer,
 };
-pub use maker::{signs_for, sown_by_tisty};
+pub use maker::{certified_by, signs_for};
 pub use packing::Told;
 pub use receiving::{CARRIED_CITED, Received, received};
 pub use remembering::{forgotten, remembered, sent};

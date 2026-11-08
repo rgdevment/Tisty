@@ -120,6 +120,9 @@ pub struct Kept {
     pub edited_by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub guest: bool,
+    /// Sown as Tisty's own guide, which no copy received from someone signing with its name ever is.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub sown: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

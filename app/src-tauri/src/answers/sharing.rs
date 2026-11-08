@@ -6,7 +6,9 @@ use tisty_core::model::DocId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{DeviceId, Paths, State};
 use tisty_envelope::sealing::Writer;
-use tisty_sharing::{Asked, Desk, Gathered, Told, Unshared, gathered, signer, signs_for};
+use tisty_sharing::{
+    Asked, Desk, Gathered, Told, Unshared, certified_by, gathered, signer, signs_for,
+};
 
 use crate::{Answer, Refusal, Session, held};
 
@@ -37,10 +39,16 @@ pub(super) fn refused(wrong: &Unshared) -> Refusal {
 }
 
 // The root Folio signs into its limits is the only word on who the maker is: absent or unsigned, nobody is.
+fn maker_root(paths: &Paths) -> Option<String> {
+    tisty_carrier::folio_limits::maker_root(&paths.private())
+}
+
 pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> bool {
-    tisty_carrier::folio_limits::kept(&paths.private())
-        .and_then(|limits| limits.maker_root)
-        .is_some_and(|root| signs_for(paths, state, device, &root))
+    maker_root(paths).is_some_and(|root| signs_for(paths, state, device, &root))
+}
+
+pub(super) fn the_maker_of(session: &Session) -> bool {
+    the_maker_here(&session.paths, &session.state, &session.config.device_id)
 }
 
 pub(super) fn doc_id(said: &str) -> Answer<DocId> {
@@ -90,13 +98,14 @@ pub(super) async fn sealed_by(
     // Asked first: with nothing to sign with, nothing else is worth doing.
     let (key, certificate) =
         signer(&paths, &state, &device).ok_or_else(|| Refusal::of("noIdentityToSign"))?;
+    let maker = maker_root(&paths).is_some_and(|root| certified_by(&certificate, &root));
     let mut gathered = tauri::async_runtime::spawn_blocking(move || {
         let desk = Desk {
             paths: &paths,
             state: &state,
             also: also.as_deref(),
             turned: &turned,
-            maker: the_maker_here(&paths, &state, &device),
+            maker,
         };
         gather(&desk, &asked)
     })

@@ -13,6 +13,8 @@ pub const SIGNATURE_URL: &str =
 const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
+const SIGNED_KEPT: &str = "folio-limits.signed.json";
+const SIGNATURE_KEPT: &str = "folio-limits.signed.json.minisig";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
 const PRESSED: &str = "folio-limits-pressed";
@@ -120,7 +122,6 @@ pub enum SharingNow {
 }
 
 impl SharingNow {
-    // Folio lets the maker's root in while it is closed to everyone else.
     pub fn opened_to(self, maker: bool) -> Self {
         match self {
             Self::Closed { .. } if maker => Self::Open,
@@ -153,8 +154,17 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
     if let Ok(bytes) = serde_json::to_vec(&limits) {
         let _ = std::fs::create_dir_all(home);
         let _ = tisty_core::store::write_atomic(&home.join(KEPT), &bytes);
+        let _ = tisty_core::store::write_atomic(&home.join(SIGNED_KEPT), said);
+        let _ = tisty_core::store::write_atomic(&home.join(SIGNATURE_KEPT), signature.as_bytes());
     }
     Ok(limits)
+}
+
+// Who the maker is grants more than a warning, so it is read again under Folio's signature every time.
+pub fn maker_root(home: &Path) -> Option<String> {
+    let said = std::fs::read(home.join(SIGNED_KEPT)).ok()?;
+    let signature = std::fs::read_to_string(home.join(SIGNATURE_KEPT)).ok()?;
+    read_under(&said, &signature, KEY).ok()?.maker_root
 }
 
 pub fn uploads_halted(limits: Option<&FolioLimits>, now: u64) -> bool {

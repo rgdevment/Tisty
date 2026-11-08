@@ -406,6 +406,7 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             born_by: None,
             edited_by: None,
             guest: false,
+            sown: false,
             folder: None,
             page_of: None,
             archived: false,

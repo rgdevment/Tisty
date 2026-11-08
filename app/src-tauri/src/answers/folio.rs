@@ -12,13 +12,13 @@ use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::policy;
-use tisty_core::{DeviceId, Paths, State};
+use tisty_core::Paths;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Received, Remembered, Told, Under, Unshared};
 
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
 use super::papers::other_version_kept;
-use super::sharing::{doc_id, refused, sealed_by, the_maker_here, turned};
+use super::sharing::{doc_id, refused, sealed_by, the_maker_here, the_maker_of, turned};
 use crate::{Answer, Refusal, Session, held};
 
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
@@ -298,23 +298,22 @@ fn may_start(now: SharingNow) -> Answer<()> {
     }
 }
 
-fn sharing_here(paths: &Paths, state: &State, device: &DeviceId) -> SharingNow {
-    folio_limits::sharing_now(&paths.private(), crate::reaching::brought_from_folio)
-        .opened_to(the_maker_here(paths, state, device))
-}
-
-fn signing_here(session: &Session) -> (Paths, State, DeviceId) {
-    (
-        session.paths.clone(),
-        session.state.clone(),
-        session.config.device_id.clone(),
-    )
+async fn sharing_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
+    let home = held(session).paths.private();
+    let now = apart(move || {
+        Ok(folio_limits::sharing_now(
+            &home,
+            crate::reaching::brought_from_folio,
+        ))
+    })
+    .await?;
+    // Asked only once the limits are fresh, since they are what names the maker.
+    Ok(now.opened_to(the_maker_of(&held(session))))
 }
 
 #[tauri::command]
 pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
-    let (paths, state, device) = signing_here(&held(&session));
-    apart(move || Ok(sharing_here(&paths, &state, &device))).await
+    sharing_here(&session).await
 }
 
 #[tauri::command]
@@ -572,6 +571,13 @@ pub async fn doc_share_look(
             .docs
             .get(&doc)
             .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+        let home = paths.private();
+        // Heeded first: the limits are what name the maker the desk is set for.
+        let limits = match folio_limits::heed(&home, crate::reaching::brought_from_folio) {
+            Some(Ok(limits)) => Some(limits),
+            _ => folio_limits::kept(&home),
+        }
+        .unwrap_or_default();
         let desk = Desk {
             paths: &paths,
             state: &state,
@@ -585,15 +591,9 @@ pub async fn doc_share_look(
             cited: Vec::new(),
             signed_as: None,
         };
-        let home = paths.private();
         let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
             .map_err(|e| refused(&e))?;
         let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
-        let limits = match folio_limits::heed(&home, crate::reaching::brought_from_folio) {
-            Some(Ok(limits)) => Some(limits),
-            _ => folio_limits::kept(&home),
-        }
-        .unwrap_or_default();
         let others = shared.iter().filter(|one| one.doc != id).count() as u64;
         let shared = match limits.shares_at_most {
             Some(most) if others >= most => still_shared(&app, shared),
@@ -874,20 +874,17 @@ pub async fn doc_shared(
         seen,
     } = chosen;
     let doc = doc_id(&id)?;
-    let (tongue, file, (paths, state, device)) = {
+    let (paths, tongue, file) = {
         let session = held(&session);
         (
+            session.paths.clone(),
             tongue_of(&session),
             file_of(&session, &id)?,
-            signing_here(&session),
         )
     };
+    may_start(sharing_here(&session).await?)?;
     let checking = paths.clone();
-    let terms = apart(move || {
-        may_start(sharing_here(&checking, &state, &device))?;
-        may_upload(&checking, tongue).map(|agreed| agreed.version)
-    })
-    .await?;
+    let terms = apart(move || may_upload(&checking, tongue).map(|agreed| agreed.version)).await?;
     let asked = tisty_sharing::Asked {
         doc,
         public: false,

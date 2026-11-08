@@ -16,7 +16,7 @@ use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, read
 use tisty_share_proto::identity::{Certificate, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
-use crate::{CARRIED_CITED, Remembered, Unshared, remembered, sown_by_tisty};
+use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
@@ -96,7 +96,7 @@ pub fn signer(
 }
 
 fn goes_as_mine(kept: &Kept, edits_through_a_link: bool, maker: bool) -> bool {
-    !kept.guest || edits_through_a_link || maker && sown_by_tisty(kept)
+    !kept.guest || edits_through_a_link || maker && kept.sown
 }
 
 fn sharable<'a>(
@@ -131,6 +131,14 @@ fn languages_of<'a>(state: &'a State, kept: &'a Kept) -> Vec<&'a Kept> {
     } else {
         vec![kept]
     }
+}
+
+fn carries_sown(state: &State, asked: &Asked) -> bool {
+    std::iter::once(&asked.doc)
+        .chain(&asked.cited)
+        .filter_map(|id| state.docs.get(id))
+        .flat_map(|kept| languages_of(state, kept))
+        .any(|one| one.sown)
 }
 
 fn language_said(one: &Kept) -> String {
@@ -602,7 +610,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     let wanted = asked
         .signed_as
         .clone()
-        .filter(|one| !one.trim().is_empty() && !sown_by_tisty(top))
+        .filter(|one| !one.trim().is_empty() && !carries_sown(state, asked))
         .or_else(|| state.signed.alias.clone());
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {

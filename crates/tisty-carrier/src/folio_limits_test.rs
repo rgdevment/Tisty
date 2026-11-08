@@ -3,8 +3,8 @@ use std::time::{Duration, SystemTime};
 
 use super::{
     ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, NOTE_LINES_AT_MOST,
-    SIGNATURE_URL, SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now,
-    uploads_halted,
+    SIGNATURE_KEPT, SIGNATURE_URL, SIGNED_KEPT, SharingNow, accepted, heed, heed_now, kept,
+    maker_root, read_under, sharing_now, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -461,4 +461,38 @@ fn only_the_maker_finds_sharing_open_while_folio_is_closed() {
     assert_eq!(closed.opened_to(true), SharingNow::Open);
     assert_eq!(SharingNow::Open.opened_to(false), SharingNow::Open);
     assert_eq!(SharingNow::Unreached.opened_to(true), SharingNow::Unreached);
+}
+
+#[test]
+fn the_maker_is_read_only_from_what_folio_signed() {
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(maker_root(home.path()), None);
+
+    accepted(home.path(), REAL, REAL_SIG).unwrap();
+    assert!(home.path().join(SIGNED_KEPT).is_file());
+    assert_eq!(maker_root(home.path()), None);
+
+    let claimed = FolioLimits {
+        serial: 99,
+        maker_root: Some("AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into()),
+        ..FolioLimits::default()
+    };
+    let forged = serde_json::to_vec(&claimed).unwrap();
+    std::fs::write(home.path().join(KEPT), &forged).unwrap();
+    assert_eq!(
+        maker_root(home.path()),
+        None,
+        "the copy kept for warnings vouches for nobody"
+    );
+
+    std::fs::write(home.path().join(SIGNED_KEPT), &forged).unwrap();
+    assert_eq!(
+        maker_root(home.path()),
+        None,
+        "words the signature does not cover"
+    );
+
+    std::fs::write(home.path().join(SIGNED_KEPT), REAL).unwrap();
+    std::fs::remove_file(home.path().join(SIGNATURE_KEPT)).unwrap();
+    assert_eq!(maker_root(home.path()), None);
 }
