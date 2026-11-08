@@ -131,12 +131,11 @@ fn only_what_the_sowing_marked_is_sown_never_a_copy_of_a_document_signed_as_tist
     let cover = added_under(&mut state, SOWN_BY, true, None);
     let page = added_under(&mut state, SOWN_BY, true, Some(cover));
     let copy = added_under(&mut state, SOWN_BY, false, None);
-    let anas = added_under(&mut state, "Ana", true, None);
     let page_of_a_copy = added_under(&mut state, SOWN_BY, true, Some(copy));
 
     assert!(state.docs[&cover].sown);
     assert!(state.docs[&page].sown);
-    for id in [copy, anas, page_of_a_copy] {
+    for id in [copy, page_of_a_copy] {
         assert!(!state.docs[&id].sown);
     }
 }

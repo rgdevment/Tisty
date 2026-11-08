@@ -4,6 +4,8 @@ use tisty_share_proto::identity::{Certificate, Person};
 
 use crate::signer_among;
 
+pub const MAKER_ROOT: &str = "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s";
+
 pub fn certified_by(certificate: &Certificate, root: &str) -> Option<Person> {
     let wanted = Person::read(root)?;
     (Person::read(&certificate.root) == Some(wanted)).then_some(wanted)

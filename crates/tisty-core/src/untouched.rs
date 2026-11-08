@@ -49,8 +49,13 @@ const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
     "e7e2ae0a01de129efbce385ae10e852d81f1de3b36c3dd5f41f262c952d7b3e6",
 ];
 
+// Before its author signed it, the guide said it was sown only by being Tisty's.
 pub fn written_as_sown(d: &DocAdd) -> bool {
-    d.by.as_deref() == Some(SOWN_BY) && d.guest && d.made.is_none() && d.wrote.is_none()
+    (d.sown || d.by.as_deref() == Some(SOWN_BY))
+        && d.by.is_some()
+        && d.guest
+        && d.made.is_none()
+        && d.wrote.is_none()
 }
 
 struct Paper {

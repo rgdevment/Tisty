@@ -31,6 +31,7 @@ pub fn sown(
     session: &mut Session,
     first: &str,
     called: &str,
+    by: &str,
     from: impl Fn(&str) -> Option<PathBuf>,
 ) -> Answer<tisty_core::docs::Doc> {
     let mut spoken: Vec<&Spoken> = SPOKEN.iter().collect();
@@ -59,7 +60,7 @@ pub fn sown(
 
     let mut covers: Vec<(DocId, tisty_core::docs::Doc)> = Vec::new();
     for (one, shots) in spoken.iter().zip(&named) {
-        covers.push(one_language(session, one, shots, folder)?);
+        covers.push(one_language(session, one, shots, folder, by)?);
     }
     let Some(((anchor, cover), rest)) = covers.split_first() else {
         return Err(Refusal::of("noSuchDoc"));
@@ -82,6 +83,7 @@ pub fn sown_beside(
     session: &mut Session,
     tongue: &str,
     beside: DocId,
+    by: &str,
     from: impl Fn(&str) -> Option<PathBuf>,
 ) -> Answer<tisty_core::docs::Doc> {
     let one = SPOKEN
@@ -96,7 +98,7 @@ pub fn sown_beside(
         .ok_or_else(|| Refusal::of("noSuchDoc"))?;
     let (told_of, named) = pictured(session, &[one], &from)?;
     session.commit_all(told_of)?;
-    let (cover, made) = one_language(session, one, &named[0], folder)?;
+    let (cover, made) = one_language(session, one, &named[0], folder, by)?;
     let ops = session.state.joining(cover, beside);
     session.commit_all(ops)?;
     let written = made.id.clone();
@@ -223,6 +225,7 @@ fn one_language(
     one: &Spoken,
     shots: &[(String, String)],
     folder: ulid::Ulid,
+    by: &str,
 ) -> Answer<(DocId, tisty_core::docs::Doc)> {
     let root = session.paths.docs();
     let device = session.store.device().clone();
@@ -254,7 +257,7 @@ fn one_language(
         d: tisty_core::event::DocAdd {
             guest: true,
             sown: true,
-            by: Some(WRITTEN_BY.into()),
+            by: Some(by.into()),
             file,
             order,
             said: Some(tisty_core::event::Said::of(body)),
@@ -274,6 +277,53 @@ fn one_language(
         order = tisty_core::order::after(&order);
     }
     Ok((cover, made))
+}
+
+pub fn signed_author(from: &impl Fn(&str) -> Option<PathBuf>) -> Option<String> {
+    let guide = from("es")?.parent()?.to_path_buf();
+    tisty_sharing::author_of_guide(&guide, tisty_sharing::MAKER_ROOT)
+}
+
+pub fn signed_guide(
+    session: &mut Session,
+    tongue: &str,
+    called: &str,
+    author: &str,
+    from: impl Fn(&str) -> Option<PathBuf>,
+) -> Answer<tisty_core::docs::Doc> {
+    let covers = |kept: &&tisty_core::model::Kept| {
+        kept.page_of.is_none() && kept.task_of.is_none() && !kept.archived && kept.guest
+    };
+    let signed: Vec<&tisty_core::model::Kept> = session
+        .state
+        .docs
+        .values()
+        .filter(covers)
+        .filter(|one| one.sown && one.by.as_deref() == Some(author))
+        .collect();
+    let found = signed
+        .iter()
+        .find(|one| one.lang.as_deref() == Some(tongue))
+        .or(signed.first())
+        .map(|one| tisty_core::docs::Doc {
+            id: one.file.clone(),
+            title: one.title.clone().unwrap_or_default(),
+        });
+    if let Some(found) = found {
+        let kept = found.id.clone();
+        session.keep(|c| c.guide = Some(kept))?;
+        return Ok(found);
+    }
+    let unsigned: Vec<Op> = session
+        .state
+        .docs
+        .values()
+        .filter(covers)
+        .filter(|one| one.by.as_deref() == Some(WRITTEN_BY))
+        .map(|one| Op::DocArchive { id: one.id })
+        .collect();
+    session.commit_all(unsigned)?;
+    sown(session, tongue, called, author, from)
 }
 
 #[cfg(test)]

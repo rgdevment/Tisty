@@ -1,5 +1,6 @@
 use super::sown;
 use crate::Session;
+use crate::answers::settings::WRITTEN_BY;
 use tisty_core::Paths;
 
 fn shipped(tongue: &str) -> Option<std::path::PathBuf> {
@@ -13,7 +14,7 @@ fn the_guide_comes_in_both_languages_as_one_document_opened_in_the_persons() {
     std::fs::create_dir_all(paths.docs()).unwrap();
     let mut session = Session::at(paths.clone()).unwrap();
 
-    let cover = sown(&mut session, "en", "Guide", shipped).unwrap();
+    let cover = sown(&mut session, "en", "Guide", WRITTEN_BY, shipped).unwrap();
 
     let kept = session
         .state
@@ -162,7 +163,7 @@ fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
     let en = old_guide(&mut session, folder, super::super::settings::GUIDE_EN);
     super::spoken_again(&mut session);
 
-    let made = super::sown_beside(&mut session, "es", en, shipped).unwrap();
+    let made = super::sown_beside(&mut session, "es", en, WRITTEN_BY, shipped).unwrap();
 
     let es = session
         .state
@@ -173,4 +174,49 @@ fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
     assert_eq!(es.folder, Some(folder));
     assert_eq!(session.state.tongues_of(en).len(), 2);
     assert_eq!(session.state.pages_of(es.id).len(), 3);
+}
+
+#[test]
+fn the_guide_tisty_ships_is_signed_by_the_makers_root() {
+    assert!(
+        super::signed_author(&shipped).is_some(),
+        "the guide changed since it was signed: the maker signs it again with `cargo run -p tisty-sharing --example sign_guide`"
+    );
+}
+
+#[test]
+fn asked_again_the_signed_guide_puts_the_unsigned_one_away_and_comes_once_as_its_authors() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths).unwrap();
+    sown(&mut session, "es", "Guía", WRITTEN_BY, shipped).unwrap();
+    let old: Vec<tisty_core::model::DocId> = session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.page_of.is_none() && one.by.as_deref() == Some(WRITTEN_BY))
+        .map(|one| one.id)
+        .collect();
+    assert_eq!(old.len(), 2);
+
+    let first = super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
+    let again = super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
+
+    assert_eq!(first.id, again.id, "the signed guide is sown once");
+    assert!(old.iter().all(|id| session.state.docs[id].archived));
+    let signed: Vec<&tisty_core::model::Kept> = session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.by.as_deref() == Some("rgdevment"))
+        .collect();
+    assert_eq!(signed.len(), 8, "both languages and their pages");
+    assert!(
+        signed
+            .iter()
+            .all(|one| one.sown && one.guest && !one.archived)
+    );
+    let cover = signed.iter().find(|one| one.file == first.id).unwrap();
+    assert_eq!(cover.lang.as_deref(), Some("es"));
 }
