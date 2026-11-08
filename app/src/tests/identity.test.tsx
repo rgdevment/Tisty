@@ -106,6 +106,9 @@ describe("your identity", () => {
     render(<Shell />);
 
     await userEvent.click(await screen.findByRole("button", { name: "I already have my phrase" }));
+    expect(screen.getByLabelText(/Type your 24 words/).getAttribute("aria-describedby")).toBe(
+      screen.getByText(/Type it only here, in your own Tisty/).id,
+    );
     await userEvent.type(screen.getByLabelText(/Type your 24 words/), WORDS.join(" "));
     await userEvent.click(screen.getByRole("button", { name: "Give this computer its key" }));
     await waitFor(() =>
@@ -183,6 +186,7 @@ describe("the phrase", () => {
       expect.arrayContaining(["1word1", "24word24"]),
     );
     expect(screen.getByText("Keep it outside Tisty.")).toBeTruthy();
+    expect(screen.getByText(/will ever ask you for this phrase/)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -202,6 +206,7 @@ describe("the phrase", () => {
     expect(page).toContain("word1");
     expect(page).toContain("word24");
     expect(page).toContain("48210 93755 12880 63349");
+    expect(page).toContain("will ever ask you for this phrase");
     expect(sent("page_pdf")[0].args.secret).toBe(true);
     expect(sent("keep_file")[0].args.at).toBe("/tmp/phrase.pdf");
   });
