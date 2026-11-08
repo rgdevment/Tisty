@@ -6,12 +6,32 @@ describe("saidPlainly", () => {
     expect(saidPlainly({ code: "noSuchList", name: "work" })).toBe("No list matches work");
   });
 
-  it("says the room Folio leaves a new key as the round figure it is", () => {
-    expect(saidPlainly({ code: "folioRoomFull", name: "25000000" })).toContain("up to 25 MB.");
+  it("says the room Folio leaves a key as the round figure it is", () => {
+    expect(saidPlainly({ code: "folioRoomFull", name: "25000000" })).toContain("the 25 MB your");
     expect(saidPlainly({ code: "folioOwnerRoomFull", name: "30000000" })).toContain(
-      "already hold 30 MB.",
+      "the 30 MB their",
     );
-    expect(saidPlainly({ code: "folioRoomFull", name: "2500000" })).toContain("up to 2.5 MB.");
+    expect(saidPlainly({ code: "folioRoomFull", name: "2500000" })).toContain("the 2.5 MB your");
+  });
+
+  it("says what the key holds, what fits and what this one weighs", () => {
+    expect(saidPlainly({ code: "folioRoomFullOf", name: "23400000 4000000 25000000" })).toBe(
+      "Your shared documents take 23.4 MB of 25 MB and this one weighs 4 MB. Stop sharing one or wait for one to expire.",
+    );
+    expect(saidPlainly({ code: "folioOwnerRoomFullOf", name: "23400000 4000000 25000000" })).toBe(
+      "The owner's documents take 23.4 MB of 25 MB and this version weighs 4 MB. More can be uploaded once one of them expires.",
+    );
+  });
+
+  it("says how long to wait, and at what time the network may upload again", () => {
+    const inFive = String(Date.now() + 5 * 60_000);
+    expect(saidPlainly({ code: "folioWait", name: inFive })).toBe(
+      "Wait 5 min to upload another version.",
+    );
+    const at = new Date(2026, 5, 10, 14, 30).getTime();
+    expect(saidPlainly({ code: "folioQuota", name: String(at) })).toContain(
+      new Date(at).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" }),
+    );
   });
 
   it("uses the bare sentence when there is no name to fill", () => {

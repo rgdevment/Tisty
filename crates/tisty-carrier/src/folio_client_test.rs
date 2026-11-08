@@ -485,10 +485,29 @@ fn a_refusal_over_the_terms_keeps_the_version_folio_asks_for_however_it_is_writt
 }
 
 #[test]
-fn a_new_key_out_of_room_is_a_refusal_of_its_own() {
-    let refused: Refused = serde_json::from_str(r#"{"refused":"room_full"}"#).unwrap();
+fn a_key_out_of_room_is_a_refusal_of_its_own_with_or_without_its_figures() {
+    let bare: Refused = serde_json::from_str(r#"{"refused":"room_full"}"#).unwrap();
+    let told: Refused = serde_json::from_str(
+        r#"{"refused":"room_full","held":23400000,"arriving":4000000,"atMost":25000000}"#,
+    )
+    .unwrap();
 
-    assert_eq!(refused, Refused::RoomFull);
+    assert_eq!(
+        bare,
+        Refused::RoomFull {
+            held: None,
+            arriving: None,
+            at_most: None
+        }
+    );
+    assert_eq!(
+        told,
+        Refused::RoomFull {
+            held: Some(23_400_000),
+            arriving: Some(4_000_000),
+            at_most: Some(25_000_000)
+        }
+    );
 }
 
 #[test]

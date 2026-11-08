@@ -15,13 +15,12 @@ import {
   termsAccepted,
   termsDrawn,
   termsNow,
-  toldPlainly,
+  toldLines,
 } from "../sharing";
 import Modal from "./Modal";
 
 const SECRETS_SHOWN = 3;
 const FOLIO_SITE = "folio.tisty.app";
-const DAYS_FALLBACK = [1, 3, 7, 15];
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
@@ -301,10 +300,9 @@ function LeftOut({ told }: Readonly<{ told: ShareCard["told"] }>) {
   if (told.length === 0) return null;
   return (
     <ul className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5 text-[12.5px]">
-      {told.map((one) => {
-        const said = toldPlainly(one);
-        return <li key={said}>{said}</li>;
-      })}
+      {toldLines(told).map((said) => (
+        <li key={said}>{said}</li>
+      ))}
     </ul>
   );
 }
@@ -374,19 +372,29 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
 
 const past = (carried: number, most?: number) => most !== undefined && carried > most;
 
-const overSaid = ({ carrying, limits }: ShareLook) => {
-  const most = limits.picture_bytes_at_most;
-  return most !== undefined && past(carrying.largestPicture, most)
-    ? fill("shareOverPicture", weigh(carrying.largestPicture), weigh(most))
-    : t("shareOverWhy");
+// Each says which ceiling, how much this one carries and how much Folio takes.
+const overSaid = (look: ShareLook): string | null => {
+  const { carrying, limits } = look;
+  const picture = limits.picture_bytes_at_most;
+  if (picture !== undefined && past(carrying.largestPicture, picture)) {
+    const named = carrying.largestPictureName;
+    return named
+      ? fill("shareOverPicture", `${named} (${weigh(carrying.largestPicture)})`, weigh(picture))
+      : fill("shareOverSomePicture", weigh(carrying.largestPicture), weigh(picture));
+  }
+  const counted: [number, number | undefined, Parameters<typeof fill>[0], (n: number) => string][] =
+    [
+      [carrying.pictures, limits.pictures_at_most, "shareOverPictures", String],
+      [carrying.picturesBytes, limits.pictures_bytes_at_most, "shareOverPicturesBytes", weigh],
+      [carrying.files, limits.files_at_most, "shareOverFiles", String],
+      [carrying.filesBytes, limits.files_bytes_at_most, "shareOverFilesBytes", weigh],
+      [carrying.mainBytes, limits.envelope_bytes_at_most, "shareOverWhole", weigh],
+    ];
+  const first = counted.find(([carried, most]) => past(carried, most));
+  if (!first) return null;
+  const [carried, most, key, shown] = first;
+  return fill(key, shown(carried), shown(most ?? 0));
 };
-
-const pastTheLimits = ({ carrying, limits }: ShareLook) =>
-  past(carrying.pictures, limits.pictures_at_most) ||
-  past(carrying.picturesBytes, limits.pictures_bytes_at_most) ||
-  past(carrying.largestPicture, limits.picture_bytes_at_most) ||
-  past(carrying.files, limits.files_at_most) ||
-  past(carrying.filesBytes, limits.files_bytes_at_most);
 
 function Choosing({
   doc,
@@ -412,7 +420,8 @@ function Choosing({
   const [editable, setEditable] = useState(false);
   const [signs, setSigns] = useState<"alias" | "name">(look.alias ? "alias" : "name");
   const [asked, setAsked] = useState("");
-  const [days, setDays] = useState(look.limits.ttl_days?.[0] ?? DAYS_FALLBACK[0]);
+  const terms = look.limits.ttl_days ?? [];
+  const [days, setDays] = useState(terms[0] ?? 0);
   const [cites, setCites] = useState(false);
   const secrets = cites ? [...look.secrets, ...look.citedSecrets] : look.secrets;
   const others = look.shared.filter((one) => one.doc !== doc);
@@ -422,8 +431,8 @@ function Choosing({
   const named = look.alias || look.name;
   const chosenName = signs === "alias" ? look.alias : look.name;
   const signedAs = named ? (chosenName ?? undefined) : asked;
-  const over = pastTheLimits(look);
-  const ready = !full && !over && Boolean(signedAs?.trim());
+  const over = overSaid(look);
+  const ready = !full && !over && days > 0 && Boolean(signedAs?.trim());
 
   const stopOne = (one: string) => {
     shareStop(one)
@@ -473,7 +482,7 @@ function Choosing({
             className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
           >
             <span className="text-[13px] font-semibold text-hue-amber">{t("shareOverHead")}</span>
-            <span className="text-[11.5px] leading-relaxed text-soft">{overSaid(look)}</span>
+            <span className="text-[11.5px] leading-relaxed text-soft">{over}</span>
           </div>
         )}
         {secrets.length > 0 && (
@@ -567,12 +576,15 @@ function Choosing({
             onChange={(e) => setDays(Number(e.target.value))}
             className="h-8 rounded-md border border-line bg-bg px-2 text-[12.5px] font-normal"
           >
-            {(look.limits.ttl_days ?? DAYS_FALLBACK).map((one) => (
+            {terms.map((one) => (
               <option key={one} value={one}>
                 {endsAfter(one)}
               </option>
             ))}
           </select>
+          {terms.length === 0 && (
+            <output className="text-[11.5px] font-normal text-soft">{t("shareNoTerms")}</output>
+          )}
         </label>
 
         <div className="flex flex-col gap-2">

@@ -7,6 +7,7 @@ export type Told =
       document: string;
       name: string;
     }
+  | { what: "asAttachment"; document: string; name: string; plays: string | null }
   | { what: "notDrawn"; document: string; many: number }
   | { what: "pictureNotKept"; document: string; name: string }
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
@@ -44,6 +45,7 @@ export interface FolioLimits {
   pictures_bytes_at_most?: number;
   files_at_most?: number;
   files_bytes_at_most?: number;
+  envelope_bytes_at_most?: number;
 }
 
 export interface ShareLook {
@@ -56,6 +58,8 @@ export interface ShareLook {
     pictures: number;
     picturesBytes: number;
     largestPicture: number;
+    largestPictureName: string | null;
+    mainBytes: number;
     files: number;
     filesBytes: number;
   };
@@ -163,10 +167,45 @@ export const shareAppeal = (id: string): Promise<boolean> => invoke("doc_share_a
 
 export const shareStop = (id: string): Promise<void> => invoke("doc_share_stop", { id });
 
+type Attached = Extract<Told, { what: "asAttachment" }>;
+
+const onlyAttached = (one: Told): one is Attached => one.what === "asAttachment" && !one.plays;
+
+const listed = (names: string[]) => {
+  const shown =
+    names.length > 3 ? [...names.slice(0, 2), fill("toldMore", String(names.length - 2))] : names;
+  return shown.length === 1
+    ? shown[0]
+    : `${shown.slice(0, -1).join(", ")}${t("toldAnd")}${shown[shown.length - 1]}`;
+};
+
+// What goes as attachments is said once for each document, so a guide full of them stays a line.
+export const toldLines = (told: Told[]): string[] => {
+  const said = new Set<string>();
+  return told.flatMap((one) => {
+    if (!onlyAttached(one)) return [toldPlainly(one)];
+    if (said.has(one.document)) return [];
+    said.add(one.document);
+    const names = told
+      .filter((other): other is Attached => onlyAttached(other) && other.document === one.document)
+      .map((other) => other.name);
+    return [
+      names.length === 1
+        ? fill("toldAsAttachment", names[0], one.document)
+        : fill("toldAsAttachments", listed(names), one.document),
+    ];
+  });
+};
+
 export const toldPlainly = (told: Told): string => {
   switch (told.what) {
     case "pictureAsFile":
       return fill("toldPictureAsFile", told.name, told.document);
+    case "asAttachment":
+      if (told.plays === "audio") return fill("toldPlaysSound", told.name, told.document);
+      if (told.plays === "video") return fill("toldPlaysVideo", told.name, told.document);
+      if (told.plays) return fill("toldPlaysOther", told.name, told.document);
+      return fill("toldAsAttachment", told.name, told.document);
     case "pictureAsWords":
       return fill("toldPictureAsWords", told.name, told.document);
     case "pictureAsLink":

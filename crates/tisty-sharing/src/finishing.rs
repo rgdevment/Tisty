@@ -53,13 +53,15 @@ fn asks_for_a_window(html: &str) -> bool {
         .any(|one| html.contains(one))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Carrying {
     pub pages: usize,
     pub pictures: usize,
     pub pictures_bytes: u64,
     pub largest_picture: u64,
+    pub largest_picture_name: Option<String>,
+    pub main_bytes: u64,
     pub files: usize,
     pub files_bytes: u64,
 }
@@ -81,6 +83,16 @@ impl Gathered {
                 .map(|one| one.len() as u64)
                 .max()
                 .unwrap_or(0),
+            largest_picture_name: anchor
+                .document
+                .pictures
+                .iter()
+                .flatten()
+                .max_by_key(|one| one.size)
+                .map(|one| one.name.clone()),
+            // The words, the pages and the pictures travel in one envelope; the attachments go in another.
+            main_bytes: serde_json::to_vec(&anchor.document).map_or(0, |said| said.len() as u64)
+                + weight(&anchor.pictures),
             files: anchor.files.len(),
             files_bytes: weight(&anchor.files),
         }

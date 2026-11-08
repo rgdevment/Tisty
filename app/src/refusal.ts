@@ -225,6 +225,13 @@ const KNOWN = [
   "folioOwnerKeyBlocked",
   "folioRoomFull",
   "folioOwnerRoomFull",
+  "folioRoomFullAll",
+  "folioRoomFullOf",
+  "folioOwnerRoomFullOf",
+  "folioOwnerRoomFullAll",
+  "folioFullOf",
+  "folioLanguagesFullOf",
+  "folioQuota",
   "folioTermsToAccept",
   "awayNotShared",
   "tongueUnsaid",
@@ -317,6 +324,25 @@ export function saidPlainly(problem: unknown): string {
 }
 
 const WEIGHED = ["folioRoomFull", "folioOwnerRoomFull"];
+const MINUTE_MS = 60_000;
+const FIGURED = ["folioRoomFullOf", "folioOwnerRoomFullOf"];
+
+// Folio hands what the key holds, what arrives and what fits, in that order.
+const figured = (code: Parameters<typeof t>[0], name: string): string | null => {
+  const [held, arriving, most] = name.split(" ").map(Number);
+  if (![held, arriving, most].every(Number.isFinite)) return null;
+  return t(code)
+    .replace("{held}", roomOf(held))
+    .replace("{arriving}", roomOf(arriving))
+    .replace("{most}", roomOf(most));
+};
+
+// Folio says when, in milliseconds; a person reads how long, or at what time.
+const minutesTo = (until: string) =>
+  String(Math.max(1, Math.ceil((Number(until) - Date.now()) / MINUTE_MS)));
+
+const clockAt = (until: string) =>
+  new Date(Number(until)).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 const MEGABYTE = 1_000_000;
 
 // Folio's room is a round figure, and «25.0 MB» would read like something measured.
@@ -333,9 +359,17 @@ export function plainly(problem: unknown): string {
     return technical(refusal.name ?? refusal.code);
   }
   if (refusal.code === "cloudSpent") return fill(refusal.code, refusal.name ?? "", budgetResets());
+  if (FIGURED.includes(refusal.code) && refusal.name) {
+    const said = figured(refusal.code, refusal.name);
+    if (said) return said;
+  }
   if (WEIGHED.includes(refusal.code) && refusal.name) {
     return fill(refusal.code, roomOf(Number(refusal.name)));
   }
+  if (refusal.code === "folioWait" && refusal.name)
+    return fill(refusal.code, minutesTo(refusal.name));
+  if (refusal.code === "folioQuota" && refusal.name)
+    return fill(refusal.code, clockAt(refusal.name));
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }
 

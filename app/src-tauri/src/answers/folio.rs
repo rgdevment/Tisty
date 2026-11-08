@@ -24,7 +24,6 @@ use crate::{Answer, Refusal, Session, held};
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
 const PATIENCE: Duration = Duration::from_secs(120);
 const TERMS_TO_ACCEPT: &str = "folioTermsToAccept";
-const NEW_KEY_BYTES_AT_MOST: u64 = 25_000_000;
 const ANSWER_AT_MOST: u64 = 64 * 1024 * 1024;
 const FIRST_TERM_DAYS: u64 = 1;
 
@@ -88,12 +87,16 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
         Stopped::Garbled => Refusal::of("folioGarbled"),
         Stopped::Refused(refused) => match refused {
             Refused::SharesFull => Refusal::of("folioFull"),
-            Refused::RoomFull => Refusal::of("folioRoomFull"),
+            Refused::RoomFull {
+                held: Some(held),
+                arriving: Some(arriving),
+                at_most: Some(most),
+            } => Refusal::about("folioRoomFullOf", format!("{held} {arriving} {most}")),
+            Refused::RoomFull { .. } => Refusal::of("folioRoomFull"),
             Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
             Refused::TooBig => Refusal::of("folioTooBig"),
-            Refused::Slow { until } | Refused::Quota { until } => {
-                Refusal::about("folioWait", until.to_string())
-            }
+            Refused::Slow { until } => Refusal::about("folioWait", until.to_string()),
+            Refused::Quota { until } => Refusal::about("folioQuota", until.to_string()),
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
             Refused::Terms { version } => version.clone().map_or_else(
                 || Refusal::of(TERMS_TO_ACCEPT),
@@ -227,21 +230,45 @@ fn press_given_back(refused: Refusal, home: &std::path::Path, id: &str, at: u64)
 
 // Folio holds both against the owner's key without saying whose, and an editor signs with their own.
 fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Path) -> Refusal {
+    let limits = || folio_limits::kept(home);
     match (refused.code, owning) {
         ("folioKeyBlocked", false) => Refusal::of("folioOwnerKeyBlocked"),
-        ("folioRoomFull", _) => {
-            let most = folio_limits::kept(home)
-                .and_then(|limits| limits.new_key_bytes_at_most)
-                .unwrap_or(NEW_KEY_BYTES_AT_MOST);
-            let code = if owning {
-                "folioRoomFull"
-            } else {
-                "folioOwnerRoomFull"
-            };
-            Refusal::about(code, most.to_string())
+        ("folioRoomFullOf", false) => Refusal {
+            code: "folioOwnerRoomFullOf",
+            ..refused
+        },
+        ("folioRoomFull", true) => {
+            numbered("folioRoomFull", "folioRoomFullAll", key_room(limits()))
         }
+        ("folioRoomFull", false) => numbered(
+            "folioOwnerRoomFull",
+            "folioOwnerRoomFullAll",
+            key_room(limits()),
+        ),
+        ("folioFull", _) => numbered(
+            "folioFullOf",
+            "folioFull",
+            limits().and_then(|one| one.shares_at_most),
+        ),
+        ("folioLanguagesFull", _) => numbered(
+            "folioLanguagesFullOf",
+            "folioLanguagesFull",
+            limits().and_then(|one| one.languages_at_most),
+        ),
         _ => refused,
     }
+}
+
+fn key_room(limits: Option<folio_limits::FolioLimits>) -> Option<u64> {
+    limits.and_then(|one| one.key_bytes_at_most)
+}
+
+// Folio's own figure when its signed limits name one, and words that need none when they do not.
+fn numbered(with: &'static str, without: &'static str, most: Option<u64>) -> Refusal {
+    most.map_or_else(
+        || Refusal::of(without),
+        |one| Refusal::about(with, one.to_string()),
+    )
 }
 
 fn delivered_or_asked_again(refused: Refusal, home: &std::path::Path, tongue: Tongue) -> Refusal {

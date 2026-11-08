@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { finishWhatIsAsked } from "../finishing";
 import { adopt } from "../locales";
 import { plainly } from "../refusal";
-import { docSealed, type Told, toldPlainly } from "../sharing";
+import { docSealed, type Told, toldLines, toldPlainly } from "../sharing";
 
 const invoked = vi.hoisted(() => vi.fn());
 const finished = vi.hoisted(() => vi.fn());
@@ -115,5 +115,57 @@ describe("a window nobody sees", () => {
     finished.mockRejectedValue(new Error("no"));
     await finishWhatIsAsked();
     expect(invoked).toHaveBeenLastCalledWith("finishing_answered", { answers: null });
+  });
+});
+
+describe("what goes as attachments", () => {
+  const attached = (name: string, document = "Guide", plays: string | null = null): Told => ({
+    what: "asAttachment",
+    document,
+    name,
+    plays,
+  });
+
+  it("calls it an attachment, never a picture, and says one alone", () => {
+    expect(toldLines([attached("vet-card.pdf")])).toEqual([
+      "In Guide, vet-card.pdf goes as an attachment to download",
+    ]);
+  });
+
+  it("gathers a document's attachments into one line, naming two and counting the rest", () => {
+    const told = ["vet-card.pdf", "walks.csv", "walks.html", "notes.txt", "map.kml"].map((one) =>
+      attached(one),
+    );
+    expect(toldLines(told)).toEqual([
+      "In Guide, vet-card.pdf, walks.csv and 3 more go as attachments to download",
+    ]);
+    expect(toldLines(told.slice(0, 3))).toEqual([
+      "In Guide, vet-card.pdf, walks.csv and walks.html go as attachments to download",
+    ]);
+  });
+
+  it("says what the web plays apart, and keeps each document's line its own", () => {
+    expect(
+      toldLines([
+        attached("bark.mp3", "Guide", "audio"),
+        attached("vet-card.pdf"),
+        attached("walk.mp4", "Guide", "video"),
+        attached("page.pdf", "Rina"),
+      ]),
+    ).toEqual([
+      "In Guide, bark.mp3 can be heard on the web",
+      "In Guide, vet-card.pdf goes as an attachment to download",
+      "In Guide, walk.mp4 can be watched on the web",
+      "In Rina, page.pdf goes as an attachment to download",
+    ]);
+  });
+
+  it("says any other way the web opens it apart, and never gathers it", () => {
+    expect(toldLines([attached("map.pdf", "Guide", "document"), attached("vet-card.pdf")])).toEqual(
+      [
+        "In Guide, map.pdf can be opened on the web",
+        "In Guide, vet-card.pdf goes as an attachment to download",
+      ],
+    );
   });
 });
