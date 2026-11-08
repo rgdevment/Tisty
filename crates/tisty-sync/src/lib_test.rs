@@ -265,6 +265,7 @@ fn a_document_that_is_a_link_to_a_secret_never_becomes_one_of_ours() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 file: "uno-0001".into(),
