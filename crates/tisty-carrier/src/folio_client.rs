@@ -68,7 +68,14 @@ pub enum Refused {
     Missing,
     Behind,
     SharesFull,
-    RoomFull,
+    RoomFull {
+        #[serde(default)]
+        held: Option<u64>,
+        #[serde(default)]
+        arriving: Option<u64>,
+        #[serde(default, rename = "atMost")]
+        at_most: Option<u64>,
+    },
     LanguagesFull,
     MachinesFull,
     TooBig,

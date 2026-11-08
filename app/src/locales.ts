@@ -673,11 +673,15 @@ const en = {
   folioGarbled: "Folio answered something Tisty could not read. Try again in a moment.",
   folioFull:
     "You already share as many documents as Folio takes for now. Stop sharing one to share this one.",
+  folioFullOf: "You already share {name} documents at a time. Stop sharing one to share this one.",
   folioLanguagesFull:
     "Folio already holds as many languages of this document as it takes. Stop sharing one of them to add another.",
+  folioLanguagesFullOf:
+    "This document already has {name} languages shared. Stop sharing one of them to add another.",
   folioTooBig: "This document is larger than Folio takes.",
-  folioWait: "Folio asks to wait a moment before trying again.",
-  folioUploadsOff: "Folio paused uploads for now. Links already out can still be read.",
+  folioWait: "Wait {name} min to upload another version.",
+  folioQuota: "Folio received many uploads from your network. Try again at {name}.",
+  folioUploadsOff: "Folio isn't taking documents for now. What you already shared stays available.",
   folioClosed: "Sharing with Folio isn't available yet.",
   folioPaused: "This document is paused. Resume it to send a new version.",
   folioBlocked: "Reports closed this link, so Folio takes nothing more for it.",
@@ -696,15 +700,32 @@ const en = {
   folioOwnerKeyBlocked:
     "Folio blocked the key of this document's owner. New versions can't be uploaded.",
   folioRoomFull:
-    "While your key is new, your documents hold up to {name}. Wait for one to expire or stop sharing one.",
+    "Your shared documents already take the {name} your key holds. Stop sharing one or wait for one to expire.",
+  folioRoomFullAll:
+    "Your shared documents already take all the room your key has. Stop sharing one or wait for one to expire.",
+  folioRoomFullOf:
+    "Your shared documents take {held} of {most} and this one weighs {arriving}. Stop sharing one or wait for one to expire.",
+  folioOwnerRoomFullOf:
+    "The owner's documents take {held} of {most} and this version weighs {arriving}. More can be uploaded once one of them expires.",
   folioOwnerRoomFull:
-    "The key of this document's owner is new and their documents already hold {name}. More can be uploaded once one of them expires.",
+    "The owner's documents already take the {name} their key holds. More can be uploaded once one of them expires.",
+  folioOwnerRoomFullAll:
+    "The owner's documents already take all the room their key has. More can be uploaded once one of them expires.",
   folioTermsToAccept: "Folio's terms changed. Read and accept them to keep uploading.",
   folioAppealed: "This block was already appealed, or nothing is blocked now.",
   shareOverHead: "It carries more than Folio takes for now",
-  shareOverWhy: "Take out some pictures or attachments to share it.",
   shareOverPicture:
-    "One picture weighs {name}, and each can weigh up to {other}. Make it smaller or take it out.",
+    "The picture {name} weighs more than {other}, what Folio takes for each picture. Make it smaller or take it out.",
+  shareOverPictures:
+    "It carries {name} pictures and Folio takes up to {other} for each document. Take some out to share it.",
+  shareOverPicturesBytes:
+    "Its pictures weigh {name} and Folio takes up to {other} for each document. Take some out to share it.",
+  shareOverFiles:
+    "It carries {name} attachments and Folio takes up to {other} for each document. Take some out to share it.",
+  shareOverFilesBytes:
+    "Its attachments weigh {name} and Folio takes up to {other} for each document. Take some out to share it.",
+  shareOverWhole:
+    "Its words, pages and pictures weigh {name} and Folio takes up to {other} for them in each document, attachments apart. Take some pictures out to share it.",
   shareAppeal: "Appeal…",
   shareAppealAccepted:
     "Your appeal was accepted: someone else signed what was reported. Press Sync to send your own version, which lifts the block.",
@@ -866,6 +887,17 @@ const en = {
   cannotFinish: "Its code and diagrams could not be drawn. Try again in a moment.",
   toldPictureAsFile:
     "In {other}, the picture {name} goes as a file to download, because it cannot be drawn",
+  toldAsAttachment: "In {other}, {name} goes as an attachment to download",
+  toldAsAttachments: "In {other}, {name} go as attachments to download",
+  toldPlaysSound: "In {other}, {name} can be heard on the web",
+  toldPlaysVideo: "In {other}, {name} can be watched on the web",
+  toldPlaysOther: "In {other}, {name} can be opened on the web",
+  shareOverSomePicture:
+    "One picture weighs {name} and Folio takes up to {other} for each picture. Make it smaller or take it out.",
+  shareNoTerms:
+    "Folio has not said how long a link can last, so it cannot be shared yet. Try again in a moment.",
+  toldMore: "{name} more",
+  toldAnd: " and ",
   toldPictureAsWords:
     "In {other}, the picture {name} goes as its words, because it is no longer here or is too large to travel",
   toldPictureAsLink: "In {other}, the picture at {name} goes as a link to it",
@@ -3571,11 +3603,17 @@ const es: Catalog = {
   folioGarbled: "Folio respondió algo que Tisty no pudo leer. Vuelve a intentarlo en un momento.",
   folioFull:
     "Ya compartes todos los documentos que Folio acepta por ahora. Deja de compartir uno para compartir este.",
+  folioFullOf:
+    "Ya compartes {name} documentos a la vez. Deja de compartir uno para compartir este.",
   folioLanguagesFull:
     "Folio ya tiene todos los idiomas de este documento que acepta. Deja de compartir uno para agregar otro.",
+  folioLanguagesFullOf:
+    "Este documento ya tiene {name} idiomas compartidos. Deja de compartir uno para agregar otro.",
   folioTooBig: "Este documento es más grande de lo que acepta Folio.",
-  folioWait: "Folio pide esperar un poco antes de volver a intentarlo.",
-  folioUploadsOff: "Folio pausó las subidas por ahora. Los links que ya existen se siguen leyendo.",
+  folioWait: "Espera {name} min para subir otra versión.",
+  folioQuota: "Folio recibió muchas subidas desde tu red. Vuelve a intentarlo a las {name}.",
+  folioUploadsOff:
+    "Folio no está recibiendo documentos por ahora. Lo que ya compartiste sigue disponible.",
   folioClosed: "Compartir con Folio todavía no está disponible.",
   folioPaused: "Este documento está en pausa. Reanúdalo para enviar una versión nueva.",
   folioBlocked: "Las denuncias cerraron este link, así que Folio no recibe nada más para él.",
@@ -3595,15 +3633,32 @@ const es: Catalog = {
   folioOwnerKeyBlocked:
     "Folio bloqueó la llave del dueño de este documento. No se pueden subir versiones nuevas.",
   folioRoomFull:
-    "Mientras tu llave es nueva, tus documentos guardan hasta {name}. Espera a que alguno caduque o deja de compartir uno.",
+    "Tus documentos compartidos ya ocupan los {name} de tu llave. Deja de compartir alguno o espera a que caduque.",
+  folioRoomFullAll:
+    "Tus documentos compartidos ya ocupan todo el espacio de tu llave. Deja de compartir alguno o espera a que caduque.",
+  folioRoomFullOf:
+    "Tus documentos compartidos ocupan {held} de {most} y este pesa {arriving}. Deja de compartir alguno o espera a que caduque.",
+  folioOwnerRoomFullOf:
+    "Los documentos del dueño ocupan {held} de {most} y esta versión pesa {arriving}. Se podrá subir más cuando alguno caduque.",
   folioOwnerRoomFull:
-    "La llave del dueño de este documento es nueva y sus documentos ya guardan {name}. Podrá subir más cuando alguno caduque.",
+    "Los documentos del dueño ya ocupan los {name} de su llave. Se podrá subir más cuando alguno caduque.",
+  folioOwnerRoomFullAll:
+    "Los documentos del dueño ya ocupan todo el espacio de su llave. Se podrá subir más cuando alguno caduque.",
   folioTermsToAccept: "Folio cambió sus términos. Léelos y acéptalos para seguir subiendo.",
   folioAppealed: "Este bloqueo ya se reclamó, o ya no hay nada bloqueado.",
   shareOverHead: "Lleva más de lo que Folio acepta por ahora",
-  shareOverWhy: "Quita algunas imágenes o adjuntos para compartirlo.",
   shareOverPicture:
-    "Una imagen pesa {name}, y cada una puede pesar hasta {other}. Redúcela o quítala.",
+    "La imagen {name} pesa más de {other}, lo que Folio acepta por imagen. Redúcela o quítala.",
+  shareOverPictures:
+    "Lleva {name} imágenes y Folio acepta hasta {other} por documento. Quita algunas para compartirlo.",
+  shareOverPicturesBytes:
+    "Sus imágenes pesan {name} y Folio acepta hasta {other} por documento. Quita algunas para compartirlo.",
+  shareOverFiles:
+    "Lleva {name} adjuntos y Folio acepta hasta {other} por documento. Quita algunos para compartirlo.",
+  shareOverFilesBytes:
+    "Sus adjuntos pesan {name} y Folio acepta hasta {other} por documento. Quita algunos para compartirlo.",
+  shareOverWhole:
+    "Sus palabras, páginas e imágenes pesan {name} y Folio acepta hasta {other} por documento, aparte de los adjuntos. Quita algunas imágenes para compartirlo.",
   shareAppeal: "Reclamar…",
   shareAppealAccepted:
     "Se aceptó tu reclamo: otra persona firmó lo denunciado. Presiona Sincronizar para enviar tu propia versión, que levanta el bloqueo.",
@@ -3766,6 +3821,17 @@ const es: Catalog = {
     "No se pudieron dibujar su código y sus diagramas. Inténtalo de nuevo en un momento.",
   toldPictureAsFile:
     "En {other}, la imagen {name} va como archivo para descargar, porque no se puede dibujar",
+  toldAsAttachment: "En {other}, {name} va como adjunto para descargar",
+  toldAsAttachments: "En {other}, {name} van como adjuntos para descargar",
+  toldPlaysSound: "En {other}, {name} se podrá escuchar en la web",
+  toldPlaysVideo: "En {other}, {name} se podrá ver en la web",
+  toldPlaysOther: "En {other}, {name} se podrá abrir en la web",
+  shareOverSomePicture:
+    "Una imagen pesa {name} y Folio acepta hasta {other} por imagen. Redúcela o quítala.",
+  shareNoTerms:
+    "Folio no ha dicho cuánto puede durar un link, así que todavía no se puede compartir. Vuelve a intentarlo en un momento.",
+  toldMore: "{name} más",
+  toldAnd: " y ",
   toldPictureAsWords:
     "En {other}, la imagen {name} va como sus palabras, porque ya no está aquí o es demasiado grande para viajar",
   toldPictureAsLink: "En {other}, la imagen de {name} va como un enlace a ella",

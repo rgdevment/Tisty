@@ -20,7 +20,6 @@ use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
-const LANGUAGES_AT_MOST: usize = 20;
 
 pub struct Desk<'a> {
     pub paths: &'a Paths,
@@ -520,7 +519,7 @@ impl Gathering<'_> {
                 .into_iter()
                 .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
                 .count();
-        let top = self.under.languages_at_most.unwrap_or(LANGUAGES_AT_MOST);
+        let top = self.under.languages_at_most.unwrap_or(usize::MAX);
         if taken > top {
             return Err(Unshared::LanguagesFull);
         }

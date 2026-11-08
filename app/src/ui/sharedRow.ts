@@ -11,7 +11,7 @@ import {
   shareStatus,
   shareStop,
   shareSync,
-  toldPlainly,
+  toldLines,
 } from "../sharing";
 
 const DAY_MS = 86_400_000;
@@ -94,13 +94,11 @@ const termsNote = (synced: { termsUnchecked: boolean }) =>
 
 const syncedWords = (synced: Told) => {
   if (synced.state === "unchanged")
-    return [t("shareSyncUnchanged"), ...synced.told.map(toldPlainly), ...termsNote(synced)].join(
-      " ",
-    );
+    return [t("shareSyncUnchanged"), ...toldLines(synced.told), ...termsNote(synced)].join(" ");
   if (synced.state === "sent")
     return [
       fill("shareSyncSent", String(synced.version)),
-      ...synced.told.map(toldPlainly),
+      ...toldLines(synced.told),
       ...termsNote(synced),
     ].join(" ");
   const other = fill("shareSyncOther", String(synced.version), synced.signer);

@@ -120,6 +120,16 @@ impl Home {
         self.gathered_with(asked, &|_| None)
     }
 
+    pub fn gathered_within(&self, asked: &Asked, top: usize) -> Gathered {
+        let desk = Desk {
+            paths: &self.paths,
+            state: &self.state,
+            also: None,
+            turned: &|_| None,
+        };
+        tisty_sharing::gathered_within(&desk, asked, Some(top)).unwrap()
+    }
+
     pub fn sealed(&self, mut gathered: Gathered, answers: Vec<Finished>) -> Sealed {
         gathered.finished(answers).unwrap();
         let (key, certificate) = self.signer();

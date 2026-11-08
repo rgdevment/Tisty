@@ -125,23 +125,80 @@ describe("what travels with a document", () => {
 
   it("says which limit a picture passed, since the row counts only the total", async () => {
     await opened(
-      { pictures: 1, picturesBytes: 1_200_000, largestPicture: 1_200_000 },
+      {
+        pictures: 1,
+        picturesBytes: 1_200_000,
+        largestPicture: 1_200_000,
+        largestPictureName: "rina.jpg",
+      },
       { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
     );
 
     expect(
-      screen.getByText(fill("shareOverPicture", weigh(1_200_000), weigh(1_000_000))),
+      screen.getByText(
+        fill("shareOverPicture", `rina.jpg (${weigh(1_200_000)})`, weigh(1_000_000)),
+      ),
     ).toBeTruthy();
-    expect(screen.queryByText(t("shareOverWhy"))).toBeNull();
   });
 
-  it("asks to take something out when it is the total that passed", async () => {
+  it("says how many it carries and how many Folio takes when a count passed", async () => {
     await opened(
       { pictures: 11, picturesBytes: 1_200_000, largestPicture: 500_000 },
       { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
     );
 
-    expect(screen.getByText(t("shareOverWhy"))).toBeTruthy();
+    expect(screen.getByText(fill("shareOverPictures", "11", "10"))).toBeTruthy();
+  });
+
+  it("weighs the words, pages and pictures apart from the attachments", async () => {
+    await opened(
+      {
+        pictures: 2,
+        picturesBytes: 1_000_000,
+        mainBytes: 26_000_000,
+        files: 1,
+        filesBytes: 20_000_000,
+      },
+      { files_bytes_at_most: 24_000_000, envelope_bytes_at_most: 24_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverWhole", weigh(26_000_000), weigh(24_000_000))),
+    ).toBeTruthy();
+  });
+
+  it("says how heavy a picture is when its name is unknown", async () => {
+    await opened(
+      {
+        pictures: 1,
+        picturesBytes: 1_200_000,
+        largestPicture: 1_200_000,
+        largestPictureName: null,
+      },
+      { picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverSomePicture", weigh(1_200_000), weigh(1_000_000))),
+    ).toBeTruthy();
+  });
+
+  it("says why it cannot share when Folio names no duration", async () => {
+    await opened({}, {});
+
+    expect(screen.getByText(t("shareNoTerms"))).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: t("shareGo") }).disabled).toBe(
+      true,
+    );
+  });
+
+  it("lets attachments under their own ceiling pass, whatever the words weigh", async () => {
+    await opened(
+      { mainBytes: 1_000_000, files: 1, filesBytes: 23_000_000 },
+      { files_bytes_at_most: 24_000_000, envelope_bytes_at_most: 24_000_000 },
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("names one page apart, and says no room it was not told of", async () => {
