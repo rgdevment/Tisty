@@ -101,6 +101,8 @@ describe("a computer with nothing to sign with", () => {
     shown();
 
     expect(await screen.findByText(t("shareIdentityWhy"))).toBeTruthy();
+    await userEvent.click(screen.getByText(t("shareIdentityMore")));
+    expect(screen.getByText(t("shareIdentityFolioSaid"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("shareGo") })).toBeNull();
     await userEvent.click(await screen.findByRole("button", { name: t("shareIdentityMake") }));
 

@@ -61,6 +61,18 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 A [widget](Widgets) runs nothing and names nothing outside itself. An attached `.html` file is only a file: Tisty never runs it.
 
+## Your identity when you share
+
+**What it is.** A pair of keys Tisty makes on this computer. One is secret and never leaves your computers; the other is public and only serves to check your signature.
+
+**What it is for.** Tisty signs each document you share with it. Whoever opens it sees a fingerprint, a row of numbers that is always the same for you: that is how they know two documents come from the same person and that nobody altered them. You can sign with an alias; it does not have to be your name.
+
+**What Folio sees.** Your document is encrypted on this computer before it leaves. The key that opens it travels inside the link, after the #, and that part never reaches Folio, so Folio cannot read the title or what you wrote. It sees your public key, to tell that two documents come from the same person, and never your name or your email.
+
+**Your 24-word phrase.** It is your identity's backup: with it, your other computers sign as you. Keep it outside Tisty, on paper or in a PDF apart. If you lose the phrase and all your computers, the identity cannot be recovered. Nobody from Tisty or Folio will ever ask you for it.
+
+**If you lose a computer.** Remove it in Settings › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.
+
 ## No AI
 
 Tisty does not use AI or machine learning on your data, and sends nothing to any model. The natural language is deterministic rules on your machine.

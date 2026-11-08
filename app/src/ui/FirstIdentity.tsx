@@ -7,6 +7,14 @@ import Modal from "./Modal";
 import Phrasing from "./Phrasing";
 import { mild, strong } from "./Rows";
 
+const EXPLAINED = [
+  ["shareIdentityWhatHead", "shareIdentityWhatSaid"],
+  ["shareIdentityForHead", "shareIdentityForSaid"],
+  ["shareIdentityFolioHead", "shareIdentityFolioSaid"],
+  ["shareIdentityPhraseHead", "shareIdentityPhraseSaid"],
+  ["shareIdentityLostHead", "shareIdentityLostSaid"],
+] as const;
+
 export default function FirstIdentity({
   onReady,
   onClose,
@@ -48,7 +56,18 @@ export default function FirstIdentity({
   return (
     <Modal title={t("shareIdentityTitle")} onClose={onClose} wide>
       <div className="flex flex-col gap-3">
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("shareIdentityWhy")}</p>
+        <p className="text-[12.5px] leading-relaxed">{t("shareIdentityWhy")}</p>
+        <details className="rounded-[10px] border border-hair px-3.5 py-2.5 text-[12.5px]">
+          <summary className="cursor-pointer font-semibold">{t("shareIdentityMore")}</summary>
+          <dl className="mt-2 flex flex-col gap-2 leading-relaxed">
+            {EXPLAINED.map(([head, said]) => (
+              <div key={head}>
+                <dt className="font-semibold">{t(head)}</dt>
+                <dd className="text-soft">{t(said)}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
         {shown?.elsewhere && (
           <p className="text-[12.5px] leading-relaxed">{t("shareIdentityElsewhere")}</p>
         )}
