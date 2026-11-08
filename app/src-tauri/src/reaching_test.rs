@@ -100,6 +100,32 @@ fn a_word_is_never_followed_elsewhere_nor_read_past_what_it_can_weigh() {
     assert_eq!(held.len(), policy::READ_AT_MOST + 1);
 }
 
+fn serving(bytes: usize) -> String {
+    let answer: &'static [u8] = Box::leak(
+        [
+            format!("HTTP/1.1 200 OK\r\nContent-Length: {bytes}\r\n\r\n").into_bytes(),
+            vec![b'x'; bytes],
+        ]
+        .concat()
+        .into_boxed_slice(),
+    );
+    served(answer)
+}
+
+#[test]
+fn folio_s_terms_come_whole_past_what_the_cloud_s_word_can_weigh() {
+    let held = brought_from_folio(&serving(17_000)).unwrap();
+
+    assert_eq!(held.len(), 17_000);
+}
+
+#[test]
+fn a_file_from_folio_past_its_measure_is_not_taken_cut() {
+    let over = usize::try_from(FOLIO_FILE_AT_MOST).unwrap() + 1;
+
+    assert_eq!(brought_from_folio(&serving(over)), None);
+}
+
 #[test]
 fn a_build_without_the_maintainer_s_key_never_asks() {
     let home = tempfile::tempdir().unwrap();

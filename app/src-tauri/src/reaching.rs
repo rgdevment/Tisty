@@ -17,6 +17,8 @@ const POLICY_SIGNED: &str =
 const POLICY_ASKED: &str = "cloud-policy-asked";
 const POLICY_EVERY: Duration = Duration::from_secs(60 * 60);
 const PATIENCE: Duration = Duration::from_secs(10);
+// Folio's terms are a whole text, so the cloud's small signed word is no measure for them.
+const FOLIO_FILE_AT_MOST: u64 = 512 * 1024;
 
 // Built once per account and handed back, so Drive's listing outlives a command.
 pub struct Reaching {
@@ -391,8 +393,16 @@ pub fn heed(home: &Path, provider: &str) {
     }
 }
 
-// No redirect is followed and no more is read than a word can weigh, whatever the answer says it holds.
 pub(crate) fn brought(url: &str) -> Option<Vec<u8>> {
+    read_up_to(url, policy::READ_AT_MOST as u64)
+}
+
+pub(crate) fn brought_from_folio(url: &str) -> Option<Vec<u8>> {
+    read_up_to(url, FOLIO_FILE_AT_MOST).filter(|held| held.len() as u64 <= FOLIO_FILE_AT_MOST)
+}
+
+// No redirect is followed and no more is read than what is asked for can weigh, whatever the answer says it holds.
+fn read_up_to(url: &str, most: u64) -> Option<Vec<u8>> {
     let answer = reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
         .redirect(reqwest::redirect::Policy::none())
@@ -406,10 +416,7 @@ pub(crate) fn brought(url: &str) -> Option<Vec<u8>> {
         return None;
     }
     let mut held = Vec::new();
-    answer
-        .take(policy::READ_AT_MOST as u64 + 1)
-        .read_to_end(&mut held)
-        .ok()?;
+    answer.take(most + 1).read_to_end(&mut held).ok()?;
     Some(held)
 }
 
