@@ -519,12 +519,12 @@ happens on its own:
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
 
-The part worth knowing before you open it: **whatever that assistant reads, it
-takes with it.** If it runs against a service, then the moment you ask it to
+The part worth knowing before you connect one: **whatever that assistant reads,
+it takes with it.** If it runs against a service, then the moment you ask it to
 look, what it looks at is on its way to that service. Tisty still sends
 nothing — but this door is real, and besides syncing and sharing a document by
-link it is the only thing here that can carry your data off this machine. Which
-is why it stays shut until you open it, and why closing it is one click.
+link it is the only thing here that can carry your data off this machine. It
+comes open on a new install, which is why closing it is one click.
 
 ## Children's privacy
 
