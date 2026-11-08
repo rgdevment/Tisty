@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -1721,7 +1721,10 @@
           "\\",
           "image(",
           "image-set(",
-          "src("
+          "src(",
+          "expression(",
+          "-moz-binding",
+          "behavior:"
         ],
         "css_urls": "In CSS, url() holds a data: address of an image, or names something in its own drawing as url(#name)."
       },
@@ -1906,6 +1909,27 @@
           "says": "A picture set from an address.",
           "value": {
             "body": "<style>p{background:image-set(\"https://example.com/a.png\" 1x)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old way of running code from a style, in a style attribute.",
+          "value": {
+            "body": "<div style=\"width:expression(alert(1))\"></div>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old binding that runs code from a stylesheet.",
+          "value": {
+            "body": "<style>div{-moz-binding:url(#x)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old behavior that runs code from a stylesheet.",
+          "value": {
+            "body": "<style>div{behavior:url(#x)}</style>"
           },
           "holds": false
         },
@@ -7357,7 +7381,10 @@
       "\\",
       "image(",
       "image-set(",
-      "src("
+      "src(",
+      "expression(",
+      "-moz-binding",
+      "behavior:"
     ],
     "policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
     "bytes": 512000,
