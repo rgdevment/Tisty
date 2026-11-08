@@ -435,6 +435,12 @@ cases:
   - says: "Words that only name one of those ways, in what a style shows."
     value: { body: '<style>.tip::after{content:"behavior: calm, no -moz-binding: here"}</style>' }
     holds: true
+  - says: "What a style shows may hold parentheses and semicolons of its own."
+    value: { body: '<div style="--a:1"></div><style>.n::before{content:"see image (1); behavior: calm"}.m::after{content:''src (2)''}</style>' }
+    holds: true
+  - says: "An escape is still an escape between quotes."
+    value: { body: '<style>p::before{content:"\41"}</style>' }
+    holds: false
   - says: "A drawing that paints from an address."
     value: { body: '<svg><rect fill="url(https://example.com/a.svg#g)"/></svg>' }
     holds: false

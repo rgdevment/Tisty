@@ -1128,17 +1128,28 @@ fn bare_of(said: &str) -> String {
     said.chars().filter(|one| *one > ' ').collect()
 }
 
-// Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
-// Spaces and comments change nothing a browser reads, so they hide nothing here either.
+// What a style shows between quotes runs nothing, and spaces and comments hide nothing; only an escape is kept from the quotes.
 fn flat_css(said: &str) -> String {
-    let mut kept = String::with_capacity(said.len());
+    let mut out = String::from(";");
     let mut rest = said;
-    while let Some(open) = rest.find("/*") {
-        kept.push_str(&rest[..open]);
-        rest = rest[open + 2..].find("*/").map_or("", |close| &rest[open + 2 + close + 2..]);
+    while let Some(one) = rest.chars().next() {
+        if one == '"' || one == '\'' {
+            let after = &rest[1..];
+            let end = after.find(one).unwrap_or(after.len());
+            out.push(one);
+            out.extend(after[..end].chars().filter(|kept| *kept == '\\'));
+            out.push(one);
+            rest = after.get(end + 1..).unwrap_or("");
+        } else if let Some(after) = rest.strip_prefix("/*") {
+            rest = after.find("*/").map_or("", |close| &after[close + 2..]);
+        } else {
+            if one > ' ' {
+                out.push(one);
+            }
+            rest = &rest[one.len_utf8()..];
+        }
     }
-    kept.push_str(rest);
-    format!(";{}", bare_of(&kept))
+    out
 }
 
 // A word that ends in a colon is a property, so only where a property starts.
@@ -1150,6 +1161,7 @@ fn says_never(flat: &str, one: &str) -> bool {
     }
 }
 
+// Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
 fn wrong_in_css(all: &Value, css: &str) -> Vec<String> {
     let said = css.to_ascii_lowercase();
     let flat = flat_css(&said);
