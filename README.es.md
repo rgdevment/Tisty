@@ -14,6 +14,8 @@
   con una puerta MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones.
   Sin telemetría. Sin servidor.</strong></p>
 
+  <p>Software por convicción, no por suscripción.</p>
+
   <p>
     <a href="README.md">English</a> ·
     <strong>Español</strong>
@@ -1143,8 +1145,9 @@ telemetría, todo local.
 
 ## Apoyar el proyecto
 
-Tisty es gratis y va a seguir siéndolo: sin anuncios, sin versión premium, sin
-muro de pago. Si te ahorra tiempo y quieres que siga manteniéndose:
+**Software por convicción, no por suscripción.** Tisty es gratis y va a seguir
+siéndolo: sin anuncios, sin versión premium, sin muro de pago. Si te ahorra
+tiempo y quieres que siga manteniéndose:
 
 <p>
   <a href="https://github.com/sponsors/rgdevment">

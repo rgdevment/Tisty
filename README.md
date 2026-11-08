@@ -14,6 +14,8 @@
   your assistant.<br/>No accounts. No subscriptions. No telemetry. No
   server.</strong></p>
 
+  <p>Software out of conviction, not subscription.</p>
+
   <p>
     <strong>English</strong> ·
     <a href="README.es.md">Español</a>
@@ -1116,8 +1118,9 @@ local.
 
 ## Support the Project
 
-Tisty is free and will stay free: no ads, no premium tier, no paywall. If it
-saves you time and you would like it to keep being maintained:
+**Software out of conviction, not subscription.** Tisty is free and will stay
+free: no ads, no premium tier, no paywall. If it saves you time and you would
+like it to keep being maintained:
 
 <p>
   <a href="https://github.com/sponsors/rgdevment">
