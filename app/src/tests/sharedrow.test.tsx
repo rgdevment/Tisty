@@ -104,6 +104,14 @@ describe("the Shared row", () => {
     ],
     [{ state: "sent", version: 2, told: [] }, () => fill("shareSyncSent", "2")],
     [
+      { state: "unchanged", told: [], termsUnchecked: true },
+      () => `${t("shareSyncUnchanged")} ${t("shareTermsUnchecked")}`,
+    ],
+    [
+      { state: "sent", version: 2, told: [], termsUnchecked: true },
+      () => `${fill("shareSyncSent", "2")} ${t("shareTermsUnchecked")}`,
+    ],
+    [
       { state: "otherVersion", version: 3, signer: "Ana", doubtful: false },
       () => fill("shareSyncOther", "3", "Ana"),
     ],

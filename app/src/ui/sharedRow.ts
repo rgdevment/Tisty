@@ -89,13 +89,20 @@ interface Hands {
 
 type Told = Exclude<Awaited<ReturnType<typeof shareSync>>, { state: "secrets" | "gone" }>;
 
+const termsNote = (synced: { termsUnchecked: boolean }) =>
+  synced.termsUnchecked ? [t("shareTermsUnchecked")] : [];
+
 const syncedWords = (synced: Told) => {
   if (synced.state === "unchanged")
-    return [t("shareSyncUnchanged"), ...synced.told.map(toldPlainly)].join(" ");
-  if (synced.state === "sent")
-    return [fill("shareSyncSent", String(synced.version)), ...synced.told.map(toldPlainly)].join(
+    return [t("shareSyncUnchanged"), ...synced.told.map(toldPlainly), ...termsNote(synced)].join(
       " ",
     );
+  if (synced.state === "sent")
+    return [
+      fill("shareSyncSent", String(synced.version)),
+      ...synced.told.map(toldPlainly),
+      ...termsNote(synced),
+    ].join(" ");
   const other = fill("shareSyncOther", String(synced.version), synced.signer);
   return synced.doubtful ? `${other} ${t("shareSyncOtherDoubt")}` : other;
 };

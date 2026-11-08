@@ -22,7 +22,6 @@ import Modal from "./Modal";
 const SECRETS_SHOWN = 3;
 const FOLIO_SITE = "folio.tisty.app";
 const DAYS_FALLBACK = [1, 3, 7, 15];
-const TERMS_AGAIN_MS = 60_000;
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
@@ -394,6 +393,7 @@ function Choosing({
   title,
   look,
   changed,
+  termsUnchecked,
   onShare,
   onClose,
   onLookAgain,
@@ -403,6 +403,7 @@ function Choosing({
   title: string;
   look: ShareLook;
   changed: boolean;
+  termsUnchecked: boolean;
   onShare: (chosen: Parameters<typeof docShared>[1]) => void;
   onClose: () => void;
   onLookAgain: () => void;
@@ -462,6 +463,9 @@ function Choosing({
           </div>
         )}
         {changed && <output className="text-[12.5px] text-soft">{t("folioChanged")}</output>}
+        {termsUnchecked && (
+          <output className="text-[12.5px] text-soft">{t("shareTermsUnchecked")}</output>
+        )}
         <LeftOut told={look.told} />
         {over && (
           <div
@@ -673,6 +677,7 @@ export default function Sharing({
   const again = useRef<Parameters<typeof docShared>[1] | null>(null);
 
   const [changed, setChanged] = useState(false);
+  const [termsUnchecked, setTermsUnchecked] = useState(false);
   const asked = useRef({ onClose, onError, termsOnly });
   asked.current = { onClose, onError, termsOnly };
 
@@ -691,30 +696,26 @@ export default function Sharing({
       .catch(failed);
   }, [doc, failed]);
 
-  const termsSettling = useCallback((then: () => void) => {
-    setStep({ at: "settling" });
-    clearTimeout(retry.current);
-    retry.current = setTimeout(then, TERMS_AGAIN_MS);
-  }, []);
-
-  const termsAgain = useRef(() => {});
   const termsOver = useCallback(() => {
     termsNow()
       .then((terms) => {
         if (!live.current) return;
-        if (terms.state === "toAccept") setStep({ at: "terms", terms });
-        else if (asked.current.termsOnly) asked.current.onClose();
+        if (terms.state === "toAccept") {
+          setStep({ at: "terms", terms });
+          return;
+        }
+        setTermsUnchecked(terms.state === "stillAccepted");
+        if (asked.current.termsOnly) asked.current.onClose();
         else lookOver();
       })
       .catch((problem) => {
         if (live.current && codeOf(problem) === "folioTermsUpdating") {
-          termsSettling(() => termsAgain.current());
+          setStep({ at: "settling" });
           return;
         }
         failed(problem);
       });
-  }, [failed, lookOver, termsSettling]);
-  termsAgain.current = termsOver;
+  }, [failed, lookOver]);
 
   const begin = useCallback(() => {
     if (asked.current.termsOnly) {
@@ -765,7 +766,7 @@ export default function Sharing({
         }
         if (codeOf(problem) === "folioTermsUpdating") {
           again.current = chosen;
-          termsSettling(() => termsAgain.current());
+          setStep({ at: "settling" });
           return;
         }
         if (codeOf(problem) === "folioClosed") {
@@ -810,7 +811,12 @@ export default function Sharing({
       );
     case "settling":
       return (
-        <NothingSent title={t("shareTitle")} why={t("shareTermsSettling")} onClose={onClose} />
+        <NothingSent
+          title={t("shareTitle")}
+          why={t("folioTermsUpdating")}
+          onRetry={begin}
+          onClose={onClose}
+        />
       );
     case "terms":
       return (
@@ -823,6 +829,7 @@ export default function Sharing({
           title={title}
           look={step.look}
           changed={changed}
+          termsUnchecked={termsUnchecked}
           onShare={share}
           onClose={onClose}
           onLookAgain={lookOver}

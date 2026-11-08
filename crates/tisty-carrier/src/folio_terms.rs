@@ -11,10 +11,9 @@ const TERMS_ES_URL: &str =
 const TERMS_EN_URL: &str =
     "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/TERMS.md";
 const ACCEPTED: &str = "folio-terms-accepted.json";
-const SETTLING: &str = "folio-terms-settling";
-// GitHub keeps each of Folio's files apart for five minutes, so a new text and its print may arrive out of step.
-const SETTLING_FOR: u64 = 6 * 60;
-const SETTLING_FORGOTTEN: u64 = 60 * 60;
+const UNMET: &str = "folio-terms-unmet";
+// GitHub keeps each of Folio's files apart for five minutes, so a print still unmet an hour later is no longer the cache.
+const UNMET_FOR: u64 = 60 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -50,6 +49,7 @@ struct Accepted {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Standing {
     Accepted,
+    StillAccepted,
     ToAccept {
         version: String,
         text: String,
@@ -82,10 +82,22 @@ fn accepted(home: &Path) -> Option<Accepted> {
     policy::kept_at(&home.join(ACCEPTED))
 }
 
+// Read again on each press, so newer terms are asked for as soon as they can be checked.
 fn heard<F: Fn(&str) -> Option<Vec<u8>>>(home: &Path, bring: &F) -> Option<FolioLimits> {
-    match folio_limits::heed(home, bring) {
+    match folio_limits::heed_on_press(home, bring) {
         Some(Ok(limits)) => Some(limits),
-        _ => folio_limits::kept(home).or_else(|| folio_limits::heed_now(home, bring)?.ok()),
+        _ => folio_limits::kept(home),
+    }
+}
+
+// Folio takes the version just before its current one, never one further back.
+fn still_taken(before: &Accepted, limits: Option<&FolioLimits>) -> bool {
+    let Some(terms) = limits.and_then(|limits| limits.terms.as_ref()) else {
+        return true;
+    };
+    match (before.version.parse::<u64>(), terms.version.parse::<u64>()) {
+        (Ok(taken), Ok(current)) => current <= taken.saturating_add(1),
+        _ => true,
     }
 }
 
@@ -94,19 +106,24 @@ fn under<F: Fn(&str) -> Option<Vec<u8>>>(
     before: Option<&Accepted>,
     tongue: Tongue,
     bring: &F,
-) -> Option<Standing> {
+) -> Result<Standing, Unsure> {
     if before.is_some_and(|one| one.version == terms.version) {
-        return Some(Standing::Accepted);
+        return Ok(Standing::Accepted);
     }
-    let said = bring(tongue.url())?;
+    let said = bring(tongue.url()).ok_or(Unsure::NoWord)?;
     if print_of(&said) != tongue.print_in(terms) {
-        return None;
+        return Err(Unsure::Unmatched);
     }
-    Some(Standing::ToAccept {
+    Ok(Standing::ToAccept {
         version: terms.version.clone(),
-        text: String::from_utf8(said).ok()?,
+        text: String::from_utf8(said).map_err(|_| Unsure::Unmatched)?,
         accepted_before: before.map(|one| one.version.clone()),
     })
+}
+
+enum Checked {
+    Standing(Standing),
+    Unmet { long: bool },
 }
 
 pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
@@ -115,54 +132,63 @@ pub fn standing<F: Fn(&str) -> Option<Vec<u8>>>(
     bring: F,
 ) -> Result<Standing, Unsure> {
     let limits = heard(home, &bring);
-    settled(home, standing_under(home, limits, tongue, bring))
-}
-
-fn settled(home: &Path, standing: Result<Standing, Unsure>) -> Result<Standing, Unsure> {
-    if standing.is_ok() {
-        let _ = std::fs::remove_file(home.join(SETTLING));
-    }
-    standing
-}
-
-fn unsettled(home: &Path) -> Unsure {
-    let kept = home.join(SETTLING);
-    let now = policy::now();
-    let since = std::fs::read_to_string(&kept)
-        .ok()
-        .and_then(|said| said.trim().parse::<u64>().ok())
-        .filter(|since| now.saturating_sub(*since) <= SETTLING_FORGOTTEN);
-    match since {
-        Some(since) if now.saturating_sub(since) >= SETTLING_FOR => Unsure::Unmatched,
-        Some(_) => Unsure::Settling,
-        None => {
-            let _ = std::fs::create_dir_all(home);
-            let _ = std::fs::write(&kept, now.to_string());
-            Unsure::Settling
+    let before = accepted(home);
+    let standing_by = before
+        .as_ref()
+        .is_some_and(|one| still_taken(one, limits.as_ref()));
+    match checked(home, limits, before.as_ref(), tongue, &bring) {
+        Ok(Checked::Standing(standing)) => {
+            met(home);
+            Ok(standing)
         }
+        Ok(Checked::Unmet { long }) => match (standing_by, long) {
+            (true, false) => Ok(Standing::Accepted),
+            (true, true) => Ok(Standing::StillAccepted),
+            (false, false) => Err(Unsure::Settling),
+            (false, true) => Err(Unsure::Unmatched),
+        },
+        // Sharing under the terms already accepted needs no text, so one that cannot be brought holds nobody back.
+        Err(Unsure::NoWord) if standing_by => Ok(Standing::Accepted),
+        Err(unsure) => Err(unsure),
     }
 }
 
-fn standing_under<F: Fn(&str) -> Option<Vec<u8>>>(
+fn checked<F: Fn(&str) -> Option<Vec<u8>>>(
     home: &Path,
     limits: Option<FolioLimits>,
+    before: Option<&Accepted>,
     tongue: Tongue,
-    bring: F,
-) -> Result<Standing, Unsure> {
+    bring: &F,
+) -> Result<Checked, Unsure> {
     let limits = limits.ok_or(Unsure::NoWord)?;
     let terms = limits.terms.as_ref().ok_or(Unsure::NotPublished)?;
-    let before = accepted(home);
-    if let Some(standing) = under(terms, before.as_ref(), tongue, &bring) {
-        return Ok(standing);
+    match under(terms, before, tongue, bring) {
+        Ok(standing) => Ok(Checked::Standing(standing)),
+        Err(Unsure::Unmatched) => Ok(Checked::Unmet {
+            long: unmet_long(home, tongue.print_in(terms)),
+        }),
+        Err(unsure) => Err(unsure),
     }
-    // The limits kept here may be up to an hour older than the text just read.
-    folio_limits::heed_now(home, &bring)
-        .and_then(Result::ok)
-        .and_then(|limits| {
-            let terms = limits.terms.as_ref()?;
-            under(terms, before.as_ref(), tongue, &bring)
-        })
-        .ok_or_else(|| unsettled(home))
+}
+
+fn met(home: &Path) {
+    let _ = std::fs::remove_file(home.join(UNMET));
+}
+
+// Each print is timed on its own, so a newer publish starts its own hour.
+fn unmet_long(home: &Path, wanted: &str) -> bool {
+    let kept = home.join(UNMET);
+    let now = policy::now();
+    let since = std::fs::read_to_string(&kept).ok().and_then(|said| {
+        let (since, print) = said.trim().split_once(' ')?;
+        (print == wanted).then(|| since.parse::<u64>().ok())?
+    });
+    if let Some(since) = since {
+        return now.saturating_sub(since) >= UNMET_FOR;
+    }
+    let _ = std::fs::create_dir_all(home);
+    let _ = std::fs::write(&kept, format!("{now} {wanted}"));
+    false
 }
 
 pub fn accepted_version(home: &Path) -> Option<String> {
@@ -180,12 +206,20 @@ pub fn read_again<F: Fn(&str) -> Option<Vec<u8>>>(
         Some(Ok(limits)) => Some(limits),
         _ => folio_limits::kept(home),
     };
-    let standing = standing_under(home, limits, tongue, bring)?;
-    // Folio asks for terms its signed limits do not name yet: they are still on their way here.
-    if standing == Standing::Accepted && asked != accepted_version(home).as_deref() {
-        return Err(unsettled(home));
-    }
-    settled(home, Ok(standing))
+    // Only terms that check out can stand in for the ones Folio refused.
+    let long = match checked(home, limits, accepted(home).as_ref(), tongue, &bring)? {
+        Checked::Standing(standing @ Standing::ToAccept { .. }) => {
+            met(home);
+            return Ok(standing);
+        }
+        Checked::Standing(_) => unmet_long(home, &format!("asked:{}", asked.unwrap_or_default())),
+        Checked::Unmet { long } => long,
+    };
+    Err(if long {
+        Unsure::Unmatched
+    } else {
+        Unsure::Settling
+    })
 }
 
 pub fn accept(home: &Path, tongue: Tongue, version: &str) -> Result<(), Unkept> {
