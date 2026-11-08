@@ -18,6 +18,7 @@ const SIGNATURE_KEPT: &str = "folio-limits.signed.json.minisig";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
 const PRESSED: &str = "folio-limits-pressed";
+const SIGNED_ASKED: &str = "folio-limits-signed-asked";
 // GitHub keeps them five minutes anyway, so a press within a minute of the last learns nothing newer.
 const PRESSED_EVERY: Duration = Duration::from_secs(60);
 const NOTE_AT_MOST: usize = 400;
@@ -221,9 +222,12 @@ pub fn heed_now(
 }
 
 pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> SharingNow {
+    let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
     // Who the maker is lives only in the signed copy, which a Tisty from before it never kept.
-    let due = !home.join(SIGNED_KEPT).is_file() || policy::ask_now(&home.join(ASKED), ASKED_EVERY);
-    match limits_for_sharing(home, due, &bring) {
+    let unsigned = !due
+        && !home.join(SIGNED_KEPT).is_file()
+        && policy::ask_now(&home.join(SIGNED_ASKED), PRESSED_EVERY);
+    match limits_for_sharing(home, due, unsigned, &bring) {
         Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
         Some(limits) => SharingNow::Closed {
             note: limits.sharing_closed_note.map(FolioNote::fit),
@@ -239,16 +243,19 @@ pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> Shar
 fn limits_for_sharing(
     home: &Path,
     due: bool,
+    unsigned: bool,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Option<FolioLimits> {
     let held = kept(home);
-    if !due && held.is_some() {
+    if !due && !unsigned && held.is_some() {
         return held;
     }
-    match heed_now(home, bring)? {
-        Ok(limits) => Some(limits),
-        Err(Refused::Behind { .. }) => held,
-        Err(_) => None,
+    match heed_now(home, bring) {
+        Some(Ok(limits)) => Some(limits),
+        Some(Err(Refused::Behind { .. })) => held,
+        // Asked within the hour only for the signed copy, so what was kept still answers as before.
+        _ if !due => held,
+        _ => None,
     }
 }
 

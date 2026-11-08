@@ -18,7 +18,6 @@ const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const OTHER: &[u8] = include_bytes!("cloud/signed/lowered.json");
 const OTHER_SIG: &str = include_str!("cloud/signed/lowered.json.minisig");
 
-// As a Tisty that accepted signed limits keeps them: the copy it warns from, and the signed one beside it.
 fn kept_as(home: &std::path::Path, limits: &FolioLimits) {
     std::fs::write(home.join(KEPT), serde_json::to_vec(limits).unwrap()).unwrap();
     std::fs::write(home.join(SIGNED_KEPT), REAL).unwrap();
@@ -553,5 +552,31 @@ fn a_tisty_that_never_kept_the_signed_copy_asks_for_it_before_the_hour_is_up() {
         asked.get(),
         0,
         "with the signed copy kept, the hour holds again"
+    );
+}
+
+#[test]
+fn offline_with_no_signed_copy_the_kept_limits_still_answer_and_are_asked_for_once_a_minute() {
+    let home = tempfile::tempdir().unwrap();
+    let before = FolioLimits {
+        serial: 1,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&before).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    let asked = Cell::new(0);
+    let unreached = |_: &str| {
+        asked.set(asked.get() + 1);
+        None
+    };
+
+    assert_eq!(sharing_now(home.path(), unreached), SharingNow::Open);
+    assert_eq!(asked.get(), 1);
+    assert_eq!(sharing_now(home.path(), unreached), SharingNow::Open);
+    assert_eq!(
+        asked.get(),
+        1,
+        "a minute passes before it is asked for again"
     );
 }
