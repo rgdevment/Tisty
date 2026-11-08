@@ -8,6 +8,7 @@ use tisty_contracts::{
     Attachment, Cited, Document, Orientation, Page, Paper, Sealing, Sheet, Translation,
 };
 use tisty_core::model::{DocId, Kept};
+use tisty_core::person::Persons;
 use tisty_core::{Paths, State, docs, person};
 use tisty_envelope::clean;
 use tisty_envelope::family::{Family, Tongue};
@@ -80,14 +81,22 @@ pub fn signer(
     state: &State,
     device: &tisty_core::DeviceId,
 ) -> Option<(ShareKey, Certificate)> {
+    signer_among(paths, &state.persons, device)
+}
+
+pub fn signer_among(
+    paths: &Paths,
+    persons: &Persons,
+    device: &tisty_core::DeviceId,
+) -> Option<(ShareKey, Certificate)> {
     // Asked last: a machine makes its key only once the log names a person.
-    let root = state.persons.person(device)?;
-    let vouched = state.persons.vouched_by(device, &root)?;
+    let root = persons.person(device)?;
+    let vouched = persons.vouched_by(device, &root)?;
     let key = person::mine(paths, device)?;
     if vouched.share != key.public() {
         return None;
     }
-    let certificate = state.persons.certificates.iter().find(|one| {
+    let certificate = persons.certificates.iter().find(|one| {
         one.unchecked().is_some_and(|said| {
             said.person == root && said.share == vouched.share && said.since == vouched.since
         })

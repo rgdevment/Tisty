@@ -18,13 +18,20 @@ const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const OTHER: &[u8] = include_bytes!("cloud/signed/lowered.json");
 const OTHER_SIG: &str = include_str!("cloud/signed/lowered.json.minisig");
 
+// As a Tisty that accepted signed limits keeps them: the copy it warns from, and the signed one beside it.
+fn kept_as(home: &std::path::Path, limits: &FolioLimits) {
+    std::fs::write(home.join(KEPT), serde_json::to_vec(limits).unwrap()).unwrap();
+    std::fs::write(home.join(SIGNED_KEPT), REAL).unwrap();
+    std::fs::write(home.join(SIGNATURE_KEPT), REAL_SIG).unwrap();
+}
+
 fn seeded(serial: u64) -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
     let limits = FolioLimits {
         serial,
         ..FolioLimits::default()
     };
-    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home.path(), &limits);
     home
 }
 
@@ -34,7 +41,7 @@ fn opened(home: &std::path::Path, serial: u64) {
         sharing_open: Some(true),
         ..FolioLimits::default()
     };
-    std::fs::write(home.join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home, &limits);
 }
 
 fn answering_real(url: &str) -> Option<Vec<u8>> {
@@ -59,7 +66,7 @@ fn closed_saying(es: Option<String>, en: Option<String>) -> SharingNow {
         sharing_closed_note: Some(FolioNote { es, en }),
         ..FolioLimits::default()
     };
-    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home.path(), &limits);
     std::fs::write(home.path().join(ASKED), b"").unwrap();
     sharing_now(home.path(), |_| None)
 }
@@ -514,4 +521,37 @@ fn the_maker_comes_as_one_object_with_its_root_and_optionally_its_name_and_domai
 
     let bare: FolioLimits = serde_json::from_slice(br#"{"serial":30,"maker_root":"x"}"#).unwrap();
     assert_eq!(bare.maker, None, "the field it once was names nobody");
+}
+
+#[test]
+fn a_tisty_that_never_kept_the_signed_copy_asks_for_it_before_the_hour_is_up() {
+    let home = tempfile::tempdir().unwrap();
+    let before = FolioLimits {
+        serial: 1,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&before).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    let asked = Cell::new(0);
+    let counting = |url: &str| {
+        asked.set(asked.get() + 1);
+        answering_real(url)
+    };
+
+    sharing_now(home.path(), counting);
+    assert!(
+        asked.get() > 0,
+        "no signed copy is kept yet, so the limits are asked for now"
+    );
+    assert!(home.path().join(SIGNED_KEPT).is_file());
+
+    asked.set(0);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    sharing_now(home.path(), counting);
+    assert_eq!(
+        asked.get(),
+        0,
+        "with the signed copy kept, the hour holds again"
+    );
 }

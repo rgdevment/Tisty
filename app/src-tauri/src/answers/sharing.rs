@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_core::model::DocId;
+use tisty_core::person::Persons;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{DeviceId, Paths, State};
 use tisty_envelope::sealing::Writer;
@@ -44,12 +45,16 @@ fn maker_root(paths: &Paths) -> Option<String> {
     tisty_carrier::folio_limits::maker_root(&paths.private())
 }
 
-pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> Option<Person> {
-    maker_root(paths).and_then(|root| signs_for(paths, state, device, &root))
+pub(super) fn the_maker_among(
+    paths: &Paths,
+    persons: &Persons,
+    device: &DeviceId,
+) -> Option<Person> {
+    maker_root(paths).and_then(|root| signs_for(paths, persons, device, &root))
 }
 
-pub(super) fn the_maker_of(session: &Session) -> bool {
-    the_maker_here(&session.paths, &session.state, &session.config.device_id).is_some()
+pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> Option<Person> {
+    the_maker_among(paths, &state.persons, device)
 }
 
 pub(super) fn doc_id(said: &str) -> Answer<DocId> {

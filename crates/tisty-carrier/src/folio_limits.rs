@@ -221,7 +221,8 @@ pub fn heed_now(
 }
 
 pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> SharingNow {
-    let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
+    // Who the maker is lives only in the signed copy, which a Tisty from before it never kept.
+    let due = !home.join(SIGNED_KEPT).is_file() || policy::ask_now(&home.join(ASKED), ASKED_EVERY);
     match limits_for_sharing(home, due, &bring) {
         Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
         Some(limits) => SharingNow::Closed {

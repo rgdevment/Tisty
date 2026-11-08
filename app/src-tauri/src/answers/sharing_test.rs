@@ -2,7 +2,7 @@ use tisty_envelope::family::Going;
 use tisty_envelope::sealing::{Refused, Sealed as Envelopes};
 use tisty_sharing::{Told, Unshared};
 
-use super::{doc_id, refused, summed_up, the_maker_of};
+use super::{doc_id, refused, summed_up, the_maker_here};
 
 #[test]
 fn each_reason_is_said_in_words_the_window_knows() {
@@ -120,16 +120,16 @@ fn limits_nobody_signed_make_nobody_the_maker_even_naming_this_root() {
     let mine = root.shown();
 
     assert!(
-        !the_maker_of(&session),
+        the_maker_here(&session.paths, &session.state, &session.config.device_id).is_none(),
         "with no limits nobody is the maker"
     );
     limits_naming(&session, &mine);
     let here = &session.config.device_id;
     assert_eq!(
-        tisty_sharing::signs_for(&session.paths, &session.state, here, &mine),
+        tisty_sharing::signs_for(&session.paths, &session.state.persons, here, &mine),
         Some(root)
     );
-    assert!(!the_maker_of(&session));
+    assert!(the_maker_here(&session.paths, &session.state, &session.config.device_id).is_none());
 }
 
 fn refused_to_the_maker(

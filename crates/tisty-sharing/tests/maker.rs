@@ -131,7 +131,8 @@ fn refused(home: &Home, doc: DocId) -> Option<Unshared> {
 #[test]
 fn only_a_machine_key_the_root_certified_answers_for_that_root() {
     let (_tmp, home) = home();
-    let signs = |home: &Home, root: &str| signs_for(&home.paths, &home.state, &home.device, root);
+    let signs =
+        |home: &Home, root: &str| signs_for(&home.paths, &home.state.persons, &home.device, root);
     assert_eq!(signs(&home, &root_of_this_home()), Some(the_root()));
     assert_eq!(signs(&home, &another_root()), None);
     assert_eq!(signs(&home, MAKER_ALIAS), None);

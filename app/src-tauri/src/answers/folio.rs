@@ -18,7 +18,7 @@ use tisty_sharing::{Carrying, Desk, Received, Remembered, Told, Under, Unshared}
 
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
 use super::papers::other_version_kept;
-use super::sharing::{doc_id, refused, sealed_by, the_maker_here, the_maker_of, turned};
+use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
@@ -299,16 +299,20 @@ fn may_start(now: SharingNow) -> Answer<()> {
 }
 
 async fn sharing_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
-    let home = held(session).paths.private();
-    let now = apart(move || {
-        Ok(folio_limits::sharing_now(
-            &home,
-            crate::reaching::brought_from_folio,
-        ))
+    let (paths, persons, device) = {
+        let session = held(session);
+        (
+            session.paths.clone(),
+            session.state.persons.clone(),
+            session.config.device_id.clone(),
+        )
+    };
+    apart(move || {
+        let now = folio_limits::sharing_now(&paths.private(), crate::reaching::brought_from_folio);
+        // Asked only once the limits are fresh, since they are what names the maker.
+        Ok(now.opened_to(the_maker_among(&paths, &persons, &device).is_some()))
     })
-    .await?;
-    // Asked only once the limits are fresh, since they are what names the maker.
-    Ok(now.opened_to(the_maker_of(&held(session))))
+    .await
 }
 
 #[tauri::command]
