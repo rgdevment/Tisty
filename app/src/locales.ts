@@ -500,7 +500,7 @@ const en = {
   copyIt: "Copy",
   shareIdentityTitle: "First, your identity",
   shareIdentityWhy:
-    "Tisty signs each document you share with your identity: a key that lives on your computers and shows the document comes from you. Whoever opens it sees its fingerprint, never the key, and Folio keeps only its public part. You make it once and back it up with a 24-word phrase, which also lets your other computers sign as you.",
+    "To share, Tisty needs your identity. It works like a signature only you have: it shows the document comes from you, with no account, no email and no real name. It stays on your computers, and Folio and your readers only ever see a fingerprint of it. You make it once and keep it with 24 words, which also let you use it on your other computers.",
   shareIdentityMake: "Make my identity",
   shareIdentityElsewhere:
     "Your identity already lives on another of your computers. Type your phrase so this one can sign too.",
@@ -3429,7 +3429,7 @@ const es: Catalog = {
   copyIt: "Copiar",
   shareIdentityTitle: "Primero, tu identidad",
   shareIdentityWhy:
-    "Tisty firma cada documento que compartes con tu identidad: una llave que vive en tus computadores y muestra que el documento viene de ti. Quien lo abre ve su huella, nunca la llave, y Folio solo guarda su parte pública. La creas una vez y la respaldas con una frase de 24 palabras, que también sirve para que tus otros computadores firmen como tú.",
+    "Para compartir, Tisty necesita tu identidad. Es como una firma que solo tú tienes: muestra que el documento viene de ti, sin cuentas, sin correo y sin tu nombre real. Se queda en tus computadores, y Folio y quienes lo lean solo ven una huella de ella. La creas una vez y la guardas con 24 palabras, que también sirven para usarla en tus otros computadores.",
   shareIdentityMake: "Crear mi identidad",
   shareIdentityElsewhere:
     "Tu identidad ya vive en otro de tus computadores. Escribe tu frase para que este también pueda firmar.",
