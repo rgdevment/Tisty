@@ -15,7 +15,7 @@ import {
   termsAccepted,
   termsDrawn,
   termsNow,
-  toldLines,
+  toldPlainly,
 } from "../sharing";
 import Modal from "./Modal";
 
@@ -300,9 +300,10 @@ function LeftOut({ told }: Readonly<{ told: ShareCard["told"] }>) {
   if (told.length === 0) return null;
   return (
     <ul className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5 text-[12.5px]">
-      {toldLines(told).map((said) => (
-        <li key={said}>{said}</li>
-      ))}
+      {told.map((one) => {
+        const said = toldPlainly(one);
+        return <li key={said}>{said}</li>;
+      })}
     </ul>
   );
 }

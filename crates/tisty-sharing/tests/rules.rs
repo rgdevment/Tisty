@@ -337,7 +337,7 @@ fn a_picture_that_cannot_be_made_travels_as_a_file_and_the_person_is_told() {
 }
 
 #[test]
-fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays_it() {
+fn what_never_was_a_picture_goes_as_an_attachment_and_nothing_is_told() {
     let (_tmp, mut home) = home();
     let cartilla = home.attached("cartilla.pdf", b"%PDF-1.7 a vet card");
     let bark = home.attached("bark.mp3", b"ID3\x04\x00\x00\x00\x00\x00\x00 a bark");
@@ -347,19 +347,15 @@ fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays
     );
 
     let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
 
-    assert!(
-        matches!(&out.told[..], [
-            Told::AsAttachment { name: pdf, plays: None, .. },
-            Told::AsAttachment { name: sound, plays: Some(player), .. },
-        ] if pdf == "cartilla.pdf" && sound == "bark.mp3" && player == "audio"),
-        "{:?}",
-        out.told
-    );
+    assert_eq!(out.told, []);
+    assert_eq!(read.pictures.len(), 0);
+    assert_eq!(read.files.len(), 2);
 }
 
 #[test]
-fn a_video_says_it_plays_and_a_page_with_an_icon_inside_stays_an_attachment() {
+fn only_a_picture_that_cannot_be_drawn_is_told_and_a_page_with_an_icon_is_not_one() {
     let (_tmp, mut home) = home();
     let walk = home.attached(
         "walk.mp4",
@@ -373,22 +369,34 @@ fn a_video_says_it_plays_and_a_page_with_an_icon_inside_stays_an_attachment() {
         "mark.svg",
         b"<?xml version=\"1.0\"?>\n<!-- a mark -->\n<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
     );
+    let exported = home.attached(
+        "logo.svg",
+        b"<?xml version=\"1.0\"?>\n<!DOCTYPE svg [\n<!ENTITY ns_svg \"http://www.w3.org/2000/svg\">\n]>\n<svg xmlns=\"&ns_svg;\"/>",
+    );
+    let broken = home.attached(
+        "rina.jpg",
+        b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00 not a photo after all",
+    );
+    let results = home.attached("results.csv", b"P1 team,points\nRina,3\n");
     let doc = home.wrote(
-        &format!("![Paseo]({walk})\n\n![Paseos]({page})\n\n![Marca]({drawn})\n"),
+        &format!(
+            "![Paseo]({walk})\n\n![Paseos]({page})\n\n![Marca]({drawn})\n\n![Logo]({exported})\n\n![Rina]({broken})\n\n![Tabla]({results})\n"
+        ),
         None,
     );
 
     let out = sealed(&home, &asked(doc));
+    let told: Vec<&str> = out
+        .told
+        .iter()
+        .filter_map(|one| match one {
+            Told::PictureAsFile { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
 
-    assert!(
-        matches!(&out.told[..], [
-            Told::AsAttachment { name: video, plays: Some(player), .. },
-            Told::AsAttachment { name: html, plays: None, .. },
-            Told::PictureAsFile { name: svg, .. },
-        ] if video == "walk.mp4" && player == "video" && html == "walks.html" && svg == "mark.svg"),
-        "{:?}",
-        out.told
-    );
+    assert_eq!(told, ["mark.svg", "logo.svg", "rina.jpg"], "{:?}", out.told);
+    assert_eq!(out.told.len(), 3, "{:?}", out.told);
 }
 
 #[test]

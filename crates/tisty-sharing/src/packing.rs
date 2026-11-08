@@ -16,48 +16,16 @@ const HELD_AT_MOST: u64 = 64 * 1024 * 1024;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "what", rename_all = "camelCase")]
 pub enum Told {
-    PictureAsFile {
-        document: String,
-        name: String,
-    },
-    AsAttachment {
-        document: String,
-        name: String,
-        plays: Option<String>,
-    },
-    PictureAsWords {
-        document: String,
-        name: String,
-    },
-    PictureNotKept {
-        document: String,
-        name: String,
-    },
-    PictureAsLink {
-        document: String,
-        name: String,
-    },
-    FileAsWords {
-        document: String,
-        name: String,
-    },
-    NotDrawn {
-        document: String,
-        many: usize,
-    },
-    PageLeftBehind {
-        document: String,
-    },
-    LanguageLeftBehind {
-        language: String,
-    },
-    LanguageOverTheTop {
-        language: String,
-        top: usize,
-    },
-    CitedLeftBehind {
-        document: String,
-    },
+    PictureAsFile { document: String, name: String },
+    PictureAsWords { document: String, name: String },
+    PictureNotKept { document: String, name: String },
+    PictureAsLink { document: String, name: String },
+    FileAsWords { document: String, name: String },
+    NotDrawn { document: String, many: usize },
+    PageLeftBehind { document: String },
+    LanguageLeftBehind { language: String },
+    LanguageOverTheTop { language: String, top: usize },
+    CitedLeftBehind { document: String },
     NameLeftOut,
     TakenBackNotKept,
 }
@@ -164,20 +132,13 @@ impl<'a> Packing<'a> {
         match made_or_turned(&bytes, || (self.desk.turned)(&at)) {
             Ok(made) => self.place_picture(name, made),
             Err(_) => {
-                let document = self.document();
-                // What never was a picture is an attachment, and the web plays a sound or a video as its first bytes say.
-                self.told.push(if looks_like_a_picture(&bytes) {
-                    Told::PictureAsFile {
-                        document,
+                // What never was a picture goes as the attachment it is, and how a reader shows it is the reader's to say.
+                if looks_like_a_picture(&bytes) {
+                    self.told.push(Told::PictureAsFile {
+                        document: self.document(),
                         name: shown,
-                    }
-                } else {
-                    Told::AsAttachment {
-                        document,
-                        name: shown,
-                        plays: tisty_contracts::playable_as(&bytes).map(|one| one.player),
-                    }
-                });
+                    });
+                }
                 self.place_file(name, bytes);
             }
         }

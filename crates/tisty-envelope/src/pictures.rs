@@ -124,8 +124,11 @@ pub fn made(given: &[u8]) -> Result<Made, Unmade> {
     written(given, format == ImageFormat::Jpeg)
 }
 
+// A PNM is told only by «P1» to «P7» and a space, which plain text can start with as well.
 pub fn looks_like_a_picture(given: &[u8]) -> bool {
-    image::guess_format(given).is_ok() || is_of_the_heif_family(given) || is_drawn_in_words(given)
+    image::guess_format(given).is_ok_and(|format| format != ImageFormat::Pnm)
+        || is_of_the_heif_family(given)
+        || is_drawn_in_words(given)
 }
 
 // Only a file whose first element is <svg> is one: a page that carries an icon inside stays a page.
@@ -137,6 +140,8 @@ fn is_drawn_in_words(given: &[u8]) -> bool {
             "?>"
         } else if rest.starts_with("<!--") {
             "-->"
+        } else if rest.starts_with("<!") && carries_its_own_subset(rest) {
+            "]>"
         } else if rest.starts_with("<!") {
             ">"
         } else {
@@ -146,6 +151,14 @@ fn is_drawn_in_words(given: &[u8]) -> bool {
             return false;
         };
         rest = rest[end + closing.len()..].trim_start();
+    }
+}
+
+// A doctype may carry declarations of its own between brackets, each closing with its own «>».
+fn carries_its_own_subset(declaration: &str) -> bool {
+    match (declaration.find('['), declaration.find('>')) {
+        (Some(open), Some(close)) => open < close,
+        _ => false,
     }
 }
 
