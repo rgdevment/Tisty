@@ -1179,8 +1179,12 @@
         "said": "la fila «Compartido» del panel lleva a Folio, que entrega tu documento con un link cifrado. Tisty solo habla con Folio cuando usas esa fila o abres un link, y si Folio todavía no abrió te lo dice, sin subir nada. Conoce más en folio.tisty.app."
       },
       {
+        "title": "Tu identidad, en palabras simples",
+        "said": "antes de compartir por primera vez, Tisty te explica qué es tu identidad: una llave que vive solo en tus equipos y firma lo que compartes, sin cuenta ni correo. La creas ahí mismo, y «¿Qué es y cómo protege tu privacidad?» cuenta cómo se cifra todo. Tus 24 palabras ahora recuerdan, donde las veas o escribas, que nadie de Tisty ni de Folio te las pedirá nunca."
+      },
+      {
         "title": "Y varios arreglos",
-        "said": "las etiquetas en hindi, tamil, coreano o japonés conservan todas sus letras, un salto de línea en la etiqueta de un diagrama se dibuja como salto, y la actualización que ofrece la Microsoft Store también se ofrece aquí."
+        "said": "las etiquetas en hindi, tamil, coreano o japonés conservan todas sus letras, un salto de línea en la etiqueta de un diagrama se dibuja como salto, la actualización que ofrece la Microsoft Store también se ofrece aquí, y Tisty ahora se instala con winget."
       }
     ],
     "en": [
@@ -1213,8 +1217,12 @@
         "said": "the Shared row in a document's panel leads to Folio, which hands over your document with an encrypted link. Tisty talks to Folio only when you use that row or open a link, and if Folio has not opened yet it tells you so and uploads nothing. Learn more at folio.tisty.app."
       },
       {
+        "title": "Your identity, in plain words",
+        "said": "before you share for the first time, Tisty explains what your identity is: a key that lives only on your computers and signs what you share, with no account and no email. You make it right there, and “What is it, and how does it protect your privacy?” tells how everything is encrypted. Your 24 words now say, wherever you see or type them, that nobody from Tisty or Folio will ever ask for them."
+      },
+      {
         "title": "And several fixes",
-        "said": "tags in Hindi, Tamil, Korean or Japanese keep every letter, a line break in a diagram label is drawn as a break, and an update the Microsoft Store offers is offered here too."
+        "said": "tags in Hindi, Tamil, Korean or Japanese keep every letter, a line break in a diagram label is drawn as a break, an update the Microsoft Store offers is offered here too, and Tisty now installs with winget."
       }
     ]
   }
