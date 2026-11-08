@@ -430,11 +430,15 @@ function Choosing({
   const already = others.length !== look.shared.length;
   const most = look.limits.shares_at_most;
   const full = !already && most !== undefined && others.length >= most;
+  // Each cited document is one more share at Folio, unless it is shared already.
+  const citedNew = look.cited.filter((one) => !look.shared.some((held) => held.doc === one)).length;
+  const sharedAfter = others.length + (already ? 0 : 1) + (cites ? citedNew : 0);
+  const citesOver = cites && !full && most !== undefined && sharedAfter > most;
   const named = look.alias || look.name;
   const chosenName = signs === "alias" ? look.alias : look.name;
   const signedAs = named ? (chosenName ?? undefined) : asked;
   const over = overSaid(look);
-  const ready = !full && !over && days > 0 && Boolean(signedAs?.trim());
+  const ready = !full && !over && !citesOver && days > 0 && Boolean(signedAs?.trim());
 
   const stopOne = (one: string) => {
     shareStop(one)
@@ -624,6 +628,11 @@ function Choosing({
                   : fill("shareCites", String(look.cited.length))}
               </label>
               <p className="text-[11.5px] leading-relaxed text-faint">{t("shareCitesWhy")}</p>
+              {citesOver && (
+                <output role="alert" className="text-[11.5px] leading-relaxed text-hue-amber">
+                  {fill("shareCitesOver", String(sharedAfter), String(most))}
+                </output>
+              )}
             </>
           )}
         </div>

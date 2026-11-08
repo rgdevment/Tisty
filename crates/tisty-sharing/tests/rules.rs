@@ -587,6 +587,33 @@ fn only_the_anchor_holds_the_map_of_its_languages_and_all_wear_its_paper() {
 }
 
 #[test]
+fn each_language_names_itself_exactly_as_the_map_names_it() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es-CL\n---\n\n# Paseos\n", None);
+    let en = home.wrote("---\nlang: en-GB\n---\n\n# Walks\n", None);
+    let pt = home.wrote("---\nlang: pt-BR\n---\n\n# Passeios\n", None);
+    home.joined(en, es);
+    home.joined(pt, es);
+
+    let out = sealed(&home, &asked(es));
+    let reads = every_reader_opens(&out);
+    let anchor = reads
+        .iter()
+        .find(|one| one.held["lang"] == "es-CL")
+        .unwrap();
+    let map = anchor.held["languages"].as_array().unwrap();
+
+    assert_eq!(map.len(), 2);
+    for entry in map {
+        let named = reads
+            .iter()
+            .find(|one| one.id == entry["document"].as_str().unwrap())
+            .unwrap();
+        assert_eq!(named.held["lang"], entry["lang"]);
+    }
+}
+
+#[test]
 fn what_is_cited_goes_only_when_chosen_in_its_own_envelopes_with_its_key() {
     let (_tmp, mut home) = home();
     let other = home.wrote("# Otro\n\nAlgo aparte, de [[Paseos]].\n", None);

@@ -441,6 +441,26 @@ describe("sharing a document with Folio", () => {
     expect(screen.getByText("Uno")).toBeTruthy();
   });
 
+  it("counts the cited documents it would share against what Folio takes", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: {
+        ...look,
+        cited: ["c1", "a"],
+        shared: [{ doc: "a", title: "Uno" }],
+        limits: { ...look.limits, shares_at_most: 2 },
+      },
+    });
+    shown();
+
+    const go = await screen.findByRole<HTMLButtonElement>("button", { name: t("shareGo") });
+    expect(go.disabled).toBe(false);
+    await userEvent.click(screen.getByRole("checkbox", { name: fill("shareCites", "2") }));
+
+    expect(screen.getByText(fill("shareCitesOver", "3", "2"))).toBeTruthy();
+    expect(go.disabled).toBe(true);
+  });
+
   it("looks again when the document changed while choosing", async () => {
     let tries = 0;
     invoked.mockImplementation((command: string) => {

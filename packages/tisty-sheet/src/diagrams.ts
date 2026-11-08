@@ -57,6 +57,29 @@ const parts = (source: string) =>
 
 const fontNow = () => getComputedStyle(document.body).fontFamily || "sans-serif";
 
+// Mermaid darkens a pie's slices from its own dark greys, so on a dark sheet they would all read as one.
+export const DARK_PIE = [
+  "#7cb4ff",
+  "#ffb066",
+  "#6fd6a0",
+  "#ff8fa3",
+  "#b9a2ff",
+  "#f2d05e",
+  "#5fd3e0",
+  "#f5a3cf",
+  "#a8d46b",
+  "#d9a98a",
+  "#95a6ff",
+  "#e09cf0",
+];
+
+const darkPie = {
+  ...Object.fromEntries(DARK_PIE.map((color, at) => [`pie${at + 1}`, color])),
+  pieSectionTextColor: "#141416",
+  pieStrokeColor: "#232326",
+  pieOuterStrokeColor: "#232326",
+};
+
 const settings = (dark: boolean): MermaidConfig => ({
   startOnLoad: false,
   securityLevel: "strict",
@@ -64,6 +87,7 @@ const settings = (dark: boolean): MermaidConfig => ({
   maxTextSize: AT_MOST,
   theme: dark ? "dark" : "default",
   darkMode: dark,
+  themeVariables: dark ? darkPie : undefined,
   htmlLabels: false,
   fontFamily: fontNow(),
   flowchart: { htmlLabels: false },
