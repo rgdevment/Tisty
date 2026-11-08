@@ -547,6 +547,7 @@ pub async fn doc_share_look(
 ) -> Answer<Look> {
     stops_what_lost_its_document(&app);
     let doc = doc_id(&id)?;
+    crate::identity::seated_to_sign(&session).await;
     let (paths, state, device, also, name, alias, shared) = {
         let session = held(&session);
         (

@@ -308,6 +308,19 @@ pub async fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<
     off_the_lock(session, |session| session.state.persons.names_a_person()).await
 }
 
+// Asked before sharing: until its first round a machine has no seat, and what it would sign answers to nobody.
+pub async fn seated_to_sign(session: &tauri::State<'_, Mutex<Session>>) {
+    if let Err(e) = held(session).take_a_seat() {
+        witness::warn(
+            channel::STORE,
+            "this machine could not take its seat to sign",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+    let seed = for_a_round(session).await;
+    after_a_round(&mut held(session), seed.as_ref());
+}
+
 pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
     vouched_round(session, seed);
 }
@@ -648,6 +661,10 @@ pub(crate) fn seed_said(said: &str) -> Answer<Seed> {
 }
 
 pub(crate) fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {
+    // A machine seats itself at the end of a round, and one made before its first round would answer to nobody.
+    session
+        .take_a_seat()
+        .map_err(|e| blamed(channel::STORE, "this machine could not take its seat", e))?;
     let ops = person::begun(
         &session.paths,
         &session.config.device_id,
