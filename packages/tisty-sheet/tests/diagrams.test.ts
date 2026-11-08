@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { diagramShot, diagrams, drawing } from "../src/diagrams";
+import { DARK_PIE, diagramShot, diagrams, drawing } from "../src/diagrams";
 
 const drawn = vi.hoisted(() => ({
   themes: [] as string[],
+  variables: [] as (Record<string, string> | undefined)[],
   sources: [] as string[],
   busy: false,
   overlapped: false,
@@ -10,8 +11,9 @@ const drawn = vi.hoisted(() => ({
 
 vi.mock("mermaid", () => ({
   default: {
-    initialize: (config: { theme: string }) => {
+    initialize: (config: { theme: string; themeVariables?: Record<string, string> }) => {
       drawn.themes.push(config.theme);
+      drawn.variables.push(config.themeVariables);
     },
     render: async (_: string, source: string) => {
       if (drawn.busy) drawn.overlapped = true;
@@ -35,8 +37,41 @@ const sheet = (...sources: string[]) => {
   return document;
 };
 
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((at) => {
+    const one = Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+    return one <= 0.03928 ? one / 12.92 : ((one + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const contrast = (one: string, other: string) => {
+  const [hi, lo] = [luminance(one), luminance(other)].sort((a, b) => b - a);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+describe("a pie on a dark sheet", () => {
+  it("gets slices that stand out from the sheet and from its words", async () => {
+    await drawing('pie\n  "A" : 1\n  "B" : 2', true);
+
+    const said = drawn.variables[drawn.variables.length - 1];
+    expect(DARK_PIE.map((_, at) => said?.[`pie${at + 1}`])).toEqual(DARK_PIE);
+    for (const slice of DARK_PIE) {
+      expect(contrast(slice, "#232326")).toBeGreaterThan(4.5);
+      expect(contrast(slice, said?.pieSectionTextColor ?? "#000000")).toBeGreaterThan(4.5);
+    }
+  });
+
+  it("keeps Mermaid's own colours on a light sheet", async () => {
+    await drawing('pie\n  "C" : 1', false);
+
+    expect(drawn.variables[drawn.variables.length - 1]).toBeUndefined();
+  });
+});
+
 beforeEach(() => {
   drawn.themes.length = 0;
+  drawn.variables.length = 0;
   drawn.sources.length = 0;
   drawn.overlapped = false;
 });
