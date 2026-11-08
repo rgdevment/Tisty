@@ -48,6 +48,7 @@ export interface FolioLimits {
 }
 
 export interface ShareLook {
+  signs: boolean;
   secrets: { named: string; under: string | null }[];
   citedSecrets: { named: string; under: string | null }[];
   name: string | null;
