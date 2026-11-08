@@ -24,7 +24,7 @@
   <p>
     <a href="https://github.com/rgdevment/Tisty/releases">
       <img
-        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=D9A13B"
+        src="https://img.shields.io/github/v/release/rgdevment/Tisty?style=flat-square&label=Latest&color=D9A13B"
         alt="Latest release"/>
     </a>
     <a href="#an-assistant-if-you-use-one">
