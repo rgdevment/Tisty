@@ -498,6 +498,12 @@ const en = {
   makingPdf: "Making the PDF…",
   seePdf: "Preview",
   copyIt: "Copy",
+  shareIdentityTitle: "First, your identity",
+  shareIdentityWhy:
+    "Tisty signs each document you share with your identity: a key that lives on your computers and shows the document comes from you. Whoever opens it sees its fingerprint, never the key, and Folio keeps only its public part. You make it once and back it up with a 24-word phrase, which also lets your other computers sign as you.",
+  shareIdentityMake: "Make my identity",
+  shareIdentityElsewhere:
+    "Your identity already lives on another of your computers. Type your phrase so this one can sign too.",
   cutIt: "Cut",
   editBlock: "Edit this block",
   editWholeDoc: "Edit the whole document",
@@ -3428,6 +3434,12 @@ const es: Catalog = {
   makingPdf: "Generando el PDF…",
   seePdf: "Vista previa",
   copyIt: "Copiar",
+  shareIdentityTitle: "Primero, tu identidad",
+  shareIdentityWhy:
+    "Tisty firma cada documento que compartes con tu identidad: una llave que vive en tus computadores y muestra que el documento viene de ti. Quien lo abre ve su huella, nunca la llave, y Folio solo guarda su parte pública. La creas una vez y la respaldas con una frase de 24 palabras, que también sirve para que tus otros computadores firmen como tú.",
+  shareIdentityMake: "Crear mi identidad",
+  shareIdentityElsewhere:
+    "Tu identidad ya vive en otro de tus computadores. Escribe tu frase para que este también pueda firmar.",
   cutIt: "Cortar",
   editBlock: "Editar este bloque",
   editWholeDoc: "Editar todo el documento",

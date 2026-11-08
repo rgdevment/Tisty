@@ -135,7 +135,7 @@ export default function Identity({
 }
 
 // The phrase typed on another computer of the person's, or again after its key was taken back, gives this one its key.
-function PhraseTyped({
+export function PhraseTyped({
   held,
   onTyped,
   onFail,

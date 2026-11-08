@@ -16,6 +16,7 @@ vi.mock("../core", async (original) => ({
 }));
 
 const look = {
+  signs: true,
   secrets: [],
   citedSecrets: [],
   name: "Rina Soto",
@@ -75,6 +76,50 @@ describe("what Folio signs to say while closed", () => {
   it("leaves anything else of Markdown or HTML as words", () => {
     const said = "**fuerte** <b>x</b> # y ![i](https://tisty.app/a.png)";
     expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+  });
+});
+
+describe("a computer with nothing to sign with", () => {
+  const unsigned = { ...look, signs: false };
+  const nobody = { held: false, elsewhere: false, fingerprint: null, machines: [] };
+
+  it("says what an identity is and makes one before anything is shared", async () => {
+    let readings = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
+      if (command === "doc_share_look") return Promise.resolve(unsigned);
+      if (command === "identity_begin") return Promise.resolve("uno dos tres");
+      if (command === "identity_shown") {
+        readings += 1;
+        return Promise.resolve(
+          readings === 1 ? nobody : { ...nobody, held: true, fingerprint: "48210 93755" },
+        );
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    expect(await screen.findByText(t("shareIdentityWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareGo") })).toBeNull();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareIdentityMake") }));
+
+    expect(await screen.findByText("tres")).toBeTruthy();
+    expect(invoked).toHaveBeenCalledWith("identity_begin");
+    expect(invoked).not.toHaveBeenCalledWith("doc_shared", expect.anything());
+  });
+
+  it("asks for the phrase when the identity lives on another computer", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: unsigned,
+      identity_shown: { ...nobody, elsewhere: true },
+    });
+    shown();
+
+    expect(await screen.findByText(t("shareIdentityElsewhere"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("phraseTypeOpen") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIdentityMake") })).toBeNull();
   });
 });
 
