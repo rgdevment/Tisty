@@ -95,4 +95,4 @@ Actualiza el que quedó atrás. Un equipo solo lee lo que entiende, así que los
 ## Comparación
 
 **¿En qué se diferencia de Obsidian, Notion o Todoist?**
-Tisty guarda tareas y documentos en un solo almacén con un solo buscador, y terminar una tarea guarda todo lo que juntó en vez de esconderlo. El README tiene [una tabla comparativa](https://github.com/rgdevment/Tisty/blob/main/README.es.md) que también dice en qué es mejor cada uno de los otros.
+Tisty guarda tareas y documentos en un solo almacén con un solo buscador, y terminar una tarea guarda todo lo que juntó en vez de esconderlo. El README tiene [una tabla comparativa](https://github.com/rgdevment/Tisty/blob/main/README.es.md#alternativas-a-obsidian-notion-y-todoist) que también dice en qué es mejor cada uno de los otros.
