@@ -494,6 +494,7 @@ fn a_file_resting_in_the_other_folder_is_found_too() {
         state: &home.state,
         also: Some(&beside),
         turned: &|_| None,
+        maker: false,
     };
     let gathered = tisty_sharing::gathered(&desk, &asked(doc)).unwrap();
     let answers = by_a_window_with_nothing_to_draw(&gathered);
@@ -956,6 +957,7 @@ fn only_what_is_ones_own_and_open_is_shared() {
             state: &home.state,
             also: None,
             turned: &|_| None,
+            maker: false,
         };
         tisty_sharing::gathered(&desk, &asked(id)).err()
     };
@@ -990,6 +992,7 @@ fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
     let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
     assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
@@ -1087,6 +1090,7 @@ fn a_language_put_away_stays_here_and_what_is_put_away_is_not_shared() {
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
     let refused = tisty_sharing::gathered(&desk, &asked(alone)).err();
     assert!(matches!(refused, Some(Unshared::Away)), "{refused:?}");
@@ -1248,6 +1252,7 @@ fn asking_for_a_new_language_when_folio_holds_as_many_as_it_takes_is_refused_bef
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
     let refused = tisty_sharing::gathered_within(&desk, &asked(new), Some(20)).err();
 
@@ -1295,6 +1300,7 @@ fn the_top_folio_signs_holds_over_the_one_written_here() {
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
 
     let gathered = tisty_sharing::gathered_within(&desk, &asked(anchor), Some(3)).unwrap();
@@ -1459,6 +1465,7 @@ fn the_words_of_a_task_stay_with_the_task() {
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
     let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
     assert!(

@@ -4,8 +4,9 @@ use std::sync::Mutex;
 use serde::Serialize;
 use tisty_core::model::DocId;
 use tisty_core::witness::{self, Fact, channel};
+use tisty_core::{DeviceId, Paths, State};
 use tisty_envelope::sealing::Writer;
-use tisty_sharing::{Asked, Desk, Gathered, Told, Unshared, gathered, signer};
+use tisty_sharing::{Asked, Desk, Gathered, Told, Unshared, gathered, signer, signs_for};
 
 use crate::{Answer, Refusal, Session, held};
 
@@ -33,6 +34,13 @@ pub(super) fn refused(wrong: &Unshared) -> Refusal {
         Unshared::Unfinished(_) => "cannotFinish",
         Unshared::Unread(_) | Unshared::Unwritten(_) | Unshared::Refused(_) => "cannotSeal",
     })
+}
+
+// The root Folio signs into its limits is the only word on who the maker is: absent or unsigned, nobody is.
+pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> bool {
+    tisty_carrier::folio_limits::kept(&paths.private())
+        .and_then(|limits| limits.maker_root)
+        .is_some_and(|root| signs_for(paths, state, device, &root))
 }
 
 pub(super) fn doc_id(said: &str) -> Answer<DocId> {
@@ -88,6 +96,7 @@ pub(super) async fn sealed_by(
             state: &state,
             also: also.as_deref(),
             turned: &turned,
+            maker: the_maker_here(&paths, &state, &device),
         };
         gather(&desk, &asked)
     })

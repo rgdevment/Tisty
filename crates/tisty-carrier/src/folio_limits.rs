@@ -64,6 +64,8 @@ pub struct FolioLimits {
     pub sharing_open: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharing_closed_note: Option<FolioNote>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maker_root: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -115,6 +117,16 @@ pub enum SharingNow {
     Open,
     Closed { note: Option<FolioNote> },
     Unreached,
+}
+
+impl SharingNow {
+    // Folio lets the maker's root in while it is closed to everyone else.
+    pub fn opened_to(self, maker: bool) -> Self {
+        match self {
+            Self::Closed { .. } if maker => Self::Open,
+            now => now,
+        }
+    }
 }
 
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {

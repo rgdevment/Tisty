@@ -15,6 +15,7 @@ pub struct Home {
     pub paths: Paths,
     pub device: DeviceId,
     pub state: State,
+    pub maker: bool,
     store: Store,
     orders: u32,
 }
@@ -33,6 +34,7 @@ impl Home {
             paths,
             device,
             state,
+            maker: false,
             store,
             orders: 0,
         }
@@ -112,6 +114,7 @@ impl Home {
             state: &self.state,
             also: None,
             turned,
+            maker: self.maker,
         };
         gathered(&desk, asked).unwrap()
     }
@@ -126,6 +129,7 @@ impl Home {
             state: &self.state,
             also: None,
             turned: &|_| None,
+            maker: self.maker,
         };
         tisty_sharing::gathered_within(&desk, asked, Some(top)).unwrap()
     }

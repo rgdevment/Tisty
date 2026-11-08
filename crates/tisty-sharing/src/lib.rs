@@ -3,6 +3,7 @@
 
 mod finishing;
 mod gathering;
+mod maker;
 mod packing;
 mod receiving;
 mod remembering;
@@ -11,6 +12,7 @@ pub use finishing::{Carrying, Finished, Sealed, Unfinished};
 pub use gathering::{
     Asked, Desk, Gathered, Under, citable, gathered, gathered_under, gathered_within, signer,
 };
+pub use maker::{signs_for, sown_by_tisty};
 pub use packing::Told;
 pub use receiving::{CARRIED_CITED, Received, received};
 pub use remembering::{forgotten, remembered, sent};

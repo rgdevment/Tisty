@@ -28,6 +28,7 @@ fn under_folio(home: &Home, doc: DocId, under: &Under<'_>) -> Result<Gathered, U
         state: &home.state,
         also: None,
         turned: &|_| None,
+        maker: false,
     };
     gathered_under(&desk, &asked(doc), under)
 }

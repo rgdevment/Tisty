@@ -434,3 +434,31 @@ fn limits_that_passed_their_signature_are_given_even_if_they_cannot_be_kept() {
     assert!(accepted(&not_a_folder, REAL, REAL_SIG).is_ok());
     assert_eq!(kept(&not_a_folder), None);
 }
+
+#[test]
+fn the_maker_root_folio_signed_is_kept_with_the_rest() {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        serial: 1,
+        maker_root: Some("AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into()),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+
+    assert_eq!(kept(home.path()), Some(limits));
+    assert_eq!(kept(seeded(1).path()).and_then(|one| one.maker_root), None);
+}
+
+#[test]
+fn only_the_maker_finds_sharing_open_while_folio_is_closed() {
+    let note = Some(FolioNote {
+        es: Some("Pronto".into()),
+        en: None,
+    });
+    let closed = SharingNow::Closed { note };
+
+    assert_eq!(closed.clone().opened_to(false), closed);
+    assert_eq!(closed.opened_to(true), SharingNow::Open);
+    assert_eq!(SharingNow::Open.opened_to(false), SharingNow::Open);
+    assert_eq!(SharingNow::Unreached.opened_to(true), SharingNow::Unreached);
+}

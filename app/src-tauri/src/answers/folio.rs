@@ -12,13 +12,13 @@ use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::policy;
-use tisty_core::Paths;
+use tisty_core::{DeviceId, Paths, State};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Received, Remembered, Told, Under, Unshared};
 
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
 use super::papers::other_version_kept;
-use super::sharing::{doc_id, refused, sealed_by, turned};
+use super::sharing::{doc_id, refused, sealed_by, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
@@ -298,16 +298,23 @@ fn may_start(now: SharingNow) -> Answer<()> {
     }
 }
 
+fn sharing_here(paths: &Paths, state: &State, device: &DeviceId) -> SharingNow {
+    folio_limits::sharing_now(&paths.private(), crate::reaching::brought_from_folio)
+        .opened_to(the_maker_here(paths, state, device))
+}
+
+fn signing_here(session: &Session) -> (Paths, State, DeviceId) {
+    (
+        session.paths.clone(),
+        session.state.clone(),
+        session.config.device_id.clone(),
+    )
+}
+
 #[tauri::command]
 pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
-    let home = held(&session).paths.private();
-    apart(move || {
-        Ok(folio_limits::sharing_now(
-            &home,
-            crate::reaching::brought_from_folio,
-        ))
-    })
-    .await
+    let (paths, state, device) = signing_here(&held(&session));
+    apart(move || Ok(sharing_here(&paths, &state, &device))).await
 }
 
 #[tauri::command]
@@ -570,6 +577,7 @@ pub async fn doc_share_look(
             state: &state,
             also: also.as_deref(),
             turned: &turned,
+            maker: the_maker_here(&paths, &state, &device),
         };
         let asked = tisty_sharing::Asked {
             doc,
@@ -866,20 +874,17 @@ pub async fn doc_shared(
         seen,
     } = chosen;
     let doc = doc_id(&id)?;
-    let (paths, tongue, file) = {
+    let (tongue, file, (paths, state, device)) = {
         let session = held(&session);
         (
-            session.paths.clone(),
             tongue_of(&session),
             file_of(&session, &id)?,
+            signing_here(&session),
         )
     };
     let checking = paths.clone();
     let terms = apart(move || {
-        may_start(folio_limits::sharing_now(
-            &checking.private(),
-            crate::reaching::brought_from_folio,
-        ))?;
+        may_start(sharing_here(&checking, &state, &device))?;
         may_upload(&checking, tongue).map(|agreed| agreed.version)
     })
     .await?;
@@ -971,7 +976,7 @@ pub async fn doc_share_sync(
     accepted: Option<String>,
 ) -> Answer<Synced> {
     let doc = doc_id(&id)?;
-    let (paths, tongue, (file, was), also, state) = {
+    let (paths, tongue, (file, was), also, state, device) = {
         let session = held(&session);
         (
             session.paths.clone(),
@@ -979,6 +984,7 @@ pub async fn doc_share_sync(
             remembered_of(&session, &id)?,
             session.dest(),
             session.state.clone(),
+            session.config.device_id.clone(),
         )
     };
     let asked = tisty_sharing::Asked {
@@ -1000,6 +1006,7 @@ pub async fn doc_share_sync(
             state: &state,
             also: also.as_deref(),
             turned: &turned,
+            maker: the_maker_here(&reading, &state, &device),
         };
         let shelf = tisty_sharing::remembered(&state);
         let gathered =

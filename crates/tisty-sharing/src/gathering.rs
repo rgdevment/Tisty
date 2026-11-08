@@ -16,7 +16,7 @@ use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, read
 use tisty_share_proto::identity::{Certificate, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
-use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
+use crate::{CARRIED_CITED, Remembered, Unshared, remembered, sown_by_tisty};
 
 const ID_CHARACTERS: usize = 22;
 const TAGS_AT_MOST: usize = 64;
@@ -26,6 +26,7 @@ pub struct Desk<'a> {
     pub state: &'a State,
     pub also: Option<&'a Path>,
     pub turned: &'a dyn Fn(&Path) -> Option<Vec<u8>>,
+    pub maker: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,11 +95,16 @@ pub fn signer(
     Some((key, certificate.clone()))
 }
 
+fn goes_as_mine(kept: &Kept, edits_through_a_link: bool, maker: bool) -> bool {
+    !kept.guest || edits_through_a_link || maker && sown_by_tisty(kept)
+}
+
 fn sharable<'a>(
-    state: &'a State,
+    desk: &Desk<'a>,
     id: DocId,
     shelf: &BTreeMap<String, Remembered>,
 ) -> Result<&'a Kept, Unshared> {
+    let state = desk.state;
     let kept = state.docs.get(&id).ok_or(Unshared::NoSuchDoc)?;
     if kept.page_of.is_some() || kept.task_of.is_some() {
         return Err(Unshared::NotADocument);
@@ -106,7 +112,7 @@ fn sharable<'a>(
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(|one| one.edit_token.is_some());
-    if kept.guest && !edits_through_a_link {
+    if !goes_as_mine(kept, edits_through_a_link, desk.maker) {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -334,7 +340,7 @@ impl Gathering<'_> {
             .get(&kept.file)
             .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let not_ours = page.guest && !edits_through_a_link;
+            let not_ours = !goes_as_mine(page, edits_through_a_link, self.desk.maker);
             let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
@@ -498,10 +504,10 @@ impl Gathering<'_> {
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
-        let kept = sharable(state, doc, &self.shelf)?;
+        let kept = sharable(self.desk, doc, &self.shelf)?;
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
-            if sharable(state, one.id, &self.shelf).is_ok() {
+            if sharable(self.desk, one.id, &self.shelf).is_ok() {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
@@ -590,12 +596,13 @@ pub fn gathered_within(
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
     let shelf = remembered(state).clone();
-    let top = sharable(state, asked.doc, &shelf)?;
+    let top = sharable(desk, asked.doc, &shelf)?;
     let editable_anchor = under.editable.then(|| state.anchor_of(top));
+    // What Tisty sowed goes out under the maker's alias, so nothing reads as the app speaking.
     let wanted = asked
         .signed_as
         .clone()
-        .filter(|one| !one.trim().is_empty())
+        .filter(|one| !one.trim().is_empty() && !sown_by_tisty(top))
         .or_else(|| state.signed.alias.clone());
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {
@@ -623,7 +630,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
             continue;
         };
         // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
-        if sharable(state, *doc, &gathering.shelf).is_err() {
+        if sharable(desk, *doc, &gathering.shelf).is_err() {
             gathering.told.push(Told::CitedLeftBehind {
                 document: kept.title.clone().unwrap_or_default(),
             });
@@ -646,7 +653,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
 pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
     let state = desk.state;
     let shelf = remembered(state);
-    let kept = sharable(state, doc, shelf)?;
+    let kept = sharable(desk, doc, shelf)?;
     let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
     let names = named(&drawn(&body)).documents;
     let pages = state.pages_read(kept.id, &body);
@@ -657,7 +664,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .filter(|one| {
             !group.iter().any(|same| same.id == one.id)
                 && !pages.iter().any(|page| page.id == one.id)
-                && sharable(state, one.id, shelf).is_ok()
+                && sharable(desk, one.id, shelf).is_ok()
                 && names.iter().any(|name| {
                     *name == one.file
                         || one
