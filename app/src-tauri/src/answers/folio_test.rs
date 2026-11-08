@@ -310,7 +310,14 @@ fn each_refusal_from_folio_is_said_in_words_the_window_knows() {
         (Stopped::Unreached, "folioUnreached"),
         (Stopped::Garbled, "folioGarbled"),
         (Stopped::Refused(Refused::SharesFull), "folioFull"),
-        (Stopped::Refused(Refused::RoomFull), "folioRoomFull"),
+        (
+            Stopped::Refused(Refused::RoomFull {
+                held: None,
+                arriving: None,
+                at_most: None,
+            }),
+            "folioRoomFull",
+        ),
         (
             Stopped::Refused(Refused::LanguagesFull),
             "folioLanguagesFull",
@@ -434,6 +441,26 @@ fn a_sync_with_nothing_to_send_stops_only_for_new_terms() {
         "folioTermsUpdating"
     ))));
     assert!(!new_terms_asked(&agreed));
+}
+
+#[test]
+fn a_key_out_of_room_hands_on_folio_s_figures_and_whose_they_are() {
+    let home = tempfile::tempdir().unwrap();
+    let told = said(&Stopped::Refused(Refused::RoomFull {
+        held: Some(23_400_000),
+        arriving: Some(4_000_000),
+        at_most: Some(25_000_000),
+    }));
+
+    assert_eq!(told.code, "folioRoomFullOf");
+    assert_eq!(told.name.as_deref(), Some("23400000 4000000 25000000"));
+    let editor = said_to_whom(told.clone(), false, home.path());
+    assert_eq!(editor.code, "folioOwnerRoomFullOf");
+    assert_eq!(editor.name, told.name);
+    assert_eq!(
+        said_to_whom(told, true, home.path()).code,
+        "folioRoomFullOf"
+    );
 }
 
 #[test]

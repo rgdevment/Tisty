@@ -87,7 +87,12 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
         Stopped::Garbled => Refusal::of("folioGarbled"),
         Stopped::Refused(refused) => match refused {
             Refused::SharesFull => Refusal::of("folioFull"),
-            Refused::RoomFull => Refusal::of("folioRoomFull"),
+            Refused::RoomFull {
+                held: Some(held),
+                arriving: Some(arriving),
+                at_most: Some(most),
+            } => Refusal::about("folioRoomFullOf", format!("{held} {arriving} {most}")),
+            Refused::RoomFull { .. } => Refusal::of("folioRoomFull"),
             Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } => Refusal::about("folioWait", until.to_string()),
@@ -228,6 +233,10 @@ fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Path) -> Refus
     let limits = || folio_limits::kept(home);
     match (refused.code, owning) {
         ("folioKeyBlocked", false) => Refusal::of("folioOwnerKeyBlocked"),
+        ("folioRoomFullOf", false) => Refusal {
+            code: "folioOwnerRoomFullOf",
+            ..refused
+        },
         ("folioRoomFull", true) => {
             numbered("folioRoomFull", "folioRoomFullAll", key_room(limits()))
         }

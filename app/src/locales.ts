@@ -703,6 +703,10 @@ const en = {
     "Your shared documents already take the {name} your key holds. Stop sharing one or wait for one to expire.",
   folioRoomFullAll:
     "Your shared documents already take all the room your key has. Stop sharing one or wait for one to expire.",
+  folioRoomFullOf:
+    "Your shared documents take {held} of {most} and this one weighs {arriving}. Stop sharing one or wait for one to expire.",
+  folioOwnerRoomFullOf:
+    "The owner's documents take {held} of {most} and this version weighs {arriving}. More can be uploaded once one of them expires.",
   folioOwnerRoomFull:
     "The owner's documents already take the {name} their key holds. More can be uploaded once one of them expires.",
   folioOwnerRoomFullAll:
@@ -3627,6 +3631,10 @@ const es: Catalog = {
     "Tus documentos compartidos ya ocupan los {name} de tu llave. Deja de compartir alguno o espera a que caduque.",
   folioRoomFullAll:
     "Tus documentos compartidos ya ocupan todo el espacio de tu llave. Deja de compartir alguno o espera a que caduque.",
+  folioRoomFullOf:
+    "Tus documentos compartidos ocupan {held} de {most} y este pesa {arriving}. Deja de compartir alguno o espera a que caduque.",
+  folioOwnerRoomFullOf:
+    "Los documentos del dueño ocupan {held} de {most} y esta versión pesa {arriving}. Se podrá subir más cuando alguno caduque.",
   folioOwnerRoomFull:
     "Los documentos del dueño ya ocupan los {name} de su llave. Se podrá subir más cuando alguno caduque.",
   folioOwnerRoomFullAll:

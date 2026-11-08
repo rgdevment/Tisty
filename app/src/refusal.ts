@@ -226,6 +226,8 @@ const KNOWN = [
   "folioRoomFull",
   "folioOwnerRoomFull",
   "folioRoomFullAll",
+  "folioRoomFullOf",
+  "folioOwnerRoomFullOf",
   "folioOwnerRoomFullAll",
   "folioFullOf",
   "folioLanguagesFullOf",
@@ -323,6 +325,17 @@ export function saidPlainly(problem: unknown): string {
 
 const WEIGHED = ["folioRoomFull", "folioOwnerRoomFull"];
 const MINUTE_MS = 60_000;
+const FIGURED = ["folioRoomFullOf", "folioOwnerRoomFullOf"];
+
+// Folio hands what the key holds, what arrives and what fits, in that order.
+const figured = (code: Parameters<typeof t>[0], name: string): string | null => {
+  const [held, arriving, most] = name.split(" ").map(Number);
+  if (![held, arriving, most].every(Number.isFinite)) return null;
+  return t(code)
+    .replace("{held}", roomOf(held))
+    .replace("{arriving}", roomOf(arriving))
+    .replace("{most}", roomOf(most));
+};
 
 // Folio says when, in milliseconds; a person reads how long, or at what time.
 const minutesTo = (until: string) =>
@@ -346,6 +359,10 @@ export function plainly(problem: unknown): string {
     return technical(refusal.name ?? refusal.code);
   }
   if (refusal.code === "cloudSpent") return fill(refusal.code, refusal.name ?? "", budgetResets());
+  if (FIGURED.includes(refusal.code) && refusal.name) {
+    const said = figured(refusal.code, refusal.name);
+    if (said) return said;
+  }
   if (WEIGHED.includes(refusal.code) && refusal.name) {
     return fill(refusal.code, roomOf(Number(refusal.name)));
   }
