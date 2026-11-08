@@ -17,6 +17,7 @@ import {
   termsNow,
   toldPlainly,
 } from "../sharing";
+import FirstIdentity from "./FirstIdentity";
 import Modal from "./Modal";
 
 const SECRETS_SHOWN = 3;
@@ -836,6 +837,7 @@ export default function Sharing({
         <Terms terms={step.terms} onAccepted={termsTaken} onLater={onClose} onError={failed} />
       );
     case "choosing":
+      if (!step.look.signs) return <FirstIdentity onReady={lookOver} onClose={onClose} />;
       return (
         <Choosing
           doc={doc}

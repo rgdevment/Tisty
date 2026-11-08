@@ -426,6 +426,7 @@ pub struct Look {
     limits: FolioLimits,
     told: Vec<Told>,
     seen: Option<String>,
+    signs: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -546,11 +547,13 @@ pub async fn doc_share_look(
 ) -> Answer<Look> {
     stops_what_lost_its_document(&app);
     let doc = doc_id(&id)?;
-    let (paths, state, also, name, alias, shared) = {
+    crate::identity::seated_to_sign(&session).await;
+    let (paths, state, device, also, name, alias, shared) = {
         let session = held(&session);
         (
             session.paths.clone(),
             session.state.clone(),
+            session.config.device_id.clone(),
             session.dest(),
             session.state.signed.name.clone(),
             session.state.signed.alias.clone(),
@@ -589,6 +592,7 @@ pub async fn doc_share_look(
             _ => shared,
         };
         Ok(Look {
+            signs: tisty_sharing::signer(&paths, &state, &device).is_some(),
             secrets: secrets_of_docs(&paths, &state, &[doc]),
             cited_secrets: secrets_of_docs(&paths, &state, &cited),
             seen: gathered.print_of(&kept.file),

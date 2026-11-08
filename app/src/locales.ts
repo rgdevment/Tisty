@@ -498,6 +498,28 @@ const en = {
   makingPdf: "Making the PDF…",
   seePdf: "Preview",
   copyIt: "Copy",
+  shareIdentityTitle: "First, your identity",
+  shareIdentityWhy:
+    "To share, you need your identity: a digital signature that only lives on your computers. Whoever gets your document will know you shared it and that nobody changed it on the way. It asks for no account, no email and not your real name.",
+  shareIdentityMore: "What is it, and how does it protect your privacy?",
+  shareIdentityWhatHead: "What it is",
+  shareIdentityWhatSaid:
+    "A pair of keys Tisty makes on this computer. One is secret and never leaves your computers; the other is public and only serves to check your signature.",
+  shareIdentityForHead: "What it is for",
+  shareIdentityForSaid:
+    "Tisty signs each document you share with it. Whoever opens it sees a fingerprint, a row of numbers that is always the same for you: that is how they know two documents come from the same person and that nobody altered them. You can sign with an alias; it does not have to be your name.",
+  shareIdentityFolioHead: "What Folio sees",
+  shareIdentityFolioSaid:
+    "Your document is encrypted on this computer before it leaves. The key that opens it travels inside the link, after the #, and that part never reaches Folio, so Folio cannot read the title or what you wrote. It sees your public key, to tell that two documents come from the same person, and never your name or your email.",
+  shareIdentityPhraseHead: "Your 24-word phrase",
+  shareIdentityPhraseSaid:
+    "It is your identity's backup: with it, your other computers sign as you. Keep it outside Tisty, on paper or in a PDF apart. If you lose the phrase and all your computers, the identity cannot be recovered. Nobody from Tisty or Folio will ever ask you for it.",
+  shareIdentityLostHead: "If you lose a computer",
+  shareIdentityLostSaid:
+    "Remove it in Settings › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.",
+  shareIdentityMake: "Make my identity",
+  shareIdentityElsewhere:
+    "Your identity already lives on another of your computers. Type your phrase so this one can sign too.",
   cutIt: "Cut",
   editBlock: "Edit this block",
   editWholeDoc: "Edit the whole document",
@@ -3421,6 +3443,28 @@ const es: Catalog = {
   makingPdf: "Generando el PDF…",
   seePdf: "Vista previa",
   copyIt: "Copiar",
+  shareIdentityTitle: "Primero, tu identidad",
+  shareIdentityWhy:
+    "Para compartir necesitas tu identidad: una firma digital que solo existe en tus computadores. Quien reciba tu documento sabrá que lo compartiste tú y que nadie lo cambió por el camino. No pide cuenta, ni correo, ni tu nombre real.",
+  shareIdentityMore: "¿Qué es y cómo protege tu privacidad?",
+  shareIdentityWhatHead: "Qué es",
+  shareIdentityWhatSaid:
+    "Un par de llaves que Tisty crea en este computador. Una es secreta y nunca sale de tus computadores; la otra es pública y solo sirve para comprobar tu firma.",
+  shareIdentityForHead: "Para qué sirve",
+  shareIdentityForSaid:
+    "Tisty firma con ella cada documento que compartes. Quien lo abre ve una huella, una serie de números que siempre es la misma para ti: así sabe que dos documentos vienen de la misma persona y que nadie los alteró. Puedes firmar con un alias; no tiene que ser tu nombre.",
+  shareIdentityFolioHead: "Qué ve Folio",
+  shareIdentityFolioSaid:
+    "Tu documento se cifra en este computador antes de salir. La llave que lo abre viaja dentro del link, después del #, y esa parte nunca llega a Folio, así que Folio no puede leer el título ni lo que escribiste. Ve tu llave pública, para saber que dos documentos vienen de la misma persona, y nunca tu nombre ni tu correo.",
+  shareIdentityPhraseHead: "Tu frase de 24 palabras",
+  shareIdentityPhraseSaid:
+    "Es el respaldo de tu identidad: con ella, tus otros computadores firman como tú. Guárdala fuera de Tisty, en papel o en un PDF aparte. Si pierdes la frase y todos tus computadores, la identidad no se puede recuperar. Nadie de Tisty ni de Folio te la pedirá nunca.",
+  shareIdentityLostHead: "Si pierdes un computador",
+  shareIdentityLostSaid:
+    "Quítalo en Configuración › Tu identidad. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.",
+  shareIdentityMake: "Crear mi identidad",
+  shareIdentityElsewhere:
+    "Tu identidad ya vive en otro de tus computadores. Escribe tu frase para que este también pueda firmar.",
   cutIt: "Cortar",
   editBlock: "Editar este bloque",
   editWholeDoc: "Editar todo el documento",

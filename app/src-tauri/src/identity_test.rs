@@ -486,3 +486,18 @@ fn leaving_the_cloud_for_another_way_of_syncing_lets_its_rounds_go_again() {
         Some("cloudSealed")
     );
 }
+
+#[test]
+fn an_identity_begun_before_any_round_signs_at_once() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let session = Mutex::new(Session::at(paths).unwrap());
+    keep(&held(&session).paths, &seed(7)).unwrap();
+
+    begun(&mut held(&session), &seed(7)).unwrap();
+
+    let session = held(&session);
+    let here = session.config.device_id.clone();
+    assert!(session.state.devices.contains(&here));
+    assert!(tisty_sharing::signer(&session.paths, &session.state, &here).is_some());
+}
