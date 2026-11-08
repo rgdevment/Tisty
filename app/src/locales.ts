@@ -891,6 +891,11 @@ const en = {
   toldAsAttachments: "In {other}, {name} go as attachments to download",
   toldPlaysSound: "In {other}, {name} can be heard on the web",
   toldPlaysVideo: "In {other}, {name} can be watched on the web",
+  toldPlaysOther: "In {other}, {name} can be opened on the web",
+  shareOverSomePicture:
+    "One picture weighs {name} and Folio takes up to {other} for each picture. Make it smaller or take it out.",
+  shareNoTerms:
+    "Folio has not said how long a link can last, so it cannot be shared yet. Try again in a moment.",
   toldMore: "{name} more",
   toldAnd: " and ",
   toldPictureAsWords:
@@ -3820,6 +3825,11 @@ const es: Catalog = {
   toldAsAttachments: "En {other}, {name} van como adjuntos para descargar",
   toldPlaysSound: "En {other}, {name} se podrá escuchar en la web",
   toldPlaysVideo: "En {other}, {name} se podrá ver en la web",
+  toldPlaysOther: "En {other}, {name} se podrá abrir en la web",
+  shareOverSomePicture:
+    "Una imagen pesa {name} y Folio acepta hasta {other} por imagen. Redúcela o quítala.",
+  shareNoTerms:
+    "Folio no ha dicho cuánto puede durar un link, así que todavía no se puede compartir. Vuelve a intentarlo en un momento.",
   toldMore: "{name} más",
   toldAnd: " y ",
   toldPictureAsWords:

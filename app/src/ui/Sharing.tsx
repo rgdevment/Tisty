@@ -377,8 +377,10 @@ const overSaid = (look: ShareLook): string | null => {
   const { carrying, limits } = look;
   const picture = limits.picture_bytes_at_most;
   if (picture !== undefined && past(carrying.largestPicture, picture)) {
-    const named = carrying.largestPictureName ?? "";
-    return fill("shareOverPicture", `${named} (${weigh(carrying.largestPicture)})`, weigh(picture));
+    const named = carrying.largestPictureName;
+    return named
+      ? fill("shareOverPicture", `${named} (${weigh(carrying.largestPicture)})`, weigh(picture))
+      : fill("shareOverSomePicture", weigh(carrying.largestPicture), weigh(picture));
   }
   const counted: [number, number | undefined, Parameters<typeof fill>[0], (n: number) => string][] =
     [
@@ -580,6 +582,9 @@ function Choosing({
               </option>
             ))}
           </select>
+          {terms.length === 0 && (
+            <output className="text-[11.5px] font-normal text-soft">{t("shareNoTerms")}</output>
+          )}
         </label>
 
         <div className="flex flex-col gap-2">

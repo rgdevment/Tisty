@@ -119,11 +119,7 @@ describe("a window nobody sees", () => {
 });
 
 describe("what goes as attachments", () => {
-  const attached = (
-    name: string,
-    document = "Guide",
-    plays: "audio" | "video" | null = null,
-  ): Told => ({
+  const attached = (name: string, document = "Guide", plays: string | null = null): Told => ({
     what: "asAttachment",
     document,
     name,
@@ -162,5 +158,14 @@ describe("what goes as attachments", () => {
       "In Guide, walk.mp4 can be watched on the web",
       "In Rina, page.pdf goes as an attachment to download",
     ]);
+  });
+
+  it("says any other way the web opens it apart, and never gathers it", () => {
+    expect(toldLines([attached("map.pdf", "Guide", "document"), attached("vet-card.pdf")])).toEqual(
+      [
+        "In Guide, map.pdf can be opened on the web",
+        "In Guide, vet-card.pdf goes as an attachment to download",
+      ],
+    );
   });
 });

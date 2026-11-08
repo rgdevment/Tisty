@@ -167,6 +167,31 @@ describe("what travels with a document", () => {
     ).toBeTruthy();
   });
 
+  it("says how heavy a picture is when its name is unknown", async () => {
+    await opened(
+      {
+        pictures: 1,
+        picturesBytes: 1_200_000,
+        largestPicture: 1_200_000,
+        largestPictureName: null,
+      },
+      { picture_bytes_at_most: 1_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverSomePicture", weigh(1_200_000), weigh(1_000_000))),
+    ).toBeTruthy();
+  });
+
+  it("says why it cannot share when Folio names no duration", async () => {
+    await opened({}, {});
+
+    expect(screen.getByText(t("shareNoTerms"))).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: t("shareGo") }).disabled).toBe(
+      true,
+    );
+  });
+
   it("lets attachments under their own ceiling pass, whatever the words weigh", async () => {
     await opened(
       { mainBytes: 1_000_000, files: 1, filesBytes: 23_000_000 },

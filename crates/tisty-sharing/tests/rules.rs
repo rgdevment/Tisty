@@ -359,6 +359,39 @@ fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays
 }
 
 #[test]
+fn a_video_says_it_plays_and_a_page_with_an_icon_inside_stays_an_attachment() {
+    let (_tmp, mut home) = home();
+    let walk = home.attached(
+        "walk.mp4",
+        b"\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2mp41 a walk",
+    );
+    let page = home.attached(
+        "walks.html",
+        b"<!doctype html><html><body><svg viewBox=\"0 0 1 1\"></svg></body></html>",
+    );
+    let drawn = home.attached(
+        "mark.svg",
+        b"<?xml version=\"1.0\"?>\n<!-- a mark -->\n<svg xmlns=\"http://www.w3.org/2000/svg\"/>",
+    );
+    let doc = home.wrote(
+        &format!("![Paseo]({walk})\n\n![Paseos]({page})\n\n![Marca]({drawn})\n"),
+        None,
+    );
+
+    let out = sealed(&home, &asked(doc));
+
+    assert!(
+        matches!(&out.told[..], [
+            Told::AsAttachment { name: video, plays: Some(player), .. },
+            Told::AsAttachment { name: html, plays: None, .. },
+            Told::PictureAsFile { name: svg, .. },
+        ] if video == "walk.mp4" && player == "video" && html == "walks.html" && svg == "mark.svg"),
+        "{:?}",
+        out.told
+    );
+}
+
+#[test]
 fn a_heic_this_machine_cannot_read_travels_as_a_file_and_the_person_is_told() {
     let (_tmp, mut home) = home();
     let mut heic = vec![0, 0, 0, 24];

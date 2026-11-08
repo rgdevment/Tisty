@@ -7,7 +7,7 @@ export type Told =
       document: string;
       name: string;
     }
-  | { what: "asAttachment"; document: string; name: string; plays: "audio" | "video" | null }
+  | { what: "asAttachment"; document: string; name: string; plays: string | null }
   | { what: "notDrawn"; document: string; many: number }
   | { what: "pictureNotKept"; document: string; name: string }
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
@@ -204,6 +204,7 @@ export const toldPlainly = (told: Told): string => {
     case "asAttachment":
       if (told.plays === "audio") return fill("toldPlaysSound", told.name, told.document);
       if (told.plays === "video") return fill("toldPlaysVideo", told.name, told.document);
+      if (told.plays) return fill("toldPlaysOther", told.name, told.document);
       return fill("toldAsAttachment", told.name, told.document);
     case "pictureAsWords":
       return fill("toldPictureAsWords", told.name, told.document);
