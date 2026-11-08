@@ -154,7 +154,7 @@ Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en 
 2. En el otro, abre **Configuración › Seguridad › Autorizar un equipo nuevo** y escríbelos.
 3. De vuelta en el equipo nuevo, pulsa **Ya los aceptó**. Mientras la llave va en camino lo ves en curso; cuando llega, el equipo nuevo trae tu nube cifrada, y la barra de abajo y Configuración › Seguridad dicen cuánto lleva.
 
-Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Escribir mi frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase.
+Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Escribir mi frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase. Escríbelas solo ahí, en tu Tisty: nadie de Tisty ni de Folio te las pedirá, y si alguien te las pide, es un engaño.
 
 Si luego el equipo nuevo se queda con el historial de tu nube, no te pregunta por tus otros equipos, y el que recibió sus dígitos no vuelve a pedirlos; cada uno de tus otros equipos te pide confirmar su código una vez, como con cualquier equipo nuevo. Elígelo dentro de la semana en que escribiste los dígitos: pasado ese plazo, el que los recibió te lo pregunta una vez más.
 

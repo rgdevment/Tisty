@@ -64,7 +64,9 @@ const SHEET_STYLE =
 const sheetPage = (words: string[], fingerprint: string, when: string): string =>
   `<!doctype html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8"><style>${SHEET_STYLE}</style></head><body><h1>${escaped(t("sheetTitle"))}</h1><p class="made">${escaped(fill("sheetMade", when, fingerprint))}</p><ol>${words
     .map((word, at) => `<li><span>${at + 1}</span>${escaped(word)}</li>`)
-    .join("")}</ol><p class="warn">${escaped(t("sheetWarn"))}</p></body></html>`;
+    .join(
+      "",
+    )}</ol><p class="warn">${escaped(t("sheetWarn"))}</p><p class="warn">${escaped(t("phraseNeverAsked"))}</p></body></html>`;
 
 export default function Phrasing({ words, fingerprint, onClose, onConfirmed }: Props) {
   const [step, setStep] = useState<Step>("words");
@@ -118,6 +120,9 @@ export default function Phrasing({ words, fingerprint, onClose, onConfirmed }: P
             <p className="text-[12.5px] font-semibold">{t("phraseOutside")}</p>
             <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
               {t("phraseOutsideWhy")}
+            </p>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed font-semibold">
+              {t("phraseNeverAsked")}
             </p>
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">

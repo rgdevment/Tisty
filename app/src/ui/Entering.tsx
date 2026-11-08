@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { type Heard, sealingHeard, sealingPhrase } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
@@ -10,6 +10,7 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
   const [said, setSaid] = useState("");
   const [heard, setHeard] = useState<Heard[]>([]);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const onlyHere = useId();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -51,14 +52,18 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
           </ul>
         </>
       )}
+      <p id={onlyHere} className="mt-3 text-[11.5px] font-semibold">
+        {t("phraseTypeOnlyHere")}
+      </p>
       <textarea
         aria-label={t("enterTitle")}
+        aria-describedby={onlyHere}
         value={said}
         onChange={(event) => setSaid(event.target.value)}
         rows={4}
         spellCheck={false}
         autoComplete="off"
-        className="mt-3 w-full rounded-[10px] border border-line bg-bg px-2.5 py-2 font-mono text-[12.5px]"
+        className="mt-1.5 w-full rounded-[10px] border border-line bg-bg px-2.5 py-2 font-mono text-[12.5px]"
       />
       {trouble && (
         <p role="alert" className="mt-2 text-[12.5px] text-urgent">
