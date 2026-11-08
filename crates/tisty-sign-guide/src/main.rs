@@ -3,7 +3,8 @@ use std::process::ExitCode;
 
 use tisty_core::Paths;
 use tisty_core::config::Config;
-use tisty_sharing::{MAKER_ROOT, SEAL, certified_by, guide_files, sealed, signer};
+use tisty_core::guide_seal::{MAKER_ROOT, SEAL, guide_files, sealed};
+use tisty_sharing::{certified_by, signer};
 
 fn signed_here() -> Result<String, String> {
     let paths = Paths::resolve().map_err(|e| format!("no home for Tisty here: {e}"))?;

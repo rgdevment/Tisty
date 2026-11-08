@@ -281,7 +281,7 @@ fn one_language(
 
 pub fn signed_author(from: &impl Fn(&str) -> Option<PathBuf>) -> Option<String> {
     let guide = from("es")?.parent()?.to_path_buf();
-    tisty_sharing::author_of_guide(&guide, tisty_sharing::MAKER_ROOT)
+    tisty_core::guide_seal::author_of_guide(&guide, tisty_core::guide_seal::MAKER_ROOT)
 }
 
 pub fn signed_guide(

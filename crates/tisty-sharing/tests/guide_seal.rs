@@ -4,8 +4,8 @@ mod common;
 use std::path::Path;
 
 use common::Home;
+use tisty_core::guide_seal::{GuideSeal, MAKER_ROOT, SEAL, author_of_guide, guide_files, sealed};
 use tisty_share_proto::seed::Seed;
-use tisty_sharing::{GuideSeal, MAKER_ROOT, SEAL, author_of_guide, guide_files, sealed};
 
 const AUTHOR: &str = "rgdevment";
 

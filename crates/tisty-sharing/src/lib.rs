@@ -3,7 +3,6 @@
 
 mod finishing;
 mod gathering;
-mod guide_seal;
 mod maker;
 mod packing;
 mod receiving;
@@ -14,8 +13,7 @@ pub use gathering::{
     Asked, Desk, Gathered, Under, citable, gathered, gathered_under, gathered_within, signer,
     signer_among,
 };
-pub use guide_seal::{GuideSeal, SEAL, author_of, author_of_guide, guide_files, sealed};
-pub use maker::{MAKER_ROOT, certified_by, signs_for};
+pub use maker::{certified_by, signs_for};
 pub use packing::Told;
 pub use receiving::{CARRIED_CITED, Received, received};
 pub use remembering::{forgotten, remembered, sent};

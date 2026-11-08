@@ -180,7 +180,7 @@ fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
 fn the_guide_tisty_ships_is_signed_by_the_makers_root() {
     assert!(
         super::signed_author(&shipped).is_some(),
-        "the guide changed since it was signed: the maker signs it again with `cargo run -p tisty-sharing --example sign_guide`"
+        "the guide changed since it was signed: the maker signs it again with `cargo run -p tisty-sign-guide`"
     );
 }
 

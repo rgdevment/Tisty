@@ -1,14 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use crate::attach::printed;
+use crate::state::same_name;
+use crate::untouched::SOWN_BY;
 use serde::{Deserialize, Serialize};
-use tisty_core::attach::printed;
-use tisty_core::state::same_name;
-use tisty_core::untouched::SOWN_BY;
 use tisty_share_proto::identity::{Certificate, Person, ShareKey, Signed, Verdict, check};
 use tisty_share_proto::name::named_well;
 
 const ABOUT: &str = "tisty.guide.v1";
+pub const MAKER_ROOT: &str = "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s";
 pub const SEAL: &str = "seal.json";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
