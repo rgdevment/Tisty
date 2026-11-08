@@ -881,8 +881,10 @@ const en = {
   shareRoomOf: "of {name} · {other}",
   shareCites: "Share the {name} documents it cites too",
   shareCitesOne: "Share the document it cites too",
+  shareCitesOver:
+    "With what it cites, that makes {name} documents shared at once, and Folio takes up to {other}. Untick this or stop sharing one.",
   shareCitesWhy:
-    "If unmarked, what it cites reads as plain text. Marked, each goes in its own envelope and lives as long as this share.",
+    "If unmarked, what it cites reads as plain text. Marked, each is shared apart, in its own envelope: it counts as one more shared document, takes room of its own and expires on its own.",
   shareSecrets: "This document seems to hold a secret key or a password",
   shareSecretsWhy:
     "Anyone with the link could read it, and what was read cannot be taken back. Take it out before sharing, or share anyway if it is only an example.",
@@ -3829,8 +3831,10 @@ const es: Catalog = {
   shareRoomOf: "de {name} · {other}",
   shareCites: "Compartir también los {name} documentos que cita",
   shareCitesOne: "Compartir también el documento que cita",
+  shareCitesOver:
+    "Con lo que cita serían {name} documentos compartidos a la vez, y Folio acepta hasta {other}. Desmarca esta opción o deja de compartir alguno.",
   shareCitesWhy:
-    "Sin marcarlo, lo que cita se ve como texto. Marcado, cada uno viaja en su propio sobre y vive mientras viva este compartido.",
+    "Sin marcarlo, lo que cita se ve como texto. Marcado, cada uno se comparte aparte, en su propio sobre: cuenta como un compartido más, ocupa su propio espacio y caduca por su cuenta.",
   shareSecrets: "Este documento parece tener una clave secreta o una contraseña",
   shareSecretsWhy:
     "Cualquiera con el link podría leerla, y lo que ya se leyó no se puede retirar. Quítala antes de compartir, o comparte de todos modos si es solo un ejemplo.",

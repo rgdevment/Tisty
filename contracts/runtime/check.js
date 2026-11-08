@@ -368,10 +368,37 @@ export function checkHtml(html) {
 
 const bareOf = (said) => [...said].filter((one) => one > " ").join("");
 
+// What a style shows between quotes runs nothing, and spaces and comments hide nothing; only an escape is kept from the quotes.
+const flatCss = (said) => {
+  let out = ";";
+  let at = 0;
+  while (at < said.length) {
+    const one = said[at];
+    if (one === '"' || one === "'") {
+      const end = said.indexOf(one, at + 1);
+      const shown = said.slice(at + 1, end < 0 ? said.length : end);
+      out += one + shown.replace(/[^\\]/g, "") + one;
+      at = end < 0 ? said.length : end + 1;
+    } else if (said.startsWith("/*", at)) {
+      const end = said.indexOf("*/", at + 2);
+      at = end < 0 ? said.length : end + 2;
+    } else {
+      if (one > " ") out += one;
+      at += 1;
+    }
+  }
+  return out;
+};
+
+// A word that ends in a colon is a property, so only where a property starts.
+const saysNever = (flat, one) =>
+  one.endsWith(":") ? flat.includes(";" + one) || flat.includes("{" + one) : flat.includes(one);
+
 // Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
 const wrongInCss = (css) => {
   const said = lowered(css);
-  const out = WHOLE.widget.css_never.filter((one) => said.includes(one));
+  const flat = flatCss(said);
+  const out = WHOLE.widget.css_never.filter((one) => saysNever(flat, one));
   for (let at = said.indexOf("url("); at >= 0; at = said.indexOf("url(", at + 4)) {
     const close = said.indexOf(")", at);
     const inside = bareOf(said.slice(at + 4, close < 0 ? said.length : close)).replace(/^["']/, "");

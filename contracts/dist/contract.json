@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -1721,7 +1721,10 @@
           "\\",
           "image(",
           "image-set(",
-          "src("
+          "src(",
+          "expression(",
+          "-moz-binding:",
+          "behavior:"
         ],
         "css_urls": "In CSS, url() holds a data: address of an image, or names something in its own drawing as url(#name)."
       },
@@ -1906,6 +1909,55 @@
           "says": "A picture set from an address.",
           "value": {
             "body": "<style>p{background:image-set(\"https://example.com/a.png\" 1x)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old way of running code from a style, in a style attribute.",
+          "value": {
+            "body": "<div style=\"width:expression(alert(1))\"></div>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old binding that runs code from a stylesheet.",
+          "value": {
+            "body": "<style>div{-moz-binding:url(#x)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "An old behavior that runs code from a stylesheet.",
+          "value": {
+            "body": "<style>div{behavior:url(#x)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "The same old ways, behind spaces and a comment.",
+          "value": {
+            "body": "<div style=\"width:expression (1); behavior : url(#x)\"></div><style>p{-moz-/**/binding:url(#y)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "Words that only name one of those ways, in what a style shows.",
+          "value": {
+            "body": "<style>.tip::after{content:\"behavior: calm, no -moz-binding: here\"}</style>"
+          },
+          "holds": true
+        },
+        {
+          "says": "What a style shows may hold parentheses and semicolons of its own.",
+          "value": {
+            "body": "<div style=\"--a:1\"></div><style>.n::before{content:\"see image (1); behavior: calm\"}.m::after{content:'src (2)'}</style>"
+          },
+          "holds": true
+        },
+        {
+          "says": "An escape is still an escape between quotes.",
+          "value": {
+            "body": "<style>p::before{content:\"\\41\"}</style>"
           },
           "holds": false
         },
@@ -7357,7 +7409,10 @@
       "\\",
       "image(",
       "image-set(",
-      "src("
+      "src(",
+      "expression(",
+      "-moz-binding:",
+      "behavior:"
     ],
     "policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
     "bytes": 512000,
