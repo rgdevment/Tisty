@@ -139,7 +139,8 @@ productivity tool** that lives on your machine and nowhere else.
 
 > I use Tisty every day on macOS and Windows. If something feels off,
 > [open an issue](https://github.com/rgdevment/Tisty/issues) — this project
-> keeps improving because of real-world use.
+> keeps improving because of real-world use. Questions, ideas and how you use
+> it go to [Discussions](https://github.com/rgdevment/Tisty/discussions).
 >
 > **It is for one person, by design.** No assignees, no permissions, no boards.
 > If you need to run a team, Tisty will not carry that.

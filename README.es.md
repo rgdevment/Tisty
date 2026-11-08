@@ -143,7 +143,8 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 
 > Uso Tisty todos los días en macOS y en Windows. Si algo no encaja,
 > [abre un issue](https://github.com/rgdevment/Tisty/issues) — este proyecto
-> mejora porque alguien lo usa de verdad.
+> mejora porque alguien lo usa de verdad. Las preguntas, las ideas y cómo lo
+> usas van a [Discussions](https://github.com/rgdevment/Tisty/discussions).
 >
 > **Es para una persona, a propósito.** Sin responsables, sin permisos, sin
 > tableros. Si necesitas llevar un equipo, Tisty no va a sostener eso.
