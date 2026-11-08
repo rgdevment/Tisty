@@ -284,6 +284,48 @@ pub fn signed_author(from: &impl Fn(&str) -> Option<PathBuf>) -> Option<String> 
     tisty_core::guide_seal::author_of_guide(&guide, tisty_core::guide_seal::MAKER_ROOT)
 }
 
+fn a_cover(kept: &tisty_core::model::Kept) -> bool {
+    kept.page_of.is_none() && kept.task_of.is_none() && !kept.archived && kept.guest
+}
+
+// A guide its author signed is opened as it is, without reading the files it was sealed over.
+pub fn signed_guide_here(
+    session: &mut Session,
+    tongue: &str,
+) -> Answer<Option<tisty_core::docs::Doc>> {
+    let signed: Vec<&tisty_core::model::Kept> = session
+        .state
+        .docs
+        .values()
+        .filter(|one| a_cover(one) && one.sown && one.by.as_deref() != Some(WRITTEN_BY))
+        .collect();
+    let Some(found) = signed
+        .iter()
+        .find(|one| one.lang.as_deref() == Some(tongue))
+        .or(signed.first())
+        .map(|one| tisty_core::docs::Doc {
+            id: one.file.clone(),
+            title: one.title.clone().unwrap_or_default(),
+        })
+    else {
+        return Ok(None);
+    };
+    let kept = found.id.clone();
+    session.keep(|c| c.guide = Some(kept))?;
+    Ok(Some(found))
+}
+
+// Only the guide as it was sown is put away: a copy, another version or a guide someone wrote in stays theirs.
+fn an_untouched_unsigned_guide(kept: &tisty_core::model::Kept) -> bool {
+    let titled = |one: &Spoken| tisty_core::docs::titled(one.told);
+    a_cover(kept)
+        && kept.by.as_deref() == Some(WRITTEN_BY)
+        && kept.edited_by.is_none()
+        && SPOKEN
+            .iter()
+            .any(|one| kept.title.as_deref() == Some(titled(one).as_str()))
+}
+
 pub fn signed_guide(
     session: &mut Session,
     tongue: &str,
@@ -291,35 +333,11 @@ pub fn signed_guide(
     author: &str,
     from: impl Fn(&str) -> Option<PathBuf>,
 ) -> Answer<tisty_core::docs::Doc> {
-    let covers = |kept: &&tisty_core::model::Kept| {
-        kept.page_of.is_none() && kept.task_of.is_none() && !kept.archived && kept.guest
-    };
-    let signed: Vec<&tisty_core::model::Kept> = session
-        .state
-        .docs
-        .values()
-        .filter(covers)
-        .filter(|one| one.sown && one.by.as_deref() == Some(author))
-        .collect();
-    let found = signed
-        .iter()
-        .find(|one| one.lang.as_deref() == Some(tongue))
-        .or(signed.first())
-        .map(|one| tisty_core::docs::Doc {
-            id: one.file.clone(),
-            title: one.title.clone().unwrap_or_default(),
-        });
-    if let Some(found) = found {
-        let kept = found.id.clone();
-        session.keep(|c| c.guide = Some(kept))?;
-        return Ok(found);
-    }
     let unsigned: Vec<Op> = session
         .state
         .docs
         .values()
-        .filter(covers)
-        .filter(|one| one.by.as_deref() == Some(WRITTEN_BY))
+        .filter(|one| an_untouched_unsigned_guide(one))
         .map(|one| Op::DocArchive { id: one.id })
         .collect();
     session.commit_all(unsigned)?;

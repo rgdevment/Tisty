@@ -92,3 +92,19 @@ fn a_guide_with_no_seal_has_no_author() {
     a_guide(guide.path());
     assert_eq!(author_of_guide(guide.path(), &root_of_this_home()), None);
 }
+
+#[test]
+fn what_a_file_browser_leaves_beside_the_guide_does_not_break_its_seal() {
+    let (_tmp, home) = signing_home();
+    let guide = tempfile::tempdir().unwrap();
+    a_guide(guide.path());
+    signed_as(&home, guide.path(), AUTHOR);
+
+    std::fs::write(guide.path().join("es/Thumbs.db"), [0, 1]).unwrap();
+    std::fs::write(guide.path().join("en/desktop.ini"), "[x]").unwrap();
+    std::fs::write(guide.path().join("en/.DS_Store"), [2]).unwrap();
+    assert_eq!(
+        author_of_guide(guide.path(), &root_of_this_home()).as_deref(),
+        Some(AUTHOR)
+    );
+}

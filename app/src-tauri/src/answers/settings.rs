@@ -179,6 +179,9 @@ pub fn guide(
             )
             .ok()
     };
+    if let Some(found) = super::guiding::signed_guide_here(&mut session, tongue)? {
+        return Ok(found);
+    }
     if let Some(author) = super::guiding::signed_author(&reach) {
         return super::guiding::signed_guide(&mut session, tongue, called, &author, reach);
     }

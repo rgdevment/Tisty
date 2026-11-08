@@ -200,8 +200,11 @@ fn asked_again_the_signed_guide_puts_the_unsigned_one_away_and_comes_once_as_its
         .collect();
     assert_eq!(old.len(), 2);
 
+    assert_eq!(super::signed_guide_here(&mut session, "es").unwrap(), None);
     let first = super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
-    let again = super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
+    let again = super::signed_guide_here(&mut session, "es")
+        .unwrap()
+        .expect("the signed guide is found again");
 
     assert_eq!(first.id, again.id, "the signed guide is sown once");
     assert!(old.iter().all(|id| session.state.docs[id].archived));
@@ -219,4 +222,52 @@ fn asked_again_the_signed_guide_puts_the_unsigned_one_away_and_comes_once_as_its
     );
     let cover = signed.iter().find(|one| one.file == first.id).unwrap();
     assert_eq!(cover.lang.as_deref(), Some("es"));
+}
+
+#[test]
+fn a_guide_someone_wrote_in_or_copied_is_left_where_it_is_when_the_signed_one_comes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths.clone()).unwrap();
+    sown(&mut session, "es", "Guía", WRITTEN_BY, shipped).unwrap();
+    let cover = |session: &Session, lang: &str| {
+        session
+            .state
+            .docs
+            .values()
+            .find(|one| one.page_of.is_none() && one.lang.as_deref() == Some(lang))
+            .map(|one| (one.id, one.file.clone()))
+            .unwrap()
+    };
+    let (untouched, _) = cover(&session, "es");
+    let (written_in, file) = cover(&session, "en");
+    let body = tisty_core::docs::read(&paths.docs(), &file).unwrap() + "\nalgo mío\n";
+    tisty_core::docs::write(&paths.docs(), &file, &body).unwrap();
+    session
+        .commit(tisty_core::Op::DocSaid {
+            id: written_in,
+            d: tisty_core::event::Said::of(&body).by(Some("Mario".into())),
+        })
+        .unwrap();
+    let copy = session.copy_doc(&untouched.to_string()).unwrap();
+    let copy = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == copy.id)
+        .map(|one| one.id)
+        .unwrap();
+
+    super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
+
+    assert!(session.state.docs[&untouched].archived);
+    assert!(
+        !session.state.docs[&written_in].archived,
+        "written in, so it is the person's"
+    );
+    assert!(
+        !session.state.docs[&copy].archived,
+        "a copy is the person's"
+    );
 }

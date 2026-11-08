@@ -23,6 +23,12 @@ fn said(author: &str, files: &BTreeMap<String, String>) -> Vec<u8> {
     serde_json::to_vec(&(author, files)).unwrap_or_default()
 }
 
+// What a file browser leaves beside the guide is no part of it, or a glance at the folder would break the seal.
+fn left_by_the_system(name: &str) -> bool {
+    name.starts_with('.')
+        || ["thumbs.db", "desktop.ini", "ehthumbs.db"].contains(&name.to_lowercase().as_str())
+}
+
 pub fn guide_files(guide: &Path) -> std::io::Result<BTreeMap<String, String>> {
     let mut files = BTreeMap::new();
     for tongue in std::fs::read_dir(guide)? {
@@ -32,7 +38,9 @@ pub fn guide_files(guide: &Path) -> std::io::Result<BTreeMap<String, String>> {
         }
         for file in std::fs::read_dir(tongue.path())? {
             let file = file?;
-            if file.file_type()?.is_file() {
+            if file.file_type()?.is_file()
+                && !left_by_the_system(&file.file_name().to_string_lossy())
+            {
                 let named = format!(
                     "{}/{}",
                     tongue.file_name().to_string_lossy(),
