@@ -302,6 +302,26 @@ fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
     Ok(file)
 }
 
+const DOMAIN_PATIENCE: std::time::Duration = std::time::Duration::from_secs(2);
+
+// A checked domain is a word added beside a name: a slow network must never hold the question up.
+fn checked_in_time(home: &std::path::Path, root: &str, domain: &str) -> bool {
+    if !folio_domains::a_domain(domain) {
+        return false;
+    }
+    let (home, root, domain) = (home.to_path_buf(), root.to_owned(), domain.to_owned());
+    let (said, heard) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = said.send(folio_domains::checked(
+            &home,
+            &root,
+            &domain,
+            crate::reaching::brought_from_folio,
+        ));
+    });
+    heard.recv_timeout(DOMAIN_PATIENCE).unwrap_or(false)
+}
+
 // Owner and signer are told apart by their roots: two people can sign with one name.
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
@@ -314,9 +334,7 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
             opened.verdict,
             alias,
             maker.as_ref(),
-            |root, domain| {
-                folio_domains::checked(&home, root, domain, crate::reaching::brought_from_folio)
-            },
+            |root, domain| checked_in_time(&home, root, domain),
         ),
     };
     let owner = opened

@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use sha2::{Digest, Sha256};
-
 use crate::policy;
 
 const SHARDS_URL: &str =
@@ -15,9 +13,7 @@ const LABEL_AT_MOST: usize = 63;
 const PUNYCODE: &str = "xn--";
 
 pub fn proof_of(root: &str, domain: &str) -> String {
-    let digest = Sha256::digest(format!("{root}{domain}").as_bytes());
-    let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
-    hex[..PROOF_CHARACTERS].to_owned()
+    tisty_core::attach::printed(format!("{root}{domain}").as_bytes())[..PROOF_CHARACTERS].to_owned()
 }
 
 pub fn shard_of(proof: &str) -> &str {
@@ -80,7 +76,10 @@ fn checked_under(
         return false;
     }
     let proof = proof_of(root, domain);
-    proofs_in(home, shard_of(&proof), bring, key).is_some_and(|held| held.contains(&proof))
+    let shard = shard_of(&proof);
+    let holds = |held: Vec<String>| held.contains(&proof);
+    kept_proofs(home, shard, key).is_some_and(holds)
+        || fetched_proofs(home, shard, bring, key).is_some_and(holds)
 }
 
 fn kept_at(home: &Path, shard: &str) -> (PathBuf, PathBuf) {
@@ -100,19 +99,26 @@ fn fresh(at: &Path) -> bool {
 }
 
 // Read again under Folio's signature even from the copy kept here: a day's copy grants nothing on its own.
-fn proofs_in(
+fn kept_proofs(home: &Path, shard: &str, key: &str) -> Option<Vec<String>> {
+    let (said_at, signature_at) = kept_at(home, shard);
+    if !fresh(&said_at) {
+        return None;
+    }
+    accepted(
+        shard,
+        &std::fs::read(&said_at).ok()?,
+        &std::fs::read(&signature_at).ok()?,
+        key,
+    )
+}
+
+fn fetched_proofs(
     home: &Path,
     shard: &str,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
     key: &str,
 ) -> Option<Vec<String>> {
     let (said_at, signature_at) = kept_at(home, shard);
-    if fresh(&said_at)
-        && let (Ok(said), Ok(signature)) = (std::fs::read(&said_at), std::fs::read(&signature_at))
-        && let Some(held) = accepted(shard, &said, &signature, key)
-    {
-        return Some(held);
-    }
     let said = bring(&format!("{SHARDS_URL}{shard}.json"))?;
     let signature = bring(&format!("{SHARDS_URL}{shard}.json.minisig"))?;
     let held = accepted(shard, &said, &signature, key)?;

@@ -110,7 +110,6 @@ fn same(alias: char, name: char) -> bool {
     alias == UNKNOWN || alias == name
 }
 
-// Optimal string alignment: an insert, a deletion, a substitution or two neighbours swapped is one slip.
 fn slips_apart(alias: &[char], name: &[char]) -> usize {
     let mut rows = vec![vec![0; name.len() + 1]; alias.len() + 1];
     for (at, row) in rows.iter_mut().enumerate() {

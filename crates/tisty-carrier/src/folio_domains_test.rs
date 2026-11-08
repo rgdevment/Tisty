@@ -137,3 +137,19 @@ fn a_shard_is_kept_a_day_and_read_again_under_its_signature() {
         KEY.trim()
     ));
 }
+
+#[test]
+fn a_domain_approved_after_the_day_s_copy_was_kept_is_looked_for_again() {
+    let home = tempfile::tempdir().unwrap();
+    let (said_at, signature_at) = kept_at(home.path(), "75");
+    std::fs::create_dir_all(said_at.parent().unwrap()).unwrap();
+    std::fs::write(&said_at, b"[]").unwrap();
+    std::fs::write(&signature_at, b"not checked").unwrap();
+    assert!(checked_under(
+        home.path(),
+        ROOT,
+        DOMAIN,
+        &serving(SIGNED),
+        KEY.trim()
+    ));
+}
