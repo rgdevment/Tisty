@@ -15,7 +15,7 @@ pub struct Home {
     pub paths: Paths,
     pub device: DeviceId,
     pub state: State,
-    pub maker: bool,
+    pub maker: Option<tisty_share_proto::identity::Person>,
     store: Store,
     orders: u32,
 }
@@ -34,7 +34,7 @@ impl Home {
             paths,
             device,
             state,
-            maker: false,
+            maker: None,
             store,
             orders: 0,
         }

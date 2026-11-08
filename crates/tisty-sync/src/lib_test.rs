@@ -3719,6 +3719,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -3912,6 +3913,7 @@ fn papered(who: &Machine, file: &str, guest: bool, by: Option<&str>) -> Ulid {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest,
+                sown: false,
                 made: None,
                 by: by.map(str::to_string),
                 said: None,

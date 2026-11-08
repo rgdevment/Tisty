@@ -94,33 +94,137 @@ fn limits_naming(session: &crate::Session, root: &str) {
     .unwrap();
 }
 
-#[test]
-fn limits_nobody_signed_make_nobody_the_maker_even_naming_this_root() {
-    let tmp = tempfile::tempdir().unwrap();
+fn named(tmp: &tempfile::TempDir) -> (crate::Session, tisty_share_proto::identity::Person) {
     let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
     let mut session = crate::Session::at(paths).unwrap();
     let here = session.config.device_id.clone();
     session
         .commit(tisty_core::Op::DeviceJoin {
-            d: here.clone(),
+            d: here,
             k: Some(tisty_core::DeviceKind::Machine),
             p: None,
         })
         .unwrap();
     let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
     crate::identity::begun(&mut session, &seed).unwrap();
-    let mine = seed.root().person().shown();
+    (session, seed.root().person())
+}
+
+#[test]
+fn limits_nobody_signed_make_nobody_the_maker_even_naming_this_root() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (session, root) = named(&tmp);
+    let mine = root.shown();
 
     assert!(
         !the_maker_of(&session),
         "with no limits nobody is the maker"
     );
     limits_naming(&session, &mine);
-    assert!(tisty_sharing::signs_for(
-        &session.paths,
-        &session.state,
-        &here,
-        &mine
-    ));
+    let here = &session.config.device_id;
+    assert_eq!(
+        tisty_sharing::signs_for(&session.paths, &session.state, here, &mine),
+        Some(root)
+    );
     assert!(!the_maker_of(&session));
+}
+
+fn refused_to_the_maker(
+    session: &crate::Session,
+    root: tisty_share_proto::identity::Person,
+    doc: tisty_core::model::DocId,
+) -> Option<Unshared> {
+    let desk = tisty_sharing::Desk {
+        paths: &session.paths,
+        state: &session.state,
+        also: None,
+        turned: &|_| None,
+        maker: Some(root),
+    };
+    let asked = tisty_sharing::Asked {
+        doc,
+        public: false,
+        cited: Vec::new(),
+        signed_as: None,
+    };
+    tisty_sharing::gathered(&desk, &asked).err()
+}
+
+fn doc_of(session: &crate::Session, file: &str) -> tisty_core::model::DocId {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .map(|one| one.id)
+        .unwrap()
+}
+
+#[test]
+fn a_document_signed_as_tisty_put_in_the_guide_and_copied_is_never_the_makers_to_share() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut session, root) = named(&tmp);
+    let guide = ulid::Ulid::generate();
+    session
+        .commit(tisty_core::Op::FolderAdd {
+            id: guide,
+            d: tisty_core::event::FolderAdd {
+                name: "Guía".into(),
+                order: "a0".into(),
+                parent: None,
+                icon: None,
+                color: None,
+            },
+        })
+        .unwrap();
+    let body = "# Guía\n\nNo la escribió Tisty.\n";
+    let made =
+        tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body).unwrap();
+    let received = ulid::Ulid::generate();
+    session
+        .commit(tisty_core::Op::DocAdd {
+            id: received,
+            d: tisty_core::event::DocAdd {
+                guest: true,
+                by: Some(tisty_core::untouched::SOWN_BY.into()),
+                file: made.id.clone(),
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body)),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    session
+        .commit(tisty_core::Op::DocMove {
+            id: received,
+            d: tisty_core::event::Filed {
+                folder: Some(Some(guide)),
+                page_of: None,
+                order: None,
+            },
+        })
+        .unwrap();
+
+    let copy = session.copy_doc(&received.to_string()).unwrap();
+    let copy = doc_of(&session, &copy.id);
+    let other = super::super::papers::other_version_kept(
+        &mut session,
+        &made.id,
+        "# Guía\n\nOtra versión de lo mismo.\n".into(),
+        Some("otra versión"),
+    )
+    .unwrap()
+    .unwrap();
+    let other = doc_of(&session, &other);
+
+    for id in [received, copy, other] {
+        let kept = &session.state.docs[&id];
+        assert_eq!(kept.by.as_deref(), Some(tisty_core::untouched::SOWN_BY));
+        assert_eq!(kept.folder, Some(guide));
+        assert!(!kept.sown);
+        assert!(matches!(
+            refused_to_the_maker(&session, root, id),
+            Some(Unshared::NotOwn)
+        ));
+    }
 }

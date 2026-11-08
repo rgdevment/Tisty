@@ -426,14 +426,7 @@ impl State {
             .page_of
             .filter(|up| self.docs.get(up).is_some_and(|one| one.page_of.is_none()));
         let under = page_of.and_then(|up| self.docs.get(&up));
-        let sown = crate::untouched::written_as_sown(d)
-            && match under {
-                Some(up) => up.sown,
-                None => d
-                    .folder
-                    .and_then(|at| self.folders.get(&at))
-                    .is_some_and(crate::untouched::a_guide_folder_now),
-            };
+        let sown = d.sown && crate::untouched::written_as_sown(d) && under.is_none_or(|up| up.sown);
         self.docs.insert(
             *id,
             Kept {

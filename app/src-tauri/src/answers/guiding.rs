@@ -146,7 +146,8 @@ pub fn spoken_again(session: &mut Session) {
     for one in &SPOKEN {
         let title = tisty_core::docs::titled(one.told);
         let found = session.state.papers().find(|kept| {
-            kept.sown
+            kept.by.as_deref() == Some(WRITTEN_BY)
+                && kept.guest
                 && kept.page_of.is_none()
                 && kept.title.as_deref() == Some(title.as_str())
                 && !session.state.held_away(kept)
@@ -252,6 +253,7 @@ fn one_language(
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
             guest: true,
+            sown: true,
             by: Some(WRITTEN_BY.into()),
             file,
             order,

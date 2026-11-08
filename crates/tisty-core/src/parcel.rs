@@ -1044,6 +1044,7 @@ fn taken_in(
                     .map(signed_as)
                     .filter(|one| !one.is_empty()),
                 guest: elsewhere || paper.guest,
+                sown: false,
                 said: Some(Said {
                     title: made.title.clone(),
                     ..Said::of(&body)

@@ -1051,6 +1051,9 @@ pub struct DocAdd {
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub guest: bool,
+    /// Said only by the sowing of Tisty's guide: a copy or a version kept of it never says so.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub sown: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub said: Option<Said>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

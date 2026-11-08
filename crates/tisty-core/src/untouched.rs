@@ -4,7 +4,7 @@ use std::path::Path;
 use ulid::Ulid;
 
 use crate::event::{DeviceKind, DocAdd, Event, FolderAdd, ListAdd, Look, Op, Said};
-use crate::model::{DocId, FIRST, Folder, FolderId, ListId};
+use crate::model::{DocId, FIRST, FolderId, ListId};
 
 pub const SOWN_BY: &str = "Tisty";
 pub const GUIDE_FOLDERS: [&str; 2] = ["Guide", "Guía"];
@@ -51,10 +51,6 @@ const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
 
 pub fn written_as_sown(d: &DocAdd) -> bool {
     d.by.as_deref() == Some(SOWN_BY) && d.guest && d.made.is_none() && d.wrote.is_none()
-}
-
-pub fn a_guide_folder_now(folder: &Folder) -> bool {
-    GUIDE_FOLDERS.contains(&folder.name.as_str()) && folder.parent.is_none()
 }
 
 struct Paper {

@@ -38,6 +38,8 @@ fn the_guide_comes_in_both_languages_as_one_document_opened_in_the_persons() {
             3,
             "each language keeps its pages"
         );
+        assert!(one.sown);
+        assert!(session.state.pages_of(one.id).iter().all(|page| page.sown));
     }
     assert_eq!(session.state.folders.len(), 1, "one folder holds both");
 

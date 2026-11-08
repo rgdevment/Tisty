@@ -192,6 +192,7 @@ impl Desk {
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,

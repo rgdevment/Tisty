@@ -28,7 +28,7 @@ fn under_folio(home: &Home, doc: DocId, under: &Under<'_>) -> Result<Gathered, U
         state: &home.state,
         also: None,
         turned: &|_| None,
-        maker: false,
+        maker: None,
     };
     gathered_under(&desk, &asked(doc), under)
 }
@@ -325,6 +325,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
             order: "a9".to_owned(),
             said: Some(tisty_core::event::Said::of(body)),
             guest: true,
+            sown: false,
             wrote: None,
             made: None,
             by: None,

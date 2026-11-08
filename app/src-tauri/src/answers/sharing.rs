@@ -6,6 +6,7 @@ use tisty_core::model::DocId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{DeviceId, Paths, State};
 use tisty_envelope::sealing::Writer;
+use tisty_share_proto::identity::Person;
 use tisty_sharing::{
     Asked, Desk, Gathered, Told, Unshared, certified_by, gathered, signer, signs_for,
 };
@@ -43,12 +44,12 @@ fn maker_root(paths: &Paths) -> Option<String> {
     tisty_carrier::folio_limits::maker_root(&paths.private())
 }
 
-pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> bool {
-    maker_root(paths).is_some_and(|root| signs_for(paths, state, device, &root))
+pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> Option<Person> {
+    maker_root(paths).and_then(|root| signs_for(paths, state, device, &root))
 }
 
 pub(super) fn the_maker_of(session: &Session) -> bool {
-    the_maker_here(&session.paths, &session.state, &session.config.device_id)
+    the_maker_here(&session.paths, &session.state, &session.config.device_id).is_some()
 }
 
 pub(super) fn doc_id(said: &str) -> Answer<DocId> {
@@ -98,7 +99,7 @@ pub(super) async fn sealed_by(
     // Asked first: with nothing to sign with, nothing else is worth doing.
     let (key, certificate) =
         signer(&paths, &state, &device).ok_or_else(|| Refusal::of("noIdentityToSign"))?;
-    let maker = maker_root(&paths).is_some_and(|root| certified_by(&certificate, &root));
+    let maker = maker_root(&paths).and_then(|root| certified_by(&certificate, &root));
     let mut gathered = tauri::async_runtime::spawn_blocking(move || {
         let desk = Desk {
             paths: &paths,

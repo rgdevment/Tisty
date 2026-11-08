@@ -157,6 +157,8 @@ fn guest_added(
     by: Option<String>,
     page_of: Option<tisty_core::model::DocId>,
 ) -> Answer<tisty_core::model::DocId> {
+    // Only the guide Tisty sows speaks as Tisty; a name like it from Folio is kept as no name.
+    let by = by.filter(|one| !tisty_core::state::same_name(one, tisty_core::untouched::SOWN_BY));
     let order = tisty_core::order::last_of(
         session
             .state
@@ -171,6 +173,7 @@ fn guest_added(
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: true,
+            sown: false,
             made: None,
             by,
             file,

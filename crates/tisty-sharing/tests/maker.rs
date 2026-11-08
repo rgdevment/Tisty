@@ -8,6 +8,7 @@ use tisty_core::event::{DocAdd, FolderAdd, Said, Signature};
 use tisty_core::model::{DocId, FolderId};
 use tisty_core::untouched::SOWN_BY;
 use tisty_core::{Op, docs};
+use tisty_share_proto::identity::Person;
 use tisty_share_proto::seed::Seed;
 use tisty_sharing::{Finished, Sealed, Told, Unshared, signs_for};
 
@@ -26,8 +27,12 @@ fn home() -> (tempfile::TempDir, Home) {
     (tmp, home)
 }
 
+fn the_root() -> Person {
+    Seed::from_bytes(&[0x33; 32]).root().person()
+}
+
 fn root_of_this_home() -> String {
-    Seed::from_bytes(&[0x33; 32]).root().person().shown()
+    the_root().shown()
 }
 
 fn another_root() -> String {
@@ -55,6 +60,7 @@ fn added(
     by: &str,
     folder: Option<FolderId>,
     page_of: Option<DocId>,
+    sown: bool,
 ) -> DocId {
     let made = docs::create(&home.paths.docs(), &home.device, body).unwrap();
     let id = ulid::Ulid::generate();
@@ -62,6 +68,7 @@ fn added(
         id,
         d: DocAdd {
             guest: true,
+            sown,
             by: Some(by.into()),
             file: made.id,
             order: format!("s{id}"),
@@ -83,6 +90,7 @@ fn sown_guide(home: &mut Home) -> DocId {
         SOWN_BY,
         folder,
         None,
+        true,
     );
     added(
         home,
@@ -90,6 +98,7 @@ fn sown_guide(home: &mut Home) -> DocId {
         SOWN_BY,
         folder,
         Some(guide),
+        true,
     );
     guide
 }
@@ -122,33 +131,14 @@ fn refused(home: &Home, doc: DocId) -> Option<Unshared> {
 #[test]
 fn only_a_machine_key_the_root_certified_answers_for_that_root() {
     let (_tmp, home) = home();
-    assert!(signs_for(
-        &home.paths,
-        &home.state,
-        &home.device,
-        &root_of_this_home()
-    ));
-    assert!(!signs_for(
-        &home.paths,
-        &home.state,
-        &home.device,
-        &another_root()
-    ));
-    assert!(!signs_for(
-        &home.paths,
-        &home.state,
-        &home.device,
-        MAKER_ALIAS
-    ));
+    let signs = |home: &Home, root: &str| signs_for(&home.paths, &home.state, &home.device, root);
+    assert_eq!(signs(&home, &root_of_this_home()), Some(the_root()));
+    assert_eq!(signs(&home, &another_root()), None);
+    assert_eq!(signs(&home, MAKER_ALIAS), None);
 
     let tmp = tempfile::tempdir().unwrap();
     let nameless = Home::at(tmp.path());
-    assert!(!signs_for(
-        &nameless.paths,
-        &nameless.state,
-        &nameless.device,
-        &root_of_this_home()
-    ));
+    assert_eq!(signs(&nameless, &root_of_this_home()), None);
 }
 
 #[test]
@@ -161,7 +151,7 @@ fn under_another_root_what_tisty_sowed_stays_tistys_and_is_not_shared() {
 #[test]
 fn the_maker_shares_what_tisty_sowed_with_its_pages_and_files() {
     let (_tmp, mut home) = home();
-    home.maker = true;
+    home.maker = Some(the_root());
     let guide = sown_guide(&mut home);
 
     let out = sealed(&home, &asked(guide));
@@ -180,7 +170,7 @@ fn the_maker_shares_what_tisty_sowed_with_its_pages_and_files() {
 #[test]
 fn what_tisty_sowed_never_goes_out_signed_as_tisty() {
     let (_tmp, mut home) = home();
-    home.maker = true;
+    home.maker = Some(the_root());
     let guide = sown_guide(&mut home);
     let mut asking = asked(guide);
     asking.signed_as = Some(SOWN_BY.into());
@@ -192,15 +182,15 @@ fn what_tisty_sowed_never_goes_out_signed_as_tisty() {
 #[test]
 fn the_maker_still_cannot_share_what_someone_else_wrote() {
     let (_tmp, mut home) = home();
-    home.maker = true;
-    let theirs = added(&mut home, "# De Ana\n", "Ana", None, None);
+    home.maker = Some(the_root());
+    let theirs = added(&mut home, "# De Ana\n", "Ana", None, None, false);
     assert!(matches!(refused(&home, theirs), Some(Unshared::NotOwn)));
 }
 
 #[test]
 fn what_tisty_sowed_is_still_tistys_for_duplicating_even_for_the_maker() {
     let (_tmp, mut home) = home();
-    home.maker = true;
+    home.maker = Some(the_root());
     let guide = sown_guide(&mut home);
     let me = home.state.persons.person(&home.device);
     let kept = &home.state.docs[&guide];
@@ -214,7 +204,7 @@ fn what_tisty_sowed_is_still_tistys_for_duplicating_even_for_the_maker() {
 #[test]
 fn a_new_guide_text_goes_up_as_a_new_version_of_the_same_shared_document() {
     let (_tmp, mut home) = home();
-    home.maker = true;
+    home.maker = Some(the_root());
     let guide = sown_guide(&mut home);
     let first = sealed(&home, &asked(guide));
     home.sent(&first.remembering);
@@ -239,8 +229,15 @@ fn a_new_guide_text_goes_up_as_a_new_version_of_the_same_shared_document() {
 #[test]
 fn a_document_someone_signed_as_tisty_is_still_theirs_for_the_maker() {
     let (_tmp, mut home) = home();
-    home.maker = true;
-    let received = added(&mut home, "# Guía\n\nOtra cosa.\n", SOWN_BY, None, None);
+    home.maker = Some(the_root());
+    let received = added(
+        &mut home,
+        "# Guía\n\nOtra cosa.\n",
+        SOWN_BY,
+        None,
+        None,
+        false,
+    );
 
     assert!(!home.state.docs[&received].sown);
     assert!(matches!(refused(&home, received), Some(Unshared::NotOwn)));
@@ -249,7 +246,7 @@ fn a_document_someone_signed_as_tisty_is_still_theirs_for_the_maker() {
 #[test]
 fn a_sown_guide_cited_from_the_makers_own_document_goes_under_the_alias_too() {
     let (_tmp, mut home) = home();
-    home.maker = true;
+    home.maker = Some(the_root());
     let guide = sown_guide(&mut home);
     let title = home.state.docs[&guide].title.clone().unwrap();
     let mine = home.wrote(&format!("# Mía\n\n[[{title}]]\n"), None);
@@ -264,4 +261,32 @@ fn a_sown_guide_cited_from_the_makers_own_document_goes_under_the_alias_too() {
             .iter()
             .all(|(_, one)| one.signed_as.as_deref() == Some(MAKER_ALIAS))
     );
+}
+
+#[test]
+fn the_sown_mark_from_a_machine_of_another_root_is_not_the_makers() {
+    let (_tmp, mut home) = home();
+    home.maker = Some(the_root());
+    let body = "# Guía\n\nDe otra máquina.\n";
+    let made = docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let id = ulid::Ulid::generate();
+    home.state.apply(&tisty_core::Event::new(
+        tisty_core::DeviceId("mac_ajena".into()),
+        jiff::Timestamp::now(),
+        Op::DocAdd {
+            id,
+            d: DocAdd {
+                guest: true,
+                sown: true,
+                by: Some(SOWN_BY.into()),
+                file: made.id,
+                order: "z0".into(),
+                said: Some(Said::of(body)),
+                ..Default::default()
+            },
+        },
+    ));
+
+    assert!(home.state.docs[&id].sown);
+    assert!(matches!(refused(&home, id), Some(Unshared::NotOwn)));
 }

@@ -13,7 +13,7 @@ use tisty_envelope::clean;
 use tisty_envelope::family::{Family, Tongue};
 use tisty_envelope::sealing::link_key;
 use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, ready, words_in};
-use tisty_share_proto::identity::{Certificate, ShareKey};
+use tisty_share_proto::identity::{Certificate, Person, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
 use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
@@ -26,7 +26,7 @@ pub struct Desk<'a> {
     pub state: &'a State,
     pub also: Option<&'a Path>,
     pub turned: &'a dyn Fn(&Path) -> Option<Vec<u8>>,
-    pub maker: bool,
+    pub maker: Option<Person>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -95,8 +95,17 @@ pub fn signer(
     Some((key, certificate.clone()))
 }
 
-fn goes_as_mine(kept: &Kept, edits_through_a_link: bool, maker: bool) -> bool {
-    !kept.guest || edits_through_a_link || maker && kept.sown
+fn goes_as_mine(desk: &Desk, kept: &Kept, edits_through_a_link: bool) -> bool {
+    !kept.guest || edits_through_a_link || desk.maker.is_some_and(|root| sown_by(desk, kept, root))
+}
+
+// A store can hold another person's machines, and one of them could write the mark too.
+fn sown_by(desk: &Desk, kept: &Kept, root: Person) -> bool {
+    kept.sown
+        && kept
+            .made_by
+            .as_ref()
+            .is_some_and(|device| desk.state.persons.answers_to(device).contains(&root))
 }
 
 fn sharable<'a>(
@@ -112,7 +121,7 @@ fn sharable<'a>(
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(|one| one.edit_token.is_some());
-    if !goes_as_mine(kept, edits_through_a_link, desk.maker) {
+    if !goes_as_mine(desk, kept, edits_through_a_link) {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -348,7 +357,7 @@ impl Gathering<'_> {
             .get(&kept.file)
             .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let not_ours = !goes_as_mine(page, edits_through_a_link, self.desk.maker);
+            let not_ours = !goes_as_mine(self.desk, page, edits_through_a_link);
             let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
