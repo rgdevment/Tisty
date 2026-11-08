@@ -130,6 +130,12 @@ fn sealed(home: &Home, asked: &tisty_sharing::Asked) -> Sealed {
     home.sealed(gathered, answers)
 }
 
+fn sealed_within(home: &Home, asked: &tisty_sharing::Asked, top: usize) -> Sealed {
+    let gathered = home.gathered_within(asked, top);
+    let answers = by_a_window_with_nothing_to_draw(&gathered);
+    home.sealed(gathered, answers)
+}
+
 fn all_text(read: &Read) -> String {
     let mut out = String::new();
     out.push_str(&read.held.to_string());
@@ -328,6 +334,28 @@ fn a_picture_that_cannot_be_made_travels_as_a_file_and_the_person_is_told() {
     assert_eq!(read.held["files"][0]["name"], "dibujo.svg");
     assert!(read.held["html"].as_str().unwrap().contains("tisty:file/0"));
     assert!(matches!(&out.told[..], [Told::PictureAsFile { name, .. }] if name == "dibujo.svg"));
+}
+
+#[test]
+fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays_it() {
+    let (_tmp, mut home) = home();
+    let cartilla = home.attached("cartilla.pdf", b"%PDF-1.7 a vet card");
+    let bark = home.attached("bark.mp3", b"ID3\x04\x00\x00\x00\x00\x00\x00 a bark");
+    let doc = home.wrote(
+        &format!("![Cartilla]({cartilla})\n\n![Ladrido]({bark})\n"),
+        None,
+    );
+
+    let out = sealed(&home, &asked(doc));
+
+    assert!(
+        matches!(&out.told[..], [
+            Told::AsAttachment { name: pdf, plays: None, .. },
+            Told::AsAttachment { name: sound, plays: Some(player), .. },
+        ] if pdf == "cartilla.pdf" && sound == "bark.mp3" && player == "audio"),
+        "{:?}",
+        out.told
+    );
 }
 
 #[test]
@@ -1086,7 +1114,7 @@ fn past_the_languages_folio_takes_the_rest_stay_here_and_the_person_is_told() {
         asked_for = id;
     }
 
-    let out = sealed(&home, &asked(asked_for));
+    let out = sealed_within(&home, &asked(asked_for), 20);
 
     assert_eq!(every_reader_opens(&out).len(), 20);
     assert_eq!(
@@ -1118,13 +1146,13 @@ fn a_language_folio_already_holds_keeps_its_place_before_a_new_one() {
     let (_tmp, mut home) = home();
     let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
     languages_joined(&mut home, anchor, 19);
-    let first = sealed(&home, &asked(anchor));
+    let first = sealed_within(&home, &asked(anchor), 20);
     assert_eq!(first.told, []);
     home.sent(&first.remembering);
     let earlier = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
     home.joined(earlier, anchor);
 
-    let again = sealed(&home, &asked(anchor));
+    let again = sealed_within(&home, &asked(anchor), 20);
 
     assert_eq!(every_reader_opens(&again).len(), 20);
     assert_eq!(
@@ -1142,7 +1170,7 @@ fn asking_for_a_new_language_when_folio_holds_as_many_as_it_takes_is_refused_bef
     let (_tmp, mut home) = home();
     let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
     languages_joined(&mut home, anchor, 19);
-    let first = sealed(&home, &asked(anchor));
+    let first = sealed_within(&home, &asked(anchor), 20);
     home.sent(&first.remembering);
     let new = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
     home.joined(new, anchor);
@@ -1153,7 +1181,7 @@ fn asking_for_a_new_language_when_folio_holds_as_many_as_it_takes_is_refused_bef
         also: None,
         turned: &|_| None,
     };
-    let refused = tisty_sharing::gathered(&desk, &asked(new)).err();
+    let refused = tisty_sharing::gathered_within(&desk, &asked(new), Some(20)).err();
 
     assert!(
         matches!(refused, Some(Unshared::LanguagesFull)),
@@ -1166,13 +1194,13 @@ fn a_language_that_stays_here_still_counts_if_folio_holds_it() {
     let (_tmp, mut home) = home();
     let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
     let others = languages_joined(&mut home, anchor, 19);
-    let first = sealed(&home, &asked(anchor));
+    let first = sealed_within(&home, &asked(anchor), 20);
     home.sent(&first.remembering);
     home.commit(Op::DocLock { id: others[0] });
     let new = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
     home.joined(new, anchor);
 
-    let again = sealed(&home, &asked(anchor));
+    let again = sealed_within(&home, &asked(anchor), 20);
 
     assert_eq!(every_reader_opens(&again).len(), 19);
     assert!(
@@ -1222,7 +1250,7 @@ fn twenty_languages_all_go_and_nobody_is_told() {
         home.joined(id, anchor);
     }
 
-    let out = sealed(&home, &asked(anchor));
+    let out = sealed_within(&home, &asked(anchor), 20);
 
     assert_eq!(every_reader_opens(&out).len(), 20);
     assert_eq!(out.told, []);

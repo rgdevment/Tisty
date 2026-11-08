@@ -33,6 +33,8 @@ pub struct FolioLimits {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub new_key_bytes_at_most: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_bytes_at_most: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub envelope_bytes_at_most: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_bytes_at_most: Option<u64>,

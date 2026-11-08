@@ -124,6 +124,15 @@ pub fn made(given: &[u8]) -> Result<Made, Unmade> {
     written(given, format == ImageFormat::Jpeg)
 }
 
+pub fn looks_like_a_picture(given: &[u8]) -> bool {
+    image::guess_format(given).is_ok() || is_of_the_heif_family(given) || is_drawn_in_words(given)
+}
+
+fn is_drawn_in_words(given: &[u8]) -> bool {
+    let head = String::from_utf8_lossy(&given[..given.len().min(1024)]).to_ascii_lowercase();
+    head.contains("<svg")
+}
+
 /// The same, for what only the machine can read, as a HEIC: `turned` asks it for bytes this crate reads, and it goes on from those pixels.
 pub fn made_or_turned(
     given: &[u8],

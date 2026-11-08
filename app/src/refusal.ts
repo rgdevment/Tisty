@@ -225,6 +225,11 @@ const KNOWN = [
   "folioOwnerKeyBlocked",
   "folioRoomFull",
   "folioOwnerRoomFull",
+  "folioRoomFullAll",
+  "folioOwnerRoomFullAll",
+  "folioFullOf",
+  "folioLanguagesFullOf",
+  "folioQuota",
   "folioTermsToAccept",
   "awayNotShared",
   "tongueUnsaid",
@@ -317,6 +322,14 @@ export function saidPlainly(problem: unknown): string {
 }
 
 const WEIGHED = ["folioRoomFull", "folioOwnerRoomFull"];
+const MINUTE_MS = 60_000;
+
+// Folio says when, in milliseconds; a person reads how long, or at what time.
+const minutesTo = (until: string) =>
+  String(Math.max(1, Math.ceil((Number(until) - Date.now()) / MINUTE_MS)));
+
+const clockAt = (until: string) =>
+  new Date(Number(until)).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 const MEGABYTE = 1_000_000;
 
 // Folio's room is a round figure, and «25.0 MB» would read like something measured.
@@ -336,6 +349,10 @@ export function plainly(problem: unknown): string {
   if (WEIGHED.includes(refusal.code) && refusal.name) {
     return fill(refusal.code, roomOf(Number(refusal.name)));
   }
+  if (refusal.code === "folioWait" && refusal.name)
+    return fill(refusal.code, minutesTo(refusal.name));
+  if (refusal.code === "folioQuota" && refusal.name)
+    return fill(refusal.code, clockAt(refusal.name));
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }
 

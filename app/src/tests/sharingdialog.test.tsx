@@ -125,23 +125,46 @@ describe("what travels with a document", () => {
 
   it("says which limit a picture passed, since the row counts only the total", async () => {
     await opened(
-      { pictures: 1, picturesBytes: 1_200_000, largestPicture: 1_200_000 },
+      {
+        pictures: 1,
+        picturesBytes: 1_200_000,
+        largestPicture: 1_200_000,
+        largestPictureName: "rina.jpg",
+      },
       { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
     );
 
     expect(
-      screen.getByText(fill("shareOverPicture", weigh(1_200_000), weigh(1_000_000))),
+      screen.getByText(
+        fill("shareOverPicture", `rina.jpg (${weigh(1_200_000)})`, weigh(1_000_000)),
+      ),
     ).toBeTruthy();
-    expect(screen.queryByText(t("shareOverWhy"))).toBeNull();
   });
 
-  it("asks to take something out when it is the total that passed", async () => {
+  it("says how many it carries and how many Folio takes when a count passed", async () => {
     await opened(
       { pictures: 11, picturesBytes: 1_200_000, largestPicture: 500_000 },
       { pictures_at_most: 10, pictures_bytes_at_most: 5_000_000, picture_bytes_at_most: 1_000_000 },
     );
 
-    expect(screen.getByText(t("shareOverWhy"))).toBeTruthy();
+    expect(screen.getByText(fill("shareOverPictures", "11", "10"))).toBeTruthy();
+  });
+
+  it("says what the whole document weighs against Folio's ceiling", async () => {
+    await opened(
+      {
+        pictures: 2,
+        picturesBytes: 1_000_000,
+        largestPicture: 500_000,
+        files: 1,
+        filesBytes: 25_000_000,
+      },
+      { files_bytes_at_most: 30_000_000, envelope_bytes_at_most: 24_000_000 },
+    );
+
+    expect(
+      screen.getByText(fill("shareOverWhole", weigh(26_000_000), weigh(24_000_000))),
+    ).toBeTruthy();
   });
 
   it("names one page apart, and says no room it was not told of", async () => {

@@ -363,19 +363,46 @@ fn a_blocked_key_names_the_owner_when_an_editor_uploads() {
         "folioOwnerKeyBlocked"
     );
     assert_eq!(
-        said_to_whom(crate::Refusal::of("folioFull"), false, home.path()).code,
-        "folioFull"
+        said_to_whom(crate::Refusal::of("folioTooBig"), false, home.path()).code,
+        "folioTooBig"
     );
 }
 
 #[test]
-fn a_new_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
+fn a_full_folio_names_its_signed_figure_or_says_it_without_one() {
+    let home = tempfile::tempdir().unwrap();
+    let said = |code| said_to_whom(crate::Refusal::of(code), true, home.path());
+
+    assert_eq!(said("folioFull").code, "folioFull");
+    assert_eq!(said("folioLanguagesFull").code, "folioLanguagesFull");
+    assert_eq!(said("folioRoomFull").code, "folioRoomFullAll");
+
+    std::fs::write(
+        home.path().join("folio-limits.json"),
+        r#"{"serial":30,"shares_at_most":2,"languages_at_most":20,"key_bytes_at_most":25000000}"#,
+    )
+    .unwrap();
+    let full = said("folioFull");
+    assert_eq!(
+        (full.code, full.name.as_deref()),
+        ("folioFullOf", Some("2"))
+    );
+    let tongues = said("folioLanguagesFull");
+    assert_eq!(
+        (tongues.code, tongues.name.as_deref()),
+        ("folioLanguagesFullOf", Some("20"))
+    );
+}
+
+#[test]
+fn a_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
     let home = tempfile::tempdir().unwrap();
     let full = || crate::Refusal::of("folioRoomFull");
 
-    let owner = said_to_whom(full(), true, home.path());
-    assert_eq!(owner.code, "folioRoomFull");
-    assert_eq!(owner.name.as_deref(), Some("25000000"));
+    assert_eq!(
+        said_to_whom(full(), false, home.path()).code,
+        "folioOwnerRoomFullAll"
+    );
 
     std::fs::write(
         home.path().join("folio-limits.json"),
@@ -385,6 +412,15 @@ fn a_new_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
     let editor = said_to_whom(full(), false, home.path());
     assert_eq!(editor.code, "folioOwnerRoomFull");
     assert_eq!(editor.name.as_deref(), Some("30000000"));
+
+    std::fs::write(
+        home.path().join("folio-limits.json"),
+        r#"{"serial":30,"key_bytes_at_most":25000000,"new_key_bytes_at_most":30000000}"#,
+    )
+    .unwrap();
+    let owner = said_to_whom(full(), true, home.path());
+    assert_eq!(owner.code, "folioRoomFull");
+    assert_eq!(owner.name.as_deref(), Some("25000000"));
 }
 
 #[test]
@@ -412,6 +448,10 @@ fn a_wait_tells_the_window_until_when() {
 
     assert_eq!(told.code, "folioWait");
     assert_eq!(told.name.as_deref(), Some("99"));
+
+    let network = said(&Stopped::Refused(Refused::Quota { until: 120 }));
+    assert_eq!(network.code, "folioQuota");
+    assert_eq!(network.name.as_deref(), Some("120"));
 }
 
 #[test]
