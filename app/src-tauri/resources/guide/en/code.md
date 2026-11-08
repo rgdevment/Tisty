@@ -1,6 +1,6 @@
-# When what you keep is code
+# When what you write down is code
 
-The other page showed you what a page is. This one shows you what pages are actually for: the fix you worked out at eleven at night and will not remember six months from now.
+This is a page of the guide, and it is for what pages do best: keeping the fix you found at eleven at night and will not remember six months from now.
 
 A code block is coloured by its language, and `title=` gives it the file's name. Type `/` and pick **Code block**.
 
@@ -20,7 +20,7 @@ That is Rust, which is what Tisty is made of. And this is the same thing told as
 flowchart TD
   A[Rina stares at you] --> B{Been out today?}
   B -- No --> C[Take her out]
-  B -- Yes --> D{Still staring?}
+  B -- Yes --> D{Still looking at you?}
   D -- Yes --> C
   D -- No --> E[It was hunger]
   C --> F[Comes back muddy]
@@ -50,8 +50,8 @@ ORDER BY total DESC;
 
 The command you can never remember:
 
-```bash title="backup.sh"
-rsync -a --delete ~/Tisty/ /Volumes/Backup/Tisty/
+```bash title="photos.sh"
+rsync -a ~/Photos/Rina/ /Volumes/Backup/Rina/
 ```
 
 And what changed between the version that worked and the one that did not:
@@ -64,6 +64,6 @@ And what changed between the version that worked and the one that did not:
 > [!TIP]
 > The file's name shows in the block's header, and it reaches the PDF too. Print this page and the colours come with it.
 
-When code sits inside a sentence it goes between backticks: `cargo build --release`, `Ctrl` + `C`, `~/.config/tisty`. That is inline code, and it is not coloured because it does not need to be.
+When code sits inside a sentence it goes between backticks: `cargo build --release`, `Ctrl` + `C`, `~/Photos/Rina`. That is inline code, and it is not coloured because it does not need to be.
 
 One note worth more than the code itself: write **why** it was like that underneath. The block tells you what you did; the line after it tells you why, and that is the part you forget.

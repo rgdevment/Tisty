@@ -1,6 +1,6 @@
 # One of each
 
-This page is the guide's sample case: one of everything a document can hold, all on one sheet. Nothing here explains much; it is here to be looked at, edited and printed. If something on this page looks wrong, that is worth telling us.
+This page is the guide's sample case: one of everything a document can hold, all on one sheet. Nothing here explains much; it is here to be looked at, edited and printed. If something on this page looks wrong, tell us in [Issues](https://github.com/rgdevment/Tisty/issues).
 
 ---
 
@@ -72,7 +72,7 @@ Columns leaning left, centred and right, and the first one wider: its rule is dr
 
 | Vaccine | Given | Due again |
 | :------------------ | :---: | ---: |
-| Six-in-one | march | 12 months |
+| Annual | march | 12 months |
 | Rabies | march | 12 months |
 | Worming | august | 3 months |
 
@@ -276,7 +276,7 @@ A sound:
 
 ![A bark](bark.mp3)
 
-A film:
+A video:
 
 ![A walk](walk.mp4)
 

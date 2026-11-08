@@ -1,6 +1,6 @@
-# Cuando lo que apuntas es código
+# Cuando lo que anotas es código
 
-La otra página te enseñaba qué es una página. Esta te enseña para qué sirven de verdad: para el apaño que resolviste a las once de la madrugada y que dentro de seis meses no vas a recordar.
+Esta es una página de la guía, y sirve para lo que mejor hacen las páginas: guardar el arreglo que encontraste a las once de la noche y que dentro de seis meses no vas a recordar.
 
 Un bloque de código se colorea según su lenguaje, y con `title=` le pones el nombre del archivo. Escribe `/` y elige **Bloque de código**.
 
@@ -18,12 +18,12 @@ Eso de arriba es Rust, que es de lo que está hecho Tisty. Y esto es lo mismo co
 
 ```mermaid
 flowchart TD
-  A[Rina te mira fijo] --> B{Ya salio hoy?}
+  A[Rina te mira fijo] --> B{¿Ya salió hoy?}
   B -- No --> C[Sacarla]
-  B -- Si --> D{Te sigue observando?}
-  D -- Si --> C
+  B -- Sí --> D{¿Te sigue mirando?}
+  D -- Sí --> C
   D -- No --> E[Era hambre]
-  C --> F[Vuelve embarrada]
+  C --> F[Vuelve con barro]
   F --> A
 ```
 
@@ -50,8 +50,8 @@ ORDER BY total DESC;
 
 El comando que nunca recuerdas:
 
-```bash title="backup.sh"
-rsync -a --delete ~/Tisty/ /Volumes/Backup/Tisty/
+```bash title="fotos.sh"
+rsync -a ~/Fotos/Rina/ /Volumes/Respaldo/Rina/
 ```
 
 Y lo que cambió entre lo que funcionaba y lo que no:
@@ -64,6 +64,6 @@ Y lo que cambió entre lo que funcionaba y lo que no:
 > [!TIP]
 > El nombre del archivo se ve en la cabecera del bloque y llega también al PDF. Si imprimes esta página, los colores van con ella.
 
-Cuando el código va dentro de una frase, va entre acentos graves: `cargo build --release`, `Ctrl` + `C`, `~/.config/tisty`. Eso es código en línea, y no se colorea porque no hace falta.
+Cuando el código va dentro de una frase, va entre acentos graves: `cargo build --release`, `Ctrl` + `C`, `~/Fotos/Rina`. Eso es código en línea, y no se colorea porque no hace falta.
 
 Un apunte que vale más que el código: escribe debajo **por qué** era así. El bloque te dice qué hiciste; la línea de después te dice por qué, que es lo que de verdad se olvida.

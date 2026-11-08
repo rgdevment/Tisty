@@ -1,6 +1,6 @@
 # Uno de cada cosa
 
-Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento, todo en una sola hoja. Aquí casi nada se explica; está para mirarla, editarla e imprimirla. Si algo en esta hoja se ve mal, vale la pena contárnoslo.
+Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento, todo en una sola hoja. Aquí casi nada se explica; está para mirarla, editarla e imprimirla. Si algo en esta hoja se ve mal, cuéntalo en [Issues](https://github.com/rgdevment/Tisty/issues).
 
 ---
 
@@ -10,7 +10,7 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 Cuatro marcadores: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}.
 
-Íconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
+Iconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
 
 Emojis por su nombre: :dog: :tada: :+1: :sunny:
 
@@ -72,7 +72,7 @@ Columnas a la izquierda, al centro y a la derecha, y la primera más ancha: su r
 
 | Vacuna | Puesta | Otra vez en |
 | :------------------ | :---: | ---: |
-| Séxtuple | marzo | 12 meses |
+| Anual | marzo | 12 meses |
 | Antirrábica | marzo | 12 meses |
 | Desparasitación | agosto | 3 meses |
 

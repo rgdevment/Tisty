@@ -1,8 +1,8 @@
-# La Rina
+# Rina
 
 Esta hoja es una página de la guía. No está aquí para contarte nada de Tisty: está para que veas por dentro lo que la sección anterior te explicaba.
 
-![La Rina en su silla](rina.jpg)
+![Rina sentada en su silla, mirando a la cámara](rina.jpg)
 
 Fíjate en tres cosas que solo se ven estando dentro de una.
 
@@ -15,4 +15,4 @@ Y la foto de arriba viaja con el documento. No es un enlace a una carpeta de tu 
 > [!TIP]
 > Prueba a borrar la línea que nombra esta página en la guía. La página no desaparece: se queda sin sitio en el texto y baja al índice del final, esperando a que la vuelvas a poner donde quieras.
 
-Un año de actas, un libro por capítulos, la vida de una perra contada año a año. Esto es lo que era.
+Un año de actas, un libro por capítulos, la vida de una perra contada año a año: cada capítulo puede ser una página como esta.

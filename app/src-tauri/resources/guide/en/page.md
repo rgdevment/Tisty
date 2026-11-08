@@ -2,7 +2,7 @@
 
 This sheet is a page of the guide. It is not here to tell you anything about Tisty: it is here so you can see from the inside what the section before it described.
 
-![Rina on her chair](rina.jpg)
+![Rina sitting on her chair, looking at the camera](rina.jpg)
 
 Notice three things you can only see from within one.
 
@@ -15,4 +15,4 @@ And the photograph above travels with the document. It is not a link to a folder
 > [!TIP]
 > Try deleting the line that names this page in the guide. The page does not disappear: it loses its place in the text and drops to the contents at the end, waiting for you to put it back wherever you want it.
 
-A year of minutes, a book by chapters, a dog's life told year by year. This was the last one.
+A year of minutes, a book by chapters, a dog's life told year by year: each chapter can be a page like this one.
