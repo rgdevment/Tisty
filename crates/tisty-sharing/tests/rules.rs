@@ -337,7 +337,7 @@ fn a_picture_that_cannot_be_made_travels_as_a_file_and_the_person_is_told() {
 }
 
 #[test]
-fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays_it() {
+fn what_never_was_a_picture_goes_as_an_attachment_and_nothing_is_told() {
     let (_tmp, mut home) = home();
     let cartilla = home.attached("cartilla.pdf", b"%PDF-1.7 a vet card");
     let bark = home.attached("bark.mp3", b"ID3\x04\x00\x00\x00\x00\x00\x00 a bark");
@@ -347,19 +347,15 @@ fn what_never_was_a_picture_goes_as_an_attachment_and_says_whether_the_web_plays
     );
 
     let out = sealed(&home, &asked(doc));
+    let read = &every_reader_opens(&out)[0];
 
-    assert!(
-        matches!(&out.told[..], [
-            Told::AsAttachment { name: pdf, plays: None, .. },
-            Told::AsAttachment { name: sound, plays: Some(player), .. },
-        ] if pdf == "cartilla.pdf" && sound == "bark.mp3" && player == "audio"),
-        "{:?}",
-        out.told
-    );
+    assert_eq!(out.told, []);
+    assert_eq!(read.pictures.len(), 0);
+    assert_eq!(read.files.len(), 2);
 }
 
 #[test]
-fn a_video_says_it_plays_and_a_page_with_an_icon_inside_stays_an_attachment() {
+fn only_a_picture_that_cannot_be_drawn_is_told_and_a_page_with_an_icon_is_not_one() {
     let (_tmp, mut home) = home();
     let walk = home.attached(
         "walk.mp4",
@@ -381,11 +377,7 @@ fn a_video_says_it_plays_and_a_page_with_an_icon_inside_stays_an_attachment() {
     let out = sealed(&home, &asked(doc));
 
     assert!(
-        matches!(&out.told[..], [
-            Told::AsAttachment { name: video, plays: Some(player), .. },
-            Told::AsAttachment { name: html, plays: None, .. },
-            Told::PictureAsFile { name: svg, .. },
-        ] if video == "walk.mp4" && player == "video" && html == "walks.html" && svg == "mark.svg"),
+        matches!(&out.told[..], [Told::PictureAsFile { name: svg, .. }] if svg == "mark.svg"),
         "{:?}",
         out.told
     );
