@@ -77,4 +77,4 @@ A [widget](Widgets) runs nothing and names nothing outside itself. An attached `
 
 Tisty does not use AI or machine learning on your data, and sends nothing to any model. The natural language is deterministic rules on your machine.
 
-If you connect an assistant of your own through [[MCP|Assistants-and-MCP]], whatever it reads goes wherever that assistant goes. That door is closed until you open it, and one click closes it again.
+If you connect an assistant of your own through [[MCP|Assistants-and-MCP]], whatever it reads goes wherever that assistant goes. That door comes open on a new install, and one click in Settings › Assistants closes it.

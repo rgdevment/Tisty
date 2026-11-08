@@ -38,7 +38,7 @@ Not as far as anybody knows. The whole window works from the keyboard and that p
 ## AI and assistants
 
 **Does Tisty use AI?**
-No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — you open it, and you can close it.
+No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and one click closes it.
 
 **An assistant says one of its tasks is done. Did it close it?**
 No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].

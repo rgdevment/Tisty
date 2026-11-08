@@ -38,7 +38,7 @@ Que se sepa, no. Toda la ventana funciona con el teclado y ese camino está prob
 ## IA y asistentes
 
 **¿Tisty usa IA?**
-No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: tú la abres y la puedes cerrar.
+No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y un clic la cierra.
 
 **Un asistente dice que una de sus tareas está hecha. ¿La cerró?**
 No. Nada de lo que hace un asistente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].

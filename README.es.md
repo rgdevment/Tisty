@@ -258,7 +258,7 @@ artificial**, esto es Tisty:
 | Suscripción | ninguna. No hay plan de pago ni mejora |
 | Sin conexión | siempre. Solo compartir un documento por link necesita conexión |
 | Con IA dentro | **ninguna**, y no la va a llevar |
-| Tu propio asistente | sí, por **MCP**, si decides abrir la puerta |
+| Tu propio asistente | sí, por **MCP**, por una puerta que se cierra con un clic |
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
 | Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
@@ -302,7 +302,7 @@ que convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
 equipo, sin modelo y sin nube. Pero habla [MCP](https://modelcontextprotocol.io),
 así que un asistente que ya uses puede anotar trabajo aquí — con sus pasos, su
 fecha y la lista que le toca, en este equipo, sin cuenta y sin nada por la red.
-Esa puerta la abres tú, y puedes cerrarla.
+Esa puerta viene abierta, y un clic la cierra.
 
 **Dos equipos, sin intermediario.** Tisty habla directo con tu propio Google
 Drive, OneDrive o servidor WebDAV, o viaja por una carpeta que ya sincronizas.
@@ -933,8 +933,8 @@ que tecleaste mientras pensaba no se puede perder. Un documento que archivaste
 sí lo puede leer, y se le dice que lo archivaste.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
-justamente por lo que esta es una puerta que abres, y no una que ya estaba
-abierta.
+justamente por lo que la puerta, abierta en una instalación nueva, se cierra con
+un clic, y abrirla o cerrarla queda escrito en tu registro.
 
 ## Qué no hace
 
@@ -946,9 +946,10 @@ del camino crítico. Las columnas de una tabla pueden decir qué guardan y
 sumarse, pero cada tabla vive en su propio documento.
 
 El lenguaje natural se queda determinista y local, y **Tisty nunca envía nada a
-un modelo** — ni una tarea, ni una palabra. Si abres la puerta de la sección de
-arriba, lo que tu asistente lea viaja adonde viaje ese asistente: Tisty sigue
-sin enviar nada, quien lleva es el asistente, y quien lo dejó entrar eres tú.
+un modelo** — ni una tarea, ni una palabra. Mientras la puerta de la sección de
+arriba esté abierta, lo que tu asistente lea viaja adonde viaje ese asistente:
+Tisty sigue sin enviar nada, quien lleva es el asistente, y cerrar la puerta es
+cosa tuya.
 
 ## Preguntas frecuentes
 
@@ -978,8 +979,8 @@ formato.
 No, y no va a usarla. El lenguaje natural que convierte «llamar al banco a las
 3» en una tarea son reglas corriendo en tu equipo: sin modelo, sin petición,
 sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
-[MCP](https://modelcontextprotocol.io): tú la abres, puedes volver a cerrarla,
-y hasta que la abras todo lo que intente se rechaza.
+[MCP](https://modelcontextprotocol.io): viene abierta, un clic la cierra, y
+mientras está cerrada todo lo que intente se rechaza.
 
 **¿Puedo usarlo en dos equipos?** Sí, de dos formas. Conecta tu propio Google
 Drive, OneDrive o servidor WebDAV en la ventana y Tisty habla con él directo,

@@ -252,7 +252,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Subscription | none. There is no paid tier and no upgrade |
 | Offline | always. Only sharing a document by link needs a connection |
 | AI inside | **none**, and none is coming |
-| Your own assistant | yes, over **MCP**, if you choose to open the door |
+| Your own assistant | yes, over **MCP**, through a door one click closes |
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
 | Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
@@ -295,7 +295,7 @@ that turns "call the bank at 3" into a task is rules running on your machine, no
 model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
 assistant you already use can file work into it — with its steps, its date and
 the list it belongs in, on this machine, with no account and nothing over the
-network. You open that door, and you can close it.
+network. That door comes open, and one click closes it.
 
 **Two machines, no middleman.** Tisty talks straight to your own Google Drive,
 OneDrive or WebDAV server, or travels through a folder you already sync. There
@@ -909,8 +909,8 @@ what you typed while it was thinking cannot be lost. A document you archived it
 can still read, and it is told that you archived it.
 
 Whatever it reads travels wherever that assistant travels. That is between you
-and it — which is precisely why this is a door you open, and not one that was
-already open.
+and it — which is precisely why the door, open on a new install, closes with
+one click, and why opening or closing it is written into your log.
 
 ## What It Does Not Do
 
@@ -921,10 +921,10 @@ anywhere in the critical path. A table's columns can say what they hold and add
 themselves up, but each table lives in its own document.
 
 The natural language stays deterministic and local, and **Tisty never sends
-anything to a model** — not a task, not a word. If you open the door in the
-section above, whatever your assistant reads travels wherever that assistant
-travels: Tisty still sends nothing, the assistant is the one carrying, and you
-are the one who let it in.
+anything to a model** — not a task, not a word. While the door in the section
+above is open, whatever your assistant reads travels wherever that assistant
+travels: Tisty still sends nothing, the assistant is the one carrying, and the
+door is yours to close.
 
 ## FAQ
 
@@ -954,8 +954,8 @@ the format is for.
 No, and none is coming. The natural language that turns "call the bank at 3"
 into a task is rules running on your machine: no model, no request, no cloud.
 If you already use an assistant of your own, Tisty leaves an
-[MCP](https://modelcontextprotocol.io) door — you open it, you can close it
-again, and until you do everything it tries is refused.
+[MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
+it, and while it is closed everything it tries is refused.
 
 **Can I use it on two computers?** Yes, two ways. Connect your own Google Drive,
 OneDrive or WebDAV server in the window, and Tisty talks to it directly, keeping
