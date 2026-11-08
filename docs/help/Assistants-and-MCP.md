@@ -122,7 +122,7 @@ Tisty keeps a small card for each document — its headings, how long it is, wha
 
 Having read a document, it can leave a short summary for the next assistant — kept on this machine, never synced, and not part of what you wrote.
 
-## The one thing worth knowing before you open it
+## The one thing worth knowing before you connect one
 
 > [!WARNING]
-> Whatever an assistant reads travels wherever that assistant travels. If it runs against a cloud service, what it looks at is on its way to that service. Tisty still sends nothing and has no server — but this door is real, and it is the only thing in Tisty that can carry your data off the machine. That is why it stays shut until you open it, and why closing it is one click.
+> Whatever an assistant reads travels wherever that assistant travels. If it runs against a cloud service, what it looks at is on its way to that service. Tisty still sends nothing and has no server — but this door is real, and it is the only thing in Tisty that can carry your data off the machine. That is why, open as it comes, closing it is one click in **Settings › Assistants**.

@@ -122,7 +122,7 @@ Tisty guarda una pequeña ficha de cada documento (sus títulos, cuánto mide, e
 
 Después de leer un documento, puede dejar un resumen corto para el siguiente asistente: queda en este equipo, nunca se sincroniza y no forma parte de lo que escribiste.
 
-## Lo que conviene saber antes de abrirla
+## Lo que conviene saber antes de conectar uno
 
 > [!WARNING]
-> Lo que un asistente lee viaja adonde viaja ese asistente. Si funciona contra un servicio en la nube, lo que mira va camino a ese servicio. Tisty sigue sin enviar nada y sin servidor propio, pero esta puerta es real, y es lo único en Tisty que puede sacar tus datos del equipo. Por eso está cerrada hasta que la abres, y cerrarla es un clic.
+> Lo que un asistente lee viaja adonde viaja ese asistente. Si funciona contra un servicio en la nube, lo que mira va camino a ese servicio. Tisty sigue sin enviar nada y sin servidor propio, pero esta puerta es real, y es lo único en Tisty que puede sacar tus datos del equipo. Por eso, aunque viene abierta, cerrarla es un clic en **Configuración › Asistentes**.

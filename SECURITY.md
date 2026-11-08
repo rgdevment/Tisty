@@ -465,7 +465,8 @@ back cannot be caught by a reader on the web.
 
 Tisty speaks MCP so an assistant already running on your machine can file work
 for
-you. That door is shut until you open it, and what follows is what holds it.
+you. That door comes open on a new install and closes with one click; what
+follows is what holds it.
 
 **Admitting one is an event in your log, not a line in a settings file.**
 Nothing
@@ -544,7 +545,7 @@ and which is kept and can be put back — and
 put a screenshot holding a password into a task, because a
 screenshot is a picture and Tisty cannot read what is in it. Anything it reads
 travels wherever that assistant travels — that is between it and you, and it is
-why the door stays shut until you open it, and why closing it is one click.
+why closing the door is one click.
 
 ## Supported versions
 
