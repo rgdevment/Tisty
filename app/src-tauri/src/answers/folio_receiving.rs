@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_carrier::folio_client::{self, Door, Fetched};
+use tisty_carrier::{folio_domains, folio_limits};
 use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
 use tisty_core::Op;
 use tisty_core::attach::{self, Via};
@@ -10,6 +11,7 @@ use tisty_envelope::reading::{self, Unopened};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
+use super::folio_standing::{Party, standing_of};
 use super::sharing::turned;
 use crate::viewing::{LinkQuestion, Views};
 use crate::{Answer, Refusal, Session, held};
@@ -300,14 +302,34 @@ fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
     Ok(file)
 }
 
+// Owner and signer are told apart by their roots: two people can sign with one name.
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
+    let home = held(&app.state::<Mutex<Session>>()).paths.private();
+    let maker = folio_limits::maker(&home);
+    let party = |root: &str, alias: Option<&str>| Party {
+        name: alias.unwrap_or_default().to_owned(),
+        standing: standing_of(
+            root,
+            opened.verdict,
+            alias,
+            maker.as_ref(),
+            |root, domain| {
+                folio_domains::checked(&home, root, domain, crate::reaching::brought_from_folio)
+            },
+        ),
+    };
+    let owner = opened
+        .owner
+        .as_deref()
+        .filter(|root| *root != opened.signer)
+        .map(|root| party(root, said("owner_name")));
     question(
         app,
         LinkQuestion::Keep {
             title: said("title").unwrap_or_default().to_owned(),
-            owner: said("owner_name").unwrap_or_default().to_owned(),
-            signer: said("signed_as").unwrap_or_default().to_owned(),
+            owner,
+            signer: party(&opened.signer, said("signed_as")),
             print: opened.signer.clone(),
             doubtful: opened.doubtful(),
         },
