@@ -6,7 +6,7 @@ This sheet is a page of the guide. It is not here to tell you anything about Tis
 
 Notice three things you can only see from within one.
 
-At the top you have which document this page belongs to and where it sits in it, with arrows to its sisters if it had any. It is a document like any other — the same file on disk, the same output when exported — and the only thing that sets it apart is that line: it says whose it is.
+At the top you have which document this page belongs to and where it sits in it, with arrows to its sibling pages if it had any. It is a document like any other — the same file on disk, the same output when exported — and the only thing that sets it apart is that line: it says whose it is.
 
 In the guide's text, this sheet is not stuck at the end. It is named exactly where naming it made sense, and that is where it goes. Move that block somewhere else and the page moves with it: in the tree, when printing and when exporting.
 

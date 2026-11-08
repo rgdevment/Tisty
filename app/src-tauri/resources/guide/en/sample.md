@@ -1,14 +1,14 @@
 # One of each
 
-This page is the guide's sample case: one of everything a document can hold, all on one sheet. Nothing here explains much; it is here to be looked at, edited and printed. If something on this page looks wrong, tell us in [Issues](https://github.com/rgdevment/Tisty/issues).
+This page is the guide's sample sheet: one of everything a document can hold, all on one sheet. Nothing here explains much; it is here to be looked at, edited and printed. If something on this page looks wrong, tell us in [Issues](https://github.com/rgdevment/Tisty/issues).
 
 ---
 
 ## Words
 
-**Bold**, *italic*, ***both at once***, ~~struck through~~, ++underlined++ and `loose code`. A [link to a website](https://github.com/rgdevment/Tisty), and the same address written bare between angle brackets: <https://github.com/rgdevment/Tisty>. An address for mail works the same way: <rina@example.com>.
+**Bold**, *italic*, ***both at once***, ~~struck through~~, ++underlined++ and `loose code`. A [link to a website](https://github.com/rgdevment/Tisty), and the same address written bare between angle brackets: <https://github.com/rgdevment/Tisty>. An email address works the same way: <rina@example.com>.
 
-Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}.
+Four highlighter colours: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}.
 
 Icons, with a colour or without: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
 
@@ -249,7 +249,7 @@ dose = \frac{weight \times 0.5}{2}
 
 ```widget title="Rina this month"
 <div class="grid">
-  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 on August</em></div>
+  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 vs August</em></div>
   <div class="stat"><small>Weight</small><b>14 kg</b><em class="down">−0.3 kg</em></div>
   <div class="stat"><small>Next vaccine</small><b>12 Nov</b><span class="badge warn">due</span></div>
 </div>

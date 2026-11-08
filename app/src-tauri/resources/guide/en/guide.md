@@ -9,7 +9,7 @@ And it does not forget. A task you finished is archived with what you wrote in i
 
 ## Start here
 
-1. Type a task in the bar at the top, the way you would say it: `Rina's booster on friday #health`. Press `Enter`.
+1. Type a task in the bar at the top, the way you would say it: `Rina's booster on Friday #health`. Press `Enter`.
 2. Find it in **Today**, or in **Upcoming** if it is for another day.
 3. From any program, press `Ctrl` + `Shift` + `Space` and jot one down without opening Tisty.
 4. In **Documents**, create one with the **+** and type `/` to see everything that fits inside.
@@ -63,8 +63,8 @@ Each part it understands is coloured:
 | You write | Colour | It understands |
 | --- | --- | --- |
 | ==tomorrow 10am=={blue} | blue | a day and a time, the way you would say them |
-| ==on friday=={blue} | blue | the next one coming |
-| ==before friday=={blue} | blue | a deadline: the latest it can be done |
+| ==on Friday=={blue} | blue | the next one coming |
+| ==before Friday=={blue} | blue | a deadline: the latest it can be done |
 | ==every tuesday=={pink} | pink | something that comes back on its own |
 | ==#home=={pink} | pink | a tag: what it is about |
 | ==@work=={green} | green | a list: where it happens |
@@ -76,9 +76,9 @@ Try these:
 
 - `Rina's booster on 3 October !do #health`
 - `Walk Rina every day`
-- `Hand in the report before friday @work`
+- `Hand in the report before Friday @work`
 
-A **date** is when you plan to do it; a **deadline**, the latest it can be done. All the words it understands —days, hours, deadlines, what repeats, in English and in Spanish— are in [natural language](https://www.tisty.app/docs/natural-language/).
+A **date** is when you plan to do it; a **deadline**, the latest it can be done. All the words it understands (days, hours, deadlines, what repeats, in English and in Spanish) are in [natural language](https://www.tisty.app/docs/natural-language/).
 
 ### Capture without opening the window
 
@@ -99,11 +99,11 @@ The task list is split into four views:
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
 
-What is overdue sits at the top, in red; what is late, in amber. A task is only overdue once its deadline passes: if you only gave it a day, it falls late, but it is never overdue. There is no prize for emptying the list.
+What is overdue sits at the top, in red; what is late, in amber. A task is only overdue once its deadline passes: if you only gave it a day, it runs late, but it is never overdue. There is no prize for emptying the list.
 
 ### The Spread and reminders
 
-**Spread**, in the sidebar, is your work calendar: each day is a row that grows with what it carries. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If you drop a task on a day that already carries three, Tisty tells you and offers the next free day. **Month** shows the same days as a grid, for looking.
+**Spread**, in the sidebar, is your work calendar: each day is a row that grows with what it carries. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If you drop a task on a day that already carries two, Tisty tells you and offers the next free day. **Month** shows the same days as a grid, for a look over the month.
 
 A reminder is a time you choose on the task. It rings on this computer and on no other, as a system notification with a short sound you can turn off. More in [the Spread and reminders](https://www.tisty.app/docs/spread-and-reminders/).
 
@@ -111,7 +111,7 @@ A reminder is a time you choose on the task. It rings on this computer and on no
 
 Two questions, four boxes: whether it is pressing and whether it matters.
 
-![The four quadrants —do, schedule, delegate and minor— and the tray of what you have not sorted](priorities.png)
+![The four quadrants (do, schedule, delegate and minor) and the tray of what you have not sorted](priorities.png)
 
 - **Do** — urgent and important. Today.
 - **Schedule** — important, no rush. Give it a date before it turns urgent.
@@ -131,7 +131,7 @@ A tag also works in a document: write `#health` in the middle of a sentence and 
 
 ### What stays written
 
-A task keeps more than its title. It opens on a page of its own, with sections to fill in —what it is about, how you will know it is done, its steps, what you found out along the way— and in each one a grey hint saying what goes there. Every box you write on that page, `- [ ]`, is one of its steps. Completing it erases none of that: it is archived with its date.
+A task keeps more than its title. It opens on a page of its own, with sections to fill in (what it is about, how you will know it is done, its steps, what you found out along the way) and in each one a grey hint saying what goes there. Every box you write on that page, `- [ ]`, is one of its steps. Completing it erases none of that: it is archived with its date.
 
 :::details Parts: when a step needs more than a line
 
@@ -167,7 +167,9 @@ To write:
 
 **Export**, in the document's panel, prints it, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor.
 
-**Folders start folded** and open on the arrow. When a matter is over, archive the folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written. Unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
+**Folders start folded** and open on the arrow.
+
+When a matter is over, archive the folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written. Unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
 
 ### What fits inside a document
 
@@ -260,7 +262,7 @@ A stage can be named from anywhere in the text by its place in the list: the one
 
 #### Tables
 
-A table is written right on the page: click a cell and type. The `⋯` menu of a row or a column moves, duplicates or removes it, and gives a column a type —a date with its calendar, money, options with their colours, stars, a switch— that adds up at its foot. Sort and filter from a column's title without touching the file, and drag the edge of a heading to make its column wider.
+A table is written right on the page: click a cell and type. The `⋯` menu of a row or a column moves, duplicates or removes it, and gives a column a type (a date with its calendar, money, options with their colours, stars, a switch) that adds up at its foot. Sort and filter from a column's title without touching the file, and drag the edge of a heading to make its column wider.
 
 | Vaccine | Given | Due again |
 | :--- | :---: | ---: |
@@ -321,7 +323,7 @@ A block whose language is `widget` is drawn as a fixed view, only HTML and CSS. 
 
 ```widget title="Rina this month"
 <div class="grid">
-  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 on August</em></div>
+  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 vs August</em></div>
   <div class="stat"><small>Kilometres</small><b>61</b></div>
   <div class="stat"><small>Next vaccine</small><b>12 Nov</b><span class="badge warn">due</span></div>
 </div>
@@ -375,7 +377,7 @@ A page is a document like any other, with its own file, that also says which doc
 > [!IMPORTANT]
 > The order in which they are named in the text is the order of the pages: in the tree, when exporting and when printing. To move a chapter, use the arrows on its row in the index at the end of the document, or `Alt` and an arrow key on the row.
 
-At the end of the document comes the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to its sisters, and at the bottom the step to the next one. A page is archived on its own with a right-click and stays dimmed in its document; archiving the document puts them all away. How a book prints, with its index, is in [pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
+At the end of the document comes the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to its sibling pages, and at the bottom the step to the next one. A page is archived on its own with a right-click and stays dimmed in its document; archiving the document puts them all away. How a book prints, with its index, is in [pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 
 This guide has one, and it is named here:
 
@@ -407,7 +409,7 @@ What arrives from elsewhere comes in converted into Tisty Markdown, and the file
 - **Export for Tisty…** carries whole folders, with their pages, to another Tisty in a `.tistyx` file, and opening it brings them in as they were.
 - An `.ics` calendar comes in too: drag it onto the window and choose which events become tasks.
 
-A Markdown file can also be read without bringing it in: choose Tisty under **Open with** and it opens in a light viewer that does not touch the file. What changes on each crossing is in [convert to and from Markdown](https://www.tisty.app/docs/convert-to-and-from-markdown/).
+A Markdown file can also be read without bringing it in: choose Tisty under **Open with** and it opens in a lightweight viewer that does not touch the file. What changes on each crossing is in [convert to and from Markdown](https://www.tisty.app/docs/convert-to-and-from-markdown/).
 
 ---
 

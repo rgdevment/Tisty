@@ -10,7 +10,7 @@ El reparto es un río de días que recorres con el scroll, no una semana que pas
 
 - **Cada día es una fila**, y la fila crece con lo que lleva: un viernes cargado es alto, un martes libre es una línea.
 - **Lo que escribiste sin día** espera en la bandeja **Sin día**, a la izquierda. Arrástralo a un día, o devuélvelo para quitarle el día.
-- **Si sueltas una tarea en un día que ya lleva tres**, Tisty te lo dice y te ofrece el siguiente día libre. Nunca insiste.
+- **Si sueltas una tarea en un día que ya lleva dos**, Tisty te lo dice y te ofrece el siguiente día libre. Nunca insiste.
 
 ## El mes
 

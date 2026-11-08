@@ -103,7 +103,7 @@ Lo vencido aparece arriba y en rojo; lo atrasado, en ámbar. Una tarea solo venc
 
 ### El reparto y los recordatorios
 
-**Reparto**, en la barra lateral, es tu calendario de trabajo: cada día es una fila que crece con lo que lleva. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si sueltas una tarea en un día que ya lleva tres, Tisty te lo dice y te ofrece el siguiente día libre. **Mes** muestra los mismos días en cuadrícula, para mirar.
+**Reparto**, en la barra lateral, es tu calendario de trabajo: cada día es una fila que crece con lo que lleva. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si sueltas una tarea en un día que ya lleva dos, Tisty te lo dice y te ofrece el siguiente día libre. **Mes** muestra los mismos días en cuadrícula, para mirar.
 
 Un recordatorio es una hora que eliges en la tarea. Suena en este equipo y en ningún otro, como una notificación del sistema con un sonido corto que puedes apagar. Más en [el reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/).
 
@@ -131,7 +131,7 @@ Una etiqueta también sirve en un documento: escribe `#salud` en medio de una fr
 
 ### Lo que queda escrito
 
-Una tarea guarda más que su título. Se abre en una página propia, con secciones para llenar —de qué se trata, cómo sabrás que está lista, sus pasos, lo que fuiste averiguando— y en cada una una pista en gris que dice qué va ahí. Cada casilla que escribas en esa página, `- [ ]`, es uno de sus pasos. Al terminarla nada de eso se borra: se archiva con su fecha.
+Una tarea guarda más que su título. Se abre en una página propia, con secciones para llenar —de qué se trata, cómo sabrás que está lista, sus pasos, lo que fuiste averiguando— y en cada una, una pista en gris que dice qué va ahí. Cada casilla que escribas en esa página, `- [ ]`, es uno de sus pasos. Al terminarla nada de eso se borra: se archiva con su fecha.
 
 :::details Partes: cuando un paso necesita más que una línea
 
@@ -167,7 +167,9 @@ Para escribir:
 
 **Exportar**, en el panel del documento, lo imprime, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor.
 
-**Las carpetas nacen plegadas** y se abren con la flecha. Cuando un asunto ya pasó, archiva la carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe. Desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+**Las carpetas nacen plegadas** y se abren con la flecha.
+
+Cuando un asunto ya pasó, archiva la carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe. Desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
 ### Lo que cabe dentro de un documento
 
@@ -435,7 +437,7 @@ Tisty trabaja siempre en este equipo. Para alcanzarlo desde otro, dile dónde de
 Cada equipo firma lo que escribe, y uno nuevo espera a que confirmes que es tuyo:
 
 1. Aparece un aviso en la barra lateral con el nombre de ese equipo.
-2. **Confirmar…** te muestra su código de veinte números.
+2. **Confirmar…** te muestra su código de veinte dígitos.
 3. En el equipo nuevo, en Configuración → Sincronizar, **Mostrar en grande** muestra el suyo.
 4. Si los dos códigos coinciden, **Sí, es el mismo** lo deja pasar; si no, **No coincide** lo deja fuera.
 
