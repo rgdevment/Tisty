@@ -339,7 +339,7 @@ values:
     time: [datetime]
   drawings: "Inside an svg, what a diagram may draw, under its rule for paints."
   pictures: "An img holds its picture in src, as a data: address of an image."
-  css_never: ["@import", "@namespace", "@font-face", "\\", "image(", "image-set(", "src(", "expression(", "-moz-binding", "behavior:"]
+  css_never: ["@import", "@namespace", "@font-face", "\\", "image(", "image-set(", "src(", "expression(", "-moz-binding:", "behavior:"]
   css_urls: "In CSS, url() holds a data: address of an image, or names something in its own drawing as url(#name)."
 cases:
   - says: "A widget with its words."
@@ -429,6 +429,12 @@ cases:
   - says: "An old behavior that runs code from a stylesheet."
     value: { body: "<style>div{behavior:url(#x)}</style>" }
     holds: false
+  - says: "The same old ways, behind spaces and a comment."
+    value: { body: '<div style="width:expression (1); behavior : url(#x)"></div><style>p{-moz-/**/binding:url(#y)}</style>' }
+    holds: false
+  - says: "Words that only name one of those ways, in what a style shows."
+    value: { body: '<style>.tip::after{content:"behavior: calm, no -moz-binding: here"}</style>' }
+    holds: true
   - says: "A drawing that paints from an address."
     value: { body: '<svg><rect fill="url(https://example.com/a.svg#g)"/></svg>' }
     holds: false

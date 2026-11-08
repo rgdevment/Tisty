@@ -1723,7 +1723,7 @@
           "image-set(",
           "src(",
           "expression(",
-          "-moz-binding",
+          "-moz-binding:",
           "behavior:"
         ],
         "css_urls": "In CSS, url() holds a data: address of an image, or names something in its own drawing as url(#name)."
@@ -1932,6 +1932,20 @@
             "body": "<style>div{behavior:url(#x)}</style>"
           },
           "holds": false
+        },
+        {
+          "says": "The same old ways, behind spaces and a comment.",
+          "value": {
+            "body": "<div style=\"width:expression (1); behavior : url(#x)\"></div><style>p{-moz-/**/binding:url(#y)}</style>"
+          },
+          "holds": false
+        },
+        {
+          "says": "Words that only name one of those ways, in what a style shows.",
+          "value": {
+            "body": "<style>.tip::after{content:\"behavior: calm, no -moz-binding: here\"}</style>"
+          },
+          "holds": true
         },
         {
           "says": "A drawing that paints from an address.",
@@ -7383,7 +7397,7 @@
       "image-set(",
       "src(",
       "expression(",
-      "-moz-binding",
+      "-moz-binding:",
       "behavior:"
     ],
     "policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",

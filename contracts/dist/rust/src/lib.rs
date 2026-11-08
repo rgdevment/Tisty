@@ -1129,14 +1129,36 @@ fn bare_of(said: &str) -> String {
 }
 
 // Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
+// Spaces and comments change nothing a browser reads, so they hide nothing here either.
+fn flat_css(said: &str) -> String {
+    let mut kept = String::with_capacity(said.len());
+    let mut rest = said;
+    while let Some(open) = rest.find("/*") {
+        kept.push_str(&rest[..open]);
+        rest = rest[open + 2..].find("*/").map_or("", |close| &rest[open + 2 + close + 2..]);
+    }
+    kept.push_str(rest);
+    format!(";{}", bare_of(&kept))
+}
+
+// A word that ends in a colon is a property, so only where a property starts.
+fn says_never(flat: &str, one: &str) -> bool {
+    if one.ends_with(':') {
+        flat.contains(&format!(";{one}")) || flat.contains(&format!("{{{one}"))
+    } else {
+        flat.contains(one)
+    }
+}
+
 fn wrong_in_css(all: &Value, css: &str) -> Vec<String> {
     let said = css.to_ascii_lowercase();
+    let flat = flat_css(&said);
     let mut out: Vec<String> = all["widget"]["css_never"]
         .as_array()
         .into_iter()
         .flatten()
         .filter_map(Value::as_str)
-        .filter(|one| said.contains(one))
+        .filter(|one| says_never(&flat, one))
         .map(str::to_owned)
         .collect();
     let mut from = 0;

@@ -369,9 +369,17 @@ export function checkHtml(html) {
 const bareOf = (said) => [...said].filter((one) => one > " ").join("");
 
 // Each thing a stylesheet says that would reach outside, or that hides a word so nothing can tell.
+// Spaces and comments change nothing a browser reads, so they hide nothing here either.
+const flatCss = (said) => ";" + bareOf(said.replace(/\/\*[\s\S]*?(\*\/|$)/g, ""));
+
+// A word that ends in a colon is a property, so only where a property starts.
+const saysNever = (flat, one) =>
+  one.endsWith(":") ? flat.includes(";" + one) || flat.includes("{" + one) : flat.includes(one);
+
 const wrongInCss = (css) => {
   const said = lowered(css);
-  const out = WHOLE.widget.css_never.filter((one) => said.includes(one));
+  const flat = flatCss(said);
+  const out = WHOLE.widget.css_never.filter((one) => saysNever(flat, one));
   for (let at = said.indexOf("url("); at >= 0; at = said.indexOf("url(", at + 4)) {
     const close = said.indexOf(")", at);
     const inside = bareOf(said.slice(at + 4, close < 0 ? said.length : close)).replace(/^["']/, "");
