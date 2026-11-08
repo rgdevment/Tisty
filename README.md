@@ -7,8 +7,8 @@
 
   <h1>Tisty — Free Open Source Notes, Documents and Tasks</h1>
 
-  <p><strong>Notes, documents and tasks that stay yours: plain Markdown on your
-  own disk, for Windows and macOS.<br/>Documents that grow into books, with
+  <p><strong>Notes, documents and tasks that stay yours: Markdown and plain text
+  on your own disk, for Windows and macOS.<br/>Documents that grow into books, with
   diagrams, formulas, code, widgets and their own PDF — and tasks that become the
   record of what you worked out, searchable years later, with an MCP door for
   your assistant.<br/>No accounts. No subscriptions. No telemetry. No
@@ -157,7 +157,7 @@ productivity tool** that lives on your machine and nowhere else.
 - [An Assistant, If You Use One](#an-assistant-if-you-use-one)
 - [What It Does Not Do](#what-it-does-not-do)
 - [FAQ](#faq)
-- [Alternatives](#alternatives)
+- [Alternatives to Obsidian, Notion and Todoist](#alternatives-to-obsidian-notion-and-todoist)
 - [Localization](#localization)
 - [Other Tools by the Same Author](#other-tools-by-the-same-author)
 - [Support the Project](#support-the-project)
@@ -928,36 +928,43 @@ door is yours to close.
 
 ## FAQ
 
-**Is Tisty free?**
+### Is Tisty free?
+
 Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
 later version, no trial that runs out.
 
-**Does it need an account or a connection?**
+### Does it need an account or a connection?
+
 Neither. There is nothing to sign up for, and only sharing a document by link
 needs a connection. Tisty makes one network request you did not ask for — when
 it opens, and once a day after that — to see whether a newer version exists, and
 it sends nothing in order to ask. Take the machine off the network and
 everything else works the same.
 
-**Where is my data kept?**
+### Where is my data kept?
+
 In one folder on your own disk: an append-only log of what happened, your
 documents as `.md` files, and your attachments as themselves. Settings › *Your
 data* prints the path and *Show folder* opens it. Nothing is obfuscated and
 nothing is in a format only Tisty can read.
 
-**What happens to my notes if Tisty disappears?**
+### What happens to my notes if Tisty disappears?
+
 They stay where they are. Markdown and plain text, readable with `cat`,
 searchable with `grep`, openable in any editor you already have. That is what
 the format is for.
 
-**Does Tisty use AI?**
+### Does Tisty use AI?
+
 No, and none is coming. The natural language that turns "call the bank at 3"
 into a task is rules running on your machine: no model, no request, no cloud.
 If you already use an assistant of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
 it, and while it is closed everything it tries is refused.
 
-**Can I use it on two computers?** Yes, two ways. Connect your own Google Drive,
+### Can I use it on two computers?
+
+Yes, two ways. Connect your own Google Drive,
 OneDrive or WebDAV server in the window, and Tisty talks to it directly, keeping
 its copies in a place of its own there and seeing nothing else — encrypted with
 a phrase only you know, if you want. Or use a folder you already sync: Google
@@ -965,18 +972,21 @@ Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug in on Fridays. Either
 way there is no server of mine in between, no account of mine, and you can move
 from one to the other whenever you like.
 
-**Is there a mobile app?**
+### Is there a mobile app?
+
 No. Tisty is a desktop program for Windows and macOS. Your documents are
 Markdown in a folder, so a phone that reaches that folder reads and edits them
 with whatever app you like — but the window, the spread and the archive are the
 desktop's.
 
-**Does it run on Linux?**
+### Does it run on Linux?
+
 No. Tisty is a desktop program for Windows and macOS. An assistant that runs
 on Linux inside Windows, under WSL, reaches it all the same: Settings ›
 Assistants connects it.
 
-**Is my data encrypted?**
+### Is my data encrypted?
+
 On your disk, no, and that is a decision rather than an oversight: your
 operating system's permissions are the protection, and the files stay readable
 with tools you already have. In a cloud Tisty reaches directly, it can be:
@@ -984,11 +994,13 @@ Settings › *Security* encrypts it with a 24-word phrase only you know.
 [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) write it out, including
 the parts that are not reassuring.
 
-**Can I use it with my team?**
+### Can I use it with my team?
+
 No. Tisty is for one person by design — no assignees, no permissions, no
 boards — and you deserve to know that before you install it rather than after.
 
-**Can I bring my notes over from another app?**
+### Can I bring my notes over from another app?
+
 Documents, yes: *Import a document* in the tree takes a `.md`, `.markdown`,
 `.txt`, `.html` or Word `.docx` file and brings it in one at a time as
 Markdown — Word to Markdown, HTML to Markdown, Obsidian to Markdown — and pasting
@@ -997,24 +1009,27 @@ another Tisty machine unpacks whole. Tasks have to be typed. There is no importe
 for another program's task list, and one that guessed would cost you more than
 the typing.
 
-**Are the downloads signed?**
+### Are the downloads signed?
+
 Yes. The macOS disk images are signed and notarised by Apple, and the Windows
 installer is signed too — a copy from the Microsoft Store or from Homebrew
 carries that already. Tisty also refuses to install an update that is not
 signed with a key compiled into the copy you are running.
 
-**Does it work with a screen reader?**
+### Does it work with a screen reader?
+
 Not as far as anybody knows, and that is worth saying plainly: the whole window
 works from the keyboard and that path is tested, but nothing has ever been
 tried with a real screen reader. If you use one, an issue saying where it falls
 apart would be the most useful thing anyone could send.
 
-**How is it different from Obsidian, Notion or Todoist?**
+### How is it different from Obsidian, Notion or Todoist?
+
 Tisty keeps tasks and documents in one store and one search, and finishing a
 task keeps everything it gathered instead of hiding it. The table below says
 where each of those is stronger.
 
-## Alternatives
+## Alternatives to Obsidian, Notion and Todoist
 
 Other places to keep notes and tasks, so you can pick the one that fits.
 Platform, storage and licence checked against each project in September 2026;

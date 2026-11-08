@@ -95,4 +95,4 @@ Update the one that is behind. A machine only reads what it understands, so the 
 ## Comparing
 
 **How is it different from Obsidian, Notion or Todoist?**
-Tisty keeps tasks and documents in one store and one search, and finishing a task keeps everything it gathered instead of hiding it. The README has [a comparison table](https://github.com/rgdevment/Tisty#alternatives) that also says where each of the others is stronger.
+Tisty keeps tasks and documents in one store and one search, and finishing a task keeps everything it gathered instead of hiding it. The README has [a comparison table](https://github.com/rgdevment/Tisty#alternatives-to-obsidian-notion-and-todoist) that also says where each of the others is stronger.

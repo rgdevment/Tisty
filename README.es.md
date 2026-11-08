@@ -7,8 +7,8 @@
 
   <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
-  <p><strong>Notas, documentos y tareas que siguen siendo tuyos: Markdown llano
-  en tu disco, para Windows y macOS.<br/>Documentos que crecen hasta ser
+  <p><strong>Notas, documentos y tareas que siguen siendo tuyos: Markdown y texto
+  plano en tu disco, para Windows y macOS.<br/>Documentos que crecen hasta ser
   libros, con diagramas, fórmulas, código, widgets y su propio PDF — y tareas que
   se vuelven el historial de cómo resolviste las cosas, buscable años después,
   con una puerta MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones.
@@ -161,7 +161,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Un asistente, si usas uno](#un-asistente-si-usas-uno)
 - [Qué no hace](#qué-no-hace)
 - [Preguntas frecuentes](#preguntas-frecuentes)
-- [Alternativas](#alternativas)
+- [Alternativas a Obsidian, Notion y Todoist](#alternativas-a-obsidian-notion-y-todoist)
 - [Idiomas](#idiomas)
 - [Otras herramientas del mismo autor](#otras-herramientas-del-mismo-autor)
 - [Apoyar el proyecto](#apoyar-el-proyecto)
@@ -953,36 +953,43 @@ cosa tuya.
 
 ## Preguntas frecuentes
 
-**¿Tisty es gratis?**
+### ¿Tisty es gratis?
+
 Sí, y lo seguirá siendo. AGPL-3.0, sin versión de pago, sin funciones
 reservadas para más adelante, sin versión de prueba que caduque.
 
-**¿Necesita una cuenta o conexión?**
+### ¿Necesita una cuenta o conexión?
+
 Ninguna de las dos. No hay a qué suscribirse, y solo compartir un documento por
 link necesita conexión.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
 preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
 
-**¿Dónde quedan mis datos?**
+### ¿Dónde quedan mis datos?
+
 En una carpeta de tu propio disco: un registro que solo crece con lo que pasó,
 tus documentos como archivos `.md` y tus adjuntos tal cual son. Configuración ›
 *Tus datos* escribe la ruta y *Mostrar carpeta* la abre. Nada está ofuscado y
 nada queda en un formato que solo Tisty sepa leer.
 
-**¿Qué pasa con mis notas si Tisty desaparece?**
+### ¿Qué pasa con mis notas si Tisty desaparece?
+
 Se quedan donde están. Markdown y texto plano, que se lee con `cat`, se busca
 con `grep` y se abre en cualquier editor que ya tengas. Para eso está el
 formato.
 
-**¿Tisty usa IA?**
+### ¿Tisty usa IA?
+
 No, y no va a usarla. El lenguaje natural que convierte «llamar al banco a las
 3» en una tarea son reglas corriendo en tu equipo: sin modelo, sin petición,
 sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
 [MCP](https://modelcontextprotocol.io): viene abierta, un clic la cierra, y
 mientras está cerrada todo lo que intente se rechaza.
 
-**¿Puedo usarlo en dos equipos?** Sí, de dos formas. Conecta tu propio Google
+### ¿Puedo usarlo en dos equipos?
+
+Sí, de dos formas. Conecta tu propio Google
 Drive, OneDrive o servidor WebDAV en la ventana y Tisty habla con él directo,
 guardando sus copias en un lugar propio ahí y sin ver nada más; cifradas con una
 frase que solo tú conoces, si quieres. O usa una carpeta que ya sincronizas:
@@ -990,18 +997,21 @@ Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que enchufas los
 viernes. En los dos casos no hay ningún servidor mío en medio, ni cuenta mía, y
 puedes mudarte de una a otra cuando quieras.
 
-**¿Hay aplicación para el teléfono?**
+### ¿Hay aplicación para el teléfono?
+
 No. Tisty es un programa de escritorio para Windows y macOS. Tus documentos son
 Markdown en una carpeta, así que un teléfono que llegue a esa carpeta los lee y
 los edita con la aplicación que prefieras, pero la ventana, el reparto y el
 archivo son del escritorio.
 
-**¿Funciona en Linux?**
+### ¿Funciona en Linux?
+
 No. Tisty es un programa de escritorio para Windows y macOS. Un asistente que
 corre en Linux dentro de Windows, con WSL, llega a él igual: Configuración ›
 Asistentes lo conecta.
 
-**¿Mis datos están cifrados?**
+### ¿Mis datos están cifrados?
+
 En tu disco no, y es una decisión, no un descuido: los permisos de tu sistema
 operativo son la protección, y los archivos siguen legibles con herramientas que
 ya tienes. En una nube con la que Tisty habla directo, sí pueden estarlo:
@@ -1009,11 +1019,13 @@ Configuración › *Seguridad* los cifra con una frase de 24 palabras que solo t
 conoces. [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md) lo dejan escrito,
 incluidas las partes que no tranquilizan.
 
-**¿Sirve para mi equipo de trabajo?**
+### ¿Sirve para mi equipo de trabajo?
+
 No. Tisty es para una persona por diseño —sin responsables, sin permisos, sin
 tableros— y mereces saberlo antes de instalarlo y no después.
 
-**¿Puedo traer mis notas desde otra aplicación?**
+### ¿Puedo traer mis notas desde otra aplicación?
+
 Los documentos sí: *Importar un documento* en el árbol toma un archivo `.md`,
 `.markdown`, `.txt`, `.html` o de Word (`.docx`) y lo trae como Markdown, de uno
 en uno —de Word a Markdown, de HTML a Markdown, de Obsidian a Markdown—, y pegar
@@ -1022,24 +1034,27 @@ equipo con Tisty se desempaqueta entero. Las tareas hay que escribirlas. No hay
 importador para la lista de tareas de otro programa, y uno que adivinara te
 costaría más que teclearlas.
 
-**¿Las descargas están firmadas?**
+### ¿Las descargas están firmadas?
+
 Sí. Las imágenes de disco de macOS van firmadas y notarizadas por Apple, y el
 instalador de Windows también va firmado — una copia de la Microsoft Store o de
 Homebrew ya lo trae. Tisty además se niega a instalar una actualización que no
 esté firmada con una clave compilada dentro de la copia que estás usando.
 
-**¿Funciona con un lector de pantalla?**
+### ¿Funciona con un lector de pantalla?
+
 Que se sepa, no, y vale decirlo claro: la ventana entera funciona con el teclado
 y ese camino está probado, pero nada se ha probado nunca con un lector de
 pantalla real. Si usas uno, una incidencia que diga dónde se rompe sería lo más
 útil que alguien pueda mandar.
 
-**¿En qué se diferencia de Obsidian, Notion o Todoist?**
+### ¿En qué se diferencia de Obsidian, Notion o Todoist?
+
 Tisty guarda tareas y documentos en un mismo almacén y una misma búsqueda, y
 terminar una tarea conserva todo lo que reunió en vez de esconderlo. La tabla de
 abajo dice en qué es más fuerte cada uno de ellos.
 
-## Alternativas
+## Alternativas a Obsidian, Notion y Todoist
 
 Otros sitios donde guardar notas y tareas, para que elijas el que te sirva.
 Plataforma, almacenamiento y licencia comprobados contra cada proyecto en
