@@ -304,22 +304,40 @@ fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
 
 const DOMAIN_PATIENCE: std::time::Duration = std::time::Duration::from_secs(2);
 
-// A checked domain is a word added beside a name: a slow network must never hold the question up.
-fn checked_in_time(home: &std::path::Path, root: &str, domain: &str) -> bool {
-    if !folio_domains::a_domain(domain) {
-        return false;
-    }
-    let (home, root, domain) = (home.to_path_buf(), root.to_owned(), domain.to_owned());
+type Checked = std::collections::BTreeSet<(String, String)>;
+
+// A checked domain is a word added beside a name: every lookup shares one short deadline, so a slow network never holds the question up.
+fn checked_within(home: &std::path::Path, wanted: &[(&str, Option<&str>)]) -> Checked {
     let (said, heard) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = said.send(folio_domains::checked(
-            &home,
-            &root,
-            &domain,
-            crate::reaching::brought_from_folio,
-        ));
-    });
-    heard.recv_timeout(DOMAIN_PATIENCE).unwrap_or(false)
+    for (root, alias) in wanted {
+        let Some(domain) = alias.filter(|one| folio_domains::a_domain(one)) else {
+            continue;
+        };
+        let (home, root, domain, said) = (
+            home.to_path_buf(),
+            root.to_string(),
+            domain.to_owned(),
+            said.clone(),
+        );
+        std::thread::spawn(move || {
+            let held =
+                folio_domains::checked(&home, &root, &domain, crate::reaching::brought_from_folio);
+            let _ = said.send(held.then_some((root, domain)));
+        });
+    }
+    drop(said);
+    let deadline = std::time::Instant::now() + DOMAIN_PATIENCE;
+    let mut checked = Checked::new();
+    while let Some(left) = deadline.checked_duration_since(std::time::Instant::now()) {
+        match heard.recv_timeout(left) {
+            Ok(Some(found)) => {
+                checked.insert(found);
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+    }
+    checked
 }
 
 // Owner and signer are told apart by their roots: two people can sign with one name.
@@ -327,6 +345,13 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     let maker = folio_limits::maker(&home);
+    let owner = opened
+        .owner
+        .as_deref()
+        .filter(|root| *root != opened.signer);
+    let mut wanted = vec![(opened.signer.as_str(), said("signed_as"))];
+    wanted.extend(owner.map(|root| (root, said("owner_name"))));
+    let checked = checked_within(&home, &wanted);
     let party = |root: &str, alias: Option<&str>| Party {
         name: alias.unwrap_or_default().to_owned(),
         standing: standing_of(
@@ -334,19 +359,14 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
             opened.verdict,
             alias,
             maker.as_ref(),
-            |root, domain| checked_in_time(&home, root, domain),
+            |root, domain| checked.contains(&(root.to_owned(), domain.to_owned())),
         ),
     };
-    let owner = opened
-        .owner
-        .as_deref()
-        .filter(|root| *root != opened.signer)
-        .map(|root| party(root, said("owner_name")));
     question(
         app,
         LinkQuestion::Keep {
             title: said("title").unwrap_or_default().to_owned(),
-            owner,
+            owner: owner.map(|root| party(root, said("owner_name"))),
             signer: party(&opened.signer, said("signed_as")),
             print: opened.signer.clone(),
             doubtful: opened.doubtful(),
