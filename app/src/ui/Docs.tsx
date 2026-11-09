@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
+import { sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -74,10 +75,6 @@ const remembered = (held: Map<string, Read>, file: string, read: Read) => {
   }
 };
 
-const WIDE = 1440;
-
-const RAIL = 336;
-const RAIL_WIDE = 350;
 const GUTTER = 8;
 const SHEET = 820;
 
@@ -184,7 +181,8 @@ export default function Docs({
   const turn = useRef(0);
   const [room, setRoom] = useState(() => window.innerWidth);
   const [shown, setShown] = useState<boolean | null>(null);
-  const wide = room >= WIDE;
+  const wide = room >= WIDE_WINDOW;
+  const breadth = useBreadth();
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.
@@ -803,7 +801,7 @@ export default function Docs({
     wrote(laid);
     dressAlike(laid);
   };
-  const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
+  const spare = room - sideWidth(breadth, wide) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   const place = open
     ? trailed(folders, open.folder ?? null)

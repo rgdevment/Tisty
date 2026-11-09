@@ -10,11 +10,12 @@ import {
   seenAgents,
   type Wired,
 } from "../core";
+import { credit, useCredit } from "../crediting";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Card, { type Run, type Which, type Word } from "./Card";
-import { Group } from "./Rows";
+import { Group, Knob, Line } from "./Rows";
 import Wiring from "./Wiring";
 
 interface Props {
@@ -56,6 +57,7 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
   const { agent, setAgent, agents, setAgents, hands } = known;
   const [wired, setWired] = useState(false);
   const [typed, setTyped] = useState(false);
+  const shown = useCredit();
 
   return (
     <>
@@ -105,6 +107,33 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         >
           {t("agentsGuide")} <span aria-hidden="true">↗</span>
         </button>
+      </Card>
+
+      <Card title={t("creditTitle")} which="settings" busy={null}>
+        <p className="text-[12.5px] leading-relaxed text-soft">{t("creditWhat")}</p>
+        <Line title={t("creditMark")} why={t("creditMarkWhy")} which="settings">
+          <Knob
+            on={shown.mark}
+            label={t("creditMark")}
+            onPress={() => credit("mark", !shown.mark)}
+          />
+        </Line>
+        <Line title={t("creditRows")} why={t("creditRowsWhy")} which="settings">
+          <Knob
+            on={shown.rows && !shown.mark}
+            label={t("creditRows")}
+            disabled={shown.mark}
+            onPress={() => credit("rows", !shown.rows)}
+          />
+        </Line>
+        <Line title={t("creditInside")} why={t("creditInsideWhy")} which="settings">
+          <Knob
+            on={shown.inside && !shown.mark}
+            label={t("creditInside")}
+            disabled={shown.mark}
+            onPress={() => credit("inside", !shown.inside)}
+          />
+        </Line>
       </Card>
 
       <Card title={t("wiringTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>

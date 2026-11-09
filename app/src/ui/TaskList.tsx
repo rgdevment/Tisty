@@ -3,14 +3,16 @@ import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useAsked } from "../asked";
 import { useComing } from "../coming";
 import { type List, partsOf, type Task, type Whole } from "../core";
+import { type Signing, useSigning } from "../crediting";
 import type { Paced, Standing } from "../deadlines";
 import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
-import { agentTag, signedBy, signedByAnAgent, wroteWhere } from "../who";
+import { agentNamed, agentTag } from "../who";
 import Grouping from "./Axis";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
+import Signature from "./Signature";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 
 interface Props {
@@ -159,6 +161,7 @@ export default function TaskList({
   }, [rows]);
 
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
+  const signing = useSigning("rows");
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
     : "grid-cols-[20px_minmax(0,1fr)_auto]";
@@ -351,6 +354,7 @@ export default function TaskList({
               list={task.list ? named(task.list) : undefined}
               whole={nested || !task.part_of ? undefined : wholes?.[task.part_of]?.title}
               stands={standings?.[task.id]}
+              signing={signing}
             />
             {paces?.[task.id] && <PaceBar paced={paces[task.id]} />}
           </div>
@@ -540,11 +544,13 @@ function Meta({
   list,
   whole,
   stands,
+  signing,
 }: {
   task: Task;
   list?: string;
   whole?: string;
   stands?: Standing;
+  signing: Signing;
 }) {
   const bits = dated(task, stands);
   if (task.repeat) {
@@ -569,7 +575,7 @@ function Meta({
       </span>,
     );
   }
-  const filedBy = signedBy(task.created_by, task.created_via);
+  const filedBy = agentNamed(task.created_by);
   const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === agentTag()));
   if (tags.length) {
     bits.push(
@@ -579,15 +585,7 @@ function Meta({
     );
   }
   if (filedBy) {
-    bits.push(
-      <span
-        key="by"
-        className="text-hue-teal"
-        title={wroteWhere(task.created_by, task.created_via)}
-      >
-        {signedByAnAgent(task.created_by)}
-      </span>,
-    );
+    bits.push(<Signature key="by" by={task.created_by} via={task.created_via} signing={signing} />);
   }
 
   if (bits.length === 0) return null;

@@ -2567,6 +2567,23 @@ const en = {
   agentWroteIt: "{name} wrote it",
   agentWroteHere: "{name} wrote on this machine",
   agentWroteOn: "{name} wrote on the machine {other}",
+  sideFold: "Fold the sidebar",
+  sideUnfold: "Unfold the sidebar",
+  sideResize: "Sidebar width",
+  sideFolded: "folded to its icons",
+  sideNotices: "Something is waiting for you — unfold the sidebar to see it",
+  sideResizeHow:
+    "Drag to change the width · double-click for the usual one · narrow it all the way to fold it",
+  creditTitle: "Who signs what an assistant writes",
+  creditWhat:
+    "What an assistant writes carries the name of the program it spoke through. Choose where that name shows; where it does not, it reads «by an agent» and the name waits on hover.",
+  creditRows: "Name the assistant in the task list",
+  creditRowsWhy: "Off, each row says «by an agent»",
+  creditInside: "Name the assistant inside a task",
+  creditInsideWhy: "Off, the side panel, its history and the full page say «by an agent»",
+  creditMark: "Only a diamond",
+  creditMarkWhy:
+    "Neither name nor words, in the list or inside a task: a small ◆ says an agent wrote it, and who waits on hover",
   agentsTurnOn: "Let an assistant file here",
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
@@ -5549,6 +5566,24 @@ const es: Catalog = {
   agentWroteIt: "{name} lo escribió",
   agentWroteHere: "{name} escribió en este equipo",
   agentWroteOn: "{name} escribió en el equipo {other}",
+  sideFold: "Plegar la barra lateral",
+  sideUnfold: "Desplegar la barra lateral",
+  sideResize: "Ancho de la barra lateral",
+  sideFolded: "plegada a sus iconos",
+  sideNotices: "Algo te espera: despliega la barra lateral para verlo",
+  sideResizeHow:
+    "Arrastra para cambiar el ancho · doble clic: el de siempre · estréchala del todo para plegarla",
+  creditTitle: "Quién firma lo que escribe un asistente",
+  creditWhat:
+    "Lo que escribe un asistente lleva el nombre del programa por el que habló. Elige dónde se ve ese nombre; donde no, dice «por un agente» y el nombre aparece al pasar el puntero.",
+  creditRows: "Nombrar al asistente en la lista de tareas",
+  creditRowsWhy: "Apagado, cada fila dice «por un agente»",
+  creditInside: "Nombrar al asistente dentro de una tarea",
+  creditInsideWhy:
+    "Apagado, el panel lateral, su historial y la página completa dicen «por un agente»",
+  creditMark: "Solo un rombo",
+  creditMarkWhy:
+    "Ni nombre ni texto, en la lista ni dentro de una tarea: un pequeño ◆ dice que lo escribió un agente, y quién aparece al pasar el puntero",
   agentsTurnOn: "Dejar que un asistente anote",
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
