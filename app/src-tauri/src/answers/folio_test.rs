@@ -15,8 +15,8 @@ use crate::answers::folio_sync::{Ahead, before_upload};
 use super::{
     Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
     first_time_without_room, folio_terms_drawn, going_with, headings_over, held_back_here,
-    kept_waiting, may_start, new_terms_asked, newest_first, press_given_back, said, said_to_whom,
-    sent_taken_back,
+    kept_from, may_start, new_terms_asked, newest_first, press_given_back, said, said_kept,
+    said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -84,6 +84,7 @@ fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
     delivered(
         &folio,
         home.path(),
+        None,
         &kept_in(&kept),
         &sealed_for(None),
         &starts(),
@@ -116,6 +117,7 @@ fn a_language_that_goes_with_its_anchor_is_not_a_new_share_of_the_day() {
     delivered(
         &folio,
         home.path(),
+        None,
         &kept_in(&Kept::default()),
         &sealed,
         &starts(),
@@ -138,6 +140,7 @@ fn a_new_version_is_not_a_new_share_of_the_day() {
     delivered(
         &folio,
         home.path(),
+        None,
         &kept_in(&Kept::default()),
         &sealed_for(None),
         &BTreeMap::new(),
@@ -188,6 +191,7 @@ fn what_is_cited_goes_before_what_cites_it() {
     delivered(
         &folio,
         home.path(),
+        None,
         &kept_in(&Kept::default()),
         &sealed,
         &starts,
@@ -212,7 +216,16 @@ fn past_the_day_s_new_documents_the_root_is_never_left_citing_nothing() {
         .push_back((429, r#"{"refused":"shares_today","until":1800000000000}"#));
     let (sealed, starts) = a_root_and_what_it_cites();
 
-    let told = delivered(&folio, home.path(), &kept_in(&kept), &sealed, &starts, 1).unwrap_err();
+    let told = delivered(
+        &folio,
+        home.path(),
+        None,
+        &kept_in(&kept),
+        &sealed,
+        &starts,
+        1,
+    )
+    .unwrap_err();
 
     assert_eq!(told.code, "folioSharesToday");
     assert_eq!(folio.asked.borrow().len(), 1, "the root never went");
@@ -231,6 +244,7 @@ fn its_files_go_when_folio_wants_them() {
     delivered(
         &folio,
         tempfile::tempdir().unwrap().path(),
+        None,
         &kept_in(&kept),
         &sealed_for(Some(vec![2])),
         &starts(),
@@ -260,7 +274,11 @@ fn a_key_folio_has_no_room_for_is_told_even_when_an_earlier_chunk_went() {
         (409, r#"{"refused":"machines_full"}"#),
     ]);
 
-    assert!(sent_taken_back(&folio, &taken(9)));
+    assert!(sent_taken_back(
+        &folio,
+        tempfile::tempdir().unwrap().path(),
+        &taken(9)
+    ));
     assert_eq!(folio.asked.borrow().len(), 2);
 }
 
@@ -273,7 +291,11 @@ fn past_the_hour_it_asks_no_more_and_says_nothing_of_room() {
         (409, r#"{"refused":"machines_full"}"#),
     ]);
 
-    assert!(!sent_taken_back(&folio, &taken(24)));
+    assert!(!sent_taken_back(
+        &folio,
+        tempfile::tempdir().unwrap().path(),
+        &taken(24)
+    ));
     assert_eq!(folio.asked.borrow().len(), 2);
 }
 
@@ -312,16 +334,28 @@ fn a_key_that_went_or_can_go_again_next_sync_is_not_told() {
         .answers
         .borrow_mut()
         .push_back((200, r#"{"done":true}"#));
-    assert!(!sent_taken_back(&folio, &taken(1)));
+    assert!(!sent_taken_back(
+        &folio,
+        tempfile::tempdir().unwrap().path(),
+        &taken(1)
+    ));
 
     let unreachable = FakeFolio::default();
-    assert!(!sent_taken_back(&unreachable, &taken(1)));
+    assert!(!sent_taken_back(
+        &unreachable,
+        tempfile::tempdir().unwrap().path(),
+        &taken(1)
+    ));
 
     let busy = FakeFolio::default();
     busy.answers
         .borrow_mut()
         .push_back((429, r#"{"refused":"quota","until":1}"#));
-    assert!(!sent_taken_back(&busy, &taken(1)));
+    assert!(!sent_taken_back(
+        &busy,
+        tempfile::tempdir().unwrap().path(),
+        &taken(1)
+    ));
 }
 
 #[test]
@@ -336,6 +370,7 @@ fn what_folio_refused_is_not_remembered_as_sent() {
     let told = delivered(
         &folio,
         tempfile::tempdir().unwrap().path(),
+        None,
         &kept_in(&kept),
         &sealed_for(None),
         &starts(),
@@ -359,6 +394,7 @@ fn a_version_stored_stays_remembered_when_its_files_fail_and_they_go_again_next_
     let told = delivered(
         &folio,
         tempfile::tempdir().unwrap().path(),
+        None,
         &kept_in(&kept),
         &sealed_for(Some(vec![2])),
         &starts(),
@@ -425,6 +461,7 @@ fn files_folio_wants_and_this_side_does_not_hold_are_not_passed_over() {
     let told = delivered(
         &folio,
         tempfile::tempdir().unwrap().path(),
+        None,
         &kept_in(&kept),
         &sealed_for(None),
         &starts(),
@@ -904,12 +941,12 @@ fn what_folio_refuses_until_a_time_is_kept_and_asked_for_here_first() {
     let home = tempfile::tempdir().unwrap();
     let later = (policy::now() + 3_600) * 1000;
 
-    kept_waiting(
-        crate::Refusal::about("folioQuota", later.to_string()),
+    kept_from(
+        &Stopped::Refused(Refused::Quota { until: later }),
         home.path(),
         None,
     );
-    let network = held_back_here(home.path(), false).unwrap_err();
+    let network = held_back_here(home.path(), 0).unwrap_err();
     assert_eq!(network.code, "folioQuota");
     assert_eq!(network.name, Some(later.to_string()));
 }
@@ -919,17 +956,17 @@ fn a_day_folio_said_is_full_stops_only_what_would_be_new() {
     let home = tempfile::tempdir().unwrap();
     let tomorrow = (policy::now() + 3_600) * 1000;
 
-    kept_waiting(
-        crate::Refusal::about("folioSharesToday", tomorrow.to_string()),
+    kept_from(
+        &Stopped::Refused(Refused::SharesToday { until: tomorrow }),
         home.path(),
         None,
     );
 
     assert_eq!(
-        held_back_here(home.path(), false).unwrap_err().code,
+        held_back_here(home.path(), 1).unwrap_err().code,
         "folioSharesToday"
     );
-    assert!(held_back_here(home.path(), true).is_ok());
+    assert!(held_back_here(home.path(), 0).is_ok());
     assert!(folio_today::full_now(home.path(), policy::now()));
 }
 
@@ -938,14 +975,80 @@ fn a_wait_with_no_document_to_keep_it_under_is_left_to_folio() {
     let home = tempfile::tempdir().unwrap();
     let later = (policy::now() + 600) * 1000;
 
-    let refused = kept_waiting(
-        crate::Refusal::about("folioWait", later.to_string()),
+    let refused = said_kept(
+        &Stopped::Refused(Refused::Slow { until: later }),
         home.path(),
         None,
     );
 
     assert_eq!(refused.code, "folioWait");
-    assert!(held_back_here(home.path(), false).is_ok());
+    assert!(held_back_here(home.path(), 1).is_ok());
+}
+
+#[test]
+fn a_cited_document_folio_holds_back_holds_back_the_share_it_goes_with() {
+    let home = tempfile::tempdir().unwrap();
+    let later: u64 = 4_000_000_000_000;
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((429, r#"{"refused":"slow","until":4000000000000}"#));
+    let (sealed, starts) = a_root_and_what_it_cites();
+
+    let told = delivered(
+        &folio,
+        home.path(),
+        Some("Ab3xK9pQ"),
+        &kept_in(&Kept::default()),
+        &sealed,
+        &starts,
+        1,
+    )
+    .unwrap_err();
+
+    assert_eq!(told.code, "folioWait");
+    assert_eq!(folio.asked.borrow()[0].0, "/docs/Cited123");
+    assert_eq!(
+        tisty_carrier::folio_pace::waiting_until(home.path(), "Ab3xK9pQ", policy::now(), None),
+        Some(later / 1000)
+    );
+}
+
+#[test]
+fn revocations_folio_has_no_hour_for_keep_the_network_waiting() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((429, r#"{"refused":"quota","until":4000000000000}"#));
+
+    sent_taken_back(&folio, home.path(), &taken(9));
+
+    assert_eq!(
+        held_back_here(home.path(), 0).unwrap_err().code,
+        "folioQuota"
+    );
+}
+
+#[test]
+fn a_network_folio_holds_back_is_refused_here_with_its_own_words() {
+    let home = tempfile::tempdir().unwrap();
+    let now = policy::now();
+    tisty_carrier::folio_pace::hold(
+        home.path(),
+        tisty_carrier::folio_pace::NETWORK,
+        now + 600,
+        now,
+    );
+    let folio = FakeFolio::default();
+    let was = remembered(Some("key"), None);
+
+    let refused = before_upload(&folio, home.path(), &was, false, None, now).unwrap_err();
+
+    assert_eq!(refused.code, "folioQuota");
+    assert!(folio.asked.borrow().is_empty());
 }
 
 fn pressed_in(home: &std::path::Path) -> usize {

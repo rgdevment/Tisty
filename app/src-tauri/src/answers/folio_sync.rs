@@ -11,9 +11,9 @@ use tisty_sharing::{Desk, Received, Remembered, Told};
 
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
-    doc_of_file, file_of, forget_share, keeping, kept_on, kept_waiting, languages_top, may_upload,
-    new_terms_asked, press_given_back, remembered_of, said, said_to_whom, sealed_for_folio,
-    secrets_of_docs, told_of_taken_back, tongue_of,
+    doc_of_file, file_of, forget_share, keeping, kept_on, languages_top, may_upload, network_free,
+    new_terms_asked, press_given_back, remembered_of, said_kept, said_to_whom, sealed_for_folio,
+    seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
 use super::papers::other_version_kept;
@@ -149,6 +149,7 @@ pub(super) fn before_upload(
     now: u64,
 ) -> Answer<Ahead> {
     if !unchanged {
+        network_free(home, now)?;
         folio_pace::press(home, &was.id, now, limits).map_err(waited)?;
     }
     let ready = if unchanged {
@@ -173,7 +174,7 @@ pub(super) fn before_upload(
         Err(Stopped::Refused(Refused::Missing)) => Ok(Ahead::Gone),
         Err(Stopped::Refused(Refused::Blocked)) if correctable(door, was) => Ok(ready),
         Err(stopped) => {
-            let refused = kept_waiting(said(&stopped), home, Some(&was.id));
+            let refused = said_kept(&stopped, home, Some(&was.id));
             if unchanged {
                 return Err(refused);
             }
@@ -189,7 +190,7 @@ fn held_until_next(
     id: &str,
     now: u64,
 ) -> Option<u64> {
-    let until = latest.next_at?.div_ceil(1000);
+    let until = seconds_of(latest.next_at?);
     if until <= now {
         return None;
     }
@@ -285,9 +286,8 @@ pub async fn doc_share_sync(
     let terms = agreed
         .map(|one| one.version)
         .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
-    let (sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms)
-        .await
-        .map_err(|refused| kept_waiting(refused, &home, Some(&was.id)))?;
+    let (sealed, starts) =
+        sealed_for_folio(&app, &session, asked, false, terms, Some(&was.id)).await?;
     let mut sealed = sealed.only_what_changed();
     if sealed.going.is_empty() {
         folio_pace::take_back(&home, &was.id, pressed_at);
@@ -312,11 +312,18 @@ pub async fn doc_share_sync(
     let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &home, &keep, &sealed, &starts, ttl_days)
-            .map_err(|refused| kept_waiting(refused, &home, Some(&pressed_id)))
-            .map_err(|refused| said_to_whom(refused, owning, &home))
-            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
-            .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
+        delivered(
+            &door,
+            &home,
+            Some(&pressed_id),
+            &keep,
+            &sealed,
+            &starts,
+            ttl_days,
+        )
+        .map_err(|refused| said_to_whom(refused, owning, &home))
+        .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
+        .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         Ok(told_of_taken_back(&door, &home, &state, &device))
     })
     .await?;

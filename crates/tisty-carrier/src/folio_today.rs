@@ -2,6 +2,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::folio_pace::locked;
 use crate::policy;
 
 const KEPT: &str = "folio-new-shares-today.json";
@@ -41,19 +42,23 @@ pub fn shared_today(home: &Path, now: u64) -> u64 {
 }
 
 pub fn counted(home: &Path, id: &str, now: u64) {
-    let mut today = kept(home, now);
-    if today.ids.iter().any(|one| one == id) {
-        return;
-    }
-    today.ids.push(id.to_owned());
-    kept_again(home, &today);
+    locked(home, || {
+        let mut today = kept(home, now);
+        if today.ids.iter().any(|one| one == id) {
+            return;
+        }
+        today.ids.push(id.to_owned());
+        kept_again(home, &today);
+    });
 }
 
 // Another computer of the same person may have filled the day, and only Folio's refusal says so.
 pub fn full_until(home: &Path, until: u64, now: u64) {
-    let mut today = kept(home, now);
-    today.full_until = today.full_until.max(Some(until));
-    kept_again(home, &today);
+    locked(home, || {
+        let mut today = kept(home, now);
+        today.full_until = today.full_until.max(Some(until));
+        kept_again(home, &today);
+    });
 }
 
 pub fn full_now(home: &Path, now: u64) -> bool {

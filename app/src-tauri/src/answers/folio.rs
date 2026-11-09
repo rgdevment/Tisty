@@ -216,39 +216,55 @@ fn after_terms_refused(standing: Result<Standing, Unsure>) -> Refusal {
     }
 }
 
-// The waits pace what reaches Folio, so a press stopped before that leaves them as they were.
-fn seconds_of(ms: u64) -> u64 {
+pub(super) fn seconds_of(ms: u64) -> u64 {
     ms.div_ceil(1000)
 }
 
 // Folio names when it takes the next one, so this computer keeps it and asks nothing before then.
-pub(super) fn kept_waiting(refused: Refusal, home: &std::path::Path, id: Option<&str>) -> Refusal {
+pub(super) fn kept_from(stopped: &Stopped, home: &std::path::Path, held_as: Option<&str>) {
     let now = policy::now();
-    let until = refused
-        .name
-        .as_deref()
-        .and_then(|said| said.parse::<u64>().ok())
-        .map(seconds_of);
-    match (refused.code, until, id) {
-        ("folioWait", Some(until), Some(id)) => folio_pace::hold(home, id, until, now),
-        ("folioQuota", Some(until), _) => folio_pace::hold(home, folio_pace::NETWORK, until, now),
-        ("folioSharesToday", Some(until), _) => folio_today::full_until(home, until, now),
+    match stopped {
+        Stopped::Refused(Refused::Slow { until }) => {
+            if let Some(id) = held_as {
+                folio_pace::hold(home, id, seconds_of(*until), now);
+            }
+        }
+        Stopped::Refused(Refused::Quota { until }) => {
+            folio_pace::hold(home, folio_pace::NETWORK, seconds_of(*until), now);
+        }
+        Stopped::Refused(Refused::SharesToday { until }) => {
+            folio_today::full_until(home, seconds_of(*until), now);
+        }
         _ => {}
     }
-    refused
 }
 
-pub(super) fn held_back_here(home: &std::path::Path, doc_held: bool) -> Answer<()> {
-    let now = policy::now();
-    if let Some(until) = folio_pace::waiting_until(home, folio_pace::NETWORK, now, None) {
-        return Err(Refusal::about("folioQuota", (until * 1000).to_string()));
+pub(super) fn said_kept(
+    stopped: &Stopped,
+    home: &std::path::Path,
+    held_as: Option<&str>,
+) -> Refusal {
+    kept_from(stopped, home, held_as);
+    said(stopped)
+}
+
+pub(super) fn network_free(home: &std::path::Path, now: u64) -> Answer<()> {
+    match folio_pace::held_until(home, folio_pace::NETWORK, now) {
+        Some(until) => Err(Refusal::about("folioQuota", (until * 1000).to_string())),
+        None => Ok(()),
     }
-    if !doc_held && folio_today::full_now(home, now) {
+}
+
+pub(super) fn held_back_here(home: &std::path::Path, new_ones: usize) -> Answer<()> {
+    let now = policy::now();
+    network_free(home, now)?;
+    if new_ones > 0 && folio_today::full_now(home, now) {
         return Err(Refusal::of("folioSharesToday"));
     }
     Ok(())
 }
 
+// The waits pace what reaches Folio, so a press stopped before that leaves them as they were.
 pub(super) fn press_given_back(
     refused: Refusal,
     home: &std::path::Path,
@@ -752,6 +768,7 @@ pub(super) fn keeping(
 pub(super) fn delivered(
     door: &dyn Door,
     home: &std::path::Path,
+    held_as: Option<&str>,
     keep: Keep<'_>,
     sealed: &tisty_sharing::Sealed,
     starts: &BTreeMap<String, String>,
@@ -781,7 +798,7 @@ pub(super) fn delivered(
                 first,
             },
         )
-        .map_err(|stopped| said(&stopped))?;
+        .map_err(|stopped| said_kept(&stopped, home, held_as))?;
         if first_of_its_own(starts, sealed, &going.id) {
             folio_today::counted(home, &going.id, policy::now());
         }
@@ -793,7 +810,8 @@ pub(super) fn delivered(
                 .files
                 .as_deref()
                 .ok_or_else(|| Refusal::of("folioGarbled"))?;
-            folio_client::send_files(door, &going.id, files).map_err(|stopped| said(&stopped))?;
+            folio_client::send_files(door, &going.id, files)
+                .map_err(|stopped| said_kept(&stopped, home, held_as))?;
         }
         keep(std::slice::from_ref(entry))?;
     }
@@ -837,7 +855,7 @@ pub(super) fn told_of_taken_back(
             .iter()
             .filter(|one| one.unchecked().is_some_and(|(person, _)| person == root)),
     );
-    let no_room = sent_taken_back(door, &taken);
+    let no_room = sent_taken_back(door, home, &taken);
     (no_room && first_time_without_room(home, taken.len())).then_some(Told::TakenBackNotKept)
 }
 
@@ -856,12 +874,15 @@ fn newest_first<'a>(revocations: impl Iterator<Item = &'a Revocation>) -> Vec<Ta
 }
 
 // Whether Folio had no room: any other failure goes again on the next sync, and past its hour the rest would only be refused too.
-fn sent_taken_back(door: &dyn Door, taken: &[Taken]) -> bool {
+fn sent_taken_back(door: &dyn Door, home: &std::path::Path, taken: &[Taken]) -> bool {
     let mut no_room = false;
     for some in taken.chunks(REVOCATIONS_AT_ONCE) {
         match folio_client::taken_back(door, some) {
             Err(Stopped::Refused(Refused::MachinesFull)) => no_room = true,
-            Err(Stopped::Refused(Refused::Quota { .. } | Refused::Slow { .. })) => break,
+            Err(stopped @ Stopped::Refused(Refused::Quota { .. } | Refused::Slow { .. })) => {
+                kept_from(&stopped, home, None);
+                break;
+            }
             _ => {}
         }
     }
@@ -903,8 +924,10 @@ pub(super) async fn sealed_for_folio(
     asked: tisty_sharing::Asked,
     editable: bool,
     terms: String,
+    held_as: Option<&str>,
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
-    let languages_at_most = languages_top(&held(session).paths.private());
+    let home = held(session).paths.private();
+    let languages_at_most = languages_top(&home);
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -937,7 +960,7 @@ pub(super) async fn sealed_for_folio(
     })
     .await;
     if let Some(why) = trouble.lock().ok().and_then(|mut held| held.take()) {
-        return Err(said(&why));
+        return Err(said_kept(&why, &home, held_as));
     }
     let starts = starts.lock().map(|held| held.clone()).unwrap_or_default();
     Ok((sealed?, starts))
@@ -976,11 +999,6 @@ pub async fn doc_shared(
             file_of(&session, &id)?,
         )
     };
-    let doc_held = folio_holds(&held(&session).state, doc);
-    held_back_here(&paths.private(), doc_held)?;
-    may_start(sharing_here(&session).await?)?;
-    let checking = paths.clone();
-    let terms = apart(move || may_upload(&checking, tongue).map(|agreed| agreed.version)).await?;
     let asked = tisty_sharing::Asked {
         doc,
         public: false,
@@ -990,9 +1008,19 @@ pub async fn doc_shared(
             .collect::<Answer<Vec<_>>>()?,
         signed_as,
     };
-    let (mut sealed, starts) = sealed_for_folio(&app, &session, asked, editable, terms)
-        .await
-        .map_err(|refused| kept_waiting(refused, &paths.private(), None))?;
+    let new_ones = {
+        let session = held(&session);
+        std::iter::once(&doc)
+            .chain(&asked.cited)
+            .filter(|one| !folio_holds(&session.state, **one))
+            .count()
+    };
+    held_back_here(&paths.private(), new_ones)?;
+    may_start(sharing_here(&session).await?)?;
+    let checking = paths.clone();
+    let terms = apart(move || may_upload(&checking, tongue).map(|agreed| agreed.version)).await?;
+    let (mut sealed, starts) =
+        sealed_for_folio(&app, &session, asked, editable, terms, None).await?;
     let print = sealed.remembering.iter().find(|(at, _)| *at == file);
     if seen.is_some() && seen != print.and_then(|(_, one)| one.words_print.clone()) {
         return Err(Refusal::of("folioChanged"));
@@ -1012,8 +1040,7 @@ pub async fn doc_shared(
     let home = paths.private();
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &home, &keep, &sealed, &starts, ttl_days)
-            .map_err(|refused| kept_waiting(refused, &home, None))
+        delivered(&door, &home, None, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         let not_kept = told_of_taken_back(&door, &home, &state, &device);

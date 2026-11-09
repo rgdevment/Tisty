@@ -1,4 +1,6 @@
-use super::{NETWORK, QUIET_STARTS_OVER, free_at, hold, press, take_back, waiting_until};
+use super::{
+    NETWORK, QUIET_STARTS_OVER, free_at, held_until, hold, press, take_back, waiting_until,
+};
 use crate::folio_limits::FolioLimits;
 
 const WAITS: &[u64] = &[1, 1, 1, 2, 4, 8, 15];
@@ -164,4 +166,21 @@ fn a_hold_keeps_the_later_end_and_forgets_what_ended() {
     hold(home.path(), "e", 9_000, 2_000);
     let kept = std::fs::read_to_string(home.path().join("folio-held-until.json")).unwrap();
     assert!(!kept.contains("\"d\""), "{kept}");
+}
+
+#[test]
+fn holds_kept_at_once_from_many_syncs_all_stay() {
+    let home = tempfile::tempdir().unwrap();
+    let keys: Vec<String> = (0..16).map(|one| format!("doc{one}")).collect();
+
+    std::thread::scope(|scope| {
+        for key in &keys {
+            let home = home.path();
+            scope.spawn(move || hold(home, key, 9_000, 1_000));
+        }
+    });
+
+    for key in &keys {
+        assert_eq!(held_until(home.path(), key, 1_000), Some(9_000), "{key}");
+    }
 }
