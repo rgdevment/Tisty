@@ -89,6 +89,16 @@ describe("the Shared row", () => {
     expect(copying).toHaveBeenCalledWith(card.read);
   });
 
+  it("starts folded and marked as beta, shared or not", async () => {
+    const { panel } = await held(card);
+    expect(panel().open).toBeUndefined();
+    expect(panel().mark).toBe(t("sharedBeta"));
+
+    const none = await held(null);
+    expect(none.panel().open).toBeUndefined();
+    expect(none.panel().mark).toBe(t("sharedBeta"));
+  });
+
   it("names what can be edited and its second link", async () => {
     const { panel } = await held({ ...card, edit: "https://tisty.cl/a#k.t" });
 
@@ -132,7 +142,7 @@ describe("the Shared row", () => {
         : Promise.reject({ code: "folioWait", name: String(until) }),
     );
     const { result } = renderHook(() => useSharedRow("d1"));
-    await waitFor(() => expect(result.current.panel).toMatchObject({ open: true }));
+    await waitFor(() => expect(result.current.panel).toMatchObject({ key: "shared" }));
     await waitFor(() => {
       const now = result.current.panel;
       expect(now?.kind === "held" && now.links?.length).toBe(1);
