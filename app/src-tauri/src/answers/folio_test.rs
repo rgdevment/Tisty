@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Taken, Why};
 use tisty_carrier::folio_limits::SharingNow;
@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
-    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
-    new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
+    Ahead, Card, after_terms_refused, before_upload, card_of, counted_as_shared, delivered,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start, newest_first,
+    press_given_back, said, said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -50,6 +50,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
         told: Vec::new(),
         remembering: vec![("file".to_owned(), remembered(Some("key"), None))],
         anchors: BTreeMap::new(),
+        changed: BTreeSet::from(["Ab3xK9pQ".to_owned()]),
     }
 }
 
@@ -425,25 +426,6 @@ fn a_key_out_of_room_says_whose_and_how_much_folio_signs_for() {
 }
 
 #[test]
-fn a_sync_with_nothing_to_send_stops_only_for_new_terms() {
-    let agreed = Ok(Agreed {
-        version: "1".to_owned(),
-        newer_unchecked: true,
-    });
-
-    assert!(new_terms_asked(&Err(crate::Refusal::of(
-        "folioTermsToAccept"
-    ))));
-    assert!(!new_terms_asked(&Err(crate::Refusal::of(
-        "folioUploadsOff"
-    ))));
-    assert!(!new_terms_asked(&Err(crate::Refusal::of(
-        "folioTermsUpdating"
-    ))));
-    assert!(!new_terms_asked(&agreed));
-}
-
-#[test]
 fn a_key_out_of_room_hands_on_folio_s_figures_and_whose_they_are() {
     let home = tempfile::tempdir().unwrap();
     let told = said(&Stopped::Refused(Refused::RoomFull {
@@ -546,6 +528,125 @@ fn a_press_comes_back_only_when_nothing_reached_folio() {
         assert_eq!(pressed_in(home.path()), 0, "{code}");
         tisty_carrier::folio_pace::press(home.path(), "d", 100, None).unwrap();
     }
+}
+
+fn five_minutes_apart() -> tisty_carrier::folio_limits::FolioLimits {
+    tisty_carrier::folio_limits::FolioLimits {
+        upload_waits_minutes: Some(vec![5]),
+        uploads_of_a_root_an_hour: Some(10),
+        ..Default::default()
+    }
+}
+
+fn latest_is(said: &'static str) -> FakeFolio {
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().push_back((200, said));
+    folio
+}
+
+#[test]
+fn a_sync_with_nothing_changed_asks_folio_nothing_and_leaves_the_waits_alone() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    let was = remembered(Some("key"), None);
+
+    let ahead = before_upload(
+        &folio,
+        home.path(),
+        &was,
+        true,
+        Some(&five_minutes_apart()),
+        100,
+    );
+
+    assert_eq!(ahead.unwrap(), Ahead::Unchanged);
+    assert!(folio.asked.borrow().is_empty());
+    assert!(!home.path().join("folio-sync-presses.json").exists());
+}
+
+#[test]
+fn a_press_during_the_wait_is_refused_here_without_asking_folio() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = latest_is(r#"{"version":2}"#);
+    let was = remembered(Some("key"), None);
+    let limits = five_minutes_apart();
+
+    assert_eq!(
+        before_upload(&folio, home.path(), &was, false, Some(&limits), 100).unwrap(),
+        Ahead::Upload
+    );
+    let refused = before_upload(&folio, home.path(), &was, false, Some(&limits), 399).unwrap_err();
+
+    assert_eq!(refused.code, "folioWait");
+    assert_eq!(refused.name.as_deref(), Some("400000"));
+    assert_eq!(folio.asked.borrow().len(), 1, "only the first asked Folio");
+}
+
+#[test]
+fn a_sync_cancelled_once_folio_was_asked_still_starts_the_wait() {
+    let home = tempfile::tempdir().unwrap();
+    let was = remembered(Some("key"), None);
+    let limits = five_minutes_apart();
+
+    let ahead = before_upload(
+        &latest_is(r#"{"version":2}"#),
+        home.path(),
+        &was,
+        false,
+        Some(&limits),
+        100,
+    );
+
+    assert_eq!(ahead.unwrap(), Ahead::Upload);
+    assert_eq!(
+        tisty_carrier::folio_pace::waiting_until(home.path(), &was.id, 101, Some(&limits)),
+        Some(400)
+    );
+    let again = before_upload(
+        &latest_is(r#"{"version":2}"#),
+        home.path(),
+        &was,
+        false,
+        Some(&limits),
+        200,
+    );
+    assert_eq!(again.unwrap_err().code, "folioWait");
+}
+
+#[test]
+fn a_press_folio_never_heard_gives_the_wait_back() {
+    let home = tempfile::tempdir().unwrap();
+    let was = remembered(Some("key"), None);
+    let limits = five_minutes_apart();
+
+    let unreached = before_upload(
+        &FakeFolio::default(),
+        home.path(),
+        &was,
+        false,
+        Some(&limits),
+        100,
+    );
+
+    assert_eq!(unreached.unwrap_err().code, "folioUnreached");
+    assert_eq!(pressed_in(home.path()), 0);
+}
+
+#[test]
+fn a_newer_version_from_another_is_brought_before_anything_goes_up() {
+    let home = tempfile::tempdir().unwrap();
+    let was = remembered(Some("key"), None);
+
+    let ahead = before_upload(
+        &latest_is(r#"{"version":3}"#),
+        home.path(),
+        &was,
+        false,
+        None,
+        100,
+    );
+
+    assert_eq!(ahead.unwrap(), Ahead::Newer);
 }
 
 fn pressed_in(home: &std::path::Path) -> usize {

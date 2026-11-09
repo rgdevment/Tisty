@@ -86,6 +86,11 @@ export type Synced =
   | { state: "sent"; version: number; told: Told[]; termsUnchecked: boolean }
   | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
 
+export interface ShareWaiting {
+  until: number | null;
+  pending: boolean;
+}
+
 export interface ShareStatus {
   diesOn: number;
   paused: boolean;
@@ -157,6 +162,9 @@ export const docShared = (
 
 export const shareSync = (id: string, accepted?: string): Promise<Synced> =>
   invoke("doc_share_sync", { id, accepted });
+
+export const shareWaiting = (id: string): Promise<ShareWaiting> =>
+  invoke("doc_share_waiting", { id });
 
 export const shareStatus = (id: string): Promise<ShareStatus> => invoke("doc_share_status", { id });
 

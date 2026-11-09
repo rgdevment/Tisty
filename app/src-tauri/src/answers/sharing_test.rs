@@ -43,6 +43,7 @@ fn it_sums_up_all_its_envelopes_and_what_the_person_is_told() {
         told: vec![Told::NameLeftOut],
         remembering: vec![],
         anchors: std::collections::BTreeMap::new(),
+        changed: std::collections::BTreeSet::new(),
     });
     assert_eq!(said.envelopes, 3);
     assert_eq!(said.bytes, 16);

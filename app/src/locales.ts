@@ -794,6 +794,7 @@ const en = {
   shareCopy: "Copy",
   shareSync: "Sync",
   shareSyncWait: "Sync (wait {name} min)",
+  shareSyncPending: "There are changes that will go up when you sync again.",
   shareSyncUnchanged: "Nothing changed, so nothing went up.",
   shareSyncSent: "Version {name} went up.",
   shareSyncOther:
@@ -3747,6 +3748,7 @@ const es: Catalog = {
   shareCopy: "Copiar",
   shareSync: "Sincronizar",
   shareSyncWait: "Sincronizar (espera {name} min)",
+  shareSyncPending: "Hay cambios que subirán cuando vuelvas a sincronizar.",
   shareSyncUnchanged: "Nada cambió, así que no subió nada.",
   shareSyncSent: "Subió la versión {name}.",
   shareSyncOther:

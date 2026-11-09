@@ -1,4 +1,4 @@
-use super::{QUIET_STARTS_OVER, free_at, press, take_back};
+use super::{QUIET_STARTS_OVER, free_at, press, take_back, waiting_until};
 use crate::folio_limits::FolioLimits;
 
 const WAITS: &[u64] = &[1, 1, 1, 2, 4, 8, 15];
@@ -99,4 +99,34 @@ fn with_no_word_from_folio_nothing_is_made_up() {
 
     assert_eq!(press(home.path(), "a", 1_000, None), Ok(()));
     assert_eq!(press(home.path(), "a", 1_000, None), Ok(()));
+}
+
+#[test]
+fn a_ladder_of_one_step_makes_every_press_wait_that_long() {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        upload_waits_minutes: Some(vec![5]),
+        uploads_of_a_root_an_hour: Some(10),
+        ..FolioLimits::default()
+    };
+    let at = 10_000;
+
+    assert_eq!(waiting_until(home.path(), "d", at, Some(&limits)), None);
+    for step in 0..4 {
+        let now = at + step * 300;
+        assert_eq!(press(home.path(), "d", now, Some(&limits)), Ok(()));
+        assert_eq!(
+            press(home.path(), "d", now + 299, Some(&limits)),
+            Err(now + 300)
+        );
+        assert_eq!(
+            waiting_until(home.path(), "d", now + 1, Some(&limits)),
+            Some(now + 300)
+        );
+    }
+    assert_eq!(
+        waiting_until(home.path(), "d", at + 1, None),
+        None,
+        "only the signed limits make it wait"
+    );
 }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -28,6 +28,18 @@ pub struct Sealed {
     pub told: Vec<Told>,
     pub remembering: Vec<(String, Remembered)>,
     pub anchors: BTreeMap<String, String>,
+    pub changed: BTreeSet<String>,
+}
+
+impl Sealed {
+    // Each envelope sent is a new object Folio pays for, and the others are reached by id, never by version.
+    #[must_use]
+    pub fn only_what_changed(mut self) -> Self {
+        self.going.retain(|one| self.changed.contains(&one.id));
+        self.remembering
+            .retain(|(_, one)| self.changed.contains(&one.id));
+        self
+    }
 }
 
 fn anchors_of<'a>(families: impl Iterator<Item = &'a Family>) -> BTreeMap<String, String> {
@@ -110,13 +122,8 @@ impl Gathered {
         now.words_print.clone()
     }
 
-    pub fn same_as_sent(&self, shelf: &BTreeMap<String, Remembered>) -> bool {
-        self.remembering.iter().all(|(file, now)| {
-            now.words_print.is_some()
-                && shelf
-                    .get(file)
-                    .is_some_and(|was| was.words_print == now.words_print)
-        })
+    pub fn same_as_sent(&self) -> bool {
+        self.changed.is_empty()
     }
 
     fn files_by_id(&self) -> BTreeMap<String, String> {
@@ -208,6 +215,7 @@ impl Gathered {
             cites,
             told,
             remembering,
+            changed,
             ..
         } = self;
         let anchors = anchors_of(std::iter::once(&family).chain(&cited));
@@ -238,6 +246,7 @@ impl Gathered {
             told,
             remembering,
             anchors,
+            changed,
         })
     }
 }
