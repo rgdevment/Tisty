@@ -3,6 +3,7 @@
 
 pub mod clean;
 mod colour;
+pub mod editors;
 pub mod family;
 pub mod pictures;
 pub mod reading;
@@ -10,4 +11,6 @@ pub mod sealing;
 mod tags;
 pub mod travelling;
 
-pub use tisty_contracts::{Attachment, Cited, Document, Page, Picture, Sealing, Translation};
+pub use tisty_contracts::{
+    Attachment, Cited, Document, Editor, Page, Picture, Sealing, Translation,
+};

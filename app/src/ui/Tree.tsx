@@ -24,6 +24,11 @@ import { onMac } from "./WindowChrome";
 
 const STIRS = 4;
 
+const guestSaid = (doc: Filed) => {
+  if (doc.editing && doc.guest) return fill("guestEditing", doc.guest);
+  return doc.guest ? fill("guestDoc", doc.guest) : t("guestDocPlain");
+};
+
 interface Props {
   papers: Papers;
   open?: string;
@@ -579,10 +584,7 @@ export default function Tree({
               </span>
             )}
             {doc.guest !== null && doc.guest !== undefined && (
-              <span
-                title={doc.guest ? fill("guestDoc", doc.guest) : t("guestDocPlain")}
-                className="shrink-0 truncate text-[10.5px] text-faint"
-              >
+              <span title={guestSaid(doc)} className="shrink-0 truncate text-[10.5px] text-faint">
                 {doc.guest || t("guestNone")}
               </span>
             )}

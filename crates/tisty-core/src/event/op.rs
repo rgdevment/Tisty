@@ -134,6 +134,19 @@ pub struct Remembered {
     pub ttl_days: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carried: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_under: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_root: Option<String>,
+}
+
+impl Remembered {
+    // The owner holds the link to manage it; whoever edits through a link holds only the token (126).
+    pub fn edited_through_a_link(&self) -> bool {
+        self.edit_token.is_some() && self.admin_token.is_none()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1,3 +1,4 @@
+use crate::receiving::with_editors;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -231,10 +232,12 @@ impl Gathered {
         let remembering = remembering
             .into_iter()
             .map(|(file, mut was)| {
-                let hash = going
-                    .iter()
-                    .find(|one| one.id == was.id)
-                    .and_then(|one| one.sealed.files_hash.clone());
+                let sealed = going.iter().find(|one| one.id == was.id);
+                let editors = sealed.and_then(|one| one.sealed.editors.as_ref());
+                if let Some(editors) = editors.and_then(|all| serde_json::to_value(all).ok()) {
+                    was.carried = with_editors(was.carried.as_deref(), Some(editors));
+                }
+                let hash = sealed.and_then(|one| one.sealed.files_hash.clone());
                 was.files_key = hash.as_ref().and_then(|_| was.link_key.clone());
                 was.files_hash = hash;
                 was.held_by = (was.id != top).then(|| top.clone());

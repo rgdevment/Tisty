@@ -86,6 +86,30 @@ const ownerAnswers = async (manifest, signature, manifestBytes, index) => {
   await verified(permit, b64(signature.permit_signed), words("tisty-share.permit.v1\0"), b64(signature.root), b64(signature.machine), await sha(manifestBytes), index);
 };
 
+// An editor answers only for having signed this name for this document, and one that does not hold is left aside.
+const editorHolds = async (entry) => {
+  try {
+    const root = b64(entry.root);
+    const machine = b64(entry.machine);
+    await verified(root, b64(entry.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(entry.since) / 1000));
+    const about = words("editor");
+    const id = words(entry.in);
+    const name = words(entry.name);
+    const owned = new Uint8Array([entry.owned === true ? 1 : 0]);
+    await verified(machine, b64(entry.signed), words("tisty-share.signed.v1\0"), root, machine, be(about.length), about, be(id.length), id, owned, be(name.length), name);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+for (const { says, holds, entry } of VECTORS.editors) {
+  test(`an editor ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
+    assert.equal(await editorHolds(entry), holds);
+    assert.equal(await editorHolds({ ...entry, since: "x" }), false);
+  });
+}
+
 const ownerNameHolds = async (manifest, first, linkKey) => {
   const id = words(manifest.id);
   const name = words(JSON.parse(new TextDecoder().decode(first)).owner_name ?? "");

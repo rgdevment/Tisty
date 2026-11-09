@@ -5,6 +5,7 @@ use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Taken
 use tisty_carrier::folio_limits::SharingNow;
 use tisty_carrier::folio_terms::{Standing, Unsure};
 use tisty_carrier::{folio_today, policy};
+use tisty_core::event::Signature;
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_share_proto::identity::Revocation;
@@ -48,6 +49,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
             sealed: Envelopes {
                 main: vec![1],
                 files_hash: files.as_ref().map(|_| "hash".to_owned()),
+                editors: None,
                 files,
             },
         }],
@@ -162,6 +164,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
             main: vec![1],
             files: None,
             files_hash: None,
+            editors: None,
         },
     };
     let sealed = tisty_sharing::Sealed {
@@ -490,6 +493,9 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: None,
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
     }
 }
 
@@ -650,7 +656,7 @@ fn a_wait_tells_the_window_until_when() {
 #[test]
 fn the_edit_link_exists_only_where_a_token_does() {
     assert_eq!(
-        card_of(&remembered(Some("key"), None)),
+        card_of(&remembered(Some("key"), None), &Signature::default(), None),
         Some(Card {
             read: "https://tisty.cl/Ab3xK9pQ#key".to_owned(),
             edit: None,
@@ -658,17 +664,29 @@ fn the_edit_link_exists_only_where_a_token_does() {
             taken: false,
             held: false,
             told: Vec::new(),
+            owner: None,
+            signer: None,
+            editors: Vec::new(),
+            signs_as: None,
         })
     );
     assert_eq!(
-        card_of(&remembered(Some("key"), Some("token"))).and_then(|one| one.edit),
+        card_of(
+            &remembered(Some("key"), Some("token")),
+            &Signature::default(),
+            None
+        )
+        .and_then(|one| one.edit),
         Some("https://tisty.cl/Ab3xK9pQ#key.token".to_owned())
     );
 }
 
 #[test]
 fn what_has_no_link_key_has_no_card() {
-    assert_eq!(card_of(&remembered(None, None)), None);
+    assert_eq!(
+        card_of(&remembered(None, None), &Signature::default(), None),
+        None
+    );
 }
 
 #[test]

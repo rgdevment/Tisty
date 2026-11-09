@@ -12,9 +12,11 @@ use rand_core::{OsRng, TryRngCore};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    Document, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, Owner, PartName, Picture,
-    Sealing, Signature, VERSION, check, check_html, pictures_in, references_in,
+    Document, Editor, Envelope, EnvelopeKind, EnvelopePart, EnvelopeWriter, Owner, PartName,
+    Picture, Sealing, Signature, VERSION, check, check_html, pictures_in, references_in,
 };
+
+use crate::editors;
 use tisty_share_proto::identity::{self, Certificate, Permit, ShareKey, Signed};
 use zeroize::Zeroizing;
 
@@ -46,12 +48,13 @@ pub enum Refused {
 }
 
 /// What travels of one document in one language.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Sealed {
     pub main: Vec<u8>,
     pub files: Option<Vec<u8>>,
     /// What answers for its files, sent now or kept, so the next version can keep them.
     pub files_hash: Option<String>,
+    pub editors: Option<Vec<Editor>>,
 }
 
 /// The one who seals and signs, with this machine's key under its certificate.
@@ -415,6 +418,7 @@ impl<'a> Writer<'a> {
         }
         adds_up(&document, sealing)?;
         let owner = self.owner_of(&document, sealing)?;
+        document.editors = self.editors_of(&mut document, sealing);
         pictures_are_what_they_say(document.pictures.as_deref().unwrap_or_default(), &pictures)?;
         files_are_what_they_say(&document, &files, sealing.files_hash.is_some())?;
         let files_envelope = if files.is_empty() {
@@ -455,10 +459,22 @@ impl<'a> Writer<'a> {
             main,
             files: files_envelope,
             files_hash: document.files_hash,
+            editors: document.editors,
         })
     }
 
     // What is public has no key to tie an owner to, so its signer still answers for it.
+    // What is public names nobody until it has a root of its own (156).
+    fn editors_of(&self, document: &mut Document, sealing: &Sealing) -> Option<Vec<Editor>> {
+        let arrived = document.editors.take().unwrap_or_default();
+        sealing.link_key.as_ref()?;
+        let owned = sealing.owner.is_none();
+        let mine = document.signed_as.as_deref().and_then(|name| {
+            editors::signed(self.key, self.certificate, &document.id, owned, name)
+        });
+        Some(editors::with_mine(arrived, mine)).filter(|all| !all.is_empty())
+    }
+
     fn owner_of(&self, document: &Document, sealing: &Sealing) -> Result<Option<Owner>, Refused> {
         let Some(link_key) = sealing.link_key.as_deref() else {
             return if sealing.owner.is_some()

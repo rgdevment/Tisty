@@ -2,12 +2,15 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde_json::{Value, json};
 use tisty_contracts::{
-    Document, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Sealing, Served, Verdict,
-    check,
+    Document, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Sealing, Served, VERSION,
+    Verdict, check,
 };
 use tisty_share_proto::identity::{Root, ShareKey};
 
-use super::{Reader, Unopened, files_for, laid, opened, opens_under_this, picture_holds, reading};
+use super::{
+    Reader, Unopened, editors_kept, files_for, laid, later_than_this, opened, opens_under_this,
+    picture_holds, reading, under_the_floor,
+};
 use crate::sealing::Writer;
 
 const VECTORS: &str = include_str!("../../../contracts/vectors/vectors.json");
@@ -138,6 +141,34 @@ fn it_refuses_files_a_document_does_not_answer_for() {
         );
         assert!(read.is_err(), "{}", one["says"]);
     }
+}
+
+#[test]
+fn only_a_later_minor_of_the_same_major_says_more_than_this_writer_knows() {
+    let mut said = VERSION.split('.');
+    let major: u64 = said.next().unwrap().parse().unwrap();
+    let minor: u64 = said.next().unwrap().parse().unwrap();
+    assert!(later_than_this(&format!("{major}.{}.0", minor + 1)));
+    assert!(!later_than_this(VERSION));
+    assert!(!later_than_this(&format!("{major}.{minor}.9")));
+    assert!(!later_than_this(&format!("{}.0.0", major + 1)));
+    assert!(!later_than_this(&format!(
+        "{major}.{}.0-draft.1",
+        minor + 1
+    )));
+    assert!(!later_than_this("no version"));
+}
+
+#[test]
+fn a_floor_weighs_major_and_minor_and_takes_an_unknown_seal_as_under_it() {
+    assert!(under_the_floor(Some("1.2.0"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.0"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.9"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.0"), "1.3.5"));
+    assert!(!under_the_floor(Some("2.0.0"), "1.9.0"));
+    assert!(under_the_floor(None, "1.3.0"));
+    assert!(under_the_floor(Some("garbled"), "1.3.0"));
+    assert!(!under_the_floor(None, "no floor"));
 }
 
 #[test]
@@ -380,4 +411,23 @@ fn the_contract_reader_opens_a_document_and_its_files_apart() {
         hostile(EnvelopeKind::Main),
     );
     assert!(bad.is_err());
+}
+
+#[test]
+fn an_editor_that_breaks_the_contract_is_left_aside_and_the_document_kept() {
+    let all = all();
+    let holds = all["editors"][0]["entry"].clone();
+    let mut unseen = holds.clone();
+    unseen["name"] = json!("Ma\u{200B}rio");
+    let mut nameless = holds.clone();
+    nameless.as_object_mut().unwrap().remove("name");
+    let said = json!([holds, unseen, nameless, "not an editor"]);
+    let held = json!({ "id": "x", "html": "<p>x</p>", "body": "x" });
+
+    let kept = editors_kept(held.clone(), Some(said.clone()), true);
+    assert_eq!(kept["editors"], json!([all["editors"][0]["entry"]]));
+    assert_eq!(kept["body"], "x");
+
+    let public = editors_kept(held, Some(said), false);
+    assert!(public.get("editors").is_none());
 }
