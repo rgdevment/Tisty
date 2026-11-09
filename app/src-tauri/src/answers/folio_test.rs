@@ -10,8 +10,10 @@ use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
+use crate::answers::folio_sync::{Ahead, before_upload};
+
 use super::{
-    Agreed, Ahead, Card, after_terms_refused, before_upload, card_of, counted_as_shared, delivered,
+    Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
     first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
     new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
 };
@@ -163,6 +165,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
         told: Vec::new(),
         remembering: vec![("top".to_owned(), top), ("cited".to_owned(), cited)],
         anchors: BTreeMap::new(),
+        changed: BTreeSet::from(["Ab3xK9pQ".to_owned(), "Cited123".to_owned()]),
     };
     let starts = BTreeMap::from([
         ("Ab3xK9pQ".to_owned(), "mac".to_owned()),
