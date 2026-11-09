@@ -1,4 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@solidjs/testing-library";
+import pageCss from "tisty-sheet/page.css?raw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import type { Opened } from "../src/host";
@@ -65,6 +66,28 @@ describe("the light viewer", () => {
     open();
     await waitFor(() => expect(host.shown).toHaveBeenCalled());
     expect(wordsWhenShown).toBe("One");
+  });
+
+  it("draws a file's first line as it was written, never as a document's title", async () => {
+    const sheet = document.createElement("style");
+    sheet.textContent = pageCss;
+    document.head.append(sheet);
+    const titles = Array.from(sheet.sheet?.cssRules ?? [])
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+      .filter((rule) => rule.style.getPropertyValue("letter-spacing") === "-0.01em")
+      .map((rule) => rule.selectorText);
+    const titled = (one: Element | null) => titles.some((title) => one?.matches(title));
+    const theirs = document.createElement("article");
+    theirs.className = "page";
+    theirs.innerHTML = "<h2>Theirs</h2><p>after</p>";
+    document.body.append(theirs);
+    host.opened.mockResolvedValue(drawn('<h2 id="one">One</h2><p>after</p>'));
+    open();
+    await waitFor(() => expect(document.getElementById("one")).not.toBeNull());
+    expect(titled(theirs.firstElementChild)).toBe(true);
+    expect(titled(document.getElementById("one"))).toBe(false);
+    theirs.remove();
+    sheet.remove();
   });
 
   it("lays what is left after the first piece, in order", async () => {

@@ -245,7 +245,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
             </button>
           </Show>
           <article
-            class="page"
+            class="page as-written"
             ref={(sheet) => {
               page = sheet;
               sheet.addEventListener("click", (e) => linkPressed(e, one()?.path ?? "", fail));
