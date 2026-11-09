@@ -13,6 +13,16 @@ pub use tisty_sync::{
     claimed, let_in, phase, raised, raised_told, refuses, seal_word, sealing_in, sealing_of,
 };
 
+// Folio keeps what Tisty reads on branches of its own repository, so a move there is a move here, in one place.
+macro_rules! from_folio {
+    ($path:literal) => {
+        concat!(
+            "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/",
+            $path
+        )
+    };
+}
+
 mod cloud;
 mod folder;
 pub mod folio_client;
