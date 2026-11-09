@@ -1,7 +1,8 @@
 import type { Task } from "../core";
+import { useSigning } from "../crediting";
 import { wroteAt } from "../format";
 import { t } from "../locales";
-import { signedBy } from "../who";
+import Signature from "./Signature";
 import Written from "./Written";
 
 interface Props {
@@ -11,10 +12,11 @@ interface Props {
 }
 
 export default function History({ task, onError, onDoc }: Props) {
+  const signing = useSigning("inside");
   const kept = (task.log ?? []).filter((entry) => entry.body.trim());
   if (kept.length === 0) return null;
   return (
-    <details className="mt-6 border-t border-hair pt-3">
+    <details open className="mt-6 border-t border-hair pt-3">
       <summary className="cursor-pointer text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase select-none hover:text-soft">
         {t("history")} · {kept.length}
       </summary>
@@ -23,9 +25,7 @@ export default function History({ task, onError, onDoc }: Props) {
           <li key={entry.id}>
             <span className="flex items-baseline gap-1.5 text-[11.5px] tabular-nums text-faint">
               {wroteAt(entry.at, entry.tz)}
-              {signedBy(entry.by, entry.via) && (
-                <span className="text-hue-teal">{signedBy(entry.by, entry.via)}</span>
-              )}
+              <Signature by={entry.by} via={entry.via} signing={signing} />
             </span>
             <Written
               label={t("history")}
