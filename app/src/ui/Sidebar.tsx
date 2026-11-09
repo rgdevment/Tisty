@@ -11,6 +11,7 @@ import Glyph from "./Glyph";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
+import RailNotices from "./RailNotices";
 import SettingsNav from "./SettingsNav";
 import SideEdge, { FoldButton, useFoldKey } from "./SideEdge";
 import SyncFoot from "./SyncFoot";
@@ -78,7 +79,7 @@ export default function Sidebar({
   if (!keeping) away.current = chosen;
   const breadth = railed(useBreadth(), keeping);
   const folded = breadth.folded;
-  useFoldKey();
+  useFoldKey(!keeping);
 
   return (
     <aside className="relative flex flex-col overflow-hidden">
@@ -200,6 +201,7 @@ export default function Sidebar({
           folded ? "flex-col items-center gap-1" : "items-center px-2.5"
         }`}
       >
+        {folded && <RailNotices />}
         <button
           type="button"
           aria-label={told ? `${t("keeping")} · ${told}` : t("keeping")}
@@ -270,7 +272,9 @@ export default function Sidebar({
           </button>
         )}
       </div>
-      {!keeping && <SideEdge width={sideWidth(breadth, window.innerWidth >= WIDE_WINDOW)} />}
+      {!keeping && (
+        <SideEdge width={sideWidth(breadth, window.innerWidth >= WIDE_WINDOW)} folded={folded} />
+      )}
     </aside>
   );
 }

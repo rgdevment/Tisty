@@ -2558,6 +2558,8 @@ const en = {
   sideFold: "Fold the sidebar",
   sideUnfold: "Unfold the sidebar",
   sideResize: "Sidebar width",
+  sideFolded: "folded to its icons",
+  sideNotices: "Something is waiting for you — unfold the sidebar to see it",
   sideResizeHow:
     "Drag to change the width · double-click for the usual one · narrow it all the way to fold it",
   creditTitle: "Who signs what an assistant writes",
@@ -5543,6 +5545,8 @@ const es: Catalog = {
   sideFold: "Plegar la barra lateral",
   sideUnfold: "Desplegar la barra lateral",
   sideResize: "Ancho de la barra lateral",
+  sideFolded: "plegada a sus iconos",
+  sideNotices: "Algo te espera: despliega la barra lateral para verlo",
   sideResizeHow:
     "Arrastra para cambiar el ancho · doble clic: el de siempre · estréchala del todo para plegarla",
   creditTitle: "Quién firma lo que escribe un asistente",

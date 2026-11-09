@@ -61,10 +61,7 @@ describe("the smallest the window may be", () => {
   it("measures the sidebar the same width the grid actually draws it", () => {
     const app = readFileSync("src/App.tsx", "utf8");
     const kept = readFileSync("src/breadth.ts", "utf8");
-    const drawn =
-      /grid-template-columns:(\d+)px_minmax\(0,1fr\)\]\s+min-\[\d+px\]:\[grid-template-columns:(\d+)px/.exec(
-        app,
-      );
+    const drawn = /\[--tisty-side:(\d+)px\].*min-\[\d+px\]:\[--tisty-side:(\d+)px\]/.exec(app);
     expect(drawn).toBeTruthy();
 
     const rail = /^const AS_SHIPPED_WIDTH = (\d+);/m.exec(kept)?.[1];

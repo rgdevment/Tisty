@@ -1,4 +1,4 @@
-import { railed, sideWidth, useBreadth } from "./breadth";
+import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
 import { hereChoices } from "./docMenus";
@@ -56,7 +56,7 @@ export default function App() {
     aside,
     beside,
   } = desk;
-  const breadth = railed(kept, chosen.named === "keeping");
+  const side = chosenWidth(railed(kept, chosen.named === "keeping"));
   const choose = (next: Chosen) => {
     setChosen(next);
     setCameFrom(null);
@@ -68,20 +68,8 @@ export default function App() {
   return (
     <DeskProvider value={desk}>
       <div
-        className={`grid h-full bg-rail font-sans ${
-          breadth.moving
-            ? ""
-            : "transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none"
-        } ${
-          breadth.folded || breadth.width
-            ? ""
-            : "[grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:350px_minmax(0,1fr)]"
-        }`}
-        style={
-          breadth.folded || breadth.width
-            ? { gridTemplateColumns: `${sideWidth(breadth, false)}px minmax(0,1fr)` }
-            : undefined
-        }
+        className="grid h-full bg-rail font-sans transition-[grid-template-columns] duration-200 ease-out [grid-template-columns:var(--tisty-side-live,var(--tisty-side))_minmax(0,1fr)] [--tisty-side:336px] motion-reduce:transition-none min-[1440px]:[--tisty-side:350px] [html[data-resizing]_&]:transition-none"
+        style={side === null ? undefined : ({ "--tisty-side": `${side}px` } as React.CSSProperties)}
       >
         <WindowChrome />
 
