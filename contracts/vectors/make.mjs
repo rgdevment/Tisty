@@ -360,7 +360,7 @@ const anas = await asEdited({ token: permit });
 const editorsSaid = [
   { says: "the owner, who signed its first version", holds: true, entry: await editorEntry({ in: EDITED, name: "Mario", owned: true }) },
   { says: "someone who edited it through its link", holds: true, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA }) },
-  { says: "someone who edited the original of a copy, which keeps that original's id", holds: true, entry: await editorEntry({ in: "k7Qm2xPa", name: "Ana", by: ANA }) },
+  { says: "someone whose signature holds for another document, which a reader of this one leaves aside", holds: true, entry: await editorEntry({ in: "k7Qm2xPa", name: "Ana", by: ANA }) },
   { says: "a signature that does not hold", holds: false, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA, forged: "signed" }) },
   { says: "a certificate that does not hold", holds: false, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA, forged: "certificate" }) },
   { says: "a name other than the one signed", holds: false, entry: { ...(await editorEntry({ in: EDITED, name: "Ana", by: ANA })), name: "Mario" } },

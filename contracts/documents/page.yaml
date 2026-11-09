@@ -200,11 +200,11 @@ group: documents
 checked_by: [writer, reader]
 says: >-
   Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived
-  with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a
-  copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one
-  out: nobody can add one in another's name.
+  with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline. It says
+  that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody
+  can add one in another's name, and one signed for another document says nothing of this one.
 fields:
-  in: { type: id, required: true, at_most: 64, says: "The id of the document they edited. A copy shared anew keeps the original's." }
+  in: { type: id, required: true, at_most: 64, says: "The id of the document they edited. A reader keeps only those whose in is this document's id." }
   root: { type: key, required: true }
   machine: { type: key, required: true }
   since: { type: time, required: true }

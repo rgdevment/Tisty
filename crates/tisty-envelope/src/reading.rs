@@ -655,6 +655,7 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
 
 // An editor answers for no word, so one a hostile hand wrote never costs the reader the document.
 fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
+    let id = held["id"].as_str().unwrap_or_default().to_owned();
     let kept: Vec<Value> = said
         .filter(|_| sealed)
         .and_then(|said| said.as_array().cloned())
@@ -662,7 +663,8 @@ fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
         .into_iter()
         .filter(|one| check("editor", one).is_empty())
         .filter(|one| {
-            serde_json::from_value::<Editor>(one.clone()).is_ok_and(|one| editors::holds(&one))
+            serde_json::from_value::<Editor>(one.clone())
+                .is_ok_and(|one| one.r#in == id && editors::holds(&one))
         })
         .take(EDITORS_AT_MOST)
         .collect();
