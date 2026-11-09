@@ -30,6 +30,7 @@ const look = {
   newSharesToday: 0,
   newSharesFull: false,
   heldThere: [],
+  languages: [],
 };
 
 const answering = (answers: Record<string, unknown>) =>
@@ -414,6 +415,51 @@ describe("sharing a document with Folio", () => {
     });
     expect(onShared).toHaveBeenCalled();
     expect(screen.getByText("https://tisty.cl/Ab3xK9pQ#key")).toBeTruthy();
+  });
+
+  it("lets a language of one's own be left out, and never the anchor or another's", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: {
+        ...look,
+        languages: [
+          { id: "es", lang: "es", anchor: true, own: true },
+          { id: "en", lang: "en", anchor: false, own: true },
+          { id: "pt", lang: "pt", anchor: false, own: false },
+        ],
+      },
+      doc_shared: {
+        read: "https://tisty.cl/a#k",
+        edit: null,
+        version: 1,
+        taken: false,
+        held: false,
+        told: [],
+      },
+    });
+    shown();
+
+    const es = await screen.findByRole("checkbox", { name: "es" });
+    const en = screen.getByRole("checkbox", { name: "en" });
+    const pt = screen.getByRole("checkbox", { name: fill("shareLanguageNotYours", "pt") });
+    expect((es as HTMLInputElement).disabled).toBe(true);
+    expect((pt as HTMLInputElement).checked).toBe(false);
+    expect((pt as HTMLInputElement).disabled).toBe(true);
+    await userEvent.click(en);
+    await userEvent.click(screen.getByRole("button", { name: t("shareGo") }));
+
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(invoked).toHaveBeenCalledWith("doc_shared", {
+      id: "d1",
+      chosen: {
+        cited: [],
+        signedAs: "rina",
+        editable: false,
+        ttlDays: 1,
+        seen: "print",
+        leftOut: ["en"],
+      },
+    });
   });
 
   it("waits as Folio asks and shares again only when pressed", async () => {

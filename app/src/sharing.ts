@@ -73,6 +73,7 @@ export interface ShareLook {
   newSharesToday: number;
   newSharesFull: boolean;
   heldThere: string[];
+  languages: { id: string; lang: string; anchor: boolean; own: boolean }[];
 }
 
 export interface Named {
@@ -171,7 +172,14 @@ export const shareCard = (id: string): Promise<ShareCard | null> =>
 
 export const docShared = (
   id: string,
-  chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number; seen?: string },
+  chosen: {
+    cited: string[];
+    signedAs?: string;
+    editable: boolean;
+    ttlDays: number;
+    seen?: string;
+    leftOut?: string[];
+  },
 ): Promise<ShareCard> => invoke("doc_shared", { id, chosen });
 
 export const shareSync = (id: string, accepted?: string): Promise<Synced> =>

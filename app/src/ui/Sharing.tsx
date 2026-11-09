@@ -305,6 +305,40 @@ function LinkLine({ label, url }: Readonly<{ label: string; url: string }>) {
   );
 }
 
+function Languages({
+  languages,
+  leftOut,
+  onLeftOut,
+}: Readonly<{
+  languages: ShareLook["languages"];
+  leftOut: string[];
+  onLeftOut: (leftOut: string[]) => void;
+}>) {
+  if (languages.length < 2) return null;
+  const toggled = (id: string, goes: boolean) =>
+    onLeftOut(goes ? leftOut.filter((one) => one !== id) : [...leftOut, id]);
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="mb-2 text-[12.5px] font-semibold">{t("shareLanguages")}</legend>
+      {languages.map((one) => (
+        <label
+          key={one.id}
+          className="flex cursor-pointer items-center gap-2 text-[12.5px] has-[:disabled]:cursor-default"
+        >
+          <input
+            type="checkbox"
+            checked={one.own && !leftOut.includes(one.id)}
+            disabled={one.anchor || !one.own}
+            onChange={(e) => toggled(one.id, e.target.checked)}
+          />
+          {one.own ? one.lang : fill("shareLanguageNotYours", one.lang)}
+        </label>
+      ))}
+      <p className="text-[11.5px] leading-relaxed text-faint">{t("shareLanguagesWhy")}</p>
+    </fieldset>
+  );
+}
+
 function LeftOut({ told }: Readonly<{ told: ShareCard["told"] }>) {
   if (told.length === 0) return null;
   return (
@@ -447,6 +481,7 @@ function Choosing({
   const terms = look.limits.ttl_days ?? [];
   const [days, setDays] = useState(terms[0] ?? 0);
   const [cites, setCites] = useState(false);
+  const [leftOut, setLeftOut] = useState<string[]>([]);
   const secrets = cites ? [...look.secrets, ...look.citedSecrets] : look.secrets;
   const others = look.shared.filter((one) => one.doc !== doc);
   const already = others.length !== look.shared.length;
@@ -652,6 +687,7 @@ function Choosing({
               mostBytes={look.limits.files_bytes_at_most}
             />
           </dl>
+          <Languages languages={look.languages} leftOut={leftOut} onLeftOut={setLeftOut} />
           {look.cited.length > 0 && (
             <>
               <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
@@ -692,6 +728,7 @@ function Choosing({
                 editable,
                 ttlDays: days,
                 seen: look.seen ?? undefined,
+                ...(leftOut.length > 0 ? { leftOut } : {}),
               })
             }
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"

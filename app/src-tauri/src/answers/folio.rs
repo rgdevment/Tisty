@@ -534,6 +534,7 @@ pub struct Look {
     new_shares_today: u64,
     new_shares_full: bool,
     held_there: Vec<String>,
+    languages: Vec<tisty_sharing::Offered>,
 }
 
 #[derive(Debug, Serialize)]
@@ -696,10 +697,12 @@ pub async fn doc_share_look(
             public: false,
             cited: Vec::new(),
             signed_as: None,
+            left_out: Vec::new(),
         };
         let gathered = tisty_sharing::gathered_within(&desk, &asked, languages_top(&home))
             .map_err(|e| refused(&e))?;
         let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
+        let languages = tisty_sharing::languages_offered(&desk, doc).map_err(|e| refused(&e))?;
         let others = shared.iter().filter(|one| one.doc != id).count() as u64;
         let shared = match limits.shares_at_most {
             Some(most) if others >= most => still_shared(&app, &home, shared),
@@ -724,6 +727,7 @@ pub async fn doc_share_look(
                 .filter(|one| folio_holds(&state, *one))
                 .map(|one| one.to_string())
                 .collect(),
+            languages,
         })
     })
     .await
@@ -1046,6 +1050,8 @@ pub struct Chosen {
     editable: bool,
     ttl_days: u64,
     seen: Option<String>,
+    #[serde(default)]
+    left_out: Vec<String>,
 }
 
 #[tauri::command]
@@ -1061,14 +1067,19 @@ pub async fn doc_shared(
         editable,
         ttl_days,
         seen,
+        left_out,
     } = chosen;
     let doc = doc_id(&id)?;
-    let (paths, tongue, file) = {
+    let (paths, tongue, file, left_out) = {
         let session = held(&session);
         (
             session.paths.clone(),
             tongue_of(&session),
             file_of(&session, &id)?,
+            left_out
+                .iter()
+                .map(|one| file_of(&session, one))
+                .collect::<Answer<Vec<_>>>()?,
         )
     };
     let asked = tisty_sharing::Asked {
@@ -1079,6 +1090,7 @@ pub async fn doc_shared(
             .map(|one| doc_id(one))
             .collect::<Answer<Vec<_>>>()?,
         signed_as,
+        left_out,
     };
     let new_ones = {
         let session = held(&session);

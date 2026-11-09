@@ -496,6 +496,7 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         sealed_under: None,
         version_by: None,
         version_root: None,
+        left_out: Vec::new(),
     }
 }
 

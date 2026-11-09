@@ -152,6 +152,7 @@ fn refused_to_the_maker(
         public: false,
         cited: Vec::new(),
         signed_as: None,
+        left_out: Vec::new(),
     };
     tisty_sharing::gathered(&desk, &asked).err()
 }

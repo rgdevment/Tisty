@@ -1711,6 +1711,7 @@ walks
             sealed_under: None,
             version_by: None,
             version_root: None,
+            left_out: Vec::new(),
         },
     });
     home.commit(Op::SharingForgotten {
@@ -1764,4 +1765,69 @@ walks
             .iter()
             .any(|one| matches!(one, Told::OthersEdited { .. }))
     );
+}
+
+#[test]
+fn a_language_left_out_stays_here_and_is_remembered_but_the_anchor_always_goes() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\npaseos\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\nwalks\n", None);
+    let pt = home.wrote("---\nlang: pt\n---\n\npasseios\n", None);
+    home.joined(en, es);
+    home.joined(pt, es);
+    let file = |id| home.state.docs[&id].file.clone();
+    let left_out = vec![file(en), file(es)];
+
+    let out = sealed(
+        &home,
+        &tisty_sharing::Asked {
+            left_out: left_out.clone(),
+            ..asked(es)
+        },
+    );
+    let reads = every_reader_opens(&out);
+    assert_eq!(reads.len(), 2);
+    assert!(reads.iter().all(|one| !all_text(one).contains("walks")));
+    assert!(reads.iter().any(|one| all_text(one).contains("paseos")));
+    assert!(
+        out.remembering
+            .iter()
+            .all(|(_, one)| one.left_out == left_out)
+    );
+}
+
+#[test]
+fn each_language_is_offered_as_ones_own_or_not_and_the_anchor_as_fixed() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\npaseos\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\nwalks\n", None);
+    let body = "---\nlang: pt\n---\n\nde otra persona\n";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let pt = ulid::Ulid::generate();
+    home.commit(Op::DocAdd {
+        id: pt,
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "z0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            ..Default::default()
+        },
+    });
+    home.joined(en, es);
+    home.joined(pt, es);
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+
+    let offered = tisty_sharing::languages_offered(&desk, es).unwrap();
+    let said = |id| offered.iter().find(|one| one.id == id).unwrap();
+    assert!(said(es).anchor && said(es).own);
+    assert!(!said(en).anchor && said(en).own);
+    assert!(!said(pt).own);
+    assert_eq!(said(en).lang, "en");
 }
