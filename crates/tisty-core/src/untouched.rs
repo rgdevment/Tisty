@@ -49,8 +49,13 @@ const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
     "e7e2ae0a01de129efbce385ae10e852d81f1de3b36c3dd5f41f262c952d7b3e6",
 ];
 
+// Before its author signed it, the guide said it was sown only by being Tisty's.
 pub fn written_as_sown(d: &DocAdd) -> bool {
-    d.by.as_deref() == Some(SOWN_BY) && d.guest && d.made.is_none() && d.wrote.is_none()
+    (d.sown || d.by.as_deref() == Some(SOWN_BY))
+        && d.by.is_some()
+        && d.guest
+        && d.made.is_none()
+        && d.wrote.is_none()
 }
 
 struct Paper {
@@ -236,6 +241,17 @@ impl Paper {
                 .is_none_or(|was| now.print.as_ref() == Some(was));
         same && (self.sown_print.is_some() || shipped_before_prints(&body))
     }
+}
+
+// The language Tisty writes into an old guide is no hand on it, so it is read past.
+pub fn reads_as_sown(kept: &crate::model::Kept, body: &str) -> bool {
+    let bare = tisty_markdown::front::without_field(body, "lang");
+    [body, bare.as_str()]
+        .into_iter()
+        .any(|one| match &kept.sown_print {
+            Some(sown) => Said::of(one).print.as_ref() == Some(sown),
+            None => shipped_before_prints(one),
+        })
 }
 
 fn shipped_before_prints(body: &str) -> bool {

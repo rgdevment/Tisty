@@ -81,7 +81,7 @@ impl Here {
     }
 }
 
-const SHIPPED_PAGE: &str = include_str!("../../../app/src-tauri/resources/guide/es/pagina.md");
+const SHIPPED_PAGE: &str = include_str!("../../../fixtures/guide-1.24.4/pagina.md");
 
 fn as_in_1_24_4(body: &str) -> Said {
     Said {
