@@ -191,6 +191,11 @@ fn may_upload(paths: &Paths, tongue: Tongue) -> Answer<Agreed> {
     })
 }
 
+// Nothing goes on a Sync with no changes, yet newer terms are still asked for as soon as they check out.
+fn new_terms_asked(agreed: &Answer<Agreed>) -> bool {
+    matches!(agreed, Err(refused) if refused.code == TERMS_TO_ACCEPT)
+}
+
 fn unsure_said(unsure: Unsure) -> Refusal {
     match unsure {
         Unsure::NoWord => Refusal::of("folioUnreached"),
@@ -943,7 +948,7 @@ pub enum Synced {
     },
     #[serde(rename_all = "camelCase")]
     Sent {
-        version: u64,
+        version: Option<u64>,
         told: Vec<Told>,
         terms_unchecked: bool,
     },
@@ -964,6 +969,37 @@ fn remembered_of(session: &Session, id: &str) -> Answer<(String, Remembered)> {
         .ok_or_else(|| Refusal::of("folioGone"))
 }
 
+struct Here {
+    paths: Paths,
+    also: Option<std::path::PathBuf>,
+    state: tisty_core::State,
+    device: tisty_core::DeviceId,
+}
+
+impl Here {
+    fn of(session: &tauri::State<'_, Mutex<Session>>) -> Self {
+        let session = held(session);
+        Self {
+            paths: session.paths.clone(),
+            also: session.dest(),
+            state: session.state.clone(),
+            device: session.config.device_id.clone(),
+        }
+    }
+
+    fn gathered(&self, asked: &tisty_sharing::Asked) -> Answer<tisty_sharing::Gathered> {
+        let desk = Desk {
+            paths: &self.paths,
+            state: &self.state,
+            also: self.also.as_deref(),
+            turned: &turned,
+            maker: the_maker_here(&self.paths, &self.state, &self.device),
+        };
+        tisty_sharing::gathered_within(&desk, asked, languages_top(&self.paths.private()))
+            .map_err(|e| refused(&e))
+    }
+}
+
 struct Looked {
     unchanged: bool,
     secret: Option<String>,
@@ -974,30 +1010,13 @@ async fn looked_over(
     session: &tauri::State<'_, Mutex<Session>>,
     asked: &tisty_sharing::Asked,
 ) -> Answer<Looked> {
-    let (paths, also, state, device) = {
-        let session = held(session);
-        (
-            session.paths.clone(),
-            session.dest(),
-            session.state.clone(),
-            session.config.device_id.clone(),
-        )
-    };
+    let here = Here::of(session);
     let looking = asked.clone();
     apart(move || {
-        let desk = Desk {
-            paths: &paths,
-            state: &state,
-            also: also.as_deref(),
-            turned: &turned,
-            maker: the_maker_here(&paths, &state, &device),
-        };
-        let gathered =
-            tisty_sharing::gathered_within(&desk, &looking, languages_top(&paths.private()))
-                .map_err(|e| refused(&e))?;
+        let gathered = here.gathered(&looking)?;
         let mut docs = vec![looking.doc];
         docs.extend(looking.cited.iter().copied());
-        let secret = secrets_of_docs(&paths, &state, &docs)
+        let secret = secrets_of_docs(&here.paths, &here.state, &docs)
             .into_iter()
             .next()
             .map(|one| one.under.unwrap_or(one.named));
@@ -1008,6 +1027,14 @@ async fn looked_over(
         })
     })
     .await
+}
+
+async fn unchanged_here(
+    session: &tauri::State<'_, Mutex<Session>>,
+    asked: tisty_sharing::Asked,
+) -> Answer<bool> {
+    let here = Here::of(session);
+    apart(move || Ok(here.gathered(&asked)?.same_as_sent())).await
 }
 
 fn asked_again(doc: tisty_core::model::DocId, was: &Remembered) -> Answer<tisty_sharing::Asked> {
@@ -1035,7 +1062,7 @@ fn waited(free: u64) -> Refusal {
     Refusal::about("folioWait", (free * 1000).to_string())
 }
 
-// Folio is asked only on the way to an upload, for its latest, so a newer version from another is brought apart and never overwritten (149).
+// The sync contract asks on every press, so another's newer version is brought apart (149); only an upload counts for the waits.
 fn before_upload(
     door: &dyn Door,
     home: &std::path::Path,
@@ -1044,15 +1071,20 @@ fn before_upload(
     limits: Option<&FolioLimits>,
     now: u64,
 ) -> Answer<Ahead> {
-    if unchanged {
-        return Ok(Ahead::Unchanged);
+    if !unchanged {
+        folio_pace::press(home, &was.id, now, limits).map_err(waited)?;
     }
-    folio_pace::press(home, &was.id, now, limits).map_err(waited)?;
+    let ready = if unchanged {
+        Ahead::Unchanged
+    } else {
+        Ahead::Upload
+    };
     match folio_client::latest(door, &was.id) {
         Ok(latest) if latest.version > was.version => Ok(Ahead::Newer),
-        Ok(_) => Ok(Ahead::Upload),
+        Ok(_) => Ok(ready),
         Err(Stopped::Refused(Refused::Missing)) => Ok(Ahead::Gone),
-        Err(Stopped::Refused(Refused::Blocked)) if correctable(door, was) => Ok(Ahead::Upload),
+        Err(Stopped::Refused(Refused::Blocked)) if correctable(door, was) => Ok(ready),
+        Err(stopped) if unchanged => Err(said(&stopped)),
         Err(stopped) => Err(press_given_back(said(&stopped), home, &was.id, now)),
     }
 }
@@ -1064,11 +1096,31 @@ fn correctable(door: &dyn Door, was: &Remembered) -> bool {
     })
 }
 
-fn unchanged_synced() -> Synced {
-    Synced::Unchanged {
-        told: Vec::new(),
-        terms_unchecked: false,
+async fn unchanged_answered(
+    session: &tauri::State<'_, Mutex<Session>>,
+    paths: &Paths,
+    tongue: Tongue,
+) -> Answer<Synced> {
+    let checking = paths.clone();
+    let agreed = apart(move || may_upload(&checking, tongue)).await;
+    if new_terms_asked(&agreed) {
+        return Err(Refusal::of(TERMS_TO_ACCEPT));
     }
+    let (state, device) = {
+        let session = held(session);
+        (session.state.clone(), session.config.device_id.clone())
+    };
+    let home = paths.private();
+    let not_kept = apart(move || {
+        Ok(ToFolio::new()
+            .ok()
+            .and_then(|door| told_of_taken_back(&door, &home, &state, &device)))
+    })
+    .await?;
+    Ok(Synced::Unchanged {
+        told: not_kept.into_iter().collect(),
+        terms_unchecked: agreed.as_ref().is_ok_and(|one| one.newer_unchecked),
+    })
 }
 
 #[tauri::command]
@@ -1111,7 +1163,7 @@ pub async fn doc_share_sync(
         .await?
     };
     match ahead {
-        Ahead::Unchanged => return Ok(unchanged_synced()),
+        Ahead::Unchanged => return unchanged_answered(&session, &paths, tongue).await,
         Ahead::Gone => {
             forget_share(&app, &file);
             return Ok(Synced::Gone);
@@ -1129,7 +1181,7 @@ pub async fn doc_share_sync(
     let mut sealed = sealed.only_what_changed();
     if sealed.going.is_empty() {
         folio_pace::take_back(&home, &was.id, pressed_at);
-        return Ok(unchanged_synced());
+        return unchanged_answered(&session, &paths, tongue).await;
     }
     let ttl_days = was.ttl_days.unwrap_or(FIRST_TERM_DAYS);
     for (_, one) in &mut sealed.remembering {
@@ -1140,7 +1192,7 @@ pub async fn doc_share_sync(
         .remembering
         .iter()
         .find(|(_, one)| one.id == was.id)
-        .map_or(was.version, |(_, one)| one.version);
+        .map(|(_, one)| one.version);
     let (state, device) = {
         let session = held(&session);
         (session.state.clone(), session.config.device_id.clone())
@@ -1176,6 +1228,7 @@ pub struct Waiting {
 pub async fn doc_share_waiting(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    look: bool,
 ) -> Answer<Waiting> {
     let doc = doc_id(&id)?;
     let (home, was) = {
@@ -1190,10 +1243,10 @@ pub async fn doc_share_waiting(
             pending: false,
         });
     };
-    let looked = looked_over(&session, &asked_again(doc, &was)?).await?;
+    let pending = look && !unchanged_here(&session, asked_again(doc, &was)?).await?;
     Ok(Waiting {
         until: Some(until * 1000),
-        pending: !looked.unchanged,
+        pending,
     })
 }
 

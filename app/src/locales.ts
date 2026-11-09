@@ -797,6 +797,7 @@ const en = {
   shareSyncPending: "There are changes that will go up when you sync again.",
   shareSyncUnchanged: "Nothing changed, so nothing went up.",
   shareSyncSent: "Version {name} went up.",
+  shareSyncSentAlong: "What changed went up.",
   shareSyncOther:
     "Version {name}, signed by {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
   sharePause: "Pause",
@@ -3751,6 +3752,7 @@ const es: Catalog = {
   shareSyncPending: "Hay cambios que subirán cuando vuelvas a sincronizar.",
   shareSyncUnchanged: "Nada cambió, así que no subió nada.",
   shareSyncSent: "Subió la versión {name}.",
+  shareSyncSentAlong: "Subió lo que cambió.",
   shareSyncOther:
     "Llegó la versión {name}, firmada por {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
   sharePause: "Pausar",

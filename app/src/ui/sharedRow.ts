@@ -17,7 +17,7 @@ import {
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
-const WAITING_LOOK_MS = 30_000;
+const WAITING_LOOK_MS = 60_000;
 
 type HeldPanel = Extract<Panel, { kind: "held" }>;
 type Act = NonNullable<HeldPanel["acts"]>[number];
@@ -103,7 +103,9 @@ const syncedWords = (synced: Told) => {
     );
   if (synced.state === "sent")
     return [
-      fill("shareSyncSent", String(synced.version)),
+      synced.version === null
+        ? t("shareSyncSentAlong")
+        : fill("shareSyncSent", String(synced.version)),
       ...synced.told.map(toldPlainly),
       ...termsNote(synced),
     ].join(" ");
@@ -240,18 +242,30 @@ export const useSharedRow = (
   const [stopping, setStopping] = useState(false);
   const [waitUntil, setWaitUntil] = useState(0);
   const [pending, setPending] = useState(false);
+  const pendingNow = useRef(pending);
+  pendingNow.current = pending;
   const [now, setNow] = useState(() => Date.now());
 
-  const askWaiting = useCallback(() => {
-    if (!doc) return;
-    void shareWaiting(doc)
-      .then((waiting) => {
-        if (docNow.current !== doc) return;
-        setWaitUntil(waiting.until ?? 0);
-        setPending(waiting.pending);
-      })
-      .catch(() => {});
-  }, [doc]);
+  // Folio's own wait can outlast this computer's, so the later of the two holds.
+  const waitTill = useCallback((until: number) => {
+    const at = Date.now();
+    setNow(at);
+    setWaitUntil((was) => Math.max(was > at ? was : 0, until));
+  }, []);
+
+  const askWaiting = useCallback(
+    (look: boolean) => {
+      if (!doc) return;
+      void shareWaiting(doc, look)
+        .then((waiting) => {
+          if (docNow.current !== doc) return;
+          waitTill(waiting.until ?? 0);
+          if (look) setPending(waiting.pending);
+        })
+        .catch(() => {});
+    },
+    [doc, waitTill],
+  );
 
   useEffect(() => {
     let gone = false;
@@ -274,12 +288,11 @@ export const useSharedRow = (
   }, [doc]);
 
   useEffect(() => {
-    if (card && !card.held) askWaiting();
+    if (card && !card.held) askWaiting(true);
   }, [card, askWaiting]);
 
   useEffect(() => {
     if (!waitUntil) return;
-    setNow(Date.now());
     const ending = setTimeout(
       () => {
         setWaitUntil(0);
@@ -289,7 +302,7 @@ export const useSharedRow = (
     );
     const looking = setInterval(() => {
       setNow(Date.now());
-      askWaiting();
+      askWaiting(!pendingNow.current);
     }, WAITING_LOOK_MS);
     return () => {
       clearTimeout(ending);
@@ -317,12 +330,12 @@ export const useSharedRow = (
         return;
       }
       if (code === "folioWait" && untilOf(problem) > 0) {
-        setWaitUntil(untilOf(problem));
+        waitTill(untilOf(problem));
         return;
       }
       onError?.(problem);
     },
-    [onError],
+    [onError, waitTill],
   );
 
   const hands = useMemo((): Hands | null => {
@@ -334,7 +347,7 @@ export const useSharedRow = (
       status,
       minutes,
       pending,
-      askWaiting,
+      askWaiting: () => askWaiting(true),
       accepted,
       setAccepted,
       setStatus,

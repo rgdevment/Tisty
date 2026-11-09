@@ -10,9 +10,9 @@ use tisty_share_proto::identity::Revocation;
 use tisty_sharing::Remembered;
 
 use super::{
-    Ahead, Card, after_terms_refused, before_upload, card_of, counted_as_shared, delivered,
-    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start, newest_first,
-    press_given_back, said, said_to_whom, sent_taken_back,
+    Agreed, Ahead, Card, after_terms_refused, before_upload, card_of, counted_as_shared, delivered,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
+    new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -545,23 +545,75 @@ fn latest_is(said: &'static str) -> FakeFolio {
 }
 
 #[test]
-fn a_sync_with_nothing_changed_asks_folio_nothing_and_leaves_the_waits_alone() {
+fn a_sync_with_nothing_changed_still_asks_for_the_latest_and_leaves_the_waits_alone() {
     let home = tempfile::tempdir().unwrap();
-    let folio = FakeFolio::default();
+    let folio = latest_is(r#"{"version":2}"#);
     let was = remembered(Some("key"), None);
+    let limits = five_minutes_apart();
+
+    let ahead = before_upload(&folio, home.path(), &was, true, Some(&limits), 100);
+
+    assert_eq!(ahead.unwrap(), Ahead::Unchanged);
+    assert_eq!(folio.asked.borrow()[0].0, "/docs/Ab3xK9pQ/latest");
+    assert!(!home.path().join("folio-sync-presses.json").exists());
+}
+
+#[test]
+fn a_sync_with_nothing_changed_brings_what_another_sent_even_during_the_wait() {
+    let home = tempfile::tempdir().unwrap();
+    let was = remembered(Some("key"), None);
+    let limits = five_minutes_apart();
+    let first = before_upload(
+        &latest_is(r#"{"version":2}"#),
+        home.path(),
+        &was,
+        false,
+        Some(&limits),
+        100,
+    );
+    assert_eq!(first.unwrap(), Ahead::Upload);
 
     let ahead = before_upload(
-        &folio,
+        &latest_is(r#"{"version":3}"#),
         home.path(),
         &was,
         true,
-        Some(&five_minutes_apart()),
-        100,
+        Some(&limits),
+        150,
     );
 
-    assert_eq!(ahead.unwrap(), Ahead::Unchanged);
-    assert!(folio.asked.borrow().is_empty());
+    assert_eq!(ahead.unwrap(), Ahead::Newer);
+    assert_eq!(pressed_in(home.path()), 1, "only the upload was counted");
+}
+
+#[test]
+fn a_sync_with_nothing_changed_that_reaches_nothing_says_so_and_counts_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    let was = remembered(Some("key"), None);
+
+    let ahead = before_upload(&FakeFolio::default(), home.path(), &was, true, None, 100);
+
+    assert_eq!(ahead.unwrap_err().code, "folioUnreached");
     assert!(!home.path().join("folio-sync-presses.json").exists());
+}
+
+#[test]
+fn a_sync_with_nothing_to_send_stops_only_for_new_terms() {
+    let agreed = Ok(Agreed {
+        version: "1".to_owned(),
+        newer_unchecked: true,
+    });
+
+    assert!(new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsToAccept"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioUploadsOff"
+    ))));
+    assert!(!new_terms_asked(&Err(crate::Refusal::of(
+        "folioTermsUpdating"
+    ))));
+    assert!(!new_terms_asked(&agreed));
 }
 
 #[test]
