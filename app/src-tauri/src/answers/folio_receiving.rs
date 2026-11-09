@@ -251,6 +251,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         sealed_under: opened.contract.clone(),
         version_by: owner_apart(opened).and(received.signed_as.clone()),
         version_root: owner_apart(opened).map(|_| opened.signer.clone()),
+        left_out: Vec::new(),
     }
 }
 
@@ -278,6 +279,7 @@ fn with_its_print(app: &AppHandle, doc: tisty_core::model::DocId, entry: (String
         public: false,
         cited: Vec::new(),
         signed_as: None,
+        left_out: Vec::new(),
     };
     let print = tisty_sharing::gathered(&desk, &asked)
         .ok()

@@ -30,6 +30,7 @@ const look = {
   newSharesToday: 0,
   newSharesFull: false,
   heldThere: [],
+  languages: [],
 };
 
 const answering = (answers: Record<string, unknown>) =>
@@ -414,6 +415,61 @@ describe("sharing a document with Folio", () => {
     });
     expect(onShared).toHaveBeenCalled();
     expect(screen.getByText("https://tisty.cl/Ab3xK9pQ#key")).toBeTruthy();
+  });
+
+  it("starts from the group's choice, asks again as languages are ticked, and sends the choice", async () => {
+    const offered = (leftOut: string[]) => [
+      { id: "es", lang: "es", anchor: true, own: true, leftOut: false },
+      { id: "en", lang: "en", anchor: false, own: true, leftOut: leftOut.includes("en") },
+      { id: "fr", lang: "fr", anchor: false, own: true, leftOut: leftOut.includes("fr") },
+      { id: "pt", lang: "pt", anchor: false, own: false, leftOut: false },
+    ];
+    invoked.mockImplementation((command: string, asked: { leftOut?: string[] }) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
+      if (command === "doc_share_look")
+        return Promise.resolve({ ...look, languages: offered(asked.leftOut ?? ["fr"]) });
+      if (command === "doc_shared")
+        return Promise.resolve({
+          read: "https://tisty.cl/a#k",
+          edit: null,
+          version: 1,
+          taken: false,
+          held: false,
+          told: [],
+        });
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    const es = await screen.findByRole("checkbox", { name: "es" });
+    const pt = screen.getByRole("checkbox", { name: fill("shareLanguageNotYours", "pt") });
+    expect((es as HTMLInputElement).disabled).toBe(true);
+    expect((pt as HTMLInputElement).checked).toBe(false);
+    expect((pt as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole("checkbox", { name: "fr" }) as HTMLInputElement).checked).toBe(false);
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "en" }));
+    expect(invoked).toHaveBeenCalledWith("doc_share_look", { id: "d1", leftOut: ["fr", "en"] });
+    await userEvent.click(screen.getByRole("checkbox", { name: "fr" }));
+    expect(invoked).toHaveBeenCalledWith("doc_share_look", { id: "d1", leftOut: ["en"] });
+    await waitFor(() =>
+      expect((screen.getByRole("checkbox", { name: "fr" }) as HTMLInputElement).checked).toBe(true),
+    );
+    await userEvent.click(screen.getByRole("button", { name: t("shareGo") }));
+
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(invoked).toHaveBeenCalledWith("doc_shared", {
+      id: "d1",
+      chosen: {
+        cited: [],
+        signedAs: "rina",
+        editable: false,
+        ttlDays: 1,
+        seen: "print",
+        leftOut: ["en"],
+      },
+    });
   });
 
   it("waits as Folio asks and shares again only when pressed", async () => {

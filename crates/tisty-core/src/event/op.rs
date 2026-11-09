@@ -140,6 +140,8 @@ pub struct Remembered {
     pub version_by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version_root: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub left_out: Vec<String>,
 }
 
 impl Remembered {

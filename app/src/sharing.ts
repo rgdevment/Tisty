@@ -73,6 +73,7 @@ export interface ShareLook {
   newSharesToday: number;
   newSharesFull: boolean;
   heldThere: string[];
+  languages: { id: string; lang: string; anchor: boolean; own: boolean; leftOut: boolean }[];
 }
 
 export interface Named {
@@ -164,14 +165,22 @@ export const termsDrawn = (text: string): Promise<string> => invoke("folio_terms
 export const termsAccepted = (version: string): Promise<void> =>
   invoke("folio_terms_accept", { version });
 
-export const shareLook = (id: string): Promise<ShareLook> => invoke("doc_share_look", { id });
+export const shareLook = (id: string, leftOut?: string[]): Promise<ShareLook> =>
+  invoke("doc_share_look", { id, leftOut });
 
 export const shareCard = (id: string): Promise<ShareCard | null> =>
   invoke("doc_share_card", { id });
 
 export const docShared = (
   id: string,
-  chosen: { cited: string[]; signedAs?: string; editable: boolean; ttlDays: number; seen?: string },
+  chosen: {
+    cited: string[];
+    signedAs?: string;
+    editable: boolean;
+    ttlDays: number;
+    seen?: string;
+    leftOut?: string[];
+  },
 ): Promise<ShareCard> => invoke("doc_shared", { id, chosen });
 
 export const shareSync = (id: string, accepted?: string): Promise<Synced> =>

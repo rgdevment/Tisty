@@ -33,6 +33,7 @@ fn arrived(admin: Option<&str>, token: Option<&str>, signed_as: Option<&str>) ->
         sealed_under: None,
         version_by: Some("Ana".to_owned()),
         version_root: None,
+        left_out: Vec::new(),
     }
 }
 

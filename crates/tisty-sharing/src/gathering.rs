@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
@@ -36,6 +36,17 @@ pub struct Asked {
     pub public: bool,
     pub cited: Vec<DocId>,
     pub signed_as: Option<String>,
+    pub left_out: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Offered {
+    pub id: DocId,
+    pub lang: String,
+    pub anchor: bool,
+    pub own: bool,
+    pub left_out: bool,
 }
 
 #[derive(Default, Deserialize)]
@@ -399,6 +410,8 @@ struct Gathering<'a> {
     cited: Vec<Family>,
     gathered_cited: BTreeMap<DocId, usize>,
     cites: BTreeMap<String, Vec<usize>>,
+    left_out: Vec<String>,
+    group: BTreeSet<String>,
 }
 
 impl Gathering<'_> {
@@ -544,6 +557,11 @@ impl Gathering<'_> {
                 sealed_under: Some(tisty_contracts::VERSION.to_owned()),
                 version_by: None,
                 version_root: None,
+                left_out: if self.group.contains(&kept.file) {
+                    self.left_out.clone()
+                } else {
+                    Vec::new()
+                },
             },
         ));
         self.titles.insert(kept.file.clone(), shown);
@@ -586,8 +604,14 @@ impl Gathering<'_> {
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
         let kept = sharable(self.desk, doc, &self.shelf)?;
+        let anchor_id = state.anchor_of(kept);
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
+            let chosen_out =
+                self.left_out.contains(&one.file) && one.id != kept.id && one.id != anchor_id;
+            if chosen_out {
+                continue;
+            }
             if sharable(self.desk, one.id, &self.shelf).is_ok() {
                 going.push(one);
             } else {
@@ -597,7 +621,6 @@ impl Gathering<'_> {
             }
         }
         // An anchor that stays here hands the map to the first language that goes; `kept` always goes.
-        let anchor_id = state.anchor_of(kept);
         // Folio counts what it already holds whether it goes again or not, so those keep their place before anything new.
         let held_there = |one: &Kept| self.shelf.contains_key(&one.file);
         let must_go = |one: &Kept| one.id == kept.id || one.id == anchor_id || held_there(one);
@@ -786,6 +809,11 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         cited: Vec::new(),
         gathered_cited: BTreeMap::new(),
         cites: BTreeMap::new(),
+        left_out: asked.left_out.clone(),
+        group: languages_of(state, top)
+            .into_iter()
+            .map(|one| one.file.clone())
+            .collect(),
     };
     if wanted.is_some() && signed_as.is_none() {
         gathering.told.push(Told::NameLeftOut);
@@ -822,6 +850,44 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         remembering: gathering.remembering,
         titles: gathering.titles,
     })
+}
+
+// Each language is one's own or not on its own (68), and the one asked for and the anchor always go.
+pub fn languages_offered(
+    desk: &Desk,
+    doc: DocId,
+    left_out: &[String],
+) -> Result<Vec<Offered>, Unshared> {
+    let shelf = remembered(desk.state);
+    let kept = sharable(desk, doc, shelf)?;
+    let anchor = desk.state.anchor_of(kept);
+    Ok(languages_of(desk.state, kept)
+        .into_iter()
+        .map(|one| {
+            let fixed = one.id == anchor || one.id == kept.id;
+            Offered {
+                id: one.id,
+                lang: language_said(one),
+                anchor: fixed,
+                own: sharable(desk, one.id, shelf).is_ok(),
+                left_out: !fixed && left_out.contains(&one.file),
+            }
+        })
+        .collect())
+}
+
+// The group's choice is kept with whichever of its languages is shared, so any of them asked again starts from it.
+pub fn left_out_of(state: &State, doc: DocId) -> Vec<String> {
+    let Some(kept) = state.docs.get(&doc) else {
+        return Vec::new();
+    };
+    let shelf = remembered(state);
+    languages_of(state, kept)
+        .into_iter()
+        .filter_map(|one| shelf.get(&one.file))
+        .map(|one| one.left_out.clone())
+        .find(|one| !one.is_empty())
+        .unwrap_or_default()
 }
 
 // Only what can go along is offered, and a page already goes with its document.

@@ -148,6 +148,7 @@ pub fn asked(doc: DocId) -> Asked {
         public: false,
         cited: vec![],
         signed_as: None,
+        left_out: Vec::new(),
     }
 }
 
