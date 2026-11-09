@@ -126,9 +126,7 @@ describe("the Shared row", () => {
     const after = { ...editing, signsAs: { now: "Ana Pérez", other: "ana.dev" } };
     const { panel, pressed } = await held(editing, { doc_share_sign_as: after });
 
-    expect(panel().said).toContain(
-      fill("sharedOwnerAndSigner", fill("sharedChecked", "Mario Hidalgo"), "Ana"),
-    );
+    expect(panel().said).toContain("Created by Mario Hidalgo ✓ · Last edited by Ana");
     expect(panel().said).toContain(fill("sharedEditedBy", `Ana, ${fill("sharedChecked", "Juan")}`));
     expect(panel().said).toContain(fill("shareSignsAs", "ana.dev"));
     await pressed("signs");
