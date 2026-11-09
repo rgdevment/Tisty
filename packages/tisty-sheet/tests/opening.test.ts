@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { source } from "./source";
 
-const css = () => source("page.css");
+const css = () => source("page.css").replace(/\s+/g, " ");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(selector);
@@ -9,8 +9,8 @@ const ruleFor = (text: string, selector: string): string => {
   return text.slice(at, text.indexOf("}", at));
 };
 
-const OPENS = ".page > :is(h1, h2, h3, p):first-child";
-const ALONE = ".page > :is(h1, h2, h3, p):first-child:only-child";
+const OPENS = ".page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child";
+const ALONE = ".page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child:only-child";
 
 describe("the first line of a document", () => {
   it("is set as a title even when it was never marked as one", () => {
@@ -23,7 +23,9 @@ describe("the first line of a document", () => {
   it("is the line after the properties when a note opens with them", () => {
     const rule = ruleFor(css(), OPENS);
 
-    expect(rule).toContain(".page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)");
+    expect(rule).toContain(
+      ".page:where(:not(.as-written)) > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)",
+    );
   });
 
   it("is parted from the body by a hairline", () => {

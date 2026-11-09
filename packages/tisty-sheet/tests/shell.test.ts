@@ -45,8 +45,8 @@ describe("the shell of a drawn page", () => {
 describe("the page the writing sits on", () => {
   it("draws as its title the very blocks it names for the host", () => {
     const rule =
-      /html:not\(\.untitled\) (.+),\s*html:not\(\.untitled\) (.+) \{\s*font-size: 1\.65em;/.exec(
-        source("page.css"),
+      /html:not\(\.untitled\) (.+?),\s*html:not\(\.untitled\) (.+?) \{\s*font-size: 1\.65em;/.exec(
+        source("page.css").replace(/\s+/g, " "),
       );
     expect(rule?.slice(1, 3).join(", ")).toBe(TITLED);
   });

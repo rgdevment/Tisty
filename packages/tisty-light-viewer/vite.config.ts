@@ -17,6 +17,7 @@ export default defineConfig(({ command }) => ({
   },
   test: {
     environment: "jsdom",
+    css: { include: [/tisty-sheet[\\/]src[\\/]page\.css/] },
     include: ["tests/**/*.test.ts?(x)"],
     env: { TZ: "UTC" },
     server: { deps: { inline: [/solid-js/, /@solidjs/] } },
