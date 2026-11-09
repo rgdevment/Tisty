@@ -264,6 +264,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         sealed_under: None,
         version_by: None,
         version_root: None,
+        left_out: Vec::new(),
     };
     editor.sent(&[(file, entry)]);
 
@@ -374,6 +375,7 @@ fn signed_as(home: &Home, doc: DocId, under: &Under<'_>, name: &str) -> Gathered
     };
     let asked = tisty_sharing::Asked {
         signed_as: Some(name.to_owned()),
+        left_out: Vec::new(),
         ..asked(doc)
     };
     gathered_under(&desk, &asked, under).unwrap()
@@ -497,6 +499,7 @@ fn what_is_public_names_no_editor() {
     let asked = tisty_sharing::Asked {
         public: true,
         signed_as: Some("Mario".to_owned()),
+        left_out: Vec::new(),
         ..asked(doc)
     };
     let sealed = home.sealed(gathered_under(&desk, &asked, &under).unwrap(), vec![]);
@@ -579,6 +582,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         sealed_under: None,
         version_by: None,
         version_root: None,
+        left_out: Vec::new(),
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);

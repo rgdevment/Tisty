@@ -80,6 +80,7 @@ pub async fn doc_sealed(
             .map(|one| doc_id(one))
             .collect::<Answer<Vec<_>>>()?,
         signed_as,
+        left_out: Vec::new(),
     };
     let sealed = sealed_by(&app, &session, asked, gathered).await?;
     Ok(summed_up(sealed))

@@ -911,6 +911,10 @@ const en = {
   shareRoomUpTo: "up to {name} · {other}",
   shareRoomOf: "of {name} · {other}",
   shareCites: "Share the {name} documents it cites too",
+  shareLanguages: "Languages",
+  shareLanguagesWhy:
+    "Each language goes as a document of its own under the same link. The one you are sharing always goes, and a language you leave out stays here.",
+  shareLanguageNotYours: "{name}: not yours, it stays here",
   shareCitesOne: "Share the document it cites too",
   shareTodayOver:
     "Folio takes {other} new documents a day, and this would make {name} today. Each document it cites counts too. You can share more documents tomorrow.",
@@ -3914,6 +3918,10 @@ const es: Catalog = {
   shareRoomUpTo: "hasta {name} · {other}",
   shareRoomOf: "de {name} · {other}",
   shareCites: "Compartir también los {name} documentos que cita",
+  shareLanguages: "Idiomas",
+  shareLanguagesWhy:
+    "Cada idioma va como un documento propio bajo el mismo link. El que estás compartiendo siempre va, y un idioma que dejas fuera se queda aquí.",
+  shareLanguageNotYours: "{name}: no es tuyo, se queda aquí",
   shareCitesOne: "Compartir también el documento que cita",
   shareTodayOver:
     "Folio acepta {other} documentos nuevos al día, y con este serían {name} hoy. Cada documento que cita cuenta también. Puedes compartir más documentos mañana.",

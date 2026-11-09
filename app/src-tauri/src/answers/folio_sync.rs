@@ -128,7 +128,10 @@ async fn unchanged_here(
     apart(move || Ok(here.gathered(&asked)?.same_as_sent())).await
 }
 
-fn asked_again(doc: tisty_core::model::DocId, was: &Remembered) -> Answer<tisty_sharing::Asked> {
+pub(super) fn asked_again(
+    doc: tisty_core::model::DocId,
+    was: &Remembered,
+) -> Answer<tisty_sharing::Asked> {
     Ok(tisty_sharing::Asked {
         doc,
         public: false,
@@ -138,6 +141,7 @@ fn asked_again(doc: tisty_core::model::DocId, was: &Remembered) -> Answer<tisty_
             .map(|one| doc_id(one))
             .collect::<Answer<Vec<_>>>()?,
         signed_as: was.signed_as.clone(),
+        left_out: was.left_out.clone(),
     })
 }
 

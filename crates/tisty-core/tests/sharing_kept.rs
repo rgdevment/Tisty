@@ -22,6 +22,7 @@ fn one(version: u64) -> Remembered {
         sealed_under: None,
         version_by: None,
         version_root: None,
+        left_out: Vec::new(),
     }
 }
 
