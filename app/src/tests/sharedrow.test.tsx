@@ -103,6 +103,7 @@ describe("the Shared row", () => {
       () => `${t("shareSyncUnchanged")} ${t("toldTakenBackNotKept")}`,
     ],
     [{ state: "sent", version: 2, told: [] }, () => fill("shareSyncSent", "2")],
+    [{ state: "sent", version: null, told: [] }, () => t("shareSyncSentAlong")],
     [
       { state: "unchanged", told: [], termsUnchecked: true },
       () => `${t("shareSyncUnchanged")} ${t("shareTermsUnchecked")}`,
@@ -149,6 +150,52 @@ describe("the Shared row", () => {
       expect(sync?.off).toBe(true);
       expect(sync?.label).toBe(fill("shareSyncWait", "2"));
     });
+  });
+
+  it("says when Sync is free again and that changes are waiting, and sends nothing by itself", async () => {
+    const { panel } = await held(card, {
+      doc_share_waiting: { until: Date.now() + 3 * 60_000, pending: true },
+    });
+
+    await waitFor(() => {
+      const sync = panel().acts?.find((one) => one.key === "sync");
+      expect(sync?.off).toBe(true);
+      expect(sync?.label).toBe(fill("shareSyncWait", "3"));
+      expect(panel().said).toContain(t("shareSyncPending"));
+    });
+    expect(invoked).not.toHaveBeenCalledWith("doc_share_sync", expect.anything());
+  });
+
+  it("keeps the wait Folio asked for when this computer knows of none", async () => {
+    const until = Date.now() + 4 * 60_000;
+    const { panel, pressed } = await held(card, {
+      doc_share_waiting: { until: null, pending: false },
+    });
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_sync")
+        return Promise.reject({ code: "folioWait", name: String(until) });
+      if (command === "doc_share_waiting") return Promise.resolve({ until: null, pending: false });
+      if (command === "doc_share_card") return Promise.resolve(card);
+      return Promise.reject({ code: "internal" });
+    });
+
+    await pressed("sync");
+    await act(async () => {});
+
+    const sync = panel().acts?.find((one) => one.key === "sync");
+    expect(sync?.off).toBe(true);
+    expect(sync?.label).toBe(fill("shareSyncWait", "4"));
+  });
+
+  it("leaves Sync free when nothing waits, and says nothing of changes", async () => {
+    const { panel } = await held(card, { doc_share_waiting: { until: null, pending: false } });
+
+    await waitFor(() =>
+      expect(invoked).toHaveBeenCalledWith("doc_share_waiting", { id: "d1", look: true }),
+    );
+    const sync = panel().acts?.find((one) => one.key === "sync");
+    expect(sync?.off).toBe(false);
+    expect(panel().said).not.toContain(t("shareSyncPending"));
   });
 
   it("syncs again by itself once the terms Folio asked for are accepted", async () => {
