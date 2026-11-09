@@ -1662,3 +1662,69 @@ fn sharing_again_under_a_new_link_names_who_else_edited_it_and_never_the_owner()
             .any(|one| matches!(one, Told::OthersEdited { .. }))
     );
 }
+
+#[test]
+fn sharing_again_names_who_edited_another_language_of_it() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote(
+        "---
+lang: es
+---
+
+paseos
+",
+        None,
+    );
+    let en = home.wrote(
+        "---
+lang: en
+---
+
+walks
+",
+        None,
+    );
+    home.joined(en, es);
+    let file = home.state.docs[&en].file.clone();
+    home.commit(Op::SharingKept {
+        file: file.clone(),
+        d: Remembered {
+            id: "enShared".to_owned(),
+            version: 3,
+            link_key: Some("k".repeat(43)),
+            files_print: None,
+            files_hash: None,
+            files_key: None,
+            admin_token: Some("a".repeat(43)),
+            edit_token: Some("t".repeat(43)),
+            words_print: None,
+            signed_as: None,
+            owner: None,
+            owner_name: None,
+            cited: Vec::new(),
+            held_by: None,
+            ttl_days: None,
+            carried: Some(
+                r#"{"editors":[{"in":"enShared","root":"q","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Ana","signed":"s"}]}"#
+                    .to_owned(),
+            ),
+            sealed_under: None,
+            version_by: None,
+            version_root: None,
+        },
+    });
+    home.commit(Op::SharingForgotten {
+        file,
+        stopped: Some("enShared".to_owned()),
+    });
+
+    let again = sealed(&home, &asked(es));
+    assert!(
+        again
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::OthersEdited { editors } if editors == &["Ana"])),
+        "{:?}",
+        again.told
+    );
+}

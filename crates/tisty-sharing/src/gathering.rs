@@ -46,22 +46,31 @@ struct Carried {
     editors: Option<Vec<Editor>>,
 }
 
-// A document shared again under a new link carries words others wrote under the last one (140).
+// A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
 fn others_who_edited(
     state: &State,
     kept: &Kept,
     shelf: &BTreeMap<String, Remembered>,
 ) -> Option<Told> {
-    if kept.guest || shelf.contains_key(&kept.file) {
-        return None;
+    let mut names: Vec<String> = Vec::new();
+    for one in languages_of(state, kept) {
+        if one.guest || shelf.contains_key(&one.file) {
+            continue;
+        }
+        let Some(said) = state.sharing_editors.get(&one.file) else {
+            continue;
+        };
+        let editors: Vec<Editor> = serde_json::from_str(said).unwrap_or_default();
+        for name in editors
+            .into_iter()
+            .filter(|one| one.owned != Some(true))
+            .map(|one| one.name)
+        {
+            if !names.contains(&name) {
+                names.push(name);
+            }
+        }
     }
-    let said = state.sharing_editors.get(&kept.file)?;
-    let editors: Vec<Editor> = serde_json::from_str(said).ok()?;
-    let names: Vec<String> = editors
-        .into_iter()
-        .filter(|one| one.owned != Some(true))
-        .map(|one| one.name)
-        .collect();
     (!names.is_empty()).then_some(Told::OthersEdited { editors: names })
 }
 

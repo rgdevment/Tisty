@@ -519,6 +519,69 @@
       }
     }
   ],
+  "editors_in_a_document": {
+    "id": "editado",
+    "editors": [
+      {
+        "in": "editado",
+        "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+        "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+        "name": "Mario",
+        "owned": true,
+        "signed": "THzMJbqXZoZE62MrS4CM4UzfHIORGYV5YDq0ZVnH3NrfmrZ2L74-TQTdEbudD-FbjqxHjUyqZWjyGK3rd-Q2DA"
+      },
+      {
+        "in": "k7Qm2xPa",
+        "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+        "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
+        "name": "Ana",
+        "signed": "W0_5I1pfE6zIV0X3-UJn1X9Ol0QGL2OfJzDeMCzRQ05TlwdO2f0m8d26VbLsioXaPYHSeBVS6beuzTr1t1EECg"
+      },
+      {
+        "in": "editado",
+        "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+        "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
+        "name": "Ana",
+        "signed": "cA3cpPghOBieGwwrBdh94BBkzQxlrTUMDDuaZ2n_vOJu7_hw-HtS8WQG2C9i8XASzPQayS42CgCWx6i_-0sHAA"
+      },
+      {
+        "in": "editado",
+        "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+        "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
+        "name": "Ana",
+        "signed": "ulgtdKSbeVPUaRc9PuyguPvwSvVWdCZA8gMRighj0lI2ylIzguWG7_54bOv14DJeHoV7k5CSnOdM88Z0XCWFBw"
+      }
+    ],
+    "kept": [
+      {
+        "in": "editado",
+        "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+        "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+        "name": "Mario",
+        "owned": true,
+        "signed": "THzMJbqXZoZE62MrS4CM4UzfHIORGYV5YDq0ZVnH3NrfmrZ2L74-TQTdEbudD-FbjqxHjUyqZWjyGK3rd-Q2DA"
+      },
+      {
+        "in": "editado",
+        "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+        "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
+        "name": "Ana",
+        "signed": "ulgtdKSbeVPUaRc9PuyguPvwSvVWdCZA8gMRighj0lI2ylIzguWG7_54bOv14DJeHoV7k5CSnOdM88Z0XCWFBw"
+      }
+    ]
+  },
   "verdicts": [
     {
       "says": "no revocation names it",

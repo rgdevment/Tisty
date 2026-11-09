@@ -547,6 +547,11 @@ const said = {
     owner_revoked: { envelope: asHex(anas), served: { received: AFTER, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
   },
   editors: editorsSaid,
+  editors_in_a_document: {
+    id: EDITED,
+    editors: [editorsSaid[0].entry, editorsSaid[2].entry, editorsSaid[3].entry, editorsSaid[1].entry],
+    kept: [editorsSaid[0].entry, editorsSaid[1].entry],
+  },
   verdicts,
   files_refused: [
     { says: "another files envelope than the one it answers for", main: { id: "k7Qm2xPa" }, files: otherFiles.bytes.toString("hex") },

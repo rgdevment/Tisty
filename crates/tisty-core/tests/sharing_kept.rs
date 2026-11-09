@@ -162,7 +162,11 @@ fn who_edited_a_share_outlives_it_in_the_log_and_in_the_cache() {
     store
         .append(Op::SharingKept {
             file: "other".to_owned(),
-            d: one(1),
+            d: Remembered {
+                admin_token: None,
+                carried: Some(format!(r#"{{"editors":{editors}}}"#)),
+                ..one(1)
+            },
         })
         .unwrap();
     store

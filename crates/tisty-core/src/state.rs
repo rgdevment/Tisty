@@ -247,6 +247,18 @@ impl State {
         }
     }
 
+    fn sharing_forgotten(&mut self, file: &str, stopped: Option<&str>) {
+        let was = self.sharing.remove(file);
+        // Only an owner shares the document again, so only an owner's stop is worth remembering.
+        if let Some(editors) = was
+            .filter(|_| stopped.is_some())
+            .and_then(|was| editors_in(&was))
+        {
+            self.sharing_editors.insert(file.to_owned(), editors);
+        }
+        self.sharing_stopped.extend(stopped.map(str::to_owned));
+    }
+
     fn applied(&mut self, event: &Event) {
         if let Some(id) = event.entity_id().filter(|id| self.tombstones.contains(id)) {
             crate::witness::trace(
@@ -443,10 +455,7 @@ impl State {
             Op::Signed { d } => self.store_signed(d),
             Op::SharingKept { file, d } => self.sharing_kept(file, d),
             Op::SharingForgotten { file, stopped } => {
-                if let Some(editors) = self.sharing.remove(file).and_then(|was| editors_in(&was)) {
-                    self.sharing_editors.insert(file.clone(), editors);
-                }
-                self.sharing_stopped.extend(stopped.clone());
+                self.sharing_forgotten(file, stopped.as_deref());
             }
             Op::DeviceRemove { d } => self.device_removed(d),
             // Every key is the one name an attachment has now, whatever shelf an older event put it on.

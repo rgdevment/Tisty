@@ -433,3 +433,12 @@ fn an_editor_that_breaks_the_contract_or_belongs_elsewhere_is_left_aside_and_the
     let public = editors_kept(held, Some(said), false);
     assert!(public.get("editors").is_none());
 }
+
+#[test]
+fn a_document_keeps_only_the_editors_the_contract_says_it_keeps() {
+    let all = all();
+    let said = &all["editors_in_a_document"];
+    let held = json!({ "id": said["id"], "html": "<p>x</p>", "body": "x" });
+    let kept = editors_kept(held, Some(said["editors"].clone()), true);
+    assert_eq!(kept["editors"], said["kept"]);
+}
