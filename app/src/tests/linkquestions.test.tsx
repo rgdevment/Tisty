@@ -120,10 +120,18 @@ describe("what a link asks in the window", () => {
     expect(await screen.findByText(t("linkLookWhy"))).toBeTruthy();
   });
 
-  const keep = { id: 2, kind: "keep", title: "Viaje", owner: "", signer: "", print: "AB-CD" };
+  const plain = (name: string) => ({ name, standing: "plain" });
+  const keep = {
+    id: 2,
+    kind: "keep",
+    title: "Viaje",
+    owner: null,
+    signer: plain(""),
+    print: "AB-CD",
+  };
 
-  it("shows owner and signer apart when someone else signed this version", async () => {
-    standing({ ...keep, owner: "Mario", signer: "Ana", doubtful: false });
+  it("shows owner and signer apart when another root signed this version", async () => {
+    standing({ ...keep, owner: plain("Mario"), signer: plain("Ana"), doubtful: false });
     render(<LinkQuestions />);
 
     expect(await screen.findByText("Viaje")).toBeTruthy();
@@ -137,12 +145,58 @@ describe("what a link asks in the window", () => {
     expect(answers()).toEqual([{ id: 2, yes: false }]);
   });
 
-  it("names one person once when the owner signed it", async () => {
-    standing({ ...keep, owner: "Mario", signer: "Mario", doubtful: false });
+  it("names one person once when the owner's root signed it", async () => {
+    standing({ ...keep, signer: plain("Mario"), doubtful: false });
     render(<LinkQuestions />);
 
     expect(await screen.findByText(fill("linkKeepSigned", "Mario"))).toBeTruthy();
     expect(screen.queryByText(fill("linkKeepOwner", "Mario"))).toBeNull();
+  });
+
+  it("names the maker by Folio's word, verified, with the domain beneath and no link", async () => {
+    const maker = {
+      name: "otro alias",
+      standing: "verified",
+      maker: "rgdevment",
+      domain: "rgdevment.dev",
+    };
+    standing({ ...keep, signer: maker, doubtful: false });
+    render(<LinkQuestions />);
+
+    const signed = await screen.findByText(fill("linkKeepSigned", "rgdevment"), { exact: false });
+    expect(signed.textContent).toContain(t("linkKeepVerified"));
+    expect(screen.getByText("rgdevment.dev").closest("a")).toBeNull();
+    expect(screen.queryByText(fill("linkKeepSigned", "otro alias"), { exact: false })).toBeNull();
+  });
+
+  it("marks a name that imitates the maker's as another key's, where the domain would go", async () => {
+    standing({ ...keep, signer: { name: "rgdevrnent", standing: "imitates" }, doubtful: false });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText(fill("linkKeepSigned", "rgdevrnent"))).toBeTruthy();
+    expect(screen.getByText(t("linkKeepOtherKey"))).toBeTruthy();
+    expect(screen.queryByText(t("linkKeepVerified"))).toBeNull();
+  });
+
+  it("tells a key the maker took back that it no longer speaks for the name", async () => {
+    standing({ ...keep, signer: { name: "rgdevment", standing: "takenBack" }, doubtful: true });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText(fill("linkKeepSigned", "rgdevment"))).toBeTruthy();
+    expect(screen.getByText(t("linkKeepTakenBack"))).toBeTruthy();
+    expect(screen.queryByText(t("linkKeepVerified"))).toBeNull();
+  });
+
+  it("says a checked domain is checked, and never verified", async () => {
+    standing({
+      ...keep,
+      signer: { name: "ana.dev", standing: "checked", domain: "ana.dev" },
+      doubtful: false,
+    });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText(fill("linkKeepChecked", "ana.dev"))).toBeTruthy();
+    expect(screen.queryByText(t("linkKeepVerified"))).toBeNull();
   });
 
   it("names a document with no title, and warns of a key that cannot be trusted", async () => {

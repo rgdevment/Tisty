@@ -4,9 +4,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fill, t, type Word } from "../locales";
 import Modal from "./Modal";
 
+type Standing =
+  | { standing: "verified"; maker: string; domain?: string | null }
+  | { standing: "imitates" }
+  | { standing: "takenBack" }
+  | { standing: "checked"; domain: string }
+  | { standing: "plain" };
+
+type Party = { name: string } & Standing;
+
 type Question = { id: number } & (
   | { kind: "look" }
-  | { kind: "keep"; title: string; owner: string; signer: string; print: string; doubtful: boolean }
+  | {
+      kind: "keep";
+      title: string;
+      owner: Party | null;
+      signer: Party;
+      print: string;
+      doubtful: boolean;
+    }
   | { kind: "failed"; code: string }
 );
 
@@ -43,6 +59,38 @@ function Answers({
   );
 }
 
+// The maker is named by Folio's word, never by the alias the envelope carries.
+function Who({ party, said }: Readonly<{ party: Party; said: Word }>) {
+  const name = party.standing === "verified" ? party.maker : party.name;
+  if (!name) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <p className="break-words">
+        {fill(said, name)}
+        {party.standing === "verified" && (
+          <span className="ml-2 rounded-full bg-hue-green/10 px-2 py-0.5 text-[11.5px] font-semibold text-hue-green">
+            {t("linkKeepVerified")}
+          </span>
+        )}
+      </p>
+      {party.standing === "verified" && party.domain && (
+        <span className="break-all text-[11.5px] text-soft">{party.domain}</span>
+      )}
+      {party.standing === "imitates" && (
+        <span className="text-[11.5px] font-semibold text-hue-red">{t("linkKeepOtherKey")}</span>
+      )}
+      {party.standing === "takenBack" && (
+        <span className="text-[11.5px] font-semibold text-hue-red">{t("linkKeepTakenBack")}</span>
+      )}
+      {party.standing === "checked" && (
+        <span className="break-all text-[11.5px] text-soft">
+          {fill("linkKeepChecked", party.domain)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Keeping({
   asked,
   onAnswer,
@@ -54,10 +102,8 @@ function Keeping({
     <Modal title={t("linkKeepTitle")} onClose={() => onAnswer(false)}>
       <div className="flex flex-col gap-3 text-[13px] leading-relaxed">
         <p className="break-words font-semibold">{asked.title || t("untitledDoc")}</p>
-        {asked.owner && asked.owner !== asked.signer && (
-          <p className="break-words">{fill("linkKeepOwner", asked.owner)}</p>
-        )}
-        {asked.signer && <p className="break-words">{fill("linkKeepSigned", asked.signer)}</p>}
+        {asked.owner && <Who party={asked.owner} said="linkKeepOwner" />}
+        <Who party={asked.signer} said="linkKeepSigned" />
         <div className="flex flex-col gap-1">
           <span className="text-[11.5px] text-soft">{t("linkKeepPrint")}</span>
           <code className="break-all rounded-md bg-hover px-2 py-1.5 font-mono text-[11.5px]">

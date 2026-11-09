@@ -10,7 +10,7 @@ pub const LIMITS_URL: &str =
 pub const SIGNATURE_URL: &str =
     "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json.minisig";
 
-const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
+pub(crate) const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
 const SIGNED_KEPT: &str = "folio-limits.signed.json";
@@ -171,13 +171,14 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
 }
 
 // Who the maker is grants more than a warning, so it is read again under Folio's signature every time.
-pub fn maker_root(home: &Path) -> Option<String> {
+pub fn maker(home: &Path) -> Option<FolioMaker> {
     let said = std::fs::read(home.join(SIGNED_KEPT)).ok()?;
     let signature = std::fs::read_to_string(home.join(SIGNATURE_KEPT)).ok()?;
-    read_under(&said, &signature, KEY)
-        .ok()?
-        .maker
-        .map(|maker| maker.root)
+    read_under(&said, &signature, KEY).ok()?.maker
+}
+
+pub fn maker_root(home: &Path) -> Option<String> {
+    maker(home).map(|one| one.root)
 }
 
 pub fn uploads_halted(limits: Option<&FolioLimits>, now: u64) -> bool {

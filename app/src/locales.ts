@@ -825,6 +825,10 @@ const en = {
   linkLookingWhy: "Tisty is asking Folio for it. It will ask you before bringing it in.",
   linkKeepOwner: "Owner: {name}",
   linkKeepSigned: "This version signed by {name}",
+  linkKeepVerified: "verified",
+  linkKeepOtherKey: "That name belongs to another key",
+  linkKeepTakenBack: "Key taken back: it no longer speaks for this name",
+  linkKeepChecked: "{name} · checked domain",
   linkKeepPrint: "Fingerprint",
   linkKeepCompare: "Compare it with whoever shared it.",
   linkKeepDoubt:
@@ -3774,6 +3778,10 @@ const es: Catalog = {
   linkLookingWhy: "Tisty se lo está pidiendo a Folio. Te preguntará antes de traerlo.",
   linkKeepOwner: "Dueño: {name}",
   linkKeepSigned: "Esta versión la firmó {name}",
+  linkKeepVerified: "verificado",
+  linkKeepOtherKey: "Ese nombre es de otra llave",
+  linkKeepTakenBack: "Llave retirada: ya no habla por este nombre",
+  linkKeepChecked: "{name} · dominio comprobado",
   linkKeepPrint: "Huella",
   linkKeepCompare: "Compárala con quien te lo compartió.",
   linkKeepDoubt:

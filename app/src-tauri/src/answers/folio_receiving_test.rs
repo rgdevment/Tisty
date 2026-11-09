@@ -74,3 +74,18 @@ fn what_has_no_key_or_no_id_of_folio_is_no_link() {
         assert_eq!(parsed(said), None, "{said}");
     }
 }
+
+#[test]
+fn a_name_that_is_no_domain_asks_nothing_and_does_not_wait() {
+    let home = tempfile::tempdir().unwrap();
+    let began = std::time::Instant::now();
+    let checked = super::checked_within(
+        home.path(),
+        &[
+            ("R".repeat(43).as_str(), Some("Ana")),
+            ("O".repeat(43).as_str(), None),
+        ],
+    );
+    assert!(checked.is_empty());
+    assert!(began.elapsed() < super::DOMAIN_PATIENCE);
+}

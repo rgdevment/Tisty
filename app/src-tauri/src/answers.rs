@@ -5,6 +5,7 @@ pub mod carrying;
 pub mod clouding;
 pub mod folio;
 pub mod folio_receiving;
+pub mod folio_standing;
 pub mod freeing;
 pub mod guiding;
 pub mod helping;
