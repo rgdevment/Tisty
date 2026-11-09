@@ -261,6 +261,9 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             })
             .to_string(),
         ),
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
     };
     editor.sent(&[(file, entry)]);
 
@@ -287,6 +290,227 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
     assert_eq!(second.remembering[0].1.admin_token, None);
     assert_eq!(read.document["languages"][0]["document"], "Lang1111");
     assert_eq!(read.document["lang"], "es");
+}
+
+fn a_later_minor() -> String {
+    let mut said = tisty_contracts::VERSION.split('.');
+    let major = said.next().unwrap();
+    let minor: u64 = said.next().unwrap().parse().unwrap();
+    format!("{major}.{}.0", minor + 1)
+}
+
+#[test]
+fn what_arrived_under_a_later_minor_is_not_sealed_again_until_tisty_catches_up() {
+    let (_tmp, mut home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
+    let (file, mut shared) = first.remembering[0].clone();
+
+    shared.sealed_under = Some(a_later_minor());
+    home.sent(&[(file.clone(), shared.clone())]);
+    assert!(matches!(
+        under_folio(&home, doc, &under),
+        Err(Unshared::Newer)
+    ));
+
+    shared.sealed_under = Some(tisty_contracts::VERSION.to_owned());
+    home.sent(&[(file, shared)]);
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert_eq!(
+        home.sealed(again, vec![]).remembering[0]
+            .1
+            .sealed_under
+            .as_deref(),
+        Some(tisty_contracts::VERSION)
+    );
+}
+
+#[test]
+fn what_sits_under_folios_floor_goes_again_with_no_change_of_its_own() {
+    let (_tmp, mut home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
+    let (file, mut shared) = first.remembering[0].clone();
+    home.sent(&[(file.clone(), shared.clone())]);
+    let floor = vec![tisty_contracts::VERSION.to_owned()];
+
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert!(again.sent_again_below(&floor).same_as_sent());
+
+    shared.sealed_under = Some("1.2.0".to_owned());
+    home.sent(&[(file.clone(), shared.clone())]);
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert!(again.same_as_sent());
+    assert!(!again.sent_again_below(&floor).same_as_sent());
+
+    shared.sealed_under = None;
+    home.sent(&[(file, shared)]);
+    let again = || under_folio(&home, doc, &under).unwrap();
+    assert!(again().sent_again_below(&[]).same_as_sent());
+    assert!(!again().sent_again_below(&floor).same_as_sent());
+}
+
+fn signed_as(home: &Home, doc: DocId, under: &Under<'_>, name: &str) -> Gathered {
+    let desk = Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let asked = tisty_sharing::Asked {
+        signed_as: Some(name.to_owned()),
+        ..asked(doc)
+    };
+    gathered_under(&desk, &asked, under).unwrap()
+}
+
+fn names_in(document: &serde_json::Value) -> Vec<(String, bool)> {
+    document["editors"]
+        .as_array()
+        .map(|all| {
+            all.iter()
+                .map(|one| {
+                    (
+                        one["name"].as_str().unwrap().to_owned(),
+                        one["owned"] == true,
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_again() {
+    let (_tmp, mut owner, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let editable = Under {
+        mint: &mint,
+        editable: true,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = owner.sealed(signed_as(&owner, doc, &editable, "Mario"), vec![]);
+    let (owner_file, shared) = first.remembering[0].clone();
+    owner.sent(&[(owner_file.clone(), shared.clone())]);
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: shared.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    let main = &first.going[0].sealed.main;
+    let one = reading::reading(main, &opening, &served).unwrap();
+    assert_eq!(names_in(&one.document), [("Mario".to_owned(), true)]);
+
+    let tmp = tempfile::tempdir().unwrap();
+    let mut editor = Home::at(tmp.path());
+    another_person(&mut editor);
+    let body = one.document["body"].as_str().unwrap().to_owned();
+    let copy = editor.wrote(&format!("{body}Y otra cosa.\n"), None);
+    let file = editor.state.docs[&copy].file.clone();
+    let arrived = Remembered {
+        admin_token: None,
+        owner: reading::owner_block(&reading::opened(main, &opening, &served).unwrap()),
+        owner_name: Some("Mario".to_owned()),
+        carried: Some(serde_json::json!({ "editors": one.document["editors"] }).to_string()),
+        ..shared.clone()
+    };
+    editor.sent(&[(file, arrived)]);
+    let nobody = || Err(Unshared::Unread("it has its id".to_owned()));
+    let later = Under {
+        mint: &nobody,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let second = editor.sealed(signed_as(&editor, copy, &later, "Ana"), vec![]);
+    let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
+    let remembered: serde_json::Value =
+        serde_json::from_str(second.remembering[0].1.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(remembered["editors"], two.document["editors"]);
+    assert_eq!(
+        names_in(&two.document),
+        [("Mario".to_owned(), true), ("Ana".to_owned(), false)]
+    );
+
+    let brought = tisty_sharing::editors_brought(
+        shared.carried.as_deref(),
+        Some(&serde_json::json!({ "editors": two.document["editors"] }).to_string()),
+    );
+    owner.sent(&[(
+        owner_file,
+        Remembered {
+            version: 2,
+            carried: brought,
+            ..shared
+        },
+    )]);
+    let third = owner.sealed(signed_as(&owner, doc, &later, "Mario Hidalgo"), vec![]);
+    let three = reading::reading(&third.going[0].sealed.main, &opening, &served).unwrap();
+    assert_eq!(
+        names_in(&three.document),
+        [
+            ("Mario Hidalgo".to_owned(), true),
+            ("Ana".to_owned(), false)
+        ]
+    );
+}
+
+#[test]
+fn what_is_public_names_no_editor() {
+    let (_tmp, home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let desk = Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let asked = tisty_sharing::Asked {
+        public: true,
+        signed_as: Some("Mario".to_owned()),
+        ..asked(doc)
+    };
+    let sealed = home.sealed(gathered_under(&desk, &asked, &under).unwrap(), vec![]);
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: None,
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    let read = reading::reading(&sealed.going[0].sealed.main, &opening, &served).unwrap();
+    assert!(read.document.get("editors").is_none());
 }
 
 #[test]
@@ -352,6 +576,9 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         held_by: None,
         ttl_days: None,
         carried: None,
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);

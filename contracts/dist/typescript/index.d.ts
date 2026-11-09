@@ -1,4 +1,4 @@
-export declare const VERSION: "1.6.0";
+export declare const VERSION: "1.7.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -53,6 +53,7 @@ export interface Document {
   sheet?: Sheet;
   signed_as?: string;
   owner_name?: string;
+  editors?: Editor[];
   made?: string;
   wrote?: string;
   body: string;
@@ -201,6 +202,18 @@ export interface Owner {
   signed: string;
 }
 
+/** Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name. */
+export interface Editor {
+  in: string;
+  root: string;
+  machine: string;
+  since: string;
+  certificate: string;
+  name: string;
+  owned?: boolean;
+  signed: string;
+}
+
 /** A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it holds. Everything it decides is decided by whoever receives it. */
 export interface Revocation {
   root: string;
@@ -266,7 +279,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

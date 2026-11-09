@@ -18,6 +18,10 @@ const card = {
   taken: false,
   held: false,
   told: [],
+  owner: null,
+  signer: null,
+  editors: [],
+  signsAs: null,
 };
 const status = {
   diesOn: 20_000,
@@ -104,6 +108,51 @@ describe("the Shared row", () => {
 
     expect(panel().gist).toBe(t("sharedCanEdit"));
     expect(panel().links?.map((one) => one.key)).toEqual(["read", "edit"]);
+  });
+
+  it("names the owner and whoever signed this version apart, and lets whoever edits sign as their other name", async () => {
+    const editing = {
+      ...card,
+      edit: "https://tisty.cl/a#k.t",
+      taken: true,
+      owner: { name: "Mario Hidalgo", checked: true },
+      signer: { name: "Ana", checked: false },
+      editors: [
+        { name: "Ana", checked: false },
+        { name: "Juan", checked: true },
+      ],
+      signsAs: { now: "ana.dev", other: "Ana Pérez" },
+    };
+    const after = { ...editing, signsAs: { now: "Ana Pérez", other: "ana.dev" } };
+    const { panel, pressed } = await held(editing, { doc_share_sign_as: after });
+
+    expect(panel().said).toContain(
+      fill("sharedOwnerAndSigner", fill("sharedChecked", "Mario Hidalgo"), "Ana"),
+    );
+    expect(panel().said).toContain(fill("sharedEditedBy", `Ana, ${fill("sharedChecked", "Juan")}`));
+    expect(panel().said).toContain(fill("shareSignsAs", "ana.dev"));
+    await pressed("signs");
+
+    expect(invoked).toHaveBeenCalledWith("doc_share_sign_as", { id: "d1", name: "Ana Pérez" });
+    await waitFor(() => expect(panel().said).toContain(fill("shareSignsAs", "Ana Pérez")));
+  });
+
+  it("names only the owner when the owner signed the version a copy holds", async () => {
+    const { panel } = await held({
+      ...card,
+      taken: true,
+      owner: { name: "Mario", checked: false },
+      signer: null,
+    });
+
+    expect(panel().said).toContain(fill("sharedOwner", "Mario"));
+    expect(panel().acts?.map((one) => one.key)).not.toContain("signs");
+  });
+
+  it("tells the owner who signed the version it now holds", async () => {
+    const { panel } = await held({ ...card, signer: { name: "Ana", checked: false } });
+
+    expect(panel().said).toContain(fill("sharedVersionBy", "Ana"));
   });
 
   it.each([

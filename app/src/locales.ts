@@ -350,6 +350,7 @@ const en = {
   goBack: "Back",
   guestDoc: "Written by {name}, and imported from another Tisty",
   guestDocPlain: "It came from another Tisty, and nobody had signed it",
+  guestEditing: "Shared by {name}, who lets you edit it: your versions go to the same link",
   guestNone: "from elsewhere",
   goneDoc: "That document is not on this machine",
   cardHere: "You are here",
@@ -710,6 +711,8 @@ const en = {
   folioBlocked: "Reports closed this link, so Folio takes nothing more for it.",
   folioBehind: "Another version arrived first. Press Sync to bring it.",
   folioOutdated: "This Tisty is too old for Folio. Update it to share.",
+  folioNewerVersionHere:
+    "Its last version came from a newer Tisty. Update this one before sending yours, or what it does not know would be lost.",
   folioRevoked:
     "Folio did not take this computer's signature: its key was taken back. Type your phrase in Settings › Your identity to give it a new one.",
   folioGone: "This link no longer exists: it ran out or it was stopped.",
@@ -756,6 +759,13 @@ const en = {
     "Your appeal was sent. The operator will review it, and the block stays until then.",
   folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
   shareStopEditing: "Stop editing it",
+  shareSignsAs: "Your versions go signed as {0}.",
+  shareSignAsOther: "Sign as {0}",
+  sharedOwnerAndSigner: "Created by {0} · Last edited by {1}",
+  sharedOwner: "Created by {0}",
+  sharedVersionBy: "Last edited by {0}",
+  sharedEditedBy: "Edited by: {0}",
+  sharedChecked: "{0} ✓",
   folioChanged: "The document changed while you chose, so it was looked over again.",
   shareTermsUnchecked:
     "Folio's new terms could not be verified. You can keep sharing under the ones you accepted.",
@@ -3308,6 +3318,7 @@ const es: Catalog = {
   goBack: "Volver",
   guestDoc: "Lo escribió {name}, y se importó de otro Tisty",
   guestDocPlain: "Llegó de otro Tisty, y nadie lo había firmado",
+  guestEditing: "Lo compartió {name}, que te deja editarlo: tus versiones van al mismo link",
   guestNone: "de fuera",
   goneDoc: "Ese documento no está en esta máquina",
   cardHere: "Estás aquí",
@@ -3670,6 +3681,8 @@ const es: Catalog = {
   folioBlocked: "Las denuncias cerraron este link, así que Folio no recibe nada más para él.",
   folioBehind: "Llegó otra versión antes. Presiona Sincronizar para traerla.",
   folioOutdated: "Este Tisty es demasiado antiguo para Folio. Actualízalo para compartir.",
+  folioNewerVersionHere:
+    "Su última versión llegó desde un Tisty más nuevo. Actualiza este antes de enviar la tuya, o se perdería lo que no conoce.",
   folioRevoked:
     "Folio no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase en Configuración › Tu identidad para darle una nueva.",
   folioGone: "Este link ya no existe: caducó o se dejó de compartir.",
@@ -3717,6 +3730,13 @@ const es: Catalog = {
     "Se envió tu reclamo. Lo revisará quien opera el servicio, y el bloqueo sigue hasta entonces.",
   folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
   shareStopEditing: "Dejar de editarlo",
+  shareSignsAs: "Tus versiones van firmadas como {0}.",
+  shareSignAsOther: "Firmar como {0}",
+  sharedOwnerAndSigner: "Creado por {0} · Última edición: {1}",
+  sharedOwner: "Creado por {0}",
+  sharedVersionBy: "Última edición: {0}",
+  sharedEditedBy: "Editado por: {0}",
+  sharedChecked: "{0} ✓",
   folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTermsUnchecked:
     "No se pudieron verificar los términos nuevos de Folio. Puedes seguir compartiendo con los que aceptaste.",

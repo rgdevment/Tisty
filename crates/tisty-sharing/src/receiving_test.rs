@@ -90,3 +90,28 @@ fn a_document_with_nothing_beyond_itself_carries_nothing() {
 
     assert_eq!(told.carried, None);
 }
+
+#[test]
+fn another_version_brings_its_editors_and_leaves_what_this_copy_carries() {
+    let theirs = r#"{"lang":"en","languages":[{"lang":"de"}],"editors":[{"name":"Ana"}]}"#;
+    let mine = r#"{"lang":"es","languages":[{"lang":"en"}],"cited":null}"#;
+
+    let kept: serde_json::Value =
+        serde_json::from_str(&super::editors_brought(Some(mine), Some(theirs)).unwrap()).unwrap();
+    assert_eq!(kept["lang"], "es");
+    assert_eq!(kept["languages"][0]["lang"], "en");
+    assert_eq!(kept["editors"][0]["name"], "Ana");
+
+    let owners: serde_json::Value =
+        serde_json::from_str(&super::editors_brought(None, Some(theirs)).unwrap()).unwrap();
+    assert_eq!(
+        owners,
+        serde_json::json!({ "editors": [{ "name": "Ana" }] })
+    );
+
+    assert_eq!(
+        super::editors_brought(Some(mine), None).as_deref(),
+        Some(mine)
+    );
+    assert_eq!(super::editors_brought(None, Some(r#"{"lang":"en"}"#)), None);
+}

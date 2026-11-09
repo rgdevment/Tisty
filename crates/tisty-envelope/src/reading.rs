@@ -11,11 +11,12 @@ use jiff::Timestamp;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Served, VERSION, Verdict, check,
-    check_html, pictures_in, references_in,
+    Editor, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Served, VERSION, Verdict,
+    check, check_html, pictures_in, references_in,
 };
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
+use crate::editors::{self, AT_MOST as EDITORS_AT_MOST};
 use crate::sealing::{
     ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
     name_tag, nonce, owner_said,
@@ -96,12 +97,31 @@ fn under_a_later_minor(bytes: &[u8]) -> bool {
     let manifest = size.and_then(|one| bytes.get(8..8 + one));
     let manifest = manifest.and_then(|one| serde_json::from_slice::<Value>(one).ok());
     let said = manifest.as_ref().and_then(|one| one["contract"].as_str());
-    said.filter(|one| !one.contains('-')).is_some_and(|one| {
-        major_of(one) == major_of(VERSION)
-            && minor_of(one)
-                .zip(minor_of(VERSION))
-                .is_some_and(|(said, here)| said > here)
-    })
+    said.is_some_and(later_than_this)
+}
+
+/// Whether a version of the contract says more than this writer knows, so sealing what came under it would drop that (154).
+pub fn later_than_this(said: &str) -> bool {
+    !said.contains('-')
+        && major_of(said) == major_of(VERSION)
+        && minor_of(said)
+            .zip(minor_of(VERSION))
+            .is_some_and(|(said, here)| said > here)
+}
+
+// Folio weighs major and minor alone, and an unknown seal is taken as under it; a floor it cannot read moves nothing.
+pub fn under_the_floor(sealed: Option<&str>, floor: &str) -> bool {
+    let Some(floor) = major_of(floor).zip(minor_of(floor)) else {
+        return false;
+    };
+    sealed
+        .and_then(|one| major_of(one).zip(minor_of(one)))
+        .is_none_or(|said| said < floor)
+}
+
+pub fn contract_of(main: &Opened) -> Option<String> {
+    let manifest: Value = serde_json::from_slice(&main.manifest).ok()?;
+    manifest["contract"].as_str().map(str::to_owned)
 }
 
 // What a later minor may add, this reader cannot tell from what is broken, and it shows neither.
@@ -608,6 +628,7 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
             first.insert(name.to_owned(), said);
         }
     }
+    let editors = first.remove("editors");
     let held = Value::Object(first);
     if !check("document", &held).is_empty() {
         return damaged("its document is outside the contract");
@@ -629,7 +650,26 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     for page in pages {
         references_hold(page["html"].as_str().unwrap_or_default(), &held)?;
     }
-    Ok(held)
+    Ok(editors_kept(held, editors, manifest["sealed"] == true))
+}
+
+// An editor answers for no word, so one a hostile hand wrote never costs the reader the document.
+fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
+    let kept: Vec<Value> = said
+        .filter(|_| sealed)
+        .and_then(|said| said.as_array().cloned())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|one| check("editor", one).is_empty())
+        .filter(|one| {
+            serde_json::from_value::<Editor>(one.clone()).is_ok_and(|one| editors::holds(&one))
+        })
+        .take(EDITORS_AT_MOST)
+        .collect();
+    if let (Some(document), false) = (held.as_object_mut(), kept.is_empty()) {
+        document.insert("editors".to_owned(), Value::Array(kept));
+    }
+    held
 }
 
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
