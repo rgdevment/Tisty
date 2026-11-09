@@ -443,6 +443,8 @@ async fn other_version_brought(
     now.version = opened.version;
     now.sealed_under = opened.contract.clone();
     now.version_by = owner_apart(&opened).and(received.signed_as.clone());
+    now.carried =
+        tisty_sharing::editors_brought(was.carried.as_deref(), received.carried.as_deref());
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;

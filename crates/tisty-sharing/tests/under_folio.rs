@@ -363,6 +363,152 @@ fn what_sits_under_folios_floor_goes_again_with_no_change_of_its_own() {
     assert!(!again().sent_again_below(&floor).same_as_sent());
 }
 
+fn signed_as(home: &Home, doc: DocId, under: &Under<'_>, name: &str) -> Gathered {
+    let desk = Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let asked = tisty_sharing::Asked {
+        signed_as: Some(name.to_owned()),
+        ..asked(doc)
+    };
+    gathered_under(&desk, &asked, under).unwrap()
+}
+
+fn names_in(document: &serde_json::Value) -> Vec<(String, bool)> {
+    document["editors"]
+        .as_array()
+        .map(|all| {
+            all.iter()
+                .map(|one| {
+                    (
+                        one["name"].as_str().unwrap().to_owned(),
+                        one["owned"] == true,
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_again() {
+    let (_tmp, mut owner, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let editable = Under {
+        mint: &mint,
+        editable: true,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = owner.sealed(signed_as(&owner, doc, &editable, "Mario"), vec![]);
+    let (owner_file, shared) = first.remembering[0].clone();
+    owner.sent(&[(owner_file.clone(), shared.clone())]);
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: shared.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    let main = &first.going[0].sealed.main;
+    let one = reading::reading(main, &opening, &served).unwrap();
+    assert_eq!(names_in(&one.document), [("Mario".to_owned(), true)]);
+
+    let tmp = tempfile::tempdir().unwrap();
+    let mut editor = Home::at(tmp.path());
+    another_person(&mut editor);
+    let body = one.document["body"].as_str().unwrap().to_owned();
+    let copy = editor.wrote(&format!("{body}Y otra cosa.\n"), None);
+    let file = editor.state.docs[&copy].file.clone();
+    let arrived = Remembered {
+        admin_token: None,
+        owner: reading::owner_block(&reading::opened(main, &opening, &served).unwrap()),
+        owner_name: Some("Mario".to_owned()),
+        carried: Some(serde_json::json!({ "editors": one.document["editors"] }).to_string()),
+        ..shared.clone()
+    };
+    editor.sent(&[(file, arrived)]);
+    let nobody = || Err(Unshared::Unread("it has its id".to_owned()));
+    let later = Under {
+        mint: &nobody,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let second = editor.sealed(signed_as(&editor, copy, &later, "Ana"), vec![]);
+    let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
+    assert_eq!(
+        names_in(&two.document),
+        [("Mario".to_owned(), true), ("Ana".to_owned(), false)]
+    );
+
+    let brought = tisty_sharing::editors_brought(
+        shared.carried.as_deref(),
+        Some(&serde_json::json!({ "editors": two.document["editors"] }).to_string()),
+    );
+    owner.sent(&[(
+        owner_file,
+        Remembered {
+            version: 2,
+            carried: brought,
+            ..shared
+        },
+    )]);
+    let third = owner.sealed(signed_as(&owner, doc, &later, "Mario Hidalgo"), vec![]);
+    let three = reading::reading(&third.going[0].sealed.main, &opening, &served).unwrap();
+    assert_eq!(
+        names_in(&three.document),
+        [
+            ("Mario Hidalgo".to_owned(), true),
+            ("Ana".to_owned(), false)
+        ]
+    );
+}
+
+#[test]
+fn what_is_public_names_no_editor() {
+    let (_tmp, home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let desk = Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let asked = tisty_sharing::Asked {
+        public: true,
+        signed_as: Some("Mario".to_owned()),
+        ..asked(doc)
+    };
+    let sealed = home.sealed(gathered_under(&desk, &asked, &under).unwrap(), vec![]);
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: None,
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    let read = reading::reading(&sealed.going[0].sealed.main, &opening, &served).unwrap();
+    assert!(read.document.get("editors").is_none());
+}
+
 #[test]
 fn the_document_that_was_shared_is_held_by_nothing() {
     let (_tmp, home, doc) = written();

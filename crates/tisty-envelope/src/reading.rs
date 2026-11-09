@@ -11,11 +11,12 @@ use jiff::Timestamp;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Served, VERSION, Verdict, check,
-    check_html, pictures_in, references_in,
+    Editor, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Served, VERSION, Verdict,
+    check, check_html, pictures_in, references_in,
 };
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
+use crate::editors;
 use crate::sealing::{
     ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
     name_tag, nonce, owner_said,
@@ -648,7 +649,27 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     for page in pages {
         references_hold(page["html"].as_str().unwrap_or_default(), &held)?;
     }
-    Ok(held)
+    Ok(editors_kept(held, manifest["sealed"] == true))
+}
+
+// One that does not hold is left aside and never stops the words, and what is public names nobody yet.
+fn editors_kept(mut held: Value, sealed: bool) -> Value {
+    let Some(document) = held.as_object_mut() else {
+        return held;
+    };
+    let kept: Vec<Value> = document
+        .remove("editors")
+        .filter(|_| sealed)
+        .and_then(|said| serde_json::from_value::<Vec<Editor>>(said).ok())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(editors::holds)
+        .filter_map(|one| serde_json::to_value(one).ok())
+        .collect();
+    if !kept.is_empty() {
+        document.insert("editors".to_owned(), Value::Array(kept));
+    }
+    held
 }
 
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {

@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    Attachment, Cited, Document, Orientation, Page, Paper, Sealing, Sheet, Translation,
+    Attachment, Cited, Document, Editor, Orientation, Page, Paper, Sealing, Sheet, Translation,
 };
 use tisty_core::model::{DocId, Kept};
 use tisty_core::person::Persons;
@@ -43,6 +43,7 @@ struct Carried {
     lang: Option<String>,
     languages: Option<Vec<Translation>>,
     cited: Option<Vec<Cited>>,
+    editors: Option<Vec<Editor>>,
 }
 
 fn carried_by(was: Option<&Remembered>) -> Carried {
@@ -541,6 +542,7 @@ impl Gathering<'_> {
             files_hash: None,
             cited: carried.cited,
             languages: carried.languages,
+            editors: carried.editors,
         };
         Ok(Tongue {
             document,

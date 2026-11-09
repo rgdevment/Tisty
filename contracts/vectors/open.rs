@@ -94,6 +94,36 @@ fn told_apart<T>(bytes: &[u8], result: Result<T, String>) -> Result<T, String> {
     result.map_err(|wrong| if under_a_later_minor(bytes) { "newer: update to read it".to_owned() } else { wrong })
 }
 
+// An editor answers only for having signed this name for this document, and one that does not hold is left aside.
+fn editor_holds(entry: &Value) -> bool {
+    let decoded = |name: &str| entry[name].as_str().and_then(|one| URL_SAFE_NO_PAD.decode(one).ok());
+    let (Some(root), Some(machine), Some(certificate), Some(signed)) =
+        (decoded("root"), decoded("machine"), decoded("certificate"), decoded("signed"))
+    else {
+        return false;
+    };
+    let (Some(since), Some(id), Some(name)) = (entry["since"].as_str(), entry["in"].as_str(), entry["name"].as_str()) else {
+        return false;
+    };
+    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &seconds(since).to_be_bytes()].concat();
+    let about = b"editor";
+    let owned = [u8::from(entry["owned"] == Value::Bool(true))];
+    let said = [
+        b"tisty-share.signed.v1\0".as_slice(),
+        &root,
+        &machine,
+        &(about.len() as u64).to_be_bytes(),
+        about,
+        &(id.len() as u64).to_be_bytes(),
+        id.as_bytes(),
+        &owned,
+        &(name.len() as u64).to_be_bytes(),
+        name.as_bytes(),
+    ]
+    .concat();
+    verified(&root, &certificate, &certified).is_ok() && verified(&machine, &signed, &said).is_ok()
+}
+
 // The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
 fn owner_answers(manifest: &Value, signature: &Value, manifest_bytes: &[u8], index: &[u8]) -> Result<(), String> {
     let owner = &manifest["owner"];
@@ -509,6 +539,13 @@ fn verdict_of(signed_by: &Value, served: &Value) -> &'static str {
 
 fn vectors() -> Value {
     serde_json::from_str(VECTORS).unwrap()
+}
+
+#[test]
+fn an_editor_holds_only_as_it_was_signed() {
+    for one in vectors()["editors"].as_array().unwrap() {
+        assert_eq!(editor_holds(&one["entry"]), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+    }
 }
 
 #[test]

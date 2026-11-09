@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.6.0";
+pub const VERSION: &str = "1.7.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -155,6 +155,8 @@ pub struct Document {
     pub signed_as: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub editors: Option<Vec<Editor>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -355,6 +357,20 @@ pub struct Owner {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permit: Option<String>,
     pub name_tag: String,
+    pub signed: String,
+}
+
+/// Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Editor {
+    pub r#in: String,
+    pub root: String,
+    pub machine: String,
+    pub since: String,
+    pub certificate: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owned: Option<bool>,
     pub signed: String,
 }
 
