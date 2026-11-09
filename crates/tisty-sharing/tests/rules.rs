@@ -1824,10 +1824,60 @@ fn each_language_is_offered_as_ones_own_or_not_and_the_anchor_as_fixed() {
         maker: None,
     };
 
-    let offered = tisty_sharing::languages_offered(&desk, es).unwrap();
+    let offered = tisty_sharing::languages_offered(&desk, es, &[]).unwrap();
     let said = |id| offered.iter().find(|one| one.id == id).unwrap();
     assert!(said(es).anchor && said(es).own);
     assert!(!said(en).anchor && said(en).own);
     assert!(!said(pt).own);
     assert_eq!(said(en).lang, "en");
+}
+
+#[test]
+fn the_groups_choice_is_where_any_language_starts_and_ticking_one_again_adds_it() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote("---\nlang: es\n---\n\npaseos\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\nwalks\n", None);
+    home.joined(en, es);
+    let en_file = home.state.docs[&en].file.clone();
+
+    let first = sealed(
+        &home,
+        &tisty_sharing::Asked {
+            left_out: vec![en_file.clone()],
+            ..asked(es)
+        },
+    );
+    home.sent(&first.remembering);
+    assert_eq!(
+        tisty_sharing::left_out_of(&home.state, es),
+        vec![en_file.clone()]
+    );
+    assert_eq!(
+        tisty_sharing::left_out_of(&home.state, en),
+        vec![en_file.clone()]
+    );
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let offered =
+        tisty_sharing::languages_offered(&desk, es, std::slice::from_ref(&en_file)).unwrap();
+    assert!(offered.iter().any(|one| one.id == en && one.left_out));
+    assert!(offered.iter().any(|one| one.id == es && !one.left_out));
+
+    let again = sealed(&home, &asked(es));
+    assert!(
+        every_reader_opens(&again)
+            .iter()
+            .any(|one| all_text(one).contains("walks"))
+    );
+    assert!(
+        again
+            .remembering
+            .iter()
+            .all(|(_, one)| one.left_out.is_empty())
+    );
 }

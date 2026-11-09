@@ -11,7 +11,7 @@ mod remembering;
 pub use finishing::{Carrying, Finished, Sealed, Unfinished};
 pub use gathering::{
     Asked, Desk, Gathered, Offered, Under, citable, gathered, gathered_under, gathered_within,
-    languages_offered, signer, signer_among,
+    languages_offered, left_out_of, signer, signer_among,
 };
 pub use maker::{certified_by, signs_for};
 pub use packing::Told;

@@ -1338,3 +1338,17 @@ fn the_window_hears_whether_sharing_is_open_beside_folios_private_host() {
         serde_json::json!({ "state": "open", "site": "tisty.cl" })
     );
 }
+
+#[test]
+fn a_sync_asks_again_with_the_languages_its_share_left_out() {
+    let was = Remembered {
+        left_out: vec!["en-file".to_owned()],
+        signed_as: Some("Mario".to_owned()),
+        ..remembered(Some("key"), None)
+    };
+    let doc = ulid::Ulid::generate();
+    let asked = crate::answers::folio_sync::asked_again(doc, &was).unwrap();
+    assert_eq!(asked.left_out, vec!["en-file".to_owned()]);
+    assert_eq!(asked.signed_as.as_deref(), Some("Mario"));
+    assert_eq!(asked.doc, doc);
+}

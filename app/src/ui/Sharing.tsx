@@ -463,6 +463,7 @@ function Choosing({
   onShare,
   onClose,
   onLookAgain,
+  onLeftOut,
   onError,
 }: Readonly<{
   doc: string;
@@ -473,6 +474,7 @@ function Choosing({
   onShare: (chosen: Parameters<typeof docShared>[1]) => void;
   onClose: () => void;
   onLookAgain: () => void;
+  onLeftOut: (leftOut: string[]) => void;
   onError?: (problem: unknown) => void;
 }>) {
   const [editable, setEditable] = useState(false);
@@ -481,7 +483,7 @@ function Choosing({
   const terms = look.limits.ttl_days ?? [];
   const [days, setDays] = useState(terms[0] ?? 0);
   const [cites, setCites] = useState(false);
-  const [leftOut, setLeftOut] = useState<string[]>([]);
+  const leftOut = look.languages.filter((one) => one.leftOut).map((one) => one.id);
   const secrets = cites ? [...look.secrets, ...look.citedSecrets] : look.secrets;
   const others = look.shared.filter((one) => one.doc !== doc);
   const already = others.length !== look.shared.length;
@@ -687,7 +689,7 @@ function Choosing({
               mostBytes={look.limits.files_bytes_at_most}
             />
           </dl>
-          <Languages languages={look.languages} leftOut={leftOut} onLeftOut={setLeftOut} />
+          <Languages languages={look.languages} leftOut={leftOut} onLeftOut={onLeftOut} />
           {look.cited.length > 0 && (
             <>
               <label className="flex cursor-pointer items-center gap-2 text-[12.5px]">
@@ -728,7 +730,7 @@ function Choosing({
                 editable,
                 ttlDays: days,
                 seen: look.seen ?? undefined,
-                ...(leftOut.length > 0 ? { leftOut } : {}),
+                ...(look.languages.length > 1 ? { leftOut } : {}),
               })
             }
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
@@ -792,6 +794,17 @@ export default function Sharing({
       })
       .catch(failed);
   }, [doc, failed]);
+
+  const lookLeaving = useCallback(
+    (leftOut: string[]) => {
+      shareLook(doc, leftOut)
+        .then((look) => {
+          if (live.current) setStep({ at: "choosing", look });
+        })
+        .catch(failed);
+    },
+    [doc, failed],
+  );
 
   const termsOver = useCallback(() => {
     termsNow()
@@ -931,6 +944,7 @@ export default function Sharing({
           onShare={share}
           onClose={onClose}
           onLookAgain={lookOver}
+          onLeftOut={lookLeaving}
           onError={failed}
         />
       );
