@@ -435,7 +435,11 @@ function Choosing({
   const sharedAfter = others.length + (already ? 0 : 1) + (cites ? citedNew : 0);
   const citesOver = cites && !full && most !== undefined && sharedAfter > most;
   const aDay = look.limits.new_shares_a_day;
-  const newToday = look.newSharesToday + (already ? 0 : 1) + (cites ? citedNew : 0);
+  const newThere = (one: string) => !look.heldThere.includes(one);
+  const newToday =
+    look.newSharesToday +
+    (newThere(doc) ? 1 : 0) +
+    (cites ? look.cited.filter(newThere).length : 0);
   const todayOver = aDay !== undefined && newToday > look.newSharesToday && newToday > aDay;
   const named = look.alias || look.name;
   const chosenName = signs === "alias" ? look.alias : look.name;

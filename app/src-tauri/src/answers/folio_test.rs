@@ -144,6 +144,76 @@ fn a_new_version_is_not_a_new_share_of_the_day() {
     assert_eq!(folio_today::shared_today(home.path(), policy::now()), 0);
 }
 
+fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String>) {
+    let top = remembered(Some("key"), None);
+    let mut cited = remembered(Some("key"), None);
+    cited.id = "Cited123".to_owned();
+    cited.held_by = Some(top.id.clone());
+    let going = |id: &str| Going {
+        id: id.to_owned(),
+        sealed: Envelopes {
+            main: vec![1],
+            files: None,
+            files_hash: None,
+        },
+    };
+    let sealed = tisty_sharing::Sealed {
+        going: vec![going(&top.id), going(&cited.id)],
+        told: Vec::new(),
+        remembering: vec![("top".to_owned(), top), ("cited".to_owned(), cited)],
+        anchors: BTreeMap::new(),
+    };
+    let starts = BTreeMap::from([
+        ("Ab3xK9pQ".to_owned(), "mac".to_owned()),
+        ("Cited123".to_owned(), "mac".to_owned()),
+    ]);
+    (sealed, starts)
+}
+
+#[test]
+fn what_is_cited_goes_before_what_cites_it() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().extend([
+        (200, r#"{"stored":true,"version":1}"#),
+        (200, r#"{"stored":true,"version":1}"#),
+    ]);
+    let (sealed, starts) = a_root_and_what_it_cites();
+
+    delivered(
+        &folio,
+        home.path(),
+        &kept_in(&Kept::default()),
+        &sealed,
+        &starts,
+        1,
+    )
+    .unwrap();
+
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, "/docs/Cited123");
+    assert_eq!(asked[1].0, "/docs/Ab3xK9pQ");
+    assert_eq!(folio_today::shared_today(home.path(), policy::now()), 2);
+}
+
+#[test]
+fn past_the_day_s_new_documents_the_root_is_never_left_citing_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    let kept = Kept::default();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((429, r#"{"refused":"shares_today","until":1800000000000}"#));
+    let (sealed, starts) = a_root_and_what_it_cites();
+
+    let told = delivered(&folio, home.path(), &kept_in(&kept), &sealed, &starts, 1).unwrap_err();
+
+    assert_eq!(told.code, "folioSharesToday");
+    assert_eq!(folio.asked.borrow().len(), 1, "the root never went");
+    assert!(kept.borrow().is_empty());
+}
+
 #[test]
 fn its_files_go_when_folio_wants_them() {
     let kept = Kept::default();

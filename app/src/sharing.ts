@@ -70,6 +70,7 @@ export interface ShareLook {
   told: Told[];
   seen: string | null;
   newSharesToday: number;
+  heldThere: string[];
 }
 
 export interface ShareCard {
