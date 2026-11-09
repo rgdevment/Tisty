@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   dragTo,
   fold,
@@ -47,6 +47,12 @@ function Shown() {
 const width = () => screen.getByRole("status").textContent;
 
 describe("the sidebar can be folded and widened", () => {
+  beforeAll(() => {
+    if (!Element.prototype.setPointerCapture) {
+      Element.prototype.setPointerCapture = vi.fn();
+      Element.prototype.releasePointerCapture = vi.fn();
+    }
+  });
   afterEach(() => act(() => unwiden()));
 
   it("keeps a width within its bounds, and folds when dragged past its narrowest", () => {
