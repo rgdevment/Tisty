@@ -442,8 +442,11 @@ that token, and the owner does not change.
 opened on your computer, and what comes in is its body in Tisty's own language,
 never its HTML. One that does not hold is refused. Before anything is kept, Tisty
 shows who signed it and the fingerprint to compare, and warns if that key was
-taken back or cannot be confirmed. A read link leaves a copy of your own, and
-nothing of it goes back.
+taken back or cannot be confirmed. What the maker of Tisty signed, under the
+root that Folio's signed limits name, says «verified» beside the maker's name;
+another key whose alias is that name, or close to it, keeps its alias under a
+red line saying the name belongs to another key. A read link leaves a copy of
+your own, and nothing of it goes back.
 
 **What the limits can do.** `limits.json` says whether sharing is open and what
 it allows. It is refused unless it is signed with minisign against a key fixed in
