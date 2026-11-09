@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, VecDeque};
 use tisty_carrier::folio_client::{Answered, Asked, Door, Refused, Stopped, Taken, Why};
 use tisty_carrier::folio_limits::SharingNow;
 use tisty_carrier::folio_terms::{Standing, Unsure};
+use tisty_carrier::{folio_today, policy};
 use tisty_envelope::family::Going;
 use tisty_envelope::sealing::Sealed as Envelopes;
 use tisty_share_proto::identity::Revocation;
@@ -75,14 +76,72 @@ fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
         .borrow_mut()
         .push_back((200, r#"{"stored":true,"version":1}"#));
 
-    delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 3).unwrap();
+    let home = tempfile::tempdir().unwrap();
+    delivered(
+        &folio,
+        home.path(),
+        &kept_in(&kept),
+        &sealed_for(None),
+        &starts(),
+        3,
+    )
+    .unwrap();
 
+    assert_eq!(folio_today::shared_today(home.path(), policy::now()), 1);
     let asked = folio.asked.borrow();
     assert_eq!(asked[0].0, "/docs/Ab3xK9pQ");
     assert!(asked[0].1.contains(&("Folio-Start", "mac".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Ttl-Days", "3".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
     assert_eq!(kept.borrow()[0].0, "file");
+}
+
+#[test]
+fn a_language_that_goes_with_its_anchor_is_not_a_new_share_of_the_day() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":1}"#));
+    let mut sealed = sealed_for(None);
+    sealed
+        .anchors
+        .insert("Ab3xK9pQ".to_owned(), "Anchor12".to_owned());
+
+    delivered(
+        &folio,
+        home.path(),
+        &kept_in(&Kept::default()),
+        &sealed,
+        &starts(),
+        1,
+    )
+    .unwrap();
+
+    assert_eq!(folio_today::shared_today(home.path(), policy::now()), 0);
+}
+
+#[test]
+fn a_new_version_is_not_a_new_share_of_the_day() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":3}"#));
+
+    delivered(
+        &folio,
+        home.path(),
+        &kept_in(&Kept::default()),
+        &sealed_for(None),
+        &BTreeMap::new(),
+        1,
+    )
+    .unwrap();
+
+    assert_eq!(folio_today::shared_today(home.path(), policy::now()), 0);
 }
 
 #[test]
@@ -96,6 +155,7 @@ fn its_files_go_when_folio_wants_them() {
 
     delivered(
         &folio,
+        tempfile::tempdir().unwrap().path(),
         &kept_in(&kept),
         &sealed_for(Some(vec![2])),
         &starts(),
@@ -198,7 +258,15 @@ fn what_folio_refused_is_not_remembered_as_sent() {
         .borrow_mut()
         .push_back((409, r#"{"refused":"shares_full"}"#));
 
-    let told = delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 1).unwrap_err();
+    let told = delivered(
+        &folio,
+        tempfile::tempdir().unwrap().path(),
+        &kept_in(&kept),
+        &sealed_for(None),
+        &starts(),
+        1,
+    )
+    .unwrap_err();
 
     assert_eq!(told.code, "folioFull");
     assert!(kept.borrow().is_empty());
@@ -215,6 +283,7 @@ fn a_version_stored_stays_remembered_when_its_files_fail_and_they_go_again_next_
 
     let told = delivered(
         &folio,
+        tempfile::tempdir().unwrap().path(),
         &kept_in(&kept),
         &sealed_for(Some(vec![2])),
         &starts(),
@@ -278,7 +347,15 @@ fn files_folio_wants_and_this_side_does_not_hold_are_not_passed_over() {
         .borrow_mut()
         .push_back((200, r#"{"stored":true,"version":1,"filesWanted":true}"#));
 
-    let told = delivered(&folio, &kept_in(&kept), &sealed_for(None), &starts(), 1).unwrap_err();
+    let told = delivered(
+        &folio,
+        tempfile::tempdir().unwrap().path(),
+        &kept_in(&kept),
+        &sealed_for(None),
+        &starts(),
+        1,
+    )
+    .unwrap_err();
 
     assert_eq!(told.code, "folioGarbled");
 }
@@ -470,6 +547,8 @@ fn a_wait_tells_the_window_until_when() {
     assert_eq!(told.code, "folioWait");
     assert_eq!(told.name.as_deref(), Some("99"));
 
+    let today = said(&Stopped::Refused(Refused::SharesToday { until: 120 }));
+    assert_eq!(today.code, "folioSharesToday");
     let network = said(&Stopped::Refused(Refused::Quota { until: 120 }));
     assert_eq!(network.code, "folioQuota");
     assert_eq!(network.name.as_deref(), Some("120"));

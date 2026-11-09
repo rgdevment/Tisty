@@ -54,6 +54,8 @@ pub struct FolioLimits {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uploads_of_a_root_an_hour: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_shares_a_day: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub upload_waits_minutes: Option<Vec<u64>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uploads_halted_until: Option<u64>,

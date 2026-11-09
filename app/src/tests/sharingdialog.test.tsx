@@ -27,6 +27,7 @@ const look = {
   limits: { ttl_days: [1, 3, 7, 15], shares_at_most: 2 },
   told: [],
   seen: "print",
+  newSharesToday: 0,
 };
 
 const answering = (answers: Record<string, unknown>) =>
@@ -459,6 +460,32 @@ describe("sharing a document with Folio", () => {
 
     expect(screen.getByText(fill("shareCitesOver", "3", "2"))).toBeTruthy();
     expect(go.disabled).toBe(true);
+  });
+
+  it("counts the document and each one it cites against the new documents Folio takes a day", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: {
+        ...look,
+        cited: ["c1", "c2"],
+        limits: { ...look.limits, shares_at_most: 20, new_shares_a_day: 10 },
+        newSharesToday: 8,
+      },
+    });
+    shown();
+
+    const go = await screen.findByRole<HTMLButtonElement>("button", { name: t("shareGo") });
+    expect(go.disabled).toBe(false);
+    await userEvent.click(screen.getByRole("checkbox", { name: fill("shareCites", "2") }));
+
+    expect(screen.getByText(fill("shareTodayOver", "11", "10"))).toBeTruthy();
+    expect(go.disabled).toBe(true);
+  });
+
+  it("says a refusal over the day's new documents as tomorrow", () => {
+    expect(t("folioSharesToday")).toBe("You can share more documents tomorrow.");
+    adopt("es");
+    expect(t("folioSharesToday")).toBe("Puedes compartir más documentos mañana.");
   });
 
   it("looks again when the document changed while choosing", async () => {

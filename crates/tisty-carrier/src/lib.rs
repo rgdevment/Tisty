@@ -20,6 +20,7 @@ pub mod folio_domains;
 pub mod folio_limits;
 pub mod folio_pace;
 pub mod folio_terms;
+pub mod folio_today;
 #[cfg(not(windows))]
 mod keychain;
 pub mod loopback;

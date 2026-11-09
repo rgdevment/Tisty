@@ -703,6 +703,7 @@ const en = {
   folioTooBig: "This document is larger than Folio takes.",
   folioWait: "Wait {name} min to upload another version.",
   folioQuota: "Folio received many uploads from your network. Try again at {name}.",
+  folioSharesToday: "You can share more documents tomorrow.",
   folioUploadsOff: "Folio isn't taking documents for now. What you already shared stays available.",
   folioClosed: "Sharing with Folio isn't available yet.",
   folioPaused: "This document is paused. Resume it to send a new version.",
@@ -885,6 +886,8 @@ const en = {
   shareRoomOf: "of {name} · {other}",
   shareCites: "Share the {name} documents it cites too",
   shareCitesOne: "Share the document it cites too",
+  shareTodayOver:
+    "Folio takes {other} new documents a day, and this would make {name} today. Each document it cites counts too. You can share more documents tomorrow.",
   shareCitesOver:
     "With what it cites, that makes {name} documents shared at once, and Folio takes up to {other}. Untick this or stop sharing one.",
   shareCitesWhy:
@@ -3655,6 +3658,7 @@ const es: Catalog = {
   folioTooBig: "Este documento es más grande de lo que acepta Folio.",
   folioWait: "Espera {name} min para subir otra versión.",
   folioQuota: "Folio recibió muchas subidas desde tu red. Vuelve a intentarlo a las {name}.",
+  folioSharesToday: "Puedes compartir más documentos mañana.",
   folioUploadsOff:
     "Folio no está recibiendo documentos por ahora. Lo que ya compartiste sigue disponible.",
   folioClosed: "Compartir con Folio todavía no está disponible.",
@@ -3839,6 +3843,8 @@ const es: Catalog = {
   shareRoomOf: "de {name} · {other}",
   shareCites: "Compartir también los {name} documentos que cita",
   shareCitesOne: "Compartir también el documento que cita",
+  shareTodayOver:
+    "Folio acepta {other} documentos nuevos al día, y con este serían {name} hoy. Cada documento que cita cuenta también. Puedes compartir más documentos mañana.",
   shareCitesOver:
     "Con lo que cita serían {name} documentos compartidos a la vez, y Folio acepta hasta {other}. Desmarca esta opción o deja de compartir alguno.",
   shareCitesWhy:
