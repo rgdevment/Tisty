@@ -9,10 +9,11 @@ const SIGNED_ELSEWHERE: &[u8] = include_bytes!("folio_signed/domains/elsewhere.j
 const ROOT: &str = "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s";
 const DOMAIN: &str = "rgdevment.dev";
 
+// Served only where Folio's domains branch holds them, while each stays signed as domains/75.json.
 fn serving(signature: &'static [u8]) -> impl Fn(&str) -> Option<Vec<u8>> {
     move |url: &str| match url {
-        _ if url.ends_with("/domains/75.json") => Some(SHARD.to_vec()),
-        _ if url.ends_with("/domains/75.json.minisig") => Some(signature.to_vec()),
+        from_folio!("domains/75.json") => Some(SHARD.to_vec()),
+        from_folio!("domains/75.json.minisig") => Some(signature.to_vec()),
         _ => None,
     }
 }

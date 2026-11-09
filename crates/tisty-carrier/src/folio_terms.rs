@@ -6,10 +6,8 @@ use sha2::{Digest, Sha256};
 use crate::folio_limits::{self, FolioLimits, FolioTerms};
 use crate::policy;
 
-const TERMS_ES_URL: &str =
-    "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/TERMINOS.md";
-const TERMS_EN_URL: &str =
-    "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/TERMS.md";
+const TERMS_ES_URL: &str = from_folio!("main/docs/TERMINOS.md");
+const TERMS_EN_URL: &str = from_folio!("main/docs/TERMS.md");
 const ACCEPTED: &str = "folio-terms-accepted.json";
 const UNMET: &str = "folio-terms-unmet";
 // GitHub keeps each of Folio's files apart for five minutes, so a print still unmet an hour later is no longer the cache.
