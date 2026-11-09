@@ -7,30 +7,7 @@ Tisty keeps two things: **tasks**, what you are going to do, and **documents**, 
 
 And it does not forget. A task you finished is archived with what you wrote in it, and months later a search tells you how you solved it.
 
-## Start here
-
-This guide is a document to read: clicking in it creates nothing. Try this in Tisty's window:
-
-1. Open **Tasks** in the sidebar and type in the bar at the top, the way you would say it: `Rina's booster on Friday #health`. Press `Enter` and the task is created.
-2. Find it in **Today**, or in **Upcoming** if it is for another day.
-3. From any program, press `Ctrl` + `Shift` + `Space` and jot down another without opening Tisty.
-4. In **Documents**, create one with the **+** and type `/` to see everything that fits inside.
-
-Lost? The `?` at the foot of the sidebar opens the full help right here, offline too. The rest of this guide expands on each point: read it straight through or jump to what you need, and come back to it whenever you like from Settings → General.
-
-## What else it does
-
-Each has its own section further down:
-
-- **Documents in several languages**: a manual in Spanish and English reads as one, with a selector to switch languages.
-- **Diagrams by hand**: a double-click on a diagram opens its window, where you draw mind maps, schemas and freeform diagrams, and export them as an image.
-- **Sheets and page breaks**: you read a document on A4, Letter or Folio sheets, just as it will print or turn into a PDF.
-- **Your copies in the cloud**: Google Drive, OneDrive or your own server, directly and without installing anything else.
-- **End-to-end encryption**: with your 24-word phrase, not even your provider can read what you keep in your cloud.
-- **Computers that sign**: each computer signs what it writes, and a new one only gets in once you confirm its code.
-- **Sharing with a link**: a document goes out encrypted through Folio, signed with your identity.
-- **A light viewer**: a Markdown file from disk opens for reading, without bringing it into your documents.
-- **An assistant**: Claude Code, Codex and others write here through MCP, without closing or deleting anything of yours.
+Lost? The `?` at the foot of the sidebar opens the full help right here, offline too. Come back to this guide whenever you like from Settings → General.
 
 ## A task or a document?
 
@@ -161,6 +138,20 @@ A routine has one page for all its rounds. What you write under **This time** be
 
 That is the difference: the list tells you what is left; the Archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago. The rest, step by step, is in [tasks](https://www.tisty.app/docs/tasks/).
 
+### Completing, dropping and erasing
+
+- **Complete** marks a task done and sends it to the Archive.
+- **Close with a summary** asks you for two lines on how it went before completing it.
+- Once it closes, its page is kept with it: it can be read but no longer written. Reopen it and it comes back.
+- Dropping a task puts it aside without doing it: it also ends up in the Archive.
+- What is in the Archive stays there in case you look for it. It does not get in the way.
+
+The Archive reads in three layers: the **stories**, which left something written; the **routines**, which come back; and the **trace**, what closed leaving next to nothing.
+
+> **Before erasing for good.** It is only possible for what is already closed **and** reads as a trace. Erasing takes it off this computer, and off the others at the next sync, and there is no undo.
+
+Settings → Maintenance looks over your history, your documents and your attachments, counts what is spare and what is missing, and changes nothing on its own. Each layer of the Archive is in [the archive](https://www.tisty.app/docs/archive/).
+
 ---
 
 ## Documents
@@ -186,6 +177,76 @@ To write:
 **Folders start folded** and open on the arrow.
 
 When a matter is over, archive the folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written. Unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
+
+### A document in several languages
+
+A manual for your team in Spanish and English, a contract in two languages. Each language is a document of its own, with its own file, and Tisty shows them as one: one row in the tree, opened in the app's language.
+
+![This guide with its Español / English selector, the paper of its sheets and its outline in the side panel](languages.png)
+
+**To translate one**, open the document's menu and choose **Translate into…**: it writes a copy of its text and its pages, ready to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again.
+
+The switch sits in the title panel and takes you to the same section in the other language. Moving, archiving or deleting acts on every language at once. This guide is one: it is in Spanish too, a click away in its switch.
+
+### Diagrams by hand
+
+A code block whose language is `mermaid` stops being code and is drawn: it fits any width, reads well in dark mode, and a click opens it large. A double-click opens it in the diagram window, where you can also draw a mind map, a schema, a freeform diagram or a class diagram by hand.
+
+![The diagram window with this guide's diagram: the shapes on the left, the drawing in the middle and its text on the right](diagrams.png)
+
+Here, Rina and what surrounds her:
+
+```mermaid
+graph TD
+  R[Rina] --> V[Vaccines]
+  R --> P[Walks]
+  R --> C[Vet]
+```
+
+The week's walks, split up: seven in the morning, five in the evening and two with both.
+
+```mermaid
+pie title Walks this week
+  "Morning" : 7
+  "Evening" : 5
+  "Both" : 2
+```
+
+And who talks to whom when you write a task:
+
+```mermaid
+sequenceDiagram
+  You->>Tisty: I write a task
+  Tisty->>Disk: I note it in the log
+  Disk-->>Tisty: saved
+```
+
+### Sheets, page breaks and PDF
+
+A rule on its own cuts the sheet when printing: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you type. Turn on **Sheets** in the document's panel to read it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own.
+
+**Export**, in the document's panel, saves it as a PDF on those same sheets.
+
+---
+
+With **Sheets** on or in the PDF, this paragraph already starts on the next sheet.
+
+### A document with pages
+
+A year of minutes, a book in chapters, a dog's life told year by year: that does not fit on one sheet, nor in a folder of loose sheets.
+
+A page is a document like any other, with its own file, that also says which document it belongs to. There is one level and no more: a page has no pages.
+
+**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is named right there, drawn as a card with its title and its first words. In the tree, dropping a document onto another also makes it a page of it.
+
+> [!IMPORTANT]
+> The order in which they are named in the text is the order of the pages: in the tree, when exporting and when printing. To move a chapter, use the arrows on its row in the index at the end of the document, or `Alt` and an arrow key on the row.
+
+At the end of the document comes the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to its sibling pages, and at the bottom the step to the next one. A page is archived on its own with a right-click and stays dimmed in its document; archiving the document puts them all away. How a book prints, with its index, is in [pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
+
+This guide has one, and it is named here:
+
+![Rina: this guide's example page](tisty:page)
 
 ### What fits inside a document
 
@@ -220,18 +281,6 @@ Five kinds, each with its own name and colour. Underneath it is a quote that sta
 > [!NOTE]
 > For what is worth knowing, with no urgency at all.
 
-> [!TIP]
-> If you are already inside a callout and pick another kind, it changes the one you are in instead of putting one inside another.
-
-> [!IMPORTANT]
-> For what cannot be passed over.
-
-> [!WARNING]
-> For what can go wrong if you do not look.
-
-> [!CAUTION]
-> For what has no way back.
-
 And nearly anything fits inside a callout, not only text:
 
 > [!TIP]
@@ -248,34 +297,6 @@ And nearly anything fits inside a callout, not only text:
 >
 > All of this reaches the PDF just the same.
 
-#### Sections that fold
-
-What is long and only needed now and then can stay folded under a title, out of the way until somebody opens it. It is **Collapsible section** in the `/` menu:
-
-:::details Rina's full record
-
-Born in 2023. Annual vaccine and rabies every March, worming every three months.
-
-:::
-
-#### Highlighting
-
-Four highlighter colours: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that opens when you select words in a block.
-
-#### Icons
-
-::dog orange:: An icon is looked up by what it draws, in English or in Spanish: ask for "dog", "motorcycle" or "fist" and you get the one you expect. It marks a line without spending a heading on it.
-
-#### Stages
-
-A list of boxes you tick. In a document they are not tasks: they never close, they have no date and they never show up in Today. They are the stages of something you are writing. On a task's own page, the same boxes are its steps.
-
-- [x] Bring Rina's record book
-- [x] Weigh her before the appointment
-- [ ] Ask about the tick tablet
-
-A stage can be named from anywhere in the text by its place in the list: the one still open, [[#3]], shows its words here, and a click takes you to it.
-
 #### Tables
 
 A table is written right on the page: click a cell and type. The `⋯` menu of a row or a column moves, duplicates or removes it, and gives a column a type (a date with its calendar, money, options with their colours, stars, a switch) that adds up at its foot. Sort and filter from a column's title without touching the file, and drag the edge of a heading to make its column wider.
@@ -287,39 +308,6 @@ A table is written right on the page: click a cell and type. The `⋯` menu of a
 | Worming | august | 3 months |
 
 The width is kept in the length of the rule under the header: other Markdown readers see a plain table, and Tisty keeps the width you gave it.
-
-#### Diagrams
-
-A code block whose language is `mermaid` stops being code and is drawn: it fits any width, reads well in dark mode, and a click opens it large. A double-click opens it in the diagram window, where you can also draw a mind map, a schema, a freeform diagram or a class diagram by hand.
-
-![The diagram window with this guide's diagram: the shapes on the left, the drawing in the middle and its text on the right](diagrams.png)
-
-Here, Rina and what surrounds her:
-
-```mermaid
-graph TD
-  R[Rina] --> V[Vaccines]
-  R --> P[Walks]
-  R --> C[Vet]
-```
-
-The week's walks, split up: seven in the morning, five in the evening and two with both.
-
-```mermaid
-pie title Walks this week
-  "Morning" : 7
-  "Evening" : 5
-  "Both" : 2
-```
-
-And who talks to whom when you write a task:
-
-```mermaid
-sequenceDiagram
-  You->>Tisty: I write a task
-  Tisty->>Disk: I note it in the log
-  Disk-->>Tisty: saved
-```
 
 #### Formulas
 
@@ -374,50 +362,9 @@ print(weight * 0.5 / 2)
 { "name": "Rina", "weight": 12 }
 ```
 
-#### Page break
-
-A rule on its own cuts the sheet when printing: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you type. Turn on **Sheets** in the document's panel to read it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own.
-
 There is more to say about code, and it fits on a page of its own:
 
 ![When what you write down is code: this guide's code page](tisty:code)
-
----
-
-With **Sheets** on or in the PDF, this paragraph already starts on the next sheet.
-
-### A document with pages
-
-A year of minutes, a book in chapters, a dog's life told year by year: that does not fit on one sheet, nor in a folder of loose sheets.
-
-A page is a document like any other, with its own file, that also says which document it belongs to. There is one level and no more: a page has no pages.
-
-**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is named right there, drawn as a card with its title and its first words. In the tree, dropping a document onto another also makes it a page of it.
-
-> [!IMPORTANT]
-> The order in which they are named in the text is the order of the pages: in the tree, when exporting and when printing. To move a chapter, use the arrows on its row in the index at the end of the document, or `Alt` and an arrow key on the row.
-
-At the end of the document comes the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to its sibling pages, and at the bottom the step to the next one. A page is archived on its own with a right-click and stays dimmed in its document; archiving the document puts them all away. How a book prints, with its index, is in [pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
-
-This guide has one, and it is named here:
-
-![Rina: this guide's example page](tisty:page)
-
-### A document in several languages
-
-A manual for your team in Spanish and English, a contract in two languages. Each language is a document of its own, with its own file, and Tisty shows them as one: one row in the tree, opened in the app's language.
-
-![This guide with its Español / English selector, the paper of its sheets and its outline in the side panel](languages.png)
-
-**To translate one**, open the document's menu and choose **Translate into…**: it writes a copy of its text and its pages, ready to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again.
-
-The switch sits in the title panel and takes you to the same section in the other language. Moving, archiving or deleting acts on every language at once. This guide is one: it is in Spanish too, a click away in its switch.
-
-### Sharing a document
-
-The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service separate from Tisty: it creates an end-to-end encrypted link, to read or to edit, and you choose how long it lasts. Whoever opens it needs no account. If Folio is not open yet, Tisty tells you and nothing of your document leaves this computer.
-
-The first time, Share asks you to create your identity: the key you sign what you share with, backed by a 24-word phrase. Keep that phrase on paper or on the PDF sheet Tisty offers you. Nobody from Tisty or Folio will ever ask you for it. More in [documents](https://www.tisty.app/docs/documents/) and in [privacy](https://www.tisty.app/docs/privacy/).
 
 ### What comes from elsewhere
 
@@ -435,6 +382,40 @@ A Markdown file can also be read without bringing it in: choose Tisty under **Op
 
 ---
 
+## Your data
+
+### Your copies in the cloud and syncing
+
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies, in Settings → Sync:
+
+- **Straight to a cloud**: your Google Drive, your OneDrive or your own WebDAV server (Nextcloud, ownCloud, Synology and others), with nothing else installed.
+- **A folder**: Google Drive, OneDrive, iCloud or Dropbox if they are installed, or any folder both computers reach. There, whoever uploads and downloads is your provider's program, not Tisty.
+
+> There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
+
+When two computers wrote the same part of a document, Tisty does not choose: it shows you both versions and you keep **This one**, **The other** or **Both**.
+
+A shared folder is not a backup. In Settings → Your data you save a full backup whenever you want. Uninstalling Tisty leaves your tasks and documents where they are; where they live and how to delete them for good is in [sync and backup](https://www.tisty.app/docs/sync-and-backup/).
+
+### Encryption and computers that sign
+
+A copy straight to a cloud can be encrypted in Settings → Security with your 24-word phrase, and then not even your provider can read it. That same phrase backs your identity: keep it on paper or on the PDF sheet Tisty offers. A folder is not encrypted.
+
+Every computer signs what it writes, and a new one waits until you confirm it is yours:
+
+1. A notice appears in the sidebar with that computer's name.
+2. **Confirm…** shows you its twenty-digit code.
+3. On the new computer, in Settings → Sync, **Show large** shows its own.
+4. If the two codes match, **Yes, it is the same** lets it through; if not, **It doesn't match** keeps it out.
+
+### Sharing a document
+
+The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service separate from Tisty: it creates an end-to-end encrypted link, to read or to edit, and you choose how long it lasts. Whoever opens it needs no account. If Folio is not open yet, Tisty tells you and nothing of your document leaves this computer.
+
+The first time, Share asks you to create your identity: the key you sign what you share with, backed by a 24-word phrase. Keep that phrase on paper or on the PDF sheet Tisty offers you. Nobody from Tisty or Folio will ever ask you for it. More in [documents](https://www.tisty.app/docs/documents/) and in [privacy](https://www.tisty.app/docs/privacy/).
+
+---
+
 ## When you want more
 
 ### An assistant can write here
@@ -446,40 +427,6 @@ If you use an assistant such as Claude Code or Codex, it can come into Tisty thr
 - **It cannot** close or delete a task, delete a document, or change a task you wrote.
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before. How to connect one and what each door lets through are in [assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/) and in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
-
-### Your copies
-
-Tisty always works on this computer. To reach it from another one, tell it where to leave the copies, in Settings → Sync:
-
-- **Straight to a cloud**: your Google Drive, your OneDrive or your own WebDAV server (Nextcloud, ownCloud, Synology and others), with nothing else installed. That copy can be encrypted in Settings → Security, with your 24-word phrase, and then not even your provider can read it.
-- **A folder**: Google Drive, OneDrive, iCloud or Dropbox if they are installed, or any folder both computers reach. There, whoever uploads and downloads is your provider's program, not Tisty.
-
-> There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
-
-Every computer signs what it writes, and a new one waits until you confirm it is yours:
-
-1. A notice appears in the sidebar with that computer's name.
-2. **Confirm…** shows you its twenty-digit code.
-3. On the new computer, in Settings → Sync, **Show large** shows its own.
-4. If the two codes match, **Yes, it is the same** lets it through; if not, **It doesn't match** keeps it out.
-
-When two computers wrote the same part of a document, Tisty does not choose: it shows you both versions and you keep **This one**, **The other** or **Both**.
-
-A shared folder is not a backup. In Settings → Your data you save a full backup whenever you want. Uninstalling Tisty leaves your tasks and documents where they are; where they live and how to delete them for good is in [sync and backup](https://www.tisty.app/docs/sync-and-backup/).
-
-### Completing, dropping and erasing
-
-- **Complete** marks a task done and sends it to the Archive.
-- **Close with a summary** asks you for two lines on how it went before completing it.
-- Once it closes, its page is kept with it: it can be read but no longer written. Reopen it and it comes back.
-- Dropping a task puts it aside without doing it: it also ends up in the Archive.
-- What is in the Archive stays there in case you look for it. It does not get in the way.
-
-The Archive reads in three layers: the **stories**, which left something written; the **routines**, which come back; and the **trace**, what closed leaving next to nothing.
-
-> **Before erasing for good.** It is only possible for what is already closed **and** reads as a trace. Erasing takes it off this computer, and off the others at the next sync, and there is no undo.
-
-Settings → Maintenance looks over your history, your documents and your attachments, counts what is spare and what is missing, and changes nothing on its own. Each layer of the Archive is in [the archive](https://www.tisty.app/docs/archive/).
 
 ### Shortcuts
 
