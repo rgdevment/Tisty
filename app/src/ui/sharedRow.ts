@@ -3,6 +3,7 @@ import type { Panel } from "tisty-editor/read";
 import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
+  type Named,
   type ShareCard,
   type ShareStatus,
   shareAppeal,
@@ -221,11 +222,14 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-// Who owns it and who signed what is here, apart, as the copy shows them (145).
-const whoSaid = ({ owner, signer, signsAs }: ShareCard) => [
-  ...(owner && signer ? [fill("sharedOwnerAndSigner", owner, signer)] : []),
-  ...(owner && !signer ? [fill("sharedOwner", owner)] : []),
-  ...(!owner && signer ? [fill("sharedVersionBy", signer)] : []),
+const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
+
+// Who created it, who edited it last and everyone who edited it, apart, as the copy shows them (145).
+const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
+  ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),
+  ...(owner && !signer ? [fill("sharedOwner", shown(owner))] : []),
+  ...(!owner && signer ? [fill("sharedVersionBy", shown(signer))] : []),
+  ...(editors.length > 0 ? [fill("sharedEditedBy", editors.map(shown).join(", "))] : []),
   ...(signsAs ? [fill("shareSignsAs", signsAs.now)] : []),
 ];
 

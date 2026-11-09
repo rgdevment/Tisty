@@ -1,7 +1,7 @@
 use tisty_core::event::Signature;
 use tisty_sharing::Remembered;
 
-use super::{SignsAs, signs_as};
+use super::{SignsAs, signs_as, who_of};
 use crate::answers::folio::card_of;
 
 fn signature(alias: Option<&str>, name: Option<&str>) -> Signature {
@@ -24,7 +24,7 @@ fn arrived(admin: Option<&str>, token: Option<&str>, signed_as: Option<&str>) ->
         edit_token: token.map(str::to_owned),
         words_print: None,
         signed_as: signed_as.map(str::to_owned),
-        owner: Some("{}".to_owned()),
+        owner: Some(r#"{"root":"mario-root"}"#.to_owned()),
         owner_name: Some("Mario Hidalgo".to_owned()),
         cited: Vec::new(),
         held_by: None,
@@ -80,14 +80,67 @@ fn only_whoever_edits_through_a_link_is_asked_how_they_sign() {
     );
 }
 
-#[test]
-fn a_copy_names_its_owner_and_whoever_signed_the_version_it_holds() {
-    let card = card_of(&arrived(None, None, None), &Signature::default()).unwrap();
-    let said = serde_json::to_value(&card).unwrap();
-    assert_eq!(said["owner"], "Mario Hidalgo");
-    assert_eq!(said["signer"], "Ana");
+fn edited(by: &[(&str, &str, &str, bool)]) -> Option<String> {
+    let editors: Vec<serde_json::Value> = by
+        .iter()
+        .map(|(id, root, name, owned)| {
+            serde_json::json!({
+                "in": id, "root": root, "machine": "m", "since": "2026-11-03T12:00:00Z",
+                "certificate": "c", "name": name, "owned": owned, "signed": "s",
+            })
+        })
+        .collect();
+    Some(serde_json::json!({ "editors": editors }).to_string())
+}
 
-    let mine = card_of(&arrived(Some("admin"), None, None), &Signature::default()).unwrap();
+#[test]
+fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
+    let was = Remembered {
+        carried: edited(&[
+            ("Ab3xK9pQ", "mario-root", "Mario Hidalgo", true),
+            ("Ab3xK9pQ", "ana-root", "Ana", false),
+            ("Ab3xK9pQ", "juan-root", "Juan", false),
+            ("otroDoc", "pedro-root", "Pedro", false),
+        ]),
+        ..arrived(None, None, None)
+    };
+    let card = card_of(&was, &Signature::default(), Some("juan-root")).unwrap();
+    let said = serde_json::to_value(&card).unwrap();
+    assert_eq!(
+        said["owner"],
+        serde_json::json!({ "name": "Mario Hidalgo", "checked": false })
+    );
+    assert_eq!(
+        said["signer"],
+        serde_json::json!({ "name": "Ana", "checked": false })
+    );
+    assert_eq!(
+        said["editors"],
+        serde_json::json!([
+            { "name": "Ana", "checked": false },
+            { "name": "Juan", "checked": true },
+        ])
+    );
+
+    let mine = card_of(
+        &arrived(Some("admin"), None, None),
+        &Signature::default(),
+        None,
+    )
+    .unwrap();
     let said = serde_json::to_value(&mine).unwrap();
     assert_eq!(said["owner"], serde_json::Value::Null);
+}
+
+#[test]
+fn the_makers_root_is_checked_wherever_it_signs() {
+    let was = Remembered {
+        carried: edited(&[("Ab3xK9pQ", "mario-root", "Mario Hidalgo", true)]),
+        version_by: Some("Mario Hidalgo".to_owned()),
+        ..arrived(None, None, None)
+    };
+    let who = who_of(&was, Some("mario-root"));
+    assert!(who.owner.is_some_and(|one| one.checked));
+    assert!(who.signer.is_some_and(|one| one.checked));
+    assert!(who.editors.is_empty());
 }

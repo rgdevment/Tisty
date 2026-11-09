@@ -19,7 +19,7 @@ use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
-use super::folio_editing::{SignsAs, signs_as};
+use super::folio_editing::{Named, SignsAs, signs_as, who_of};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -701,14 +701,20 @@ pub struct Card {
     taken: bool,
     held: bool,
     told: Vec<Told>,
-    owner: Option<String>,
-    signer: Option<String>,
+    owner: Option<Named>,
+    signer: Option<Named>,
+    editors: Vec<Named>,
     signs_as: Option<SignsAs>,
 }
 
-pub(super) fn card_of(was: &Remembered, signature: &Signature) -> Option<Card> {
+pub(super) fn card_of(
+    was: &Remembered,
+    signature: &Signature,
+    maker: Option<&str>,
+) -> Option<Card> {
     let key = was.link_key.as_deref()?;
     let taken = was.admin_token.is_none();
+    let who = who_of(was, maker);
     Some(Card {
         read: folio_client::read_link(&was.id, key),
         edit: was
@@ -719,8 +725,9 @@ pub(super) fn card_of(was: &Remembered, signature: &Signature) -> Option<Card> {
         taken,
         held: was.held_by.is_some(),
         told: Vec::new(),
-        owner: was.owner_name.clone().filter(|_| taken),
-        signer: was.version_by.clone(),
+        owner: who.owner,
+        signer: who.signer,
+        editors: who.editors,
         signs_as: signs_as(was, signature),
     })
 }
@@ -744,7 +751,10 @@ pub fn doc_share_card(
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(|was| card_of(was, &session.state.signed)))
+        .and_then(|was| {
+            let maker = folio_limits::maker_root(&session.paths.private());
+            card_of(was, &session.state.signed, maker.as_deref())
+        }))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -1071,7 +1081,8 @@ pub async fn doc_shared(
             .remembering
             .iter()
             .find(|(_, one)| one.held_by.is_none());
-        top.and_then(|(_, one)| card_of(one, &state.signed))
+        let maker = folio_limits::maker_root(&home);
+        top.and_then(|(_, one)| card_of(one, &state.signed, maker.as_deref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

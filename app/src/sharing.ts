@@ -74,6 +74,11 @@ export interface ShareLook {
   heldThere: string[];
 }
 
+export interface Named {
+  name: string;
+  checked: boolean;
+}
+
 export interface ShareCard {
   read: string;
   edit: string | null;
@@ -81,8 +86,9 @@ export interface ShareCard {
   taken: boolean;
   held: boolean;
   told: Told[];
-  owner: string | null;
-  signer: string | null;
+  owner: Named | null;
+  signer: Named | null;
+  editors: Named[];
   signsAs: { now: string; other: string | null } | null;
 }
 
