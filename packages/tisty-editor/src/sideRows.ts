@@ -101,6 +101,8 @@ const heldRow = (page: Document, panel: Of<"held">) => {
     }
   });
   if (panel.tone) row.querySelector(".side-gist")?.classList.add(`is-${panel.tone}`);
+  if (panel.mark)
+    row.querySelector(".side-row-label")?.after(made(page, "span", "side-row-mark", panel.mark));
   return row;
 };
 
