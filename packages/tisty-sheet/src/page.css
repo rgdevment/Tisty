@@ -170,8 +170,11 @@ html.untitled .page[data-empty]:not(:has(> :not(.front)))::after {
   content: attr(data-empty);
   color: var(--tisty-faint);
 }
-html:not(.untitled) .page > :is(h1, h2, h3, p):first-child,
-html:not(.untitled) .page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p) {
+html:not(.untitled) .page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child,
+html:not(.untitled)
+  .page:where(:not(.as-written))
+  > :is(.front, .fronted):first-child
+  + :is(h1, h2, h3, p) {
   font-size: 1.65em;
   font-weight: 640;
   line-height: 1.25;
@@ -180,7 +183,7 @@ html:not(.untitled) .page > :is(.front, .fronted):first-child + :is(h1, h2, h3, 
   padding-bottom: 14px;
   border-bottom: 1px solid var(--tisty-hair);
 }
-html:not(.untitled) .page > :is(h1, h2, h3, p):first-child:only-child {
+html:not(.untitled) .page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child:only-child {
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: 0;
