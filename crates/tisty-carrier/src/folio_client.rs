@@ -2,9 +2,6 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub const BASE: &str = "https://tisty.cl/api/v1";
-const LINKS: &str = "https://tisty.cl";
-
 const ID_CHARACTERS: usize = 8;
 const PROOF_BITS_AT_MOST: u32 = 32;
 const PROOFS_AT_MOST: usize = 3;
@@ -462,12 +459,16 @@ pub fn appeal(door: &dyn Door, id: &str, admin: &str) -> Result<Claim, Stopped> 
     read::<Appealed>(&answered).map(|one| one.claim)
 }
 
-pub fn read_link(id: &str, key: &str) -> String {
-    format!("{LINKS}/{id}#{key}")
+pub fn api_of(host: &str) -> String {
+    format!("https://{host}/api/v1")
 }
 
-pub fn edit_link(id: &str, key: &str, token: &str) -> String {
-    format!("{LINKS}/{id}#{key}.{token}")
+pub fn read_link(host: &str, id: &str, key: &str) -> String {
+    format!("https://{host}/{id}#{key}")
+}
+
+pub fn edit_link(host: &str, id: &str, key: &str, token: &str) -> String {
+    format!("https://{host}/{id}#{key}.{token}")
 }
 
 #[cfg(test)]

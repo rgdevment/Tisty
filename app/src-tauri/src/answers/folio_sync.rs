@@ -235,7 +235,7 @@ async fn unchanged_answered(
     };
     let home = paths.private();
     let not_kept = apart(move || {
-        Ok(ToFolio::new()
+        Ok(ToFolio::new(&home)
             .ok()
             .and_then(|door| told_of_taken_back(&door, &home, &state, &device)))
     })
@@ -295,7 +295,7 @@ pub async fn doc_share_sync(
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
-            let door = ToFolio::new()?;
+            let door = ToFolio::new(&home)?;
             before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)
         })
         .await?
@@ -343,7 +343,7 @@ pub async fn doc_share_sync(
     let pressed_id = was.id.clone();
     let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         let deliver = || {
             delivered(
                 &door,
@@ -449,8 +449,9 @@ async fn other_version_brought(
     was: &Remembered,
 ) -> Answer<Synced> {
     let (shared_id, key) = (was.id.clone(), was.link_key.clone().unwrap_or_default());
+    let home = held(session).paths.private();
     let opened = apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         opened_from(&door, &shared_id, &key)
     })
     .await?;

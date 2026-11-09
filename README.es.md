@@ -700,7 +700,7 @@ políticas en
 [su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Cada
 documento muestra una fila **Compartido**; al presionar **Compartir** Tisty lee
 un archivo pequeño y firmado para saber si Folio ya abrió y, mientras no abra,
-te lo dice, con un enlace a [folio.tisty.app](https://folio.tisty.app). Nada de
+te lo dice, con un enlace a [tisty.cl](https://tisty.cl). Nada de
 tu documento sale hasta que Folio esté abierto, aceptes sus términos y lo
 confirmes.
 [PRIVACY.md](PRIVACY.md#sharing-by-link) dice qué envía cada paso.

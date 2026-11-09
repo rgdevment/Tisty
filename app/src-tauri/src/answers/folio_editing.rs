@@ -104,12 +104,14 @@ pub(super) fn signs_as(was: &Remembered, signature: &Signature) -> Option<SignsA
 }
 
 #[tauri::command]
-pub fn doc_share_sign_as(
+pub async fn doc_share_sign_as(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     name: String,
 ) -> Answer<Card> {
-    let maker = folio_limits::maker_root(&held(&session).paths.private());
+    let home = held(&session).paths.private();
+    let maker = folio_limits::maker_root(&home);
+    let host = super::folio::private_host_apart(home).await?;
     let mut session = held(&session);
     let (file, mut was) = remembered_of(&session, &id)?;
     if signs_as(&was, &session.state.signed).is_none() {
@@ -120,7 +122,7 @@ pub fn doc_share_sign_as(
         was.signed_as = Some(name);
         kept_on(&mut session, &[(file, was.clone())])?;
     }
-    card_of(&was, &session.state.signed, maker.as_deref())
+    card_of(&host, &was, &session.state.signed, maker.as_deref())
         .ok_or_else(|| Refusal::of("folioGarbled"))
 }
 
@@ -209,9 +211,10 @@ pub async fn doc_share_edit_link_renewed(
     id: String,
 ) -> Answer<Synced> {
     let (file, was) = remembered_of(&held(&session), &id)?;
+    let home = held(&session).paths.private();
     let keep = keeping(&app);
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         renewed(&door, was, |now| keep(&[(file, now.clone())])).map(|_| ())
     })
     .await?;

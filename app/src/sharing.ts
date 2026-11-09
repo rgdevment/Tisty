@@ -116,10 +116,11 @@ export interface ShareStatus {
   fixBy: number | null;
 }
 
-export type SharingNow =
+export type SharingNow = { site: string } & (
   | { state: "open" }
   | { state: "closed"; note: Record<string, string | undefined> | null }
-  | { state: "unreached" };
+  | { state: "unreached" }
+);
 
 export interface NotePart {
   at: number;
@@ -129,25 +130,23 @@ export interface NotePart {
 
 const NOTE_LINK = /(?<!!)\[([^\]\n]+)\]\((https:\/\/[^\s()]+)\)/g;
 
-const noteLinkAllowed = (said: string) => {
+const noteLinkAllowed = (said: string, site: string) => {
   try {
     const url = new URL(said);
     const ours =
-      url.hostname === "tisty.cl" ||
-      url.hostname === "tisty.app" ||
-      url.hostname.endsWith(".tisty.app");
+      url.hostname === site || url.hostname === "tisty.app" || url.hostname.endsWith(".tisty.app");
     return ours && !url.username && !url.password && !url.port;
   } catch {
     return false;
   }
 };
 
-export const noteParts = (note: string): NotePart[] => {
+export const noteParts = (note: string, site: string): NotePart[] => {
   const parts: NotePart[] = [];
   let done = 0;
   for (const found of note.matchAll(NOTE_LINK)) {
     const [whole, text, url] = found;
-    if (!noteLinkAllowed(url)) continue;
+    if (!noteLinkAllowed(url, site)) continue;
     if (found.index > done) parts.push({ at: done, text: note.slice(done, found.index) });
     parts.push({ at: found.index, text, url });
     done = found.index + whole.length;

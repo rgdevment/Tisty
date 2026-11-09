@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tauri::{AppHandle, Emitter, Manager};
+use tisty_carrier::folio_hosts;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::answers::carrying::Left;
@@ -225,8 +226,10 @@ pub fn asked(said: &str, cwd: Option<&Path>) -> Option<PathBuf> {
     readable(&at).then_some(at)
 }
 
+const PUBLIC_HOST: &str = "folio.tisty.app";
+
 // Any page can fire this address, and it carries a key: it takes its one link from Folio's servers, and it is never logged.
-pub fn asked_to_edit(said: &str) -> Option<url::Url> {
+pub fn asked_to_edit(said: &str, private: &str) -> Option<url::Url> {
     let link = url::Url::parse(said.trim()).ok()?;
     if link.scheme() != "tisty"
         || link.host_str() != Some("edit")
@@ -241,16 +244,21 @@ pub fn asked_to_edit(said: &str) -> Option<url::Url> {
         return None;
     }
     let web = url::Url::parse(&value).ok()?;
-    (web.scheme() == "https" && matches!(web.host_str(), Some("tisty.cl" | "folio.tisty.app")))
-        .then_some(web)
+    let host = web.host_str()?;
+    let ours = [folio_hosts::FIRST_PRIVATE, PUBLIC_HOST, private].contains(&host);
+    (web.scheme() == "https" && ours).then_some(web)
 }
 
 // A first copy would make the store look used before the welcome has said where the copies go, so a link waits for it.
 pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
+    let private = app.try_state::<Mutex<Session>>().map_or_else(
+        || folio_hosts::FIRST_PRIVATE.to_owned(),
+        |session| folio_hosts::private_kept(&held(&session).paths.private()),
+    );
     let links: Vec<url::Url> = argv
         .iter()
         .skip(1)
-        .filter_map(|one| asked_to_edit(one))
+        .filter_map(|one| asked_to_edit(one, &private))
         .collect();
     let any = !links.is_empty();
     let welcomed = app

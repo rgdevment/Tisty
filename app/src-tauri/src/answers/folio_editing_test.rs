@@ -116,7 +116,7 @@ fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
         ]),
         ..arrived(None, None, None)
     };
-    let card = card_of(&was, &Signature::default(), Some("juan-root")).unwrap();
+    let card = card_of("tisty.cl", &was, &Signature::default(), Some("juan-root")).unwrap();
     let said = serde_json::to_value(&card).unwrap();
     assert_eq!(
         said["owner"],
@@ -135,6 +135,7 @@ fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
     );
 
     let mine = card_of(
+        "tisty.cl",
         &arrived(Some("admin"), None, None),
         &Signature::default(),
         None,

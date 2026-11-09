@@ -423,7 +423,8 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
     if let Some(file) = already_here(app, &link.id) {
         return Ok(Some(file));
     }
-    let door = ToFolio::new()?;
+    let home = held(&app.state::<Mutex<Session>>()).paths.private();
+    let door = ToFolio::new(&home)?;
     let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
         return Ok(None);
     };
