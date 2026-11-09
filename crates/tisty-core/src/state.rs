@@ -29,6 +29,8 @@ pub struct State {
     pub signed_before: Vec<String>,
     pub sharing: BTreeMap<String, crate::event::Remembered>,
     pub sharing_stopped: BTreeSet<String>,
+    /// Who edited a document while it was shared, kept once the share is forgotten (140).
+    pub sharing_editors: BTreeMap<String, String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub hosts: BTreeMap<DeviceId, DeviceId>,
@@ -438,7 +440,9 @@ impl State {
             Op::Signed { d } => self.store_signed(d),
             Op::SharingKept { file, d } => self.sharing_kept(file, d),
             Op::SharingForgotten { file, stopped } => {
-                self.sharing.remove(file);
+                if let Some(editors) = self.sharing.remove(file).and_then(|was| editors_in(&was)) {
+                    self.sharing_editors.insert(file.clone(), editors);
+                }
                 self.sharing_stopped.extend(stopped.clone());
             }
             Op::DeviceRemove { d } => self.device_removed(d),
@@ -1307,6 +1311,15 @@ fn add_step(task: &mut Task, d: &StepAdd) {
 
 fn sort_steps(task: &mut Task) {
     task.steps.sort_by(|a, b| a.order.cmp(&b.order));
+}
+
+fn editors_in(was: &crate::event::Remembered) -> Option<String> {
+    let carried: serde_json::Value = serde_json::from_str(was.carried.as_deref()?).ok()?;
+    let editors = &carried["editors"];
+    editors
+        .as_array()
+        .is_some_and(|all| !all.is_empty())
+        .then(|| editors.to_string())
 }
 
 #[cfg(test)]

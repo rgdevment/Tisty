@@ -57,6 +57,7 @@ describe("what did not travel as it was written", () => {
       ["Mario", "Ana, Juan", "permission"],
     ],
     [{ what: "aCopy", of: "", editors: [] }, ["someone else", "permission"]],
+    [{ what: "othersEdited", editors: ["Ana", "Juan"] }, ["Ana, Juan", "permission"]],
   ];
 
   it.each(each)("is told plainly: %j", (told, says) => {

@@ -217,6 +217,10 @@ impl Cache {
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.sharing = serde_json::from_str(&self.meta("sharing")?).ok()?;
         state.sharing_stopped = serde_json::from_str(&self.meta("sharing_stopped")?).ok()?;
+        state.sharing_editors = self
+            .meta("sharing_editors")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -381,7 +385,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?), ('sharing_stopped', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?), ('sharing_stopped', ?), ('sharing_editors', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -404,6 +408,7 @@ impl Cache {
                     serde_json::to_string(&state.persons).unwrap_or_default(),
                     serde_json::to_string(&state.sharing).unwrap_or_default(),
                     serde_json::to_string(&state.sharing_stopped).unwrap_or_default(),
+                    serde_json::to_string(&state.sharing_editors).unwrap_or_default(),
                 ],
             )?;
             tx.commit()

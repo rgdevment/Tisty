@@ -29,6 +29,7 @@ pub enum Told {
     NameLeftOut,
     TakenBackNotKept,
     ACopy { of: String, editors: Vec<String> },
+    OthersEdited { editors: Vec<String> },
 }
 
 #[derive(Debug, Default)]

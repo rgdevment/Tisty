@@ -136,3 +136,47 @@ fn what_an_older_tisty_remembered_still_reads_without_the_newer_fields() {
     assert_eq!(read.sealed_under, None);
     assert_eq!(read.version_by, None);
 }
+
+#[test]
+fn who_edited_a_share_outlives_it_in_the_log_and_in_the_cache() {
+    let (_tmp, paths, mut store) = opened();
+    let editors = r#"[{"name":"Mario","owned":true},{"name":"Ana"}]"#;
+    store
+        .append(Op::SharingKept {
+            file: "file".to_owned(),
+            d: Remembered {
+                carried: Some(format!(r#"{{"editors":{editors}}}"#)),
+                ..one(3)
+            },
+        })
+        .unwrap();
+    store
+        .append(Op::SharingForgotten {
+            file: "file".to_owned(),
+            stopped: Some("Ab3xK9pQ".to_owned()),
+        })
+        .unwrap();
+    store
+        .append(Op::SharingKept {
+            file: "other".to_owned(),
+            d: one(1),
+        })
+        .unwrap();
+    store
+        .append(Op::SharingForgotten {
+            file: "other".to_owned(),
+            stopped: None,
+        })
+        .unwrap();
+
+    let first = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+    let again = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+    for state in [first, again] {
+        let kept: serde_json::Value = serde_json::from_str(&state.sharing_editors["file"]).unwrap();
+        assert_eq!(
+            kept,
+            serde_json::from_str::<serde_json::Value>(editors).unwrap()
+        );
+        assert!(!state.sharing_editors.contains_key("other"));
+    }
+}

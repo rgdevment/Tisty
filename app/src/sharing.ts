@@ -13,7 +13,8 @@ export type Told =
   | { what: "languageLeftBehind"; language: string }
   | { what: "languageOverTheTop"; language: string; top: number }
   | { what: "nameLeftOut" | "takenBackNotKept" }
-  | { what: "aCopy"; of: string; editors: string[] };
+  | { what: "aCopy"; of: string; editors: string[] }
+  | { what: "othersEdited"; editors: string[] };
 
 export interface Sealed {
   envelopes: number;
@@ -223,6 +224,8 @@ export const toldPlainly = (told: Told): string => {
       return t("toldNameLeftOut");
     case "takenBackNotKept":
       return t("toldTakenBackNotKept");
+    case "othersEdited":
+      return fill("toldOthersEdited", told.editors.join(", "));
     case "aCopy": {
       const of = told.of || t("aCopySomeone");
       return told.editors.length > 0

@@ -1620,3 +1620,109 @@ fn what_it_remembers_goes_with_the_log_and_keeps_no_file_of_its_own() {
     assert_eq!(remembered(&home.state).len(), 1);
     assert!(!home.paths.private().join("sharing.json").exists());
 }
+
+fn stopped_after(home: &mut Home, doc: tisty_core::model::DocId, editors: &str) {
+    let file = home.state.docs[&doc].file.clone();
+    let out = sealed(home, &asked(doc));
+    let (_, mut went) = out.remembering[0].clone();
+    went.carried = Some(format!(r#"{{"editors":{editors}}}"#));
+    home.sent(&[(file.clone(), went.clone())]);
+    home.commit(Op::SharingForgotten {
+        file,
+        stopped: Some(went.id),
+    });
+}
+
+#[test]
+fn sharing_again_under_a_new_link_names_who_else_edited_it_and_never_the_owner() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("# Paseos\n\nDe varios.\n", None);
+    stopped_after(
+        &mut home,
+        doc,
+        r#"[{"in":"a","root":"r","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Mario","owned":true,"signed":"s"},
+            {"in":"a","root":"q","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Ana","signed":"s"}]"#,
+    );
+    let again = sealed(&home, &asked(doc));
+    assert!(
+        again
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::OthersEdited { editors } if editors == &["Ana"])),
+        "{:?}",
+        again.told
+    );
+
+    let alone = home.wrote("# Solo mío\n", None);
+    stopped_after(
+        &mut home,
+        alone,
+        r#"[{"in":"b","root":"r","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Mario","owned":true,"signed":"s"}]"#,
+    );
+    let mine = sealed(&home, &asked(alone));
+    assert!(
+        !mine
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::OthersEdited { .. }))
+    );
+}
+
+#[test]
+fn a_copy_left_by_whoever_stopped_editing_still_says_whose_it_was() {
+    let (_tmp, mut home) = home();
+    let body = "# Viaje\n\nDe Mario y mío.\n";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let id = ulid::Ulid::generate();
+    home.commit(Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            by: Some("Mario".into()),
+            ..Default::default()
+        },
+    });
+    let editors = r#"[{"in":"a","root":"r","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Mario Hidalgo","owned":true,"signed":"s"},
+        {"in":"a","root":"q","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Juan","signed":"s"}]"#;
+    home.commit(Op::SharingKept {
+        file: made.id.clone(),
+        d: Remembered {
+            id: "a".to_owned(),
+            version: 2,
+            link_key: Some("k".repeat(43)),
+            files_print: None,
+            files_hash: None,
+            files_key: None,
+            admin_token: None,
+            edit_token: Some("t".repeat(43)),
+            words_print: None,
+            signed_as: None,
+            owner: None,
+            owner_name: Some("Mario Hidalgo".to_owned()),
+            cited: Vec::new(),
+            held_by: None,
+            ttl_days: None,
+            carried: Some(format!(r#"{{"editors":{editors}}}"#)),
+            sealed_under: None,
+            version_by: None,
+            version_root: None,
+        },
+    });
+    home.commit(Op::SharingForgotten {
+        file: made.id,
+        stopped: None,
+    });
+
+    let out = sealed(&home, &asked(id));
+    assert!(
+        out.told.iter().any(|one| matches!(
+            one,
+            Told::ACopy { of, editors } if of == "Mario Hidalgo" && editors == &["Juan"]
+        )),
+        "{:?}",
+        out.told
+    );
+}

@@ -963,6 +963,8 @@ const en = {
   toldACopyEdited:
     "This is a copy of something {name} shared, edited by {other}. It goes as a new document of yours that says what it is based on. Asking them for permission is up to you: by sending it, you accept that you were authorized",
   aCopySomeone: "someone else",
+  toldOthersEdited:
+    "This document had other editors: {name}. Asking them for permission before sharing it again is up to you: by sending it, you accept that they authorized you",
   sharedBasedOn: "Based on a share by {name}",
   sharedBasedOnEdited: "Based on a share by {name}, edited by {other}",
   tongueUnsaid: "Say first which language it is in",
@@ -3943,6 +3945,8 @@ const es: Catalog = {
   toldACopyEdited:
     "Es una copia de algo que compartió {name}, editado por {other}. Sale como un documento nuevo, tuyo, que dice en qué se basa. Pedirles permiso es tu responsabilidad: al enviarlo, aceptas que te autorizaron",
   aCopySomeone: "otra persona",
+  toldOthersEdited:
+    "Este documento tuvo otros editores: {name}. Pedirles permiso antes de volver a compartirlo es tu responsabilidad: al enviarlo, aceptas que te autorizaron",
   sharedBasedOn: "Basado en un compartido de {name}",
   sharedBasedOnEdited: "Basado en un compartido de {name}, editado por {other}",
   tongueUnsaid: "Primero di en qué idioma está",

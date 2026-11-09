@@ -65,6 +65,25 @@ fn a_copy(kept: &Kept, based_on: &BTreeMap<String, Option<String>>) -> Told {
     }
 }
 
+// A document shared again under a new link carries words others wrote under the last one (140).
+fn others_who_edited(
+    state: &State,
+    kept: &Kept,
+    shelf: &BTreeMap<String, Remembered>,
+) -> Option<Told> {
+    if kept.guest || shelf.contains_key(&kept.file) {
+        return None;
+    }
+    let said = state.sharing_editors.get(&kept.file)?;
+    let editors: Vec<Editor> = serde_json::from_str(said).ok()?;
+    let names: Vec<String> = editors
+        .into_iter()
+        .filter(|one| one.owned != Some(true))
+        .map(|one| one.name)
+        .collect();
+    (!names.is_empty()).then_some(Told::OthersEdited { editors: names })
+}
+
 fn editors_only(said: Option<String>) -> Carried {
     let editors = said
         .and_then(|said| serde_json::from_str::<serde_json::Value>(&said).ok())
@@ -803,7 +822,14 @@ pub fn gathered_within(
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
     let mut shelf = remembered(state).clone();
-    let based_on = copies_apart(state, &mut shelf);
+    let mut based_on = copies_apart(state, &mut shelf);
+    for kept in state.docs.values().filter(|kept| kept.guest) {
+        if let Some(editors) = state.sharing_editors.get(&kept.file) {
+            based_on
+                .entry(kept.file.clone())
+                .or_insert_with(|| Some(format!("{{\"editors\":{editors}}}")));
+        }
+    }
     let top = sharable(desk, asked.doc, &shelf, true)?;
     let edits = shelf
         .get(&top.file)
@@ -840,6 +866,8 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     if gathering.copying && !gathering.shelf.contains_key(&top.file) {
         let copy = a_copy(top, &gathering.based_on);
         gathering.told.push(copy);
+    } else if let Some(others) = others_who_edited(state, top, &gathering.shelf) {
+        gathering.told.push(others);
     }
     // One family goes once, whichever of its languages was ticked and however many times.
     let mut seen = BTreeSet::from([state.anchor_of(top)]);
