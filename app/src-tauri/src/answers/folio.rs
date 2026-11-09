@@ -19,7 +19,7 @@ use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
-use super::folio_editing::{Named, SignsAs, signs_as, who_of};
+use super::folio_editing::{Named, SignsAs, said_after_sending, signs_as, who_of};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -1074,7 +1074,7 @@ pub async fn doc_shared(
             .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         let not_kept = told_of_taken_back(&door, &home, &state, &device);
-        let told = told.into_iter().chain(not_kept).collect();
+        let told = said_after_sending(told.into_iter().chain(not_kept).collect());
         let top = sealed
             .remembering
             .iter()

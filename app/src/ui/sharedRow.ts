@@ -93,7 +93,10 @@ interface Hands {
   onKeep?: () => Promise<unknown> | undefined;
 }
 
-type Told = Exclude<Awaited<ReturnType<typeof shareSync>>, { state: "secrets" | "gone" }>;
+type Told = Exclude<
+  Awaited<ReturnType<typeof shareSync>>,
+  { state: "secrets" | "othersEdited" | "gone" }
+>;
 
 const termsNote = (synced: { termsUnchecked: boolean }) =>
   synced.termsUnchecked ? [t("shareTermsUnchecked")] : [];
@@ -124,6 +127,11 @@ const syncAnswered = (h: Hands, synced: Awaited<ReturnType<typeof shareSync>>) =
   if (synced.state === "secrets") {
     h.setAccepted(synced.print);
     h.setTold(fill("shareSecretsSync", synced.place));
+    return;
+  }
+  if (synced.state === "othersEdited") {
+    h.setAccepted(synced.print);
+    h.setTold(fill("toldOthersEdited", synced.editors.join(", ")));
     return;
   }
   h.setAccepted(undefined);

@@ -96,6 +96,7 @@ export interface ShareCard {
 export type Synced =
   | { state: "unchanged"; told: Told[]; termsUnchecked: boolean }
   | { state: "secrets"; place: string; print: string }
+  | { state: "othersEdited"; editors: string[]; print: string }
   | { state: "gone" }
   | { state: "sent"; version: number | null; told: Told[]; termsUnchecked: boolean }
   | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };

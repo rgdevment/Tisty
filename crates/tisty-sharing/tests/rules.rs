@@ -1728,3 +1728,40 @@ walks
         again.told
     );
 }
+
+#[test]
+fn a_language_that_stays_here_names_nobody() {
+    let (_tmp, mut home) = home();
+    let es = home.wrote(
+        "---
+lang: es
+---
+
+paseos
+",
+        None,
+    );
+    let en = home.wrote(
+        "---
+lang: en
+---
+
+walks
+",
+        None,
+    );
+    home.joined(en, es);
+    let file = home.state.docs[&en].file.clone();
+    home.state
+        .sharing_editors
+        .insert(file, r#"[{"in":"x","root":"q","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Ana","signed":"s"}]"#.to_owned());
+    home.commit(Op::DocLock { id: en });
+
+    let again = sealed(&home, &asked(es));
+    assert!(
+        !again
+            .told
+            .iter()
+            .any(|one| matches!(one, Told::OthersEdited { .. }))
+    );
+}

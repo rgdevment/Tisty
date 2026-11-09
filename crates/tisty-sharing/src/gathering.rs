@@ -48,13 +48,14 @@ struct Carried {
 
 // A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
 fn others_who_edited(
-    state: &State,
+    desk: &Desk,
     kept: &Kept,
     shelf: &BTreeMap<String, Remembered>,
 ) -> Option<Told> {
+    let state = desk.state;
     let mut names: Vec<String> = Vec::new();
     for one in languages_of(state, kept) {
-        if one.guest || shelf.contains_key(&one.file) {
+        if one.guest || shelf.contains_key(&one.file) || sharable(desk, one.id, shelf).is_err() {
             continue;
         }
         let Some(said) = state.sharing_editors.get(&one.file) else {
@@ -789,7 +790,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     if wanted.is_some() && signed_as.is_none() {
         gathering.told.push(Told::NameLeftOut);
     }
-    if let Some(others) = others_who_edited(state, top, &gathering.shelf) {
+    if let Some(others) = others_who_edited(desk, top, &gathering.shelf) {
         gathering.told.push(others);
     }
     // One family goes once, whichever of its languages was ticked and however many times.

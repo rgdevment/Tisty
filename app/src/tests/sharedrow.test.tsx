@@ -577,6 +577,35 @@ describe("what Sync warns of", () => {
     expect(invoked).toHaveBeenCalledWith("doc_share_sync", { id: "d1", accepted: "p1" });
   });
 
+  it("asks before a Sync sends what others edited, and sends once answered", async () => {
+    invoked.mockImplementation((command: string, asked: { accepted?: string }) => {
+      if (command === "doc_share_card") return Promise.resolve(card);
+      if (asked.accepted === "p2") return Promise.resolve({ state: "sent", version: 4, told: [] });
+      return Promise.resolve({ state: "othersEdited", editors: ["Ana"], print: "p2" });
+    });
+    const { result } = renderHook(() => useSharedRow("d1"));
+    const row = () => {
+      const now = result.current.panel;
+      if (now?.kind !== "held") throw new Error("no row");
+      return now;
+    };
+    await waitFor(() => expect(row().links?.length).toBe(1));
+    const press = () =>
+      act(async () => {
+        row()
+          .acts?.find((one) => one.key === "sync")
+          ?.onPick?.(document.body);
+      });
+
+    await press();
+    await waitFor(() => expect(row().said).toContain(fill("toldOthersEdited", "Ana")));
+    expect(row().acts?.find((one) => one.key === "sync")?.label).toBe(t("shareGoAnyway"));
+
+    await press();
+    await waitFor(() => expect(row().said).toContain(fill("shareSyncSent", "4")));
+    expect(invoked).toHaveBeenCalledWith("doc_share_sync", { id: "d1", accepted: "p2" });
+  });
+
   it("forgets a link that ran out and says so", async () => {
     const { panel, pressed } = await held(card, { doc_share_sync: { state: "gone" } });
 
