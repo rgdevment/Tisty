@@ -39,14 +39,23 @@ fn kept(home: &Path) -> BTreeMap<String, Vec<u64>> {
     policy::kept_at(&home.join(KEPT)).unwrap_or_default()
 }
 
-pub fn press(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> Result<(), u64> {
-    let mut all = kept(home);
-    let presses = all.entry(id.to_owned()).or_default();
+fn free_under(presses: &[u64], now: u64, limits: Option<&FolioLimits>) -> Option<u64> {
     let waits = limits
         .and_then(|one| one.upload_waits_minutes.as_deref())
         .unwrap_or_default();
     let an_hour = limits.and_then(|one| one.uploads_of_a_root_an_hour);
-    if let Some(free) = free_at(presses, now, waits, an_hour) {
+    free_at(presses, now, waits, an_hour)
+}
+
+pub fn waiting_until(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> Option<u64> {
+    let all = kept(home);
+    free_under(all.get(id).map_or(&[], Vec::as_slice), now, limits)
+}
+
+pub fn press(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> Result<(), u64> {
+    let mut all = kept(home);
+    let presses = all.entry(id.to_owned()).or_default();
+    if let Some(free) = free_under(presses, now, limits) {
         return Err(free);
     }
     presses.retain(|at| now.saturating_sub(*at) < HOUR + QUIET_STARTS_OVER);
