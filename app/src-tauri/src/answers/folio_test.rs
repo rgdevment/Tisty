@@ -654,9 +654,14 @@ fn a_wait_tells_the_window_until_when() {
 }
 
 #[test]
-fn the_edit_link_exists_only_where_a_token_does() {
+fn the_edit_link_exists_only_where_a_token_does_on_the_host_it_is_given() {
     assert_eq!(
-        card_of(&remembered(Some("key"), None), &Signature::default(), None),
+        card_of(
+            "tisty.cl",
+            &remembered(Some("key"), None),
+            &Signature::default(),
+            None
+        ),
         Some(Card {
             read: "https://tisty.cl/Ab3xK9pQ#key".to_owned(),
             edit: None,
@@ -672,19 +677,25 @@ fn the_edit_link_exists_only_where_a_token_does() {
     );
     assert_eq!(
         card_of(
+            "tisty.dev",
             &remembered(Some("key"), Some("token")),
             &Signature::default(),
             None
         )
         .and_then(|one| one.edit),
-        Some("https://tisty.cl/Ab3xK9pQ#key.token".to_owned())
+        Some("https://tisty.dev/Ab3xK9pQ#key.token".to_owned())
     );
 }
 
 #[test]
 fn what_has_no_link_key_has_no_card() {
     assert_eq!(
-        card_of(&remembered(None, None), &Signature::default(), None),
+        card_of(
+            "tisty.cl",
+            &remembered(None, None),
+            &Signature::default(),
+            None
+        ),
         None
     );
 }

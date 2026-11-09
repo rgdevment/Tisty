@@ -1,13 +1,15 @@
 use std::collections::BTreeMap;
 use std::io::Read;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::Serialize;
 use tauri::Manager;
 use tisty_carrier::folio_client::{
-    self, Answered, Asked, BASE, Claim, Door, First, Refused, Stopped, Taken, Verb, Version, Why,
+    self, Answered, Asked, Claim, Door, First, Refused, Stopped, Taken, Verb, Version, Why,
 };
+use tisty_carrier::folio_hosts;
 use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
@@ -31,23 +33,28 @@ pub(super) const FIRST_TERM_DAYS: u64 = 1;
 
 pub(super) struct ToFolio {
     client: reqwest::blocking::Client,
+    api: String,
 }
 
 impl ToFolio {
-    pub(super) fn new() -> Answer<Self> {
+    pub(super) fn new(home: &Path) -> Answer<Self> {
         let client = reqwest::blocking::Client::builder()
             .timeout(PATIENCE)
             .redirect(reqwest::redirect::Policy::none())
             .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| Refusal::of("folioUnreached"))?;
-        Ok(Self { client })
+        let host = folio_hosts::private(home, crate::reaching::brought_from_folio);
+        Ok(Self {
+            client,
+            api: folio_client::api_of(&host),
+        })
     }
 }
 
 impl Door for ToFolio {
     fn ask(&self, asked: &Asked<'_>) -> Option<Answered> {
-        let url = format!("{BASE}{}", asked.path);
+        let url = format!("{}{}", self.api, asked.path);
         let mut request = match asked.verb {
             Verb::Get => self.client.get(url),
             Verb::Post => self.client.post(url),
@@ -543,8 +550,12 @@ fn shared_elsewhere(
 }
 
 // Only when the count would stop the person: a term that ran out frees its place without telling anyone.
-fn still_shared(app: &tauri::AppHandle, shared: Vec<SharedElsewhere>) -> Vec<SharedElsewhere> {
-    let Ok(door) = ToFolio::new() else {
+fn still_shared(
+    app: &tauri::AppHandle,
+    home: &Path,
+    shared: Vec<SharedElsewhere>,
+) -> Vec<SharedElsewhere> {
+    let Ok(door) = ToFolio::new(home) else {
         return shared;
     };
     shared
@@ -586,21 +597,22 @@ fn told_of(app: &tauri::AppHandle, file: &str, stopped: &Stopped) -> Refusal {
 
 // Decisions 48 and 51: deleting a document stops its share, here or on whichever computer sees it next.
 pub fn stops_what_lost_its_document(app: &tauri::AppHandle) {
-    let lost: Vec<(String, Remembered)> = {
+    let (lost, home): (Vec<(String, Remembered)>, _) = {
         let session = app.state::<Mutex<Session>>();
         let session = held(&session);
-        tisty_sharing::remembered(&session.state)
+        let lost = tisty_sharing::remembered(&session.state)
             .iter()
             .filter(|(file, _)| doc_of_file(&session, file).is_none())
             .map(|(file, was)| (file.clone(), was.clone()))
-            .collect()
+            .collect();
+        (lost, session.paths.private())
     };
     if lost.is_empty() {
         return;
     }
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let Ok(door) = ToFolio::new() else {
+        let Ok(door) = ToFolio::new(&home) else {
             return;
         };
         for (file, was) in lost {
@@ -666,7 +678,7 @@ pub async fn doc_share_look(
         let cited = tisty_sharing::citable(&desk, doc).map_err(|e| refused(&e))?;
         let others = shared.iter().filter(|one| one.doc != id).count() as u64;
         let shared = match limits.shares_at_most {
-            Some(most) if others >= most => still_shared(&app, shared),
+            Some(most) if others >= most => still_shared(&app, &home, shared),
             _ => shared,
         };
         Ok(Look {
@@ -709,6 +721,7 @@ pub struct Card {
 }
 
 pub(super) fn card_of(
+    host: &str,
     was: &Remembered,
     signature: &Signature,
     maker: Option<&str>,
@@ -717,11 +730,11 @@ pub(super) fn card_of(
     let taken = was.admin_token.is_none();
     let who = who_of(was, maker);
     Some(Card {
-        read: folio_client::read_link(&was.id, key),
+        read: folio_client::read_link(host, &was.id, key),
         edit: was
             .edit_token
             .as_deref()
-            .map(|token| folio_client::edit_link(&was.id, key, token)),
+            .map(|token| folio_client::edit_link(host, &was.id, key, token)),
         version: was.version,
         taken,
         held: was.held_by.is_some(),
@@ -748,12 +761,14 @@ pub fn doc_share_card(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Card>> {
-    let maker = folio_limits::maker_root(&held(&session).paths.private());
+    let home = held(&session).paths.private();
+    let maker = folio_limits::maker_root(&home);
+    let host = folio_hosts::private_kept(&home);
     let session = held(&session);
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(|was| card_of(was, &session.state.signed, maker.as_deref())))
+        .and_then(|was| card_of(&host, was, &session.state.signed, maker.as_deref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -961,8 +976,10 @@ pub(super) async fn sealed_for_folio(
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
+    let reaching = home.clone();
     let sealed = sealed_by(app, session, asked, move |desk, asked| {
-        let door = ToFolio::new().map_err(|_| Unshared::Unread("no way to Folio".to_owned()))?;
+        let door =
+            ToFolio::new(&reaching).map_err(|_| Unshared::Unread("no way to Folio".to_owned()))?;
         let mint = || match folio_client::start(&door) {
             Ok(start) => {
                 if let Ok(mut held) = given.lock() {
@@ -1070,7 +1087,7 @@ pub async fn doc_shared(
     let keep = keeping(&app);
     let home = paths.private();
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         delivered(&door, &home, None, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
@@ -1081,7 +1098,8 @@ pub async fn doc_shared(
             .iter()
             .find(|(_, one)| one.held_by.is_none());
         let maker = folio_limits::maker_root(&home);
-        top.and_then(|(_, one)| card_of(one, &state.signed, maker.as_deref()))
+        let host = folio_hosts::private_kept(&home);
+        top.and_then(|(_, one)| card_of(&host, one, &state.signed, maker.as_deref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })
@@ -1131,8 +1149,9 @@ pub async fn doc_share_status(
     id: String,
 ) -> Answer<ShareStatus> {
     let (id, admin, file) = admin_of(&session, &id)?;
+    let home = held(&session).paths.private();
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         let told = folio_client::status(&door, &id, &admin)
             .map_err(|stopped| told_of(&app, &file, &stopped))?;
         Ok(ShareStatus {
@@ -1156,8 +1175,9 @@ pub async fn doc_share_pause(
     paused: bool,
 ) -> Answer<()> {
     let (id, admin, file) = admin_of(&session, &id)?;
+    let home = held(&session).paths.private();
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         let done = if paused {
             folio_client::pause(&door, &id, &admin)
         } else {
@@ -1174,8 +1194,9 @@ pub async fn doc_share_appeal(
     id: String,
 ) -> Answer<bool> {
     let (id, admin, _) = admin_of(&session, &id)?;
+    let home = held(&session).paths.private();
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         let claim = folio_client::appeal(&door, &id, &admin).map_err(|stopped| said(&stopped))?;
         Ok(claim == Claim::Accepted)
     })
@@ -1208,7 +1229,7 @@ pub async fn doc_share_stop(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<()> {
-    let (file, was, along) = {
+    let (file, was, along, home) = {
         let session = held(&session);
         let (file, was) = remembered_of(&session, &id)?;
         let along = going_with(
@@ -1217,10 +1238,10 @@ pub async fn doc_share_stop(
             &was.id,
             |at| doc_of_file(&session, at).map(|one| one.to_string()),
         );
-        (file, was, along)
+        (file, was, along, session.paths.private())
     };
     apart(move || {
-        let door = ToFolio::new()?;
+        let door = ToFolio::new(&home)?;
         if let Some(admin) = &was.admin_token {
             folio_client::stop(&door, &was.id, admin).map_err(|stopped| said(&stopped))?;
         }

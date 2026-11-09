@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use super::{
     Answered, Asked, Claim, Door, First, Latest, Refused, Stopped, Stored, Taken, Verb, Version,
-    Why, appeal, edit_link, fetch, fetch_files, latest, pause, permit, read_link, resume,
+    Why, api_of, appeal, edit_link, fetch, fetch_files, latest, pause, permit, read_link, resume,
     send_files, send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
 };
 
@@ -363,15 +363,16 @@ fn a_refusal_this_version_does_not_know_is_still_a_refusal() {
 }
 
 #[test]
-fn the_links_keep_their_secrets_after_the_hash() {
+fn the_links_keep_their_secrets_after_the_hash_on_the_host_they_are_given() {
     assert_eq!(
-        read_link("Ab3xK9pQ", "key"),
+        read_link("tisty.cl", "Ab3xK9pQ", "key"),
         "https://tisty.cl/Ab3xK9pQ#key"
     );
     assert_eq!(
-        edit_link("Ab3xK9pQ", "key", "token"),
-        "https://tisty.cl/Ab3xK9pQ#key.token"
+        edit_link("tisty.dev", "Ab3xK9pQ", "key", "token"),
+        "https://tisty.dev/Ab3xK9pQ#key.token"
     );
+    assert_eq!(api_of("tisty.dev"), "https://tisty.dev/api/v1");
 }
 
 #[test]
