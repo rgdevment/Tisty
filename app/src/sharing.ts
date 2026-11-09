@@ -81,6 +81,9 @@ export interface ShareCard {
   taken: boolean;
   held: boolean;
   told: Told[];
+  owner: string | null;
+  signer: string | null;
+  signsAs: { now: string; other: string | null } | null;
 }
 
 export type Synced =
@@ -166,6 +169,9 @@ export const docShared = (
 
 export const shareSync = (id: string, accepted?: string): Promise<Synced> =>
   invoke("doc_share_sync", { id, accepted });
+
+export const shareSignAs = (id: string, name: string): Promise<ShareCard> =>
+  invoke("doc_share_sign_as", { id, name });
 
 export const shareWaiting = (id: string, look: boolean): Promise<ShareWaiting> =>
   invoke("doc_share_waiting", { id, look });

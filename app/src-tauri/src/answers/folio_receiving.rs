@@ -249,6 +249,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         ttl_days: None,
         carried: received.carried.clone(),
         sealed_under: opened.contract.clone(),
+        version_by: owner_apart(opened).and(received.signed_as.clone()),
     }
 }
 

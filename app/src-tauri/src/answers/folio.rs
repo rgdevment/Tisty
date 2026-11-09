@@ -14,10 +14,12 @@ use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::folio_today;
 use tisty_carrier::policy;
 use tisty_core::Paths;
+use tisty_core::event::Signature;
 use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
+use super::folio_editing::{SignsAs, signs_as};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -699,10 +701,14 @@ pub struct Card {
     taken: bool,
     held: bool,
     told: Vec<Told>,
+    owner: Option<String>,
+    signer: Option<String>,
+    signs_as: Option<SignsAs>,
 }
 
-fn card_of(was: &Remembered) -> Option<Card> {
+pub(super) fn card_of(was: &Remembered, signature: &Signature) -> Option<Card> {
     let key = was.link_key.as_deref()?;
+    let taken = was.admin_token.is_none();
     Some(Card {
         read: folio_client::read_link(&was.id, key),
         edit: was
@@ -710,9 +716,12 @@ fn card_of(was: &Remembered) -> Option<Card> {
             .as_deref()
             .map(|token| folio_client::edit_link(&was.id, key, token)),
         version: was.version,
-        taken: was.admin_token.is_none(),
+        taken,
         held: was.held_by.is_some(),
         told: Vec::new(),
+        owner: was.owner_name.clone().filter(|_| taken),
+        signer: was.version_by.clone(),
+        signs_as: signs_as(was, signature),
     })
 }
 
@@ -735,7 +744,7 @@ pub fn doc_share_card(
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(card_of))
+        .and_then(|was| card_of(was, &session.state.signed)))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -1062,7 +1071,7 @@ pub async fn doc_shared(
             .remembering
             .iter()
             .find(|(_, one)| one.held_by.is_none());
-        top.and_then(|(_, one)| card_of(one))
+        top.and_then(|(_, one)| card_of(one, &state.signed))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

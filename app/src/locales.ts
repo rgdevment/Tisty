@@ -758,6 +758,11 @@ const en = {
     "Your appeal was sent. The operator will review it, and the block stays until then.",
   folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
   shareStopEditing: "Stop editing it",
+  shareSignsAs: "Your versions go signed as {0}.",
+  shareSignAsOther: "Sign as {0}",
+  sharedOwnerAndSigner: "Owner: {0} · This version was signed by {1}",
+  sharedOwner: "Owner: {0}",
+  sharedVersionBy: "This version was signed by {0}",
   folioChanged: "The document changed while you chose, so it was looked over again.",
   shareTermsUnchecked:
     "Folio's new terms could not be verified. You can keep sharing under the ones you accepted.",
@@ -3721,6 +3726,11 @@ const es: Catalog = {
     "Se envió tu reclamo. Lo revisará quien opera el servicio, y el bloqueo sigue hasta entonces.",
   folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
   shareStopEditing: "Dejar de editarlo",
+  shareSignsAs: "Tus versiones van firmadas como {0}.",
+  shareSignAsOther: "Firmar como {0}",
+  sharedOwnerAndSigner: "Dueño: {0} · Esta versión la firmó {1}",
+  sharedOwner: "Dueño: {0}",
+  sharedVersionBy: "Esta versión la firmó {0}",
   folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTermsUnchecked:
     "No se pudieron verificar los términos nuevos de Folio. Puedes seguir compartiendo con los que aceptaste.",

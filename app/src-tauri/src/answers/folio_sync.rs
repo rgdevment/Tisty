@@ -15,7 +15,7 @@ use super::folio::{
     network_free, new_terms_asked, press_given_back, remembered_of, said_kept, said_to_whom,
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
-use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
+use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from, owner_apart};
 use super::papers::other_version_kept;
 use super::sharing::{doc_id, refused, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
@@ -442,6 +442,7 @@ async fn other_version_brought(
     let mut now = was.clone();
     now.version = opened.version;
     now.sealed_under = opened.contract.clone();
+    now.version_by = owner_apart(&opened).and(received.signed_as.clone());
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;

@@ -8,6 +8,7 @@ import {
   shareAppeal,
   shareCard,
   sharePause,
+  shareSignAs,
   shareStatus,
   shareStop,
   shareSync,
@@ -220,9 +221,30 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-const leavingActs = (h: Hands): Act[] => [
-  { key: "leave", label: t("shareStopEditing"), danger: true, onPick: () => h.setStopping(true) },
+// Who owns it and who signed what is here, apart, as the copy shows them (145).
+const whoSaid = ({ owner, signer, signsAs }: ShareCard) => [
+  ...(owner && signer ? [fill("sharedOwnerAndSigner", owner, signer)] : []),
+  ...(owner && !signer ? [fill("sharedOwner", owner)] : []),
+  ...(!owner && signer ? [fill("sharedVersionBy", signer)] : []),
+  ...(signsAs ? [fill("shareSignsAs", signsAs.now)] : []),
 ];
+
+const leavingActs = (h: Hands): Act[] => {
+  const other = h.card.signsAs?.other;
+  const signing: Act[] = other
+    ? [
+        {
+          key: "signs",
+          label: fill("shareSignAsOther", other),
+          onPick: () => void shareSignAs(h.doc, other).then(h.setCard).catch(h.failing),
+        },
+      ]
+    : [];
+  return [
+    ...signing,
+    { key: "leave", label: t("shareStopEditing"), danger: true, onPick: () => h.setStopping(true) },
+  ];
+};
 
 export const useSharedRow = (
   doc: string | undefined,
@@ -401,6 +423,7 @@ export const useSharedRow = (
       mark: t("sharedBeta"),
       ...gistOf(hands.card, hands.status),
       said: [
+        ...whoSaid(hands.card),
         ...saidOf(hands.status, told, stopping),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],

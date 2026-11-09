@@ -512,6 +512,7 @@ impl Gathering<'_> {
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),
                 sealed_under: Some(tisty_contracts::VERSION.to_owned()),
+                version_by: None,
             },
         ));
         self.titles.insert(kept.file.clone(), shown);

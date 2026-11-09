@@ -262,6 +262,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             .to_string(),
         ),
         sealed_under: None,
+        version_by: None,
     };
     editor.sent(&[(file, entry)]);
 
@@ -426,6 +427,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         ttl_days: None,
         carried: None,
         sealed_under: None,
+        version_by: None,
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);
