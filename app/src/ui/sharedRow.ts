@@ -367,8 +367,8 @@ export const useSharedRow = (
         kind: "held",
         key: "shared",
         label: t("sharedLabel"),
+        mark: t("sharedBeta"),
         gist: t("sharedNot"),
-        open: true,
         said: told ? [told, t("sharedWhy")] : [t("sharedWhy")],
         acts: [
           {
@@ -388,8 +388,8 @@ export const useSharedRow = (
         kind: "held",
         key: "shared",
         label: t("sharedLabel"),
+        mark: t("sharedBeta"),
         gist: t("sharedHeldGist"),
-        open: true,
         said: [t("sharedHeldWhy")],
         links: linksOf(hands.card, hands.status),
       };
@@ -398,8 +398,8 @@ export const useSharedRow = (
       kind: "held",
       key: "shared",
       label: t("sharedLabel"),
+      mark: t("sharedBeta"),
       ...gistOf(hands.card, hands.status),
-      open: true,
       said: [
         ...saidOf(hands.status, told, stopping),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),

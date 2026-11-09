@@ -97,6 +97,7 @@ export type Panel =
       readonly kind: "held";
       readonly key: string;
       readonly label: string;
+      readonly mark?: string;
       readonly gist: string;
       readonly tone?: "warn" | "bad";
       readonly said?: readonly string[];

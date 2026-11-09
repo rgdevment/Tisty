@@ -767,6 +767,7 @@ const en = {
   sharedHeldWhy:
     "It is shared because a document you shared holds it: it opens from that one, goes up with it and goes when that one does.",
   sharedLabel: "Shared",
+  sharedBeta: "beta",
   sharedNot: "Not shared",
   sharedWhy:
     "Share it with a link: whoever has it reads it on the web or in their Tisty, encrypted end to end and with no accounts. What you change goes up when you press Sync.",
@@ -3727,6 +3728,7 @@ const es: Catalog = {
   sharedHeldWhy:
     "Está compartido porque lo lleva un documento que compartiste: se abre desde ese, sube con él y se va cuando ese se va.",
   sharedLabel: "Compartido",
+  sharedBeta: "beta",
   sharedNot: "Sin compartir",
   sharedWhy:
     "Compártelo con un link: quien lo tenga lo lee en la web o en su Tisty, cifrado de punta a punta y sin cuentas. Lo que cambies sube cuando presiones Sincronizar.",

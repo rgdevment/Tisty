@@ -371,6 +371,21 @@ describe("the panels beside a sheet", () => {
     expect(side.querySelector(".side-acts")).toBeNull();
   });
 
+  it("puts a held row's mark beside its name, and none when it has none", () => {
+    const side = host();
+    sided(side, say, [
+      { kind: "held", key: "shared", label: "Compartido", mark: "beta", gist: "Sin compartir" },
+    ]);
+
+    const head = side.querySelector(".side-row-head");
+    expect(head?.children[1]?.className).toBe("side-row-mark");
+    expect(head?.querySelector(".side-row-mark")?.textContent).toBe("beta");
+
+    const plain = host();
+    sided(plain, say, [{ kind: "held", key: "s", label: "L", gist: "G" }]);
+    expect(plain.querySelector(".side-row-mark")).toBeNull();
+  });
+
   it("tells the bad tone of a held row apart from the warning", () => {
     const side = host();
     sided(side, say, [{ kind: "held", key: "s", label: "L", gist: "G", tone: "bad" }]);
