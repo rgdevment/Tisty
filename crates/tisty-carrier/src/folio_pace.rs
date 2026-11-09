@@ -5,6 +5,9 @@ use crate::folio_limits::FolioLimits;
 use crate::policy;
 
 const KEPT: &str = "folio-sync-presses.json";
+const HELD: &str = "folio-held-until.json";
+const LOCK: &str = "folio-waits.lock";
+pub const NETWORK: &str = "network";
 const QUIET_STARTS_OVER: u64 = 30 * 60;
 const HOUR: u64 = 60 * 60;
 const MINUTE: u64 = 60;
@@ -47,40 +50,83 @@ fn free_under(presses: &[u64], now: u64, limits: Option<&FolioLimits>) -> Option
     free_at(presses, now, waits, an_hour)
 }
 
+fn held(home: &Path) -> BTreeMap<String, u64> {
+    policy::kept_at(&home.join(HELD)).unwrap_or_default()
+}
+
+// Each Sync runs on a thread of its own and writes its whole file back, so two at once would undo each other.
+pub(crate) fn locked<T>(home: &Path, work: impl FnOnce() -> T) -> T {
+    let _ = std::fs::create_dir_all(home);
+    let lock = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(home.join(LOCK));
+    let _held = lock.ok().filter(|file| file.lock().is_ok());
+    work()
+}
+
+pub fn held_until(home: &Path, key: &str, now: u64) -> Option<u64> {
+    held(home).get(key).copied().filter(|until| *until > now)
+}
+
+fn held_for(home: &Path, id: &str, now: u64) -> Option<u64> {
+    [id, NETWORK]
+        .iter()
+        .filter_map(|key| held_until(home, key, now))
+        .max()
+}
+
+// What Folio said it holds back, from this computer or any other, lasts past a restart.
+pub fn hold(home: &Path, key: &str, until: u64, now: u64) {
+    locked(home, || {
+        let mut all = held(home);
+        all.retain(|_, at| *at > now);
+        let at = all.entry(key.to_owned()).or_default();
+        *at = (*at).max(until);
+        kept_again(home, HELD, &all);
+    });
+}
+
 pub fn waiting_until(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> Option<u64> {
     let all = kept(home);
-    free_under(all.get(id).map_or(&[], Vec::as_slice), now, limits)
+    let paced = free_under(all.get(id).map_or(&[], Vec::as_slice), now, limits);
+    paced.into_iter().chain(held_for(home, id, now)).max()
 }
 
 pub fn press(home: &Path, id: &str, now: u64, limits: Option<&FolioLimits>) -> Result<(), u64> {
-    let mut all = kept(home);
-    let presses = all.entry(id.to_owned()).or_default();
-    if let Some(free) = free_under(presses, now, limits) {
-        return Err(free);
-    }
-    presses.retain(|at| now.saturating_sub(*at) < HOUR + QUIET_STARTS_OVER);
-    presses.push(now);
-    kept_again(home, &all);
-    Ok(())
+    locked(home, || {
+        if let Some(free) = waiting_until(home, id, now, limits) {
+            return Err(free);
+        }
+        let mut all = kept(home);
+        let presses = all.entry(id.to_owned()).or_default();
+        presses.retain(|at| now.saturating_sub(*at) < HOUR + QUIET_STARTS_OVER);
+        presses.push(now);
+        kept_again(home, KEPT, &all);
+        Ok(())
+    })
 }
 
 // A press that the terms stopped before anything went up is no upload for the waits to count.
 pub fn take_back(home: &Path, id: &str, at: u64) {
-    let mut all = kept(home);
-    let Some(presses) = all.get_mut(id) else {
-        return;
-    };
-    if presses.last() == Some(&at) {
-        presses.pop();
-        kept_again(home, &all);
-    }
+    locked(home, || {
+        let mut all = kept(home);
+        let Some(presses) = all.get_mut(id) else {
+            return;
+        };
+        if presses.last() == Some(&at) {
+            presses.pop();
+            kept_again(home, KEPT, &all);
+        }
+    });
 }
 
 // The server holds to its own numbers, so a disk that will not keep these costs nothing but a wait.
-fn kept_again(home: &Path, all: &BTreeMap<String, Vec<u64>>) {
+fn kept_again(home: &Path, named: &str, all: &impl serde::Serialize) {
     if let Ok(bytes) = serde_json::to_vec(all) {
         let _ = std::fs::create_dir_all(home);
-        let _ = tisty_core::store::write_atomic(&home.join(KEPT), &bytes);
+        let _ = tisty_core::store::write_atomic(&home.join(named), &bytes);
     }
 }
 
