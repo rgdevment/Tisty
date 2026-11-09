@@ -370,18 +370,19 @@ const SEARCH = `<script>(${searchOnReach})()</script>`;
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
 
-// A name with its print is kept a year, a picture a day, and a page a moment, as a release replaces it.
 const YEAR = "public, max-age=31536000, immutable";
 const DAY = "public, max-age=86400";
-const SHORT = "public, max-age=300, stale-while-revalidate=3600";
+const SHORT = "public, max-age=300, s-maxage=86400, stale-while-revalidate=3600";
+const HTTPS_ONLY = "/*\n  Strict-Transport-Security: max-age=15552000";
 // Pages stops at this many rules without a word, and the pages past it would lose their cache.
 const MOST_RULES = 100;
 
 const rule = (path, cache) => `${path}\n  Cache-Control: ${cache}`;
 
-// Each page is named because Pages joins the values of every rule that matches, and `/*` would also match the files above it.
+// Each page is named because Pages joins the values of every rule that matches, so `/*` carries only a header no other rule sets.
 export const headers = (logo, built) => {
   const rules = [
+    HTTPS_ONLY,
     rule(`/${logo}`, YEAR),
     rule("/fonts/*", YEAR),
     rule("/tisty.svg", DAY),
