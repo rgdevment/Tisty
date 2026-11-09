@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 
 use super::{
     Answered, Asked, Claim, Door, First, Latest, Refused, Stopped, Stored, Taken, Verb, Version,
-    Why, appeal, edit_link, fetch, fetch_files, latest, pause, read_link, resume, send_files,
-    send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
+    Why, appeal, edit_link, fetch, fetch_files, latest, pause, permit, read_link, resume,
+    send_files, send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
 };
 
 type Heard = (Verb, String, Vec<(&'static str, String)>, Vec<u8>);
@@ -545,4 +545,32 @@ fn the_latest_says_when_folio_takes_the_next_version_only_when_it_knows() {
 
     let silent = FakeFolio::answering(&[(200, r#"{"version":3}"#)]);
     assert_eq!(latest(&silent, "d").unwrap().next_at, None);
+}
+
+#[test]
+fn a_new_permit_goes_with_the_admin_token_and_none_lets_nobody_edit() {
+    let folio = FakeFolio::answering(&[(200, r#"{"done":true}"#), (200, r#"{"done":true}"#)]);
+
+    assert_eq!(
+        permit(&folio, "Ab3xK9pQ", "admin", Some("newPermit")),
+        Ok(())
+    );
+    assert_eq!(permit(&folio, "Ab3xK9pQ", "admin", None), Ok(()));
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, Verb::Put);
+    assert_eq!(asked[0].1, "/docs/Ab3xK9pQ/permit");
+    assert_eq!(asked[0].3, br#"{"permit":"newPermit"}"#);
+    assert_eq!(asked[1].3, br#"{"permit":null}"#);
+    drop(asked);
+    assert_eq!(folio.header(0, "Folio-Admin").as_deref(), Some("admin"));
+}
+
+#[test]
+fn a_permit_folio_will_not_take_says_why() {
+    let folio = FakeFolio::answering(&[(403, r#"{"refused":"blocked"}"#)]);
+
+    assert_eq!(
+        permit(&folio, "Ab3xK9pQ", "admin", Some("newPermit")),
+        Err(Stopped::Refused(Refused::Blocked))
+    );
 }

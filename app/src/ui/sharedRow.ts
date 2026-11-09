@@ -8,6 +8,7 @@ import {
   type ShareStatus,
   shareAppeal,
   shareCard,
+  shareEditLinkRenewed,
   sharePause,
   shareSignAs,
   shareStatus,
@@ -50,7 +51,12 @@ const blockedSaid = ({ mayCorrect, appealed }: ShareStatus) => {
   return t(appealed ? "sharedAppealWaiting" : "sharedBlockedWhy");
 };
 
-const saidOf = (status: ShareStatus | null, told: string | null, stopping: boolean) =>
+const saidOf = (
+  status: ShareStatus | null,
+  told: string | null,
+  stopping: boolean,
+  renewing: boolean,
+) =>
   [
     status?.blocked && blockedSaid(status),
     status?.paused && t("sharedPausedWhy"),
@@ -58,6 +64,7 @@ const saidOf = (status: ShareStatus | null, told: string | null, stopping: boole
     status && !status.blocked && fill("sharedStatus", dayOf(status.diesOn), String(status.reads)),
     told,
     stopping && t("shareStopAsk"),
+    renewing && t("shareRenewAsk"),
   ].filter((one): one is string => Boolean(one));
 
 const linksOf = (card: ShareCard, status: ShareStatus | null): HeldPanel["links"] => {
@@ -87,6 +94,7 @@ interface Hands {
   setStatus: (status: ShareStatus | null) => void;
   setTold: (told: string | null) => void;
   setStopping: (stopping: boolean) => void;
+  setRenewing: (renewing: boolean) => void;
   setCard: (card: ShareCard | null) => void;
   failing: (problem: unknown) => void;
   stillHeld: () => boolean;
@@ -175,6 +183,32 @@ const syncAct = (h: Hands): Act => ({
   onPick: () => syncNow(h),
 });
 
+// Folio already took the new permit even when the version that follows has to wait, so the row shows the new link either way.
+const renewNow = (h: Hands) => {
+  h.setRenewing(false);
+  h.setTold(null);
+  void Promise.resolve(h.onKeep?.())
+    .then(() => shareEditLinkRenewed(h.doc))
+    .then((synced) => {
+      if (synced.state === "sent") h.setTold(t("shareRenewed"));
+      else if (synced.state === "otherVersion" || synced.state === "unchanged")
+        h.setTold(`${syncedWords(synced)} ${t("shareRenewWaits")}`);
+      else syncAnswered(h, synced);
+    })
+    .catch(h.failing)
+    .finally(() => {
+      void shareCard(h.doc)
+        .then((card) => card && h.setCard(card))
+        .catch(() => {});
+      h.askWaiting();
+    });
+};
+
+const renewingActs = (h: Hands): Act[] => [
+  { key: "keep", label: t("shareCancel"), onPick: () => h.setRenewing(false) },
+  { key: "renew", label: t("shareRenew"), danger: true, onPick: () => renewNow(h) },
+];
+
 const stoppingActs = (h: Hands): Act[] => [
   { key: "keep", label: t("shareCancel"), onPick: () => h.setStopping(false) },
   {
@@ -226,6 +260,9 @@ const managingActs = (h: Hands): Act[] => {
           .then(() => statusNow(h))
           .catch(h.failing),
     },
+    ...(h.card.edit
+      ? [{ key: "renewAsk", label: t("shareRenewLink"), onPick: () => h.setRenewing(true) }]
+      : []),
     { key: "ask", label: t("shareStop"), danger: true, onPick: () => h.setStopping(true) },
   ];
 };
@@ -273,6 +310,7 @@ export const useSharedRow = (
   const [told, setTold] = useState<string | null>(null);
   const [status, setStatus] = useState<ShareStatus | null>(null);
   const [stopping, setStopping] = useState(false);
+  const [renewing, setRenewing] = useState(false);
   const [waitUntil, setWaitUntil] = useState(0);
   const [pending, setPending] = useState(false);
   const pendingNow = useRef(pending);
@@ -306,6 +344,7 @@ export const useSharedRow = (
     setTold(null);
     setStatus(null);
     setStopping(false);
+    setRenewing(false);
     setAccepted(undefined);
     setWaitUntil(0);
     setPending(false);
@@ -386,6 +425,7 @@ export const useSharedRow = (
       setStatus,
       setTold,
       setStopping,
+      setRenewing,
       setCard,
       failing,
       stillHeld: () => docNow.current === doc && cardNow.current !== null,
@@ -435,13 +475,17 @@ export const useSharedRow = (
       ...gistOf(hands.card, hands.status),
       said: [
         ...whoSaid(hands.card),
-        ...saidOf(hands.status, told, stopping),
+        ...saidOf(hands.status, told, stopping, renewing),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
       links: linksOf(hands.card, hands.status),
-      acts: stopping ? stoppingActs(hands) : [syncAct(hands), ...rest],
+      acts: stopping
+        ? stoppingActs(hands)
+        : renewing
+          ? renewingActs(hands)
+          : [syncAct(hands), ...rest],
     };
-  }, [doc, told, stopping, hands, onKeep]);
+  }, [doc, told, stopping, renewing, hands, onKeep]);
 
   return {
     panel,

@@ -401,6 +401,23 @@ pub fn resume(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
     read::<Done>(&answered).map(|_| ())
 }
 
+#[derive(Serialize)]
+struct Permitted<'a> {
+    permit: Option<&'a str>,
+}
+
+/// Who may edit changes only here, with the link to manage it: an upload never changes it (148).
+pub fn permit(door: &dyn Door, id: &str, admin: &str, permit: Option<&str>) -> Result<(), Stopped> {
+    let body = serde_json::to_vec(&Permitted { permit }).map_err(|_| Stopped::Garbled)?;
+    let asked = Asked {
+        verb: Verb::Put,
+        path: format!("/docs/{id}/permit"),
+        headers: vec![("Folio-Admin", admin.to_owned())],
+        body: &body,
+    };
+    read::<Done>(&door.ask(&asked).ok_or(Stopped::Unreached)?).map(|_| ())
+}
+
 pub fn stop(door: &dyn Door, id: &str, admin: &str) -> Result<(), Stopped> {
     let answered = asked_as_admin(door, Verb::Delete, format!("/docs/{id}"), admin)?;
     match read::<Done>(&answered) {
