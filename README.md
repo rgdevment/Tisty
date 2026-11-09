@@ -901,9 +901,10 @@ thing it does without asking — taking back a tick it gave by mistake included,
 never one you gave. Its day, its title, its list and its closing stay yours all
 the same. «No agents» shuts the door again and keeps what was filled in. What an
 assistant writes is signed with the name of the program it spoke through: a row
-and the side panel say «by an agent» and name it on hover, while the full page
+says «by an agent» and names it on hover, while the side panel, the full page
 and the journal say «by Claude Code», «by Codex». Settings › Assistants counts
-what each one wrote and lets you choose where the name shows.
+what each one wrote and lets you choose where the name shows, or keep only a
+small ◆.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

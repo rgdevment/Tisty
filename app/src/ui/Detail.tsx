@@ -8,13 +8,13 @@ import {
   type Task,
   type Whole,
 } from "../core";
-import { useCredit } from "../crediting";
+import { useSigning } from "../crediting";
 import type { Paced } from "../deadlines";
 import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
-import { agentNamed, clientNamed, hostedOn, signature, signedBy, wroteWhere } from "../who";
+import { agentNamed, clientNamed } from "../who";
 import Belongs from "./Belongs";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
@@ -26,6 +26,7 @@ import Panel from "./Panel";
 import Rounds from "./Rounds";
 import Routine from "./Routine";
 import Section from "./Section";
+import Signature from "./Signature";
 import { saidBy } from "./Spoke";
 import TaskWords from "./TaskWords";
 import Trail from "./Trail";
@@ -125,7 +126,7 @@ export default function Detail({
   }, [task.status, held]);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
-  const credited = useCredit();
+  const signing = useSigning("inside");
   const live = task.status === "open";
   const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
@@ -203,17 +204,13 @@ export default function Detail({
     </>
   );
 
-  const named = expanded ? credited.inside : credited.rows;
-  const resolver = credited.inside ? clientNamed(task.resolved?.via) : undefined;
+  const resolver = signing === "named" ? clientNamed(task.resolved?.via) : undefined;
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.status === "open" && signedBy(task.created_by, task.created_via) && (
-        <p
-          className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal"
-          title={named ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)}
-        >
-          {signature(task.created_by, task.created_via, named)}
+      {task.status === "open" && agentNamed(task.created_by) && (
+        <p className="-mt-1.5 mb-3 text-[11.5px]">
+          <Signature by={task.created_by} via={task.created_via} signing={signing} />
         </p>
       )}
       {pace && (
@@ -702,7 +699,7 @@ function Title({ task, onRename }: { task: Task; onRename: (title: string) => vo
 }
 
 function Stamps({ task, lists }: { task: Task; lists: List[] }) {
-  const named = useCredit().inside;
+  const signing = useSigning("inside");
   const seals: { key: string; text: string; look?: string }[] = [];
   const list = lists.find((one) => one.id === task.list);
 
@@ -729,21 +726,11 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           readingOf(task) !== "routine" &&
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
-        {signedBy(task.created_by, task.created_via) && (
-          <span
-            className="text-hue-teal"
-            title={
-              named ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)
-            }
-          >
-            {" · "}
-            {signature(task.created_by, task.created_via, named)}
-          </span>
-        )}
+        <Signature by={task.created_by} via={task.created_via} signing={signing} lead=" · " />
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}
-            {saidBy(task, named)}
+            {saidBy(task, signing === "named")}
           </span>
         )}
       </p>

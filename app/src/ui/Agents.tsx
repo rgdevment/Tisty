@@ -109,19 +109,28 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         </button>
       </Card>
 
-      <Card title={t("creditTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
+      <Card title={t("creditTitle")} which="settings" busy={null}>
         <p className="text-[12.5px] leading-relaxed text-soft">{t("creditWhat")}</p>
+        <Line title={t("creditMark")} why={t("creditMarkWhy")} which="settings">
+          <Knob
+            on={shown.mark}
+            label={t("creditMark")}
+            onPress={() => credit("mark", !shown.mark)}
+          />
+        </Line>
         <Line title={t("creditRows")} why={t("creditRowsWhy")} which="settings">
           <Knob
-            on={shown.rows}
+            on={shown.rows && !shown.mark}
             label={t("creditRows")}
+            disabled={shown.mark}
             onPress={() => credit("rows", !shown.rows)}
           />
         </Line>
         <Line title={t("creditInside")} why={t("creditInsideWhy")} which="settings">
           <Knob
-            on={shown.inside}
+            on={shown.inside && !shown.mark}
             label={t("creditInside")}
+            disabled={shown.mark}
             onPress={() => credit("inside", !shown.inside)}
           />
         </Line>

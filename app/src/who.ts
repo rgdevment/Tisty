@@ -42,12 +42,6 @@ export const signedBy = (
 export const signedByAnAgent = (device: string | undefined): string | undefined =>
   agentNamed(device) ? fill("agentWrote", t("anAgent")) : undefined;
 
-export const signature = (
-  device: string | undefined,
-  via: string | undefined | null,
-  named: boolean,
-): string | undefined => (named ? signedBy(device, via) : signedByAnAgent(device));
-
 const placed = (device: string | undefined): { here: boolean; name: string } | undefined => {
   const machine = device ? hosts[device] : undefined;
   return machine ? { here: machine === here, name: machines[machine] ?? machine } : undefined;

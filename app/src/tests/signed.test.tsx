@@ -53,6 +53,7 @@ describe("a task an agent filed carries its signature", () => {
     knowAgents({});
     credit("rows", false);
     credit("inside", true);
+    credit("mark", false);
   });
 
   it("signs the row as an agent's, names it on hover, and drops the tag that said the same", () => {
@@ -106,18 +107,19 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.getByText(/· by Claude Code/)).toBeTruthy();
   });
 
-  it("names the agent in the side panel only on hover, and in full once expanded", () => {
+  it("signs the side panel as the full page does, so its title and its history agree", () => {
     knowAgents(
       { dev_agent: "canelo 39" },
       { clients: { "claude-code": "Claude Code", codex: "Codex" } },
     );
     const { unmount } = detail(task(), false);
-    expect(screen.getByText("by an agent").getAttribute("title")).toBe("Claude Code wrote it");
-    unmount();
-
-    detail(task());
     expect(screen.getByText("by Claude Code")).toBeTruthy();
     expect(screen.queryByText("by an agent")).toBeNull();
+    unmount();
+
+    credit("inside", false);
+    detail(task(), false);
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("Claude Code wrote it");
   });
 
   it("reads a client the core did not name as it called itself, never as nothing", () => {
@@ -186,7 +188,7 @@ describe("a task an agent filed carries its signature", () => {
     expect(wrote({ dev_agent: "dev_desk" })).toBe("Claude Code wrote on the machine roble 12");
   });
 
-  it("names the agent in the row when the person asks for it, and keeps where it wrote on hover", () => {
+  it("names the agent in the row when the person asks for it, with its machine on hover", () => {
     knowAgents(
       { dev_agent: "canelo 39" },
       {
@@ -198,9 +200,7 @@ describe("a task an agent filed carries its signature", () => {
     credit("rows", true);
     render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
-    expect(screen.getByText("by Claude Code").getAttribute("title")).toBe(
-      "Claude Code wrote on this machine",
-    );
+    expect(screen.getByText("by Claude Code").getAttribute("title")).toBe("from this machine");
     expect(screen.queryByText("by an agent")).toBeNull();
   });
 
@@ -224,6 +224,51 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.queryByText(/Claude Code/)).toBeNull();
     const signs = screen.getAllByText("by an agent").map((one) => one.getAttribute("title"));
     expect(signs).toEqual(["Claude Code wrote it", "Claude Code wrote it"]);
+    expect(screen.getByText("An agent says this is done")).toBeTruthy();
+  });
+
+  it("keeps the name out of a closed task's stamps when asked", () => {
+    knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
+    credit("inside", false);
+    detail(
+      task({
+        status: "done",
+        completed_at: "2026-09-10T10:00:00Z",
+        resolved: { by: "dev_agent", at: "2026-09-10T10:00:00Z", entry: "01E", via: "claude-code" },
+      }),
+    );
+
+    expect(screen.queryByText(/Claude Code/)).toBeNull();
+    expect(screen.getByText(/· by an agent/).getAttribute("title")).toBe("Claude Code wrote it");
+  });
+
+  it("draws only a diamond everywhere when asked, whatever the other two say", () => {
+    knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
+    credit("rows", true);
+    credit("mark", true);
+    const { unmount } = render(
+      <TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />,
+    );
+    expect(screen.queryByText(/by /)).toBeNull();
+    expect(screen.getByRole("img", { name: "Claude Code wrote it" }).textContent).toBe("◆");
+    unmount();
+
+    detail(
+      task({
+        log: [
+          {
+            id: "01E",
+            at: "2026-11-02T11:46:00Z",
+            body: "notas",
+            by: "dev_agent",
+            via: "claude-code",
+          },
+        ],
+        resolved: { by: "dev_agent", at: "2026-09-10T10:00:00Z", entry: "01E", via: "claude-code" },
+      }),
+    );
+    expect(screen.queryByText(/by |Claude Code/)).toBeNull();
+    expect(screen.getAllByRole("img", { name: "Claude Code wrote it" })).toHaveLength(2);
     expect(screen.getByText("An agent says this is done")).toBeTruthy();
   });
 

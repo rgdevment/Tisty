@@ -2559,9 +2559,12 @@ const en = {
   creditWhat:
     "What an assistant writes carries the name of the program it spoke through. Choose where that name shows; where it does not, it reads «by an agent» and the name waits on hover.",
   creditRows: "Name the assistant in the task list",
-  creditRowsWhy: "Off, each row and the side panel say «by an agent»",
+  creditRowsWhy: "Off, each row says «by an agent»",
   creditInside: "Name the assistant inside a task",
-  creditInsideWhy: "Off, the history and the open task say «by an agent» too",
+  creditInsideWhy: "Off, the side panel, its history and the full page say «by an agent»",
+  creditMark: "Only a diamond",
+  creditMarkWhy:
+    "Neither name nor words, in the list or inside a task: a small ◆ says an agent wrote it, and who waits on hover",
   agentsTurnOn: "Let an assistant file here",
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
@@ -5536,9 +5539,13 @@ const es: Catalog = {
   creditWhat:
     "Lo que escribe un asistente lleva el nombre del programa por el que habló. Elige dónde se ve ese nombre; donde no, dice «por un agente» y el nombre aparece al pasar el puntero.",
   creditRows: "Nombrar al asistente en la lista de tareas",
-  creditRowsWhy: "Apagado, cada fila y el panel lateral dicen «por un agente»",
+  creditRowsWhy: "Apagado, cada fila dice «por un agente»",
   creditInside: "Nombrar al asistente dentro de una tarea",
-  creditInsideWhy: "Apagado, el historial y la tarea abierta también dicen «por un agente»",
+  creditInsideWhy:
+    "Apagado, el panel lateral, su historial y la página completa dicen «por un agente»",
+  creditMark: "Solo un rombo",
+  creditMarkWhy:
+    "Ni nombre ni texto, en la lista ni dentro de una tarea: un pequeño ◆ dice que lo escribió un agente, y quién aparece al pasar el puntero",
   agentsTurnOn: "Dejar que un asistente anote",
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
