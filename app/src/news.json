@@ -1225,5 +1225,48 @@
         "said": "tags in Hindi, Tamil, Korean or Japanese keep every letter, a line break in a diagram label is drawn as a break, an update the Microsoft Store offers is offered here too, and Tisty now installs with winget."
       }
     ]
+  },
+  {
+    "version": "1.43.0",
+    "headline": {
+      "es": "Una guía nueva y más clara, y sabes quién firma lo que te comparten",
+      "en": "A new, clearer guide, and you know who signed what is shared with you"
+    },
+    "es": [
+      {
+        "title": "Una guía nueva",
+        "said": "la guía te cuenta qué es Tisty con un diagrama que puedes abrir y editar, y en cada parte te invita a probar ahí mismo: documentos en varios idiomas, diagramas, hojas y PDF, tus copias en la nube y cómo compartir. Rina y su hermano Roger te acompañan en los ejemplos."
+      },
+      {
+        "title": "Firmada por quien hace Tisty",
+        "said": "la guía llega firmada por rgdevment, quien hace Tisty. Si ya tenías la anterior, «Verla otra vez» en Configuración → General te trae la nueva y guarda la vieja en el archivo. Si escribiste en ella o la copiaste, se queda donde está."
+      },
+      {
+        "title": "Sabes quién te comparte",
+        "said": "al traer un documento que te compartieron, Tisty muestra «verificado» junto a lo que firma rgdevment, y te avisa en rojo si alguien usa un nombre que se le parece o si esa llave ya fue retirada."
+      },
+      {
+        "title": "Y la ayuda, al día",
+        "said": "la ayuda en línea y la guía corrigen detalles que habían quedado atrás, como el aviso del reparto, que llega cuando un día ya tiene dos tareas."
+      }
+    ],
+    "en": [
+      {
+        "title": "A new guide",
+        "said": "the guide tells you what Tisty is with a diagram you can open and edit, and in each part it invites you to try things right there: documents in several languages, diagrams, sheets and PDF, your copies in the cloud and how to share. Rina and her brother Roger keep you company in the examples."
+      },
+      {
+        "title": "Signed by the person who makes Tisty",
+        "said": "the guide comes signed by rgdevment, who makes Tisty. If you already had the old one, \"Show it again\" in Settings → General brings the new one and puts the old one in the archive. If you wrote in it or copied it, it stays where it is."
+      },
+      {
+        "title": "You know who shared it",
+        "said": "when you bring in a document someone shared with you, Tisty shows \"verified\" beside what rgdevment signed, and warns you in red when someone uses a name that looks like it, or when that key was taken back."
+      },
+      {
+        "title": "And the help, up to date",
+        "said": "the online help and the guide fix details that had fallen behind, such as the Spread's warning, which comes when a day already holds two tasks."
+      }
+    ]
   }
 ]

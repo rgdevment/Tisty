@@ -14,7 +14,7 @@ Iconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf 
 
 Emojis por su nombre: :dog: :tada: :+1: :sunny:
 
-Una etiqueta escrita en un documento lo archiva bajo ella: #rina, #veterinario.
+Una etiqueta escrita en un documento lo archiva bajo ella: #rina, #roger, #veterinario.
 
 Una línea termina donde tú la terminas.
 Esta línea es el mismo párrafo, una línea más abajo.
@@ -163,7 +163,7 @@ erDiagram
 
 ```mermaid
 gantt
-  title El otoño de Rina
+  title El otoño de Rina y Roger
   dateFormat YYYY-MM-DD
   section Veterinario
   Refuerzo :2026-10-03, 1d
@@ -176,15 +176,15 @@ gantt
 journey
   title Un paseo de domingo
   section Ida
-    Correa puesta: 5: Rina
-    Lluvia: 2: Rina, Tú
+    Correa puesta: 5: Rina, Roger
+    Lluvia: 2: Rina, Roger, Tú
   section Vuelta
-    Toalla: 3: Rina
+    Toalla: 3: Rina, Roger
 ```
 
 ```mermaid
 mindmap
-  root((Rina))
+  root((Rina y Roger))
     Comida
     Paseos
       Mañana
@@ -247,7 +247,7 @@ dosis = \frac{peso \times 0.5}{2}
 
 ## Un widget
 
-```widget title="Rina este mes"
+```widget title="Rina y Roger este mes"
 <div class="grid">
   <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 frente a agosto</em></div>
   <div class="stat"><small>Peso</small><b>14 kg</b><em class="down">−0,3 kg</em></div>
@@ -266,7 +266,7 @@ dosis = \frac{peso \times 0.5}{2}
 
 Una foto:
 
-![Rina en su silla](rina.jpg)
+![Roger, el hermano de Rina, arriba del cerro](roger.jpg)
 
 Un PDF:
 

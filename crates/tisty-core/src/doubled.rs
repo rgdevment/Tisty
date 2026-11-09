@@ -99,7 +99,11 @@ fn guides_twice(state: &State) -> Vec<DocId> {
     let unsigned = |one: &&crate::model::Kept| one.by.as_deref() == Some(GUIDE_BY);
     guides.sort_by(|a, b| (unsigned(a), a.made, &a.file).cmp(&(unsigned(b), b.made, &b.file)));
     for one in guides {
-        let title = crate::text::folded(one.title.as_deref().unwrap_or_default().trim());
+        let title = one.title.as_deref().unwrap_or_default();
+        let title = match crate::untouched::guide_tongue(title) {
+            Some(tongue) if one.page_of.is_none() => format!("the guide in {tongue}"),
+            _ => crate::text::folded(title.trim()),
+        };
         // A translation keeps the title it was copied with: its language, or its book's, tells it apart.
         let lang = match one.page_of.and_then(|up| state.docs.get(&up)) {
             Some(up) => up.lang.clone(),

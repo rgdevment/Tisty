@@ -8,6 +8,7 @@ pub const ATTACHED: &[&str] = &[
     "capture.png",
     "priorities.png",
     "rina.jpg",
+    "roger.jpg",
     "cartilla.pdf",
     "vet-card.pdf",
     "bark.mp3",
@@ -16,6 +17,10 @@ pub const ATTACHED: &[&str] = &[
     "walks.csv",
     "paseos.html",
     "walks.html",
+    "idiomas.png",
+    "languages.png",
+    "diagramas.png",
+    "diagrams.png",
 ];
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
