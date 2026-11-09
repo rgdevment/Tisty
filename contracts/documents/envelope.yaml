@@ -267,8 +267,9 @@ says: >-
   file of this machine, read only, and edit hands it a shared document. With edit, Tisty asks for the document itself,
   checks its signature and takes in its body, the Tisty language, never its HTML. A Tisty that cannot do it yet says so.
 values:
-  private: "https://tisty.cl/{id}#{link_key}"
-  private_edit: "https://tisty.cl/{id}#{link_key}.{token}"
+  private: "https://{private host}/{id}#{link_key}"
+  private_edit: "https://{private host}/{id}#{link_key}.{token}"
+  private_host: "tisty.cl, unless domains/hosts.json, signed by Folio on its domains branch, names another. Tisty asks for it at most once every two days, and a link on tisty.cl still opens after a move: only the identifier and the key are taken from it."
   public: "https://folio.tisty.app/{id}"
   open: "tisty://open?path={a file of this machine, percent-encoded}"
   edit: "tisty://edit?link={the web link, percent-encoded}"

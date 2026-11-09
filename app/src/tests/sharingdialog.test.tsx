@@ -35,7 +35,8 @@ const look = {
 const answering = (answers: Record<string, unknown>) =>
   invoked.mockImplementation((command: string) => {
     if (command in answers) return Promise.resolve(answers[command]);
-    if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+    if (command === "folio_sharing_now")
+      return Promise.resolve({ state: "open", site: "tisty.cl" });
     if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
     return Promise.reject({ code: "internal" });
   });
@@ -54,13 +55,22 @@ beforeEach(() => {
 
 describe("what Folio signs to say while closed", () => {
   it("makes a link only of Tisty's own https addresses", () => {
-    expect(noteParts("Mira [aquí](https://folio.tisty.app/hoy) hoy")).toEqual([
+    expect(noteParts("Mira [aquí](https://folio.tisty.app/hoy) hoy", "tisty.cl")).toEqual([
       { at: 0, text: "Mira " },
       { at: 5, text: "aquí", url: "https://folio.tisty.app/hoy" },
       { at: 40, text: " hoy" },
     ]);
-    expect(noteParts("[a](https://tisty.cl)")[0].url).toBe("https://tisty.cl");
-    expect(noteParts("[a](https://tisty.app)")[0].url).toBe("https://tisty.app");
+    expect(noteParts("[a](https://tisty.cl)", "tisty.cl")[0].url).toBe("https://tisty.cl");
+    expect(noteParts("[a](https://tisty.app)", "tisty.cl")[0].url).toBe("https://tisty.app");
+  });
+
+  it("links to the private host Folio signed, and no longer to the one it left", () => {
+    expect(noteParts("[a](https://tisty.dev/estado)", "tisty.dev")[0].url).toBe(
+      "https://tisty.dev/estado",
+    );
+    expect(noteParts("[a](https://tisty.cl)", "tisty.dev")).toEqual([
+      { at: 0, text: "[a](https://tisty.cl)" },
+    ]);
   });
 
   it.each([
@@ -73,12 +83,12 @@ describe("what Folio signs to say while closed", () => {
     "[a](mailto:hola@tisty.app)",
     "[a](javascript:alert)",
   ])("leaves %s as the words it is", (said) => {
-    expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+    expect(noteParts(said, "tisty.cl")).toEqual([{ at: 0, text: said }]);
   });
 
   it("leaves anything else of Markdown or HTML as words", () => {
     const said = "**fuerte** <b>x</b> # y ![i](https://tisty.app/a.png)";
-    expect(noteParts(said)).toEqual([{ at: 0, text: said }]);
+    expect(noteParts(said, "tisty.cl")).toEqual([{ at: 0, text: said }]);
   });
 });
 
@@ -89,7 +99,8 @@ describe("a computer with nothing to sign with", () => {
   it("says what an identity is and makes one before anything is shared", async () => {
     let readings = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
       if (command === "doc_share_look") return Promise.resolve(unsigned);
       if (command === "identity_begin") return Promise.resolve("uno dos tres");
@@ -261,11 +272,13 @@ describe("what travels with a document", () => {
 
 describe("sharing a document with Folio", () => {
   it("says it is not available yet and asks for no terms while Folio is closed", async () => {
-    answering({ folio_sharing_now: { state: "closed", note: null } });
+    answering({ folio_sharing_now: { state: "closed", note: null, site: "tisty.dev" } });
     const { onClose } = shown();
 
     await screen.findByText(t("shareClosedWhat"), { exact: false });
-    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+    const folio = screen.getByRole("button", { name: "Folio" });
+    expect(folio.getAttribute("title")).toBe("https://tisty.dev");
+    expect(screen.queryByText("tisty.dev")).toBeNull();
     expect(invoked).not.toHaveBeenCalledWith("folio_terms_standing");
 
     await userEvent.click(screen.getByRole("button", { name: t("shareClosedOk") }));
@@ -274,15 +287,21 @@ describe("sharing a document with Folio", () => {
 
   it("shows what Folio signed to say in this language, and the standard notice without it", async () => {
     answering({
-      folio_sharing_now: { state: "closed", note: { en: "We open on Monday.", es: "El lunes." } },
+      folio_sharing_now: {
+        state: "closed",
+        note: { en: "We open on Monday.", es: "El lunes." },
+        site: "tisty.cl",
+      },
     });
     shown();
     await screen.findByText("We open on Monday.", { exact: false });
     expect(screen.queryByText(t("shareClosedWhat"), { exact: false })).toBeNull();
-    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Folio" })).toBeTruthy();
 
     cleanup();
-    answering({ folio_sharing_now: { state: "closed", note: { es: "El lunes." } } });
+    answering({
+      folio_sharing_now: { state: "closed", note: { es: "El lunes." }, site: "tisty.cl" },
+    });
     shown();
     await screen.findByText(t("shareClosedWhat"), { exact: false });
   });
@@ -293,7 +312,9 @@ describe("sharing a document with Folio", () => {
       if (command === "folio_sharing_now") {
         looks += 1;
         return Promise.resolve(
-          looks === 1 ? { state: "unreached" } : { state: "closed", note: null },
+          looks === 1
+            ? { state: "unreached", site: "tisty.cl" }
+            : { state: "closed", note: null, site: "tisty.cl" },
         );
       }
       return Promise.reject({ code: "internal" });
@@ -406,7 +427,8 @@ describe("sharing a document with Folio", () => {
     };
     let tries = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
       if (command === "doc_share_look") return Promise.resolve(look);
       if (command === "doc_shared") {
@@ -566,7 +588,8 @@ describe("sharing a document with Folio", () => {
   it("looks again when the document changed while choosing", async () => {
     let tries = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
       if (command === "doc_share_look") {
         tries += 1;
@@ -626,7 +649,8 @@ describe("sharing a document with Folio", () => {
   it("says Folio is updating its terms and reads them again only when asked", async () => {
     let readings = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "doc_share_look") return Promise.resolve(look);
       if (command === "folio_terms_standing") {
         readings += 1;
@@ -652,7 +676,8 @@ describe("sharing a document with Folio", () => {
     let sends = 0;
     let readings = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "folio_terms_accept") return Promise.resolve(null);
       if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");
       if (command === "folio_terms_standing") {
@@ -700,7 +725,8 @@ describe("sharing a document with Folio", () => {
     let sends = 0;
     let readings = 0;
     invoked.mockImplementation((command: string) => {
-      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_sharing_now")
+        return Promise.resolve({ state: "open", site: "tisty.cl" });
       if (command === "doc_share_look") return Promise.resolve(look);
       if (command === "folio_terms_accept") return Promise.resolve(null);
       if (command === "folio_terms_drawn") return Promise.resolve("<p>Los términos</p>");

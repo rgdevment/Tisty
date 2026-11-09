@@ -92,7 +92,8 @@ fn in_the_contract(name: &str) -> String {
 
 #[test]
 fn the_edit_address_of_the_contract_hands_over_its_link_whole() {
-    let found = asked_to_edit(&in_the_contract("address")).expect("the contract's own address");
+    let found =
+        asked_to_edit(&in_the_contract("address"), "tisty.cl").expect("the contract's own address");
     assert_eq!(found.as_str(), in_the_contract("link"));
     assert_eq!(asked(&in_the_contract("address"), None), None);
 }
@@ -111,8 +112,18 @@ fn an_edit_address_with_anything_more_or_from_elsewhere_is_refused() {
         "tisty://edit?link=file%3A%2F%2F%2FC%3A%2Fx.md",
         "tisty://folio?link=https%3A%2F%2Ftisty.cl%2Fx",
     ] {
-        assert_eq!(asked_to_edit(said), None, "{said}");
+        assert_eq!(asked_to_edit(said, "tisty.dev"), None, "{said}");
     }
+}
+
+#[test]
+fn an_edit_address_on_the_private_host_folio_signed_is_taken() {
+    let said = "tisty://edit?link=https%3A%2F%2Ftisty.dev%2FAb3xK9pQ%23key";
+    assert_eq!(
+        asked_to_edit(said, "tisty.dev").map(|one| one.to_string()),
+        Some("https://tisty.dev/Ab3xK9pQ#key".to_owned())
+    );
+    assert_eq!(asked_to_edit(said, "tisty.cl"), None);
 }
 
 #[test]

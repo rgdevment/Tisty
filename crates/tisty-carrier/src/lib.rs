@@ -25,8 +25,10 @@ macro_rules! from_folio {
 
 mod cloud;
 mod folder;
+mod folio_branch;
 pub mod folio_client;
 pub mod folio_domains;
+pub mod folio_hosts;
 pub mod folio_limits;
 pub mod folio_pace;
 pub mod folio_terms;

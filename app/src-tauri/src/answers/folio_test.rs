@@ -654,9 +654,14 @@ fn a_wait_tells_the_window_until_when() {
 }
 
 #[test]
-fn the_edit_link_exists_only_where_a_token_does() {
+fn the_edit_link_exists_only_where_a_token_does_on_the_host_it_is_given() {
     assert_eq!(
-        card_of(&remembered(Some("key"), None), &Signature::default(), None),
+        card_of(
+            "tisty.cl",
+            &remembered(Some("key"), None),
+            &Signature::default(),
+            None
+        ),
         Some(Card {
             read: "https://tisty.cl/Ab3xK9pQ#key".to_owned(),
             edit: None,
@@ -672,19 +677,25 @@ fn the_edit_link_exists_only_where_a_token_does() {
     );
     assert_eq!(
         card_of(
+            "tisty.dev",
             &remembered(Some("key"), Some("token")),
             &Signature::default(),
             None
         )
         .and_then(|one| one.edit),
-        Some("https://tisty.cl/Ab3xK9pQ#key.token".to_owned())
+        Some("https://tisty.dev/Ab3xK9pQ#key.token".to_owned())
     );
 }
 
 #[test]
 fn what_has_no_link_key_has_no_card() {
     assert_eq!(
-        card_of(&remembered(None, None), &Signature::default(), None),
+        card_of(
+            "tisty.cl",
+            &remembered(None, None),
+            &Signature::default(),
+            None
+        ),
         None
     );
 }
@@ -1305,4 +1316,24 @@ fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_it
     assert_eq!(now.owner, owner.owner);
     assert_eq!(now.owner_name, owner.owner_name);
     assert_eq!(now.version_by.as_deref(), Some("Mario H"));
+}
+
+#[test]
+fn the_window_hears_whether_sharing_is_open_beside_folios_private_host() {
+    let closed = super::SharingHere {
+        now: SharingNow::Closed { note: None },
+        site: "tisty.dev".to_owned(),
+    };
+    assert_eq!(
+        serde_json::to_value(&closed).unwrap(),
+        serde_json::json!({ "state": "closed", "note": null, "site": "tisty.dev" })
+    );
+    let open = super::SharingHere {
+        now: SharingNow::Open,
+        site: "tisty.cl".to_owned(),
+    };
+    assert_eq!(
+        serde_json::to_value(&open).unwrap(),
+        serde_json::json!({ "state": "open", "site": "tisty.cl" })
+    );
 }
