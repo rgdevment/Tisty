@@ -69,7 +69,7 @@ Whatever is not coloured stays in the title, as written.
 **Try it:** type one of these in the bar at the top and watch it take colour. Rina, from the examples, is a dog, and Roger is her brother: their vaccines, their walks and their vet keep you company through the whole guide.
 
 - `Rina's booster on 3 October !do #health`
-- `Walk Rina every day`
+- `Walk Rina and Roger every day`
 - `Hand in the report before Friday @work`
 
 If you only wanted a look, clear it before pressing `Enter`. All the words it understands, in English and in Spanish, are in [natural language](https://www.tisty.app/docs/natural-language/).
@@ -222,11 +222,11 @@ A diagram tells at a glance what a paragraph takes a while to explain, like the 
 
 ![The diagram window with this guide's diagram: the shapes on the left, the drawing in the middle and its text on the right](diagrams.png)
 
-Here are three more. First, a sketch of what to keep up to date for Rina:
+Here are three more. First, a sketch of what to keep up to date for Rina and Roger:
 
 ```mermaid
 graph TD
-  R[Rina] --> V[Vaccines]
+  R[Rina and Roger] --> V[Vaccines]
   R --> P[Walks]
   R --> C[Vet]
 ```
@@ -326,7 +326,7 @@ A formula also fits inside a sentence, between dollar signs: Rina weighs 12 kilo
 
 A block whose language is `widget` is drawn as a fixed view, made only of HTML and CSS: it runs nothing, so it looks the same wherever the document is read. It takes Tisty's colours and comes with ready classes such as `grid`, `stat`, `card` or `badge`. The code stays folded; open it with "Show code".
 
-```widget title="Rina this month"
+```widget title="Rina and Roger this month"
 <div class="grid">
   <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 vs August</em></div>
   <div class="stat"><small>Kilometres</small><b>61</b></div>

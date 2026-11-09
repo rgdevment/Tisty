@@ -69,7 +69,7 @@ Lo que no se colorea se queda en el título, tal cual.
 **Pruébalo:** escribe una de estas en la barra de arriba y mira cómo se colorea. Rina, la de los ejemplos, es una perra, y Roger es su hermano: sus vacunas, sus paseos y su veterinario te acompañan en toda la guía.
 
 - `Vacuna de Rina el 3 de octubre !hacer #salud`
-- `Sacar a Rina cada día`
+- `Sacar a Rina y Roger cada día`
 - `Entregar el informe antes del viernes @trabajo`
 
 Si solo querías mirar, bórrala antes de presionar `Enter`. Todas las palabras que entiende, en español y en inglés, están en [lenguaje natural](https://www.tisty.app/es/ayuda/lenguaje-natural/).
@@ -222,11 +222,11 @@ Un diagrama cuenta de un vistazo lo que un párrafo tarda en explicar, como el d
 
 ![La ventana de diagramas con el diagrama de esta guía: las formas a la izquierda, el dibujo al centro y su texto a la derecha](diagramas.png)
 
-Así se ven otros tres. Primero, un esquema con lo que hay que llevar al día de Rina:
+Así se ven otros tres. Primero, un esquema con lo que hay que llevar al día de Rina y Roger:
 
 ```mermaid
 graph TD
-  R[Rina] --> V[Vacunas]
+  R[Rina y Roger] --> V[Vacunas]
   R --> P[Paseos]
   R --> C[Veterinario]
 ```
@@ -326,7 +326,7 @@ Una fórmula también cabe dentro de una frase, entre signos de dólar: Rina pes
 
 Un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, hecha solo de HTML y CSS: no ejecuta nada, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae clases listas como `grid`, `stat`, `card` o `badge`. El código queda plegado; ábrelo con «Ver código».
 
-```widget title="Rina este mes"
+```widget title="Rina y Roger este mes"
 <div class="grid">
   <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 frente a agosto</em></div>
   <div class="stat"><small>Kilómetros</small><b>61</b></div>
