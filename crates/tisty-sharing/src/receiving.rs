@@ -34,8 +34,12 @@ fn carried_from(document: &Value) -> Option<String> {
 pub fn editors_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
     let editors = arrived
         .and_then(|said| serde_json::from_str::<Value>(said).ok())
-        .map(|said| said["editors"].clone())
-        .filter(|said| !said.is_null());
+        .map(|said| said["editors"].clone());
+    with_editors(was, editors)
+}
+
+pub(crate) fn with_editors(was: Option<&str>, editors: Option<Value>) -> Option<String> {
+    let editors = editors.filter(|said| !said.is_null());
     let mut kept = was
         .and_then(|said| serde_json::from_str::<Value>(said).ok())
         .filter(Value::is_object)

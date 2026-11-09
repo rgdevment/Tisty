@@ -50,14 +50,18 @@ fn whole(said: &Value) -> Option<u64> {
 }
 
 fn seconds(said: &str) -> i64 {
-    let number = |at: std::ops::Range<usize>| said[at].parse::<i64>().unwrap();
-    let (year, month, day) = (number(0..4), number(5..7), number(8..10));
+    seconds_in(said).unwrap()
+}
+
+fn seconds_in(said: &str) -> Option<i64> {
+    let number = |at: std::ops::Range<usize>| said.get(at)?.parse::<i64>().ok();
+    let (year, month, day) = (number(0..4)?, number(5..7)?, number(8..10)?);
     let year = if month <= 2 { year - 1 } else { year };
     let era = year.div_euclid(400);
     let of_era = year.rem_euclid(400);
     let of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
     let days = era * 146_097 + of_era * 365 + of_era / 4 - of_era / 100 + of_year - 719_468;
-    days * 86_400 + number(11..13) * 3_600 + number(14..16) * 60 + number(17..19)
+    Some(days * 86_400 + number(11..13)? * 3_600 + number(14..16)? * 60 + number(17..19)?)
 }
 
 const MAIN: (&str, &str) = ("k7Qm2xPa", "main");
@@ -102,10 +106,10 @@ fn editor_holds(entry: &Value) -> bool {
     else {
         return false;
     };
-    let (Some(since), Some(id), Some(name)) = (entry["since"].as_str(), entry["in"].as_str(), entry["name"].as_str()) else {
+    let (Some(since), Some(id), Some(name)) = (entry["since"].as_str().and_then(seconds_in), entry["in"].as_str(), entry["name"].as_str()) else {
         return false;
     };
-    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &seconds(since).to_be_bytes()].concat();
+    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &since.to_be_bytes()].concat();
     let about = b"editor";
     let owned = [u8::from(entry["owned"] == Value::Bool(true))];
     let said = [
@@ -545,6 +549,9 @@ fn vectors() -> Value {
 fn an_editor_holds_only_as_it_was_signed() {
     for one in vectors()["editors"].as_array().unwrap() {
         assert_eq!(editor_holds(&one["entry"]), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+        let mut garbled = one["entry"].clone();
+        garbled["since"] = Value::String("x".into());
+        assert!(!editor_holds(&garbled), "{}", one["says"]);
     }
 }
 

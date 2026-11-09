@@ -49,6 +49,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
             sealed: Envelopes {
                 main: vec![1],
                 files_hash: files.as_ref().map(|_| "hash".to_owned()),
+                editors: None,
                 files,
             },
         }],
@@ -163,6 +164,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
             main: vec![1],
             files: None,
             files_hash: None,
+            editors: None,
         },
     };
     let sealed = tisty_sharing::Sealed {
@@ -493,6 +495,7 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         carried: None,
         sealed_under: None,
         version_by: None,
+        version_root: None,
     }
 }
 

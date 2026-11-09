@@ -250,6 +250,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         carried: received.carried.clone(),
         sealed_under: opened.contract.clone(),
         version_by: owner_apart(opened).and(received.signed_as.clone()),
+        version_root: owner_apart(opened).map(|_| opened.signer.clone()),
     }
 }
 

@@ -747,14 +747,12 @@ pub fn doc_share_card(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Card>> {
+    let maker = folio_limits::maker_root(&held(&session).paths.private());
     let session = held(&session);
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(|was| {
-            let maker = folio_limits::maker_root(&session.paths.private());
-            card_of(was, &session.state.signed, maker.as_deref())
-        }))
+        .and_then(|was| card_of(was, &session.state.signed, maker.as_deref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;

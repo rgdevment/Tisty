@@ -1,10 +1,8 @@
-//! Who signed a document's versions, each under the name they chose: a list every version carries and renews.
-
 use tisty_contracts::Editor;
 use tisty_share_proto::identity::{self, Certificate, ShareKey, Signed};
 
 const ABOUT: &str = "editor";
-const AT_MOST: usize = 64;
+pub(crate) const AT_MOST: usize = 64;
 
 fn said(id: &str, owned: bool, name: &str) -> Vec<u8> {
     let mut said = (id.len() as u64).to_be_bytes().to_vec();
@@ -61,7 +59,6 @@ pub(crate) fn signed(
     })
 }
 
-// Each version renews its signer's place and keeps the rest in the order they first signed.
 pub(crate) fn with_mine(arrived: Vec<Editor>, mine: Option<Editor>) -> Vec<Editor> {
     let mut out: Vec<Editor> = arrived.into_iter().filter(holds).collect();
     if let Some(mine) = mine {
@@ -73,7 +70,6 @@ pub(crate) fn with_mine(arrived: Vec<Editor>, mine: Option<Editor>) -> Vec<Edito
             None => out.push(mine),
         }
     }
-    // Past the cap the oldest editor goes first, and whoever owned it stays.
     while out.len() > AT_MOST {
         let at = out
             .iter()

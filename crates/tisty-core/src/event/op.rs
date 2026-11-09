@@ -138,6 +138,8 @@ pub struct Remembered {
     pub sealed_under: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version_root: Option<String>,
 }
 
 impl Remembered {

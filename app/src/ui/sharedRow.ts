@@ -224,13 +224,12 @@ const managingActs = (h: Hands): Act[] => {
 
 const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
 
-// Who created it, who edited it last and everyone who edited it, apart, as the copy shows them (145).
 const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
   ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),
   ...(owner && !signer ? [fill("sharedOwner", shown(owner))] : []),
   ...(!owner && signer ? [fill("sharedVersionBy", shown(signer))] : []),
   ...(editors.length > 0 ? [fill("sharedEditedBy", editors.map(shown).join(", "))] : []),
-  ...(signsAs ? [fill("shareSignsAs", signsAs.now)] : []),
+  ...(signsAs?.now ? [fill("shareSignsAs", signsAs.now)] : []),
 ];
 
 const leavingActs = (h: Hands): Act[] => {

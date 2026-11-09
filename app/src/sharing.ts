@@ -89,7 +89,7 @@ export interface ShareCard {
   owner: Named | null;
   signer: Named | null;
   editors: Named[];
-  signsAs: { now: string; other: string | null } | null;
+  signsAs: { now: string | null; other: string | null } | null;
 }
 
 export type Synced =

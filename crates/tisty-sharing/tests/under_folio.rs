@@ -263,6 +263,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         ),
         sealed_under: None,
         version_by: None,
+        version_root: None,
     };
     editor.sent(&[(file, entry)]);
 
@@ -444,6 +445,9 @@ fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_agai
     };
     let second = editor.sealed(signed_as(&editor, copy, &later, "Ana"), vec![]);
     let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
+    let remembered: serde_json::Value =
+        serde_json::from_str(second.remembering[0].1.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(remembered["editors"], two.document["editors"]);
     assert_eq!(
         names_in(&two.document),
         [("Mario".to_owned(), true), ("Ana".to_owned(), false)]
@@ -574,6 +578,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         carried: None,
         sealed_under: None,
         version_by: None,
+        version_root: None,
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);

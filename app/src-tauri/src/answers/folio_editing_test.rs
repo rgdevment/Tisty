@@ -32,6 +32,7 @@ fn arrived(admin: Option<&str>, token: Option<&str>, signed_as: Option<&str>) ->
         carried: None,
         sealed_under: None,
         version_by: Some("Ana".to_owned()),
+        version_root: None,
     }
 }
 
@@ -41,27 +42,35 @@ fn whoever_edits_through_a_link_signs_as_their_alias_until_they_choose_their_nam
     assert_eq!(
         signs_as(&arrived(None, Some("token"), None), &mine),
         Some(SignsAs {
-            now: "ana.dev".to_owned(),
+            now: Some("ana.dev".to_owned()),
             other: Some("Ana Pérez".to_owned()),
         })
     );
     assert_eq!(
         signs_as(&arrived(None, Some("token"), Some("Ana Pérez")), &mine),
         Some(SignsAs {
-            now: "Ana Pérez".to_owned(),
+            now: Some("Ana Pérez".to_owned()),
             other: Some("ana.dev".to_owned()),
         })
     );
 }
 
 #[test]
-fn a_name_that_is_no_longer_one_of_mine_gives_way_to_one_that_is() {
+fn the_row_names_what_sealing_falls_back_to_and_promises_no_name_without_an_alias() {
+    let named_only = signature(None, Some("Ana Pérez"));
+    assert_eq!(
+        signs_as(&arrived(None, Some("token"), None), &named_only),
+        Some(SignsAs {
+            now: None,
+            other: Some("Ana Pérez".to_owned()),
+        })
+    );
     let mine = signature(Some("ana.dev"), None);
     assert_eq!(
         signs_as(&arrived(None, Some("token"), Some("Ana Pérez")), &mine),
         Some(SignsAs {
-            now: "ana.dev".to_owned(),
-            other: None,
+            now: Some("Ana Pérez".to_owned()),
+            other: Some("ana.dev".to_owned()),
         })
     );
 }
@@ -76,7 +85,10 @@ fn only_whoever_edits_through_a_link_is_asked_how_they_sign() {
     assert_eq!(signs_as(&arrived(None, None, None), &mine), None);
     assert_eq!(
         signs_as(&arrived(None, Some("token"), None), &Signature::default()),
-        None
+        Some(SignsAs {
+            now: None,
+            other: None,
+        })
     );
 }
 
@@ -137,10 +149,23 @@ fn the_makers_root_is_checked_wherever_it_signs() {
     let was = Remembered {
         carried: edited(&[("Ab3xK9pQ", "mario-root", "Mario Hidalgo", true)]),
         version_by: Some("Mario Hidalgo".to_owned()),
+        version_root: Some("mario-root".to_owned()),
         ..arrived(None, None, None)
     };
     let who = who_of(&was, Some("mario-root"));
     assert!(who.owner.is_some_and(|one| one.checked));
     assert!(who.signer.is_some_and(|one| one.checked));
     assert!(who.editors.is_empty());
+}
+
+#[test]
+fn whoever_signs_with_the_makers_name_under_another_root_is_not_checked() {
+    let was = Remembered {
+        carried: edited(&[("Ab3xK9pQ", "mario-root", "rgdevment", true)]),
+        version_by: Some("rgdevment".to_owned()),
+        version_root: Some("impostor-root".to_owned()),
+        ..arrived(None, None, None)
+    };
+    let who = who_of(&was, Some("mario-root"));
+    assert!(who.signer.is_some_and(|one| !one.checked));
 }

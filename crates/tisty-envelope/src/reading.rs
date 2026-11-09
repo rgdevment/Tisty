@@ -16,7 +16,7 @@ use tisty_contracts::{
 };
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
-use crate::editors;
+use crate::editors::{self, AT_MOST as EDITORS_AT_MOST};
 use crate::sealing::{
     ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
     name_tag, nonce, owner_said,
@@ -628,6 +628,7 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
             first.insert(name.to_owned(), said);
         }
     }
+    let editors = first.remove("editors");
     let held = Value::Object(first);
     if !check("document", &held).is_empty() {
         return damaged("its document is outside the contract");
@@ -649,24 +650,23 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     for page in pages {
         references_hold(page["html"].as_str().unwrap_or_default(), &held)?;
     }
-    Ok(editors_kept(held, manifest["sealed"] == true))
+    Ok(editors_kept(held, editors, manifest["sealed"] == true))
 }
 
-// One that does not hold is left aside and never stops the words, and what is public names nobody yet.
-fn editors_kept(mut held: Value, sealed: bool) -> Value {
-    let Some(document) = held.as_object_mut() else {
-        return held;
-    };
-    let kept: Vec<Value> = document
-        .remove("editors")
+// An editor answers for no word, so one a hostile hand wrote never costs the reader the document.
+fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
+    let kept: Vec<Value> = said
         .filter(|_| sealed)
-        .and_then(|said| serde_json::from_value::<Vec<Editor>>(said).ok())
+        .and_then(|said| said.as_array().cloned())
         .unwrap_or_default()
         .into_iter()
-        .filter(editors::holds)
-        .filter_map(|one| serde_json::to_value(one).ok())
+        .filter(|one| check("editor", one).is_empty())
+        .filter(|one| {
+            serde_json::from_value::<Editor>(one.clone()).is_ok_and(|one| editors::holds(&one))
+        })
+        .take(EDITORS_AT_MOST)
         .collect();
-    if !kept.is_empty() {
+    if let (Some(document), false) = (held.as_object_mut(), kept.is_empty()) {
         document.insert("editors".to_owned(), Value::Array(kept));
     }
     held

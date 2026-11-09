@@ -514,6 +514,7 @@ impl Gathering<'_> {
                 signed_as: self.signed_as.clone(),
                 sealed_under: Some(tisty_contracts::VERSION.to_owned()),
                 version_by: None,
+                version_root: None,
             },
         ));
         self.titles.insert(kept.file.clone(), shown);

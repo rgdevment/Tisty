@@ -8,8 +8,8 @@ use tisty_contracts::{
 use tisty_share_proto::identity::{Root, ShareKey};
 
 use super::{
-    Reader, Unopened, files_for, laid, later_than_this, opened, opens_under_this, picture_holds,
-    reading, under_the_floor,
+    Reader, Unopened, editors_kept, files_for, laid, later_than_this, opened, opens_under_this,
+    picture_holds, reading, under_the_floor,
 };
 use crate::sealing::Writer;
 
@@ -411,4 +411,23 @@ fn the_contract_reader_opens_a_document_and_its_files_apart() {
         hostile(EnvelopeKind::Main),
     );
     assert!(bad.is_err());
+}
+
+#[test]
+fn an_editor_that_breaks_the_contract_is_left_aside_and_the_document_kept() {
+    let all = all();
+    let holds = all["editors"][0]["entry"].clone();
+    let mut unseen = holds.clone();
+    unseen["name"] = json!("Ma\u{200B}rio");
+    let mut nameless = holds.clone();
+    nameless.as_object_mut().unwrap().remove("name");
+    let said = json!([holds, unseen, nameless, "not an editor"]);
+    let held = json!({ "id": "x", "html": "<p>x</p>", "body": "x" });
+
+    let kept = editors_kept(held.clone(), Some(said.clone()), true);
+    assert_eq!(kept["editors"], json!([all["editors"][0]["entry"]]));
+    assert_eq!(kept["body"], "x");
+
+    let public = editors_kept(held, Some(said), false);
+    assert!(public.get("editors").is_none());
 }

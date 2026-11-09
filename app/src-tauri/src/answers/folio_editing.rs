@@ -34,12 +34,6 @@ fn editors_carried(was: &Remembered) -> Vec<tisty_envelope::Editor> {
 pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
     let editors = editors_carried(was);
     let checked = |root: Option<&str>| root.is_some_and(|one| Some(one) == maker);
-    let root_named = |name: &str| {
-        editors
-            .iter()
-            .find(|one| one.name == name)
-            .map(|one| one.root.as_str())
-    };
     let owner_root = was
         .owner
         .as_deref()
@@ -54,7 +48,7 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
             name,
         });
     let signer = was.version_by.clone().map(|name| Named {
-        checked: checked(root_named(&name)),
+        checked: checked(was.version_root.as_deref()),
         name,
     });
     let editors = editors
@@ -75,7 +69,7 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SignsAs {
-    now: String,
+    now: Option<String>,
     other: Option<String>,
 }
 
@@ -90,18 +84,19 @@ fn names_of(signature: &Signature) -> Vec<String> {
     names
 }
 
-// Whoever edits through a link chooses the name its versions go under, as the owner did when sharing (132).
 pub(super) fn signs_as(was: &Remembered, signature: &Signature) -> Option<SignsAs> {
     if !was.edited_through_a_link() {
         return None;
     }
-    let names = names_of(signature);
+    // The same name sealing falls back to, so what the row says is what travels.
     let now = was
         .signed_as
         .clone()
-        .filter(|one| names.contains(one))
-        .or_else(|| names.first().cloned())?;
-    let other = names.into_iter().find(|one| *one != now);
+        .filter(|one| !one.trim().is_empty())
+        .or_else(|| signature.alias.clone());
+    let other = names_of(signature)
+        .into_iter()
+        .find(|one| Some(one) != now.as_ref());
     Some(SignsAs { now, other })
 }
 
@@ -111,16 +106,17 @@ pub fn doc_share_sign_as(
     id: String,
     name: String,
 ) -> Answer<Card> {
+    let maker = folio_limits::maker_root(&held(&session).paths.private());
     let mut session = held(&session);
     let (file, mut was) = remembered_of(&session, &id)?;
-    if signs_as(&was, &session.state.signed).is_none()
-        || !names_of(&session.state.signed).contains(&name)
-    {
-        return Err(Refusal::of("folioGarbled"));
+    if signs_as(&was, &session.state.signed).is_none() {
+        return Err(Refusal::of("notOneOwnDoc"));
     }
-    was.signed_as = Some(name);
-    kept_on(&mut session, &[(file, was.clone())])?;
-    let maker = folio_limits::maker_root(&session.paths.private());
+    // A name that stopped being one's own since the row was drawn changes nothing, and the row is drawn again.
+    if names_of(&session.state.signed).contains(&name) {
+        was.signed_as = Some(name);
+        kept_on(&mut session, &[(file, was.clone())])?;
+    }
     card_of(&was, &session.state.signed, maker.as_deref())
         .ok_or_else(|| Refusal::of("folioGarbled"))
 }

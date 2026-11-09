@@ -106,6 +106,7 @@ const editorHolds = async (entry) => {
 for (const { says, holds, entry } of VECTORS.editors) {
   test(`an editor ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
     assert.equal(await editorHolds(entry), holds);
+    assert.equal(await editorHolds({ ...entry, since: "x" }), false);
   });
 }
 
