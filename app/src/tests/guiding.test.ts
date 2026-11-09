@@ -377,18 +377,30 @@ describe("the guide's cache", () => {
   it("names each page, so no rule joins its values with another's", () => {
     const rules: string = headers("logo.svg", pages(2));
 
-    expect(rules).toContain("/\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600");
     expect(rules).toContain(
-      "/topic-0\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600",
+      "/\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
     );
     expect(rules).toContain(
-      "/es/\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600",
+      "/topic-0\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
+    );
+    expect(rules).toContain(
+      "/es/\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
     );
     expect(rules).toContain("/logo.svg\n  Cache-Control: public, max-age=31536000, immutable");
     expect(rules).toContain("/fonts/*\n  Cache-Control: public, max-age=31536000, immutable");
     expect(rules).toContain("/es/rina.jpg\n  Cache-Control: public, max-age=86400");
     expect(rules.split("\n")).not.toContain("/*");
     expect(rules.endsWith("\n")).toBe(true);
+  });
+
+  it("asks every page and file to be reached only over HTTPS, without spending a rule on it", () => {
+    const lines = headers("logo.svg", pages(2)).split("\n");
+    const paths = lines.filter((line) => line.startsWith("/"));
+    const httpsOnly = lines.filter(
+      (line) => line === "  Strict-Transport-Security: max-age=15552000",
+    );
+
+    expect(httpsOnly).toHaveLength(paths.length);
   });
 
   it("refuses more rules than Pages applies, instead of losing the last pages' cache", () => {
