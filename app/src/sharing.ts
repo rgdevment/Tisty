@@ -181,6 +181,9 @@ export const shareSync = (id: string, accepted?: string): Promise<Synced> =>
 export const shareSignAs = (id: string, name: string): Promise<ShareCard> =>
   invoke("doc_share_sign_as", { id, name });
 
+export const shareEditLinkRenewed = (id: string): Promise<Synced> =>
+  invoke("doc_share_edit_link_renewed", { id });
+
 export const shareWaiting = (id: string, look: boolean): Promise<ShareWaiting> =>
   invoke("doc_share_waiting", { id, look });
 
