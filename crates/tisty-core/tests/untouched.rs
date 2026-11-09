@@ -103,3 +103,40 @@ fn taking_the_places_history_keeps_what_a_new_machine_had_in_a_backup_first() {
     assert!(!tisty_core::store::inhabited(paths.store()));
     assert!(tisty_core::docs::names(&paths.docs()).is_empty());
 }
+
+fn added_under(state: &mut tisty_core::State, by: &str, sown: bool, page_of: Option<Ulid>) -> Ulid {
+    let id = Ulid::generate();
+    state.apply(&tisty_core::Event::new(
+        DeviceId("mac_a".into()),
+        jiff::Timestamp::now(),
+        Op::DocAdd {
+            id,
+            d: DocAdd {
+                file: format!("{id}.md"),
+                order: "a0".into(),
+                by: Some(by.into()),
+                guest: true,
+                sown,
+                page_of,
+                ..DocAdd::default()
+            },
+        },
+    ));
+    id
+}
+
+#[test]
+fn only_what_the_sowing_marked_is_sown_never_a_copy_of_a_document_signed_as_tisty() {
+    let mut state = tisty_core::State::default();
+    let cover = added_under(&mut state, SOWN_BY, true, None);
+    let page = added_under(&mut state, SOWN_BY, true, Some(cover));
+    let copy = added_under(&mut state, SOWN_BY, false, None);
+    let anas = added_under(&mut state, "Ana", true, None);
+    let page_of_a_copy = added_under(&mut state, SOWN_BY, true, Some(copy));
+
+    assert!(state.docs[&cover].sown);
+    assert!(state.docs[&page].sown);
+    for id in [copy, anas, page_of_a_copy] {
+        assert!(!state.docs[&id].sown);
+    }
+}

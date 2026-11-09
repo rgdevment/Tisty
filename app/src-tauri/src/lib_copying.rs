@@ -28,6 +28,7 @@ fn wrote(session: &mut Session, title: &str, up: Option<DocId>) -> DocId {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

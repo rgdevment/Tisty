@@ -3,9 +3,14 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_core::model::DocId;
+use tisty_core::person::Persons;
 use tisty_core::witness::{self, Fact, channel};
+use tisty_core::{DeviceId, Paths, State};
 use tisty_envelope::sealing::Writer;
-use tisty_sharing::{Asked, Desk, Gathered, Told, Unshared, gathered, signer};
+use tisty_share_proto::identity::Person;
+use tisty_sharing::{
+    Asked, Desk, Gathered, Told, Unshared, certified_by, gathered, signer, signs_for,
+};
 
 use crate::{Answer, Refusal, Session, held};
 
@@ -33,6 +38,23 @@ pub(super) fn refused(wrong: &Unshared) -> Refusal {
         Unshared::Unfinished(_) => "cannotFinish",
         Unshared::Unread(_) | Unshared::Unwritten(_) | Unshared::Refused(_) => "cannotSeal",
     })
+}
+
+// The root Folio signs into its limits is the only word on who the maker is: absent or unsigned, nobody is.
+fn maker_root(paths: &Paths) -> Option<String> {
+    tisty_carrier::folio_limits::maker_root(&paths.private())
+}
+
+pub(super) fn the_maker_among(
+    paths: &Paths,
+    persons: &Persons,
+    device: &DeviceId,
+) -> Option<Person> {
+    maker_root(paths).and_then(|root| signs_for(paths, persons, device, &root))
+}
+
+pub(super) fn the_maker_here(paths: &Paths, state: &State, device: &DeviceId) -> Option<Person> {
+    the_maker_among(paths, &state.persons, device)
 }
 
 pub(super) fn doc_id(said: &str) -> Answer<DocId> {
@@ -82,12 +104,14 @@ pub(super) async fn sealed_by(
     // Asked first: with nothing to sign with, nothing else is worth doing.
     let (key, certificate) =
         signer(&paths, &state, &device).ok_or_else(|| Refusal::of("noIdentityToSign"))?;
+    let maker = maker_root(&paths).and_then(|root| certified_by(&certificate, &root));
     let mut gathered = tauri::async_runtime::spawn_blocking(move || {
         let desk = Desk {
             paths: &paths,
             state: &state,
             also: also.as_deref(),
             turned: &turned,
+            maker,
         };
         gather(&desk, &asked)
     })

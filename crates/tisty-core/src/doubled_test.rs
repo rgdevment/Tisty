@@ -47,6 +47,7 @@ fn guide(state: &mut State, ms: i64, file: &str, title: &str) -> DocId {
             d: DocAdd {
                 wrote: None,
                 guest: true,
+                sown: false,
                 made: Some(at(ms)),
                 by: Some(GUIDE_BY.into()),
                 said: Some(Said {

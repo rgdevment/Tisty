@@ -2,9 +2,9 @@ use std::cell::Cell;
 use std::time::{Duration, SystemTime};
 
 use super::{
-    ASKED, ASKED_EVERY, FolioLimits, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST, NOTE_LINES_AT_MOST,
-    SIGNATURE_URL, SharingNow, accepted, heed, heed_now, kept, read_under, sharing_now,
-    uploads_halted,
+    ASKED, ASKED_EVERY, FolioLimits, FolioMaker, FolioNote, KEPT, LIMITS_URL, NOTE_AT_MOST,
+    NOTE_LINES_AT_MOST, SIGNATURE_KEPT, SIGNATURE_URL, SIGNED_KEPT, SharingNow, accepted, heed,
+    heed_now, kept, maker_root, read_under, sharing_now, uploads_halted,
 };
 use crate::policy::{PAUSED_AT_MOST, READ_AT_MOST, Refused};
 
@@ -18,13 +18,19 @@ const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const OTHER: &[u8] = include_bytes!("cloud/signed/lowered.json");
 const OTHER_SIG: &str = include_str!("cloud/signed/lowered.json.minisig");
 
+fn kept_as(home: &std::path::Path, limits: &FolioLimits) {
+    std::fs::write(home.join(KEPT), serde_json::to_vec(limits).unwrap()).unwrap();
+    std::fs::write(home.join(SIGNED_KEPT), REAL).unwrap();
+    std::fs::write(home.join(SIGNATURE_KEPT), REAL_SIG).unwrap();
+}
+
 fn seeded(serial: u64) -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
     let limits = FolioLimits {
         serial,
         ..FolioLimits::default()
     };
-    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home.path(), &limits);
     home
 }
 
@@ -34,7 +40,7 @@ fn opened(home: &std::path::Path, serial: u64) {
         sharing_open: Some(true),
         ..FolioLimits::default()
     };
-    std::fs::write(home.join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home, &limits);
 }
 
 fn answering_real(url: &str) -> Option<Vec<u8>> {
@@ -59,7 +65,7 @@ fn closed_saying(es: Option<String>, en: Option<String>) -> SharingNow {
         sharing_closed_note: Some(FolioNote { es, en }),
         ..FolioLimits::default()
     };
-    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+    kept_as(home.path(), &limits);
     std::fs::write(home.path().join(ASKED), b"").unwrap();
     sharing_now(home.path(), |_| None)
 }
@@ -433,4 +439,144 @@ fn limits_that_passed_their_signature_are_given_even_if_they_cannot_be_kept() {
 
     assert!(accepted(&not_a_folder, REAL, REAL_SIG).is_ok());
     assert_eq!(kept(&not_a_folder), None);
+}
+
+#[test]
+fn the_maker_root_folio_signed_is_kept_with_the_rest() {
+    let home = tempfile::tempdir().unwrap();
+    let limits = FolioLimits {
+        serial: 1,
+        maker: Some(FolioMaker {
+            root: "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into(),
+            ..FolioMaker::default()
+        }),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&limits).unwrap()).unwrap();
+
+    assert_eq!(kept(home.path()), Some(limits));
+    assert_eq!(kept(seeded(1).path()).and_then(|one| one.maker), None);
+}
+
+#[test]
+fn only_the_maker_finds_sharing_open_while_folio_is_closed() {
+    let note = Some(FolioNote {
+        es: Some("Pronto".into()),
+        en: None,
+    });
+    let closed = SharingNow::Closed { note };
+
+    assert_eq!(closed.clone().opened_to(false), closed);
+    assert_eq!(closed.opened_to(true), SharingNow::Open);
+    assert_eq!(SharingNow::Open.opened_to(false), SharingNow::Open);
+    assert_eq!(SharingNow::Unreached.opened_to(true), SharingNow::Unreached);
+}
+
+#[test]
+fn the_maker_is_read_only_from_what_folio_signed() {
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(maker_root(home.path()), None);
+
+    accepted(home.path(), REAL, REAL_SIG).unwrap();
+    assert!(home.path().join(SIGNED_KEPT).is_file());
+    assert_eq!(maker_root(home.path()), None);
+
+    let claimed = FolioLimits {
+        serial: 99,
+        maker: Some(FolioMaker {
+            root: "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s".into(),
+            ..FolioMaker::default()
+        }),
+        ..FolioLimits::default()
+    };
+    let forged = serde_json::to_vec(&claimed).unwrap();
+    std::fs::write(home.path().join(KEPT), &forged).unwrap();
+    assert_eq!(
+        maker_root(home.path()),
+        None,
+        "the copy kept for warnings vouches for nobody"
+    );
+
+    std::fs::write(home.path().join(SIGNED_KEPT), &forged).unwrap();
+    assert_eq!(
+        maker_root(home.path()),
+        None,
+        "words the signature does not cover"
+    );
+
+    std::fs::write(home.path().join(SIGNED_KEPT), REAL).unwrap();
+    std::fs::remove_file(home.path().join(SIGNATURE_KEPT)).unwrap();
+    assert_eq!(maker_root(home.path()), None);
+}
+
+#[test]
+fn the_maker_comes_as_one_object_with_its_root_and_optionally_its_name_and_domain() {
+    let said = br#"{"serial":30,"maker":{"root":"AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s","name":"rgdevment","domain":"rgdevment.dev"}}"#;
+    let limits: FolioLimits = serde_json::from_slice(said).unwrap();
+    let maker = limits.maker.unwrap();
+    assert_eq!(maker.root, "AfnGoRnNecrr5RMnprcTbdZdk7_LABXtpqchY-L0b0s");
+    assert_eq!(maker.name.as_deref(), Some("rgdevment"));
+    assert_eq!(maker.domain.as_deref(), Some("rgdevment.dev"));
+
+    let bare: FolioLimits = serde_json::from_slice(br#"{"serial":30,"maker_root":"x"}"#).unwrap();
+    assert_eq!(bare.maker, None, "the field it once was names nobody");
+}
+
+#[test]
+fn a_tisty_that_never_kept_the_signed_copy_asks_for_it_before_the_hour_is_up() {
+    let home = tempfile::tempdir().unwrap();
+    let before = FolioLimits {
+        serial: 1,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&before).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    let asked = Cell::new(0);
+    let counting = |url: &str| {
+        asked.set(asked.get() + 1);
+        answering_real(url)
+    };
+
+    sharing_now(home.path(), counting);
+    assert!(
+        asked.get() > 0,
+        "no signed copy is kept yet, so the limits are asked for now"
+    );
+    assert!(home.path().join(SIGNED_KEPT).is_file());
+
+    asked.set(0);
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    sharing_now(home.path(), counting);
+    assert_eq!(
+        asked.get(),
+        0,
+        "with the signed copy kept, the hour holds again"
+    );
+}
+
+#[test]
+fn offline_with_no_signed_copy_the_kept_limits_still_answer_and_are_asked_for_once_a_minute() {
+    let home = tempfile::tempdir().unwrap();
+    let before = FolioLimits {
+        serial: 1,
+        sharing_open: Some(true),
+        ..FolioLimits::default()
+    };
+    std::fs::write(home.path().join(KEPT), serde_json::to_vec(&before).unwrap()).unwrap();
+    std::fs::write(home.path().join(ASKED), b"").unwrap();
+    let asked = Cell::new(0);
+    let unreached = |_: &str| {
+        asked.set(asked.get() + 1);
+        None
+    };
+
+    assert_eq!(sharing_now(home.path(), unreached), SharingNow::Open);
+    assert_eq!(asked.get(), 1);
+    assert_eq!(sharing_now(home.path(), unreached), SharingNow::Open);
+    assert_eq!(
+        asked.get(),
+        1,
+        "a minute passes before it is asked for again"
+    );
 }

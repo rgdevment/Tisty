@@ -49,6 +49,10 @@ const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
     "e7e2ae0a01de129efbce385ae10e852d81f1de3b36c3dd5f41f262c952d7b3e6",
 ];
 
+pub fn written_as_sown(d: &DocAdd) -> bool {
+    d.by.as_deref() == Some(SOWN_BY) && d.guest && d.made.is_none() && d.wrote.is_none()
+}
+
 struct Paper {
     file: String,
     title: Option<String>,
@@ -170,10 +174,7 @@ impl Sown {
     }
 
     fn paper_added(&mut self, id: DocId, d: &DocAdd) -> bool {
-        let sown = d.by.as_deref() == Some(SOWN_BY)
-            && d.guest
-            && d.made.is_none()
-            && d.wrote.is_none()
+        let sown = written_as_sown(d)
             && d.folder
                 .is_some_and(|folder| self.folders.contains(&folder))
             && d.page_of.is_none_or(|up| self.papers.contains_key(&up));

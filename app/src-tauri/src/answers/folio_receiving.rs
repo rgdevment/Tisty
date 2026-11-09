@@ -157,6 +157,8 @@ fn guest_added(
     by: Option<String>,
     page_of: Option<tisty_core::model::DocId>,
 ) -> Answer<tisty_core::model::DocId> {
+    // Only the guide Tisty sows speaks as Tisty; a name like it from Folio is kept as no name.
+    let by = by.filter(|one| !tisty_core::state::same_name(one, tisty_core::untouched::SOWN_BY));
     let order = tisty_core::order::last_of(
         session
             .state
@@ -171,6 +173,7 @@ fn guest_added(
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: true,
+            sown: false,
             made: None,
             by,
             file,
@@ -244,15 +247,21 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
 // Reading a document whole takes a while, so it never holds the session.
 fn with_its_print(app: &AppHandle, doc: tisty_core::model::DocId, entry: (String, Remembered)) {
     let session = app.state::<Mutex<Session>>();
-    let (paths, state, also) = {
+    let (paths, state, also, device) = {
         let session = held(&session);
-        (session.paths.clone(), session.state.clone(), session.dest())
+        (
+            session.paths.clone(),
+            session.state.clone(),
+            session.dest(),
+            session.config.device_id.clone(),
+        )
     };
     let desk = Desk {
         paths: &paths,
         state: &state,
         also: also.as_deref(),
         turned: &turned,
+        maker: super::sharing::the_maker_here(&paths, &state, &device),
     };
     let asked = Asked {
         doc,

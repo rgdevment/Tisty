@@ -23,6 +23,7 @@ fn a_page_under(session: &mut Session, up: Option<tisty_core::model::DocId>) -> 
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

@@ -129,6 +129,7 @@ impl Room {
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 file: made.id.clone(),
