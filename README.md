@@ -903,7 +903,7 @@ the same. «No agents» shuts the door again and keeps what was filled in. What 
 assistant writes is signed with the name of the program it spoke through: a row
 and the side panel say «by an agent» and name it on hover, while the full page
 and the journal say «by Claude Code», «by Codex». Settings › Assistants counts
-what each one wrote.
+what each one wrote and lets you choose where the name shows.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

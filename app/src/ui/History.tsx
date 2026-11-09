@@ -1,7 +1,8 @@
 import type { Task } from "../core";
+import { useCredit } from "../crediting";
 import { wroteAt } from "../format";
 import { t } from "../locales";
-import { signedBy } from "../who";
+import { signature, signedBy, wroteWhere } from "../who";
 import Written from "./Written";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function History({ task, onError, onDoc }: Props) {
+  const named = useCredit().inside;
   const kept = (task.log ?? []).filter((entry) => entry.body.trim());
   if (kept.length === 0) return null;
   return (
@@ -24,7 +26,12 @@ export default function History({ task, onError, onDoc }: Props) {
             <span className="flex items-baseline gap-1.5 text-[11.5px] tabular-nums text-faint">
               {wroteAt(entry.at, entry.tz)}
               {signedBy(entry.by, entry.via) && (
-                <span className="text-hue-teal">{signedBy(entry.by, entry.via)}</span>
+                <span
+                  className="text-hue-teal"
+                  title={named ? undefined : wroteWhere(entry.by, entry.via)}
+                >
+                  {signature(entry.by, entry.via, named)}
+                </span>
               )}
             </span>
             <Written

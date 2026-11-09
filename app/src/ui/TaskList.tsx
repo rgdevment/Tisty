@@ -3,12 +3,13 @@ import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useAsked } from "../asked";
 import { useComing } from "../coming";
 import { type List, partsOf, type Task, type Whole } from "../core";
+import { useCredit } from "../crediting";
 import type { Paced, Standing } from "../deadlines";
 import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
-import { agentTag, signedBy, signedByAnAgent, wroteWhere } from "../who";
+import { agentTag, signature, signedBy, wroteWhere } from "../who";
 import Grouping from "./Axis";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
@@ -546,6 +547,7 @@ function Meta({
   whole?: string;
   stands?: Standing;
 }) {
+  const named = useCredit().rows;
   const bits = dated(task, stands);
   if (task.repeat) {
     bits.push(
@@ -585,7 +587,7 @@ function Meta({
         className="text-hue-teal"
         title={wroteWhere(task.created_by, task.created_via)}
       >
-        {signedByAnAgent(task.created_by)}
+        {signature(task.created_by, task.created_via, named)}
       </span>,
     );
   }

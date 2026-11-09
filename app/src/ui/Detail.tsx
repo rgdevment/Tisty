@@ -8,12 +8,13 @@ import {
   type Task,
   type Whole,
 } from "../core";
+import { useCredit } from "../crediting";
 import type { Paced } from "../deadlines";
 import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
-import { agentNamed, clientNamed, hostedOn, signedBy, signedByAnAgent, wroteWhere } from "../who";
+import { agentNamed, clientNamed, hostedOn, signature, signedBy, wroteWhere } from "../who";
 import Belongs from "./Belongs";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
@@ -124,6 +125,7 @@ export default function Detail({
   }, [task.status, held]);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
+  const credited = useCredit();
   const live = task.status === "open";
   const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
@@ -201,18 +203,17 @@ export default function Detail({
     </>
   );
 
-  const signed = signedBy(task.created_by, task.created_via);
+  const named = expanded ? credited.inside : credited.rows;
+  const resolver = credited.inside ? clientNamed(task.resolved?.via) : undefined;
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.status === "open" && signed && (
+      {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p
           className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal"
-          title={
-            expanded ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)
-          }
+          title={named ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)}
         >
-          {expanded ? signed : signedByAnAgent(task.created_by)}
+          {signature(task.created_by, task.created_via, named)}
         </p>
       )}
       {pace && (
@@ -223,11 +224,8 @@ export default function Detail({
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
           <span aria-hidden="true">◆</span>
-          {clientNamed(task.resolved.via)
-            ? fill(
-                task.resolved.drop ? "agentNamedSaidNotDoing" : "agentNamedSaidDone",
-                clientNamed(task.resolved.via) as string,
-              )
+          {resolver
+            ? fill(task.resolved.drop ? "agentNamedSaidNotDoing" : "agentNamedSaidDone", resolver)
             : t(task.resolved.drop ? "agentSaidNotDoing" : "agentSaidDone")}
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
         </p>
@@ -704,6 +702,7 @@ function Title({ task, onRename }: { task: Task; onRename: (title: string) => vo
 }
 
 function Stamps({ task, lists }: { task: Task; lists: List[] }) {
+  const named = useCredit().inside;
   const seals: { key: string; text: string; look?: string }[] = [];
   const list = lists.find((one) => one.id === task.list);
 
@@ -731,15 +730,20 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
         {signedBy(task.created_by, task.created_via) && (
-          <span className="text-hue-teal" title={hostedOn(task.created_by)}>
+          <span
+            className="text-hue-teal"
+            title={
+              named ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)
+            }
+          >
             {" · "}
-            {signedBy(task.created_by, task.created_via)}
+            {signature(task.created_by, task.created_via, named)}
           </span>
         )}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}
-            {saidBy(task)}
+            {saidBy(task, named)}
           </span>
         )}
       </p>

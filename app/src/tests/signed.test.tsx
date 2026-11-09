@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
+import { credit } from "../crediting";
 import Detail from "../ui/Detail";
 import { spokenLabel } from "../ui/Spoke";
 import TaskList from "../ui/TaskList";
@@ -48,7 +49,11 @@ const detail = (one: Task, expanded = true) =>
 // At a glance a row only says an agent filed it; the name waits in the tooltip and in what is read
 // aloud, and never comes from the tag the server adds, which the person cannot trust.
 describe("a task an agent filed carries its signature", () => {
-  afterEach(() => knowAgents({}));
+  afterEach(() => {
+    knowAgents({});
+    credit("rows", false);
+    credit("inside", true);
+  });
 
   it("signs the row as an agent's, names it on hover, and drops the tag that said the same", () => {
     knowAgents(
@@ -179,6 +184,47 @@ describe("a task an agent filed carries its signature", () => {
 
     expect(wrote({ dev_agent: "dev_lap" })).toBe("Claude Code wrote on this machine");
     expect(wrote({ dev_agent: "dev_desk" })).toBe("Claude Code wrote on the machine roble 12");
+  });
+
+  it("names the agent in the row when the person asks for it, and keeps where it wrote on hover", () => {
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      {
+        clients: { "claude-code": "Claude Code" },
+        hosts: { dev_agent: "dev_lap" },
+        here: "dev_lap",
+      },
+    );
+    credit("rows", true);
+    render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
+
+    expect(screen.getByText("by Claude Code").getAttribute("title")).toBe(
+      "Claude Code wrote on this machine",
+    );
+    expect(screen.queryByText("by an agent")).toBeNull();
+  });
+
+  it("says only an agent inside the task when asked, with the name left on hover", () => {
+    knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
+    credit("inside", false);
+    const noted = task({
+      log: [
+        {
+          id: "01E",
+          at: "2026-11-02T11:46:00Z",
+          body: "molde del menú",
+          by: "dev_agent",
+          via: "claude-code",
+        },
+      ],
+      resolved: { by: "dev_agent", at: "2026-09-10T10:00:00Z", entry: "01E", via: "claude-code" },
+    });
+    detail(noted);
+
+    expect(screen.queryByText(/Claude Code/)).toBeNull();
+    const signs = screen.getAllByText("by an agent").map((one) => one.getAttribute("title"));
+    expect(signs).toEqual(["Claude Code wrote it", "Claude Code wrote it"]);
+    expect(screen.getByText("An agent says this is done")).toBeTruthy();
   });
 
   it("is read out loud too, apart from what the agent said about it", () => {

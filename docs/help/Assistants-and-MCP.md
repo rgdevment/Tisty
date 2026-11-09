@@ -114,7 +114,7 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 ## Signed by name
 
-What an assistant writes is signed with the name of the program it spoke through. In a row and in the side panel it reads «by an agent», and the name shows when you hover over it; the task opened to the whole page and the journal name the program — «by Claude Code», «by Codex». Settings › Assistants counts what each one wrote. What was written before programs said their name reads «by an assistant».
+What an assistant writes is signed with the name of the program it spoke through. In a row and in the side panel it reads «by an agent», and the name shows when you hover over it; the task opened to the whole page and the journal name the program — «by Claude Code», «by Codex». Settings › Assistants counts what each one wrote, and there you choose where the name shows: in the task list, inside a task, both or neither — wherever it does not, it reads «by an agent» and the name waits on hover. What was written before programs said their name reads «by an assistant».
 
 ## It reads sparingly
 

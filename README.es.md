@@ -927,7 +927,8 @@ una tuya—. Su día, su título, su lista y su cierre siguen siendo tuyos igual
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló: la fila y el panel lateral dicen «por un agente» y lo nombran al pasar el
 puntero, y la página completa y la bitácora dicen «por Claude Code», «por
-Codex». Configuración › Asistentes cuenta lo que anotó cada uno.
+Codex». Configuración › Asistentes cuenta lo que anotó cada uno y deja elegir
+dónde se ve el nombre.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
