@@ -1,4 +1,4 @@
-export declare const VERSION: "1.7.0";
+export declare const VERSION: "1.7.1";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -202,7 +202,7 @@ export interface Owner {
   signed: string;
 }
 
-/** Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name. */
+/** Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name, and one signed for another document says nothing of this one. */
 export interface Editor {
   in: string;
   root: string;

@@ -147,6 +147,11 @@ impl Remembered {
     pub fn edited_through_a_link(&self) -> bool {
         self.edit_token.is_some() && self.admin_token.is_none()
     }
+
+    // A read link lets its holder bring newer versions in and send nothing back to that link (140).
+    pub fn read_only(&self) -> bool {
+        self.edit_token.is_none() && self.admin_token.is_none()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

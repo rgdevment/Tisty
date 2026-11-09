@@ -29,6 +29,7 @@ pub struct State {
     pub signed_before: Vec<String>,
     pub sharing: BTreeMap<String, crate::event::Remembered>,
     pub sharing_stopped: BTreeSet<String>,
+    pub sharing_editors: BTreeMap<String, String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub hosts: BTreeMap<DeviceId, DeviceId>,
@@ -240,6 +241,22 @@ impl State {
         if newer {
             self.sharing.insert(file.to_owned(), d.clone());
         }
+        // A share of one's own under a new link has said its piece about who edited the last one.
+        if d.admin_token.is_some() {
+            self.sharing_editors.remove(file);
+        }
+    }
+
+    fn sharing_forgotten(&mut self, file: &str, stopped: Option<&str>) {
+        let was = self.sharing.remove(file);
+        // Only an owner shares the document again, so only an owner's stop is worth remembering.
+        if let Some(editors) = was
+            .filter(|_| stopped.is_some())
+            .and_then(|was| editors_in(&was))
+        {
+            self.sharing_editors.insert(file.to_owned(), editors);
+        }
+        self.sharing_stopped.extend(stopped.map(str::to_owned));
     }
 
     fn applied(&mut self, event: &Event) {
@@ -438,8 +455,7 @@ impl State {
             Op::Signed { d } => self.store_signed(d),
             Op::SharingKept { file, d } => self.sharing_kept(file, d),
             Op::SharingForgotten { file, stopped } => {
-                self.sharing.remove(file);
-                self.sharing_stopped.extend(stopped.clone());
+                self.sharing_forgotten(file, stopped.as_deref());
             }
             Op::DeviceRemove { d } => self.device_removed(d),
             // Every key is the one name an attachment has now, whatever shelf an older event put it on.
@@ -1307,6 +1323,15 @@ fn add_step(task: &mut Task, d: &StepAdd) {
 
 fn sort_steps(task: &mut Task) {
     task.steps.sort_by(|a, b| a.order.cmp(&b.order));
+}
+
+fn editors_in(was: &crate::event::Remembered) -> Option<String> {
+    let carried: serde_json::Value = serde_json::from_str(was.carried.as_deref()?).ok()?;
+    let editors = &carried["editors"];
+    editors
+        .as_array()
+        .is_some_and(|all| !all.is_empty())
+        .then(|| editors.to_string())
 }
 
 #[cfg(test)]

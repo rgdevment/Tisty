@@ -46,6 +46,35 @@ struct Carried {
     editors: Option<Vec<Editor>>,
 }
 
+// A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
+fn others_who_edited(
+    desk: &Desk,
+    kept: &Kept,
+    shelf: &BTreeMap<String, Remembered>,
+) -> Option<Told> {
+    let state = desk.state;
+    let mut names: Vec<String> = Vec::new();
+    for one in languages_of(state, kept) {
+        if one.guest || shelf.contains_key(&one.file) || sharable(desk, one.id, shelf).is_err() {
+            continue;
+        }
+        let Some(said) = state.sharing_editors.get(&one.file) else {
+            continue;
+        };
+        let editors: Vec<Editor> = serde_json::from_str(said).unwrap_or_default();
+        for name in editors
+            .into_iter()
+            .filter(|one| one.owned != Some(true))
+            .map(|one| one.name)
+        {
+            if !names.contains(&name) {
+                names.push(name);
+            }
+        }
+    }
+    (!names.is_empty()).then_some(Told::OthersEdited { editors: names })
+}
+
 fn carried_by(was: Option<&Remembered>) -> Carried {
     was.and_then(|one| one.carried.as_deref())
         .and_then(|said| serde_json::from_str(said).ok())
@@ -760,6 +789,9 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     };
     if wanted.is_some() && signed_as.is_none() {
         gathering.told.push(Told::NameLeftOut);
+    }
+    if let Some(others) = others_who_edited(desk, top, &gathering.shelf) {
+        gathering.told.push(others);
     }
     // One family goes once, whichever of its languages was ticked and however many times.
     let mut seen = BTreeSet::from([state.anchor_of(top)]);

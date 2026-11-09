@@ -12,7 +12,8 @@ export type Told =
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
   | { what: "languageLeftBehind"; language: string }
   | { what: "languageOverTheTop"; language: string; top: number }
-  | { what: "nameLeftOut" | "takenBackNotKept" };
+  | { what: "nameLeftOut" | "takenBackNotKept" }
+  | { what: "othersEdited"; editors: string[] };
 
 export interface Sealed {
   envelopes: number;
@@ -95,6 +96,7 @@ export interface ShareCard {
 export type Synced =
   | { state: "unchanged"; told: Told[]; termsUnchecked: boolean }
   | { state: "secrets"; place: string; print: string }
+  | { state: "othersEdited"; editors: string[]; print: string }
   | { state: "gone" }
   | { state: "sent"; version: number | null; told: Told[]; termsUnchecked: boolean }
   | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
@@ -221,5 +223,7 @@ export const toldPlainly = (told: Told): string => {
       return t("toldNameLeftOut");
     case "takenBackNotKept":
       return t("toldTakenBackNotKept");
+    case "othersEdited":
+      return fill("toldOthersEdited", told.editors.join(", "));
   }
 };
