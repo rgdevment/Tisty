@@ -266,7 +266,7 @@ dose = \frac{weight \times 0.5}{2}
 
 A picture:
 
-![Rina on her chair](rina.jpg)
+![Roger, Rina's brother, up on the hill](roger.jpg)
 
 A PDF:
 

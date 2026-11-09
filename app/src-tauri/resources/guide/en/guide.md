@@ -66,7 +66,7 @@ Each part it understands is coloured:
 
 Whatever is not coloured stays in the title, as written.
 
-**Try it:** type one of these in the bar at the top and watch it take colour. Rina, from the examples, is a dog: her vaccines, her walks and her vet keep you company through the whole guide.
+**Try it:** type one of these in the bar at the top and watch it take colour. Rina, from the examples, is a dog, and Roger is her brother: their vaccines, their walks and their vet keep you company through the whole guide.
 
 - `Rina's booster on 3 October !do #health`
 - `Walk Rina every day`
@@ -231,7 +231,7 @@ graph TD
   R --> C[Vet]
 ```
 
-Charts fit too. Rina's walks this week, by time of day:
+Charts fit too. Rina and Roger's walks this week, by time of day:
 
 ```mermaid
 pie title Walks this week
@@ -253,7 +253,7 @@ sequenceDiagram
 
 This section is a showcase: every form a document can take, with a live example you can touch. If you only want to write, skip it; everything is inserted with `/` when you need it. It is ordinary Markdown, so GitHub reads it the same as Tisty, and `F1` opens the [Tisty Markdown guide](https://markdown.tisty.app) on the form you are writing.
 
-Or see it all together, one of each, on its own page:
+Or see it all together, one of each, on its own page, where Roger shows up too:
 
 ![One of each: this guide's sample page](tisty:sample)
 

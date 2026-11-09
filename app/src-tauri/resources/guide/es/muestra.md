@@ -266,7 +266,7 @@ dosis = \frac{peso \times 0.5}{2}
 
 Una foto:
 
-![Rina en su silla](rina.jpg)
+![Roger, el hermano de Rina, arriba del cerro](roger.jpg)
 
 Un PDF:
 

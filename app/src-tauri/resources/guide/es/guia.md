@@ -66,7 +66,7 @@ Cada parte que entiende se colorea:
 
 Lo que no se colorea se queda en el título, tal cual.
 
-**Pruébalo:** escribe una de estas en la barra de arriba y mira cómo se colorea. Rina, la de los ejemplos, es una perra: sus vacunas, sus paseos y su veterinario te acompañan en toda la guía.
+**Pruébalo:** escribe una de estas en la barra de arriba y mira cómo se colorea. Rina, la de los ejemplos, es una perra, y Roger es su hermano: sus vacunas, sus paseos y su veterinario te acompañan en toda la guía.
 
 - `Vacuna de Rina el 3 de octubre !hacer #salud`
 - `Sacar a Rina cada día`
@@ -231,7 +231,7 @@ graph TD
   R --> C[Veterinario]
 ```
 
-También caben gráficos. Los paseos de Rina esta semana, según la hora:
+También caben gráficos. Los paseos de Rina y Roger esta semana, según la hora:
 
 ```mermaid
 pie title Paseos de la semana
@@ -253,7 +253,7 @@ sequenceDiagram
 
 Esta sección es un muestrario: cada forma que puede tomar un documento, con un ejemplo vivo que puedes tocar. Si solo quieres escribir, sáltatela; todo se inserta con `/` cuando lo necesites. Es Markdown corriente, así que GitHub lo lee igual que Tisty, y `F1` abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) en la forma que estás escribiendo.
 
-O míralo todo junto, uno de cada cosa, en su propia página:
+O míralo todo junto, uno de cada cosa, en su propia página, donde también sale Roger:
 
 ![Uno de cada cosa: la página de muestra de esta guía](tisty:sample)
 

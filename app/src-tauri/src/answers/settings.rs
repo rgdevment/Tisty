@@ -8,6 +8,7 @@ pub const ATTACHED: &[&str] = &[
     "capture.png",
     "priorities.png",
     "rina.jpg",
+    "roger.jpg",
     "cartilla.pdf",
     "vet-card.pdf",
     "bark.mp3",
