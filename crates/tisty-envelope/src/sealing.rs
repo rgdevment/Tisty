@@ -180,6 +180,10 @@ fn received_owner_holds(owner: &Owner, id: &str, tag: &[u8]) -> Result<(), Refus
     }
 }
 
+pub fn permit_shown(token: &str) -> Result<String, Refused> {
+    permit_of(token).map(|permit| permit.shown())
+}
+
 fn permit_of(token: &str) -> Result<Permit, Refused> {
     let seed = Zeroizing::new(
         URL_SAFE_NO_PAD

@@ -291,6 +291,7 @@ pub(super) fn said_to_whom(refused: Refusal, owning: bool, home: &std::path::Pat
     let limits = || folio_limits::kept(home);
     match (refused.code, owning) {
         ("folioKeyBlocked", false) => Refusal::of("folioOwnerKeyBlocked"),
+        ("notOneOwnDoc", false) => Refusal::of("folioEditTakenBack"),
         ("folioRoomFullOf", false) => Refusal {
             code: "folioOwnerRoomFullOf",
             ..refused

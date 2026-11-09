@@ -1120,3 +1120,49 @@ fn a_refusal_over_the_terms_shows_them_when_they_changed_and_says_so_when_they_d
     assert_eq!(said_of(Err(Unsure::NoWord)), "folioUnreached");
     assert_eq!(said_of(Err(Unsure::NotPublished)), "folioTermsNotPublished");
 }
+
+#[test]
+fn whoever_was_taken_off_the_edit_link_is_told_so_and_the_owner_is_not() {
+    let home = tempfile::tempdir().unwrap();
+    let not_theirs = || crate::Refusal::of("notOneOwnDoc");
+
+    assert_eq!(
+        said_to_whom(not_theirs(), false, home.path()).code,
+        "folioEditTakenBack"
+    );
+    assert_eq!(
+        said_to_whom(not_theirs(), true, home.path()).code,
+        "notOneOwnDoc"
+    );
+}
+
+#[test]
+fn the_owner_puts_folios_permit_back_to_the_token_it_holds_and_an_editor_never_tries() {
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    let owner = Remembered {
+        edit_token: Some(token.clone()),
+        ..remembered(Some("key"), Some(&token))
+    };
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    assert!(crate::answers::folio_editing::permit_put_back(
+        &folio, &owner
+    ));
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, "/docs/Ab3xK9pQ/permit");
+    assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
+    drop(asked);
+
+    let editor = Remembered {
+        admin_token: None,
+        ..owner
+    };
+    let untouched = FakeFolio::default();
+    assert!(!crate::answers::folio_editing::permit_put_back(
+        &untouched, &editor
+    ));
+    assert!(untouched.asked.borrow().is_empty());
+}

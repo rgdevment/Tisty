@@ -9,7 +9,7 @@ use tisty_carrier::policy;
 use tisty_core::Paths;
 use tisty_sharing::{Desk, Received, Remembered, Told};
 
-use super::folio_editing::{others_asked, said_after_sending};
+use super::folio_editing::{others_asked, permit_put_back, said_after_sending};
 
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
@@ -337,15 +337,23 @@ pub async fn doc_share_sync(
     let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
-        delivered(
-            &door,
-            &home,
-            Some(&pressed_id),
-            &keep,
-            &sealed,
-            &starts,
-            ttl_days,
-        )
+        let deliver = || {
+            delivered(
+                &door,
+                &home,
+                Some(&pressed_id),
+                &keep,
+                &sealed,
+                &starts,
+                ttl_days,
+            )
+        };
+        match deliver() {
+            Err(refused) if refused.code == "notOneOwnDoc" && permit_put_back(&door, &was) => {
+                deliver()
+            }
+            other => other,
+        }
         .map_err(|refused| said_to_whom(refused, owning, &home))
         .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
         .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;

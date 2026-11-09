@@ -223,6 +223,7 @@ const KNOWN = [
   "folioTermsUpdating",
   "folioKeyBlocked",
   "folioOwnerKeyBlocked",
+  "folioEditTakenBack",
   "folioNewerVersionHere",
   "folioRoomFull",
   "folioOwnerRoomFull",

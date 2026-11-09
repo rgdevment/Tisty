@@ -1,11 +1,14 @@
 use std::sync::Mutex;
 
 use serde::Serialize;
+use tisty_carrier::folio_client::{self, Door};
 use tisty_carrier::folio_limits;
 use tisty_core::event::Signature;
+use tisty_envelope::sealing::{link_key, permit_shown};
 use tisty_sharing::{Remembered, Told};
 
-use super::folio::{Card, card_of, kept_on, remembered_of};
+use super::folio::{Card, ToFolio, apart, card_of, kept_on, remembered_of, said};
+use super::folio_sync::{Synced, doc_share_sync};
 use crate::{Answer, Refusal, Session, held};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -135,6 +138,44 @@ pub(super) fn said_after_sending(told: Vec<Told>) -> Vec<Told> {
     told.into_iter()
         .filter(|one| !matches!(one, Told::OthersEdited { .. }))
         .collect()
+}
+
+// Folio keeps the permit its owner last set, and this Tisty holds the token: its word puts them back in step (148).
+pub(super) fn permit_put_back(door: &dyn Door, was: &Remembered) -> bool {
+    let (Some(admin), Some(token)) = (was.admin_token.as_deref(), was.edit_token.as_deref()) else {
+        return false;
+    };
+    let Ok(permit) = permit_shown(token) else {
+        return false;
+    };
+    folio_client::permit(door, &was.id, admin, Some(&permit)).is_ok()
+}
+
+// The new token is kept before Folio hears of it: if anything stops halfway, the next Sync finishes the change.
+#[tauri::command]
+pub async fn doc_share_edit_link_renewed(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Synced> {
+    let (file, was) = remembered_of(&held(&session), &id)?;
+    if was.admin_token.is_none() || was.edit_token.is_none() {
+        return Err(Refusal::of("notOneOwnDoc"));
+    }
+    let token = link_key().map_err(|_| Refusal::of("cannotSeal"))?;
+    let permit = permit_shown(&token).map_err(|_| Refusal::of("cannotSeal"))?;
+    let admin = was.admin_token.clone().unwrap_or_default();
+    let shared = was.id.clone();
+    let mut now = was;
+    now.edit_token = Some(token);
+    now.words_print = None;
+    kept_on(&mut held(&session), &[(file, now)])?;
+    apart(move || {
+        let door = ToFolio::new()?;
+        folio_client::permit(&door, &shared, &admin, Some(&permit)).map_err(|one| said(&one))
+    })
+    .await?;
+    doc_share_sync(app, session, id, None).await
 }
 
 #[cfg(test)]

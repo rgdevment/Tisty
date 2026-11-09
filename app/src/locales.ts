@@ -725,6 +725,8 @@ const en = {
     "Folio blocked this key. What you already shared stays, but you can't upload more.",
   folioOwnerKeyBlocked:
     "Folio blocked the key of this document's owner. New versions can't be uploaded.",
+  folioEditTakenBack:
+    "The owner changed this document's edit link, so yours no longer sends versions. Your copy stays with you; ask the owner for the new link if you should keep editing.",
   folioRoomFull:
     "Your shared documents already take the {name} your key holds. Stop sharing one or wait for one to expire.",
   folioRoomFullAll:
@@ -759,6 +761,11 @@ const en = {
     "Your appeal was sent. The operator will review it, and the block stays until then.",
   folioUnopened: "This document could not be opened: its signature or its contents do not hold.",
   shareStopEditing: "Stop editing it",
+  shareRenewLink: "Change the edit link",
+  shareRenewAsk:
+    "Whoever has the current edit link can no longer send versions, and keeps the copy they have. You get a new link to give to whoever should keep editing.",
+  shareRenew: "Change it",
+  shareRenewed: "The edit link changed. Copy the new one and give it to whoever keeps editing.",
   shareSignsAs: "Your versions go signed as {name}.",
   shareSignAsOther: "Sign as {name}",
   sharedOwnerAndSigner: "Created by {name} · Last edited by {other}",
@@ -3715,6 +3722,8 @@ const es: Catalog = {
     "Folio bloqueó esta llave. Lo que ya compartiste sigue, pero no puedes subir más.",
   folioOwnerKeyBlocked:
     "Folio bloqueó la llave del dueño de este documento. No se pueden subir versiones nuevas.",
+  folioEditTakenBack:
+    "El dueño cambió el link de editar de este documento, así que el tuyo ya no envía versiones. Tu copia se queda contigo; pídele el link nuevo si debes seguir editándolo.",
   folioRoomFull:
     "Tus documentos compartidos ya ocupan los {name} de tu llave. Deja de compartir alguno o espera a que caduque.",
   folioRoomFullAll:
@@ -3749,6 +3758,11 @@ const es: Catalog = {
     "Se envió tu reclamo. Lo revisará quien opera el servicio, y el bloqueo sigue hasta entonces.",
   folioUnopened: "No se pudo abrir este documento: su firma o su contenido no calzan.",
   shareStopEditing: "Dejar de editarlo",
+  shareRenewLink: "Cambiar el link de editar",
+  shareRenewAsk:
+    "Quien tenga el link de editar actual ya no podrá enviar versiones, y se queda con la copia que tiene. Recibes un link nuevo para dárselo a quienes deban seguir editando.",
+  shareRenew: "Cambiarlo",
+  shareRenewed: "El link de editar cambió. Copia el nuevo y dáselo a quienes sigan editando.",
   shareSignsAs: "Tus versiones van firmadas como {name}.",
   shareSignAsOther: "Firmar como {name}",
   sharedOwnerAndSigner: "Creado por {name} · Última edición: {other}",
