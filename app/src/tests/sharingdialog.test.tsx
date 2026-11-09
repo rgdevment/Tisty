@@ -265,7 +265,7 @@ describe("sharing a document with Folio", () => {
     const { onClose } = shown();
 
     await screen.findByText(t("shareClosedWhat"), { exact: false });
-    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "tisty.cl" })).toBeTruthy();
     expect(invoked).not.toHaveBeenCalledWith("folio_terms_standing");
 
     await userEvent.click(screen.getByRole("button", { name: t("shareClosedOk") }));
@@ -279,7 +279,7 @@ describe("sharing a document with Folio", () => {
     shown();
     await screen.findByText("We open on Monday.", { exact: false });
     expect(screen.queryByText(t("shareClosedWhat"), { exact: false })).toBeNull();
-    expect(screen.getByRole("button", { name: "folio.tisty.app" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "tisty.cl" })).toBeTruthy();
 
     cleanup();
     answering({ folio_sharing_now: { state: "closed", note: { es: "El lunes." } } });

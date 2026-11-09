@@ -681,7 +681,7 @@ no account, end-to-end encrypted, with its own terms and policies in
 [its own repository](https://github.com/rgdevment/Folio-by-Tisty). Every document
 shows a **Shared** row; pressing **Share** reads a small signed file to learn
 whether Folio has opened and, while it has not, tells you so, with a link to
-[folio.tisty.app](https://folio.tisty.app). Nothing of your document leaves until
+[tisty.cl](https://tisty.cl). Nothing of your document leaves until
 Folio is open, you accept its terms and you confirm.
 [PRIVACY.md](PRIVACY.md#sharing-by-link) says what each step sends.
 

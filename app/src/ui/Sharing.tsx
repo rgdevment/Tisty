@@ -21,7 +21,7 @@ import FirstIdentity from "./FirstIdentity";
 import Modal from "./Modal";
 
 const SECRETS_SHOWN = 3;
-const FOLIO_SITE = "folio.tisty.app";
+const FOLIO_SITE = "tisty.cl";
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",

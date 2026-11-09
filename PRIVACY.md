@@ -238,7 +238,7 @@ until you ask.
 
 Every document shows a **Shared** row. Pressing **Share** reads the file in the
 first row below. While that file does not say sharing is open, Tisty shows a
-notice instead, with a link to `folio.tisty.app` that opens in your browser only
+notice instead, with a link to `tisty.cl` that opens in your browser only
 if you click it. Only starting a new share waits for that file: a link reaching
 Tisty and a share already out do not.
 
