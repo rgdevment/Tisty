@@ -12,8 +12,8 @@ export function spokenLabel(task: Task): string {
   return bits.join(" — ");
 }
 
-export function saidBy(task: Task): string {
-  const named = task.resolved ? clientNamed(task.resolved.via) : undefined;
+export function saidBy(task: Task, naming = true): string {
+  const named = naming && task.resolved ? clientNamed(task.resolved.via) : undefined;
   if (task.resolved?.drop && task.status === "open") {
     return named ? fill("agentNamedSaidNotDoing", named) : t("agentSaidNotDoing");
   }

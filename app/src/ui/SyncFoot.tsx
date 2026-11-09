@@ -21,6 +21,7 @@ interface Props {
   onOpen: () => void;
   onTrouble?: (text: string) => void;
   fallback?: React.ReactNode;
+  narrow?: boolean;
 }
 
 const DOT: Record<Footing["kind"], string> = {
@@ -78,7 +79,7 @@ function told(foot: Footing, state: Carrying, cloud: string): { line: string; wh
   }
 }
 
-export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props) {
+export default function SyncFoot({ onSync, onOpen, onTrouble, fallback, narrow }: Props) {
   const { state, status } = useSyncSeen();
   const [mine, setMine] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -181,12 +182,19 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   };
 
   return (
-    <span title={why ?? `${named} · ${line}`} className="mx-1.5 flex min-w-0 flex-1">
+    <span
+      title={narrow ? `${named} · ${line}${why ? ` — ${why}` : ""}` : (why ?? `${named} · ${line}`)}
+      className={narrow ? "flex" : "mx-1.5 flex min-w-0 flex-1"}
+    >
       <button
         type="button"
         aria-label={[named, line, foot.kind === "ok" ? undefined : why].filter(Boolean).join(" · ")}
         onClick={press}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+        className={
+          narrow
+            ? "grid size-7 place-items-center rounded-[10px] transition-colors duration-150 hover:bg-hover"
+            : "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+        }
       >
         <span
           aria-hidden="true"
@@ -194,9 +202,11 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
             foot.kind === "syncing" || foot.kind === "sealing" ? "motion-safe:animate-pulse" : ""
           }`}
         />
-        <span className="min-w-0 truncate">
-          {named} · {line}
-        </span>
+        {!narrow && (
+          <span className="min-w-0 truncate">
+            {named} · {line}
+          </span>
+        )}
       </button>
     </span>
   );

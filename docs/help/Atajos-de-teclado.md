@@ -12,6 +12,7 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + `Shift` + `M` (escribiendo un bloque) | Mostrar u ocultar todas las marcas |
 | `Ctrl`/`⌘` + `E` (en un documento) | Abrir o dejar todo el documento |
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
+| `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho |
 | `Ctrl`/`⌘` + `S` (en la ventana de diagramas) | Guardar el diagrama en su documento |
 | `Enter` · `Tab` · `Supr` · `F2` (en un mapa mental) | Agregar una hermana, agregar una hija, borrar la idea, renombrarla |
 | `Supr` (en un esquema, un diagrama libre o un diagrama de clases) | Borrar lo elegido |

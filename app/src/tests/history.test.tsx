@@ -18,7 +18,7 @@ const task = (log: { id: string; body: string; by?: string }[]) =>
   }) as unknown as Task;
 
 describe("what happened to a task", () => {
-  it("stays folded under its words, counting only the entries that say something", async () => {
+  it("opens under its words, counting only the entries that say something", async () => {
     render(
       <History
         task={task([
@@ -29,7 +29,7 @@ describe("what happened to a task", () => {
     );
 
     const fold = screen.getByText(`${t("history")} · 1`).closest("details");
-    expect(fold?.open).toBe(false);
+    expect(fold?.open).toBe(true);
     expect(await screen.findByText("spoke to accounting")).toBeTruthy();
   });
 
