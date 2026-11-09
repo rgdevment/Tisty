@@ -226,6 +226,8 @@ pub fn asked(said: &str, cwd: Option<&Path>) -> Option<PathBuf> {
     readable(&at).then_some(at)
 }
 
+const PUBLIC_HOST: &str = "folio.tisty.app";
+
 // Any page can fire this address, and it carries a key: it takes its one link from Folio's servers, and it is never logged.
 pub fn asked_to_edit(said: &str, private: &str) -> Option<url::Url> {
     let link = url::Url::parse(said.trim()).ok()?;
@@ -243,7 +245,7 @@ pub fn asked_to_edit(said: &str, private: &str) -> Option<url::Url> {
     }
     let web = url::Url::parse(&value).ok()?;
     let host = web.host_str()?;
-    let ours = matches!(host, "tisty.cl" | "folio.tisty.app") || host == private;
+    let ours = [folio_hosts::FIRST_PRIVATE, PUBLIC_HOST, private].contains(&host);
     (web.scheme() == "https" && ours).then_some(web)
 }
 

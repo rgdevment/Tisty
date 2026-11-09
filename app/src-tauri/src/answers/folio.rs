@@ -33,6 +33,7 @@ pub(super) const FIRST_TERM_DAYS: u64 = 1;
 
 pub(super) struct ToFolio {
     client: reqwest::blocking::Client,
+    host: String,
     api: String,
 }
 
@@ -44,12 +45,25 @@ impl ToFolio {
             .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| Refusal::of("folioUnreached"))?;
-        let host = folio_hosts::private(home, crate::reaching::brought_from_folio);
+        let host = private_host(home);
         Ok(Self {
             client,
             api: folio_client::api_of(&host),
+            host,
         })
     }
+
+    pub(super) fn host(&self) -> &str {
+        &self.host
+    }
+}
+
+pub(super) fn private_host(home: &Path) -> String {
+    folio_hosts::private(home, crate::reaching::brought_from_folio)
+}
+
+pub(super) async fn private_host_apart(home: std::path::PathBuf) -> Answer<String> {
+    apart(move || Ok(private_host(&home))).await
 }
 
 impl Door for ToFolio {
@@ -385,9 +399,19 @@ async fn sharing_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<Shar
     .await
 }
 
+#[derive(Debug, Serialize)]
+pub struct SharingHere {
+    #[serde(flatten)]
+    now: SharingNow,
+    site: String,
+}
+
 #[tauri::command]
-pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingNow> {
-    sharing_here(&session).await
+pub async fn folio_sharing_now(session: tauri::State<'_, Mutex<Session>>) -> Answer<SharingHere> {
+    let now = sharing_here(&session).await?;
+    let home = held(&session).paths.private();
+    let site = private_host_apart(home).await?;
+    Ok(SharingHere { now, site })
 }
 
 #[tauri::command]
@@ -757,13 +781,13 @@ pub(super) fn file_of(session: &Session, id: &str) -> Answer<String> {
 }
 
 #[tauri::command]
-pub fn doc_share_card(
+pub async fn doc_share_card(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Card>> {
     let home = held(&session).paths.private();
     let maker = folio_limits::maker_root(&home);
-    let host = folio_hosts::private_kept(&home);
+    let host = private_host_apart(home).await?;
     let session = held(&session);
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
@@ -1098,8 +1122,7 @@ pub async fn doc_shared(
             .iter()
             .find(|(_, one)| one.held_by.is_none());
         let maker = folio_limits::maker_root(&home);
-        let host = folio_hosts::private_kept(&home);
-        top.and_then(|(_, one)| card_of(&host, one, &state.signed, maker.as_deref()))
+        top.and_then(|(_, one)| card_of(door.host(), one, &state.signed, maker.as_deref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

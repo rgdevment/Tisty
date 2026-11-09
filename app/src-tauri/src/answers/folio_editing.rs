@@ -104,14 +104,14 @@ pub(super) fn signs_as(was: &Remembered, signature: &Signature) -> Option<SignsA
 }
 
 #[tauri::command]
-pub fn doc_share_sign_as(
+pub async fn doc_share_sign_as(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     name: String,
 ) -> Answer<Card> {
     let home = held(&session).paths.private();
     let maker = folio_limits::maker_root(&home);
-    let host = tisty_carrier::folio_hosts::private_kept(&home);
+    let host = super::folio::private_host_apart(home).await?;
     let mut session = held(&session);
     let (file, mut was) = remembered_of(&session, &id)?;
     if signs_as(&was, &session.state.signed).is_none() {

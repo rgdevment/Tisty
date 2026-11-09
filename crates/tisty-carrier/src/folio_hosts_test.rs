@@ -1,6 +1,8 @@
 use std::cell::Cell;
+use std::path::Path;
+use std::time::{Duration, SystemTime};
 
-use super::{ASKED, FIRST_PRIVATE, KEPT, private_kept_under, private_under};
+use super::{FIRST_PRIVATE, KEPT, MISSED, private_kept_under, private_under};
 
 const KEY: &str = include_str!("folio_signed/hosts/key.pub");
 const HOSTS: &[u8] = include_bytes!("folio_signed/hosts/hosts.json");
@@ -23,8 +25,17 @@ fn nothing(_: &str) -> Option<Vec<u8>> {
     None
 }
 
-fn asked_again(home: &std::path::Path) {
-    std::fs::remove_file(home.join(ASKED)).unwrap();
+fn an_hour_later(home: &Path) {
+    std::fs::remove_file(home.join(MISSED)).unwrap();
+}
+
+fn two_days_later(home: &Path) {
+    let long_ago = SystemTime::now() - Duration::from_secs(49 * 60 * 60);
+    std::fs::File::options()
+        .write(true)
+        .open(home.join(KEPT))
+        .and_then(|kept| kept.set_modified(long_ago))
+        .unwrap();
 }
 
 #[test]
@@ -45,7 +56,6 @@ fn a_host_folio_signed_is_taken_and_kept() {
         "tisty.dev"
     );
     assert_eq!(private_kept_under(home.path(), KEY.trim()), "tisty.dev");
-    asked_again(home.path());
     assert_eq!(
         private_under(home.path(), &nothing, KEY.trim()),
         "tisty.dev"
@@ -53,7 +63,7 @@ fn a_host_folio_signed_is_taken_and_kept() {
 }
 
 #[test]
-fn it_is_asked_for_once_in_two_days() {
+fn a_copy_that_holds_is_asked_for_once_in_two_days() {
     let home = tempfile::tempdir().unwrap();
     let asked = Cell::new(0);
     let counting = |url: &str| {
@@ -63,6 +73,28 @@ fn it_is_asked_for_once_in_two_days() {
     private_under(home.path(), &counting, KEY.trim());
     private_under(home.path(), &counting, KEY.trim());
     assert_eq!(asked.get(), 2, "the file and its signature, once");
+    two_days_later(home.path());
+    an_hour_later(home.path());
+    private_under(home.path(), &counting, KEY.trim());
+    assert_eq!(asked.get(), 4, "asked again once the two days are over");
+}
+
+#[test]
+fn a_look_that_brought_nothing_tries_again_within_the_hour_not_in_two_days() {
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(
+        private_under(home.path(), &nothing, KEY.trim()),
+        FIRST_PRIVATE
+    );
+    assert_eq!(
+        private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim()),
+        FIRST_PRIVATE
+    );
+    an_hour_later(home.path());
+    assert_eq!(
+        private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim()),
+        "tisty.dev"
+    );
 }
 
 #[test]
@@ -72,7 +104,7 @@ fn what_folio_did_not_sign_or_signed_as_another_file_is_refused() {
         private_under(home.path(), &serving(HOSTS, SIGNED_ELSEWHERE), KEY.trim()),
         FIRST_PRIVATE
     );
-    asked_again(home.path());
+    an_hour_later(home.path());
     assert_eq!(
         private_under(home.path(), &serving(OLDER, SIGNED), KEY.trim()),
         FIRST_PRIVATE
@@ -93,7 +125,7 @@ fn a_host_that_is_not_a_bare_domain_is_refused_even_signed() {
 fn an_older_serial_never_takes_back_a_newer_host() {
     let home = tempfile::tempdir().unwrap();
     private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim());
-    asked_again(home.path());
+    two_days_later(home.path());
     assert_eq!(
         private_under(home.path(), &serving(OLDER, OLDER_SIGNED), KEY.trim()),
         "tisty.dev"

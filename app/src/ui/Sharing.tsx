@@ -21,7 +21,6 @@ import FirstIdentity from "./FirstIdentity";
 import Modal from "./Modal";
 
 const SECRETS_SHOWN = 3;
-const FOLIO_SITE = "tisty.cl";
 const TERMS_ON_THE_WEB: Record<string, string> = {
   es: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMINOS.md",
   en: "https://github.com/rgdevment/Folio-by-Tisty/blob/main/docs/TERMS.md",
@@ -173,10 +172,10 @@ function Terms({
   );
 }
 
-function NoteWords({ note }: Readonly<{ note: string }>) {
+function NoteWords({ note, site }: Readonly<{ note: string; site: string }>) {
   return (
     <span className="whitespace-pre-line">
-      {noteParts(note).map(({ at, text, url }) =>
+      {noteParts(note, site).map(({ at, text, url }) =>
         url ? (
           <button
             key={at}
@@ -195,23 +194,32 @@ function NoteWords({ note }: Readonly<{ note: string }>) {
   );
 }
 
-function NotOpenYet({ note, onClose }: Readonly<{ note?: string; onClose: () => void }>) {
+function NotOpenYet({
+  note,
+  site,
+  onClose,
+}: Readonly<{ note?: string; site: string; onClose: () => void }>) {
   return (
     <Modal title={t("shareClosedTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
         <p className="text-[13px] leading-relaxed">
-          {note ? <NoteWords note={note} /> : t("shareClosedWhat")}
+          {note ? <NoteWords note={note} site={site} /> : t("shareClosedWhat")}
           <br />
           {!note && `${t("shareClosedYet")} `}
-          {t("shareClosedMore")}{" "}
-          <button
-            type="button"
-            onClick={() => void openUrl(`https://${FOLIO_SITE}`).catch(() => {})}
-            className="text-accent"
-          >
-            {FOLIO_SITE}
-          </button>
-          .
+          {site && (
+            <>
+              {t("shareClosedMore")}{" "}
+              <button
+                type="button"
+                title={`https://${site}`}
+                onClick={() => void openUrl(`https://${site}`).catch(() => {})}
+                className="text-accent"
+              >
+                Folio
+              </button>
+              .
+            </>
+          )}
         </p>
         <div className="flex justify-end">
           <button
@@ -698,7 +706,7 @@ function Choosing({
 
 type Step =
   | { at: "reading" }
-  | { at: "closed"; note?: string }
+  | { at: "closed"; note?: string; site: string }
   | { at: "unreached" }
   | { at: "settling" }
   | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
@@ -726,6 +734,7 @@ export default function Sharing({
   const [step, setStep] = useState<Step>({ at: "reading" });
   const live = useRef(true);
   const again = useRef<Parameters<typeof docShared>[1] | null>(null);
+  const site = useRef("");
 
   const [changed, setChanged] = useState(false);
   const [termsUnchecked, setTermsUnchecked] = useState(false);
@@ -777,8 +786,10 @@ export default function Sharing({
     sharingNow()
       .then((now) => {
         if (!live.current) return;
+        site.current = now.site;
         if (now.state === "open") termsOver();
-        else if (now.state === "closed") setStep({ at: "closed", note: now.note?.[locale()] });
+        else if (now.state === "closed")
+          setStep({ at: "closed", note: now.note?.[locale()], site: now.site });
         else setStep({ at: "unreached" });
       })
       .catch(failed);
@@ -819,7 +830,7 @@ export default function Sharing({
           return;
         }
         if (codeOf(problem) === "folioClosed") {
-          setStep({ at: "closed" });
+          setStep({ at: "closed", site: site.current });
           return;
         }
         if (codeOf(problem) === "folioChanged") {
@@ -848,7 +859,7 @@ export default function Sharing({
         </Modal>
       );
     case "closed":
-      return <NotOpenYet note={step.note} onClose={onClose} />;
+      return <NotOpenYet note={step.note} site={step.site} onClose={onClose} />;
     case "unreached":
       return (
         <NothingSent

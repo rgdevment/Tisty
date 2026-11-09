@@ -1317,3 +1317,23 @@ fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_it
     assert_eq!(now.owner_name, owner.owner_name);
     assert_eq!(now.version_by.as_deref(), Some("Mario H"));
 }
+
+#[test]
+fn the_window_hears_whether_sharing_is_open_beside_folios_private_host() {
+    let closed = super::SharingHere {
+        now: SharingNow::Closed { note: None },
+        site: "tisty.dev".to_owned(),
+    };
+    assert_eq!(
+        serde_json::to_value(&closed).unwrap(),
+        serde_json::json!({ "state": "closed", "note": null, "site": "tisty.dev" })
+    );
+    let open = super::SharingHere {
+        now: SharingNow::Open,
+        site: "tisty.cl".to_owned(),
+    };
+    assert_eq!(
+        serde_json::to_value(&open).unwrap(),
+        serde_json::json!({ "state": "open", "site": "tisty.cl" })
+    );
+}
