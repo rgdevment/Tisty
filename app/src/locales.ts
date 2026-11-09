@@ -2555,6 +2555,11 @@ const en = {
   agentWroteIt: "{name} wrote it",
   agentWroteHere: "{name} wrote on this machine",
   agentWroteOn: "{name} wrote on the machine {other}",
+  sideFold: "Fold the sidebar",
+  sideUnfold: "Unfold the sidebar",
+  sideResize: "Sidebar width",
+  sideResizeHow:
+    "Drag to change the width · double-click for the usual one · narrow it all the way to fold it",
   creditTitle: "Who signs what an assistant writes",
   creditWhat:
     "What an assistant writes carries the name of the program it spoke through. Choose where that name shows; where it does not, it reads «by an agent» and the name waits on hover.",
@@ -5535,6 +5540,11 @@ const es: Catalog = {
   agentWroteIt: "{name} lo escribió",
   agentWroteHere: "{name} escribió en este equipo",
   agentWroteOn: "{name} escribió en el equipo {other}",
+  sideFold: "Plegar la barra lateral",
+  sideUnfold: "Desplegar la barra lateral",
+  sideResize: "Ancho de la barra lateral",
+  sideResizeHow:
+    "Arrastra para cambiar el ancho · doble clic: el de siempre · estréchala del todo para plegarla",
   creditTitle: "Quién firma lo que escribe un asistente",
   creditWhat:
     "Lo que escribe un asistente lleva el nombre del programa por el que habló. Elige dónde se ve ese nombre; donde no, dice «por un agente» y el nombre aparece al pasar el puntero.",

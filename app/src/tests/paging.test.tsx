@@ -60,15 +60,15 @@ describe("the smallest the window may be", () => {
 
   it("measures the sidebar the same width the grid actually draws it", () => {
     const app = readFileSync("src/App.tsx", "utf8");
-    const paper = readFileSync("src/ui/Docs.tsx", "utf8");
+    const kept = readFileSync("src/breadth.ts", "utf8");
     const drawn =
       /grid-template-columns:(\d+)px_minmax\(0,1fr\)\]\s+min-\[\d+px\]:\[grid-template-columns:(\d+)px/.exec(
         app,
       );
     expect(drawn).toBeTruthy();
 
-    const rail = /^const RAIL = (\d+);/m.exec(paper)?.[1];
-    const wide = /^const RAIL_WIDE = (\d+);/m.exec(paper)?.[1];
+    const rail = /^const AS_SHIPPED_WIDTH = (\d+);/m.exec(kept)?.[1];
+    const wide = /^const AS_SHIPPED_WIDE = (\d+);/m.exec(kept)?.[1];
 
     expect(rail).toBe(drawn?.[1]);
     expect(wide).toBe(drawn?.[2]);
