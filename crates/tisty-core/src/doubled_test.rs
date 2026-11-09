@@ -182,3 +182,42 @@ fn a_translation_of_the_guide_is_not_taken_for_a_second_guide() {
         "a second guide in the same language still goes"
     );
 }
+
+fn signed_guide(state: &mut State, ms: i64, file: &str, title: &str) -> DocId {
+    let id = Ulid::generate();
+    state.apply(&ev(
+        ms,
+        Op::DocAdd {
+            id,
+            d: DocAdd {
+                guest: true,
+                sown: true,
+                by: Some("rgdevment".into()),
+                said: Some(Said {
+                    title: title.into(),
+                    ..Default::default()
+                }),
+                file: file.into(),
+                order: "a0".into(),
+                ..Default::default()
+            },
+        },
+    ));
+    id
+}
+
+#[test]
+fn the_guide_its_author_signed_is_the_one_kept_whichever_side_brought_it_first() {
+    let mut state = State::default();
+    let unsigned = guide(&mut state, 1, "aaaa-0001", "Cómo funciona Tisty");
+    let signed = signed_guide(&mut state, 2, "bbbb-0001", "Cómo funciona Tisty");
+    let again = signed_guide(&mut state, 3, "cccc-0001", "Cómo funciona Tisty");
+
+    for op in doubled(&state) {
+        state.apply(&ev(10, op));
+    }
+
+    assert!(state.docs[&unsigned].archived);
+    assert!(!state.docs[&signed].archived);
+    assert!(state.docs[&again].archived);
+}

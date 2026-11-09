@@ -451,6 +451,9 @@ impl State {
                 edited_by: d.said.as_ref().and_then(|one| one.by.clone()),
                 guest: d.guest,
                 sown,
+                sown_print: crate::untouched::written_as_sown(d)
+                    .then(|| d.said.as_ref().and_then(|one| one.print.clone()))
+                    .flatten(),
                 folder: match under {
                     Some(one) => one.folder,
                     None => d.folder,

@@ -622,7 +622,7 @@ una semana que pasas de página: cada día es una fila, y la fila crece con lo q
 lleva, así que un viernes cargado es alto y un martes libre es una línea. Lo que
 escribiste sin día espera en una bandeja a la izquierda, y lo arrastras hasta un
 día —o lo devuelves a la bandeja para quitarle el día otra vez—. Si lo sueltas
-en un día que ya lleva tres, Tisty te lo dice y te ofrece el siguiente que está
+en un día que ya lleva dos, Tisty te lo dice y te ofrece el siguiente que está
 libre; nunca insiste.
 
 Un botón de **mes** está para mirar, no para repartir: lo pulsas y esos mismos

@@ -5961,6 +5961,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-sign-guide"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "tisty-core",
+ "tisty-sharing",
+]
+
+[[package]]
 name = "tisty-sync"
 version = "0.1.0"
 dependencies = [

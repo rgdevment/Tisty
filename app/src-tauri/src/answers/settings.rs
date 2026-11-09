@@ -179,6 +179,12 @@ pub fn guide(
             )
             .ok()
     };
+    if let Some(found) = super::guiding::signed_guide_here(&mut session, tongue)? {
+        return Ok(found);
+    }
+    if let Some(author) = super::guiding::signed_author(&reach) {
+        return super::guiding::signed_guide(&mut session, tongue, called, &author, reach);
+    }
     let found = match (standing, own) {
         (Some((id, file, title)), Some(true)) => {
             let here = guide_here_as(&session, &tisty_core::docs::titled(told))
@@ -187,7 +193,13 @@ pub fn guide(
                 Some(found) => Some(found),
                 // An older guide in another language gets this one beside it, as asking for it always did.
                 None if title != tisty_core::docs::titled(told) => {
-                    return super::guiding::sown_beside(&mut session, tongue, id, reach);
+                    return super::guiding::sown_beside(
+                        &mut session,
+                        tongue,
+                        id,
+                        WRITTEN_BY,
+                        reach,
+                    );
                 }
                 None => Some((file, title)),
             }
@@ -201,7 +213,7 @@ pub fn guide(
         session.keep(|config| config.guide = Some(taken))?;
         return Ok(tisty_core::docs::Doc { id: file, title });
     }
-    super::guiding::sown(&mut session, tongue, called, reach)
+    super::guiding::sown(&mut session, tongue, called, WRITTEN_BY, reach)
 }
 
 // The same guide in the person's language, when the one kept is another of its languages.

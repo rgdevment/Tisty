@@ -606,7 +606,7 @@ the spread decides when. It runs as a river of days you scroll through rather
 than a week you page: every day is a row, and the row grows with what it carries,
 so a heavy Friday is tall and a free Tuesday is a line. What you wrote with no
 day waits in a tray on the left, and you drag it onto a day — or drag it back to
-take the day away again. Drop one onto a day that already carries three and
+take the day away again. Drop one onto a day that already carries two and
 Tisty says so, and offers the next day that is free; it never insists.
 
 A **month** button is there for looking, not for dealing: press it and the same

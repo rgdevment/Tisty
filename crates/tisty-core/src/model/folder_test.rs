@@ -18,6 +18,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         born_by: None,
         guest: false,
         sown: false,
+        sown_print: None,
         title: None,
         bytes: None,
         wrote: None,

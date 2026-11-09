@@ -124,6 +124,8 @@ pub struct Kept {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub sown: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sown_print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_of: Option<DocId>,

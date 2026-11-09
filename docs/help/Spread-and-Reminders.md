@@ -10,7 +10,7 @@ The spread runs as a river of days you scroll through rather than a week you pag
 
 - **Every day is a row**, and the row grows with what it carries — a heavy Friday is tall, a free Tuesday is a line.
 - **What you wrote with no day** waits in a tray on the left. Drag it onto a day, or drag it back to take the day away again.
-- **Drop one onto a day that already carries three** and Tisty says so, and offers the next day that is free. It never insists.
+- **Drop one onto a day that already carries two** and Tisty says so, and offers the next day that is free. It never insists.
 
 ## The month
 
