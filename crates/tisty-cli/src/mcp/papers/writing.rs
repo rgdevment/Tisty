@@ -89,6 +89,7 @@ pub(super) fn written_doc(
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
+            sown: false,
             made: None,
             by: state.signed.alias.clone(),
             file: made.id.clone(),

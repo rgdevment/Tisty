@@ -152,6 +152,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         translation_of: None,
         born_by: None,
         guest: false,
+        sown: false,
         made: None,
         made_by: None,
         wrote_by: None,

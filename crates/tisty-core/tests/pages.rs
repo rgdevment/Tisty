@@ -55,6 +55,7 @@ fn doc_add(
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -102,6 +103,7 @@ fn make(
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -461,6 +463,7 @@ fn a_document_cannot_become_a_page_of_itself_at_creation_or_by_moving() {
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -560,6 +563,7 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -699,6 +703,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -723,6 +728,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -778,6 +784,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -799,6 +806,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,

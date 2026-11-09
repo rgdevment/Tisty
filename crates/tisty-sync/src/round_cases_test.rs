@@ -51,6 +51,7 @@ fn filed(who: &Machine, file: &str, body: &str) {
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
+            sown: false,
             made: None,
             by: None,
             said: None,

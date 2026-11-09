@@ -253,6 +253,7 @@ fn one_language(
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
             guest: true,
+            sown: true,
             by: Some(WRITTEN_BY.into()),
             file,
             order,

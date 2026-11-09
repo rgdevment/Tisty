@@ -30,6 +30,7 @@ fn doc(
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -132,6 +133,7 @@ fn a_document_born_a_page_lands_beside_the_one_it_hung_from() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

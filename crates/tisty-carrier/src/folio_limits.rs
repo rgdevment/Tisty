@@ -13,9 +13,12 @@ pub const SIGNATURE_URL: &str =
 const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
+const SIGNED_KEPT: &str = "folio-limits.signed.json";
+const SIGNATURE_KEPT: &str = "folio-limits.signed.json.minisig";
 const ASKED: &str = "folio-limits-asked";
 const ASKED_EVERY: Duration = Duration::from_secs(60 * 60);
 const PRESSED: &str = "folio-limits-pressed";
+const SIGNED_ASKED: &str = "folio-limits-signed-asked";
 // GitHub keeps them five minutes anyway, so a press within a minute of the last learns nothing newer.
 const PRESSED_EVERY: Duration = Duration::from_secs(60);
 const NOTE_AT_MOST: usize = 400;
@@ -64,6 +67,17 @@ pub struct FolioLimits {
     pub sharing_open: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sharing_closed_note: Option<FolioNote>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maker: Option<FolioMaker>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct FolioMaker {
+    pub root: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -117,6 +131,15 @@ pub enum SharingNow {
     Unreached,
 }
 
+impl SharingNow {
+    pub fn opened_to(self, maker: bool) -> Self {
+        match self {
+            Self::Closed { .. } if maker => Self::Open,
+            now => now,
+        }
+    }
+}
+
 fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
     policy::believed(said, signature, || {
         policy::signed_as(said, signature, key, SIGNED_AS)
@@ -141,8 +164,20 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
     if let Ok(bytes) = serde_json::to_vec(&limits) {
         let _ = std::fs::create_dir_all(home);
         let _ = tisty_core::store::write_atomic(&home.join(KEPT), &bytes);
+        let _ = tisty_core::store::write_atomic(&home.join(SIGNED_KEPT), said);
+        let _ = tisty_core::store::write_atomic(&home.join(SIGNATURE_KEPT), signature.as_bytes());
     }
     Ok(limits)
+}
+
+// Who the maker is grants more than a warning, so it is read again under Folio's signature every time.
+pub fn maker_root(home: &Path) -> Option<String> {
+    let said = std::fs::read(home.join(SIGNED_KEPT)).ok()?;
+    let signature = std::fs::read_to_string(home.join(SIGNATURE_KEPT)).ok()?;
+    read_under(&said, &signature, KEY)
+        .ok()?
+        .maker
+        .map(|maker| maker.root)
 }
 
 pub fn uploads_halted(limits: Option<&FolioLimits>, now: u64) -> bool {
@@ -188,7 +223,11 @@ pub fn heed_now(
 
 pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> SharingNow {
     let due = policy::ask_now(&home.join(ASKED), ASKED_EVERY);
-    match limits_for_sharing(home, due, &bring) {
+    // Who the maker is lives only in the signed copy, which a Tisty from before it never kept.
+    let unsigned = !due
+        && !home.join(SIGNED_KEPT).is_file()
+        && policy::ask_now(&home.join(SIGNED_ASKED), PRESSED_EVERY);
+    match limits_for_sharing(home, due, unsigned, &bring) {
         Some(limits) if limits.sharing_open == Some(true) => SharingNow::Open,
         Some(limits) => SharingNow::Closed {
             note: limits.sharing_closed_note.map(FolioNote::fit),
@@ -204,16 +243,19 @@ pub fn sharing_now(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> Shar
 fn limits_for_sharing(
     home: &Path,
     due: bool,
+    unsigned: bool,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
 ) -> Option<FolioLimits> {
     let held = kept(home);
-    if !due && held.is_some() {
+    if !due && !unsigned && held.is_some() {
         return held;
     }
-    match heed_now(home, bring)? {
-        Ok(limits) => Some(limits),
-        Err(Refused::Behind { .. }) => held,
-        Err(_) => None,
+    match heed_now(home, bring) {
+        Some(Ok(limits)) => Some(limits),
+        Some(Err(Refused::Behind { .. })) => held,
+        // Asked within the hour only for the signed copy, so what was kept still answers as before.
+        _ if !due => held,
+        _ => None,
     }
 }
 

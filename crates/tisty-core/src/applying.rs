@@ -426,6 +426,7 @@ impl State {
             .page_of
             .filter(|up| self.docs.get(up).is_some_and(|one| one.page_of.is_none()));
         let under = page_of.and_then(|up| self.docs.get(&up));
+        let sown = d.sown && crate::untouched::written_as_sown(d) && under.is_none_or(|up| up.sown);
         self.docs.insert(
             *id,
             Kept {
@@ -449,6 +450,7 @@ impl State {
                 born_by: d.by.clone().or_else(|| here(d, &self.signed)),
                 edited_by: d.said.as_ref().and_then(|one| one.by.clone()),
                 guest: d.guest,
+                sown,
                 folder: match under {
                     Some(one) => one.folder,
                     None => d.folder,

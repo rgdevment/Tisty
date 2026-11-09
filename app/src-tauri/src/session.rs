@@ -561,6 +561,7 @@ impl Session {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: signing(&self.state),
                 file: file.to_string(),
@@ -658,6 +659,7 @@ impl Session {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest,
+                sown: false,
                 made: None,
                 by: signed_as.clone(),
                 file: made.id.clone(),
@@ -697,6 +699,7 @@ impl Session {
                 d: tisty_core::event::DocAdd {
                     wrote: None,
                     guest,
+                    sown: false,
                     made: None,
                     by: signed_as.clone(),
                     file: leaf.id,

@@ -41,6 +41,7 @@ fn add_doc(
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -75,6 +76,7 @@ fn add_page(
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -308,6 +310,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -338,6 +341,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -932,6 +936,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
             d: DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -958,6 +963,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
                 d: DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,

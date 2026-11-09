@@ -590,6 +590,7 @@ pub fn doc_new(
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
+            sown: false,
             made: None,
             by: signed_as.clone(),
             file: made.id.clone(),
@@ -812,6 +813,7 @@ pub(super) fn other_version_kept(
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest,
+                sown: false,
                 made: None,
                 by,
                 file: file.clone(),

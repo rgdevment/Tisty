@@ -17,6 +17,7 @@ fn filed(session: &mut Session, body: &str) -> String {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -132,6 +133,7 @@ fn arrived(session: &mut Session, by: &str, guest: bool) -> tisty_core::model::K
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest,
+                sown: false,
                 made: None,
                 by: Some(by.into()),
                 said: None,

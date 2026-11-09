@@ -8,12 +8,13 @@ use tisty_contracts::{
     Attachment, Cited, Document, Orientation, Page, Paper, Sealing, Sheet, Translation,
 };
 use tisty_core::model::{DocId, Kept};
+use tisty_core::person::Persons;
 use tisty_core::{Paths, State, docs, person};
 use tisty_envelope::clean;
 use tisty_envelope::family::{Family, Tongue};
 use tisty_envelope::sealing::link_key;
 use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, ready, words_in};
-use tisty_share_proto::identity::{Certificate, ShareKey};
+use tisty_share_proto::identity::{Certificate, Person, ShareKey};
 
 use crate::packing::{Packed, Packing, Told};
 use crate::{CARRIED_CITED, Remembered, Unshared, remembered};
@@ -26,6 +27,7 @@ pub struct Desk<'a> {
     pub state: &'a State,
     pub also: Option<&'a Path>,
     pub turned: &'a dyn Fn(&Path) -> Option<Vec<u8>>,
+    pub maker: Option<Person>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,14 +81,22 @@ pub fn signer(
     state: &State,
     device: &tisty_core::DeviceId,
 ) -> Option<(ShareKey, Certificate)> {
+    signer_among(paths, &state.persons, device)
+}
+
+pub fn signer_among(
+    paths: &Paths,
+    persons: &Persons,
+    device: &tisty_core::DeviceId,
+) -> Option<(ShareKey, Certificate)> {
     // Asked last: a machine makes its key only once the log names a person.
-    let root = state.persons.person(device)?;
-    let vouched = state.persons.vouched_by(device, &root)?;
+    let root = persons.person(device)?;
+    let vouched = persons.vouched_by(device, &root)?;
     let key = person::mine(paths, device)?;
     if vouched.share != key.public() {
         return None;
     }
-    let certificate = state.persons.certificates.iter().find(|one| {
+    let certificate = persons.certificates.iter().find(|one| {
         one.unchecked().is_some_and(|said| {
             said.person == root && said.share == vouched.share && said.since == vouched.since
         })
@@ -94,11 +104,25 @@ pub fn signer(
     Some((key, certificate.clone()))
 }
 
+fn goes_as_mine(desk: &Desk, kept: &Kept, edits_through_a_link: bool) -> bool {
+    !kept.guest || edits_through_a_link || desk.maker.is_some_and(|root| sown_by(desk, kept, root))
+}
+
+// A store can hold another person's machines, and one of them could write the mark too.
+fn sown_by(desk: &Desk, kept: &Kept, root: Person) -> bool {
+    kept.sown
+        && kept
+            .made_by
+            .as_ref()
+            .is_some_and(|device| desk.state.persons.answers_to(device).contains(&root))
+}
+
 fn sharable<'a>(
-    state: &'a State,
+    desk: &Desk<'a>,
     id: DocId,
     shelf: &BTreeMap<String, Remembered>,
 ) -> Result<&'a Kept, Unshared> {
+    let state = desk.state;
     let kept = state.docs.get(&id).ok_or(Unshared::NoSuchDoc)?;
     if kept.page_of.is_some() || kept.task_of.is_some() {
         return Err(Unshared::NotADocument);
@@ -106,7 +130,7 @@ fn sharable<'a>(
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(|one| one.edit_token.is_some());
-    if kept.guest && !edits_through_a_link {
+    if !goes_as_mine(desk, kept, edits_through_a_link) {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -125,6 +149,14 @@ fn languages_of<'a>(state: &'a State, kept: &'a Kept) -> Vec<&'a Kept> {
     } else {
         vec![kept]
     }
+}
+
+fn carries_sown(state: &State, asked: &Asked) -> bool {
+    std::iter::once(&asked.doc)
+        .chain(&asked.cited)
+        .filter_map(|id| state.docs.get(id))
+        .flat_map(|kept| languages_of(state, kept))
+        .any(|one| one.sown)
 }
 
 fn language_said(one: &Kept) -> String {
@@ -334,7 +366,7 @@ impl Gathering<'_> {
             .get(&kept.file)
             .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let not_ours = page.guest && !edits_through_a_link;
+            let not_ours = !goes_as_mine(self.desk, page, edits_through_a_link);
             let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
@@ -498,10 +530,10 @@ impl Gathering<'_> {
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
-        let kept = sharable(state, doc, &self.shelf)?;
+        let kept = sharable(self.desk, doc, &self.shelf)?;
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
-            if sharable(state, one.id, &self.shelf).is_ok() {
+            if sharable(self.desk, one.id, &self.shelf).is_ok() {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
@@ -590,12 +622,13 @@ pub fn gathered_within(
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
     let shelf = remembered(state).clone();
-    let top = sharable(state, asked.doc, &shelf)?;
+    let top = sharable(desk, asked.doc, &shelf)?;
     let editable_anchor = under.editable.then(|| state.anchor_of(top));
+    // What Tisty sowed goes out under the maker's alias, so nothing reads as the app speaking.
     let wanted = asked
         .signed_as
         .clone()
-        .filter(|one| !one.trim().is_empty())
+        .filter(|one| !one.trim().is_empty() && !carries_sown(state, asked))
         .or_else(|| state.signed.alias.clone());
     let signed_as = wanted.as_deref().and_then(clean::name);
     let mut gathering = Gathering {
@@ -623,7 +656,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
             continue;
         };
         // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
-        if sharable(state, *doc, &gathering.shelf).is_err() {
+        if sharable(desk, *doc, &gathering.shelf).is_err() {
             gathering.told.push(Told::CitedLeftBehind {
                 document: kept.title.clone().unwrap_or_default(),
             });
@@ -646,7 +679,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
 pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
     let state = desk.state;
     let shelf = remembered(state);
-    let kept = sharable(state, doc, shelf)?;
+    let kept = sharable(desk, doc, shelf)?;
     let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
     let names = named(&drawn(&body)).documents;
     let pages = state.pages_read(kept.id, &body);
@@ -657,7 +690,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .filter(|one| {
             !group.iter().any(|same| same.id == one.id)
                 && !pages.iter().any(|page| page.id == one.id)
-                && sharable(state, one.id, shelf).is_ok()
+                && sharable(desk, one.id, shelf).is_ok()
                 && names.iter().any(|name| {
                     *name == one.file
                         || one

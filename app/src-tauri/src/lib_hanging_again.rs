@@ -17,6 +17,7 @@ fn wrote(session: &mut Session, body: &str, page_of: Option<tisty_core::model::D
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

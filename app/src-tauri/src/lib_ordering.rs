@@ -114,6 +114,7 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 file: file.clone(),
@@ -160,6 +161,7 @@ fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 file: "notas-c3d4".into(),
@@ -254,6 +256,7 @@ fn a_document_dropped_before_one_that_is_gone_lands_last_too() {
                 d: tisty_core::event::DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,

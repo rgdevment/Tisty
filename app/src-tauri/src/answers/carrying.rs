@@ -325,6 +325,7 @@ pub(crate) fn imported_as(
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest,
+            sown: false,
             made: None,
             by,
             file: made.id.clone(),

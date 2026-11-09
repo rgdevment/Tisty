@@ -349,6 +349,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
+            sown: false,
             made: None,
             by: None,
             file: "aaaa-0001".into(),
@@ -410,6 +411,7 @@ fn a_log_written_before_the_note_existed_still_opens() {
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
+            sown: false,
             made: None,
             by: None,
             file: "aaaa-0001".into(),

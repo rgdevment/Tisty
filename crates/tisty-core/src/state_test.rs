@@ -1187,6 +1187,7 @@ fn with_an_agent() -> (State, DocId) {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -1291,6 +1292,7 @@ fn a_doc(state: &mut State, who: &str) -> DocId {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -2876,6 +2878,7 @@ fn doc(state: &mut State, file: &str, folder: Option<FolderId>) -> DocId {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -3034,6 +3037,7 @@ fn a_deleted_document_leaves_the_name_of_its_file_behind_so_it_can_be_swept() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -3069,6 +3073,7 @@ fn a_document_that_was_deleted_never_comes_back() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -3254,6 +3259,7 @@ fn two_machines_shelving_and_deleting_at_once_land_on_the_same_answer() {
                 d: crate::event::DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -3693,6 +3699,7 @@ fn page(state: &mut State, file: &str, page_of: DocId) -> DocId {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

@@ -151,6 +151,7 @@ fn shelving_a_folder_needs_no_rebuild_because_no_documents_row_changes() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -196,6 +197,7 @@ fn deleting_a_document_with_pages_leaves_no_page_behind_in_the_cache() {
                 d: crate::event::DocAdd {
                     wrote: None,
                     guest: false,
+                    sown: false,
                     made: None,
                     by: None,
                     said: None,
@@ -245,6 +247,7 @@ fn a_second_launch_still_has_its_folders_and_documents() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

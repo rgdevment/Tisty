@@ -506,6 +506,7 @@ fn a_lock_is_not_walked_back_by_undoing_it_from_anywhere_else() {
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,

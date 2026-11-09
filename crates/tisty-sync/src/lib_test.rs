@@ -265,6 +265,7 @@ fn a_document_that_is_a_link_to_a_secret_never_becomes_one_of_ours() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 file: "uno-0001".into(),
@@ -3719,6 +3720,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
+                sown: false,
                 made: None,
                 by: None,
                 said: None,
@@ -3912,6 +3914,7 @@ fn papered(who: &Machine, file: &str, guest: bool, by: Option<&str>) -> Ulid {
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest,
+                sown: false,
                 made: None,
                 by: by.map(str::to_string),
                 said: None,
