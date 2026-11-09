@@ -28,6 +28,7 @@ pub enum Told {
     CitedLeftBehind { document: String },
     NameLeftOut,
     TakenBackNotKept,
+    OthersEdited { editors: Vec<String> },
 }
 
 #[derive(Debug, Default)]

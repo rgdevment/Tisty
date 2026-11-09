@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.7.0";
+pub const VERSION: &str = "1.7.1";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -360,7 +360,7 @@ pub struct Owner {
     pub signed: String,
 }
 
-/// Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name.
+/// Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name, and one signed for another document says nothing of this one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Editor {
     pub r#in: String,

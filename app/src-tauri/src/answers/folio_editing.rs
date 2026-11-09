@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use tisty_carrier::folio_limits;
 use tisty_core::event::Signature;
-use tisty_sharing::Remembered;
+use tisty_sharing::{Remembered, Told};
 
 use super::folio::{Card, card_of, kept_on, remembered_of};
 use crate::{Answer, Refusal, Session, held};
@@ -119,6 +119,22 @@ pub fn doc_share_sign_as(
     }
     card_of(&was, &session.state.signed, maker.as_deref())
         .ok_or_else(|| Refusal::of("folioGarbled"))
+}
+
+// Said before sending and answered once a press: what follows the upload is no time to ask (140).
+pub(super) fn others_asked(told: &[Told]) -> Vec<String> {
+    told.iter()
+        .find_map(|one| match one {
+            Told::OthersEdited { editors } => Some(editors.clone()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+pub(super) fn said_after_sending(told: Vec<Told>) -> Vec<Told> {
+    told.into_iter()
+        .filter(|one| !matches!(one, Told::OthersEdited { .. }))
+        .collect()
 }
 
 #[cfg(test)]

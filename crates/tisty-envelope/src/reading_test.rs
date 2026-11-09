@@ -414,15 +414,17 @@ fn the_contract_reader_opens_a_document_and_its_files_apart() {
 }
 
 #[test]
-fn an_editor_that_breaks_the_contract_is_left_aside_and_the_document_kept() {
+fn an_editor_that_breaks_the_contract_or_belongs_elsewhere_is_left_aside_and_the_document_kept() {
     let all = all();
     let holds = all["editors"][0]["entry"].clone();
     let mut unseen = holds.clone();
     unseen["name"] = json!("Ma\u{200B}rio");
     let mut nameless = holds.clone();
     nameless.as_object_mut().unwrap().remove("name");
-    let said = json!([holds, unseen, nameless, "not an editor"]);
-    let held = json!({ "id": "x", "html": "<p>x</p>", "body": "x" });
+    let elsewhere = all["editors"][2]["entry"].clone();
+    let said = json!([holds, unseen, nameless, "not an editor", elsewhere]);
+    let id = all["editors"][0]["entry"]["in"].clone();
+    let held = json!({ "id": id, "html": "<p>x</p>", "body": "x" });
 
     let kept = editors_kept(held.clone(), Some(said.clone()), true);
     assert_eq!(kept["editors"], json!([all["editors"][0]["entry"]]));
@@ -430,4 +432,13 @@ fn an_editor_that_breaks_the_contract_is_left_aside_and_the_document_kept() {
 
     let public = editors_kept(held, Some(said), false);
     assert!(public.get("editors").is_none());
+}
+
+#[test]
+fn a_document_keeps_only_the_editors_the_contract_says_it_keeps() {
+    let all = all();
+    let said = &all["editors_in_a_document"];
+    let held = json!({ "id": said["id"], "html": "<p>x</p>", "body": "x" });
+    let kept = editors_kept(held, Some(said["editors"].clone()), true);
+    assert_eq!(kept["editors"], said["kept"]);
 }

@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "contracts": {
     "text": {
       "contract": "text",
@@ -2067,7 +2067,7 @@
           "type": "list",
           "of": "editor",
           "at_most": 64,
-          "says": "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader shows only those whose signature holds, and leaves the rest aside without refusing the document."
+          "says": "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader keeps only those whose signature holds and whose in is this document's id, and leaves the rest aside without refusing the document."
         },
         "made": {
           "type": "time"
@@ -4335,13 +4335,13 @@
         "writer",
         "reader"
       ],
-      "says": "Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name.",
+      "says": "Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name, and one signed for another document says nothing of this one.",
       "fields": {
         "in": {
           "type": "id",
           "required": true,
           "at_most": 64,
-          "says": "The id of the document they edited. A copy shared anew keeps the original's."
+          "says": "The id of the document they edited. A reader keeps only those whose in is this document's id."
         },
         "root": {
           "type": "key",

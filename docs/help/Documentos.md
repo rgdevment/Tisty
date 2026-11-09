@@ -133,6 +133,8 @@ El panel junto a un documento tiene una fila **Compartido** con **Compartir…**
 
 Cuando un documento ya está compartido, su fila tiene **Sincronizar**, y nada sube hasta que lo pulsas. Envía solo lo que cambió, y si nada cambió solo trae una versión más nueva que haya enviado otra persona. Folio acepta una nueva versión de cada documento tras una espera corta, y unos pocos documentos nuevos al día, contando cada documento que cita: mientras dura una espera, el botón dice cuánto falta y si hay cambios pendientes, y el diálogo te avisa antes de compartir si un documento y lo que cita no caben hoy.
 
+Su fila dice quién lo creó, quién lo editó por última vez y todos los que lo editaron, cada uno con el nombre que eligió y firmado por su propia llave; un ✓ marca al creador de Tisty. Quien edita con el link de editar elige entre su alias y su nombre. Lo que te llegó por un link de lectura sigue siendo una copia tuya: Sincronizar le trae las versiones nuevas, y solo un link de editar te deja enviar las tuyas. Si dejas de compartir un documento que otros editaron y después lo vuelves a compartir, el diálogo te recuerda primero quiénes fueron.
+
 ## Tu alias
 
 Escribe un alias en Configuración (opcional, y lo eliges tú) y cada documento queda firmado con él, mientras lo que llega de otra persona conserva el suyo. Viaja con tu sincronización y dentro de cualquier paquete, así que elige un nombre que no te moleste que otros lean. Nunca se te pide tu nombre real.

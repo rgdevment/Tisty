@@ -181,6 +181,13 @@ describe("the house keeps one scale, even where manners.test.ts cannot see", () 
   });
 });
 
+describe("a translation names only places something fills", () => {
+  it("no text waits for a numbered place, which nothing fills", () => {
+    const catalogue = readFileSync("src/locales.ts", "utf8");
+    expect(catalogue.match(/\{\d+\}/g) ?? []).toEqual([]);
+  });
+});
+
 describe("a translation only stays in the catalogue if something reads it", () => {
   it("every spread* key in the English catalogue is used somewhere outside locales.ts", () => {
     const catalogue = readFileSync("src/locales.ts", "utf8");

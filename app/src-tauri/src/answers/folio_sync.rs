@@ -9,6 +9,8 @@ use tisty_carrier::policy;
 use tisty_core::Paths;
 use tisty_sharing::{Desk, Received, Remembered, Told};
 
+use super::folio_editing::{others_asked, said_after_sending};
+
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
     doc_of_file, file_of, floors_of, forget_share, keeping, kept_on, languages_top, may_upload,
@@ -30,6 +32,10 @@ pub enum Synced {
     },
     Secrets {
         place: String,
+        print: String,
+    },
+    OthersEdited {
+        editors: Vec<String>,
         print: String,
     },
     #[serde(rename_all = "camelCase")]
@@ -82,6 +88,7 @@ impl Here {
 struct Looked {
     unchanged: bool,
     secret: Option<String>,
+    others: Vec<String>,
     print: String,
 }
 
@@ -102,6 +109,7 @@ async fn looked_over(
         Ok(Looked {
             unchanged: gathered.same_as_sent(),
             secret,
+            others: others_asked(gathered.told()),
             print: gathered.whole_print(),
         })
     })
@@ -251,7 +259,16 @@ pub async fn doc_share_sync(
         )
     };
     let asked = asked_again(doc, &was)?;
-    let looked = looked_over(&session, &asked).await?;
+    let looked = if was.read_only() {
+        Looked {
+            unchanged: true,
+            secret: None,
+            others: Vec::new(),
+            print: String::new(),
+        }
+    } else {
+        looked_over(&session, &asked).await?
+    };
     // Looked at before a press counts, and an answer holds only for the words it was given about (81).
     if let Some(place) = looked
         .secret
@@ -259,6 +276,12 @@ pub async fn doc_share_sync(
     {
         return Ok(Synced::Secrets {
             place,
+            print: looked.print,
+        });
+    }
+    if !looked.others.is_empty() && !looked.unchanged && accepted.as_ref() != Some(&looked.print) {
+        return Ok(Synced::OthersEdited {
+            editors: looked.others,
             print: looked.print,
         });
     }
@@ -299,7 +322,7 @@ pub async fn doc_share_sync(
     for (_, one) in &mut sealed.remembering {
         one.ttl_days = Some(ttl_days);
     }
-    let told = sealed.told.clone();
+    let told = said_after_sending(sealed.told.clone());
     let version = sealed
         .remembering
         .iter()
@@ -363,7 +386,8 @@ pub async fn doc_share_waiting(
             pending: false,
         });
     };
-    let pending = look && !unchanged_here(&session, asked_again(doc, &was)?).await?;
+    let pending =
+        look && !was.read_only() && !unchanged_here(&session, asked_again(doc, &was)?).await?;
     Ok(Waiting {
         until: Some(until * 1000),
         pending,

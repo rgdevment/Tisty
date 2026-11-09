@@ -1,7 +1,7 @@
 use tisty_core::event::Signature;
 use tisty_sharing::Remembered;
 
-use super::{SignsAs, signs_as, who_of};
+use super::{SignsAs, others_asked, said_after_sending, signs_as, who_of};
 use crate::answers::folio::card_of;
 
 fn signature(alias: Option<&str>, name: Option<&str>) -> Signature {
@@ -168,4 +168,20 @@ fn whoever_signs_with_the_makers_name_under_another_root_is_not_checked() {
     };
     let who = who_of(&was, Some("mario-root"));
     assert!(who.signer.is_some_and(|one| !one.checked));
+}
+
+#[test]
+fn others_are_asked_about_before_sending_and_never_told_after() {
+    let told = vec![
+        tisty_sharing::Told::NameLeftOut,
+        tisty_sharing::Told::OthersEdited {
+            editors: vec!["Ana".to_owned()],
+        },
+    ];
+    assert_eq!(others_asked(&told), vec!["Ana".to_owned()]);
+    assert_eq!(
+        said_after_sending(told),
+        vec![tisty_sharing::Told::NameLeftOut]
+    );
+    assert!(others_asked(&[]).is_empty());
 }

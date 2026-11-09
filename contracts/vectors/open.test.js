@@ -103,6 +103,15 @@ const editorHolds = async (entry) => {
   }
 };
 
+test("a document keeps only the editors signed for it", async () => {
+  const { id, editors, kept } = VECTORS.editors_in_a_document;
+  const holding = await Promise.all(editors.map(async (one) => one.in === id && (await editorHolds(one))));
+  assert.deepEqual(
+    editors.filter((_, at) => holding[at]),
+    kept,
+  );
+});
+
 for (const { says, holds, entry } of VECTORS.editors) {
   test(`an editor ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
     assert.equal(await editorHolds(entry), holds);

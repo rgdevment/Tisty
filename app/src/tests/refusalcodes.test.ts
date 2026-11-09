@@ -25,6 +25,9 @@ const emitted = (): string[] => {
       for (const [, code] of text.matchAll(/Refusal::(?:of|about)\(\s*"([a-zA-Z]+)"/g)) {
         found.add(code);
       }
+      for (const [, code] of text.matchAll(/Unshared::\w+(?:\([^)]*\))?\s*=>\s*"([a-zA-Z]+)"/g)) {
+        found.add(code);
+      }
     }
   }
   return [...found].sort();

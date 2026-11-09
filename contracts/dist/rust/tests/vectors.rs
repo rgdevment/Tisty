@@ -128,6 +128,11 @@ fn editor_holds(entry: &Value) -> bool {
     verified(&root, &certificate, &certified).is_ok() && verified(&machine, &signed, &said).is_ok()
 }
 
+// A document keeps only the editors signed for it: one that does not hold, or holds for another id, says nothing of it.
+fn editors_kept(id: &str, editors: &[Value]) -> Vec<Value> {
+    editors.iter().filter(|one| one["in"] == id && editor_holds(one)).cloned().collect()
+}
+
 // The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
 fn owner_answers(manifest: &Value, signature: &Value, manifest_bytes: &[u8], index: &[u8]) -> Result<(), String> {
     let owner = &manifest["owner"];
@@ -543,6 +548,13 @@ fn verdict_of(signed_by: &Value, served: &Value) -> &'static str {
 
 fn vectors() -> Value {
     serde_json::from_str(VECTORS).unwrap()
+}
+
+#[test]
+fn a_document_keeps_only_the_editors_signed_for_it() {
+    let said = &vectors()["editors_in_a_document"];
+    let kept = editors_kept(said["id"].as_str().unwrap(), said["editors"].as_array().unwrap());
+    assert_eq!(Value::Array(kept), said["kept"]);
 }
 
 #[test]
