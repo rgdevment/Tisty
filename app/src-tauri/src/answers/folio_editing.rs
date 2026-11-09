@@ -15,19 +15,11 @@ pub struct Named {
     checked: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BasedOn {
-    of: Option<Named>,
-    editors: Vec<Named>,
-}
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct Who {
     pub owner: Option<Named>,
     pub signer: Option<Named>,
     pub editors: Vec<Named>,
-    pub based_on: Option<BasedOn>,
 }
 
 fn editors_carried(was: &Remembered) -> Vec<tisty_envelope::Editor> {
@@ -59,31 +51,18 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
         checked: checked(was.version_root.as_deref()),
         name,
     });
-    let named = |one: &tisty_envelope::Editor| Named {
-        name: one.name.clone(),
-        checked: checked(Some(&one.root)),
-    };
-    let (here, before): (Vec<_>, Vec<_>) = editors.iter().partition(|one| one.r#in == was.id);
-    let based_on = (!before.is_empty()).then(|| BasedOn {
-        of: before
-            .iter()
-            .find(|one| one.owned == Some(true))
-            .map(|one| named(one)),
-        editors: before
-            .iter()
-            .filter(|one| one.owned != Some(true))
-            .map(|one| named(one))
-            .collect(),
-    });
+    let editors = editors
+        .iter()
+        .filter(|one| one.r#in == was.id && one.owned != Some(true))
+        .map(|one| Named {
+            name: one.name.clone(),
+            checked: checked(Some(&one.root)),
+        })
+        .collect();
     Who {
         owner,
         signer,
-        editors: here
-            .into_iter()
-            .filter(|one| one.owned != Some(true))
-            .map(named)
-            .collect(),
-        based_on,
+        editors,
     }
 }
 

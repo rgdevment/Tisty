@@ -958,15 +958,8 @@ const en = {
   toldTakenBackNotKept:
     "Folio has no more room for your retired keys, so readers won't be warned about your latest one. If it was on a stolen device, create a new identity and share again",
   toldNameLeftOut: "That name cannot be used to sign, so it goes without a name",
-  toldACopy:
-    "This is a copy of something {name} shared. It goes as a new document of yours that says what it is based on. Asking {name} for permission is up to you: by sending it, you accept that you were authorized",
-  toldACopyEdited:
-    "This is a copy of something {name} shared, edited by {other}. It goes as a new document of yours that says what it is based on. Asking them for permission is up to you: by sending it, you accept that you were authorized",
-  aCopySomeone: "someone else",
   toldOthersEdited:
     "This document had other editors: {name}. Asking them for permission before sharing it again is up to you: by sending it, you accept that they authorized you",
-  sharedBasedOn: "Based on a share by {name}",
-  sharedBasedOnEdited: "Based on a share by {name}, edited by {other}",
   tongueUnsaid: "Say first which language it is in",
   notALanguage: "That is not a language Tisty knows how to name",
   pageHasNoTongue: "A page is in the language of its document",
@@ -3940,15 +3933,8 @@ const es: Catalog = {
   toldTakenBackNotKept:
     "Folio ya no tiene lugar para tus llaves retiradas, así que no avisará a los lectores de la última. Si estaba en un equipo robado, crea una identidad nueva y vuelve a compartir",
   toldNameLeftOut: "Ese nombre no sirve para firmar, así que va sin nombre",
-  toldACopy:
-    "Es una copia de algo que compartió {name}. Sale como un documento nuevo, tuyo, que dice en qué se basa. Pedirle permiso a {name} es tu responsabilidad: al enviarlo, aceptas que te autorizaron",
-  toldACopyEdited:
-    "Es una copia de algo que compartió {name}, editado por {other}. Sale como un documento nuevo, tuyo, que dice en qué se basa. Pedirles permiso es tu responsabilidad: al enviarlo, aceptas que te autorizaron",
-  aCopySomeone: "otra persona",
   toldOthersEdited:
     "Este documento tuvo otros editores: {name}. Pedirles permiso antes de volver a compartirlo es tu responsabilidad: al enviarlo, aceptas que te autorizaron",
-  sharedBasedOn: "Basado en un compartido de {name}",
-  sharedBasedOnEdited: "Basado en un compartido de {name}, editado por {other}",
   tongueUnsaid: "Primero di en qué idioma está",
   notALanguage: "Ese no es un idioma que Tisty sepa nombrar",
   pageHasNoTongue: "Una página está en el idioma de su documento",

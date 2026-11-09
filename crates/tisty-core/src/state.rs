@@ -29,7 +29,6 @@ pub struct State {
     pub signed_before: Vec<String>,
     pub sharing: BTreeMap<String, crate::event::Remembered>,
     pub sharing_stopped: BTreeSet<String>,
-    /// Who edited a document while it was shared, kept once the share is forgotten (140).
     pub sharing_editors: BTreeMap<String, String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
@@ -241,6 +240,10 @@ impl State {
             .is_none_or(|was| was.id != d.id || was.version <= d.version);
         if newer {
             self.sharing.insert(file.to_owned(), d.clone());
+        }
+        // A share of one's own under a new link has said its piece about who edited the last one.
+        if d.admin_token.is_some() {
+            self.sharing_editors.remove(file);
         }
     }
 

@@ -21,7 +21,6 @@ const card = {
   owner: null,
   signer: null,
   editors: [],
-  basedOn: null,
   signsAs: null,
 };
 const status = {
@@ -146,18 +145,6 @@ describe("the Shared row", () => {
 
     expect(panel().said).toContain(fill("sharedOwner", "Mario"));
     expect(panel().acts?.map((one) => one.key)).not.toContain("signs");
-  });
-
-  it("says whose share a copy shared anew is based on", async () => {
-    const { panel } = await held({
-      ...card,
-      basedOn: {
-        of: { name: "Mario", checked: true },
-        editors: [{ name: "Juan", checked: false }],
-      },
-    });
-
-    expect(panel().said).toContain("Based on a share by Mario ✓, edited by Juan");
   });
 
   it("tells the owner who signed the version it now holds", async () => {
@@ -544,7 +531,10 @@ describe("the Shared row", () => {
   });
 
   it("lets whoever edits through a link leave it, with nothing to manage", async () => {
-    const { panel, pressed } = await held({ ...card, taken: true }, { doc_share_stop: null });
+    const { panel, pressed } = await held(
+      { ...card, taken: true, edit: "https://tisty.cl/a#k.t" },
+      { doc_share_stop: null },
+    );
 
     expect(panel().acts?.map((one) => one.key)).toEqual(["sync", "leave"]);
     expect(panel().links).toEqual([]);

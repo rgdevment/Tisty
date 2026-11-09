@@ -251,7 +251,15 @@ pub async fn doc_share_sync(
         )
     };
     let asked = asked_again(doc, &was)?;
-    let looked = looked_over(&session, &asked).await?;
+    let looked = if was.read_only() {
+        Looked {
+            unchanged: true,
+            secret: None,
+            print: String::new(),
+        }
+    } else {
+        looked_over(&session, &asked).await?
+    };
     // Looked at before a press counts, and an answer holds only for the words it was given about (81).
     if let Some(place) = looked
         .secret
@@ -363,7 +371,8 @@ pub async fn doc_share_waiting(
             pending: false,
         });
     };
-    let pending = look && !unchanged_here(&session, asked_again(doc, &was)?).await?;
+    let pending =
+        look && !was.read_only() && !unchanged_here(&session, asked_again(doc, &was)?).await?;
     Ok(Waiting {
         until: Some(until * 1000),
         pending,

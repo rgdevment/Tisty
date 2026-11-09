@@ -127,6 +127,9 @@ fn only_a_token_without_the_link_to_manage_it_is_editing_through_a_link() {
     assert!(!owner.edited_through_a_link());
     assert!(editor.edited_through_a_link());
     assert!(!reader.edited_through_a_link());
+    assert!(!owner.read_only());
+    assert!(!editor.read_only());
+    assert!(reader.read_only());
 }
 
 #[test]

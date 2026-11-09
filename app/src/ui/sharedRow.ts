@@ -224,14 +224,6 @@ const managingActs = (h: Hands): Act[] => {
 
 const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
 
-const basedOnSaid = ({ basedOn }: ShareCard) => {
-  if (!basedOn) return [];
-  const of = basedOn.of ? shown(basedOn.of) : t("aCopySomeone");
-  return basedOn.editors.length > 0
-    ? [fill("sharedBasedOnEdited", of, basedOn.editors.map(shown).join(", "))]
-    : [fill("sharedBasedOn", of)];
-};
-
 const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
   ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),
   ...(owner && !signer ? [fill("sharedOwner", shown(owner))] : []),
@@ -434,7 +426,6 @@ export const useSharedRow = (
       mark: t("sharedBeta"),
       ...gistOf(hands.card, hands.status),
       said: [
-        ...basedOnSaid(hands.card),
         ...whoSaid(hands.card),
         ...saidOf(hands.status, told, stopping),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),

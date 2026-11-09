@@ -971,11 +971,9 @@ fn only_what_is_ones_own_and_open_is_shared() {
 }
 
 #[test]
-fn a_copy_of_what_someone_else_shared_goes_only_as_a_new_document_with_its_notice() {
+fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
     let (_tmp, mut home) = home();
     let body = "# De otra persona
-
-Sus palabras.
 ";
     let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
     let id = ulid::Ulid::generate();
@@ -986,21 +984,18 @@ Sus palabras.
             order: "a0".into(),
             said: Some(tisty_core::event::Said::of(body)),
             guest: true,
-            by: Some("Ana".into()),
             ..Default::default()
         },
     });
-
-    let out = sealed(&home, &asked(id));
-    assert!(
-        out.told.iter().any(
-            |one| matches!(one, Told::ACopy { of, editors } if of == "Ana" && editors.is_empty())
-        ),
-        "{:?}",
-        out.told
-    );
-    let read = &every_reader_opens(&out)[0];
-    assert!(all_text(read).contains("Sus palabras"));
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
+    assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
 }
 
 #[test]
@@ -1665,64 +1660,5 @@ fn sharing_again_under_a_new_link_names_who_else_edited_it_and_never_the_owner()
             .told
             .iter()
             .any(|one| matches!(one, Told::OthersEdited { .. }))
-    );
-}
-
-#[test]
-fn a_copy_left_by_whoever_stopped_editing_still_says_whose_it_was() {
-    let (_tmp, mut home) = home();
-    let body = "# Viaje\n\nDe Mario y mío.\n";
-    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
-    let id = ulid::Ulid::generate();
-    home.commit(Op::DocAdd {
-        id,
-        d: tisty_core::event::DocAdd {
-            file: made.id.clone(),
-            order: "a0".into(),
-            said: Some(tisty_core::event::Said::of(body)),
-            guest: true,
-            by: Some("Mario".into()),
-            ..Default::default()
-        },
-    });
-    let editors = r#"[{"in":"a","root":"r","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Mario Hidalgo","owned":true,"signed":"s"},
-        {"in":"a","root":"q","machine":"m","since":"2026-11-03T12:00:00Z","certificate":"c","name":"Juan","signed":"s"}]"#;
-    home.commit(Op::SharingKept {
-        file: made.id.clone(),
-        d: Remembered {
-            id: "a".to_owned(),
-            version: 2,
-            link_key: Some("k".repeat(43)),
-            files_print: None,
-            files_hash: None,
-            files_key: None,
-            admin_token: None,
-            edit_token: Some("t".repeat(43)),
-            words_print: None,
-            signed_as: None,
-            owner: None,
-            owner_name: Some("Mario Hidalgo".to_owned()),
-            cited: Vec::new(),
-            held_by: None,
-            ttl_days: None,
-            carried: Some(format!(r#"{{"editors":{editors}}}"#)),
-            sealed_under: None,
-            version_by: None,
-            version_root: None,
-        },
-    });
-    home.commit(Op::SharingForgotten {
-        file: made.id,
-        stopped: None,
-    });
-
-    let out = sealed(&home, &asked(id));
-    assert!(
-        out.told.iter().any(|one| matches!(
-            one,
-            Told::ACopy { of, editors } if of == "Mario Hidalgo" && editors == &["Juan"]
-        )),
-        "{:?}",
-        out.told
     );
 }

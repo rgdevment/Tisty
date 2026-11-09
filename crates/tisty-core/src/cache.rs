@@ -217,10 +217,7 @@ impl Cache {
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.sharing = serde_json::from_str(&self.meta("sharing")?).ok()?;
         state.sharing_stopped = serde_json::from_str(&self.meta("sharing_stopped")?).ok()?;
-        state.sharing_editors = self
-            .meta("sharing_editors")
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default();
+        state.sharing_editors = serde_json::from_str(&self.meta("sharing_editors")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {

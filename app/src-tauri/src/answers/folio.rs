@@ -19,7 +19,7 @@ use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
-use super::folio_editing::{BasedOn, Named, SignsAs, signs_as, who_of};
+use super::folio_editing::{Named, SignsAs, signs_as, who_of};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -704,7 +704,6 @@ pub struct Card {
     owner: Option<Named>,
     signer: Option<Named>,
     editors: Vec<Named>,
-    based_on: Option<BasedOn>,
     signs_as: Option<SignsAs>,
 }
 
@@ -729,7 +728,6 @@ pub(super) fn card_of(
         owner: who.owner,
         signer: who.signer,
         editors: who.editors,
-        based_on: who.based_on,
         signs_as: signs_as(was, signature),
     })
 }
