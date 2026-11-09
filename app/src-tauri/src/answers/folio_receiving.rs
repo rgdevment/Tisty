@@ -82,6 +82,7 @@ pub(super) struct Opened {
     pub pictures: Vec<Vec<u8>>,
     pub files: Vec<Vec<u8>>,
     pub owner: Option<String>,
+    pub owner_root: Option<String>,
     pub signer: String,
     pub version: u64,
     pub verdict: Verdict,
@@ -127,6 +128,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
         pictures: read.pictures,
         files,
         owner,
+        owner_root: read.owner.clone(),
         signer: read.signer,
         version: fetched.version,
         verdict: read.verdict,
@@ -345,14 +347,18 @@ fn checked_within(home: &std::path::Path, wanted: &[(&str, Option<&str>)]) -> Ch
 }
 
 // Owner and signer are told apart by their roots: two people can sign with one name.
+pub(super) fn owner_apart(opened: &Opened) -> Option<&str> {
+    opened
+        .owner_root
+        .as_deref()
+        .filter(|root| *root != opened.signer)
+}
+
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     let maker = folio_limits::maker(&home);
-    let owner = opened
-        .owner
-        .as_deref()
-        .filter(|root| *root != opened.signer);
+    let owner = owner_apart(opened);
     let mut wanted = vec![(opened.signer.as_str(), said("signed_as"))];
     wanted.extend(owner.map(|root| (root, said("owner_name"))));
     let checked = checked_within(&home, &wanted);
