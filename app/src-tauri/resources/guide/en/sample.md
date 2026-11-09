@@ -14,7 +14,7 @@ Icons, with a colour or without: ::dog orange:: ::bone amber:: ::heart red:: ::l
 
 Emoji by name: :dog: :tada: :+1: :sunny:
 
-A tag written in a document files the document under it: #rina, #vet.
+A tag written in a document files the document under it: #rina, #roger, #vet.
 
 A line ends where you end it.
 This line is the same paragraph, one line down.
@@ -163,7 +163,7 @@ erDiagram
 
 ```mermaid
 gantt
-  title Rina's autumn
+  title Rina and Roger's autumn
   dateFormat YYYY-MM-DD
   section Vet
   Booster :2026-10-03, 1d
@@ -176,15 +176,15 @@ gantt
 journey
   title A Sunday walk
   section Out
-    Lead on: 5: Rina
-    Rain: 2: Rina, You
+    Lead on: 5: Rina, Roger
+    Rain: 2: Rina, Roger, You
   section Back
-    Towel: 3: Rina
+    Towel: 3: Rina, Roger
 ```
 
 ```mermaid
 mindmap
-  root((Rina))
+  root((Rina and Roger))
     Food
     Walks
       Morning
@@ -247,7 +247,7 @@ dose = \frac{weight \times 0.5}{2}
 
 ## A widget
 
-```widget title="Rina this month"
+```widget title="Rina and Roger this month"
 <div class="grid">
   <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 vs August</em></div>
   <div class="stat"><small>Weight</small><b>14 kg</b><em class="down">−0.3 kg</em></div>
@@ -266,7 +266,7 @@ dose = \frac{weight \times 0.5}{2}
 
 A picture:
 
-![Rina on her chair](rina.jpg)
+![Roger, Rina's brother, up on the hill](roger.jpg)
 
 A PDF:
 
