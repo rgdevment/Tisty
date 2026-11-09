@@ -39,6 +39,7 @@ export type TermsNow =
 export interface FolioLimits {
   ttl_days?: number[];
   shares_at_most?: number;
+  new_shares_a_day?: number;
   pictures_at_most?: number;
   picture_bytes_at_most?: number;
   pictures_bytes_at_most?: number;
@@ -68,6 +69,8 @@ export interface ShareLook {
   limits: FolioLimits;
   told: Told[];
   seen: string | null;
+  newSharesToday: number;
+  heldThere: string[];
 }
 
 export interface ShareCard {

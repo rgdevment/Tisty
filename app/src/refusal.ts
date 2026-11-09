@@ -232,6 +232,7 @@ const KNOWN = [
   "folioFullOf",
   "folioLanguagesFullOf",
   "folioQuota",
+  "folioSharesToday",
   "folioTermsToAccept",
   "awayNotShared",
   "tongueUnsaid",

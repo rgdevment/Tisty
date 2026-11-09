@@ -11,8 +11,10 @@ use tisty_carrier::folio_client::{
 use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
+use tisty_carrier::folio_today;
 use tisty_carrier::policy;
 use tisty_core::Paths;
+use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Received, Remembered, Told, Under, Unshared};
 
@@ -97,6 +99,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } => Refusal::about("folioWait", until.to_string()),
             Refused::Quota { until } => Refusal::about("folioQuota", until.to_string()),
+            Refused::SharesToday { .. } => Refusal::of("folioSharesToday"),
             Refused::UploadsOff => Refusal::of("folioUploadsOff"),
             Refused::Terms { version } => version.clone().map_or_else(
                 || Refusal::of(TERMS_TO_ACCEPT),
@@ -437,6 +440,8 @@ pub struct Look {
     told: Vec<Told>,
     seen: Option<String>,
     signs: bool,
+    new_shares_today: u64,
+    held_there: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -615,6 +620,12 @@ pub async fn doc_share_look(
             shared,
             limits,
             told: gathered.told().to_vec(),
+            new_shares_today: folio_today::shared_today(&home, policy::now()),
+            held_there: std::iter::once(doc)
+                .chain(cited.iter().copied())
+                .filter(|one| folio_holds(&state, *one))
+                .map(|one| one.to_string())
+                .collect(),
         })
     })
     .await
@@ -695,12 +706,13 @@ fn keeping(app: &tauri::AppHandle) -> impl Fn(&[(String, Remembered)]) -> Answer
 
 fn delivered(
     door: &dyn Door,
+    home: &std::path::Path,
     keep: Keep<'_>,
     sealed: &tisty_sharing::Sealed,
     starts: &BTreeMap<String, String>,
     ttl_days: u64,
 ) -> Answer<()> {
-    for going in &sealed.going {
+    for going in cited_first(sealed) {
         let Some(entry) = sealed
             .remembering
             .iter()
@@ -725,6 +737,9 @@ fn delivered(
             },
         )
         .map_err(|stopped| said(&stopped))?;
+        if first_of_its_own(starts, sealed, &going.id) {
+            folio_today::counted(home, &going.id, policy::now());
+        }
         if stored.files_wanted {
             // Folio already holds this version, so it is remembered now; only its files are still owed.
             keep(&[files_still_owed(entry)])?;
@@ -738,6 +753,28 @@ fn delivered(
         keep(std::slice::from_ref(entry))?;
     }
     Ok(())
+}
+
+// A refusal on the way then never leaves a document that cites what Folio does not hold.
+fn cited_first(sealed: &tisty_sharing::Sealed) -> Vec<&Going> {
+    let top = sealed
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_none())
+        .map(|(_, one)| one.id.as_str());
+    let of_top = |id: &str| Some(id) == top || sealed.anchors.get(id).map(String::as_str) == top;
+    let (own, cited): (Vec<&Going>, Vec<&Going>) =
+        sealed.going.iter().partition(|one| of_top(&one.id));
+    cited.into_iter().chain(own).collect()
+}
+
+// Folio counts each new document a day, and a language that goes with its anchor is not one.
+fn first_of_its_own(
+    starts: &BTreeMap<String, String>,
+    sealed: &tisty_sharing::Sealed,
+    id: &str,
+) -> bool {
+    starts.contains_key(id) && !sealed.anchors.contains_key(id)
 }
 
 // Sent again on each sync (81): the server keeps them only while it holds something of that root, and a late one still counts.
@@ -799,6 +836,14 @@ fn first_time_without_room(home: &std::path::Path, many: usize) -> bool {
     let _ = std::fs::create_dir_all(home);
     let _ = std::fs::write(&kept, many.to_string());
     true
+}
+
+fn folio_holds(state: &tisty_core::State, doc: tisty_core::model::DocId) -> bool {
+    let shelf = tisty_sharing::remembered(state);
+    state.docs.get(&doc).is_some_and(|kept| {
+        let anchor = state.docs.get(&state.anchor_of(kept));
+        shelf.contains_key(&kept.file) || anchor.is_some_and(|one| shelf.contains_key(&one.file))
+    })
 }
 
 fn languages_top(home: &std::path::Path) -> Option<usize> {
@@ -918,7 +963,7 @@ pub async fn doc_shared(
     let home = paths.private();
     apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &keep, &sealed, &starts, ttl_days)
+        delivered(&door, &home, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| said_to_whom(refused, true, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))?;
         let not_kept = told_of_taken_back(&door, &home, &state, &device);
@@ -1202,7 +1247,7 @@ pub async fn doc_share_sync(
     let owning = was.admin_token.is_some();
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
-        delivered(&door, &keep, &sealed, &starts, ttl_days)
+        delivered(&door, &home, &keep, &sealed, &starts, ttl_days)
             .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;

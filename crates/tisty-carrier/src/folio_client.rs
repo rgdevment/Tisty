@@ -89,6 +89,9 @@ pub enum Refused {
     Quota {
         until: u64,
     },
+    SharesToday {
+        until: u64,
+    },
     Proof {
         salt: String,
         bits: u32,

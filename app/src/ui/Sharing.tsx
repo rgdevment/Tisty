@@ -434,11 +434,18 @@ function Choosing({
   const citedNew = look.cited.filter((one) => !look.shared.some((held) => held.doc === one)).length;
   const sharedAfter = others.length + (already ? 0 : 1) + (cites ? citedNew : 0);
   const citesOver = cites && !full && most !== undefined && sharedAfter > most;
+  const aDay = look.limits.new_shares_a_day;
+  const newThere = (one: string) => !look.heldThere.includes(one);
+  const newToday =
+    look.newSharesToday +
+    (newThere(doc) ? 1 : 0) +
+    (cites ? look.cited.filter(newThere).length : 0);
+  const todayOver = aDay !== undefined && newToday > look.newSharesToday && newToday > aDay;
   const named = look.alias || look.name;
   const chosenName = signs === "alias" ? look.alias : look.name;
   const signedAs = named ? (chosenName ?? undefined) : asked;
   const over = overSaid(look);
-  const ready = !full && !over && !citesOver && days > 0 && Boolean(signedAs?.trim());
+  const ready = !full && !over && !citesOver && !todayOver && days > 0 && Boolean(signedAs?.trim());
 
   const stopOne = (one: string) => {
     shareStop(one)
@@ -482,6 +489,11 @@ function Choosing({
           <output className="text-[12.5px] text-soft">{t("shareTermsUnchecked")}</output>
         )}
         <LeftOut told={look.told} />
+        {todayOver && (
+          <output role="alert" className="text-[12.5px] leading-relaxed text-hue-amber">
+            {fill("shareTodayOver", String(newToday), String(aDay))}
+          </output>
+        )}
         {over && (
           <div
             role="alert"
