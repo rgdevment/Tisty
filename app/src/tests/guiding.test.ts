@@ -394,7 +394,8 @@ describe("the guide's cache", () => {
   });
 
   it("asks every page and file to be reached only over HTTPS, without spending a rule on it", () => {
-    const lines = headers("logo.svg", pages(2)).split("\n");
+    const rules: string = headers("logo.svg", pages(2));
+    const lines = rules.split("\n");
     const paths = lines.filter((line) => line.startsWith("/"));
     const httpsOnly = lines.filter(
       (line) => line === "  Strict-Transport-Security: max-age=15552000",
