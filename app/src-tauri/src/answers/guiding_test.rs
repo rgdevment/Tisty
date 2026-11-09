@@ -247,7 +247,7 @@ fn a_guide_someone_wrote_in_or_copied_is_left_where_it_is_when_the_signed_one_co
     session
         .commit(tisty_core::Op::DocSaid {
             id: written_in,
-            d: tisty_core::event::Said::of(&body).by(Some("Mario".into())),
+            d: tisty_core::event::Said::of(&body).by(None),
         })
         .unwrap();
     let copy = session.copy_doc(&untouched.to_string()).unwrap();
@@ -270,4 +270,33 @@ fn a_guide_someone_wrote_in_or_copied_is_left_where_it_is_when_the_signed_one_co
         !session.state.docs[&copy].archived,
         "a copy is the person's"
     );
+}
+
+#[test]
+fn a_signed_guide_the_person_put_away_is_opened_again_rather_than_sown_twice() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths).unwrap();
+    let first = super::signed_guide(&mut session, "es", "Guía", "rgdevment", shipped).unwrap();
+    let covers: Vec<tisty_core::model::DocId> = session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.page_of.is_none() && one.sown)
+        .map(|one| one.id)
+        .collect();
+    for id in covers {
+        session.commit(tisty_core::Op::DocArchive { id }).unwrap();
+    }
+
+    let again = super::signed_guide_here(&mut session, "es").unwrap();
+    assert_eq!(again.map(|one| one.id), Some(first.id));
+    let signed = session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.by.as_deref() == Some("rgdevment"))
+        .count();
+    assert_eq!(signed, 8, "nothing sown twice");
 }

@@ -293,21 +293,23 @@ pub fn signed_guide_here(
     session: &mut Session,
     tongue: &str,
 ) -> Answer<Option<tisty_core::docs::Doc>> {
-    let signed: Vec<&tisty_core::model::Kept> = session
+    let mut signed: Vec<&tisty_core::model::Kept> = session
         .state
         .docs
         .values()
-        .filter(|one| a_cover(one) && one.sown && one.by.as_deref() != Some(WRITTEN_BY))
-        .collect();
-    let Some(found) = signed
-        .iter()
-        .find(|one| one.lang.as_deref() == Some(tongue))
-        .or(signed.first())
-        .map(|one| tisty_core::docs::Doc {
-            id: one.file.clone(),
-            title: one.title.clone().unwrap_or_default(),
+        .filter(|one| {
+            one.page_of.is_none()
+                && one.task_of.is_none()
+                && one.guest
+                && one.sown
+                && one.by.as_deref() != Some(WRITTEN_BY)
         })
-    else {
+        .collect();
+    signed.sort_by_key(|one| (one.archived, one.lang.as_deref() != Some(tongue)));
+    let Some(found) = signed.first().map(|one| tisty_core::docs::Doc {
+        id: one.file.clone(),
+        title: one.title.clone().unwrap_or_default(),
+    }) else {
         return Ok(None);
     };
     let kept = found.id.clone();
@@ -315,15 +317,23 @@ pub fn signed_guide_here(
     Ok(Some(found))
 }
 
-// Only the guide as it was sown is put away: a copy, another version or a guide someone wrote in stays theirs.
-fn an_untouched_unsigned_guide(kept: &tisty_core::model::Kept) -> bool {
+// A copy or another version is never joined, never the guide Tisty opened, and its title says it is a copy.
+fn the_guide_itself(session: &Session, kept: &tisty_core::model::Kept) -> bool {
     let titled = |one: &Spoken| tisty_core::docs::titled(one.told);
-    a_cover(kept)
-        && kept.by.as_deref() == Some(WRITTEN_BY)
-        && kept.edited_by.is_none()
-        && SPOKEN
+    !session.state.tongues_of(kept.id).is_empty()
+        || session.config.guide.as_deref() == Some(kept.file.as_str())
+        || SPOKEN
             .iter()
             .any(|one| kept.title.as_deref() == Some(titled(one).as_str()))
+}
+
+// Only the guide as it was sown is put away: one someone wrote in, a copy or another version stays theirs.
+fn an_untouched_unsigned_guide(session: &Session, kept: &tisty_core::model::Kept) -> bool {
+    a_cover(kept)
+        && kept.by.as_deref() == Some(WRITTEN_BY)
+        && the_guide_itself(session, kept)
+        && tisty_core::docs::read(&session.paths.docs(), &kept.file)
+            .is_ok_and(|body| tisty_core::untouched::reads_as_sown(kept, &body))
 }
 
 pub fn signed_guide(
@@ -337,7 +347,7 @@ pub fn signed_guide(
         .state
         .docs
         .values()
-        .filter(|one| an_untouched_unsigned_guide(one))
+        .filter(|one| an_untouched_unsigned_guide(session, one))
         .map(|one| Op::DocArchive { id: one.id })
         .collect();
     session.commit_all(unsigned)?;

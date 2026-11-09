@@ -139,3 +139,35 @@ fn only_what_the_sowing_marked_is_sown_never_a_copy_of_a_document_signed_as_tist
         assert!(!state.docs[&id].sown);
     }
 }
+
+#[test]
+fn a_sown_guide_still_reads_as_sown_with_the_language_tisty_wrote_into_it_and_not_once_written_in()
+{
+    let sown = "# Guía\n\nAsí se usa.\n";
+    let mut state = tisty_core::State::default();
+    let id = Ulid::generate();
+    state.apply(&tisty_core::Event::new(
+        DeviceId("mac_a".into()),
+        jiff::Timestamp::now(),
+        Op::DocAdd {
+            id,
+            d: DocAdd {
+                file: "g.md".into(),
+                order: "a0".into(),
+                by: Some(SOWN_BY.into()),
+                guest: true,
+                said: Some(Said::of(sown)),
+                ..DocAdd::default()
+            },
+        },
+    ));
+    let kept = &state.docs[&id];
+    let with_lang = tisty_markdown::front::with_field(sown, "lang", "es");
+
+    assert!(tisty_core::untouched::reads_as_sown(kept, sown));
+    assert!(tisty_core::untouched::reads_as_sown(kept, &with_lang));
+    assert!(!tisty_core::untouched::reads_as_sown(
+        kept,
+        &format!("{sown}\nalgo mío\n")
+    ));
+}

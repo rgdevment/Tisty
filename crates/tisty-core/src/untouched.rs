@@ -243,6 +243,17 @@ impl Paper {
     }
 }
 
+// The language Tisty writes into an old guide is no hand on it, so it is read past.
+pub fn reads_as_sown(kept: &crate::model::Kept, body: &str) -> bool {
+    let bare = tisty_markdown::front::without_field(body, "lang");
+    [body, bare.as_str()]
+        .into_iter()
+        .any(|one| match &kept.sown_print {
+            Some(sown) => Said::of(one).print.as_ref() == Some(sown),
+            None => shipped_before_prints(one),
+        })
+}
+
 fn shipped_before_prints(body: &str) -> bool {
     let print = crate::attach::printed(crate::docs::settled(&unlinked(body)).as_bytes());
     SHIPPED_BEFORE_PRINTS.contains(&print.as_str())
