@@ -9,12 +9,28 @@ And it does not forget. A task you finished is archived with what you wrote in i
 
 ## Start here
 
-1. Type a task in the bar at the top, the way you would say it: `Rina's booster on Friday #health`. Press `Enter`.
+This guide is a document to read: clicking in it creates nothing. Try this in Tisty's window:
+
+1. Open **Tasks** in the sidebar and type in the bar at the top, the way you would say it: `Rina's booster on Friday #health`. Press `Enter` and the task is created.
 2. Find it in **Today**, or in **Upcoming** if it is for another day.
-3. From any program, press `Ctrl` + `Shift` + `Space` and jot one down without opening Tisty.
+3. From any program, press `Ctrl` + `Shift` + `Space` and jot down another without opening Tisty.
 4. In **Documents**, create one with the **+** and type `/` to see everything that fits inside.
 
 Lost? The `?` at the foot of the sidebar opens the full help right here, offline too. The rest of this guide expands on each point: read it straight through or jump to what you need, and come back to it whenever you like from Settings → General.
+
+## What else it does
+
+Each has its own section further down:
+
+- **Documents in several languages**: a manual in Spanish and English reads as one, with a selector to switch languages.
+- **Diagrams by hand**: a double-click on a diagram opens its window, where you draw mind maps, schemas and freeform diagrams, and export them as an image.
+- **Sheets and page breaks**: you read a document on A4, Letter or Folio sheets, just as it will print or turn into a PDF.
+- **Your copies in the cloud**: Google Drive, OneDrive or your own server, directly and without installing anything else.
+- **End-to-end encryption**: with your 24-word phrase, not even your provider can read what you keep in your cloud.
+- **Computers that sign**: each computer signs what it writes, and a new one only gets in once you confirm its code.
+- **Sharing with a link**: a document goes out encrypted through Folio, signed with your identity.
+- **A light viewer**: a Markdown file from disk opens for reading, without bringing it into your documents.
+- **An assistant**: Claude Code, Codex and others write here through MCP, without closing or deleting anything of yours.
 
 ## A task or a document?
 
@@ -274,7 +290,11 @@ The width is kept in the length of the rule under the header: other Markdown rea
 
 #### Diagrams
 
-A code block whose language is `mermaid` stops being code and is drawn: it fits any width, reads well in dark mode, and a click opens it large. A double-click opens it in the diagram window, where you can also draw a mind map, a schema, a freeform diagram or a class diagram by hand. Here, Rina and what surrounds her:
+A code block whose language is `mermaid` stops being code and is drawn: it fits any width, reads well in dark mode, and a click opens it large. A double-click opens it in the diagram window, where you can also draw a mind map, a schema, a freeform diagram or a class diagram by hand.
+
+![The diagram window with this guide's diagram: the shapes on the left, the drawing in the middle and its text on the right](diagrams.png)
+
+Here, Rina and what surrounds her:
 
 ```mermaid
 graph TD
@@ -386,6 +406,8 @@ This guide has one, and it is named here:
 ### A document in several languages
 
 A manual for your team in Spanish and English, a contract in two languages. Each language is a document of its own, with its own file, and Tisty shows them as one: one row in the tree, opened in the app's language.
+
+![This guide with its Español / English selector, the paper of its sheets and its outline in the side panel](languages.png)
 
 **To translate one**, open the document's menu and choose **Translate into…**: it writes a copy of its text and its pages, ready to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again.
 

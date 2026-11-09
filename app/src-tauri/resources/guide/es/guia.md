@@ -9,12 +9,28 @@ Y no olvida. Una tarea que terminaste se archiva con lo que escribiste en ella, 
 
 ## Empieza aquí
 
-1. Escribe una tarea en la barra de arriba, como la dirías: `Vacuna de Rina el viernes #salud`. Presiona `Enter`.
+Esta guía es un documento para leer: hacer clic en ella no crea nada. Prueba esto en la ventana de Tisty:
+
+1. Abre **Tareas** en la barra lateral y escribe en la barra de arriba, como lo dirías: `Vacuna de Rina el viernes #salud`. Presiona `Enter` y la tarea queda creada.
 2. Mírala en **Hoy**, o en **Próximo** si es para otro día.
-3. Desde cualquier programa, presiona `Ctrl` + `Shift` + `Space` y anota una sin abrir Tisty.
+3. Desde cualquier programa, presiona `Ctrl` + `Shift` + `Space` y anota otra sin abrir Tisty.
 4. En **Documentos**, crea uno con el **+** y escribe `/` para ver todo lo que cabe dentro.
 
 ¿Te perdiste? El `?` al pie de la barra lateral abre la ayuda completa aquí mismo, también sin conexión. El resto de esta guía amplía cada punto: léela de corrido o salta a lo que necesites, y vuelve a ella cuando quieras desde Configuración → General.
+
+## Lo que también puede hacer
+
+Cada una tiene su sección más abajo:
+
+- **Documentos en varios idiomas**: un manual en español y en inglés se lee como uno solo, con un selector para cambiar de idioma.
+- **Diagramas a mano**: un doble clic en un diagrama abre su ventana, donde dibujas mapas mentales, esquemas y diagramas libres, y los exportas como imagen.
+- **Hojas y saltos de página**: lees un documento en hojas A4, Carta u Oficio, tal como saldrá impreso o en PDF.
+- **Tus copias en la nube**: Google Drive, OneDrive o tu propio servidor, directo y sin instalar otro programa.
+- **Cifrado de punta a punta**: con tu frase de 24 palabras, ni tu proveedor puede leer lo que guardas en tu nube.
+- **Equipos que firman**: cada equipo firma lo que escribe, y uno nuevo entra solo cuando confirmas su código.
+- **Compartir con un enlace**: un documento sale cifrado por Folio y firmado con tu identidad.
+- **Un visor liviano**: un archivo Markdown del disco se abre para leerlo, sin traerlo a tus documentos.
+- **Un asistente**: Claude Code, Codex y otros escriben aquí por MCP, sin cerrar ni borrar nada tuyo.
 
 ## ¿Tarea o documento?
 
@@ -274,7 +290,11 @@ El ancho se guarda en el largo de la raya bajo el encabezado: otros lectores de 
 
 #### Diagramas
 
-Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y se dibuja: cabe en cualquier ancho, se lee bien en modo oscuro y un clic lo abre en grande. Un doble clic lo abre en la ventana de diagramas, donde también dibujas a mano un mapa mental, un esquema, un diagrama libre o uno de clases. Aquí, Rina y lo que la rodea:
+Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y se dibuja: cabe en cualquier ancho, se lee bien en modo oscuro y un clic lo abre en grande. Un doble clic lo abre en la ventana de diagramas, donde también dibujas a mano un mapa mental, un esquema, un diagrama libre o uno de clases.
+
+![La ventana de diagramas con el diagrama de esta guía: las formas a la izquierda, el dibujo al centro y su texto a la derecha](diagramas.png)
+
+Aquí, Rina y lo que la rodea:
 
 ```mermaid
 graph TD
@@ -386,6 +406,8 @@ Esta guía tiene una, y está nombrada aquí:
 ### Un documento en varios idiomas
 
 Un manual para tu equipo en español y en inglés, un contrato en dos idiomas. Cada idioma es un documento propio, con su archivo, y Tisty los muestra como uno solo: una fila en el árbol, abierta en el idioma de la app.
+
+![Esta guía con su selector Español / English, el papel de sus hojas y su índice en el panel de al lado](idiomas.png)
 
 **Para traducir uno**, abre el menú del documento y elige **Traducir a…**: escribe una copia de su texto y sus páginas, lista para traducir sección por sección. Si ya tienes los dos escritos, **Unir con su otro idioma…** los junta, y **Separar de sus idiomas** los vuelve a separar.
 

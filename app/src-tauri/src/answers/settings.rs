@@ -16,6 +16,10 @@ pub const ATTACHED: &[&str] = &[
     "walks.csv",
     "paseos.html",
     "walks.html",
+    "idiomas.png",
+    "languages.png",
+    "diagramas.png",
+    "diagrams.png",
 ];
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
