@@ -221,3 +221,22 @@ fn the_guide_its_author_signed_is_the_one_kept_whichever_side_brought_it_first()
     assert!(!state.docs[&signed].archived);
     assert!(state.docs[&again].archived);
 }
+
+#[test]
+fn a_guide_under_the_title_it_had_before_is_the_same_guide() {
+    let mut state = State::default();
+    let before = guide(&mut state, 1, "aaaa-0001", "Cómo funciona Tisty");
+    let english = guide(&mut state, 2, "aaaa-0002", "How Tisty works");
+    let signed = signed_guide(&mut state, 3, "bbbb-0001", "¿Qué es Tisty?");
+
+    for op in doubled(&state) {
+        state.apply(&ev(10, op));
+    }
+
+    assert!(state.docs[&before].archived);
+    assert!(!state.docs[&signed].archived);
+    assert!(
+        !state.docs[&english].archived,
+        "another language is another guide"
+    );
+}

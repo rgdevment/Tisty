@@ -8,6 +8,21 @@ use crate::model::{DocId, FIRST, FolderId, ListId};
 
 pub const SOWN_BY: &str = "Tisty";
 pub const GUIDE_FOLDERS: [&str; 2] = ["Guide", "Guía"];
+// Every title the guide's cover has shipped with, so a guide still meets the one sown before its title changed.
+pub const GUIDE_COVERS: [(&str, &str); 4] = [
+    ("es", "¿Qué es Tisty?"),
+    ("en", "What is Tisty?"),
+    ("es", "Cómo funciona Tisty"),
+    ("en", "How Tisty works"),
+];
+
+pub fn guide_tongue(title: &str) -> Option<&'static str> {
+    let title = crate::text::folded(title.trim());
+    GUIDE_COVERS
+        .iter()
+        .find(|(_, cover)| crate::text::folded(cover) == title)
+        .map(|(tongue, _)| *tongue)
+}
 
 // Normalised prints of every guide text a release sowed without noting a print (up to 1.24.4).
 const SHIPPED_BEFORE_PRINTS: [&str; 36] = [
