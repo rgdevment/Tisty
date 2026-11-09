@@ -161,6 +161,7 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
                 born_by: None,
                 guest: false,
                 sown: false,
+                sown_print: None,
                 made: None,
                 made_by: None,
                 wrote_by: None,

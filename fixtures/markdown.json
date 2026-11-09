@@ -508,31 +508,37 @@
     "falls_short": "drops the final newline",
     "title": "How Tisty works",
     "tags": [
-      "home",
       "health",
+      "home",
       "shopping"
     ],
     "refs": [
-      "Link:https://markdown.tisty.app",
-      "Link:https://www.tisty.app/docs/",
       "Link:capture.png",
       "Link:https://www.tisty.app/docs/natural-language/",
+      "Link:https://www.tisty.app/docs/spread-and-reminders/",
       "Link:priorities.png",
       "Link:https://www.tisty.app/docs/tasks/",
       "Link:https://www.tisty.app/docs/documents/",
+      "Link:https://markdown.tisty.app",
       "Link:tisty:sample",
       "Link:https://github.com/rgdevment/Tisty",
       "Doc:#3",
       "Link:tisty:code",
-      "Link:tisty:page",
       "Link:https://www.tisty.app/docs/pages-and-pdf/",
+      "Link:tisty:page",
+      "Link:https://www.tisty.app/docs/privacy/",
       "Link:https://www.tisty.app/docs/convert-to-and-from-markdown/",
       "Link:https://www.tisty.app/docs/assistants-and-mcp/",
+      "Link:https://www.tisty.app/docs/mcp-permissions/",
       "Link:https://www.tisty.app/docs/sync-and-backup/",
       "Link:https://www.tisty.app/docs/archive/",
       "Link:https://www.tisty.app/docs/keyboard-shortcuts/",
+      "Link:https://www.tisty.app/docs/",
+      "Link:https://www.tisty.app/docs/faq/",
+      "Link:https://github.com/rgdevment/Tisty/discussions",
+      "Link:https://github.com/rgdevment/Tisty/issues",
       "Link:https://github.com/rgdevment",
-      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://copanda.app",
       "Link:https://github.com/rgdevment/LinkUnbound"
     ]
   },
@@ -550,7 +556,7 @@
     "name": "guide-code-en",
     "file": "app/src-tauri/resources/guide/en/code.md",
     "falls_short": "drops the final newline",
-    "title": "When what you keep is code",
+    "title": "When what you write down is code",
     "tags": [],
     "refs": []
   },
@@ -564,6 +570,7 @@
       "vet"
     ],
     "refs": [
+      "Link:https://github.com/rgdevment/Tisty/issues",
       "Link:https://github.com/rgdevment/Tisty",
       "Link:rina.jpg",
       "Link:vet-card.pdf",
@@ -579,31 +586,37 @@
     "falls_short": "drops the final newline",
     "title": "Cómo funciona Tisty",
     "tags": [
-      "casa",
       "salud",
+      "casa",
       "compras"
     ],
     "refs": [
-      "Link:https://markdown.tisty.app/es/",
-      "Link:https://www.tisty.app/es/ayuda/",
       "Link:captura.png",
       "Link:https://www.tisty.app/es/ayuda/lenguaje-natural/",
+      "Link:https://www.tisty.app/es/ayuda/reparto-y-recordatorios/",
       "Link:prioridades.png",
       "Link:https://www.tisty.app/es/ayuda/tareas/",
       "Link:https://www.tisty.app/es/ayuda/documentos/",
+      "Link:https://markdown.tisty.app/es/",
       "Link:tisty:sample",
       "Link:https://github.com/rgdevment/Tisty",
       "Doc:#3",
       "Link:tisty:code",
-      "Link:tisty:page",
       "Link:https://www.tisty.app/es/ayuda/paginas-y-pdf/",
+      "Link:tisty:page",
+      "Link:https://www.tisty.app/es/ayuda/privacidad/",
       "Link:https://www.tisty.app/es/ayuda/convertir-a-y-desde-markdown/",
       "Link:https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
+      "Link:https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/",
       "Link:https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/",
       "Link:https://www.tisty.app/es/ayuda/el-archivo/",
       "Link:https://www.tisty.app/es/ayuda/atajos-de-teclado/",
+      "Link:https://www.tisty.app/es/ayuda/",
+      "Link:https://www.tisty.app/es/ayuda/preguntas-frecuentes/",
+      "Link:https://github.com/rgdevment/Tisty/discussions",
+      "Link:https://github.com/rgdevment/Tisty/issues",
       "Link:https://github.com/rgdevment",
-      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://copanda.app",
       "Link:https://github.com/rgdevment/LinkUnbound"
     ]
   },
@@ -611,7 +624,7 @@
     "name": "guide-page-es",
     "file": "app/src-tauri/resources/guide/es/pagina.md",
     "falls_short": "drops the final newline",
-    "title": "La Rina",
+    "title": "Rina",
     "tags": [],
     "refs": [
       "Link:rina.jpg"
@@ -621,7 +634,7 @@
     "name": "guide-code-es",
     "file": "app/src-tauri/resources/guide/es/codigo.md",
     "falls_short": "drops the final newline",
-    "title": "Cuando lo que apuntas es código",
+    "title": "Cuando lo que anotas es código",
     "tags": [],
     "refs": []
   },
@@ -635,6 +648,7 @@
       "veterinario"
     ],
     "refs": [
+      "Link:https://github.com/rgdevment/Tisty/issues",
       "Link:https://github.com/rgdevment/Tisty",
       "Link:rina.jpg",
       "Link:cartilla.pdf",

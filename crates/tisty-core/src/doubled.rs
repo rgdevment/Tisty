@@ -91,9 +91,13 @@ fn guides_twice(state: &State) -> Vec<DocId> {
     let mut guides: Vec<_> = state
         .docs
         .values()
-        .filter(|one| one.guest && !one.archived && one.by.as_deref() == Some(GUIDE_BY))
+        .filter(|one| {
+            one.guest && !one.archived && (one.sown || one.by.as_deref() == Some(GUIDE_BY))
+        })
         .collect();
-    guides.sort_by(|a, b| a.made.cmp(&b.made).then(a.file.cmp(&b.file)));
+    // A guide its author signed outlasts one from before, whichever came first.
+    let unsigned = |one: &&crate::model::Kept| one.by.as_deref() == Some(GUIDE_BY);
+    guides.sort_by(|a, b| (unsigned(a), a.made, &a.file).cmp(&(unsigned(b), b.made, &b.file)));
     for one in guides {
         let title = crate::text::folded(one.title.as_deref().unwrap_or_default().trim());
         // A translation keeps the title it was copied with: its language, or its book's, tells it apart.

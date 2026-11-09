@@ -1,6 +1,6 @@
 # Uno de cada cosa
 
-Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento, todo en una sola hoja. Aquí casi nada se explica; está para mirarla, editarla e imprimirla. Si algo en esta hoja se ve mal, vale la pena contárnoslo.
+Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento, todo en una sola hoja. Aquí casi nada se explica; está para mirarla, editarla e imprimirla. Si algo en esta hoja se ve mal, cuéntalo en [Issues](https://github.com/rgdevment/Tisty/issues).
 
 ---
 
@@ -8,9 +8,9 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 **Negrita**, *cursiva*, ***las dos a la vez***, ~~tachado~~, ++subrayado++ y `código suelto`. Un [enlace a un sitio](https://github.com/rgdevment/Tisty), y la misma dirección escrita tal cual entre ángulos: <https://github.com/rgdevment/Tisty>. Una dirección de correo funciona igual: <rina@example.com>.
 
-Cuatro marcadores: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}.
+Cuatro colores de resaltador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}.
 
-Íconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
+Iconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
 
 Emojis por su nombre: :dog: :tada: :+1: :sunny:
 
@@ -43,7 +43,7 @@ Esta línea es el mismo párrafo, una línea más abajo.
 
 Etapas, que se marcan:
 
-- [x] Llevar la libreta de Rina
+- [x] Llevar la cartilla de Rina
 - [x] Pesarla antes de la hora
 - [ ] Preguntar por la pastilla de las garrapatas
 
@@ -72,7 +72,7 @@ Columnas a la izquierda, al centro y a la derecha, y la primera más ancha: su r
 
 | Vacuna | Puesta | Otra vez en |
 | :------------------ | :---: | ---: |
-| Séxtuple | marzo | 12 meses |
+| Anual | marzo | 12 meses |
 | Antirrábica | marzo | 12 meses |
 | Desparasitación | agosto | 3 meses |
 
@@ -249,9 +249,9 @@ dosis = \frac{peso \times 0.5}{2}
 
 ```widget title="Rina este mes"
 <div class="grid">
-  <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 sobre agosto</em></div>
+  <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 frente a agosto</em></div>
   <div class="stat"><small>Peso</small><b>14 kg</b><em class="down">−0,3 kg</em></div>
-  <div class="stat"><small>Próxima vacuna</small><b>12 nov</b><span class="badge warn">toca</span></div>
+  <div class="stat"><small>Próxima vacuna</small><b>12 nov</b><span class="badge warn">pendiente</span></div>
 </div>
 <div class="card" style="margin-top:12px">
   <div class="head"><h3>Revisiones</h3><span class="badge bad">falta una</span></div>

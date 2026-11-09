@@ -17,6 +17,7 @@ pub mod docs;
 pub mod doubled;
 pub mod event;
 mod growing;
+pub mod guide_seal;
 pub mod herald;
 pub mod holes;
 pub mod ics;
