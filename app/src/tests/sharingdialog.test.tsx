@@ -28,6 +28,7 @@ const look = {
   told: [],
   seen: "print",
   newSharesToday: 0,
+  newSharesFull: false,
   heldThere: [],
 };
 
@@ -392,6 +393,59 @@ describe("sharing a document with Folio", () => {
     });
     expect(onShared).toHaveBeenCalled();
     expect(screen.getByText("https://tisty.cl/Ab3xK9pQ#key")).toBeTruthy();
+  });
+
+  it("waits as Folio asks and shares again only when pressed", async () => {
+    const card = {
+      read: "https://tisty.cl/a#k",
+      edit: null,
+      version: 1,
+      taken: false,
+      held: false,
+      told: [],
+    };
+    let tries = 0;
+    invoked.mockImplementation((command: string) => {
+      if (command === "folio_sharing_now") return Promise.resolve({ state: "open" });
+      if (command === "folio_terms_standing") return Promise.resolve({ state: "accepted" });
+      if (command === "doc_share_look") return Promise.resolve(look);
+      if (command === "doc_shared") {
+        tries += 1;
+        return tries === 1
+          ? Promise.reject({ code: "folioWait", name: String(Date.now() + 1_200) })
+          : Promise.resolve(card);
+      }
+      return Promise.reject({ code: "internal" });
+    });
+    shown();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    const again = await screen.findByRole<HTMLButtonElement>("button", { name: t("shareGo") });
+    expect(screen.getByText(t("shareWaiting"))).toBeTruthy();
+    expect(again.disabled).toBe(true);
+
+    await waitFor(() => expect(again.disabled).toBe(false), { timeout: 3_000 });
+    expect(tries).toBe(1);
+    await userEvent.click(again);
+
+    await screen.findByRole("heading", { name: t("sharedDone") });
+    expect(tries).toBe(2);
+  });
+
+  it("says the day is full when Folio said so, and lets nothing new go", async () => {
+    answering({
+      folio_terms_standing: { state: "accepted" },
+      doc_share_look: {
+        ...look,
+        newSharesFull: true,
+        limits: { ...look.limits, new_shares_a_day: 10 },
+      },
+    });
+    shown();
+
+    const go = await screen.findByRole<HTMLButtonElement>("button", { name: t("shareGo") });
+    expect(screen.getByText(t("folioSharesToday"))).toBeTruthy();
+    expect(go.disabled).toBe(true);
   });
 
   it("warns of a secret and renames the button", async () => {

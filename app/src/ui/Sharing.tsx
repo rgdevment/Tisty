@@ -338,7 +338,11 @@ function Done({ card, onClose }: Readonly<{ card: ShareCard; onClose: () => void
   );
 }
 
-function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: () => void }>) {
+function Going({
+  until,
+  onCancel,
+  onRetry,
+}: Readonly<{ until: number | null; onCancel: () => void; onRetry?: () => void }>) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (until === null) return;
@@ -357,7 +361,7 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
           <p className="text-[11.5px] text-soft">{fill("shareWaitingWhy", said)}</p>
         )}
         {until !== null && (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
@@ -365,6 +369,16 @@ function Going({ until, onCancel }: Readonly<{ until: number | null; onCancel: (
             >
               {t("shareCancel")}
             </button>
+            {onRetry && (
+              <button
+                type="button"
+                disabled={left > 0}
+                onClick={onRetry}
+                className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
+              >
+                {t("shareGo")}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -440,7 +454,8 @@ function Choosing({
     look.newSharesToday +
     (newThere(doc) ? 1 : 0) +
     (cites ? look.cited.filter(newThere).length : 0);
-  const todayOver = aDay !== undefined && newToday > look.newSharesToday && newToday > aDay;
+  const somethingNew = newToday > look.newSharesToday;
+  const todayOver = somethingNew && (look.newSharesFull || (aDay !== undefined && newToday > aDay));
   const named = look.alias || look.name;
   const chosenName = signs === "alias" ? look.alias : look.name;
   const signedAs = named ? (chosenName ?? undefined) : asked;
@@ -491,7 +506,9 @@ function Choosing({
         <LeftOut told={look.told} />
         {todayOver && (
           <output role="alert" className="text-[12.5px] leading-relaxed text-hue-amber">
-            {fill("shareTodayOver", String(newToday), String(aDay))}
+            {look.newSharesFull
+              ? t("folioSharesToday")
+              : fill("shareTodayOver", String(newToday), String(aDay))}
           </output>
         )}
         {over && (
@@ -686,7 +703,7 @@ type Step =
   | { at: "settling" }
   | { at: "terms"; terms: Extract<TermsNow, { state: "toAccept" }> }
   | { at: "choosing"; look: ShareLook }
-  | { at: "going"; until: number | null }
+  | { at: "going"; until: number | null; chosen?: Parameters<typeof docShared>[1] }
   | { at: "done"; card: ShareCard };
 
 export default function Sharing({
@@ -708,7 +725,6 @@ export default function Sharing({
 }>) {
   const [step, setStep] = useState<Step>({ at: "reading" });
   const live = useRef(true);
-  const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const again = useRef<Parameters<typeof docShared>[1] | null>(null);
 
   const [changed, setChanged] = useState(false);
@@ -773,7 +789,6 @@ export default function Sharing({
     begin();
     return () => {
       live.current = false;
-      clearTimeout(retry.current);
     };
   }, [begin]);
 
@@ -790,8 +805,7 @@ export default function Sharing({
         if (!live.current) return;
         const until = Number((problem as { name?: string } | null)?.name);
         if (codeOf(problem) === "folioWait" && until > 0) {
-          setStep({ at: "going", until });
-          retry.current = setTimeout(() => share(chosen), Math.max(0, until - Date.now()));
+          setStep({ at: "going", until, chosen });
           return;
         }
         if (codeOf(problem) === "folioTermsToAccept") {
@@ -872,8 +886,16 @@ export default function Sharing({
           onError={failed}
         />
       );
-    case "going":
-      return <Going until={step.until} onCancel={onClose} />;
+    case "going": {
+      const { chosen } = step;
+      return (
+        <Going
+          until={step.until}
+          onCancel={onClose}
+          onRetry={chosen ? () => share(chosen) : undefined}
+        />
+      );
+    }
     case "done":
       return <Done card={step.card} onClose={onClose} />;
   }

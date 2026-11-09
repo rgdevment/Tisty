@@ -908,7 +908,8 @@ const en = {
   shareGoing: "Sharing…",
   shareGoingWhy: "Encrypting and signing on this computer, then sending it to Folio.",
   shareWaiting: "Folio asks to wait a little",
-  shareWaitingWhy: "It tries again by itself in {name}. You can keep working.",
+  shareWaitingWhy:
+    "You can share it once the wait is over, in {name}. Nothing goes until you press.",
   sharedDone: "Shared",
   sharedDoneCopied: "The link to read is already copied.",
   sharedDoneKey:
@@ -3867,7 +3868,8 @@ const es: Catalog = {
   shareGoing: "Compartiendo…",
   shareGoingWhy: "Cifrando y firmando en este equipo, y luego enviándolo a Folio.",
   shareWaiting: "Folio pide esperar un poco",
-  shareWaitingWhy: "Vuelve a intentarlo solo en {name}. Puedes seguir trabajando.",
+  shareWaitingWhy:
+    "Podrás compartirlo cuando termine la espera, en {name}. No se envía nada hasta que lo pidas.",
   sharedDone: "Compartido",
   sharedDoneCopied: "El link para leer ya está copiado.",
   sharedDoneKey:

@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 
 use super::{
-    Answered, Asked, Claim, Door, First, Refused, Stopped, Stored, Taken, Verb, Version, Why,
-    appeal, edit_link, fetch, fetch_files, latest, pause, read_link, resume, send_files,
+    Answered, Asked, Claim, Door, First, Latest, Refused, Stopped, Stored, Taken, Verb, Version,
+    Why, appeal, edit_link, fetch, fetch_files, latest, pause, read_link, resume, send_files,
     send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
 };
 
@@ -530,4 +530,19 @@ fn an_envelope_refused_for_a_reason_this_version_does_not_know_is_still_a_refusa
         serde_json::from_str(r#"{"refused":"envelope","why":"from_the_future"}"#).unwrap();
 
     assert_eq!(refused, Refused::Envelope { why: Why::Unknown });
+}
+
+#[test]
+fn the_latest_says_when_folio_takes_the_next_version_only_when_it_knows() {
+    let told = FakeFolio::answering(&[(200, r#"{"version":3,"hash":"h","nextAt":1800000000000}"#)]);
+    assert_eq!(
+        latest(&told, "d"),
+        Ok(Latest {
+            version: 3,
+            next_at: Some(1_800_000_000_000),
+        })
+    );
+
+    let silent = FakeFolio::answering(&[(200, r#"{"version":3}"#)]);
+    assert_eq!(latest(&silent, "d").unwrap().next_at, None);
 }
