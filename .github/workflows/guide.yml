@@ -54,17 +54,24 @@ jobs:
         env:
           CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
         run: |
+          set -o pipefail
           api=https://api.cloudflare.com/client/v4/zones
           auth="Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN"
-          zone=$(curl -fsS -H "$auth" "$api?name=tisty.app" | jq -r '.result[0].id')
+          zone=$(curl -fsS -H "$auth" "$api?name=tisty.app" | jq -r '.result[0].id // empty')
+          if [ -z "$zone" ]; then
+            echo "::error::the purge token cannot read the tisty.app zone, so markdown.tisty.app keeps the previous guide for up to a day"
+            exit 1
+          fi
           purge() { curl -fsS -X POST "$api/$zone/purge_cache" -H "$auth" -H 'Content-Type: application/json' --data '{"hosts":["markdown.tisty.app"]}'; }
           # A location still on the old deployment could store it again right after the first purge.
           purge
           sleep 60
           purge
-      - name: Say the edge may keep the old guide for a day
+      - name: Stop when the edge would keep the old guide for a day
         if: env.HAS_TOKEN == 'true' && env.HAS_PURGE_TOKEN != 'true'
-        run: echo "::warning::no CLOUDFLARE_PURGE_TOKEN, so markdown.tisty.app may serve the previous guide for up to a day"
+        run: |
+          echo "::error::no CLOUDFLARE_PURGE_TOKEN, so markdown.tisty.app keeps the previous guide for up to a day"
+          exit 1
       - name: Say why it was not published
         if: env.HAS_TOKEN != 'true'
         run: echo "::warning::no CLOUDFLARE_API_TOKEN, so markdown.tisty.app keeps the guide it had"
