@@ -134,6 +134,8 @@ pub struct Remembered {
     pub ttl_days: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carried: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arrived_under: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

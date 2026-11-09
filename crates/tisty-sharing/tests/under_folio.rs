@@ -261,6 +261,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             })
             .to_string(),
         ),
+        arrived_under: None,
     };
     editor.sent(&[(file, entry)]);
 
@@ -287,6 +288,43 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
     assert_eq!(second.remembering[0].1.admin_token, None);
     assert_eq!(read.document["languages"][0]["document"], "Lang1111");
     assert_eq!(read.document["lang"], "es");
+}
+
+fn a_later_minor() -> String {
+    let mut said = tisty_contracts::VERSION.split('.');
+    let major = said.next().unwrap();
+    let minor: u64 = said.next().unwrap().parse().unwrap();
+    format!("{major}.{}.0", minor + 1)
+}
+
+#[test]
+fn what_arrived_under_a_later_minor_is_not_sealed_again_until_tisty_catches_up() {
+    let (_tmp, mut home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
+    let (file, mut shared) = first.remembering[0].clone();
+
+    shared.arrived_under = Some(a_later_minor());
+    home.sent(&[(file.clone(), shared.clone())]);
+    assert!(matches!(
+        under_folio(&home, doc, &under),
+        Err(Unshared::Newer)
+    ));
+
+    shared.arrived_under = Some(tisty_contracts::VERSION.to_owned());
+    home.sent(&[(file, shared)]);
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert_eq!(
+        home.sealed(again, vec![]).remembering[0].1.arrived_under,
+        None
+    );
 }
 
 #[test]
@@ -352,6 +390,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         held_by: None,
         ttl_days: None,
         carried: None,
+        arrived_under: None,
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);

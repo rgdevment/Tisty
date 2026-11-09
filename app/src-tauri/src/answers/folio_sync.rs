@@ -439,6 +439,7 @@ async fn other_version_brought(
     }
     let mut now = was.clone();
     now.version = opened.version;
+    now.arrived_under = opened.contract.clone();
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;

@@ -2,12 +2,15 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde_json::{Value, json};
 use tisty_contracts::{
-    Document, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Sealing, Served, Verdict,
-    check,
+    Document, EnvelopeKind, EnvelopeReader, Opening, Orientation, Paper, Sealing, Served, VERSION,
+    Verdict, check,
 };
 use tisty_share_proto::identity::{Root, ShareKey};
 
-use super::{Reader, Unopened, files_for, laid, opened, opens_under_this, picture_holds, reading};
+use super::{
+    Reader, Unopened, files_for, laid, later_than_this, opened, opens_under_this, picture_holds,
+    reading,
+};
 use crate::sealing::Writer;
 
 const VECTORS: &str = include_str!("../../../contracts/vectors/vectors.json");
@@ -138,6 +141,22 @@ fn it_refuses_files_a_document_does_not_answer_for() {
         );
         assert!(read.is_err(), "{}", one["says"]);
     }
+}
+
+#[test]
+fn only_a_later_minor_of_the_same_major_says_more_than_this_writer_knows() {
+    let mut said = VERSION.split('.');
+    let major: u64 = said.next().unwrap().parse().unwrap();
+    let minor: u64 = said.next().unwrap().parse().unwrap();
+    assert!(later_than_this(&format!("{major}.{}.0", minor + 1)));
+    assert!(!later_than_this(VERSION));
+    assert!(!later_than_this(&format!("{major}.{minor}.9")));
+    assert!(!later_than_this(&format!("{}.0.0", major + 1)));
+    assert!(!later_than_this(&format!(
+        "{major}.{}.0-draft.1",
+        minor + 1
+    )));
+    assert!(!later_than_this("no version"));
 }
 
 #[test]

@@ -459,6 +459,12 @@ impl Gathering<'_> {
         let print = print_of(&packed.said_files, &packed.files);
         let words_print = words_print_of(&body, &pages, &packed.pictures, print.as_deref());
         let was = self.shelf.get(&kept.file);
+        if was
+            .and_then(|one| one.arrived_under.as_deref())
+            .is_some_and(tisty_envelope::reading::later_than_this)
+        {
+            return Err(Unshared::Newer);
+        }
         let editable = self.editable_anchor == Some(kept.id);
         let (sealing, keeps_files) =
             sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
@@ -491,6 +497,7 @@ impl Gathering<'_> {
                 edit_token: sealing.token.clone(),
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),
+                arrived_under: None,
             },
         ));
         self.titles.insert(kept.file.clone(), shown);

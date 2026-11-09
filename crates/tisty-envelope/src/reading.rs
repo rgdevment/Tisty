@@ -96,12 +96,21 @@ fn under_a_later_minor(bytes: &[u8]) -> bool {
     let manifest = size.and_then(|one| bytes.get(8..8 + one));
     let manifest = manifest.and_then(|one| serde_json::from_slice::<Value>(one).ok());
     let said = manifest.as_ref().and_then(|one| one["contract"].as_str());
-    said.filter(|one| !one.contains('-')).is_some_and(|one| {
-        major_of(one) == major_of(VERSION)
-            && minor_of(one)
-                .zip(minor_of(VERSION))
-                .is_some_and(|(said, here)| said > here)
-    })
+    said.is_some_and(later_than_this)
+}
+
+/// Whether a version of the contract says more than this writer knows, so sealing what came under it would drop that (154).
+pub fn later_than_this(said: &str) -> bool {
+    !said.contains('-')
+        && major_of(said) == major_of(VERSION)
+        && minor_of(said)
+            .zip(minor_of(VERSION))
+            .is_some_and(|(said, here)| said > here)
+}
+
+pub fn contract_of(main: &Opened) -> Option<String> {
+    let manifest: Value = serde_json::from_slice(&main.manifest).ok()?;
+    manifest["contract"].as_str().map(str::to_owned)
 }
 
 // What a later minor may add, this reader cannot tell from what is broken, and it shows neither.

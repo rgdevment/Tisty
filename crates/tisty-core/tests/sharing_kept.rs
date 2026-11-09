@@ -19,6 +19,7 @@ fn one(version: u64) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: None,
+        arrived_under: None,
     }
 }
 

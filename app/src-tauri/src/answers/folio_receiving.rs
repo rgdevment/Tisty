@@ -85,6 +85,7 @@ pub(super) struct Opened {
     pub signer: String,
     pub version: u64,
     pub verdict: Verdict,
+    pub contract: Option<String>,
 }
 
 impl Opened {
@@ -104,6 +105,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
     let main = opening(EnvelopeKind::Main);
     let sealed = reading::opened(&fetched.bytes, &main, &served).map_err(|e| unopened(&e))?;
     let owner = reading::owner_block(&sealed);
+    let contract = reading::contract_of(&sealed);
     let read = reading::reading(&fetched.bytes, &main, &served).map_err(|e| unopened(&e))?;
     let files = match read.document["files_hash"].as_str() {
         Some(hash) => {
@@ -128,6 +130,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
         signer: read.signer,
         version: fetched.version,
         verdict: read.verdict,
+        contract,
     })
 }
 
@@ -243,6 +246,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: received.carried.clone(),
+        arrived_under: opened.contract.clone(),
     }
 }
 

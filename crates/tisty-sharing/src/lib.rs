@@ -37,6 +37,10 @@ pub enum Unshared {
     Unwritten(String),
     #[error("Folio already holds as many languages of it as it takes")]
     LanguagesFull,
+    #[error(
+        "its last version came from a newer Tisty, and sealing it here would drop what this one does not know"
+    )]
+    Newer,
     #[error("the window did not finish {0}")]
     Unfinished(String),
     #[error(transparent)]

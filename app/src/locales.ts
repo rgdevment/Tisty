@@ -710,6 +710,8 @@ const en = {
   folioBlocked: "Reports closed this link, so Folio takes nothing more for it.",
   folioBehind: "Another version arrived first. Press Sync to bring it.",
   folioOutdated: "This Tisty is too old for Folio. Update it to share.",
+  folioNewerVersionHere:
+    "Its last version came from a newer Tisty. Update this one before sending yours, or what it does not know would be lost.",
   folioRevoked:
     "Folio did not take this computer's signature: its key was taken back. Type your phrase in Settings › Your identity to give it a new one.",
   folioGone: "This link no longer exists: it ran out or it was stopped.",
@@ -3670,6 +3672,8 @@ const es: Catalog = {
   folioBlocked: "Las denuncias cerraron este link, así que Folio no recibe nada más para él.",
   folioBehind: "Llegó otra versión antes. Presiona Sincronizar para traerla.",
   folioOutdated: "Este Tisty es demasiado antiguo para Folio. Actualízalo para compartir.",
+  folioNewerVersionHere:
+    "Su última versión llegó desde un Tisty más nuevo. Actualiza este antes de enviar la tuya, o se perdería lo que no conoce.",
   folioRevoked:
     "Folio no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase en Configuración › Tu identidad para darle una nueva.",
   folioGone: "Este link ya no existe: caducó o se dejó de compartir.",

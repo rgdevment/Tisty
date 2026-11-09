@@ -490,6 +490,7 @@ fn remembered(link_key: Option<&str>, edit_token: Option<&str>) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: None,
+        arrived_under: None,
     }
 }
 
