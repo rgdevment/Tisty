@@ -377,22 +377,37 @@ describe("the guide's cache", () => {
   it("names each page, so no rule joins its values with another's", () => {
     const rules: string = headers("logo.svg", pages(2));
 
-    expect(rules).toContain("/\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600");
     expect(rules).toContain(
-      "/topic-0\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600",
+      "/\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
     );
     expect(rules).toContain(
-      "/es/\n  Cache-Control: public, max-age=300, stale-while-revalidate=3600",
+      "/topic-0\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
+    );
+    expect(rules).toContain(
+      "/es/\n  Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=3600",
     );
     expect(rules).toContain("/logo.svg\n  Cache-Control: public, max-age=31536000, immutable");
     expect(rules).toContain("/fonts/*\n  Cache-Control: public, max-age=31536000, immutable");
     expect(rules).toContain("/es/rina.jpg\n  Cache-Control: public, max-age=86400");
-    expect(rules.split("\n")).not.toContain("/*");
     expect(rules.endsWith("\n")).toBe(true);
   });
 
+  it("asks every path, pages and files alike, to be reached only over HTTPS", () => {
+    const rules: string = headers("logo.svg", pages(2));
+
+    expect(rules.startsWith("/*\n  Strict-Transport-Security: max-age=15552000\n/")).toBe(true);
+    expect(rules.match(/Strict-Transport-Security/g)).toHaveLength(1);
+  });
+
+  it("keeps Cache-Control off the rule every path matches, so no page joins two values", () => {
+    const rules: string = headers("logo.svg", pages(2));
+    const everyPath = rules.split("\n/").find((one) => one.startsWith("/*\n"));
+
+    expect(everyPath).not.toContain("Cache-Control");
+  });
+
   it("refuses more rules than Pages applies, instead of losing the last pages' cache", () => {
-    expect(() => headers("logo.svg", pages(93))).not.toThrow();
-    expect(() => headers("logo.svg", pages(94))).toThrow(/101 header rules/);
+    expect(() => headers("logo.svg", pages(92))).not.toThrow();
+    expect(() => headers("logo.svg", pages(93))).toThrow(/101 header rules/);
   });
 });
