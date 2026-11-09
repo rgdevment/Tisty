@@ -1,20 +1,19 @@
 ---
 lang: en
 ---
-# How Tisty works
+# What is Tisty?
 
-Tisty keeps two things: **tasks**, what you are going to do, and **documents**, what you are going to read again. Everything stays on this computer, as text any program opens, with no accounts, no subscriptions and no telemetry. It is open source: anyone can audit it.
+Tisty is a quiet place for two things: what you have to do and what you want to keep. The first are **tasks**; the second, **documents**.
+
+Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it.
 
 And it does not forget. A task you finished is archived with what you wrote in it, and months later a search tells you how you solved it.
 
-If you ever get lost, the `?` at the foot of the sidebar opens the full help right here, offline too. And you can come back to this guide whenever you like from Settings → General.
+Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too, and you come back to this guide from Settings → General.
 
-## A task or a document?
+## How does it work?
 
-In short: if you are going to do it, it is a task; if you are going to read it again, it is a document.
-
-- **A task is something to do.** It ends, sometimes the same day: you complete it and it goes to the Archive, with its page, its steps and its notes. A task is knowledge with a date.
-- **A document is something to keep.** A manual, a recipe, the notes on a client, a year of minutes: you read it again and again, correct it and add to it for years.
+It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
@@ -29,6 +28,8 @@ flowchart TD
   C --> R[The archive:<br/>search tells you how you solved it]
   D --> G[Read, correct and add to it<br/>for years]
 ```
+
+**Try it:** click the drawing and it opens large. Double-click it and you are in the diagram window: move a box, change a label, and **Save to «What is Tisty?»** puts it back here, in your guide. That is also how you start one of your own.
 
 :::details An example: planning a trip
 
@@ -47,7 +48,7 @@ And if a task teaches you something you will need again, like the fix for a faul
 
 ### Write the way you speak
 
-There is no form to fill in. Type the whole sentence in the bar at the top and Tisty picks out the day, the list and the priority as you type.
+There is no form to fill in. Type the sentence the way you would say it to someone, in the bar at the top, and Tisty picks out the day, the list and the priority as you type.
 
 ![The capture bar with "Rina's booster on 3 October !do #health": the date in blue and the tag in pink, with the hints below](capture.png)
 
@@ -65,23 +66,23 @@ Each part it understands is coloured:
 
 Whatever is not coloured stays in the title, as written.
 
-Try these. Rina, from the examples, is a dog: her vaccines, her walks and her vet run through this whole guide.
+**Try it:** type one of these in the bar at the top and watch it take colour. Rina, from the examples, is a dog: her vaccines, her walks and her vet keep you company through the whole guide.
 
 - `Rina's booster on 3 October !do #health`
 - `Walk Rina every day`
 - `Hand in the report before Friday @work`
 
-All the words it understands, in English and in Spanish, are in [natural language](https://www.tisty.app/docs/natural-language/).
+If you only wanted a look, clear it before pressing `Enter`. All the words it understands, in English and in Spanish, are in [natural language](https://www.tisty.app/docs/natural-language/).
 
 ### Capture without opening the window
 
-Press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write a task. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing.
+Something comes to mind in the middle of something else: press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write it. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing. Try it now, without leaving this guide.
 
 If another program already uses that shortcut, Tisty takes another one and tells you which in Settings.
 
 ### Today, Upcoming, Repeating and All
 
-The task list is split into four views:
+Your task list can be seen four ways:
 
 - **Today** — what the day asks for, most urgent first:
   - **overdue**: its deadline passed;
@@ -92,11 +93,11 @@ The task list is split into four views:
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
 
-What is overdue sits at the top, in red; what is late, in amber. A task is overdue only once its deadline passes: if you gave it a day and nothing more, it runs late, but it is never overdue. And nobody chases you: Tisty keeps no streaks or points for emptying the list.
+What is overdue sits at the top, in red; what is late, in amber. A task is overdue only once its deadline passes: if you gave it a day and nothing more, it runs late, but it is never overdue. And nobody chases you: Tisty keeps no streaks or points for emptying the list. What you did not get to today is still there tomorrow.
 
 ### The Spread and reminders
 
-**Spread**, in the sidebar, is your work calendar: it is where you decide what you do each day. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If that day already carries two, Tisty tells you and offers the next free one. **Month** shows the same as a grid.
+**Spread**, in the sidebar, is your work calendar: it is where you calmly decide what you do each day. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If that day already carries two, Tisty tells you and offers the next free one. **Month** shows the same as a grid.
 
 A reminder is a time you choose on the task: it rings as a system notification, on this computer only, with a short sound you can turn off. More in [the Spread and reminders](https://www.tisty.app/docs/spread-and-reminders/).
 
@@ -158,6 +159,8 @@ And if you want to know what is spare or missing in everything you keep, Setting
 
 A document is yours and is kept as Markdown: plain text with a few marks, like `**bold**`, that any program opens. You do not need to learn them: the `/` key offers you all of them. And what matters is the file: if you delete Tisty tomorrow, your documents still open in any text editor.
 
+**Try it:** click this very paragraph. It opens for writing, with its marks in view; `Esc` turns it back into the page.
+
 **To make one**, go to Documents and use the **+** at the top: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
 
 The first line of the document is its title: there is no name to fill in anywhere else. Its properties, such as its tags or the paper it prints on, show in the panel beside it, under **About this document**.
@@ -170,7 +173,7 @@ To write:
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
 
-**Export**, in the document's panel, prints it, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor.
+**Export**, in the document's panel, prints it, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
 
 And when a matter is over, archive its folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written; unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
 
@@ -182,7 +185,7 @@ A manual for the people you work with, in Spanish and English; a contract in two
 
 **To translate one**, open the document's menu and choose **Translate into…**: Tisty makes a copy of its text and its pages, ready for you to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again.
 
-The switch sits in the title panel and takes you to the same section in the other language; in this guide, pick Español and you will see. Moving, archiving or deleting acts on every language at once.
+The switch sits in the title panel and takes you to the same section in the other language. **Try it:** pick Español in this guide and you land right here, in Spanish; come back with English. Moving, archiving or deleting acts on every language at once.
 
 ### A document with pages
 
@@ -190,7 +193,7 @@ A year of minutes, a book in chapters, Rina's life told year by year: that does 
 
 A page is a document like any other, with its own file, that also says which document it belongs to. There is one level and no more: a page has no pages.
 
-**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. This is how this guide's only page looks; open it to see one from inside:
+**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. **Try it:** this guide has one page, and it is this card. Open it with a click and see at the top which document it belongs to:
 
 ![Rina: this guide's example page](tisty:page)
 
@@ -207,7 +210,7 @@ A page can be archived on its own, with a right-click, and stays dimmed in its d
 
 If a document will end up printed or as a PDF, you decide where each sheet starts. A line with only `---` cuts it: what follows goes on the next sheet, and `Ctrl`/`⌘` + `Enter` writes it for you.
 
-Turn on **Sheets** in the document's panel to see it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own. Exporting to PDF gives those same sheets. There is one of those rules just below: turn on **Sheets** and see where the next paragraph lands.
+Turn on **Sheets** in the document's panel to see it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own. Exporting to PDF gives those same sheets. **Try it:** there is one of those rules just below; turn on **Sheets** and see where the next paragraph lands.
 
 ---
 
@@ -215,7 +218,7 @@ This paragraph starts on a new sheet, because of the rule above.
 
 ### Diagrams by hand
 
-A diagram tells at a glance what a paragraph takes a while to explain, like the one in "A task or a document?" at the start. You write it as text, in a code block with the language `mermaid`, and Tisty draws it. A click enlarges it; a double-click opens it in the diagram window, where you can also draw mind maps, schemas, freeform diagrams or class diagrams by hand.
+A diagram tells at a glance what a paragraph takes a while to explain, like the one in "How does it work?" at the start. You write it as text, in a code block with the language `mermaid`, and Tisty draws it. A click enlarges it; a double-click opens it in the diagram window, where you can also draw mind maps, schemas, freeform diagrams or class diagrams by hand.
 
 ![The diagram window with this guide's diagram: the shapes on the left, the drawing in the middle and its text on the right](diagrams.png)
 
@@ -248,7 +251,7 @@ sequenceDiagram
 
 ### What fits inside a document
 
-This section is a showcase: every form a document can take, with a live example. If you only want to write, skip it; everything is inserted with `/` when you need it. It is ordinary Markdown, so GitHub reads it the same as Tisty, and `F1` opens the [Tisty Markdown guide](https://markdown.tisty.app) on the form you are writing.
+This section is a showcase: every form a document can take, with a live example you can touch. If you only want to write, skip it; everything is inserted with `/` when you need it. It is ordinary Markdown, so GitHub reads it the same as Tisty, and `F1` opens the [Tisty Markdown guide](https://markdown.tisty.app) on the form you are writing.
 
 Or see it all together, one of each, on its own page:
 
@@ -295,7 +298,7 @@ And nearly anything fits inside a callout, not only text:
 
 #### Tables
 
-A table is written right on the page: click a cell and type. The `⋯` menu of a row or a column moves, duplicates or removes it, and gives a column a type: a date with its calendar, money, options with their colours, stars or a switch, with its total at the foot. Sort and filter from a column's title without touching the file.
+A table is written right on the page: click a cell and type. The `⋯` menu of a row or a column moves, duplicates or removes it, and gives a column a type: a date with its calendar, money, options with their colours, stars or a switch, with its total at the foot. Sort and filter from a column's title without touching the file: **try it** with "Vaccine", just below.
 
 | Vaccine | Given | Due again |
 | :--- | :---: | ---: |
@@ -376,6 +379,8 @@ What you write in Tisty is kept exactly as you wrote it: properties, footnotes, 
 
 ## Your data
 
+What you write is yours, and this is how to look after it: take it to another computer, encrypt it and share it only with whoever you choose.
+
 ### Your copies in the cloud and syncing
 
 Tisty always works on this computer. To have the same on another one, tell it where to leave the copies, in Settings → Sync:
@@ -409,6 +414,8 @@ The first time, Share asks you to create your identity: the key you sign what yo
 ---
 
 ## When you want more
+
+None of this is needed to get started. It is here for when you need it.
 
 ### An assistant can write here
 

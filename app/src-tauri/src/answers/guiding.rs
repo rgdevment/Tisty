@@ -146,12 +146,15 @@ pub fn spoken_again(session: &mut Session) {
     let root = session.paths.docs();
     let mut covers: Vec<(DocId, &str)> = Vec::new();
     for one in &SPOKEN {
-        let title = tisty_core::docs::titled(one.told);
         let found = session.state.papers().find(|kept| {
             kept.by.as_deref() == Some(WRITTEN_BY)
                 && kept.guest
                 && kept.page_of.is_none()
-                && kept.title.as_deref() == Some(title.as_str())
+                && kept
+                    .title
+                    .as_deref()
+                    .and_then(tisty_core::untouched::guide_tongue)
+                    == Some(one.tongue)
                 && !session.state.held_away(kept)
         });
         if let Some(kept) = found {
@@ -319,12 +322,13 @@ pub fn signed_guide_here(
 
 // A copy or another version is never joined, never the guide Tisty opened, and its title says it is a copy.
 fn the_guide_itself(session: &Session, kept: &tisty_core::model::Kept) -> bool {
-    let titled = |one: &Spoken| tisty_core::docs::titled(one.told);
     !session.state.tongues_of(kept.id).is_empty()
         || session.config.guide.as_deref() == Some(kept.file.as_str())
-        || SPOKEN
-            .iter()
-            .any(|one| kept.title.as_deref() == Some(titled(one).as_str()))
+        || kept
+            .title
+            .as_deref()
+            .and_then(tisty_core::untouched::guide_tongue)
+            .is_some()
 }
 
 // Only the guide as it was sown is put away: one someone wrote in, a copy or another version stays theirs.

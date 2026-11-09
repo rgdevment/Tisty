@@ -506,7 +506,7 @@
     "name": "guide-en",
     "file": "app/src-tauri/resources/guide/en/guide.md",
     "falls_short": "drops the final newline",
-    "title": "How Tisty works",
+    "title": "What is Tisty?",
     "tags": [
       "health",
       "home",
@@ -585,7 +585,7 @@
     "name": "guide-es",
     "file": "app/src-tauri/resources/guide/es/guia.md",
     "falls_short": "drops the final newline",
-    "title": "Cómo funciona Tisty",
+    "title": "¿Qué es Tisty?",
     "tags": [
       "salud",
       "casa",

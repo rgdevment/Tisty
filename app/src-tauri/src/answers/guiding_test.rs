@@ -132,6 +132,38 @@ fn old_guides_nobody_wrote_in_say_their_language_and_come_together() {
 }
 
 #[test]
+fn old_guides_under_the_title_they_had_before_say_their_language_and_come_together() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths).unwrap();
+    let folder = lived_in(&mut session);
+    let told_es =
+        super::super::settings::GUIDE_ES.replacen("# ¿Qué es Tisty?", "# Cómo funciona Tisty", 1);
+    let told_en =
+        super::super::settings::GUIDE_EN.replacen("# What is Tisty?", "# How Tisty works", 1);
+    let es = old_guide(&mut session, folder, &told_es);
+    let en = old_guide(&mut session, folder, &told_en);
+
+    super::spoken_again(&mut session);
+
+    assert_eq!(session.state.docs[&es].lang.as_deref(), Some("es"));
+    assert_eq!(session.state.tongues_of(en).len(), 2);
+}
+
+#[test]
+fn every_title_the_guide_ships_with_is_known_as_the_guides() {
+    for one in &super::SPOKEN {
+        let title = tisty_core::docs::titled(one.told);
+        assert_eq!(
+            tisty_core::untouched::guide_tongue(&title),
+            Some(one.tongue),
+            "{title}"
+        );
+    }
+}
+
+#[test]
 fn an_old_guide_someone_wrote_in_is_left_as_it_is() {
     let tmp = tempfile::tempdir().unwrap();
     let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));

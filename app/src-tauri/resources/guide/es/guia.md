@@ -1,20 +1,19 @@
 ---
 lang: es
 ---
-# Cómo funciona Tisty
+# ¿Qué es Tisty?
 
-Tisty guarda dos cosas: **tareas**, lo que vas a hacer, y **documentos**, lo que vas a volver a leer. Todo queda en este equipo, como texto que cualquier programa abre, sin cuentas, sin suscripciones y sin telemetría. Es de código abierto: cualquiera puede auditarlo.
+Tisty es un lugar tranquilo para dos cosas: lo que tienes que hacer y lo que quieres guardar. Lo primero son **tareas**; lo segundo, **documentos**.
+
+Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo.
 
 Y no olvida. Una tarea que terminaste se archiva con lo que escribiste en ella, y meses después una búsqueda te cuenta cómo lo resolviste.
 
-Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa aquí mismo, también sin conexión. Y a esta guía vuelves cuando quieras desde Configuración → General.
+Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión, y a esta guía vuelves desde Configuración → General.
 
-## ¿Tarea o documento?
+## ¿Cómo funciona?
 
-En corto: si lo vas a hacer, es una tarea; si lo vas a volver a leer, es un documento.
-
-- **Una tarea es algo por hacer.** Se acaba, a veces el mismo día: la completas y pasa al Archivo, con su página, sus pasos y sus notas. Una tarea es conocimiento con fecha.
-- **Un documento es algo para guardar.** Un manual, una receta, las notas de un cliente, las actas de un año: lo lees una y otra vez, lo corriges y lo amplías durante años.
+Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
@@ -29,6 +28,8 @@ flowchart TD
   C --> R[El archivo:<br/>la búsqueda te dice cómo lo resolviste]
   D --> G[Léelo, corrígelo y amplíalo<br/>durante años]
 ```
+
+**Pruébalo:** haz clic en el dibujo y se abre en grande. Con doble clic entras a la ventana de diagramas: mueve una caja, cambia un texto, y **Guardar en «¿Qué es Tisty?»** lo deja aquí, en tu guía. Así se empieza también uno propio.
 
 :::details Un ejemplo: planear un viaje
 
@@ -47,7 +48,7 @@ Y si una tarea te enseña algo que vas a necesitar de nuevo, como el arreglo de 
 
 ### Escribe como hablas
 
-No hay formulario que llenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras escribes.
+No hay formulario que llenar. Escribe la frase como se la dirías a alguien, en la barra de arriba, y Tisty va separando el día, la lista y la prioridad mientras escribes.
 
 ![La barra de captura con «Vacuna de Rina el 3 de octubre !hacer #salud»: la fecha en azul y la etiqueta en rosa, con las pistas debajo](captura.png)
 
@@ -65,23 +66,23 @@ Cada parte que entiende se colorea:
 
 Lo que no se colorea se queda en el título, tal cual.
 
-Prueba con estas. Rina, la de los ejemplos, es una perra: sus vacunas, sus paseos y su veterinario acompañan toda esta guía.
+**Pruébalo:** escribe una de estas en la barra de arriba y mira cómo se colorea. Rina, la de los ejemplos, es una perra: sus vacunas, sus paseos y su veterinario te acompañan en toda la guía.
 
 - `Vacuna de Rina el 3 de octubre !hacer #salud`
 - `Sacar a Rina cada día`
 - `Entregar el informe antes del viernes @trabajo`
 
-Todas las palabras que entiende, en español y en inglés, están en [lenguaje natural](https://www.tisty.app/es/ayuda/lenguaje-natural/).
+Si solo querías mirar, bórrala antes de presionar `Enter`. Todas las palabras que entiende, en español y en inglés, están en [lenguaje natural](https://www.tisty.app/es/ayuda/lenguaje-natural/).
 
 ### Captura sin abrir la ventana
 
-Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribir una tarea. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo.
+Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribirlo. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo. Pruébalo ahora, sin salir de esta guía.
 
 Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración.
 
 ### Hoy, Próximo, Se repiten y Todas
 
-La lista de tareas se divide en cuatro vistas:
+Tu lista de tareas se mira de cuatro maneras:
 
 - **Hoy** — lo que pide el día, lo más urgente primero:
   - **vencidas**: pasó su fecha límite;
@@ -92,11 +93,11 @@ La lista de tareas se divide en cuatro vistas:
 - **Se repiten** — lo que vuelve por su cuenta.
 - **Todas** — todo lo abierto, sin filtro.
 
-Lo vencido sale arriba y en rojo; lo atrasado, en ámbar. Una tarea vence únicamente cuando pasa su fecha límite: si le pusiste un día y nada más, se atrasa, pero no vence. Y nadie te persigue: Tisty no lleva rachas ni puntos por vaciar la lista.
+Lo vencido sale arriba y en rojo; lo atrasado, en ámbar. Una tarea vence únicamente cuando pasa su fecha límite: si le pusiste un día y nada más, se atrasa, pero no vence. Y nadie te persigue: Tisty no lleva rachas ni puntos por vaciar la lista. Lo que no alcanzaste hoy, mañana sigue ahí.
 
 ### El reparto y los recordatorios
 
-**Reparto**, en la barra lateral, es tu calendario de trabajo: ahí decides qué haces cada día. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si ese día ya lleva dos, Tisty te lo dice y te ofrece el siguiente libre. **Mes** muestra lo mismo en cuadrícula.
+**Reparto**, en la barra lateral, es tu calendario de trabajo: ahí decides con calma qué haces cada día. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si ese día ya lleva dos, Tisty te lo dice y te ofrece el siguiente libre. **Mes** muestra lo mismo en cuadrícula.
 
 Un recordatorio es una hora que eliges en la tarea: suena como una notificación del sistema, solo en este equipo, con un sonido corto que puedes apagar. Más en [el reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/).
 
@@ -158,6 +159,8 @@ Y si quieres saber qué sobra o qué falta en todo lo que guardas, Configuració
 
 Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas, como `**negrita**`, que cualquier programa abre. No hace falta aprenderlas: la tecla `/` te las ofrece todas. Y lo que importa es el archivo: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
 
+**Pruébalo:** haz clic en este mismo párrafo. Se abre para escribir, con sus marcas a la vista; `Esc` lo devuelve a la página.
+
 **Para hacer uno**, ve a Documentos y usa el **+** de arriba: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
 
 La primera línea del documento es su título: no hay que ponerle nombre en ninguna otra parte. Sus propiedades, como las etiquetas o el papel en que se imprime, se ven en el panel de al lado, en **Sobre este documento**.
@@ -170,7 +173,7 @@ Para escribir:
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
 
-**Exportar**, en el panel del documento, lo imprime, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor.
+**Exportar**, en el panel del documento, lo imprime, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
 
 Y cuando un asunto ya pasó, archiva su carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe; desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
@@ -182,7 +185,7 @@ Un manual para la gente con la que trabajas, en español y en inglés; un contra
 
 **Para traducir uno**, abre el menú del documento y elige **Traducir a…**: Tisty crea una copia de su texto y de sus páginas, lista para que la traduzcas sección por sección. Si ya tienes los dos escritos, **Unir con su otro idioma…** los junta, y **Separar de sus idiomas** los vuelve a separar.
 
-El selector está en el panel del título y te deja en la misma sección del otro idioma; en esta guía, elige English y lo verás. Mover, archivar o borrar actúa sobre todos los idiomas a la vez.
+El selector está en el panel del título y te deja en la misma sección del otro idioma. **Pruébalo:** elige English en esta guía y llegas aquí mismo, en inglés; vuelve con Español. Mover, archivar o borrar actúa sobre todos los idiomas a la vez.
 
 ### Un documento con páginas
 
@@ -190,7 +193,7 @@ Un año de actas, un libro por capítulos, la vida de Rina contada año a año: 
 
 Una página es un documento como cualquier otro, con su propio archivo, que además dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
 
-**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. Así se ve la única página de esta guía; ábrela para ver una por dentro:
+**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. **Pruébalo:** esta guía tiene una página, y es esta tarjeta. Ábrela con un clic y mira arriba de qué documento es:
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
@@ -207,7 +210,7 @@ Una página se puede archivar por separado, con el botón derecho, y queda atenu
 
 Si un documento va a terminar impreso o en PDF, tú decides dónde empieza cada hoja. Una línea con solo `---` la corta: lo que sigue va en la hoja siguiente, y `Ctrl`/`⌘` + `Enter` la escribe por ti.
 
-Enciende **Hojas** en el panel del documento para verlo en hojas de verdad (A4, Carta u Oficio, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente. Al exportar a PDF salen esas mismas hojas. Aquí abajo hay una raya de esas: enciende **Hojas** y mira dónde cae el párrafo que sigue.
+Enciende **Hojas** en el panel del documento para verlo en hojas de verdad (A4, Carta u Oficio, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente. Al exportar a PDF salen esas mismas hojas. **Pruébalo:** aquí abajo hay una raya de esas; enciende **Hojas** y mira dónde cae el párrafo que sigue.
 
 ---
 
@@ -215,7 +218,7 @@ Este párrafo empieza en una hoja nueva, por la raya de arriba.
 
 ### Diagramas a mano
 
-Un diagrama cuenta de un vistazo lo que un párrafo tarda en explicar, como el de «¿Tarea o documento?» al principio. Lo escribes como texto, en un bloque de código con el lenguaje `mermaid`, y Tisty lo dibuja. Un clic lo agranda; un doble clic lo abre en la ventana de diagramas, donde también puedes dibujar a mano mapas mentales, esquemas, diagramas libres o de clases.
+Un diagrama cuenta de un vistazo lo que un párrafo tarda en explicar, como el de «¿Cómo funciona?» al principio. Lo escribes como texto, en un bloque de código con el lenguaje `mermaid`, y Tisty lo dibuja. Un clic lo agranda; un doble clic lo abre en la ventana de diagramas, donde también puedes dibujar a mano mapas mentales, esquemas, diagramas libres o de clases.
 
 ![La ventana de diagramas con el diagrama de esta guía: las formas a la izquierda, el dibujo al centro y su texto a la derecha](diagramas.png)
 
@@ -248,7 +251,7 @@ sequenceDiagram
 
 ### Lo que cabe dentro de un documento
 
-Esta sección es un muestrario: cada forma que puede tomar un documento, con un ejemplo vivo. Si solo quieres escribir, sáltatela; todo se inserta con `/` cuando lo necesites. Es Markdown corriente, así que GitHub lo lee igual que Tisty, y `F1` abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) en la forma que estás escribiendo.
+Esta sección es un muestrario: cada forma que puede tomar un documento, con un ejemplo vivo que puedes tocar. Si solo quieres escribir, sáltatela; todo se inserta con `/` cuando lo necesites. Es Markdown corriente, así que GitHub lo lee igual que Tisty, y `F1` abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) en la forma que estás escribiendo.
 
 O míralo todo junto, uno de cada cosa, en su propia página:
 
@@ -295,7 +298,7 @@ Y dentro de un aviso cabe casi todo, no solo texto:
 
 #### Tablas
 
-Una tabla se escribe en la misma página: haz clic en una celda y escribe. El menú `⋯` de una fila o columna la mueve, la duplica o la quita, y le da un tipo a una columna: una fecha con su calendario, dinero, opciones con su color, estrellas o un interruptor, con su total al pie. Ordena y filtra desde el título de una columna sin tocar el archivo.
+Una tabla se escribe en la misma página: haz clic en una celda y escribe. El menú `⋯` de una fila o columna la mueve, la duplica o la quita, y le da un tipo a una columna: una fecha con su calendario, dinero, opciones con su color, estrellas o un interruptor, con su total al pie. Ordena y filtra desde el título de una columna sin tocar el archivo: **pruébalo** con «Vacuna», aquí abajo.
 
 | Vacuna | Puesta | Toca otra vez |
 | :--- | :---: | ---: |
@@ -376,6 +379,8 @@ Lo que escribes en Tisty se guarda tal como lo escribiste: propiedades, notas al
 
 ## Tus datos
 
+Lo que escribes es tuyo, y aquí está cómo cuidarlo: llevarlo a otro equipo, cifrarlo y compartirlo solo con quien quieras.
+
 ### Tus copias en la nube y sincronizar
 
 Tisty trabaja siempre en este equipo. Para tener lo mismo en otro, dile dónde dejar las copias, en Configuración → Sincronizar:
@@ -409,6 +414,8 @@ La primera vez, Compartir te pide crear tu identidad: la llave con que firmas lo
 ---
 
 ## Cuando quieras más
+
+Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 
 ### Un asistente puede escribir aquí
 
