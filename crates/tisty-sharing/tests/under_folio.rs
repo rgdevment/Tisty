@@ -10,7 +10,7 @@ use tisty_core::model::DocId;
 use tisty_core::{DeviceKind, Op, person};
 use tisty_envelope::reading;
 use tisty_share_proto::seed::Seed;
-use tisty_sharing::{Desk, Gathered, Remembered, Under, Unshared, gathered_under};
+use tisty_sharing::{Desk, Gathered, Remembered, Told, Under, Unshared, gathered_under};
 
 const GIVEN: &str = "Ab3xK9pQ";
 
@@ -474,6 +474,111 @@ fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_agai
             ("Ana".to_owned(), false)
         ]
     );
+}
+
+#[test]
+fn whoever_holds_only_the_read_link_shares_their_copy_as_a_new_document_based_on_the_original() {
+    let (_tmp, owner, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let read_only = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = owner.sealed(signed_as(&owner, doc, &read_only, "Mario"), vec![]);
+    let (_, shared) = first.remembering[0].clone();
+    let original = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: shared.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    let one = reading::reading(&first.going[0].sealed.main, &original, &served).unwrap();
+
+    let tmp = tempfile::tempdir().unwrap();
+    let mut reader = Home::at(tmp.path());
+    another_person(&mut reader);
+    let body = format!("{}Y lo de Ana.\n", one.document["body"].as_str().unwrap());
+    let made = tisty_core::docs::create(&reader.paths.docs(), &reader.device, &body).unwrap();
+    let copy = ulid::Ulid::generate();
+    reader.commit(Op::DocAdd {
+        id: copy,
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(&body)),
+            guest: true,
+            by: Some("Mario".into()),
+            ..Default::default()
+        },
+    });
+    reader.sent(&[(
+        made.id.clone(),
+        Remembered {
+            admin_token: None,
+            edit_token: None,
+            owner: None,
+            owner_name: Some("Mario".to_owned()),
+            carried: Some(serde_json::json!({ "editors": one.document["editors"] }).to_string()),
+            ..shared.clone()
+        },
+    )]);
+
+    let asked_for = Cell::new(0);
+    let new_id = || {
+        asked_for.set(asked_for.get() + 1);
+        Ok("CopyOfAn".to_owned())
+    };
+    let anew = Under {
+        mint: &new_id,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let gathered = signed_as(&reader, copy, &anew, "Ana");
+    assert!(
+        gathered.told().iter().any(
+            |one| matches!(one, Told::ACopy { of, editors } if of == "Mario" && editors.is_empty())
+        ),
+        "{:?}",
+        gathered.told()
+    );
+    let second = reader.sealed(gathered, vec![]);
+    assert_eq!(asked_for.get(), 1, "a copy never goes to the original's id");
+    let (file, went) = second.remembering[0].clone();
+    assert_eq!(went.id, "CopyOfAn");
+    assert_eq!(went.version, 1);
+    assert!(went.admin_token.is_some());
+    let theirs = Opening {
+        id: "CopyOfAn".to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: went.link_key.clone(),
+    };
+    let read = reading::reading(&second.going[0].sealed.main, &theirs, &served).unwrap();
+    assert_ne!(read.owner, one.owner);
+    assert_eq!(read.owner.as_deref(), Some(read.signer.as_str()));
+    assert_eq!(
+        names_in(&read.document),
+        [("Mario".to_owned(), true), ("Ana".to_owned(), true)]
+    );
+    assert_eq!(read.document["editors"][0]["in"], GIVEN);
+    assert_eq!(read.document["editors"][1]["in"], "CopyOfAn");
+
+    reader.sent(&[(file, went)]);
+    let again = signed_as(&reader, copy, &anew, "Ana");
+    assert!(
+        !again
+            .told()
+            .iter()
+            .any(|one| matches!(one, Told::ACopy { .. }))
+    );
+    assert_eq!(reader.sealed(again, vec![]).remembering[0].1.id, "CopyOfAn");
+    assert_eq!(asked_for.get(), 1);
 }
 
 #[test]

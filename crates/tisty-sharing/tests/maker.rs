@@ -181,11 +181,19 @@ fn what_tisty_sowed_never_goes_out_signed_as_tisty() {
 }
 
 #[test]
-fn the_maker_still_cannot_share_what_someone_else_wrote() {
+fn the_maker_shares_what_someone_else_wrote_only_as_a_copy_of_its_own() {
     let (_tmp, mut home) = home();
     home.maker = Some(the_root());
     let theirs = added(&mut home, "# De Ana\n", "Ana", None, None, false);
-    assert!(matches!(refused(&home, theirs), Some(Unshared::NotOwn)));
+    assert!(refused(&home, theirs).is_none());
+    let out = sealed(&home, &asked(theirs));
+    assert!(
+        out.told
+            .iter()
+            .any(|one| matches!(one, Told::ACopy { of, .. } if of == "Ana")),
+        "{:?}",
+        out.told
+    );
 }
 
 #[test]

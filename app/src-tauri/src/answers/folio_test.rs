@@ -667,6 +667,7 @@ fn the_edit_link_exists_only_where_a_token_does() {
             owner: None,
             signer: None,
             editors: Vec::new(),
+            based_on: None,
             signs_as: None,
         })
     );

@@ -46,6 +46,35 @@ struct Carried {
     editors: Option<Vec<Editor>>,
 }
 
+// Asked of a copy only before its first version: once it is shared, its own link remembers it.
+fn a_copy(kept: &Kept, based_on: &BTreeMap<String, Option<String>>) -> Told {
+    let editors = editors_only(based_on.get(&kept.file).cloned().flatten())
+        .editors
+        .unwrap_or_default();
+    let owner = editors
+        .iter()
+        .find(|one| one.owned == Some(true))
+        .map(|one| one.name.clone());
+    Told::ACopy {
+        of: owner.or_else(|| kept.by.clone()).unwrap_or_default(),
+        editors: editors
+            .into_iter()
+            .filter(|one| one.owned != Some(true))
+            .map(|one| one.name)
+            .collect(),
+    }
+}
+
+fn editors_only(said: Option<String>) -> Carried {
+    let editors = said
+        .and_then(|said| serde_json::from_str::<serde_json::Value>(&said).ok())
+        .and_then(|said| serde_json::from_value(said["editors"].clone()).ok());
+    Carried {
+        editors,
+        ..Carried::default()
+    }
+}
+
 fn carried_by(was: Option<&Remembered>) -> Carried {
     was.and_then(|one| one.carried.as_deref())
         .and_then(|said| serde_json::from_str(said).ok())
@@ -124,6 +153,35 @@ fn goes_as_mine(desk: &Desk, kept: &Kept, edits_through_a_link: bool) -> bool {
     !kept.guest || edits_through_a_link || desk.maker.is_some_and(|root| sown_by(desk, kept, root))
 }
 
+// Another's words go only as a new document of one's own (140); what Tisty sowed is nobody's to copy out.
+fn goes_as_a_copy(kept: &Kept) -> bool {
+    kept.guest && !kept.sown && kept.by.as_deref() != Some(tisty_core::untouched::SOWN_BY)
+}
+
+// What a copy remembers of the share it came from is the original's: it goes under a new id and keeps only who edited it.
+fn copies_apart(
+    state: &State,
+    shelf: &mut BTreeMap<String, Remembered>,
+) -> BTreeMap<String, Option<String>> {
+    let guests: BTreeSet<&str> = state
+        .docs
+        .values()
+        .filter(|kept| kept.guest)
+        .map(|kept| kept.file.as_str())
+        .collect();
+    let copies: Vec<String> = shelf
+        .iter()
+        .filter(|(file, one)| {
+            guests.contains(file.as_str()) && one.admin_token.is_none() && one.edit_token.is_none()
+        })
+        .map(|(file, _)| file.clone())
+        .collect();
+    copies
+        .into_iter()
+        .filter_map(|file| shelf.remove(&file).map(|one| (file, one.carried)))
+        .collect()
+}
+
 // A store can hold another person's machines, and one of them could write the mark too.
 fn sown_by(desk: &Desk, kept: &Kept, root: Person) -> bool {
     kept.sown
@@ -133,10 +191,12 @@ fn sown_by(desk: &Desk, kept: &Kept, root: Person) -> bool {
             .is_some_and(|device| desk.state.persons.answers_to(device).contains(&root))
 }
 
+// Only the document asked for, and its own languages and pages, may go as a copy: nothing of another's goes along unasked.
 fn sharable<'a>(
     desk: &Desk<'a>,
     id: DocId,
     shelf: &BTreeMap<String, Remembered>,
+    copies: bool,
 ) -> Result<&'a Kept, Unshared> {
     let state = desk.state;
     let kept = state.docs.get(&id).ok_or(Unshared::NoSuchDoc)?;
@@ -146,7 +206,7 @@ fn sharable<'a>(
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(|one| one.edit_token.is_some());
-    if !goes_as_mine(desk, kept, edits_through_a_link) {
+    if !goes_as_mine(desk, kept, edits_through_a_link) && !(copies && goes_as_a_copy(kept)) {
         return Err(Unshared::NotOwn);
     }
     if state.shut(id) {
@@ -370,6 +430,9 @@ struct Gathering<'a> {
     cited: Vec<Family>,
     gathered_cited: BTreeMap<DocId, usize>,
     cites: BTreeMap<String, Vec<usize>>,
+    based_on: BTreeMap<String, Option<String>>,
+    copying: bool,
+    top: DocId,
 }
 
 impl Gathering<'_> {
@@ -382,7 +445,8 @@ impl Gathering<'_> {
             .get(&kept.file)
             .is_some_and(|one| one.edit_token.is_some());
         for page in state.pages_read(kept.id, body) {
-            let not_ours = !goes_as_mine(self.desk, page, edits_through_a_link);
+            let as_a_copy = self.copying && goes_as_a_copy(kept) && goes_as_a_copy(page);
+            let not_ours = !goes_as_mine(self.desk, page, edits_through_a_link) && !as_a_copy;
             let stays = not_ours || state.shut(page.id) || state.held_away(page);
             let read = (!stays)
                 .then(|| docs::read(&root, &page.file).ok())
@@ -488,7 +552,10 @@ impl Gathering<'_> {
             None => Some(link_key()?),
         };
         let its_owner = was.and_then(|one| one.owner.clone());
-        let carried = carried_by(was);
+        let carried = match was {
+            Some(_) => carried_by(was),
+            None => editors_only(self.based_on.get(&kept.file).cloned().flatten()),
+        };
         let owner_name = match (&its_owner, was) {
             (Some(_), Some(one)) => one.owner_name.clone(),
             _ => self.signed_as.clone().filter(|_| !self.public),
@@ -556,10 +623,11 @@ impl Gathering<'_> {
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
-        let kept = sharable(self.desk, doc, &self.shelf)?;
+        let copies = self.copying && doc == self.top;
+        let kept = sharable(self.desk, doc, &self.shelf, copies)?;
         let mut going = Vec::new();
         for one in languages_of(state, kept) {
-            if sharable(self.desk, one.id, &self.shelf).is_ok() {
+            if sharable(self.desk, one.id, &self.shelf, copies).is_ok() {
                 going.push(one);
             } else {
                 self.told.push(Told::LanguageLeftBehind {
@@ -734,8 +802,13 @@ pub fn gathered_within(
 // It sends nothing and remembers nothing.
 pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathered, Unshared> {
     let state = desk.state;
-    let shelf = remembered(state).clone();
-    let top = sharable(desk, asked.doc, &shelf)?;
+    let mut shelf = remembered(state).clone();
+    let based_on = copies_apart(state, &mut shelf);
+    let top = sharable(desk, asked.doc, &shelf, true)?;
+    let edits = shelf
+        .get(&top.file)
+        .is_some_and(|one| one.edit_token.is_some());
+    let copying = goes_as_a_copy(top) && !goes_as_mine(desk, top, edits);
     let editable_anchor = under.editable.then(|| state.anchor_of(top));
     // What Tisty sowed goes out under the maker's alias, so nothing reads as the app speaking.
     let wanted = asked
@@ -756,10 +829,17 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         titles: BTreeMap::new(),
         cited: Vec::new(),
         gathered_cited: BTreeMap::new(),
+        based_on,
+        copying,
+        top: top.id,
         cites: BTreeMap::new(),
     };
     if wanted.is_some() && signed_as.is_none() {
         gathering.told.push(Told::NameLeftOut);
+    }
+    if gathering.copying && !gathering.shelf.contains_key(&top.file) {
+        let copy = a_copy(top, &gathering.based_on);
+        gathering.told.push(copy);
     }
     // One family goes once, whichever of its languages was ticked and however many times.
     let mut seen = BTreeSet::from([state.anchor_of(top)]);
@@ -769,7 +849,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
             continue;
         };
         // What cannot go stays as its words, as a language or a page that cannot: it never stops the rest.
-        if sharable(desk, *doc, &gathering.shelf).is_err() {
+        if sharable(desk, *doc, &gathering.shelf, false).is_err() {
             gathering.told.push(Told::CitedLeftBehind {
                 document: kept.title.clone().unwrap_or_default(),
             });
@@ -796,7 +876,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
 pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
     let state = desk.state;
     let shelf = remembered(state);
-    let kept = sharable(desk, doc, shelf)?;
+    let kept = sharable(desk, doc, shelf, true)?;
     let body = docs::read(&desk.paths.docs(), &kept.file).map_err(unread)?;
     let names = named(&drawn(&body)).documents;
     let pages = state.pages_read(kept.id, &body);
@@ -807,7 +887,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .filter(|one| {
             !group.iter().any(|same| same.id == one.id)
                 && !pages.iter().any(|page| page.id == one.id)
-                && sharable(desk, one.id, shelf).is_ok()
+                && sharable(desk, one.id, shelf, false).is_ok()
                 && names.iter().any(|name| {
                     *name == one.file
                         || one

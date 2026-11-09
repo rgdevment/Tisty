@@ -12,7 +12,8 @@ export type Told =
   | { what: "pageLeftBehind" | "citedLeftBehind"; document: string }
   | { what: "languageLeftBehind"; language: string }
   | { what: "languageOverTheTop"; language: string; top: number }
-  | { what: "nameLeftOut" | "takenBackNotKept" };
+  | { what: "nameLeftOut" | "takenBackNotKept" }
+  | { what: "aCopy"; of: string; editors: string[] };
 
 export interface Sealed {
   envelopes: number;
@@ -89,6 +90,7 @@ export interface ShareCard {
   owner: Named | null;
   signer: Named | null;
   editors: Named[];
+  basedOn: { of: Named | null; editors: Named[] } | null;
   signsAs: { now: string | null; other: string | null } | null;
 }
 
@@ -221,5 +223,11 @@ export const toldPlainly = (told: Told): string => {
       return t("toldNameLeftOut");
     case "takenBackNotKept":
       return t("toldTakenBackNotKept");
+    case "aCopy": {
+      const of = told.of || t("aCopySomeone");
+      return told.editors.length > 0
+        ? fill("toldACopyEdited", of, told.editors.join(", "))
+        : fill("toldACopy", of);
+    }
   }
 };

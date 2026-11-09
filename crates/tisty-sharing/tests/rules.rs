@@ -971,9 +971,11 @@ fn only_what_is_ones_own_and_open_is_shared() {
 }
 
 #[test]
-fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
+fn a_copy_of_what_someone_else_shared_goes_only_as_a_new_document_with_its_notice() {
     let (_tmp, mut home) = home();
     let body = "# De otra persona
+
+Sus palabras.
 ";
     let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
     let id = ulid::Ulid::generate();
@@ -984,18 +986,21 @@ fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
             order: "a0".into(),
             said: Some(tisty_core::event::Said::of(body)),
             guest: true,
+            by: Some("Ana".into()),
             ..Default::default()
         },
     });
-    let desk = tisty_sharing::Desk {
-        paths: &home.paths,
-        state: &home.state,
-        also: None,
-        turned: &|_| None,
-        maker: None,
-    };
-    let refused = tisty_sharing::gathered(&desk, &asked(id)).err();
-    assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
+
+    let out = sealed(&home, &asked(id));
+    assert!(
+        out.told.iter().any(
+            |one| matches!(one, Told::ACopy { of, editors } if of == "Ana" && editors.is_empty())
+        ),
+        "{:?}",
+        out.told
+    );
+    let read = &every_reader_opens(&out)[0];
+    assert!(all_text(read).contains("Sus palabras"));
 }
 
 #[test]

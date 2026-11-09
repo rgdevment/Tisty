@@ -51,6 +51,12 @@ describe("what did not travel as it was written", () => {
     [{ what: "pictureNotKept", document: "Paseos", name: "" }, ["a picture", "Paseos", "kept"]],
     [{ what: "notDrawn", document: "Paseos", many: 1 }, ["One diagram", "Paseos", "code"]],
     [{ what: "nameLeftOut" }, ["name"]],
+    [{ what: "aCopy", of: "Mario", editors: [] }, ["Mario", "new document", "permission"]],
+    [
+      { what: "aCopy", of: "Mario", editors: ["Ana", "Juan"] },
+      ["Mario", "Ana, Juan", "permission"],
+    ],
+    [{ what: "aCopy", of: "", editors: [] }, ["someone else", "permission"]],
   ];
 
   it.each(each)("is told plainly: %j", (told, says) => {

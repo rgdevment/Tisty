@@ -169,3 +169,28 @@ fn whoever_signs_with_the_makers_name_under_another_root_is_not_checked() {
     let who = who_of(&was, Some("mario-root"));
     assert!(who.signer.is_some_and(|one| !one.checked));
 }
+
+#[test]
+fn a_copy_shared_anew_says_whose_share_it_is_based_on() {
+    let was = Remembered {
+        id: "CopyOfAn".to_owned(),
+        admin_token: Some("admin".to_owned()),
+        carried: edited(&[
+            ("Ab3xK9pQ", "mario-root", "Mario", true),
+            ("Ab3xK9pQ", "juan-root", "Juan", false),
+            ("CopyOfAn", "ana-root", "Ana", true),
+        ]),
+        ..arrived(None, None, None)
+    };
+    let who = who_of(&was, Some("mario-root"));
+    let said = serde_json::to_value(who.based_on.unwrap()).unwrap();
+    assert_eq!(
+        said,
+        serde_json::json!({
+            "of": { "name": "Mario", "checked": true },
+            "editors": [{ "name": "Juan", "checked": false }],
+        })
+    );
+    assert!(who.editors.is_empty());
+    assert!(who.owner.is_none());
+}
