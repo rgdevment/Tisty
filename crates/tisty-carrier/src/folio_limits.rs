@@ -5,10 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::policy::{self, Refused};
 
-pub const LIMITS_URL: &str =
-    "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json";
-pub const SIGNATURE_URL: &str =
-    "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/limits.json.minisig";
+pub const LIMITS_URL: &str = from_folio!("limits/limits.json");
+pub const SIGNATURE_URL: &str = from_folio!("limits/limits.json.minisig");
 
 pub(crate) const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
 const SIGNED_AS: &str = "limits.json";

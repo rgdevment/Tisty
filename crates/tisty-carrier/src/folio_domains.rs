@@ -3,8 +3,7 @@ use std::time::Duration;
 
 use crate::policy;
 
-const SHARDS_URL: &str =
-    "https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/main/docs/domains/";
+const SHARDS_URL: &str = from_folio!("domains/");
 const KEPT: &str = "folio-domains";
 const KEPT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
 const PROOF_CHARACTERS: usize = 32;
