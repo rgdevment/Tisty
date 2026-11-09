@@ -74,6 +74,24 @@ const ownerBlock = async ({ id, name, permit, tag, by = MARIO, forged }) => {
   };
 };
 
+const editorEntry = async ({ in: id, name, owned = false, by = MARIO, forged, signedFor = {} }) => {
+  const about = words("editor");
+  const said = { id, owned, name, ...signedFor };
+  const row = [be8(words(said.id).length), words(said.id), Buffer.from([said.owned ? 1 : 0]), be8(words(said.name).length), words(said.name)];
+  const signed = await sign(by.machine, words("tisty-share.signed.v1\0"), by.root.public, by.machine.public, be8(about.length), about, ...row);
+  const vouched = forged === "certificate" ? await sign(by.root, words("otro")) : by.certificate;
+  return {
+    in: id,
+    root: b64(by.root.public),
+    machine: b64(by.machine.public),
+    since: SINCE,
+    certificate: b64(vouched),
+    name,
+    ...(owned ? { owned: true } : {}),
+    signed: b64(forged === "signed" ? await sign(by.machine, words("otro")) : signed),
+  };
+};
+
 const permitSigned = (token, by, manifest, index) => sign(token, words("tisty-share.permit.v1\0"), by.root.public, by.machine.public, sha(manifest), index);
 
 const seal = async ({ kind, id, version, sealed, parts, from, contract = CONTRACT, head = HEADS[kind], after = [], more = {}, spelled = (one) => one, forged, signatureBytes, owner, by = MARIO, token, permitBy = by, outerIsOwner, outerAsPermit, permitSignedBytes }) => {
@@ -175,6 +193,7 @@ const whole = {
   sheet: { paper: "letter", on: true, orientation: "landscape" },
   signed_as: "Mario",
   owner_name: "Mario",
+  editors: [await editorEntry({ in: "k7Qm2xPa", name: "Mario", owned: true })],
   pictures: [{ at: 0, name: "picture-0.png", kind: "image/png", size: PICTURES[0].length, width: 1, height: 1 }],
   files: [{ at: 0, name: "cartilla.pdf", kind: "application/pdf", size: FILES[0].length }],
   files_hash: files.hash,
@@ -338,6 +357,17 @@ const opensForEditing = [
   { says: "an editor, under its own root, with the token", signer: b64(ANA.root.public), envelope: await asEdited({ token: permit }) },
 ];
 const anas = await asEdited({ token: permit });
+const editorsSaid = [
+  { says: "the owner, who signed its first version", holds: true, entry: await editorEntry({ in: EDITED, name: "Mario", owned: true }) },
+  { says: "someone who edited it through its link", holds: true, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA }) },
+  { says: "someone who edited the original of a copy, which keeps that original's id", holds: true, entry: await editorEntry({ in: "k7Qm2xPa", name: "Ana", by: ANA }) },
+  { says: "a signature that does not hold", holds: false, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA, forged: "signed" }) },
+  { says: "a certificate that does not hold", holds: false, entry: await editorEntry({ in: EDITED, name: "Ana", by: ANA, forged: "certificate" }) },
+  { says: "a name other than the one signed", holds: false, entry: { ...(await editorEntry({ in: EDITED, name: "Ana", by: ANA })), name: "Mario" } },
+  { says: "an editor who says they owned it", holds: false, entry: { ...(await editorEntry({ in: EDITED, name: "Ana", by: ANA })), owned: true } },
+  { says: "another document's id", holds: false, entry: { ...(await editorEntry({ in: EDITED, name: "Ana", by: ANA })), in: "otroDoc" } },
+  { says: "someone else's root over Ana's signature", holds: false, entry: { ...(await editorEntry({ in: EDITED, name: "Ana", by: ANA })), root: b64(ZORRO.root.public) } },
+];
 const swapManifest = (bytes, change, signed) => {
   const size = bytes.readUInt32BE(4);
   const manifest = JSON.parse(bytes.subarray(8, 8 + size).toString());
@@ -516,6 +546,7 @@ const said = {
     rest_left_aside: asHex(restSaysAName),
     owner_revoked: { envelope: asHex(anas), served: { received: AFTER, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
   },
+  editors: editorsSaid,
   verdicts,
   files_refused: [
     { says: "another files envelope than the one it answers for", main: { id: "k7Qm2xPa" }, files: otherFiles.bytes.toString("hex") },

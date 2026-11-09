@@ -14,11 +14,41 @@ pub struct Received {
 
 // Nobody here holds what a document's other languages and cited documents are, only how readers reach them.
 fn carried_from(document: &Value) -> Option<String> {
-    let (languages, cited) = (&document["languages"], &document["cited"]);
-    (!languages.is_null() || !cited.is_null()).then(|| {
-        serde_json::json!({ "lang": document["lang"], "languages": languages, "cited": cited })
-            .to_string()
+    let (languages, cited, editors) = (
+        &document["languages"],
+        &document["cited"],
+        &document["editors"],
+    );
+    (!languages.is_null() || !cited.is_null() || !editors.is_null()).then(|| {
+        serde_json::json!({
+            "lang": document["lang"],
+            "languages": languages,
+            "cited": cited,
+            "editors": editors,
+        })
+        .to_string()
     })
+}
+
+/// Another's version brings who edited it along, and only that: what this copy carries of languages and citing stays its own.
+pub fn editors_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
+    let editors = arrived
+        .and_then(|said| serde_json::from_str::<Value>(said).ok())
+        .map(|said| said["editors"].clone());
+    with_editors(was, editors)
+}
+
+pub(crate) fn with_editors(was: Option<&str>, editors: Option<Value>) -> Option<String> {
+    let editors = editors.filter(|said| !said.is_null());
+    let mut kept = was
+        .and_then(|said| serde_json::from_str::<Value>(said).ok())
+        .filter(Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}));
+    match editors {
+        Some(editors) => kept["editors"] = editors,
+        None => return was.map(str::to_owned),
+    }
+    Some(kept.to_string())
 }
 
 fn cited_places(document: &Value) -> Vec<(String, String)> {

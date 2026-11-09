@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -2063,6 +2063,12 @@
           "type": "name",
           "says": "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Only what is sealed has one, and only a reader with the key sees it."
         },
+        "editors": {
+          "type": "list",
+          "of": "editor",
+          "at_most": 64,
+          "says": "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader shows only those whose signature holds, and leaves the rest aside without refusing the document."
+        },
         "made": {
           "type": "time"
         },
@@ -2935,6 +2941,7 @@
           "signed": "Ed25519 by the machine, over these bytes in a row: tisty-share.signed.v1, a zero byte, root, machine, the number 8 in 8 bytes, big endian, the 8 letters of the word envelope, the SHA-256 of the manifest alone, and then the index as it is.",
           "files": "The document's files_hash is one SHA-256 over the files envelope's manifest followed by its index, so one signature answers for both.",
           "owner": "Ed25519 by the owner's machine, in the same row as signed, with the 5 letters of the word owner in place of envelope and, after them: the id's length in 8 bytes, big endian, the id, the permit or 32 zero bytes, and the name_tag. It never depends on the words, so it answers for who owns the document and who may edit it, and for nothing they say.",
+          "editor": "Ed25519 by the editor's machine, in the same row as signed, with the 6 letters of the word editor in place of envelope and, after them: the length of in in 8 bytes, big endian, in, one byte that is 1 when owned and 0 otherwise, the name's length in 8 bytes, big endian, and the name. It never depends on the words or on a version.",
           "name_tag": "HMAC-SHA-256 with the link key over tisty-owner-name, a zero byte, the id's length in 8 bytes, big endian, the id and the owner_name, or nothing when it has none.",
           "permit": "The public key of the Ed25519 key whose 32-byte seed is the token after the link key in an edit link.",
           "permit_signed": "Ed25519 by the token's key, over tisty-share.permit.v1, a zero byte, the root and the machine of its signature, the SHA-256 of the manifest alone, and then the index as it is."
@@ -3843,6 +3850,7 @@
         "languages",
         "signed_as",
         "owner_name",
+        "editors",
         "by",
         "born_by",
         "edited_by",
@@ -4310,6 +4318,81 @@
         {
           "says": "An owner with nothing tying it to the link.",
           "value": {
+            "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "since": "2026-11-03T12:00:00Z",
+            "certificate": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw",
+            "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+          },
+          "holds": false
+        }
+      ]
+    },
+    "editor": {
+      "contract": "editor",
+      "group": "documents",
+      "checked_by": [
+        "writer",
+        "reader"
+      ],
+      "says": "Someone who signed a version of a document, under the name they chose for it. Each version carries the list it arrived with and whoever seals it adds or renews their own, so the latest one names everyone who edited it, also offline and in a copy. It says that this root signed this name for this document, never who the person is, and a later editor can leave one out: nobody can add one in another's name.",
+      "fields": {
+        "in": {
+          "type": "id",
+          "required": true,
+          "at_most": 64,
+          "says": "The id of the document they edited. A copy shared anew keeps the original's."
+        },
+        "root": {
+          "type": "key",
+          "required": true
+        },
+        "machine": {
+          "type": "key",
+          "required": true
+        },
+        "since": {
+          "type": "time",
+          "required": true
+        },
+        "certificate": {
+          "type": "signed",
+          "required": true,
+          "says": "The root's signature over the machine key and the moment."
+        },
+        "name": {
+          "type": "name",
+          "required": true,
+          "says": "The name they chose for themselves when they signed it."
+        },
+        "owned": {
+          "type": "bool",
+          "says": "Whether they owned that document. Left out, they edited it."
+        },
+        "signed": {
+          "type": "signed",
+          "required": true,
+          "says": "The machine's signature over in, owned and name."
+        }
+      },
+      "cases": [
+        {
+          "says": "Someone who edited a document.",
+          "value": {
+            "in": "k7Qm2xPa",
+            "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+            "since": "2026-11-03T12:00:00Z",
+            "certificate": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw",
+            "name": "Ana",
+            "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+          },
+          "holds": true
+        },
+        {
+          "says": "Someone with no name, whom nobody could show.",
+          "value": {
+            "in": "k7Qm2xPa",
             "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
             "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
             "since": "2026-11-03T12:00:00Z",

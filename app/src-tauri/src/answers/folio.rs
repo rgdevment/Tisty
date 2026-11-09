@@ -14,10 +14,12 @@ use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::folio_today;
 use tisty_carrier::policy;
 use tisty_core::Paths;
+use tisty_core::event::Signature;
 use tisty_envelope::family::Going;
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
+use super::folio_editing::{Named, SignsAs, signs_as, who_of};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -699,10 +701,20 @@ pub struct Card {
     taken: bool,
     held: bool,
     told: Vec<Told>,
+    owner: Option<Named>,
+    signer: Option<Named>,
+    editors: Vec<Named>,
+    signs_as: Option<SignsAs>,
 }
 
-fn card_of(was: &Remembered) -> Option<Card> {
+pub(super) fn card_of(
+    was: &Remembered,
+    signature: &Signature,
+    maker: Option<&str>,
+) -> Option<Card> {
     let key = was.link_key.as_deref()?;
+    let taken = was.admin_token.is_none();
+    let who = who_of(was, maker);
     Some(Card {
         read: folio_client::read_link(&was.id, key),
         edit: was
@@ -710,9 +722,13 @@ fn card_of(was: &Remembered) -> Option<Card> {
             .as_deref()
             .map(|token| folio_client::edit_link(&was.id, key, token)),
         version: was.version,
-        taken: was.admin_token.is_none(),
+        taken,
         held: was.held_by.is_some(),
         told: Vec::new(),
+        owner: who.owner,
+        signer: who.signer,
+        editors: who.editors,
+        signs_as: signs_as(was, signature),
     })
 }
 
@@ -731,11 +747,12 @@ pub fn doc_share_card(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Card>> {
+    let maker = folio_limits::maker_root(&held(&session).paths.private());
     let session = held(&session);
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(card_of))
+        .and_then(|was| card_of(was, &session.state.signed, maker.as_deref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -918,6 +935,17 @@ pub(super) fn languages_top(home: &std::path::Path) -> Option<usize> {
         .and_then(|top| usize::try_from(top).ok())
 }
 
+pub(super) fn floors_of(home: &std::path::Path) -> Vec<String> {
+    folio_limits::kept(home)
+        .map(|limits| {
+            [limits.oldest_contract_taken, limits.oldest_contract_served]
+                .into_iter()
+                .flatten()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub(super) async fn sealed_for_folio(
     app: &tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
@@ -928,6 +956,7 @@ pub(super) async fn sealed_for_folio(
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
     let home = held(session).paths.private();
     let languages_at_most = languages_top(&home);
+    let floors = floors_of(&home);
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -957,6 +986,7 @@ pub(super) async fn sealed_for_folio(
                 languages_at_most,
             },
         )
+        .map(|gathered| gathered.sent_again_below(&floors))
     })
     .await;
     if let Some(why) = trouble.lock().ok().and_then(|mut held| held.take()) {
@@ -1049,7 +1079,8 @@ pub async fn doc_shared(
             .remembering
             .iter()
             .find(|(_, one)| one.held_by.is_none());
-        top.and_then(|(_, one)| card_of(one))
+        let maker = folio_limits::maker_root(&home);
+        top.and_then(|(_, one)| card_of(one, &state.signed, maker.as_deref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

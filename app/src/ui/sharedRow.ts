@@ -3,11 +3,13 @@ import type { Panel } from "tisty-editor/read";
 import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
+  type Named,
   type ShareCard,
   type ShareStatus,
   shareAppeal,
   shareCard,
   sharePause,
+  shareSignAs,
   shareStatus,
   shareStop,
   shareSync,
@@ -220,9 +222,32 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-const leavingActs = (h: Hands): Act[] => [
-  { key: "leave", label: t("shareStopEditing"), danger: true, onPick: () => h.setStopping(true) },
+const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
+
+const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
+  ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),
+  ...(owner && !signer ? [fill("sharedOwner", shown(owner))] : []),
+  ...(!owner && signer ? [fill("sharedVersionBy", shown(signer))] : []),
+  ...(editors.length > 0 ? [fill("sharedEditedBy", editors.map(shown).join(", "))] : []),
+  ...(signsAs?.now ? [fill("shareSignsAs", signsAs.now)] : []),
 ];
+
+const leavingActs = (h: Hands): Act[] => {
+  const other = h.card.signsAs?.other;
+  const signing: Act[] = other
+    ? [
+        {
+          key: "signs",
+          label: fill("shareSignAsOther", other),
+          onPick: () => void shareSignAs(h.doc, other).then(h.setCard).catch(h.failing),
+        },
+      ]
+    : [];
+  return [
+    ...signing,
+    { key: "leave", label: t("shareStopEditing"), danger: true, onPick: () => h.setStopping(true) },
+  ];
+};
 
 export const useSharedRow = (
   doc: string | undefined,
@@ -401,6 +426,7 @@ export const useSharedRow = (
       mark: t("sharedBeta"),
       ...gistOf(hands.card, hands.status),
       said: [
+        ...whoSaid(hands.card),
         ...saidOf(hands.status, told, stopping),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],

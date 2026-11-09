@@ -35,6 +35,7 @@ pub(super) fn refused(wrong: &Unshared) -> Refusal {
         Unshared::Away => "awayNotShared",
         Unshared::NotADocument => "onlyADocumentShared",
         Unshared::LanguagesFull => "folioLanguagesFull",
+        Unshared::Newer => "folioNewerVersionHere",
         Unshared::Unfinished(_) => "cannotFinish",
         Unshared::Unread(_) | Unshared::Unwritten(_) | Unshared::Refused(_) => "cannotSeal",
     })

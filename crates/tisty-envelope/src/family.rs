@@ -22,7 +22,7 @@ pub struct Family {
     pub others: Vec<Tongue>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Going {
     pub id: String,
     pub sealed: Sealed,

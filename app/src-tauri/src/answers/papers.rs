@@ -956,6 +956,8 @@ pub struct Filed {
     gone: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     guest: Option<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    editing: bool,
     page_of: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     flagged: Option<Marked>,
@@ -1074,6 +1076,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     let tongues = super::tongues::standing(&session.state);
     let apart = session.state.apart();
+    let shelf = tisty_sharing::remembered(&session.state);
 
     kept_in_order
         .into_iter()
@@ -1092,6 +1095,9 @@ fn gathered(session: &Session) -> Vec<Filed> {
             // Empty means it came from elsewhere under nobody's name: the list still has to
             // say so before anybody signs it as their own.
             guest: kept.guest.then(|| kept.by.clone().unwrap_or_default()),
+            editing: shelf
+                .get(&kept.file)
+                .is_some_and(tisty_core::event::Remembered::edited_through_a_link),
             page_of: kept.page_of.map(|up| up.to_string()),
             tags: kept.tags.iter().map(|one| one.to_string()).collect(),
             flagged: kept.flagged.as_ref().map(|mark| Marked {

@@ -43,6 +43,10 @@ values:
       Ed25519 by the owner's machine, in the same row as signed, with the 5 letters of the word owner in place of envelope and,
       after them: the id's length in 8 bytes, big endian, the id, the permit or 32 zero bytes, and the name_tag. It never depends
       on the words, so it answers for who owns the document and who may edit it, and for nothing they say.
+    editor: >-
+      Ed25519 by the editor's machine, in the same row as signed, with the 6 letters of the word editor in place of envelope
+      and, after them: the length of in in 8 bytes, big endian, in, one byte that is 1 when owned and 0 otherwise, the name's
+      length in 8 bytes, big endian, and the name. It never depends on the words or on a version.
     name_tag: "HMAC-SHA-256 with the link key over tisty-owner-name, a zero byte, the id's length in 8 bytes, big endian, the id and the owner_name, or nothing when it has none."
     permit: "The public key of the Ed25519 key whose 32-byte seed is the token after the link key in an edit link."
     permit_signed: "Ed25519 by the token's key, over tisty-share.permit.v1, a zero byte, the root and the machine of its signature, the SHA-256 of the manifest alone, and then the index as it is."

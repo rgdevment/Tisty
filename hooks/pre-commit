@@ -12,7 +12,10 @@ git checkout-index --all --prefix="$staged/" || {
   exit 1
 }
 
-bash "$staged/scripts/rules.sh" < /dev/null || status=1
+# The copy has no .git of its own, and a rule that asks git what is tracked must hear the index.
+index=$(realpath "${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}")
+GIT_DIR="$(git rev-parse --absolute-git-dir)" GIT_INDEX_FILE="$index" \
+  bash "$staged/scripts/rules.sh" < /dev/null || status=1
 bash "$staged/scripts/branches.sh" "$(git rev-parse --abbrev-ref HEAD)" || status=1
 
 quietly() {

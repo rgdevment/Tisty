@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
-use super::{Link, link_of, looked_for};
+use super::{Link, Opened, link_of, looked_for, owner_apart};
 
 #[derive(Default)]
 struct CountingFolio(Cell<u32>);
@@ -88,4 +88,25 @@ fn a_name_that_is_no_domain_asks_nothing_and_does_not_wait() {
     );
     assert!(checked.is_empty());
     assert!(began.elapsed() < super::DOMAIN_PATIENCE);
+}
+
+fn opened_by(owner_root: Option<&str>, signer: &str) -> Opened {
+    Opened {
+        document: serde_json::json!({}),
+        pictures: Vec::new(),
+        files: Vec::new(),
+        owner: owner_root.map(|root| format!("{{\"root\":\"{root}\",\"signed\":\"x\"}}")),
+        owner_root: owner_root.map(str::to_owned),
+        signer: signer.to_owned(),
+        version: 1,
+        verdict: tisty_contracts::Verdict::Holds,
+        contract: None,
+    }
+}
+
+#[test]
+fn the_owner_is_named_apart_only_when_another_root_signed_this_version() {
+    assert_eq!(owner_apart(&opened_by(Some("mario"), "mario")), None);
+    assert_eq!(owner_apart(&opened_by(Some("mario"), "ana")), Some("mario"));
+    assert_eq!(owner_apart(&opened_by(None, "ana")), None);
 }

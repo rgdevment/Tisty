@@ -1204,6 +1204,7 @@ export interface Filed {
   locked?: boolean;
   gone?: boolean;
   guest?: string | null;
+  editing?: boolean;
   tags?: string[];
   flagged?: Marked | null;
   compacted?: Compaction | null;

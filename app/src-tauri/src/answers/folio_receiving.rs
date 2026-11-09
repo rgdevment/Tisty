@@ -82,9 +82,11 @@ pub(super) struct Opened {
     pub pictures: Vec<Vec<u8>>,
     pub files: Vec<Vec<u8>>,
     pub owner: Option<String>,
+    pub owner_root: Option<String>,
     pub signer: String,
     pub version: u64,
     pub verdict: Verdict,
+    pub contract: Option<String>,
 }
 
 impl Opened {
@@ -104,6 +106,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
     let main = opening(EnvelopeKind::Main);
     let sealed = reading::opened(&fetched.bytes, &main, &served).map_err(|e| unopened(&e))?;
     let owner = reading::owner_block(&sealed);
+    let contract = reading::contract_of(&sealed);
     let read = reading::reading(&fetched.bytes, &main, &served).map_err(|e| unopened(&e))?;
     let files = match read.document["files_hash"].as_str() {
         Some(hash) => {
@@ -125,9 +128,11 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
         pictures: read.pictures,
         files,
         owner,
+        owner_root: read.owner.clone(),
         signer: read.signer,
         version: fetched.version,
         verdict: read.verdict,
+        contract,
     })
 }
 
@@ -243,6 +248,9 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: received.carried.clone(),
+        sealed_under: opened.contract.clone(),
+        version_by: owner_apart(opened).and(received.signed_as.clone()),
+        version_root: owner_apart(opened).map(|_| opened.signer.clone()),
     }
 }
 
@@ -341,14 +349,18 @@ fn checked_within(home: &std::path::Path, wanted: &[(&str, Option<&str>)]) -> Ch
 }
 
 // Owner and signer are told apart by their roots: two people can sign with one name.
+pub(super) fn owner_apart(opened: &Opened) -> Option<&str> {
+    opened
+        .owner_root
+        .as_deref()
+        .filter(|root| *root != opened.signer)
+}
+
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     let maker = folio_limits::maker(&home);
-    let owner = opened
-        .owner
-        .as_deref()
-        .filter(|root| *root != opened.signer);
+    let owner = owner_apart(opened);
     let mut wanted = vec![(opened.signer.as_str(), said("signed_as"))];
     wanted.extend(owner.map(|root| (root, said("owner_name"))));
     let checked = checked_within(&home, &wanted);

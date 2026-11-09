@@ -19,6 +19,9 @@ fn one(version: u64) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: None,
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
     }
 }
 
@@ -105,4 +108,31 @@ fn an_earlier_build_is_told_it_may_skip_them() {
         }
         .is_optional()
     );
+}
+
+#[test]
+fn only_a_token_without_the_link_to_manage_it_is_editing_through_a_link() {
+    let owner = Remembered {
+        edit_token: Some("token".to_owned()),
+        ..one(1)
+    };
+    let editor = Remembered {
+        admin_token: None,
+        ..owner.clone()
+    };
+    let reader = Remembered {
+        admin_token: None,
+        ..one(1)
+    };
+    assert!(!owner.edited_through_a_link());
+    assert!(editor.edited_through_a_link());
+    assert!(!reader.edited_through_a_link());
+}
+
+#[test]
+fn what_an_older_tisty_remembered_still_reads_without_the_newer_fields() {
+    let older = r#"{"id":"Ab3xK9pQ","version":2,"link_key":"key"}"#;
+    let read: Remembered = serde_json::from_str(older).unwrap();
+    assert_eq!(read.sealed_under, None);
+    assert_eq!(read.version_by, None);
 }
