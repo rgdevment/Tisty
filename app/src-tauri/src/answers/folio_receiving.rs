@@ -246,7 +246,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
         held_by: None,
         ttl_days: None,
         carried: received.carried.clone(),
-        arrived_under: opened.contract.clone(),
+        sealed_under: opened.contract.clone(),
     }
 }
 

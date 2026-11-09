@@ -108,6 +108,16 @@ pub fn later_than_this(said: &str) -> bool {
             .is_some_and(|(said, here)| said > here)
 }
 
+// Folio weighs major and minor alone, and an unknown seal is taken as under it; a floor it cannot read moves nothing.
+pub fn under_the_floor(sealed: Option<&str>, floor: &str) -> bool {
+    let Some(floor) = major_of(floor).zip(minor_of(floor)) else {
+        return false;
+    };
+    sealed
+        .and_then(|one| major_of(one).zip(minor_of(one)))
+        .is_none_or(|said| said < floor)
+}
+
 pub fn contract_of(main: &Opened) -> Option<String> {
     let manifest: Value = serde_json::from_slice(&main.manifest).ok()?;
     manifest["contract"].as_str().map(str::to_owned)

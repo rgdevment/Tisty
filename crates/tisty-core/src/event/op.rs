@@ -135,7 +135,7 @@ pub struct Remembered {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub carried: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub arrived_under: Option<String>,
+    pub sealed_under: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

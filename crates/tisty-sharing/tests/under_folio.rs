@@ -261,7 +261,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
             })
             .to_string(),
         ),
-        arrived_under: None,
+        sealed_under: None,
     };
     editor.sent(&[(file, entry)]);
 
@@ -311,20 +311,55 @@ fn what_arrived_under_a_later_minor_is_not_sealed_again_until_tisty_catches_up()
     let first = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
     let (file, mut shared) = first.remembering[0].clone();
 
-    shared.arrived_under = Some(a_later_minor());
+    shared.sealed_under = Some(a_later_minor());
     home.sent(&[(file.clone(), shared.clone())]);
     assert!(matches!(
         under_folio(&home, doc, &under),
         Err(Unshared::Newer)
     ));
 
-    shared.arrived_under = Some(tisty_contracts::VERSION.to_owned());
+    shared.sealed_under = Some(tisty_contracts::VERSION.to_owned());
     home.sent(&[(file, shared)]);
     let again = under_folio(&home, doc, &under).unwrap();
     assert_eq!(
-        home.sealed(again, vec![]).remembering[0].1.arrived_under,
-        None
+        home.sealed(again, vec![]).remembering[0]
+            .1
+            .sealed_under
+            .as_deref(),
+        Some(tisty_contracts::VERSION)
     );
+}
+
+#[test]
+fn what_sits_under_folios_floor_goes_again_with_no_change_of_its_own() {
+    let (_tmp, mut home, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = home.sealed(under_folio(&home, doc, &under).unwrap(), vec![]);
+    let (file, mut shared) = first.remembering[0].clone();
+    home.sent(&[(file.clone(), shared.clone())]);
+    let floor = vec![tisty_contracts::VERSION.to_owned()];
+
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert!(again.sent_again_below(&floor).same_as_sent());
+
+    shared.sealed_under = Some("1.2.0".to_owned());
+    home.sent(&[(file.clone(), shared.clone())]);
+    let again = under_folio(&home, doc, &under).unwrap();
+    assert!(again.same_as_sent());
+    assert!(!again.sent_again_below(&floor).same_as_sent());
+
+    shared.sealed_under = None;
+    home.sent(&[(file, shared)]);
+    let again = || under_folio(&home, doc, &under).unwrap();
+    assert!(again().sent_again_below(&[]).same_as_sent());
+    assert!(!again().sent_again_below(&floor).same_as_sent());
 }
 
 #[test]
@@ -390,7 +425,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
         held_by: None,
         ttl_days: None,
         carried: None,
-        arrived_under: None,
+        sealed_under: None,
     };
     entry.link_key = reading_key();
     home.sent(&[(file, entry)]);

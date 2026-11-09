@@ -9,7 +9,7 @@ use tisty_share_proto::identity::{Root, ShareKey};
 
 use super::{
     Reader, Unopened, files_for, laid, later_than_this, opened, opens_under_this, picture_holds,
-    reading,
+    reading, under_the_floor,
 };
 use crate::sealing::Writer;
 
@@ -157,6 +157,18 @@ fn only_a_later_minor_of_the_same_major_says_more_than_this_writer_knows() {
         minor + 1
     )));
     assert!(!later_than_this("no version"));
+}
+
+#[test]
+fn a_floor_weighs_major_and_minor_and_takes_an_unknown_seal_as_under_it() {
+    assert!(under_the_floor(Some("1.2.0"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.0"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.9"), "1.3.0"));
+    assert!(!under_the_floor(Some("1.3.0"), "1.3.5"));
+    assert!(!under_the_floor(Some("2.0.0"), "1.9.0"));
+    assert!(under_the_floor(None, "1.3.0"));
+    assert!(under_the_floor(Some("garbled"), "1.3.0"));
+    assert!(!under_the_floor(None, "no floor"));
 }
 
 #[test]

@@ -11,9 +11,9 @@ use tisty_sharing::{Desk, Received, Remembered, Told};
 
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
-    doc_of_file, file_of, forget_share, keeping, kept_on, languages_top, may_upload, network_free,
-    new_terms_asked, press_given_back, remembered_of, said_kept, said_to_whom, sealed_for_folio,
-    seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
+    doc_of_file, file_of, floors_of, forget_share, keeping, kept_on, languages_top, may_upload,
+    network_free, new_terms_asked, press_given_back, remembered_of, said_kept, said_to_whom,
+    sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from};
 use super::papers::other_version_kept;
@@ -72,7 +72,9 @@ impl Here {
             turned: &turned,
             maker: the_maker_here(&self.paths, &self.state, &self.device),
         };
-        tisty_sharing::gathered_within(&desk, asked, languages_top(&self.paths.private()))
+        let home = self.paths.private();
+        tisty_sharing::gathered_within(&desk, asked, languages_top(&home))
+            .map(|gathered| gathered.sent_again_below(&floors_of(&home)))
             .map_err(|e| refused(&e))
     }
 }
@@ -439,7 +441,7 @@ async fn other_version_brought(
     }
     let mut now = was.clone();
     now.version = opened.version;
-    now.arrived_under = opened.contract.clone();
+    now.sealed_under = opened.contract.clone();
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;

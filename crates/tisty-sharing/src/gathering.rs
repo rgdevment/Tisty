@@ -68,11 +68,25 @@ pub struct Gathered {
     pub(crate) remembering: Vec<(String, Remembered)>,
     pub(crate) titles: BTreeMap<String, String>,
     pub(crate) changed: BTreeSet<String>,
+    pub(crate) sealed_before: BTreeMap<String, Option<String>>,
 }
 
 impl Gathered {
     pub fn told(&self) -> &[Told] {
         &self.told
+    }
+
+    // Folio stops taking or serving what sits under its floor, so that goes again with no change of its own (155).
+    pub fn sent_again_below(mut self, floors: &[String]) -> Self {
+        for (id, sealed) in &self.sealed_before {
+            if floors
+                .iter()
+                .any(|floor| tisty_envelope::reading::under_the_floor(sealed.as_deref(), floor))
+            {
+                self.changed.insert(id.clone());
+            }
+        }
+        self
     }
 }
 
@@ -460,7 +474,7 @@ impl Gathering<'_> {
         let words_print = words_print_of(&body, &pages, &packed.pictures, print.as_deref());
         let was = self.shelf.get(&kept.file);
         if was
-            .and_then(|one| one.arrived_under.as_deref())
+            .and_then(|one| one.sealed_under.as_deref())
             .is_some_and(tisty_envelope::reading::later_than_this)
         {
             return Err(Unshared::Newer);
@@ -497,7 +511,7 @@ impl Gathering<'_> {
                 edit_token: sealing.token.clone(),
                 words_print: Some(words_print),
                 signed_as: self.signed_as.clone(),
-                arrived_under: None,
+                sealed_under: Some(tisty_contracts::VERSION.to_owned()),
             },
         ));
         self.titles.insert(kept.file.clone(), shown);
@@ -631,6 +645,16 @@ impl Gathering<'_> {
         });
     }
 
+    fn sealed_before(&self) -> BTreeMap<String, Option<String>> {
+        self.remembering
+            .iter()
+            .filter_map(|(file, now)| {
+                let was = self.shelf.get(file).filter(|was| was.id == now.id)?;
+                Some((now.id.clone(), was.sealed_under.clone()))
+            })
+            .collect()
+    }
+
     fn changed(&self, family: &Family) -> BTreeSet<String> {
         let mut fresh = BTreeSet::new();
         let mut changed = BTreeSet::new();
@@ -751,8 +775,10 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     }
     let family = gathering.family(asked.doc, &chosen)?;
     let changed = gathering.changed(&family);
+    let sealed_before = gathering.sealed_before();
     Ok(Gathered {
         changed,
+        sealed_before,
         family,
         cited: gathering.cited,
         cites: gathering.cites,

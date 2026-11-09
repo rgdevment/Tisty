@@ -918,6 +918,17 @@ pub(super) fn languages_top(home: &std::path::Path) -> Option<usize> {
         .and_then(|top| usize::try_from(top).ok())
 }
 
+pub(super) fn floors_of(home: &std::path::Path) -> Vec<String> {
+    folio_limits::kept(home)
+        .map(|limits| {
+            [limits.oldest_contract_taken, limits.oldest_contract_served]
+                .into_iter()
+                .flatten()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub(super) async fn sealed_for_folio(
     app: &tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
@@ -928,6 +939,7 @@ pub(super) async fn sealed_for_folio(
 ) -> Answer<(tisty_sharing::Sealed, BTreeMap<String, String>)> {
     let home = held(session).paths.private();
     let languages_at_most = languages_top(&home);
+    let floors = floors_of(&home);
     let starts: Starts = Arc::default();
     let trouble: Trouble = Arc::default();
     let (given, stopped) = (Arc::clone(&starts), Arc::clone(&trouble));
@@ -957,6 +969,7 @@ pub(super) async fn sealed_for_folio(
                 languages_at_most,
             },
         )
+        .map(|gathered| gathered.sent_again_below(&floors))
     })
     .await;
     if let Some(why) = trouble.lock().ok().and_then(|mut held| held.take()) {
