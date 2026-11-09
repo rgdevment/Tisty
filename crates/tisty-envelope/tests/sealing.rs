@@ -58,7 +58,7 @@ fn sealing(id: &str, link_key: Option<String>) -> Sealing {
 mod editing {
     use serde_json::{Value, json};
     use tisty_contracts::{Document, EnvelopeKind, Opening, Owner, Revocation, Served, Verdict};
-    use tisty_envelope::reading::{Unopened, reading};
+    use tisty_envelope::reading::{Unopened, files_for, reading};
     use tisty_envelope::sealing::{Refused, Writer};
     use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 
@@ -270,14 +270,30 @@ mod editing {
         let all: Value =
             serde_json::from_str(include_str!("../../../contracts/vectors/vectors.json")).unwrap();
         for (version, said) in all["frozen"].as_object().unwrap() {
-            let main = Opening {
-                id: "k7Qm2xPa".into(),
-                kind: EnvelopeKind::Main,
-                link_key: said["link_key"].as_str().map(str::to_owned),
+            let opening = |id: &str, kind, link_key: Option<&str>| Opening {
+                id: id.into(),
+                kind,
+                link_key: link_key.map(str::to_owned),
             };
+            let key = said["link_key"].as_str();
+            let main = opening("k7Qm2xPa", EnvelopeKind::Main, key);
             let read =
                 reading(&unhexed(&said["main"]["envelope"]), &main, &nothing()).expect(version);
             assert_eq!(read.document, said["main"]["document"], "{version}");
+
+            let files = opening("k7Qm2xPa", EnvelopeKind::Files, key);
+            files_for(
+                &read.document,
+                &unhexed(&said["files"]["envelope"]),
+                &files,
+                &nothing(),
+            )
+            .expect(version);
+
+            let public = opening("wordsOnly", EnvelopeKind::Main, None);
+            let open =
+                reading(&unhexed(&said["public"]["envelope"]), &public, &nothing()).expect(version);
+            assert_eq!(open.document, said["public"]["document"], "{version}");
         }
     }
 }
