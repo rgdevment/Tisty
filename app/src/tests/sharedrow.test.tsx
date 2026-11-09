@@ -172,6 +172,32 @@ describe("the Shared row", () => {
     );
   });
 
+  it("says the change still waits when the Sync inside it brought another version", async () => {
+    const editable = { ...card, edit: "https://tisty.cl/a#k.old" };
+    const { panel, pressed } = await held(editable);
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_edit_link_renewed")
+        return Promise.resolve({
+          state: "otherVersion",
+          version: 5,
+          signer: "Ana",
+          doubtful: false,
+        });
+      if (command === "doc_share_card") return Promise.resolve(editable);
+      return Promise.resolve(null);
+    });
+
+    await pressed("renewAsk");
+    await pressed("renew");
+
+    await waitFor(() =>
+      expect(panel().said).toContain(
+        `${fill("shareSyncOther", "5", "Ana")} ${t("shareRenewWaits")}`,
+      ),
+    );
+    expect(panel().said).not.toContain(t("shareRenewed"));
+  });
+
   it("offers no edit link to change where nobody may edit", async () => {
     const { panel } = await held(card);
 

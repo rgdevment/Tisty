@@ -1166,3 +1166,143 @@ fn the_owner_puts_folios_permit_back_to_the_token_it_holds_and_an_editor_never_t
     ));
     assert!(untouched.asked.borrow().is_empty());
 }
+
+fn owner_with_a_token() -> Remembered {
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    remembered(Some("key"), Some(&token))
+}
+
+#[test]
+fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() {
+    use crate::answers::folio_editing::sent_or_put_back;
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    let tries = std::cell::Cell::new(0);
+    let deliver = || {
+        tries.set(tries.get() + 1);
+        if tries.get() == 1 {
+            Err(crate::Refusal::of("notOneOwnDoc"))
+        } else {
+            Ok(())
+        }
+    };
+    assert!(sent_or_put_back(&folio, &owner_with_a_token(), deliver).is_ok());
+    assert_eq!(tries.get(), 2);
+    assert_eq!(folio.asked.borrow()[0].0, "/docs/Ab3xK9pQ/permit");
+
+    let editor = Remembered {
+        admin_token: None,
+        ..owner_with_a_token()
+    };
+    let untouched = FakeFolio::default();
+    let refused = sent_or_put_back(&untouched, &editor, || {
+        Err(crate::Refusal::of("notOneOwnDoc"))
+    });
+    assert_eq!(refused.unwrap_err().code, "notOneOwnDoc");
+    assert!(untouched.asked.borrow().is_empty());
+}
+
+#[test]
+fn a_new_edit_link_is_kept_before_folio_hears_of_it_and_waits_when_folio_cannot() {
+    use crate::answers::folio_editing::renewed;
+    let was = owner_with_a_token();
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    let kept = RefCell::new(None);
+    let now = renewed(&folio, was.clone(), |now| {
+        assert!(
+            folio.asked.borrow().is_empty(),
+            "kept before Folio is asked"
+        );
+        *kept.borrow_mut() = Some(now.clone());
+        Ok(())
+    })
+    .unwrap();
+    assert_ne!(now.edit_token, was.edit_token);
+    assert_eq!(now.words_print, None);
+    assert_eq!(kept.borrow().as_ref(), Some(&now));
+
+    let unreached = FakeFolio::default();
+    let kept = std::cell::Cell::new(false);
+    let pending = renewed(&unreached, was, |_| {
+        kept.set(true);
+        Ok(())
+    });
+    assert!(kept.get());
+    assert_eq!(pending.unwrap_err().code, "folioEditLinkPending");
+}
+
+#[test]
+fn an_edit_link_signs_only_while_the_owners_block_names_its_permit() {
+    use crate::answers::folio_editing::link_matches_block;
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    let permit = tisty_envelope::sealing::permit_shown(&token).unwrap();
+    let editor = |named: &str| Remembered {
+        admin_token: None,
+        owner: Some(format!(r#"{{"root":"r","permit":"{named}"}}"#)),
+        ..remembered(Some("key"), Some(&token))
+    };
+    assert!(link_matches_block(&editor(&permit)));
+    assert!(!link_matches_block(&editor("anotherPermit")));
+    assert!(link_matches_block(&owner_with_a_token()));
+}
+
+fn version_signed(by: &str, owner: &str) -> crate::answers::folio_receiving::Opened {
+    crate::answers::folio_receiving::Opened {
+        document: serde_json::json!({}),
+        pictures: Vec::new(),
+        files: Vec::new(),
+        owner: Some(owner.to_owned()),
+        owner_root: Some("mario".to_owned()),
+        signer: by.to_owned(),
+        version: 7,
+        verdict: tisty_contracts::Verdict::Holds,
+        contract: Some("1.7.1".to_owned()),
+    }
+}
+
+fn received_from(owner_name: &str) -> tisty_sharing::Received {
+    tisty_sharing::Received {
+        title: None,
+        body: String::new(),
+        pages: Vec::new(),
+        owner_name: Some(owner_name.to_owned()),
+        signed_as: Some("Mario H".to_owned()),
+        carried: None,
+    }
+}
+
+#[test]
+fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_its_own() {
+    use crate::answers::folio_sync::kept_after;
+    let editor = Remembered {
+        admin_token: None,
+        owner: Some(r#"{"machine":"old"}"#.to_owned()),
+        owner_name: Some("Mario".to_owned()),
+        ..remembered(Some("key"), Some("token"))
+    };
+    let now = kept_after(
+        &editor,
+        &version_signed("mario", r#"{"machine":"new"}"#),
+        &received_from("Mario Hidalgo"),
+    );
+    assert_eq!(now.version, 7);
+    assert_eq!(now.owner.as_deref(), Some(r#"{"machine":"new"}"#));
+    assert_eq!(now.owner_name.as_deref(), Some("Mario Hidalgo"));
+
+    let owner = remembered(Some("key"), Some("token"));
+    let now = kept_after(
+        &owner,
+        &version_signed("ana", r#"{"machine":"new"}"#),
+        &received_from("Mario Hidalgo"),
+    );
+    assert_eq!(now.owner, owner.owner);
+    assert_eq!(now.owner_name, owner.owner_name);
+    assert_eq!(now.version_by.as_deref(), Some("Mario H"));
+}

@@ -224,6 +224,8 @@ const KNOWN = [
   "folioKeyBlocked",
   "folioOwnerKeyBlocked",
   "folioEditTakenBack",
+  "folioEditLinkPending",
+  "folioEditLinkMismatch",
   "folioNewerVersionHere",
   "folioRoomFull",
   "folioOwnerRoomFull",

@@ -727,6 +727,10 @@ const en = {
     "Folio blocked the key of this document's owner. New versions can't be uploaded.",
   folioEditTakenBack:
     "The owner changed this document's edit link, so yours no longer sends versions. Your copy stays with you; ask the owner for the new link if you should keep editing.",
+  folioEditLinkPending:
+    "The new edit link is ready here, but Folio has not taken it yet. It will on your next Sync; until then the old link still sends versions.",
+  folioEditLinkMismatch:
+    "This edit link is not the one the owner signed. If you were just given a new one, Sync again once the owner's version arrives; if not, ask the owner for the current link.",
   folioRoomFull:
     "Your shared documents already take the {name} your key holds. Stop sharing one or wait for one to expire.",
   folioRoomFullAll:
@@ -766,6 +770,8 @@ const en = {
     "Whoever has the current edit link can no longer send versions, and keeps the copy they have. You get a new link to give to whoever should keep editing.",
   shareRenew: "Change it",
   shareRenewed: "The edit link changed. Copy the new one and give it to whoever keeps editing.",
+  shareRenewWaits:
+    "The edit link changed, but the version that confirms it has not gone yet: press Sync once more.",
   shareSignsAs: "Your versions go signed as {name}.",
   shareSignAsOther: "Sign as {name}",
   sharedOwnerAndSigner: "Created by {name} · Last edited by {other}",
@@ -3724,6 +3730,10 @@ const es: Catalog = {
     "Folio bloqueó la llave del dueño de este documento. No se pueden subir versiones nuevas.",
   folioEditTakenBack:
     "El dueño cambió el link de editar de este documento, así que el tuyo ya no envía versiones. Tu copia se queda contigo; pídele el link nuevo si debes seguir editándolo.",
+  folioEditLinkPending:
+    "El link de editar nuevo ya está listo aquí, pero Folio todavía no lo tomó. Lo hará en tu próxima sincronización; mientras tanto, el link anterior sigue enviando versiones.",
+  folioEditLinkMismatch:
+    "Este link de editar no es el que firmó el dueño. Si te acaban de dar uno nuevo, vuelve a sincronizar cuando llegue la versión del dueño; si no, pídele el link actual.",
   folioRoomFull:
     "Tus documentos compartidos ya ocupan los {name} de tu llave. Deja de compartir alguno o espera a que caduque.",
   folioRoomFullAll:
@@ -3763,6 +3773,8 @@ const es: Catalog = {
     "Quien tenga el link de editar actual ya no podrá enviar versiones, y se queda con la copia que tiene. Recibes un link nuevo para dárselo a quienes deban seguir editando.",
   shareRenew: "Cambiarlo",
   shareRenewed: "El link de editar cambió. Copia el nuevo y dáselo a quienes sigan editando.",
+  shareRenewWaits:
+    "El link de editar cambió, pero la versión que lo confirma todavía no se envía: pulsa Sincronizar otra vez.",
   shareSignsAs: "Tus versiones van firmadas como {name}.",
   shareSignAsOther: "Firmar como {name}",
   sharedOwnerAndSigner: "Creado por {name} · Última edición: {other}",

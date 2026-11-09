@@ -9,7 +9,9 @@ use tisty_carrier::policy;
 use tisty_core::Paths;
 use tisty_sharing::{Desk, Received, Remembered, Told};
 
-use super::folio_editing::{others_asked, permit_put_back, said_after_sending};
+use super::folio_editing::{
+    link_matches_block, others_asked, said_after_sending, sent_or_put_back,
+};
 
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
@@ -17,7 +19,9 @@ use super::folio::{
     network_free, new_terms_asked, press_given_back, remembered_of, said_kept, said_to_whom,
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
-use super::folio_receiving::{guest_page, guests_kept, kept_here, opened_from, owner_apart};
+use super::folio_receiving::{
+    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart,
+};
 use super::papers::other_version_kept;
 use super::sharing::{doc_id, refused, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
@@ -305,6 +309,9 @@ pub async fn doc_share_sync(
         Ahead::Newer => return other_version_brought(&session, &id, &was).await,
         Ahead::Upload => {}
     }
+    if !link_matches_block(&was) {
+        return Err(Refusal::of("folioEditLinkMismatch"));
+    }
     let checking = paths.clone();
     let agreed = apart(move || may_upload(&checking, tongue)).await;
     let terms_unchecked = agreed.as_ref().is_ok_and(|one| one.newer_unchecked);
@@ -348,15 +355,10 @@ pub async fn doc_share_sync(
                 ttl_days,
             )
         };
-        match deliver() {
-            Err(refused) if refused.code == "notOneOwnDoc" && permit_put_back(&door, &was) => {
-                deliver()
-            }
-            other => other,
-        }
-        .map_err(|refused| said_to_whom(refused, owning, &home))
-        .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
-        .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
+        sent_or_put_back(&door, &was, deliver)
+            .map_err(|refused| said_to_whom(refused, owning, &home))
+            .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
+            .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
         Ok(told_of_taken_back(&door, &home, &state, &device))
     })
     .await?;
@@ -421,6 +423,25 @@ fn pages_differ(session: &Session, file: &str, theirs: &[String]) -> bool {
             .any(|(one, other)| !tisty_core::docs::unchanged(one, other))
 }
 
+pub(super) fn kept_after(was: &Remembered, opened: &Opened, received: &Received) -> Remembered {
+    let mut now = was.clone();
+    now.version = opened.version;
+    now.sealed_under = opened.contract.clone();
+    now.version_by = owner_apart(opened).and(received.signed_as.clone());
+    now.version_root = owner_apart(opened).map(|_| opened.signer.clone());
+    // Folio holds whoever edits to the block of the latest version, which moves when its owner changes machine, name or link.
+    if was.admin_token.is_none() {
+        now.owner.clone_from(&opened.owner);
+        now.owner_name.clone_from(&received.owner_name);
+    }
+    now.carried =
+        tisty_sharing::editors_brought(was.carried.as_deref(), received.carried.as_deref());
+    now.files_print = None;
+    now.files_hash = None;
+    now.files_key = None;
+    now
+}
+
 // What another sent stays apart, and one's own changes wait until the person chooses and presses again (149).
 async fn other_version_brought(
     session: &tauri::State<'_, Mutex<Session>>,
@@ -471,16 +492,7 @@ async fn other_version_brought(
             guest_page(&mut session, page, by.clone(), up)?;
         }
     }
-    let mut now = was.clone();
-    now.version = opened.version;
-    now.sealed_under = opened.contract.clone();
-    now.version_by = owner_apart(&opened).and(received.signed_as.clone());
-    now.version_root = owner_apart(&opened).map(|_| opened.signer.clone());
-    now.carried =
-        tisty_sharing::editors_brought(was.carried.as_deref(), received.carried.as_deref());
-    now.files_print = None;
-    now.files_hash = None;
-    now.files_key = None;
+    let now = kept_after(was, &opened, &received);
     kept_on(&mut session, &[(file, now)])?;
     let doubtful = opened.doubtful();
     Ok(Synced::OtherVersion {

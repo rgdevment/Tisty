@@ -7,7 +7,7 @@ use tisty_core::event::Signature;
 use tisty_envelope::sealing::{link_key, permit_shown};
 use tisty_sharing::{Remembered, Told};
 
-use super::folio::{Card, ToFolio, apart, card_of, kept_on, remembered_of, said};
+use super::folio::{Card, ToFolio, apart, card_of, keeping, kept_on, remembered_of};
 use super::folio_sync::{Synced, doc_share_sync};
 use crate::{Answer, Refusal, Session, held};
 
@@ -151,7 +151,57 @@ pub(super) fn permit_put_back(door: &dyn Door, was: &Remembered) -> bool {
     folio_client::permit(door, &was.id, admin, Some(&permit)).is_ok()
 }
 
+// Retried once, and only by the owner: putting the permit back is the owner's word alone (148).
+pub(super) fn sent_or_put_back(
+    door: &dyn Door,
+    was: &Remembered,
+    deliver: impl Fn() -> Answer<()>,
+) -> Answer<()> {
+    match deliver() {
+        Err(refused) if refused.code == "notOneOwnDoc" && permit_put_back(door, was) => deliver(),
+        other => other,
+    }
+}
+
 // The new token is kept before Folio hears of it: if anything stops halfway, the next Sync finishes the change.
+pub(super) fn renewed(
+    door: &dyn Door,
+    was: Remembered,
+    keep: impl FnOnce(&Remembered) -> Answer<()>,
+) -> Answer<Remembered> {
+    let admin = was
+        .admin_token
+        .clone()
+        .filter(|_| was.edit_token.is_some())
+        .ok_or_else(|| Refusal::of("notOneOwnDoc"))?;
+    let token = link_key().map_err(|_| Refusal::of("cannotSeal"))?;
+    let permit = permit_shown(&token).map_err(|_| Refusal::of("cannotSeal"))?;
+    let mut now = was;
+    now.edit_token = Some(token);
+    now.words_print = None;
+    keep(&now)?;
+    folio_client::permit(door, &now.id, &admin, Some(&permit))
+        .map_err(|_| Refusal::of("folioEditLinkPending"))?;
+    Ok(now)
+}
+
+// Whoever edits signs with a token its owner's block must name: a link changed since the block was read cannot sign.
+pub(super) fn link_matches_block(was: &Remembered) -> bool {
+    let Some(token) = was
+        .edit_token
+        .as_deref()
+        .filter(|_| was.edited_through_a_link())
+    else {
+        return true;
+    };
+    let named = was
+        .owner
+        .as_deref()
+        .and_then(|block| serde_json::from_str::<serde_json::Value>(block).ok())
+        .and_then(|block| block["permit"].as_str().map(str::to_owned));
+    named.is_some_and(|permit| permit_shown(token).is_ok_and(|mine| mine == permit))
+}
+
 #[tauri::command]
 pub async fn doc_share_edit_link_renewed(
     app: tauri::AppHandle,
@@ -159,20 +209,10 @@ pub async fn doc_share_edit_link_renewed(
     id: String,
 ) -> Answer<Synced> {
     let (file, was) = remembered_of(&held(&session), &id)?;
-    if was.admin_token.is_none() || was.edit_token.is_none() {
-        return Err(Refusal::of("notOneOwnDoc"));
-    }
-    let token = link_key().map_err(|_| Refusal::of("cannotSeal"))?;
-    let permit = permit_shown(&token).map_err(|_| Refusal::of("cannotSeal"))?;
-    let admin = was.admin_token.clone().unwrap_or_default();
-    let shared = was.id.clone();
-    let mut now = was;
-    now.edit_token = Some(token);
-    now.words_print = None;
-    kept_on(&mut held(&session), &[(file, now)])?;
+    let keep = keeping(&app);
     apart(move || {
         let door = ToFolio::new()?;
-        folio_client::permit(&door, &shared, &admin, Some(&permit)).map_err(|one| said(&one))
+        renewed(&door, was, |now| keep(&[(file, now.clone())])).map(|_| ())
     })
     .await?;
     doc_share_sync(app, session, id, None).await

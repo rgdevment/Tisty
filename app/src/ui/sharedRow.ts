@@ -189,9 +189,12 @@ const renewNow = (h: Hands) => {
   h.setTold(null);
   void Promise.resolve(h.onKeep?.())
     .then(() => shareEditLinkRenewed(h.doc))
-    .then((synced) =>
-      synced.state === "secrets" ? syncAnswered(h, synced) : h.setTold(t("shareRenewed")),
-    )
+    .then((synced) => {
+      if (synced.state === "sent") h.setTold(t("shareRenewed"));
+      else if (synced.state === "otherVersion" || synced.state === "unchanged")
+        h.setTold(`${syncedWords(synced)} ${t("shareRenewWaits")}`);
+      else syncAnswered(h, synced);
+    })
     .catch(h.failing)
     .finally(() => {
       void shareCard(h.doc)
