@@ -333,6 +333,8 @@ pub fn send_files(door: &dyn Door, id: &str, envelope: &[u8]) -> Result<(), Stop
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct Latest {
     pub version: u64,
+    #[serde(default, rename = "nextAt")]
+    pub next_at: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

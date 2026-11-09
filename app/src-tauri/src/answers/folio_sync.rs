@@ -11,7 +11,7 @@ use tisty_sharing::{Desk, Received, Remembered, Told};
 
 use super::folio::{
     FIRST_TERM_DAYS, TERMS_TO_ACCEPT, ToFolio, apart, delivered, delivered_or_asked_again,
-    doc_of_file, file_of, forget_share, keeping, kept_on, languages_top, may_upload,
+    doc_of_file, file_of, forget_share, keeping, kept_on, kept_waiting, languages_top, may_upload,
     new_terms_asked, press_given_back, remembered_of, said, said_to_whom, sealed_for_folio,
     secrets_of_docs, told_of_taken_back, tongue_of,
 };
@@ -157,13 +157,44 @@ pub(super) fn before_upload(
         Ahead::Upload
     };
     match folio_client::latest(door, &was.id) {
-        Ok(latest) if latest.version > was.version => Ok(Ahead::Newer),
-        Ok(_) => Ok(ready),
+        Ok(latest) => {
+            let next = held_until_next(&latest, home, &was.id, now);
+            if latest.version > was.version {
+                return Ok(Ahead::Newer);
+            }
+            match next {
+                Some(until) if !unchanged => {
+                    folio_pace::take_back(home, &was.id, now);
+                    Err(waited(until))
+                }
+                _ => Ok(ready),
+            }
+        }
         Err(Stopped::Refused(Refused::Missing)) => Ok(Ahead::Gone),
         Err(Stopped::Refused(Refused::Blocked)) if correctable(door, was) => Ok(ready),
-        Err(stopped) if unchanged => Err(said(&stopped)),
-        Err(stopped) => Err(press_given_back(said(&stopped), home, &was.id, now)),
+        Err(stopped) => {
+            let refused = kept_waiting(said(&stopped), home, Some(&was.id));
+            if unchanged {
+                return Err(refused);
+            }
+            Err(press_given_back(refused, home, &was.id, now))
+        }
     }
+}
+
+// The family's next version may wait on another computer's or an editor's upload, which only Folio sees.
+fn held_until_next(
+    latest: &folio_client::Latest,
+    home: &std::path::Path,
+    id: &str,
+    now: u64,
+) -> Option<u64> {
+    let until = latest.next_at?.div_ceil(1000);
+    if until <= now {
+        return None;
+    }
+    folio_pace::hold(home, id, until, now);
+    Some(until)
 }
 
 // An appeal accepted leaves the document blocked until its owner sends a version, which Folio's latest will not name.
@@ -254,7 +285,9 @@ pub async fn doc_share_sync(
     let terms = agreed
         .map(|one| one.version)
         .map_err(|refused| press_given_back(refused, &home, &was.id, pressed_at))?;
-    let (sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms).await?;
+    let (sealed, starts) = sealed_for_folio(&app, &session, asked, false, terms)
+        .await
+        .map_err(|refused| kept_waiting(refused, &home, Some(&was.id)))?;
     let mut sealed = sealed.only_what_changed();
     if sealed.going.is_empty() {
         folio_pace::take_back(&home, &was.id, pressed_at);
@@ -280,6 +313,7 @@ pub async fn doc_share_sync(
     let not_kept = apart(move || {
         let door = ToFolio::new()?;
         delivered(&door, &home, &keep, &sealed, &starts, ttl_days)
+            .map_err(|refused| kept_waiting(refused, &home, Some(&pressed_id)))
             .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;

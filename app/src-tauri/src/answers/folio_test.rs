@@ -14,8 +14,9 @@ use crate::answers::folio_sync::{Ahead, before_upload};
 
 use super::{
     Agreed, Card, after_terms_refused, card_of, counted_as_shared, delivered,
-    first_time_without_room, folio_terms_drawn, going_with, headings_over, may_start,
-    new_terms_asked, newest_first, press_given_back, said, said_to_whom, sent_taken_back,
+    first_time_without_room, folio_terms_drawn, going_with, headings_over, held_back_here,
+    kept_waiting, may_start, new_terms_asked, newest_first, press_given_back, said, said_to_whom,
+    sent_taken_back,
 };
 
 type Heard = (String, Vec<(&'static str, String)>);
@@ -851,6 +852,100 @@ fn a_newer_version_from_another_is_brought_before_anything_goes_up() {
     );
 
     assert_eq!(ahead.unwrap(), Ahead::Newer);
+}
+
+#[test]
+fn a_family_folio_holds_back_waits_here_with_no_start_and_no_upload() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = latest_is(r#"{"version":2,"hash":"h","nextAt":400000}"#);
+    let was = remembered(Some("key"), None);
+
+    let refused = before_upload(&folio, home.path(), &was, false, None, 100).unwrap_err();
+
+    assert_eq!(refused.code, "folioWait");
+    assert_eq!(refused.name.as_deref(), Some("400000"));
+    assert_eq!(folio.asked.borrow().len(), 1, "only the latest was asked");
+    assert_eq!(pressed_in(home.path()), 0);
+    assert_eq!(
+        tisty_carrier::folio_pace::waiting_until(home.path(), &was.id, 101, None),
+        Some(400)
+    );
+}
+
+#[test]
+fn a_sync_with_nothing_changed_keeps_folio_s_next_time_for_the_button() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = latest_is(r#"{"version":2,"nextAt":400000}"#);
+    let was = remembered(Some("key"), None);
+
+    let ahead = before_upload(&folio, home.path(), &was, true, None, 100);
+
+    assert_eq!(ahead.unwrap(), Ahead::Unchanged);
+    assert_eq!(
+        tisty_carrier::folio_pace::waiting_until(home.path(), &was.id, 101, None),
+        Some(400)
+    );
+}
+
+#[test]
+fn a_next_time_already_past_lets_the_upload_go() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = latest_is(r#"{"version":2,"nextAt":50000}"#);
+    let was = remembered(Some("key"), None);
+
+    let ahead = before_upload(&folio, home.path(), &was, false, None, 100);
+
+    assert_eq!(ahead.unwrap(), Ahead::Upload);
+    assert_eq!(pressed_in(home.path()), 1);
+}
+
+#[test]
+fn what_folio_refuses_until_a_time_is_kept_and_asked_for_here_first() {
+    let home = tempfile::tempdir().unwrap();
+    let later = (policy::now() + 3_600) * 1000;
+
+    kept_waiting(
+        crate::Refusal::about("folioQuota", later.to_string()),
+        home.path(),
+        None,
+    );
+    let network = held_back_here(home.path(), false).unwrap_err();
+    assert_eq!(network.code, "folioQuota");
+    assert_eq!(network.name, Some(later.to_string()));
+}
+
+#[test]
+fn a_day_folio_said_is_full_stops_only_what_would_be_new() {
+    let home = tempfile::tempdir().unwrap();
+    let tomorrow = (policy::now() + 3_600) * 1000;
+
+    kept_waiting(
+        crate::Refusal::about("folioSharesToday", tomorrow.to_string()),
+        home.path(),
+        None,
+    );
+
+    assert_eq!(
+        held_back_here(home.path(), false).unwrap_err().code,
+        "folioSharesToday"
+    );
+    assert!(held_back_here(home.path(), true).is_ok());
+    assert!(folio_today::full_now(home.path(), policy::now()));
+}
+
+#[test]
+fn a_wait_with_no_document_to_keep_it_under_is_left_to_folio() {
+    let home = tempfile::tempdir().unwrap();
+    let later = (policy::now() + 600) * 1000;
+
+    let refused = kept_waiting(
+        crate::Refusal::about("folioWait", later.to_string()),
+        home.path(),
+        None,
+    );
+
+    assert_eq!(refused.code, "folioWait");
+    assert!(held_back_here(home.path(), false).is_ok());
 }
 
 fn pressed_in(home: &std::path::Path) -> usize {

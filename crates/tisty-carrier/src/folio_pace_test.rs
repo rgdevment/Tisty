@@ -1,4 +1,4 @@
-use super::{QUIET_STARTS_OVER, free_at, press, take_back, waiting_until};
+use super::{NETWORK, QUIET_STARTS_OVER, free_at, hold, press, take_back, waiting_until};
 use crate::folio_limits::FolioLimits;
 
 const WAITS: &[u64] = &[1, 1, 1, 2, 4, 8, 15];
@@ -129,4 +129,39 @@ fn a_ladder_of_one_step_makes_every_press_wait_that_long() {
         None,
         "only the signed limits make it wait"
     );
+}
+
+#[test]
+fn what_folio_holds_back_stops_a_press_here_until_then() {
+    let home = tempfile::tempdir().unwrap();
+
+    hold(home.path(), "d", 1_300, 1_000);
+
+    assert_eq!(press(home.path(), "d", 1_100, None), Err(1_300));
+    assert_eq!(waiting_until(home.path(), "d", 1_100, None), Some(1_300));
+    assert_eq!(press(home.path(), "other", 1_100, None), Ok(()));
+    assert_eq!(press(home.path(), "d", 1_300, None), Ok(()));
+}
+
+#[test]
+fn a_network_held_back_holds_every_document() {
+    let home = tempfile::tempdir().unwrap();
+
+    hold(home.path(), NETWORK, 5_000, 1_000);
+
+    assert_eq!(press(home.path(), "a", 2_000, None), Err(5_000));
+    assert_eq!(waiting_until(home.path(), "b", 2_000, None), Some(5_000));
+}
+
+#[test]
+fn a_hold_keeps_the_later_end_and_forgets_what_ended() {
+    let home = tempfile::tempdir().unwrap();
+
+    hold(home.path(), "d", 1_500, 1_000);
+    hold(home.path(), "d", 1_200, 1_000);
+    assert_eq!(waiting_until(home.path(), "d", 1_100, None), Some(1_500));
+
+    hold(home.path(), "e", 9_000, 2_000);
+    let kept = std::fs::read_to_string(home.path().join("folio-held-until.json")).unwrap();
+    assert!(!kept.contains("\"d\""), "{kept}");
 }
