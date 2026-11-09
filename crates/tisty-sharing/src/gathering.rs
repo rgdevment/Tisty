@@ -67,6 +67,7 @@ pub struct Gathered {
     pub(crate) told: Vec<Told>,
     pub(crate) remembering: Vec<(String, Remembered)>,
     pub(crate) titles: BTreeMap<String, String>,
+    pub(crate) changed: BTreeSet<String>,
 }
 
 impl Gathered {
@@ -578,7 +579,84 @@ impl Gathering<'_> {
         for one in going {
             others.push(self.tongue(one, chosen)?);
         }
+        self.printed_with_its_family(&anchor, &others);
         Ok(Family { anchor, others })
+    }
+
+    // The anchor's map names each language and every language wears the anchor's sheet, so a change there is one in them.
+    fn printed_with_its_family(&mut self, anchor: &Tongue, others: &[Tongue]) {
+        if others.is_empty() {
+            return;
+        }
+        let map: Vec<(Option<&String>, &Option<String>, Option<&String>)> = others
+            .iter()
+            .map(|one| {
+                let file = self.file_of(&one.sealing.id);
+                (
+                    file,
+                    &one.document.lang,
+                    file.and_then(|at| self.titles.get(at)),
+                )
+            })
+            .collect();
+        let map = serde_json::to_string(&map).unwrap_or_default();
+        let sheet = serde_json::to_string(&anchor.document.sheet).unwrap_or_default();
+        self.printed_with(&anchor.sealing.id, &map);
+        for one in others {
+            self.printed_with(&one.sealing.id, &sheet);
+        }
+    }
+
+    fn file_of(&self, id: &str) -> Option<&String> {
+        let found = self.remembering.iter().find(|(_, one)| one.id == id);
+        found.map(|(file, _)| file)
+    }
+
+    fn printed_with(&mut self, id: &str, said: &str) {
+        let Some((_, now)) = self.remembering.iter_mut().find(|(_, one)| one.id == id) else {
+            return;
+        };
+        now.words_print = now.words_print.as_deref().map(|print| {
+            let mut both = Sha256::new();
+            both.update(print.as_bytes());
+            both.update(said.as_bytes());
+            hex_of(both.finalize())
+        });
+    }
+
+    fn changed(&self, family: &Family) -> BTreeSet<String> {
+        let mut fresh = BTreeSet::new();
+        let mut changed = BTreeSet::new();
+        for (file, now) in &self.remembering {
+            match self.shelf.get(file).filter(|was| was.id == now.id) {
+                None => {
+                    fresh.insert(now.id.clone());
+                    changed.insert(now.id.clone());
+                }
+                Some(was) if now.words_print.is_none() || was.words_print != now.words_print => {
+                    changed.insert(now.id.clone());
+                }
+                Some(_) => {}
+            }
+        }
+        for one in std::iter::once(family).chain(&self.cited) {
+            if one
+                .others
+                .iter()
+                .any(|tongue| fresh.contains(&tongue.sealing.id))
+            {
+                changed.insert(one.anchor.sealing.id.clone());
+            }
+        }
+        for (citing, ats) in &self.cites {
+            let names_a_change = ats
+                .iter()
+                .any(|at| changed.contains(&self.cited[*at].anchor.sealing.id));
+            if names_a_change {
+                changed.insert(citing.clone());
+            }
+        }
+        changed
     }
 
     fn chosen(&self, kept: &Kept) -> Chosen {
@@ -665,7 +743,9 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
         }
     }
     let family = gathering.family(asked.doc, &chosen)?;
+    let changed = gathering.changed(&family);
     Ok(Gathered {
+        changed,
         family,
         cited: gathering.cited,
         cites: gathering.cites,
