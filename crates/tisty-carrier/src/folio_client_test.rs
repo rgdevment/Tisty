@@ -230,6 +230,13 @@ fn each_refusal_folio_documents_is_told_apart() {
             r#"{"refused":"quota","until":6}"#,
             Refused::Quota { until: 6 },
         ),
+        (
+            429,
+            r#"{"refused":"shares_today","until":1800000000000}"#,
+            Refused::SharesToday {
+                until: 1_800_000_000_000,
+            },
+        ),
         (500, r#"{"refused":"failed"}"#, Refused::Failed),
         (503, r#"{"refused":"uploads_off"}"#, Refused::UploadsOff),
     ];
