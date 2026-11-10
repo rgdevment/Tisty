@@ -176,6 +176,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         task_of: None,
         told: Default::default(),
         print: None,
+        edited: None,
     };
 
     let same = crate::event::Said {

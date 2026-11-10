@@ -559,6 +559,7 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
             folder: None,
             page_of: Some(doc),
             task_of: None,
+            edited: None,
         },
     });
     let file = home.state.docs[&doc].file.clone();

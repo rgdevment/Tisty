@@ -362,6 +362,7 @@ pub(crate) fn imported_as(
             folder,
             page_of: None,
             task_of: None,
+            edited: None,
         },
     })?;
     // A language brought back joins the group its key names.

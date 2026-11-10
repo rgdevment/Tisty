@@ -14,6 +14,7 @@ const store = vi.hoisted(() => ({
   author: null as string | null,
   editor: null as string | null,
   born: null as string | null,
+  edited: undefined as unknown,
   sent: [] as string[],
   stamped: [] as boolean[],
 }));
@@ -32,6 +33,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
           author: store.author,
           editor: store.editor,
           born: store.born,
+          edited: store.edited,
         });
       default:
         return Promise.resolve(null);
@@ -127,6 +129,7 @@ describe("the column beside a document", () => {
     store.author = null;
     store.editor = null;
     store.born = null;
+    store.edited = undefined;
     store.sent = [];
     widen(1500);
   });
@@ -150,6 +153,23 @@ describe("the column beside a document", () => {
     expect(within(aside).getByText("fulanito")).toBeTruthy();
     expect(within(aside).getByText("Edited by")).toBeTruthy();
     expect(within(aside).getByText("rgdevment")).toBeTruthy();
+  });
+
+  it("lists who edited it as the parcel's signer tells it, each beside a fingerprint", async () => {
+    store.edited = {
+      by: { name: "ana", checked: false, print: "11111 22222 33333 44444" },
+      editors: [{ name: "beto", checked: false, print: "55555 66666 77777 88888" }],
+    };
+    show();
+
+    const aside = await screen.findByRole("complementary", { name: "About this document" });
+    expect(
+      await within(aside).findByText(
+        "Who edited it, as ana tells it · fingerprint 11111 22222 33333 44444",
+      ),
+    ).toBeTruthy();
+    expect(within(aside).getByText("beto")).toBeTruthy();
+    expect(within(aside).getByText("55555 66666 77777 88888")).toBeTruthy();
   });
 
   it("shows itself the first time the window is wide enough", async () => {

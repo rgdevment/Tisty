@@ -54,6 +54,7 @@ fn the_tags_of_a_body_settle_after_one_note() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         })
         .unwrap();

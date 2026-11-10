@@ -198,6 +198,7 @@ fn guest_added(
             folder: None,
             page_of,
             task_of: None,
+            edited: None,
         },
     })?;
     Ok(id)

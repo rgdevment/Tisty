@@ -26,6 +26,7 @@ fn filed(session: &mut Session, body: &str) -> String {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         })
         .unwrap();
@@ -142,6 +143,7 @@ fn arrived(session: &mut Session, by: &str, guest: bool) -> tisty_core::model::K
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         })
         .unwrap();
@@ -214,4 +216,47 @@ fn on_paper_an_unsigned_guest_document_names_nobody() {
     theirs.by = None;
 
     assert_eq!(signed_on_paper(&session.state, &theirs), None);
+}
+
+#[test]
+fn editors_a_parcel_carried_show_only_the_ones_signed_for_their_folio_document() {
+    let root = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]).root();
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[3; 32]);
+    let certificate = root.certify(&key.public(), "2026-11-10T12:00:00Z".parse().unwrap());
+    let sign = |folio: &str, name: &str| {
+        tisty_envelope::editors::signed(&key, &certificate, folio, false, name).unwrap()
+    };
+    let mut forged = sign("folio-1", "beto");
+    forged.name = "otro".into();
+    let edited = tisty_core::event::Edited {
+        folio: "folio-1".into(),
+        root: root.person().shown(),
+        by: Some("ana".into()),
+        editors: serde_json::to_value([sign("folio-1", "beto"), sign("folio-2", "carla"), forged])
+            .unwrap(),
+    };
+
+    let facts = edited_facts(&edited, None).expect("a good entry was dropped");
+    let said = serde_json::to_value(&facts).unwrap();
+
+    assert_eq!(said["by"]["name"], "ana");
+    let names: Vec<&str> = said["editors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|one| one["name"].as_str())
+        .collect();
+    assert_eq!(names, vec!["beto"]);
+}
+
+#[test]
+fn a_parcel_whose_entries_all_fail_names_nobody() {
+    let edited = tisty_core::event::Edited {
+        folio: "folio-1".into(),
+        root: "R".into(),
+        by: None,
+        editors: serde_json::json!([]),
+    };
+
+    assert!(edited_facts(&edited, None).is_none());
 }

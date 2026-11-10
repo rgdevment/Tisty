@@ -515,6 +515,7 @@ fn a_lock_is_not_walked_back_by_undoing_it_from_anywhere_else() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     )]);

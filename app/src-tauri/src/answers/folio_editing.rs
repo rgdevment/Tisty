@@ -38,17 +38,19 @@ fn editors_carried(was: &Remembered) -> Vec<tisty_envelope::Editor> {
 }
 
 // Only the maker's root reads as checked for now: a name alone proves nothing (144), and one like the maker's warns (167).
+pub(super) fn named(name: String, root: Option<&str>, maker: Option<&FolioMaker>) -> Named {
+    let checked = root.is_some_and(|one| maker.is_some_and(|maker| maker.root == one));
+    Named {
+        checked,
+        imitates: !checked && maker.is_some_and(|maker| imitates_maker(&name, maker)),
+        print: root.and_then(print_of),
+        name,
+    }
+}
+
 pub(super) fn who_of(was: &Remembered, maker: Option<&FolioMaker>) -> Who {
     let editors = editors_carried(was);
-    let named = |name: String, root: Option<&str>| {
-        let checked = root.is_some_and(|one| maker.is_some_and(|maker| maker.root == one));
-        Named {
-            checked,
-            imitates: !checked && maker.is_some_and(|maker| imitates_maker(&name, maker)),
-            print: root.and_then(print_of),
-            name,
-        }
-    };
+    let named = |name: String, root: Option<&str>| named(name, root, maker);
     let owner_root = root_of_the_block(was.owner.as_deref());
     let owner = was
         .owner_name

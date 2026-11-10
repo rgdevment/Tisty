@@ -10,7 +10,7 @@ use crate::{
     Error, Paths, Result,
     event::{DeviceId, DocAdd, FolderAdd, Op, Said},
     model::{DEEPEST, DocId, FolderId, Kept},
-    signed_parcel::{self, Asked, Closed, Hashing, Prints, Signer},
+    signed_parcel::{self, Asked, Closed, Hashing, Prints, Signer, Vouched, edited_of},
     state::State,
 };
 
@@ -175,6 +175,10 @@ pub struct Paper {
     /// The file of the anchor whose languages it is one of, when that one travels too.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub translation_of: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited_in: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub editors: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -545,35 +549,41 @@ fn filled(
         folders: shelves(state, &bodies),
         docs: bodies
             .iter()
-            .map(|(one, body)| Paper {
-                file: one.file.clone(),
-                order: one.order.clone(),
-                title: Some(
-                    crate::docs::titled(body)
-                        .chars()
-                        .take(TITLE_AT_MOST)
-                        .collect(),
-                ),
-                folder: one.folder.map(|at| at.to_string()),
-                page_of: one
-                    .page_of
-                    .and_then(|up| state.docs.get(&up))
-                    .map(|up| up.file.clone())
-                    .filter(|up| held.contains(up.as_str())),
-                translation_of: carried_anchor(state, one, &held),
-                wrote: one.wrote,
-                made: one.made,
-                by: one.by.clone(),
-                archived: state.held_away(one),
-                by_folder: !one.archived && state.held_away(one),
-                away_alone: one.archived.then_some(true),
-                flagged: one.flagged.as_ref().map(|said| Marked {
-                    at: said.at,
-                    body: said.body.clone(),
-                    via: said.via.clone(),
-                }),
-                locked: one.locked,
-                guest: one.guest,
+            .map(|(one, body)| {
+                // Only a signature answers for who edited it, so an unsigned parcel names nobody.
+                let (edited_in, editors) = signer.and(edited_of(state, one)).unzip();
+                Paper {
+                    file: one.file.clone(),
+                    order: one.order.clone(),
+                    title: Some(
+                        crate::docs::titled(body)
+                            .chars()
+                            .take(TITLE_AT_MOST)
+                            .collect(),
+                    ),
+                    folder: one.folder.map(|at| at.to_string()),
+                    page_of: one
+                        .page_of
+                        .and_then(|up| state.docs.get(&up))
+                        .map(|up| up.file.clone())
+                        .filter(|up| held.contains(up.as_str())),
+                    translation_of: carried_anchor(state, one, &held),
+                    wrote: one.wrote,
+                    made: one.made,
+                    by: one.by.clone(),
+                    archived: state.held_away(one),
+                    by_folder: !one.archived && state.held_away(one),
+                    away_alone: one.archived.then_some(true),
+                    flagged: one.flagged.as_ref().map(|said| Marked {
+                        at: said.at,
+                        body: said.body.clone(),
+                        via: said.via.clone(),
+                    }),
+                    locked: one.locked,
+                    guest: one.guest,
+                    edited_in,
+                    editors,
+                }
             })
             .collect(),
     };
@@ -842,6 +852,7 @@ fn carried(
             along,
             whole,
             elsewhere: !mine,
+            vouched: closed.vouched(),
         },
     )?;
     landed.broken = closed == Closed::Broken;
@@ -931,6 +942,7 @@ struct Landing<'a> {
     along: &'a Along<'a>,
     whole: usize,
     elsewhere: bool,
+    vouched: Option<Vouched>,
 }
 
 fn taken_in(
@@ -945,6 +957,7 @@ fn taken_in(
         along,
         whole,
         elsewhere,
+        ..
     } = *landing;
     let mut landed = Landed::default();
     let mut ops: Vec<Op> = Vec::new();
@@ -1037,6 +1050,11 @@ fn taken_in(
                 folder,
                 page_of: up,
                 task_of: None,
+                edited: signed_parcel::edited(
+                    landing.vouched.as_ref(),
+                    paper.edited_in.as_deref(),
+                    paper.editors.as_ref(),
+                ),
             },
         });
         // A folder that lands closed answers for what it holds; marking the document again would

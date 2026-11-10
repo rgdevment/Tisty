@@ -1196,6 +1196,7 @@ fn with_an_agent() -> (State, DocId) {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -1301,6 +1302,7 @@ fn a_doc(state: &mut State, who: &str) -> DocId {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -2887,6 +2889,7 @@ fn doc(state: &mut State, file: &str, folder: Option<FolderId>) -> DocId {
                 folder,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -3046,6 +3049,7 @@ fn a_deleted_document_leaves_the_name_of_its_file_behind_so_it_can_be_swept() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -3082,6 +3086,7 @@ fn a_document_that_was_deleted_never_comes_back() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -3268,6 +3273,7 @@ fn two_machines_shelving_and_deleting_at_once_land_on_the_same_answer() {
                     folder: Some(gone),
                     page_of: None,
                     task_of: None,
+                    edited: None,
                 },
             },
         ),
@@ -3708,6 +3714,7 @@ fn page(state: &mut State, file: &str, page_of: DocId) -> DocId {
                 folder: None,
                 page_of: Some(page_of),
                 task_of: None,
+                edited: None,
             },
         },
     ));

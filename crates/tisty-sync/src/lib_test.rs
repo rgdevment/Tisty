@@ -274,6 +274,7 @@ fn a_document_that_is_a_link_to_a_secret_never_becomes_one_of_ours() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );
@@ -3794,6 +3795,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );
@@ -3988,6 +3990,7 @@ fn papered(who: &Machine, file: &str, guest: bool, by: Option<&str>) -> Ulid {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );

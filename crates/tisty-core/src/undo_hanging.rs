@@ -39,6 +39,7 @@ fn doc(
                 folder,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -142,6 +143,7 @@ fn a_document_born_a_page_lands_beside_the_one_it_hung_from() {
                 folder: None,
                 page_of: Some(up),
                 task_of: None,
+                edited: None,
             },
         },
     ));

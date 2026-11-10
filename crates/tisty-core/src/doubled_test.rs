@@ -59,6 +59,7 @@ fn guide(state: &mut State, ms: i64, file: &str, title: &str) -> DocId {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));

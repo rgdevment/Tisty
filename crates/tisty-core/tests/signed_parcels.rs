@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use tisty_core::event::{DocAdd, Said, Signature};
+use tisty_core::event::{DocAdd, Remembered, Said, Signature};
 use tisty_core::model::{DocId, Kept};
 use tisty_core::parcel::{self, Along, Answer, Claimed, Landed};
 use tisty_core::signed_parcel::Signer;
@@ -384,4 +384,179 @@ fn a_signature_entry_too_big_to_read_lands_as_a_strangers() {
         "an entry past its limit was read as a signature"
     );
     assert!(there.the_one().guest);
+}
+
+fn editor(folio: &str, name: &str) -> serde_json::Value {
+    let root = Seed::from_bytes(&[SOMEONE_ELSE; 32]).root();
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[5; 32]);
+    let certificate = root.certify(&key.public(), "2026-11-10T12:00:00Z".parse().unwrap());
+    let signed =
+        tisty_share_proto::editing::signed(&key, &certificate, folio, false, name).unwrap();
+    serde_json::json!({
+        "in": folio,
+        "root": signed.certificate.root,
+        "machine": signed.certificate.share,
+        "since": signed.certificate.since.to_string(),
+        "certificate": signed.certificate.sig,
+        "name": name,
+        "signed": signed.sig,
+    })
+}
+
+fn shared_as(desk: &mut Desk, id: DocId, folio: &str, editors: serde_json::Value) {
+    let file = desk.state.docs[&id].file.clone();
+    let carried = serde_json::json!({ "editors": editors }).to_string();
+    let d: Remembered = serde_json::from_value(
+        serde_json::json!({ "id": folio, "version": 1, "carried": carried }),
+    )
+    .unwrap();
+    desk.tell(Op::SharingKept { file, d });
+}
+
+#[test]
+fn a_signed_parcel_carries_who_edited_a_shared_document_and_leaves_out_entries_of_another() {
+    let room = tempfile::tempdir().unwrap();
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    let acta = here.wrote("# Acta\n\ncompartida");
+    shared_as(
+        &mut here,
+        acta,
+        "folio-1",
+        serde_json::json!([editor("folio-1", "beto"), editor("folio-2", "otro")]),
+    );
+    let at = room.path().join("acta.tistyx");
+    here.packed(&at, None);
+
+    let mut there = Desk::new(room.path(), "there").named(ME, "ana");
+    there.opened(&at, None, None).unwrap();
+
+    let edited = there
+        .the_one()
+        .edited
+        .clone()
+        .expect("the editors stayed behind");
+    assert_eq!(edited.folio, "folio-1");
+    assert_eq!(
+        edited.root,
+        Seed::from_bytes(&[ME; 32]).root().person().shown()
+    );
+    assert_eq!(edited.by.as_deref(), Some("ana"));
+    assert_eq!(
+        edited.editors,
+        serde_json::json!([editor("folio-1", "beto")])
+    );
+}
+
+#[test]
+fn an_unsigned_parcel_names_no_editors() {
+    let room = tempfile::tempdir().unwrap();
+    let mut bare = Desk::new(room.path(), "bare");
+    let acta = bare.wrote("# Acta\n\ncompartida");
+    shared_as(
+        &mut bare,
+        acta,
+        "folio-1",
+        serde_json::json!([editor("folio-1", "beto")]),
+    );
+    let at = room.path().join("acta.tistyx");
+    parcel::written(&bare.paths, &bare.state, &[], &at, &Along::default(), None).unwrap();
+
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&entry(&at, "tisty-docs.json").unwrap()).unwrap();
+    assert!(manifest["docs"][0].get("editors").is_none());
+
+    let mut there = Desk::new(room.path(), "there").named(ME, "ana");
+    there.opened(&at, None, None).unwrap();
+    assert_eq!(there.the_one().edited, None);
+}
+
+#[test]
+fn a_parcel_whose_signature_breaks_keeps_none_of_its_editors() {
+    let room = tempfile::tempdir().unwrap();
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    let acta = here.wrote("# Acta\n\ncompartida");
+    shared_as(
+        &mut here,
+        acta,
+        "folio-1",
+        serde_json::json!([editor("folio-1", "beto")]),
+    );
+    let at = room.path().join("acta.tistyx");
+    here.packed(&at, None);
+    rewritten(&at, |named, body| match named.starts_with("docs/") {
+        true => b"# Acta\n\notra cosa".to_vec(),
+        false => body,
+    });
+
+    let mut there = Desk::new(room.path(), "there").named(ME, "ana");
+    let landed = there.opened(&at, None, None).unwrap();
+
+    assert!(landed.broken);
+    assert_eq!(there.the_one().edited, None);
+}
+
+#[test]
+fn editors_that_came_in_a_parcel_go_on_in_the_next_one() {
+    let room = tempfile::tempdir().unwrap();
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    let acta = here.wrote("# Acta\n\ncompartida");
+    shared_as(
+        &mut here,
+        acta,
+        "folio-1",
+        serde_json::json!([editor("folio-1", "beto")]),
+    );
+    let first = room.path().join("primero.tistyx");
+    here.packed(&first, None);
+
+    let mut there = Desk::new(room.path(), "there").named(ME, "ana");
+    there.opened(&first, None, None).unwrap();
+    let second = room.path().join("segundo.tistyx");
+    there.packed(&second, None);
+
+    let mut third = Desk::new(room.path(), "third").named(ME, "ana");
+    third.opened(&second, None, None).unwrap();
+    let edited = third
+        .the_one()
+        .edited
+        .clone()
+        .expect("the editors were lost on the way");
+    assert_eq!(edited.folio, "folio-1");
+}
+
+#[test]
+fn another_persons_parcel_keeps_its_editors_as_that_person_tells_it() {
+    let room = tempfile::tempdir().unwrap();
+    let mut friend = Desk::new(room.path(), "friend").named(SOMEONE_ELSE, "beto");
+    let receta = friend.wrote("# Receta\n\ncompartida");
+    shared_as(
+        &mut friend,
+        receta,
+        "folio-9",
+        serde_json::json!([editor("folio-9", "carla")]),
+    );
+    let at = room.path().join("receta.tistyx");
+    friend.packed(&at, None);
+
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    here.opened(&at, None, None).unwrap();
+
+    let one = here.the_one();
+    assert!(one.guest);
+    let edited = one
+        .edited
+        .clone()
+        .expect("a friend's editors stayed behind");
+    assert_eq!(edited.by.as_deref(), Some("beto"));
+    assert_eq!(
+        edited.root,
+        Seed::from_bytes(&[SOMEONE_ELSE; 32])
+            .root()
+            .person()
+            .shown()
+    );
+    assert_eq!(
+        edited.editors,
+        serde_json::json!([editor("folio-9", "carla")])
+    );
 }

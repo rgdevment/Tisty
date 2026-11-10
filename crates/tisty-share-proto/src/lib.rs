@@ -1,4 +1,5 @@
 pub mod cloud;
+pub mod editing;
 pub mod handing;
 pub mod identity;
 pub mod name;

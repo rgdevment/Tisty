@@ -60,6 +60,7 @@ fn filed(who: &Machine, file: &str, body: &str) {
             folder: None,
             page_of: None,
             task_of: None,
+            edited: None,
         },
     })
     .unwrap();

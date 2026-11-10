@@ -144,9 +144,33 @@ describe("the panels beside a sheet", () => {
     ]);
     sided(side, say, [{ kind: "details", facts: { body: "" } }]);
     expect(text(side, ".side-gist")).toEqual(["paperEmpty"]);
+    expect(side.querySelector(".side-prints")).toBeNull();
     sided(side, say, [{ kind: "details", facts: { author: "Mario" } }]);
     expect(text(side, ".side-fact dt")).toEqual(["paperAuthor"]);
     expect(side.textContent).not.toContain("paperEmpty");
+  });
+
+  it("lists who edited it, as whoever handed the parcel over tells it, beside each fingerprint", () => {
+    const side = host();
+    sided(side, say, [
+      {
+        kind: "details",
+        open: true,
+        facts: {
+          author: "Mario",
+          edited: {
+            label: "Quién lo editó, según Ana",
+            note: "Sin comprobar si sigue vigente",
+            rows: [["Beto", "48210 93755 12880 63349"]],
+          },
+        },
+      },
+    ]);
+
+    expect(text(side, ".side-prints .side-label")).toEqual(["Quién lo editó, según Ana"]);
+    expect(text(side, ".side-prints dt")).toEqual(["Beto"]);
+    expect(text(side, ".side-prints dd")).toEqual(["48210 93755 12880 63349"]);
+    expect(text(side, ".side-prints .side-held-note")).toEqual(["Sin comprobar si sigue vigente"]);
   });
 
   it("walks the folders it sits in, opens apart, exports, and lists the book a page belongs to", () => {

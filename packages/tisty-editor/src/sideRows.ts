@@ -65,6 +65,7 @@ const detailed = (page: Document, say: Say, panel: Of<"details">) => {
         [say("paperWeighs"), facts.weighs],
         [say("paperHolds"), facts.holds],
       ]),
+      facts.edited ? printed(page, facts.edited) : null,
       fronted(page, say, facts),
       tagged(page, say, facts),
     ];

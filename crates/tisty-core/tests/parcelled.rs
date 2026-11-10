@@ -130,6 +130,7 @@ impl Room {
                 folder,
                 page_of,
                 task_of: None,
+                edited: None,
             },
         });
         (id, made.id)

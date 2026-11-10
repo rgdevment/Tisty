@@ -3,6 +3,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
 import { settled } from "./saving";
+import type { Named } from "./sharing";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -1231,6 +1232,7 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
+  edited?: { by: Named; editors: Named[] };
 }
 
 export const ALIAS_AT_MOST = 40;

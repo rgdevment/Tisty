@@ -49,6 +49,8 @@ export type Facts = {
   readonly overgrown?: boolean;
   readonly onFront?: () => void;
   readonly tags?: readonly { readonly name: string; readonly times: number }[];
+  /** Who edited it under Folio, as whoever handed the parcel over tells it. */
+  readonly edited?: Prints;
 };
 
 /** Each person beside the fingerprint their own Settings › Security shows, to compare elsewhere. */
