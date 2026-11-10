@@ -266,6 +266,7 @@ values:
   left_out: "A review that is not kept stays in the anchor: whoever writes never puts that language back in the map, and a reader never shows it, unless the owner keeps it again with a higher seq. A writer honours only a review that holds."
   one_each: "The owner keeps one review for each of, its latest, and drops the review of a language the server no longer holds, which never comes back under that id."
   carried: "Whoever edits the anchor carries its reviews as they arrived, and only its owner writes one."
+  sealed_only: "Only a sealed anchor holds reviews. What is public has no owner's block and no edit link, so nobody but its signer writes it and no one else's language waits in it: a reader of a public anchor takes no review and shows only the languages of its signer's root."
 fields:
   of: { type: hash, required: true, says: "Which language, by an HMAC of its id under the anchor's key." }
   kept: { type: bool, required: true, says: "True when the owner keeps it, false when the owner left it out." }
@@ -373,7 +374,7 @@ values:
     Only with the owner's version of the anchor that carries those reviews, in the same request and under the anchor's admin
     token, never with an edit link: the server keeps both or neither. It refuses one whose anchor is not that id, whose root is
     not the owner's it holds, whose certificate or signature does not hold, or whose seq is not above the one it holds. A
-    version that brings none leaves the one it holds as it was.
+    version that brings none leaves the one it holds as it was, and a public anchor never has one.
   weighed: "A reader weighs it against the revocations of its machine, with the moment the server received it as its arrival: holds and retired count, doubtful does not."
   remembered: "A reader that once saw a higher seq for this anchor takes none of the reviews under a lower one."
 fields:

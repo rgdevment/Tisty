@@ -2125,7 +2125,7 @@
           "type": "list",
           "of": "review",
           "at_most": 64,
-          "says": "Only in an anchor: its owner's word on each language that someone who edits added, the ones left out included, one for each language. Whoever edits carries them as they arrived, and a reader weighs them against the served reviewed. A language that names an anchor holds none, and a reader ignores any it says."
+          "says": "Only in a sealed anchor: its owner's word on each language that someone who edits added, the ones left out included, one for each language. Whoever edits carries them as they arrived, and a reader weighs them against the served reviewed. A language that names an anchor holds none, and a reader ignores any it says."
         }
       },
       "html_rules": [
@@ -3679,7 +3679,7 @@
         "languages_on_opening": "Opening a link, to read or to edit, brings every language that names this anchor and that a reader shows, from its map or from a review that keeps it, at most 19. Cited documents are not brought: each opens from its card, with its own languages.",
         "language_edit_unopened": "An edit the anchor's token does not open, or whose token the language's owner block does not name, leaves that language to read. An edit without a key says nothing, and what is public never holds one.",
         "language_token_purpose": "The anchor's token is the seed of its permit and the input that seals its languages' tokens; the info tisty-language-token keeps the two apart.",
-        "language_not_reviewed": "A language whose owner's root is not the anchor owner's was added by someone who edits. A reader shows it only while a review of the anchor's owner keeps the version it reads, and otherwise leaves it out.",
+        "language_not_reviewed": "A language whose owner's root is not the anchor owner's, or for what is public its signer's, was added by someone else. A reader shows it only while a review of the anchor's owner keeps the version it reads, and otherwise leaves it out.",
         "language_left_out": "When its owner leaves a language out, the anchor's map no longer names it and only the review's of remains. Whoever writes the anchor never puts it back.",
         "editing": "Never on the web. With an edit link, Tisty signs the next version with its own key and the token, and keeps the owner's block, the owner_name, its pictures, files, cited documents, the languages and reviews that arrived, and its sheet. It may add a language of its own to the anchor's map, which waits for the owner's review. The owner does not change, and the server refuses a version that says otherwise."
       }
@@ -4483,7 +4483,8 @@
         "reached": "A reader reaches a language a review keeps by the review's document and key, and names it by the review's title, whatever the map says of it: someone who edits can take an entry out of the map or change it, never what the owner signed.",
         "left_out": "A review that is not kept stays in the anchor: whoever writes never puts that language back in the map, and a reader never shows it, unless the owner keeps it again with a higher seq. A writer honours only a review that holds.",
         "one_each": "The owner keeps one review for each of, its latest, and drops the review of a language the server no longer holds, which never comes back under that id.",
-        "carried": "Whoever edits the anchor carries its reviews as they arrived, and only its owner writes one."
+        "carried": "Whoever edits the anchor carries its reviews as they arrived, and only its owner writes one.",
+        "sealed_only": "Only a sealed anchor holds reviews. What is public has no owner's block and no edit link, so nobody but its signer writes it and no one else's language waits in it: a reader of a public anchor takes no review and shows only the languages of its signer's root."
       },
       "fields": {
         "of": {
@@ -4666,7 +4667,7 @@
       "says": "The owner's latest word on all the reviews of an anchor. The server keeps one beside the anchor and serves it with it, so someone who edits can neither put an older review back nor take a left out one away: what the anchor's reviews say counts only while they are what this names.",
       "values": {
         "reviews": "SHA-256 of tisty-language-reviews and a zero byte, followed by the SHA-256 of each review's signed bytes in the anchor, in the order of those SHA-256 values. With no reviews, of those first bytes alone.",
-        "written": "Only with the owner's version of the anchor that carries those reviews, in the same request and under the anchor's admin token, never with an edit link: the server keeps both or neither. It refuses one whose anchor is not that id, whose root is not the owner's it holds, whose certificate or signature does not hold, or whose seq is not above the one it holds. A version that brings none leaves the one it holds as it was.",
+        "written": "Only with the owner's version of the anchor that carries those reviews, in the same request and under the anchor's admin token, never with an edit link: the server keeps both or neither. It refuses one whose anchor is not that id, whose root is not the owner's it holds, whose certificate or signature does not hold, or whose seq is not above the one it holds. A version that brings none leaves the one it holds as it was, and a public anchor never has one.",
         "weighed": "A reader weighs it against the revocations of its machine, with the moment the server received it as its arrival: holds and retired count, doubtful does not.",
         "remembered": "A reader that once saw a higher seq for this anchor takes none of the reviews under a lower one."
       },
