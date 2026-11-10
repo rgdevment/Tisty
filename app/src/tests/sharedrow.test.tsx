@@ -181,6 +181,7 @@ describe("the Shared row", () => {
           state: "otherVersion",
           version: 5,
           signer: "Ana",
+          fingerprint: "48210 93755 12880 63349",
           doubtful: false,
         });
       if (command === "doc_share_card") return Promise.resolve(editable);
@@ -227,8 +228,24 @@ describe("the Shared row", () => {
       () => `${fill("shareSyncSent", "2")} ${t("shareTermsUnchecked")}`,
     ],
     [
-      { state: "otherVersion", version: 3, signer: "Ana", doubtful: false },
+      {
+        state: "otherVersion",
+        version: 3,
+        signer: "Ana",
+        fingerprint: "48210 93755 12880 63349",
+        doubtful: false,
+      },
       () => fill("shareSyncOther", "3", "Ana"),
+    ],
+    [
+      {
+        state: "otherVersion",
+        version: 3,
+        signer: null,
+        fingerprint: "48210 93755 12880 63349",
+        doubtful: false,
+      },
+      () => fill("shareSyncOtherPrint", "3", "48210 93755 12880 63349"),
     ],
   ])("says what Sync did: %j", async (synced, words) => {
     const { panel, pressed } = await held(card, { doc_share_sync: synced });
@@ -688,7 +705,13 @@ describe("what Sync warns of", () => {
 
   it("says what stayed out and when a signature is in doubt", async () => {
     const { panel, pressed } = await held(card, {
-      doc_share_sync: { state: "otherVersion", version: 3, signer: "Ana", doubtful: true },
+      doc_share_sync: {
+        state: "otherVersion",
+        version: 3,
+        signer: "Ana",
+        fingerprint: "48210 93755 12880 63349",
+        doubtful: true,
+      },
     });
 
     await pressed("sync");

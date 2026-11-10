@@ -1,4 +1,4 @@
-use super::{Standing, standing_of};
+use super::{Standing, print_of, standing_of};
 use tisty_carrier::folio_limits::FolioMaker;
 use tisty_contracts::Verdict;
 
@@ -159,6 +159,7 @@ fn a_domain_alias_is_checked_only_by_its_own_root_and_never_on_a_doubtful_signat
 fn a_party_reads_as_its_alias_beside_how_it_stands() {
     let party = super::Party {
         name: "rgdevrnent".into(),
+        print: Some("70686 67560 35161 46791".into()),
         standing: Standing::Verified {
             maker: "rgdevment".into(),
             domain: Some("rgdevment.dev".into()),
@@ -168,6 +169,7 @@ fn a_party_reads_as_its_alias_beside_how_it_stands() {
         serde_json::to_value(&party).unwrap(),
         serde_json::json!({
             "name": "rgdevrnent",
+            "print": "70686 67560 35161 46791",
             "standing": "verified",
             "maker": "rgdevment",
             "domain": "rgdevment.dev"
@@ -223,4 +225,18 @@ fn a_maker_with_no_name_goes_by_its_domain_once() {
         ),
         Standing::Imitates
     );
+}
+
+#[test]
+fn a_root_prints_as_the_fingerprint_its_person_sees_in_security() {
+    let person = tisty_share_proto::seed::Seed::from_bytes(&[7; 32])
+        .root()
+        .person();
+
+    assert_eq!(print_of(&person.shown()), Some(person.fingerprint()));
+}
+
+#[test]
+fn a_root_that_is_no_key_prints_nothing() {
+    assert_eq!(print_of("not a key"), None);
 }

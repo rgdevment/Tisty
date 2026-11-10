@@ -20,8 +20,9 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart,
+    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart, signer_alias,
 };
+use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
 use super::sharing::{doc_id, refused, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
@@ -51,7 +52,8 @@ pub enum Synced {
     Gone,
     OtherVersion {
         version: u64,
-        signer: String,
+        signer: Option<String>,
+        fingerprint: String,
         doubtful: bool,
     },
 }
@@ -602,13 +604,17 @@ async fn other_version_brought(
     }
     let now = kept_after(was, &opened, &received);
     kept_on(&mut session, &[(file, now)])?;
-    let doubtful = opened.doubtful();
+    let signer = signer_alias(
+        &opened,
+        received.signed_as.as_deref(),
+        received.owner_name.as_deref(),
+    )
+    .map(str::to_owned);
+    let fingerprint = print_of(&opened.signer);
     Ok(Synced::OtherVersion {
         version: opened.version,
-        doubtful,
-        signer: received
-            .signed_as
-            .or(received.owner_name)
-            .unwrap_or(opened.signer),
+        doubtful: opened.doubtful() || fingerprint.is_none(),
+        signer,
+        fingerprint: fingerprint.unwrap_or_default(),
     })
 }

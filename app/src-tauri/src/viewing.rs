@@ -84,7 +84,6 @@ pub enum LinkQuestion {
         title: String,
         owner: Option<crate::answers::folio_standing::Party>,
         signer: crate::answers::folio_standing::Party,
-        print: String,
         doubtful: bool,
     },
     Failed {

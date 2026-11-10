@@ -4,7 +4,7 @@ use tisty_carrier::folio_client::{Answered, Asked, Door};
 
 use super::{
     Link, Opened, belongs, editable, language_link, link_of, looked_for, owner_apart, reviewed,
-    saying_its_language, speaks,
+    saying_its_language, signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -251,4 +251,18 @@ fn a_language_is_brought_only_when_it_names_this_anchor() {
         &anchor,
         &naming(serde_json::json!({ "anchor": "Anchor12" }), "ana")
     ));
+}
+
+#[test]
+fn a_version_is_signed_by_its_own_name_and_never_by_an_owner_who_did_not_sign_it() {
+    let by_ana = opened_by(Some("mario"), "ana");
+    let by_mario = opened_by(Some("mario"), "mario");
+
+    assert_eq!(
+        signer_alias(&by_ana, Some("Ana"), Some("Mario")),
+        Some("Ana")
+    );
+    assert_eq!(signer_alias(&by_mario, None, Some("Mario")), Some("Mario"));
+    assert_eq!(signer_alias(&by_ana, None, Some("Mario")), None);
+    assert_eq!(signer_alias(&by_mario, None, None), None);
 }
