@@ -998,6 +998,72 @@ fn a_copy_of_what_someone_else_shared_is_not_shared_again() {
     assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
 }
 
+fn kept_as(home: &mut Home, body: &str, by: Option<&str>, guest: bool) -> tisty_core::model::DocId {
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    let id = ulid::Ulid::generate();
+    home.commit(Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            by: by.map(str::to_string),
+            guest,
+            ..Default::default()
+        },
+    });
+    id
+}
+
+fn refused(home: &Home, id: tisty_core::model::DocId) -> Option<Unshared> {
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+    tisty_sharing::gathered(&desk, &asked(id)).err()
+}
+
+#[test]
+fn writing_signed_by_someone_else_is_not_shared_even_without_the_guest_mark() {
+    let (_tmp, mut home) = home();
+    let id = kept_as(
+        &mut home,
+        "# De Ana
+",
+        Some("ana"),
+        false,
+    );
+    let refused = refused(&home, id);
+    assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
+}
+
+#[test]
+fn a_copy_that_came_without_a_name_is_never_offered_to_sign_nor_shared() {
+    let (_tmp, mut home) = home();
+    home.commit(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    let id = kept_as(
+        &mut home,
+        "# De un link público
+",
+        None,
+        true,
+    );
+    assert!(
+        home.state.mine_to_sign().is_empty(),
+        "the copy was offered to sign"
+    );
+    let refused = refused(&home, id);
+    assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
+}
+
 #[test]
 fn an_anchor_that_is_locked_stays_here_and_the_map_goes_with_who_does() {
     let (_tmp, mut home) = home();
