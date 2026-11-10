@@ -427,26 +427,54 @@ pub(super) fn languages_to_read(
         .collect()
 }
 
-pub(super) fn languages_granted(
-    door: &dyn Door,
+pub(super) fn grantable(
     anchor: &Remembered,
     to_read: &[(String, String)],
-) -> Vec<(String, Remembered)> {
+) -> Vec<(String, Translation)> {
+    let Some(token) = anchor.edit_token.as_deref() else {
+        return Vec::new();
+    };
     let map: Vec<Translation> = anchor
         .carried
         .as_deref()
         .and_then(|said| serde_json::from_str::<serde_json::Value>(said).ok())
         .and_then(|said| serde_json::from_value(said["languages"].clone()).ok())
         .unwrap_or_default();
+    // Two copies here in one language could each be the one Folio sent, so neither is taken for it.
+    let alone = |lang: &str| to_read.iter().filter(|(one, _)| one == lang).count() == 1;
     to_read
         .iter()
+        .filter(|(lang, _)| alone(lang))
         .filter_map(|(lang, file)| {
-            let one = map
-                .iter()
-                .find(|one| one.lang == *lang && one.edit.is_some())?;
-            let its = opened_head(door, &one.document, one.key.as_deref()?).ok()?;
-            Some((file.clone(), granted_entry(anchor, one, &its)?))
+            let one = map.iter().find(|one| one.lang == *lang)?;
+            tisty_envelope::tokens::opened_with(token, &one.document, one.edit.as_deref()?)?;
+            Some((file.clone(), one.clone()))
         })
+        .collect()
+}
+
+pub(super) fn languages_granted(
+    door: &dyn Door,
+    anchor: &Remembered,
+    to_read: &[(String, String)],
+) -> Vec<(String, Remembered)> {
+    grantable(anchor, to_read)
+        .into_iter()
+        .filter_map(|(file, one)| {
+            let its = opened_head(door, &one.document, one.key.as_deref()?).ok()?;
+            Some((file, granted_entry(anchor, &one, &its)?))
+        })
+        .collect()
+}
+
+pub(super) fn unprinted(
+    granted: &[(String, Remembered)],
+    shelf: &std::collections::BTreeMap<String, Remembered>,
+) -> Vec<(String, Remembered)> {
+    granted
+        .iter()
+        .filter_map(|(file, _)| Some((file.clone(), shelf.get(file)?.clone())))
+        .filter(|(_, now)| now.words_print.is_none())
         .collect()
 }
 

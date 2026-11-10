@@ -21,7 +21,7 @@ use super::folio::{
 };
 use super::folio_receiving::{
     Opened, guest_page, guests_kept, kept_here, languages_granted, languages_to_read, opened_from,
-    owner_apart, signer_alias, with_their_prints,
+    owner_apart, signer_alias, unprinted, with_their_prints,
 };
 use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
@@ -284,6 +284,26 @@ async fn unchanged_answered(
     })
 }
 
+// Without its print its words count as changed, and would go up over the owner's newest version unasked.
+async fn granted_and_printed(
+    app: &tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    doc: tisty_core::model::DocId,
+    granted: Vec<(String, Remembered)>,
+) -> Answer<Vec<(String, Remembered)>> {
+    kept_on(&mut held(session), &granted)?;
+    let printing = (app.clone(), granted.clone());
+    apart(move || {
+        with_their_prints(&printing.0, doc, printing.1);
+        Ok(())
+    })
+    .await?;
+    let mut session = held(session);
+    let left = unprinted(&granted, tisty_sharing::remembered(&session.state));
+    session.commit_all(tisty_sharing::forgotten(&left))?;
+    Ok(left)
+}
+
 #[tauri::command]
 pub async fn doc_share_sync(
     app: tauri::AppHandle,
@@ -358,17 +378,18 @@ pub async fn doc_share_sync(
         })
         .await?
     };
-    if !granted.is_empty() {
-        kept_on(&mut held(&session), &granted)?;
-        let app = app.clone();
-        apart(move || {
-            with_their_prints(&app, doc, granted);
-            Ok(())
-        })
-        .await?;
-    }
+    let language_ahead = match granted.is_empty() {
+        true => language_ahead,
+        false => {
+            let left = granted_and_printed(&app, &session, doc, granted).await?;
+            language_ahead.filter(|(its_file, _)| left.iter().all(|(one, _)| one != its_file))
+        }
+    };
     // Each language has its own versions, and another's newer one is brought apart as the anchor's is (166).
     if let Some((its_file, its_was)) = language_ahead {
+        if ahead == Ahead::Upload {
+            folio_pace::take_back(&home, &was.id, pressed_at);
+        }
         let its_was = tisty_sharing::remembered(&held(&session).state)
             .get(&its_file)
             .cloned()

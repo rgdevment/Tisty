@@ -192,6 +192,69 @@ fn edited_anchor(token: &str) -> tisty_sharing::Remembered {
 }
 
 #[test]
+fn only_a_copy_alone_in_its_language_whose_token_opens_here_is_looked_for_in_folio() {
+    use tisty_envelope::sealing::link_key;
+    let (anchor, token, stranger) = (
+        link_key().unwrap(),
+        link_key().unwrap(),
+        link_key().unwrap(),
+    );
+    let sealed = |under: &str, id: &str| tisty_envelope::tokens::sealed_for(under, id, &token).ok();
+    let one = |lang: &str, id: &str, edit: Option<String>| serde_json::json!({ "lang": lang, "document": id, "key": "k", "edit": edit });
+    let was = tisty_sharing::Remembered {
+        carried: Some(
+            serde_json::json!({ "languages": [
+                one("en", "enGlish1", sealed(&anchor, "enGlish1")),
+                one("fr", "fraNcais", sealed(&stranger, "fraNcais")),
+                one("de", "deUtsch1", None),
+                one("pt", "portUgu1", sealed(&anchor, "portUgu1")),
+            ]})
+            .to_string(),
+        ),
+        ..edited_anchor(&anchor)
+    };
+    let here = |lang: &str, file: &str| (lang.to_owned(), file.to_owned());
+    let to_read = [
+        here("en", "en.md"),
+        here("fr", "fr.md"),
+        here("de", "de.md"),
+        here("pt", "pt.md"),
+        here("pt", "pt-2.md"),
+    ];
+
+    let found: Vec<(String, String)> = super::grantable(&was, &to_read)
+        .into_iter()
+        .map(|(file, one)| (file, one.document))
+        .collect();
+
+    assert_eq!(found, vec![("en.md".to_owned(), "enGlish1".to_owned())]);
+    assert!(super::grantable(&edited_anchor(&stranger), &to_read).is_empty());
+}
+
+#[test]
+fn a_language_whose_words_could_not_be_printed_is_taken_back() {
+    let entry = |print: Option<&str>| tisty_sharing::Remembered {
+        words_print: print.map(str::to_owned),
+        ..edited_anchor("t")
+    };
+    let granted = vec![
+        ("en.md".to_owned(), entry(None)),
+        ("fr.md".to_owned(), entry(None)),
+    ];
+    let shelf = std::collections::BTreeMap::from([
+        ("en.md".to_owned(), entry(Some("abc"))),
+        ("fr.md".to_owned(), entry(None)),
+    ]);
+
+    let left: Vec<String> = super::unprinted(&granted, &shelf)
+        .into_iter()
+        .map(|(file, _)| file)
+        .collect();
+
+    assert_eq!(left, vec!["fr.md".to_owned()]);
+}
+
+#[test]
 fn a_language_kept_to_read_is_edited_once_the_anchor_s_map_holds_its_token() {
     use tisty_envelope::sealing::{link_key, permit_shown};
     let (anchor, token) = (link_key().unwrap(), link_key().unwrap());
