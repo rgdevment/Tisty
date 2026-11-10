@@ -91,6 +91,8 @@ pub enum Trouble {
     Unsealed(String),
     OtherPhrase(String),
     MarkDamaged(String),
+    /// The place's history is another person's, and a store is only ever one person's.
+    OtherPerson(String),
 }
 
 impl Trouble {
@@ -122,6 +124,7 @@ impl Trouble {
             Trouble::Unsealed(_) => "unsealed",
             Trouble::OtherPhrase(_) => "other-phrase",
             Trouble::MarkDamaged(_) => "mark-damaged",
+            Trouble::OtherPerson(_) => "other-person",
         }
     }
 }
@@ -747,6 +750,8 @@ pub enum Kin {
     SameLineage,
     Clash(String),
     Unsure(String),
+    /// Each history names a person, and not the same one.
+    OtherPerson(String),
 }
 
 pub fn kinship(store: &Path, dest: &Path) -> Kin {
@@ -779,10 +784,23 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
     if shared {
         return Kin::SameLineage;
     }
+    if let (Some(mine), Some(theirs)) = (owner_of(store), owner_of(&there))
+        && mine != theirs
+    {
+        return Kin::OtherPerson(theirs);
+    }
     match named_on_both(store, &there).into_iter().next() {
         Some(named) => Kin::Clash(named),
         None => Kin::Strangers,
     }
+}
+
+fn owner_of(store: &Path) -> Option<String> {
+    let events = tisty_core::store::read_all(store).ok()?;
+    tisty_core::State::replay(&events)
+        .persons
+        .owner()
+        .map(|one| one.shown())
 }
 
 fn every_name(store: &Path) -> std::collections::BTreeSet<String> {
@@ -839,6 +857,7 @@ pub fn stitch(
     match &kin {
         Kin::Clash(named) => return Err(Trouble::SameName(named.clone())),
         Kin::Unsure(named) => return Err(Trouble::Unreadable(named.clone())),
+        Kin::OtherPerson(theirs) => return Err(Trouble::OtherPerson(theirs.clone())),
         _ => {}
     }
 

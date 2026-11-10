@@ -1170,6 +1170,26 @@ fn a_machine_that_said_its_root_answers_to_it_even_before_that_root_vouched_for_
 }
 
 #[test]
+fn another_person_s_machine_in_the_store_never_speaks_for_it() {
+    let mut two = Two::new();
+    let (_room, stranger) = stranger_in(&mut two);
+    let state = two.state();
+    let them = stranger.root().person();
+
+    assert_eq!(state.persons.owner(), Some(seed().root().person()));
+    assert_eq!(state.persons.person(&device("dev_c")), None);
+    assert!(!state.persons.names(&them));
+    assert!(
+        state
+            .persons
+            .waiting(&them, &BTreeSet::from([device("dev_a"), device("dev_b")]))
+            .is_empty(),
+        "another phrase could vouch for this store's machines"
+    );
+    assert_eq!(state.persons.answers_to(&device("dev_c")), vec![them]);
+}
+
+#[test]
 fn a_copy_of_a_document_with_my_alias_made_by_another_person_s_machine_stays_theirs() {
     let mut two = Two::new();
     let (_room, _stranger) = stranger_in(&mut two);

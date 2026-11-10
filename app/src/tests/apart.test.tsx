@@ -24,6 +24,14 @@ describe("what the window asks when a folder holds another history", () => {
     expect(screen.queryByText(/merge the two/i)).toBeNull();
   });
 
+  it("never offers to merge another person's history, and says why", () => {
+    render(<Apart kin="otherPerson" onPick={vi.fn()} onElse={vi.fn()} onClose={vi.fn()} />);
+
+    expect(doors()).toHaveLength(2);
+    expect(screen.queryByText(/merge the two/i)).toBeNull();
+    expect(screen.getByText(/another person's 24-word phrase/i)).toBeTruthy();
+  });
+
   it("asks nothing of its own lineage beyond taking the name", () => {
     render(<Apart kin="sameLineage" onPick={vi.fn()} onElse={vi.fn()} onClose={vi.fn()} />);
 
