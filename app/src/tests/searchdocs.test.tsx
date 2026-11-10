@@ -102,6 +102,24 @@ const searching = async (user: ReturnType<typeof userEvent.setup>, words: string
 };
 
 describe("a search that reaches the documents", () => {
+  it("asks the store again only for the words, not for the whole window, as they are typed", async () => {
+    const asked: string[] = [];
+    const answer = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      asked.push(cmd);
+      return answer(cmd, args);
+    };
+    const user = userEvent.setup();
+    await searching(user, "h");
+    await screen.findByText("change the garden hose");
+    const before = asked.filter((one) => one === "snapshot").length;
+
+    await user.type(screen.getByRole("textbox", { name: /search tasks/i }), "ose");
+    await waitFor(() => expect(asked.filter((one) => one === "search").length).toBeGreaterThan(1));
+
+    expect(asked.filter((one) => one === "snapshot").length).toBe(before);
+  });
+
   it("never shows a file name where a title should be", async () => {
     hits = {
       tasks: [],

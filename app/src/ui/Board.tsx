@@ -35,6 +35,7 @@ export default function Board() {
     marking,
     openDoc,
     opening,
+    query,
     reveal,
     say,
     seen,
@@ -44,6 +45,7 @@ export default function Board() {
     setChosen,
     setError,
     setFound,
+    setQuery,
     setSelected,
     shown,
     strip,
@@ -176,8 +178,8 @@ export default function Board() {
           {chosen.named === "search" ? (
             <Search
               key="search"
-              query={chosen.query ?? ""}
-              onQuery={(query) => setChosen({ ...chosen, query })}
+              query={query}
+              onQuery={setQuery}
               onFound={setFound}
               onError={setError}
             />

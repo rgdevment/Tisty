@@ -447,9 +447,10 @@ fn a_store_from_before_the_colours_dressed_in_them_is_still_untouched() {
     here.sown_guide();
     assert!(here.untouched());
 
-    let state = crate::State::replay(&here.store.read_all().unwrap());
+    let events = here.store.read_all().unwrap();
+    let state = crate::State::replay(&events);
     here.store
-        .append_batch(crate::dressing::dressed(&state))
+        .append_batch(crate::dressing::dressed(&state, &events))
         .unwrap();
 
     assert!(here.untouched());

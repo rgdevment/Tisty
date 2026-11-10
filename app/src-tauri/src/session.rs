@@ -128,10 +128,21 @@ impl Session {
     }
 
     fn dress_if_due(&mut self) {
-        if self.config.dressed == Some(true) {
+        let bare = self.state.lists.is_empty() && self.state.folders.is_empty();
+        if self.config.dressed == Some(true) || bare {
             return;
         }
-        let looks = tisty_core::dressing::dressed(&self.state);
+        let looks = match self.store.read_all() {
+            Ok(events) => tisty_core::dressing::dressed(&self.state, &events),
+            Err(why) => {
+                witness::warn(
+                    channel::CONFIG,
+                    "the lists and folders Tisty made could not be read to take their colours",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+                return;
+            }
+        };
         if !looks.is_empty()
             && let Err(why) = self.commit_all(looks)
         {

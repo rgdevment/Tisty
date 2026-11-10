@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { fold } from "../breadth";
 import type { List, Papers } from "../core";
 import { fill, t } from "../locales";
-import type { Chosen, Lean, Named } from "../views";
+import type { Chosen, Named } from "../views";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { fitting, useRoom } from "./room";
@@ -27,8 +27,7 @@ interface Props {
   chosen: Chosen;
   here?: string | null;
   onChoose: (chosen: Chosen) => void;
-  onHere: (folder?: string) => void;
-  onLean: (on: Lean) => void;
+  onReveal: (folder?: string) => void;
 }
 
 export default function SideRail({
@@ -38,8 +37,7 @@ export default function SideRail({
   chosen,
   here,
   onChoose,
-  onHere,
-  onLean,
+  onReveal,
 }: Props) {
   const shelf = useRef<HTMLDivElement>(null);
   const room = useRoom(shelf, "height");
@@ -49,8 +47,7 @@ export default function SideRail({
   const plain = !chosen.list && !chosen.tags?.length;
   const unfoldTo = (folder?: string) => {
     fold(false);
-    onLean("docs");
-    onHere(folder);
+    onReveal(folder);
   };
 
   return (

@@ -45,6 +45,7 @@ const bar = (
   onSearch = vi.fn(),
   onHere = vi.fn(),
   onChoose = vi.fn(),
+  query = "",
 ) =>
   render(
     <Sidebar
@@ -57,6 +58,7 @@ const bar = (
       counts={{ tasks: 82, overdue: 9, late: 2, dueToday: 0, upcoming: 10, L1: 8 }}
       chosen={chosen}
       onChoose={onChoose}
+      query={query}
       onSearch={onSearch}
       onFile={vi.fn()}
       onHere={onHere}
@@ -120,6 +122,31 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "late" });
   });
 
+  it("keeps the list the person narrowed to when a count is opened", () => {
+    const onChoose = vi.fn();
+    bar({ named: "tasks", lists: ["L1"] }, vi.fn(), vi.fn(), onChoose);
+    fireEvent.click(screen.getByText(t("pulseLate")));
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "late", lists: ["L1"] });
+  });
+
+  it("keeps what was open in the library while tasks have the room", () => {
+    bar({ named: "docs" });
+    fireEvent.click(screen.getByRole("button", { name: fill("openFolder", "Trabajo") }));
+    expect(screen.getByText("Clientes")).toBeTruthy();
+
+    grow();
+    fireEvent.click(screen.getByRole("button", { name: t("growLibrary") }));
+
+    expect(screen.getByText("Clientes")).toBeTruthy();
+  });
+
+  it("opens the folder picked on the shrunk library, the way to it included", () => {
+    bar();
+    grow();
+    fireEvent.click(screen.getByRole("button", { name: "Trabajo" }));
+    expect(screen.getByText("Clientes")).toBeTruthy();
+  });
+
   it("hands what is typed to the same search the window already runs", () => {
     const onSearch = vi.fn();
     const { unmount } = bar({ named: "tasks" }, onSearch);
@@ -129,7 +156,7 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     expect(onSearch).toHaveBeenCalledWith("arroz");
     unmount();
 
-    bar({ named: "search", query: "arroz" });
+    bar({ named: "search" }, vi.fn(), vi.fn(), vi.fn(), "arroz");
     expect(screen.getByRole("textbox", { name: t("sideSearch") })).toHaveProperty("value", "arroz");
   });
 
@@ -151,6 +178,11 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     });
     expect(screen.getByText("Acta de reunión")).toBeTruthy();
     expect(screen.queryByText("Recetas")).toBeNull();
+
+    fireEvent.change(screen.getByRole("textbox", { name: t("siftDocs") }), {
+      target: { value: "anexo" },
+    });
+    expect(screen.getByText("Anexo de precios")).toBeTruthy();
 
     fireEvent.change(screen.getByRole("textbox", { name: t("siftDocs") }), {
       target: { value: "zzz" },
@@ -190,8 +222,14 @@ describe("filtering the library", () => {
     expect(left.folders.map((one) => one.id)).toEqual(["F1", "F2"]);
   });
 
-  it("keeps a folder whose own name matches", () => {
-    expect(sifted(papers, "recetas").folders.map((one) => one.id)).toEqual(["F3"]);
+  it("keeps a folder whose own name matches, with all it holds", () => {
+    const left = sifted(papers, "recetas");
+    expect(left.folders.map((one) => one.id)).toEqual(["F3"]);
+    expect(left.docs.map((one) => one.id)).toEqual(["D2"]);
+
+    const work = sifted(papers, "trabajo");
+    expect(work.folders.map((one) => one.id)).toEqual(["F1", "F2"]);
+    expect(work.docs.map((one) => one.id)).toEqual(["D1"]);
   });
 });
 

@@ -55,10 +55,13 @@ export default function App() {
     lane,
     aside,
     beside,
+    query,
+    setQuery,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
   const choose = (next: Chosen) => {
     setChosen(next);
+    setQuery("");
     setCameFrom(null);
     setSelected(undefined);
     setFound(null);
@@ -110,11 +113,11 @@ export default function App() {
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }
           onChoose={choose}
-          onSearch={(query) =>
-            chosen.named === "search"
-              ? setChosen({ ...chosen, query })
-              : choose({ named: "search", query })
-          }
+          query={query}
+          onSearch={(asked) => {
+            if (chosen.named !== "search") choose({ named: "search" });
+            setQuery(asked);
+          }}
           onSync={() => held.carries.current?.now()}
           onTrouble={setError}
         />

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
 import type { Filed, Folded, Papers } from "../core";
 import { fill, t } from "../locales";
@@ -13,11 +13,15 @@ import Tree from "./Tree";
 
 const SQUARE = 36;
 
+export type Revealed = { folder: string; at: number };
+
 interface Props {
   papers: Papers;
   chosen: Chosen;
   leaning: Lean;
   onLean: (on: Lean) => void;
+  onReveal: (folder?: string) => void;
+  revealing?: Revealed | null;
   here?: string | null;
   acting?: string | null;
   onChoose: (chosen: Chosen) => void;
@@ -32,7 +36,7 @@ interface Props {
 }
 
 export default function SideLibrary(props: Props) {
-  const { papers, chosen, leaning, onLean, onHere } = props;
+  const { papers, chosen, leaning, onLean, onReveal, onHere } = props;
   const many = shown(papers.docs).filter((one) => !one.pageOf).length;
   const lit = chosen.named === "docs";
 
@@ -53,29 +57,24 @@ export default function SideLibrary(props: Props) {
     </>
   );
 
-  if (leaning === "tasks") {
-    return (
-      <div className="relative shrink-0 pb-2">
-        <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
-        <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-          {title}
-          <span className="ml-auto -mr-1.5">
-            <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
-          </span>
+  const shrunk = leaning === "tasks";
+  return (
+    <>
+      {shrunk && (
+        <div className="relative shrink-0 pb-2">
+          <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
+          <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
+            {title}
+            <span className="ml-auto -mr-1.5">
+              <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
+            </span>
+          </div>
+          <Shelf papers={papers} here={props.here} onPick={onReveal} />
         </div>
-        <Shelf
-          papers={papers}
-          here={props.here}
-          onPick={(folder) => {
-            onLean("docs");
-            onHere(folder);
-          }}
-        />
-      </div>
-    );
-  }
-
-  return <Wide {...props} title={title} />;
+      )}
+      <Wide {...props} title={title} hidden={shrunk} />
+    </>
+  );
 }
 
 function Wide({
@@ -93,21 +92,31 @@ function Wide({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  revealing,
   title,
-}: Props & { title: React.ReactNode }) {
+  hidden,
+}: Props & { title: React.ReactNode; hidden: boolean }) {
   const [sifting, setSifting] = useState(false);
   const [query, setQuery] = useState("");
   const pane = useFades<HTMLDivElement>();
+  const scrolled = useRef(0);
+  useLayoutEffect(() => {
+    if (!hidden && pane.current) pane.current.scrollTop = scrolled.current;
+  }, [hidden, pane]);
   const asked = sifting ? query.trim() : "";
   const seen = { ...papers, docs: shown(papers.docs, chosen.doc) };
   const left = sifted(seen, asked);
+  const nothing = Boolean(asked) && !left.docs.length && !left.folders.length;
   const close = () => {
     setSifting(false);
     setQuery("");
   };
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div
+      hidden={hidden}
+      className={`relative min-h-0 flex-1 flex-col ${hidden ? "hidden" : "flex"}`}
+    >
       <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
       <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
         {title}
@@ -140,12 +149,20 @@ function Wide({
         </span>
       </div>
       {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}
-      <div ref={pane} className="scroller fading min-h-0 flex-1 px-2.5 pb-4">
-        {asked && !left.docs.length && !left.folders.length ? (
+      <div
+        ref={pane}
+        onScroll={(e) => {
+          if (!hidden) scrolled.current = e.currentTarget.scrollTop;
+        }}
+        className="scroller fading min-h-0 flex-1 px-2.5 pb-4"
+      >
+        {nothing && (
           <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
-        ) : (
+        )}
+        <div className={nothing ? "hidden" : undefined}>
           <Tree
             papers={left}
+            reveal={revealing}
             unfolded={Boolean(asked)}
             open={chosen.doc}
             here={here}
@@ -159,7 +176,7 @@ function Wide({
             onHereMenu={onHereMenu}
             onDocMenu={onDocMenu}
           />
-        )}
+        </div>
       </div>
     </div>
   );

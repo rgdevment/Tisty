@@ -67,7 +67,6 @@ export interface Chosen {
   axis?: Axis;
   topic?: string;
   from?: string;
-  query?: string;
 }
 
 export const A_COLUMN = 200;

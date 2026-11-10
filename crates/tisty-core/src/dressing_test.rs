@@ -20,6 +20,10 @@ impl Here {
         State::replay(&self.store.read_all().unwrap())
     }
 
+    fn dressed(&self) -> Vec<Op> {
+        dressed(&self.state(), &self.store.read_all().unwrap())
+    }
+
     fn list(&mut self, name: &str, icon: Option<&str>, color: Option<&str>) -> Ulid {
         let id = Ulid::generate();
         self.store
@@ -36,7 +40,7 @@ impl Here {
                     id,
                     d: Look {
                         icon: Some(icon.map(str::to_string)),
-                        color: Some(color.map(str::to_string)),
+                        color: color.map(|hue| Some(hue.to_string())),
                     },
                 },
             ])
@@ -80,7 +84,7 @@ fn what_tisty_made_and_nobody_touched_takes_the_look_it_is_made_with_now() {
     let guide = here.folder("Guía", None);
     let diagrams = here.folder("Diagrams", None);
 
-    let mut dressed = looks(&dressed(&here.state()));
+    let mut dressed = looks(&here.dressed());
     dressed.sort();
     let mut wanted = vec![
         (work, Some("work".into()), Some("blue".into())),
@@ -104,7 +108,7 @@ fn what_the_person_chose_or_made_is_left_as_it_is() {
     let mine = here.folder("Proyectos", None);
     here.folder("Guía", Some(mine));
 
-    assert!(dressed(&here.state()).is_empty());
+    assert!(here.dressed().is_empty());
 }
 
 #[test]
@@ -112,10 +116,10 @@ fn dressed_once_there_is_nothing_left_to_dress() {
     let mut here = here();
     here.list("Health", Some("health"), None);
     here.folder("Guide", None);
-    let first = dressed(&here.state());
+    let first = here.dressed();
     here.store.append_batch(first).unwrap();
 
-    assert!(dressed(&here.state()).is_empty());
+    assert!(here.dressed().is_empty());
 }
 
 #[test]
@@ -127,4 +131,40 @@ fn the_look_is_one_the_catalogue_and_the_palette_know() {
             "unknown colour: {hue}"
         );
     }
+}
+
+#[test]
+fn a_colour_someone_took_off_is_never_put_back() {
+    let mut here = here();
+    let work = here.list("Work", Some("work"), None);
+    here.store
+        .append(Op::ListLook {
+            id: work,
+            d: Look {
+                icon: None,
+                color: Some(Some("blue".into())),
+            },
+        })
+        .unwrap();
+    here.store
+        .append(Op::ListLook {
+            id: work,
+            d: Look {
+                icon: None,
+                color: Some(None),
+            },
+        })
+        .unwrap();
+    let guide = here.folder("Guide", None);
+    here.store
+        .append(Op::FolderLook {
+            id: guide,
+            d: Look {
+                icon: Some(None),
+                color: None,
+            },
+        })
+        .unwrap();
+
+    assert!(here.dressed().is_empty());
 }

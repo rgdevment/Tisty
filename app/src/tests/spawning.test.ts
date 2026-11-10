@@ -29,9 +29,10 @@ vi.mock("../core", () => ({
   },
 }));
 
+import { readFileSync } from "node:fs";
 import { startOf } from "tisty-diagrams/read";
 import type { Folded } from "../core";
-import { t } from "../locales";
+import { adopt, t } from "../locales";
 import { DIAGRAMS_HUE, DIAGRAMS_ICON, drafted, placeOf, spawned } from "../making";
 
 beforeEach(() => {
@@ -118,5 +119,24 @@ describe("making a document for a new diagram", () => {
 
     expect(store.folders).toEqual([]);
     expect(store.added).toEqual([]);
+  });
+});
+
+describe("the diagrams' folder as the core knows it", () => {
+  const core = readFileSync("../crates/tisty-core/src/dressing.rs", "utf8");
+  const constant = (name: string) => core.match(new RegExp(`${name}: &str = "([^"]+)"`))?.[1];
+
+  it("wears the look the core dresses it in", () => {
+    expect(constant("DIAGRAMS_ICON")).toBe(DIAGRAMS_ICON);
+    expect(constant("DIAGRAMS_HUE")).toBe(DIAGRAMS_HUE);
+  });
+
+  it("is called in every language by a name the core recognises", () => {
+    const names = core.match(/DIAGRAM_FOLDERS: \[&str; \d+\] = \[([^\]]+)\]/)?.[1] ?? "";
+    for (const tongue of ["en", "es"]) {
+      adopt(tongue);
+      expect(names).toContain(`"${t("diagramsFolder")}"`);
+    }
+    adopt();
   });
 });

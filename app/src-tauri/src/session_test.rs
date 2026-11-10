@@ -143,7 +143,10 @@ fn what_tisty_made_takes_its_colours_on_the_first_opening_and_a_colour_taken_off
     let work = ulid::Ulid::generate();
     {
         let mut before = Session::at(paths.clone()).unwrap();
-        before.keep(|config| config.dressed = None).unwrap();
+        assert_eq!(
+            before.config.dressed, None,
+            "an empty store waits for what it will hold"
+        );
         before
             .commit_all(vec![
                 Op::ListAdd {

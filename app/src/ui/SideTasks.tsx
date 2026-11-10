@@ -26,6 +26,7 @@ interface Props {
   leaning: Lean;
   onLean: (on: Lean) => void;
   onChoose: (chosen: Chosen) => void;
+  query: string;
   onSearch: (query: string) => void;
 }
 
@@ -37,12 +38,12 @@ export default function SideTasks({
   leaning,
   onLean,
   onChoose,
+  query,
   onSearch,
 }: Props) {
   const wide = leaning === "tasks";
   const plain = !chosen.list && !chosen.tags?.length;
   const on = (key: Named) => plain && chosen.named === key;
-  const query = chosen.named === "search" ? (chosen.query ?? "") : "";
 
   return (
     <div className={`flex flex-col px-2.5 ${wide ? "min-h-0 flex-1" : "shrink-0 pb-2"}`}>
@@ -76,7 +77,10 @@ export default function SideTasks({
           </span>
         </div>
         <div className="mt-2">
-          <DayCounts counts={counts} onPick={(slice) => onChoose({ named: "tasks", slice })} />
+          <DayCounts
+            counts={counts}
+            onPick={(slice) => onChoose({ named: "tasks", slice, lists: chosen.lists })}
+          />
         </div>
         <nav aria-label={t("tasksViews")} className="mt-2 flex gap-0.5 border-t border-hair pt-1">
           {VIEWS.map(({ key, icon }) => {
@@ -117,7 +121,7 @@ function Wide({
   tags,
   chosen,
   onChoose,
-}: Omit<Props, "leaning" | "onLean" | "onSearch">) {
+}: Omit<Props, "leaning" | "onLean" | "query" | "onSearch">) {
   const pane = useFades<HTMLDivElement>();
   const held = lists.filter((one) => !one.archived);
   const most = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, TAGS_SHOWN);

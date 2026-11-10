@@ -1,4 +1,8 @@
-use crate::event::{Look, Op};
+use std::collections::BTreeSet;
+
+use ulid::Ulid;
+
+use crate::event::{Event, Look, Op};
 use crate::model::FIRST;
 use crate::state::State;
 use crate::untouched::{GUIDE_FOLDERS, GUIDE_HUE, GUIDE_ICON};
@@ -14,11 +18,23 @@ fn worn(icon: &str, hue: &str) -> Look {
     }
 }
 
-pub fn dressed(state: &State) -> Vec<Op> {
+fn looked_at(events: &[Event]) -> BTreeSet<Ulid> {
+    events
+        .iter()
+        .filter_map(|event| match &event.op {
+            Op::ListLook { id, d } if d.color.is_some() => Some(*id),
+            Op::FolderLook { id, .. } => Some(*id),
+            _ => None,
+        })
+        .collect()
+}
+
+pub fn dressed(state: &State, events: &[Event]) -> Vec<Op> {
+    let looked = looked_at(events);
     let lists = state
         .lists
         .values()
-        .filter(|one| one.color.is_none())
+        .filter(|one| one.color.is_none() && !looked.contains(&one.id))
         .filter_map(|one| {
             FIRST
                 .iter()
@@ -34,7 +50,12 @@ pub fn dressed(state: &State) -> Vec<Op> {
     let folders = state
         .folders
         .values()
-        .filter(|one| one.parent.is_none() && one.icon.is_none() && one.color.is_none())
+        .filter(|one| {
+            one.parent.is_none()
+                && one.icon.is_none()
+                && one.color.is_none()
+                && !looked.contains(&one.id)
+        })
         .filter_map(|one| {
             let name = one.name.as_str();
             let (icon, hue) = if GUIDE_FOLDERS.contains(&name) {

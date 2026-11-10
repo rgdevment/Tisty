@@ -13,7 +13,7 @@ import MoveNotice from "./MoveNotice";
 import RailNotices from "./RailNotices";
 import SettingsNav from "./SettingsNav";
 import SideEdge, { FoldButton, useFoldKey } from "./SideEdge";
-import SideLibrary from "./SideLibrary";
+import SideLibrary, { type Revealed } from "./SideLibrary";
 import SideRail from "./SideRail";
 import SideTasks from "./SideTasks";
 import SyncFoot from "./SyncFoot";
@@ -27,6 +27,7 @@ interface Props {
   waiting?: string;
   tried?: boolean;
   onChoose: (chosen: Chosen) => void;
+  query?: string;
   onSearch?: (query: string) => void;
 
   here?: string | null;
@@ -52,6 +53,7 @@ export default function Sidebar({
   waiting,
   tried,
   onChoose,
+  query = "",
   onSearch,
   here,
   acting,
@@ -74,11 +76,17 @@ export default function Sidebar({
   const breadth = railed(useBreadth(), keeping);
   const folded = breadth.folded;
   const [leaning, setLeaning] = useState<Lean>("docs");
+  const [revealing, setRevealing] = useState<Revealed | null>(null);
+  const reveal = (folder?: string) => {
+    setLeaning("docs");
+    onHere(folder);
+    if (folder) setRevealing({ folder, at: Date.now() });
+  };
   useFoldKey(!keeping);
   const find = useCallback(() => {
-    fold(false);
+    if (folded) fold(false);
     requestAnimationFrame(focusFinder);
-  }, []);
+  }, [folded]);
   useFindKey(!keeping, find);
 
   return (
@@ -106,8 +114,7 @@ export default function Sidebar({
           chosen={chosen}
           here={here}
           onChoose={onChoose}
-          onHere={onHere}
-          onLean={setLeaning}
+          onReveal={reveal}
         />
       ) : (
         <>
@@ -119,13 +126,16 @@ export default function Sidebar({
             leaning={leaning}
             onLean={setLeaning}
             onChoose={onChoose}
-            onSearch={onSearch ?? ((query) => onChoose({ named: "search", query }))}
+            query={query}
+            onSearch={onSearch ?? (() => onChoose({ named: "search" }))}
           />
           <SideLibrary
             papers={papers}
             chosen={chosen}
             leaning={leaning}
             onLean={setLeaning}
+            onReveal={reveal}
+            revealing={revealing}
             here={here}
             acting={acting}
             onChoose={onChoose}
