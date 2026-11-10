@@ -193,6 +193,17 @@ label[for] {
   scrollbar-color: var(--tisty-line) transparent;
 }
 
+.fading {
+  overscroll-behavior-y: contain;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top, 0px),
+    #000 calc(100% - var(--fade-bottom, 0px)),
+    transparent 100%
+  );
+}
+
 .gutter {
   padding-inline: 12px;
 }

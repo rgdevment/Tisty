@@ -8,6 +8,8 @@ use crate::model::{DocId, FIRST, FolderId, ListId};
 
 pub const SOWN_BY: &str = "Tisty";
 pub const GUIDE_FOLDERS: [&str; 2] = ["Guide", "Guía"];
+pub const GUIDE_ICON: &str = "guide";
+pub const GUIDE_HUE: &str = "blue";
 // Every title the guide's cover has shipped with, so a guide still meets the one sown before its title changed.
 pub const GUIDE_COVERS: [(&str, &str); 4] = [
     ("es", "¿Qué es Tisty?"),
@@ -135,25 +137,29 @@ fn agents_in(events: &[Event]) -> BTreeSet<String> {
 }
 
 fn a_guide_folder(d: &FolderAdd) -> bool {
-    GUIDE_FOLDERS.contains(&d.name.as_str())
-        && d.parent.is_none()
-        && d.icon.is_none()
-        && d.color.is_none()
+    let bare = d.icon.is_none() && d.color.is_none();
+    let dressed = d.icon.as_deref() == Some(GUIDE_ICON) && d.color.as_deref() == Some(GUIDE_HUE);
+    GUIDE_FOLDERS.contains(&d.name.as_str()) && d.parent.is_none() && (bare || dressed)
+}
+
+fn a_guide_look(d: &Look) -> bool {
+    d.icon.clone().flatten().as_deref() == Some(GUIDE_ICON)
+        && d.color.clone().flatten().as_deref() == Some(GUIDE_HUE)
 }
 
 fn a_first_list(d: &ListAdd) -> bool {
     d.color.is_none()
         && FIRST
             .iter()
-            .any(|(english, castilian, _)| d.name == *english || d.name == *castilian)
+            .any(|(english, castilian, _, _)| d.name == *english || d.name == *castilian)
 }
 
 fn a_first_look(d: &Look) -> bool {
     let icon = d.icon.clone().flatten();
-    d.color.clone().flatten().is_none()
-        && FIRST
-            .iter()
-            .any(|(_, _, named)| icon.as_deref() == Some(*named))
+    let color = d.color.clone().flatten();
+    FIRST.iter().any(|(_, _, named, hue)| {
+        icon.as_deref() == Some(*named) && (color.is_none() || color.as_deref() == Some(*hue))
+    })
 }
 
 impl Sown {
@@ -180,6 +186,7 @@ impl Sown {
             Op::ListAdd { id, d } => a_first_list(d) && self.lists.insert(*id),
             Op::ListLook { id, d } => self.lists.contains(id) && a_first_look(d),
             Op::FolderAdd { id, d } => a_guide_folder(d) && self.folders.insert(*id),
+            Op::FolderLook { id, d } => self.folders.contains(id) && a_guide_look(d),
             Op::AttachKept { .. } => event
                 .batch
                 .is_some_and(|batch| self.guide_batches.contains(&batch)),

@@ -66,6 +66,7 @@ export function useWindow() {
     lists: kept("tisty.only"),
   }));
   const [found, setFound] = useState<Found | null>(null);
+  const [query, setQuery] = useState("");
   /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
   const [seen, byList] = useOnly(chosen);
@@ -214,6 +215,8 @@ export function useWindow() {
     setChosen,
     found,
     setFound,
+    query,
+    setQuery,
     cameFrom,
     setCameFrom,
     seen,

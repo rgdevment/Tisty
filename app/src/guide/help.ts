@@ -1,3 +1,4 @@
+import { folded } from "../folding";
 import type { Chosen } from "../views";
 import type { HelpEntry, HelpPictures } from "./calls";
 import type { Topic } from "./reference";
@@ -89,8 +90,6 @@ export const sectionsOf = (entries: HelpEntry[]): [string, HelpEntry[]][] =>
       return all;
     }, []);
 
-const plain = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-
 const SAID = 140;
 
 export const describedBy = (body: string): string => {
@@ -117,13 +116,13 @@ export const searched = (
   bodies: Record<string, string>,
   asked: string,
 ): Found[] => {
-  const words = plain(asked).split(/\s+/).filter(Boolean);
+  const words = folded(asked).split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   return entries
     .map((entry) => {
       const body = bodies[entry.slug] ?? "";
-      const title = plain(entry.title);
-      const read = plain(body);
+      const title = folded(entry.title);
+      const read = folded(body);
       if (!words.every((one) => title.includes(one) || read.includes(one))) return null;
       const score = words.reduce((sum, one) => sum + (title.includes(one) ? 3 : 1), 0);
       const at = read.indexOf(words[0]);

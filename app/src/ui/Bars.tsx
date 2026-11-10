@@ -1,6 +1,14 @@
 import type { Found, List, Snapshot } from "../core";
 import { t } from "../locales";
-import { type Chosen, LAYERS, layerCount, layerWord, SLICES, type Slice } from "../views";
+import {
+  type Chosen,
+  LAYERS,
+  layerCount,
+  layerWord,
+  SLICES,
+  type Slice,
+  STANDINGS,
+} from "../views";
 import Axis from "./Axis";
 import Cover from "./Cover";
 import Only from "./Only";
@@ -13,7 +21,11 @@ const sliceWord = (slice: Slice) =>
       ? ("upcoming" as const)
       : slice === "repeating"
         ? ("repeating" as const)
-        : ("sliceAll" as const);
+        : slice === "overdue"
+          ? ("sliceOverdue" as const)
+          : slice === "late"
+            ? ("sliceLate" as const)
+            : ("sliceAll" as const);
 
 const counted = (counts: Snapshot["counts"], key: string, lists?: string[]) =>
   lists?.length
@@ -34,9 +46,11 @@ export function SliceBar({
   setChosen,
   setSelected,
 }: Steering & { lists: List[] }) {
+  const standing = STANDINGS.find((one) => one === chosen.slice);
+  const shown = standing ? [standing, ...SLICES] : SLICES;
   return (
     <div className="flex gap-1 px-2.5 pb-1">
-      {SLICES.map((slice) => {
+      {shown.map((slice) => {
         const on = (chosen.slice ?? "today") === slice;
         const many = counted(counts, slice === "today" ? "tasks" : slice, chosen.lists);
         return (
@@ -46,7 +60,7 @@ export function SliceBar({
             aria-pressed={on}
             onClick={() => {
               setSelected(undefined);
-              window.localStorage.setItem("tisty.slice", slice);
+              if (SLICES.includes(slice)) window.localStorage.setItem("tisty.slice", slice);
               setChosen({ named: "tasks", slice, lists: chosen.lists });
             }}
             className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${

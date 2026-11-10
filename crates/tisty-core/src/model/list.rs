@@ -29,18 +29,20 @@ impl List {
     }
 }
 
-pub const FIRST: [(&str, &str, &str); 6] = [
-    ("Work", "Trabajo", "work"),
-    ("Personal", "Personal", "star"),
-    ("Family", "Familia", "family"),
-    ("Money", "Finanzas", "coin"),
-    ("Health", "Salud", "health"),
-    ("Learning", "Educación", "study"),
+pub const FIRST: [(&str, &str, &str, &str); 6] = [
+    ("Work", "Trabajo", "work", "blue"),
+    ("Personal", "Personal", "star", "amber"),
+    ("Family", "Familia", "family", "pink"),
+    ("Money", "Finanzas", "coin", "green"),
+    ("Health", "Salud", "health", "red"),
+    ("Learning", "Educación", "study", "purple"),
 ];
 
-pub fn first_lists(code: &str) -> [(&'static str, &'static str); 6] {
+pub fn first_lists(code: &str) -> [(&'static str, &'static str, &'static str); 6] {
     let spanish = code.to_lowercase().starts_with("es");
-    FIRST.map(|(english, castilian, icon)| (if spanish { castilian } else { english }, icon))
+    FIRST.map(|(english, castilian, icon, hue)| {
+        (if spanish { castilian } else { english }, icon, hue)
+    })
 }
 
 pub fn spoken(configured: Option<&str>) -> String {
@@ -58,7 +60,7 @@ pub fn spoken(configured: Option<&str>) -> String {
 pub fn sown(code: &str) -> Vec<crate::event::Op> {
     let mut ops = Vec::new();
     let mut order = crate::order::first();
-    for (name, icon) in first_lists(code) {
+    for (name, icon, hue) in first_lists(code) {
         let id = Ulid::generate();
         ops.push(crate::event::Op::ListAdd {
             id,
@@ -72,7 +74,7 @@ pub fn sown(code: &str) -> Vec<crate::event::Op> {
             id,
             d: crate::event::Look {
                 icon: Some(Some(icon.to_string())),
-                color: None,
+                color: Some(Some(hue.to_string())),
             },
         });
         order = crate::order::after(&order);
