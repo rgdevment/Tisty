@@ -196,9 +196,11 @@ pub(super) fn link_matches_block(was: &Remembered) -> bool {
     else {
         return true;
     };
-    let named = was
-        .owner
-        .as_deref()
+    named_by_the_block(was.owner.as_deref(), token)
+}
+
+pub(super) fn named_by_the_block(owner: Option<&str>, token: &str) -> bool {
+    let named = owner
         .and_then(|block| serde_json::from_str::<serde_json::Value>(block).ok())
         .and_then(|block| block["permit"].as_str().map(str::to_owned));
     named.is_some_and(|permit| permit_shown(token).is_ok_and(|mine| mine == permit))

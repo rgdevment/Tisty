@@ -289,23 +289,31 @@ fn with_its_print(app: &AppHandle, doc: tisty_core::model::DocId, entry: (String
     let _ = held(&session).commit_all(tisty_sharing::sent(&[(file, entry)]));
 }
 
+// A token the owner's block does not name is no edit link: it is turned away, never kept as one to read in silence.
+fn editable(link: &Link, opened: &Opened) -> bool {
+    link.token.as_deref().is_some_and(|token| {
+        super::folio_editing::named_by_the_block(opened.owner.as_deref(), token)
+    })
+}
+
 fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
     let (received, told) = kept_here(&data, opened);
     let by = received.owner_name.clone().or(received.signed_as.clone());
+    let editable = editable(link, opened);
     let (doc, file) = {
         let mut session = held(&session);
         session.commit_all(told)?;
         let (doc, file) = guests_kept(&mut session, &received, by)?;
         // A link to read only leaves a copy of one's own to change: nothing of it goes back (80).
-        if link.token.is_some() {
+        if editable {
             let entry = (file.clone(), entry_for(link, opened, &received));
             session.commit_all(tisty_sharing::sent(&[entry]))?;
         }
         (doc, file)
     };
-    if link.token.is_some() {
+    if editable {
         let entry = (file.clone(), entry_for(link, opened, &received));
         with_its_print(app, doc, entry);
     }
@@ -430,6 +438,9 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
     let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
         return Ok(None);
     };
+    if link.token.is_some() && !editable(&link, &opened) {
+        return Err(Refusal::of("folioEditLinkMismatch"));
+    }
     if !asked_to_keep(app, &opened) {
         return Ok(None);
     }

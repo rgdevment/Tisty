@@ -347,6 +347,15 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
                     "{which} cannot be a page of itself."
                 )));
             }
+            if state
+                .docs
+                .get(&over)
+                .is_some_and(|one| !tisty_core::State::may_hang_under(kept, one))
+            {
+                return Err(Refused::Tool(format!(
+                    "{which} is someone else's writing, and hung there it would go out as part of another's document. Leave it where it is."
+                )));
+            }
             if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
                 return Err(Refused::Tool(format!(
                     "{which} has pages of its own, so it cannot become a page. Move its pages \

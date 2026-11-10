@@ -864,6 +864,8 @@ const en = {
   linkNotNow: "Not now",
   linkFailedTitle: "That document could not be brought in",
   linkFailedGone: "That link no longer exists: it ran out or it was stopped.",
+  linkFailedEditLink:
+    "This edit link is not the one the owner signed: they may have changed it. Ask them for the current one.",
   linkFailedBlocked: "Folio stopped serving that document after reports.",
   linkFailedPaused: "Whoever shared it paused it, so it does not open for now.",
   linkFailedOutdated: "This Tisty is too old for that document. Update it.",
@@ -1601,6 +1603,10 @@ const en = {
   sayPriority: "do · schedule · delegate",
   offered: "seen but not taken: it may be naming what is next to it",
   cannotRead: "{name} could not be read",
+  pageOfAnother:
+    "That document is someone else's writing, so it cannot become a page of a document that is not theirs.",
+  importedFromTisty:
+    "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
   fileNeedsTitle:
     "Write the document's title first: a file as its first line would become its name.",
@@ -3869,6 +3875,8 @@ const es: Catalog = {
   linkNotNow: "Ahora no",
   linkFailedTitle: "No se pudo traer ese documento",
   linkFailedGone: "Ese link ya no existe: caducó o se dejó de compartir.",
+  linkFailedEditLink:
+    "Este link de editar no es el que firmó el dueño: puede que lo haya cambiado. Pídele el actual.",
   linkFailedBlocked: "Folio dejó de servir ese documento por denuncias.",
   linkFailedPaused: "Quien lo compartió lo dejó en pausa, así que por ahora no abre.",
   linkFailedOutdated: "Este Tisty es demasiado antiguo para ese documento. Actualízalo.",
@@ -4617,6 +4625,10 @@ const es: Catalog = {
   sayPriority: "hacer · planificar · delegar",
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
   cannotRead: "No se pudo leer {name}",
+  pageOfAnother:
+    "Ese documento lo escribió otra persona, así que no puede ser página de un documento que no es suyo.",
+  importedFromTisty:
+    "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
   fileNeedsTitle:
     "Escribe primero el título del documento: un archivo como primera línea pasaría a ser su nombre.",
