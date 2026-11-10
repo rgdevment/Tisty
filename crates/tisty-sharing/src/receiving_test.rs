@@ -85,6 +85,25 @@ fn how_readers_reach_other_languages_and_cited_documents_comes_along() {
 }
 
 #[test]
+fn an_anchors_reviews_come_along_and_a_later_version_replaces_them() {
+    let document = json!({ "body": "x", "reviews": [{ "seq": 1 }] });
+
+    let told = received(&document, &[], &[], &mut kept_as_named);
+
+    let carried: serde_json::Value = serde_json::from_str(&told.carried.unwrap()).unwrap();
+    assert_eq!(carried["reviews"][0]["seq"], 1);
+    let later = r#"{"reviews":[{"seq":2}]}"#;
+    let kept: serde_json::Value =
+        serde_json::from_str(&super::map_brought(Some(&carried.to_string()), Some(later)).unwrap())
+            .unwrap();
+    assert_eq!(kept["reviews"][0]["seq"], 2);
+    let gone: serde_json::Value =
+        serde_json::from_str(&super::map_brought(Some(later), Some(r#"{"lang":"es"}"#)).unwrap())
+            .unwrap();
+    assert!(gone.get("reviews").is_none());
+}
+
+#[test]
 fn a_document_with_nothing_beyond_itself_carries_nothing() {
     let told = received(&json!({"body": "x"}), &[], &[], &mut kept_as_named);
 

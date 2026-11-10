@@ -5,7 +5,7 @@ says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
   no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages, pictures, files, files_hash, cited, languages, anchor, signed_as, owner_name, editors]
+except: [pages, pictures, files, files_hash, cited, languages, anchor, reviews, signed_as, owner_name, editors]
 fields:
   page_of: { type: id, required: true, at_most: 64, says: "The document it is a page of: its id, always." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
@@ -36,12 +36,16 @@ fields:
   title: { type: line, at_most: 8192 }
   key: { type: key, says: "The link key of that language's envelopes, only when the anchor is sealed too: what is public never holds a key. Only the anchor language holds the map, so reaching a language takes nothing but the anchor." }
   edit: { type: sealed_key, says: "That language's edit token, sealed with a key from the anchor's token, only when the anchor is shared to edit. Whoever holds the anchor's edit link opens it; whoever holds its read link cannot." }
+  pending: { type: bool, says: "True when someone who edits added it and it waits for the owner's review, so a reader does not offer it before it opens. Only a hint: whatever it says, a reader checks the review." }
 cases:
   - says: "A language and the document that holds it."
     value: { lang: "en", document: "enGlish1" }
     holds: true
   - says: "A language with its sealed edit token."
     value: { lang: "en", document: "enGlish1", key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA", edit: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+    holds: true
+  - says: "A language someone who edits added, which waits for the owner's review."
+    value: { lang: "en", document: "enGlish1", pending: true }
     holds: true
   - says: "An edit token sealed short."
     value: { lang: "en", document: "enGlish1", edit: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
@@ -240,6 +244,171 @@ cases:
       signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
     holds: false
 ---
+contract: review
+group: documents
+checked_by: [writer, reader]
+says: >-
+  The owner's word on a language that someone who edits added to its anchor: kept as the owner read it, or left out. Only
+  an anchor holds them, each signed by its owner, and the server keeps the owner's latest word on all of them beside the
+  anchor, as its reviewed. A reader shows a language someone else added only while a review keeps the very version it reads.
+values:
+  of: "HMAC-SHA-256 with the anchor's link key over tisty-language-review, a zero byte and the language's id. It names the language even once it is left out, when the map no longer holds its id, and only to whoever holds the anchor's key: an id is short enough to be guessed from a bare hash."
+  print: >-
+    SHA-256 of tisty-language-print and a zero byte, followed by the SHA-256 of each part of the language's main envelope once
+    open and inflated, in order. It answers for what a reader reads, so sealing it again under another head, number or key
+    leaves it as it was, while a change to its words, pictures, files, sheet or names makes another.
+  latest: "Of two reviews with the same of, the one with the higher seq counts, and with the same seq, the one whose machine key is higher byte by byte."
+  holds: "Its certificate and its signature hold over the id of the anchor that holds it, its root is the anchor owner's, and when kept, of is what its document gives under the anchor's key."
+  counts: "Only while the anchor's reviews are the ones the served reviewed names, and that reviewed holds or is retired. Otherwise a reader takes none of them."
+  current: "The owner never writes a reviewed over a review signed by a machine its root revoked: it signs that review again, as it was, with a machine it still answers for. So a reader weighs the revocations of the reviewed's machine alone."
+  shown: "A reader shows a language whose owner's root is not the anchor owner's only when the latest review of it that counts keeps it, with its lang and the print of the version the reader holds. Otherwise it leaves it out."
+  reached: "A reader reaches a language a review keeps by the review's document and key, and names it by the review's title, whatever the map says of it: someone who edits can take an entry out of the map or change it, never what the owner signed."
+  left_out: "A review that is not kept stays in the anchor: whoever writes never puts that language back in the map, and a reader never shows it, unless the owner keeps it again with a higher seq. A writer honours only a review that holds."
+  one_each: "The owner keeps one review for each of, its latest, and drops the review of a language the server no longer holds, which never comes back under that id."
+  carried: "Whoever edits the anchor carries its reviews as they arrived, and only its owner writes one."
+  sealed_only: "Only a sealed anchor holds reviews. What is public has no owner's block and no edit link, so nobody but its signer writes it and no one else's language waits in it: a reader of a public anchor takes no review and shows only the languages of its signer's root."
+fields:
+  of: { type: hash, required: true, says: "Which language, by an HMAC of its id under the anchor's key." }
+  kept: { type: bool, required: true, says: "True when the owner keeps it, false when the owner left it out." }
+  document: { type: id, at_most: 64, required_when: kept, only_when: kept, says: "The language's id, only while it is kept." }
+  lang: { type: language, required_when: kept, only_when: kept, says: "Its lang, as the owner read it." }
+  title: { type: line, at_most: 8192, only_when: kept, says: "The title a reader names it by, as the owner read it." }
+  key: { type: key, required_when: kept, only_when: kept, says: "The link key of its envelopes, as the owner read them." }
+  print: { type: hash, required_when: kept, only_when: kept, says: "The print of the version the owner read." }
+  seq: { type: whole, required: true, at_least: 1, says: "Counts the owner's words on this language, from 1. Never a date, which whoever signs chooses." }
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  since: { type: time, required: true }
+  certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
+  signed: { type: signed, required: true, says: "The machine's signature over the anchor's id, of, seq, kept and, when kept, document, lang, title, key and print." }
+cases:
+  - says: "A language the owner keeps."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: true
+      document: "enGlish1"
+      lang: "en"
+      title: "Walks"
+      key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA"
+      print: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      seq: 1
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "A language the owner left out, named only by its of."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: false
+      seq: 2
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "A language kept without the print the owner read."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: true
+      document: "enGlish1"
+      lang: "en"
+      key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA"
+      seq: 1
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+  - says: "A language kept without the key that reaches it."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: true
+      document: "enGlish1"
+      lang: "en"
+      print: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      seq: 1
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+  - says: "A language left out that still names its document."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: false
+      document: "enGlish1"
+      seq: 2
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+  - says: "A review counted from zero."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: false
+      seq: 0
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
+contract: reviewed
+group: documents
+checked_by: [writer, server, reader]
+says: >-
+  The owner's latest word on all the reviews of an anchor. The server keeps one beside the anchor and serves it with it, so
+  someone who edits can neither put an older review back nor take a left out one away: what the anchor's reviews say counts
+  only while they are what this names.
+values:
+  reviews: "SHA-256 of tisty-language-reviews and a zero byte, followed by the SHA-256 of each review's signed bytes in the anchor, in the order of those SHA-256 values. With no reviews, of those first bytes alone."
+  written: >-
+    Only with the owner's version of the anchor that carries those reviews, in the same request and under the anchor's admin
+    token, never with an edit link: the server keeps both or neither. It refuses one whose anchor is not that id, whose root is
+    not the owner's it holds, whose certificate or signature does not hold, or whose seq is not above the one it holds. A
+    version that brings none leaves the one it holds as it was, and a public anchor never has one.
+  weighed: "A reader weighs it against the revocations of its machine, with the moment the server received it as its arrival: holds and retired count, doubtful does not."
+  remembered: "A reader that once saw a higher seq for this anchor takes none of the reviews under a lower one."
+fields:
+  anchor: { type: id, required: true, at_most: 64, says: "The anchor's id." }
+  seq: { type: whole, required: true, at_least: 1, says: "Counts the owner's words on this anchor's reviews, from 1. Never a date." }
+  reviews: { type: hash, required: true, says: "What the anchor's reviews must give." }
+  root: { type: key, required: true }
+  machine: { type: key, required: true }
+  since: { type: time, required: true }
+  certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
+  signed: { type: signed, required: true, says: "The machine's signature over the anchor's id, seq and reviews." }
+cases:
+  - says: "The owner's latest word on an anchor's reviews."
+    value:
+      anchor: "k7Qm2xPa"
+      seq: 3
+      reviews: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: true
+  - says: "A word that names no reviews."
+    value:
+      anchor: "k7Qm2xPa"
+      seq: 3
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+---
 contract: revocation
 group: documents
 checked_by: [writer, server, reader]
@@ -279,7 +448,9 @@ says: >-
   trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
 fields:
   received: { type: time, says: "When the server received this version. Nothing in the document can write this date." }
-  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines." }
+  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines, and beside an anchor the machine of its reviewed too." }
+  reviewed: { type: reviewed, says: "Beside an anchor, the reviewed its owner last wrote, as the server holds it." }
+  reviewed_received: { type: time, says: "When the server received that reviewed, with the owner's version it came in." }
 cases:
   - says: "A version received, with nothing revoked."
     value: { received: "2026-11-03T12:00:00Z", revocations: [] }

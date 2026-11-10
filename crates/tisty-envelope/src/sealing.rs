@@ -390,6 +390,10 @@ fn split(document: &Document) -> Result<(Vec<u8>, Vec<u8>), Refused> {
 }
 
 impl<'a> Writer<'a> {
+    pub(crate) fn root(&self) -> &str {
+        &self.certificate.root
+    }
+
     pub fn new(key: &'a ShareKey, certificate: &'a Certificate) -> Self {
         Self::with_head(key, certificate, random_head)
     }

@@ -5,6 +5,7 @@ pub mod identity;
 pub mod name;
 pub mod notice;
 pub mod phrase;
+pub mod reviewing;
 pub mod seed;
 
 pub use ed25519_dalek::VerifyingKey;

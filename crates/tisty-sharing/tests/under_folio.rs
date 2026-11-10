@@ -67,6 +67,8 @@ fn what_it_seals_says_which_terms_its_signer_accepted() {
     let served = Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     };
 
     let opened = reading::opened(&sealed.going[0].sealed.main, &opening, &served).unwrap();
@@ -225,6 +227,8 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
     let served = Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     };
     let main = &first.going[0].sealed.main;
     let block = reading::owner_block(&reading::opened(main, &opening, &served).unwrap());
@@ -419,6 +423,8 @@ fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_agai
     let served = Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     };
     let main = &first.going[0].sealed.main;
     let one = reading::reading(main, &opening, &served).unwrap();
@@ -479,6 +485,69 @@ fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_agai
 }
 
 #[test]
+fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
+    let (_tmp, owner, doc) = written();
+    let minted = Cell::new(0);
+    let mint = given(&minted);
+    let editable = Under {
+        mint: &mint,
+        editable: true,
+        terms: None,
+        languages_at_most: None,
+    };
+    let first = owner.sealed(signed_as(&owner, doc, &editable, "Mario"), vec![]);
+    let (_, shared) = first.remembering[0].clone();
+    let opening = Opening {
+        id: GIVEN.to_owned(),
+        kind: EnvelopeKind::Main,
+        link_key: shared.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+        reviewed: None,
+        reviewed_received: None,
+    };
+    let main = &first.going[0].sealed.main;
+    let one = reading::reading(main, &opening, &served).unwrap();
+    let key = "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ";
+    let signed =
+        "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw";
+    let reviews = serde_json::json!([
+        { "of": key, "kept": true, "document": "enGlish1", "lang": "en", "key": key, "print": key, "seq": 1,
+          "root": key, "machine": key, "since": "2026-11-03T12:00:00Z", "certificate": signed, "signed": signed },
+        { "of": key, "kept": false, "seq": 2,
+          "root": key, "machine": key, "since": "2026-11-03T12:00:00Z", "certificate": signed, "signed": signed },
+    ]);
+
+    let tmp = tempfile::tempdir().unwrap();
+    let mut editor = Home::at(tmp.path());
+    another_person(&mut editor);
+    let body = one.document["body"].as_str().unwrap().to_owned();
+    let copy = editor.wrote(&format!("{body}Y otra cosa.\n"), None);
+    let file = editor.state.docs[&copy].file.clone();
+    let arrived = Remembered {
+        admin_token: None,
+        owner: reading::owner_block(&reading::opened(main, &opening, &served).unwrap()),
+        owner_name: Some("Mario".to_owned()),
+        carried: Some(serde_json::json!({ "reviews": reviews }).to_string()),
+        ..shared.clone()
+    };
+    editor.sent(&[(file, arrived)]);
+    let nobody = || Err(Unshared::Unread("it has its id".to_owned()));
+    let later = Under {
+        mint: &nobody,
+        editable: false,
+        terms: None,
+        languages_at_most: None,
+    };
+    let second = editor.sealed(signed_as(&editor, copy, &later, "Ana"), vec![]);
+    let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
+
+    assert_eq!(two.document["reviews"], reviews);
+}
+
+#[test]
 fn what_is_public_names_no_editor() {
     let (_tmp, home, doc) = written();
     let minted = Cell::new(0);
@@ -511,6 +580,8 @@ fn what_is_public_names_no_editor() {
     let served = Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     };
     let read = reading::reading(&sealed.going[0].sealed.main, &opening, &served).unwrap();
     assert!(read.document.get("editors").is_none());
@@ -635,6 +706,8 @@ fn the_map(sealed: &tisty_sharing::Sealed, anchor: &Remembered) -> serde_json::V
     let served = Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     };
     reading::reading(&going.sealed.main, &opening, &served)
         .unwrap()

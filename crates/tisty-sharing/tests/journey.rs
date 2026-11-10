@@ -208,6 +208,8 @@ fn nothing_served() -> Served {
     Served {
         received: None,
         revocations: None,
+        reviewed: None,
+        reviewed_received: None,
     }
 }
 

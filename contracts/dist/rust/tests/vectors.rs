@@ -1,5 +1,6 @@
 //! Opens the sample envelopes the way Tisty must read what it sealed.
 
+use std::collections::HashMap;
 use std::io::Read;
 
 use aes_gcm::aead::{Aead, Payload};
@@ -100,16 +101,12 @@ fn told_apart<T>(bytes: &[u8], result: Result<T, String>) -> Result<T, String> {
 
 // An editor answers only for having signed this name for this document, and one that does not hold is left aside.
 fn editor_holds(entry: &Value) -> bool {
-    let decoded = |name: &str| entry[name].as_str().and_then(|one| URL_SAFE_NO_PAD.decode(one).ok());
-    let (Some(root), Some(machine), Some(certificate), Some(signed)) =
-        (decoded("root"), decoded("machine"), decoded("certificate"), decoded("signed"))
-    else {
+    let (Some(root), Some(machine), Some(signed)) = (decoded(entry, "root"), vouched(entry), decoded(entry, "signed")) else {
         return false;
     };
-    let (Some(since), Some(id), Some(name)) = (entry["since"].as_str().and_then(seconds_in), entry["in"].as_str(), entry["name"].as_str()) else {
+    let (Some(id), Some(name)) = (entry["in"].as_str(), entry["name"].as_str()) else {
         return false;
     };
-    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &since.to_be_bytes()].concat();
     let about = b"editor";
     let owned = [u8::from(entry["owned"] == Value::Bool(true))];
     let said = [
@@ -125,7 +122,7 @@ fn editor_holds(entry: &Value) -> bool {
         name.as_bytes(),
     ]
     .concat();
-    verified(&root, &certificate, &certified).is_ok() && verified(&machine, &signed, &said).is_ok()
+    verified(&machine, &signed, &said).is_ok()
 }
 
 // A document keeps only the editors signed for it: one that does not hold, or holds for another id, says nothing of it.
@@ -546,6 +543,122 @@ fn verdict_of(signed_by: &Value, served: &Value) -> &'static str {
     }
 }
 
+fn decoded(entry: &Value, name: &str) -> Option<Vec<u8>> {
+    entry[name].as_str().and_then(|one| URL_SAFE_NO_PAD.decode(one).ok())
+}
+
+fn vouched(entry: &Value) -> Option<Vec<u8>> {
+    let (root, machine, certificate) = (decoded(entry, "root")?, decoded(entry, "machine")?, decoded(entry, "certificate")?);
+    let since = entry["since"].as_str().and_then(seconds_in)?;
+    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &since.to_be_bytes()].concat();
+    verified(&root, &certificate, &certified).ok()?;
+    Some(machine)
+}
+
+fn of_language(anchor_key: &[u8], id: &str) -> Vec<u8> {
+    let mut of = Hmac::<Sha256>::new_from_slice(anchor_key).unwrap();
+    of.update(b"tisty-language-review\0");
+    of.update(id.as_bytes());
+    of.finalize().into_bytes().to_vec()
+}
+
+fn sized(said: &[u8]) -> Vec<u8> {
+    [&(said.len() as u64).to_be_bytes()[..], said].concat()
+}
+
+fn review_bytes(anchor: &str, review: &Value) -> Option<Vec<u8>> {
+    let kept = review["kept"].as_bool()?;
+    let mut said = [
+        b"tisty-share.signed.v1\0".as_slice(),
+        &decoded(review, "root")?,
+        &decoded(review, "machine")?,
+        &sized(b"language-review"),
+        &sized(anchor.as_bytes()),
+        &decoded(review, "of")?,
+        &whole(&review["seq"])?.to_be_bytes(),
+        &[u8::from(kept)],
+    ]
+    .concat();
+    if kept {
+        said.extend(sized(review["document"].as_str()?.as_bytes()));
+        said.extend(sized(review["lang"].as_str()?.as_bytes()));
+        let title = match &review["title"] {
+            Value::Null => "",
+            said => said.as_str()?,
+        };
+        said.extend(sized(title.as_bytes()));
+        said.extend(decoded(review, "key")?);
+        said.extend(decoded(review, "print")?);
+    }
+    Some(said)
+}
+
+fn review_holds(anchor: &str, owner: &str, anchor_key: &[u8], review: &Value) -> bool {
+    let holds = || -> Option<bool> {
+        if review["root"].as_str()? != owner {
+            return Some(false);
+        }
+        verified(&vouched(review)?, &decoded(review, "signed")?, &review_bytes(anchor, review)?).ok()?;
+        Some(review["kept"] != true || decoded(review, "of")? == of_language(anchor_key, review["document"].as_str()?))
+    };
+    holds().unwrap_or(false)
+}
+
+fn reviews_hash(anchor: &str, reviews: &[Value]) -> Option<Vec<u8>> {
+    let mut each = reviews.iter().map(|one| Some(Sha256::digest(review_bytes(anchor, one)?).to_vec())).collect::<Option<Vec<_>>>()?;
+    each.sort();
+    Some(Sha256::digest([b"tisty-language-reviews\0".to_vec(), each.concat()].concat()).to_vec())
+}
+
+fn reviewed_holds(anchor: &str, owner: &str, reviews: &[Value], head: &Value, served: &Value) -> bool {
+    let holds = || -> Option<bool> {
+        if head["anchor"].as_str()? != anchor || head["root"].as_str()? != owner {
+            return Some(false);
+        }
+        let said = [
+            b"tisty-share.signed.v1\0".as_slice(),
+            &decoded(head, "root")?,
+            &decoded(head, "machine")?,
+            &sized(b"reviewed"),
+            &sized(anchor.as_bytes()),
+            &whole(&head["seq"])?.to_be_bytes(),
+            &decoded(head, "reviews")?,
+        ]
+        .concat();
+        verified(&vouched(head)?, &decoded(head, "signed")?, &said).ok()?;
+        let arrival = serde_json::json!({ "received": served["reviewed_received"], "revocations": served["revocations"] });
+        Some(decoded(head, "reviews")? == reviews_hash(anchor, reviews)? && matches!(verdict_of(head, &arrival), "holds" | "retired"))
+    };
+    holds().unwrap_or(false)
+}
+
+fn newer_review(one: &Value, was: Option<&&Value>) -> bool {
+    was.is_none_or(|was| (whole(&one["seq"]), decoded(one, "machine")) > (whole(&was["seq"]), decoded(was, "machine")))
+}
+
+fn languages_shown(said: &Value) -> Vec<String> {
+    let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
+    let anchor_key = b64(&said["link_key"]);
+    let reviews = said["reviews"].as_array().unwrap();
+    let served = &said["served"];
+    let head = &served["reviewed"];
+    let seen = whole(&said["seen"]).unwrap_or(0);
+    let counting = reviewed_holds(anchor, owner, reviews, head, served) && whole(&head["seq"]).is_some_and(|seq| seq >= seen);
+    let mut latest: HashMap<&str, &Value> = HashMap::new();
+    for one in reviews.iter().filter(|_| counting) {
+        let of = one["of"].as_str().unwrap();
+        if review_holds(anchor, owner, &anchor_key, one) && newer_review(one, latest.get(of)) {
+            latest.insert(of, one);
+        }
+    }
+    let kept: Vec<&Value> = latest.into_values().filter(|one| one["kept"] == true).collect();
+    let map = said["map"].as_array().unwrap();
+    let keeps = |one: &Value| kept.iter().any(|review| review["document"] == one["document"] && review["lang"] == one["lang"] && review["print"] == one["print"]);
+    let own = |one: &Value| one["root"] == owner && map.contains(&one["document"]);
+    let languages = said["languages"].as_array().unwrap();
+    languages.iter().filter(|one| own(one) || keeps(one)).map(|one| one["document"].as_str().unwrap().to_owned()).collect()
+}
+
 fn vectors() -> Value {
     serde_json::from_str(VECTORS).unwrap()
 }
@@ -555,6 +668,36 @@ fn a_document_keeps_only_the_editors_signed_for_it() {
     let said = &vectors()["editors_in_a_document"];
     let kept = editors_kept(said["id"].as_str().unwrap(), said["editors"].as_array().unwrap());
     assert_eq!(Value::Array(kept), said["kept"]);
+}
+
+#[test]
+fn a_review_holds_only_as_the_anchor_owner_signed_it() {
+    let said = &vectors()["reviews"];
+    let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
+    let anchor_key = b64(&said["link_key"]);
+    for one in said["cases"].as_array().unwrap() {
+        assert_eq!(review_holds(anchor, owner, &anchor_key, &one["review"]), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+        let mut garbled = one["review"].clone();
+        garbled["since"] = Value::String("x".into());
+        assert!(!review_holds(anchor, owner, &anchor_key, &garbled), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn the_word_on_the_reviews_holds_only_over_the_reviews_it_names() {
+    let said = &vectors()["reviewed"];
+    let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
+    let reviews = said["reviews"].as_array().unwrap();
+    for one in said["cases"].as_array().unwrap() {
+        assert_eq!(reviewed_holds(anchor, owner, reviews, &one["head"], &Value::Null), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+    }
+}
+
+#[test]
+fn a_reader_shows_only_the_languages_their_owner_keeps() {
+    for one in vectors()["languages_shown"].as_array().unwrap() {
+        assert_eq!(Value::from(languages_shown(one)), one["shown"], "{}", one["says"]);
+    }
 }
 
 #[test]
@@ -575,6 +718,15 @@ fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     assert!(picture_holds(&main.parts[2], &held["pictures"][0]));
     let pictures: Vec<Vec<u8>> = all["main"]["pictures"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(main.parts[2..], pictures);
+}
+
+#[test]
+fn a_languages_print_answers_for_its_parts_once_open() {
+    let all = vectors();
+    let (main, _) = reading(&hex(&all["main"]["envelope"]), MAIN, Some(&b64(&all["link_key"]))).unwrap();
+    let each: Vec<u8> = main.parts.iter().flat_map(|one| Sha256::digest(one).to_vec()).collect();
+    let print = Sha256::digest([b"tisty-language-print\0".as_slice(), &each].concat());
+    assert_eq!(URL_SAFE_NO_PAD.encode(print), all["main"]["print"].as_str().unwrap());
 }
 
 #[test]

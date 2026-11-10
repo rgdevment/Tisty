@@ -164,6 +164,7 @@ fn the_anchor_s_edit_link_opens_each_language_s_token_its_owner_names() {
         title: None,
         key: Some(key.clone()),
         edit: Some(tisty_envelope::tokens::sealed_for(&anchor, "enGlish1", &token).unwrap()),
+        pending: None,
     };
     let its = |permit: &str| Opened {
         owner: Some(format!(r#"{{"root":"r","permit":"{permit}"}}"#)),
@@ -333,6 +334,7 @@ fn a_language_kept_to_read_is_edited_once_the_anchor_s_map_holds_its_token() {
         title: None,
         key: Some("enKey".into()),
         edit: Some(tisty_envelope::tokens::sealed_for(&anchor, "enGlish1", &token).unwrap()),
+        pending: None,
     };
     let its = |said: serde_json::Value, owner: &str, permit: &str| Opened {
         document: said,
