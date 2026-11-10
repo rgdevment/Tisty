@@ -161,7 +161,9 @@ pub fn signer_among(
 }
 
 fn goes_as_mine(desk: &Desk, kept: &Kept, edits_through_a_link: bool) -> bool {
-    !kept.guest || edits_through_a_link || desk.maker.is_some_and(|root| sown_by(desk, kept, root))
+    desk.state.mine(kept)
+        || edits_through_a_link
+        || desk.maker.is_some_and(|root| sown_by(desk, kept, root))
 }
 
 // A store can hold another person's machines, and one of them could write the mark too.

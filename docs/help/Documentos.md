@@ -125,7 +125,7 @@ Un documento sale entero; cada conversión está en [Convertir a y desde Markdow
 - **Exportar para Tisty** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
-Exportarlos todos pregunta para quién son: **abiertos**, **para entregárselos a alguien**, o **cerrados con seis dígitos para otro equipo tuyo**, que es lo que hace que lleguen ahí como tuyos y no como de un extraño. En cualquier caso, ni una línea de la historia viaja dentro.
+Exportarlos todos pregunta para quién son: **abiertos**, **para entregárselos a alguien**, o **cerrados con seis dígitos para otro equipo tuyo**, que es lo que hace que lleguen ahí como tuyos y no como de un extraño, salvo los firmados con un alias que ese Tisty nunca usó. Los abiertos llegan como de otra persona, aunque los hayas escrito tú, y firmarlos después no los hace tuyos: para llevar tus documentos, ciérralos. En cualquier caso, ni una línea de la historia viaja dentro.
 
 ## Compartir
 

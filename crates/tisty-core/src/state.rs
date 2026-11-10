@@ -1153,7 +1153,7 @@ impl State {
     pub fn mine(&self, kept: &crate::model::Kept) -> bool {
         match kept.by.as_deref() {
             Some(by) => !kept.guest && self.mine_to_write(by),
-            None => true,
+            None => !kept.guest,
         }
     }
 

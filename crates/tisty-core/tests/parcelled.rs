@@ -1801,10 +1801,9 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
         None,
         "an unsigned document was credited to whoever took it in"
     );
-    assert_eq!(
-        there.state.mine_to_sign(),
-        [acta],
-        "writing nobody ever signed was not there to be claimed"
+    assert!(
+        there.state.mine_to_sign().is_empty(),
+        "writing that came from another store could be claimed by signing it"
     );
 
     there.tell(Op::DocSigned {
@@ -1814,16 +1813,11 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
     assert_eq!(
         there.state.author_of(&there.state.docs[&acta]),
         Some("rgdevment"),
-        "the first to sign it did not become its author"
-    );
-    assert_eq!(
-        there.state.born_of(&there.state.docs[&acta]),
-        None,
-        "it claimed a name it never had before"
+        "a signature already in the history was undone"
     );
     assert!(
         !there.state.docs[&acta].guest,
-        "claiming it left it flagged as somebody else's for ever"
+        "a signature already in the history left it flagged as somebody else's"
     );
 }
 

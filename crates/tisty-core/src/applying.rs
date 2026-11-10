@@ -319,9 +319,7 @@ impl State {
 
     pub(crate) fn doc_signed(&mut self, id: &DocId, d: &str) {
         if let Some(kept) = self.docs.get_mut(id) {
-            // Held here and not only where the event is written, so a build that read
-            // the rule differently cannot sign over somebody else's writing. What
-            // nobody signed is another matter: signing it is owning it.
+            // Unnamed writing is no longer offered to sign, yet a signature already in the log must still hold.
             if kept.guest && kept.by.is_some() {
                 return;
             }
