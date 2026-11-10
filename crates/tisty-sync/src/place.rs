@@ -6,6 +6,7 @@ use tisty_core::paths::{same_folder, told_of};
 
 pub(crate) const CARRIED_TO: &str = "carried-to";
 const ADOPTING: &str = "adopting";
+pub(crate) const ADOPTING_KEPT: &str = ".adopting";
 
 // A memo another identity left, as a reinstall that kept the cache does, is not being here.
 pub(crate) fn carried_here(
@@ -75,11 +76,12 @@ pub fn others_in(dest: &Path, device: &str) -> Vec<String> {
 
 /// A machine still in the cloud on joining would otherwise wait for the confirmation joining gave.
 pub(crate) fn still_adopting(
+    data: &Path,
     aside: Option<&Path>,
     dest: &Path,
     holds_our_store: bool,
 ) -> BTreeSet<String> {
-    match adopting_kept(aside) {
+    match adopting_kept(data, aside) {
         Some((names, at, since))
             if same_folder(&at, dest, holds_our_store)
                 && since.elapsed().is_ok_and(|one| one < ADOPTING_FOR) =>
@@ -98,9 +100,16 @@ type Adopting = (BTreeSet<String>, String, std::time::SystemTime);
 
 const SINCE: &str = "since ";
 
+// Beside the keys confirmed, since a cache lost would leave a machine still in the cloud waiting on the person.
+fn adopting_said(data: &Path, aside: Option<&Path>) -> Option<String> {
+    std::fs::read_to_string(data.join(ADOPTING_KEPT))
+        .ok()
+        .or_else(|| std::fs::read_to_string(aside?.join(ADOPTING)).ok())
+}
+
 /// Written before the week was kept, a list reads as begun now.
-fn adopting_kept(aside: Option<&Path>) -> Option<Adopting> {
-    let kept = std::fs::read_to_string(aside?.join(ADOPTING)).ok()?;
+fn adopting_kept(data: &Path, aside: Option<&Path>) -> Option<Adopting> {
+    let kept = adopting_said(data, aside)?;
     let (names, rest) = kept.split_once('\n')?;
     let names = names.split_whitespace().map(str::to_string).collect();
     let (since, at) = match rest
@@ -118,27 +127,29 @@ fn adopting_kept(aside: Option<&Path>) -> Option<Adopting> {
 }
 
 pub(crate) fn keep_adopting(
+    data: &Path,
     aside: Option<&Path>,
     dest: &Path,
     holds_our_store: bool,
     names: &BTreeSet<String>,
 ) {
-    let Some(aside) = aside else {
-        return;
-    };
-    let at = aside.join(ADOPTING);
+    let since = adopting_kept(data, aside)
+        .filter(|(_, was, _)| same_folder(was, dest, holds_our_store))
+        .map(|(_, _, since)| since);
+    if let Some(aside) = aside {
+        let _ = std::fs::remove_file(aside.join(ADOPTING));
+    }
+    let at = data.join(ADOPTING_KEPT);
     if names.is_empty() {
         let _ = std::fs::remove_file(at);
         return;
     }
     let here = told_of(dest);
-    let since = adopting_kept(Some(aside))
-        .filter(|(_, was, _)| same_folder(was, dest, holds_our_store))
-        .map_or_else(std::time::SystemTime::now, |(_, _, since)| since);
     let secs = since
+        .unwrap_or_else(std::time::SystemTime::now)
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |one| one.as_secs());
-    if std::fs::create_dir_all(aside).is_ok() {
+    if std::fs::create_dir_all(data).is_ok() {
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
         let _ = written(
             &at,
