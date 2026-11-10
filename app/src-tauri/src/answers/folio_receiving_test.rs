@@ -3,8 +3,8 @@ use std::cell::Cell;
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
 use super::{
-    Link, Opened, belongs, editable, language_link, link_of, looked_for, owner_apart, reviewed,
-    saying_its_language, signer_alias, speaks,
+    Link, Opened, belongs, editable, granted_entry, language_link, link_of, looked_for,
+    owner_apart, reviewed, saying_its_language, signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -164,6 +164,154 @@ fn the_anchor_s_edit_link_opens_each_language_s_token_its_owner_names() {
     assert!(language_link(&link(Some(&anchor)), &one, &its("anotherPermit")).is_none());
     assert!(language_link(&link(None), &one, &its(&named)).is_none());
     assert!(language_link(&link(Some(&token)), &one, &its(&named)).is_none());
+}
+
+fn edited_anchor(token: &str) -> tisty_sharing::Remembered {
+    tisty_sharing::Remembered {
+        id: "anchor12".into(),
+        version: 4,
+        link_key: Some("key".into()),
+        files_print: None,
+        files_hash: None,
+        files_key: None,
+        admin_token: None,
+        edit_token: Some(token.to_owned()),
+        words_print: None,
+        signed_as: None,
+        owner: Some(r#"{"root":"mario","permit":"p"}"#.into()),
+        owner_name: None,
+        cited: Vec::new(),
+        held_by: None,
+        ttl_days: None,
+        carried: None,
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
+        left_out: Vec::new(),
+    }
+}
+
+#[test]
+fn only_a_copy_alone_in_its_language_whose_token_opens_here_is_looked_for_in_folio() {
+    use tisty_envelope::sealing::link_key;
+    let (anchor, token, stranger) = (
+        link_key().unwrap(),
+        link_key().unwrap(),
+        link_key().unwrap(),
+    );
+    let sealed = |under: &str, id: &str| tisty_envelope::tokens::sealed_for(under, id, &token).ok();
+    let one = |lang: &str, id: &str, edit: Option<String>| serde_json::json!({ "lang": lang, "document": id, "key": "k", "edit": edit });
+    let was = tisty_sharing::Remembered {
+        carried: Some(
+            serde_json::json!({ "languages": [
+                one("en", "enGlish1", sealed(&anchor, "enGlish1")),
+                one("fr", "fraNcais", sealed(&stranger, "fraNcais")),
+                one("de", "deUtsch1", None),
+                one("pt", "portUgu1", sealed(&anchor, "portUgu1")),
+            ]})
+            .to_string(),
+        ),
+        ..edited_anchor(&anchor)
+    };
+    let here = |lang: &str, file: &str| (lang.to_owned(), file.to_owned());
+    let to_read = [
+        here("en", "en.md"),
+        here("fr", "fr.md"),
+        here("de", "de.md"),
+        here("pt", "pt.md"),
+        here("pt", "pt-2.md"),
+    ];
+
+    let found: Vec<(String, String)> = super::grantable(&was, &to_read)
+        .into_iter()
+        .map(|(file, one)| (file, one.document))
+        .collect();
+
+    assert_eq!(found, vec![("en.md".to_owned(), "enGlish1".to_owned())]);
+    assert!(super::grantable(&edited_anchor(&stranger), &to_read).is_empty());
+}
+
+#[test]
+fn a_language_whose_words_could_not_be_printed_is_taken_back() {
+    let entry = |print: Option<&str>| tisty_sharing::Remembered {
+        words_print: print.map(str::to_owned),
+        ..edited_anchor("t")
+    };
+    let granted = vec![
+        ("en.md".to_owned(), entry(None)),
+        ("fr.md".to_owned(), entry(None)),
+    ];
+    let shelf = std::collections::BTreeMap::from([
+        ("en.md".to_owned(), entry(Some("abc"))),
+        ("fr.md".to_owned(), entry(None)),
+    ]);
+
+    let left: Vec<String> = super::unprinted(&granted, &shelf)
+        .into_iter()
+        .map(|(file, _)| file)
+        .collect();
+
+    assert_eq!(left, vec!["fr.md".to_owned()]);
+}
+
+#[test]
+fn a_language_kept_to_read_is_edited_once_the_anchor_s_map_holds_its_token() {
+    use tisty_envelope::sealing::{link_key, permit_shown};
+    let (anchor, token) = (link_key().unwrap(), link_key().unwrap());
+    let one = tisty_envelope::Translation {
+        lang: "en".into(),
+        document: "enGlish1".into(),
+        title: None,
+        key: Some("enKey".into()),
+        edit: Some(tisty_envelope::tokens::sealed_for(&anchor, "enGlish1", &token).unwrap()),
+    };
+    let its = |said: serde_json::Value, owner: &str, permit: &str| Opened {
+        document: said,
+        owner: Some(format!(r#"{{"root":"{owner}","permit":"{permit}"}}"#)),
+        version: 7,
+        ..opened_by(Some(owner), owner)
+    };
+    let named = permit_shown(&token).unwrap();
+    let ours = serde_json::json!({ "anchor": "anchor12", "files_hash": "h" });
+
+    let entry = granted_entry(
+        &edited_anchor(&anchor),
+        &one,
+        &its(ours.clone(), "mario", &named),
+    )
+    .unwrap();
+    assert_eq!(entry.id, "enGlish1");
+    assert_eq!(entry.edit_token.as_deref(), Some(token.as_str()));
+    assert_eq!(entry.held_by.as_deref(), Some("anchor12"));
+    assert_eq!(entry.version, 0);
+    assert_eq!(entry.files_hash, None);
+
+    let elsewhere = serde_json::json!({ "anchor": "another1" });
+    assert!(
+        granted_entry(
+            &edited_anchor(&anchor),
+            &one,
+            &its(elsewhere, "mario", &named)
+        )
+        .is_none()
+    );
+    assert!(
+        granted_entry(
+            &edited_anchor(&anchor),
+            &one,
+            &its(ours.clone(), "ana", &named)
+        )
+        .is_none()
+    );
+    assert!(
+        granted_entry(
+            &edited_anchor(&anchor),
+            &one,
+            &its(ours.clone(), "mario", "p")
+        )
+        .is_none()
+    );
+    assert!(granted_entry(&edited_anchor(&token), &one, &its(ours, "mario", &named)).is_none());
 }
 
 #[test]
