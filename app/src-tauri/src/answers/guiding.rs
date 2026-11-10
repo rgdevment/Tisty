@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use tisty_core::Op;
 use tisty_core::model::DocId;
+use tisty_core::untouched::{GUIDE_HUE, GUIDE_ICON};
 
 use super::settings::{ATTACHED, GUIDE_EN, GUIDE_ES, GUIDE_PAGES_EN, GUIDE_PAGES_ES, WRITTEN_BY};
 use crate::{Answer, Refusal, Session};
@@ -52,8 +53,8 @@ pub fn sown(
             name: called.to_string(),
             order,
             parent: None,
-            icon: None,
-            color: None,
+            icon: Some(GUIDE_ICON.to_string()),
+            color: Some(GUIDE_HUE.to_string()),
         },
     });
     session.commit_all(told_of)?;

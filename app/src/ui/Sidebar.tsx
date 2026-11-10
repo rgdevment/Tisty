@@ -1,11 +1,10 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { fold, railed, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
-import { useLean } from "../leaning";
 import { t } from "../locales";
-import type { Chosen } from "../views";
+import type { Chosen, Lean } from "../views";
 import Coming from "./Coming";
 import { focusFinder, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
@@ -74,7 +73,7 @@ export default function Sidebar({
   if (!keeping) away.current = chosen;
   const breadth = railed(useBreadth(), keeping);
   const folded = breadth.folded;
-  const leaning = useLean();
+  const [leaning, setLeaning] = useState<Lean>("docs");
   useFoldKey(!keeping);
   const find = useCallback(() => {
     fold(false);
@@ -108,6 +107,7 @@ export default function Sidebar({
           here={here}
           onChoose={onChoose}
           onHere={onHere}
+          onLean={setLeaning}
         />
       ) : (
         <>
@@ -117,6 +117,7 @@ export default function Sidebar({
             tags={tags}
             chosen={chosen}
             leaning={leaning}
+            onLean={setLeaning}
             onChoose={onChoose}
             onSearch={onSearch ?? ((query) => onChoose({ named: "search", query }))}
           />
@@ -124,6 +125,7 @@ export default function Sidebar({
             papers={papers}
             chosen={chosen}
             leaning={leaning}
+            onLean={setLeaning}
             here={here}
             acting={acting}
             onChoose={onChoose}

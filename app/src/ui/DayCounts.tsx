@@ -2,8 +2,8 @@ import { t } from "../locales";
 import type { Slice } from "../views";
 
 const DAY: { key: string; said: Parameters<typeof t>[0]; tone: string; slice: Slice }[] = [
-  { key: "overdue", said: "pulseOverdue", tone: "text-urgent", slice: "today" },
-  { key: "late", said: "pulseLate", tone: "text-hue-amber", slice: "today" },
+  { key: "overdue", said: "pulseOverdue", tone: "text-urgent", slice: "overdue" },
+  { key: "late", said: "pulseLate", tone: "text-hue-amber", slice: "late" },
   { key: "dueToday", said: "pulseToday", tone: "text-accent", slice: "today" },
   { key: "upcoming", said: "pulseAhead", tone: "", slice: "upcoming" },
 ];

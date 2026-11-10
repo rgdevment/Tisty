@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
 import { useAttended } from "../attended";
 import type { Filed, Folded, Papers } from "../core";
-import { type Lean, lean } from "../leaning";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
-import type { Chosen } from "../views";
+import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { fitting, useFades, useRoom } from "./room";
@@ -18,6 +17,7 @@ interface Props {
   papers: Papers;
   chosen: Chosen;
   leaning: Lean;
+  onLean: (on: Lean) => void;
   here?: string | null;
   acting?: string | null;
   onChoose: (chosen: Chosen) => void;
@@ -32,7 +32,7 @@ interface Props {
 }
 
 export default function SideLibrary(props: Props) {
-  const { papers, chosen, leaning, onHere } = props;
+  const { papers, chosen, leaning, onLean, onHere } = props;
   const many = shown(papers.docs).filter((one) => !one.pageOf).length;
   const lit = chosen.named === "docs";
 
@@ -41,7 +41,7 @@ export default function SideLibrary(props: Props) {
       <button
         type="button"
         onClick={() => {
-          lean("docs");
+          onLean("docs");
           onHere();
         }}
         aria-current={lit ? "page" : undefined}
@@ -60,14 +60,14 @@ export default function SideLibrary(props: Props) {
         <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
           {title}
           <span className="ml-auto -mr-1.5">
-            <Leaning toward="docs" label={t("growLibrary")} />
+            <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
           </span>
         </div>
         <Shelf
           papers={papers}
           here={props.here}
           onPick={(folder) => {
-            lean("docs");
+            onLean("docs");
             onHere(folder);
           }}
         />
@@ -81,6 +81,7 @@ export default function SideLibrary(props: Props) {
 function Wide({
   papers,
   chosen,
+  onLean,
   here,
   acting,
   onChoose,
@@ -135,7 +136,7 @@ function Wide({
           >
             <Glyph name="plus" className="h-[13px] w-[13px]" />
           </button>
-          <Leaning toward="tasks" label={t("shrinkLibrary")} />
+          <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
         </span>
       </div>
       {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}

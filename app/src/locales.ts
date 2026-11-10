@@ -1591,6 +1591,10 @@ const en = {
   traceEmpty: "Everything closed here left something written behind.",
   listEmpty: "Nothing in here yet. Add the first one from the field above.",
   upcomingEmpty: "Nothing dated ahead. Write «call the dentist on Friday» to put something here.",
+  overdueEmpty: "Nothing overdue: every deadline is still ahead.",
+  lateEmpty: "Nothing late: every planned day is still to come.",
+  sliceOverdue: "Overdue",
+  sliceLate: "Late",
   todayEmpty:
     "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
@@ -4646,6 +4650,10 @@ const es: Catalog = {
   listEmpty: "Todavía no hay nada aquí. Añade lo primero desde el campo de arriba.",
   upcomingEmpty:
     "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
+  overdueEmpty: "Nada vencido: todos los plazos siguen por delante.",
+  lateEmpty: "Nada atrasado: todos los días planeados están por venir.",
+  sliceOverdue: "Vencidas",
+  sliceLate: "Atrasadas",
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
   agentBand: "Por confirmar",

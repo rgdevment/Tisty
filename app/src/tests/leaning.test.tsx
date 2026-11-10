@@ -2,11 +2,10 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fold, unwiden } from "../breadth";
 import type { Papers } from "../core";
-import { lean } from "../leaning";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
 import Sidebar from "../ui/Sidebar";
-import type { Chosen } from "../views";
+import { asView, type Chosen } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }));
@@ -69,13 +68,10 @@ const bar = (
     />,
   );
 
+const grow = () => fireEvent.click(screen.getByRole("button", { name: t("growTasks") }));
+
 describe("the sidebar gives its room to tasks or to the library, never losing the other", () => {
-  afterEach(() =>
-    act(() => {
-      lean("docs");
-      unwiden();
-    }),
-  );
+  afterEach(() => act(() => unwiden()));
 
   it("keeps the library open and the tasks compact until tasks are given the room", () => {
     bar();
@@ -91,8 +87,8 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
   });
 
   it("shows the busiest tags first", () => {
-    act(() => lean("tasks"));
     bar();
+    grow();
     const said = screen.getAllByText(/^#/).map((one) => one.textContent?.replace(/\d+$/, ""));
     expect(said).toEqual(["#backend", "#web"]);
   });
@@ -119,7 +115,9 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     fireEvent.click(screen.getByText(t("pulseAhead")));
     expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "upcoming" });
     fireEvent.click(screen.getByText(t("pulseOverdue")));
-    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "today" });
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "overdue" });
+    fireEvent.click(screen.getByText(t("pulseLate")));
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "late" });
   });
 
   it("hands what is typed to the same search the window already runs", () => {
@@ -136,9 +134,9 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
   });
 
   it("opens a folder of the shrunk library in the library", () => {
-    act(() => lean("tasks"));
     const onHere = vi.fn();
     bar({ named: "tasks" }, vi.fn(), onHere);
+    grow();
     fireEvent.click(screen.getByRole("button", { name: "Recetas" }));
     expect(onHere).toHaveBeenCalledWith("F3");
     expect(screen.getByText("Trabajo")).toBeTruthy();
@@ -161,9 +159,9 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
   });
 
   it("says the overdue on the rail, and a folder there unfolds into the library", () => {
-    act(() => lean("tasks"));
     const onHere = vi.fn();
     bar({ named: "tasks" }, vi.fn(), onHere);
+    grow();
     act(() => fold(true));
 
     expect(screen.getByRole("button", { name: `${t("tasks")} · 82` }).textContent).toContain("9");
@@ -194,5 +192,13 @@ describe("filtering the library", () => {
 
   it("keeps a folder whose own name matches", () => {
     expect(sifted(papers, "recetas").folders.map((one) => one.id)).toEqual(["F3"]);
+  });
+});
+
+describe("the day's counts that point somewhere of their own", () => {
+  it("asks for the overdue and the late apart from the rest of today", () => {
+    expect(asView({ named: "tasks", slice: "overdue" }).window).toBe("overdue");
+    expect(asView({ named: "tasks", slice: "late" }).window).toBe("late");
+    expect(asView({ named: "tasks", slice: "today" }).window).toBe("today");
   });
 });

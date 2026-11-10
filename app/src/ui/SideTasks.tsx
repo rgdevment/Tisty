@@ -1,8 +1,7 @@
 import type { Counted, List } from "../core";
 import { todayLong } from "../format";
-import { type Lean, lean } from "../leaning";
 import { fill, t } from "../locales";
-import type { Chosen, Named } from "../views";
+import type { Chosen, Lean, Named } from "../views";
 import DayCounts from "./DayCounts";
 import { FIND_KEY, FINDER } from "./finding";
 import Glyph from "./Glyph";
@@ -25,6 +24,7 @@ interface Props {
   tags: Counted[];
   chosen: Chosen;
   leaning: Lean;
+  onLean: (on: Lean) => void;
   onChoose: (chosen: Chosen) => void;
   onSearch: (query: string) => void;
 }
@@ -35,6 +35,7 @@ export default function SideTasks({
   tags,
   chosen,
   leaning,
+  onLean,
   onChoose,
   onSearch,
 }: Props) {
@@ -70,6 +71,7 @@ export default function SideTasks({
             <Leaning
               toward={wide ? "docs" : "tasks"}
               label={t(wide ? "shrinkTasks" : "growTasks")}
+              onLean={onLean}
             />
           </span>
         </div>
@@ -109,7 +111,13 @@ export default function SideTasks({
   );
 }
 
-function Wide({ counts, lists, tags, chosen, onChoose }: Omit<Props, "leaning" | "onSearch">) {
+function Wide({
+  counts,
+  lists,
+  tags,
+  chosen,
+  onChoose,
+}: Omit<Props, "leaning" | "onLean" | "onSearch">) {
   const pane = useFades<HTMLDivElement>();
   const held = lists.filter((one) => !one.archived);
   const most = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, TAGS_SHOWN);
@@ -189,12 +197,20 @@ function Head({ said, many }: { said: string; many: number }) {
   );
 }
 
-export function Leaning({ toward, label }: { toward: Lean; label: string }) {
+export function Leaning({
+  toward,
+  label,
+  onLean,
+}: {
+  toward: Lean;
+  label: string;
+  onLean: (on: Lean) => void;
+}) {
   const opens = toward === "tasks";
   return (
     <button
       type="button"
-      onClick={() => lean(toward)}
+      onClick={() => onLean(toward)}
       aria-label={label}
       title={label}
       className="grid size-6 shrink-0 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"

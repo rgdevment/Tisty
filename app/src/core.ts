@@ -281,7 +281,7 @@ export interface View {
   tags?: string[];
   tagged?: boolean;
   hidden?: boolean;
-  window?: "today" | "upcoming" | "overdue" | "undated";
+  window?: "today" | "upcoming" | "overdue" | "late" | "undated";
   repeating?: boolean;
   most?: number;
   board?: boolean;

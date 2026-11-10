@@ -19,9 +19,13 @@ export type Tab = "general" | "sync" | "security" | "data" | "agents" | "upkeep"
 
 export type Heading = "pick" | "cloud" | "folder";
 
-export type Slice = "today" | "upcoming" | "repeating" | "all";
+export type Lean = "tasks" | "docs";
+
+export type Slice = "today" | "upcoming" | "repeating" | "all" | "overdue" | "late";
 
 export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
+
+export const STANDINGS: Slice[] = ["overdue", "late"];
 
 export const LAYERS: Reading[] = ["story", "routine", "trace"];
 
@@ -102,6 +106,10 @@ function sliced(slice: Slice = "today"): View {
       return { window: "upcoming" };
     case "repeating":
       return { repeating: true };
+    case "overdue":
+      return { window: "overdue" };
+    case "late":
+      return { window: "late" };
     default:
       return {};
   }
@@ -153,6 +161,8 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): s
   if (chosen.list || chosen.tags?.length) return t("listEmpty");
   if (chosen.named === "tags") return t("noTagsYet");
   if (chosen.slice === "upcoming") return t("upcomingEmpty");
+  if (chosen.slice === "overdue") return t("overdueEmpty");
+  if (chosen.slice === "late") return t("lateEmpty");
   if (chosen.slice === "repeating") return t("repeatingEmpty");
   if (chosen.lists?.length) return t("listEmpty");
   if (chosen.slice === "all") return t("allEmpty");

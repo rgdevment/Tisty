@@ -4,6 +4,7 @@ const store = vi.hoisted(() => ({
   folders: [] as (string | undefined)[],
   wrote: [] as { id: string; body: string }[],
   added: [] as string[],
+  looks: [] as (string | undefined)[][],
   shelves: [] as unknown[],
   listed: 0,
 }));
@@ -21,8 +22,9 @@ vi.mock("../core", () => ({
     store.listed += 1;
     return Promise.resolve({ folders: store.shelves, docs: [] });
   },
-  folderAdd: (name: string) => {
+  folderAdd: (name: string, _parent?: string, icon?: string, color?: string) => {
     store.added.push(name);
+    store.looks.push([icon, color]);
     return Promise.resolve("01NEW");
   },
 }));
@@ -30,12 +32,13 @@ vi.mock("../core", () => ({
 import { startOf } from "tisty-diagrams/read";
 import type { Folded } from "../core";
 import { t } from "../locales";
-import { drafted, placeOf, spawned } from "../making";
+import { DIAGRAMS_HUE, DIAGRAMS_ICON, drafted, placeOf, spawned } from "../making";
 
 beforeEach(() => {
   store.folders = [];
   store.wrote = [];
   store.added = [];
+  store.looks = [];
   store.shelves = [];
   store.listed = 0;
 });
@@ -102,6 +105,7 @@ describe("making a document for a new diagram", () => {
 
     expect(store.folders).toEqual(["01D", "01NEW"]);
     expect(store.added).toEqual([t("diagramsFolder")]);
+    expect(store.looks).toEqual([[DIAGRAMS_ICON, DIAGRAMS_HUE]]);
     expect([found.folder, missing.folder]).toEqual(["01D", "01NEW"]);
     expect(store.listed).toBe(2);
     expect(placeOf([home], "01D")).toBe(t("diagramsFolder"));
