@@ -201,6 +201,37 @@ pub(super) fn before_upload(
     }
 }
 
+/// The languages sent with this anchor, each with what this Tisty last knew of it.
+fn its_other_languages(
+    session: &Session,
+    doc: tisty_core::model::DocId,
+    file: &str,
+    was: &Remembered,
+) -> Vec<(String, Remembered)> {
+    let shelf = tisty_sharing::remembered(&session.state);
+    session
+        .state
+        .tongues_of(doc)
+        .into_iter()
+        .filter(|one| one.file != file)
+        .filter_map(|one| {
+            shelf
+                .get(&one.file)
+                .map(|its| (one.file.clone(), its.clone()))
+        })
+        .filter(|(_, its)| its.held_by.as_deref() == Some(was.id.as_str()))
+        .collect()
+}
+
+pub(super) fn first_ahead(
+    door: &dyn Door,
+    languages: Vec<(String, Remembered)>,
+) -> Option<(String, Remembered)> {
+    languages.into_iter().find(|(_, its)| {
+        folio_client::latest(door, &its.id).is_ok_and(|latest| latest.version > its.version)
+    })
+}
+
 // The family's next version may wait on another computer's or an editor's upload, which only Folio sees.
 fn held_until_next(
     latest: &folio_client::Latest,
@@ -295,15 +326,28 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let pressed_at = policy::now();
-    let ahead = {
+    let languages = its_other_languages(&held(&session), doc, &file, &was);
+    let (ahead, language_ahead) = {
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
             let door = ToFolio::new(&home)?;
-            before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)
+            let ahead = before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)?;
+            let language_ahead = match ahead {
+                Ahead::Upload | Ahead::Unchanged => first_ahead(&door, languages),
+                _ => None,
+            };
+            Ok((ahead, language_ahead))
         })
         .await?
     };
+    // Each language has its own versions, and another's newer one is brought apart as the anchor's is (166).
+    if let Some((its_file, its_was)) = language_ahead {
+        let its_doc = doc_of_file(&held(&session), &its_file)
+            .ok_or_else(|| Refusal::of("noSuchDoc"))?
+            .to_string();
+        return other_version_brought(&session, &its_doc, &its_was).await;
+    }
     match ahead {
         Ahead::Unchanged => return unchanged_answered(&session, &paths, tongue).await,
         Ahead::Gone => {

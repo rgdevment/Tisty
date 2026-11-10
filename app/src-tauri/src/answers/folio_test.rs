@@ -1472,3 +1472,36 @@ fn a_retry_puts_each_permit_back_once_and_sends_only_what_folio_does_not_hold() 
     let going: Vec<&str> = owed.going.iter().map(|one| one.id.as_str()).collect();
     assert_eq!(going, ["French12"]);
 }
+
+#[test]
+fn a_language_another_sent_a_newer_version_of_is_the_one_brought() {
+    use crate::answers::folio_sync::first_ahead;
+    let language = |id: &str, version: u64| {
+        (
+            format!("{id}.md"),
+            Remembered {
+                id: id.to_owned(),
+                version,
+                ..remembered(Some("key"), Some("token"))
+            },
+        )
+    };
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"version":2}"#));
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"version":4}"#));
+
+    let ahead = first_ahead(
+        &folio,
+        vec![language("English1", 2), language("French12", 3)],
+    );
+
+    assert_eq!(ahead.map(|(_, one)| one.id).as_deref(), Some("French12"));
+    let asked = folio.asked.borrow();
+    assert_eq!(asked.len(), 2);
+}
