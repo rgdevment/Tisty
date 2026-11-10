@@ -1,4 +1,4 @@
-export declare const VERSION: "1.8.0";
+export declare const VERSION: "1.9.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -65,6 +65,7 @@ export interface Document {
   cited?: Cited[];
   languages?: Translation[];
   anchor?: string;
+  reviews?: Review[];
 }
 
 export interface DocumentReader {
@@ -216,6 +217,33 @@ export interface Editor {
   signed: string;
 }
 
+/** The owner's word on a language that someone who edits added to its anchor: kept as the owner read it, or left out. Only an anchor holds them, each signed by its owner, and the server keeps the owner's latest word on all of them beside the anchor, as its reviewed. A reader shows a language someone else added only while a review keeps the very version it reads. */
+export interface Review {
+  of: string;
+  kept: boolean;
+  document?: string;
+  lang?: string;
+  print?: string;
+  seq: number;
+  root: string;
+  machine: string;
+  since: string;
+  certificate: string;
+  signed: string;
+}
+
+/** The owner's latest word on all the reviews of an anchor. The server keeps one beside the anchor and serves it with it, so someone who edits can neither put an older review back nor take a left out one away: what the anchor's reviews say counts only while they are what this names. */
+export interface Reviewed {
+  anchor: string;
+  seq: number;
+  reviews: string;
+  root: string;
+  machine: string;
+  since: string;
+  certificate: string;
+  signed: string;
+}
+
 /** A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it holds. Everything it decides is decided by whoever receives it. */
 export interface Revocation {
   root: string;
@@ -228,6 +256,7 @@ export interface Revocation {
 export interface Served {
   received?: string;
   revocations?: Revocation[];
+  reviewed?: Reviewed;
 }
 
 /** Another document shared along with this one. It keeps its own envelopes, because it is not part of this document. */
@@ -281,7 +310,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "review" | "reviewed" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

@@ -62,6 +62,7 @@ fn served_by(fetched: &Fetched) -> Served {
     Served {
         received,
         revocations,
+        reviewed: None,
     }
 }
 

@@ -96,6 +96,7 @@ mod editing {
         Served {
             received: None,
             revocations: None,
+            reviewed: None,
         }
     }
 
@@ -219,6 +220,7 @@ mod editing {
                 at: revoked.at.to_string(),
                 signed: revoked.sig,
             }]),
+            reviewed: None,
         };
         let read = reading(&main, &asked(), &served).unwrap();
         assert_eq!(read.verdict, Verdict::Doubtful);

@@ -296,6 +296,86 @@ const verdictOf = async ({ root, machine }, { received, revocations = [] }) => {
   return received !== undefined && received < counting.sort()[0] ? "retired" : "doubtful";
 };
 
+const ofLanguage = (id) => sha(words("tisty-language-review\0"), words(id));
+const reviewBytes = (anchor, review) => {
+  const naming = review.kept ? [be(words(review.document).length), words(review.document), be(words(review.lang).length), words(review.lang), b64(review.print)] : [];
+  const about = words("language-review");
+  return joined(words("tisty-share.signed.v1\0"), b64(review.root), b64(review.machine), be(about.length), about, be(words(anchor).length), words(anchor), b64(review.of), be(review.seq), new Uint8Array([review.kept ? 1 : 0]), ...naming);
+};
+const vouched = async (entry) => {
+  const root = b64(entry.root);
+  const machine = b64(entry.machine);
+  await verified(root, b64(entry.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(entry.since) / 1000));
+  return machine;
+};
+
+const reviewHolds = async (anchor, owner, review, served = {}) => {
+  try {
+    if (review.root !== owner) return false;
+    await verified(await vouched(review), b64(review.signed), reviewBytes(anchor, review));
+    if (review.kept && !same(b64(review.of), await ofLanguage(review.document))) return false;
+    return (await verdictOf(review, served)) === "holds";
+  } catch {
+    return false;
+  }
+};
+
+const reviewsHash = async (anchor, reviews) => {
+  const each = await Promise.all(reviews.map((one) => sha(reviewBytes(anchor, one))));
+  each.sort((one, other) => Buffer.compare(Buffer.from(one), Buffer.from(other)));
+  return sha(words("tisty-language-reviews\0"), ...each);
+};
+
+const reviewedHolds = async (anchor, owner, reviews, head, served = {}) => {
+  try {
+    if (head?.anchor !== anchor || head.root !== owner) return false;
+    const about = words("reviewed");
+    const said = [words("tisty-share.signed.v1\0"), b64(head.root), b64(head.machine), be(about.length), about, be(words(anchor).length), words(anchor), be(head.seq), b64(head.reviews)];
+    await verified(await vouched(head), b64(head.signed), ...said);
+    return same(b64(head.reviews), await reviewsHash(anchor, reviews)) && (await verdictOf(head, served)) === "holds";
+  } catch {
+    return false;
+  }
+};
+
+const newerReview = (one, was) => !was || one.seq > was.seq || (one.seq === was.seq && Buffer.compare(Buffer.from(b64(one.machine)), Buffer.from(b64(was.machine))) > 0);
+
+const languagesShown = async ({ anchor, owner, languages, reviews, served = {}, seen = 0 }) => {
+  const counting = (await reviewedHolds(anchor, owner, reviews, served.reviewed, served)) && served.reviewed.seq >= seen;
+  const latest = new Map();
+  for (const one of counting ? reviews : []) {
+    if ((await reviewHolds(anchor, owner, one, served)) && newerReview(one, latest.get(one.of))) latest.set(one.of, one);
+  }
+  const shown = [];
+  for (const one of languages) {
+    const review = latest.get(Buffer.from(await ofLanguage(one.document)).toString("base64url"));
+    const keeps = review?.kept && review.document === one.document && review.lang === one.lang && review.print === one.print;
+    if (one.root === owner || keeps) shown.push(one.document);
+  }
+  return shown;
+};
+
+for (const { says, holds, review } of VECTORS.reviews.cases) {
+  test(`a review ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
+    const { anchor, owner } = VECTORS.reviews;
+    assert.equal(await reviewHolds(anchor, owner, review), holds);
+    assert.equal(await reviewHolds(anchor, owner, { ...review, since: "x" }), false);
+  });
+}
+
+for (const { says, holds, head } of VECTORS.reviewed.cases) {
+  test(`the word on the reviews ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
+    const { anchor, owner, reviews } = VECTORS.reviewed;
+    assert.equal(await reviewedHolds(anchor, owner, reviews, head), holds);
+  });
+}
+
+for (const one of VECTORS.languages_shown) {
+  test(`a reader shows what its owner keeps: ${one.says}`, async () => {
+    assert.deepEqual(await languagesShown(one), one.shown);
+  });
+}
+
 const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
 const linkKey = b64(VECTORS.link_key);
 const MAIN = { id: "k7Qm2xPa", kind: "main" };

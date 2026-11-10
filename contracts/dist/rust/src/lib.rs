@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.8.0";
+pub const VERSION: &str = "1.9.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -177,6 +177,8 @@ pub struct Document {
     pub languages: Option<Vec<Translation>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviews: Option<Vec<Review>>,
 }
 
 pub trait DocumentReader {
@@ -378,6 +380,38 @@ pub struct Editor {
     pub signed: String,
 }
 
+/// The owner's word on a language that someone who edits added to its anchor: kept as the owner read it, or left out. Only an anchor holds them, each signed by its owner, and the server keeps the owner's latest word on all of them beside the anchor, as its reviewed. A reader shows a language someone else added only while a review keeps the very version it reads.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Review {
+    pub of: String,
+    pub kept: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub print: Option<String>,
+    pub seq: u64,
+    pub root: String,
+    pub machine: String,
+    pub since: String,
+    pub certificate: String,
+    pub signed: String,
+}
+
+/// The owner's latest word on all the reviews of an anchor. The server keeps one beside the anchor and serves it with it, so someone who edits can neither put an older review back nor take a left out one away: what the anchor's reviews say counts only while they are what this names.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Reviewed {
+    pub anchor: String,
+    pub seq: u64,
+    pub reviews: String,
+    pub root: String,
+    pub machine: String,
+    pub since: String,
+    pub certificate: String,
+    pub signed: String,
+}
+
 /// A person's root saying it no longer answers for one of their machine keys, since a moment, as when a machine is lost or retired. It deletes nothing and stops nothing already shared, and whoever holds that machine can still read what it holds. Everything it decides is decided by whoever receives it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Revocation {
@@ -394,6 +428,8 @@ pub struct Served {
     pub received: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revocations: Option<Vec<Revocation>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed: Option<Reviewed>,
 }
 
 /// Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.

@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    Attachment, Cited, Document, Editor, Orientation, Page, Paper, Sealing, Sheet, Translation,
+    Attachment, Cited, Document, Editor, Orientation, Page, Paper, Review, Sealing, Sheet,
+    Translation,
 };
 use tisty_core::model::{DocId, Kept};
 use tisty_core::person::Persons;
@@ -55,6 +56,7 @@ struct Carried {
     languages: Option<Vec<Translation>>,
     cited: Option<Vec<Cited>>,
     editors: Option<Vec<Editor>>,
+    reviews: Option<Vec<Review>>,
 }
 
 // A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
@@ -598,6 +600,7 @@ impl Gathering<'_> {
             cited: carried.cited,
             languages: carried.languages,
             anchor: None,
+            reviews: carried.reviews,
             editors: carried.editors,
         };
         Ok(Tongue {

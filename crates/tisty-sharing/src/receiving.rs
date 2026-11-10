@@ -14,17 +14,20 @@ pub struct Received {
 
 // Nobody here holds what a document's other languages and cited documents are, only how readers reach them.
 fn carried_from(document: &Value) -> Option<String> {
-    let (languages, cited, editors) = (
+    let (languages, cited, editors, reviews) = (
         &document["languages"],
         &document["cited"],
         &document["editors"],
+        &document["reviews"],
     );
-    (!languages.is_null() || !cited.is_null() || !editors.is_null()).then(|| {
+    let any = [languages, cited, editors, reviews];
+    any.iter().any(|one| !one.is_null()).then(|| {
         serde_json::json!({
             "lang": document["lang"],
             "languages": languages,
             "cited": cited,
             "editors": editors,
+            "reviews": reviews,
         })
         .to_string()
     })
@@ -38,7 +41,7 @@ pub fn editors_brought(was: Option<&str>, arrived: Option<&str>) -> Option<Strin
     with_editors(was, editors)
 }
 
-/// What a later version says of its languages and cited documents replaces what an editor held, or its next version would undo the owner's.
+/// What a later version says of its languages, cited documents and reviews replaces what an editor held, or its next version would undo the owner's.
 pub fn map_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
     let arrived = arrived.and_then(|said| serde_json::from_str::<Value>(said).ok());
     let mut kept = was
@@ -46,7 +49,7 @@ pub fn map_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
         .filter(Value::is_object)
         .unwrap_or_else(|| serde_json::json!({}));
     let fields = kept.as_object_mut()?;
-    for field in ["lang", "languages", "cited"] {
+    for field in ["lang", "languages", "cited", "reviews"] {
         match arrived
             .as_ref()
             .map(|one| one[field].clone())
