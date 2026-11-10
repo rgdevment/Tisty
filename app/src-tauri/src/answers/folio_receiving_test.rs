@@ -3,8 +3,8 @@ use std::cell::Cell;
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
 use super::{
-    Link, Opened, editable, language_link, link_of, looked_for, owner_apart, saying_its_language,
-    speaks,
+    Link, Opened, editable, language_link, link_of, looked_for, owner_apart, reviewed,
+    saying_its_language, speaks,
 };
 
 #[derive(Default)]
@@ -209,4 +209,20 @@ lang: es
         tisty_markdown::front::lang(&kept.body).as_deref(),
         Some("es")
     );
+}
+
+#[test]
+fn a_language_whose_owner_is_not_the_anchor_s_is_not_reviewed() {
+    assert!(reviewed(
+        &opened_by(Some("mario"), "mario"),
+        &opened_by(Some("mario"), "ana")
+    ));
+    assert!(!reviewed(
+        &opened_by(Some("mario"), "mario"),
+        &opened_by(Some("ana"), "ana")
+    ));
+    assert!(!reviewed(
+        &opened_by(None, "mario"),
+        &opened_by(None, "ana")
+    ));
 }
