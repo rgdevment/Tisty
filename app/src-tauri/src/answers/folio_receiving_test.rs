@@ -3,7 +3,7 @@ use std::cell::Cell;
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
 use super::{
-    Link, Opened, editable, language_link, link_of, looked_for, owner_apart, reviewed,
+    Link, Opened, belongs, editable, language_link, link_of, looked_for, owner_apart, reviewed,
     saying_its_language, speaks,
 };
 
@@ -224,5 +224,31 @@ fn a_language_whose_owner_is_not_the_anchor_s_is_not_reviewed() {
     assert!(!reviewed(
         &opened_by(None, "mario"),
         &opened_by(None, "ana")
+    ));
+}
+
+#[test]
+fn a_language_is_brought_only_when_it_names_this_anchor() {
+    let anchor = Opened {
+        document: serde_json::json!({ "id": "Anchor12" }),
+        ..opened_by(Some("mario"), "mario")
+    };
+    let naming = |said: serde_json::Value, owner: &str| Opened {
+        document: said,
+        ..opened_by(Some(owner), owner)
+    };
+
+    assert!(belongs(
+        &anchor,
+        &naming(serde_json::json!({ "anchor": "Anchor12" }), "mario")
+    ));
+    assert!(!belongs(
+        &anchor,
+        &naming(serde_json::json!({ "anchor": "Another1" }), "mario")
+    ));
+    assert!(!belongs(&anchor, &naming(serde_json::json!({}), "mario")));
+    assert!(!belongs(
+        &anchor,
+        &naming(serde_json::json!({ "anchor": "Anchor12" }), "ana")
     ));
 }
