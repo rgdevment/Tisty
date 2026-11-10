@@ -20,8 +20,8 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, carried_map, guest_page, guests_kept, kept_granted, kept_here, languages_granted,
-    languages_to_read, opened_from, owner_apart, signer_alias,
+    Opened, carried_map, guest_page, guests_kept, kept_here, languages_granted, languages_to_read,
+    opened_from, owner_apart, printed_and_kept, signer_alias,
 };
 use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
@@ -362,7 +362,7 @@ pub async fn doc_share_sync(
         true => language_ahead,
         false => {
             let app = app.clone();
-            let left = apart(move || kept_granted(&app, doc, granted)).await?;
+            let left = apart(move || printed_and_kept(&app, doc, Vec::new(), granted)).await?;
             language_ahead.filter(|(its_file, _)| left.iter().all(|(one, _)| one != its_file))
         }
     };

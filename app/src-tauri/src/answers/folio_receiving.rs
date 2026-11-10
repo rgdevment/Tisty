@@ -273,8 +273,18 @@ pub(super) fn with_their_prints(
     if entries.is_empty() {
         return;
     }
+    let printed = printed(app, doc, entries, &[]);
+    let _ = held(&app.state::<Mutex<Session>>()).commit_all(tisty_sharing::sent(&printed));
+}
+
+fn printed(
+    app: &AppHandle,
+    doc: tisty_core::model::DocId,
+    entries: Vec<(String, Remembered)>,
+    not_kept_yet: &[(String, Remembered)],
+) -> Vec<(String, Remembered)> {
     let session = app.state::<Mutex<Session>>();
-    let (paths, state, also, device) = {
+    let (paths, mut state, also, device) = {
         let session = held(&session);
         (
             session.paths.clone(),
@@ -283,6 +293,10 @@ pub(super) fn with_their_prints(
             session.config.device_id.clone(),
         )
     };
+    let now = jiff::Timestamp::now();
+    for op in tisty_sharing::sent(not_kept_yet) {
+        state.apply(&tisty_core::Event::new(device.clone(), now, op));
+    }
     let desk = Desk {
         paths: &paths,
         state: &state,
@@ -298,14 +312,13 @@ pub(super) fn with_their_prints(
         left_out: Vec::new(),
     };
     let gathered = tisty_sharing::gathered(&desk, &asked).ok();
-    let printed: Vec<(String, Remembered)> = entries
+    entries
         .into_iter()
         .map(|(file, mut entry)| {
             entry.words_print = gathered.as_ref().and_then(|one| one.print_of(&file));
             (file, entry)
         })
-        .collect();
-    let _ = held(&session).commit_all(tisty_sharing::sent(&printed));
+        .collect()
 }
 
 // A token the owner's block does not name is no edit link: it is turned away, never kept as one to read in silence.
@@ -471,60 +484,78 @@ pub(super) fn languages_granted(
         .collect()
 }
 
-pub(super) fn unprinted(
+type Entries = Vec<(String, Remembered)>;
+
+pub(super) fn printed_apart(
+    printed: Entries,
     granted: &[(String, Remembered)],
-    shelf: &std::collections::BTreeMap<String, Remembered>,
-) -> Vec<(String, Remembered)> {
-    granted
-        .iter()
-        .filter_map(|(file, _)| Some((file.clone(), shelf.get(file)?.clone())))
-        .filter(|(_, now)| now.words_print.is_none())
-        .collect()
+) -> (Entries, Entries) {
+    printed.into_iter().partition(|(file, one)| {
+        one.words_print.is_some() || granted.iter().all(|(was, _)| was != file)
+    })
 }
 
-// Without its print its words count as changed, and would go up over the owner's newest version unasked.
-pub(super) fn kept_granted(
+// A granted language goes in only with its print: without it its words count as changed, and would go up over the owner's newest version unasked.
+pub(super) fn printed_and_kept(
     app: &AppHandle,
     doc: tisty_core::model::DocId,
+    entries: Vec<(String, Remembered)>,
     granted: Vec<(String, Remembered)>,
 ) -> Answer<Vec<(String, Remembered)>> {
-    let session = app.state::<Mutex<Session>>();
-    held(&session).commit_all(tisty_sharing::sent(&granted))?;
-    with_their_prints(app, doc, granted.clone());
-    let mut session = held(&session);
-    let left = unprinted(&granted, tisty_sharing::remembered(&session.state));
-    session.commit_all(tisty_sharing::forgotten(&left))?;
+    if entries.is_empty() && granted.is_empty() {
+        return Ok(Vec::new());
+    }
+    let all = entries.into_iter().chain(granted.iter().cloned()).collect();
+    let (kept, left) = printed_apart(printed(app, doc, all, &granted), &granted);
+    held(&app.state::<Mutex<Session>>()).commit_all(tisty_sharing::sent(&kept))?;
     Ok(left)
+}
+
+// A new edit link its owner's latest block names is the one whoever edits goes on with (148).
+pub(super) fn moved_to(anchor: &Remembered, link: &Link, opened: &Opened) -> Option<Remembered> {
+    let token = link.token.clone()?;
+    let moves = anchor.edited_through_a_link()
+        && anchor.edit_token.as_ref() != Some(&token)
+        && editable(link, opened);
+    moves.then(|| Remembered {
+        edit_token: Some(token),
+        owner: opened.owner.clone(),
+        ..anchor.clone()
+    })
+}
+
+fn anchor_on(app: &AppHandle, file: &str, link: &Link, opened: &Opened) -> Option<Remembered> {
+    let session = app.state::<Mutex<Session>>();
+    let mut session = held(&session);
+    let anchor = tisty_sharing::remembered(&session.state)
+        .get(file)
+        .cloned()?;
+    let Some(moved) = moved_to(&anchor, link, opened) else {
+        return Some(anchor);
+    };
+    let entry = [(file.to_owned(), moved.clone())];
+    session.commit_all(tisty_sharing::sent(&entry)).ok()?;
+    Some(moved)
 }
 
 fn granted_since(
     app: &AppHandle,
     door: &dyn Door,
+    link: &Link,
     file: &str,
     doc: tisty_core::model::DocId,
     opened: &Opened,
-) {
-    let (anchor, to_read) = {
+) -> Vec<(String, Remembered)> {
+    let Some(anchor) = anchor_on(app, file, link, opened) else {
+        return Vec::new();
+    };
+    let to_read = {
         let session = app.state::<Mutex<Session>>();
-        let session = held(&session);
-        let Some(anchor) = tisty_sharing::remembered(&session.state).get(file).cloned() else {
-            return;
-        };
-        let to_read = languages_to_read(&session, doc, &anchor);
-        (anchor, to_read)
+        languages_to_read(&held(&session), doc, &anchor)
     };
     let map: Vec<Translation> =
         serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
-    let granted = languages_granted(door, &anchor, &map, &to_read);
-    if !granted.is_empty()
-        && let Err(refused) = kept_granted(app, doc, granted)
-    {
-        witness::warn(
-            channel::SYNC,
-            "the tokens a link opened again hands over could not be kept, so those languages stay to read",
-            &[("code", Fact::Code(refused.code))],
-        );
-    }
+    languages_granted(door, &anchor, &map, &to_read)
 }
 
 // Languages join by what each says it is, so one that arrived without saying it in its words says it now.
@@ -680,21 +711,27 @@ fn languages_added_since(
         (session.state.anchor_of(kept), here)
     };
     let opened = opened_head(door, &link.id, &link.key).ok()?;
-    granted_since(app, door, file, doc, &opened);
+    let granted = granted_since(app, door, link, file, doc, &opened);
     let (languages, mut left) = languages_brought(door, &opened, &here);
-    if languages.is_empty() {
-        return Some((None, left));
+    let mut kept = Kept::default();
+    if !languages.is_empty() {
+        kept = languages_kept(app, link, &opened, doc, languages).ok()?;
+        // The anchor's map gained them, so its print is taken again with theirs.
+        let anchor_entry = {
+            let session = app.state::<Mutex<Session>>();
+            let session = held(&session);
+            tisty_sharing::remembered(&session.state).get(file).cloned()
+        };
+        kept.printing
+            .extend(anchor_entry.map(|one| (file.to_owned(), one)));
     }
-    let mut kept = languages_kept(app, link, &opened, doc, languages).ok()?;
-    // The anchor's map gained them, so its print is taken again with theirs.
-    let anchor_entry = {
-        let session = app.state::<Mutex<Session>>();
-        let session = held(&session);
-        tisty_sharing::remembered(&session.state).get(file).cloned()
-    };
-    kept.printing
-        .extend(anchor_entry.map(|one| (file.to_owned(), one)));
-    with_their_prints(app, doc, kept.printing);
+    if let Err(refused) = printed_and_kept(app, doc, kept.printing, granted) {
+        witness::warn(
+            channel::SYNC,
+            "what a link opened again brought could not be kept, so its languages stay to read",
+            &[("code", Fact::Code(refused.code))],
+        );
+    }
     left.extend(kept.left);
     Some((kept.shown, left))
 }
