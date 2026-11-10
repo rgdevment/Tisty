@@ -809,13 +809,10 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     let shelf = remembered(state).clone();
     let top = sharable(desk, asked.doc, &shelf)?;
     let anchor = state.anchor_of(top);
-    // Each language of what its owner shares to edit has its own token, the first time or the next (166).
-    let owner_edits = state
-        .docs
-        .get(&anchor)
-        .and_then(|one| shelf.get(&one.file))
-        .is_some_and(|one| one.admin_token.is_some() && one.edit_token.is_some());
-    let editable_family = (under.editable || owner_edits).then_some(anchor);
+    let was = state.docs.get(&anchor).and_then(|one| shelf.get(&one.file));
+    // Each language of what its owner shares to edit has its own token (166); what went out to read stays to read (148).
+    let owner_edits = was.is_some_and(|one| one.admin_token.is_some() && one.edit_token.is_some());
+    let editable_family = (owner_edits || (under.editable && was.is_none())).then_some(anchor);
     // What Tisty sowed goes out under the maker's alias, so nothing reads as the app speaking.
     let wanted = asked
         .signed_as

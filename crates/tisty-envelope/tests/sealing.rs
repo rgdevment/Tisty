@@ -698,6 +698,34 @@ fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
 }
 
 #[test]
+fn a_language_this_writer_does_not_reach_stays_in_the_map_as_it_arrived() {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.document.languages = Some(
+        serde_json::from_value(json!([
+            { "lang": "en", "document": "hello", "key": key_text(2) },
+            { "lang": "fr", "document": "salut", "key": key_text(4) },
+        ]))
+        .unwrap(),
+    );
+    let going = sealed(Family {
+        anchor,
+        others: vec![tongue("hello", "en", Some(2))],
+    })
+    .unwrap();
+    let map = document_of(
+        &opened(&going[0].sealed.main, ("hola", "main"), Some(&the_key(1))).unwrap(),
+    )["languages"]
+        .clone();
+    let ids: Vec<&str> = map
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["document"].as_str().unwrap())
+        .collect();
+    assert_eq!(ids, ["hello", "salut"]);
+}
+
+#[test]
 fn the_paper_of_a_family_is_the_anchors() {
     let mut anchor = tongue("hola", "es", Some(1));
     anchor.document.sheet =

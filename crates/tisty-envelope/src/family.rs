@@ -118,12 +118,27 @@ fn languages_sealed(
     } = family;
     if !others.is_empty() {
         languages_add(&anchor, &others)?;
-        anchor.document.languages = Some(
-            others
-                .iter()
-                .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
-                .collect::<Result<_, _>>()?,
-        );
+        // What this writer cannot reach stays in the map as it arrived, or an editor would take it from everyone.
+        let untouched: Vec<Translation> = anchor
+            .document
+            .languages
+            .take()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|one| anchor.document.lang.as_deref() != Some(one.lang.as_str()))
+            .filter(|one| {
+                !others.iter().any(|tongue| {
+                    tongue.sealing.id == one.document
+                        || tongue.document.lang.as_deref() == Some(one.lang.as_str())
+                })
+            })
+            .collect();
+        let mut map = others
+            .iter()
+            .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
+            .collect::<Result<Vec<_>, _>>()?;
+        map.extend(untouched);
+        anchor.document.languages = Some(map);
         // Paper, sheets and orientation are the group's.
         for tongue in &mut others {
             tongue.document.sheet.clone_from(&anchor.document.sheet);

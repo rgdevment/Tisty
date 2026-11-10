@@ -813,3 +813,48 @@ More words.
         std::collections::BTreeSet::from([english.1.id.clone()])
     );
 }
+
+#[test]
+fn what_went_out_to_read_is_not_made_editable_by_sharing_it_again() {
+    let (_tmp, mut home, es) = two_languages();
+    let minted = Cell::new(0);
+    let mint = counted(&minted);
+    let first = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: false,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    home.sent(&first.remembering);
+
+    let again = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: true,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+
+    assert!(
+        again
+            .remembering
+            .iter()
+            .all(|(_, one)| one.edit_token.is_none())
+    );
+    assert!(again.granted.is_empty());
+}
