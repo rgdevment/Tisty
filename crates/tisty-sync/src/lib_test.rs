@@ -7747,7 +7747,7 @@ fn a_machine_still_in_the_cloud_when_the_folder_was_taken_up_is_taken_up_when_it
     );
     assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
     assert!(
-        !two.data.join(crate::place::ADOPTING_KEPT).exists(),
+        !two.data.join(tisty_core::vouched::ADOPTING).exists(),
         "taking up stayed open once everybody had come down"
     );
 
@@ -9141,7 +9141,7 @@ fn the_welcome_a_join_gives_ends_a_week_later() {
         names
     );
 
-    let at = data.path().join(crate::place::ADOPTING_KEPT);
+    let at = data.path().join(tisty_core::vouched::ADOPTING);
     let kept = std::fs::read_to_string(&at).unwrap();
     let (first, rest) = kept.split_once('\n').unwrap();
     let (_, place) = rest.split_once('\n').unwrap();
@@ -9155,6 +9155,29 @@ fn the_welcome_a_join_gives_ends_a_week_later() {
     assert!(
         crate::place::still_adopting(data.path(), None, shared.path(), false).is_empty(),
         "a machine that never said its key was still taken unchecked a week after joining"
+    );
+}
+
+#[test]
+fn a_welcome_in_the_cache_stays_there_until_the_one_beside_the_keys_could_be_written() {
+    let (room, aside) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let shared = tempfile::tempdir().unwrap();
+    let names: std::collections::BTreeSet<String> = ["dev_z".to_string()].into();
+    let legacy = aside.path().join("adopting");
+    std::fs::write(
+        &legacy,
+        format!("dev_z\n{}", tisty_core::paths::told_of(shared.path())),
+    )
+    .unwrap();
+    let data = room.path().join("data");
+    std::fs::write(&data, "a file where the folder should be").unwrap();
+
+    crate::place::keep_adopting(&data, Some(aside.path()), shared.path(), false, &names);
+
+    assert!(legacy.exists(), "the only list left was dropped");
+    assert_eq!(
+        crate::place::still_adopting(&data, Some(aside.path()), shared.path(), false),
+        names
     );
 }
 

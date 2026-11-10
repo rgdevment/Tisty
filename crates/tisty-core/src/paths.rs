@@ -48,6 +48,8 @@ impl Paths {
             false => vec![self.config_file(), self.cache.clone()],
         };
         swept.extend(crate::witness::kept_files(self));
+        // The week a folder's machines are taken up unchecked ends with whoever left, as it did in the cache.
+        swept.push(self.data.join(crate::vouched::ADOPTING));
         swept
     }
 

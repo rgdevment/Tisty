@@ -3,10 +3,10 @@ use std::path::Path;
 
 use crate::{STORE, written};
 use tisty_core::paths::{same_folder, told_of};
+use tisty_core::vouched::ADOPTING;
 
 pub(crate) const CARRIED_TO: &str = "carried-to";
-const ADOPTING: &str = "adopting";
-pub(crate) const ADOPTING_KEPT: &str = ".adopting";
+const BEFORE: &str = "adopting";
 
 // A memo another identity left, as a reinstall that kept the cache does, is not being here.
 pub(crate) fn carried_here(
@@ -102,9 +102,9 @@ const SINCE: &str = "since ";
 
 // Beside the keys confirmed, since a cache lost would leave a machine still in the cloud waiting on the person.
 fn adopting_said(data: &Path, aside: Option<&Path>) -> Option<String> {
-    std::fs::read_to_string(data.join(ADOPTING_KEPT))
+    std::fs::read_to_string(data.join(ADOPTING))
         .ok()
-        .or_else(|| std::fs::read_to_string(aside?.join(ADOPTING)).ok())
+        .or_else(|| std::fs::read_to_string(aside?.join(BEFORE)).ok())
 }
 
 /// Written before the week was kept, a list reads as begun now.
@@ -136,24 +136,22 @@ pub(crate) fn keep_adopting(
     let since = adopting_kept(data, aside)
         .filter(|(_, was, _)| same_folder(was, dest, holds_our_store))
         .map(|(_, _, since)| since);
-    if let Some(aside) = aside {
-        let _ = std::fs::remove_file(aside.join(ADOPTING));
-    }
-    let at = data.join(ADOPTING_KEPT);
-    if names.is_empty() {
-        let _ = std::fs::remove_file(at);
-        return;
-    }
-    let here = told_of(dest);
-    let secs = since
-        .unwrap_or_else(std::time::SystemTime::now)
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |one| one.as_secs());
-    if std::fs::create_dir_all(data).is_ok() {
-        let names: Vec<&str> = names.iter().map(String::as_str).collect();
-        let _ = written(
-            &at,
-            format!("{}\n{SINCE}{secs}\n{here}", names.join(" ")).as_bytes(),
-        );
+    let at = data.join(ADOPTING);
+    let kept = match names.is_empty() {
+        true => std::fs::remove_file(&at).is_ok() || !at.exists(),
+        false => {
+            let here = told_of(dest);
+            let secs = since
+                .unwrap_or_else(std::time::SystemTime::now)
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |one| one.as_secs());
+            let names: Vec<&str> = names.iter().map(String::as_str).collect();
+            let said = format!("{}\n{SINCE}{secs}\n{here}", names.join(" "));
+            std::fs::create_dir_all(data).is_ok() && written(&at, said.as_bytes()).is_ok()
+        }
+    };
+    // The list in the cache goes only once the one beside the confirmed keys says the same.
+    if let Some(aside) = aside.filter(|_| kept) {
+        let _ = std::fs::remove_file(aside.join(BEFORE));
     }
 }
