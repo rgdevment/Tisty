@@ -51,7 +51,8 @@ values:
       Ed25519 by the anchor owner's machine, in the same row as signed, with the 15 letters of language-review in place of
       envelope and, after them: the length of the anchor's id in 8 bytes, big endian, the anchor's id, of, seq in 8 bytes, big
       endian, and one byte that is 1 when kept and 0 otherwise. When kept, there follow the document's length in 8 bytes, big
-      endian, the document, lang's length in 8 bytes, big endian, lang, and print.
+      endian, the document, lang's length in 8 bytes, big endian, lang, the title's length in 8 bytes, big endian, the title,
+      or nothing when it has none, key and print.
     reviewed: >-
       Ed25519 by the anchor owner's machine, in the same row as signed, with the 8 letters of the word reviewed in place of
       envelope and, after them: the length of anchor in 8 bytes, big endian, anchor, seq in 8 bytes, big endian, and reviews.
@@ -88,7 +89,7 @@ values:
     allowed. A later writer may add anything: a field, a part, a tag, an attribute, a class, a word. An earlier reader ignores
     what it can, and what it would refuse under a minor above its own it reads as newer, never as damaged, and shows nothing.
   sealing_again: "A writer never seals again what arrived under a minor above its own: it asks to update, or it would lose what it does not know."
-  never_lower: "A server refuses a version whose contract is below the one of the version it holds for that id, as outdated: a writer that knows less never seals over what one that knows more wrote, even when it asked before the other sent."
+  never_lower: "A server refuses a version whose contract is below the one of the version it holds for that id, as outdated: a writer that knows less never seals over what one that knows more wrote, even when it asked before the other sent. Versions are weighed by major, minor and patch, in that order: a draft is below the final version it leads to, and of two drafts of one version the higher number is the later."
   floors: "A server may publish the oldest version it takes and the oldest it serves, in its signed limits, and refuses what is below them as outdated. It is for a mistake of ours, not against a fork: what protects a reader from a fork is the reader's own rules. A writer that holds something sent below a floor sends it again the next time it syncs."
   sizes_at_most: { manifest_bytes: 16384, signature_bytes: 2048 }
   files_kept: "A file not changed is not sent again: a new main envelope keeps the files_hash of the files envelope already sent. Only under the key that envelope was sealed with: another key, or turning public or private, sends them again, or they stay open to who should no longer read them and closed to who should."
@@ -293,7 +294,7 @@ values:
   from_a_read_link: "Tisty keeps a guest copy, and the original stays as it was, whatever is done to the copy. The copy is never sent again, not even as a new document."
   languages_to_edit: "Each language of a document shared to edit has its own token and permit. The anchor's map carries each one in edit, so the anchor's edit link reaches every language and its read link reaches none. Changing the edit link changes every language's token."
   language_token_sealed: "The key is HKDF-SHA256 with the language's id as salt, the anchor's token (its 32 bytes) as input and tisty-language-token as info. AES-256-GCM seals the language's token (its 32 bytes) under a random 12-byte nonce, with the language's id as additional data. edit is the nonce and then what it sealed, 60 bytes in base64url."
-  languages_on_opening: "Opening a link, to read or to edit, brings every language in its map that names this anchor and that a reader shows, at most 19. Cited documents are not brought: each opens from its card, with its own languages."
+  languages_on_opening: "Opening a link, to read or to edit, brings every language that names this anchor and that a reader shows, from its map or from a review that keeps it, at most 19. Cited documents are not brought: each opens from its card, with its own languages."
   language_edit_unopened: "An edit the anchor's token does not open, or whose token the language's owner block does not name, leaves that language to read. An edit without a key says nothing, and what is public never holds one."
   language_token_purpose: "The anchor's token is the seed of its permit and the input that seals its languages' tokens; the info tisty-language-token keeps the two apart."
   language_not_reviewed: "A language whose owner's root is not the anchor owner's was added by someone who edits. A reader shows it only while a review of the anchor's owner keeps the version it reads, and otherwise leaves it out."

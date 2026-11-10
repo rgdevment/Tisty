@@ -52,11 +52,26 @@ pub struct Offered {
 
 #[derive(Default, Deserialize)]
 struct Carried {
+    #[serde(default, deserialize_with = "each_alone")]
     lang: Option<String>,
+    #[serde(default, deserialize_with = "each_alone")]
     languages: Option<Vec<Translation>>,
+    #[serde(default, deserialize_with = "each_alone")]
     cited: Option<Vec<Cited>>,
+    #[serde(default, deserialize_with = "each_alone")]
     editors: Option<Vec<Editor>>,
+    #[serde(default, deserialize_with = "each_alone")]
     reviews: Option<Vec<Review>>,
+}
+
+// One field that does not read leaves only itself out, never what the others carry.
+fn each_alone<'de, D, T>(said: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::de::DeserializeOwned,
+{
+    let said = serde_json::Value::deserialize(said)?;
+    Ok(serde_json::from_value(said).ok())
 }
 
 // A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
@@ -934,3 +949,7 @@ pub fn citable(desk: &Desk, doc: DocId) -> Result<Vec<DocId>, Unshared> {
         .map(|one| one.id)
         .collect())
 }
+
+#[cfg(test)]
+#[path = "gathering_test.rs"]
+mod tests;

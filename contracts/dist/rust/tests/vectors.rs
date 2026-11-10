@@ -101,16 +101,12 @@ fn told_apart<T>(bytes: &[u8], result: Result<T, String>) -> Result<T, String> {
 
 // An editor answers only for having signed this name for this document, and one that does not hold is left aside.
 fn editor_holds(entry: &Value) -> bool {
-    let decoded = |name: &str| entry[name].as_str().and_then(|one| URL_SAFE_NO_PAD.decode(one).ok());
-    let (Some(root), Some(machine), Some(certificate), Some(signed)) =
-        (decoded("root"), decoded("machine"), decoded("certificate"), decoded("signed"))
-    else {
+    let (Some(root), Some(machine), Some(signed)) = (decoded(entry, "root"), vouched(entry), decoded(entry, "signed")) else {
         return false;
     };
-    let (Some(since), Some(id), Some(name)) = (entry["since"].as_str().and_then(seconds_in), entry["in"].as_str(), entry["name"].as_str()) else {
+    let (Some(id), Some(name)) = (entry["in"].as_str(), entry["name"].as_str()) else {
         return false;
     };
-    let certified = [b"tisty-share.certificate.v1\0".as_slice(), &root, &machine, &since.to_be_bytes()].concat();
     let about = b"editor";
     let owned = [u8::from(entry["owned"] == Value::Bool(true))];
     let said = [
@@ -126,7 +122,7 @@ fn editor_holds(entry: &Value) -> bool {
         name.as_bytes(),
     ]
     .concat();
-    verified(&root, &certificate, &certified).is_ok() && verified(&machine, &signed, &said).is_ok()
+    verified(&machine, &signed, &said).is_ok()
 }
 
 // A document keeps only the editors signed for it: one that does not hold, or holds for another id, says nothing of it.
@@ -559,8 +555,11 @@ fn vouched(entry: &Value) -> Option<Vec<u8>> {
     Some(machine)
 }
 
-fn of_language(id: &str) -> Vec<u8> {
-    Sha256::digest([b"tisty-language-review\0".as_slice(), id.as_bytes()].concat()).to_vec()
+fn of_language(anchor_key: &[u8], id: &str) -> Vec<u8> {
+    let mut of = Hmac::<Sha256>::new_from_slice(anchor_key).unwrap();
+    of.update(b"tisty-language-review\0");
+    of.update(id.as_bytes());
+    of.finalize().into_bytes().to_vec()
 }
 
 fn sized(said: &[u8]) -> Vec<u8> {
@@ -583,18 +582,24 @@ fn review_bytes(anchor: &str, review: &Value) -> Option<Vec<u8>> {
     if kept {
         said.extend(sized(review["document"].as_str()?.as_bytes()));
         said.extend(sized(review["lang"].as_str()?.as_bytes()));
+        let title = match &review["title"] {
+            Value::Null => "",
+            said => said.as_str()?,
+        };
+        said.extend(sized(title.as_bytes()));
+        said.extend(decoded(review, "key")?);
         said.extend(decoded(review, "print")?);
     }
     Some(said)
 }
 
-fn review_holds(anchor: &str, owner: &str, review: &Value, served: &Value) -> bool {
+fn review_holds(anchor: &str, owner: &str, anchor_key: &[u8], review: &Value, served: &Value) -> bool {
     let holds = || -> Option<bool> {
         if review["root"].as_str()? != owner {
             return Some(false);
         }
         verified(&vouched(review)?, &decoded(review, "signed")?, &review_bytes(anchor, review)?).ok()?;
-        if review["kept"] == true && decoded(review, "of")? != of_language(review["document"].as_str()?) {
+        if review["kept"] == true && decoded(review, "of")? != of_language(anchor_key, review["document"].as_str()?) {
             return Some(false);
         }
         Some(verdict_of(review, served) == "holds")
@@ -635,6 +640,7 @@ fn newer_review(one: &Value, was: Option<&&Value>) -> bool {
 
 fn languages_shown(said: &Value) -> Vec<String> {
     let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
+    let anchor_key = b64(&said["link_key"]);
     let reviews = said["reviews"].as_array().unwrap();
     let served = &said["served"];
     let head = &served["reviewed"];
@@ -643,18 +649,16 @@ fn languages_shown(said: &Value) -> Vec<String> {
     let mut latest: HashMap<&str, &Value> = HashMap::new();
     for one in reviews.iter().filter(|_| counting) {
         let of = one["of"].as_str().unwrap();
-        if review_holds(anchor, owner, one, served) && newer_review(one, latest.get(of)) {
+        if review_holds(anchor, owner, &anchor_key, one, served) && newer_review(one, latest.get(of)) {
             latest.insert(of, one);
         }
     }
-    let keeps = |one: &Value| {
-        let of = URL_SAFE_NO_PAD.encode(of_language(one["document"].as_str().unwrap()));
-        latest.get(of.as_str()).is_some_and(|review| {
-            review["kept"] == true && review["document"] == one["document"] && review["lang"] == one["lang"] && review["print"] == one["print"]
-        })
-    };
+    let kept: Vec<&Value> = latest.into_values().filter(|one| one["kept"] == true).collect();
+    let map = said["map"].as_array().unwrap();
+    let keeps = |one: &Value| kept.iter().any(|review| review["document"] == one["document"] && review["lang"] == one["lang"] && review["print"] == one["print"]);
+    let own = |one: &Value| one["root"] == owner && map.contains(&one["document"]);
     let languages = said["languages"].as_array().unwrap();
-    languages.iter().filter(|one| one["root"] == owner || keeps(one)).map(|one| one["document"].as_str().unwrap().to_owned()).collect()
+    languages.iter().filter(|one| own(one) || keeps(one)).map(|one| one["document"].as_str().unwrap().to_owned()).collect()
 }
 
 fn vectors() -> Value {
@@ -672,11 +676,12 @@ fn a_document_keeps_only_the_editors_signed_for_it() {
 fn a_review_holds_only_as_the_anchor_owner_signed_it() {
     let said = &vectors()["reviews"];
     let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
+    let anchor_key = b64(&said["link_key"]);
     for one in said["cases"].as_array().unwrap() {
-        assert_eq!(review_holds(anchor, owner, &one["review"], &Value::Null), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+        assert_eq!(review_holds(anchor, owner, &anchor_key, &one["review"], &Value::Null), one["holds"].as_bool().unwrap(), "{}", one["says"]);
         let mut garbled = one["review"].clone();
         garbled["since"] = Value::String("x".into());
-        assert!(!review_holds(anchor, owner, &garbled, &Value::Null), "{}", one["says"]);
+        assert!(!review_holds(anchor, owner, &anchor_key, &garbled, &Value::Null), "{}", one["says"]);
     }
 }
 
@@ -715,6 +720,15 @@ fn a_main_envelope_gives_its_document_its_pages_and_its_pictures() {
     assert!(picture_holds(&main.parts[2], &held["pictures"][0]));
     let pictures: Vec<Vec<u8>> = all["main"]["pictures"].as_array().unwrap().iter().map(hex).collect();
     assert_eq!(main.parts[2..], pictures);
+}
+
+#[test]
+fn a_languages_print_answers_for_its_parts_once_open() {
+    let all = vectors();
+    let (main, _) = reading(&hex(&all["main"]["envelope"]), MAIN, Some(&b64(&all["link_key"]))).unwrap();
+    let each: Vec<u8> = main.parts.iter().flat_map(|one| Sha256::digest(one).to_vec()).collect();
+    let print = Sha256::digest([b"tisty-language-print\0".as_slice(), &each].concat());
+    assert_eq!(URL_SAFE_NO_PAD.encode(print), all["main"]["print"].as_str().unwrap());
 }
 
 #[test]

@@ -17,6 +17,7 @@ use tisty_envelope::family::{Family, Tongue, sealed_family};
 use tisty_envelope::pictures::made;
 use tisty_envelope::sealing::{Refused, Writer};
 use tisty_share_proto::identity::{Certificate, Root, ShareKey};
+use tisty_share_proto::reviewing;
 
 const SINCE: &str = "2026-11-03T12:00:00Z";
 
@@ -674,6 +675,74 @@ fn sealed(family: Family) -> Result<Vec<tisty_envelope::family::Going>, Refused>
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);
     sealed_family(&mut writer, family)
+}
+
+fn left_out_by(
+    anchor: &str,
+    language: &str,
+    by: &(ShareKey, Certificate),
+) -> tisty_contracts::Review {
+    let of = reviewing::of(&[1; 32], language).unwrap();
+    let said = reviewing::Said {
+        anchor,
+        of: &of,
+        seq: 1,
+        kept: None,
+    };
+    let signed = reviewing::signed(&by.0, &by.1, &said).unwrap();
+    serde_json::from_value(json!({
+        "of": URL_SAFE_NO_PAD.encode(&of),
+        "kept": false,
+        "seq": 1,
+        "root": signed.certificate.root,
+        "machine": signed.certificate.share,
+        "since": SINCE,
+        "certificate": signed.certificate.sig,
+        "signed": signed.sig,
+    }))
+    .unwrap()
+}
+
+fn map_after(left_out: tisty_contracts::Review) -> Vec<String> {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.document.reviews = Some(vec![left_out]);
+    let going = sealed(Family {
+        anchor,
+        others: vec![
+            tongue("hello", "en", Some(2)),
+            tongue("ola", "pt-BR", Some(3)),
+        ],
+    })
+    .unwrap();
+    let anchor =
+        document_of(&opened(&going[0].sealed.main, ("hola", "main"), Some(&the_key(1))).unwrap());
+    anchor["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["document"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[test]
+fn a_language_its_owner_left_out_never_goes_back_in_the_map() {
+    assert_eq!(map_after(left_out_by("hola", "hello", &signer())), ["ola"]);
+}
+
+#[test]
+fn a_left_out_someone_else_signed_leaves_the_map_as_it_is() {
+    let key = ShareKey::from_bytes(&[0x56; 32]);
+    let certificate =
+        Root::from_bytes(&[0x55; 32]).certify(&key.public(), SINCE.parse::<Timestamp>().unwrap());
+    let stranger = (key, certificate);
+    assert_eq!(
+        map_after(left_out_by("hola", "hello", &stranger)),
+        ["hello", "ola"]
+    );
+    assert_eq!(
+        map_after(left_out_by("otroDoc", "hello", &signer())),
+        ["hello", "ola"]
+    );
 }
 
 #[test]

@@ -585,46 +585,69 @@
   "reviews": {
     "anchor": "anclaDoc",
     "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+    "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
     "cases": [
       {
         "says": "a language its owner keeps",
         "holds": true,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      },
+      {
+        "says": "a language its owner keeps, with no title",
+        "holds": true,
+        "review": {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "xvcE6C9KcfDH8BiCUXCpm3AGNG10YdMzsW-L7wY0noxeqiS7vySw78w3pN3UrXEU3xhI6pFWI7XAyvt4H78GCA"
         }
       },
       {
         "says": "a language its owner left out",
         "holds": true,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": false,
           "seq": 2,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "mv_j7AnPbC8Hmn6y5HeU8ivZRTcqgxE8J1yaWeA_HTk0QE_2w_73yg6X9fkD-jU_u8iTmIXzjaMyNjF3_hJdDQ"
+          "signed": "0ETl0Xcv4nfAfDy7OVAEed-STWg0-Da6VfFZW1Lz76O8IpO4MZ_duVTM5Fl7LTbVPhubI9linKdOFb27jKDvAg"
         }
       },
       {
         "says": "a signature that does not hold",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
@@ -638,84 +661,131 @@
         "says": "a certificate that does not hold",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Dp6l8ofHqFtTmvmP4EXgz-cAu1bUk2A0mSl9k0fpDBh4wpVG-I-0gAKNb-npIkC4yq6ncRO_boEb1cwu0esGAQ",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       },
       {
         "says": "another print than the one its owner read",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "HxB1nkgjdtMtHSCaJKORqaibBO4bia9uxpmZ30Epw-Q",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       },
       {
         "says": "another lang than the one its owner read",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "pt",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      },
+      {
+        "says": "another title than the one its owner read",
+        "holds": false,
+        "review": {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Otra cosa",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      },
+      {
+        "says": "another key than the one its owner read",
+        "holds": false,
+        "review": {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       },
       {
         "says": "a higher seq than the one signed",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 9,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       },
       {
         "says": "kept, where its owner left it out",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "seq": 2,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "mv_j7AnPbC8Hmn6y5HeU8ivZRTcqgxE8J1yaWeA_HTk0QE_2w_73yg6X9fkD-jU_u8iTmIXzjaMyNjF3_hJdDQ",
+          "signed": "0ETl0Xcv4nfAfDy7OVAEed-STWg0-Da6VfFZW1Lz76O8IpO4MZ_duVTM5Fl7LTbVPhubI9linKdOFb27jKDvAg",
           "document": "anaEnglish",
           "lang": "en",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM"
         }
       },
@@ -723,51 +793,76 @@
         "says": "signed for another anchor",
         "holds": false,
         "review": {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "XLx5Wm6ha6Ix1_XrMf4C76saQdm9sWoykldRG6xTXANqr6IW42RM98rEJ4K0ZzKcIY4iKh7JTTSGn4i7GqUBDg"
+          "signed": "AM-25bA1Jd-jV8ZPxbV1jmo6r5a7HGbo2hN491jWPLr6so2kYy-UiU92vsxZK3RDqp_4J2JuSTy65FPZ3DigCg"
         }
       },
       {
         "says": "an of that is not its document's",
         "holds": false,
         "review": {
-          "of": "5QGmkZFQPLs8aO1mRKD3Vja-tRy8C-MHI-HjNxIIGZ8",
+          "of": "I3iojdDdxKwgGiy1_wrOBiVYrOE8xhNl96sf6XRE-Fw",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "W9kXDfIOdlL3jo_Xz-pikYFqUOHki0UR-3TacQFQ7hfyV3bwwAr_0A5Gkuxc17qN5bBfotATxCrOxWoaOiF5DQ"
+          "signed": "GSi2bw-xppkZMbsfg-YaMthYBZt3MfeJCinN7javUMod-O35aqoa6bpe_15UAaaxDCQ1qDBZnX5ElxS57RIRBg"
         }
       },
       {
-        "says": "signed by someone who edits, not by the owner",
+        "says": "an of hashed bare, without the anchor's key",
         "holds": false,
         "review": {
           "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "n1v_OrLySSed66bb63MAeGgN-xTCzYBnzhtJOoKKP3lkha04wsCyzxXBOSfRBfZF_WEyKVPvjOQnTpmP9-KKAw"
+        }
+      },
+      {
+        "says": "signed by someone who edits, not by the owner",
+        "holds": false,
+        "review": {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
           "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
-          "signed": "CdvT2n5bvOuHrfh3Vtcs4EX6N7x5TwTMXTxb-1VNlD0FZKGgAUphthEsorwC3WJfQDKk7zQsA_PkJGOmDiCTDw"
+          "signed": "wZ33vPAvW-Clx4vuTlHaFPxkONU6VPEoXT-j6vZvAbKuWp7V2f-B8Vb4CkVEnAL8DT-moMzvAgJjUsO-492tAQ"
         }
       }
     ]
@@ -777,27 +872,29 @@
     "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
     "reviews": [
       {
-        "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+        "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
         "kept": true,
         "document": "anaEnglish",
         "lang": "en",
+        "title": "Walks",
+        "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
         "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
         "seq": 1,
         "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
         "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
         "since": "2026-11-03T12:00:00Z",
         "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-        "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+        "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
       },
       {
-        "of": "S8t6D8RW7ZJWIryi_836Abm6R56CqMEll-OSuWknAJk",
+        "of": "MD_WsfoVMsU0IeMAYUt6mZmIKZB1AyO79bkeNW8Xy4k",
         "kept": false,
         "seq": 2,
         "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
         "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
         "since": "2026-11-03T12:00:00Z",
         "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-        "signed": "if9285qJwDqRxIMlNyPXhX1i6u9CI3wRNOInhmDL53nYbuI4A_ELhvEym7doZ2vPkzwTjQXGtbSXC9fHQg0LDg"
+        "signed": "_WPJPoDpPvwiQ5rZzTsWmxbZBGL4bq39YCinomXknm4bCSXFCmPBBwPf6Pm18w4Zo3l_XhACCZSOiRoeKA-ZCg"
       }
     ],
     "cases": [
@@ -807,12 +904,12 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "0sNS8KaSeb2LtbUMJkqjNbOphWvXtmheWq9hKCe8JGc",
+          "reviews": "zFr5wjbm0rECmNzbTvH8o3qq_y6fm1G7L804pdi9tF0",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "vxeMrnGW0RaQWQu2lIsWiSahm1pGOteHB1MLKhIeqj00hJ9hfiswa7JgM1yMWFmv4JZ7Th9rWHZH9kT3Drm2Cg"
+          "signed": "Hfkq2Gq0HNClFMN34D1whmh1MrYe4xKap7HS_F0wvTNPqVQYkoNQlFnca3GxwFRn9GitTclrFB824V5nUD7dBw"
         }
       },
       {
@@ -835,12 +932,12 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "-6R7GqlOJXv3wO790Dr1O8GcSJsh-95l9H8EnHTGgdA",
+          "reviews": "mfmznwbEEqEtTa6sMqiKozabU5eitmHK8-GYPN7uGwA",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "ySCh79cASgyV7uKVyibpmSfpKxQ7_yMDzgpbg0kc8o31_BRkG5zypWASxUO-ayeRotkXvpFHe63ePsgQa45vBQ"
+          "signed": "GYQkU-xNivXIu2-Fm663JLNaSl5JOLL0eqpqOKVEKRlIuxEPPGK5aKsNcUPqNBf-lp6sSSbJ1zYRl-HuuXJAAQ"
         }
       },
       {
@@ -849,12 +946,12 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 3,
-          "reviews": "0sNS8KaSeb2LtbUMJkqjNbOphWvXtmheWq9hKCe8JGc",
+          "reviews": "zFr5wjbm0rECmNzbTvH8o3qq_y6fm1G7L804pdi9tF0",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "vxeMrnGW0RaQWQu2lIsWiSahm1pGOteHB1MLKhIeqj00hJ9hfiswa7JgM1yMWFmv4JZ7Th9rWHZH9kT3Drm2Cg"
+          "signed": "Hfkq2Gq0HNClFMN34D1whmh1MrYe4xKap7HS_F0wvTNPqVQYkoNQlFnca3GxwFRn9GitTclrFB824V5nUD7dBw"
         }
       },
       {
@@ -863,12 +960,12 @@
         "head": {
           "anchor": "otroDoc",
           "seq": 2,
-          "reviews": "w2cv7GzR8-3IkHoJc0e3B35ZWYN2-sKxpnRHeFk2HX8",
+          "reviews": "8yUSliqK__weKPmFHwD8Xg687kBS_ngxBFrXaifQEOc",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "lltugY8YGjTmx1buQZakkwvvYiaOzZgtFEFmdfzD8j99AIpVo6-ADXTwBGmDarYz1G5wYQsaxJaSmq00RFQCAQ"
+          "signed": "KbskIwdjWfpctjF85Yko83Z9TdK_ahiuqjf6Q4Dcul6qz_AI1UEFOWURhOSwo-Z6zZDfKf3jUukcoscvKHtsCw"
         }
       },
       {
@@ -877,7 +974,7 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "0sNS8KaSeb2LtbUMJkqjNbOphWvXtmheWq9hKCe8JGc",
+          "reviews": "zFr5wjbm0rECmNzbTvH8o3qq_y6fm1G7L804pdi9tF0",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
@@ -891,12 +988,12 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "0sNS8KaSeb2LtbUMJkqjNbOphWvXtmheWq9hKCe8JGc",
+          "reviews": "zFr5wjbm0rECmNzbTvH8o3qq_y6fm1G7L804pdi9tF0",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Dp6l8ofHqFtTmvmP4EXgz-cAu1bUk2A0mSl9k0fpDBh4wpVG-I-0gAKNb-npIkC4yq6ncRO_boEb1cwu0esGAQ",
-          "signed": "vxeMrnGW0RaQWQu2lIsWiSahm1pGOteHB1MLKhIeqj00hJ9hfiswa7JgM1yMWFmv4JZ7Th9rWHZH9kT3Drm2Cg"
+          "signed": "Hfkq2Gq0HNClFMN34D1whmh1MrYe4xKap7HS_F0wvTNPqVQYkoNQlFnca3GxwFRn9GitTclrFB824V5nUD7dBw"
         }
       },
       {
@@ -905,12 +1002,12 @@
         "head": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "0sNS8KaSeb2LtbUMJkqjNbOphWvXtmheWq9hKCe8JGc",
+          "reviews": "zFr5wjbm0rECmNzbTvH8o3qq_y6fm1G7L804pdi9tF0",
           "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
           "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
-          "signed": "5iCYb_JR5TPz6gGKIfjWZQI6TcVloDrWH1GV0KH5fCfVL9iuAq_RL8O5VB1VbhpKVMNWSa_Ntyv7FMA03MpIBQ"
+          "signed": "KlSX7Y-WWMKBg0Fu_YaPmGn2ZPABQBLaOCJwuOZmeYDYgx-7nDGtHQOnMtc0eCjt2iNFtgWceR6n4d5dJk3GCA"
         }
       }
     ]
@@ -920,6 +1017,10 @@
       "says": "the owner's own language, which needs no review",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "marioFrances"
+      ],
       "languages": [
         {
           "document": "marioFrances",
@@ -935,9 +1036,32 @@
       ]
     },
     {
+      "says": "the owner's own language, taken out of the map",
+      "anchor": "anclaDoc",
+      "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [],
+      "languages": [
+        {
+          "document": "marioFrances",
+          "lang": "fr",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "print": "O7dJmWByJGM54GAiByIgDQj6rgF9f59DUFGriABu_IQ"
+        }
+      ],
+      "reviews": [],
+      "served": {},
+      "shown": []
+    },
+    {
       "says": "a language its owner keeps, as its owner read it",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "marioFrances",
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "marioFrances",
@@ -954,29 +1078,87 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "Hz_6u8KxfYasZrh9WELDhyTlpYxURreyqjHf12pVwnRdbsP5kUtyWXvT9KwayuvTCnyn0O2otOQNzPs4JpnNCg"
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
+        }
+      },
+      "shown": [
+        "marioFrances",
+        "anaEnglish"
+      ]
+    },
+    {
+      "says": "a language its owner keeps, which someone who edits took out of the map",
+      "anchor": "anclaDoc",
+      "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "marioFrances"
+      ],
+      "languages": [
+        {
+          "document": "marioFrances",
+          "lang": "fr",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "print": "O7dJmWByJGM54GAiByIgDQj6rgF9f59DUFGriABu_IQ"
+        },
+        {
+          "document": "anaEnglish",
+          "lang": "en",
+          "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM"
+        }
+      ],
+      "reviews": [
+        {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      ],
+      "served": {
+        "reviewed": {
+          "anchor": "anclaDoc",
+          "seq": 1,
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
         }
       },
       "shown": [
@@ -988,6 +1170,10 @@
       "says": "a language changed since its owner read it",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -998,29 +1184,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "Hz_6u8KxfYasZrh9WELDhyTlpYxURreyqjHf12pVwnRdbsP5kUtyWXvT9KwayuvTCnyn0O2otOQNzPs4JpnNCg"
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
         }
       },
       "shown": []
@@ -1029,6 +1217,10 @@
       "says": "a language in another lang than its owner read",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1039,29 +1231,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "Hz_6u8KxfYasZrh9WELDhyTlpYxURreyqjHf12pVwnRdbsP5kUtyWXvT9KwayuvTCnyn0O2otOQNzPs4JpnNCg"
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
         }
       },
       "shown": []
@@ -1070,6 +1264,11 @@
       "says": "a language nobody reviewed",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish",
+        "anaPortugues"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1086,29 +1285,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "Hz_6u8KxfYasZrh9WELDhyTlpYxURreyqjHf12pVwnRdbsP5kUtyWXvT9KwayuvTCnyn0O2otOQNzPs4JpnNCg"
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
         }
       },
       "shown": [
@@ -1119,6 +1320,10 @@
       "says": "a language its owner left out",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1129,26 +1334,26 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": false,
           "seq": 2,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "mv_j7AnPbC8Hmn6y5HeU8ivZRTcqgxE8J1yaWeA_HTk0QE_2w_73yg6X9fkD-jU_u8iTmIXzjaMyNjF3_hJdDQ"
+          "signed": "0ETl0Xcv4nfAfDy7OVAEed-STWg0-Da6VfFZW1Lz76O8IpO4MZ_duVTM5Fl7LTbVPhubI9linKdOFb27jKDvAg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "9SZHMG-GwMCGXSJGzdAMF_6JFAdh8cUz2EnnV5Hc_9w",
+          "reviews": "o5O0adWRb35XiJ-FcwRt_AAi0WNNnxMUTXCPtiYvtAw",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "7P-F8NchzfE3p3s_G5S_9Ln9wyIuzBAxCivZBSHJ8OvXUgmobhMnVteKIBWM4614S8CD5f2Ei6UOyyGZbElzDw"
+          "signed": "t5Huj8eP-eoU_XoLbcORL8w3ySu017C9MBz2fO2CeQ7yBsXJTmNgOgcUPeuAUKGbd2z9jwQBfYY3l4B_G9HGBw"
         }
       },
       "shown": []
@@ -1157,6 +1362,10 @@
       "says": "kept and then left out: the higher seq counts",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1167,39 +1376,41 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         },
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": false,
           "seq": 2,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "mv_j7AnPbC8Hmn6y5HeU8ivZRTcqgxE8J1yaWeA_HTk0QE_2w_73yg6X9fkD-jU_u8iTmIXzjaMyNjF3_hJdDQ"
+          "signed": "0ETl0Xcv4nfAfDy7OVAEed-STWg0-Da6VfFZW1Lz76O8IpO4MZ_duVTM5Fl7LTbVPhubI9linKdOFb27jKDvAg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "jJMJStP_MeA0KJi90l7zn67iBbg5VI_Ku2Wo2KW6vqw",
+          "reviews": "VfPvq5Jp7z0i83Czv7v8KvPR94vH3o7hK0YDooKPalA",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "7YZ26zzwxzYOtGC-cw3Z99H6YviVrBGAK3GTwyOlsY6Ke0pgX75BeGPYuglEkbB2ayD_GZloNpSD1_T1qMuRAQ"
+          "signed": "GmfHxTGhnguaCRS4stx5rk457wrAw5vfQtV3i_JW5HkoLkWdixQF1uOjBlEMHKWt6TyOYmScXBe6fCDD1DOCAQ"
         }
       },
       "shown": []
@@ -1208,6 +1419,10 @@
       "says": "left out and then kept again",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1218,39 +1433,41 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": false,
           "seq": 2,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "mv_j7AnPbC8Hmn6y5HeU8ivZRTcqgxE8J1yaWeA_HTk0QE_2w_73yg6X9fkD-jU_u8iTmIXzjaMyNjF3_hJdDQ"
+          "signed": "0ETl0Xcv4nfAfDy7OVAEed-STWg0-Da6VfFZW1Lz76O8IpO4MZ_duVTM5Fl7LTbVPhubI9linKdOFb27jKDvAg"
         },
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 3,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "I_lku4sYZnw_Pl8ndkgY7NfJGZqdewMoKwR2yhpGBE-ba25mKxUvZ5Fv7gxbFEttkum7OkfHJGK7vXehq_YzCQ"
+          "signed": "LoEuFb7pELIgc7uDS644L_3MWirUptmTX03Q8xCqIStPuhfuMq_5vgJjA8xfrVWiMT4xQtn6Kiwj5F0_YF4jDA"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Nsb0kFt3XFMcO0AKs6cBsmDsDTrmmoexyvITJoLGf3c",
+          "reviews": "badoUICJSitX0spTsBQjWk-_i3W42qLENXwAC3UOcgk",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "CUscrznP6MKUTXjOvqoFhfa2MJ_qh-eUVoCzeaihwWfL9oJXjLxqo6Br654z_xMix4GDBkMM4F-YUM0eS-iAAA"
+          "signed": "eueXQFvCMPY0iOLi58t_BdYZuEYKeYwtvNzvEEnD1YXuHoAMTtzlEuRcPEP-PanKjn4_jzJeYfcwQXqb7qbZBg"
         }
       },
       "shown": [
@@ -1261,6 +1478,10 @@
       "says": "a left out taken away from the reviews the served word names",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1271,29 +1492,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "jJMJStP_MeA0KJi90l7zn67iBbg5VI_Ku2Wo2KW6vqw",
+          "reviews": "VfPvq5Jp7z0i83Czv7v8KvPR94vH3o7hK0YDooKPalA",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "xO_6TolNRKs4UieTQiOFQq8-XqygDXBRkcjJQZXoJRiR_IntBrVFYiuIVSPCJVHGRhKlK1yX3o6JdcSVPo3dCA"
+          "signed": "5bb9dHf81DZPdzJn5Otut5bwFNTpW-D7hEIAlgG-DS358LJ-1nArZwE73DRoFVZYr1j9bzP_geihaVb8nhBMDA"
         }
       },
       "shown": []
@@ -1302,6 +1525,11 @@
       "says": "no word served beside the anchor",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "marioFrances",
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "marioFrances",
@@ -1318,17 +1546,19 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {},
@@ -1340,6 +1570,10 @@
       "says": "a word from one of the owner's other machines",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1350,29 +1584,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "9oZ98hSCYNpsOP3dQb-_WrhEKvrop25NR2QtTtEfQnJpitkd-JXBEyaJtEBeDET4Y61zWqMvEqjgCrPbKHA8Bw",
-          "signed": "4IT4ZS_fvJYl3QJIWwLm1PfJVvHlM2mpLYwirwR65tkxYYPUPYC8NtjfaUzKIXuv8aFbWBBsZ5Scp1YNKvoBBw"
+          "signed": "nOEqngDP5NVmpoxcYhT5A5icIzaAhwVKzcU_XZeZ8LcsRFabvPNBqh4GhViHuXTr5jd1Q2zbiA-AHcRaE9oVBQ"
         }
       },
       "shown": [
@@ -1383,6 +1619,10 @@
       "says": "a word below one this reader saw",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1393,29 +1633,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "Hz_6u8KxfYasZrh9WELDhyTlpYxURreyqjHf12pVwnRdbsP5kUtyWXvT9KwayuvTCnyn0O2otOQNzPs4JpnNCg"
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
         }
       },
       "seen": 2,
@@ -1425,6 +1667,10 @@
       "says": "a word as high as the one this reader saw",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1435,29 +1681,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 2,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "I1eMntLhR7Oz6JXqjGBJBMPZGlB3bWxR7-xmegiYke86e_0N17t3PfBNB7zweny64SX5vXF_f966Xiirzx2iCA"
+          "signed": "W9B_FnB8m5TA3ne8KzNnhlH-OwWKuezo-3nqkEhi8Tk5EKC1opPwtM-aOr9b_cSUSI77GcG-KG43Ka9Bm6rVAQ"
         }
       },
       "seen": 2,
@@ -1469,6 +1717,10 @@
       "says": "a review signed by someone who edits",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1479,29 +1731,31 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
           "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
-          "signed": "CdvT2n5bvOuHrfh3Vtcs4EX6N7x5TwTMXTxb-1VNlD0FZKGgAUphthEsorwC3WJfQDKk7zQsA_PkJGOmDiCTDw"
+          "signed": "wZ33vPAvW-Clx4vuTlHaFPxkONU6VPEoXT-j6vZvAbKuWp7V2f-B8Vb4CkVEnAL8DT-moMzvAgJjUsO-492tAQ"
         }
       ],
       "served": {
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "4B4sAe84fhb3fVmAJ-0TuZgyX6Y9BhdxCI2MIYKMpmQ",
+          "reviews": "adLJ2vRL-K1TsBMBwKCM_QXkU1QS-7zQKqUFH9QmO2E",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "MOmL2BuiZCr0tLvkKKyFWwMTY-VGSljrsQazw1iDntHSvihUsA5-neuY9vAHzRCLLAy5v-AJZ2HZhAg9Le5fDg"
+          "signed": "lNt_-MCfsgqL2hNHHOfjWdaDPTDAYWfxPSWps-rkXvq5VpT5xQPFnDV0ScpQia31ewZx7jws5rlQTd_lYxVdAA"
         }
       },
       "shown": []
@@ -1510,6 +1764,10 @@
       "says": "a review from a machine its owner revoked",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
       "languages": [
         {
           "document": "anaEnglish",
@@ -1520,17 +1778,19 @@
       ],
       "reviews": [
         {
-          "of": "SV4ALw3TTA2RZfHs3m7MT_2EfJl_RlTaJAKXaNHWD6M",
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
           "kept": true,
           "document": "anaEnglish",
           "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
           "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
           "seq": 1,
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
-          "signed": "u_bROczXfOAct4i1m93UExsWlCbtfCPitxTwMb9ItOSub5PsMBqv_lcgNa5DdS6GtgAIWKV4GilKgu_yai3oCw"
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
         }
       ],
       "served": {
@@ -1546,12 +1806,12 @@
         "reviewed": {
           "anchor": "anclaDoc",
           "seq": 1,
-          "reviews": "Mdxwq3rZndtXoxWg8jQ5hA0-EDt_F4u_JaHTeR7zj10",
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
           "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
           "machine": "Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
           "since": "2026-11-03T12:00:00Z",
           "certificate": "9oZ98hSCYNpsOP3dQb-_WrhEKvrop25NR2QtTtEfQnJpitkd-JXBEyaJtEBeDET4Y61zWqMvEqjgCrPbKHA8Bw",
-          "signed": "4IT4ZS_fvJYl3QJIWwLm1PfJVvHlM2mpLYwirwR65tkxYYPUPYC8NtjfaUzKIXuv8aFbWBBsZ5Scp1YNKvoBBw"
+          "signed": "nOEqngDP5NVmpoxcYhT5A5icIzaAhwVKzcU_XZeZ8LcsRFabvPNBqh4GhViHuXTr5jd1Q2zbiA-AHcRaE9oVBQ"
         }
       },
       "shown": []
@@ -2216,7 +2476,8 @@
     },
     "pictures": [
       "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da6364f8cff01f0004060200a43e5f440000000049454e44ae426082"
-    ]
+    ],
+    "print": "KY1AJ0SGgrw0gvj_Yq5JhmICRdyECWVUB9xfMgJ4kl4"
   },
   "files": {
     "envelope": "54454e56000002a27b22636f6e7472616374223a22312e392e30222c226b696e64223a2266696c6573222c226964223a226b37516d32785061222c2276657273696f6e223a312c227365616c6564223a747275652c2268656164223a2249794d6a49794d6a49794d6a49794d6a49794d6a49794d6a49794d6a49794d6a49794d6a49794d6a49794d222c22636f6d6d69746d656e74223a22333544507654696b4a4f63744a367a5433754835395251436f59397a745f4561784b3178656a5f625f4c63222c226f776e6572223a7b22726f6f74223a22463874352d79744249504b783747586b47593175434c4b4f67545f724165536b41494f6268654741674d34222c226d616368696e65223a2231316c354f3777546f6f4761676e783272626237714b53613767425f53664c516d53325a754357744c4567222c2273696e6365223a22323032362d31312d30335431323a30303a30305a222c226365727469666963617465223a2253752d31476e546f51346c6d48545267784b365f356a58584b33745a736d6b37365933514b46514a372d5152703875536f595035433437634648577a384156366b36756958467970395a504c6b47656b6a3568434177222c226e616d655f746167223a2249786c45306c554542486c3070735a626e424a516a5263697037367a6e6234753966686e564452385f4477222c227369676e6564223a224a356e4872414450517753396b4e4f527a5153465667304e6a5a753831417256737a6d463968644d702d365954646c335a4356625a7a4b53507957536c7956567858566e7a4f594d4b305a3150746e695057786b4377227d2c227061727473223a5b7b226e616d65223a2266696c65222c22636f6d70726573736564223a66616c73652c227365616c65645f73697a65223a33332c226f70656e5f73697a65223a31377d5d7d000001567b22726f6f74223a22463874352d79744249504b783747586b47593175434c4b4f67545f724165536b41494f6268654741674d34222c226d616368696e65223a2231316c354f3777546f6f4761676e783272626237714b53613767425f53664c516d53325a754357744c4567222c2273696e6365223a22323032362d31312d30335431323a30303a30305a222c226365727469666963617465223a2253752d31476e546f51346c6d48545267784b365f356a58584b33745a736d6b37365933514b46514a372d5152703875536f595035433437634648577a384156366b36756958467970395a504c6b47656b6a3568434177222c227369676e6564223a223976734b474f705450525a4138387a65466e6d386a4962736c5162414d7456383133756b7a354c31504c59344e6936723378636d497a5a615477433931796a723061716f576b466f7239433062753475677731484377227d933be27dac9d5009021f2faac7aea2fc5c93a1ac2024a9cf08cba5b278cfa9caca924221364ff8c8997dc388147c5eab685e8b462b5eac3094da040e9660ca30dc",

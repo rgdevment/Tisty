@@ -223,6 +223,8 @@ export interface Review {
   kept: boolean;
   document?: string;
   lang?: string;
+  title?: string;
+  key?: string;
   print?: string;
   seq: number;
   root: string;

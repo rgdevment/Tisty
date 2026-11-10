@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tisty_contracts::{Cited, Document, Sealing, Translation};
 
+use crate::reviews::LeftOut;
 use crate::sealing::{Refused, Sealed, Writer};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -140,6 +141,16 @@ fn languages_sealed(
             .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
             .collect::<Result<Vec<_>, _>>()?;
         map.extend(untouched);
+        let owner = anchor
+            .sealing
+            .owner
+            .as_ref()
+            .map_or_else(|| writer.root().to_owned(), |one| one.root.clone());
+        let reviews = anchor.document.reviews.as_deref().unwrap_or_default();
+        let anchor_key = anchor.sealing.link_key.as_deref();
+        if let Some(gone) = LeftOut::by(anchor_key, &anchor.sealing.id, &owner, reviews) {
+            map.retain(|one| !gone.names(&one.document));
+        }
         map.truncate(OTHER_LANGUAGES_AT_MOST);
         anchor.document.languages = Some(map);
         // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.

@@ -510,7 +510,7 @@ fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
     let signed =
         "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw";
     let reviews = serde_json::json!([
-        { "of": key, "kept": true, "document": "enGlish1", "lang": "en", "print": key, "seq": 1,
+        { "of": key, "kept": true, "document": "enGlish1", "lang": "en", "key": key, "print": key, "seq": 1,
           "root": key, "machine": key, "since": "2026-11-03T12:00:00Z", "certificate": signed, "signed": signed },
         { "of": key, "kept": false, "seq": 2,
           "root": key, "machine": key, "since": "2026-11-03T12:00:00Z", "certificate": signed, "signed": signed },

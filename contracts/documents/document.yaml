@@ -39,7 +39,7 @@ fields:
     at_most: 19
     says: "The same document in other languages, at most 19 besides itself. Each one is a document of its own. Whoever holds this says its own lang too."
   anchor: { type: id, at_most: 64, says: "In a language that is not its anchor, the anchor's id, signed with the rest of it. A reader takes a language from a map only when the language names that anchor, so no map can make another document pass for one of its languages." }
-  reviews: { type: list, of: review, at_most: 64, says: "Only in an anchor: its owner's word on each language that someone who edits added, the ones left out included. Whoever edits carries them as they arrived, and a reader weighs them against the served reviewed. A language that names an anchor holds none, and a reader ignores any it says." }
+  reviews: { type: list, of: review, at_most: 64, says: "Only in an anchor: its owner's word on each language that someone who edits added, the ones left out included, one for each language. Whoever edits carries them as they arrived, and a reader weighs them against the served reviewed. A language that names an anchor holds none, and a reader ignores any it says." }
 html_rules:
   - { tag: code, attribute: class, never: [language-mermaid, language-mmd], says: "A diagram travels drawn, as SVG." }
   - { tag: img, attribute: src, starts_with: "tisty:picture/", says: "A picture travels with its document, which asks nobody else for one." }

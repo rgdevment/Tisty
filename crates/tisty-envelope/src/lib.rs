@@ -7,6 +7,7 @@ pub mod editors;
 pub mod family;
 pub mod pictures;
 pub mod reading;
+pub mod reviews;
 pub mod sealing;
 mod tags;
 pub mod tokens;

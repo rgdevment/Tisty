@@ -92,10 +92,11 @@ const editorEntry = async ({ in: id, name, owned = false, by = MARIO, forged, si
   };
 };
 
-const ofLanguage = (id) => sha(words("tisty-language-review\0"), words(id));
+const ofLanguage = (id) => mac(words("tisty-language-review\0"), words(id));
+const sized = (said = "") => [be8(words(said).length), words(said)];
 const reviewBytes = (anchor, said) => {
   const about = words("language-review");
-  const naming = said.kept ? [be8(words(said.document).length), words(said.document), be8(words(said.lang).length), words(said.lang), Buffer.from(said.print, "base64url")] : [];
+  const naming = said.kept ? [...sized(said.document), ...sized(said.lang), ...sized(said.title), Buffer.from(said.key, "base64url"), Buffer.from(said.print, "base64url")] : [];
   return Buffer.concat([
     words("tisty-share.signed.v1\0"),
     Buffer.from(said.root, "base64url"),
@@ -110,8 +111,9 @@ const reviewBytes = (anchor, said) => {
     ...naming,
   ]);
 };
-const reviewEntry = async ({ anchor, document, lang = "en", print, seq = 1, kept = true, by = MARIO, forged, of = b64(ofLanguage(document)) }) => {
-  const said = { of, kept, ...(kept ? { document, lang, print } : {}), seq, root: b64(by.root.public), machine: b64(by.machine.public), since: SINCE };
+const reviewEntry = async ({ anchor, document, lang = "en", title, key, print, seq = 1, kept = true, by = MARIO, forged, of }) => {
+  const naming = kept ? { document, lang, ...(title === undefined ? {} : { title }), key, print } : {};
+  const said = { of: of ?? b64(await ofLanguage(document)), kept, ...naming, seq, root: b64(by.root.public), machine: b64(by.machine.public), since: SINCE };
   const signed = forged === "signed" ? await sign(by.machine, words("otro")) : await sign(by.machine, reviewBytes(anchor, said));
   const vouched = forged === "certificate" ? await sign(by.root, words("otro")) : by.certificate;
   return { ...said, certificate: b64(vouched), signed: b64(signed) };
@@ -247,14 +249,9 @@ const whole = {
   body: "# Paseos\n\n![Rina](tisty:picture/0)\n",
   pages: [{ id: "p1", page_of: "k7Qm2xPa", at: 1, title: "Enero", html: '<h1 id="enero">Enero</h1>', body: "# Enero\n" }],
 };
-const main = await seal({
-  kind: "main",
-  id: "k7Qm2xPa",
-  version: 1,
-  sealed: true,
-  owner,
-  parts: [...textParts(whole), ...PICTURES.map((bytes) => ({ name: "picture", compressed: false, bytes }))],
-});
+const mainParts = [...textParts(whole), ...PICTURES.map((bytes) => ({ name: "picture", compressed: false, bytes }))];
+const main = await seal({ kind: "main", id: "k7Qm2xPa", version: 1, sealed: true, owner, parts: mainParts });
+const mainPrint = b64(sha(words("tisty-language-print\0"), ...mainParts.map((one) => sha(one.bytes))));
 
 const plain = { id: "wordsOnly", title: "Solo palabras", html: "<p>Hola</p>", body: "Hola\n" };
 const open = await seal({ kind: "main", id: "wordsOnly", version: 1, sealed: false, parts: textParts(plain) });
@@ -421,19 +418,24 @@ const printOf = (said) => b64(sha(words(said)));
 const anasEnglish = { document: "anaEnglish", lang: "en", root: b64(ANA.root.public), print: printOf("ana en 1") };
 const anasPortuguese = { document: "anaPortugues", lang: "pt-BR", root: b64(ANA.root.public), print: printOf("ana pt 1") };
 const mariosFrench = { document: "marioFrances", lang: "fr", root: OWNER, print: printOf("mario fr 1") };
-const kept = (seq = 1, over = {}) => reviewEntry({ anchor: ANCHOR, ...anasEnglish, seq, ...over });
+const ENGLISH_READ = { ...anasEnglish, title: "Walks", key: b64(filled(0x13)) };
+const kept = (seq = 1, over = {}) => reviewEntry({ anchor: ANCHOR, ...ENGLISH_READ, seq, ...over });
 const leftOut = (seq, over = {}) => reviewEntry({ anchor: ANCHOR, document: anasEnglish.document, kept: false, seq, ...over });
 const reviewsSaid = [
   { says: "a language its owner keeps", holds: true, review: await kept() },
+  { says: "a language its owner keeps, with no title", holds: true, review: await kept(1, { title: undefined }) },
   { says: "a language its owner left out", holds: true, review: await leftOut(2) },
   { says: "a signature that does not hold", holds: false, review: await kept(1, { forged: "signed" }) },
   { says: "a certificate that does not hold", holds: false, review: await kept(1, { forged: "certificate" }) },
   { says: "another print than the one its owner read", holds: false, review: { ...(await kept()), print: printOf("ana en 2") } },
   { says: "another lang than the one its owner read", holds: false, review: { ...(await kept()), lang: "pt" } },
+  { says: "another title than the one its owner read", holds: false, review: { ...(await kept()), title: "Otra cosa" } },
+  { says: "another key than the one its owner read", holds: false, review: { ...(await kept()), key: b64(filled(0x14)) } },
   { says: "a higher seq than the one signed", holds: false, review: { ...(await kept()), seq: 9 } },
-  { says: "kept, where its owner left it out", holds: false, review: { ...(await leftOut(2)), kept: true, document: anasEnglish.document, lang: "en", print: anasEnglish.print } },
-  { says: "signed for another anchor", holds: false, review: await reviewEntry({ anchor: "otroDoc", ...anasEnglish }) },
-  { says: "an of that is not its document's", holds: false, review: await kept(1, { of: b64(ofLanguage("otroDoc")) }) },
+  { says: "kept, where its owner left it out", holds: false, review: { ...(await leftOut(2)), kept: true, document: ENGLISH_READ.document, lang: "en", key: ENGLISH_READ.key, print: ENGLISH_READ.print } },
+  { says: "signed for another anchor", holds: false, review: await reviewEntry({ anchor: "otroDoc", ...ENGLISH_READ }) },
+  { says: "an of that is not its document's", holds: false, review: await kept(1, { of: b64(await ofLanguage("otroDoc")) }) },
+  { says: "an of hashed bare, without the anchor's key", holds: false, review: await kept(1, { of: b64(sha(words("tisty-language-review\0"), words(ENGLISH_READ.document))) }) },
   { says: "signed by someone who edits, not by the owner", holds: false, review: await kept(1, { by: ANA }) },
 ];
 const reviewedOver = [await kept(), await leftOut(2, { document: anasPortuguese.document })];
@@ -448,10 +450,12 @@ const reviewedSaid = [
   { says: "the word of someone who edits", holds: false, head: await reviewedHead({ anchor: ANCHOR, seq: 2, reviews: reviewedOver, by: ANA }) },
 ];
 const MARIO_ELSEWHERE = await person(0x33, 0x45);
-const shownWith = async ({ says, languages, reviews, seq = 1, head = reviews, headBy = MARIO, seen, served = {}, shown }) => ({
+const shownWith = async ({ says, languages, map = languages, reviews, seq = 1, head = reviews, headBy = MARIO, seen, served = {}, shown }) => ({
   says,
   anchor: ANCHOR,
   owner: OWNER,
+  link_key: b64(LINK_KEY),
+  map: map.map((one) => one.document),
   languages,
   reviews,
   served: head === null ? served : { ...served, reviewed: await reviewedHead({ anchor: ANCHOR, seq, reviews: head, by: headBy }) },
@@ -460,7 +464,9 @@ const shownWith = async ({ says, languages, reviews, seq = 1, head = reviews, he
 });
 const languagesShown = [
   await shownWith({ says: "the owner's own language, which needs no review", languages: [mariosFrench], reviews: [], head: null, shown: [mariosFrench] }),
+  await shownWith({ says: "the owner's own language, taken out of the map", languages: [mariosFrench], map: [], reviews: [], head: null, shown: [] }),
   await shownWith({ says: "a language its owner keeps, as its owner read it", languages: [mariosFrench, anasEnglish], reviews: [await kept()], shown: [mariosFrench, anasEnglish] }),
+  await shownWith({ says: "a language its owner keeps, which someone who edits took out of the map", languages: [mariosFrench, anasEnglish], map: [mariosFrench], reviews: [await kept()], shown: [mariosFrench, anasEnglish] }),
   await shownWith({ says: "a language changed since its owner read it", languages: [{ ...anasEnglish, print: printOf("ana en 2") }], reviews: [await kept()], shown: [] }),
   await shownWith({ says: "a language in another lang than its owner read", languages: [{ ...anasEnglish, lang: "en-GB" }], reviews: [await kept()], shown: [] }),
   await shownWith({ says: "a language nobody reviewed", languages: [anasEnglish, anasPortuguese], reviews: [await kept()], shown: [anasEnglish] }),
@@ -666,7 +672,7 @@ const said = {
     editors: [editorsSaid[0].entry, editorsSaid[2].entry, editorsSaid[3].entry, editorsSaid[1].entry],
     kept: [editorsSaid[0].entry, editorsSaid[1].entry],
   },
-  reviews: { anchor: ANCHOR, owner: OWNER, cases: reviewsSaid },
+  reviews: { anchor: ANCHOR, owner: OWNER, link_key: b64(LINK_KEY), cases: reviewsSaid },
   reviewed: { anchor: ANCHOR, owner: OWNER, reviews: reviewedOver, cases: reviewedSaid },
   languages_shown: languagesShown,
   verdicts,
@@ -684,7 +690,7 @@ const said = {
   first_bytes: firstBytes,
   hostile_widget: hostileWidget,
   revocation: revoked,
-  main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")) },
+  main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")), print: mainPrint },
   files: { envelope: files.bytes.toString("hex"), files: FILES.map((one) => Buffer.from(one).toString("hex")) },
   public: { envelope: open.bytes.toString("hex"), document: plain },
 };

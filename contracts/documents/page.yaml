@@ -248,26 +248,33 @@ says: >-
   an anchor holds them, each signed by its owner, and the server keeps the owner's latest word on all of them beside the
   anchor, as its reviewed. A reader shows a language someone else added only while a review keeps the very version it reads.
 values:
-  of: "SHA-256 of tisty-language-review, a zero byte and the language's id. It names the language even once it is left out, when the map no longer holds its id."
-  print: "SHA-256 of the language's main envelope manifest followed by its index, as the version the owner read travels. Any later version of it has another print."
+  of: "HMAC-SHA-256 with the anchor's link key over tisty-language-review, a zero byte and the language's id. It names the language even once it is left out, when the map no longer holds its id, and only to whoever holds the anchor's key: an id is short enough to be guessed from a bare hash."
+  print: >-
+    SHA-256 of tisty-language-print and a zero byte, followed by the SHA-256 of each part of the language's main envelope once
+    open and inflated, in order. It answers for what a reader reads, so sealing it again under another head, number or key
+    leaves it as it was, while a change to its words, pictures, files, sheet or names makes another.
   latest: "Of two reviews with the same of, the one with the higher seq counts, and with the same seq, the one whose machine key is higher byte by byte."
-  holds: "Its certificate and its signature hold over the id of the anchor that holds it, its root is the anchor owner's, the served revocations give it holds, and when kept, of is what its document gives."
+  holds: "Its certificate and its signature hold over the id of the anchor that holds it, its root is the anchor owner's, the served revocations give it holds, and when kept, of is what its document gives under the anchor's key."
   counts: "Only while the anchor's reviews are the ones the served reviewed names, and that reviewed holds. Otherwise a reader takes none of them."
-  shown: "A reader shows a language whose owner's root is not the anchor owner's only when the latest review of it that counts keeps it, with its document, its lang and the print of the version the reader holds. Otherwise it leaves it out."
-  left_out: "A review that is not kept stays in the anchor: whoever writes never puts that language back in the map, and a reader never shows it, unless the owner keeps it again with a higher seq."
+  shown: "A reader shows a language whose owner's root is not the anchor owner's only when the latest review of it that counts keeps it, with its lang and the print of the version the reader holds. Otherwise it leaves it out."
+  reached: "A reader reaches a language a review keeps by the review's document and key, and names it by the review's title, whatever the map says of it: someone who edits can take an entry out of the map or change it, never what the owner signed."
+  left_out: "A review that is not kept stays in the anchor: whoever writes never puts that language back in the map, and a reader never shows it, unless the owner keeps it again with a higher seq. A writer honours only a review that holds."
+  one_each: "The owner keeps one review for each of, its latest, and drops the review of a language the server no longer holds, which never comes back under that id."
   carried: "Whoever edits the anchor carries its reviews as they arrived, and only its owner writes one."
 fields:
-  of: { type: hash, required: true, says: "Which language, by the SHA-256 of its id." }
+  of: { type: hash, required: true, says: "Which language, by an HMAC of its id under the anchor's key." }
   kept: { type: bool, required: true, says: "True when the owner keeps it, false when the owner left it out." }
   document: { type: id, at_most: 64, required_when: kept, only_when: kept, says: "The language's id, only while it is kept." }
   lang: { type: language, required_when: kept, only_when: kept, says: "Its lang, as the owner read it." }
+  title: { type: line, at_most: 8192, only_when: kept, says: "The title a reader names it by, as the owner read it." }
+  key: { type: key, required_when: kept, only_when: kept, says: "The link key of its envelopes, as the owner read them." }
   print: { type: hash, required_when: kept, only_when: kept, says: "The print of the version the owner read." }
   seq: { type: whole, required: true, at_least: 1, says: "Counts the owner's words on this language, from 1. Never a date, which whoever signs chooses." }
   root: { type: key, required: true }
   machine: { type: key, required: true }
   since: { type: time, required: true }
   certificate: { type: signed, required: true, says: "The root's signature over the machine key and the moment." }
-  signed: { type: signed, required: true, says: "The machine's signature over the anchor's id, of, seq, kept and, when kept, document, lang and print." }
+  signed: { type: signed, required: true, says: "The machine's signature over the anchor's id, of, seq, kept and, when kept, document, lang, title, key and print." }
 cases:
   - says: "A language the owner keeps."
     value:
@@ -275,6 +282,8 @@ cases:
       kept: true
       document: "enGlish1"
       lang: "en"
+      title: "Walks"
+      key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA"
       print: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       seq: 1
       root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
@@ -300,6 +309,21 @@ cases:
       kept: true
       document: "enGlish1"
       lang: "en"
+      key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA"
+      seq: 1
+      root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      since: "2026-11-03T12:00:00Z"
+      certificate: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+      signed: "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw"
+    holds: false
+  - says: "A language kept without the key that reaches it."
+    value:
+      of: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
+      kept: true
+      document: "enGlish1"
+      lang: "en"
+      print: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       seq: 1
       root: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"
       machine: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ"

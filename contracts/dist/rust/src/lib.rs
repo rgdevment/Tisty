@@ -390,6 +390,10 @@ pub struct Review {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lang: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub print: Option<String>,
     pub seq: u64,
     pub root: String,
