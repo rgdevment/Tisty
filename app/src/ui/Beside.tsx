@@ -87,7 +87,7 @@ const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf 
 });
 
 const editedOf = ({ by, editors }: NonNullable<DocFacts["edited"]>) => ({
-  label: fill("editedPrints", by.name ? shown(by) : t("parcelNameless")),
+  label: fill("editedPrints", by.name ? shown(by) : t("parcelNameless"), by.print ?? ""),
   note: t("editedPrintsWhy"),
   rows: editors.map((one) => [shown(one), one.print ?? ""] as const),
 });

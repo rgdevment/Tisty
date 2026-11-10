@@ -387,14 +387,19 @@ fn a_signature_entry_too_big_to_read_lands_as_a_strangers() {
 }
 
 fn editor(folio: &str, name: &str) -> serde_json::Value {
+    let root = Seed::from_bytes(&[SOMEONE_ELSE; 32]).root();
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[5; 32]);
+    let certificate = root.certify(&key.public(), "2026-11-10T12:00:00Z".parse().unwrap());
+    let signed =
+        tisty_share_proto::editing::signed(&key, &certificate, folio, false, name).unwrap();
     serde_json::json!({
         "in": folio,
-        "root": "R",
-        "machine": "M",
-        "since": "2026-11-10T12:00:00Z",
-        "certificate": "C",
+        "root": signed.certificate.root,
+        "machine": signed.certificate.share,
+        "since": signed.certificate.since.to_string(),
+        "certificate": signed.certificate.sig,
         "name": name,
-        "signed": "S",
+        "signed": signed.sig,
     })
 }
 
@@ -436,8 +441,10 @@ fn a_signed_parcel_carries_who_edited_a_shared_document_and_leaves_out_entries_o
         Seed::from_bytes(&[ME; 32]).root().person().shown()
     );
     assert_eq!(edited.by.as_deref(), Some("ana"));
-    let carried: Vec<serde_json::Value> = serde_json::from_str(&edited.editors).unwrap();
-    assert_eq!(carried, vec![editor("folio-1", "beto")]);
+    assert_eq!(
+        edited.editors,
+        serde_json::json!([editor("folio-1", "beto")])
+    );
 }
 
 #[test]
@@ -515,4 +522,41 @@ fn editors_that_came_in_a_parcel_go_on_in_the_next_one() {
         .clone()
         .expect("the editors were lost on the way");
     assert_eq!(edited.folio, "folio-1");
+}
+
+#[test]
+fn another_persons_parcel_keeps_its_editors_as_that_person_tells_it() {
+    let room = tempfile::tempdir().unwrap();
+    let mut friend = Desk::new(room.path(), "friend").named(SOMEONE_ELSE, "beto");
+    let receta = friend.wrote("# Receta\n\ncompartida");
+    shared_as(
+        &mut friend,
+        receta,
+        "folio-9",
+        serde_json::json!([editor("folio-9", "carla")]),
+    );
+    let at = room.path().join("receta.tistyx");
+    friend.packed(&at, None);
+
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    here.opened(&at, None, None).unwrap();
+
+    let one = here.the_one();
+    assert!(one.guest);
+    let edited = one
+        .edited
+        .clone()
+        .expect("a friend's editors stayed behind");
+    assert_eq!(edited.by.as_deref(), Some("beto"));
+    assert_eq!(
+        edited.root,
+        Seed::from_bytes(&[SOMEONE_ELSE; 32])
+            .root()
+            .person()
+            .shown()
+    );
+    assert_eq!(
+        edited.editors,
+        serde_json::json!([editor("folio-9", "carla")])
+    );
 }

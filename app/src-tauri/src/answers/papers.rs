@@ -170,7 +170,8 @@ pub(crate) fn edited_facts(
     maker: Option<&tisty_carrier::folio_limits::FolioMaker>,
 ) -> Option<Edited> {
     let named = super::folio_editing::named;
-    let entries: Vec<tisty_envelope::Editor> = serde_json::from_str(&edited.editors).ok()?;
+    let entries: Vec<tisty_envelope::Editor> =
+        serde_json::from_value(edited.editors.clone()).ok()?;
     let editors: Vec<_> = entries
         .iter()
         .filter(|one| one.r#in == edited.folio && tisty_envelope::editors::holds(one))

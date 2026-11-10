@@ -1,5 +1,7 @@
 use tisty_share_proto::seed::Seed;
 
+use tisty_share_proto::editing;
+
 use super::*;
 
 fn signer_parts() -> (ShareKey, Certificate) {
@@ -80,9 +82,23 @@ fn vouched() -> Vouched {
     }
 }
 
+fn editor(folio: &str, name: &str) -> serde_json::Value {
+    let (key, certificate) = signer_parts();
+    let signed = editing::signed(&key, &certificate, folio, false, name).unwrap();
+    serde_json::json!({
+        "in": folio,
+        "root": signed.certificate.root,
+        "machine": signed.certificate.share,
+        "since": signed.certificate.since.to_string(),
+        "certificate": signed.certificate.sig,
+        "name": name,
+        "signed": signed.sig,
+    })
+}
+
 #[test]
 fn editors_with_no_folio_document_to_answer_for_are_not_kept() {
-    let listed = serde_json::json!([{ "in": "folio-1", "name": "beto" }]);
+    let listed = serde_json::json!([editor("folio-1", "beto")]);
 
     assert_eq!(edited(Some(&vouched()), None, Some(&listed)), None);
     assert_eq!(edited(None, Some("folio-1"), Some(&listed)), None);
@@ -96,7 +112,7 @@ fn editors_with_no_folio_document_to_answer_for_are_not_kept() {
 #[test]
 fn no_more_editors_are_kept_than_a_version_carries() {
     let many: Vec<serde_json::Value> = (0..100)
-        .map(|n| serde_json::json!({ "in": "folio-1", "name": format!("n{n}") }))
+        .map(|n| editor("folio-1", &format!("editor{n}")))
         .collect();
     let kept = edited(
         Some(&vouched()),
@@ -104,7 +120,56 @@ fn no_more_editors_are_kept_than_a_version_carries() {
         Some(&serde_json::Value::from(many)),
     )
     .unwrap();
-    let carried: Vec<serde_json::Value> = serde_json::from_str(&kept.editors).unwrap();
 
-    assert_eq!(carried.len(), 64);
+    assert_eq!(kept.editors.as_array().map(Vec::len), Some(64));
+}
+
+#[test]
+fn an_entry_whose_name_was_changed_after_signing_is_left_out() {
+    let mut forged = editor("folio-1", "beto");
+    forged["name"] = "otro".into();
+    let listed = serde_json::json!([forged, editor("folio-1", "carla")]);
+
+    let kept = edited(Some(&vouched()), Some("folio-1"), Some(&listed)).unwrap();
+
+    assert_eq!(
+        kept.editors,
+        serde_json::json!([editor("folio-1", "carla")])
+    );
+}
+
+#[test]
+fn only_an_entrys_own_fields_reach_the_log() {
+    let mut padded = editor("folio-1", "beto");
+    padded["junk"] = "x".repeat(100_000).into();
+    let listed = serde_json::json!([padded]);
+
+    let kept = edited(Some(&vouched()), Some("folio-1"), Some(&listed)).unwrap();
+
+    assert_eq!(kept.editors, serde_json::json!([editor("folio-1", "beto")]));
+}
+
+#[test]
+fn a_signed_name_that_could_not_be_shown_is_left_out() {
+    let listed = serde_json::json!([editor("folio-1", "12345 67890")]);
+
+    assert_eq!(
+        edited(Some(&vouched()), Some("folio-1"), Some(&listed)),
+        None
+    );
+}
+
+#[test]
+fn a_stopped_share_names_the_document_its_owner_shared() {
+    let mut owners = editor("folio-1", "ana");
+    owners["owned"] = true.into();
+    let listed = serde_json::json!([editor("folio-0", "beto"), owners]);
+    assert_eq!(stopped_in(&listed).as_deref(), Some("folio-1"));
+
+    let unowned = serde_json::json!([
+        editor("folio-0", "beto"),
+        editor("folio-1", "carla"),
+        editor("folio-1", "dora"),
+    ]);
+    assert_eq!(stopped_in(&unowned).as_deref(), Some("folio-1"));
 }

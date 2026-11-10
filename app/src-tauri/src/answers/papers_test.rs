@@ -232,12 +232,8 @@ fn editors_a_parcel_carried_show_only_the_ones_signed_for_their_folio_document()
         folio: "folio-1".into(),
         root: root.person().shown(),
         by: Some("ana".into()),
-        editors: serde_json::to_string(&[
-            sign("folio-1", "beto"),
-            sign("folio-2", "carla"),
-            forged,
-        ])
-        .unwrap(),
+        editors: serde_json::to_value([sign("folio-1", "beto"), sign("folio-2", "carla"), forged])
+            .unwrap(),
     };
 
     let facts = edited_facts(&edited, None).expect("a good entry was dropped");
@@ -259,7 +255,7 @@ fn a_parcel_whose_entries_all_fail_names_nobody() {
         folio: "folio-1".into(),
         root: "R".into(),
         by: None,
-        editors: "[]".into(),
+        editors: serde_json::json!([]),
     };
 
     assert!(edited_facts(&edited, None).is_none());

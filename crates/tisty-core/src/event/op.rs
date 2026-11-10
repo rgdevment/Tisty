@@ -1095,7 +1095,7 @@ pub struct Edited {
     pub root: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
-    pub editors: String,
+    pub editors: serde_json::Value,
 }
 
 pub const ALIAS_AT_MOST: usize = 40;

@@ -3,6 +3,8 @@ use std::io::Read;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tisty_contracts::Editor;
+use tisty_share_proto::editing::{self, Entry};
 use tisty_share_proto::identity::{
     self, Certificate, Person, Revocation, ShareKey, Signed, Verdict,
 };
@@ -175,50 +177,80 @@ impl Closed {
 
 /// Who edited a document under Folio and in which Folio document, as this store last heard it.
 pub(crate) fn edited_of(state: &State, kept: &Kept) -> Option<(String, serde_json::Value)> {
-    let listed = |said: &str| {
-        serde_json::from_str::<serde_json::Value>(said)
-            .ok()
-            .filter(|all| all.as_array().is_some_and(|all| !all.is_empty()))
+    let listed = |said: serde_json::Value| {
+        Some(said).filter(|all| all.as_array().is_some_and(|all| !all.is_empty()))
     };
     if let Some(was) = state.sharing.get(&kept.file)
         && let Some(carried) = was.carried.as_deref()
         && let Ok(carried) = serde_json::from_str::<serde_json::Value>(carried)
-        && carried["editors"]
-            .as_array()
-            .is_some_and(|all| !all.is_empty())
+        && let Some(editors) = listed(carried["editors"].clone())
     {
-        return Some((was.id.clone(), carried["editors"].clone()));
+        return Some((was.id.clone(), editors));
     }
     if let Some(stopped) = state
         .sharing_editors
         .get(&kept.file)
-        .and_then(|one| listed(one))
-        && let Some(folio) = stopped[0]["in"].as_str()
+        .and_then(|one| serde_json::from_str(one).ok())
+        .and_then(listed)
+        && let Some(folio) = stopped_in(&stopped)
     {
-        return Some((folio.to_owned(), stopped));
+        return Some((folio, stopped));
     }
     let edited = kept.edited.as_ref()?;
-    Some((edited.folio.clone(), listed(&edited.editors)?))
+    Some((edited.folio.clone(), listed(edited.editors.clone())?))
 }
 
-// Each entry answers only for its own Folio document, so one carried for another is left behind.
+// The owner's own entry names the document it shared; failing that, the one most entries were signed for.
+fn stopped_in(editors: &serde_json::Value) -> Option<String> {
+    let all = editors.as_array()?;
+    let owned = all
+        .iter()
+        .find(|one| one["owned"].as_bool() == Some(true))
+        .and_then(|one| one["in"].as_str());
+    let mut counted: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for one in all.iter().filter_map(|one| one["in"].as_str()) {
+        *counted.entry(one).or_default() += 1;
+    }
+    let most = counted
+        .into_iter()
+        .max_by_key(|(_, many)| *many)
+        .map(|(id, _)| id);
+    owned.or(most).map(str::to_owned)
+}
+
+fn holds(editor: &Editor) -> bool {
+    named_well(&editor.name)
+        && editing::holds(&Entry {
+            id: &editor.r#in,
+            owned: editor.owned == Some(true),
+            name: &editor.name,
+            root: &editor.root,
+            machine: &editor.machine,
+            since: &editor.since,
+            certificate: &editor.certificate,
+            signed: &editor.signed,
+        })
+}
+
+// Only entries signed for this very Folio document are kept, re-read so nothing but their own fields reaches the log.
 pub(crate) fn edited(
     vouched: Option<&Vouched>,
     folio: Option<&str>,
     editors: Option<&serde_json::Value>,
 ) -> Option<Edited> {
     let (vouched, folio) = (vouched?, folio?);
-    let kept: Vec<&serde_json::Value> = editors?
+    let kept: Vec<Editor> = editors?
         .as_array()?
         .iter()
-        .filter(|one| one["in"].as_str() == Some(folio))
+        .filter_map(|one| serde_json::from_value::<Editor>(one.clone()).ok())
+        .filter(|one| one.r#in == folio && holds(one))
         .take(EDITORS_AT_MOST)
         .collect();
     (!kept.is_empty()).then(|| Edited {
         folio: folio.to_owned(),
         root: vouched.root.clone(),
         by: vouched.name.clone(),
-        editors: serde_json::Value::from(kept.into_iter().cloned().collect::<Vec<_>>()).to_string(),
+        editors: serde_json::to_value(kept).unwrap_or_default(),
     })
 }
 
