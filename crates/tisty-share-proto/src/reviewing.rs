@@ -4,6 +4,7 @@ use sha2::Sha256;
 use crate::identity::{self, Certificate, ShareKey, Signed, Verdict};
 
 const ABOUT: &str = "language-review";
+pub const REVIEWED: &str = "reviewed";
 
 pub struct Kept<'a> {
     pub document: &'a str,
@@ -47,6 +48,24 @@ pub fn of(anchor_key: &[u8], id: &str) -> Option<Vec<u8>> {
     of.update(b"tisty-language-review\0");
     of.update(id.as_bytes());
     Some(of.finalize().into_bytes().to_vec())
+}
+
+/// What a review's signature covers as a whole, which the owner's word on all of them hashes.
+pub fn row(root: &[u8], machine: &[u8], said: &Said) -> Vec<u8> {
+    let mut out = identity::SIGNED.to_vec();
+    out.extend_from_slice(root);
+    out.extend_from_slice(machine);
+    sized(&mut out, ABOUT.as_bytes());
+    out.extend_from_slice(&bytes(said));
+    out
+}
+
+pub fn reviewed(anchor: &str, seq: u64, reviews: &[u8]) -> Vec<u8> {
+    let mut out = Vec::new();
+    sized(&mut out, anchor.as_bytes());
+    out.extend_from_slice(&seq.to_be_bytes());
+    out.extend_from_slice(reviews);
+    out
 }
 
 pub fn holds(said: &Said, signed: &Signed) -> bool {

@@ -3,12 +3,13 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_carrier::folio_client::{self, Door, Fetched};
 use tisty_carrier::{folio_domains, folio_limits};
-use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
+use tisty_contracts::{EnvelopeKind, Opening, Review, Served, Verdict};
 use tisty_core::Op;
 use tisty_core::attach::{self, Via};
 use tisty_core::witness::{self, Fact, channel};
 use tisty_envelope::Translation;
 use tisty_envelope::reading::{self, Unopened};
+use tisty_envelope::reviews::{self, Weighing};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
@@ -52,18 +53,23 @@ pub fn link_of(web: &url::Url) -> Option<Link> {
 }
 
 fn served_by(fetched: &Fetched) -> Served {
-    let received = jiff::Timestamp::from_millisecond(fetched.arrived_ms)
-        .ok()
-        .map(|at| at.to_string());
+    let at = |ms| {
+        jiff::Timestamp::from_millisecond(ms)
+            .ok()
+            .map(|at| at.to_string())
+    };
     let revocations = fetched
         .revocations
         .as_deref()
         .and_then(|said| serde_json::from_str(said).ok());
     Served {
-        received,
+        received: at(fetched.arrived_ms),
         revocations,
-        reviewed: None,
-        reviewed_received: None,
+        reviewed: fetched
+            .reviewed
+            .as_deref()
+            .and_then(|said| serde_json::from_str(said).ok()),
+        reviewed_received: fetched.reviewed_arrived_ms.and_then(at),
     }
 }
 
@@ -90,6 +96,8 @@ pub(super) struct Opened {
     pub version: u64,
     pub verdict: Verdict,
     pub contract: Option<String>,
+    pub served: Served,
+    pub print: String,
 }
 
 impl Opened {
@@ -144,6 +152,8 @@ fn opened_with(door: &dyn Door, id: &str, key: &str, with_files: bool) -> Answer
         version: fetched.version,
         verdict: read.verdict,
         contract,
+        print: reviews::print_of(&sealed.parts),
+        served,
     })
 }
 
@@ -340,17 +350,19 @@ fn languages_brought(
     door: &dyn Door,
     opened: &Opened,
     here: &std::collections::BTreeSet<String>,
+    anchor_key: &str,
 ) -> (Vec<(Translation, Opened)>, Vec<String>) {
+    let kept = kept_reviews(opened, anchor_key);
     let map: Vec<Translation> =
         serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
     let mut left = Vec::new();
-    let brought = map
+    let brought = reached(map, &kept)
         .into_iter()
         .filter(|one| !here.contains(&one.lang))
         .filter_map(|one| {
             let key = one.key.clone()?;
             match opened_from(door, &one.document, &key) {
-                Ok(its) if belongs(opened, &its) => Some((one, its)),
+                Ok(its) if belongs(opened, &its, &kept) => Some((one, its)),
                 Ok(_) => {
                     witness::note(
                         channel::SYNC,
@@ -375,14 +387,64 @@ fn languages_brought(
     (brought, left)
 }
 
+/// The owner's latest word on each language it keeps, while the word Folio serves beside the anchor names those very reviews.
+fn kept_reviews(anchor: &Opened, anchor_key: &str) -> Vec<Review> {
+    let (Some(owner), Some(id)) = (anchor.owner_root.as_deref(), anchor.document["id"].as_str())
+    else {
+        return Vec::new();
+    };
+    let reviews: Vec<Review> =
+        serde_json::from_value(anchor.document["reviews"].clone()).unwrap_or_default();
+    let weighing = Weighing {
+        anchor: id,
+        owner,
+        anchor_key,
+        served: &anchor.served,
+        seen: 0,
+    };
+    reviews::kept(&weighing, &reviews)
+}
+
+// Someone who edits can take an entry out of the map or change it, never what the owner signed (166).
+fn reached(map: Vec<Translation>, kept: &[Review]) -> Vec<Translation> {
+    let mut reached = map;
+    for review in kept {
+        let (Some(document), Some(lang)) = (&review.document, &review.lang) else {
+            continue;
+        };
+        let signed = Translation {
+            lang: lang.clone(),
+            document: document.clone(),
+            title: review.title.clone(),
+            key: review.key.clone(),
+            edit: None,
+            pending: None,
+        };
+        match reached.iter_mut().find(|one| one.document == *document) {
+            Some(one) => {
+                *one = Translation {
+                    edit: one.edit.take(),
+                    ..signed
+                }
+            }
+            None => reached.push(signed),
+        }
+    }
+    reached
+}
+
 fn reviewed(anchor: &Opened, its: &Opened) -> bool {
     anchor.owner_root.is_some() && anchor.owner_root == its.owner_root
 }
 
 // A map could name any document of its owner, so a language counts only when it names this anchor itself.
-fn belongs(anchor: &Opened, its: &Opened) -> bool {
+fn belongs(anchor: &Opened, its: &Opened, kept: &[Review]) -> bool {
     let named = its.document["anchor"].as_str();
-    named.is_some() && named == anchor.document["id"].as_str() && reviewed(anchor, its)
+    let id = its.document["id"].as_str().unwrap_or_default();
+    let lang = its.document["lang"].as_str();
+    named.is_some()
+        && named == anchor.document["id"].as_str()
+        && (reviewed(anchor, its) || reviews::keeps(kept, id, lang, &its.print))
 }
 
 // Only the anchor's edit link opens a language's token, and only one the language's owner names (166).
@@ -591,7 +653,8 @@ struct Brought {
 fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<Brought> {
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
-    let (languages, mut left) = languages_brought(door, opened, &std::collections::BTreeSet::new());
+    let (languages, mut left) =
+        languages_brought(door, opened, &std::collections::BTreeSet::new(), &link.key);
     let (received, told) = kept_here(&data, opened);
     let received = match languages.is_empty() {
         true => received,
@@ -715,7 +778,7 @@ fn languages_added_since(
     };
     let opened = opened_head(door, &link.id, &link.key).ok()?;
     let granted = granted_since(app, door, link, file, doc, &opened);
-    let (languages, mut left) = languages_brought(door, &opened, &here);
+    let (languages, mut left) = languages_brought(door, &opened, &here, &link.key);
     let mut kept = Kept::default();
     if !languages.is_empty() {
         kept = languages_kept(app, link, &opened, doc, languages).ok()?;

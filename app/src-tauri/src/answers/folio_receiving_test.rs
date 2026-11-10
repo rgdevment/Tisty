@@ -1,11 +1,12 @@
 use std::cell::Cell;
 
-use tisty_carrier::folio_client::{Answered, Asked, Door};
+use tisty_carrier::folio_client::{Answered, Asked, Door, Fetched};
+use tisty_envelope::Translation;
 
 use super::languages_brought;
 use super::{
     Link, Opened, belongs, editable, granted_entry, language_link, link_of, looked_for,
-    owner_apart, reviewed, saying_its_language, signer_alias, speaks,
+    owner_apart, reached, reviewed, saying_its_language, served_by, signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -54,7 +55,7 @@ fn a_language_folio_could_not_hand_over_is_named_as_left_behind() {
         ..opened_by(Some("mario"), "mario")
     };
 
-    let (brought, left) = languages_brought(&folio, &anchor, &["fr".to_owned()].into());
+    let (brought, left) = languages_brought(&folio, &anchor, &["fr".to_owned()].into(), "k");
 
     assert!(brought.is_empty());
     assert_eq!(left, vec!["en".to_owned()]);
@@ -123,6 +124,13 @@ fn opened_by(owner_root: Option<&str>, signer: &str) -> Opened {
         version: 1,
         verdict: tisty_contracts::Verdict::Holds,
         contract: None,
+        served: tisty_contracts::Served {
+            received: None,
+            revocations: None,
+            reviewed: None,
+            reviewed_received: None,
+        },
+        print: String::new(),
     }
 }
 
@@ -459,17 +467,107 @@ fn a_language_is_brought_only_when_it_names_this_anchor() {
 
     assert!(belongs(
         &anchor,
-        &naming(serde_json::json!({ "anchor": "Anchor12" }), "mario")
+        &naming(serde_json::json!({ "anchor": "Anchor12" }), "mario"),
+        &[]
     ));
     assert!(!belongs(
         &anchor,
-        &naming(serde_json::json!({ "anchor": "Another1" }), "mario")
+        &naming(serde_json::json!({ "anchor": "Another1" }), "mario"),
+        &[]
     ));
-    assert!(!belongs(&anchor, &naming(serde_json::json!({}), "mario")));
     assert!(!belongs(
         &anchor,
-        &naming(serde_json::json!({ "anchor": "Anchor12" }), "ana")
+        &naming(serde_json::json!({}), "mario"),
+        &[]
     ));
+    assert!(!belongs(
+        &anchor,
+        &naming(serde_json::json!({ "anchor": "Anchor12" }), "ana"),
+        &[]
+    ));
+}
+
+fn kept_review(document: &str, lang: &str, print: &str) -> tisty_contracts::Review {
+    serde_json::from_value(serde_json::json!({
+        "of": "o", "kept": true, "document": document, "lang": lang, "title": "Walks", "key": "enKey",
+        "print": print, "seq": 1, "root": "mario", "machine": "m", "since": "2026-11-03T12:00:00Z",
+        "certificate": "c", "signed": "s",
+    }))
+    .unwrap()
+}
+
+#[test]
+fn a_language_of_someone_who_edits_is_brought_only_as_its_owner_kept_it() {
+    let anchor = Opened {
+        document: serde_json::json!({ "id": "Anchor12" }),
+        ..opened_by(Some("mario"), "mario")
+    };
+    let anas = |lang: &str, print: &str| Opened {
+        document: serde_json::json!({ "anchor": "Anchor12", "id": "anaEngl1", "lang": lang }),
+        print: print.to_owned(),
+        ..opened_by(Some("ana"), "ana")
+    };
+    let kept = [kept_review("anaEngl1", "en", "P1")];
+
+    assert!(belongs(&anchor, &anas("en", "P1"), &kept));
+    assert!(!belongs(&anchor, &anas("en", "P2"), &kept));
+    assert!(!belongs(&anchor, &anas("en-GB", "P1"), &kept));
+    assert!(!belongs(&anchor, &anas("en", "P1"), &[]));
+}
+
+#[test]
+fn a_language_its_owner_keeps_is_reached_by_what_the_owner_signed() {
+    let map: Vec<Translation> = serde_json::from_value(serde_json::json!([
+        { "lang": "fr", "document": "marioFr1", "key": "frKey" },
+        { "lang": "en", "document": "anaEngl1", "title": "Otra cosa", "key": "wrong", "edit": "e" },
+    ]))
+    .unwrap();
+
+    let reached = reached(
+        map,
+        &[
+            kept_review("anaEngl1", "en", "P1"),
+            kept_review("anaPort1", "pt-BR", "P2"),
+        ],
+    );
+
+    assert_eq!(reached.len(), 3);
+    assert_eq!(reached[0].document, "marioFr1");
+    assert_eq!(reached[1].key.as_deref(), Some("enKey"));
+    assert_eq!(reached[1].title.as_deref(), Some("Walks"));
+    assert_eq!(reached[1].edit.as_deref(), Some("e"));
+    assert_eq!(
+        (reached[2].document.as_str(), reached[2].lang.as_str()),
+        ("anaPort1", "pt-BR")
+    );
+    assert_eq!(reached[2].edit, None);
+}
+
+#[test]
+fn what_folio_serves_beside_an_anchor_names_its_owners_word_and_when_it_arrived() {
+    let fetched = Fetched {
+        bytes: Vec::new(),
+        version: 2,
+        arrived_ms: 2_000,
+        revocations: None,
+        reviewed: Some(
+            serde_json::json!({
+                "anchor": "Anchor12", "seq": 3, "reviews": "h", "root": "r", "machine": "m",
+                "since": "2026-11-03T12:00:00Z", "certificate": "c", "signed": "s",
+            })
+            .to_string(),
+        ),
+        reviewed_arrived_ms: Some(1_000),
+    };
+
+    let served = served_by(&fetched);
+
+    assert_eq!(served.reviewed.unwrap().seq, 3);
+    assert_eq!(
+        served.reviewed_received.as_deref(),
+        Some("1970-01-01T00:00:01Z")
+    );
+    assert_eq!(served.received.as_deref(), Some("1970-01-01T00:00:02Z"));
 }
 
 #[test]

@@ -427,6 +427,8 @@ fn a_document_comes_with_what_its_headers_say() {
             ("folio-version".to_owned(), "4".to_owned()),
             ("folio-arrived".to_owned(), "1000".to_owned()),
             ("folio-revocations".to_owned(), "[]".to_owned()),
+            ("folio-reviewed".to_owned(), r#"{"seq":2}"#.to_owned()),
+            ("folio-reviewed-arrived".to_owned(), "900".to_owned()),
         ],
         body: b"sealed".to_vec(),
     }));
@@ -436,6 +438,8 @@ fn a_document_comes_with_what_its_headers_say() {
     assert_eq!(fetched.bytes, b"sealed");
     assert_eq!((fetched.version, fetched.arrived_ms), (4, 1000));
     assert_eq!(fetched.revocations.as_deref(), Some("[]"));
+    assert_eq!(fetched.reviewed.as_deref(), Some(r#"{"seq":2}"#));
+    assert_eq!(fetched.reviewed_arrived_ms, Some(900));
 }
 
 #[test]
@@ -541,11 +545,14 @@ fn the_latest_says_when_folio_takes_the_next_version_only_when_it_knows() {
         Ok(Latest {
             version: 3,
             next_at: Some(1_800_000_000_000),
+            reviewed_seq: None,
         })
     );
 
     let silent = FakeFolio::answering(&[(200, r#"{"version":3}"#)]);
     assert_eq!(latest(&silent, "d").unwrap().next_at, None);
+    let reviewed = FakeFolio::answering(&[(200, r#"{"version":3,"reviewedSeq":4}"#)]);
+    assert_eq!(latest(&reviewed, "d").unwrap().reviewed_seq, Some(4));
 }
 
 #[test]
