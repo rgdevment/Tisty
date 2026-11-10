@@ -38,6 +38,27 @@ pub fn editors_brought(was: Option<&str>, arrived: Option<&str>) -> Option<Strin
     with_editors(was, editors)
 }
 
+/// What a later version says of its languages and cited documents replaces what an editor held, or its next version would undo the owner's.
+pub fn map_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
+    let arrived = arrived.and_then(|said| serde_json::from_str::<Value>(said).ok());
+    let mut kept = was
+        .and_then(|said| serde_json::from_str::<Value>(said).ok())
+        .filter(Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}));
+    let fields = kept.as_object_mut()?;
+    for field in ["lang", "languages", "cited"] {
+        match arrived
+            .as_ref()
+            .map(|one| one[field].clone())
+            .filter(|one| !one.is_null())
+        {
+            Some(said) => fields.insert(field.to_owned(), said),
+            None => fields.remove(field),
+        };
+    }
+    (!fields.is_empty()).then(|| kept.to_string())
+}
+
 pub(crate) fn with_editors(was: Option<&str>, editors: Option<Value>) -> Option<String> {
     let editors = editors.filter(|said| !said.is_null());
     let mut kept = was

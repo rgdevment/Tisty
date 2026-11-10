@@ -262,6 +262,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
                 out.push(wrong("is not a hash"));
             }
         }
+        "sealed_key" => {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 80, 1)) {
+                out.push(wrong("is not a sealed key"));
+            }
+        }
         "signed" => {
             if !value.as_str().is_some_and(|one| base64url_of(one, 86, 16)) {
                 out.push(wrong("is not a signature"));

@@ -57,6 +57,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
         remembering: vec![("file".to_owned(), remembered(Some("key"), None))],
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned()]),
+        granted: BTreeSet::new(),
     }
 }
 
@@ -101,6 +102,37 @@ fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
     assert!(asked[0].1.contains(&("Folio-Ttl-Days", "3".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
     assert_eq!(kept.borrow()[0].0, "file");
+}
+
+#[test]
+fn a_language_that_gets_its_token_now_tells_folio_its_permit_before_its_version() {
+    let kept = Kept::default();
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().push_back((200, "{}"));
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":3}"#));
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    let mut sealed = sealed_for(None);
+    sealed.remembering = vec![("file".to_owned(), remembered(Some("key"), Some(&token)))];
+    sealed.granted = BTreeSet::from(["Ab3xK9pQ".to_owned()]);
+
+    let home = tempfile::tempdir().unwrap();
+    delivered(
+        &folio,
+        home.path(),
+        None,
+        &kept_in(&kept),
+        &sealed,
+        &BTreeMap::new(),
+        3,
+    )
+    .unwrap();
+
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, "/docs/Ab3xK9pQ/permit");
+    assert_eq!(asked[1].0, "/docs/Ab3xK9pQ");
 }
 
 #[test]
@@ -173,6 +205,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
         remembering: vec![("top".to_owned(), top), ("cited".to_owned(), cited)],
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned(), "Cited123".to_owned()]),
+        granted: BTreeSet::new(),
     };
     let starts = BTreeMap::from([
         ("Ab3xK9pQ".to_owned(), "mac".to_owned()),
@@ -1201,7 +1234,7 @@ fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() 
             Ok(())
         }
     };
-    assert!(sent_or_put_back(&folio, &owner_with_a_token(), deliver).is_ok());
+    assert!(sent_or_put_back(&folio, &[owner_with_a_token()], deliver).is_ok());
     assert_eq!(tries.get(), 2);
     assert_eq!(folio.asked.borrow()[0].0, "/docs/Ab3xK9pQ/permit");
 
@@ -1210,7 +1243,7 @@ fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() 
         ..owner_with_a_token()
     };
     let untouched = FakeFolio::default();
-    let refused = sent_or_put_back(&untouched, &editor, || {
+    let refused = sent_or_put_back(&untouched, &[editor], || {
         Err(crate::Refusal::of("notOneOwnDoc"))
     });
     assert_eq!(refused.unwrap_err().code, "notOneOwnDoc");
@@ -1221,32 +1254,57 @@ fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() 
 fn a_new_edit_link_is_kept_before_folio_hears_of_it_and_waits_when_folio_cannot() {
     use crate::answers::folio_editing::renewed;
     let was = owner_with_a_token();
+    let french = Remembered {
+        id: "French12".to_owned(),
+        held_by: Some(was.id.clone()),
+        ..was.clone()
+    };
+    let both = vec![
+        ("anchor".to_owned(), was.clone()),
+        ("french".to_owned(), french.clone()),
+    ];
     let folio = FakeFolio::default();
     folio
         .answers
         .borrow_mut()
         .push_back((200, r#"{"done":true}"#));
-    let kept = RefCell::new(None);
-    let now = renewed(&folio, was.clone(), |now| {
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    let kept = RefCell::new(Vec::new());
+    let now = renewed(&folio, both.clone(), |now| {
         assert!(
             folio.asked.borrow().is_empty(),
             "kept before Folio is asked"
         );
-        *kept.borrow_mut() = Some(now.clone());
+        *kept.borrow_mut() = now.to_vec();
         Ok(())
     })
     .unwrap();
-    assert_ne!(now.edit_token, was.edit_token);
-    assert_eq!(now.words_print, None);
-    assert_eq!(kept.borrow().as_ref(), Some(&now));
+    assert_eq!(now.len(), 2);
+    assert_ne!(now[0].1.edit_token, was.edit_token);
+    assert_ne!(now[1].1.edit_token, french.edit_token);
+    assert!(now.iter().all(|(_, one)| one.words_print.is_none()));
+    assert_eq!(*kept.borrow(), now);
+    assert_eq!(folio.asked.borrow().len(), 2);
 
-    let unreached = FakeFolio::default();
-    let kept = std::cell::Cell::new(false);
-    let pending = renewed(&unreached, was, |_| {
-        kept.set(true);
+    let halfway = FakeFolio::default();
+    halfway
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"done":true}"#));
+    let kept = std::cell::Cell::new(0);
+    let pending = renewed(&halfway, both, |now| {
+        kept.set(now.len());
         Ok(())
     });
-    assert!(kept.get());
+    assert_eq!(
+        kept.get(),
+        2,
+        "every language kept before Folio hears of any"
+    );
+    assert_eq!(halfway.asked.borrow().len(), 2, "the rest is still told");
     assert_eq!(pending.unwrap_err().code, "folioEditLinkPending");
 }
 
@@ -1320,6 +1378,33 @@ fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_it
 }
 
 #[test]
+fn whoever_edits_takes_each_version_s_map_and_the_owner_keeps_its_own() {
+    use crate::answers::folio_sync::kept_after;
+    let held = r#"{"languages":[{"lang":"en","document":"English1"}],"editors":[]}"#;
+    let arrived = tisty_sharing::Received {
+        carried: Some(r#"{"languages":[{"lang":"de","document":"German12"}]}"#.to_owned()),
+        ..received_from("Mario")
+    };
+    let editor = Remembered {
+        admin_token: None,
+        carried: Some(held.to_owned()),
+        ..remembered(Some("key"), Some("token"))
+    };
+    let now = kept_after(&editor, &version_signed("mario", "{}"), &arrived);
+    let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"][0]["document"], "German12");
+    assert!(said.get("editors").is_some());
+
+    let owner = Remembered {
+        carried: Some(held.to_owned()),
+        ..remembered(Some("key"), Some("token"))
+    };
+    let now = kept_after(&owner, &version_signed("ana", "{}"), &arrived);
+    let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"][0]["document"], "English1");
+}
+
+#[test]
 fn the_window_hears_whether_sharing_is_open_beside_folios_private_host() {
     let closed = super::SharingHere {
         now: SharingNow::Closed { note: None },
@@ -1351,4 +1436,39 @@ fn a_sync_asks_again_with_the_languages_its_share_left_out() {
     assert_eq!(asked.left_out, vec!["en-file".to_owned()]);
     assert_eq!(asked.signed_as.as_deref(), Some("Mario"));
     assert_eq!(asked.doc, doc);
+}
+
+#[test]
+fn a_retry_puts_each_permit_back_once_and_sends_only_what_folio_does_not_hold() {
+    use crate::answers::folio_sync::{owned_with_tokens, still_owed};
+    let was = owner_with_a_token();
+    let french = Remembered {
+        id: "French12".to_owned(),
+        ..owner_with_a_token()
+    };
+    let read_only = Remembered {
+        id: "Cited123".to_owned(),
+        edit_token: None,
+        ..owner_with_a_token()
+    };
+    let mut sealed = sealed_for(None);
+    sealed.remembering = vec![
+        ("anchor".to_owned(), was.clone()),
+        ("french".to_owned(), french.clone()),
+        ("cited".to_owned(), read_only),
+    ];
+    sealed.going.push(Going {
+        id: "French12".to_owned(),
+        sealed: sealed.going[0].sealed.clone(),
+    });
+
+    let owned: Vec<String> = owned_with_tokens(&was, &sealed)
+        .into_iter()
+        .map(|one| one.id)
+        .collect();
+    assert_eq!(owned, [was.id.clone(), french.id.clone()]);
+
+    let owed = still_owed(&sealed, &BTreeSet::from([was.id.clone()]));
+    let going: Vec<&str> = owed.going.iter().map(|one| one.id.as_str()).collect();
+    assert_eq!(going, ["French12"]);
 }

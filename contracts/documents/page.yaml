@@ -5,7 +5,7 @@ says: >-
   A page is a document like any other, with one difference: it says which document it belongs to. There is one level and
   no more, so a page never has pages of its own. It travels inside its document's envelopes, so what they hold is said once.
 is: document
-except: [pages, pictures, files, files_hash, cited, languages, signed_as, owner_name, editors]
+except: [pages, pictures, files, files_hash, cited, languages, anchor, signed_as, owner_name, editors]
 fields:
   page_of: { type: id, required: true, at_most: 64, says: "The document it is a page of: its id, always." }
   at: { type: whole, required: true, at_least: 1, says: "Its place in that document, from 1." }
@@ -35,10 +35,17 @@ fields:
   document: { type: id, required: true, at_most: 64 }
   title: { type: line, at_most: 8192 }
   key: { type: key, says: "The link key of that language's envelopes, only when the anchor is sealed too: what is public never holds a key. Only the anchor language holds the map, so reaching a language takes nothing but the anchor." }
+  edit: { type: sealed_key, says: "That language's edit token, sealed with a key from the anchor's token, only when the anchor is shared to edit. Whoever holds the anchor's edit link opens it; whoever holds its read link cannot." }
 cases:
   - says: "A language and the document that holds it."
     value: { lang: "en", document: "enGlish1" }
     holds: true
+  - says: "A language with its sealed edit token."
+    value: { lang: "en", document: "enGlish1", key: "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA", edit: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+    holds: true
+  - says: "An edit token sealed short."
+    value: { lang: "en", document: "enGlish1", edit: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+    holds: false
   - says: "No language."
     value: { document: "enGlish1" }
     holds: false

@@ -15,7 +15,7 @@ pub use gathering::{
 };
 pub use maker::{certified_by, signs_for};
 pub use packing::Told;
-pub use receiving::{CARRIED_CITED, Received, editors_brought, received};
+pub use receiving::{CARRIED_CITED, Received, editors_brought, map_brought, received};
 pub use remembering::{forgotten, remembered, sent};
 pub use tisty_core::event::Remembered;
 

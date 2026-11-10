@@ -30,6 +30,8 @@ pub struct Sealed {
     pub remembering: Vec<(String, Remembered)>,
     pub anchors: BTreeMap<String, String>,
     pub changed: BTreeSet<String>,
+    /// Documents Folio already holds whose token is new, so Folio learns its permit before their version.
+    pub granted: BTreeSet<String>,
 }
 
 impl Sealed {
@@ -217,6 +219,7 @@ impl Gathered {
             told,
             remembering,
             changed,
+            granted,
             ..
         } = self;
         let anchors = anchors_of(std::iter::once(&family).chain(&cited));
@@ -250,6 +253,7 @@ impl Gathered {
             remembering,
             anchors,
             changed,
+            granted,
         })
     }
 }
