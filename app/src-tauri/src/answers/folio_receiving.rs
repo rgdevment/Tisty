@@ -265,7 +265,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
 }
 
 // Reading a document whole takes a while, so it never holds the session, and it is read once for all its languages.
-fn with_their_prints(
+pub(super) fn with_their_prints(
     app: &AppHandle,
     doc: tisty_core::model::DocId,
     entries: Vec<(String, Remembered)>,
@@ -324,10 +324,12 @@ fn languages_brought(
     door: &dyn Door,
     opened: &Opened,
     here: &std::collections::BTreeSet<String>,
-) -> Vec<(Translation, Opened)> {
+) -> (Vec<(Translation, Opened)>, Vec<String>) {
     let map: Vec<Translation> =
         serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
-    map.into_iter()
+    let mut left = Vec::new();
+    let brought = map
+        .into_iter()
         .filter(|one| !here.contains(&one.lang))
         .filter_map(|one| {
             let key = one.key.clone()?;
@@ -347,12 +349,14 @@ fn languages_brought(
                         "a language of a document arrived without being read, so it was left behind",
                         &[("code", Fact::Code(refused.code))],
                     );
+                    left.push(one.lang);
                     None
                 }
             }
         })
         .take(OTHER_LANGUAGES_AT_MOST)
-        .collect()
+        .collect();
+    (brought, left)
 }
 
 fn reviewed(anchor: &Opened, its: &Opened) -> bool {
@@ -377,6 +381,107 @@ fn language_link(link: &Link, one: &Translation, its: &Opened) -> Option<Link> {
     })
 }
 
+fn root_of_block(block: Option<&str>) -> Option<String> {
+    let block: serde_json::Value = serde_json::from_str(block?).ok()?;
+    block["root"].as_str().map(str::to_owned)
+}
+
+// No version under its token is here yet, so the next Sync brings its newest one before anything goes up (166).
+pub(super) fn granted_entry(
+    anchor: &Remembered,
+    one: &Translation,
+    its: &Opened,
+) -> Option<Remembered> {
+    let owner = root_of_block(anchor.owner.as_deref())?;
+    let names_it = its.document["anchor"].as_str() == Some(anchor.id.as_str());
+    if !names_it || its.owner_root.as_deref() != Some(owner.as_str()) {
+        return None;
+    }
+    let link = Link {
+        id: anchor.id.clone(),
+        key: anchor.link_key.clone()?,
+        token: anchor.edit_token.clone(),
+    };
+    let its_link = language_link(&link, one, its)?;
+    let received = tisty_sharing::received(&its.document, &[], &[], &mut |_, _| None);
+    Some(Remembered {
+        version: 0,
+        files_hash: None,
+        files_key: None,
+        held_by: Some(anchor.id.clone()),
+        ..entry_for(&its_link, its, &received)
+    })
+}
+
+pub(super) fn languages_to_read(
+    session: &Session,
+    doc: tisty_core::model::DocId,
+    anchor: &Remembered,
+) -> Vec<(String, String)> {
+    if !anchor.edited_through_a_link() || anchor.held_by.is_some() {
+        return Vec::new();
+    }
+    let shelf = tisty_sharing::remembered(&session.state);
+    session
+        .state
+        .tongues_of(doc)
+        .into_iter()
+        .filter(|one| one.id != doc && one.guest && !shelf.contains_key(&one.file))
+        .filter_map(|one| Some((one.lang.clone()?, one.file.clone())))
+        .collect()
+}
+
+pub(super) fn grantable(
+    anchor: &Remembered,
+    to_read: &[(String, String)],
+) -> Vec<(String, Translation)> {
+    let Some(token) = anchor.edit_token.as_deref() else {
+        return Vec::new();
+    };
+    let map: Vec<Translation> = anchor
+        .carried
+        .as_deref()
+        .and_then(|said| serde_json::from_str::<serde_json::Value>(said).ok())
+        .and_then(|said| serde_json::from_value(said["languages"].clone()).ok())
+        .unwrap_or_default();
+    // Two copies here in one language could each be the one Folio sent, so neither is taken for it.
+    let alone = |lang: &str| to_read.iter().filter(|(one, _)| one == lang).count() == 1;
+    to_read
+        .iter()
+        .filter(|(lang, _)| alone(lang))
+        .filter_map(|(lang, file)| {
+            let one = map.iter().find(|one| one.lang == *lang)?;
+            tisty_envelope::tokens::opened_with(token, &one.document, one.edit.as_deref()?)?;
+            Some((file.clone(), one.clone()))
+        })
+        .collect()
+}
+
+pub(super) fn languages_granted(
+    door: &dyn Door,
+    anchor: &Remembered,
+    to_read: &[(String, String)],
+) -> Vec<(String, Remembered)> {
+    grantable(anchor, to_read)
+        .into_iter()
+        .filter_map(|(file, one)| {
+            let its = opened_head(door, &one.document, one.key.as_deref()?).ok()?;
+            Some((file, granted_entry(anchor, &one, &its)?))
+        })
+        .collect()
+}
+
+pub(super) fn unprinted(
+    granted: &[(String, Remembered)],
+    shelf: &std::collections::BTreeMap<String, Remembered>,
+) -> Vec<(String, Remembered)> {
+    granted
+        .iter()
+        .filter_map(|(file, _)| Some((file.clone(), shelf.get(file)?.clone())))
+        .filter(|(_, now)| now.words_print.is_none())
+        .collect()
+}
+
 // Languages join by what each says it is, so one that arrived without saying it in its words says it now.
 fn saying_its_language(mut arrived: Received, lang: Option<&str>) -> Received {
     if let Some(lang) = lang.filter(|_| tisty_markdown::front::lang(&arrived.body).is_none()) {
@@ -399,10 +504,15 @@ fn speaks(lang: Option<&str>, locale: Option<&str>) -> bool {
     }
 }
 
-fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<String> {
+struct Brought {
+    shown: String,
+    left: Vec<String>,
+}
+
+fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<Brought> {
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
-    let languages = languages_brought(door, opened, &std::collections::BTreeSet::new());
+    let (languages, mut left) = languages_brought(door, opened, &std::collections::BTreeSet::new());
     let (received, told) = kept_here(&data, opened);
     let received = match languages.is_empty() {
         true => received,
@@ -425,14 +535,22 @@ fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> A
     if editable {
         printing.push((file.clone(), entry_for(link, opened, &received)));
     }
-    let (shown, theirs) = languages_kept(app, link, opened, doc, languages)?;
-    printing.extend(theirs);
+    let kept = languages_kept(app, link, opened, doc, languages)?;
+    printing.extend(kept.printing);
+    left.extend(kept.left);
     with_their_prints(app, doc, printing);
-    Ok(shown.unwrap_or(file))
+    Ok(Brought {
+        shown: kept.shown.unwrap_or(file),
+        left,
+    })
 }
 
-/// The language Tisty speaks, when one arrived, and the edit links kept for the languages.
-type Kept = (Option<String>, Vec<(String, Remembered)>);
+#[derive(Default)]
+struct Kept {
+    shown: Option<String>,
+    printing: Vec<(String, Remembered)>,
+    left: Vec<String>,
+}
 
 /// Keeps each language beside the anchor already here, and says which one Tisty speaks and which edit links it holds.
 fn languages_kept(
@@ -446,8 +564,7 @@ fn languages_kept(
     let data = held(&session).paths.data().to_path_buf();
     let locale = held(&session).locale.clone();
     let editable = editable(link, opened);
-    let mut shown = None;
-    let mut printing = Vec::new();
+    let mut said = Kept::default();
     for (one, its) in languages {
         // One language that cannot be kept leaves the others, and what was kept is still printed.
         let kept = (|| {
@@ -479,19 +596,20 @@ fn languages_kept(
                     "a language of a document could not be kept here, and the others were",
                     &[("code", Fact::Code(refused.code))],
                 );
+                said.left.push(one.lang);
                 continue;
             }
         };
         if let Some(entry) = entry {
-            printing.push((its_file.clone(), entry));
+            said.printing.push((its_file.clone(), entry));
         }
         if speaks(Some(&one.lang), locale.as_deref())
             && !speaks(opened.document["lang"].as_str(), locale.as_deref())
         {
-            shown = Some(its_file);
+            said.shown = Some(its_file);
         }
     }
-    Ok((shown, printing))
+    Ok(said)
 }
 
 // A link opened again asks before Folio hears of it, brings the languages added since, and keeps the copy here as it is.
@@ -500,7 +618,7 @@ fn languages_added_since(
     door: &dyn Door,
     link: &Link,
     file: &str,
-) -> Option<String> {
+) -> Option<(Option<String>, Vec<String>)> {
     if !question(app, LinkQuestion::Look) {
         return None;
     }
@@ -517,20 +635,22 @@ fn languages_added_since(
         (session.state.anchor_of(kept), here)
     };
     let opened = opened_head(door, &link.id, &link.key).ok()?;
-    let languages = languages_brought(door, &opened, &here);
+    let (languages, mut left) = languages_brought(door, &opened, &here);
     if languages.is_empty() {
-        return None;
+        return Some((None, left));
     }
-    let (shown, mut theirs) = languages_kept(app, link, &opened, doc, languages).ok()?;
+    let mut kept = languages_kept(app, link, &opened, doc, languages).ok()?;
     // The anchor's map gained them, so its print is taken again with theirs.
     let anchor_entry = {
         let session = app.state::<Mutex<Session>>();
         let session = held(&session);
         tisty_sharing::remembered(&session.state).get(file).cloned()
     };
-    theirs.extend(anchor_entry.map(|one| (file.to_owned(), one)));
-    with_their_prints(app, doc, theirs);
-    shown
+    kept.printing
+        .extend(anchor_entry.map(|one| (file.to_owned(), one)));
+    with_their_prints(app, doc, kept.printing);
+    left.extend(kept.left);
+    Some((kept.shown, left))
 }
 
 const DOMAIN_PATIENCE: std::time::Duration = std::time::Duration::from_secs(2);
@@ -655,14 +775,18 @@ fn already_here(app: &AppHandle, id: &str) -> Option<String> {
         .map(|(file, _)| file.clone())
 }
 
-fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
+fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<Brought>> {
     let link = link_of(web).ok_or_else(|| Refusal::of("folioUnopened"))?;
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     if let Some(file) = already_here(app, &link.id) {
-        let added = ToFolio::new(&home)
+        let (added, left) = ToFolio::new(&home)
             .ok()
-            .and_then(|door| languages_added_since(app, &door, &link, &file));
-        return Ok(Some(added.unwrap_or(file)));
+            .and_then(|door| languages_added_since(app, &door, &link, &file))
+            .unwrap_or_default();
+        return Ok(Some(Brought {
+            shown: added.unwrap_or(file),
+            left,
+        }));
     }
     let door = ToFolio::new(&home)?;
     let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
@@ -679,9 +803,12 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
 
 fn bring_one(app: &AppHandle, web: &url::Url) {
     match brought(app, web) {
-        Ok(Some(file)) => {
-            let _ = app.emit_to("main", "showdoc", file);
+        Ok(Some(Brought { shown, left })) => {
+            let _ = app.emit_to("main", "showdoc", shown);
             crate::tray::surface(app);
+            if !left.is_empty() {
+                question(app, LinkQuestion::LanguagesLeft { languages: left });
+            }
         }
         Ok(None) => {}
         Err(refused) => {

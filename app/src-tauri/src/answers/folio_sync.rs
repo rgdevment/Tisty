@@ -20,7 +20,8 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart, signer_alias,
+    Opened, guest_page, guests_kept, kept_here, languages_granted, languages_to_read, opened_from,
+    owner_apart, signer_alias, unprinted, with_their_prints,
 };
 use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
@@ -283,6 +284,26 @@ async fn unchanged_answered(
     })
 }
 
+// Without its print its words count as changed, and would go up over the owner's newest version unasked.
+async fn granted_and_printed(
+    app: &tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    doc: tisty_core::model::DocId,
+    granted: Vec<(String, Remembered)>,
+) -> Answer<Vec<(String, Remembered)>> {
+    kept_on(&mut held(session), &granted)?;
+    let printing = (app.clone(), granted.clone());
+    apart(move || {
+        with_their_prints(&printing.0, doc, printing.1);
+        Ok(())
+    })
+    .await?;
+    let mut session = held(session);
+    let left = unprinted(&granted, tisty_sharing::remembered(&session.state));
+    session.commit_all(tisty_sharing::forgotten(&left))?;
+    Ok(left)
+}
+
 #[tauri::command]
 pub async fn doc_share_sync(
     app: tauri::AppHandle,
@@ -328,23 +349,51 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let pressed_at = policy::now();
-    let languages = its_other_languages(&held(&session), doc, &file, &was);
-    let (ahead, language_ahead) = {
+    let (languages, to_read) = {
+        let session = held(&session);
+        (
+            its_other_languages(&session, doc, &file, &was),
+            languages_to_read(&session, doc, &was),
+        )
+    };
+    let (ahead, language_ahead, granted) = {
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
             let door = ToFolio::new(&home)?;
             let ahead = before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)?;
-            let language_ahead = match ahead {
-                Ahead::Upload | Ahead::Unchanged => first_ahead(&door, languages),
-                _ => None,
+            let reached = matches!(ahead, Ahead::Upload | Ahead::Unchanged);
+            let granted = match reached {
+                true => languages_granted(&door, &was, &to_read),
+                false => Vec::new(),
             };
-            Ok((ahead, language_ahead))
+            let language_ahead = match reached {
+                true => first_ahead(
+                    &door,
+                    languages.into_iter().chain(granted.clone()).collect(),
+                ),
+                false => None,
+            };
+            Ok((ahead, language_ahead, granted))
         })
         .await?
     };
+    let language_ahead = match granted.is_empty() {
+        true => language_ahead,
+        false => {
+            let left = granted_and_printed(&app, &session, doc, granted).await?;
+            language_ahead.filter(|(its_file, _)| left.iter().all(|(one, _)| one != its_file))
+        }
+    };
     // Each language has its own versions, and another's newer one is brought apart as the anchor's is (166).
     if let Some((its_file, its_was)) = language_ahead {
+        if ahead == Ahead::Upload {
+            folio_pace::take_back(&home, &was.id, pressed_at);
+        }
+        let its_was = tisty_sharing::remembered(&held(&session).state)
+            .get(&its_file)
+            .cloned()
+            .unwrap_or(its_was);
         let its_doc = doc_of_file(&held(&session), &its_file)
             .ok_or_else(|| Refusal::of("noSuchDoc"))?
             .to_string();

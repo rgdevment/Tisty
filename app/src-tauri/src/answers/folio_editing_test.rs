@@ -4,6 +4,14 @@ use tisty_sharing::Remembered;
 use super::{SignsAs, others_asked, said_after_sending, signs_as, who_of};
 use crate::answers::folio::card_of;
 
+fn maker(root: &str) -> tisty_carrier::folio_limits::FolioMaker {
+    tisty_carrier::folio_limits::FolioMaker {
+        root: root.to_owned(),
+        name: Some("rgdevment".to_owned()),
+        domain: Some("rgdevment.dev".to_owned()),
+    }
+}
+
 fn signature(alias: Option<&str>, name: Option<&str>) -> Signature {
     Signature {
         alias: alias.map(str::to_owned),
@@ -117,7 +125,13 @@ fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
         ]),
         ..arrived(None, None, None)
     };
-    let card = card_of("tisty.cl", &was, &Signature::default(), Some("juan-root")).unwrap();
+    let card = card_of(
+        "tisty.cl",
+        &was,
+        &Signature::default(),
+        Some(&maker("juan-root")),
+    )
+    .unwrap();
     let said = serde_json::to_value(&card).unwrap();
     assert_eq!(
         said["owner"],
@@ -154,7 +168,7 @@ fn the_makers_root_is_checked_wherever_it_signs() {
         version_root: Some("mario-root".to_owned()),
         ..arrived(None, None, None)
     };
-    let who = who_of(&was, Some("mario-root"));
+    let who = who_of(&was, Some(&maker("mario-root")));
     assert!(who.owner.is_some_and(|one| one.checked));
     assert!(who.signer.is_some_and(|one| one.checked));
     assert!(who.editors.is_empty());
@@ -168,8 +182,13 @@ fn whoever_signs_with_the_makers_name_under_another_root_is_not_checked() {
         version_root: Some("impostor-root".to_owned()),
         ..arrived(None, None, None)
     };
-    let who = who_of(&was, Some("mario-root"));
-    assert!(who.signer.is_some_and(|one| !one.checked));
+    let who = who_of(&was, Some(&maker("mario-root")));
+    let signer = serde_json::to_value(who.signer.unwrap()).unwrap();
+    assert_eq!(signer["checked"], false);
+    assert_eq!(signer["imitates"], true);
+    let owner = serde_json::to_value(who.owner.unwrap()).unwrap();
+    assert_eq!(owner["checked"], true);
+    assert!(owner.get("imitates").is_none());
 }
 
 #[test]

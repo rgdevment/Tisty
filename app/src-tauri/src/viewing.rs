@@ -89,6 +89,9 @@ pub enum LinkQuestion {
     Failed {
         code: String,
     },
+    LanguagesLeft {
+        languages: Vec<String>,
+    },
 }
 
 #[derive(Default)]
