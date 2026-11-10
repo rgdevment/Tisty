@@ -403,8 +403,10 @@ fn speaks(lang: Option<&str>, locale: Option<&str>) -> bool {
     }
 }
 
-/// The file to show, and the languages that could not be brought.
-type Brought = (String, Vec<String>);
+struct Brought {
+    shown: String,
+    left: Vec<String>,
+}
 
 fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<Brought> {
     let session = app.state::<Mutex<Session>>();
@@ -436,10 +438,12 @@ fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> A
     printing.extend(kept.printing);
     left.extend(kept.left);
     with_their_prints(app, doc, printing);
-    Ok((kept.shown.unwrap_or(file), left))
+    Ok(Brought {
+        shown: kept.shown.unwrap_or(file),
+        left,
+    })
 }
 
-/// The language Tisty speaks, when one arrived, the edit links kept for the languages, and those not kept.
 #[derive(Default)]
 struct Kept {
     shown: Option<String>,
@@ -678,7 +682,10 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<Brought>> {
             .ok()
             .and_then(|door| languages_added_since(app, &door, &link, &file))
             .unwrap_or_default();
-        return Ok(Some((added.unwrap_or(file), left)));
+        return Ok(Some(Brought {
+            shown: added.unwrap_or(file),
+            left,
+        }));
     }
     let door = ToFolio::new(&home)?;
     let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
@@ -695,8 +702,8 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<Brought>> {
 
 fn bring_one(app: &AppHandle, web: &url::Url) {
     match brought(app, web) {
-        Ok(Some((file, left))) => {
-            let _ = app.emit_to("main", "showdoc", file);
+        Ok(Some(Brought { shown, left })) => {
+            let _ = app.emit_to("main", "showdoc", shown);
             crate::tray::surface(app);
             if !left.is_empty() {
                 question(app, LinkQuestion::LanguagesLeft { languages: left });

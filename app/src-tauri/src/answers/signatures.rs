@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use tisty_core::Op;
 use tisty_core::witness::channel;
+use tisty_share_proto::identity::Person;
 
 use crate::{Answer, Refusal, Session, blamed, held};
 
@@ -18,10 +19,13 @@ pub struct Signed {
 
 // Whoever reads what this Tisty shares sees such a name flagged in red, so the person hears it first (167).
 fn imitating(session: &Session) -> impl Fn(Option<&String>) -> bool {
-    let paths = &session.paths;
-    let maker = tisty_carrier::folio_limits::maker(&paths.private()).filter(|_| {
-        super::sharing::the_maker_here(paths, &session.state, &session.config.device_id).is_none()
-    });
+    let signed = &session.state.signed;
+    let named = signed.alias.is_some() || signed.name.is_some();
+    let here = session.state.persons.root_of(&session.config.device_id);
+    let maker = named
+        .then(|| tisty_carrier::folio_limits::maker(&session.paths.private()))
+        .flatten()
+        .filter(|maker| here.is_none() || here != Person::read(&maker.root));
     move |said| {
         said.zip(maker.as_ref())
             .is_some_and(|(said, maker)| super::folio_standing::imitates_maker(said, maker))

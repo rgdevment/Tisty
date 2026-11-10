@@ -773,7 +773,7 @@ const en = {
   shareRenewWaits:
     "The edit link changed, but the version that confirms it has not gone yet: press Sync once more.",
   shareRenewHeld:
-    "The edit link changed and the old one no longer sends versions, but Folio asks you to wait before the version that confirms it. The new link opens only once that version goes: sync when the wait ends.",
+    "The edit link changed and the old one no longer sends versions, but the version that confirms it has to wait. The new link opens only once that version goes: sync when the wait ends.",
   shareSignsAs: "Your versions go signed as {name}.",
   shareSignAsOther: "Sign as {name}",
   sharedOwnerAndSigner: "Created by {name} · Last edited by {other}",
@@ -3804,7 +3804,7 @@ const es: Catalog = {
   shareRenewWaits:
     "El link de editar cambió, pero la versión que lo confirma todavía no se envía: pulsa Sincronizar otra vez.",
   shareRenewHeld:
-    "El link de editar cambió y el anterior ya no envía versiones, pero Folio pide esperar antes de la versión que lo confirma. El link nuevo abre recién cuando esa versión salga: sincroniza cuando termine la espera.",
+    "El link de editar cambió y el anterior ya no envía versiones, pero la versión que lo confirma tiene que esperar. El link nuevo abre recién cuando esa versión salga: sincroniza cuando termine la espera.",
   shareSignsAs: "Tus versiones van firmadas como {name}.",
   shareSignAsOther: "Firmar como {name}",
   sharedOwnerAndSigner: "Creado por {name} · Última edición: {other}",
