@@ -68,6 +68,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
+- **Overdue** and **Late** — only what is overdue, or only what is late, each opened from its count among the day's four at the top of the sidebar; while you are on one, it shows beside Today. The other two counts, **for today** and **ahead**, open Today and Upcoming.
 
 There is no prize for emptying the list.
 

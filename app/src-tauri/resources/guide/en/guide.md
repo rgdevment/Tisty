@@ -93,11 +93,13 @@ Your task list can be seen four ways:
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
 
+The day's four counts, at the top of the sidebar, open what they count: **Overdue** and **Late** each open a view of their own, shown beside Today while you are on it, and **for today** and **ahead** open Today and Upcoming.
+
 What is overdue sits at the top, in red; what is late, in amber. A task is overdue only once its deadline passes: if you gave it a day and nothing more, it runs late, but it is never overdue. And nobody chases you: Tisty keeps no streaks or points for emptying the list. What you did not get to today is still there tomorrow.
 
 ### The Spread and reminders
 
-**Spread**, in the sidebar, is your work calendar: it is where you calmly decide what you do each day. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If that day already carries two, Tisty tells you and offers the next free one. **Month** shows the same as a grid.
+**Spread**, the calendar icon under the day's counts in the sidebar, is your work calendar: it is where you calmly decide what you do each day. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If that day already carries two, Tisty tells you and offers the next free one. **Month** shows the same as a grid.
 
 A reminder is a time you choose on the task: it rings as a system notification, on this computer only, with a short sound you can turn off. More in [the Spread and reminders](https://www.tisty.app/docs/spread-and-reminders/).
 
@@ -121,13 +123,13 @@ Two ways of sorting that do not compete:
 - A **list** says where it happens: ==@home=={green}, ==@work=={green}. A task belongs to one.
 - A **tag** says what it is about: ==#health=={pink}, ==#shopping=={pink}. A task carries as many as you like.
 
-A tag also works in a document: write `#health` in the middle of a sentence and the document is filed under that same tag. **Tags**, in the sidebar, gathers everything that carries one: what you have to do and what you wrote about it.
+A tag also works in a document: write `#health` in the middle of a sentence and the document is filed under that same tag. **Tags**, the tag icon under the day's counts in the sidebar, gathers everything that carries one: what you have to do and what you wrote about it.
 
 ### What stays written
 
 A task keeps more than its title. It opens on a page of its own, with sections to fill in (what it is about, how you will know it is done, its steps, what you found out along the way) and in each one a grey hint saying what goes there. Every box you write on that page, `- [ ]`, is one of its steps. Completing it erases none of that: it is archived with its date.
 
-That is why it matters: the list tells you what is left; the Archive, how you solved it last time. Search for a word you remember and the task comes up, even if you closed it two years ago.
+That is why it matters: the list tells you what is left; the Archive, how you solved it last time. Type a word you remember in the search at the top of the sidebar (`Ctrl`/`⌘` + `K`) and the task comes up, even if you closed it two years ago.
 
 :::details Parts: when a step needs more than a line
 
@@ -161,7 +163,7 @@ A document is yours and is kept as Markdown: plain text with a few marks, like `
 
 **Try it:** click this very paragraph. It opens for writing, with its marks in view; `Esc` turns it back into the page.
 
-**To make one**, go to Documents and use the **+** at the top: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
+**To make one**, use the **+** in the header of the **Library**, in the sidebar: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
 
 The first line of the document is its title: there is no name to fill in anywhere else. Its properties, such as its tags or the paper it prints on, show in the panel beside it, under **About this document**.
 
@@ -438,6 +440,7 @@ If you wrote in a document while it was reading it, it does not write over you: 
 | `Ctrl`/`⌘` + `Shift` + `M` | Show or hide the block's marks |
 | `Ctrl`/`⌘` + `E` | Open or leave the whole document as text |
 | `F1` | Open the Tisty Markdown guide on what you are writing |
+| `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar |
 | `Tab` · `Shift` + `Tab` | Walk the cells of a table |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |
