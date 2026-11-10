@@ -36,6 +36,11 @@ fn still_speaks(verdict: Verdict) -> bool {
     matches!(verdict, Verdict::Holds | Verdict::Retired)
 }
 
+pub fn imitates_maker(alias: &str, maker: &FolioMaker) -> bool {
+    let mut names = maker.name.iter().chain(&maker.domain);
+    names.any(|name| imitates(alias, name))
+}
+
 // Folio's rule, root for root: only the maker's root is verified, and a name says nothing on its own.
 pub fn standing_of(
     root: &str,
@@ -57,8 +62,7 @@ pub fn standing_of(
                 false => Standing::TakenBack,
             };
         }
-        let mut names = maker.name.iter().chain(&maker.domain);
-        if alias.is_some_and(|one| names.any(|name| imitates(one, name))) {
+        if alias.is_some_and(|one| imitates_maker(one, maker)) {
             return Standing::Imitates;
         }
     }

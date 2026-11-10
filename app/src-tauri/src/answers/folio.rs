@@ -755,7 +755,7 @@ pub(super) fn card_of(
     host: &str,
     was: &Remembered,
     signature: &Signature,
-    maker: Option<&str>,
+    maker: Option<&folio_limits::FolioMaker>,
 ) -> Option<Card> {
     let key = was.link_key.as_deref()?;
     let taken = was.admin_token.is_none();
@@ -793,13 +793,13 @@ pub async fn doc_share_card(
     id: String,
 ) -> Answer<Option<Card>> {
     let home = held(&session).paths.private();
-    let maker = folio_limits::maker_root(&home);
+    let maker = folio_limits::maker(&home);
     let host = private_host_apart(home).await?;
     let session = held(&session);
     let file = file_of(&session, &id)?;
     Ok(tisty_sharing::remembered(&session.state)
         .get(&file)
-        .and_then(|was| card_of(&host, was, &session.state.signed, maker.as_deref())))
+        .and_then(|was| card_of(&host, was, &session.state.signed, maker.as_ref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -1156,8 +1156,8 @@ pub async fn doc_shared(
             .remembering
             .iter()
             .find(|(_, one)| one.held_by.is_none());
-        let maker = folio_limits::maker_root(&home);
-        top.and_then(|(_, one)| card_of(door.host(), one, &state.signed, maker.as_deref()))
+        let maker = folio_limits::maker(&home);
+        top.and_then(|(_, one)| card_of(door.host(), one, &state.signed, maker.as_ref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

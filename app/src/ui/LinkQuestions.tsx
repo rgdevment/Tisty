@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fill, t, type Word } from "../locales";
+import { tongueName } from "../tongues";
 import Modal from "./Modal";
 
 type Standing =
@@ -23,6 +24,7 @@ type Question = { id: number } & (
       doubtful: boolean;
     }
   | { kind: "failed"; code: string }
+  | { kind: "languagesLeft"; languages: string[] }
 );
 
 // The second press of a double click must not answer the question that opens under it.
@@ -190,6 +192,17 @@ export default function LinkQuestions() {
         <div className="flex flex-col gap-4">
           <p className="text-[13px] leading-relaxed">
             {t(FAILED[asked.code] ?? "linkFailedUnreached")}
+          </p>
+          <Answers yes={t("linkFailedOk")} onAnswer={answer} />
+        </div>
+      </Modal>
+    );
+  if (asked.kind === "languagesLeft")
+    return (
+      <Modal title={t("linkLanguagesLeftTitle")} onClose={() => answer(true)}>
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px] leading-relaxed">
+            {fill("linkLanguagesLeft", asked.languages.map(tongueName).join(", "))}
           </p>
           <Answers yes={t("linkFailedOk")} onAnswer={answer} />
         </div>

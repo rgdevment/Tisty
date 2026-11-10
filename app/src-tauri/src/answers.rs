@@ -26,6 +26,7 @@ pub mod searching;
 pub mod settings;
 pub mod sharing;
 pub mod shelves;
+pub mod signatures;
 pub mod spoken;
 pub mod storing;
 pub mod task_docs;

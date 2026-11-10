@@ -1241,6 +1241,8 @@ export interface Signed {
   name: string | null;
   before: string[];
   mine: number;
+  aliasImitates: boolean;
+  nameImitates: boolean;
 }
 
 export const signed = (): Promise<Signed> => invoke("signed");

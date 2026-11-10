@@ -280,6 +280,17 @@ describe("what a link asks in the window", () => {
     expect(screen.queryByText(fill("linkKeepSigned", ""))).toBeNull();
   });
 
+  it("names the languages that could not be brought once the document is here", async () => {
+    standing({ id: 4, kind: "languagesLeft", languages: ["en", "fr"] });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText(fill("linkLanguagesLeft", "English, Français"))).toBeTruthy();
+    read();
+
+    await userEvent.click(screen.getByRole("button", { name: t("linkFailedOk") }));
+    expect(answers()).toEqual([{ id: 4, yes: true }]);
+  });
+
   it.each([
     ["folioGone", "linkFailedGone"],
     ["folioBlocked", "linkFailedBlocked"],
