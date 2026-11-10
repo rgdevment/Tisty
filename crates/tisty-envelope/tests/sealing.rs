@@ -98,6 +98,7 @@ mod editing {
             received: None,
             revocations: None,
             reviewed: None,
+            reviewed_received: None,
         }
     }
 
@@ -143,6 +144,37 @@ mod editing {
         assert_eq!(read.document["owner_name"], "Mario");
         assert!(owner_in(&main).permit.is_some());
         assert!(owner_in(&owned(None)).permit.is_none());
+    }
+
+    fn tongue_of(id: &str, lang: &str, link_key: u8) -> tisty_envelope::family::Tongue {
+        tisty_envelope::family::Tongue {
+            document: serde_json::from_value(json!({
+                "id": id, "lang": lang, "owner_name": "Mario", "html": "<p>a</p>", "body": "a"
+            }))
+            .unwrap(),
+            pictures: vec![],
+            files: vec![],
+            sealing: sealing(id, Some(key_text(link_key))),
+            cited: vec![],
+        }
+    }
+
+    #[test]
+    fn a_language_an_editor_adds_waits_in_the_map_for_the_owners_review() {
+        let mut anchor = tongue_of(ID, "es", LINK_KEY);
+        anchor.sealing.owner = Some(owner_in(&owned(Some(TOKEN))));
+        anchor.sealing.token = Some(key_text(TOKEN));
+        let family = tisty_envelope::family::Family {
+            anchor,
+            others: vec![tongue_of("anaEnglish", "en", 0x12)],
+        };
+        let (key, certificate) = person(EDITOR);
+        let going =
+            tisty_envelope::family::sealed_family(&mut Writer::new(&key, &certificate), family)
+                .unwrap();
+        let read = reading(&going[0].sealed.main, &asked(), &nothing()).unwrap();
+        assert_eq!(read.document["languages"][0]["document"], "anaEnglish");
+        assert_eq!(read.document["languages"][0]["pending"], true);
     }
 
     #[test]
@@ -222,6 +254,7 @@ mod editing {
                 signed: revoked.sig,
             }]),
             reviewed: None,
+            reviewed_received: None,
         };
         let read = reading(&main, &asked(), &served).unwrap();
         assert_eq!(read.verdict, Verdict::Doubtful);
@@ -761,6 +794,7 @@ fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
     assert_eq!(anchor["languages"][0]["lang"], "en");
     assert_eq!(anchor["languages"][0]["document"], "hello");
     assert_eq!(anchor["languages"][0]["key"], key_text(2));
+    assert!(anchor["languages"][0].get("pending").is_none());
     assert_eq!(anchor["languages"][1]["document"], "ola");
     let english =
         document_of(&opened(&going[1].sealed.main, ("hello", "main"), Some(&the_key(2))).unwrap());

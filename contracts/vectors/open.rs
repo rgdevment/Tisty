@@ -593,16 +593,13 @@ fn review_bytes(anchor: &str, review: &Value) -> Option<Vec<u8>> {
     Some(said)
 }
 
-fn review_holds(anchor: &str, owner: &str, anchor_key: &[u8], review: &Value, served: &Value) -> bool {
+fn review_holds(anchor: &str, owner: &str, anchor_key: &[u8], review: &Value) -> bool {
     let holds = || -> Option<bool> {
         if review["root"].as_str()? != owner {
             return Some(false);
         }
         verified(&vouched(review)?, &decoded(review, "signed")?, &review_bytes(anchor, review)?).ok()?;
-        if review["kept"] == true && decoded(review, "of")? != of_language(anchor_key, review["document"].as_str()?) {
-            return Some(false);
-        }
-        Some(verdict_of(review, served) == "holds")
+        Some(review["kept"] != true || decoded(review, "of")? == of_language(anchor_key, review["document"].as_str()?))
     };
     holds().unwrap_or(false)
 }
@@ -629,7 +626,8 @@ fn reviewed_holds(anchor: &str, owner: &str, reviews: &[Value], head: &Value, se
         ]
         .concat();
         verified(&vouched(head)?, &decoded(head, "signed")?, &said).ok()?;
-        Some(decoded(head, "reviews")? == reviews_hash(anchor, reviews)? && verdict_of(head, served) == "holds")
+        let arrival = serde_json::json!({ "received": served["reviewed_received"], "revocations": served["revocations"] });
+        Some(decoded(head, "reviews")? == reviews_hash(anchor, reviews)? && matches!(verdict_of(head, &arrival), "holds" | "retired"))
     };
     holds().unwrap_or(false)
 }
@@ -649,7 +647,7 @@ fn languages_shown(said: &Value) -> Vec<String> {
     let mut latest: HashMap<&str, &Value> = HashMap::new();
     for one in reviews.iter().filter(|_| counting) {
         let of = one["of"].as_str().unwrap();
-        if review_holds(anchor, owner, &anchor_key, one, served) && newer_review(one, latest.get(of)) {
+        if review_holds(anchor, owner, &anchor_key, one) && newer_review(one, latest.get(of)) {
             latest.insert(of, one);
         }
     }
@@ -678,10 +676,10 @@ fn a_review_holds_only_as_the_anchor_owner_signed_it() {
     let (anchor, owner) = (said["anchor"].as_str().unwrap(), said["owner"].as_str().unwrap());
     let anchor_key = b64(&said["link_key"]);
     for one in said["cases"].as_array().unwrap() {
-        assert_eq!(review_holds(anchor, owner, &anchor_key, &one["review"], &Value::Null), one["holds"].as_bool().unwrap(), "{}", one["says"]);
+        assert_eq!(review_holds(anchor, owner, &anchor_key, &one["review"]), one["holds"].as_bool().unwrap(), "{}", one["says"]);
         let mut garbled = one["review"].clone();
         garbled["since"] = Value::String("x".into());
-        assert!(!review_holds(anchor, owner, &anchor_key, &garbled, &Value::Null), "{}", one["says"]);
+        assert!(!review_holds(anchor, owner, &anchor_key, &garbled), "{}", one["says"]);
     }
 }
 

@@ -209,6 +209,7 @@ fn nothing_served() -> Served {
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     }
 }
 

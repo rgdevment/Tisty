@@ -177,6 +177,7 @@ export interface Translation {
   title?: string;
   key?: string;
   edit?: string;
+  pending?: boolean;
 }
 
 /** A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]]. */
@@ -259,6 +260,7 @@ export interface Served {
   received?: string;
   revocations?: Revocation[];
   reviewed?: Reviewed;
+  reviewed_received?: string;
 }
 
 /** Another document shared along with this one. It keeps its own envelopes, because it is not part of this document. */

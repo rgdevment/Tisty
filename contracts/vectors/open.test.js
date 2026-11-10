@@ -319,12 +319,11 @@ const reviewBytes = (anchor, review) => {
   return joined(words("tisty-share.signed.v1\0"), b64(review.root), b64(review.machine), ...sized(about), ...sized(words(anchor)), b64(review.of), be(review.seq), new Uint8Array([review.kept ? 1 : 0]), ...naming);
 };
 
-const reviewHolds = async (anchor, owner, anchorKey, review, served = {}) => {
+const reviewHolds = async (anchor, owner, anchorKey, review) => {
   try {
     if (review.root !== owner) return false;
     await verified(await vouched(review), b64(review.signed), reviewBytes(anchor, review));
-    if (review.kept && !same(b64(review.of), await ofLanguage(anchorKey, review.document))) return false;
-    return (await verdictOf(review, served)) === "holds";
+    return !review.kept || same(b64(review.of), await ofLanguage(anchorKey, review.document));
   } catch {
     return false;
   }
@@ -342,7 +341,8 @@ const reviewedHolds = async (anchor, owner, reviews, head, served = {}) => {
     const about = words("reviewed");
     const said = [words("tisty-share.signed.v1\0"), b64(head.root), b64(head.machine), ...sized(about), ...sized(words(anchor)), be(head.seq), b64(head.reviews)];
     await verified(await vouched(head), b64(head.signed), ...said);
-    return same(b64(head.reviews), await reviewsHash(anchor, reviews)) && (await verdictOf(head, served)) === "holds";
+    const weighed = await verdictOf(head, { received: served.reviewed_received, revocations: served.revocations });
+    return same(b64(head.reviews), await reviewsHash(anchor, reviews)) && (weighed === "holds" || weighed === "retired");
   } catch {
     return false;
   }
@@ -355,7 +355,7 @@ const languagesShown = async ({ anchor, owner, link_key, map, languages, reviews
   const counting = (await reviewedHolds(anchor, owner, reviews, served.reviewed, served)) && served.reviewed.seq >= seen;
   const latest = new Map();
   for (const one of counting ? reviews : []) {
-    if ((await reviewHolds(anchor, owner, anchorKey, one, served)) && newerReview(one, latest.get(one.of))) latest.set(one.of, one);
+    if ((await reviewHolds(anchor, owner, anchorKey, one)) && newerReview(one, latest.get(one.of))) latest.set(one.of, one);
   }
   const kept = [...latest.values()].filter((one) => one.kept);
   const reached = new Set([...languages.filter((one) => one.root === owner && map.includes(one.document)).map((one) => one.document), ...kept.map((one) => one.document)]);

@@ -333,6 +333,8 @@ pub struct Translation {
     pub key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<bool>,
 }
 
 /// A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
@@ -434,6 +436,8 @@ pub struct Served {
     pub revocations: Option<Vec<Revocation>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reviewed: Option<Reviewed>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_received: Option<String>,
 }
 
 /// Another document shared along with this one. It keeps its own envelopes, because it is not part of this document.

@@ -68,6 +68,7 @@ fn what_it_seals_says_which_terms_its_signer_accepted() {
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
 
     let opened = reading::opened(&sealed.going[0].sealed.main, &opening, &served).unwrap();
@@ -227,6 +228,7 @@ fn whoever_holds_the_edit_link_sends_a_version_under_the_same_owner() {
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
     let main = &first.going[0].sealed.main;
     let block = reading::owner_block(&reading::opened(main, &opening, &served).unwrap());
@@ -422,6 +424,7 @@ fn every_version_names_who_edited_it_and_the_owner_keeps_them_when_it_sends_agai
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
     let main = &first.going[0].sealed.main;
     let one = reading::reading(main, &opening, &served).unwrap();
@@ -503,6 +506,7 @@ fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
     let main = &first.going[0].sealed.main;
     let one = reading::reading(main, &opening, &served).unwrap();
@@ -577,6 +581,7 @@ fn what_is_public_names_no_editor() {
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
     let read = reading::reading(&sealed.going[0].sealed.main, &opening, &served).unwrap();
     assert!(read.document.get("editors").is_none());
@@ -702,6 +707,7 @@ fn the_map(sealed: &tisty_sharing::Sealed, anchor: &Remembered) -> serde_json::V
         received: None,
         revocations: None,
         reviewed: None,
+        reviewed_received: None,
     };
     reading::reading(&going.sealed.main, &opening, &served)
         .unwrap()

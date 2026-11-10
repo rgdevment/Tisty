@@ -1761,7 +1761,179 @@
       "shown": []
     },
     {
-      "says": "a review from a machine its owner revoked",
+      "says": "a word from a machine its owner revoked after the word arrived, which counts as retired",
+      "anchor": "anclaDoc",
+      "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
+      "languages": [
+        {
+          "document": "anaEnglish",
+          "lang": "en",
+          "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM"
+        }
+      ],
+      "reviews": [
+        {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      ],
+      "served": {
+        "received": "2026-11-06T00:00:00Z",
+        "revocations": [
+          {
+            "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+            "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+            "at": "2026-11-05T00:00:00Z",
+            "signed": "n1rwFRIxXngglJ3htlz_YPbyJFd2xDWslbouYuGYR1UwkHsYzsNXA_t5KE_5girlGyzi9zK3G8273ixz4_UgAA"
+          }
+        ],
+        "reviewed": {
+          "anchor": "anclaDoc",
+          "seq": 1,
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
+        },
+        "reviewed_received": "2026-11-04T00:00:00Z"
+      },
+      "shown": [
+        "anaEnglish"
+      ]
+    },
+    {
+      "says": "a word from a machine its owner had revoked before it arrived",
+      "anchor": "anclaDoc",
+      "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
+      "languages": [
+        {
+          "document": "anaEnglish",
+          "lang": "en",
+          "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM"
+        }
+      ],
+      "reviews": [
+        {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      ],
+      "served": {
+        "received": "2026-11-04T00:00:00Z",
+        "revocations": [
+          {
+            "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+            "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+            "at": "2026-11-05T00:00:00Z",
+            "signed": "n1rwFRIxXngglJ3htlz_YPbyJFd2xDWslbouYuGYR1UwkHsYzsNXA_t5KE_5girlGyzi9zK3G8273ixz4_UgAA"
+          }
+        ],
+        "reviewed": {
+          "anchor": "anclaDoc",
+          "seq": 1,
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
+        },
+        "reviewed_received": "2026-11-06T00:00:00Z"
+      },
+      "shown": []
+    },
+    {
+      "says": "a word from a revoked machine, with no word of when it arrived",
+      "anchor": "anclaDoc",
+      "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+      "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
+      "map": [
+        "anaEnglish"
+      ],
+      "languages": [
+        {
+          "document": "anaEnglish",
+          "lang": "en",
+          "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM"
+        }
+      ],
+      "reviews": [
+        {
+          "of": "2ZoRo3ydjZtKK7g0JP5fuGd9q1TkB9wL7-GO243d4XE",
+          "kept": true,
+          "document": "anaEnglish",
+          "lang": "en",
+          "title": "Walks",
+          "key": "ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM",
+          "print": "49G68ReT-v_Q24QCk7rUGA2mIIPUFyQs0rhpTaBXlkM",
+          "seq": 1,
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "yWoaagiVlgAxXh_btvTOmVPgOpG2-MMAS-4cK8uoX90EaFNTkPSFKSct_hLOBG2Bl75Rw3gUzjIhB262GIwTCg"
+        }
+      ],
+      "served": {
+        "received": "2026-11-04T00:00:00Z",
+        "revocations": [
+          {
+            "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+            "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+            "at": "2026-11-05T00:00:00Z",
+            "signed": "n1rwFRIxXngglJ3htlz_YPbyJFd2xDWslbouYuGYR1UwkHsYzsNXA_t5KE_5girlGyzi9zK3G8273ixz4_UgAA"
+          }
+        ],
+        "reviewed": {
+          "anchor": "anclaDoc",
+          "seq": 1,
+          "reviews": "xk8ECm2K0PurT9UuGHPYnQ4xflQ7Z0N5MX5fjK8wdoM",
+          "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+          "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "since": "2026-11-03T12:00:00Z",
+          "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+          "signed": "PsjN-5z1kVVExHjSGWNp1bR7nCW8rFtL7aofrnckhAuRLe1nLk3lVVQ6nr8jx5mwKBkl9GjQSeEnkYlE0iSJCA"
+        }
+      },
+      "shown": []
+    },
+    {
+      "says": "a review from a revoked machine, under a word from one the owner still answers for",
       "anchor": "anclaDoc",
       "owner": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
       "link_key": "ERERERERERERERERERERERERERERERERERERERERERE",
@@ -1812,9 +1984,12 @@
           "since": "2026-11-03T12:00:00Z",
           "certificate": "9oZ98hSCYNpsOP3dQb-_WrhEKvrop25NR2QtTtEfQnJpitkd-JXBEyaJtEBeDET4Y61zWqMvEqjgCrPbKHA8Bw",
           "signed": "nOEqngDP5NVmpoxcYhT5A5icIzaAhwVKzcU_XZeZ8LcsRFabvPNBqh4GhViHuXTr5jd1Q2zbiA-AHcRaE9oVBQ"
-        }
+        },
+        "reviewed_received": "2026-11-06T00:00:00Z"
       },
-      "shown": []
+      "shown": [
+        "anaEnglish"
+      ]
     }
   ],
   "verdicts": [

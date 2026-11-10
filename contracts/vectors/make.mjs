@@ -450,7 +450,7 @@ const reviewedSaid = [
   { says: "the word of someone who edits", holds: false, head: await reviewedHead({ anchor: ANCHOR, seq: 2, reviews: reviewedOver, by: ANA }) },
 ];
 const MARIO_ELSEWHERE = await person(0x33, 0x45);
-const shownWith = async ({ says, languages, map = languages, reviews, seq = 1, head = reviews, headBy = MARIO, seen, served = {}, shown }) => ({
+const shownWith = async ({ says, languages, map = languages, reviews, seq = 1, head = reviews, headBy = MARIO, arrived, seen, served = {}, shown }) => ({
   says,
   anchor: ANCHOR,
   owner: OWNER,
@@ -458,7 +458,7 @@ const shownWith = async ({ says, languages, map = languages, reviews, seq = 1, h
   map: map.map((one) => one.document),
   languages,
   reviews,
-  served: head === null ? served : { ...served, reviewed: await reviewedHead({ anchor: ANCHOR, seq, reviews: head, by: headBy }) },
+  served: head === null ? served : { ...served, reviewed: await reviewedHead({ anchor: ANCHOR, seq, reviews: head, by: headBy }), ...(arrived === undefined ? {} : { reviewed_received: arrived }) },
   ...(seen === undefined ? {} : { seen }),
   shown: shown.map((one) => one.document),
 });
@@ -480,12 +480,36 @@ const languagesShown = [
   await shownWith({ says: "a word as high as the one this reader saw", languages: [anasEnglish], reviews: [await kept()], seq: 2, seen: 2, shown: [anasEnglish] }),
   await shownWith({ says: "a review signed by someone who edits", languages: [anasEnglish], reviews: [await kept(1, { by: ANA })], shown: [] }),
   await shownWith({
-    says: "a review from a machine its owner revoked",
+    says: "a word from a machine its owner revoked after the word arrived, which counts as retired",
+    languages: [anasEnglish],
+    reviews: [await kept()],
+    arrived: BEFORE,
+    served: { received: AFTER, revocations: [await revocation(root, machine, AT)] },
+    shown: [anasEnglish],
+  }),
+  await shownWith({
+    says: "a word from a machine its owner had revoked before it arrived",
+    languages: [anasEnglish],
+    reviews: [await kept()],
+    arrived: AFTER,
+    served: { received: BEFORE, revocations: [await revocation(root, machine, AT)] },
+    shown: [],
+  }),
+  await shownWith({
+    says: "a word from a revoked machine, with no word of when it arrived",
+    languages: [anasEnglish],
+    reviews: [await kept()],
+    served: { received: BEFORE, revocations: [await revocation(root, machine, AT)] },
+    shown: [],
+  }),
+  await shownWith({
+    says: "a review from a revoked machine, under a word from one the owner still answers for",
     languages: [anasEnglish],
     reviews: [await kept()],
     headBy: MARIO_ELSEWHERE,
+    arrived: AFTER,
     served: { received: AFTER, revocations: [await revocation(root, machine, AT)] },
-    shown: [],
+    shown: [anasEnglish],
   }),
 ];
 const swapManifest = (bytes, change, signed) => {
