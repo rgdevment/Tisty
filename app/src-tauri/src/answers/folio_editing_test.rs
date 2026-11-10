@@ -121,17 +121,17 @@ fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
     let said = serde_json::to_value(&card).unwrap();
     assert_eq!(
         said["owner"],
-        serde_json::json!({ "name": "Mario Hidalgo", "checked": false })
+        serde_json::json!({ "name": "Mario Hidalgo", "checked": false, "print": null })
     );
     assert_eq!(
         said["signer"],
-        serde_json::json!({ "name": "Ana", "checked": false })
+        serde_json::json!({ "name": "Ana", "checked": false, "print": null })
     );
     assert_eq!(
         said["editors"],
         serde_json::json!([
-            { "name": "Ana", "checked": false },
-            { "name": "Juan", "checked": true },
+            { "name": "Ana", "checked": false, "print": null },
+            { "name": "Juan", "checked": true, "print": null },
         ])
     );
 
@@ -170,6 +170,41 @@ fn whoever_signs_with_the_makers_name_under_another_root_is_not_checked() {
     };
     let who = who_of(&was, Some("mario-root"));
     assert!(who.signer.is_some_and(|one| !one.checked));
+}
+
+#[test]
+fn everyone_named_on_a_copy_carries_the_fingerprint_their_security_shows() {
+    let person = |byte| {
+        tisty_share_proto::seed::Seed::from_bytes(&[byte; 32])
+            .root()
+            .person()
+    };
+    let (mario, ana, juan) = (person(1), person(2), person(3));
+    let was = Remembered {
+        owner: Some(serde_json::json!({ "root": mario.shown() }).to_string()),
+        carried: edited(&[
+            ("Ab3xK9pQ", &ana.shown(), "Ana", false),
+            ("Ab3xK9pQ", &juan.shown(), "Juan", false),
+        ]),
+        version_root: Some(ana.shown()),
+        ..arrived(None, None, None)
+    };
+
+    let who = who_of(&was, None);
+
+    assert_eq!(
+        who.owner.and_then(|one| one.print),
+        Some(mario.fingerprint())
+    );
+    assert_eq!(
+        who.signer.and_then(|one| one.print),
+        Some(ana.fingerprint())
+    );
+    let editors: Vec<_> = who.editors.into_iter().map(|one| one.print).collect();
+    assert_eq!(
+        editors,
+        vec![Some(ana.fingerprint()), Some(juan.fingerprint())]
+    );
 }
 
 #[test]

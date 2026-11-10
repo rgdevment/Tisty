@@ -79,6 +79,7 @@ export interface ShareLook {
 export interface Named {
   name: string;
   checked: boolean;
+  print: string | null;
 }
 
 export interface ShareCard {

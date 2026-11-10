@@ -420,6 +420,13 @@ details[open] > .side-row-head::after {
 .side-said {
   margin: 0 0 10px;
 }
+.side-prints {
+  margin: 0 0 10px;
+}
+.side-prints dd {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
 .side-held {
   display: flex;
   flex-direction: column;

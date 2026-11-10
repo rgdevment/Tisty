@@ -51,6 +51,13 @@ export type Facts = {
   readonly tags?: readonly { readonly name: string; readonly times: number }[];
 };
 
+/** Each person beside the fingerprint their own Settings › Security shows, to compare elsewhere. */
+export type Prints = {
+  readonly label: string;
+  readonly note: string;
+  readonly rows: readonly (readonly [string, string])[];
+};
+
 export type Act = {
   readonly key: string;
   readonly label: string;
@@ -101,6 +108,7 @@ export type Panel =
       readonly gist: string;
       readonly tone?: "warn" | "bad";
       readonly said?: readonly string[];
+      readonly prints?: Prints;
       readonly links?: readonly Held[];
       readonly acts?: readonly Act[];
       readonly open?: boolean;

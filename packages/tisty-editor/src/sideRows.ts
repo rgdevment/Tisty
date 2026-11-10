@@ -1,5 +1,5 @@
 import type { Say } from "tisty-sheet";
-import type { Act, Facts, Held, More } from "./side";
+import type { Act, Facts, Held, More, Prints } from "./side";
 import { wordsIn } from "./side";
 import { listed, made, pressed, rowed } from "./sideParts";
 
@@ -89,10 +89,21 @@ const linked = (page: Document, held: Held) => {
   return link;
 };
 
+const printed = (page: Document, prints: Prints) => {
+  const part = made(page, "section", "side-part side-prints");
+  part.append(
+    made(page, "h4", "side-label", prints.label),
+    listed(page, prints.rows),
+    made(page, "p", "side-held-note", prints.note),
+  );
+  return part;
+};
+
 const heldRow = (page: Document, panel: Of<"held">) => {
   const line = { key: panel.key, label: panel.label, gist: panel.gist, open: panel.open };
   const row = rowed(page, line, (into) => {
     for (const said of panel.said ?? []) into.append(made(page, "p", "side-said", said));
+    if (panel.prints?.rows.length) into.append(printed(page, panel.prints));
     for (const one of panel.links ?? []) into.append(linked(page, one));
     if (panel.acts?.length) {
       const acts = made(page, "div", "side-acts is-inside");

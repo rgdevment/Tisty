@@ -779,6 +779,11 @@ const en = {
   sharedVersionBy: "Last edited by {name}",
   sharedEditedBy: "Edited by: {name}",
   sharedChecked: "{name} ✓",
+  sharedPrints: "Fingerprints",
+  sharedPrintOwner: "{name} · owner",
+  sharedPrintSigner: "{name} · last edit",
+  sharedPrintsWhy:
+    "Ask each person, through another channel, for the fingerprint in their Settings › Security, and compare.",
   folioChanged: "The document changed while you chose, so it was looked over again.",
   shareTermsUnchecked:
     "Folio's new terms could not be verified. You can keep sharing under the ones you accepted.",
@@ -3797,6 +3802,11 @@ const es: Catalog = {
   sharedVersionBy: "Última edición: {name}",
   sharedEditedBy: "Editado por: {name}",
   sharedChecked: "{name} ✓",
+  sharedPrints: "Huellas",
+  sharedPrintOwner: "{name} · dueño",
+  sharedPrintSigner: "{name} · última edición",
+  sharedPrintsWhy:
+    "Pídele a cada persona, por otro canal, la huella que ve en Configuración › Seguridad, y compárala.",
   folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTermsUnchecked:
     "No se pudieron verificar los términos nuevos de Folio. Puedes seguir compartiendo con los que aceptaste.",
