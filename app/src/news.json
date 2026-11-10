@@ -1370,5 +1370,56 @@
         "said": "another person's computer in your synced folder can no longer take your Tisty over, and a computer that was joining no longer asks to be confirmed again if Tisty's temporary files are cleared."
       }
     ]
+  },
+  {
+    "version": "1.45.0",
+    "headline": {
+      "es": "Tus paquetes salen firmados, y la barra lateral le da espacio a tus tareas o a tus documentos",
+      "en": "Your parcels go out signed, and the sidebar gives its room to your tasks or your documents"
+    },
+    "es": [
+      {
+        "title": "Paquetes con tu firma",
+        "said": "cuando ya tienes tu identidad, lo que exportas para Tisty sale firmado con tu llave. Otro Tisty tuyo lo recibe como tuyo, el de otra persona ve tu nombre y tu huella, y si algo cambió en el camino entra como de alguien sin nombre."
+      },
+      {
+        "title": "El número ya no basta",
+        "said": "un paquete cerrado de otra persona ya no entra como tuyo solo por saber sus seis dígitos. Si no trae firma, Tisty te pregunta si lo cerraste tú."
+      },
+      {
+        "title": "Quién lo editó viaja con él",
+        "said": "un documento que compartiste por Folio lleva en el paquete quién lo editó, y sus detalles los muestran con la huella de cada uno, según quien te pasó el archivo."
+      },
+      {
+        "title": "Una barra lateral con dos caras",
+        "said": "arriba están tus tareas, con la búsqueda, la fecha y los conteos del día, y lo vencido y lo atrasado abren su propia vista. Le das el espacio a tus tareas, con tus listas y etiquetas, o a tu biblioteca, con su propio filtro, y la que cede sigue a la vista."
+      },
+      {
+        "title": "Color desde el primer día",
+        "said": "las primeras listas nacen con su color, y las carpetas de la guía y de los diagramas con su icono."
+      }
+    ],
+    "en": [
+      {
+        "title": "Parcels with your signature",
+        "said": "once you have your identity, what you export for Tisty goes out signed with your key. Another Tisty of yours takes it as yours, someone else's shows your name and your fingerprint, and if anything changed on the way it comes in as a stranger's."
+      },
+      {
+        "title": "The number is no longer enough",
+        "said": "someone else's locked parcel no longer comes in as yours just because you know its six digits. When it carries no signature, Tisty asks whether you locked it."
+      },
+      {
+        "title": "Who edited it travels with it",
+        "said": "a document you shared through Folio carries in the parcel who edited it, and its details show them with each one's fingerprint, as whoever handed you the file tells it."
+      },
+      {
+        "title": "A sidebar with two faces",
+        "said": "your tasks sit on top, with search, the date and the day's counts, and overdue and late open a view of their own. You give the room to your tasks, with your lists and tags, or to your library, with its own filter, and the one that steps back stays in sight."
+      },
+      {
+        "title": "Colour from day one",
+        "said": "the first lists are born with a colour of their own, and the guide's and the diagrams' folders with their icon."
+      }
+    ]
   }
 ]

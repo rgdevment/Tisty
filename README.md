@@ -438,12 +438,13 @@ checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
 **The tree opens quiet and closes whole.** Every folder starts folded, so a store
-with hundreds of documents is a handful of rows until you go looking. When work
-is over you archive the folder itself, not its documents one by one: it drops to
-the shelf at the foot of the tree with its icon, its subfolders and its pages
-exactly as you left them, closed to writing and to anything new coming in. Bring
-it back and it returns the same — including whichever documents you had archived
-by hand in there, which stay archived because nobody said otherwise.
+with hundreds of documents is a handful of rows until you go looking, and the
+Library's filter keeps only what matches, with the folders above it open. When
+work is over you archive the folder itself, not its documents one by one: it
+drops to the shelf at the foot of the tree with its icon, its subfolders and its
+pages exactly as you left them, closed to writing and to anything new coming in.
+Bring it back and it returns the same — including whichever documents you had
+archived by hand in there, which stay archived because nobody said otherwise.
 
 **A page is put away on its own without leaving its document.** A long thing in
 parts — a year of minutes, a book by chapters — is one document holding pages,

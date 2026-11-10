@@ -41,7 +41,7 @@ How a task's page, steps and parts work is in [[Tasks]]; what a closed one keeps
 
 ## Making one
 
-Go to Documents and use the **+** at the top: **New document**. The same button inside a folder makes it there. **New diagram** makes a document holding a diagram and opens the [[diagram window|Diagrams]]. **New folder** groups them, and a folder can hold folders of its own.
+In the sidebar's **Library**, use the **+** in its header: **New document**. The same button inside a folder makes it there. **New diagram** makes a document holding a diagram and opens the [[diagram window|Diagrams]]. **New folder** groups them, and a folder can hold folders of its own.
 
 The first line of the document is its title — there is no name to fill in.
 
@@ -50,6 +50,7 @@ The first line of the document is its title — there is no name to fill in.
 ## Folders
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.
+- **The filter** in the Library's header keeps only the folders and documents whose name holds what you type, accents and case aside, with the folders above each one open; a folder that matches keeps all it holds. `Esc` closes it.
 - **Archive a whole folder** with the right button when work is over: it drops to the **Archived** shelf at the foot of the tree with its icon, subfolders and pages exactly as you left them. There it reads and exports, but nothing writes into it and nothing new goes in.
 - **Bring it back** and it returns the same — including documents you had archived by hand in there, which stay archived.
 
