@@ -299,9 +299,33 @@ Being explicit here matters more than sounding reassuring.
   both land as what they are, but the mark arrives without the machine that wrote
   it, because a parcel goes to other people.
 
-  What a parcel cannot do is prove who wrote what: anyone can edit the manifest
-  in a zip, and a name in a parcel is a claim, not a signature. What it can prove
-  is which store wrote it. Every store keeps a secret apart from its name — the
+  A parcel goes out signed once this computer has your identity. The key your
+  root vouches for — the same one, under the same certificate, that signs what
+  you share through Folio — signs an entry of its own, `tisty-docs.signed.json`,
+  over the manifest's bytes exactly as written, the SHA-256 of every file under
+  `docs/` and `attachments/`, and the name you sign with, each part prefixed with
+  its length. Nothing is canonicalised. Opening it, every file is hashed as it is
+  written out, a name that comes twice breaks the signature, and the signature is
+  checked against those bytes and against the keys your log says were taken
+  back. Signed by the person this store belongs to, it lands as theirs, locked or
+  not; signed by another root, as that person's writing, with their fingerprint;
+  a signature that does not hold, a key taken back, or a file changed, added or
+  missing makes it a stranger's. A signed name that hides a letter, or one like
+  the maker's under another root, is not shown. A signed parcel carries neither
+  the store's name nor its seal, which would tie together every parcel the store
+  wrote. A Tisty with no phrase yet asks before a signed parcel lands, and one
+  opened anyway lands as the signer's for good.
+
+  A signed parcel also carries, for each document that was shared, who edited it
+  through Folio and which Folio document that was. Each entry is read again on
+  arrival, kept only if it was signed for that document and its own signature
+  holds, and stripped to its own fields, at most 64 of them. What the details
+  show is the signer's word for the list, «as {name} tells it», beside each
+  fingerprint; nothing here checks whether those keys were taken back since.
+
+  Without a signature, a name in a parcel is a claim: anyone can edit the
+  manifest in a zip. What an unsigned parcel can prove is which store wrote it.
+  Every store keeps a secret apart from its name — the
   name travels in every parcel, the secret never leaves the machine, and it is
   kept outside the store so that nothing walking it, neither a sync nor a backup,
   can carry it off — and the manifest carries an HMAC of itself under it. So a
@@ -333,13 +357,15 @@ Being explicit here matters more than sounding reassuring.
   its secret left exactly where it is. Nothing is moved out of a store that this
   install cannot account for.
 
-  The one parcel that carries proof is the one you lock. Exporting everything to
+  Locking keeps a parcel from whoever finds the file. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over
   64 KiB blocks, under a key scrypt grinds out of that number, with each block's
   nonce carrying its count and a last-block byte, so a file cut short will not
-  open as a whole one. Opening it is the proof — nobody who lacks the number can
-  claim what is inside as their own writing — and what was somebody else's where
-  it was packed stays theirs at the other end. Lose the number and the parcel is
+  open as a whole one. The number does not decide whose it is: the signature
+  does, and a locked parcel with no signature asks, once it opens, whether you
+  locked it — yes lands it as yours, no as a stranger's — while what was
+  somebody else's where it was packed stays theirs either way. Lose the number
+  and the parcel is
   gone: nothing here can open it for you. A short number is a short number, and
   scrypt only makes each guess expensive rather than impossible.
 

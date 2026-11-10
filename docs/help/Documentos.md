@@ -125,7 +125,13 @@ Un documento sale entero; cada conversión está en [Convertir a y desde Markdow
 - **Exportar para Tisty** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
-Exportarlos todos pregunta para quién son: **abiertos**, **para entregárselos a alguien**, o **cerrados con seis dígitos para otro equipo tuyo**, que es lo que hace que lleguen ahí como tuyos y no como de un extraño, salvo los firmados con un alias que ese Tisty nunca usó. Los abiertos llegan como de otra persona, aunque los hayas escrito tú, y firmarlos después no los hace tuyos: para llevar tus documentos, ciérralos. En cualquier caso, ni una línea de la historia viaja dentro.
+Exportarlos todos pregunta para quién son: **Para dárselo a alguien**, que sale abierto y lo lee quien tenga el archivo, o **Para otro equipo mío**, que sale cerrado con seis dígitos para que nadie más lo lea. Un documento o una carpeta salen abiertos sin preguntar.
+
+Cuando ya tienes tu identidad (**Configuración › Seguridad**), todo paquete sale firmado con tu llave. Otro Tisty tuyo lo toma como tuyo, cerrado o no. El de otra persona lo toma como escrito por ti y muestra tu nombre con tu huella, para que pueda compararla con la que tú ves. Si algo de adentro cambió en el camino, entra como de un extraño y Tisty avisa que la firma no calza. Un Tisty que todavía no tiene frase pregunta antes de abrir un paquete firmado: escribe primero tu frase, en **Configuración › Seguridad**, y llega como tuyo; si lo abres igual, llega como de quien lo firmó, para siempre.
+
+Sin tu identidad, el paquete sale sin firma. Uno abierto entra como de otra persona, aunque lo hayas escrito tú, salvo en el mismo almacén que lo hizo. Uno cerrado pregunta, cuando el número lo abre, si lo cerraste tú: **Lo cerré yo** lo trae como tuyo, **Me lo dio otra persona** como de un extraño.
+
+Un paquete firmado lleva además quién editó cada documento que compartiste por Folio. Los detalles del documento los muestran en **Quién lo editó**, cada uno con su huella, según quien te pasó el paquete; nada comprueba si esas llaves se retiraron después. En cualquier caso, ni una línea de la historia viaja dentro.
 
 ## Compartir
 
