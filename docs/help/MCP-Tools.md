@@ -47,7 +47,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `outline_doc` | What is in a document: its headings and parts, and the signs it wants tidying — documents titled alike, headings repeated across pages, links that lead nowhere |
 | `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below) |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
-| `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of a document |
+| `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, rewrite its own notes whole with `replace` |
 | `edit_doc` | Change one passage of a document |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
