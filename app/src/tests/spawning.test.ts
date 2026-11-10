@@ -34,6 +34,7 @@ import { startOf } from "tisty-diagrams/read";
 import type { Folded } from "../core";
 import { adopt, t } from "../locales";
 import { DIAGRAMS_HUE, DIAGRAMS_ICON, drafted, placeOf, spawned } from "../making";
+import { above } from "./above";
 
 beforeEach(() => {
   store.folders = [];
@@ -123,7 +124,7 @@ describe("making a document for a new diagram", () => {
 });
 
 describe("the diagrams' folder as the core knows it", () => {
-  const core = readFileSync("../crates/tisty-core/src/dressing.rs", "utf8");
+  const core = readFileSync(above("crates/tisty-core/src/dressing.rs"), "utf8");
   const constant = (name: string) => core.match(new RegExp(`${name}: &str = "([^"]+)"`))?.[1];
 
   it("wears the look the core dresses it in", () => {
