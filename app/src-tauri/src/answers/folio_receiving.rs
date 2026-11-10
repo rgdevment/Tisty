@@ -7,6 +7,7 @@ use tisty_contracts::{EnvelopeKind, Opening, Served, Verdict};
 use tisty_core::Op;
 use tisty_core::attach::{self, Via};
 use tisty_core::witness::{self, Fact, channel};
+use tisty_envelope::Translation;
 use tisty_envelope::reading::{self, Unopened};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
@@ -296,10 +297,74 @@ fn editable(link: &Link, opened: &Opened) -> bool {
     })
 }
 
-fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
+/// A document has at most twenty languages, its anchor among them (69 bis).
+const OTHER_LANGUAGES_AT_MOST: usize = 19;
+
+/// Every language the anchor's map names that Folio still serves, read before anything is kept.
+fn languages_brought(door: &dyn Door, opened: &Opened) -> Vec<(Translation, Opened)> {
+    let map: Vec<Translation> =
+        serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
+    map.into_iter()
+        .take(OTHER_LANGUAGES_AT_MOST)
+        .filter_map(|one| {
+            let key = one.key.clone()?;
+            match opened_from(door, &one.document, &key) {
+                Ok(its) => Some((one, its)),
+                Err(refused) => {
+                    witness::warn(
+                        channel::SYNC,
+                        "a language of a document arrived without being read, so it was left behind",
+                        &[("code", Fact::Code(refused.code))],
+                    );
+                    None
+                }
+            }
+        })
+        .collect()
+}
+
+// Only the anchor's edit link opens a language's token, and only one the language's owner names (166).
+fn language_link(link: &Link, one: &Translation, its: &Opened) -> Option<Link> {
+    let anchor = link.token.as_deref()?;
+    let key = one.key.clone()?;
+    let token = tisty_envelope::tokens::opened_with(anchor, &one.document, one.edit.as_deref()?)?;
+    super::folio_editing::named_by_the_block(its.owner.as_deref(), &token).then(|| Link {
+        id: one.document.clone(),
+        key,
+        token: Some(token),
+    })
+}
+
+// Languages join by what each says it is, so one that arrived without saying it in its words says it now.
+fn saying_its_language(mut arrived: Received, lang: Option<&str>) -> Received {
+    if let Some(lang) = lang.filter(|_| tisty_markdown::front::lang(&arrived.body).is_none()) {
+        arrived.body = tisty_markdown::front::with_field(&arrived.body, "lang", lang);
+    }
+    arrived
+}
+
+fn speaks(lang: Option<&str>, locale: Option<&str>) -> bool {
+    let first = |said: &str| {
+        said.split(['-', '_'])
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+    };
+    match (lang, locale) {
+        (Some(lang), Some(locale)) => first(lang) == first(locale),
+        _ => false,
+    }
+}
+
+fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<String> {
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
+    let languages = languages_brought(door, opened);
     let (received, told) = kept_here(&data, opened);
+    let received = match languages.is_empty() {
+        true => received,
+        false => saying_its_language(received, opened.document["lang"].as_str()),
+    };
     let by = received.owner_name.clone().or(received.signed_as.clone());
     let editable = editable(link, opened);
     let (doc, file) = {
@@ -317,7 +382,33 @@ fn taken_in(app: &AppHandle, link: &Link, opened: &Opened) -> Answer<String> {
         let entry = (file.clone(), entry_for(link, opened, &received));
         with_its_print(app, doc, entry);
     }
-    Ok(file)
+    let locale = held(&session).locale.clone();
+    let mut shown = file;
+    for (one, its) in languages {
+        let (arrived, told) = kept_here(&data, &its);
+        let arrived = saying_its_language(arrived, Some(&one.lang));
+        let by = arrived.owner_name.clone().or(arrived.signed_as.clone());
+        let (its_doc, its_file) = {
+            let mut session = held(&session);
+            session.commit_all(told)?;
+            let (its_doc, its_file) = guests_kept(&mut session, &arrived, by)?;
+            let joined = session.state.joining(its_doc, doc);
+            session.commit_all(joined)?;
+            (its_doc, its_file)
+        };
+        if let Some(its_link) = editable.then(|| language_link(link, &one, &its)).flatten() {
+            let mut entry = entry_for(&its_link, &its, &arrived);
+            entry.held_by = Some(link.id.clone());
+            held(&session).commit_all(tisty_sharing::sent(&[(its_file.clone(), entry.clone())]))?;
+            with_its_print(app, its_doc, (its_file.clone(), entry));
+        }
+        if speaks(Some(&one.lang), locale.as_deref())
+            && !speaks(opened.document["lang"].as_str(), locale.as_deref())
+        {
+            shown = its_file;
+        }
+    }
+    Ok(shown)
 }
 
 const DOMAIN_PATIENCE: std::time::Duration = std::time::Duration::from_secs(2);
@@ -444,7 +535,7 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
     if !asked_to_keep(app, &opened) {
         return Ok(None);
     }
-    taken_in(app, &link, &opened).map(Some)
+    taken_in(app, &door, &link, &opened).map(Some)
 }
 
 fn bring_one(app: &AppHandle, web: &url::Url) {
