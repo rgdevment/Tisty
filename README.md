@@ -18,7 +18,7 @@
 
   <p>
     <strong>English</strong> ·
-    <a href="README.es.md">Español</a>
+    <a href="LEEME.md">Español</a>
   </p>
 
   <p>
@@ -27,7 +27,7 @@
         src="https://img.shields.io/github/v/release/rgdevment/Tisty?style=flat-square&label=Latest&color=D9A13B"
         alt="Latest release"/>
     </a>
-    <a href="#an-assistant-if-you-use-one">
+    <a href="#mcp-server">
       <img
         src="https://img.shields.io/badge/MCP-Official_Registry-D9A13B?style=flat-square"
         alt="Tisty in the official MCP registry"/>
@@ -157,6 +157,8 @@ productivity tool** that lives on your machine and nowhere else.
 
 ## Table of Contents
 
+- [MCP Server](#mcp-server)
+- [Tools](#tools)
 - [Why I Built This](#why-i-built-this)
 - [What It Is / What It Isn't](#what-it-is--what-it-isnt)
 - [What Makes It Different](#what-makes-it-different)
@@ -178,6 +180,75 @@ productivity tool** that lives on your machine and nowhere else.
 - [Contributing](#contributing)
 - [Licence](#licence)
 - [Project health](#project-health)
+
+## MCP Server
+
+Tisty is also a **local MCP server for tasks, todos and notes**. Through it an
+assistant files tasks with steps, dates and reminders, writes and edits
+Markdown documents, and searches open and archived work — on your own disk,
+with no account, no API key and nothing sent over the network. It needs the
+Tisty app, from [Getting Started](#getting-started), and Node.js 18 or later
+for the launcher.
+
+The easiest way is **Settings › Assistants** in Tisty: it finds the assistants
+on this computer and connects the one you pick. By hand, any assistant that
+starts a server by command takes the `tisty-mcp` launcher from npm, which finds
+the Tisty installed here and starts its own server:
+
+```json
+{
+  "mcpServers": {
+    "tisty": {
+      "command": "npx",
+      "args": ["-y", "tisty-mcp"]
+    }
+  }
+}
+```
+
+| Assistant | Add Tisty |
+| --- | --- |
+| Claude Code | `/plugin install tisty --marketplace rgdevment/mcp-plugins` |
+| Claude Desktop | Settings › Developer › Edit Config, and add the JSON above |
+| Cursor | [Cursor Directory](https://cursor.directory/plugins), or the JSON above in `~/.cursor/mcp.json` |
+| VS Code | `code --add-mcp '{"name":"tisty","command":"npx","args":["-y","tisty-mcp"]}'` |
+| Gemini CLI | `gemini extensions install https://github.com/rgdevment/mcp-plugins` |
+| Codex | `codex mcp add tisty -- npx -y tisty-mcp` |
+
+Connect it one way, not both, so the assistant does not start Tisty twice, and
+restart the assistant afterwards. More in
+[Assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/).
+
+Things to ask once it is connected:
+
+- "Add a task to renew my passport before March, with the steps it takes."
+- "What is on my todo list this week, and what is overdue?"
+- "How did I fix the timeouts on save last year? Look in the archive too."
+- "Write a document with my notes from today's call and file it in Clients."
+- "Plan the release as tasks with steps, and tick them off as you go."
+- "Remind me of the dentist the evening before, at 8."
+
+## Tools
+
+What `tisty mcp` offers an assistant, by what it works on. It never closes or
+deletes: `say_done` leaves a task for you to confirm, and `flag_doc` leaves the
+deleting to you. Each tool is described in
+[MCP tools](https://www.tisty.app/docs/mcp-tools/).
+
+- **Tasks** — file one with steps and a date, plan and tick its steps, set
+  when it rings, move its day, say it is done: `propose`, `describe`, `plan`,
+  `tick`, `untick`, `reword_step`, `unplan`, `rename`, `move`, `remind`,
+  `reschedule`, `say_done`, `say_not_doing`, `read`
+- **A task's journal and files** — `note`, `reword_note`, `attach`
+- **Documents** — write one, add to it, change a passage or a table, read only
+  the part it needs: `write_doc`, `append_doc`, `edit_doc`, `edit_table`,
+  `read_doc`, `outline_doc`, `sum_up`, `restore_doc`, `import_doc`,
+  `export_doc`, `archive_doc`, `flag_doc`
+- **Folders, pages and languages** — `docs`, `folder`, `file_doc`, `page_doc`,
+  `tongue_doc`
+- **Finding things** — open and archived work, lists and tags: `find`,
+  `catch_up`, `lists`, `tags`
+- **How to work here** — `rules`, `language`, `help`
 
 ## Why I Built This
 
@@ -863,10 +934,11 @@ $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 Where `<your-assistant>` is whatever yours is called. That `tisty` is not a
 command line any more: it opens only the assistant's door. It speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no
-account, no token, nothing over the network. **You are the one who opens it.**
-The assistant appears in Settings › Assistants as a device you have to let in, and
-it stays a device you can throw out; until you do let it in, everything it
-tries is refused.
+account, no token, nothing over the network. **You hold the door.** It comes
+open on a new install, so an assistant you connect can work right away, and
+Settings › Assistants closes it with one click. While it is closed, everything
+an assistant tries is refused, and the window says who knocked — «Claude Code
+tried to come in» — with **Let it in** right there.
 
 While assistants have a voice, a stable Tisty also answers to the name `tisty`
 on your PATH — the Store and Homebrew put it there, and the installer's copy
