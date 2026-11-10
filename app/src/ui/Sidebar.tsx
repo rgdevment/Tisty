@@ -40,6 +40,7 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
+  onListMenu?: (list: List, at: { x: number; y: number }) => void;
   onSync?: () => Promise<unknown> | undefined;
   onTrouble?: (text: string) => void;
 }
@@ -65,6 +66,7 @@ export default function Sidebar({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  onListMenu,
   onSync,
   onTrouble,
 }: Props) {
@@ -126,6 +128,8 @@ export default function Sidebar({
             leaning={leaning}
             onLean={setLeaning}
             onChoose={onChoose}
+            acting={acting}
+            onListMenu={onListMenu}
             query={query}
             onSearch={onSearch ?? (() => onChoose({ named: "search" }))}
           />

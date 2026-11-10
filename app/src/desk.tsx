@@ -1,8 +1,9 @@
 import { createContext, useContext } from "react";
-import type { Filed, Folded, Snapshot, Task } from "./core";
+import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { layoutOf } from "./layout";
+import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import type { Mode, useWindow } from "./windowing";
@@ -27,6 +28,7 @@ export function deskOf(state: State, data: Snapshot) {
     setMakingFolder,
     setMakingDiagram,
     setRenaming,
+    setEditingList,
     noted,
     afoot,
     setMenu,
@@ -137,6 +139,24 @@ export function deskOf(state: State, data: Snapshot) {
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({ at, on: doc.id, label: t("docActions"), choices: docChoices(doc, hands) });
 
+  const listHands: ListHands = {
+    edit: setEditingList,
+    changed: load,
+    dropped: (list) => {
+      if (chosen.list === list) setChosen({ named: "lists" });
+      load();
+    },
+    fail: (e) => setError(saidPlainly(e)),
+  };
+
+  const listMenu = (list: List, at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      on: list.id,
+      label: t("listActions"),
+      choices: listChoices(list, data.counts[list.id] ?? 0, listHands),
+    });
+
   const shown = found?.tasks ?? (chosen.named === "search" ? [] : data.tasks);
 
   const shut = () => {
@@ -184,6 +204,8 @@ export function deskOf(state: State, data: Snapshot) {
     remember,
     wipe,
     hands,
+    listHands,
+    listMenu,
     hereMenu,
     folderMenu,
     docMenu,

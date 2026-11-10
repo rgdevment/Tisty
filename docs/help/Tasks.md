@@ -68,7 +68,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
-- **Overdue** and **Late** — only what is overdue, or only what is late, each opened from its count among the day's four at the top of the sidebar; while you are on one, it shows beside Today. The other two counts, **for today** and **ahead**, open Today and Upcoming.
+- **Overdue** and **Late** — only what is overdue, or only what is late, each opened from its count among the day's four at the top of the sidebar; while you are on one, it shows beside Today. The other two counts, **for today** and **ahead**, open Today and Upcoming. A count always opens over every list, even when you had narrowed the view to a few. Past 99, a count says **+99**, and the whole number waits on hover.
 
 There is no prize for emptying the list.
 
@@ -97,6 +97,8 @@ Two ways of sorting that do not compete:
 
 - A **list** says where it happens: `@home`, `@work`. A task belongs to one.
 - A **tag** says what it is about: `#health`, `#shopping`. A task carries as many as you like.
+
+Right-click a list in the sidebar to change its name, icon or colour, archive it once it is empty, or delete it.
 
 Tags are shared with [[documents|Documents]]: the Tags screen shows the tasks under a tag and the documents beneath them.
 

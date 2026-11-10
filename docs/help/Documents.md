@@ -51,6 +51,7 @@ The first line of the document is its title — there is no name to fill in.
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.
 - **The filter** in the Library's header keeps only the folders and documents whose name holds what you type, accents and case aside, with the folders above each one open; a folder that matches keeps all it holds. `Esc` closes it.
+- **When tasks take the room**, the Library shrinks to a card: how many documents were written today and this week, how many folders, how many an agent marked as having had their day, the three written last (click one to open it, right-click for its menu), and the top folders as tinted squares.
 - **Archive a whole folder** with the right button when work is over: it drops to the **Archived** shelf at the foot of the tree with its icon, subfolders and pages exactly as you left them. There it reads and exports, but nothing writes into it and nothing new goes in.
 - **Bring it back** and it returns the same — including documents you had archived by hand in there, which stay archived.
 

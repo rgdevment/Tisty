@@ -1,6 +1,7 @@
 import type { Counted, List } from "../core";
-import { todayLong } from "../format";
+import { capped, exactly, todayLong } from "../format";
 import { fill, t } from "../locales";
+import { keepOnly } from "../only";
 import type { Chosen, Lean, Named } from "../views";
 import DayCounts from "./DayCounts";
 import { FIND_KEY, FINDER } from "./finding";
@@ -23,6 +24,8 @@ interface Props {
   lists: List[];
   tags: Counted[];
   chosen: Chosen;
+  acting?: string | null;
+  onListMenu?: (list: List, at: { x: number; y: number }) => void;
   leaning: Lean;
   onLean: (on: Lean) => void;
   onChoose: (chosen: Chosen) => void;
@@ -35,6 +38,8 @@ export default function SideTasks({
   lists,
   tags,
   chosen,
+  acting,
+  onListMenu,
   leaning,
   onLean,
   onChoose,
@@ -64,8 +69,11 @@ export default function SideTasks({
           </button>
           <span className="truncate text-[11.5px] text-faint">{todayLong()}</span>
           {counts.tasks ? (
-            <span className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums">
-              {counts.tasks}
+            <span
+              title={exactly(counts.tasks)}
+              className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums"
+            >
+              {capped(counts.tasks)}
             </span>
           ) : null}
           <span className={counts.tasks ? "" : "ml-auto"}>
@@ -79,7 +87,10 @@ export default function SideTasks({
         <div className="mt-2">
           <DayCounts
             counts={counts}
-            onPick={(slice) => onChoose({ named: "tasks", slice, lists: chosen.lists })}
+            onPick={(slice) => {
+              keepOnly([]);
+              onChoose({ named: "tasks", slice });
+            }}
           />
         </div>
         <nav aria-label={t("tasksViews")} className="mt-2 flex gap-0.5 border-t border-hair pt-1">
@@ -109,7 +120,15 @@ export default function SideTasks({
         </nav>
       </div>
       {wide && (
-        <Wide counts={counts} lists={lists} tags={tags} chosen={chosen} onChoose={onChoose} />
+        <Wide
+          counts={counts}
+          lists={lists}
+          tags={tags}
+          chosen={chosen}
+          acting={acting}
+          onListMenu={onListMenu}
+          onChoose={onChoose}
+        />
       )}
     </div>
   );
@@ -120,6 +139,8 @@ function Wide({
   lists,
   tags,
   chosen,
+  acting,
+  onListMenu,
   onChoose,
 }: Omit<Props, "leaning" | "onLean" | "query" | "onSearch">) {
   const pane = useFades<HTMLDivElement>();
@@ -135,10 +156,15 @@ function Wide({
             key={one.id}
             type="button"
             onClick={() => onChoose({ named: "lists", list: one.id })}
+            onContextMenu={(e) => {
+              if (!onListMenu) return;
+              e.preventDefault();
+              onListMenu(one, { x: e.clientX, y: e.clientY });
+            }}
             aria-current={picked ? "page" : undefined}
             className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover ${
               picked ? "bg-active font-semibold text-ink" : "text-soft hover:text-ink"
-            }`}
+            } ${acting === one.id ? "bg-active" : ""}`}
           >
             <span className={`flex w-4 shrink-0 justify-center ${painted(one.color)}`}>
               {one.icon ? (
@@ -149,8 +175,11 @@ function Wide({
             </span>
             <span className="truncate">{one.name}</span>
             {counts[one.id] ? (
-              <span className="ml-auto text-[11.5px] font-normal text-faint tabular-nums">
-                {counts[one.id]}
+              <span
+                title={exactly(counts[one.id])}
+                className="ml-auto text-[11.5px] font-normal text-faint tabular-nums"
+              >
+                {capped(counts[one.id])}
               </span>
             ) : null}
           </button>
@@ -173,7 +202,11 @@ function Wide({
               }`}
             >
               #{one.tag}
-              {one.tasks ? <span className="text-faint tabular-nums">{one.tasks}</span> : null}
+              {one.tasks ? (
+                <span title={exactly(one.tasks)} className="text-faint tabular-nums">
+                  {capped(one.tasks)}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -196,7 +229,9 @@ function Head({ said, many }: { said: string; many: number }) {
   return (
     <p className="flex items-center gap-2 px-2.5 pt-3 pb-1 text-[11.5px] font-semibold text-soft">
       {said}
-      <span className="font-normal text-faint tabular-nums">{many || ""}</span>
+      <span title={exactly(many)} className="font-normal text-faint tabular-nums">
+        {many ? capped(many) : ""}
+      </span>
     </p>
   );
 }

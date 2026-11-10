@@ -51,6 +51,7 @@ export default function App() {
     folderMenu,
     docMenu,
     hereMenu,
+    listMenu,
     papered,
     lane,
     aside,
@@ -109,6 +110,7 @@ export default function App() {
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}
+          onListMenu={listMenu}
           onDocsMenu={(at) =>
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }

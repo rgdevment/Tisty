@@ -68,7 +68,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 - **Próximo**: lo que viene.
 - **Se repiten**: lo que vuelve por su cuenta.
 - **Todas**: todo lo abierto, sin filtro.
-- **Vencidas** y **Atrasadas**: solo lo vencido, o solo lo atrasado. Cada una se abre desde su cuenta entre las cuatro del día, arriba en la barra lateral, y mientras estás en ella aparece junto a Hoy. Las otras dos cuentas, **para hoy** y **por venir**, abren Hoy y Próximo.
+- **Vencidas** y **Atrasadas**: solo lo vencido, o solo lo atrasado. Cada una se abre desde su cuenta entre las cuatro del día, arriba en la barra lateral, y mientras estás en ella aparece junto a Hoy. Las otras dos cuentas, **para hoy** y **por venir**, abren Hoy y Próximo. Una cuenta siempre se abre sobre todas las listas, aunque hubieras filtrado la vista a algunas. Pasado 99, una cuenta dice **+99**, y el número completo aparece al pasar el puntero.
 
 No hay premios por vaciar la lista.
 
@@ -97,6 +97,8 @@ Dos formas de ordenar que no compiten:
 
 - Una **lista** dice dónde ocurre: `@casa`, `@trabajo`. Una tarea está en una sola.
 - Una **etiqueta** dice de qué va: `#salud`, `#compras`. Una tarea lleva las que quieras.
+
+Con clic derecho sobre una lista en la barra lateral cambias su nombre, icono o color, la archivas cuando queda vacía o la eliminas.
 
 Las etiquetas se comparten con los [[documentos|Documentos]]: la pantalla de Etiquetas muestra las tareas bajo una etiqueta y, debajo, los documentos.
 

@@ -19,6 +19,7 @@ import BringingBack from "./BringingBack";
 import Cheer from "./Cheer";
 import Closing from "./Closing";
 import DiagramMaking from "./DiagramMaking";
+import ListNaming from "./ListNaming";
 import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
@@ -71,12 +72,14 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     carries,
     data,
     dismiss,
+    editingList,
     error,
     greet,
     here,
     leaving,
     load,
     lookAgain,
+    listHands,
     lookPapers,
     makingFolder,
     makingDiagram,
@@ -94,6 +97,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     setAsked,
     setBehind,
     setChosen,
+    setEditingList,
     setError,
     setGreet,
     setGreeted,
@@ -266,6 +270,18 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
               })
               .catch((e) => setError(saidPlainly(e)))
           }
+        />
+      )}
+
+      {editingList && (
+        <ListNaming
+          key={editingList.id}
+          list={editingList}
+          held={data.counts[editingList.id] ?? 0}
+          onClose={() => setEditingList(null)}
+          onChanged={listHands.changed}
+          onDropped={listHands.dropped}
+          onError={listHands.fail}
         />
       )}
 

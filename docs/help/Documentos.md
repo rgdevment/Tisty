@@ -51,6 +51,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.
 - **El filtro** del encabezado de la Biblioteca deja solo las carpetas y los documentos cuyo nombre contiene lo que escribes, sin mirar acentos ni mayúsculas, con las carpetas de arriba de cada uno abiertas; una carpeta que coincide conserva todo lo que tiene. `Esc` lo cierra.
+- **Cuando las tareas toman el espacio**, la Biblioteca se reduce a una tarjeta: cuántos documentos se escribieron hoy y esta semana, cuántas carpetas hay, cuántos marcó un agente como pasados, los tres últimos escritos (un clic lo abre, el clic derecho trae su menú) y las carpetas principales como cuadros de color.
 - **Archiva una carpeta entera** con el botón derecho cuando el asunto terminó: baja al estante de **Archivados**, al pie del árbol, con su icono, sus subcarpetas y sus páginas tal como las dejaste. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo.
 - **Desarchívala** y vuelve igual, incluidos los documentos que habías archivado a mano ahí, que siguen archivados.
 

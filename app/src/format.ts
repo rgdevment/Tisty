@@ -57,6 +57,14 @@ export function stamped(iso: string, now = new Date()): string {
 // On paper a date is read later and elsewhere, so it says the whole day, never «today».
 export const numbered = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
+const SHOWN_UP_TO = 99;
+
+export const capped = (many: number): string =>
+  many > SHOWN_UP_TO ? `+${SHOWN_UP_TO}` : String(many);
+
+export const exactly = (many: number): string | undefined =>
+  many > SHOWN_UP_TO ? numbered(many) : undefined;
+
 export const wholeStamp = (at: Date): string => formats().whole.format(at);
 
 export const dayOf = (iso: string): string => formats().day.format(new Date(iso));
@@ -77,6 +85,15 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
   const away = daysFrom(spec.at, now);
   const named = Math.abs(away) <= 1 ? relative.format(away, "day") : day.format(at);
   return spec.has_time ? `${named} ${clock.format(at)}` : named;
+}
+
+export function brief(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  const away = daysFrom(iso, now);
+  if (away === 0) return formats().clock.format(at);
+  if (away === -1) return formats().relative.format(-1, "day");
+  return new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
 }
 
 export function shortStamp(iso: string): string {

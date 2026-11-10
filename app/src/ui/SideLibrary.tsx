@@ -1,17 +1,16 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
 import type { Filed, Folded, Papers } from "../core";
+import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
 import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
-import { painted } from "./Hue";
-import { fitting, useFades, useRoom } from "./room";
+import LibraryGlance from "./LibraryGlance";
+import { useFades } from "./room";
 import { Leaning } from "./SideTasks";
 import Tree from "./Tree";
-
-const SQUARE = 36;
 
 export type Revealed = { folder: string; at: number };
 
@@ -36,24 +35,27 @@ interface Props {
 }
 
 export default function SideLibrary(props: Props) {
-  const { papers, chosen, leaning, onLean, onReveal, onHere } = props;
+  const { papers, chosen, leaning, onLean, onReveal, onHere, onChoose } = props;
   const many = shown(papers.docs).filter((one) => !one.pageOf).length;
   const lit = chosen.named === "docs";
+  const library = () => {
+    onLean("docs");
+    onHere();
+  };
 
   const title = (
     <>
       <button
         type="button"
-        onClick={() => {
-          onLean("docs");
-          onHere();
-        }}
+        onClick={library}
         aria-current={lit ? "page" : undefined}
         className={`text-[13px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
       >
         {t("library")}
       </button>
-      <span className="text-[11.5px] text-faint tabular-nums">{many || ""}</span>
+      <span title={exactly(many)} className="text-[11.5px] text-faint tabular-nums">
+        {many ? capped(many) : ""}
+      </span>
     </>
   );
 
@@ -61,16 +63,18 @@ export default function SideLibrary(props: Props) {
   return (
     <>
       {shrunk && (
-        <div className="relative shrink-0 pb-2">
-          <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
-          <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-            {title}
-            <span className="ml-auto -mr-1.5">
-              <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
-            </span>
-          </div>
-          <Shelf papers={papers} here={props.here} onPick={onReveal} />
-        </div>
+        <LibraryGlance
+          papers={papers}
+          many={many}
+          lit={lit}
+          here={props.here}
+          acting={props.acting}
+          onLean={onLean}
+          onLibrary={library}
+          onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
+          onReveal={onReveal}
+          onDocMenu={props.onDocMenu}
+        />
       )}
       <Wide {...props} title={title} hidden={shrunk} />
     </>
@@ -218,57 +222,5 @@ function Sift({
         <Glyph name="close" className="h-3 w-3" />
       </button>
     </form>
-  );
-}
-
-function Shelf({
-  papers,
-  here,
-  onPick,
-}: {
-  papers: Papers;
-  here?: string | null;
-  onPick: (folder?: string) => void;
-}) {
-  const strip = useRef<HTMLDivElement>(null);
-  const room = useRoom(strip, "width");
-  const top = papers.folders.filter((one) => one.parent === null && !one.away);
-  const fits = fitting(top.length, room, SQUARE);
-  const hidden = top.length - fits;
-
-  return (
-    <div ref={strip} className="flex gap-1 overflow-hidden px-4">
-      {top.slice(0, fits).map((folder) => (
-        <button
-          key={folder.id}
-          type="button"
-          onClick={() => onPick(folder.id)}
-          aria-label={folder.name}
-          aria-current={here === folder.id ? "true" : undefined}
-          title={folder.name}
-          className={`grid size-8 shrink-0 place-items-center rounded-md hover:bg-hover ${
-            here === folder.id ? "bg-active" : ""
-          }`}
-        >
-          <span
-            className={`grid size-6 place-items-center rounded-md bg-current/10 ${painted(folder.color)}`}
-          >
-            <Glyph name={folder.icon ?? "folder"} className="h-[13px] w-[13px]" />
-          </span>
-        </button>
-      ))}
-      {hidden > 0 && (
-        <button
-          type="button"
-          onClick={() => onPick()}
-          aria-label={fill("foldersMore", String(hidden))}
-          title={fill("foldersMore", String(hidden))}
-          className="h-8 shrink-0 rounded-md px-2 text-[11.5px] font-semibold text-faint hover:bg-hover hover:text-ink"
-        >
-          +{hidden}
-        </button>
-      )}
-      {!top.length && <p className="px-1 py-1.5 text-[11.5px] text-faint">{t("noDocsYet")}</p>}
-    </div>
   );
 }
