@@ -10,6 +10,7 @@ use crate::{
     Error, Paths, Result,
     event::{DeviceId, DocAdd, FolderAdd, Op, Said},
     model::{DEEPEST, DocId, FolderId, Kept},
+    signed_parcel::{self, Asked, Closed, Hashing, Prints, Signer},
     state::State,
 };
 
@@ -229,7 +230,11 @@ pub struct Landed {
     pub joined: usize,
     pub files: usize,
     pub missed: usize,
+    pub signer: Option<Claimed>,
+    pub broken: bool,
 }
+
+pub use crate::signed_parcel::{Answer, Claimed};
 
 /// What a locked parcel says it is, before anybody is asked for a number.
 const LOCKED: &[u8; 8] = b"TISTYX1
@@ -407,8 +412,6 @@ pub fn write(
     written(paths, state, which, into, along, None)
 }
 
-/// `number` locks the parcel: only a store whose person knows it takes what is inside as their
-/// own writing rather than as a guest's.
 pub fn written(
     paths: &Paths,
     state: &State,
@@ -416,6 +419,19 @@ pub fn written(
     into: &Path,
     along: &Along,
     number: Option<&str>,
+) -> Result<Sent> {
+    packed(paths, state, which, into, along, number, None)
+}
+
+/// `number` locks the parcel against whoever finds the file; the signer says whose it is wherever it lands.
+pub fn packed(
+    paths: &Paths,
+    state: &State,
+    which: &[String],
+    into: &Path,
+    along: &Along,
+    number: Option<&str>,
+    signer: Option<&Signer>,
 ) -> Result<Sent> {
     let data = paths.data();
     if into.starts_with(data) || data.starts_with(into) {
@@ -442,7 +458,8 @@ pub fn written(
         std::fs::create_dir_all(data)?;
     }
 
-    let made = filled(paths, state, &papers, &aside.0, along);
+    let signer = signer.filter(|one| one.signs());
+    let made = filled(paths, state, &papers, &aside.0, along, signer);
     match (made, number) {
         (Ok(sent), None) => std::fs::rename(&aside.0, into)
             .map(|()| sent)
@@ -474,6 +491,7 @@ fn filled(
     papers: &[&Kept],
     into: &Path,
     along: &Along,
+    signer: Option<&Signer>,
 ) -> Result<Sent> {
     let data = paths.data();
     let root = data.join("docs");
@@ -518,7 +536,11 @@ fn filled(
     let mut manifest = Manifest {
         kind: KIND.into(),
         version: VERSION,
-        from: crate::store::peek_identity(data.join("store")).unwrap_or_default(),
+        // Named stores tie every parcel they write together, and a signature already says whose it is.
+        from: match signer {
+            Some(_) => String::new(),
+            None => crate::store::peek_identity(data.join("store")).unwrap_or_default(),
+        },
         seal: None,
         folders: shelves(state, &bodies),
         docs: bodies
@@ -557,7 +579,9 @@ fn filled(
     };
 
     manifest.version = VERSION;
-    manifest.seal = crate::store::secret(paths).and_then(|keep| sealed(&manifest, &keep));
+    if signer.is_none() {
+        manifest.seal = crate::store::secret(paths).and_then(|keep| sealed(&manifest, &keep));
+    }
 
     let weighs = serde_json::to_string(&manifest)?.len() as u64;
     if weighs > MANIFEST_AT_MOST || manifest.docs.len() > PAPERS_AT_MOST {
@@ -570,20 +594,20 @@ fn filled(
     let plain = zip::write::SimpleFileOptions::default();
     let kept = plain.compression_method(zip::CompressionMethod::Stored);
 
+    let said = serde_json::to_string_pretty(&manifest)?;
     zip.start_file(MANIFEST, plain).map_err(zipped)?;
-    std::io::Write::write_all(
-        &mut zip,
-        serde_json::to_string_pretty(&manifest)?.as_bytes(),
-    )?;
+    std::io::Write::write_all(&mut zip, said.as_bytes())?;
+    let mut prints = Prints::default();
 
     zip.start_file(READING, plain).map_err(zipped)?;
     std::io::Write::write_all(&mut zip, READ_ME.as_bytes())?;
 
     let whole = bodies.len() + beside.len();
     for (one, body) in &bodies {
-        zip.start_file(format!("docs/{}.md", one.file), plain)
-            .map_err(zipped)?;
+        let named = format!("docs/{}.md", one.file);
+        zip.start_file(named.as_str(), plain).map_err(zipped)?;
         std::io::Write::write_all(&mut zip, body.as_bytes())?;
+        prints.add(&named, signed_parcel::digest(body.as_bytes()));
         sent.bytes = sent.bytes.saturating_add(body.len() as u64);
         match one.page_of.is_some() {
             true => sent.pages += 1,
@@ -602,15 +626,27 @@ fn filled(
         if sent.bytes > AT_MOST || sent.files + bodies.len() > AT_MOST_FILES {
             return Err(Error::TooBig);
         }
-        let Ok(mut file) = std::fs::File::open(from) else {
+        let Ok(file) = std::fs::File::open(from) else {
             sent.files -= 1;
             sent.bytes = sent.bytes.saturating_sub(weighs);
             left_behind(&mut sent.left, named.clone());
             continue;
         };
         zip.start_file(named, kept).map_err(zipped)?;
-        std::io::copy(&mut file, &mut zip)?;
+        let mut hashing = Hashing::new(file);
+        std::io::copy(&mut hashing, &mut zip)?;
+        if safe(named).is_some() {
+            prints.add(named, hashing.digest());
+        }
         along.at(bodies.len() + sent.files, whole, sent.bytes);
+    }
+
+    if let Some(signer) = signer {
+        let signature = signed_parcel::signed(signer, said.as_bytes(), &prints)
+            .ok_or_else(|| Error::Io(std::io::Error::other("the parcel could not be signed")))?;
+        zip.start_file(signed_parcel::ENTRY, plain)
+            .map_err(zipped)?;
+        std::io::Write::write_all(&mut zip, &signature)?;
     }
 
     sent.folders = manifest.folders.len();
@@ -695,8 +731,6 @@ pub fn read(
     taken(paths, state, device, from, along, None)
 }
 
-/// A parcel that opens with the number was locked by whoever holds it, and what is inside is
-/// theirs: only writing that was already a guest where it came from stays one.
 pub fn taken(
     paths: &Paths,
     state: &State,
@@ -704,6 +738,19 @@ pub fn taken(
     from: &Path,
     along: &Along,
     number: Option<&str>,
+) -> Result<(Landed, Vec<Op>)> {
+    taken_answering(paths, state, device, from, along, number, None)
+}
+
+/// Whose a parcel is rests on its signature; `answer` is the person's word when nothing signed can say.
+pub fn taken_answering(
+    paths: &Paths,
+    state: &State,
+    device: &DeviceId,
+    from: &Path,
+    along: &Along,
+    number: Option<&str>,
+    answer: Option<Answer>,
 ) -> Result<(Landed, Vec<Op>)> {
     let data = paths.data();
     let staged = data.join(format!(".landing-{}", std::process::id()));
@@ -737,9 +784,20 @@ pub fn taken(
         false => from,
     };
 
-    let done = carried(paths, state, device, at, along, &staged, shut);
+    let opening = Opening {
+        staged: &staged,
+        unlocked: shut,
+        answer,
+    };
+    let done = carried(paths, state, device, at, along, &opening);
     let _ = std::fs::remove_dir_all(&staged);
     done
+}
+
+struct Opening<'a> {
+    staged: &'a Path,
+    unlocked: bool,
+    answer: Option<Answer>,
 }
 
 fn carried(
@@ -748,33 +806,52 @@ fn carried(
     device: &DeviceId,
     from: &Path,
     along: &Along,
-    staged: &Path,
-    unlocked: bool,
+    opening: &Opening,
 ) -> Result<(Landed, Vec<Op>)> {
     let data = paths.data();
+    let staged = opening.staged;
     let file = std::fs::File::open(from)?;
     // Something that is not an archive at all is not a parcel either, and saying so beats
     // handing back whatever the zip reader made of it.
     let mut zip =
         zip::ZipArchive::new(file).map_err(|_| Error::NotAParcel(from.display().to_string()))?;
-    let manifest = manifest_in(&mut zip, from)?;
+    let (manifest, said) = manifest_in(&mut zip, from)?;
+    let signature = signature_in(&mut zip)?;
 
-    let elsewhere = !unlocked && !ours(&manifest, paths);
     let whole = zip.len() + manifest.docs.len();
-    unpack(&mut zip, staged, along, whole).and_then(|_| {
-        taken_in(
-            data,
-            state,
-            device,
-            &Landing {
-                manifest: &manifest,
-                staged,
-                along,
-                whole,
-                elsewhere,
-            },
-        )
-    })
+    let (_, prints) = unpack(&mut zip, staged, along, whole)?;
+    let closed = signed_parcel::closed(
+        signature.as_deref(),
+        &said,
+        prints.as_ref(),
+        &state.persons.revocations,
+    );
+    let asked = Asked {
+        unlocked: opening.unlocked,
+        answer: opening.answer,
+        same_store: ours(&manifest, paths),
+    };
+    let mine = signed_parcel::mine(&closed, &state.persons, device, &asked)?;
+    let (mut landed, ops) = taken_in(
+        data,
+        state,
+        device,
+        &Landing {
+            manifest: &manifest,
+            staged,
+            along,
+            whole,
+            elsewhere: !mine,
+        },
+    )?;
+    landed.broken = closed == Closed::Broken;
+    if let (false, Closed::By { person, name }) = (mine, closed) {
+        landed.signer = Some(Claimed {
+            print: person.fingerprint(),
+            name,
+        });
+    }
+    Ok((landed, ops))
 }
 
 pub fn swept(data: &Path) {
@@ -805,7 +882,10 @@ pub fn swept(data: &Path) {
     }
 }
 
-fn manifest_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, from: &Path) -> Result<Manifest> {
+fn manifest_in<R: Read + Seek>(
+    zip: &mut zip::ZipArchive<R>,
+    from: &Path,
+) -> Result<(Manifest, Vec<u8>)> {
     let mut held = zip
         .by_name(MANIFEST)
         .map_err(|_| Error::NotAParcel(from.display().to_string()))?;
@@ -828,7 +908,20 @@ fn manifest_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, from: &Path) -> Res
     if manifest.docs.len() > PAPERS_AT_MOST || manifest.folders.len() > PAPERS_AT_MOST {
         return Err(Error::TooBig);
     }
-    Ok(manifest)
+    Ok((manifest, said.into_bytes()))
+}
+
+fn signature_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<Option<Vec<u8>>> {
+    let Ok(held) = zip.by_name(signed_parcel::ENTRY) else {
+        return Ok(None);
+    };
+    let mut said = Vec::new();
+    held.take(signed_parcel::ENTRY_AT_MOST + 1)
+        .read_to_end(&mut said)?;
+    if said.len() as u64 > signed_parcel::ENTRY_AT_MOST {
+        said.clear();
+    }
+    Ok(Some(said))
 }
 
 struct Landing<'a> {
@@ -1260,17 +1353,19 @@ fn pointed(body: &str, named: &BTreeMap<String, (String, DocId)>) -> String {
     told.replace(MARK, crate::refs::DOC)
 }
 
+// None in place of the prints when a name came twice, since only one of them would land.
 fn unpack<R: Read + Seek>(
     zip: &mut zip::ZipArchive<R>,
     into: &Path,
     along: &Along,
     whole: usize,
-) -> Result<usize> {
+) -> Result<(usize, Option<Prints>)> {
     if zip.len() > AT_MOST_FILES {
         return Err(Error::TooBig);
     }
     let mut files = 0;
     let mut bytes = 0u64;
+    let mut prints = Some(Prints::default());
 
     for i in 0..zip.len() {
         let mut held = zip.by_index(i).map_err(zipped)?;
@@ -1291,20 +1386,29 @@ fn unpack<R: Read + Seek>(
         }
         // A name this system will not take is one entry lost, not the whole parcel: what needed
         // it is counted as missing when nothing turns up under that name.
-        let Ok(mut file) = std::fs::File::create(&at) else {
-            continue;
-        };
-        let _ = crate::paths::ours_alone(&at);
+        let file = std::fs::File::create(&at).ok();
+        if file.is_some() {
+            let _ = crate::paths::ours_alone(&at);
+        }
         let room = AT_MOST.saturating_sub(bytes).saturating_add(1);
-        let written = std::io::copy(&mut held.by_ref().take(room), &mut file)?;
+        let mut hashing = Hashing::new(held.by_ref().take(room));
+        let written = match file {
+            Some(mut file) => std::io::copy(&mut hashing, &mut file)?,
+            None => std::io::copy(&mut hashing, &mut std::io::sink())?,
+        };
         if written >= room {
             return Err(Error::TooBig);
+        }
+        let digest = hashing.digest();
+        let entry = named.as_deref().unwrap_or_default();
+        if prints.as_mut().is_some_and(|all| !all.add(entry, digest)) {
+            prints = None;
         }
         bytes = bytes.saturating_add(written);
         files += 1;
         along.at(i + 1, whole, bytes);
     }
-    Ok(files)
+    Ok((files, prints))
 }
 
 fn safe(named: &str) -> Option<PathBuf> {
