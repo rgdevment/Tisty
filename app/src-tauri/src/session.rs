@@ -118,12 +118,31 @@ impl Session {
             behind: false,
         };
         session.tidy_up(true);
+        session.dress_if_due();
         crate::answers::guiding::spoken_again(&mut session);
         session.vouch_for_agent();
         if session.config.sync.is_some() {
             session.sow_if_due();
         }
         Ok(session)
+    }
+
+    fn dress_if_due(&mut self) {
+        if self.config.dressed == Some(true) {
+            return;
+        }
+        let looks = tisty_core::dressing::dressed(&self.state);
+        if !looks.is_empty()
+            && let Err(why) = self.commit_all(looks)
+        {
+            witness::warn(
+                channel::CONFIG,
+                "the lists and folders Tisty made could not take their colours",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+            return;
+        }
+        let _ = self.keep(|config| config.dressed = Some(true));
     }
 
     /// A first run holds its lists back until the welcome has said where the copies go: sown, this

@@ -420,3 +420,37 @@ fn a_guide_sown_without_a_print_that_no_release_shipped_is_the_persons() {
 
     assert!(!here.untouched());
 }
+
+#[test]
+fn a_store_from_before_the_colours_dressed_in_them_is_still_untouched() {
+    let mut here = here();
+    let first = Ulid::generate();
+    here.store
+        .append_batch(vec![
+            Op::ListAdd {
+                id: first,
+                d: ListAdd {
+                    name: "Trabajo".into(),
+                    order: "a0".into(),
+                    color: None,
+                },
+            },
+            Op::ListLook {
+                id: first,
+                d: Look {
+                    icon: Some(Some("work".into())),
+                    color: None,
+                },
+            },
+        ])
+        .unwrap();
+    here.sown_guide();
+    assert!(here.untouched());
+
+    let state = crate::State::replay(&here.store.read_all().unwrap());
+    here.store
+        .append_batch(crate::dressing::dressed(&state))
+        .unwrap();
+
+    assert!(here.untouched());
+}

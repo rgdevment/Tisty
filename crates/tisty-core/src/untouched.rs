@@ -142,6 +142,11 @@ fn a_guide_folder(d: &FolderAdd) -> bool {
     GUIDE_FOLDERS.contains(&d.name.as_str()) && d.parent.is_none() && (bare || dressed)
 }
 
+fn a_guide_look(d: &Look) -> bool {
+    d.icon.clone().flatten().as_deref() == Some(GUIDE_ICON)
+        && d.color.clone().flatten().as_deref() == Some(GUIDE_HUE)
+}
+
 fn a_first_list(d: &ListAdd) -> bool {
     d.color.is_none()
         && FIRST
@@ -181,6 +186,7 @@ impl Sown {
             Op::ListAdd { id, d } => a_first_list(d) && self.lists.insert(*id),
             Op::ListLook { id, d } => self.lists.contains(id) && a_first_look(d),
             Op::FolderAdd { id, d } => a_guide_folder(d) && self.folders.insert(*id),
+            Op::FolderLook { id, d } => self.folders.contains(id) && a_guide_look(d),
             Op::AttachKept { .. } => event
                 .batch
                 .is_some_and(|batch| self.guide_batches.contains(&batch)),

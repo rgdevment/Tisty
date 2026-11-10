@@ -135,3 +135,51 @@ fn letting_go_while_a_document_cannot_be_read_names_the_document_not_its_id() {
     assert_eq!(refused.code, "retireUnread");
     assert_eq!(refused.name.as_deref(), Some("Plan"));
 }
+
+#[test]
+fn what_tisty_made_takes_its_colours_on_the_first_opening_and_a_colour_taken_off_stays_off() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let work = ulid::Ulid::generate();
+    {
+        let mut before = Session::at(paths.clone()).unwrap();
+        before.keep(|config| config.dressed = None).unwrap();
+        before
+            .commit_all(vec![
+                Op::ListAdd {
+                    id: work,
+                    d: tisty_core::event::ListAdd {
+                        name: "Trabajo".into(),
+                        order: "a0".into(),
+                        color: None,
+                    },
+                },
+                Op::ListLook {
+                    id: work,
+                    d: tisty_core::event::Look {
+                        icon: Some(Some("work".into())),
+                        color: None,
+                    },
+                },
+            ])
+            .unwrap();
+    }
+
+    let mut opened = Session::at(paths.clone()).unwrap();
+    assert_eq!(opened.state.lists[&work].color.as_deref(), Some("blue"));
+    assert_eq!(opened.config.dressed, Some(true));
+
+    opened
+        .commit(Op::ListLook {
+            id: work,
+            d: tisty_core::event::Look {
+                icon: None,
+                color: Some(None),
+            },
+        })
+        .unwrap();
+    drop(opened);
+
+    let again = Session::at(paths).unwrap();
+    assert_eq!(again.state.lists[&work].color, None);
+}
