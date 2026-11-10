@@ -310,11 +310,13 @@ Being explicit here matters more than sounding reassuring.
   back. Signed by the person this store belongs to, it lands as theirs, locked or
   not; signed by another root, as that person's writing, with their fingerprint;
   a signature that does not hold, a key taken back, or a file changed, added or
-  missing makes it a stranger's. A signed name that hides a letter, or one like
-  the maker's under another root, is not shown. A signed parcel carries neither
-  the store's name nor its seal, which would tie together every parcel the store
-  wrote. A Tisty with no phrase yet asks before a signed parcel lands, and one
-  opened anyway lands as the signer's for good.
+  missing makes it a stranger's. A signed name that hides a letter is never
+  shown. One like the maker's under another root is left out of what the window
+  says as the parcel lands, and marked as another key's where the document's
+  details list who edited it. A signed parcel carries neither the store's name
+  nor its seal, which would tie together every parcel the store wrote. A store
+  that names no person yet asks before a signed parcel lands, and one opened
+  anyway lands as the signer's for good.
 
   A signed parcel also carries, for each document that was shared, who edited it
   through Folio and which Folio document that was. Each entry is read again on

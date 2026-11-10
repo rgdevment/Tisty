@@ -2520,7 +2520,7 @@ const en = {
   bandSigning: "Who writes here",
   packWho: "Who is this for?",
   packWhoWhy:
-    "What you hand to somebody goes out open: anyone holding the file can read it, and it arrives with your name and your fingerprint. What goes to another machine of yours is locked with six digits, so nobody else can read it.",
+    "What you hand to somebody goes out open: anyone holding the file can read it, and once you have your identity it arrives with your name and your fingerprint. What goes to another machine of yours is locked with six digits, so nobody else can read it.",
   packToShare: "To hand to somebody",
   packToMove: "For another machine of mine",
   packNumber: "Six digits",
@@ -5595,7 +5595,7 @@ const es: Catalog = {
   bandSigning: "Quién escribe aquí",
   packWho: "¿Para quién es?",
   packWhoWhy:
-    "Lo que le das a otra persona sale abierto: lo lee quien tenga el archivo, y llega con tu nombre y tu huella. Lo que llevas a otro equipo tuyo se cierra con seis dígitos, para que nadie más lo lea.",
+    "Lo que le das a otra persona sale abierto: lo lee quien tenga el archivo y, cuando ya tienes tu identidad, llega con tu nombre y tu huella. Lo que llevas a otro equipo tuyo se cierra con seis dígitos, para que nadie más lo lea.",
   packToShare: "Para dárselo a alguien",
   packToMove: "Para otro equipo mío",
   packNumber: "Seis dígitos",
