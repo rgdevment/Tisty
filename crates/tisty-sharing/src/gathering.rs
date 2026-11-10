@@ -132,7 +132,6 @@ impl Gathered {
     }
 }
 
-// A machine signs only as the root it answers to (72).
 pub fn signer(
     paths: &Paths,
     state: &State,
@@ -146,19 +145,7 @@ pub fn signer_among(
     persons: &Persons,
     device: &tisty_core::DeviceId,
 ) -> Option<(ShareKey, Certificate)> {
-    // Asked last: a machine makes its key only once the log names a person.
-    let root = persons.person(device)?;
-    let vouched = persons.vouched_by(device, &root)?;
-    let key = person::mine(paths, device)?;
-    if vouched.share != key.public() {
-        return None;
-    }
-    let certificate = persons.certificates.iter().find(|one| {
-        one.unchecked().is_some_and(|said| {
-            said.person == root && said.share == vouched.share && said.since == vouched.since
-        })
-    })?;
-    Some((key, certificate.clone()))
+    person::signer(paths, persons, device)
 }
 
 fn goes_as_mine(desk: &Desk, kept: &Kept, edits_through_a_link: bool) -> bool {

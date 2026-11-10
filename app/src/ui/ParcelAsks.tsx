@@ -1,6 +1,11 @@
-import { t } from "../locales";
+import type { ParcelAnswer } from "../core";
+import { filled, t } from "../locales";
 import Digits, { HOW_MANY } from "./Digits";
 import Modal from "./Modal";
+
+export type Question =
+  | { kind: "ifMine"; at: string; number?: string }
+  | { kind: "signedBy"; at: string; number?: string; name: string; print: string };
 
 interface Props {
   asks: {
@@ -9,7 +14,10 @@ interface Props {
     locked: string | null;
     number: string;
     wrong: boolean;
+    question: Question | null;
   };
+  onQuestion: (question: Question | null) => void;
+  onAnswer: (answer: ParcelAnswer) => void;
   onWho: (named: string | null) => void;
   onMoving: (named: string | null) => void;
   onLocked: (at: string | null) => void;
@@ -22,6 +30,8 @@ interface Props {
 
 export default function ParcelAsks({
   asks,
+  onQuestion,
+  onAnswer,
   onWho,
   onMoving,
   onLocked,
@@ -151,6 +161,59 @@ export default function ParcelAsks({
               className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
             >
               {t("openLocked")}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {asks.question?.kind === "ifMine" && (
+        <Modal title={t("parcelIfMineTitle")} onClose={() => onQuestion(null)}>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("parcelIfMine")}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => onQuestion(null)}
+              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onAnswer("theirs")}
+              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
+            >
+              {t("parcelGivenToMe")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onAnswer("mine")}
+              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
+            >
+              {t("parcelLockedByMe")}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {asks.question?.kind === "signedBy" && (
+        <Modal title={t("parcelSignedByTitle")} onClose={() => onQuestion(null)}>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
+            {filled(t("parcelSignedBy"), asks.question.name, asks.question.print)}
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => onAnswer("theirs")}
+              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
+            >
+              {t("parcelAsTheirs")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onQuestion(null)}
+              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
+            >
+              {t("parcelPhraseFirst")}
             </button>
           </div>
         </Modal>

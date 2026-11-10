@@ -1434,13 +1434,21 @@ export interface Unpacked {
   joined: number;
   files: number;
   missed: number;
+  print?: string;
+  name?: string;
+  broken: boolean;
 }
+
+export type ParcelAnswer = "mine" | "theirs";
 
 export const spelled = (said: string): Promise<string> => invoke("spelled", { said });
 export const docsPack = (which: string[], into: string, number?: string): Promise<Packed> =>
   invoke("docs_pack", { which, into, number });
-export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
-  invoke("docs_unpack", { from, number });
+export const docsUnpack = (
+  from: string,
+  number?: string,
+  answer?: ParcelAnswer,
+): Promise<Unpacked> => invoke("docs_unpack", { from, number, answer });
 export const docFromHtml = (html: string): Promise<string> => invoke("doc_from_html", { html });
 
 export const docFromText = (text: string): Promise<string | null> =>

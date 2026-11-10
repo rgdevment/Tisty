@@ -109,6 +109,11 @@ pub struct Unpacked {
     joined: usize,
     files: usize,
     missed: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    print: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    broken: bool,
 }
 
 #[tauri::command(async)]
@@ -428,12 +433,21 @@ pub async fn docs_pack(
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
     let (paths, state, beside) = standing(&session, &which);
+    let device = held(&session).config.device_id.clone();
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "packing");
     let locking = along_the_way(&app, "locking");
     let sent = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::parcel::written(
+        let signing = tisty_core::person::signer(&paths, &state.persons, &device);
+        let signer = signing
+            .as_ref()
+            .map(|(key, certificate)| tisty_core::signed_parcel::Signer {
+                key,
+                certificate,
+                name: state.signed.alias.as_deref(),
+            });
+        tisty_core::parcel::packed(
             &paths,
             &state,
             &asked,
@@ -444,6 +458,7 @@ pub async fn docs_pack(
                 then: Some(&locking),
             },
             number.as_deref(),
+            signer.as_ref(),
         )
     })
     .await
@@ -485,6 +500,7 @@ pub async fn docs_unpack(
     alone: tauri::State<'_, Packing>,
     from: String,
     number: Option<String>,
+    answer: Option<String>,
 ) -> Answer<Unpacked> {
     let _done = alone.inner().taken()?;
     let (paths, state, device) = {
@@ -495,11 +511,17 @@ pub async fn docs_unpack(
             session.config.device_id.clone(),
         )
     };
+    let maker = tisty_carrier::folio_limits::maker(&paths.private());
     let at = from.clone();
     let telling = along_the_way(&app, "landing");
     let opening = along_the_way(&app, "opening");
+    let answer = match answer.as_deref() {
+        Some("mine") => Some(tisty_core::parcel::Answer::Mine),
+        Some("theirs") => Some(tisty_core::parcel::Answer::Theirs),
+        _ => None,
+    };
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::parcel::taken(
+        tisty_core::parcel::taken_answering(
             &paths,
             &state,
             &device,
@@ -510,6 +532,7 @@ pub async fn docs_unpack(
                 then: Some(&opening),
             },
             number.as_deref(),
+            answer,
         )
     })
     .await
@@ -520,6 +543,10 @@ pub async fn docs_unpack(
         tisty_core::Error::ParcelLocked => Refusal::of("parcelLocked"),
         tisty_core::Error::WrongNumber => Refusal::of("wrongNumber"),
         tisty_core::Error::ParcelTorn => Refusal::of("parcelTorn"),
+        tisty_core::Error::ParcelAsksIfMine => Refusal::of("parcelAsksIfMine"),
+        tisty_core::Error::ParcelSignedBy { root, print, name } => {
+            Refusal::told("parcelSignedBy", shown_as(name, &root, maker.as_ref())).with_print(print)
+        }
         tisty_core::Error::NoRoom { needs, .. } => Refusal::about("noRoom", weighed(needs)),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
         other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
@@ -554,6 +581,24 @@ pub async fn docs_unpack(
         joined: landed.joined,
         files: landed.files,
         missed: landed.missed,
+        print: landed.signer.as_ref().map(|one| one.print.clone()),
+        name: landed
+            .signer
+            .and_then(|one| shown_as(one.name, &one.root, maker.as_ref())),
+        broken: landed.broken,
+    })
+}
+
+// A name like the maker's from any other root is not shown, so a parcel never passes for theirs (167).
+fn shown_as(
+    name: Option<String>,
+    root: &str,
+    maker: Option<&tisty_carrier::folio_limits::FolioMaker>,
+) -> Option<String> {
+    name.filter(|one| {
+        maker.is_none_or(|maker| {
+            maker.root == root || !super::folio_standing::imitates_maker(one, maker)
+        })
     })
 }
 
