@@ -580,14 +580,12 @@ pub(super) fn owner_apart(opened: &Opened) -> Option<&str> {
 }
 
 // The owner's name speaks for a version only when the owner's root signed it.
-pub(super) fn signed_by(
-    signed_as: Option<String>,
-    owner_name: Option<String>,
+pub(super) fn signer_alias<'a>(
     opened: &Opened,
-) -> String {
-    signed_as
-        .or(owner_name.filter(|_| owner_apart(opened).is_none()))
-        .unwrap_or_else(|| print_of(&opened.signer))
+    signed_as: Option<&'a str>,
+    owner_name: Option<&'a str>,
+) -> Option<&'a str> {
+    signed_as.or(owner_name.filter(|_| owner_apart(opened).is_none()))
 }
 
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
@@ -595,7 +593,8 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     let maker = folio_limits::maker(&home);
     let owner = owner_apart(opened);
-    let mut wanted = vec![(opened.signer.as_str(), said("signed_as"))];
+    let signer_named = signer_alias(opened, said("signed_as"), said("owner_name"));
+    let mut wanted = vec![(opened.signer.as_str(), signer_named)];
     wanted.extend(owner.map(|root| (root, said("owner_name"))));
     let checked = checked_within(&home, &wanted);
     let party = |root: &str, alias: Option<&str>| Party {
@@ -609,13 +608,17 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
             |root, domain| checked.contains(&(root.to_owned(), domain.to_owned())),
         ),
     };
+    let owner = owner.map(|root| party(root, said("owner_name")));
+    let signer = party(&opened.signer, signer_named);
+    // A root with no fingerprint leaves nothing to compare, so it is no more trusted than a doubtful key.
+    let unprinted = signer.print.is_none() || owner.as_ref().is_some_and(|one| one.print.is_none());
     question(
         app,
         LinkQuestion::Keep {
             title: said("title").unwrap_or_default().to_owned(),
-            owner: owner.map(|root| party(root, said("owner_name"))),
-            signer: party(&opened.signer, said("signed_as")),
-            doubtful: opened.doubtful(),
+            owner,
+            signer,
+            doubtful: opened.doubtful() || unprinted,
         },
     )
 }

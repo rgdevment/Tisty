@@ -11,7 +11,7 @@ type Standing =
   | { standing: "checked"; domain: string }
   | { standing: "plain" };
 
-type Party = { name: string; print: string } & Standing;
+type Party = { name: string; print: string | null } & Standing;
 
 type Question = { id: number } & (
   | { kind: "look" }
@@ -110,23 +110,26 @@ function Keeping({
   asked: Extract<Question, { kind: "keep" }>;
   onAnswer: (yes: boolean) => void;
 }>) {
+  const prints = [asked.owner, asked.signer].filter((one) => one?.print).length;
   return (
     <Modal title={t("linkKeepTitle")} onClose={() => onAnswer(false)}>
       <div className="flex flex-col gap-3 text-[13px] leading-relaxed">
         <p className="break-words font-semibold">{asked.title || t("untitledDoc")}</p>
         {asked.owner && (
-          <div className="flex flex-col gap-1.5">
+          <section className="flex flex-col gap-1.5">
             <Who party={asked.owner} said="linkKeepOwner" />
             <Print party={asked.owner} said="linkKeepOwnerPrint" />
-          </div>
+          </section>
         )}
-        <div className="flex flex-col gap-1.5">
+        <section className="flex flex-col gap-1.5">
           <Who party={asked.signer} said="linkKeepSigned" />
           <Print party={asked.signer} said="linkKeepPrint" />
-        </div>
-        <span className="text-[11.5px] text-soft">
-          {t(asked.owner ? "linkKeepCompareEach" : "linkKeepCompare")}
-        </span>
+        </section>
+        {prints > 0 && (
+          <span className="text-[11.5px] text-soft">
+            {t(prints > 1 ? "linkKeepCompareEach" : "linkKeepCompare")}
+          </span>
+        )}
         {asked.doubtful && (
           <p
             role="alert"

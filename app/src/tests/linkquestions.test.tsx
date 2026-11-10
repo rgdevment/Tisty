@@ -120,13 +120,13 @@ describe("what a link asks in the window", () => {
     expect(await screen.findByText(t("linkLookWhy"))).toBeTruthy();
   });
 
-  const plain = (name: string, print = "11111 22222 33333 44444") => ({
+  const plain = (name: string, print: string | null = "11111 22222 33333 44444") => ({
     name,
     print,
     standing: "plain",
   });
   const group = (said: string) => {
-    const party = screen.getByText(said).closest("div")?.parentElement;
+    const party = screen.getByText(said).closest("section");
     if (!party) throw new Error(`no group for ${said}`);
     return party;
   };
@@ -192,19 +192,37 @@ describe("what a link asks in the window", () => {
     });
     render(<LinkQuestions />);
 
-    const label = await screen.findByText(t("linkKeepOwnerPrint"));
-    expect(label.parentElement?.textContent).toContain("70686 67560 35161 46791");
+    await screen.findByText(t("linkKeepOwnerPrint"));
+    const owner = within(group(t("linkKeepOwnerPrint")));
+    expect(owner.getByText("70686 67560 35161 46791")).toBeTruthy();
+    expect(owner.queryByText(fill("linkKeepSigned", "Ana"))).toBeNull();
     expect(
       within(group(fill("linkKeepSigned", "Ana"))).getByText("48210 93755 12880 63349"),
     ).toBeTruthy();
   });
 
-  it("hides a fingerprint it could not read rather than show an empty one", async () => {
-    standing({ ...keep, signer: plain("Mario", ""), doubtful: false });
+  it("hides a fingerprint it could not read, and asks to compare none", async () => {
+    standing({ ...keep, signer: plain("Mario", null), doubtful: true });
     render(<LinkQuestions />);
 
     expect(await screen.findByText(fill("linkKeepSigned", "Mario"))).toBeTruthy();
     expect(screen.queryByText(t("linkKeepPrint"))).toBeNull();
+    expect(screen.queryByText(t("linkKeepCompare"))).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe(t("linkKeepDoubt"));
+  });
+
+  it("asks to compare one fingerprint when only one of two could be read", async () => {
+    standing({
+      ...keep,
+      owner: plain("Mario", null),
+      signer: plain("Ana", "48210 93755 12880 63349"),
+      doubtful: true,
+    });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText("48210 93755 12880 63349")).toBeTruthy();
+    expect(screen.getByText(t("linkKeepCompare"))).toBeTruthy();
+    expect(screen.queryByText(t("linkKeepCompareEach"))).toBeNull();
   });
 
   it("names the maker by Folio's word, verified, with the domain beneath and no link", async () => {

@@ -100,7 +100,13 @@ export type Synced =
   | { state: "othersEdited"; editors: string[]; print: string }
   | { state: "gone" }
   | { state: "sent"; version: number | null; told: Told[]; termsUnchecked: boolean }
-  | { state: "otherVersion"; version: number; signer: string; doubtful: boolean };
+  | {
+      state: "otherVersion";
+      version: number;
+      signer: string | null;
+      fingerprint: string;
+      doubtful: boolean;
+    };
 
 export interface ShareWaiting {
   until: number | null;

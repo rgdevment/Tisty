@@ -4,7 +4,7 @@ use tisty_carrier::folio_client::{Answered, Asked, Door};
 
 use super::{
     Link, Opened, belongs, editable, language_link, link_of, looked_for, owner_apart, reviewed,
-    saying_its_language, signed_by, speaks,
+    saying_its_language, signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -255,18 +255,14 @@ fn a_language_is_brought_only_when_it_names_this_anchor() {
 
 #[test]
 fn a_version_is_signed_by_its_own_name_and_never_by_an_owner_who_did_not_sign_it() {
-    let root = |byte| {
-        tisty_share_proto::seed::Seed::from_bytes(&[byte; 32])
-            .root()
-            .person()
-    };
-    let (mario, ana) = (root(1), root(2));
-    let name = |said: &str| Some(said.to_owned());
-    let by_ana = opened_by(Some(&mario.shown()), &ana.shown());
-    let by_mario = opened_by(Some(&mario.shown()), &mario.shown());
+    let by_ana = opened_by(Some("mario"), "ana");
+    let by_mario = opened_by(Some("mario"), "mario");
 
-    assert_eq!(signed_by(name("Ana"), name("Mario"), &by_ana), "Ana");
-    assert_eq!(signed_by(None, name("Mario"), &by_mario), "Mario");
-    assert_eq!(signed_by(None, name("Mario"), &by_ana), ana.fingerprint());
-    assert_eq!(signed_by(None, None, &by_mario), mario.fingerprint());
+    assert_eq!(
+        signer_alias(&by_ana, Some("Ana"), Some("Mario")),
+        Some("Ana")
+    );
+    assert_eq!(signer_alias(&by_mario, None, Some("Mario")), Some("Mario"));
+    assert_eq!(signer_alias(&by_ana, None, Some("Mario")), None);
+    assert_eq!(signer_alias(&by_mario, None, None), None);
 }

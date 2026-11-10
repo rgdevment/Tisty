@@ -22,16 +22,14 @@ pub enum Standing {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Party {
     pub name: String,
-    pub print: String,
+    pub print: Option<String>,
     #[serde(flatten)]
     pub standing: Standing,
 }
 
 // Read the way Settings › Security shows it, so whoever shared it can compare the two.
-pub fn print_of(root: &str) -> String {
-    Person::read(root)
-        .map(|person| person.fingerprint())
-        .unwrap_or_default()
+pub fn print_of(root: &str) -> Option<String> {
+    Person::read(root).map(|person| person.fingerprint())
 }
 
 fn still_speaks(verdict: Verdict) -> bool {

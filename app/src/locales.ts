@@ -825,6 +825,8 @@ const en = {
   shareSyncSentAlong: "What changed went up.",
   shareSyncOther:
     "Version {name}, signed by {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
+  shareSyncOtherPrint:
+    "Version {name}, signed by the key with fingerprint {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
   sharePause: "Pause",
   shareResume: "Resume",
   shareStop: "Stop sharing",
@@ -3840,6 +3842,8 @@ const es: Catalog = {
   shareSyncSentAlong: "Subió lo que cambió.",
   shareSyncOther:
     "Llegó la versión {name}, firmada por {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
+  shareSyncOtherPrint:
+    "Llegó la versión {name}, firmada por la llave con huella {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
   sharePause: "Pausar",
   shareResume: "Reanudar",
   shareStop: "Dejar de compartir",

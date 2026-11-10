@@ -159,7 +159,7 @@ fn a_domain_alias_is_checked_only_by_its_own_root_and_never_on_a_doubtful_signat
 fn a_party_reads_as_its_alias_beside_how_it_stands() {
     let party = super::Party {
         name: "rgdevrnent".into(),
-        print: "70686 67560 35161 46791".into(),
+        print: Some("70686 67560 35161 46791".into()),
         standing: Standing::Verified {
             maker: "rgdevment".into(),
             domain: Some("rgdevment.dev".into()),
@@ -233,20 +233,10 @@ fn a_root_prints_as_the_fingerprint_its_person_sees_in_security() {
         .root()
         .person();
 
-    let print = print_of(&person.shown());
-
-    assert_eq!(print, person.fingerprint());
-    let groups: Vec<&str> = print.split(' ').collect();
-    assert_eq!(groups.len(), 4, "{print}");
-    assert!(
-        groups
-            .iter()
-            .all(|five| five.len() == 5 && five.bytes().all(|b| b.is_ascii_digit())),
-        "{print}"
-    );
+    assert_eq!(print_of(&person.shown()), Some(person.fingerprint()));
 }
 
 #[test]
 fn a_root_that_is_no_key_prints_nothing() {
-    assert_eq!(print_of("not a key"), "");
+    assert_eq!(print_of("not a key"), None);
 }
