@@ -274,6 +274,7 @@ fn a_document_that_is_a_link_to_a_secret_never_becomes_one_of_ours() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );
