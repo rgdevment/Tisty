@@ -7822,6 +7822,36 @@ fn before_the_fence(whose: &Machine, shared: &Path) -> String {
     older
 }
 
+#[test]
+fn a_machine_turned_away_for_not_signing_comes_in_once_it_updates_and_is_confirmed() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let older = before_the_fence(&two, shared.path());
+    let turned =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(turned.disowned, vec![two.device.clone()]);
+
+    let shown = upgraded_in_place(&two, shared.path(), &older, "lo nuevo de dev_b");
+    let waiting =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(waiting.unconfirmed, vec![two.device.clone()]);
+    assert!(tisty_core::vouched::confirm(
+        &one.data,
+        &DeviceId(two.device.clone()),
+        &shown
+    ));
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.disowned.is_empty(), "{:?}", after.disowned);
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&one, &two.device).contains("lo nuevo de dev_b"));
+}
+
 /// An old machine this store already holds, taken in while unsigned histories were still let in.
 fn known_from_before(one: &Machine, whose: &Machine, shared: &Path) -> String {
     let older = before_the_fence(whose, shared);

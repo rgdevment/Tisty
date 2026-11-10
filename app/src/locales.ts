@@ -1738,7 +1738,7 @@ const en = {
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
-    "One machine's history in the shared folder carries a signature that does not answer to the key kept for that machine, so none of what it holds was taken in. Either something changed those files after they were written, or that machine now signs with a key other than the one confirmed here.",
+    "One machine's history in the shared folder was not taken in: it carries no signature, or one that does not answer to the key kept for that machine. If it is a machine of yours that has not synced here before, update Tisty on it and confirm it once it signs. Otherwise something changed those files after they were written, or that machine now signs with another key.",
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
   movedUnderfoot: "That document changed while you were deciding — look again",
@@ -4755,7 +4755,7 @@ const es: Catalog = {
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
-    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave guardada para esa máquina, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o esa máquina firma ahora con otra clave que la confirmada aquí.",
+    "No se tomó el historial de una máquina en la carpeta compartida: no trae firma, o trae una que no responde a la clave guardada para esa máquina. Si es una máquina tuya que nunca había sincronizado aquí, actualiza Tisty en ella y confírmala cuando firme. Si no, algo cambió esos archivos después de escribirlos, o esa máquina firma ahora con otra clave.",
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
