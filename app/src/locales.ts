@@ -772,6 +772,8 @@ const en = {
   shareRenewed: "The edit link changed. Copy the new one and give it to whoever keeps editing.",
   shareRenewWaits:
     "The edit link changed, but the version that confirms it has not gone yet: press Sync once more.",
+  shareRenewHeld:
+    "The edit link changed and the old one no longer sends versions, but the version that confirms it has to wait. The new link opens only once that version goes: sync when the wait ends.",
   shareSignsAs: "Your versions go signed as {name}.",
   shareSignAsOther: "Sign as {name}",
   sharedOwnerAndSigner: "Created by {name} · Last edited by {other}",
@@ -779,6 +781,7 @@ const en = {
   sharedVersionBy: "Last edited by {name}",
   sharedEditedBy: "Edited by: {name}",
   sharedChecked: "{name} ✓",
+  sharedImitates: "{name} (that name belongs to another key)",
   sharedPrints: "Fingerprints",
   sharedPrintOwner: "{name} · owner",
   sharedPrintSigner: "{name} · last edit",
@@ -883,6 +886,9 @@ const en = {
   linkFailedUnopened: "It could not be opened: its signature or its contents do not hold.",
   linkFailedUnreached: "Check your connection, or read it in your browser.",
   linkFailedOk: "Got it",
+  linkLanguagesLeftTitle: "Some languages did not arrive",
+  linkLanguagesLeft:
+    "The document arrived, but this could not be brought: {name}. Open the link again later to try once more.",
   shareClosedTitle: "Share with Folio",
   shareClosedWhat: "Folio lets you share documents privately with anyone, using an encrypted link.",
   shareClosedYet: "It isn’t available yet.",
@@ -2529,6 +2535,8 @@ const en = {
   alias: "Alias",
   aliasShort: "What you sign your writing with.",
   aliasNone: "unsigned",
+  aliasImitatesMaker:
+    "That name looks like the name of whoever makes Tisty. Whoever opens what you share will see it flagged as another key's.",
   aliasRest: "Sign the older ones",
   aliasNow: "You now sign as {name}",
   aliasKept: "Signed as {name}",
@@ -3795,6 +3803,8 @@ const es: Catalog = {
   shareRenewed: "El link de editar cambió. Copia el nuevo y dáselo a quienes sigan editando.",
   shareRenewWaits:
     "El link de editar cambió, pero la versión que lo confirma todavía no se envía: pulsa Sincronizar otra vez.",
+  shareRenewHeld:
+    "El link de editar cambió y el anterior ya no envía versiones, pero la versión que lo confirma tiene que esperar. El link nuevo abre recién cuando esa versión salga: sincroniza cuando termine la espera.",
   shareSignsAs: "Tus versiones van firmadas como {name}.",
   shareSignAsOther: "Firmar como {name}",
   sharedOwnerAndSigner: "Creado por {name} · Última edición: {other}",
@@ -3802,6 +3812,7 @@ const es: Catalog = {
   sharedVersionBy: "Última edición: {name}",
   sharedEditedBy: "Editado por: {name}",
   sharedChecked: "{name} ✓",
+  sharedImitates: "{name} (ese nombre es de otra llave)",
   sharedPrints: "Huellas",
   sharedPrintOwner: "{name} · dueño",
   sharedPrintSigner: "{name} · última edición",
@@ -3905,6 +3916,9 @@ const es: Catalog = {
   linkFailedUnopened: "No se pudo abrir: su firma o su contenido no calzan.",
   linkFailedUnreached: "Revisa tu conexión, o léelo en el navegador.",
   linkFailedOk: "Entendido",
+  linkLanguagesLeftTitle: "Algunos idiomas no llegaron",
+  linkLanguagesLeft:
+    "El documento llegó, pero no se pudo traer: {name}. Abre el link otra vez más tarde para intentarlo de nuevo.",
   shareClosedTitle: "Compartir con Folio",
   shareClosedWhat:
     "Folio te permite compartir documentos en privado con quien quieras, con un link y cifrados de forma segura.",
@@ -5561,6 +5575,8 @@ const es: Catalog = {
   alias: "Alias",
   aliasShort: "Con lo que firmas lo que escribes.",
   aliasNone: "sin firmar",
+  aliasImitatesMaker:
+    "Ese nombre se parece al de quien hace Tisty. Quien abra lo que compartas lo verá marcado como de otra llave.",
   aliasRest: "Firmar los anteriores",
   aliasNow: "Ahora firmas como {name}",
   aliasKept: "Firmas como {name}",

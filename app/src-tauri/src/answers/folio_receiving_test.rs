@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
+use super::languages_brought;
 use super::{
     Link, Opened, belongs, editable, granted_entry, language_link, link_of, looked_for,
     owner_apart, reviewed, saying_its_language, signer_alias, speaks,
@@ -39,6 +40,24 @@ fn on_a_yes_it_asks_folio_for_that_link() {
 
     assert!(told.is_err());
     assert_eq!(folio.0.get(), 1);
+}
+
+#[test]
+fn a_language_folio_could_not_hand_over_is_named_as_left_behind() {
+    let folio = CountingFolio::default();
+    let named = |lang: &str, key: Option<&str>| serde_json::json!({ "lang": lang, "document": format!("{lang}Docum1"), "key": key });
+    let anchor = Opened {
+        document: serde_json::json!({
+            "id": "Anchor12",
+            "languages": [named("en", Some("k")), named("fr", Some("k")), named("de", None)],
+        }),
+        ..opened_by(Some("mario"), "mario")
+    };
+
+    let (brought, left) = languages_brought(&folio, &anchor, &["fr".to_owned()].into());
+
+    assert!(brought.is_empty());
+    assert_eq!(left, vec!["en".to_owned()]);
 }
 
 fn parsed(said: &str) -> Option<Link> {

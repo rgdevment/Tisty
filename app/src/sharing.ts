@@ -79,6 +79,7 @@ export interface ShareLook {
 export interface Named {
   name: string;
   checked: boolean;
+  imitates?: boolean;
   print: string | null;
 }
 

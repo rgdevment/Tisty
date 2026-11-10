@@ -197,7 +197,10 @@ const renewNow = (h: Hands) => {
         h.setTold(`${syncedWords(synced)} ${t("shareRenewWaits")}`);
       else syncAnswered(h, synced);
     })
-    .catch(h.failing)
+    .catch((problem) => {
+      h.failing(problem);
+      if (codeOf(problem) === "folioWait" && untilOf(problem) > 0) h.setTold(t("shareRenewHeld"));
+    })
     .finally(() => {
       void shareCard(h.doc)
         .then((card) => card && h.setCard(card))
@@ -269,7 +272,10 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
+const shown = ({ name, checked, imitates }: Named) => {
+  if (checked) return fill("sharedChecked", name);
+  return imitates ? fill("sharedImitates", name) : name;
+};
 
 const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
   ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),
