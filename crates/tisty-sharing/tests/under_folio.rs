@@ -858,3 +858,58 @@ fn what_went_out_to_read_is_not_made_editable_by_sharing_it_again() {
     );
     assert!(again.granted.is_empty());
 }
+
+#[test]
+fn a_language_its_owner_withdrew_is_no_longer_sent_by_whoever_added_it() {
+    let (_tmp, mut home, es) = two_languages();
+    let minted = Cell::new(0);
+    let mint = counted(&minted);
+    let first = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: true,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    let withdrawn: Vec<(String, Remembered)> = first
+        .remembering
+        .iter()
+        .map(|(file, one)| {
+            let mut one = one.clone();
+            if one.held_by.is_some() {
+                one.carried = Some(r#"{"withdrawn":true}"#.to_owned());
+            }
+            (file.clone(), one)
+        })
+        .collect();
+    home.sent(&withdrawn);
+
+    let later = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: false,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+
+    assert!(
+        later
+            .remembering
+            .iter()
+            .all(|(_, one)| one.held_by.is_none())
+    );
+}

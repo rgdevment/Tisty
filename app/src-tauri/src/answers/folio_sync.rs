@@ -458,12 +458,12 @@ async fn other_version_brought(
     let (shared_id, key) = (was.id.clone(), was.link_key.clone().unwrap_or_default());
     let home = held(session).paths.private();
     let owner_of_the_anchor = was.admin_token.is_some() && was.held_by.is_none();
-    let held_ids = super::folio_languages::held_ids(&held(session).state, was);
+    let known = super::folio_languages::known_ids(&held(session).state, was);
     let (opened, proposals) = apart(move || {
         let door = ToFolio::new(&home)?;
         let opened = opened_from(&door, &shared_id, &key)?;
         let proposals = match owner_of_the_anchor {
-            true => super::folio_languages::proposals_in(&door, &opened, &held_ids),
+            true => super::folio_languages::proposals_in(&door, &opened, &known),
             false => Vec::new(),
         };
         Ok((opened, proposals))
@@ -520,6 +520,11 @@ async fn other_version_brought(
     if !proposals.is_empty() {
         now.carried = super::folio_languages::proposals_merged(&now, proposals);
     }
+    let withdrawn = match was.admin_token {
+        Some(_) => Vec::new(),
+        None => super::folio_languages::withdrawn_by(&session.state, was, &opened),
+    };
+    kept_on(&mut session, &withdrawn)?;
     kept_on(&mut session, &[(file, now)])?;
     let doubtful = opened.doubtful();
     Ok(Synced::OtherVersion {

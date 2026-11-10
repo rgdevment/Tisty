@@ -97,6 +97,15 @@ impl Opened {
 }
 
 pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
+    opened_with(door, id, key, true)
+}
+
+/// Only the main envelope, for who wrote it and under which root, without its files.
+pub(super) fn opened_head(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
+    opened_with(door, id, key, false)
+}
+
+fn opened_with(door: &dyn Door, id: &str, key: &str, with_files: bool) -> Answer<Opened> {
     let fetched = folio_client::fetch(door, id).map_err(|stopped| said(&stopped))?;
     let served = served_by(&fetched);
     let opening = |kind| Opening {
@@ -109,7 +118,7 @@ pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened
     let owner = reading::owner_block(&sealed);
     let contract = reading::contract_of(&sealed);
     let read = reading::reading(&fetched.bytes, &main, &served).map_err(|e| unopened(&e))?;
-    let files = match read.document["files_hash"].as_str() {
+    let files = match read.document["files_hash"].as_str().filter(|_| with_files) {
         Some(hash) => {
             let bytes =
                 folio_client::fetch_files(door, id, hash).map_err(|stopped| said(&stopped))?;

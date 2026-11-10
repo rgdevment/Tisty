@@ -55,6 +55,8 @@ struct Carried {
     languages: Option<Vec<Translation>>,
     cited: Option<Vec<Cited>>,
     editors: Option<Vec<Editor>>,
+    #[serde(default)]
+    withdrawn: bool,
 }
 
 // A document shared again under a new link carries words others wrote under the last one, in any of its languages (140).
@@ -629,7 +631,9 @@ impl Gathering<'_> {
         for one in languages_of(state, kept) {
             let chosen_out =
                 self.left_out.contains(&one.file) && one.id != kept.id && one.id != anchor_id;
-            if chosen_out {
+            // The owner adopted it or left it out, so whoever added it no longer sends it (166).
+            let withdrawn = carried_by(self.shelf.get(&one.file)).withdrawn;
+            if chosen_out || withdrawn {
                 continue;
             }
             if sharable(self.desk, one.id, &self.shelf).is_ok() {
