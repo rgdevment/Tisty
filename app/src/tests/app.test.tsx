@@ -449,7 +449,7 @@ describe("the views nothing else opens", () => {
 
     expect(await screen.findByText("filed last month")).toBeTruthy();
     expect(screen.queryByText("write the report")).toBeNull();
-    await user.click(screen.getByRole("button", { name: /tasks|tareas/i }));
+    await user.click(screen.getByRole("button", { name: /^(tasks|tareas)$/i }));
     expect(await screen.findByText("write the report")).toBeTruthy();
   });
 

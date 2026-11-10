@@ -31,6 +31,7 @@ const guestSaid = (doc: Filed) => {
 
 interface Props {
   papers: Papers;
+  unfolded?: boolean;
   open?: string;
   here?: string | null;
   /// The row whose menu is open, so a right click says which one it landed on.
@@ -47,6 +48,7 @@ interface Props {
 
 export default function Tree({
   papers,
+  unfolded = false,
   open,
   here,
   acting,
@@ -610,7 +612,7 @@ export default function Tree({
   };
 
   const branch = (folder: Folded, depth: number) => {
-    const closed = !opened.has(folder.id);
+    const closed = !unfolded && !opened.has(folder.id);
     const kids = under(folder.id);
     const papersIn = inside(folder.id);
     return (
@@ -708,6 +710,7 @@ export default function Tree({
       !one.pageOf &&
       (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
   );
+  const looseOpen = unfolded || opened.has("unfiled");
 
   const tree = (
     <ul aria-label={t("docs")} className="flex flex-col gap-px">
@@ -735,8 +738,8 @@ export default function Tree({
         >
           <Grip
             at={8}
-            open={opened.has("unfiled")}
-            label={fill(opened.has("unfiled") ? "closeFolder" : "openFolder", t("unfiled"))}
+            open={looseOpen}
+            label={fill(looseOpen ? "closeFolder" : "openFolder", t("unfiled"))}
             controls="holds-unfiled"
             onPress={() => fold("unfiled")}
           >
@@ -767,14 +770,14 @@ export default function Tree({
             </span>
           </button>
         </div>
-        {opened.has("unfiled") && (
+        {looseOpen && (
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
             style={{ left: `${SPINE}px`, top: "30px" }}
           />
         )}
-        {opened.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
+        {looseOpen && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
       </li>
     </ul>
   );

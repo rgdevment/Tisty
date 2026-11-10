@@ -174,7 +174,13 @@ export default function Board() {
           }
         >
           {chosen.named === "search" ? (
-            <Search key="search" onFound={setFound} onError={setError} />
+            <Search
+              key="search"
+              query={chosen.query ?? ""}
+              onQuery={(query) => setChosen({ ...chosen, query })}
+              onFound={setFound}
+              onError={setError}
+            />
           ) : chosen.named === "archive" ? (
             <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (

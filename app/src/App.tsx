@@ -80,6 +80,7 @@ export default function App() {
 
         <Sidebar
           lists={data.lists}
+          tags={data.tags}
           papers={papers}
           counts={data.counts}
           chosen={chosen}
@@ -109,6 +110,11 @@ export default function App() {
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }
           onChoose={choose}
+          onSearch={(query) =>
+            chosen.named === "search"
+              ? setChosen({ ...chosen, query })
+              : choose({ named: "search", query })
+          }
           onSync={() => held.carries.current?.now()}
           onTrouble={setError}
         />
