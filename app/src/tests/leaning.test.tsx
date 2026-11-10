@@ -41,7 +41,12 @@ const papers: Papers = {
   ],
 };
 
-const bar = (chosen: Chosen = { named: "tasks" }, onSearch = vi.fn(), onHere = vi.fn()) =>
+const bar = (
+  chosen: Chosen = { named: "tasks" },
+  onSearch = vi.fn(),
+  onHere = vi.fn(),
+  onChoose = vi.fn(),
+) =>
   render(
     <Sidebar
       lists={[{ id: "L1", name: "Folio Project", order: "a" }]}
@@ -50,9 +55,9 @@ const bar = (chosen: Chosen = { named: "tasks" }, onSearch = vi.fn(), onHere = v
         { tag: "backend", tasks: 12, docs: 0 },
       ]}
       papers={papers}
-      counts={{ tasks: 82, overdue: 9, late: 2, L1: 8 }}
+      counts={{ tasks: 82, overdue: 9, late: 2, dueToday: 0, upcoming: 10, L1: 8 }}
       chosen={chosen}
-      onChoose={vi.fn()}
+      onChoose={onChoose}
       onSearch={onSearch}
       onFile={vi.fn()}
       onHere={onHere}
@@ -92,8 +97,32 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     expect(said).toEqual(["#backend", "#web"]);
   });
 
+  it("keeps the search in sight whichever side has the room", () => {
+    bar();
+    expect(screen.getByRole("textbox", { name: t("sideSearch") })).toBeTruthy();
+  });
+
+  it("finds its search with the shortcut, unfolding the rail to reach it", async () => {
+    bar();
+    act(() => fold(true));
+    expect(screen.queryByRole("textbox", { name: t("sideSearch") })).toBeNull();
+
+    fireEvent.keyDown(document.body, { key: "k", ctrlKey: true });
+    await act(() => new Promise((done) => requestAnimationFrame(() => done(null))));
+
+    expect(document.activeElement).toBe(screen.getByRole("textbox", { name: t("sideSearch") }));
+  });
+
+  it("opens the tasks of the day from its counts", () => {
+    const onChoose = vi.fn();
+    bar({ named: "docs" }, vi.fn(), vi.fn(), onChoose);
+    fireEvent.click(screen.getByText(t("pulseAhead")));
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "upcoming" });
+    fireEvent.click(screen.getByText(t("pulseOverdue")));
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "today" });
+  });
+
   it("hands what is typed to the same search the window already runs", () => {
-    act(() => lean("tasks"));
     const onSearch = vi.fn();
     const { unmount } = bar({ named: "tasks" }, onSearch);
     fireEvent.change(screen.getByRole("textbox", { name: t("sideSearch") }), {

@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { railed, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { useCallback, useRef } from "react";
+import { fold, railed, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
@@ -7,6 +7,7 @@ import { useLean } from "../leaning";
 import { t } from "../locales";
 import type { Chosen } from "../views";
 import Coming from "./Coming";
+import { focusFinder, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
@@ -75,6 +76,11 @@ export default function Sidebar({
   const folded = breadth.folded;
   const leaning = useLean();
   useFoldKey(!keeping);
+  const find = useCallback(() => {
+    fold(false);
+    requestAnimationFrame(focusFinder);
+  }, []);
+  useFindKey(!keeping, find);
 
   return (
     <aside className="relative flex flex-col overflow-hidden">

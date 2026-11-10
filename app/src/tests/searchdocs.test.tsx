@@ -98,8 +98,7 @@ beforeEach(() => {
 const searching = async (user: ReturnType<typeof userEvent.setup>, words: string) => {
   render(<App />);
   await screen.findByText("call the bank about the watering");
-  await user.click(screen.getByRole("button", { name: /search/i }));
-  await user.type(await screen.findByRole("textbox", { name: /search everywhere/i }), words);
+  await user.type(screen.getByRole("textbox", { name: /search tasks/i }), words);
 };
 
 describe("a search that reaches the documents", () => {

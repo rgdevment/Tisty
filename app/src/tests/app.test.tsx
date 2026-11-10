@@ -309,7 +309,7 @@ describe("what the numbers on screen refer to", () => {
     counts = { tasks: 2, upcoming: 5, repeating: 1, all: 8 };
     await started();
 
-    expect(screen.getByRole("button", { name: /today/i }).textContent).toContain("2");
+    expect(screen.getByRole("button", { name: /^today/i }).textContent).toContain("2");
     expect(screen.getByRole("button", { name: /upcoming/i }).textContent).toContain("5");
     expect(screen.getByRole("button", { name: /^all/i }).textContent).toContain("8");
     expect(screen.getByRole("heading", { level: 1 }).parentElement?.textContent).toBe("Tasks");
@@ -460,7 +460,7 @@ describe("the views nothing else opens", () => {
     await user.click(screen.getByRole("button", { name: /tags|etiquetas/i }));
     expect(await screen.findByRole("heading", { name: /tags|etiquetas/i })).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: /search|buscador/i }));
+    await user.type(screen.getByRole("textbox", { name: /search tasks|buscar tareas/i }), "report");
     expect(await screen.findByRole("heading", { name: /search|buscador/i })).toBeTruthy();
   });
 

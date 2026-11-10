@@ -2,6 +2,7 @@ import type { Coming, Habit, List } from "../core";
 import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Ahead, { WEEK } from "./Ahead";
+import DayCounts from "./DayCounts";
 
 interface Props {
   apart: string;
@@ -37,12 +38,7 @@ export default function Pulse({
     >
       <div>
         <Cap said={t("theDay")} />
-        <dl className="grid grid-cols-4 gap-1.5">
-          <Count many={counts.overdue ?? 0} said={t("pulseOverdue")} tone="text-urgent" />
-          <Count many={counts.late ?? 0} said={t("pulseLate")} tone="text-hue-amber" />
-          <Count many={counts.dueToday ?? 0} said={t("pulseToday")} tone="text-accent" />
-          <Count many={counts.upcoming ?? 0} said={t("pulseAhead")} />
-        </dl>
+        <DayCounts counts={counts} />
       </div>
 
       <div>
@@ -142,16 +138,5 @@ function Line({
     >
       {shown}
     </button>
-  );
-}
-
-function Count({ many, said, tone }: { many: number; said: string; tone?: string }) {
-  return (
-    <div className="rounded-[10px] border border-hair px-2 py-1">
-      <dt className={`text-[21px] leading-tight font-semibold tabular-nums ${tone ?? ""}`}>
-        {many}
-      </dt>
-      <dd className="text-[9px] leading-tight text-faint">{said}</dd>
-    </div>
   );
 }
