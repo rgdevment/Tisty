@@ -1340,7 +1340,7 @@ fn version_signed(by: &str, owner: &str) -> crate::answers::folio_receiving::Ope
             reviewed: None,
             reviewed_received: None,
         },
-        print: String::new(),
+        print: None,
     }
 }
 

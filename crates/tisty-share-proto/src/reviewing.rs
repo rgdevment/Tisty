@@ -50,7 +50,6 @@ pub fn of(anchor_key: &[u8], id: &str) -> Option<Vec<u8>> {
     Some(of.finalize().into_bytes().to_vec())
 }
 
-/// What a review's signature covers as a whole, which the owner's word on all of them hashes.
 pub fn row(root: &[u8], machine: &[u8], said: &Said) -> Vec<u8> {
     let mut out = identity::SIGNED.to_vec();
     out.extend_from_slice(root);

@@ -103,7 +103,7 @@ fn latest<'a>(
     latest
 }
 
-fn reviews_hash(anchor: &str, reviews: &[Review]) -> Option<Vec<u8>> {
+pub fn reviews_hash(anchor: &str, reviews: &[Review]) -> Option<Vec<u8>> {
     let mut each = Vec::with_capacity(reviews.len());
     for review in reviews {
         let bytes = bytes_of(review)?;
@@ -120,7 +120,7 @@ fn reviews_hash(anchor: &str, reviews: &[Review]) -> Option<Vec<u8>> {
     Some(whole.finalize().to_vec())
 }
 
-/// What a reader reads of a language, so sealing it again under another head, number or key leaves it as it was.
+/// Over what opens, so sealing it again under another head, number or key leaves it as it was.
 pub fn print_of(parts: &[Vec<u8>]) -> String {
     let mut whole = Sha256::new();
     whole.update(b"tisty-language-print\0");
@@ -164,22 +164,26 @@ fn word_counts(weighing: &Weighing, head: &Reviewed, reviews: &[Review]) -> bool
     )
 }
 
-/// None while the owner's word served beside the anchor does not name these very reviews.
-pub fn kept(weighing: &Weighing, reviews: &[Review]) -> Vec<Review> {
-    let Some(head) = weighing.served.reviewed.as_ref() else {
-        return Vec::new();
-    };
-    let Some(anchor_key) = decoded(weighing.anchor_key) else {
-        return Vec::new();
-    };
+pub struct Counted {
+    pub seq: u64,
+    pub reviews: Vec<Review>,
+}
+
+pub fn kept(weighing: &Weighing, reviews: &[Review]) -> Option<Counted> {
+    let head = weighing.served.reviewed.as_ref()?;
+    let anchor_key = decoded(weighing.anchor_key)?;
     if !word_counts(weighing, head, reviews) {
-        return Vec::new();
+        return None;
     }
-    latest(weighing.anchor, weighing.owner, &anchor_key, reviews)
+    let reviews = latest(weighing.anchor, weighing.owner, &anchor_key, reviews)
         .into_values()
         .filter(|one| one.kept)
         .cloned()
-        .collect()
+        .collect();
+    Some(Counted {
+        seq: head.seq,
+        reviews,
+    })
 }
 
 pub fn keeps(kept: &[Review], document: &str, lang: Option<&str>, print: &str) -> bool {
@@ -196,14 +200,8 @@ pub struct LeftOut {
 }
 
 impl LeftOut {
-    /// Only the latest review of each language counts, and only one its owner signed.
-    pub fn by(
-        anchor_key: Option<&str>,
-        anchor: &str,
-        owner: &str,
-        reviews: &[Review],
-    ) -> Option<Self> {
-        let anchor_key = decoded(anchor_key?)?;
+    pub fn by(anchor_key: &str, anchor: &str, owner: &str, reviews: &[Review]) -> Option<Self> {
+        let anchor_key = decoded(anchor_key)?;
         let gone: BTreeSet<String> = latest(anchor, owner, &anchor_key, reviews)
             .into_values()
             .filter(|one| !one.kept)

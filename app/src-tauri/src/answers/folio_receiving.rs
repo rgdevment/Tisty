@@ -2,14 +2,14 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_carrier::folio_client::{self, Door, Fetched};
-use tisty_carrier::{folio_domains, folio_limits};
+use tisty_carrier::{folio_domains, folio_limits, folio_reviewed};
 use tisty_contracts::{EnvelopeKind, Opening, Review, Served, Verdict};
 use tisty_core::Op;
 use tisty_core::attach::{self, Via};
 use tisty_core::witness::{self, Fact, channel};
 use tisty_envelope::Translation;
 use tisty_envelope::reading::{self, Unopened};
-use tisty_envelope::reviews::{self, Weighing};
+use tisty_envelope::reviews::{self, Counted, Weighing};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
@@ -97,7 +97,7 @@ pub(super) struct Opened {
     pub verdict: Verdict,
     pub contract: Option<String>,
     pub served: Served,
-    pub print: String,
+    pub print: Option<String>,
 }
 
 impl Opened {
@@ -107,14 +107,25 @@ impl Opened {
 }
 
 pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
-    opened_with(door, id, key, true)
+    opened_with(door, id, key, true, |_| false)
 }
 
 fn opened_head(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
-    opened_with(door, id, key, false)
+    opened_with(door, id, key, false, |_| false)
 }
 
-fn opened_with(door: &dyn Door, id: &str, key: &str, with_files: bool) -> Answer<Opened> {
+// Only a language of another root than the anchor owner's is weighed against a review, so only it is printed.
+fn opened_language(door: &dyn Door, id: &str, key: &str, owner: Option<&str>) -> Answer<Opened> {
+    opened_with(door, id, key, true, |its| its != owner)
+}
+
+fn opened_with(
+    door: &dyn Door,
+    id: &str,
+    key: &str,
+    with_files: bool,
+    printed: impl Fn(Option<&str>) -> bool,
+) -> Answer<Opened> {
     let fetched = folio_client::fetch(door, id).map_err(|stopped| said(&stopped))?;
     let served = served_by(&fetched);
     let opening = |kind| Opening {
@@ -152,7 +163,7 @@ fn opened_with(door: &dyn Door, id: &str, key: &str, with_files: bool) -> Answer
         version: fetched.version,
         verdict: read.verdict,
         contract,
-        print: reviews::print_of(&sealed.parts),
+        print: printed(read.owner.as_deref()).then(|| reviews::print_of(&sealed.parts)),
         served,
     })
 }
@@ -346,52 +357,52 @@ const OTHER_LANGUAGES_AT_MOST: usize = 19;
 
 /// Every language the anchor's map names that is not here yet and Folio still serves, read before anything is kept.
 /// One its owner has not reviewed stays out: it is someone else's word in the owner's name (166).
+// One language for each lang, the map's first: a kept one that says a lang already brought waits behind it.
 fn languages_brought(
     door: &dyn Door,
     opened: &Opened,
     here: &std::collections::BTreeSet<String>,
-    anchor_key: &str,
+    kept: &[Review],
 ) -> (Vec<(Translation, Opened)>, Vec<String>) {
-    let kept = kept_reviews(opened, anchor_key);
     let map: Vec<Translation> =
         serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
+    let mut taken = here.clone();
     let mut left = Vec::new();
-    let brought = reached(map, &kept)
-        .into_iter()
-        .filter(|one| !here.contains(&one.lang))
-        .filter_map(|one| {
-            let key = one.key.clone()?;
-            match opened_from(door, &one.document, &key) {
-                Ok(its) if belongs(opened, &its, &kept) => Some((one, its)),
-                Ok(_) => {
-                    witness::note(
-                        channel::SYNC,
-                        "a language that is not this anchor's, or that its owner has not reviewed, was left in Folio",
-                        &[],
-                    );
-                    None
-                }
-                Err(refused) => {
-                    witness::warn(
-                        channel::SYNC,
-                        "a language of a document arrived without being read, so it was left behind",
-                        &[("code", Fact::Code(refused.code))],
-                    );
-                    left.push(one.lang);
-                    None
-                }
+    let mut brought = Vec::new();
+    for one in reached(map, kept) {
+        if brought.len() == OTHER_LANGUAGES_AT_MOST {
+            break;
+        }
+        let Some(key) = one.key.clone().filter(|_| !taken.contains(&one.lang)) else {
+            continue;
+        };
+        match opened_language(door, &one.document, &key, opened.owner_root.as_deref()) {
+            Ok(its) if belongs(opened, &its, kept) => {
+                taken.insert(one.lang.clone());
+                brought.push((one, its));
             }
-        })
-        .take(OTHER_LANGUAGES_AT_MOST)
-        .collect();
+            Ok(_) => witness::note(
+                channel::SYNC,
+                "a language that is not this anchor's, or that its owner has not reviewed, was left in Folio",
+                &[],
+            ),
+            Err(refused) => {
+                witness::warn(
+                    channel::SYNC,
+                    "a language of a document arrived without being read, so it was left behind",
+                    &[("code", Fact::Code(refused.code))],
+                );
+                left.push(one.lang);
+            }
+        }
+    }
     (brought, left)
 }
 
-/// The owner's latest word on each language it keeps, while the word Folio serves beside the anchor names those very reviews.
-fn kept_reviews(anchor: &Opened, anchor_key: &str) -> Vec<Review> {
+fn kept_reviews(anchor: &Opened, anchor_key: &str, seen: u64) -> Option<Counted> {
     let (Some(owner), Some(id)) = (anchor.owner_root.as_deref(), anchor.document["id"].as_str())
     else {
-        return Vec::new();
+        return None;
     };
     let reviews: Vec<Review> =
         serde_json::from_value(anchor.document["reviews"].clone()).unwrap_or_default();
@@ -400,9 +411,18 @@ fn kept_reviews(anchor: &Opened, anchor_key: &str) -> Vec<Review> {
         owner,
         anchor_key,
         served: &anchor.served,
-        seen: 0,
+        seen,
     };
     reviews::kept(&weighing, &reviews)
+}
+
+// The highest word seen here is remembered, so an older one served again later never counts (166).
+fn kept_and_seen(home: &std::path::Path, anchor: &Opened, link: &Link) -> Vec<Review> {
+    let counted = kept_reviews(anchor, &link.key, folio_reviewed::seen(home, &link.id));
+    counted.map_or_else(Vec::new, |counted| {
+        folio_reviewed::saw(home, &link.id, counted.seq);
+        counted.reviews
+    })
 }
 
 // Someone who edits can take an entry out of the map or change it, never what the owner signed (166).
@@ -442,9 +462,22 @@ fn belongs(anchor: &Opened, its: &Opened, kept: &[Review]) -> bool {
     let named = its.document["anchor"].as_str();
     let id = its.document["id"].as_str().unwrap_or_default();
     let lang = its.document["lang"].as_str();
+    let kept_as_read = |print: &String| reviews::keeps(kept, id, lang, print);
     named.is_some()
         && named == anchor.document["id"].as_str()
-        && (reviewed(anchor, its) || reviews::keeps(kept, id, lang, &its.print))
+        && (reviewed(anchor, its) || its.print.as_ref().is_some_and(kept_as_read))
+}
+
+// Only a language of the anchor owner's root is edited through the anchor's link: one of another root, sealed again here, would leave its review.
+fn editable_language(
+    link: &Link,
+    anchor: &Opened,
+    one: &Translation,
+    its: &Opened,
+) -> Option<Link> {
+    (editable(link, anchor) && reviewed(anchor, its))
+        .then(|| language_link(link, one, its))
+        .flatten()
 }
 
 // Only the anchor's edit link opens a language's token, and only one the language's owner names (166).
@@ -653,8 +686,10 @@ struct Brought {
 fn taken_in(app: &AppHandle, door: &dyn Door, link: &Link, opened: &Opened) -> Answer<Brought> {
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
+    let home = held(&session).paths.private();
+    let kept = kept_and_seen(&home, opened, link);
     let (languages, mut left) =
-        languages_brought(door, opened, &std::collections::BTreeSet::new(), &link.key);
+        languages_brought(door, opened, &std::collections::BTreeSet::new(), &kept);
     let (received, told) = kept_here(&data, opened);
     let received = match languages.is_empty() {
         true => received,
@@ -705,7 +740,6 @@ fn languages_kept(
     let session = app.state::<Mutex<Session>>();
     let data = held(&session).paths.data().to_path_buf();
     let locale = held(&session).locale.clone();
-    let editable = editable(link, opened);
     let mut said = Kept::default();
     for (one, its) in languages {
         // One language that cannot be kept leaves the others, and what was kept is still printed.
@@ -718,7 +752,7 @@ fn languages_kept(
             let (its_doc, its_file) = guests_kept(&mut session, &arrived, by)?;
             let joined = session.state.joining(its_doc, doc);
             session.commit_all(joined)?;
-            let entry = match editable.then(|| language_link(link, &one, &its)).flatten() {
+            let entry = match editable_language(link, opened, &one, &its) {
                 Some(its_link) => {
                     let mut entry = entry_for(&its_link, &its, &arrived);
                     entry.held_by = Some(link.id.clone());
@@ -778,7 +812,9 @@ fn languages_added_since(
     };
     let opened = opened_head(door, &link.id, &link.key).ok()?;
     let granted = granted_since(app, door, link, file, doc, &opened);
-    let (languages, mut left) = languages_brought(door, &opened, &here, &link.key);
+    let home = held(&app.state::<Mutex<Session>>()).paths.private();
+    let kept = kept_and_seen(&home, &opened, link);
+    let (languages, mut left) = languages_brought(door, &opened, &here, &kept);
     let mut kept = Kept::default();
     if !languages.is_empty() {
         kept = languages_kept(app, link, &opened, doc, languages).ok()?;

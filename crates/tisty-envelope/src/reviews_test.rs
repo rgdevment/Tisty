@@ -45,7 +45,7 @@ fn scenario(says: &str) -> (Value, Vec<Review>) {
 fn left_out(says: &str, owner: Option<&str>, reviews: Option<Vec<Review>>) -> Option<LeftOut> {
     let (one, theirs) = scenario(says);
     LeftOut::by(
-        one["link_key"].as_str(),
+        one["link_key"].as_str().unwrap(),
         one["anchor"].as_str().unwrap(),
         owner.unwrap_or(one["owner"].as_str().unwrap()),
         &reviews.unwrap_or(theirs),
@@ -85,7 +85,9 @@ fn shown(one: &Value) -> Vec<String> {
         served: &served,
         seen: one["seen"].as_u64().unwrap_or(0),
     };
-    let kept = kept(&weighing, &reviews);
+    let kept = kept(&weighing, &reviews)
+        .map(|counted| counted.reviews)
+        .unwrap_or_default();
     let map = one["map"].as_array().unwrap();
     let own = |language: &Value| language["root"] == owner && map.contains(&language["document"]);
     let text = |language: &Value, name: &str| language[name].as_str().unwrap().to_owned();

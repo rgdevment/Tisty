@@ -5,8 +5,9 @@ use tisty_envelope::Translation;
 
 use super::languages_brought;
 use super::{
-    Link, Opened, belongs, editable, granted_entry, language_link, link_of, looked_for,
-    owner_apart, reached, reviewed, saying_its_language, served_by, signer_alias, speaks,
+    Link, Opened, belongs, editable, editable_language, granted_entry, kept_reviews, language_link,
+    link_of, looked_for, owner_apart, reached, reviewed, saying_its_language, served_by,
+    signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -55,7 +56,7 @@ fn a_language_folio_could_not_hand_over_is_named_as_left_behind() {
         ..opened_by(Some("mario"), "mario")
     };
 
-    let (brought, left) = languages_brought(&folio, &anchor, &["fr".to_owned()].into(), "k");
+    let (brought, left) = languages_brought(&folio, &anchor, &["fr".to_owned()].into(), &[]);
 
     assert!(brought.is_empty());
     assert_eq!(left, vec!["en".to_owned()]);
@@ -130,7 +131,7 @@ fn opened_by(owner_root: Option<&str>, signer: &str) -> Opened {
             reviewed: None,
             reviewed_received: None,
         },
-        print: String::new(),
+        print: None,
     }
 }
 
@@ -192,6 +193,42 @@ fn the_anchor_s_edit_link_opens_each_language_s_token_its_owner_names() {
     assert!(language_link(&link(Some(&anchor)), &one, &its("anotherPermit")).is_none());
     assert!(language_link(&link(None), &one, &its(&named)).is_none());
     assert!(language_link(&link(Some(&token)), &one, &its(&named)).is_none());
+}
+
+#[test]
+fn a_language_of_another_root_is_never_edited_through_the_anchor_s_link() {
+    use tisty_envelope::sealing::{link_key, permit_shown};
+    let (anchor_token, token) = (link_key().unwrap(), link_key().unwrap());
+    let one = tisty_envelope::Translation {
+        lang: "en".into(),
+        document: "enGlish1".into(),
+        title: None,
+        key: Some(link_key().unwrap()),
+        edit: Some(tisty_envelope::tokens::sealed_for(&anchor_token, "enGlish1", &token).unwrap()),
+        pending: None,
+    };
+    let anchor = Opened {
+        owner: Some(format!(
+            r#"{{"root":"mario","permit":"{}"}}"#,
+            permit_shown(&anchor_token).unwrap()
+        )),
+        ..opened_by(Some("mario"), "mario")
+    };
+    let its = |root: &str| Opened {
+        owner: Some(format!(
+            r#"{{"root":"{root}","permit":"{}"}}"#,
+            permit_shown(&token).unwrap()
+        )),
+        ..opened_by(Some(root), root)
+    };
+    let link = Link {
+        id: "anchor12".into(),
+        key: "key".into(),
+        token: Some(anchor_token.clone()),
+    };
+
+    assert!(editable_language(&link, &anchor, &one, &its("mario")).is_some());
+    assert!(editable_language(&link, &anchor, &one, &its("ana")).is_none());
 }
 
 fn edited_anchor(token: &str) -> tisty_sharing::Remembered {
@@ -504,7 +541,7 @@ fn a_language_of_someone_who_edits_is_brought_only_as_its_owner_kept_it() {
     };
     let anas = |lang: &str, print: &str| Opened {
         document: serde_json::json!({ "anchor": "Anchor12", "id": "anaEngl1", "lang": lang }),
-        print: print.to_owned(),
+        print: Some(print.to_owned()),
         ..opened_by(Some("ana"), "ana")
     };
     let kept = [kept_review("anaEngl1", "en", "P1")];
@@ -582,4 +619,198 @@ fn a_version_is_signed_by_its_own_name_and_never_by_an_owner_who_did_not_sign_it
     assert_eq!(signer_alias(&by_mario, None, Some("Mario")), Some("Mario"));
     assert_eq!(signer_alias(&by_ana, None, Some("Mario")), None);
     assert_eq!(signer_alias(&by_mario, None, None), None);
+}
+
+struct ServingFolio(Vec<(String, Vec<u8>)>);
+
+impl Door for ServingFolio {
+    fn ask(&self, asked: &Asked<'_>) -> Option<Answered> {
+        let (_, body) = self.0.iter().find(|(path, _)| *path == asked.path)?;
+        Some(Answered {
+            status: 200,
+            headers: vec![
+                ("folio-version".to_owned(), "1".to_owned()),
+                ("folio-arrived".to_owned(), "1800000000000".to_owned()),
+            ],
+            body: body.clone(),
+        })
+    }
+}
+
+struct Signer(
+    tisty_share_proto::identity::ShareKey,
+    tisty_share_proto::identity::Certificate,
+);
+
+fn signer(byte: u8) -> Signer {
+    use tisty_share_proto::identity::{Root, ShareKey};
+    let key = ShareKey::from_bytes(&[byte + 1; 32]);
+    let certificate = Root::from_bytes(&[byte; 32])
+        .certify(&key.public(), "2026-11-03T12:00:00Z".parse().unwrap());
+    Signer(key, certificate)
+}
+
+const ANCHOR: &str = "Anchor12";
+
+fn b64(said: &[u8]) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(said)
+}
+
+fn unb64(said: &str) -> Vec<u8> {
+    use base64::Engine;
+    base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(said)
+        .unwrap()
+}
+
+fn sealed_language(by: &Signer, id: &str, lang: &str, key: &str) -> Vec<u8> {
+    let document = serde_json::from_value(serde_json::json!({
+        "id": id, "lang": lang, "anchor": ANCHOR, "html": "<p>hi</p>", "body": "hi\n"
+    }))
+    .unwrap();
+    let sealing = tisty_contracts::Sealing {
+        id: id.to_owned(),
+        version: 1,
+        from: None,
+        link_key: Some(key.to_owned()),
+        files_hash: None,
+        files_key: None,
+        owner: None,
+        token: None,
+        terms: None,
+    };
+    tisty_envelope::sealing::Writer::new(&by.0, &by.1)
+        .sealed(document, vec![], vec![], &sealing)
+        .unwrap()
+        .main
+}
+
+fn print_of_sealed(main: &[u8], id: &str, key: &str) -> String {
+    let opening = tisty_contracts::Opening {
+        id: id.to_owned(),
+        kind: tisty_contracts::EnvelopeKind::Main,
+        link_key: Some(key.to_owned()),
+    };
+    let opened = tisty_envelope::reading::opened(main, &opening, &nothing_served()).unwrap();
+    tisty_envelope::reviews::print_of(&opened.parts)
+}
+
+fn nothing_served() -> tisty_contracts::Served {
+    tisty_contracts::Served {
+        received: None,
+        revocations: None,
+        reviewed: None,
+        reviewed_received: None,
+    }
+}
+
+fn keeping(
+    owner: &Signer,
+    anchor_key: &str,
+    id: &str,
+    lang: &str,
+    key: &str,
+    print: &str,
+) -> tisty_contracts::Review {
+    use tisty_share_proto::reviewing::{self, Kept, Said};
+    let of = reviewing::of(&unb64(anchor_key), id).unwrap();
+    let (key_bytes, print_bytes) = (unb64(key), unb64(print));
+    let said = Said {
+        anchor: ANCHOR,
+        of: &of,
+        seq: 1,
+        kept: Some(Kept {
+            document: id,
+            lang,
+            title: Some("Walks"),
+            key: &key_bytes,
+            print: &print_bytes,
+        }),
+    };
+    let signed = reviewing::signed(&owner.0, &owner.1, &said).unwrap();
+    serde_json::from_value(serde_json::json!({
+        "of": b64(&of), "kept": true, "document": id, "lang": lang, "title": "Walks", "key": key, "print": print,
+        "seq": 1, "root": signed.certificate.root, "machine": signed.certificate.share,
+        "since": "2026-11-03T12:00:00Z", "certificate": signed.certificate.sig, "signed": signed.sig,
+    }))
+    .unwrap()
+}
+
+fn owners_word(
+    owner: &Signer,
+    seq: u64,
+    reviews: &[tisty_contracts::Review],
+) -> tisty_contracts::Reviewed {
+    use tisty_share_proto::reviewing;
+    let hash = tisty_envelope::reviews::reviews_hash(ANCHOR, reviews).unwrap();
+    let signed = owner
+        .0
+        .sign(
+            &owner.1,
+            reviewing::REVIEWED,
+            &reviewing::reviewed(ANCHOR, seq, &hash),
+        )
+        .unwrap();
+    serde_json::from_value(serde_json::json!({
+        "anchor": ANCHOR, "seq": seq, "reviews": b64(&hash), "root": signed.certificate.root,
+        "machine": signed.certificate.share, "since": "2026-11-03T12:00:00Z",
+        "certificate": signed.certificate.sig, "signed": signed.sig,
+    }))
+    .unwrap()
+}
+
+#[test]
+fn a_link_brings_the_language_its_owner_kept_by_the_key_the_owner_signed_and_one_for_each_lang() {
+    use tisty_envelope::sealing::link_key;
+    let (mario, ana) = (signer(0x30), signer(0x40));
+    let anchor_key = link_key().unwrap();
+    let (first_key, second_key) = (link_key().unwrap(), link_key().unwrap());
+    let first = sealed_language(&ana, "anaEngl1", "en", &first_key);
+    let second = sealed_language(&ana, "anaEngl2", "en", &second_key);
+    let reviews = vec![
+        keeping(
+            &mario,
+            &anchor_key,
+            "anaEngl1",
+            "en",
+            &first_key,
+            &print_of_sealed(&first, "anaEngl1", &first_key),
+        ),
+        keeping(
+            &mario,
+            &anchor_key,
+            "anaEngl2",
+            "en",
+            &second_key,
+            &print_of_sealed(&second, "anaEngl2", &second_key),
+        ),
+    ];
+    let anchor = Opened {
+        document: serde_json::json!({ "id": ANCHOR, "languages": [], "reviews": reviews }),
+        served: tisty_contracts::Served {
+            reviewed: Some(owners_word(&mario, 2, &reviews)),
+            reviewed_received: Some("2026-11-05T00:00:00Z".into()),
+            ..nothing_served()
+        },
+        ..opened_by(Some(&mario.1.root), &mario.1.root)
+    };
+    let folio = ServingFolio(vec![
+        ("/docs/anaEngl1".to_owned(), first),
+        ("/docs/anaEngl2".to_owned(), second),
+    ]);
+
+    let kept = kept_reviews(&anchor, &anchor_key, 0).unwrap();
+    let (brought, left) = super::languages_brought(
+        &folio,
+        &anchor,
+        &std::collections::BTreeSet::new(),
+        &kept.reviews,
+    );
+
+    assert_eq!(kept.seq, 2);
+    assert_eq!(brought.len(), 1);
+    assert_eq!(brought[0].0.title.as_deref(), Some("Walks"));
+    assert!(left.is_empty());
+    assert!(kept_reviews(&anchor, &anchor_key, 3).is_none());
 }

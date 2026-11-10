@@ -545,14 +545,11 @@ fn the_latest_says_when_folio_takes_the_next_version_only_when_it_knows() {
         Ok(Latest {
             version: 3,
             next_at: Some(1_800_000_000_000),
-            reviewed_seq: None,
         })
     );
 
     let silent = FakeFolio::answering(&[(200, r#"{"version":3}"#)]);
     assert_eq!(latest(&silent, "d").unwrap().next_at, None);
-    let reviewed = FakeFolio::answering(&[(200, r#"{"version":3,"reviewedSeq":4}"#)]);
-    assert_eq!(latest(&reviewed, "d").unwrap().reviewed_seq, Some(4));
 }
 
 #[test]

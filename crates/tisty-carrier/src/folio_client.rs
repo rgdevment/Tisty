@@ -340,8 +340,6 @@ pub struct Latest {
     pub version: u64,
     #[serde(default, rename = "nextAt")]
     pub next_at: Option<u64>,
-    #[serde(default, rename = "reviewedSeq")]
-    pub reviewed_seq: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
