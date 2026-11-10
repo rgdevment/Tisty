@@ -448,6 +448,27 @@ pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {
     crate::store::identity::device_file(paths, device, KEEP)
 }
 
+// A machine signs only as the root it answers to (72).
+pub fn signer(
+    paths: &crate::Paths,
+    persons: &Persons,
+    device: &DeviceId,
+) -> Option<(ShareKey, Certificate)> {
+    let root = persons.person(device)?;
+    let vouched = persons.vouched_by(device, &root)?;
+    // Asked last: a machine makes its key only once the log names a person.
+    let key = mine(paths, device)?;
+    if vouched.share != key.public() {
+        return None;
+    }
+    let certificate = persons.certificates.iter().find(|one| {
+        one.unchecked().is_some_and(|said| {
+            said.person == root && said.share == vouched.share && said.since == vouched.since
+        })
+    })?;
+    Some((key, certificate.clone()))
+}
+
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<ShareKey> {
     let at = kept_at(paths, device)?;
     let one = crate::store::identity::kept_or_minted(

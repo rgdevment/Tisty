@@ -1,10 +1,10 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
-import { type Afoot, docsPack, docsUnpack, spelled } from "../core";
+import { type Afoot, docsPack, docsUnpack, type ParcelAnswer, spelled } from "../core";
 import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { type Refusal, saidPlainly } from "../refusal";
 import { HOW_MANY } from "./Digits";
-import ParcelAsks from "./ParcelAsks";
+import ParcelAsks, { type Question } from "./ParcelAsks";
 
 const PARCEL = "tistyx";
 
@@ -22,6 +22,7 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
   const [locked, setLocked] = useState<string | null>(null);
   const [number, setNumber] = useState("");
   const [wrong, setWrong] = useState(false);
+  const [question, setQuestion] = useState<Question | null>(null);
 
   // One at a time, and only everything at once may be a move, so only that one asks first.
   const packUp = (which: string[], named: string) => {
@@ -76,28 +77,36 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
           typeof at === "string" ? landing(at) : undefined,
         );
 
-  const landing = (at: string, number?: string) => {
+  const landing = (at: string, number?: string, answer?: ParcelAnswer) => {
     const since = Date.now();
     return Promise.resolve()
       .then(() => {
         setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
-        return docsUnpack(at, number);
+        return docsUnpack(at, number, answer);
       })
       .then((landed) => {
         setAfoot(null);
         if (!landed) return;
         papersChanged();
         const many = landed.docs + landed.pages;
-        if (landed.missed > 0 && many > 0) {
-          setError(fill("landedShort", String(landed.missed)));
-          return;
-        }
         if (many === 0) {
           setError(
             landed.missed > 0 ? fill("landedNoneOfIt", String(landed.missed)) : t("landedNone"),
           );
           return;
         }
+        if (landed.broken) {
+          setError(t("landedBroken"));
+          return;
+        }
+        if (landed.print) {
+          said(fill("landedFrom", landed.name ?? t("parcelNameless"), landed.print), since);
+        }
+        if (landed.missed > 0) {
+          setError(fill("landedShort", String(landed.missed)));
+          return;
+        }
+        if (landed.print) return;
         said(
           many === 1
             ? t("landedOne")
@@ -110,7 +119,22 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
       .catch((e) => {
         setAfoot(null);
         // Locked is the parcel asking whether this is its machine, which only the number answers.
-        const why = (e as { code?: string } | undefined)?.code;
+        const refusal = e as Refusal | undefined;
+        const why = refusal?.code;
+        if (why === "parcelAsksIfMine") {
+          setQuestion({ kind: "ifMine", at, number });
+          return;
+        }
+        if (why === "parcelSignedBy") {
+          setQuestion({
+            kind: "signedBy",
+            at,
+            number,
+            name: refusal?.name ?? t("parcelNameless"),
+            print: refusal?.print ?? "",
+          });
+          return;
+        }
         if (why === "parcelLocked" || why === "wrongNumber") {
           setWrong(why === "wrongNumber");
           setNumber("");
@@ -139,9 +163,18 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
     void landing(at, said);
   };
 
+  const answered = (answer: ParcelAnswer) => {
+    if (question === null) return;
+    const { at, number: opened } = question;
+    setQuestion(null);
+    void landing(at, opened, answer);
+  };
+
   const shown = (
     <ParcelAsks
-      asks={{ whoFor, movingTo, locked, number, wrong }}
+      asks={{ whoFor, movingTo, locked, number, wrong, question }}
+      onQuestion={setQuestion}
+      onAnswer={answered}
       onWho={setWhoFor}
       onMoving={setMovingTo}
       onLocked={setLocked}
@@ -156,7 +189,7 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
   return {
     packUp,
     takeParcel,
-    asking: whoFor !== null || movingTo !== null || locked !== null,
+    asking: whoFor !== null || movingTo !== null || locked !== null || question !== null,
     shown,
   };
 }

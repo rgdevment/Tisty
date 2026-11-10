@@ -6,6 +6,7 @@ import { fill, locale, t } from "./locales";
 export interface Refusal {
   code: string;
   name?: string;
+  print?: string;
 }
 
 const KNOWN = [
@@ -182,6 +183,7 @@ const KNOWN = [
   "parcelLocked",
   "wrongNumber",
   "parcelTorn",
+  "parcelAsksIfMine",
   "noRoom",
   "nothingToCarry",
   "stillPacking",

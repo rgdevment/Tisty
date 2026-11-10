@@ -1,4 +1,5 @@
-use super::{outside_tisty, tistys_own};
+use super::{outside_tisty, shown_as, tistys_own};
+use tisty_carrier::folio_limits::FolioMaker;
 
 #[test]
 fn a_file_tisty_already_keeps_is_never_brought_in_as_new() {
@@ -28,4 +29,31 @@ fn a_file_tisty_already_keeps_is_never_brought_in_as_new() {
         );
     }
     assert!(outside_tisty(&own, &outside).is_ok());
+}
+
+#[test]
+fn a_parcel_signed_with_a_name_like_the_makers_from_another_root_names_nobody() {
+    let maker = FolioMaker {
+        root: "R".repeat(43),
+        name: Some("rgdevment".into()),
+        domain: Some("rgdevment.dev".into()),
+    };
+    let other = "O".repeat(43);
+
+    assert_eq!(
+        shown_as(Some("rgdevrnent".into()), &other, Some(&maker)),
+        None
+    );
+    assert_eq!(
+        shown_as(Some("rgdevment".into()), &maker.root, Some(&maker)).as_deref(),
+        Some("rgdevment")
+    );
+    assert_eq!(
+        shown_as(Some("beto".into()), &other, Some(&maker)).as_deref(),
+        Some("beto")
+    );
+    assert_eq!(
+        shown_as(Some("rgdevment".into()), &other, None).as_deref(),
+        Some("rgdevment")
+    );
 }

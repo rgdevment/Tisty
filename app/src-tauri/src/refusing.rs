@@ -28,6 +28,8 @@ pub struct Refusal {
     pub code: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub print: Option<String>,
 }
 
 pub fn where_it_comes_from() -> &'static str {
@@ -170,7 +172,18 @@ impl Refusal {
         } else {
             witness::trace(channel::WINDOW, "the window was refused", &facts);
         }
-        Self { code, name }
+        Self {
+            code,
+            name,
+            print: None,
+        }
+    }
+
+    pub fn with_print(self, print: String) -> Self {
+        Self {
+            print: Some(print),
+            ..self
+        }
     }
 }
 
@@ -220,6 +233,7 @@ const REFUSALS: &[&str] = &[
     "parcelLocked",
     "wrongNumber",
     "parcelTorn",
+    "parcelAsksIfMine",
     "noRoom",
     "nothingToCarry",
     "stillPacking",
