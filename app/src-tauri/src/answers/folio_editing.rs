@@ -174,26 +174,39 @@ pub(super) fn sent_or_put_back(
     }
 }
 
-// The new token is kept before Folio hears of it: if anything stops halfway, the next Sync finishes the change.
+// Every new token is kept before Folio hears of any: if anything stops halfway, the next Sync finishes the change.
 pub(super) fn renewed(
     door: &dyn Door,
-    was: Remembered,
-    keep: impl FnOnce(&Remembered) -> Answer<()>,
-) -> Answer<Remembered> {
-    let admin = was
-        .admin_token
-        .clone()
-        .filter(|_| was.edit_token.is_some())
-        .ok_or_else(|| Refusal::of("notOneOwnDoc"))?;
-    let token = link_key().map_err(|_| Refusal::of("cannotSeal"))?;
-    let permit = permit_shown(&token).map_err(|_| Refusal::of("cannotSeal"))?;
-    let mut now = was;
-    now.edit_token = Some(token);
-    now.words_print = None;
+    languages: Vec<(String, Remembered)>,
+    keep: impl FnOnce(&[(String, Remembered)]) -> Answer<()>,
+) -> Answer<Vec<(String, Remembered)>> {
+    let now = languages
+        .into_iter()
+        .map(|(file, was)| {
+            was.admin_token
+                .as_ref()
+                .filter(|_| was.edit_token.is_some())
+                .ok_or_else(|| Refusal::of("notOneOwnDoc"))?;
+            let token = link_key().map_err(|_| Refusal::of("cannotSeal"))?;
+            Ok((
+                file,
+                Remembered {
+                    edit_token: Some(token),
+                    words_print: None,
+                    ..was
+                },
+            ))
+        })
+        .collect::<Answer<Vec<_>>>()?;
     keep(&now)?;
-    folio_client::permit(door, &now.id, &admin, Some(&permit))
-        .map_err(|_| Refusal::of("folioEditLinkPending"))?;
-    Ok(now)
+    let told = now
+        .iter()
+        .filter(|(_, one)| !permit_put_back(door, one))
+        .count();
+    match told {
+        0 => Ok(now),
+        _ => Err(Refusal::of("folioEditLinkPending")),
+    }
 }
 
 // Whoever edits signs with a token its owner's block must name: a link changed since the block was read cannot sign.
@@ -246,10 +259,7 @@ pub async fn doc_share_edit_link_renewed(
     let keep = keeping(&app);
     apart(move || {
         let door = ToFolio::new(&home)?;
-        for (file, was) in languages {
-            renewed(&door, was, |now| keep(&[(file.clone(), now.clone())]))?;
-        }
-        Ok(())
+        renewed(&door, languages, |now| keep(now)).map(|_| ())
     })
     .await?;
     doc_share_sync(app, session, id, None).await

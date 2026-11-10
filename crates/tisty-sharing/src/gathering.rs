@@ -610,6 +610,7 @@ impl Gathering<'_> {
             files_hash: None,
             cited: carried.cited,
             languages: carried.languages,
+            anchor: None,
             editors: carried.editors,
         };
         Ok(Tongue {

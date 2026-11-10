@@ -28,6 +28,8 @@ pub struct Going {
     pub sealed: Sealed,
 }
 
+const OTHER_LANGUAGES_AT_MOST: usize = 19;
+
 fn translation_of(tongue: &Tongue, anchor_token: Option<&str>) -> Result<Translation, Refused> {
     let lang = tongue.document.lang.clone();
     let edit = match (anchor_token, tongue.sealing.token.as_deref()) {
@@ -138,10 +140,12 @@ fn languages_sealed(
             .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
             .collect::<Result<Vec<_>, _>>()?;
         map.extend(untouched);
+        map.truncate(OTHER_LANGUAGES_AT_MOST);
         anchor.document.languages = Some(map);
-        // Paper, sheets and orientation are the group's.
+        // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.
         for tongue in &mut others {
             tongue.document.sheet.clone_from(&anchor.document.sheet);
+            tongue.document.anchor = Some(anchor.sealing.id.clone());
         }
     }
     let mut cited = Vec::new();

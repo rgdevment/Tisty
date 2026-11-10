@@ -175,6 +175,8 @@ pub struct Document {
     pub cited: Option<Vec<Cited>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub languages: Option<Vec<Translation>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<String>,
 }
 
 pub trait DocumentReader {

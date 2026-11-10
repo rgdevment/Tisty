@@ -695,6 +695,11 @@ fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
         document_of(&opened(&going[1].sealed.main, ("hello", "main"), Some(&the_key(2))).unwrap());
     assert_eq!(english["lang"], "en");
     assert!(english.get("languages").is_none());
+    assert_eq!(
+        english["anchor"], "hola",
+        "a language says which anchor it belongs to"
+    );
+    assert!(anchor.get("anchor").is_none());
 }
 
 #[test]

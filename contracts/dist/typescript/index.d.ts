@@ -64,6 +64,7 @@ export interface Document {
   files_hash?: string;
   cited?: Cited[];
   languages?: Translation[];
+  anchor?: string;
 }
 
 export interface DocumentReader {

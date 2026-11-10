@@ -2113,7 +2113,13 @@
         "languages": {
           "type": "list",
           "of": "translation",
-          "says": "The same document in other languages. Each one is a document of its own. Whoever holds this says its own lang too."
+          "at_most": 19,
+          "says": "The same document in other languages, at most 19 besides itself. Each one is a document of its own. Whoever holds this says its own lang too."
+        },
+        "anchor": {
+          "type": "id",
+          "at_most": 64,
+          "says": "In a language that is not its anchor, the anchor's id, signed with the rest of it. A reader takes a language from a map only when the language names that anchor, so no map can make another document pass for one of its languages."
         }
       },
       "html_rules": [
@@ -3661,8 +3667,10 @@
         "from_a_read_link": "Tisty keeps a guest copy, and the original stays as it was, whatever is done to the copy. The copy is never sent again, not even as a new document.",
         "languages_to_edit": "Each language of a document shared to edit has its own token and permit. The anchor's map carries each one in edit, so the anchor's edit link reaches every language and its read link reaches none. Changing the edit link changes every language's token.",
         "language_token_sealed": "The key is HKDF-SHA256 with the language's id as salt, the anchor's token (its 32 bytes) as input and tisty-language-token as info. AES-256-GCM seals the language's token (its 32 bytes) under a random 12-byte nonce, with the language's id as additional data. edit is the nonce and then what it sealed, 60 bytes in base64url.",
-        "languages_on_opening": "Opening a link, to read or to edit, brings every language in its map. Cited documents are not brought: each opens from its card, with its own languages.",
-        "language_not_reviewed": "A language whose owner's root is not the anchor owner's was added by someone who edits, and its owner has not reviewed it yet: a reader says so beside it. The owner adopts it, which sends it again as the owner's own and keeps whoever added it among its editors, or takes it out of the map.",
+        "languages_on_opening": "Opening a link, to read or to edit, brings every language in its map that names this anchor and is reviewed, at most 19. Cited documents are not brought: each opens from its card, with its own languages.",
+        "language_edit_unopened": "An edit the anchor's token does not open, or whose token the language's owner block does not name, leaves that language to read. An edit without a key says nothing, and what is public never holds one.",
+        "language_token_purpose": "The anchor's token is the seed of its permit and the input that seals its languages' tokens; the info tisty-language-token keeps the two apart.",
+        "language_not_reviewed": "A language whose owner's root is not the anchor owner's was added by someone who edits, and its owner has not reviewed it yet: a reader leaves it out, or shows it saying so beside it.",
         "editing": "Never on the web. With an edit link, Tisty signs the next version with its own key and the token, and keeps the owner's block, the owner_name, its pictures, files, cited documents, languages and sheet as they arrived. The owner does not change, and the server refuses a version that says otherwise."
       }
     },
@@ -3853,6 +3861,7 @@
         "files_hash",
         "cited",
         "languages",
+        "anchor",
         "signed_as",
         "owner_name",
         "editors",
