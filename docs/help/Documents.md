@@ -125,7 +125,7 @@ A document leaves whole — every conversion is in [Convert to and from Markdown
 - **Export for Tisty** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty.
 - **Markdown to PDF** — see [Pages and PDF](Pages-and-PDF#tistys-own-pdf).
 
-Exporting all of them asks who they are for: **open**, **to hand to somebody**, or **locked with six digits for another machine of your own** — which is what makes them arrive there as yours rather than as a stranger's. Either way, not one line of the history travels inside.
+Exporting all of them asks who they are for: **open**, **to hand to somebody**, or **locked with six digits for another machine of your own** — which is what makes them arrive there as yours rather than as a stranger's, unless they were signed with an alias that Tisty never used. Open ones arrive as someone else's, even what you wrote, and signing them later does not make them yours: to move your own documents, lock them. Either way, not one line of the history travels inside.
 
 ## Sharing
 
