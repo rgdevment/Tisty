@@ -161,6 +161,18 @@ fn a_copy_names_who_created_it_who_edited_it_last_and_everyone_who_edited_it() {
 }
 
 #[test]
+fn the_owner_s_root_is_read_from_the_block_and_nothing_else_is_taken_for_it() {
+    let read = super::root_of_the_block;
+    assert_eq!(
+        read(Some(r#"{"root":"mario-root","permit":"p"}"#)).as_deref(),
+        Some("mario-root")
+    );
+    assert_eq!(read(Some(r#"{"permit":"p"}"#)), None);
+    assert_eq!(read(Some("not a block")), None);
+    assert_eq!(read(None), None);
+}
+
+#[test]
 fn the_makers_root_is_checked_wherever_it_signs() {
     let was = Remembered {
         carried: edited(&[("Ab3xK9pQ", "mario-root", "Mario Hidalgo", true)]),

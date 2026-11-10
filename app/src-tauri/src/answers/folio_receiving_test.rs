@@ -241,17 +241,62 @@ fn only_a_copy_alone_in_its_language_whose_token_opens_here_is_looked_for_in_fol
         here("pt", "pt-2.md"),
     ];
 
-    let found: Vec<(String, String)> = super::grantable(&was, &to_read)
+    let found: Vec<(String, String)> = super::grantable(&was, &super::carried_map(&was), &to_read)
         .into_iter()
         .map(|(file, one)| (file, one.document))
         .collect();
 
     assert_eq!(found, vec![("en.md".to_owned(), "enGlish1".to_owned())]);
-    assert!(super::grantable(&edited_anchor(&stranger), &to_read).is_empty());
+    let opened_again = super::carried_map(&was);
+    assert_eq!(
+        super::grantable(&edited_anchor(&anchor), &opened_again, &to_read).len(),
+        1,
+        "a link opened again hands its map over before the anchor here holds it"
+    );
+    let under_another: Vec<String> =
+        super::grantable(&edited_anchor(&stranger), &opened_again, &to_read)
+            .into_iter()
+            .map(|(file, _)| file)
+            .collect();
+    assert_eq!(under_another, vec!["fr.md".to_owned()]);
+    assert!(super::grantable(&edited_anchor(&anchor), &[], &to_read).is_empty());
 }
 
 #[test]
-fn a_language_whose_words_could_not_be_printed_is_taken_back() {
+fn a_new_edit_link_its_owner_names_is_the_one_the_anchor_goes_on_with() {
+    use tisty_envelope::sealing::{link_key, permit_shown};
+    let (old, new) = (link_key().unwrap(), link_key().unwrap());
+    let block = |token: &str| {
+        format!(
+            r#"{{"root":"mario","permit":"{}"}}"#,
+            permit_shown(token).unwrap()
+        )
+    };
+    let opened = Opened {
+        owner: Some(block(&new)),
+        ..opened_by(Some("mario"), "mario")
+    };
+    let link = |token: &str| Link {
+        id: "anchor12".into(),
+        key: "key".into(),
+        token: Some(token.to_owned()),
+    };
+
+    let moved = super::moved_to(&edited_anchor(&old), &link(&new), &opened).unwrap();
+    assert_eq!(moved.edit_token.as_deref(), Some(new.as_str()));
+    assert_eq!(moved.owner, Some(block(&new)));
+
+    assert!(super::moved_to(&edited_anchor(&new), &link(&new), &opened).is_none());
+    assert!(super::moved_to(&edited_anchor(&old), &link(&old), &opened).is_none());
+    let owned = tisty_sharing::Remembered {
+        admin_token: Some("admin".into()),
+        ..edited_anchor(&old)
+    };
+    assert!(super::moved_to(&owned, &link(&new), &opened).is_none());
+}
+
+#[test]
+fn a_granted_language_without_its_print_is_never_kept_and_the_rest_always_is() {
     let entry = |print: Option<&str>| tisty_sharing::Remembered {
         words_print: print.map(str::to_owned),
         ..edited_anchor("t")
@@ -260,17 +305,22 @@ fn a_language_whose_words_could_not_be_printed_is_taken_back() {
         ("en.md".to_owned(), entry(None)),
         ("fr.md".to_owned(), entry(None)),
     ];
-    let shelf = std::collections::BTreeMap::from([
+    let printed = vec![
+        ("anchor.md".to_owned(), entry(None)),
         ("en.md".to_owned(), entry(Some("abc"))),
         ("fr.md".to_owned(), entry(None)),
-    ]);
+    ];
+    let files = |all: Vec<(String, tisty_sharing::Remembered)>| -> Vec<String> {
+        all.into_iter().map(|(file, _)| file).collect()
+    };
 
-    let left: Vec<String> = super::unprinted(&granted, &shelf)
-        .into_iter()
-        .map(|(file, _)| file)
-        .collect();
+    let (kept, left) = super::printed_apart(printed, &granted);
 
-    assert_eq!(left, vec!["fr.md".to_owned()]);
+    assert_eq!(
+        files(kept),
+        vec!["anchor.md".to_owned(), "en.md".to_owned()]
+    );
+    assert_eq!(files(left), vec!["fr.md".to_owned()]);
 }
 
 #[test]
