@@ -735,10 +735,81 @@ fn a_language_shared_before_its_token_gets_one_and_folio_is_told_its_permit() {
         .unwrap()
         .1;
 
+    let anchor = &later
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_none())
+        .unwrap()
+        .1;
+
     assert!(other.edit_token.is_some());
     assert_eq!(
         later.granted,
         std::collections::BTreeSet::from([other.id.clone()])
     );
     assert!(later.changed.contains(&other.id));
+    assert!(
+        later.changed.contains(&anchor.id),
+        "the map with its token stayed behind"
+    );
+}
+
+#[test]
+fn a_sync_that_changes_one_language_sends_only_that_one() {
+    let (_tmp, mut home, es) = two_languages();
+    let minted = Cell::new(0);
+    let mint = counted(&minted);
+    let first = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: true,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    home.sent(&first.remembering);
+    let english = first
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_some())
+        .unwrap()
+        .clone();
+    std::fs::write(
+        home.paths.docs().join(format!("{}.md", english.0)),
+        "---
+lang: en
+---
+
+# Trip
+
+More words.
+",
+    )
+    .unwrap();
+
+    let later = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: false,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+
+    assert_eq!(
+        later.changed,
+        std::collections::BTreeSet::from([english.1.id.clone()])
+    );
 }

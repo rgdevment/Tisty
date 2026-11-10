@@ -747,12 +747,11 @@ impl Gathering<'_> {
             }
         }
         changed.extend(self.granted.iter().cloned());
+        // The map lives in the anchor, so a language new to it, or with a token new to it, sends the anchor too.
         for one in std::iter::once(family).chain(&self.cited) {
-            if one
-                .others
-                .iter()
-                .any(|tongue| fresh.contains(&tongue.sealing.id))
-            {
+            if one.others.iter().any(|tongue| {
+                fresh.contains(&tongue.sealing.id) || self.granted.contains(&tongue.sealing.id)
+            }) {
                 changed.insert(one.anchor.sealing.id.clone());
             }
         }
