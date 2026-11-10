@@ -1305,7 +1305,6 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::sign_the_rest,
         answers::papers::spelled,
         answers::carrying::docs_pack,
-        answers::carrying::docs_take_out,
         answers::carrying::docs_unpack,
         answers::carrying::doc_copy,
         answers::papers::doc_adopt,
