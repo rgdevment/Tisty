@@ -205,6 +205,8 @@ fn sharable<'a>(
     Ok(kept)
 }
 
+const LANGUAGES_AT_MOST: usize = 20;
+
 fn languages_of<'a>(state: &'a State, kept: &'a Kept) -> Vec<&'a Kept> {
     let group = state.tongues_of(kept.id);
     if group.iter().any(|one| one.id == kept.id) {
@@ -627,6 +629,22 @@ impl Gathering<'_> {
         })
     }
 
+    // The map also names languages others added, which this Tisty never seals, and they keep their place too.
+    fn held_by_others(&self, kept: &Kept, anchor_id: DocId) -> usize {
+        let group = languages_of(self.desk.state, kept);
+        let ours: BTreeSet<&str> = group
+            .iter()
+            .filter_map(|one| self.shelf.get(&one.file))
+            .map(|one| one.id.as_str())
+            .collect();
+        let anchor = group.iter().find(|one| one.id == anchor_id);
+        let map = carried_by(anchor.and_then(|one| self.shelf.get(&one.file))).languages;
+        map.unwrap_or_default()
+            .iter()
+            .filter(|one| !ours.contains(one.document.as_str()))
+            .count()
+    }
+
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
         let state = self.desk.state;
         let kept = sharable(self.desk, doc, &self.shelf)?;
@@ -654,8 +672,9 @@ impl Gathering<'_> {
             + languages_of(state, kept)
                 .into_iter()
                 .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
-                .count();
-        let top = self.under.languages_at_most.unwrap_or(usize::MAX);
+                .count()
+            + self.held_by_others(kept, anchor_id);
+        let top = self.under.languages_at_most.unwrap_or(LANGUAGES_AT_MOST);
         if taken > top {
             return Err(Unshared::LanguagesFull);
         }

@@ -126,7 +126,19 @@ fn languages_sealed(
     } = family;
     if !others.is_empty() {
         languages_add(&anchor, &others)?;
-        // What this writer cannot reach stays in the map as it arrived, or an editor would take it from everyone.
+        let owner = anchor
+            .sealing
+            .owner
+            .as_ref()
+            .map_or_else(|| writer.root().to_owned(), |one| one.root.clone());
+        let anothers = owner != writer.root();
+        // Only the owner's own language of one lang takes the place of an entry of that lang: someone who edits never takes another's.
+        let replaces = |tongue: &Tongue, one: &Translation| {
+            tongue.sealing.id == one.document
+                || (!anothers
+                    && one.pending != Some(true)
+                    && tongue.document.lang.as_deref() == Some(one.lang.as_str()))
+        };
         let untouched: Vec<Translation> = anchor
             .document
             .languages
@@ -134,19 +146,8 @@ fn languages_sealed(
             .unwrap_or_default()
             .into_iter()
             .filter(|one| anchor.document.lang.as_deref() != Some(one.lang.as_str()))
-            .filter(|one| {
-                !others.iter().any(|tongue| {
-                    tongue.sealing.id == one.document
-                        || tongue.document.lang.as_deref() == Some(one.lang.as_str())
-                })
-            })
+            .filter(|one| !others.iter().any(|tongue| replaces(tongue, one)))
             .collect();
-        let owner = anchor
-            .sealing
-            .owner
-            .as_ref()
-            .map_or_else(|| writer.root().to_owned(), |one| one.root.clone());
-        let anothers = owner != writer.root();
         let mut map = others
             .iter()
             .map(|one| {
@@ -161,7 +162,11 @@ fn languages_sealed(
         if let Some(gone) = gone {
             map.retain(|one| !gone.names(&one.document));
         }
-        map.truncate(OTHER_LANGUAGES_AT_MOST);
+        if map.len() > OTHER_LANGUAGES_AT_MOST {
+            return Err(Refused::DoesNotAdd(
+                "a map holds at most 19 languages besides its anchor, and none is taken out to make room",
+            ));
+        }
         anchor.document.languages = Some(map);
         // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.
         for tongue in &mut others {

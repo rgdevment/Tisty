@@ -1,12 +1,15 @@
 use std::sync::Mutex;
 
 use serde::Serialize;
+use std::collections::BTreeSet;
 use tisty_carrier::folio_client::{self, Door, Refused, Stopped};
 use tisty_carrier::folio_limits::{self, FolioLimits};
 use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::Tongue;
 use tisty_carrier::policy;
+
 use tisty_core::Paths;
+use tisty_envelope::reviews::{self, Joining};
 use tisty_sharing::{Desk, Received, Remembered, Told};
 
 use super::folio_editing::{
@@ -226,6 +229,57 @@ fn its_other_languages(
         .collect()
 }
 
+struct Foreign {
+    file: String,
+    shared: Remembered,
+    ids: Vec<String>,
+}
+
+/// What the owner's map names that none of its languages here are: languages others added.
+fn foreign_languages(session: &Session, doc: tisty_core::model::DocId) -> Option<Foreign> {
+    let kept = session.state.docs.get(&doc)?;
+    let anchor = session.state.docs.get(&session.state.anchor_of(kept))?;
+    let shelf = tisty_sharing::remembered(&session.state);
+    let shared = shelf.get(&anchor.file)?.clone();
+    shared.admin_token.as_ref()?;
+    let ours: BTreeSet<&str> = shelf.values().map(|one| one.id.as_str()).collect();
+    let ids = carried_map(&shared)
+        .into_iter()
+        .map(|one| one.document)
+        .filter(|id| !ours.contains(id.as_str()))
+        .collect();
+    Some(Foreign {
+        file: anchor.file.clone(),
+        shared,
+        ids,
+    })
+}
+
+pub(super) fn gone_from_folio(door: &dyn Door, ids: &[String]) -> BTreeSet<String> {
+    ids.iter()
+        .filter(|id| {
+            matches!(
+                folio_client::latest(door, id),
+                Err(Stopped::Refused(Refused::Missing))
+            )
+        })
+        .cloned()
+        .collect()
+}
+
+// A language Folio no longer holds never comes back under its id, so the owner's map lets it go with its review (166).
+pub(super) fn without_the_gone(shared: &Remembered, gone: &BTreeSet<String>) -> Remembered {
+    let key = shared.link_key.as_deref().unwrap_or_default();
+    let gone_of = gone
+        .iter()
+        .filter_map(|id| reviews::of_language(key, id))
+        .collect();
+    Remembered {
+        carried: tisty_sharing::languages_gone(shared.carried.as_deref(), gone, &gone_of),
+        ..shared.clone()
+    }
+}
+
 pub(super) fn first_ahead(
     door: &dyn Door,
     languages: Vec<(String, Remembered)>,
@@ -329,14 +383,19 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let pressed_at = policy::now();
-    let (languages, to_read) = {
+    let (languages, to_read, foreign) = {
         let session = held(&session);
         (
             its_other_languages(&session, doc, &file, &was),
             languages_to_read(&session, doc, &was),
+            foreign_languages(&session, doc),
         )
     };
-    let (ahead, language_ahead, granted) = {
+    let foreign_ids = foreign
+        .as_ref()
+        .map(|one| one.ids.clone())
+        .unwrap_or_default();
+    let (ahead, language_ahead, granted, gone) = {
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
@@ -354,7 +413,11 @@ pub async fn doc_share_sync(
                 ),
                 false => None,
             };
-            Ok((ahead, language_ahead, granted))
+            let gone = match ahead == Ahead::Upload {
+                true => gone_from_folio(&door, &foreign_ids),
+                false => BTreeSet::new(),
+            };
+            Ok((ahead, language_ahead, granted, gone))
         })
         .await?
     };
@@ -391,6 +454,10 @@ pub async fn doc_share_sync(
     }
     if !link_matches_block(&was) {
         return Err(Refusal::of("folioEditLinkMismatch"));
+    }
+    if let Some(foreign) = foreign.filter(|_| !gone.is_empty()) {
+        let now = without_the_gone(&foreign.shared, &gone);
+        kept_on(&mut held(&session), &[(foreign.file, now)])?;
     }
     let checking = paths.clone();
     let agreed = apart(move || may_upload(&checking, tongue)).await;
@@ -562,14 +629,44 @@ pub(super) fn kept_after(was: &Remembered, opened: &Opened, received: &Received)
     }
     now.carried =
         tisty_sharing::editors_brought(was.carried.as_deref(), received.carried.as_deref());
-    if was.admin_token.is_none() {
-        now.carried =
-            tisty_sharing::map_brought(now.carried.as_deref(), received.carried.as_deref());
-    }
+    now.carried = match was.admin_token {
+        None => tisty_sharing::map_brought(now.carried.as_deref(), received.carried.as_deref()),
+        Some(_) => owners_map(
+            was,
+            opened,
+            now.carried.as_deref(),
+            received.carried.as_deref(),
+        ),
+    };
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;
     now
+}
+
+// Only what the owner's root signed comes in among the reviews, so another's version never writes one in the owner's name.
+pub(super) fn owners_map(
+    was: &Remembered,
+    opened: &Opened,
+    held: Option<&str>,
+    arrived: Option<&str>,
+) -> Option<String> {
+    let joined = tisty_sharing::languages_joined(held, arrived);
+    let (Some(owner), Some(anchor_key)) = (opened.owner_root.as_deref(), was.link_key.as_deref())
+    else {
+        return joined;
+    };
+    let joining = Joining {
+        anchor: &was.id,
+        owner,
+        anchor_key,
+    };
+    let reviews = reviews::joined(
+        &joining,
+        &tisty_sharing::reviews_carried(held),
+        &tisty_sharing::reviews_carried(arrived),
+    );
+    tisty_sharing::with_reviews(joined.as_deref(), &reviews)
 }
 
 // What another sent stays apart, and one's own changes wait until the person chooses and presses again (149).

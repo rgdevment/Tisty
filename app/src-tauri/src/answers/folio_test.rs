@@ -1385,7 +1385,7 @@ fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_it
 }
 
 #[test]
-fn whoever_edits_takes_each_version_s_map_and_the_owner_keeps_its_own() {
+fn whoever_edits_takes_each_version_s_map_and_the_owner_joins_it_to_its_own_by_id() {
     use crate::answers::folio_sync::kept_after;
     let held = r#"{"languages":[{"lang":"en","document":"English1"}],"editors":[]}"#;
     let arrived = tisty_sharing::Received {
@@ -1409,6 +1409,40 @@ fn whoever_edits_takes_each_version_s_map_and_the_owner_keeps_its_own() {
     let now = kept_after(&owner, &version_signed("ana", "{}"), &arrived);
     let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
     assert_eq!(said["languages"][0]["document"], "English1");
+    assert_eq!(said["languages"][1]["document"], "German12");
+}
+
+#[test]
+fn a_language_folio_no_longer_holds_leaves_the_owner_s_map_with_its_review() {
+    use crate::answers::folio_sync::{gone_from_folio, without_the_gone};
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .extend([(404, r#"{"refused":"missing"}"#), (200, r#"{"version":2}"#)]);
+
+    let gone = gone_from_folio(&folio, &["anaGone1".to_owned(), "anaHere1".to_owned()]);
+
+    assert_eq!(gone, BTreeSet::from(["anaGone1".to_owned()]));
+    let key = "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA";
+    let of = |id: &str| tisty_envelope::reviews::of_language(key, id).unwrap();
+    let shared = Remembered {
+        link_key: Some(key.to_owned()),
+        carried: Some(
+            serde_json::json!({
+                "languages": [{ "lang": "en", "document": "anaGone1" }, { "lang": "de", "document": "anaHere1" }],
+                "reviews": [{ "of": of("anaGone1") }, { "of": of("anaHere1") }],
+            })
+            .to_string(),
+        ),
+        ..remembered(Some(key), Some("token"))
+    };
+    let now = without_the_gone(&shared, &gone);
+    let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"].as_array().unwrap().len(), 1);
+    assert_eq!(said["languages"][0]["document"], "anaHere1");
+    assert_eq!(said["reviews"].as_array().unwrap().len(), 1);
+    assert_eq!(said["reviews"][0]["of"], of("anaHere1"));
 }
 
 #[test]

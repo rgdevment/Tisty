@@ -2021,3 +2021,40 @@ fn the_groups_choice_is_where_any_language_starts_and_ticking_one_again_adds_it(
             .all(|(_, one)| one.left_out.is_empty())
     );
 }
+
+#[test]
+fn the_languages_others_added_keep_their_place_and_a_new_one_of_one_s_own_waits() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    let first = sealed_within(&home, &asked(anchor), 20);
+    let others: Vec<serde_json::Value> = (0..19u8)
+        .map(|one| serde_json::json!({ "lang": format!("z{}", char::from(b'a' + one)), "document": format!("other{one:03}"), "pending": true }))
+        .collect();
+    let with_others: Vec<(String, tisty_sharing::Remembered)> = first
+        .remembering
+        .iter()
+        .map(|(file, one)| {
+            let carried = serde_json::json!({ "languages": others }).to_string();
+            (
+                file.clone(),
+                tisty_sharing::Remembered {
+                    carried: Some(carried),
+                    ..one.clone()
+                },
+            )
+        })
+        .collect();
+    home.sent(&with_others);
+    let mine = home.wrote("---\nlang: aa\n---\n\nwords\n", None);
+    home.joined(mine, anchor);
+
+    let again = sealed_within(&home, &asked(anchor), 20);
+
+    assert_eq!(
+        again.told,
+        [Told::LanguageOverTheTop {
+            language: "aa".into(),
+            top: 20,
+        }]
+    );
+}

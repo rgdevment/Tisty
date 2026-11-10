@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tisty_contracts::{EnvelopeKind, Opening, Review, Served};
 
-use super::{LeftOut, Weighing, decoded, holds, keeps, kept, print_of};
+use super::{Joining, LeftOut, Weighing, decoded, holds, joined, keeps, kept, print_of};
 
 const VECTORS: &str = include_str!("../../../contracts/vectors/vectors.json");
 
@@ -139,4 +139,24 @@ fn a_languages_print_is_the_one_the_contract_shows() {
         print_of(&opened.parts),
         all["main"]["print"].as_str().unwrap()
     );
+}
+
+#[test]
+fn the_owner_takes_in_only_what_its_root_signed_and_keeps_one_review_for_each_language() {
+    let (one, mine) = scenario("a language its owner keeps, as its owner read it");
+    let (_, later) = scenario("a language its owner left out");
+    let (_, by_someone_else) = scenario("a review signed by someone who edits");
+    let joining = Joining {
+        anchor: one["anchor"].as_str().unwrap(),
+        owner: one["owner"].as_str().unwrap(),
+        anchor_key: one["link_key"].as_str().unwrap(),
+    };
+
+    let after = joined(&joining, &mine, &later);
+    assert_eq!(after.len(), 1);
+    assert!(!after[0].kept);
+    assert_eq!(after[0].seq, 2);
+
+    let kept_still = joined(&joining, &mine, &by_someone_else);
+    assert_eq!(kept_still, mine);
 }

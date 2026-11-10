@@ -62,6 +62,71 @@ pub fn map_brought(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
     (!fields.is_empty()).then(|| kept.to_string())
 }
 
+fn object_of(said: Option<&str>) -> Value {
+    said.and_then(|said| serde_json::from_str::<Value>(said).ok())
+        .filter(Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}))
+}
+
+fn written(kept: &Value) -> Option<String> {
+    kept.as_object()
+        .filter(|fields| !fields.is_empty())
+        .map(|_| kept.to_string())
+}
+
+/// The owner keeps the map it holds and takes in by id the languages others added, never by lang, or its next version would drop them (166).
+pub fn languages_joined(was: Option<&str>, arrived: Option<&str>) -> Option<String> {
+    let mut kept = object_of(was);
+    let theirs = object_of(arrived)["languages"].as_array().cloned();
+    let Some(theirs) = theirs else {
+        return written(&kept);
+    };
+    let mut joined = kept["languages"].as_array().cloned().unwrap_or_default();
+    for one in theirs {
+        match joined
+            .iter_mut()
+            .find(|held| held["document"] == one["document"])
+        {
+            Some(held) => *held = one,
+            None => joined.push(one),
+        }
+    }
+    kept["languages"] = Value::Array(joined);
+    written(&kept)
+}
+
+pub fn with_reviews(was: Option<&str>, reviews: &[tisty_contracts::Review]) -> Option<String> {
+    let mut kept = object_of(was);
+    let fields = kept.as_object_mut()?;
+    match serde_json::to_value(reviews) {
+        Ok(said) if !reviews.is_empty() => fields.insert("reviews".to_owned(), said),
+        _ => fields.remove("reviews"),
+    };
+    written(&kept)
+}
+
+pub fn reviews_carried(said: Option<&str>) -> Vec<tisty_contracts::Review> {
+    serde_json::from_value(object_of(said)["reviews"].clone()).unwrap_or_default()
+}
+
+pub fn languages_gone(
+    was: Option<&str>,
+    gone: &std::collections::BTreeSet<String>,
+    gone_of: &std::collections::BTreeSet<String>,
+) -> Option<String> {
+    let mut kept = object_of(was);
+    let stays = |one: &Value, field: &str, out: &std::collections::BTreeSet<String>| {
+        one[field].as_str().is_none_or(|said| !out.contains(said))
+    };
+    if let Some(languages) = kept["languages"].as_array_mut() {
+        languages.retain(|one| stays(one, "document", gone));
+    }
+    if let Some(reviews) = kept["reviews"].as_array_mut() {
+        reviews.retain(|one| stays(one, "of", gone_of));
+    }
+    written(&kept)
+}
+
 pub(crate) fn with_editors(was: Option<&str>, editors: Option<Value>) -> Option<String> {
     let editors = editors.filter(|said| !said.is_null());
     let mut kept = was
