@@ -49,11 +49,7 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&FolioMaker>) -> Who {
             name,
         }
     };
-    let owner_root = was
-        .owner
-        .as_deref()
-        .and_then(|block| serde_json::from_str::<serde_json::Value>(block).ok())
-        .and_then(|block| block["root"].as_str().map(str::to_owned));
+    let owner_root = root_of_the_block(was.owner.as_deref());
     let owner = was
         .owner_name
         .clone()
@@ -227,11 +223,18 @@ pub(super) fn link_matches_block(was: &Remembered) -> bool {
     named_by_the_block(was.owner.as_deref(), token)
 }
 
+fn said_by_the_block(owner: Option<&str>, field: &str) -> Option<String> {
+    let block: serde_json::Value = serde_json::from_str(owner?).ok()?;
+    block[field].as_str().map(str::to_owned)
+}
+
+pub(super) fn root_of_the_block(owner: Option<&str>) -> Option<String> {
+    said_by_the_block(owner, "root")
+}
+
 pub(super) fn named_by_the_block(owner: Option<&str>, token: &str) -> bool {
-    let named = owner
-        .and_then(|block| serde_json::from_str::<serde_json::Value>(block).ok())
-        .and_then(|block| block["permit"].as_str().map(str::to_owned));
-    named.is_some_and(|permit| permit_shown(token).is_ok_and(|mine| mine == permit))
+    said_by_the_block(owner, "permit")
+        .is_some_and(|permit| permit_shown(token).is_ok_and(|mine| mine == permit))
 }
 
 /// Every language of the share that this Tisty owns with an edit link, the pressed one first.
