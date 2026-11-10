@@ -27,7 +27,7 @@
         src="https://img.shields.io/github/v/release/rgdevment/Tisty?style=flat-square&label=Latest&color=D9A13B"
         alt="Última versión"/>
     </a>
-    <a href="#un-asistente-si-usas-uno">
+    <a href="#servidor-mcp">
       <img
         src="https://img.shields.io/badge/MCP-Official_Registry-D9A13B?style=flat-square"
         alt="Tisty en el registro oficial de MCP"/>
@@ -161,6 +161,8 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 
 ## Contenido
 
+- [Servidor MCP](#servidor-mcp)
+- [Herramientas](#herramientas)
 - [Por qué lo hice](#por-qué-lo-hice)
 - [Qué es, y qué no es](#qué-es-y-qué-no-es)
 - [Qué lo hace distinto](#qué-lo-hace-distinto)
@@ -182,6 +184,77 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
 - [Salud del proyecto](#salud-del-proyecto)
+
+## Servidor MCP
+
+Tisty también es un **servidor MCP local de tareas, pendientes y notas**. Con
+él, un asistente crea tareas con pasos, fechas y recordatorios, escribe y edita
+documentos en Markdown y busca en lo abierto y en el archivo — en tu propio
+disco, sin cuenta, sin clave de API y sin mandar nada por la red. Necesita la
+app de Tisty, que se instala como dice [Instalación](#instalación), y Node.js
+18 o posterior para el lanzador.
+
+Lo más fácil es **Configuración › Asistentes** en Tisty: encuentra los
+asistentes de este equipo y conecta el que elijas. A mano, cualquier asistente
+que arranca un servidor por comando toma de npm el lanzador `tisty-mcp`, que
+busca el Tisty instalado aquí y arranca su propio servidor:
+
+```json
+{
+  "mcpServers": {
+    "tisty": {
+      "command": "npx",
+      "args": ["-y", "tisty-mcp"]
+    }
+  }
+}
+```
+
+| Asistente | Cómo agregar Tisty |
+| --- | --- |
+| Claude Code | `/plugin install tisty --marketplace rgdevment/mcp-plugins` |
+| Claude Desktop | Settings › Developer › Edit Config, y agrega el JSON de arriba |
+| Cursor | [Cursor Directory](https://cursor.directory/plugins), o el JSON de arriba en `~/.cursor/mcp.json` |
+| VS Code | `code --add-mcp '{"name":"tisty","command":"npx","args":["-y","tisty-mcp"]}'` |
+| Gemini CLI | `gemini extensions install https://github.com/rgdevment/mcp-plugins` |
+| Codex | `codex mcp add tisty -- npx -y tisty-mcp` |
+
+Conéctalo de una sola forma, no de las dos, para que el asistente no arranque
+Tisty dos veces, y reinicia el asistente después. Más en
+[Asistentes y MCP](https://www.tisty.app/es/ayuda/asistentes-y-mcp/).
+
+Cosas que puedes pedirle una vez conectado:
+
+- "Agrega una tarea para renovar el pasaporte antes de marzo, con sus pasos."
+- "¿Qué tengo pendiente esta semana y qué está atrasado?"
+- "¿Cómo arreglé los timeouts al guardar el año pasado? Busca en el archivo."
+- "Escribe un documento con mis notas de la llamada de hoy y archívalo en
+  Clientes."
+- "Planifica el lanzamiento en tareas con pasos y márcalos a medida que
+  avanzas."
+- "Recuérdame el dentista la noche anterior, a las 8."
+
+## Herramientas
+
+Lo que `tisty mcp` le ofrece a un asistente, según sobre qué trabaja. Nunca
+cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
+`flag_doc` te deja el borrado a ti. Cada herramienta se describe en
+[Herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/).
+
+- **Tareas** — crear una con pasos y fecha, planificar y marcar sus pasos,
+  decir cuándo suena, mover su día, decir que está lista: `propose`,
+  `describe`, `plan`, `tick`, `untick`, `reword_step`, `unplan`, `rename`,
+  `move`, `remind`, `reschedule`, `say_done`, `say_not_doing`, `read`
+- **El diario y los archivos de una tarea** — `note`, `reword_note`, `attach`
+- **Documentos** — escribir uno, agregarle, cambiar un pasaje o una tabla, leer
+  solo la parte que necesita: `write_doc`, `append_doc`, `edit_doc`,
+  `edit_table`, `read_doc`, `outline_doc`, `sum_up`, `restore_doc`,
+  `import_doc`, `export_doc`, `archive_doc`, `flag_doc`
+- **Carpetas, páginas e idiomas** — `docs`, `folder`, `file_doc`, `page_doc`,
+  `tongue_doc`
+- **Encontrar cosas** — lo abierto y lo archivado, las listas y las etiquetas:
+  `find`, `catch_up`, `lists`, `tags`
+- **Cómo trabajar aquí** — `rules`, `language`, `help`
 
 ## Por qué lo hice
 
@@ -888,8 +961,10 @@ de comandos: solo abre la puerta del asistente. Habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
 cuenta, sin token, nada por la red. **Tú manejas la puerta.** Viene abierta
 sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la
-cerraste— y Configuración › Asistentes la cierra con un clic; mientras está
-cerrada, todo lo que intente un asistente se rechaza. Dejar entrar a un
+cerraste—, así que un asistente que conectes puede trabajar de inmediato, y
+Configuración › Asistentes la cierra con un clic. Mientras está cerrada, todo lo
+que intente un asistente se rechaza, y la ventana te dice quién tocó —«Claude
+Code intentó entrar»— con **Dejarlo entrar** ahí mismo. Dejar entrar a un
 asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta
 cerrada queda en la configuración de este equipo.
 

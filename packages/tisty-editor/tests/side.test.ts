@@ -358,6 +358,35 @@ describe("the panels beside a sheet", () => {
     expect(asked).toEqual(["copy read", "copy edit", "sync", "at Dejar"]);
   });
 
+  it("lists in a held row each person beside their fingerprint, with how to compare them", () => {
+    const side = host();
+    sided(side, say, [
+      {
+        kind: "held",
+        key: "shared",
+        label: "Compartido",
+        gist: "Editas",
+        said: ["Creado por Mario"],
+        prints: {
+          label: "Huellas",
+          note: "Compáralas por otro canal",
+          rows: [
+            ["Mario · dueño", "70686 67560 35161 46791"],
+            ["Ana", "48210 93755 12880 63349"],
+          ],
+        },
+      },
+    ]);
+
+    expect(text(side, ".side-prints .side-label")).toEqual(["Huellas"]);
+    expect(text(side, ".side-prints dt")).toEqual(["Mario · dueño", "Ana"]);
+    expect(text(side, ".side-prints dd")).toEqual([
+      "70686 67560 35161 46791",
+      "48210 93755 12880 63349",
+    ]);
+    expect(text(side, ".side-prints .side-held-note")).toEqual(["Compáralas por otro canal"]);
+  });
+
   it("leaves out of a held row what it was not given, and starts it shut", () => {
     const side = host();
     sided(side, say, [
@@ -367,6 +396,7 @@ describe("the panels beside a sheet", () => {
     expect(side.querySelector<HTMLDetailsElement>("details[data-row]")?.open).toBe(false);
     expect(side.querySelector(".side-gist")?.className).toBe("side-gist");
     expect(side.querySelector(".side-said")).toBeNull();
+    expect(side.querySelector(".side-prints")).toBeNull();
     expect(side.querySelector(".side-held")).toBeNull();
     expect(side.querySelector(".side-acts")).toBeNull();
   });

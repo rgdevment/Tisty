@@ -180,7 +180,7 @@ every_spawn_pins_its_language() {
 
 both_languages_carry_the_same_documents() {
   local pair one mark a b bad=0
-  for pair in "README.md README.es.md" \
+  for pair in "README.md LEEME.md" \
     "app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md"; do
     set -- $pair
     for one in "$1" "$2"; do

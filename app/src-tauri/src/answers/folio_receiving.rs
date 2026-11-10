@@ -12,7 +12,7 @@ use tisty_envelope::reading::{self, Unopened};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
-use super::folio_standing::{Party, standing_of};
+use super::folio_standing::{Party, print_of, standing_of};
 use super::sharing::turned;
 use crate::viewing::{LinkQuestion, Views};
 use crate::{Answer, Refusal, Session, held};
@@ -579,16 +579,27 @@ pub(super) fn owner_apart(opened: &Opened) -> Option<&str> {
         .filter(|root| *root != opened.signer)
 }
 
+// The owner's name speaks for a version only when the owner's root signed it.
+pub(super) fn signer_alias<'a>(
+    opened: &Opened,
+    signed_as: Option<&'a str>,
+    owner_name: Option<&'a str>,
+) -> Option<&'a str> {
+    signed_as.or(owner_name.filter(|_| owner_apart(opened).is_none()))
+}
+
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
     let maker = folio_limits::maker(&home);
     let owner = owner_apart(opened);
-    let mut wanted = vec![(opened.signer.as_str(), said("signed_as"))];
+    let signer_named = signer_alias(opened, said("signed_as"), said("owner_name"));
+    let mut wanted = vec![(opened.signer.as_str(), signer_named)];
     wanted.extend(owner.map(|root| (root, said("owner_name"))));
     let checked = checked_within(&home, &wanted);
     let party = |root: &str, alias: Option<&str>| Party {
         name: alias.unwrap_or_default().to_owned(),
+        print: print_of(root),
         standing: standing_of(
             root,
             opened.verdict,
@@ -597,14 +608,17 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
             |root, domain| checked.contains(&(root.to_owned(), domain.to_owned())),
         ),
     };
+    let owner = owner.map(|root| party(root, said("owner_name")));
+    let signer = party(&opened.signer, signer_named);
+    // A root with no fingerprint leaves nothing to compare, so it is no more trusted than a doubtful key.
+    let unprinted = signer.print.is_none() || owner.as_ref().is_some_and(|one| one.print.is_none());
     question(
         app,
         LinkQuestion::Keep {
             title: said("title").unwrap_or_default().to_owned(),
-            owner: owner.map(|root| party(root, said("owner_name"))),
-            signer: party(&opened.signer, said("signed_as")),
-            print: opened.signer.clone(),
-            doubtful: opened.doubtful(),
+            owner,
+            signer,
+            doubtful: opened.doubtful() || unprinted,
         },
     )
 }

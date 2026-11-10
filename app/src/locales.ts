@@ -779,6 +779,11 @@ const en = {
   sharedVersionBy: "Last edited by {name}",
   sharedEditedBy: "Edited by: {name}",
   sharedChecked: "{name} ✓",
+  sharedPrints: "Fingerprints",
+  sharedPrintOwner: "{name} · owner",
+  sharedPrintSigner: "{name} · last edit",
+  sharedPrintsWhy:
+    "Ask each person, through another channel, for the fingerprint in their Settings › Security, and compare.",
   folioChanged: "The document changed while you chose, so it was looked over again.",
   shareTermsUnchecked:
     "Folio's new terms could not be verified. You can keep sharing under the ones you accepted.",
@@ -825,6 +830,8 @@ const en = {
   shareSyncSentAlong: "What changed went up.",
   shareSyncOther:
     "Version {name}, signed by {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
+  shareSyncOtherPrint:
+    "Version {name}, signed by the key with fingerprint {other}, arrived and stays apart as «(other version)». Your changes did not go up: decide what stays and press again.",
   sharePause: "Pause",
   shareResume: "Resume",
   shareStop: "Stop sharing",
@@ -857,7 +864,11 @@ const en = {
   linkKeepTakenBack: "Key taken back: it no longer speaks for this name",
   linkKeepChecked: "{name} · checked domain",
   linkKeepPrint: "Fingerprint",
-  linkKeepCompare: "Compare it with whoever shared it.",
+  linkKeepOwnerPrint: "Owner's fingerprint",
+  linkKeepCompare:
+    "Ask whoever shared it, through another channel, for the fingerprint in their Settings › Security, and compare.",
+  linkKeepCompareEach:
+    "Ask each of them, through another channel, for the fingerprint in their Settings › Security, and compare.",
   linkKeepDoubt:
     "That key was taken back or cannot be confirmed, so do not take it as theirs without asking.",
   linkKeepGo: "Bring it",
@@ -3791,6 +3802,11 @@ const es: Catalog = {
   sharedVersionBy: "Última edición: {name}",
   sharedEditedBy: "Editado por: {name}",
   sharedChecked: "{name} ✓",
+  sharedPrints: "Huellas",
+  sharedPrintOwner: "{name} · dueño",
+  sharedPrintSigner: "{name} · última edición",
+  sharedPrintsWhy:
+    "Pídele a cada persona, por otro canal, la huella que ve en Configuración › Seguridad, y compárala.",
   folioChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTermsUnchecked:
     "No se pudieron verificar los términos nuevos de Folio. Puedes seguir compartiendo con los que aceptaste.",
@@ -3836,6 +3852,8 @@ const es: Catalog = {
   shareSyncSentAlong: "Subió lo que cambió.",
   shareSyncOther:
     "Llegó la versión {name}, firmada por {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
+  shareSyncOtherPrint:
+    "Llegó la versión {name}, firmada por la llave con huella {other}, y quedó aparte como «(otra versión)». Tus cambios no subieron: decide qué queda y vuelve a presionar.",
   sharePause: "Pausar",
   shareResume: "Reanudar",
   shareStop: "Dejar de compartir",
@@ -3868,7 +3886,11 @@ const es: Catalog = {
   linkKeepTakenBack: "Llave retirada: ya no habla por este nombre",
   linkKeepChecked: "{name} · dominio comprobado",
   linkKeepPrint: "Huella",
-  linkKeepCompare: "Compárala con quien te lo compartió.",
+  linkKeepOwnerPrint: "Huella del dueño",
+  linkKeepCompare:
+    "Pídele a quien te lo compartió, por otro canal, la huella que ve en Configuración › Seguridad, y compárala.",
+  linkKeepCompareEach:
+    "Pídele a cada uno, por otro canal, la huella que ve en Configuración › Seguridad, y compáralas.",
   linkKeepDoubt:
     "Esa llave fue retirada o no se puede confirmar, así que no lo des por suyo sin preguntar.",
   linkKeepGo: "Traer",
