@@ -122,7 +122,9 @@ const syncedWords = (synced: Told) => {
       ...synced.told.map(toldPlainly),
       ...termsNote(synced),
     ].join(" ");
-  const other = fill("shareSyncOther", String(synced.version), synced.signer);
+  const other = synced.signer
+    ? fill("shareSyncOther", String(synced.version), synced.signer)
+    : fill("shareSyncOtherPrint", String(synced.version), synced.fingerprint);
   return synced.doubtful ? `${other} ${t("shareSyncOtherDoubt")}` : other;
 };
 
