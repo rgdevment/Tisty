@@ -265,7 +265,7 @@ fn entry_for(link: &Link, opened: &Opened, received: &Received) -> Remembered {
 }
 
 // Reading a document whole takes a while, so it never holds the session, and it is read once for all its languages.
-fn with_their_prints(
+pub(super) fn with_their_prints(
     app: &AppHandle,
     doc: tisty_core::model::DocId,
     entries: Vec<(String, Remembered)>,
@@ -375,6 +375,79 @@ fn language_link(link: &Link, one: &Translation, its: &Opened) -> Option<Link> {
         key,
         token: Some(token),
     })
+}
+
+fn root_of_block(block: Option<&str>) -> Option<String> {
+    let block: serde_json::Value = serde_json::from_str(block?).ok()?;
+    block["root"].as_str().map(str::to_owned)
+}
+
+// No version under its token is here yet, so the next Sync brings its newest one before anything goes up (166).
+pub(super) fn granted_entry(
+    anchor: &Remembered,
+    one: &Translation,
+    its: &Opened,
+) -> Option<Remembered> {
+    let owner = root_of_block(anchor.owner.as_deref())?;
+    let names_it = its.document["anchor"].as_str() == Some(anchor.id.as_str());
+    if !names_it || its.owner_root.as_deref() != Some(owner.as_str()) {
+        return None;
+    }
+    let link = Link {
+        id: anchor.id.clone(),
+        key: anchor.link_key.clone()?,
+        token: anchor.edit_token.clone(),
+    };
+    let its_link = language_link(&link, one, its)?;
+    let received = tisty_sharing::received(&its.document, &[], &[], &mut |_, _| None);
+    Some(Remembered {
+        version: 0,
+        files_hash: None,
+        files_key: None,
+        held_by: Some(anchor.id.clone()),
+        ..entry_for(&its_link, its, &received)
+    })
+}
+
+pub(super) fn languages_to_read(
+    session: &Session,
+    doc: tisty_core::model::DocId,
+    anchor: &Remembered,
+) -> Vec<(String, String)> {
+    if !anchor.edited_through_a_link() || anchor.held_by.is_some() {
+        return Vec::new();
+    }
+    let shelf = tisty_sharing::remembered(&session.state);
+    session
+        .state
+        .tongues_of(doc)
+        .into_iter()
+        .filter(|one| one.id != doc && one.guest && !shelf.contains_key(&one.file))
+        .filter_map(|one| Some((one.lang.clone()?, one.file.clone())))
+        .collect()
+}
+
+pub(super) fn languages_granted(
+    door: &dyn Door,
+    anchor: &Remembered,
+    to_read: &[(String, String)],
+) -> Vec<(String, Remembered)> {
+    let map: Vec<Translation> = anchor
+        .carried
+        .as_deref()
+        .and_then(|said| serde_json::from_str::<serde_json::Value>(said).ok())
+        .and_then(|said| serde_json::from_value(said["languages"].clone()).ok())
+        .unwrap_or_default();
+    to_read
+        .iter()
+        .filter_map(|(lang, file)| {
+            let one = map
+                .iter()
+                .find(|one| one.lang == *lang && one.edit.is_some())?;
+            let its = opened_head(door, &one.document, one.key.as_deref()?).ok()?;
+            Some((file.clone(), granted_entry(anchor, one, &its)?))
+        })
+        .collect()
 }
 
 // Languages join by what each says it is, so one that arrived without saying it in its words says it now.

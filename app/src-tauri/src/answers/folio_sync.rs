@@ -20,7 +20,8 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart, signer_alias,
+    Opened, guest_page, guests_kept, kept_here, languages_granted, languages_to_read, opened_from,
+    owner_apart, signer_alias, with_their_prints,
 };
 use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
@@ -328,23 +329,50 @@ pub async fn doc_share_sync(
     }
     let home = paths.private();
     let pressed_at = policy::now();
-    let languages = its_other_languages(&held(&session), doc, &file, &was);
-    let (ahead, language_ahead) = {
+    let (languages, to_read) = {
+        let session = held(&session);
+        (
+            its_other_languages(&session, doc, &file, &was),
+            languages_to_read(&session, doc, &was),
+        )
+    };
+    let (ahead, language_ahead, granted) = {
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
             let door = ToFolio::new(&home)?;
             let ahead = before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)?;
-            let language_ahead = match ahead {
-                Ahead::Upload | Ahead::Unchanged => first_ahead(&door, languages),
-                _ => None,
+            let reached = matches!(ahead, Ahead::Upload | Ahead::Unchanged);
+            let granted = match reached {
+                true => languages_granted(&door, &was, &to_read),
+                false => Vec::new(),
             };
-            Ok((ahead, language_ahead))
+            let language_ahead = match reached {
+                true => first_ahead(
+                    &door,
+                    languages.into_iter().chain(granted.clone()).collect(),
+                ),
+                false => None,
+            };
+            Ok((ahead, language_ahead, granted))
         })
         .await?
     };
+    if !granted.is_empty() {
+        kept_on(&mut held(&session), &granted)?;
+        let app = app.clone();
+        apart(move || {
+            with_their_prints(&app, doc, granted);
+            Ok(())
+        })
+        .await?;
+    }
     // Each language has its own versions, and another's newer one is brought apart as the anchor's is (166).
     if let Some((its_file, its_was)) = language_ahead {
+        let its_was = tisty_sharing::remembered(&held(&session).state)
+            .get(&its_file)
+            .cloned()
+            .unwrap_or(its_was);
         let its_doc = doc_of_file(&held(&session), &its_file)
             .ok_or_else(|| Refusal::of("noSuchDoc"))?
             .to_string();
