@@ -39,7 +39,7 @@ pub fn holds(editor: &Editor) -> bool {
     )
 }
 
-pub(crate) fn signed(
+pub fn signed(
     key: &ShareKey,
     certificate: &Certificate,
     id: &str,

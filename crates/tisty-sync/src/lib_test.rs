@@ -3794,6 +3794,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );
@@ -3988,6 +3989,7 @@ fn papered(who: &Machine, file: &str, guest: bool, by: Option<&str>) -> Ulid {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     );

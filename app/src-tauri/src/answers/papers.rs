@@ -154,6 +154,36 @@ pub struct Facts {
     born: Option<String>,
     signed_as: Option<String>,
     edited_as: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    edited: Option<Edited>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct Edited {
+    by: super::folio_editing::Named,
+    editors: Vec<super::folio_editing::Named>,
+}
+
+// The log keeps what a parcel said; each entry is checked again here, against the Folio document it names.
+pub(crate) fn edited_facts(
+    edited: &tisty_core::event::Edited,
+    maker: Option<&tisty_carrier::folio_limits::FolioMaker>,
+) -> Option<Edited> {
+    let named = super::folio_editing::named;
+    let entries: Vec<tisty_envelope::Editor> = serde_json::from_str(&edited.editors).ok()?;
+    let editors: Vec<_> = entries
+        .iter()
+        .filter(|one| one.r#in == edited.folio && tisty_envelope::editors::holds(one))
+        .map(|one| named(one.name.clone(), Some(&one.root), maker))
+        .collect();
+    (!editors.is_empty()).then(|| Edited {
+        by: named(
+            edited.by.clone().unwrap_or_default(),
+            Some(&edited.root),
+            maker,
+        ),
+        editors,
+    })
 }
 
 /// A file from outside Tisty tells only what the disk knows of it; no log names its author.
@@ -170,6 +200,7 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
         born: None,
         signed_as: None,
         edited_as: None,
+        edited: None,
     })
 }
 
@@ -285,6 +316,10 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
                 .as_deref()
                 .is_some_and(|by| tisty_core::state::same_name(by, hand))
         });
+    let edited = kept.and_then(|one| one.edited.as_ref()).and_then(|one| {
+        let maker = tisty_carrier::folio_limits::maker(&session.paths.private());
+        edited_facts(one, maker.as_ref())
+    });
     Ok(Facts {
         made,
         wrote,
@@ -295,6 +330,7 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         born,
         signed_as,
         edited_as,
+        edited,
     })
 }
 
@@ -467,6 +503,7 @@ pub fn doc_new(
             folder,
             page_of,
             task_of: None,
+            edited: None,
         },
     })?;
     Ok(made)
@@ -710,6 +747,7 @@ pub(super) fn other_version_kept(
                 said: Some(tisty_core::event::Said::of(&body)),
                 page_of,
                 task_of: None,
+                edited: None,
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;

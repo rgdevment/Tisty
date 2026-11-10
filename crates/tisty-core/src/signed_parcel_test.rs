@@ -72,3 +72,39 @@ fn a_name_that_cannot_be_shown_goes_out_unsigned_rather_than_altered() {
 
     assert_eq!(signature.name, None);
 }
+
+fn vouched() -> Vouched {
+    Vouched {
+        root: "R".into(),
+        name: Some("ana".into()),
+    }
+}
+
+#[test]
+fn editors_with_no_folio_document_to_answer_for_are_not_kept() {
+    let listed = serde_json::json!([{ "in": "folio-1", "name": "beto" }]);
+
+    assert_eq!(edited(Some(&vouched()), None, Some(&listed)), None);
+    assert_eq!(edited(None, Some("folio-1"), Some(&listed)), None);
+    assert_eq!(
+        edited(Some(&vouched()), Some("folio-2"), Some(&listed)),
+        None
+    );
+    assert!(edited(Some(&vouched()), Some("folio-1"), Some(&listed)).is_some());
+}
+
+#[test]
+fn no_more_editors_are_kept_than_a_version_carries() {
+    let many: Vec<serde_json::Value> = (0..100)
+        .map(|n| serde_json::json!({ "in": "folio-1", "name": format!("n{n}") }))
+        .collect();
+    let kept = edited(
+        Some(&vouched()),
+        Some("folio-1"),
+        Some(&serde_json::Value::from(many)),
+    )
+    .unwrap();
+    let carried: Vec<serde_json::Value> = serde_json::from_str(&kept.editors).unwrap();
+
+    assert_eq!(carried.len(), 64);
+}

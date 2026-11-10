@@ -8,13 +8,16 @@ use tisty_share_proto::identity::{
 };
 use tisty_share_proto::name::named_well;
 
-use crate::event::DeviceId;
+use crate::event::{DeviceId, Edited};
+use crate::model::Kept;
 use crate::person::Persons;
+use crate::state::State;
 use crate::{Error, Result};
 
 pub(crate) const ENTRY: &str = "tisty-docs.signed.json";
 pub(crate) const ENTRY_AT_MOST: u64 = 64 * 1024;
 const ABOUT: &str = "tisty.parcel.v1";
+const EDITORS_AT_MOST: usize = 64;
 
 pub struct Signer<'a> {
     pub key: &'a ShareKey,
@@ -151,6 +154,72 @@ pub(crate) fn mine(
             (true, None) => Err(Error::ParcelAsksIfMine),
         },
     }
+}
+
+pub(crate) struct Vouched {
+    root: String,
+    name: Option<String>,
+}
+
+impl Closed {
+    pub(crate) fn vouched(&self) -> Option<Vouched> {
+        match self {
+            Closed::By { person, name } => Some(Vouched {
+                root: person.shown(),
+                name: name.clone(),
+            }),
+            _ => None,
+        }
+    }
+}
+
+/// Who edited a document under Folio and in which Folio document, as this store last heard it.
+pub(crate) fn edited_of(state: &State, kept: &Kept) -> Option<(String, serde_json::Value)> {
+    let listed = |said: &str| {
+        serde_json::from_str::<serde_json::Value>(said)
+            .ok()
+            .filter(|all| all.as_array().is_some_and(|all| !all.is_empty()))
+    };
+    if let Some(was) = state.sharing.get(&kept.file)
+        && let Some(carried) = was.carried.as_deref()
+        && let Ok(carried) = serde_json::from_str::<serde_json::Value>(carried)
+        && carried["editors"]
+            .as_array()
+            .is_some_and(|all| !all.is_empty())
+    {
+        return Some((was.id.clone(), carried["editors"].clone()));
+    }
+    if let Some(stopped) = state
+        .sharing_editors
+        .get(&kept.file)
+        .and_then(|one| listed(one))
+        && let Some(folio) = stopped[0]["in"].as_str()
+    {
+        return Some((folio.to_owned(), stopped));
+    }
+    let edited = kept.edited.as_ref()?;
+    Some((edited.folio.clone(), listed(&edited.editors)?))
+}
+
+// Each entry answers only for its own Folio document, so one carried for another is left behind.
+pub(crate) fn edited(
+    vouched: Option<&Vouched>,
+    folio: Option<&str>,
+    editors: Option<&serde_json::Value>,
+) -> Option<Edited> {
+    let (vouched, folio) = (vouched?, folio?);
+    let kept: Vec<&serde_json::Value> = editors?
+        .as_array()?
+        .iter()
+        .filter(|one| one["in"].as_str() == Some(folio))
+        .take(EDITORS_AT_MOST)
+        .collect();
+    (!kept.is_empty()).then(|| Edited {
+        folio: folio.to_owned(),
+        root: vouched.root.clone(),
+        by: vouched.name.clone(),
+        editors: serde_json::Value::from(kept.into_iter().cloned().collect::<Vec<_>>()).to_string(),
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -570,6 +570,7 @@ impl Session {
                 folder: None,
                 page_of: None,
                 task_of: owner.map(|(task, _)| task),
+                edited: None,
             },
         })?;
         Ok(tisty_core::docs::Doc {
@@ -676,6 +677,7 @@ impl Session {
                 folder: kept.folder,
                 page_of: kept.page_of,
                 task_of: None,
+                edited: None,
             },
         })?;
         if kept.archived {
@@ -710,6 +712,7 @@ impl Session {
                     folder: kept.folder,
                     page_of: Some(twin),
                     task_of: None,
+                    edited: None,
                 },
             })?;
             if was_away {

@@ -50,6 +50,7 @@ fn add_doc(
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -85,6 +86,7 @@ fn add_page(
                 folder: None,
                 page_of: Some(parent),
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -319,6 +321,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -350,6 +353,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
                     folder: None,
                     page_of: Some(twin),
                     task_of: None,
+                    edited: None,
                 },
             },
         ));
@@ -945,6 +949,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         },
     ));
@@ -972,6 +977,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
                     folder: None,
                     page_of: Some(twin),
                     task_of: None,
+                    edited: None,
                 },
             },
         ));

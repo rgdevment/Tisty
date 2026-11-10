@@ -272,7 +272,7 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-const shown = ({ name, checked, imitates }: Named) => {
+export const shown = ({ name, checked, imitates }: Named) => {
   if (checked) return fill("sharedChecked", name);
   return imitates ? fill("sharedImitates", name) : name;
 };

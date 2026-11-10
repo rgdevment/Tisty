@@ -783,6 +783,9 @@ const en = {
   sharedChecked: "{name} ✓",
   sharedImitates: "{name} (that name belongs to another key)",
   sharedPrints: "Fingerprints",
+  editedPrints: "Who edited it, as {name} tells it",
+  editedPrintsWhy:
+    "Whoever handed you the file says so. Each name was signed by its own key, not checked against keys taken back since.",
   sharedPrintOwner: "{name} · owner",
   sharedPrintSigner: "{name} · last edit",
   sharedPrintsWhy:
@@ -3829,6 +3832,9 @@ const es: Catalog = {
   sharedChecked: "{name} ✓",
   sharedImitates: "{name} (ese nombre es de otra llave)",
   sharedPrints: "Huellas",
+  editedPrints: "Quién lo editó, según {name}",
+  editedPrintsWhy:
+    "Lo dice quien te pasó el archivo. Cada nombre lo firmó su propia llave, sin comprobar si sigue vigente.",
   sharedPrintOwner: "{name} · dueño",
   sharedPrintSigner: "{name} · última edición",
   sharedPrintsWhy:

@@ -155,6 +155,8 @@ pub struct Kept {
     /// The `translationKey:` it came in with, so a language brought in later finds it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited: Option<crate::event::Edited>,
 }
 
 #[cfg(test)]

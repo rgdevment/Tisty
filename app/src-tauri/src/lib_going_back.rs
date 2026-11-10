@@ -32,6 +32,7 @@ fn wrote(session: &mut Session, body: &str) -> String {
                 folder: None,
                 page_of: None,
                 task_of: None,
+                edited: None,
             },
         })
         .unwrap();
