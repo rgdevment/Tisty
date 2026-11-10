@@ -12,7 +12,7 @@ use tisty_envelope::reading::{self, Unopened};
 use tisty_sharing::{Asked, Desk, Received, Remembered};
 
 use super::folio::{ToFolio, said};
-use super::folio_standing::{Party, standing_of};
+use super::folio_standing::{Party, print_of, standing_of};
 use super::sharing::turned;
 use crate::viewing::{LinkQuestion, Views};
 use crate::{Answer, Refusal, Session, held};
@@ -579,6 +579,17 @@ pub(super) fn owner_apart(opened: &Opened) -> Option<&str> {
         .filter(|root| *root != opened.signer)
 }
 
+// The owner's name speaks for a version only when the owner's root signed it.
+pub(super) fn signed_by(
+    signed_as: Option<String>,
+    owner_name: Option<String>,
+    opened: &Opened,
+) -> String {
+    signed_as
+        .or(owner_name.filter(|_| owner_apart(opened).is_none()))
+        .unwrap_or_else(|| print_of(&opened.signer))
+}
+
 fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let said = |field: &str| opened.document[field].as_str();
     let home = held(&app.state::<Mutex<Session>>()).paths.private();
@@ -589,6 +600,7 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
     let checked = checked_within(&home, &wanted);
     let party = |root: &str, alias: Option<&str>| Party {
         name: alias.unwrap_or_default().to_owned(),
+        print: print_of(root),
         standing: standing_of(
             root,
             opened.verdict,
@@ -603,7 +615,6 @@ fn asked_to_keep(app: &AppHandle, opened: &Opened) -> bool {
             title: said("title").unwrap_or_default().to_owned(),
             owner: owner.map(|root| party(root, said("owner_name"))),
             signer: party(&opened.signer, said("signed_as")),
-            print: opened.signer.clone(),
             doubtful: opened.doubtful(),
         },
     )

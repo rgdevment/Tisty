@@ -20,7 +20,7 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart,
+    Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart, signed_by,
 };
 use super::papers::{Arrived, other_version_kept};
 use super::sharing::{doc_id, refused, the_maker_here, turned};
@@ -606,9 +606,6 @@ async fn other_version_brought(
     Ok(Synced::OtherVersion {
         version: opened.version,
         doubtful,
-        signer: received
-            .signed_as
-            .or(received.owner_name)
-            .unwrap_or(opened.signer),
+        signer: signed_by(received.signed_as, received.owner_name, &opened),
     })
 }

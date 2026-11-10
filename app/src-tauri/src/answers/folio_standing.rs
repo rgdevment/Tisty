@@ -1,6 +1,7 @@
 use serde::Serialize;
 use tisty_carrier::folio_limits::FolioMaker;
 use tisty_contracts::Verdict;
+use tisty_share_proto::identity::Person;
 use tisty_share_proto::name::imitates;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -21,8 +22,16 @@ pub enum Standing {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Party {
     pub name: String,
+    pub print: String,
     #[serde(flatten)]
     pub standing: Standing,
+}
+
+// Read the way Settings › Security shows it, so whoever shared it can compare the two.
+pub fn print_of(root: &str) -> String {
+    Person::read(root)
+        .map(|person| person.fingerprint())
+        .unwrap_or_default()
 }
 
 fn still_speaks(verdict: Verdict) -> bool {

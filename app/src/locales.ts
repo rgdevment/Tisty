@@ -857,7 +857,11 @@ const en = {
   linkKeepTakenBack: "Key taken back: it no longer speaks for this name",
   linkKeepChecked: "{name} · checked domain",
   linkKeepPrint: "Fingerprint",
-  linkKeepCompare: "Compare it with whoever shared it.",
+  linkKeepOwnerPrint: "Owner's fingerprint",
+  linkKeepCompare:
+    "Ask whoever shared it, through another channel, for the fingerprint in their Settings › Security, and compare.",
+  linkKeepCompareEach:
+    "Ask each of them, through another channel, for the fingerprint in their Settings › Security, and compare.",
   linkKeepDoubt:
     "That key was taken back or cannot be confirmed, so do not take it as theirs without asking.",
   linkKeepGo: "Bring it",
@@ -3868,7 +3872,11 @@ const es: Catalog = {
   linkKeepTakenBack: "Llave retirada: ya no habla por este nombre",
   linkKeepChecked: "{name} · dominio comprobado",
   linkKeepPrint: "Huella",
-  linkKeepCompare: "Compárala con quien te lo compartió.",
+  linkKeepOwnerPrint: "Huella del dueño",
+  linkKeepCompare:
+    "Pídele a quien te lo compartió, por otro canal, la huella que ve en Configuración › Seguridad, y compárala.",
+  linkKeepCompareEach:
+    "Pídele a cada uno, por otro canal, la huella que ve en Configuración › Seguridad, y compáralas.",
   linkKeepDoubt:
     "Esa llave fue retirada o no se puede confirmar, así que no lo des por suyo sin preguntar.",
   linkKeepGo: "Traer",

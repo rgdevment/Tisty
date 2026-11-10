@@ -11,7 +11,7 @@ type Standing =
   | { standing: "checked"; domain: string }
   | { standing: "plain" };
 
-type Party = { name: string } & Standing;
+type Party = { name: string; print: string } & Standing;
 
 type Question = { id: number } & (
   | { kind: "look" }
@@ -20,7 +20,6 @@ type Question = { id: number } & (
       title: string;
       owner: Party | null;
       signer: Party;
-      print: string;
       doubtful: boolean;
     }
   | { kind: "failed"; code: string }
@@ -92,6 +91,18 @@ function Who({ party, said }: Readonly<{ party: Party; said: Word }>) {
   );
 }
 
+function Print({ party, said }: Readonly<{ party: Party; said: Word }>) {
+  if (!party.print) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11.5px] text-soft">{t(said)}</span>
+      <code className="rounded-md bg-hover px-2 py-1.5 font-mono text-[12.5px] tracking-wider tabular-nums">
+        {party.print}
+      </code>
+    </div>
+  );
+}
+
 function Keeping({
   asked,
   onAnswer,
@@ -103,15 +114,19 @@ function Keeping({
     <Modal title={t("linkKeepTitle")} onClose={() => onAnswer(false)}>
       <div className="flex flex-col gap-3 text-[13px] leading-relaxed">
         <p className="break-words font-semibold">{asked.title || t("untitledDoc")}</p>
-        {asked.owner && <Who party={asked.owner} said="linkKeepOwner" />}
-        <Who party={asked.signer} said="linkKeepSigned" />
-        <div className="flex flex-col gap-1">
-          <span className="text-[11.5px] text-soft">{t("linkKeepPrint")}</span>
-          <code className="break-all rounded-md bg-hover px-2 py-1.5 font-mono text-[11.5px]">
-            {asked.print}
-          </code>
-          <span className="text-[11.5px] text-soft">{t("linkKeepCompare")}</span>
+        {asked.owner && (
+          <div className="flex flex-col gap-1.5">
+            <Who party={asked.owner} said="linkKeepOwner" />
+            <Print party={asked.owner} said="linkKeepOwnerPrint" />
+          </div>
+        )}
+        <div className="flex flex-col gap-1.5">
+          <Who party={asked.signer} said="linkKeepSigned" />
+          <Print party={asked.signer} said="linkKeepPrint" />
         </div>
+        <span className="text-[11.5px] text-soft">
+          {t(asked.owner ? "linkKeepCompareEach" : "linkKeepCompare")}
+        </span>
         {asked.doubtful && (
           <p
             role="alert"

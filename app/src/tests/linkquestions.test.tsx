@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { adopt, fill, t } from "../locales";
@@ -120,24 +120,44 @@ describe("what a link asks in the window", () => {
     expect(await screen.findByText(t("linkLookWhy"))).toBeTruthy();
   });
 
-  const plain = (name: string) => ({ name, standing: "plain" });
+  const plain = (name: string, print = "11111 22222 33333 44444") => ({
+    name,
+    print,
+    standing: "plain",
+  });
+  const group = (said: string) => {
+    const party = screen.getByText(said).closest("div")?.parentElement;
+    if (!party) throw new Error(`no group for ${said}`);
+    return party;
+  };
   const keep = {
     id: 2,
     kind: "keep",
     title: "Viaje",
     owner: null,
     signer: plain(""),
-    print: "AB-CD",
   };
 
   it("shows owner and signer apart when another root signed this version", async () => {
-    standing({ ...keep, owner: plain("Mario"), signer: plain("Ana"), doubtful: false });
+    standing({
+      ...keep,
+      owner: plain("Mario", "70686 67560 35161 46791"),
+      signer: plain("Ana", "48210 93755 12880 63349"),
+      doubtful: false,
+    });
     render(<LinkQuestions />);
 
     expect(await screen.findByText("Viaje")).toBeTruthy();
     expect(screen.getByText(fill("linkKeepOwner", "Mario"))).toBeTruthy();
     expect(screen.getByText(fill("linkKeepSigned", "Ana"))).toBeTruthy();
-    expect(screen.getByText("AB-CD")).toBeTruthy();
+    const owner = within(group(fill("linkKeepOwner", "Mario")));
+    expect(owner.getByText(t("linkKeepOwnerPrint"))).toBeTruthy();
+    expect(owner.getByText("70686 67560 35161 46791")).toBeTruthy();
+    expect(owner.queryByText("48210 93755 12880 63349")).toBeNull();
+    const signer = within(group(fill("linkKeepSigned", "Ana")));
+    expect(signer.getByText(t("linkKeepPrint"))).toBeTruthy();
+    expect(signer.getByText("48210 93755 12880 63349")).toBeTruthy();
+    expect(screen.getByText(t("linkKeepCompareEach"))).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     read();
 
@@ -151,6 +171,40 @@ describe("what a link asks in the window", () => {
 
     expect(await screen.findByText(fill("linkKeepSigned", "Mario"))).toBeTruthy();
     expect(screen.queryByText(fill("linkKeepOwner", "Mario"))).toBeNull();
+  });
+
+  it("shows the fingerprint as Settings › Security shows it, to compare with whoever shared it", async () => {
+    standing({ ...keep, signer: plain("Mario", "70686 67560 35161 46791"), doubtful: false });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText("70686 67560 35161 46791")).toBeTruthy();
+    expect(screen.getAllByText(t("linkKeepPrint"))).toHaveLength(1);
+    expect(screen.queryByText(t("linkKeepOwnerPrint"))).toBeNull();
+    expect(screen.getByText(t("linkKeepCompare"))).toBeTruthy();
+  });
+
+  it("still tells whose fingerprint is whose when the owner has no name", async () => {
+    standing({
+      ...keep,
+      owner: plain("", "70686 67560 35161 46791"),
+      signer: plain("Ana", "48210 93755 12880 63349"),
+      doubtful: false,
+    });
+    render(<LinkQuestions />);
+
+    const label = await screen.findByText(t("linkKeepOwnerPrint"));
+    expect(label.parentElement?.textContent).toContain("70686 67560 35161 46791");
+    expect(
+      within(group(fill("linkKeepSigned", "Ana"))).getByText("48210 93755 12880 63349"),
+    ).toBeTruthy();
+  });
+
+  it("hides a fingerprint it could not read rather than show an empty one", async () => {
+    standing({ ...keep, signer: plain("Mario", ""), doubtful: false });
+    render(<LinkQuestions />);
+
+    expect(await screen.findByText(fill("linkKeepSigned", "Mario"))).toBeTruthy();
+    expect(screen.queryByText(t("linkKeepPrint"))).toBeNull();
   });
 
   it("names the maker by Folio's word, verified, with the domain beneath and no link", async () => {
