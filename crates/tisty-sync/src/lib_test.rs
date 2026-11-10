@@ -7822,6 +7822,32 @@ fn before_the_fence(whose: &Machine, shared: &Path) -> String {
     older
 }
 
+/// An old machine this store already holds, taken in while unsigned histories were still let in.
+fn known_from_before(one: &Machine, whose: &Machine, shared: &Path) -> String {
+    let older = before_the_fence(whose, shared);
+    let here = one.store.join(&whose.device);
+    std::fs::create_dir_all(&here).unwrap();
+    std::fs::write(here.join("active.tisty"), &older).unwrap();
+    older
+}
+
+#[test]
+fn a_machine_new_here_that_never_signed_is_turned_away() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    before_the_fence(&two, shared.path());
+
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
+}
+
 #[test]
 fn a_machine_known_from_before_signing_is_taken_on_its_first_key_without_asking() {
     let one = machine("dev_a");
@@ -7830,7 +7856,7 @@ fn a_machine_known_from_before_signing_is_taken_on_its_first_key_without_asking(
     let shared = tempfile::tempdir().unwrap();
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
     let two = blank("dev_b");
-    let older = before_the_fence(&two, shared.path());
+    let older = known_from_before(&one, &two, shared.path());
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
     assert!(home_of(&one, &two.device).contains("lo viejo de dev_b"));
 
@@ -7917,7 +7943,7 @@ fn a_known_machine_that_names_a_key_nothing_can_read_waits_instead_of_coming_in_
     let shared = tempfile::tempdir().unwrap();
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
     let two = blank("dev_b");
-    let older = before_the_fence(&two, shared.path());
+    let older = known_from_before(&one, &two, shared.path());
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
     assert!(home_of(&one, &two.device).contains("lo viejo de dev_b"));
 
@@ -7959,7 +7985,7 @@ fn a_key_nothing_can_read_does_not_keep_a_known_machine_from_its_first_key_that_
     let shared = tempfile::tempdir().unwrap();
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
     let two = blank("dev_b");
-    let older = before_the_fence(&two, shared.path());
+    let older = known_from_before(&one, &two, shared.path());
     carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     let shown = upgraded_saying(

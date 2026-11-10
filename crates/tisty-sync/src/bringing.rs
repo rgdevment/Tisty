@@ -231,7 +231,9 @@ fn answers_for_itself(
         }
     }
     if !signed {
-        let known = from.signing || stood.is_some();
+        // Only a machine this store already holds may go on unsigned; one new here signs, or anyone could write as it.
+        let new_here = !adopting && !mine.is_dir();
+        let known = from.signing || stood.is_some() || new_here;
         let Ok(owed) = owes_a_signature(&mine, theirs, &who, known) else {
             return Answered::Unreadable;
         };
