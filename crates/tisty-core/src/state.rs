@@ -1149,6 +1149,11 @@ impl State {
         }
     }
 
+    /// Someone else's writing hangs only under writing of the same hand, or it would travel as part of another's.
+    pub fn may_hang_under(page: &crate::model::Kept, up: &crate::model::Kept) -> bool {
+        !page.guest || (up.guest && alike(page.by.as_deref(), up.by.as_deref()))
+    }
+
     /// Another name is another person, whether it came in a parcel or through a shared store.
     pub fn mine(&self, kept: &crate::model::Kept) -> bool {
         match kept.by.as_deref() {

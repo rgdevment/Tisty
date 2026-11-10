@@ -35,6 +35,7 @@ const FAILED: Record<string, Word> = {
   folioPaused: "linkFailedPaused",
   folioOutdated: "linkFailedOutdated",
   folioUnopened: "linkFailedUnopened",
+  folioEditLinkMismatch: "linkFailedEditLink",
 };
 
 const QUIET = "h-8 rounded-md border border-line px-3 text-[12.5px] hover:bg-hover";
