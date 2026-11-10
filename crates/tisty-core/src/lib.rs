@@ -50,6 +50,7 @@ pub mod seal;
 pub mod series;
 pub mod shape;
 mod shelving;
+pub mod signed_parcel;
 pub mod signing;
 pub mod speaking;
 pub mod stages;
@@ -121,6 +122,18 @@ pub enum Error {
     WrongNumber,
     #[error("that parcel opened, and then came apart: it did not arrive whole")]
     ParcelTorn,
+    #[error(
+        "that parcel was locked and carries no signature, so only you can say whether you locked it"
+    )]
+    ParcelAsksIfMine,
+    #[error(
+        "that parcel was signed by {print}, and this Tisty has no phrase to tell whether that is you"
+    )]
+    ParcelSignedBy {
+        root: String,
+        print: String,
+        name: Option<String>,
+    },
     #[error("there is not enough room to open that here: it needs {needs} and {free} is free")]
     NoRoom { needs: u64, free: u64 },
     #[error("there is nothing here to carry out")]
@@ -186,6 +199,8 @@ impl Error {
             Error::ParcelLocked => "parcelLocked",
             Error::WrongNumber => "wrongNumber",
             Error::ParcelTorn => "parcelTorn",
+            Error::ParcelAsksIfMine => "parcelAsksIfMine",
+            Error::ParcelSignedBy { .. } => "parcelSignedBy",
             Error::NoRoom { .. } => "noRoom",
             Error::NothingToCarry => "nothingToCarry",
             Error::AlreadyTakenOut(_) => "alreadyTakenOut",

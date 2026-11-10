@@ -3,6 +3,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
 import { settled } from "./saving";
+import type { Named } from "./sharing";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -1231,6 +1232,7 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
+  edited?: { by: Named; editors: Named[] };
 }
 
 export const ALIAS_AT_MOST = 40;
@@ -1434,13 +1436,21 @@ export interface Unpacked {
   joined: number;
   files: number;
   missed: number;
+  print?: string;
+  name?: string;
+  broken: boolean;
 }
+
+export type ParcelAnswer = "mine" | "theirs";
 
 export const spelled = (said: string): Promise<string> => invoke("spelled", { said });
 export const docsPack = (which: string[], into: string, number?: string): Promise<Packed> =>
   invoke("docs_pack", { which, into, number });
-export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
-  invoke("docs_unpack", { from, number });
+export const docsUnpack = (
+  from: string,
+  number?: string,
+  answer?: ParcelAnswer,
+): Promise<Unpacked> => invoke("docs_unpack", { from, number, answer });
 export const docFromHtml = (html: string): Promise<string> => invoke("doc_from_html", { html });
 
 export const docFromText = (text: string): Promise<string | null> =>

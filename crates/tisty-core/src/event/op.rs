@@ -1084,6 +1084,18 @@ pub struct DocAdd {
     /// The task whose words this document holds; it lives with that task, not among the documents.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_of: Option<crate::model::TaskId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited: Option<Edited>,
+}
+
+/// Who edited a document under Folio, as the signer of the parcel it came in tells it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Edited {
+    pub folio: String,
+    pub root: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+    pub editors: serde_json::Value,
 }
 
 pub const ALIAS_AT_MOST: usize = 40;

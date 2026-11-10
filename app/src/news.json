@@ -1327,5 +1327,48 @@
         "said": "a Markdown file opened from disk shows its first line as you wrote it, and a task can name the assistant that worked on it or just say it was an agent."
       }
     ]
+  },
+  {
+    "version": "1.44.1",
+    "headline": {
+      "es": "Avisos más claros al compartir, y tu Tisty sigue siendo solo tuyo",
+      "en": "Clearer notices when you share, and your Tisty stays yours alone"
+    },
+    "es": [
+      {
+        "title": "La misma huella en todas partes",
+        "said": "al traer un documento y en la fila Compartido, la huella de cada persona son los mismos 20 dígitos que muestra Configuración › Seguridad, así que puedes compararla de un vistazo."
+      },
+      {
+        "title": "Un idioma que el dueño te abre se puede editar",
+        "said": "si editas un documento compartido y uno de sus idiomas lo tenías solo para leer, pasa a editable en cuanto el dueño te lo abre. Al sincronizar o al abrir otra vez el link, Tisty trae primero su versión más nueva, así que nada tuyo pisa lo del dueño."
+      },
+      {
+        "title": "Sabes qué pasó",
+        "said": "si algún idioma no llegó, Tisty te dice cuál y que puedes abrir el link otra vez para intentarlo de nuevo. Si cambias el link de editar mientras Folio pide esperar, la fila Compartido te dice que el nuevo abre cuando salga la próxima versión. Y un nombre parecido al de quien hace Tisty, si no es suyo, se marca como de otra llave."
+      },
+      {
+        "title": "Tu Tisty sigue siendo tuyo",
+        "said": "el equipo de otra persona en tu carpeta sincronizada ya no puede quedarse con tu Tisty, y un equipo que se estaba sumando ya no te pide confirmarlo de nuevo si se borran los archivos temporales de Tisty."
+      }
+    ],
+    "en": [
+      {
+        "title": "The same fingerprint everywhere",
+        "said": "when you bring a document in and on the Shared row, each person's fingerprint is the same 20 digits that Settings › Security shows, so you can compare it at a glance."
+      },
+      {
+        "title": "A language the owner opens to you can be edited",
+        "said": "if you edit a shared document and had one of its languages only to read, it turns editable as soon as the owner opens it to you. On Sync, or when you open the link again, Tisty first brings in its newest version, so nothing of yours overwrites the owner's."
+      },
+      {
+        "title": "You know what happened",
+        "said": "if a language did not arrive, Tisty tells you which one and that you can open the link again to try once more. If you change the edit link while Folio asks to wait, the Shared row tells you the new one opens when the next version goes. And a name like that of whoever makes Tisty, when it is not theirs, is flagged as another key's."
+      },
+      {
+        "title": "Your Tisty stays yours",
+        "said": "another person's computer in your synced folder can no longer take your Tisty over, and a computer that was joining no longer asks to be confirmed again if Tisty's temporary files are cleared."
+      }
+    ]
   }
 ]

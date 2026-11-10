@@ -783,6 +783,9 @@ const en = {
   sharedChecked: "{name} ✓",
   sharedImitates: "{name} (that name belongs to another key)",
   sharedPrints: "Fingerprints",
+  editedPrints: "Who edited it, as {name} tells it · fingerprint {other}",
+  editedPrintsWhy:
+    "Whoever handed you the file says so. Each name was signed by its own key, not checked against keys taken back since.",
   sharedPrintOwner: "{name} · owner",
   sharedPrintSigner: "{name} · last edit",
   sharedPrintsWhy:
@@ -2531,6 +2534,21 @@ const en = {
     "It was locked to be carried to a machine of its own. If that is this one, the six digits it was locked with open it.",
   wrongNumber: "That is not the number.",
   parcelTorn: "The number opened it, but the parcel did not arrive whole. Ask for it again.",
+  parcelIfMineTitle: "Did you lock this parcel?",
+  parcelAsksIfMine:
+    "This parcel is locked and carries no signature, so only you can say whether you locked it.",
+  parcelIfMine:
+    "If it is yours, it comes in as yours. If somebody gave it to you, it comes in as a stranger's, and that cannot change.",
+  parcelLockedByMe: "I locked it",
+  parcelGivenToMe: "Somebody gave it to me",
+  parcelSignedByTitle: "Did you sign this?",
+  parcelSignedBy:
+    "This was signed by {name} · fingerprint {other}. If that is you, type your phrase first in Settings › Security and it will arrive as yours. Opened now, it arrives as the writing of {name}, and that cannot change.",
+  parcelPhraseFirst: "Type my phrase first",
+  parcelAsTheirs: "Open it as theirs",
+  parcelNameless: "someone with no name",
+  landedFrom: "It came in as the writing of {name} · fingerprint {other}",
+  landedBroken: "The signature does not match what it carries, so it came in as a stranger's.",
   noRoom: "There is not enough room on this disk to open it: it needs about {name}.",
   openNumber: "The number it was locked with",
   openLocked: "Open…",
@@ -3831,6 +3849,9 @@ const es: Catalog = {
   sharedChecked: "{name} ✓",
   sharedImitates: "{name} (ese nombre es de otra llave)",
   sharedPrints: "Huellas",
+  editedPrints: "Quién lo editó, según {name} · huella {other}",
+  editedPrintsWhy:
+    "Lo dice quien te pasó el archivo. Cada nombre lo firmó su propia llave, sin comprobar si sigue vigente.",
   sharedPrintOwner: "{name} · dueño",
   sharedPrintSigner: "{name} · última edición",
   sharedPrintsWhy:
@@ -5588,6 +5609,21 @@ const es: Catalog = {
     "Se cerró para llevarlo a un equipo suyo. Si es este, lo abren los seis dígitos con los que se cerró.",
   wrongNumber: "Ese no es el número.",
   parcelTorn: "El número lo abrió, pero el archivo no llegó entero. Pídelo otra vez.",
+  parcelIfMineTitle: "¿Este paquete lo cerraste tú?",
+  parcelAsksIfMine:
+    "Este paquete está cerrado y no trae firma: solo tú puedes decir si lo cerraste.",
+  parcelIfMine:
+    "Si es tuyo, entra como tuyo. Si te lo dio otra persona, entra como de alguien sin nombre, y no se puede cambiar.",
+  parcelLockedByMe: "Lo cerré yo",
+  parcelGivenToMe: "Me lo dio otra persona",
+  parcelSignedByTitle: "¿Lo firmaste tú?",
+  parcelSignedBy:
+    "Esto lo firmó {name} · huella {other}. Si eres tú, escribe primero tu frase en Configuración › Seguridad y llegará como tuyo. Si lo abres así, llega como de {name} y no se puede cambiar.",
+  parcelPhraseFirst: "Escribir mi frase primero",
+  parcelAsTheirs: "Abrirlo como suyo",
+  parcelNameless: "alguien sin nombre",
+  landedFrom: "Entró como de {name} · huella {other}",
+  landedBroken: "La firma no calza con lo que trae: entró como de alguien sin nombre.",
   noRoom: "No hay sitio en este disco para abrirlo: necesita unos {name}.",
   openNumber: "El número con el que se cerró",
   openLocked: "Abrir…",

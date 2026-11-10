@@ -4,13 +4,13 @@ import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
 import { waysOut } from "../leaving";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
 import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
-import { useSharedRow } from "./sharedRow";
+import { shown, useSharedRow } from "./sharedRow";
 import { often } from "./tagging";
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
@@ -86,6 +86,12 @@ const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf 
   onPick: () => onPage?.(one),
 });
 
+const editedOf = ({ by, editors }: NonNullable<DocFacts["edited"]>) => ({
+  label: fill("editedPrints", by.name ? shown(by) : t("parcelNameless"), by.print ?? ""),
+  note: t("editedPrintsWhy"),
+  rows: editors.map((one) => [shown(one), one.print ?? ""] as const),
+});
+
 // Read once per version of the text and its facts: the column is drawn again far more often than either changes.
 const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   const { body, tags, heads } = props;
@@ -98,6 +104,7 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
       author: facts?.author ?? undefined,
       born: facts?.born ?? undefined,
       editor: facts?.editor ?? undefined,
+      edited: facts?.edited ? editedOf(facts.edited) : undefined,
       made: facts ? dated(facts.made) : undefined,
       wrote: facts ? dated(facts.wrote) : undefined,
       weighs: facts ? weigh(facts.bytes) : undefined,

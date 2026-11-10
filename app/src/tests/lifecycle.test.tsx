@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Papers } from "../core";
 import { AT_A_GLANCE, SHOWN } from "../glance";
-import { fill, t } from "../locales";
+import { fill, filled, t } from "../locales";
 import Docs from "../ui/Docs";
 import { SETTLING_MS } from "../ui/Sure";
 import Tree from "../ui/Tree";
@@ -45,7 +45,12 @@ const taking = vi.hoisted(() => ({ files: 0, missed: 0, left: 0 }));
 const parcel = vi.hoisted(() => ({
   packed: [] as { which: string[]; into: string; number?: string }[],
   opened: [] as (string | undefined)[],
+  answers: [] as (string | undefined)[],
   locked: "",
+  asks: "" as "" | "ifMine" | "signedBy",
+  print: undefined as string | undefined,
+  name: undefined as string | undefined,
+  broken: false,
   docs: 0,
   pages: 0,
   folders: 0,
@@ -56,6 +61,8 @@ const parcel = vi.hoisted(() => ({
 }));
 
 const carrier = vi.hoisted(() => ({ made: 0, asked: 0 }));
+
+const SIGNED_PRINT = "12345 67890 12345 67890";
 
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
@@ -270,8 +277,15 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       });
     case "docs_unpack":
       parcel.opened.push(args.number as string | undefined);
+      parcel.answers.push(args.answer as string | undefined);
       if (parcel.locked && args.number !== parcel.locked) {
         return Promise.reject({ code: args.number ? "wrongNumber" : "parcelLocked" });
+      }
+      if (parcel.asks === "ifMine" && !args.answer) {
+        return Promise.reject({ code: "parcelAsksIfMine" });
+      }
+      if (parcel.asks === "signedBy" && !args.answer) {
+        return Promise.reject({ code: "parcelSignedBy", name: "beto", print: SIGNED_PRINT });
       }
       return Promise.resolve({
         docs: parcel.docs,
@@ -280,6 +294,9 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         joined: parcel.joined,
         files: parcel.files,
         missed: parcel.missed,
+        print: parcel.print,
+        name: parcel.name,
+        broken: parcel.broken,
       });
     case "folder_rename": {
       const folder = store.folders.find((one) => one.id === args.id);
@@ -328,7 +345,12 @@ beforeEach(() => {
   taking.left = 0;
   parcel.packed = [];
   parcel.opened = [];
+  parcel.answers = [];
   parcel.locked = "";
+  parcel.asks = "";
+  parcel.print = undefined;
+  parcel.name = undefined;
+  parcel.broken = false;
   parcel.docs = 0;
   parcel.pages = 0;
   parcel.folders = 0;
@@ -1226,6 +1248,71 @@ describe("what the menus reach for outside the tree", () => {
     await userEvent.click(screen.getByRole("button", { name: t("openLocked") }));
     await waitFor(() => expect(screen.getByText(fill("landedAlone", "3"))).toBeTruthy());
     expect(parcel.opened).toEqual([undefined, "000000", "123456"]);
+  });
+
+  it("asks whether you locked a parcel that carries no signature, and opens it as yours when you did", async () => {
+    picked.path = Promise.resolve("D:/entrada/mudanza.tistyx");
+    parcel.locked = "123456";
+    parcel.asks = "ifMine";
+    parcel.docs = 3;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+    await userEvent.type(await screen.findByLabelText(fill("digitOf", "1", "6")), "123456");
+    await userEvent.click(screen.getByRole("button", { name: t("openLocked") }));
+
+    expect(await screen.findByText(t("parcelIfMine"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("parcelLockedByMe") }));
+    await waitFor(() => expect(screen.getByText(fill("landedAlone", "3"))).toBeTruthy());
+    expect(parcel.opened).toEqual([undefined, "123456", "123456"]);
+    expect(parcel.answers).toEqual([undefined, undefined, "mine"]);
+  });
+
+  it("asks before a signed parcel lands where no phrase was typed, and names who signed it", async () => {
+    picked.path = Promise.resolve("D:/entrada/receta.tistyx");
+    parcel.asks = "signedBy";
+    parcel.docs = 1;
+    parcel.print = SIGNED_PRINT;
+    parcel.name = "beto";
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    expect(await screen.findByText(filled(t("parcelSignedBy"), "beto", SIGNED_PRINT))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("parcelAsTheirs") }));
+    await waitFor(() =>
+      expect(screen.getByText(fill("landedFrom", "beto", SIGNED_PRINT))).toBeTruthy(),
+    );
+    expect(parcel.answers).toEqual([undefined, "theirs"]);
+  });
+
+  it("leaves a signed parcel unopened when the person goes to type their phrase first", async () => {
+    picked.path = Promise.resolve("D:/entrada/receta.tistyx");
+    parcel.asks = "signedBy";
+    parcel.docs = 1;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("parcelPhraseFirst") }));
+
+    await waitFor(() => expect(screen.queryByText(t("parcelSignedByTitle"))).toBeNull());
+    expect(parcel.answers).toEqual([undefined]);
+  });
+
+  it("says so when a parcel's signature does not match what it carries, even with a piece missing", async () => {
+    picked.path = Promise.resolve("D:/entrada/acta.tistyx");
+    parcel.docs = 1;
+    parcel.missed = 1;
+    parcel.broken = true;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    await waitFor(() => expect(screen.getByText(t("landedBroken"))).toBeTruthy());
   });
 
   it("says it is working, and how far along, rather than going quiet for minutes", async () => {
