@@ -2,7 +2,10 @@ use std::cell::Cell;
 
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
-use super::{Link, Opened, editable, link_of, looked_for, owner_apart};
+use super::{
+    Link, Opened, editable, language_link, link_of, looked_for, owner_apart, saying_its_language,
+    speaks,
+};
 
 #[derive(Default)]
 struct CountingFolio(Cell<u32>);
@@ -129,4 +132,81 @@ fn a_token_the_owner_s_block_does_not_name_is_kept_as_a_link_to_read() {
     assert!(!editable(&link(Some("anything")), &opened(&permit)));
     assert!(!editable(&link(Some(&token)), &opened("anotherPermit")));
     assert!(!editable(&link(None), &opened(&permit)));
+}
+
+#[test]
+fn the_anchor_s_edit_link_opens_each_language_s_token_its_owner_names() {
+    use tisty_envelope::sealing::{link_key, permit_shown};
+    let (anchor, token) = (link_key().unwrap(), link_key().unwrap());
+    let key = link_key().unwrap();
+    let one = tisty_envelope::Translation {
+        lang: "en".into(),
+        document: "enGlish1".into(),
+        title: None,
+        key: Some(key.clone()),
+        edit: Some(tisty_envelope::tokens::sealed_for(&anchor, "enGlish1", &token).unwrap()),
+    };
+    let its = |permit: &str| Opened {
+        owner: Some(format!(r#"{{"root":"r","permit":"{permit}"}}"#)),
+        ..opened_by(Some("r"), "r")
+    };
+    let link = |token: Option<&str>| Link {
+        id: "anchor12".into(),
+        key: "key".into(),
+        token: token.map(str::to_owned),
+    };
+    let named = permit_shown(&token).unwrap();
+
+    let opened = language_link(&link(Some(&anchor)), &one, &its(&named)).unwrap();
+    assert_eq!(opened.id, "enGlish1");
+    assert_eq!(opened.key, key);
+    assert_eq!(opened.token.as_deref(), Some(token.as_str()));
+    assert!(language_link(&link(Some(&anchor)), &one, &its("anotherPermit")).is_none());
+    assert!(language_link(&link(None), &one, &its(&named)).is_none());
+    assert!(language_link(&link(Some(&token)), &one, &its(&named)).is_none());
+}
+
+#[test]
+fn the_language_shown_is_the_one_tisty_speaks() {
+    assert!(speaks(Some("en"), Some("en-US")));
+    assert!(speaks(Some("pt-BR"), Some("pt")));
+    assert!(!speaks(Some("es"), Some("en")));
+    assert!(!speaks(None, Some("en")));
+}
+
+#[test]
+fn a_language_that_arrived_without_saying_it_says_it_in_its_words() {
+    let arrived = |body: &str| tisty_sharing::Received {
+        title: None,
+        body: body.to_owned(),
+        pages: Vec::new(),
+        owner_name: None,
+        signed_as: None,
+        carried: None,
+    };
+    let said = saying_its_language(
+        arrived(
+            "# Trip
+",
+        ),
+        Some("en"),
+    );
+    assert_eq!(
+        tisty_markdown::front::lang(&said.body).as_deref(),
+        Some("en")
+    );
+    let kept = saying_its_language(
+        arrived(
+            "---
+lang: es
+---
+# Viaje
+",
+        ),
+        Some("en"),
+    );
+    assert_eq!(
+        tisty_markdown::front::lang(&kept.body).as_deref(),
+        Some("es")
+    );
 }
