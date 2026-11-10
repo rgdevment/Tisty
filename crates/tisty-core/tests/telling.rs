@@ -366,6 +366,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             folder: None,
             page_of: None,
             task_of: None,
+            edited: None,
         },
     })
     .unwrap();
@@ -420,6 +421,7 @@ fn a_log_written_before_the_note_existed_still_opens() {
             folder: None,
             page_of: None,
             task_of: None,
+            edited: None,
         },
     })
     .unwrap();

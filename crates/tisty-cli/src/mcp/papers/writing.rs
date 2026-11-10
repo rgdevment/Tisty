@@ -98,6 +98,7 @@ pub(super) fn written_doc(
             folder,
             page_of,
             task_of: None,
+            edited: None,
         },
     };
     let added = match imported {

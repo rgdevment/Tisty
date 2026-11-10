@@ -473,6 +473,7 @@ impl State {
                 translation_of: None,
                 joined: None,
                 key: d.said.as_ref().and_then(|one| one.key.clone()).flatten(),
+                edited: d.edited.clone(),
             },
         );
     }

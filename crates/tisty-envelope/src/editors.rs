@@ -1,52 +1,31 @@
 use tisty_contracts::Editor;
-use tisty_share_proto::identity::{self, Certificate, ShareKey, Signed};
+use tisty_share_proto::editing::{self, Entry};
+use tisty_share_proto::identity::{Certificate, ShareKey};
 
-const ABOUT: &str = "editor";
 pub(crate) const AT_MOST: usize = 64;
-
-fn said(id: &str, owned: bool, name: &str) -> Vec<u8> {
-    let mut said = (id.len() as u64).to_be_bytes().to_vec();
-    said.extend_from_slice(id.as_bytes());
-    said.push(u8::from(owned));
-    said.extend_from_slice(&(name.len() as u64).to_be_bytes());
-    said.extend_from_slice(name.as_bytes());
-    said
-}
 
 /// It answers only for this root having signed this name for this document, never for who the person is.
 pub fn holds(editor: &Editor) -> bool {
-    let Ok(since) = editor.since.parse() else {
-        return false;
-    };
-    let signed = Signed {
-        certificate: Certificate {
-            root: editor.root.clone(),
-            share: editor.machine.clone(),
-            since,
-            sig: editor.certificate.clone(),
-        },
-        sig: editor.signed.clone(),
-    };
-    let owned = editor.owned == Some(true);
-    matches!(
-        identity::check(
-            &signed,
-            ABOUT,
-            &said(&editor.r#in, owned, &editor.name),
-            &[]
-        ),
-        identity::Verdict::Holds { .. }
-    )
+    editing::holds(&Entry {
+        id: &editor.r#in,
+        owned: editor.owned == Some(true),
+        name: &editor.name,
+        root: &editor.root,
+        machine: &editor.machine,
+        since: &editor.since,
+        certificate: &editor.certificate,
+        signed: &editor.signed,
+    })
 }
 
-pub(crate) fn signed(
+pub fn signed(
     key: &ShareKey,
     certificate: &Certificate,
     id: &str,
     owned: bool,
     name: &str,
 ) -> Option<Editor> {
-    let signed = key.sign(certificate, ABOUT, &said(id, owned, name))?;
+    let signed = editing::signed(key, certificate, id, owned, name)?;
     Some(Editor {
         r#in: id.to_owned(),
         root: signed.certificate.root,
