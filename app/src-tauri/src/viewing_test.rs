@@ -273,6 +273,19 @@ fn an_answer_to_an_earlier_question_does_not_reach_the_one_standing() {
 }
 
 #[test]
+fn the_languages_left_behind_reach_the_window_by_their_tags() {
+    let said = serde_json::to_value(LinkQuestion::LanguagesLeft {
+        languages: vec!["en".into(), "fr".into()],
+    })
+    .unwrap();
+
+    assert_eq!(
+        said,
+        serde_json::json!({ "kind": "languagesLeft", "languages": ["en", "fr"] })
+    );
+}
+
+#[test]
 fn an_answer_with_no_question_standing_goes_nowhere() {
     let views = Views::default();
 

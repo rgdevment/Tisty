@@ -885,6 +885,9 @@ const en = {
   linkFailedUnopened: "It could not be opened: its signature or its contents do not hold.",
   linkFailedUnreached: "Check your connection, or read it in your browser.",
   linkFailedOk: "Got it",
+  linkLanguagesLeftTitle: "Some languages did not arrive",
+  linkLanguagesLeft:
+    "The document arrived, but this could not be brought: {name}. Open the link again later to try once more.",
   shareClosedTitle: "Share with Folio",
   shareClosedWhat: "Folio lets you share documents privately with anyone, using an encrypted link.",
   shareClosedYet: "It isn’t available yet.",
@@ -3909,6 +3912,9 @@ const es: Catalog = {
   linkFailedUnopened: "No se pudo abrir: su firma o su contenido no calzan.",
   linkFailedUnreached: "Revisa tu conexión, o léelo en el navegador.",
   linkFailedOk: "Entendido",
+  linkLanguagesLeftTitle: "Algunos idiomas no llegaron",
+  linkLanguagesLeft:
+    "El documento llegó, pero no se pudo traer: {name}. Abre el link otra vez más tarde para intentarlo de nuevo.",
   shareClosedTitle: "Compartir con Folio",
   shareClosedWhat:
     "Folio te permite compartir documentos en privado con quien quieras, con un link y cifrados de forma segura.",
