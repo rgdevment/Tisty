@@ -241,13 +241,25 @@ fn only_a_copy_alone_in_its_language_whose_token_opens_here_is_looked_for_in_fol
         here("pt", "pt-2.md"),
     ];
 
-    let found: Vec<(String, String)> = super::grantable(&was, &to_read)
+    let found: Vec<(String, String)> = super::grantable(&was, &super::carried_map(&was), &to_read)
         .into_iter()
         .map(|(file, one)| (file, one.document))
         .collect();
 
     assert_eq!(found, vec![("en.md".to_owned(), "enGlish1".to_owned())]);
-    assert!(super::grantable(&edited_anchor(&stranger), &to_read).is_empty());
+    let opened_again = super::carried_map(&was);
+    assert_eq!(
+        super::grantable(&edited_anchor(&anchor), &opened_again, &to_read).len(),
+        1,
+        "a link opened again hands its map over before the anchor here holds it"
+    );
+    let under_another: Vec<String> =
+        super::grantable(&edited_anchor(&stranger), &opened_again, &to_read)
+            .into_iter()
+            .map(|(file, _)| file)
+            .collect();
+    assert_eq!(under_another, vec!["fr.md".to_owned()]);
+    assert!(super::grantable(&edited_anchor(&anchor), &[], &to_read).is_empty());
 }
 
 #[test]

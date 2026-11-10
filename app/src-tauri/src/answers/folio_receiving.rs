@@ -381,18 +381,13 @@ fn language_link(link: &Link, one: &Translation, its: &Opened) -> Option<Link> {
     })
 }
 
-fn root_of_block(block: Option<&str>) -> Option<String> {
-    let block: serde_json::Value = serde_json::from_str(block?).ok()?;
-    block["root"].as_str().map(str::to_owned)
-}
-
 // No version under its token is here yet, so the next Sync brings its newest one before anything goes up (166).
 pub(super) fn granted_entry(
     anchor: &Remembered,
     one: &Translation,
     its: &Opened,
 ) -> Option<Remembered> {
-    let owner = root_of_block(anchor.owner.as_deref())?;
+    let owner = super::folio_editing::root_of_the_block(anchor.owner.as_deref())?;
     let names_it = its.document["anchor"].as_str() == Some(anchor.id.as_str());
     if !names_it || its.owner_root.as_deref() != Some(owner.as_str()) {
         return None;
@@ -431,19 +426,23 @@ pub(super) fn languages_to_read(
         .collect()
 }
 
+pub(super) fn carried_map(anchor: &Remembered) -> Vec<Translation> {
+    anchor
+        .carried
+        .as_deref()
+        .and_then(|said| serde_json::from_str::<serde_json::Value>(said).ok())
+        .and_then(|said| serde_json::from_value(said["languages"].clone()).ok())
+        .unwrap_or_default()
+}
+
 pub(super) fn grantable(
     anchor: &Remembered,
+    map: &[Translation],
     to_read: &[(String, String)],
 ) -> Vec<(String, Translation)> {
     let Some(token) = anchor.edit_token.as_deref() else {
         return Vec::new();
     };
-    let map: Vec<Translation> = anchor
-        .carried
-        .as_deref()
-        .and_then(|said| serde_json::from_str::<serde_json::Value>(said).ok())
-        .and_then(|said| serde_json::from_value(said["languages"].clone()).ok())
-        .unwrap_or_default();
     // Two copies here in one language could each be the one Folio sent, so neither is taken for it.
     let alone = |lang: &str| to_read.iter().filter(|(one, _)| one == lang).count() == 1;
     to_read
@@ -460,9 +459,10 @@ pub(super) fn grantable(
 pub(super) fn languages_granted(
     door: &dyn Door,
     anchor: &Remembered,
+    map: &[Translation],
     to_read: &[(String, String)],
 ) -> Vec<(String, Remembered)> {
-    grantable(anchor, to_read)
+    grantable(anchor, map, to_read)
         .into_iter()
         .filter_map(|(file, one)| {
             let its = opened_head(door, &one.document, one.key.as_deref()?).ok()?;
@@ -480,6 +480,51 @@ pub(super) fn unprinted(
         .filter_map(|(file, _)| Some((file.clone(), shelf.get(file)?.clone())))
         .filter(|(_, now)| now.words_print.is_none())
         .collect()
+}
+
+// Without its print its words count as changed, and would go up over the owner's newest version unasked.
+pub(super) fn kept_granted(
+    app: &AppHandle,
+    doc: tisty_core::model::DocId,
+    granted: Vec<(String, Remembered)>,
+) -> Answer<Vec<(String, Remembered)>> {
+    let session = app.state::<Mutex<Session>>();
+    held(&session).commit_all(tisty_sharing::sent(&granted))?;
+    with_their_prints(app, doc, granted.clone());
+    let mut session = held(&session);
+    let left = unprinted(&granted, tisty_sharing::remembered(&session.state));
+    session.commit_all(tisty_sharing::forgotten(&left))?;
+    Ok(left)
+}
+
+fn granted_since(
+    app: &AppHandle,
+    door: &dyn Door,
+    file: &str,
+    doc: tisty_core::model::DocId,
+    opened: &Opened,
+) {
+    let (anchor, to_read) = {
+        let session = app.state::<Mutex<Session>>();
+        let session = held(&session);
+        let Some(anchor) = tisty_sharing::remembered(&session.state).get(file).cloned() else {
+            return;
+        };
+        let to_read = languages_to_read(&session, doc, &anchor);
+        (anchor, to_read)
+    };
+    let map: Vec<Translation> =
+        serde_json::from_value(opened.document["languages"].clone()).unwrap_or_default();
+    let granted = languages_granted(door, &anchor, &map, &to_read);
+    if !granted.is_empty()
+        && let Err(refused) = kept_granted(app, doc, granted)
+    {
+        witness::warn(
+            channel::SYNC,
+            "the tokens a link opened again hands over could not be kept, so those languages stay to read",
+            &[("code", Fact::Code(refused.code))],
+        );
+    }
 }
 
 // Languages join by what each says it is, so one that arrived without saying it in its words says it now.
@@ -612,7 +657,7 @@ fn languages_kept(
     Ok(said)
 }
 
-// A link opened again asks before Folio hears of it, brings the languages added since, and keeps the copy here as it is.
+// A link opened again asks before Folio hears of it, brings the languages added since and the tokens granted since, and keeps the copy here as it is.
 fn languages_added_since(
     app: &AppHandle,
     door: &dyn Door,
@@ -635,6 +680,7 @@ fn languages_added_since(
         (session.state.anchor_of(kept), here)
     };
     let opened = opened_head(door, &link.id, &link.key).ok()?;
+    granted_since(app, door, file, doc, &opened);
     let (languages, mut left) = languages_brought(door, &opened, &here);
     if languages.is_empty() {
         return Some((None, left));

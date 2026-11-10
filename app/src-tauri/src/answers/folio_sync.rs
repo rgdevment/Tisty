@@ -20,8 +20,8 @@ use super::folio::{
     sealed_for_folio, seconds_of, secrets_of_docs, told_of_taken_back, tongue_of,
 };
 use super::folio_receiving::{
-    Opened, guest_page, guests_kept, kept_here, languages_granted, languages_to_read, opened_from,
-    owner_apart, signer_alias, unprinted, with_their_prints,
+    Opened, carried_map, guest_page, guests_kept, kept_granted, kept_here, languages_granted,
+    languages_to_read, opened_from, owner_apart, signer_alias,
 };
 use super::folio_standing::print_of;
 use super::papers::{Arrived, other_version_kept};
@@ -284,26 +284,6 @@ async fn unchanged_answered(
     })
 }
 
-// Without its print its words count as changed, and would go up over the owner's newest version unasked.
-async fn granted_and_printed(
-    app: &tauri::AppHandle,
-    session: &tauri::State<'_, Mutex<Session>>,
-    doc: tisty_core::model::DocId,
-    granted: Vec<(String, Remembered)>,
-) -> Answer<Vec<(String, Remembered)>> {
-    kept_on(&mut held(session), &granted)?;
-    let printing = (app.clone(), granted.clone());
-    apart(move || {
-        with_their_prints(&printing.0, doc, printing.1);
-        Ok(())
-    })
-    .await?;
-    let mut session = held(session);
-    let left = unprinted(&granted, tisty_sharing::remembered(&session.state));
-    session.commit_all(tisty_sharing::forgotten(&left))?;
-    Ok(left)
-}
-
 #[tauri::command]
 pub async fn doc_share_sync(
     app: tauri::AppHandle,
@@ -364,7 +344,7 @@ pub async fn doc_share_sync(
             let ahead = before_upload(&door, &home, &was, unchanged, limits.as_ref(), pressed_at)?;
             let reached = matches!(ahead, Ahead::Upload | Ahead::Unchanged);
             let granted = match reached {
-                true => languages_granted(&door, &was, &to_read),
+                true => languages_granted(&door, &was, &carried_map(&was), &to_read),
                 false => Vec::new(),
             };
             let language_ahead = match reached {
@@ -381,7 +361,8 @@ pub async fn doc_share_sync(
     let language_ahead = match granted.is_empty() {
         true => language_ahead,
         false => {
-            let left = granted_and_printed(&app, &session, doc, granted).await?;
+            let app = app.clone();
+            let left = apart(move || kept_granted(&app, doc, granted)).await?;
             language_ahead.filter(|(its_file, _)| left.iter().all(|(one, _)| one != its_file))
         }
     };
