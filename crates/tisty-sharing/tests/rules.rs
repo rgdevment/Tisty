@@ -1137,6 +1137,78 @@ fn a_page_put_away_stays_here_and_the_person_is_told() {
 }
 
 #[test]
+fn someone_else_s_page_never_goes_out_under_my_own_editable_link() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote(
+        "# Paseos
+
+[[Ajena]]
+",
+        None,
+    );
+    let body = "# Ajena
+
+de otra persona
+";
+    let made = tisty_core::docs::create(&home.paths.docs(), &home.device, body).unwrap();
+    home.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id,
+            order: "b0".into(),
+            said: Some(tisty_core::event::Said::of(body)),
+            guest: true,
+            by: Some("ana".into()),
+            page_of: Some(doc),
+            ..Default::default()
+        },
+    });
+    let file = home.state.docs[&doc].file.clone();
+    home.commit(Op::SharingKept {
+        file,
+        d: Remembered {
+            id: "mine".to_owned(),
+            version: 1,
+            link_key: Some("k".repeat(43)),
+            files_print: None,
+            files_hash: None,
+            files_key: None,
+            admin_token: Some("a".repeat(43)),
+            edit_token: Some("t".repeat(43)),
+            words_print: None,
+            signed_as: None,
+            owner: None,
+            owner_name: None,
+            cited: Vec::new(),
+            held_by: None,
+            ttl_days: None,
+            carried: None,
+            sealed_under: None,
+            version_by: None,
+            version_root: None,
+            left_out: Vec::new(),
+        },
+    });
+    let desk = tisty_sharing::Desk {
+        paths: &home.paths,
+        state: &home.state,
+        also: None,
+        turned: &|_| None,
+        maker: None,
+    };
+
+    let gathered = tisty_sharing::gathered(&desk, &asked(doc)).unwrap();
+    assert!(
+        gathered
+            .told()
+            .iter()
+            .any(|one| matches!(one, Told::PageLeftBehind { .. })),
+        "{:?}",
+        gathered.told()
+    );
+}
+
+#[test]
 fn a_language_put_away_stays_here_and_what_is_put_away_is_not_shared() {
     let (_tmp, mut home) = home();
     let es = home.wrote("---\nlang: es\n---\n\nx\n", None);

@@ -650,10 +650,18 @@ impl Session {
         let twin = ulid::Ulid::generate();
         let me = self.state.persons.person(&self.config.device_id);
         // Marked as a guest copy too: the copy is made on this machine, which would otherwise vouch for it as mine.
-        let (guest, signed_as) = match self.state.theirs(&kept, me.as_ref()) {
-            true => (true, kept.by.clone()),
+        let owned_as = |one: &tisty_core::model::Kept| match self.state.theirs(one, me.as_ref()) {
+            true => (true, one.by.clone()),
             false => (false, signing(&self.state)),
         };
+        let (guest, signed_as) = owned_as(&kept);
+        // Each page is asked on its own, since someone else's page can hang from my document.
+        let pages: Vec<_> = self
+            .state
+            .pages_of(id)
+            .iter()
+            .map(|one| (one.file.clone(), one.archived, owned_as(one)))
+            .collect();
         self.commit(Op::DocAdd {
             id: twin,
             d: tisty_core::event::DocAdd {
@@ -675,13 +683,7 @@ impl Session {
         }
 
         let mut renamed: Vec<(String, String)> = Vec::new();
-        for (page, was_away) in self
-            .state
-            .pages_of(id)
-            .iter()
-            .map(|one| (one.file.clone(), one.archived))
-            .collect::<Vec<_>>()
-        {
+        for (page, was_away, (guest, signed_as)) in pages {
             let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
             let leaf = tisty_core::docs::create(&root, &self.config.device_id, &body)
                 .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
@@ -701,7 +703,7 @@ impl Session {
                     guest,
                     sown: false,
                     made: None,
-                    by: signed_as.clone(),
+                    by: signed_as,
                     file: leaf.id,
                     order,
                     said: Some(tisty_core::event::Said::of(&body)),

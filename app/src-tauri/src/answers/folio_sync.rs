@@ -22,7 +22,7 @@ use super::folio::{
 use super::folio_receiving::{
     Opened, guest_page, guests_kept, kept_here, opened_from, owner_apart,
 };
-use super::papers::other_version_kept;
+use super::papers::{Arrived, other_version_kept};
 use super::sharing::{doc_id, refused, the_maker_here, turned};
 use crate::{Answer, Refusal, Session, held};
 
@@ -479,7 +479,16 @@ async fn other_version_brought(
         "other version"
     };
     let by = received.signed_as.clone().or(received.owner_name.clone());
-    let kept = other_version_kept(&mut session, &file, received.body.clone(), Some(marked))?;
+    let kept = other_version_kept(
+        &mut session,
+        &file,
+        received.body.clone(),
+        Some(marked),
+        Arrived::Folio {
+            root: &opened.signer,
+            name: received.signed_as.as_deref(),
+        },
+    )?;
     let holder = match kept {
         Some(made) => doc_of_file(&session, &made),
         None if pages_differ(&session, &file, &received.pages) => {

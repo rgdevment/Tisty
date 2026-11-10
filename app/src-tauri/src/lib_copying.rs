@@ -190,6 +190,60 @@ fn a_copy_of_someone_elses_document_is_still_theirs() {
 }
 
 #[test]
+fn someone_else_s_page_in_a_copy_of_my_document_is_still_theirs() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let mine = tisty_core::docs::create(
+        &session.paths.docs(),
+        &session.config.device_id,
+        "# Mío
+
+[[Ajena]]",
+    )
+    .unwrap();
+    let theirs =
+        tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# Ajena")
+            .unwrap();
+    let doc = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id: doc,
+            d: tisty_core::event::DocAdd {
+                file: mine.id,
+                order: "a0".into(),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                guest: true,
+                by: Some("ana".into()),
+                file: theirs.id,
+                order: "a0".into(),
+                page_of: Some(doc),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+
+    let copy = session.copy_doc(&doc.to_string()).unwrap();
+    let twin = twin_of(&session, &copy);
+    let page = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.page_of == Some(twin))
+        .unwrap();
+
+    assert!(page.guest);
+    assert_eq!(page.by.as_deref(), Some("ana"));
+    assert!(!session.state.docs[&twin].guest);
+}
+
+#[test]
 fn a_copy_of_a_document_someone_else_signed_is_a_guest_copy_even_when_it_was_not_one() {
     let desk = desk();
     let mut session = Session::at(desk.paths.clone()).unwrap();

@@ -103,6 +103,13 @@ pub(in crate::mcp) fn translation_written(
     }
     let (state, _) = opened(paths)?;
     let up = found(&state, of)?;
+    // Written here it would be the person's own, so someone else's words would go out under their name.
+    if !state.mine(up) {
+        return Err(Refused::Tool(format!(
+            "{} is someone else's writing, so a translation of it would still be theirs and is not written as the person's own. The person can copy it in another language from the window.",
+            doc_named(&state, of)
+        )));
+    }
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a translation needs a `body`.".into()));
     };

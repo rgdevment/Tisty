@@ -639,6 +639,11 @@ pub fn doc_page(
             Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(_) => {}
         }
+        if let (Some(page), Some(over)) = (session.state.docs.get(&id), session.state.docs.get(&up))
+            && !tisty_core::State::may_hang_under(page, over)
+        {
+            return Err(Refusal::of("pageOfAnother"));
+        }
         // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
         if session.state.docs.get(&id).is_some_and(|one| one.archived) {
             return Err(Refusal::of("awayStaysAway"));
@@ -741,7 +746,7 @@ pub async fn settle_paper(
             told_as_settled(&mut session, &id);
             return Ok(None);
         };
-        other_version_kept(&mut session, &id, body, marked.as_deref())?
+        other_version_kept(&mut session, &id, body, marked.as_deref(), Arrived::Here)?
     };
 
     let at = id.clone();
@@ -757,12 +762,23 @@ pub async fn settle_paper(
     Ok(answer)
 }
 
+/// Where the other version came from: one of the person's own machines, or Folio, signed by a root under a name.
+#[derive(Clone, Copy)]
+pub(super) enum Arrived<'a> {
+    Here,
+    Folio {
+        root: &'a str,
+        name: Option<&'a str>,
+    },
+}
+
 // Asked again about the same arrival, keeping both must not leave one more copy each time.
 pub(super) fn other_version_kept(
     session: &mut Session,
     id: &str,
     body: String,
     marked: Option<&str>,
+    arrived: Arrived,
 ) -> Answer<Option<String>> {
     let paged = session
         .state
@@ -803,9 +819,13 @@ pub(super) fn other_version_kept(
         .values()
         .find(|one| one.file == id)
         .filter(|kept| session.state.theirs(kept, me.as_ref()));
-    let (guest, by) = match theirs {
-        Some(kept) => (true, kept.by.clone()),
-        None => (false, signing(&session.state)),
+    let (guest, by) = match (theirs, arrived) {
+        (Some(kept), _) => (true, kept.by.clone()),
+        // The name is whatever its signer chose, so only the root says the version is mine.
+        (None, Arrived::Folio { root, name }) if me.is_none_or(|me| me.shown() != root) => {
+            (true, name.map(str::to_owned))
+        }
+        _ => (false, signing(&session.state)),
     };
     session
         .commit(Op::DocAdd {

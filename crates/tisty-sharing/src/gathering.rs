@@ -187,7 +187,7 @@ fn sharable<'a>(
     }
     let edits_through_a_link = shelf
         .get(&kept.file)
-        .is_some_and(|one| one.edit_token.is_some());
+        .is_some_and(Remembered::edited_through_a_link);
     if !goes_as_mine(desk, kept, edits_through_a_link) {
         return Err(Unshared::NotOwn);
     }
@@ -424,7 +424,7 @@ impl Gathering<'_> {
         let edits_through_a_link = self
             .shelf
             .get(&kept.file)
-            .is_some_and(|one| one.edit_token.is_some());
+            .is_some_and(Remembered::edited_through_a_link);
         for page in state.pages_read(kept.id, body) {
             let not_ours = !goes_as_mine(self.desk, page, edits_through_a_link);
             let stays = not_ours || state.shut(page.id) || state.held_away(page);

@@ -163,7 +163,11 @@ pub(crate) fn arrived_as(
     folder: Option<tisty_core::model::FolderId>,
     turned: impl FnOnce(String) -> String,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
-    let paths = held(session).paths.clone();
+    let (paths, own) = {
+        let session = held(session);
+        (session.paths.clone(), tistys_own(&session))
+    };
+    outside_tisty(&own, from)?;
     let (raw, room) = read_any(from)?;
     let raw = turned(raw);
     let near = room
@@ -171,10 +175,6 @@ pub(crate) fn arrived_as(
         .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
     let titles = tisty_core::arriving::Titles::of(&tisty_core::docs::all(&paths.docs()));
     let body = tisty_core::arriving::tidied_among(&raw, &titles).body;
-    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
-        .iter()
-        .filter_map(|one| one.canonicalize().ok())
-        .collect();
     let mut reach = |at: &std::path::Path| {
         let at = at
             .canonicalize()
@@ -208,6 +208,29 @@ pub(crate) fn arrived_as(
         notes: brought.papers.len(),
     };
     Ok((doc, id, left))
+}
+
+/// Every folder that holds Tisty's own files: its data, settings and cache, and the place it syncs to.
+pub(crate) fn tistys_own(session: &Session) -> Vec<std::path::PathBuf> {
+    let paths = &session.paths;
+    [paths.data(), paths.config(), paths.cache()]
+        .into_iter()
+        .map(std::path::Path::to_path_buf)
+        .chain(session.place())
+        .chain(session.histories())
+        .filter_map(|one| one.canonicalize().ok())
+        .collect()
+}
+
+// A file inside Tisty's own folders is a document already here, someone else's copy included, never one to bring in as new.
+pub(crate) fn outside_tisty(own: &[std::path::PathBuf], from: &std::path::Path) -> Answer<()> {
+    match from
+        .canonicalize()
+        .is_ok_and(|at| own.iter().any(|one| at.starts_with(one)))
+    {
+        true => Err(Refusal::of("importedFromTisty")),
+        false => Ok(()),
+    }
 }
 
 pub(crate) struct Room(pub(crate) std::path::PathBuf);
@@ -533,3 +556,7 @@ pub async fn docs_unpack(
         missed: landed.missed,
     })
 }
+
+#[cfg(test)]
+#[path = "carrying_test.rs"]
+mod tests;
