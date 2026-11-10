@@ -24,7 +24,7 @@ On its own, a task is a story when you came back to add to it — steps, notes, 
 
 ## Search is the way in
 
-Search is the main way into the archive, not a side feature. Search for a word you remember and it comes up — tasks and documents alike — even if you closed it two years ago. If the word is on a task's page, the task comes up.
+Search is the main way into the archive, not a side feature. Type a word you remember in the search at the top of the sidebar (`Ctrl`/`⌘` + `K`) and it comes up — tasks and documents alike — even if you closed it two years ago. If the word is on a task's page, the task comes up.
 
 The archive is history you consult. A closed task comes back whole: its page with what you read, tried and ruled out, the files on it, its parts and every step, as they were left. A year after a spike like «Find out how to sync with OneDrive», asking «how did we solve the OneDrive uploads?» finds it — and from it, «Upload large files» and «Resume a cut upload» with their own steps and notes. Why a task keeps all that, and when something belongs in a document instead, is in [A task or a document?](Tasks#a-task-or-a-document).
 

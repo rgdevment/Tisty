@@ -68,6 +68,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 - **Próximo**: lo que viene.
 - **Se repiten**: lo que vuelve por su cuenta.
 - **Todas**: todo lo abierto, sin filtro.
+- **Vencidas** y **Atrasadas**: solo lo vencido, o solo lo atrasado. Cada una se abre desde su cuenta entre las cuatro del día, arriba en la barra lateral, y mientras estás en ella aparece junto a Hoy. Las otras dos cuentas, **para hoy** y **por venir**, abren Hoy y Próximo.
 
 No hay premios por vaciar la lista.
 

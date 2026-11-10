@@ -41,7 +41,7 @@ Cómo funcionan la página, los pasos y las partes de una tarea está en [[Tarea
 
 ## Crear uno
 
-Ve a Documentos y usa el **+** de arriba: **Documento nuevo**. El mismo botón dentro de una carpeta lo crea ahí. **Diagrama nuevo** crea un documento con un diagrama y abre la [[ventana de diagramas|Diagramas]]. **Carpeta nueva** los agrupa, y una carpeta puede tener carpetas dentro.
+En la **Biblioteca** de la barra lateral, usa el **+** de su encabezado: **Documento nuevo**. El mismo botón dentro de una carpeta lo crea ahí. **Diagrama nuevo** crea un documento con un diagrama y abre la [[ventana de diagramas|Diagramas]]. **Carpeta nueva** los agrupa, y una carpeta puede tener carpetas dentro.
 
 La primera línea del documento es su título: no hay que ponerle nombre.
 
@@ -50,6 +50,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 ## Carpetas
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.
+- **El filtro** del encabezado de la Biblioteca deja solo las carpetas y los documentos cuyo nombre contiene lo que escribes, sin mirar acentos ni mayúsculas, con las carpetas de arriba de cada uno abiertas; una carpeta que coincide conserva todo lo que tiene. `Esc` lo cierra.
 - **Archiva una carpeta entera** con el botón derecho cuando el asunto terminó: baja al estante de **Archivados**, al pie del árbol, con su icono, sus subcarpetas y sus páginas tal como las dejaste. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo.
 - **Desarchívala** y vuelve igual, incluidos los documentos que habías archivado a mano ahí, que siguen archivados.
 

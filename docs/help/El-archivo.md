@@ -24,7 +24,7 @@ Por sí sola, una tarea es historia cuando volviste a ella a sumarle algo —pas
 
 ## El buscador es la entrada
 
-El buscador es la forma principal de entrar al archivo, no un extra. Busca una palabra que recuerdes y aparece, sean tareas o documentos, aunque lo hayas cerrado hace dos años. Si la palabra está en la página de una tarea, aparece la tarea.
+El buscador es la forma principal de entrar al archivo, no un extra. Escribe una palabra que recuerdes en el buscador de arriba de la barra lateral (`Ctrl`/`⌘` + `K`) y aparece, sean tareas o documentos, aunque lo hayas cerrado hace dos años. Si la palabra está en la página de una tarea, aparece la tarea.
 
 El archivo es historia que se consulta. Una tarea cerrada vuelve entera: su página con lo que leíste, probaste y descartaste, sus archivos, sus partes y cada paso, tal como quedaron. Un año después de un spike como «Averiguar cómo sincronizar con OneDrive», preguntar «¿cómo resolvimos las subidas a OneDrive?» lo encuentra, y desde él, «Subir archivos grandes» y «Retomar una subida cortada» con sus propios pasos y notas. Por qué una tarea guarda todo eso, y cuándo algo va mejor en un documento, está en [¿Tarea o documento?](Tareas#tarea-o-documento).
 

@@ -93,11 +93,13 @@ Tu lista de tareas se mira de cuatro maneras:
 - **Se repiten** — lo que vuelve por su cuenta.
 - **Todas** — todo lo abierto, sin filtro.
 
+Las cuatro cuentas del día, arriba en la barra lateral, abren lo que cuentan: **Vencidas** y **Atrasadas** abren cada una su propia vista, que aparece junto a Hoy mientras estás en ella, y **para hoy** y **por venir** abren Hoy y Próximo.
+
 Lo vencido sale arriba y en rojo; lo atrasado, en ámbar. Una tarea vence únicamente cuando pasa su fecha límite: si le pusiste un día y nada más, se atrasa, pero no vence. Y nadie te persigue: Tisty no lleva rachas ni puntos por vaciar la lista. Lo que no alcanzaste hoy, mañana sigue ahí.
 
 ### El reparto y los recordatorios
 
-**Reparto**, en la barra lateral, es tu calendario de trabajo: ahí decides con calma qué haces cada día. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si ese día ya lleva dos, Tisty te lo dice y te ofrece el siguiente libre. **Mes** muestra lo mismo en cuadrícula.
+**Reparto**, el icono del calendario bajo las cuentas del día en la barra lateral, es tu calendario de trabajo: ahí decides con calma qué haces cada día. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si ese día ya lleva dos, Tisty te lo dice y te ofrece el siguiente libre. **Mes** muestra lo mismo en cuadrícula.
 
 Un recordatorio es una hora que eliges en la tarea: suena como una notificación del sistema, solo en este equipo, con un sonido corto que puedes apagar. Más en [el reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/).
 
@@ -121,13 +123,13 @@ Dos formas de ordenar que no compiten:
 - Una **lista** dice dónde ocurre: ==@casa=={green}, ==@trabajo=={green}. Una tarea está en una sola.
 - Una **etiqueta** dice de qué va: ==#salud=={pink}, ==#compras=={pink}. Una tarea lleva las que quieras.
 
-Una etiqueta también sirve en un documento: escribe `#salud` en medio de una frase y el documento queda bajo esa misma etiqueta. **Etiquetas**, en la barra lateral, junta todo lo que lleva una: lo que tienes que hacer y lo que escribiste sobre eso.
+Una etiqueta también sirve en un documento: escribe `#salud` en medio de una frase y el documento queda bajo esa misma etiqueta. **Etiquetas**, el icono de la etiqueta bajo las cuentas del día en la barra lateral, junta todo lo que lleva una: lo que tienes que hacer y lo que escribiste sobre eso.
 
 ### Lo que queda escrito
 
 Una tarea guarda más que su título. Se abre en una página propia, con secciones para llenar —de qué se trata, cómo sabrás que está lista, sus pasos, lo que fuiste averiguando— y en cada una, una pista en gris que dice qué va ahí. Cada casilla que escribas en esa página, `- [ ]`, es uno de sus pasos. Al terminarla nada de eso se borra: se archiva con su fecha.
 
-Por eso importa: la lista te dice qué falta; el Archivo, cómo lo resolviste la última vez. Busca una palabra que recuerdes y la tarea aparece, aunque la hayas cerrado hace dos años.
+Por eso importa: la lista te dice qué falta; el Archivo, cómo lo resolviste la última vez. Escribe una palabra que recuerdes en el buscador de arriba de la barra lateral (`Ctrl`/`⌘` + `K`) y la tarea aparece, aunque la hayas cerrado hace dos años.
 
 :::details Partes: cuando un paso necesita más que una línea
 
@@ -161,7 +163,7 @@ Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas,
 
 **Pruébalo:** haz clic en este mismo párrafo. Se abre para escribir, con sus marcas a la vista; `Esc` lo devuelve a la página.
 
-**Para hacer uno**, ve a Documentos y usa el **+** de arriba: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
+**Para hacer uno**, usa el **+** del encabezado de la **Biblioteca**, en la barra lateral: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
 
 La primera línea del documento es su título: no hay que ponerle nombre en ninguna otra parte. Sus propiedades, como las etiquetas o el papel en que se imprime, se ven en el panel de al lado, en **Sobre este documento**.
 
@@ -438,6 +440,7 @@ Si escribiste en un documento mientras él lo leía, no escribe encima: se le pi
 | `Ctrl`/`⌘` + `Shift` + `M` | Mostrar u ocultar las marcas del bloque |
 | `Ctrl`/`⌘` + `E` | Abrir o dejar el documento entero como texto |
 | `F1` | Abrir la guía de Markdown de Tisty en lo que estás escribiendo |
+| `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral |
 | `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |

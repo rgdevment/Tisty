@@ -450,11 +450,13 @@ tarea puede apuntar a un documento; un documento nunca crea tareas.
 
 **El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
 que un almacén con cientos de documentos son cuatro filas hasta que vas a
-buscar. Cuando un trabajo termina archivas la carpeta, no sus documentos uno a
-uno: baja al estante del final del árbol con su icono, sus subcarpetas y sus
-páginas tal como las dejaste, cerrada a escribir y a que entre nada nuevo.
-Desarchívala y vuelve igual —incluidos los documentos que hubieras archivado a
-mano ahí dentro, que siguen archivados porque nadie dijo lo contrario.
+buscar, y el filtro de la Biblioteca deja solo lo que coincide, con las carpetas
+de arriba abiertas. Cuando un trabajo termina archivas la carpeta, no sus
+documentos uno a uno: baja al estante del final del árbol con su icono, sus
+subcarpetas y sus páginas tal como las dejaste, cerrada a escribir y a que entre
+nada nuevo. Desarchívala y vuelve igual —incluidos los documentos que hubieras
+archivado a mano ahí dentro, que siguen archivados porque nadie dijo lo
+contrario.
 
 **Una página se archiva sola sin salir de su documento.** Algo largo por partes
 —un año de actas, un libro por capítulos— es un documento con páginas, y el
