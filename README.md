@@ -529,8 +529,11 @@ alias it was signed with. It carries a `README.txt` as well, so whoever you hand
 it to can read the documents without Tisty and knows where to find it if they
 want the rest. Exporting all of them asks who they
 are for: open, to hand to somebody, or locked with six digits for another
-machine of your own — which is what makes them arrive there as yours rather
-than as a stranger's. Either way, not one line of the history travels inside.
+machine of your own, so nobody else can read it. Once you have your identity,
+the parcel goes out signed with your key: another Tisty of yours takes it as
+yours, anybody else's as your writing with your fingerprint, and a parcel
+changed on the way lands as a stranger's. Either way, not one line of the
+history travels inside.
 Write an alias — optional, and yours to choose — and every document is signed
 with it, while whatever arrives from somebody else keeps theirs.
 

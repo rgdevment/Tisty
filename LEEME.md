@@ -544,11 +544,13 @@ página, qué está archivado y con qué alias se firmó. Lleva también un
 `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y
 sepa dónde encontrarlo si quiere lo demás. Al exportarlos todos te
 pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
-dígitos para otro equipo tuyo —que es lo que hace que allí lleguen como tuyos y
-no como de un desconocido—. En cualquiera de los dos casos, dentro no viaja ni
-una línea del historial. Si escribes un alias —opcional, y solo tú decides
-cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
-conserva el suyo.
+dígitos para otro equipo tuyo, para que nadie más los lea. Cuando ya tienes tu
+identidad, el paquete sale firmado con tu llave: otro Tisty tuyo lo toma como
+tuyo, el de otra persona como escrito por ti con tu huella, y uno que cambiaron
+en el camino entra como de un desconocido. En cualquiera de los dos casos,
+dentro no viaja ni una línea del historial. Si escribes un alias —opcional, y
+solo tú decides cuál—, cada documento queda firmado con él, y lo que te llegue
+de otra persona conserva el suyo.
 
 ## Para quién es
 
