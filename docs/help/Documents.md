@@ -135,6 +135,8 @@ Once a document is shared, its row has **Sync**, and nothing goes up until you p
 
 Its row says who created it, who edited it last and everyone who edited it, each under the name they chose and signed by their own key; a ✓ marks the maker of Tisty. Whoever edits through the edit link chooses between their alias and their name. To take that power from everyone who has the link, press **Change the edit link**: theirs stops sending versions, they keep their copies, and you give the new link to whoever should keep editing. What reached you through a read link stays a copy of your own: Sync brings newer versions into it, and only an edit link lets you send yours. Stop sharing a document others edited and share it again later, and the dialog reminds you who they were first.
 
+Each language of a document shared to edit has its own edit link, and the one you hand over reaches them all: whoever opens it edits every language you shared, and **Change the edit link** changes them all at once. Opening a link, to read or to edit, brings every language of the document, up to 20, joined as one, and shows the one Tisty speaks when the document has it. A language that does not say it belongs to that document, or that its owner has not reviewed, stays in Folio. Sync brings a newer version of any of its languages apart, as it does for the document itself.
+
 ## Your alias
 
 Write an alias in Settings — optional, and yours to choose — and every document is signed with it, while whatever arrives from somebody else keeps theirs. It travels with your sync and inside any parcel, so pick a name you are content for others to read. Your real name is never asked for.
