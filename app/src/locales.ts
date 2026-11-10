@@ -781,6 +781,7 @@ const en = {
   sharedVersionBy: "Last edited by {name}",
   sharedEditedBy: "Edited by: {name}",
   sharedChecked: "{name} ✓",
+  sharedImitates: "{name} (that name belongs to another key)",
   sharedPrints: "Fingerprints",
   sharedPrintOwner: "{name} · owner",
   sharedPrintSigner: "{name} · last edit",
@@ -2534,6 +2535,8 @@ const en = {
   alias: "Alias",
   aliasShort: "What you sign your writing with.",
   aliasNone: "unsigned",
+  aliasImitatesMaker:
+    "That name looks like the name of whoever makes Tisty. Whoever opens what you share will see it flagged as another key's.",
   aliasRest: "Sign the older ones",
   aliasNow: "You now sign as {name}",
   aliasKept: "Signed as {name}",
@@ -3809,6 +3812,7 @@ const es: Catalog = {
   sharedVersionBy: "Última edición: {name}",
   sharedEditedBy: "Editado por: {name}",
   sharedChecked: "{name} ✓",
+  sharedImitates: "{name} (ese nombre es de otra llave)",
   sharedPrints: "Huellas",
   sharedPrintOwner: "{name} · dueño",
   sharedPrintSigner: "{name} · última edición",
@@ -5571,6 +5575,8 @@ const es: Catalog = {
   alias: "Alias",
   aliasShort: "Con lo que firmas lo que escribes.",
   aliasNone: "sin firmar",
+  aliasImitatesMaker:
+    "Ese nombre se parece al de quien hace Tisty. Quien abra lo que compartas lo verá marcado como de otra llave.",
   aliasRest: "Firmar los anteriores",
   aliasNow: "Ahora firmas como {name}",
   aliasKept: "Firmas como {name}",

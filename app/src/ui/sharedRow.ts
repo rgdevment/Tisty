@@ -272,7 +272,10 @@ const managingActs = (h: Hands): Act[] => {
   ];
 };
 
-const shown = ({ name, checked }: Named) => (checked ? fill("sharedChecked", name) : name);
+const shown = ({ name, checked, imitates }: Named) => {
+  if (checked) return fill("sharedChecked", name);
+  return imitates ? fill("sharedImitates", name) : name;
+};
 
 const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
   ...(owner && signer ? [fill("sharedOwnerAndSigner", shown(owner), shown(signer))] : []),

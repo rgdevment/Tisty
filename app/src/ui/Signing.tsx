@@ -30,6 +30,7 @@ export function useSigning() {
   const [aliases, setAliases] = useState<string[]>([]);
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
+  const [imitates, setImitates] = useState({ alias: false, name: false });
 
   const took = useCallback((now: Signed) => {
     const fresh = now.alias ?? "";
@@ -41,6 +42,7 @@ export function useSigning() {
     namedAs.current = named;
     setAliases(now.before);
     setMine(now.mine);
+    setImitates({ alias: now.aliasImitates, name: now.nameImitates });
   }, []);
 
   const lookSigned = useCallback(() => {
@@ -61,17 +63,21 @@ export function useSigning() {
     setMine,
     asking,
     setAsking,
+    imitates,
     took,
     lookSigned,
   };
 }
+
+const imitating = (shown: boolean) =>
+  shown ? <p className="mt-1.5 text-[11.5px] text-hue-amber">{t("aliasImitatesMaker")}</p> : null;
 
 export type Signs = ReturnType<typeof useSigning>;
 
 export default function Signing({ busy, said, trouble, run, tell, signs }: Props) {
   const held = busy !== null;
   const { alias, setAlias, signedAs, name, setName, namedAs } = signs;
-  const { aliases, mine, setMine, asking, setAsking, took } = signs;
+  const { aliases, mine, setMine, asking, setAsking, imitates, took } = signs;
   const before = aliases.filter((one) => one !== alias);
 
   return (
@@ -123,6 +129,7 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
           which="signing"
           said={said}
           trouble={trouble}
+          more={imitating(imitates.alias)}
         >
           <input
             type="text"
@@ -185,6 +192,7 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
           which="naming"
           said={said}
           trouble={trouble}
+          more={imitating(imitates.name)}
         >
           <input
             type="text"

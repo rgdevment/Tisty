@@ -2,13 +2,13 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tisty_carrier::folio_client::{self, Door};
-use tisty_carrier::folio_limits;
+use tisty_carrier::folio_limits::{self, FolioMaker};
 use tisty_core::event::Signature;
 use tisty_envelope::sealing::{link_key, permit_shown};
 use tisty_sharing::{Remembered, Told};
 
 use super::folio::{Card, ToFolio, apart, card_of, keeping, kept_on, remembered_of};
-use super::folio_standing::print_of;
+use super::folio_standing::{imitates_maker, print_of};
 use super::folio_sync::{Synced, doc_share_sync};
 use crate::{Answer, Refusal, Session, held};
 
@@ -17,6 +17,8 @@ use crate::{Answer, Refusal, Session, held};
 pub struct Named {
     name: String,
     checked: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    imitates: bool,
     print: Option<String>,
 }
 
@@ -35,10 +37,18 @@ fn editors_carried(was: &Remembered) -> Vec<tisty_envelope::Editor> {
         .unwrap_or_default()
 }
 
-// Only the maker's root reads as checked for now: a name alone proves nothing (144).
-pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
+// Only the maker's root reads as checked for now: a name alone proves nothing (144), and one like the maker's warns (167).
+pub(super) fn who_of(was: &Remembered, maker: Option<&FolioMaker>) -> Who {
     let editors = editors_carried(was);
-    let checked = |root: Option<&str>| root.is_some_and(|one| Some(one) == maker);
+    let named = |name: String, root: Option<&str>| {
+        let checked = root.is_some_and(|one| maker.is_some_and(|maker| maker.root == one));
+        Named {
+            checked,
+            imitates: !checked && maker.is_some_and(|maker| imitates_maker(&name, maker)),
+            print: root.and_then(print_of),
+            name,
+        }
+    };
     let owner_root = was
         .owner
         .as_deref()
@@ -48,24 +58,15 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
         .owner_name
         .clone()
         .filter(|_| was.admin_token.is_none())
-        .map(|name| Named {
-            checked: checked(owner_root.as_deref()),
-            print: owner_root.as_deref().and_then(print_of),
-            name,
-        });
-    let signer = was.version_by.clone().map(|name| Named {
-        checked: checked(was.version_root.as_deref()),
-        print: was.version_root.as_deref().and_then(print_of),
-        name,
-    });
+        .map(|name| named(name, owner_root.as_deref()));
+    let signer = was
+        .version_by
+        .clone()
+        .map(|name| named(name, was.version_root.as_deref()));
     let editors = editors
         .iter()
         .filter(|one| one.r#in == was.id && one.owned != Some(true))
-        .map(|one| Named {
-            name: one.name.clone(),
-            checked: checked(Some(&one.root)),
-            print: print_of(&one.root),
-        })
+        .map(|one| named(one.name.clone(), Some(&one.root)))
         .collect();
     Who {
         owner,
@@ -115,7 +116,7 @@ pub async fn doc_share_sign_as(
     name: String,
 ) -> Answer<Card> {
     let home = held(&session).paths.private();
-    let maker = folio_limits::maker_root(&home);
+    let maker = folio_limits::maker(&home);
     let host = super::folio::private_host_apart(home).await?;
     let mut session = held(&session);
     let (file, mut was) = remembered_of(&session, &id)?;
@@ -127,7 +128,7 @@ pub async fn doc_share_sign_as(
         was.signed_as = Some(name);
         kept_on(&mut session, &[(file, was.clone())])?;
     }
-    card_of(&host, &was, &session.state.signed, maker.as_deref())
+    card_of(&host, &was, &session.state.signed, maker.as_ref())
         .ok_or_else(|| Refusal::of("folioGarbled"))
 }
 

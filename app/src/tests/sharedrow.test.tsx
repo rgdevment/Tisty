@@ -135,6 +135,19 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().said).toContain(fill("shareSignsAs", "Ana Pérez")));
   });
 
+  it("flags a name like the maker's that another key signed", async () => {
+    const { panel } = await held({
+      ...card,
+      taken: true,
+      owner: { name: "Mario", checked: false },
+      signer: { name: "rgdevrnent", checked: false, imitates: true },
+    });
+
+    expect(panel().said).toContain(
+      fill("sharedOwnerAndSigner", "Mario", fill("sharedImitates", "rgdevrnent")),
+    );
+  });
+
   it("lists each root's fingerprint once, by its first role, to compare elsewhere", async () => {
     const { panel } = await held({
       ...card,
