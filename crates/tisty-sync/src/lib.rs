@@ -797,8 +797,19 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
 
 // A history that cannot be read could be anyone's, so it is never taken for nobody's.
 fn owner_of(store: &Path) -> Result<Option<String>, String> {
-    let events = tisty_core::store::read_all(store).map_err(|e| e.to_string())?;
+    let events = tisty_core::store::read_all(store).map_err(|_| unreadable_in(store))?;
     Ok(tisty_core::person::owner_in(&events).map(|one| one.shown()))
+}
+
+fn unreadable_in(store: &Path) -> String {
+    std::fs::read_dir(store)
+        .into_iter()
+        .flatten()
+        .filter_map(|one| one.ok())
+        .filter(|one| one.path().is_dir())
+        .find(|one| tisty_core::store::check_device(&one.path()).is_err())
+        .and_then(|one| one.file_name().to_str().map(str::to_string))
+        .unwrap_or_default()
 }
 
 fn every_name(store: &Path) -> std::collections::BTreeSet<String> {

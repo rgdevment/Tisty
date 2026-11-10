@@ -388,7 +388,10 @@ fn a_history_that_cannot_be_read_is_never_taken_for_nobody_s() {
     std::fs::create_dir_all(&broken).unwrap();
     std::fs::write(broken.join("000001.tisty"), b"not a segment").unwrap();
 
-    assert!(matches!(kinship(&one.store, shared.path()), Kin::Unsure(_)));
+    assert_eq!(
+        kinship(&one.store, shared.path()),
+        Kin::Unsure("tres".into())
+    );
     let outcome = stitch(&one.data, &one.device, shared.path(), None);
     assert!(
         matches!(outcome, Err(Trouble::Unreadable(_))),
