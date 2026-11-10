@@ -7,6 +7,9 @@ use tisty_core::signed_parcel::Signer;
 use tisty_core::{DeviceId, DeviceKind, Error, Event, Op, Paths, State, docs, person};
 use tisty_share_proto::seed::Seed;
 
+mod common;
+use common::rewritten;
+
 const ME: u8 = 7;
 const SOMEONE_ELSE: u8 = 9;
 
@@ -128,27 +131,6 @@ fn print_of(seed: u8) -> String {
     Seed::from_bytes(&[seed; 32]).root().person().fingerprint()
 }
 
-fn rewritten(at: &Path, mut hand: impl FnMut(&str, Vec<u8>) -> Vec<u8>) {
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(at).unwrap()).unwrap();
-    let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
-    for n in 0..zip.len() {
-        let mut one = zip.by_index(n).unwrap();
-        let named = one.name().unwrap().to_string();
-        let mut body = Vec::new();
-        std::io::Read::read_to_end(&mut one, &mut body).unwrap();
-        kept.push((named, body));
-    }
-    let mut writing = zip::ZipWriter::new(std::fs::File::create(at).unwrap());
-    for (named, body) in kept {
-        writing
-            .start_file(&named, zip::write::SimpleFileOptions::default())
-            .unwrap();
-        let body = hand(&named, body);
-        std::io::Write::write_all(&mut writing, &body).unwrap();
-    }
-    writing.finish().unwrap();
-}
-
 fn entry(at: &Path, named: &str) -> Option<Vec<u8>> {
     let mut zip = zip::ZipArchive::new(std::fs::File::open(at).unwrap()).unwrap();
     let mut one = zip.by_name(named).ok()?;
@@ -210,6 +192,10 @@ fn a_signed_parcel_from_another_person_lands_as_theirs_with_their_print() {
     assert_eq!(
         landed.signer,
         Some(Claimed {
+            root: Seed::from_bytes(&[SOMEONE_ELSE; 32])
+                .root()
+                .person()
+                .shown(),
             print: print_of(SOMEONE_ELSE),
             name: Some("beto".into()),
         })
@@ -336,7 +322,7 @@ fn a_tisty_with_no_phrase_asks_before_a_signed_parcel_lands() {
 
     let mut bare = Desk::new(room.path(), "bare");
     match bare.opened(&at, None, None) {
-        Err(Error::ParcelSignedBy { print, name }) => {
+        Err(Error::ParcelSignedBy { print, name, .. }) => {
             assert_eq!(print, print_of(SOMEONE_ELSE));
             assert_eq!(name.as_deref(), Some("beto"));
         }
@@ -375,5 +361,27 @@ fn an_unsigned_locked_parcel_told_as_someone_elses_lands_as_a_strangers() {
         .opened(&at, Some("123456"), Some(Answer::Theirs))
         .unwrap();
     assert_eq!(landed.signer, None);
+    assert!(there.the_one().guest);
+}
+
+#[test]
+fn a_signature_entry_too_big_to_read_lands_as_a_strangers() {
+    let room = tempfile::tempdir().unwrap();
+    let mut here = Desk::new(room.path(), "here").named(ME, "ana");
+    here.wrote("# Acta\n\nlo mio");
+    let at = room.path().join("acta.tistyx");
+    here.packed(&at, None);
+    rewritten(&at, |named, body| match named == "tisty-docs.signed.json" {
+        true => [body, vec![b' '; 70 * 1024]].concat(),
+        false => body,
+    });
+
+    let mut there = Desk::new(room.path(), "there").named(ME, "ana");
+    let landed = there.opened(&at, None, None).unwrap();
+
+    assert!(
+        landed.broken,
+        "an entry past its limit was read as a signature"
+    );
     assert!(there.the_one().guest);
 }

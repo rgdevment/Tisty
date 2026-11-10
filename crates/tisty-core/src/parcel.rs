@@ -819,7 +819,7 @@ fn carried(
     let signature = signature_in(&mut zip)?;
 
     let whole = zip.len() + manifest.docs.len();
-    let (_, prints) = unpack(&mut zip, staged, along, whole)?;
+    let prints = unpack(&mut zip, staged, along, whole)?;
     let closed = signed_parcel::closed(
         signature.as_deref(),
         &said,
@@ -829,7 +829,7 @@ fn carried(
     let asked = Asked {
         unlocked: opening.unlocked,
         answer: opening.answer,
-        same_store: ours(&manifest, paths),
+        same_store: closed == Closed::Unsigned && ours(&manifest, paths),
     };
     let mine = signed_parcel::mine(&closed, &state.persons, device, &asked)?;
     let (mut landed, ops) = taken_in(
@@ -847,6 +847,7 @@ fn carried(
     landed.broken = closed == Closed::Broken;
     if let (false, Closed::By { person, name }) = (mine, closed) {
         landed.signer = Some(Claimed {
+            root: person.shown(),
             print: person.fingerprint(),
             name,
         });
@@ -1359,11 +1360,10 @@ fn unpack<R: Read + Seek>(
     into: &Path,
     along: &Along,
     whole: usize,
-) -> Result<(usize, Option<Prints>)> {
+) -> Result<Option<Prints>> {
     if zip.len() > AT_MOST_FILES {
         return Err(Error::TooBig);
     }
-    let mut files = 0;
     let mut bytes = 0u64;
     let mut prints = Some(Prints::default());
 
@@ -1405,10 +1405,9 @@ fn unpack<R: Read + Seek>(
             prints = None;
         }
         bytes = bytes.saturating_add(written);
-        files += 1;
         along.at(i + 1, whole, bytes);
     }
-    Ok((files, prints))
+    Ok(prints)
 }
 
 fn safe(named: &str) -> Option<PathBuf> {

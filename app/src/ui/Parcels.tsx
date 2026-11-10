@@ -89,10 +89,6 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
         if (!landed) return;
         papersChanged();
         const many = landed.docs + landed.pages;
-        if (landed.missed > 0 && many > 0) {
-          setError(fill("landedShort", String(landed.missed)));
-          return;
-        }
         if (many === 0) {
           setError(
             landed.missed > 0 ? fill("landedNoneOfIt", String(landed.missed)) : t("landedNone"),
@@ -105,8 +101,12 @@ export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: H
         }
         if (landed.print) {
           said(fill("landedFrom", landed.name ?? t("parcelNameless"), landed.print), since);
+        }
+        if (landed.missed > 0) {
+          setError(fill("landedShort", String(landed.missed)));
           return;
         }
+        if (landed.print) return;
         said(
           many === 1
             ? t("landedOne")

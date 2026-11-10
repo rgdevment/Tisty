@@ -128,7 +128,11 @@ pub enum Error {
     #[error(
         "that parcel was signed by {print}, and this Tisty has no phrase to tell whether that is you"
     )]
-    ParcelSignedBy { print: String, name: Option<String> },
+    ParcelSignedBy {
+        root: String,
+        print: String,
+        name: Option<String>,
+    },
     #[error("there is not enough room to open that here: it needs {needs} and {free} is free")]
     NoRoom { needs: u64, free: u64 },
     #[error("there is nothing here to carry out")]

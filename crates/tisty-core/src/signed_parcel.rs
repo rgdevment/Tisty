@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use tisty_share_proto::identity::{
     self, Certificate, Person, Revocation, ShareKey, Signed, Verdict,
 };
+use tisty_share_proto::name::named_well;
 
 use crate::event::DeviceId;
 use crate::person::Persons;
@@ -14,7 +15,6 @@ use crate::{Error, Result};
 pub(crate) const ENTRY: &str = "tisty-docs.signed.json";
 pub(crate) const ENTRY_AT_MOST: u64 = 64 * 1024;
 const ABOUT: &str = "tisty.parcel.v1";
-const NAME_AT_MOST: usize = 200;
 
 pub struct Signer<'a> {
     pub key: &'a ShareKey,
@@ -99,11 +99,7 @@ fn said(manifest: &[u8], prints: &Prints, name: Option<&str>) -> Vec<u8> {
 }
 
 pub(crate) fn signed(signer: &Signer, manifest: &[u8], prints: &Prints) -> Option<Vec<u8>> {
-    let name = signer
-        .name
-        .map(str::trim)
-        .filter(|one| !one.is_empty())
-        .map(|one| one.chars().take(NAME_AT_MOST).collect::<String>());
+    let name = signer.name.filter(|one| named_well(one)).map(str::to_owned);
     let signed = signer.key.sign(
         signer.certificate,
         ABOUT,
@@ -114,6 +110,7 @@ pub(crate) fn signed(signer: &Signer, manifest: &[u8], prints: &Prints) -> Optio
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Claimed {
+    pub root: String,
     pub print: String,
     pub name: Option<String>,
 }
@@ -142,6 +139,7 @@ pub(crate) fn mine(
             (Some(_), _) => Ok(persons.names(person, device)),
             (None, Some(_)) => Ok(false),
             (None, None) => Err(Error::ParcelSignedBy {
+                root: person.shown(),
                 print: person.fingerprint(),
                 name: name.clone(),
             }),
@@ -179,10 +177,15 @@ pub(crate) fn closed(
     };
     let message = said(manifest, prints, signature.name.as_deref());
     match identity::check(&signature.signed, ABOUT, &message, revoked) {
+        // Signed or not, a name that hides a letter or passes for a fingerprint is never shown.
         Verdict::Holds { person, .. } => Closed::By {
             person: Box::new(person),
-            name: signature.name,
+            name: signature.name.filter(|one| named_well(one)),
         },
         _ => Closed::Broken,
     }
 }
+
+#[cfg(test)]
+#[path = "signed_parcel_test.rs"]
+mod tests;

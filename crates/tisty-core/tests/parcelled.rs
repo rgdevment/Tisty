@@ -6,35 +6,19 @@ use tisty_core::parcel::{Along, Answer};
 use tisty_core::{DeviceId, Event, Op, Paths, State, attach, docs, order, parcel};
 use ulid::Ulid;
 
-/// Opens the zip, hands the manifest over to be changed, and writes it back — which is all
-/// anybody needs to forge one.
-fn reworded(at: &std::path::Path, mut hand: impl FnMut(&mut serde_json::Value)) {
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(at).unwrap()).unwrap();
-    let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
-    for n in 0..zip.len() {
-        let mut one = zip.by_index(n).unwrap();
-        let named = one.name().unwrap().to_string();
-        let mut body = Vec::new();
-        std::io::Read::read_to_end(&mut one, &mut body).unwrap();
-        kept.push((named, body));
-    }
+mod common;
 
-    let out = std::fs::File::create(at).unwrap();
-    let mut writing = zip::ZipWriter::new(out);
-    let how = zip::write::SimpleFileOptions::default();
-    for (named, body) in kept {
-        writing.start_file(&named, how).unwrap();
-        let body = match named == "tisty-docs.json" {
-            true => {
-                let mut manifest: serde_json::Value = serde_json::from_slice(&body).unwrap();
-                hand(&mut manifest);
-                serde_json::to_vec(&manifest).unwrap()
-            }
-            false => body,
-        };
-        std::io::Write::write_all(&mut writing, &body).unwrap();
-    }
-    writing.finish().unwrap();
+/// Hands the manifest over to be changed and writes the zip back — which is all anybody needs
+/// to forge one.
+fn reworded(at: &std::path::Path, mut hand: impl FnMut(&mut serde_json::Value)) {
+    common::rewritten(at, |named, body| match named == "tisty-docs.json" {
+        true => {
+            let mut manifest: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            hand(&mut manifest);
+            serde_json::to_vec(&manifest).unwrap()
+        }
+        false => body,
+    });
 }
 
 fn tmp() -> tempfile::TempDir {

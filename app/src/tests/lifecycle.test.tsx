@@ -1302,9 +1302,10 @@ describe("what the menus reach for outside the tree", () => {
     expect(parcel.answers).toEqual([undefined]);
   });
 
-  it("says so when a parcel's signature does not match what it carries", async () => {
+  it("says so when a parcel's signature does not match what it carries, even with a piece missing", async () => {
     picked.path = Promise.resolve("D:/entrada/acta.tistyx");
     parcel.docs = 1;
+    parcel.missed = 1;
     parcel.broken = true;
     await boot();
 

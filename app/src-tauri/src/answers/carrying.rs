@@ -511,6 +511,7 @@ pub async fn docs_unpack(
             session.config.device_id.clone(),
         )
     };
+    let maker = tisty_carrier::folio_limits::maker(&paths.private());
     let at = from.clone();
     let telling = along_the_way(&app, "landing");
     let opening = along_the_way(&app, "opening");
@@ -543,8 +544,8 @@ pub async fn docs_unpack(
         tisty_core::Error::WrongNumber => Refusal::of("wrongNumber"),
         tisty_core::Error::ParcelTorn => Refusal::of("parcelTorn"),
         tisty_core::Error::ParcelAsksIfMine => Refusal::of("parcelAsksIfMine"),
-        tisty_core::Error::ParcelSignedBy { print, name } => {
-            Refusal::told("parcelSignedBy", name).with_print(print)
+        tisty_core::Error::ParcelSignedBy { root, print, name } => {
+            Refusal::told("parcelSignedBy", shown_as(name, &root, maker.as_ref())).with_print(print)
         }
         tisty_core::Error::NoRoom { needs, .. } => Refusal::about("noRoom", weighed(needs)),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
@@ -581,8 +582,23 @@ pub async fn docs_unpack(
         files: landed.files,
         missed: landed.missed,
         print: landed.signer.as_ref().map(|one| one.print.clone()),
-        name: landed.signer.and_then(|one| one.name),
+        name: landed
+            .signer
+            .and_then(|one| shown_as(one.name, &one.root, maker.as_ref())),
         broken: landed.broken,
+    })
+}
+
+// A name like the maker's from any other root is not shown, so a parcel never passes for theirs (167).
+fn shown_as(
+    name: Option<String>,
+    root: &str,
+    maker: Option<&tisty_carrier::folio_limits::FolioMaker>,
+) -> Option<String> {
+    name.filter(|one| {
+        maker.is_none_or(|maker| {
+            maker.root == root || !super::folio_standing::imitates_maker(one, maker)
+        })
     })
 }
 
