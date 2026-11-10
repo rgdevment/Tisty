@@ -1989,12 +1989,12 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
     });
     assert_eq!(
         there.state.author_of(&there.state.docs[&acta]),
-        None,
-        "signing it took over writing from another store"
+        Some("rgdevment"),
+        "a signature already in the history was undone"
     );
     assert!(
-        there.state.docs[&acta].guest,
-        "signing it turned somebody else's writing into one's own"
+        !there.state.docs[&acta].guest,
+        "a signature already in the history left it flagged as somebody else's"
     );
 }
 

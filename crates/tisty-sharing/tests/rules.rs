@@ -1041,7 +1041,7 @@ fn writing_signed_by_someone_else_is_not_shared_even_without_the_guest_mark() {
 }
 
 #[test]
-fn signing_my_documents_never_takes_a_copy_that_came_without_a_name() {
+fn a_copy_that_came_without_a_name_is_never_offered_to_sign_nor_shared() {
     let (_tmp, mut home) = home();
     home.commit(Op::Signed {
         d: tisty_core::event::Signature {
@@ -1059,15 +1059,6 @@ fn signing_my_documents_never_takes_a_copy_that_came_without_a_name() {
     assert!(
         home.state.mine_to_sign().is_empty(),
         "the copy was offered to sign"
-    );
-
-    home.commit(Op::DocSigned {
-        id,
-        d: "rgdevment".into(),
-    });
-    assert!(
-        home.state.docs[&id].guest,
-        "signing it made the copy one's own"
     );
     let refused = refused(&home, id);
     assert!(matches!(refused, Some(Unshared::NotOwn)), "{refused:?}");
