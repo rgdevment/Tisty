@@ -346,20 +346,30 @@ pub async fn doc_share_sync(
     let keep = keeping(&app);
     let pressed_id = was.id.clone();
     let owning = was.admin_token.is_some();
+    let owned = owned_with_tokens(&was, &sealed);
     let not_kept = apart(move || {
         let door = ToFolio::new(&home)?;
+        let sent = std::cell::RefCell::new(std::collections::BTreeSet::new());
+        let keep_noting = |went: &[(String, Remembered)]| {
+            keep(went)?;
+            sent.borrow_mut()
+                .extend(went.iter().map(|(_, one)| one.id.clone()));
+            Ok(())
+        };
+        // A retry after putting a permit back never sends again what Folio already stored.
         let deliver = || {
+            let owed = (!sent.borrow().is_empty()).then(|| still_owed(&sealed, &sent.borrow()));
             delivered(
                 &door,
                 &home,
                 Some(&pressed_id),
-                &keep,
-                &sealed,
+                &keep_noting,
+                owed.as_ref().unwrap_or(&sealed),
                 &starts,
                 ttl_days,
             )
         };
-        sent_or_put_back(&door, &was, deliver)
+        sent_or_put_back(&door, &owned, deliver)
             .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;
@@ -427,6 +437,42 @@ fn pages_differ(session: &Session, file: &str, theirs: &[String]) -> bool {
             .any(|(one, other)| !tisty_core::docs::unchanged(one, other))
 }
 
+/// The documents of this share whose permit the owner can put back, each once.
+pub(super) fn owned_with_tokens(
+    was: &Remembered,
+    sealed: &tisty_sharing::Sealed,
+) -> Vec<Remembered> {
+    let mut owned: Vec<Remembered> = Vec::new();
+    for one in std::iter::once(was).chain(sealed.remembering.iter().map(|(_, one)| one)) {
+        if one.admin_token.is_some()
+            && one.edit_token.is_some()
+            && owned.iter().all(|kept| kept.id != one.id)
+        {
+            owned.push(one.clone());
+        }
+    }
+    owned
+}
+
+pub(super) fn still_owed(
+    sealed: &tisty_sharing::Sealed,
+    sent: &std::collections::BTreeSet<String>,
+) -> tisty_sharing::Sealed {
+    tisty_sharing::Sealed {
+        going: sealed
+            .going
+            .iter()
+            .filter(|one| !sent.contains(&one.id))
+            .cloned()
+            .collect(),
+        told: sealed.told.clone(),
+        remembering: sealed.remembering.clone(),
+        anchors: sealed.anchors.clone(),
+        changed: sealed.changed.clone(),
+        granted: sealed.granted.clone(),
+    }
+}
+
 pub(super) fn kept_after(was: &Remembered, opened: &Opened, received: &Received) -> Remembered {
     let mut now = was.clone();
     now.version = opened.version;
@@ -440,6 +486,10 @@ pub(super) fn kept_after(was: &Remembered, opened: &Opened, received: &Received)
     }
     now.carried =
         tisty_sharing::editors_brought(was.carried.as_deref(), received.carried.as_deref());
+    if was.admin_token.is_none() {
+        now.carried =
+            tisty_sharing::map_brought(now.carried.as_deref(), received.carried.as_deref());
+    }
     now.files_print = None;
     now.files_hash = None;
     now.files_key = None;

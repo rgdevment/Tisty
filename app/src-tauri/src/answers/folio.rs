@@ -847,6 +847,17 @@ pub(super) fn delivered(
             continue;
         };
         let admin = entry.1.admin_token.as_deref().unwrap_or_default();
+        // A language that gets its token now is already in Folio, which refuses a version naming a permit it does not hold.
+        if sealed.granted.contains(&going.id) {
+            let permit = entry
+                .1
+                .edit_token
+                .as_deref()
+                .and_then(|token| tisty_envelope::sealing::permit_shown(token).ok())
+                .ok_or_else(|| Refusal::of("folioGarbled"))?;
+            folio_client::permit(door, &going.id, admin, Some(&permit))
+                .map_err(|stopped| said_kept(&stopped, home, held_as))?;
+        }
         let first = starts.get(&going.id).map(|mac| First {
             mac,
             admin,

@@ -9,6 +9,7 @@ pub mod pictures;
 pub mod reading;
 pub mod sealing;
 mod tags;
+pub mod tokens;
 pub mod travelling;
 
 pub use tisty_contracts::{

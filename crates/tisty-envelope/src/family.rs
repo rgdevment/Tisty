@@ -28,8 +28,18 @@ pub struct Going {
     pub sealed: Sealed,
 }
 
-fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
+const OTHER_LANGUAGES_AT_MOST: usize = 19;
+
+fn translation_of(tongue: &Tongue, anchor_token: Option<&str>) -> Result<Translation, Refused> {
     let lang = tongue.document.lang.clone();
+    let edit = match (anchor_token, tongue.sealing.token.as_deref()) {
+        (Some(anchor), Some(token)) => Some(crate::tokens::sealed_for(
+            anchor,
+            &tongue.sealing.id,
+            token,
+        )?),
+        _ => None,
+    };
     Ok(Translation {
         lang: lang.ok_or(Refused::DoesNotAdd(
             "a language of a family does not say which it is",
@@ -37,6 +47,7 @@ fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
         document: tongue.sealing.id.clone(),
         title: tongue.document.title.clone(),
         key: tongue.sealing.link_key.clone(),
+        edit,
     })
 }
 
@@ -109,15 +120,32 @@ fn languages_sealed(
     } = family;
     if !others.is_empty() {
         languages_add(&anchor, &others)?;
-        anchor.document.languages = Some(
-            others
-                .iter()
-                .map(translation_of)
-                .collect::<Result<_, _>>()?,
-        );
-        // Paper, sheets and orientation are the group's.
+        // What this writer cannot reach stays in the map as it arrived, or an editor would take it from everyone.
+        let untouched: Vec<Translation> = anchor
+            .document
+            .languages
+            .take()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|one| anchor.document.lang.as_deref() != Some(one.lang.as_str()))
+            .filter(|one| {
+                !others.iter().any(|tongue| {
+                    tongue.sealing.id == one.document
+                        || tongue.document.lang.as_deref() == Some(one.lang.as_str())
+                })
+            })
+            .collect();
+        let mut map = others
+            .iter()
+            .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
+            .collect::<Result<Vec<_>, _>>()?;
+        map.extend(untouched);
+        map.truncate(OTHER_LANGUAGES_AT_MOST);
+        anchor.document.languages = Some(map);
+        // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.
         for tongue in &mut others {
             tongue.document.sheet.clone_from(&anchor.document.sheet);
+            tongue.document.anchor = Some(anchor.sealing.id.clone());
         }
     }
     let mut cited = Vec::new();

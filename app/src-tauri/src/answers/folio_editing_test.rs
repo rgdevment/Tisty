@@ -187,3 +187,59 @@ fn others_are_asked_about_before_sending_and_never_told_after() {
     );
     assert!(others_asked(&[]).is_empty());
 }
+
+#[test]
+fn changing_the_edit_link_reaches_every_language_this_tisty_owns_to_edit() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let mut session = crate::Session::at(paths).unwrap();
+    let add = |session: &mut crate::Session, body: &str| {
+        let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
+            .unwrap();
+        let id = ulid::Ulid::generate();
+        session
+            .commit(tisty_core::Op::DocAdd {
+                id,
+                d: tisty_core::event::DocAdd {
+                    file: made.id.clone(),
+                    order: format!("a{id}"),
+                    said: Some(tisty_core::event::Said::of(body)),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        (id, made.id)
+    };
+    let (es, es_file) = add(&mut session, "---\nlang: es\n---\n# Viaje\n");
+    let (en, en_file) = add(&mut session, "---\nlang: en\n---\n# Trip\n");
+    let (fr, fr_file) = add(&mut session, "---\nlang: fr\n---\n# Voyage\n");
+    for one in [en, fr] {
+        session
+            .commit(tisty_core::Op::DocTongue {
+                id: one,
+                d: tisty_core::event::Tongue { of: Some(es) },
+            })
+            .unwrap();
+    }
+    let entries = [
+        (&es_file, "Spanish1", Some("t")),
+        (&en_file, "English1", Some("t")),
+        (&fr_file, "French12", None),
+    ];
+    for (file, id, token) in entries {
+        session
+            .commit(tisty_core::Op::SharingKept {
+                file: file.clone(),
+                d: Remembered {
+                    id: id.to_owned(),
+                    ..arrived(Some("admin"), token, None)
+                },
+            })
+            .unwrap();
+    }
+
+    let languages = super::its_languages(&session, &en.to_string()).unwrap();
+    let ids: Vec<&str> = languages.iter().map(|(_, one)| one.id.as_str()).collect();
+
+    assert_eq!(ids, ["English1", "Spanish1"]);
+}
