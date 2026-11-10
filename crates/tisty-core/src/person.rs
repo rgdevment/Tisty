@@ -141,7 +141,7 @@ impl Persons {
     pub fn person(&self, device: &DeviceId) -> Option<Person> {
         self.newest(device, self.root_of(device).as_ref())
             .map(|one| one.person)
-            .filter(|one| self.owns(one))
+            .filter(|one| self.owns(one, device))
     }
 
     pub fn vouched_by(&self, device: &DeviceId, root: &Person) -> Option<Vouched> {
@@ -168,9 +168,16 @@ impl Persons {
             .filter(move |key| self.key_taken_back_by(key, root))
     }
 
+    // Only that machine writes the root it answers to, so a date another one picks never moves the owner it sees.
+    pub fn owner(&self, here: &DeviceId) -> Option<Person> {
+        self.root_of(here)
+            .filter(|root| self.newest(here, Some(root)).is_some())
+            .or_else(|| self.first_owner())
+    }
+
     /// A store is one person's: the first root that vouched for a machine, while it still stands by one.
     /// Another root's lines are kept, to tell whose writing is whose, and never speak for the store.
-    pub fn owner(&self) -> Option<Person> {
+    fn first_owner(&self) -> Option<Person> {
         let taken: Vec<(Person, VerifyingKey)> = self
             .revocations
             .iter()
@@ -186,8 +193,8 @@ impl Persons {
             .find(|person| standing.contains(person))
     }
 
-    fn owns(&self, root: &Person) -> bool {
-        self.owner() == Some(*root)
+    fn owns(&self, root: &Person, here: &DeviceId) -> bool {
+        self.owner(here) == Some(*root)
     }
 
     /// The log names a person once a certificate holds that nobody took back.
@@ -215,16 +222,17 @@ impl Persons {
     }
 
     /// Whether this root is a person the log names, so a seed for another one never speaks here.
-    pub fn names(&self, root: &Person) -> bool {
-        self.owns(root)
+    pub fn names(&self, root: &Person, here: &DeviceId) -> bool {
+        self.owns(root, here)
     }
 
     pub fn waiting(
         &self,
         root: &Person,
         machines: &BTreeSet<DeviceId>,
+        here: &DeviceId,
     ) -> Vec<(DeviceId, VerifyingKey)> {
-        if !self.owns(root) {
+        if !self.owns(root, here) {
             return Vec::new();
         }
         machines
@@ -331,7 +339,7 @@ pub fn adopted(device: &DeviceId, persons: &Persons, seated: &BTreeSet<DeviceId>
     if persons.roots.contains_key(device) {
         return None;
     }
-    let owner = persons.owner()?;
+    let owner = persons.owner(device)?;
     let said = persons
         .roots
         .iter()
@@ -355,7 +363,7 @@ pub fn owner_in(events: &[Event]) -> Option<Person> {
     for one in events {
         persons.took(one, &nobody, &nobody);
     }
-    persons.owner()
+    persons.first_owner()
 }
 
 /// A machine says its key only once the log names a person, so nobody else ever makes one.
@@ -384,11 +392,12 @@ pub fn certified(
     seed: &Seed,
     persons: &Persons,
     machines: &BTreeSet<DeviceId>,
+    here: &DeviceId,
     now: Timestamp,
 ) -> Vec<Op> {
     let root = seed.root();
     let mut ops = Vec::new();
-    for (device, key) in persons.waiting(&root.person(), machines) {
+    for (device, key) in persons.waiting(&root.person(), machines, here) {
         ops.push(Op::ShareCertified {
             c: root.certify(&key, now),
         });
