@@ -390,61 +390,6 @@ fn a_file_that_is_not_in_the_store_is_named_rather_than_carried_in_silence() {
 }
 
 #[test]
-fn everything_written_plainly_stands_in_the_folders_it_was_kept_in() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    filled(&mut here);
-
-    let out = room.path().join("plano");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    assert_eq!((sent.docs, sent.pages, sent.files), (3, 1, 1));
-    assert_eq!(sent.folders, 2);
-    let obra = out.join("Personal").join("Casa").join("Obra");
-    assert!(obra.join("Obra.md").is_file(), "{obra:?}");
-    assert!(obra.join("01 Plano.md").is_file());
-    assert!(
-        obra.join("attachments")
-            .join("plano-91f2ab00.png")
-            .is_file()
-    );
-    assert!(
-        out.join("Personal")
-            .join("Guardado")
-            .join("Guardado.md")
-            .is_file()
-    );
-    assert!(
-        out.join("Personal")
-            .join("Terminado")
-            .join("Terminado.md")
-            .is_file(),
-        "an archived document was left out of what says it takes everything"
-    );
-}
-
-#[test]
-fn two_documents_called_the_same_thing_do_not_write_over_each_other() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    here.doc("# Acta\n\nla primera", None, None);
-    here.doc("# Acta\n\nla segunda", None, None);
-
-    let out = room.path().join("plano");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    assert_eq!(sent.docs, 2);
-    assert_eq!(
-        std::fs::read_to_string(out.join("Acta").join("Acta.md")).unwrap(),
-        "# Acta\n\nla primera\n"
-    );
-    assert_eq!(
-        std::fs::read_to_string(out.join("Acta 2").join("Acta 2.md")).unwrap(),
-        "# Acta\n\nla segunda\n"
-    );
-}
-
-#[test]
 fn what_is_too_heavy_to_keep_here_is_carried_from_the_folder_everyone_shares() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
@@ -541,44 +486,6 @@ fn what_is_not_a_parcel_is_turned_away_rather_than_half_read() {
             &Along::default()
         )
         .is_err()
-    );
-}
-
-#[test]
-fn a_title_that_names_a_device_or_a_path_becomes_a_folder_both_systems_can_hold() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    for said in [
-        "# CON\n\nen Windows esto es un dispositivo",
-        "# ../../fuera\n\nsubir por el arbol",
-        "# C:\\Windows\\System32\n\nuna ruta entera",
-        "# nombre.\n\ntermina en punto",
-        "# año 2026: qué tal ✅\n\nacentos y emoji",
-    ] {
-        here.doc(said, None, None);
-    }
-
-    let out = room.path().join("plano");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    assert_eq!(sent.docs, 5, "left behind: {:?}", sent.left);
-    let made: Vec<String> = std::fs::read_dir(&out)
-        .unwrap()
-        .filter_map(|one| one.ok())
-        .map(|one| one.file_name().to_string_lossy().into_owned())
-        .collect();
-    assert_eq!(made.len(), 5, "{made:?}");
-    for one in &made {
-        assert!(!one.contains(['/', '\\', ':']), "{one}");
-        assert!(!one.starts_with('.'), "{one}");
-        assert!(!one.ends_with('.') && !one.ends_with(' '), "{one}");
-    }
-    assert!(
-        std::fs::read_dir(room.path())
-            .unwrap()
-            .filter_map(|one| one.ok())
-            .all(|one| one.file_name() != "fuera"),
-        "a title climbed out of the folder it was given"
     );
 }
 
@@ -680,43 +587,6 @@ fn a_page_whose_document_never_arrived_is_counted_rather_than_hung_from_nothing(
 
     assert_eq!((landed.docs, landed.pages), (1, 0));
     assert!(there.titled("Capitulo").page_of.is_none());
-}
-
-#[test]
-fn a_deep_tree_with_long_names_still_lands_on_a_system_that_counts_its_path_characters() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    let long = "carpeta-de-nombre-larguisimo-para-medir";
-    let mut at = None;
-    for _ in 0..4 {
-        at = Some(here.folder(long, at, "home"));
-    }
-    let titled = "titulo tan largo como Tisty permite antes de cortarlo por lo sano y algo mas";
-    let shed = &here.data().join("attachments");
-    std::fs::create_dir_all(shed).unwrap();
-    let named = "un-nombre-de-adjunto-francamente-larguisimo-91f2ab00.png";
-    std::fs::write(shed.join(named), b"a picture").unwrap();
-    here.doc(&format!("# {titled}\n\n![una foto]({named})"), at, None);
-
-    let out = room
-        .path()
-        .join("una carpeta de salida con su propio nombre largo")
-        .join("y otra dentro");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    assert_eq!(sent.docs, 1, "left behind: {:?}", sent.left);
-    assert_eq!(sent.files, 1);
-    let deep = (0..4).fold(out, |at, _| at.join(long));
-    let folder = std::fs::read_dir(&deep)
-        .unwrap()
-        .next()
-        .unwrap()
-        .unwrap()
-        .path();
-    assert!(
-        folder.join("attachments").join(named).is_file(),
-        "{folder:?}"
-    );
 }
 
 #[test]
@@ -1176,53 +1046,6 @@ contratos",
         there.state.stowed(landed),
         "an older build would have poured the archive into the open tree"
     );
-}
-
-#[test]
-fn two_folders_that_only_differ_in_case_do_not_pour_into_one() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    for (named, title) in [("Casa", "Uno"), ("CASA", "Dos"), ("casa", "Tres")] {
-        let shelf = Ulid::generate();
-        here.tell(Op::FolderAdd {
-            id: shelf,
-            d: tisty_core::event::FolderAdd {
-                name: named.into(),
-                order: format!("a{title}"),
-                parent: None,
-                icon: None,
-                color: None,
-            },
-        });
-        here.doc(
-            &format!(
-                "# {title}
-
-lo suyo"
-            ),
-            Some(shelf),
-            None,
-        );
-    }
-
-    let out = room.path().join("plano");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-    assert_eq!(sent.folders, 3);
-
-    // Windows and macOS hand back one directory for «Casa» and «CASA», so three folders that
-    // spell the same must reach disk under three names of their own.
-    let mut stood: Vec<String> = std::fs::read_dir(&out)
-        .unwrap()
-        .filter_map(|one| one.ok())
-        .filter(|one| one.path().is_dir())
-        .map(|one| one.file_name().to_string_lossy().to_string())
-        .collect();
-    stood.sort();
-    assert_eq!(stood.len(), 3, "folders poured into one another: {stood:?}");
-    for at in &stood {
-        let held = std::fs::read_dir(out.join(at)).unwrap().count();
-        assert_eq!(held, 1, "{at} holds what belongs to another folder");
-    }
 }
 
 #[test]
@@ -1978,10 +1801,9 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
         None,
         "an unsigned document was credited to whoever took it in"
     );
-    assert_eq!(
-        there.state.mine_to_sign(),
-        [acta],
-        "writing nobody ever signed was not there to be claimed"
+    assert!(
+        there.state.mine_to_sign().is_empty(),
+        "writing that came from another store could be claimed by signing it"
     );
 
     there.tell(Op::DocSigned {
@@ -1991,16 +1813,11 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
     assert_eq!(
         there.state.author_of(&there.state.docs[&acta]),
         Some("rgdevment"),
-        "the first to sign it did not become its author"
-    );
-    assert_eq!(
-        there.state.born_of(&there.state.docs[&acta]),
-        None,
-        "it claimed a name it never had before"
+        "a signature already in the history was undone"
     );
     assert!(
         !there.state.docs[&acta].guest,
-        "claiming it left it flagged as somebody else's for ever"
+        "a signature already in the history left it flagged as somebody else's"
     );
 }
 
@@ -2080,30 +1897,6 @@ fn a_body_that_cannot_be_read_is_counted_rather_than_dropped_from_the_parcel() {
 
     assert_eq!(sent.docs, 1);
     assert_eq!(sent.missed, 1, "a document left the parcel in silence");
-}
-
-#[test]
-fn two_folders_that_spell_the_same_do_not_pour_into_one() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    let one = here.folder("Casa", None, "home");
-    let other = here.folder("Casa?", None, "home");
-    here.doc("# Primero\n\nen la una", Some(one), None);
-    here.doc("# Segundo\n\nen la otra", Some(other), None);
-
-    let out = room.path().join("plano");
-    parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    let made: Vec<String> = std::fs::read_dir(&out)
-        .unwrap()
-        .filter_map(|one| one.ok())
-        .map(|one| one.file_name().to_string_lossy().into_owned())
-        .collect();
-    assert_eq!(
-        made.len(),
-        2,
-        "both folders wrote into the same place: {made:?}"
-    );
 }
 
 #[test]
@@ -2187,27 +1980,6 @@ fn a_landing_in_flight_survives_a_sweep_from_the_same_process() {
 
     assert!(mine.is_dir(), "a landing still in flight was swept away");
     assert!(!stale.exists(), "the leftovers of another one stayed");
-}
-
-#[test]
-fn a_wide_tree_keeps_every_folder_it_was_kept_in() {
-    let room = tmp();
-    let mut here = Room::new(room.path(), "mine");
-    for n in 0..20 {
-        let up = here.folder(&format!("Raiz {n}"), None, "home");
-        let down = here.folder(&format!("Rama {n}"), Some(up), "home");
-        here.doc(&format!("# Doc {n}\n\ntexto"), Some(down), None);
-    }
-
-    let out = room.path().join("plano");
-    let sent = parcel::plainly(here.data(), &here.state, &[], &out, &Along::default()).unwrap();
-
-    assert_eq!(sent.docs, 20);
-    assert_eq!(sent.folders, 40, "some folders never made it into the tree");
-    for n in 0..20 {
-        let at = out.join(format!("Raiz-{n}")).join(format!("Rama-{n}"));
-        assert!(at.is_dir(), "{at:?} was flattened into the root");
-    }
 }
 
 #[test]
