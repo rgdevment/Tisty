@@ -57,6 +57,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
         remembering: vec![("file".to_owned(), remembered(Some("key"), None))],
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned()]),
+        granted: BTreeSet::new(),
     }
 }
 
@@ -101,6 +102,37 @@ fn a_first_version_goes_with_what_a_start_gave_and_is_remembered_once_stored() {
     assert!(asked[0].1.contains(&("Folio-Ttl-Days", "3".to_owned())));
     assert!(asked[0].1.contains(&("Folio-Admin", "admin".to_owned())));
     assert_eq!(kept.borrow()[0].0, "file");
+}
+
+#[test]
+fn a_language_that_gets_its_token_now_tells_folio_its_permit_before_its_version() {
+    let kept = Kept::default();
+    let folio = FakeFolio::default();
+    folio.answers.borrow_mut().push_back((200, "{}"));
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":3}"#));
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    let mut sealed = sealed_for(None);
+    sealed.remembering = vec![("file".to_owned(), remembered(Some("key"), Some(&token)))];
+    sealed.granted = BTreeSet::from(["Ab3xK9pQ".to_owned()]);
+
+    let home = tempfile::tempdir().unwrap();
+    delivered(
+        &folio,
+        home.path(),
+        None,
+        &kept_in(&kept),
+        &sealed,
+        &BTreeMap::new(),
+        3,
+    )
+    .unwrap();
+
+    let asked = folio.asked.borrow();
+    assert_eq!(asked[0].0, "/docs/Ab3xK9pQ/permit");
+    assert_eq!(asked[1].0, "/docs/Ab3xK9pQ");
 }
 
 #[test]
@@ -173,6 +205,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
         remembering: vec![("top".to_owned(), top), ("cited".to_owned(), cited)],
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned(), "Cited123".to_owned()]),
+        granted: BTreeSet::new(),
     };
     let starts = BTreeMap::from([
         ("Ab3xK9pQ".to_owned(), "mac".to_owned()),
@@ -1201,7 +1234,7 @@ fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() 
             Ok(())
         }
     };
-    assert!(sent_or_put_back(&folio, &owner_with_a_token(), deliver).is_ok());
+    assert!(sent_or_put_back(&folio, &[owner_with_a_token()], deliver).is_ok());
     assert_eq!(tries.get(), 2);
     assert_eq!(folio.asked.borrow()[0].0, "/docs/Ab3xK9pQ/permit");
 
@@ -1210,7 +1243,7 @@ fn a_sync_refused_as_not_the_owners_puts_the_permit_back_once_and_sends_again() 
         ..owner_with_a_token()
     };
     let untouched = FakeFolio::default();
-    let refused = sent_or_put_back(&untouched, &editor, || {
+    let refused = sent_or_put_back(&untouched, &[editor], || {
         Err(crate::Refusal::of("notOneOwnDoc"))
     });
     assert_eq!(refused.unwrap_err().code, "notOneOwnDoc");

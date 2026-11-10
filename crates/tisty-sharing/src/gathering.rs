@@ -109,6 +109,7 @@ pub struct Gathered {
     pub(crate) remembering: Vec<(String, Remembered)>,
     pub(crate) titles: BTreeMap<String, String>,
     pub(crate) changed: BTreeSet<String>,
+    pub(crate) granted: BTreeSet<String>,
     pub(crate) sealed_before: BTreeMap<String, Option<String>>,
 }
 
@@ -311,6 +312,14 @@ fn new_id() -> Result<String, Unshared> {
     Ok(link_key()?.chars().take(ID_CHARACTERS).collect())
 }
 
+/// How a document is sealed this time, whether it keeps the files already sent, and whether Folio must
+/// first learn the permit of a token it gets now, though Folio already holds it.
+struct Prepared {
+    sealing: Sealing,
+    keeps_files: bool,
+    granted: bool,
+}
+
 // Files stay in the envelope already sent only under the key that sealed it: another, or turning public or private, sends them again.
 fn sealing_for(
     was: Option<&Remembered>,
@@ -318,7 +327,7 @@ fn sealing_for(
     print: Option<&str>,
     under: &Under,
     editable: bool,
-) -> Result<(Sealing, bool), Unshared> {
+) -> Result<Prepared, Unshared> {
     let key = match (public, was.and_then(|one| one.link_key.clone())) {
         (true, _) => None,
         (false, Some(kept)) => Some(kept),
@@ -332,14 +341,15 @@ fn sealing_for(
                 && one.files_key == key
         })
         .and_then(|one| one.files_hash.clone());
-    // Folio never changes who may edit once a document is there, so only a first version can grant it.
-    let token = match was {
-        Some(one) => one.edit_token.clone(),
-        None if editable && !public => Some(link_key()?),
-        None => None,
+    // A language already in Folio gets its token from its owner, who tells Folio its permit before sending (166).
+    let owns_it = was.is_none_or(|one| one.admin_token.is_some());
+    let (token, granted) = match was.and_then(|one| one.edit_token.clone()) {
+        Some(kept) => (Some(kept), false),
+        None if editable && !public && owns_it => (Some(link_key()?), was.is_some()),
+        None => (None, false),
     };
-    Ok((
-        Sealing {
+    Ok(Prepared {
+        sealing: Sealing {
             id: was.map_or_else(under.mint, |one| Ok(one.id.clone()))?,
             version: was.map_or(1, |one| one.version + 1),
             from: was.map(|one| one.version),
@@ -352,8 +362,9 @@ fn sealing_for(
             token,
             terms: under.terms.map(str::to_owned),
         },
-        kept.is_some(),
-    ))
+        keeps_files: kept.is_some(),
+        granted,
+    })
 }
 
 // How the words of another find a document chosen to go along, which is gathered only once they name it.
@@ -402,7 +413,8 @@ fn pages_going(pages: &[WrittenPage], id: &str, places: &Places) -> Vec<Page> {
 struct Gathering<'a> {
     desk: &'a Desk<'a>,
     under: &'a Under<'a>,
-    editable_anchor: Option<DocId>,
+    editable_family: Option<DocId>,
+    granted: BTreeSet<String>,
     shelf: BTreeMap<String, Remembered>,
     public: bool,
     signed_as: Option<String>,
@@ -524,9 +536,15 @@ impl Gathering<'_> {
         {
             return Err(Unshared::Newer);
         }
-        let editable = self.editable_anchor == Some(kept.id);
-        let (sealing, keeps_files) =
-            sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
+        let editable = self.editable_family == Some(self.desk.state.anchor_of(kept));
+        let Prepared {
+            sealing,
+            keeps_files,
+            granted,
+        } = sealing_for(was, self.public, print.as_deref(), self.under, editable)?;
+        if granted {
+            self.granted.insert(sealing.id.clone());
+        }
         let admin_token = match was {
             Some(one) => one.admin_token.clone(),
             None => Some(link_key()?),
@@ -728,6 +746,7 @@ impl Gathering<'_> {
                 Some(_) => {}
             }
         }
+        changed.extend(self.granted.iter().cloned());
         for one in std::iter::once(family).chain(&self.cited) {
             if one
                 .others
@@ -790,7 +809,14 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     let state = desk.state;
     let shelf = remembered(state).clone();
     let top = sharable(desk, asked.doc, &shelf)?;
-    let editable_anchor = under.editable.then(|| state.anchor_of(top));
+    let anchor = state.anchor_of(top);
+    // Each language of what its owner shares to edit has its own token, the first time or the next (166).
+    let owner_edits = state
+        .docs
+        .get(&anchor)
+        .and_then(|one| shelf.get(&one.file))
+        .is_some_and(|one| one.admin_token.is_some() && one.edit_token.is_some());
+    let editable_family = (under.editable || owner_edits).then_some(anchor);
     // What Tisty sowed goes out under the maker's alias, so nothing reads as the app speaking.
     let wanted = asked
         .signed_as
@@ -801,7 +827,8 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     let mut gathering = Gathering {
         desk,
         under,
-        editable_anchor,
+        editable_family,
+        granted: BTreeSet::new(),
         shelf,
         public: asked.public,
         signed_as: signed_as.clone(),
@@ -844,6 +871,7 @@ pub fn gathered_under(desk: &Desk, asked: &Asked, under: &Under) -> Result<Gathe
     let sealed_before = gathering.sealed_before();
     Ok(Gathered {
         changed,
+        granted: gathering.granted.clone(),
         sealed_before,
         family,
         cited: gathering.cited,

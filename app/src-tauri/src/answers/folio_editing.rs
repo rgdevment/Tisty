@@ -153,14 +153,23 @@ pub(super) fn permit_put_back(door: &dyn Door, was: &Remembered) -> bool {
     folio_client::permit(door, &was.id, admin, Some(&permit)).is_ok()
 }
 
-// Retried once, and only by the owner: putting the permit back is the owner's word alone (148).
+// Retried once, and only by the owner: putting the permits back is the owner's word alone, in every language (148 and 166).
 pub(super) fn sent_or_put_back(
     door: &dyn Door,
-    was: &Remembered,
+    owned: &[Remembered],
     deliver: impl Fn() -> Answer<()>,
 ) -> Answer<()> {
     match deliver() {
-        Err(refused) if refused.code == "notOneOwnDoc" && permit_put_back(door, was) => deliver(),
+        Err(refused) if refused.code == "notOneOwnDoc" => {
+            let put_back = owned
+                .iter()
+                .filter(|one| permit_put_back(door, one))
+                .count();
+            match put_back {
+                0 => Err(refused),
+                _ => deliver(),
+            }
+        }
         other => other,
     }
 }
@@ -206,18 +215,41 @@ pub(super) fn named_by_the_block(owner: Option<&str>, token: &str) -> bool {
     named.is_some_and(|permit| permit_shown(token).is_ok_and(|mine| mine == permit))
 }
 
+/// Every language of the share that this Tisty owns with an edit link, the pressed one first.
+pub(super) fn its_languages(session: &Session, id: &str) -> Answer<Vec<(String, Remembered)>> {
+    let pressed = remembered_of(session, id)?;
+    let shelf = tisty_sharing::remembered(&session.state);
+    let doc = super::sharing::doc_id(id)?;
+    let pressed_file = pressed.0.clone();
+    let others = session
+        .state
+        .tongues_of(doc)
+        .into_iter()
+        .filter(|one| one.file != pressed_file)
+        .filter_map(|one| {
+            shelf
+                .get(&one.file)
+                .map(|was| (one.file.clone(), was.clone()))
+        })
+        .filter(|(_, was)| was.admin_token.is_some() && was.edit_token.is_some());
+    Ok(std::iter::once(pressed).chain(others).collect())
+}
+
 #[tauri::command]
 pub async fn doc_share_edit_link_renewed(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Synced> {
-    let (file, was) = remembered_of(&held(&session), &id)?;
+    let languages = its_languages(&held(&session), &id)?;
     let home = held(&session).paths.private();
     let keep = keeping(&app);
     apart(move || {
         let door = ToFolio::new(&home)?;
-        renewed(&door, was, |now| keep(&[(file, now.clone())])).map(|_| ())
+        for (file, was) in languages {
+            renewed(&door, was, |now| keep(&[(file.clone(), now.clone())]))?;
+        }
+        Ok(())
     })
     .await?;
     doc_share_sync(app, session, id, None).await

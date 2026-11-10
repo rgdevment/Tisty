@@ -606,3 +606,139 @@ fn the_pages_of_whoever_edits_through_a_link_go_with_their_version() {
 fn reading_key() -> Option<String> {
     tisty_envelope::sealing::link_key().ok()
 }
+
+fn counted(minted: &Cell<u32>) -> impl Fn() -> Result<String, Unshared> + '_ {
+    || {
+        minted.set(minted.get() + 1);
+        Ok(format!("Language{}", minted.get()))
+    }
+}
+
+fn two_languages() -> (tempfile::TempDir, Home, DocId) {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut home = Home::at(tmp.path());
+    home.with_a_name();
+    let es = home.wrote("---\nlang: es\n---\n\n# Viaje\n", None);
+    let en = home.wrote("---\nlang: en\n---\n\n# Trip\n", None);
+    home.joined(en, es);
+    (tmp, home, es)
+}
+
+fn the_map(sealed: &tisty_sharing::Sealed, anchor: &Remembered) -> serde_json::Value {
+    let going = sealed.going.iter().find(|one| one.id == anchor.id).unwrap();
+    let opening = Opening {
+        id: anchor.id.clone(),
+        kind: EnvelopeKind::Main,
+        link_key: anchor.link_key.clone(),
+    };
+    let served = Served {
+        received: None,
+        revocations: None,
+    };
+    reading::reading(&going.sealed.main, &opening, &served)
+        .unwrap()
+        .document["languages"]
+        .clone()
+}
+
+#[test]
+fn each_language_shared_to_edit_has_its_token_and_only_the_anchor_s_opens_it() {
+    let (_tmp, home, es) = two_languages();
+    let minted = Cell::new(0);
+    let mint = counted(&minted);
+    let under = Under {
+        mint: &mint,
+        editable: true,
+        terms: None,
+        languages_at_most: None,
+    };
+
+    let sealed = home.sealed(under_folio(&home, es, &under).unwrap(), vec![]);
+    let anchor = &sealed
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_none())
+        .unwrap()
+        .1;
+    let other = &sealed
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_some())
+        .unwrap()
+        .1;
+    let map = the_map(&sealed, anchor);
+
+    let token = other
+        .edit_token
+        .as_deref()
+        .expect("the language has its token");
+    assert_ne!(Some(token), anchor.edit_token.as_deref());
+    let edit = map[0]["edit"].as_str().expect("the map carries it sealed");
+    assert_eq!(
+        tisty_envelope::tokens::opened_with(anchor.edit_token.as_deref().unwrap(), &other.id, edit)
+            .as_deref(),
+        Some(token)
+    );
+    assert!(sealed.granted.is_empty(), "nothing was in Folio yet");
+}
+
+#[test]
+fn a_language_shared_before_its_token_gets_one_and_folio_is_told_its_permit() {
+    let (_tmp, mut home, es) = two_languages();
+    let minted = Cell::new(0);
+    let mint = counted(&minted);
+    let first = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: true,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    let without: Vec<(String, Remembered)> = first
+        .remembering
+        .iter()
+        .map(|(file, one)| {
+            let mut one = one.clone();
+            if one.held_by.is_some() {
+                one.edit_token = None;
+            }
+            (file.clone(), one)
+        })
+        .collect();
+    home.sent(&without);
+
+    let later = home.sealed(
+        under_folio(
+            &home,
+            es,
+            &Under {
+                mint: &mint,
+                editable: false,
+                terms: None,
+                languages_at_most: None,
+            },
+        )
+        .unwrap(),
+        vec![],
+    );
+    let other = &later
+        .remembering
+        .iter()
+        .find(|(_, one)| one.held_by.is_some())
+        .unwrap()
+        .1;
+
+    assert!(other.edit_token.is_some());
+    assert_eq!(
+        later.granted,
+        std::collections::BTreeSet::from([other.id.clone()])
+    );
+    assert!(later.changed.contains(&other.id));
+}

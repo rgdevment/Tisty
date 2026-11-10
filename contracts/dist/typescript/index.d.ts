@@ -1,4 +1,4 @@
-export declare const VERSION: "1.7.3";
+export declare const VERSION: "1.8.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -174,6 +174,7 @@ export interface Translation {
   document: string;
   title?: string;
   key?: string;
+  edit?: string;
 }
 
 /** A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]]. */

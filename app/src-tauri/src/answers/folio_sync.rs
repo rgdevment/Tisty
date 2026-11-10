@@ -346,6 +346,9 @@ pub async fn doc_share_sync(
     let keep = keeping(&app);
     let pressed_id = was.id.clone();
     let owning = was.admin_token.is_some();
+    let owned: Vec<Remembered> = std::iter::once(was.clone())
+        .chain(sealed.remembering.iter().map(|(_, one)| one.clone()))
+        .collect();
     let not_kept = apart(move || {
         let door = ToFolio::new(&home)?;
         let deliver = || {
@@ -359,7 +362,7 @@ pub async fn doc_share_sync(
                 ttl_days,
             )
         };
-        sent_or_put_back(&door, &was, deliver)
+        sent_or_put_back(&door, &owned, deliver)
             .map_err(|refused| said_to_whom(refused, owning, &home))
             .map_err(|refused| delivered_or_asked_again(refused, &home, tongue))
             .map_err(|refused| press_given_back(refused, &home, &pressed_id, pressed_at))?;

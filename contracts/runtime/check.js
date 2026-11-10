@@ -112,6 +112,8 @@ const checkType = (type, value, at, out) => {
     if (typeof value !== "string" || !base64urlOf(value, 43, 4) || SMALL_ORDER.has(value)) out.push(at + " is not a key");
   } else if (type === "hash") {
     if (typeof value !== "string" || !base64urlOf(value, 43, 4)) out.push(at + " is not a hash");
+  } else if (type === "sealed_key") {
+    if (typeof value !== "string" || !base64urlOf(value, 80, 1)) out.push(at + " is not a sealed key");
   } else if (type === "signed") {
     if (typeof value !== "string" || !base64urlOf(value, 86, 16)) out.push(at + " is not a signature");
   } else if (WHOLE.enums[type]) {

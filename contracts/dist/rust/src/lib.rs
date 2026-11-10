@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.7.3";
+pub const VERSION: &str = "1.8.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -327,6 +327,8 @@ pub struct Translation {
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit: Option<String>,
 }
 
 /// A word a document or a task is kept under, in the one form Tisty keeps it, as a tag_word. Capitals and accents come off and a space or an underscore turns into a dash, so #Camión and #camion are one tag. In a sentence, #word needs two characters and a letter, and it does not count glued to the text before it, inside code or in [[#2]].
@@ -729,6 +731,11 @@ fn check_type(all: &Value, kind: &str, value: &Value, at: &str, out: &mut Vec<St
         "hash" => {
             if !value.as_str().is_some_and(|one| base64url_of(one, 43, 4)) {
                 out.push(wrong("is not a hash"));
+            }
+        }
+        "sealed_key" => {
+            if !value.as_str().is_some_and(|one| base64url_of(one, 80, 1)) {
+                out.push(wrong("is not a sealed key"));
             }
         }
         "signed" => {

@@ -28,8 +28,16 @@ pub struct Going {
     pub sealed: Sealed,
 }
 
-fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
+fn translation_of(tongue: &Tongue, anchor_token: Option<&str>) -> Result<Translation, Refused> {
     let lang = tongue.document.lang.clone();
+    let edit = match (anchor_token, tongue.sealing.token.as_deref()) {
+        (Some(anchor), Some(token)) => Some(crate::tokens::sealed_for(
+            anchor,
+            &tongue.sealing.id,
+            token,
+        )?),
+        _ => None,
+    };
     Ok(Translation {
         lang: lang.ok_or(Refused::DoesNotAdd(
             "a language of a family does not say which it is",
@@ -37,6 +45,7 @@ fn translation_of(tongue: &Tongue) -> Result<Translation, Refused> {
         document: tongue.sealing.id.clone(),
         title: tongue.document.title.clone(),
         key: tongue.sealing.link_key.clone(),
+        edit,
     })
 }
 
@@ -112,7 +121,7 @@ fn languages_sealed(
         anchor.document.languages = Some(
             others
                 .iter()
-                .map(translation_of)
+                .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
                 .collect::<Result<_, _>>()?,
         );
         // Paper, sheets and orientation are the group's.
