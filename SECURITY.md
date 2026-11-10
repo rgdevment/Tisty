@@ -502,9 +502,9 @@ without
 the absolute paths of your disk.
 
 **What it says about work being finished only ever adds.** An assistant can mark
-a task it filed as one it has finished, with the account of what it did. It
-cannot mark a task you wrote unless you opened that task to agents, it cannot
-close anything, and the mark takes nothing out of your list: what is due today
+a task as finished, with the account of what it did: one it filed, or one you
+wrote, where the mark is only its word for you to take or not. It cannot close
+anything, and the mark takes nothing out of your list: what is due today
 or overdue stays in the band you look for it in. Saying it twice over a mark you
 have not seen yet is refused, so a text it reads somewhere cannot fill your
 journal by repetition. Taking the mark off is yours alone — and doing so keeps

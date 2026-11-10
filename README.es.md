@@ -886,10 +886,10 @@ $ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
 Donde `<tu-asistente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
 de comandos: solo abre la puerta del asistente. Habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
-cuenta, sin token, nada por la red. **Quien la abre eres tú.** El asistente
-aparece en Configuración › Asistentes como un dispositivo al que tienes que dar
-entrada, y sigue siendo un dispositivo que puedes echar; mientras no le des
-entrada, todo lo que intente se le niega.
+cuenta, sin token, nada por la red. **Tú manejas la puerta.** En una
+instalación nueva viene abierta, y Configuración › Asistentes la cierra con un
+clic; mientras está cerrada, todo lo que intente un asistente se rechaza.
+Abrirla y cerrarla queda escrito en tu registro.
 
 Mientras los asistentes tengan voz, un Tisty estable también responde al nombre
 `tisty` en tu PATH —la Store y Homebrew lo dejan ahí, y la copia del instalador
@@ -899,31 +899,29 @@ ya estaba abierto para que vea el cambio.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
-mismo, dar por hecha una tarea que anotó él —que la marca para que la confirmes
-y no cierra nada—, agregar a la bitácora, escribir un documento, agregar a uno
-que ya está ahí —al final o bajo un título—, corregir un pasaje de uno, escribir
-uno entero de nuevo, ordenar documentos en carpetas, volver un documento página
-de otro y decir en qué orden se leen sus páginas, lo que escribe y mueve en el
-texto de tu documento las líneas que las nombran y nada más, guardar una copia
-de un
-archivo que le señales —en una tarea o dentro de un documento, que admite el
-archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerrar una
-tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que
-pusiste tú, borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
-tarea que plegaste, tomar archivos de cualquier sitio que no sea Descargas,
-Documentos, Imágenes, el escritorio o la carpeta temporal, ni anotar dos veces
-lo mismo. Una tarea que cerraste es histórico
-para él: le llega con un aviso que lo dice, se lee como terminó, no admite
-bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
-vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
+mismo, dar por hecha una tarea, también una tuya —que la marca para que la
+confirmes y no cierra nada—, agregar a la bitácora, escribir un documento,
+agregar a uno que ya está ahí —al final o bajo un título—, corregir un pasaje de
+uno, escribir uno entero de nuevo, ordenar documentos en carpetas, volver un
+documento página de otro y decir en qué orden se leen sus páginas, lo que
+escribe y mueve en el texto de tu documento las líneas que las nombran y nada
+más, guardar una copia de un archivo que le señales —en una tarea o dentro de un
+documento, que admite el archivo más grande de los dos— y leer lo que ya está.
+Lo que no puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar
+una tarea tuya, mover un día que pusiste tú, borrar un documento, renombrar ni
+vaciar una carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier
+sitio que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta
+temporal, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico para
+él: le llega con un aviso que lo dice, se lee como terminó, no admite bitácora,
+ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo vuelve, el
+asistente propone una nueva que dice cómo terminó la anterior.
 
-Una tarea que escribiste tú sigue siendo tuya salvo que digas otra cosa. Ábrela
-a los agentes desde su detalle —«Permitir agentes»— y un asistente puede darla
-por hecha, o decir que no se hará, para que lo confirmes; describirla, si aún no
-tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
-único que hace sin preguntar —también quitar una marca que puso por error, nunca
-una tuya—. Su día, su título, su lista y su cierre siguen siendo tuyos igual.
-«Sin agentes» cierra la puerta otra vez y conserva lo que alcanzó a completar.
+Una tarea que escribiste tú sigue siendo tuya. Un asistente puede decir que está
+hecha, que no debería hacerse o que uno de sus pasos está hecho, y cada cosa
+espera a que la confirmes; no puede describirla, planear ni cambiar sus pasos,
+ni mover su día, su título o su lista. Una tarea que abriste a los agentes antes
+de la 1.31.2 sigue abierta a ellos, con lo que alcanzaron a completar, hasta
+que «Sin agentes», en su menú, la cierra; ya no se puede abrir una nueva.
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló: la fila dice «por un agente» y lo nombra al pasar el puntero, y el panel
 lateral, la página completa y la bitácora dicen «por Claude Code», «por Codex».

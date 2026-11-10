@@ -863,10 +863,10 @@ $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 Where `<your-assistant>` is whatever yours is called. That `tisty` is not a
 command line any more: it opens only the assistant's door. It speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no
-account, no token, nothing over the network. **You are the one who opens it.**
-The assistant appears in Settings › Assistants as a device you have to let in, and
-it stays a device you can throw out; until you do let it in, everything it
-tries is refused.
+account, no token, nothing over the network. **You hold the door.** It is open
+on a new install, and Settings › Assistants closes it with one click; while it
+is closed, everything an assistant tries is refused. Opening and closing it is
+written into your log.
 
 While assistants have a voice, a stable Tisty also answers to the name `tisty`
 on your PATH — the Store and Homebrew put it there, and the installer's copy
@@ -876,30 +876,28 @@ open so it sees the change.
 
 What it may do is deliberately small: file a task with its steps and its date,
 set an hour for it to ring at, move the day of a task it filed itself, say that
-a task it filed is done — which marks it for you to confirm and closes nothing —
-add to the journal, write a document, add to one that is already there — at the
-end or under a heading — correct a passage of one, write one again whole, file
-documents into folders, make one document a page of another and say the order
-its pages are read in, which writes and moves the lines naming them in your
-document's text and nothing else, keep a copy of a file you point it at — on a
-task or
-inside a document, which takes the larger file of the two — and read what is
-already there. What it may not do: close a task or delete one, say a task you
-wrote is done, move a day you set, delete a document, rename or empty a folder,
-reach a task you folded away, take files from anywhere but Downloads,
-Documents, Pictures, the desktop and the temporary folder, or file the same
-thing twice. A task you closed is history to
-it: it comes with a notice saying so, reads as it ended, takes no note, no new
-day, no bell and no file, and if the same work comes back the assistant
-proposes a new one that says how the last one ended.
+a task is done, yours too — which marks it for you to confirm and closes nothing
+— add to the journal, write a document, add to one that is already there — at
+the end or under a heading — correct a passage of one, write one again whole,
+file documents into folders, make one document a page of another and say the
+order its pages are read in, which writes and moves the lines naming them in
+your document's text and nothing else, keep a copy of a file you point it at —
+on a task or inside a document, which takes the larger file of the two — and
+read what is already there. What it may not do: close a task or delete one, tick
+a step of yours or finish a task of yours, move a day you set, delete a
+document, rename or empty a folder, reach a task you folded away, take files
+from anywhere but Downloads, Documents, Pictures, the desktop and the temporary
+folder, or file the same thing twice. A task you closed is history to it: it
+comes with a notice saying so, reads as it ended, takes no note, no new day, no
+bell and no file, and if the same work comes back the assistant proposes a new
+one that says how the last one ended.
 
-A task you wrote stays yours unless you say otherwise. Open one to agents from
-its detail — «Allow agents» — and an assistant may say it is done, or that it
-should not be done, for you to confirm; describe it, where there is no
-description yet; plan its steps; and tick them off as it goes, which is the one
-thing it does without asking — taking back a tick it gave by mistake included,
-never one you gave. Its day, its title, its list and its closing stay yours all
-the same. «No agents» shuts the door again and keeps what was filled in. What an
+A task you wrote stays yours. An assistant may say it is done, or that it should
+not be done, or that a step of it is done, and each waits for you to confirm it;
+it cannot describe it, plan or change its steps, or move its day, its title or
+its list. A task you opened to agents before 1.31.2 stays open to them, with
+what was filled in, until «No agents» in its menu shuts it; a task can no
+longer be opened to them. What an
 assistant writes is signed with the name of the program it spoke through: a row
 says «by an agent» and names it on hover, while the side panel, the full page
 and the journal say «by Claude Code», «by Codex». Settings › Assistants counts

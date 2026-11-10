@@ -510,16 +510,17 @@ happens on its own:
   reaches it through that process's own input and output — on this machine,
   with no port, no account and no token. It is not a server and nothing can
   reach it from the network.
-- **You let it in.** The assistant shows up in Settings › Assistants as a device
-  you have to admit, and everything it tries before that is refused. Admitting
-  it is an event written into your log rather than a line in a settings file,
-  so you can see when it happened and throw it out whenever you want.
-- **What it may do is bounded.** File a task, add to the journal, say a task it
-  filed or one you opened to agents is done — which marks it for you and closes
-  nothing — write a document, write one again whole, keep a copy of a file you
-  point it at, and read what is already there. It may not close or delete
-  anything, say a task you wrote and kept closed to it is done, reach a task
-  you hid, or take files from outside the folders where a download lands.
+- **You hold the door.** It comes open on a new install, and Settings ›
+  Assistants closes it with one click; while it is closed, everything an
+  assistant tries is refused. Opening and closing it is an event written into
+  your log rather than a line in a settings file, so you can see when it
+  happened.
+- **What it may do is bounded.** File a task, add to the journal, say a task is
+  done, yours too — which marks it for you and closes nothing — write a
+  document, write one again whole, keep a copy of a file you point it at, and
+  read what is already there. It may not close or delete anything, tick a step
+  of yours or finish a task of yours, reach a task you hid, or take files from
+  outside the folders where a download lands.
   Bringing a markdown file in copies what that file's text points at, and only
   what sits in that file's own folder or below it, so what leaves your disk is
   bounded by the file you named rather than by what its text asks for. To
