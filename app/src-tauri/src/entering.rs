@@ -69,7 +69,7 @@ fn entered(session: &Mutex<Session>, knocking: &Knocking, here: &Here, seed: &Se
     {
         // Checked and signed under one hold, so a round in between never meets a second person.
         let mut session = held(session);
-        if !crate::identity::fits(seed, &session.state) {
+        if !crate::identity::fits(seed, &session) {
             return Err(Refusal::of("phraseOtherPerson"));
         }
         crate::identity::begun(&mut session, seed)?;
