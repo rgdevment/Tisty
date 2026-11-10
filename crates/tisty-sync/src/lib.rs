@@ -367,7 +367,7 @@ pub fn carry_through(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        let mut adopting = still_adopting(aside, dest, holds_ours);
+        let mut adopting = still_adopting(data, aside, dest, holds_ours);
         if !been_here
             && tisty_core::vouched::all_confirmed(data)
                 .iter()
@@ -381,12 +381,12 @@ pub fn carry_through(
         {
             adopting.extend(names_in(dest));
         }
-        keep_adopting(aside, dest, holds_ours, &adopting);
+        keep_adopting(data, aside, dest, holds_ours, &adopting);
         moved.brought = bring(
             data, &store, device, dest, &adopting, &mut moved, &mut alike, saying,
         )?;
         adopting.retain(|one| moved.coming.contains(one) || moved.unsaid.contains(one));
-        keep_adopting(aside, dest, holds_ours, &adopting);
+        keep_adopting(data, aside, dest, holds_ours, &adopting);
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);

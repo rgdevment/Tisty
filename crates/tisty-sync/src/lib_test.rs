@@ -7747,7 +7747,7 @@ fn a_machine_still_in_the_cloud_when_the_folder_was_taken_up_is_taken_up_when_it
     );
     assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
     assert!(
-        !kept.path().join("adopting").exists(),
+        !two.data.join(tisty_core::vouched::ADOPTING).exists(),
         "taking up stayed open once everybody had come down"
     );
 
@@ -9131,17 +9131,18 @@ fn a_folder_holds_our_store_only_when_its_name_is_ours() {
 
 #[test]
 fn the_welcome_a_join_gives_ends_a_week_later() {
-    let aside = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
     let shared = tempfile::tempdir().unwrap();
     let names: std::collections::BTreeSet<String> = ["dev_z".to_string()].into();
 
-    crate::place::keep_adopting(Some(aside.path()), shared.path(), false, &names);
+    crate::place::keep_adopting(data.path(), None, shared.path(), false, &names);
     assert_eq!(
-        crate::place::still_adopting(Some(aside.path()), shared.path(), false),
+        crate::place::still_adopting(data.path(), None, shared.path(), false),
         names
     );
 
-    let kept = std::fs::read_to_string(aside.path().join("adopting")).unwrap();
+    let at = data.path().join(tisty_core::vouched::ADOPTING);
+    let kept = std::fs::read_to_string(&at).unwrap();
     let (first, rest) = kept.split_once('\n').unwrap();
     let (_, place) = rest.split_once('\n').unwrap();
     let long_ago = std::time::SystemTime::now()
@@ -9149,16 +9150,138 @@ fn the_welcome_a_join_gives_ends_a_week_later() {
         .unwrap()
         .as_secs()
         - 8 * 24 * 60 * 60;
+    std::fs::write(&at, format!("{first}\nsince {long_ago}\n{place}")).unwrap();
+
+    assert!(
+        crate::place::still_adopting(data.path(), None, shared.path(), false).is_empty(),
+        "a machine that never said its key was still taken unchecked a week after joining"
+    );
+}
+
+#[test]
+fn a_welcome_in_the_cache_stays_there_until_the_one_beside_the_keys_could_be_written() {
+    let (room, aside) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let shared = tempfile::tempdir().unwrap();
+    let names: std::collections::BTreeSet<String> = ["dev_z".to_string()].into();
+    let legacy = aside.path().join("adopting");
+    std::fs::write(
+        &legacy,
+        format!("dev_z\n{}", tisty_core::paths::told_of(shared.path())),
+    )
+    .unwrap();
+    let data = room.path().join("data");
+    std::fs::write(&data, "a file where the folder should be").unwrap();
+
+    crate::place::keep_adopting(&data, Some(aside.path()), shared.path(), false, &names);
+
+    assert!(legacy.exists(), "the only list left was dropped");
+    assert_eq!(
+        crate::place::still_adopting(&data, Some(aside.path()), shared.path(), false),
+        names
+    );
+}
+
+#[test]
+fn a_welcome_kept_in_the_cache_by_an_earlier_version_moves_beside_the_keys_confirmed() {
+    let (data, aside) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let shared = tempfile::tempdir().unwrap();
+    let names: std::collections::BTreeSet<String> = ["dev_z".to_string()].into();
     std::fs::write(
         aside.path().join("adopting"),
-        format!("{first}\nsince {long_ago}\n{place}"),
+        format!("dev_z\n{}", tisty_core::paths::told_of(shared.path())),
+    )
+    .unwrap();
+    let (data, aside) = (data.path(), Some(aside.path()));
+
+    assert_eq!(
+        crate::place::still_adopting(data, aside, shared.path(), false),
+        names
+    );
+    crate::place::keep_adopting(data, aside, shared.path(), false, &names);
+
+    assert!(!aside.unwrap().join("adopting").exists());
+    assert_eq!(
+        crate::place::still_adopting(data, None, shared.path(), false),
+        names
+    );
+}
+
+#[test]
+fn a_machine_still_in_the_cloud_is_taken_up_when_it_comes_down_even_after_the_cache_was_lost() {
+    let one = machine("dev_a");
+    given_a_key(&one);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let _three = joined_with_a_key("dev_c", shared.path());
+    let up = shared.path().join(STORE).join("dev_c").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let first = carry_leaning_on(
+        &two.data,
+        Some(kept.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+    assert_eq!(first.coming, vec!["dev_c".to_string()]);
+
+    drop(kept);
+    brought_down_from_the_cloud(&up);
+    let fresh = tempfile::tempdir().unwrap();
+    let after = carry_leaning_on(
+        &two.data,
+        Some(fresh.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
     )
     .unwrap();
 
-    assert!(
-        crate::place::still_adopting(Some(aside.path()), shared.path(), false).is_empty(),
-        "a machine that never said its key was still taken unchecked a week after joining"
-    );
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
+}
+
+#[test]
+fn losing_the_cache_never_stops_trusting_a_machine_confirmed_before() {
+    let one = machine("dev_a");
+    given_a_key(&one);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    carry_leaning_on(
+        &two.data,
+        Some(kept.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+
+    drop(kept);
+    wrote(&one, "lo nuevo de dev_a".into());
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let fresh = tempfile::tempdir().unwrap();
+    let after = carry_leaning_on(
+        &two.data,
+        Some(fresh.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&two, "dev_a").contains("lo nuevo de dev_a"));
 }
 
 fn told_sending(heard: &[Reached]) -> Vec<(usize, usize)> {

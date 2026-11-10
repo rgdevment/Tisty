@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::event::DeviceId;
 
 const KEPT: &str = ".keys-confirmed";
+pub const ADOPTING: &str = ".adopting";
 const TURN: &str = ".keys-confirmed.lock";
 const TURN_TRIES: u32 = 500;
 const TURN_EVERY: std::time::Duration = std::time::Duration::from_millis(10);

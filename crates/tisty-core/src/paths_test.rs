@@ -65,6 +65,10 @@ fn leaving_takes_the_settings_and_not_what_proves_the_store_is_its_own() {
         "leaving would keep the diary of a machine that left: {swept:?}"
     );
     assert!(
+        swept.contains(&p.data().join(crate::vouched::ADOPTING)),
+        "leaving would keep a folder's machines taken up unchecked: {swept:?}"
+    );
+    assert!(
         swept.iter().any(|at| at.ends_with("tisty.log.1")),
         "leaving would keep the rolled-over diary: {swept:?}"
     );
