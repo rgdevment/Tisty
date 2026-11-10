@@ -1268,5 +1268,64 @@
         "said": "the online help and the guide fix details that had fallen behind, such as the Spread's warning, which comes when a day already holds two tasks."
       }
     ]
+  },
+  {
+    "version": "1.44.0",
+    "headline": {
+      "es": "Comparte en todos tus idiomas, y lo ajeno sigue siendo ajeno",
+      "en": "Share in every language, and what is someone else's stays theirs"
+    },
+    "es": [
+      {
+        "title": "Todos tus idiomas, con un link",
+        "said": "un documento en varios idiomas se comparte entero: quien recibe el link de editar edita todos sus idiomas, y «Cambiar el link de editar» lo cambia en todos a la vez. Al abrir un link llegan todos sus idiomas, y se abre el tuyo si el documento lo tiene."
+      },
+      {
+        "title": "Tú eliges qué idiomas van",
+        "said": "al compartir marcas cuáles de tus idiomas van, y los que dejas fuera se quedan aquí en cada Sincronizar. Si otra persona envió una versión más nueva de cualquier idioma, Sincronizar la trae aparte y no pisa la tuya."
+      },
+      {
+        "title": "Sabes quién lo editó",
+        "said": "un documento compartido nombra a todos los que lo editaron, cada uno firmado con su propia llave. Y si cambias el link de editar, quien tenía el anterior sabe por qué ya no puede enviar."
+      },
+      {
+        "title": "Lo ajeno sigue siendo ajeno",
+        "said": "una copia que te llegó para leer nunca se vuelve a enviar, ni como documento nuevo. Lo que escribió otra persona sigue siendo suyo al copiarlo, duplicarlo, traducirlo, importarlo o compartirlo, y los documentos salen como Markdown de a uno; «Exportar todo para Tisty» sigue llevándolos todos."
+      },
+      {
+        "title": "Tu Tisty es solo tuyo",
+        "said": "nunca se junta con el historial de otra persona, y un equipo nuevo tiene que firmar lo que escribe antes de entrar a tu carpeta sincronizada."
+      },
+      {
+        "title": "Y más",
+        "said": "un archivo Markdown abierto desde el disco muestra su primera línea tal como la escribiste, y una tarea puede nombrar al asistente que trabajó en ella o solo decir que fue un agente."
+      }
+    ],
+    "en": [
+      {
+        "title": "All your languages, one link",
+        "said": "a document in several languages is shared whole: whoever gets the edit link edits every language, and Change the edit link changes it for all of them at once. Opening a link brings every language, and opens yours when the document has it."
+      },
+      {
+        "title": "You choose which languages go",
+        "said": "when you share, you tick which of your languages go, and the ones you leave out stay here on every Sync. If someone else sent a newer version of any language, Sync brings it in apart and does not overwrite yours."
+      },
+      {
+        "title": "You know who edited it",
+        "said": "a shared document names everyone who edited it, each signed with their own key. And when you change the edit link, whoever held the old one is told why they can no longer send."
+      },
+      {
+        "title": "What is someone else's stays theirs",
+        "said": "a copy that reached you to read is never sent again, not even as a new document. What someone else wrote stays theirs when you copy, duplicate, translate, import or share it, and documents go out as Markdown one at a time; Export everything for Tisty still takes them all."
+      },
+      {
+        "title": "Your Tisty is yours alone",
+        "said": "it never merges with another person's history, and a new computer has to sign what it writes before it joins your synced folder."
+      },
+      {
+        "title": "And more",
+        "said": "a Markdown file opened from disk shows its first line as you wrote it, and a task can name the assistant that worked on it or just say it was an agent."
+      }
+    ]
   }
 ]
