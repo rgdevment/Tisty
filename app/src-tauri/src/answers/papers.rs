@@ -741,7 +741,7 @@ pub async fn settle_paper(
             told_as_settled(&mut session, &id);
             return Ok(None);
         };
-        other_version_kept(&mut session, &id, body, marked.as_deref())?
+        other_version_kept(&mut session, &id, body, marked.as_deref(), Arrived::Here)?
     };
 
     let at = id.clone();
@@ -757,12 +757,20 @@ pub async fn settle_paper(
     Ok(answer)
 }
 
+/// Where the other version came from: one of the person's own machines, or Folio under the name it was signed with.
+#[derive(Clone, Copy)]
+pub(super) enum Arrived<'a> {
+    Here,
+    SignedAs(Option<&'a str>),
+}
+
 // Asked again about the same arrival, keeping both must not leave one more copy each time.
 pub(super) fn other_version_kept(
     session: &mut Session,
     id: &str,
     body: String,
     marked: Option<&str>,
+    arrived: Arrived,
 ) -> Answer<Option<String>> {
     let paged = session
         .state
@@ -803,9 +811,14 @@ pub(super) fn other_version_kept(
         .values()
         .find(|one| one.file == id)
         .filter(|kept| session.state.theirs(kept, me.as_ref()));
-    let (guest, by) = match theirs {
-        Some(kept) => (true, kept.by.clone()),
-        None => (false, signing(&session.state)),
+    let (guest, by) = match (theirs, arrived) {
+        (Some(kept), _) => (true, kept.by.clone()),
+        (None, Arrived::SignedAs(name))
+            if !name.is_some_and(|one| session.state.mine_to_write(one)) =>
+        {
+            (true, name.map(str::to_owned))
+        }
+        _ => (false, signing(&session.state)),
     };
     session
         .commit(Op::DocAdd {

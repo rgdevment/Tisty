@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use tisty_carrier::folio_client::{Answered, Asked, Door};
 
-use super::{Link, Opened, link_of, looked_for, owner_apart};
+use super::{Link, Opened, editable, link_of, looked_for, owner_apart};
 
 #[derive(Default)]
 struct CountingFolio(Cell<u32>);
@@ -109,4 +109,24 @@ fn the_owner_is_named_apart_only_when_another_root_signed_this_version() {
     assert_eq!(owner_apart(&opened_by(Some("mario"), "mario")), None);
     assert_eq!(owner_apart(&opened_by(Some("mario"), "ana")), Some("mario"));
     assert_eq!(owner_apart(&opened_by(None, "ana")), None);
+}
+
+#[test]
+fn a_token_the_owner_s_block_does_not_name_is_kept_as_a_link_to_read() {
+    let token = tisty_envelope::sealing::link_key().unwrap();
+    let permit = tisty_envelope::sealing::permit_shown(&token).unwrap();
+    let opened = |named: &str| Opened {
+        owner: Some(format!(r#"{{"root":"r","permit":"{named}"}}"#)),
+        ..opened_by(Some("r"), "r")
+    };
+    let link = |token: Option<&str>| Link {
+        id: "abcd1234".into(),
+        key: "key".into(),
+        token: token.map(str::to_owned),
+    };
+
+    assert!(editable(&link(Some(&token)), &opened(&permit)));
+    assert!(!editable(&link(Some("anything")), &opened(&permit)));
+    assert!(!editable(&link(Some(&token)), &opened("anotherPermit")));
+    assert!(!editable(&link(None), &opened(&permit)));
 }

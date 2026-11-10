@@ -164,6 +164,7 @@ pub(crate) fn arrived_as(
     turned: impl FnOnce(String) -> String,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
     let paths = held(session).paths.clone();
+    outside_tisty(&paths, from)?;
     let (raw, room) = read_any(from)?;
     let raw = turned(raw);
     let near = room
@@ -171,15 +172,11 @@ pub(crate) fn arrived_as(
         .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
     let titles = tisty_core::arriving::Titles::of(&tisty_core::docs::all(&paths.docs()));
     let body = tisty_core::arriving::tidied_among(&raw, &titles).body;
-    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
-        .iter()
-        .filter_map(|one| one.canonicalize().ok())
-        .collect();
     let mut reach = |at: &std::path::Path| {
         let at = at
             .canonicalize()
             .map_err(|_| "no file is there".to_string())?;
-        match own.iter().any(|one| at.starts_with(one)) {
+        match tistys_own(&paths, &at) {
             true => Err("it is one of Tisty's own files".to_string()),
             false => Ok(at),
         }
@@ -208,6 +205,21 @@ pub(crate) fn arrived_as(
         notes: brought.papers.len(),
     };
     Ok((doc, id, left))
+}
+
+fn tistys_own(paths: &tisty_core::Paths, at: &std::path::Path) -> bool {
+    [paths.data(), paths.config(), paths.cache()]
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .any(|one| at.starts_with(one))
+}
+
+// A file inside Tisty's own folders is a document already here, someone else's copy included, never one to bring in as new.
+pub(crate) fn outside_tisty(paths: &tisty_core::Paths, from: &std::path::Path) -> Answer<()> {
+    match from.canonicalize().is_ok_and(|at| tistys_own(paths, &at)) {
+        true => Err(Refusal::of("importedFromTisty")),
+        false => Ok(()),
+    }
 }
 
 pub(crate) struct Room(pub(crate) std::path::PathBuf);
@@ -533,3 +545,7 @@ pub async fn docs_unpack(
         missed: landed.missed,
     })
 }
+
+#[cfg(test)]
+#[path = "carrying_test.rs"]
+mod tests;

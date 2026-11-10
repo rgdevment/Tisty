@@ -1601,6 +1601,8 @@ const en = {
   sayPriority: "do · schedule · delegate",
   offered: "seen but not taken: it may be naming what is next to it",
   cannotRead: "{name} could not be read",
+  importedFromTisty:
+    "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
   fileNeedsTitle:
     "Write the document's title first: a file as its first line would become its name.",
@@ -4617,6 +4619,8 @@ const es: Catalog = {
   sayPriority: "hacer · planificar · delegar",
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
   cannotRead: "No se pudo leer {name}",
+  importedFromTisty:
+    "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
   fileNeedsTitle:
     "Escribe primero el título del documento: un archivo como primera línea pasaría a ser su nombre.",

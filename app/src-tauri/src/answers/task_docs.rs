@@ -216,6 +216,8 @@ pub fn task_page_import(
     if !markdown {
         return Ok(None);
     }
+    let paths = held(&session).paths.clone();
+    super::carrying::outside_tisty(&paths, from)?;
     let (raw, _) = super::carrying::read_any(from)?;
     let zone = jiff::tz::TimeZone::system();
     let tz = zone.iana_name().unwrap_or("UTC").to_string();
