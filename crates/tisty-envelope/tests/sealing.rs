@@ -17,6 +17,7 @@ use tisty_envelope::family::{Family, Tongue, sealed_family};
 use tisty_envelope::pictures::made;
 use tisty_envelope::sealing::{Refused, Writer};
 use tisty_share_proto::identity::{Certificate, Root, ShareKey};
+use tisty_share_proto::reviewing;
 
 const SINCE: &str = "2026-11-03T12:00:00Z";
 
@@ -96,6 +97,8 @@ mod editing {
         Served {
             received: None,
             revocations: None,
+            reviewed: None,
+            reviewed_received: None,
         }
     }
 
@@ -141,6 +144,37 @@ mod editing {
         assert_eq!(read.document["owner_name"], "Mario");
         assert!(owner_in(&main).permit.is_some());
         assert!(owner_in(&owned(None)).permit.is_none());
+    }
+
+    fn tongue_of(id: &str, lang: &str, link_key: u8) -> tisty_envelope::family::Tongue {
+        tisty_envelope::family::Tongue {
+            document: serde_json::from_value(json!({
+                "id": id, "lang": lang, "owner_name": "Mario", "html": "<p>a</p>", "body": "a"
+            }))
+            .unwrap(),
+            pictures: vec![],
+            files: vec![],
+            sealing: sealing(id, Some(key_text(link_key))),
+            cited: vec![],
+        }
+    }
+
+    #[test]
+    fn a_language_an_editor_adds_waits_in_the_map_for_the_owners_review() {
+        let mut anchor = tongue_of(ID, "es", LINK_KEY);
+        anchor.sealing.owner = Some(owner_in(&owned(Some(TOKEN))));
+        anchor.sealing.token = Some(key_text(TOKEN));
+        let family = tisty_envelope::family::Family {
+            anchor,
+            others: vec![tongue_of("anaEnglish", "en", 0x12)],
+        };
+        let (key, certificate) = person(EDITOR);
+        let going =
+            tisty_envelope::family::sealed_family(&mut Writer::new(&key, &certificate), family)
+                .unwrap();
+        let read = reading(&going[0].sealed.main, &asked(), &nothing()).unwrap();
+        assert_eq!(read.document["languages"][0]["document"], "anaEnglish");
+        assert_eq!(read.document["languages"][0]["pending"], true);
     }
 
     #[test]
@@ -219,6 +253,8 @@ mod editing {
                 at: revoked.at.to_string(),
                 signed: revoked.sig,
             }]),
+            reviewed: None,
+            reviewed_received: None,
         };
         let read = reading(&main, &asked(), &served).unwrap();
         assert_eq!(read.verdict, Verdict::Doubtful);
@@ -674,6 +710,74 @@ fn sealed(family: Family) -> Result<Vec<tisty_envelope::family::Going>, Refused>
     sealed_family(&mut writer, family)
 }
 
+fn left_out_by(
+    anchor: &str,
+    language: &str,
+    by: &(ShareKey, Certificate),
+) -> tisty_contracts::Review {
+    let of = reviewing::of(&[1; 32], language).unwrap();
+    let said = reviewing::Said {
+        anchor,
+        of: &of,
+        seq: 1,
+        kept: None,
+    };
+    let signed = reviewing::signed(&by.0, &by.1, &said).unwrap();
+    serde_json::from_value(json!({
+        "of": URL_SAFE_NO_PAD.encode(&of),
+        "kept": false,
+        "seq": 1,
+        "root": signed.certificate.root,
+        "machine": signed.certificate.share,
+        "since": SINCE,
+        "certificate": signed.certificate.sig,
+        "signed": signed.sig,
+    }))
+    .unwrap()
+}
+
+fn map_after(left_out: tisty_contracts::Review) -> Vec<String> {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.document.reviews = Some(vec![left_out]);
+    let going = sealed(Family {
+        anchor,
+        others: vec![
+            tongue("hello", "en", Some(2)),
+            tongue("ola", "pt-BR", Some(3)),
+        ],
+    })
+    .unwrap();
+    let anchor =
+        document_of(&opened(&going[0].sealed.main, ("hola", "main"), Some(&the_key(1))).unwrap());
+    anchor["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["document"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[test]
+fn a_language_its_owner_left_out_never_goes_back_in_the_map() {
+    assert_eq!(map_after(left_out_by("hola", "hello", &signer())), ["ola"]);
+}
+
+#[test]
+fn a_left_out_someone_else_signed_leaves_the_map_as_it_is() {
+    let key = ShareKey::from_bytes(&[0x56; 32]);
+    let certificate =
+        Root::from_bytes(&[0x55; 32]).certify(&key.public(), SINCE.parse::<Timestamp>().unwrap());
+    let stranger = (key, certificate);
+    assert_eq!(
+        map_after(left_out_by("hola", "hello", &stranger)),
+        ["hello", "ola"]
+    );
+    assert_eq!(
+        map_after(left_out_by("otroDoc", "hello", &signer())),
+        ["hello", "ola"]
+    );
+}
+
 #[test]
 fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
     let going = sealed(Family {
@@ -690,6 +794,7 @@ fn each_language_goes_apart_and_only_the_anchor_holds_the_map() {
     assert_eq!(anchor["languages"][0]["lang"], "en");
     assert_eq!(anchor["languages"][0]["document"], "hello");
     assert_eq!(anchor["languages"][0]["key"], key_text(2));
+    assert!(anchor["languages"][0].get("pending").is_none());
     assert_eq!(anchor["languages"][1]["document"], "ola");
     let english =
         document_of(&opened(&going[1].sealed.main, ("hello", "main"), Some(&the_key(2))).unwrap());

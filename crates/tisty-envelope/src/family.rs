@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tisty_contracts::{Cited, Document, Sealing, Translation};
 
+use crate::reviews::LeftOut;
 use crate::sealing::{Refused, Sealed, Writer};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,7 +31,11 @@ pub struct Going {
 
 const OTHER_LANGUAGES_AT_MOST: usize = 19;
 
-fn translation_of(tongue: &Tongue, anchor_token: Option<&str>) -> Result<Translation, Refused> {
+fn translation_of(
+    tongue: &Tongue,
+    anchor_token: Option<&str>,
+    pending: bool,
+) -> Result<Translation, Refused> {
     let lang = tongue.document.lang.clone();
     let edit = match (anchor_token, tongue.sealing.token.as_deref()) {
         (Some(anchor), Some(token)) => Some(crate::tokens::sealed_for(
@@ -48,6 +53,7 @@ fn translation_of(tongue: &Tongue, anchor_token: Option<&str>) -> Result<Transla
         title: tongue.document.title.clone(),
         key: tongue.sealing.link_key.clone(),
         edit,
+        pending: pending.then_some(true),
     })
 }
 
@@ -135,11 +141,25 @@ fn languages_sealed(
                 })
             })
             .collect();
+        let owner = anchor
+            .sealing
+            .owner
+            .as_ref()
+            .map_or_else(|| writer.root().to_owned(), |one| one.root.clone());
+        let anothers = owner != writer.root();
         let mut map = others
             .iter()
-            .map(|one| translation_of(one, anchor.sealing.token.as_deref()))
+            .map(|one| {
+                let pending = anothers && one.sealing.owner.is_none();
+                translation_of(one, anchor.sealing.token.as_deref(), pending)
+            })
             .collect::<Result<Vec<_>, _>>()?;
         map.extend(untouched);
+        let reviews = anchor.document.reviews.as_deref().unwrap_or_default();
+        let anchor_key = anchor.sealing.link_key.as_deref();
+        if let Some(gone) = LeftOut::by(anchor_key, &anchor.sealing.id, &owner, reviews) {
+            map.retain(|one| !gone.names(&one.document));
+        }
         map.truncate(OTHER_LANGUAGES_AT_MOST);
         anchor.document.languages = Some(map);
         // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.

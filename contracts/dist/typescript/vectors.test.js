@@ -87,11 +87,17 @@ const ownerAnswers = async (manifest, signature, manifestBytes, index) => {
 };
 
 // An editor answers only for having signed this name for this document, and one that does not hold is left aside.
+const vouched = async (entry) => {
+  const root = b64(entry.root);
+  const machine = b64(entry.machine);
+  await verified(root, b64(entry.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(entry.since) / 1000));
+  return machine;
+};
+
 const editorHolds = async (entry) => {
   try {
     const root = b64(entry.root);
-    const machine = b64(entry.machine);
-    await verified(root, b64(entry.certificate), words("tisty-share.certificate.v1\0"), root, machine, be(Date.parse(entry.since) / 1000));
+    const machine = await vouched(entry);
     const about = words("editor");
     const id = words(entry.in);
     const name = words(entry.name);
@@ -296,6 +302,95 @@ const verdictOf = async ({ root, machine }, { received, revocations = [] }) => {
   return received !== undefined && received < counting.sort()[0] ? "retired" : "doubtful";
 };
 
+const hmacOf = async (key, ...pieces) => {
+  const held = await subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await subtle.sign("HMAC", held, joined(...pieces)));
+};
+const ofLanguage = (anchorKey, id) => hmacOf(anchorKey, words("tisty-language-review\0"), words(id));
+const text = (said) => {
+  assert.equal(typeof said, "string", "a review names what it keeps");
+  return words(said);
+};
+const sized = (said) => [be(said.length), said];
+const reviewBytes = (anchor, review) => {
+  const title = review.title === undefined ? new Uint8Array() : text(review.title);
+  const naming = review.kept ? [...sized(text(review.document)), ...sized(text(review.lang)), ...sized(title), b64(review.key), b64(review.print)] : [];
+  const about = words("language-review");
+  return joined(words("tisty-share.signed.v1\0"), b64(review.root), b64(review.machine), ...sized(about), ...sized(words(anchor)), b64(review.of), be(review.seq), new Uint8Array([review.kept ? 1 : 0]), ...naming);
+};
+
+const reviewHolds = async (anchor, owner, anchorKey, review) => {
+  try {
+    if (review.root !== owner) return false;
+    await verified(await vouched(review), b64(review.signed), reviewBytes(anchor, review));
+    return !review.kept || same(b64(review.of), await ofLanguage(anchorKey, review.document));
+  } catch {
+    return false;
+  }
+};
+
+const reviewsHash = async (anchor, reviews) => {
+  const each = await Promise.all(reviews.map((one) => sha(reviewBytes(anchor, one))));
+  each.sort((one, other) => Buffer.compare(Buffer.from(one), Buffer.from(other)));
+  return sha(words("tisty-language-reviews\0"), ...each);
+};
+
+const reviewedHolds = async (anchor, owner, reviews, head, served = {}) => {
+  try {
+    if (head?.anchor !== anchor || head.root !== owner) return false;
+    const about = words("reviewed");
+    const said = [words("tisty-share.signed.v1\0"), b64(head.root), b64(head.machine), ...sized(about), ...sized(words(anchor)), be(head.seq), b64(head.reviews)];
+    await verified(await vouched(head), b64(head.signed), ...said);
+    const weighed = await verdictOf(head, { received: served.reviewed_received, revocations: served.revocations });
+    return same(b64(head.reviews), await reviewsHash(anchor, reviews)) && (weighed === "holds" || weighed === "retired");
+  } catch {
+    return false;
+  }
+};
+
+const newerReview = (one, was) => !was || one.seq > was.seq || (one.seq === was.seq && Buffer.compare(Buffer.from(b64(one.machine)), Buffer.from(b64(was.machine))) > 0);
+
+const languagesShown = async ({ anchor, owner, link_key, map, languages, reviews, served = {}, seen = 0 }) => {
+  const anchorKey = b64(link_key);
+  const counting = (await reviewedHolds(anchor, owner, reviews, served.reviewed, served)) && served.reviewed.seq >= seen;
+  const latest = new Map();
+  for (const one of counting ? reviews : []) {
+    if ((await reviewHolds(anchor, owner, anchorKey, one)) && newerReview(one, latest.get(one.of))) latest.set(one.of, one);
+  }
+  const kept = [...latest.values()].filter((one) => one.kept);
+  const reached = new Set([...languages.filter((one) => one.root === owner && map.includes(one.document)).map((one) => one.document), ...kept.map((one) => one.document)]);
+  const shown = [];
+  for (const one of languages.filter((held) => reached.has(held.document))) {
+    const review = kept.find((keeps) => keeps.document === one.document);
+    const keeps = review?.lang === one.lang && review.print === one.print;
+    if (one.root === owner || keeps) shown.push(one.document);
+  }
+  return shown;
+};
+
+const printOf = async (parts) => sha(words("tisty-language-print\0"), ...(await Promise.all(parts.map((one) => sha(one)))));
+
+for (const { says, holds, review } of VECTORS.reviews.cases) {
+  test(`a review ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
+    const { anchor, owner, link_key } = VECTORS.reviews;
+    assert.equal(await reviewHolds(anchor, owner, b64(link_key), review), holds);
+    assert.equal(await reviewHolds(anchor, owner, b64(link_key), { ...review, since: "x" }), false);
+  });
+}
+
+for (const { says, holds, head } of VECTORS.reviewed.cases) {
+  test(`the word on the reviews ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
+    const { anchor, owner, reviews } = VECTORS.reviewed;
+    assert.equal(await reviewedHolds(anchor, owner, reviews, head), holds);
+  });
+}
+
+for (const one of VECTORS.languages_shown) {
+  test(`a reader shows what its owner keeps: ${one.says}`, async () => {
+    assert.deepEqual(await languagesShown(one), one.shown);
+  });
+}
+
 const hexOf = (parts) => parts.map((one) => Buffer.from(one).toString("hex"));
 const linkKey = b64(VECTORS.link_key);
 const MAIN = { id: "k7Qm2xPa", kind: "main" };
@@ -480,6 +575,11 @@ test("a main envelope gives its document, its pages and its pictures, with no ot
   assert.deepEqual(held, VECTORS.main.document);
   assert.deepEqual(hexOf(main.parts.slice(2)), VECTORS.main.pictures);
   held.pictures.forEach((one, at) => assert.ok(pictureHolds(main.parts[at + 2], one)));
+});
+
+test("a language's print answers for its parts once open, whatever head or number sealed them", async () => {
+  const { main } = await reading(hex(VECTORS.main.envelope), MAIN, linkKey);
+  assert.equal(Buffer.from(await printOf(main.parts)).toString("base64url"), VECTORS.main.print);
 });
 
 test("a files envelope gives its files, and the main envelope answers for it", async () => {
