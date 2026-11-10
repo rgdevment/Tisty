@@ -141,6 +141,7 @@ impl Persons {
     pub fn person(&self, device: &DeviceId) -> Option<Person> {
         self.newest(device, self.root_of(device).as_ref())
             .map(|one| one.person)
+            .filter(|one| self.owns(one))
     }
 
     pub fn vouched_by(&self, device: &DeviceId, root: &Person) -> Option<Vouched> {
@@ -165,6 +166,28 @@ impl Persons {
             .filter(|said| self.taken.contains(*said))
             .filter_map(|said| public_key(said))
             .filter(move |key| self.key_taken_back_by(key, root))
+    }
+
+    /// A store is one person's: the first root that vouched for a machine, while it still stands by one.
+    /// Another root's lines are kept, to tell whose writing is whose, and never speak for the store.
+    pub fn owner(&self) -> Option<Person> {
+        let taken: Vec<(Person, VerifyingKey)> = self
+            .revocations
+            .iter()
+            .filter_map(Revocation::unchecked)
+            .collect();
+        let standing: Vec<Person> = self
+            .vouches()
+            .filter(|one| !taken.contains(&(one.person, one.share)))
+            .map(|one| one.person)
+            .collect();
+        self.vouches()
+            .map(|one| one.person)
+            .find(|person| standing.contains(person))
+    }
+
+    fn owns(&self, root: &Person) -> bool {
+        self.owner() == Some(*root)
     }
 
     /// The log names a person once a certificate holds that nobody took back.
@@ -193,8 +216,7 @@ impl Persons {
 
     /// Whether this root is a person the log names, so a seed for another one never speaks here.
     pub fn names(&self, root: &Person) -> bool {
-        self.vouches()
-            .any(|one| one.person == *root && self.stands(&one))
+        self.owns(root)
     }
 
     pub fn waiting(
@@ -202,6 +224,9 @@ impl Persons {
         root: &Person,
         machines: &BTreeSet<DeviceId>,
     ) -> Vec<(DeviceId, VerifyingKey)> {
+        if !self.owns(root) {
+            return Vec::new();
+        }
         machines
             .iter()
             .filter(|device| self.root_of(device).is_none_or(|said| said == *root))
@@ -301,25 +326,36 @@ pub fn rooted(device: &DeviceId, persons: &Persons, root: &Person) -> Option<Op>
 }
 
 /// A machine without the phrase takes the store's one person as its root, once that root vouched for its key.
-/// A root only a certificate names could be anyone's; two persons in one store type the phrase on each machine.
+/// A root only a certificate names could be anyone's, and a store is only ever its owner's.
 pub fn adopted(device: &DeviceId, persons: &Persons, seated: &BTreeSet<DeviceId>) -> Option<Op> {
     if persons.roots.contains_key(device) {
         return None;
     }
-    let mut said = persons
+    let owner = persons.owner()?;
+    let said = persons
         .roots
         .iter()
         .filter(|(one, _)| *one != device && seated.contains(*one))
-        .filter_map(|(_, root)| Person::read(root));
-    let first = said.next()?;
-    if !said.all(|other| other == first) {
+        .filter_map(|(_, root)| Person::read(root))
+        .any(|root| root == owner);
+    if !said {
         return None;
     }
     let key = persons.current(device)?;
     persons
         .vouches()
-        .any(|one| one.share == key && one.person == first && persons.stands(&one))
-        .then(|| Op::ShareRoot { r: first.shown() })
+        .any(|one| one.share == key && one.person == owner && persons.stands(&one))
+        .then(|| Op::ShareRoot { r: owner.shown() })
+}
+
+/// Whose a history is, read from its certificates alone, without building the rest of it.
+pub fn owner_in(events: &[Event]) -> Option<Person> {
+    let nobody = BTreeSet::new();
+    let mut persons = Persons::default();
+    for one in events {
+        persons.took(one, &nobody, &nobody);
+    }
+    persons.owner()
 }
 
 /// A machine says its key only once the log names a person, so nobody else ever makes one.

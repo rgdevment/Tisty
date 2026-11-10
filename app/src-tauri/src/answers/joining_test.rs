@@ -108,10 +108,11 @@ fn a_new_machine_takes_a_named_history_it_has_never_taken() {
 }
 
 #[test]
-fn a_history_whose_names_clash_or_cannot_be_read_still_opens_the_doors() {
+fn a_history_whose_names_clash_cannot_be_read_or_is_another_person_s_still_opens_the_doors() {
     for kin in [
         tisty_carrier::Kin::Clash("mac_a".into()),
         tisty_carrier::Kin::Unsure("mac_a".into()),
+        tisty_carrier::Kin::OtherPerson("01ROOT".into()),
     ] {
         assert!(!may_adopt("otherStore", Some("01THEIRS"), &kin, None));
     }

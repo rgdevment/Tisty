@@ -102,6 +102,7 @@ fn kinned(kin: tisty_carrier::Kin) -> &'static str {
         tisty_carrier::Kin::SameLineage => "sameLineage",
         tisty_carrier::Kin::Clash(_) => "clash",
         tisty_carrier::Kin::Unsure(_) => "unsure",
+        tisty_carrier::Kin::OtherPerson(_) => "otherPerson",
         tisty_carrier::Kin::Strangers => "strangers",
     }
 }
@@ -269,7 +270,9 @@ pub(crate) fn may_adopt(
         && theirs.is_some_and(|one| took.map(str::trim) != Some(one))
         && !matches!(
             kin,
-            tisty_carrier::Kin::Clash(_) | tisty_carrier::Kin::Unsure(_)
+            tisty_carrier::Kin::Clash(_)
+                | tisty_carrier::Kin::Unsure(_)
+                | tisty_carrier::Kin::OtherPerson(_)
         )
 }
 

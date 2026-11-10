@@ -19,13 +19,13 @@ Cuando un equipo deja una carpeta, escribe en ella una nota corta, `README - Tis
 
 ## Un lugar que ya guarda un Tisty
 
-**Un equipo nuevo se une sin preguntar.** Si este equipo todavía no guarda nada tuyo —solo la guía y las listas iniciales que Tisty pone la primera vez que se abre—, simplemente toma lo que ya guarda la carpeta o tu Google Drive. Lo que tenía queda antes en un respaldo dentro de la carpeta privada de Tisty.
+**Un equipo nuevo se une sin preguntar.** Si este equipo todavía no guarda nada tuyo —solo la guía y las listas iniciales que Tisty pone la primera vez que se abre—, simplemente toma lo que ya guarda la carpeta o tu Google Drive. Lo que tenía queda antes en un respaldo dentro de la carpeta privada de Tisty. Si ya escribiste aquí tu frase de 24 palabras y la carpeta guarda el Tisty de otra persona, no toma nada solo: te pregunta.
 
 Muestra **«Trayendo tu Tisty desde …»**, con el nombre de la carpeta o de Google Drive, una barra en movimiento y los conteos a medida que llegan las cosas: la historia, después los documentos, después los adjuntos. Mientras más guarda el lugar, más tarda esta primera vuelta, y tus tareas llegan primero. **Seguir trabajando mientras llega** te deja entrar a Tisty mientras la ronda sigue: el pie de la barra lateral sigue contando lo que llega y, si la ronda no pudo terminar, ahí dice por qué. Si cierras Tisty, sigue donde quedó la próxima vez.
 
 Una ronda fallida suelta tampoco te detiene: entras y las rondas siguientes lo siguen intentando. Solo cuando sigue fallando se detiene a decir qué se interpone, con **Entrar de todos modos**.
 
-Si guarda algo que hiciste tú —una tarea, un documento, una lista tuya, un cambio en la guía—, Tisty te pregunta, nombrando el lugar: **Fusionar las dos**, **Conservar esta máquina** o **Quedarme con lo de la carpeta** (**Quedarme con lo de Google Drive**). Elijas lo que elijas, antes se escribe un respaldo, y si hay una sincronización en curso tu elección espera a que termine.
+Si guarda algo que hiciste tú —una tarea, un documento, una lista tuya, un cambio en la guía—, Tisty te pregunta, nombrando el lugar: **Fusionar las dos**, **Conservar esta máquina** o **Quedarme con lo de la carpeta** (**Quedarme con lo de Google Drive**). Elijas lo que elijas, antes se escribe un respaldo, y si hay una sincronización en curso tu elección espera a que termine. Si lo que guarda el lugar responde a la frase de otra persona, **Fusionar las dos** no aparece: un Tisty es siempre de una sola persona.
 
 Si tu nube está cifrada, antes hay que autorizar al equipo nuevo: mira [Tus otros equipos](#tus-otros-equipos).
 
