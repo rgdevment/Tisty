@@ -1078,7 +1078,7 @@ fn a_certificate_dated_long_past_the_line_carrying_it_is_not_kept() {
 }
 
 #[test]
-fn a_machine_two_roots_vouched_for_waits_for_the_phrase() {
+fn a_machine_another_root_also_vouched_for_still_takes_the_owner_s() {
     let mut two = Two::new();
     let (_room, stranger) = stranger_in(&mut two);
     let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
@@ -1090,7 +1090,12 @@ fn a_machine_two_roots_vouched_for_waits_for_the_phrase() {
         140,
     );
 
-    assert!(adopting(&two).is_none());
+    assert_eq!(
+        adopting(&two),
+        Some(Op::ShareRoot {
+            r: seed().root().person().shown()
+        })
+    );
 }
 
 #[test]
@@ -1166,6 +1171,61 @@ fn a_machine_that_said_its_root_answers_to_it_even_before_that_root_vouched_for_
     assert_eq!(
         two.state().persons.answers_to(&device("dev_d")),
         vec![seed().root().person()]
+    );
+}
+
+#[test]
+fn the_owner_stays_the_owner_when_its_first_key_is_retired_after_a_stranger_came() {
+    let owner = seed().root();
+    let stranger = Seed::from_bytes(&[9; 32]).root();
+    let first = ShareKey::from_bytes(&[1; 32]).public();
+    let theirs = ShareKey::from_bytes(&[2; 32]).public();
+    let next = ShareKey::from_bytes(&[3; 32]).public();
+    let state = State::replay(&[
+        said(
+            "dev_a",
+            Op::ShareCertified {
+                c: owner.certify(&first, at(100)),
+            },
+            100,
+        ),
+        said(
+            "dev_c",
+            Op::ShareCertified {
+                c: stranger.certify(&theirs, at(110)),
+            },
+            110,
+        ),
+        said(
+            "dev_a",
+            Op::ShareCertified {
+                c: owner.certify(&next, at(120)),
+            },
+            120,
+        ),
+        said(
+            "dev_a",
+            Op::ShareRevoked {
+                r: owner.revoke(&first, at(120)),
+                machine: false,
+            },
+            120,
+        ),
+    ]);
+
+    assert_eq!(state.persons.owner(), Some(owner.person()));
+}
+
+#[test]
+fn another_person_s_root_never_keeps_a_new_machine_from_taking_the_owner_s() {
+    let mut two = Two::new();
+    let (_room, _stranger) = stranger_in(&mut two);
+
+    assert_eq!(
+        adopting(&two),
+        Some(Op::ShareRoot {
+            r: seed().root().person().shown()
+        })
     );
 }
 

@@ -784,10 +784,10 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
     if shared {
         return Kin::SameLineage;
     }
-    if let (Some(mine), Some(theirs)) = (owner_of(store), owner_of(&there))
-        && mine != theirs
-    {
-        return Kin::OtherPerson(theirs);
+    match (owner_of(store), owner_of(&there)) {
+        (Err(why), _) | (_, Err(why)) => return Kin::Unsure(why),
+        (Ok(Some(mine)), Ok(Some(theirs))) if mine != theirs => return Kin::OtherPerson(theirs),
+        _ => {}
     }
     match named_on_both(store, &there).into_iter().next() {
         Some(named) => Kin::Clash(named),
@@ -795,12 +795,10 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
     }
 }
 
-fn owner_of(store: &Path) -> Option<String> {
-    let events = tisty_core::store::read_all(store).ok()?;
-    tisty_core::State::replay(&events)
-        .persons
-        .owner()
-        .map(|one| one.shown())
+// A history that cannot be read could be anyone's, so it is never taken for nobody's.
+fn owner_of(store: &Path) -> Result<Option<String>, String> {
+    let events = tisty_core::store::read_all(store).map_err(|e| e.to_string())?;
+    Ok(tisty_core::person::owner_in(&events).map(|one| one.shown()))
 }
 
 fn every_name(store: &Path) -> std::collections::BTreeSet<String> {
