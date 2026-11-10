@@ -347,6 +347,71 @@ fn a_seam_says_which_history_was_absorbed_and_which_one_survived() {
     assert_ne!(seam.absorbed, seam.survivor);
 }
 
+fn answering_to(who: &Machine, phrase: u8) {
+    let root = tisty_share_proto::seed::Seed::from_bytes(&[phrase; 32]).root();
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[phrase ^ 0xff; 32]).public();
+    signing(who)
+        .append(Op::ShareCertified {
+            c: root.certify(&key, jiff::Timestamp::now()),
+        })
+        .unwrap();
+}
+
+#[test]
+fn another_person_s_history_is_never_stitched_into_this_one() {
+    let one = machine("uno");
+    let two = machine("dos");
+    answering_to(&one, 1);
+    answering_to(&two, 2);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert!(matches!(
+        kinship(&one.store, shared.path()),
+        Kin::OtherPerson(_)
+    ));
+    let outcome = stitch(&one.data, &one.device, shared.path(), None);
+    assert!(
+        matches!(outcome, Err(Trouble::OtherPerson(_))),
+        "{outcome:?}"
+    );
+}
+
+#[test]
+fn a_history_that_cannot_be_read_is_never_taken_for_nobody_s() {
+    let one = machine("uno");
+    let two = machine("dos");
+    answering_to(&one, 1);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+    let broken = shared.path().join(STORE).join("tres");
+    std::fs::create_dir_all(&broken).unwrap();
+    std::fs::write(broken.join("000001.tisty"), b"not a segment").unwrap();
+
+    assert_eq!(
+        kinship(&one.store, shared.path()),
+        Kin::Unsure("tres".into())
+    );
+    let outcome = stitch(&one.data, &one.device, shared.path(), None);
+    assert!(
+        matches!(outcome, Err(Trouble::Unreadable(_))),
+        "{outcome:?}"
+    );
+}
+
+#[test]
+fn the_same_person_s_two_histories_still_stitch() {
+    let one = machine("uno");
+    let two = machine("dos");
+    answering_to(&one, 1);
+    answering_to(&two, 1);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let done = stitch(&one.data, &one.device, shared.path(), None).unwrap();
+    assert!(done.stitch.is_some());
+}
+
 #[test]
 fn stitching_where_there_is_no_folder_says_so_instead_of_something_else() {
     let one = machine("uno");

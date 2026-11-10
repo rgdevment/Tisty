@@ -91,6 +91,8 @@ pub enum Trouble {
     Unsealed(String),
     OtherPhrase(String),
     MarkDamaged(String),
+    /// The place's history is another person's, and a store is only ever one person's.
+    OtherPerson(String),
 }
 
 impl Trouble {
@@ -122,6 +124,7 @@ impl Trouble {
             Trouble::Unsealed(_) => "unsealed",
             Trouble::OtherPhrase(_) => "other-phrase",
             Trouble::MarkDamaged(_) => "mark-damaged",
+            Trouble::OtherPerson(_) => "other-person",
         }
     }
 }
@@ -747,6 +750,8 @@ pub enum Kin {
     SameLineage,
     Clash(String),
     Unsure(String),
+    /// Each history names a person, and not the same one.
+    OtherPerson(String),
 }
 
 pub fn kinship(store: &Path, dest: &Path) -> Kin {
@@ -779,10 +784,32 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
     if shared {
         return Kin::SameLineage;
     }
+    match (owner_of(store), owner_of(&there)) {
+        (Err(why), _) | (_, Err(why)) => return Kin::Unsure(why),
+        (Ok(Some(mine)), Ok(Some(theirs))) if mine != theirs => return Kin::OtherPerson(theirs),
+        _ => {}
+    }
     match named_on_both(store, &there).into_iter().next() {
         Some(named) => Kin::Clash(named),
         None => Kin::Strangers,
     }
+}
+
+// A history that cannot be read could be anyone's, so it is never taken for nobody's.
+fn owner_of(store: &Path) -> Result<Option<String>, String> {
+    let events = tisty_core::store::read_all(store).map_err(|_| unreadable_in(store))?;
+    Ok(tisty_core::person::owner_in(&events).map(|one| one.shown()))
+}
+
+fn unreadable_in(store: &Path) -> String {
+    std::fs::read_dir(store)
+        .into_iter()
+        .flatten()
+        .filter_map(|one| one.ok())
+        .filter(|one| one.path().is_dir())
+        .find(|one| tisty_core::store::check_device(&one.path()).is_err())
+        .and_then(|one| one.file_name().to_str().map(str::to_string))
+        .unwrap_or_default()
 }
 
 fn every_name(store: &Path) -> std::collections::BTreeSet<String> {
@@ -839,6 +866,7 @@ pub fn stitch(
     match &kin {
         Kin::Clash(named) => return Err(Trouble::SameName(named.clone())),
         Kin::Unsure(named) => return Err(Trouble::Unreadable(named.clone())),
+        Kin::OtherPerson(theirs) => return Err(Trouble::OtherPerson(theirs.clone())),
         _ => {}
     }
 

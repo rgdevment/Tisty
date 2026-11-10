@@ -1106,7 +1106,7 @@ export const takeOver = (into: string): Promise<number> => invoke("take_over", {
 
 export const mergeStores = (into: string): Promise<boolean> => invoke("merge_stores", { into });
 
-export type Kin = "sameLineage" | "clash" | "unsure" | "strangers";
+export type Kin = "sameLineage" | "clash" | "unsure" | "strangers" | "otherPerson";
 
 export const syncKin = (): Promise<Kin> => invoke("sync_kin");
 

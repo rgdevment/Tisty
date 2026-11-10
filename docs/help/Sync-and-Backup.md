@@ -19,13 +19,13 @@ When a machine leaves a folder, it writes a short note in it, `README - Tisty.tx
 
 ## A place that already holds a Tisty
 
-**A new computer joins without asking.** If this computer holds nothing of yours yet — only the guide and the starting lists Tisty puts there the first time it opens — it simply takes what the folder or your Google Drive already holds. What it had is kept first in a backup inside Tisty's private folder.
+**A new computer joins without asking.** If this computer holds nothing of yours yet — only the guide and the starting lists Tisty puts there the first time it opens — it simply takes what the folder or your Google Drive already holds. What it had is kept first in a backup inside Tisty's private folder. If you already typed your 24-word phrase here and the folder holds another person's Tisty, it takes nothing on its own: it asks.
 
 It shows **«Bringing your Tisty from …»**, naming the folder or Google Drive, with a moving bar and counts as things arrive: the history, then documents, then attachments. The more the place holds, the longer this first round takes, and your tasks arrive first. **Keep working while it arrives** lets you into Tisty while the round goes on: the foot of the sidebar keeps counting what arrives and, if the round could not finish, says why there. If you close Tisty, it carries on where it left off next time.
 
 A single failed round does not hold you back either: you go in and later rounds keep trying. Only when it keeps failing does it stop to say what stands in the way, with **Go in anyway**.
 
-If it holds anything you made — a task, a document, a list of your own, a change to the guide — Tisty asks instead, naming the place: **Merge the two**, **Keep this machine**, or **Take what the folder has** (**Take what Google Drive has**). Whatever you pick, a backup is written first, and if a sync is under way your choice waits for it to finish.
+If it holds anything you made — a task, a document, a list of your own, a change to the guide — Tisty asks instead, naming the place: **Merge the two**, **Keep this machine**, or **Take what the folder has** (**Take what Google Drive has**). Whatever you pick, a backup is written first, and if a sync is under way your choice waits for it to finish. If what the place holds answers to another person's phrase, **Merge the two** is not there: a Tisty is only ever one person's.
 
 If your cloud is encrypted, a new computer is let in first: see [Your other computers](#your-other-computers).
 

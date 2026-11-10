@@ -1679,6 +1679,8 @@ const en = {
     "Nothing was synced, in either direction. Your cloud is encrypted and this computer does not hold its key yet. If it was already one of your computers, your others hand it the key on their own as soon as one of them is on. What you write here stays here meanwhile.",
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
+  otherPerson:
+    "Nothing was merged. That history answers to another person's 24-word phrase, and a Tisty is only ever one person's. Keep this machine's history, or take the other one instead.",
   cloudMarkDamaged:
     "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is in the cloud, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
   sealingNoCloud: "Tisty does not sync with a cloud here, so there is nothing to encrypt.",
@@ -1780,6 +1782,8 @@ const en = {
     "Both hold a machine by the same name that wrote different things under it. Joining them would put two histories into one file, so that door is shut. What is left keeps one of the two sides — and the other side keeps its own, on its own machine.",
   apartWhy:
     "It is not a fault: they are two separate histories, and Tisty never puts two together without asking. Pick what happens.",
+  apartPersonWhy:
+    "That history answers to another person's 24-word phrase. A Tisty is only ever one person's, so the two are never merged. What is left keeps one of the two sides — and the other side keeps its own, on its own machine.",
   apartMerge: "Merge the two",
   apartMergeWhy: "Everything you have here and everything that is there, together.",
   apartMergeHow:
@@ -4692,6 +4696,8 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada y este equipo todavía no tiene su llave. Si ya era uno de tus equipos, los otros se la entregan solos apenas uno de ellos esté encendido. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
+  otherPerson:
+    "No se fusionó nada. Ese historial responde a la frase de 24 palabras de otra persona, y un Tisty es siempre de una sola persona. Conserva el historial de este equipo, o toma el otro en su lugar.",
   cloudMarkDamaged:
     "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay en la nube, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
   sealingNoCloud: "Aquí Tisty no se sincroniza con una nube, así que no hay nada que cifrar.",
@@ -4793,6 +4799,8 @@ const es: Catalog = {
     "Las dos guardan una máquina llamada igual que escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo archivo, así que esa puerta está cerrada. Lo que queda conserva uno de los dos lados — y el otro conserva el suyo, en su propia máquina.",
   apartWhy:
     "No es un error: son dos historiales distintos, y Tisty nunca junta dos sin preguntar. Elige qué pasa.",
+  apartPersonWhy:
+    "Ese historial responde a la frase de 24 palabras de otra persona. Un Tisty es siempre de una sola persona, así que los dos nunca se fusionan. Lo que queda conserva uno de los dos lados — y el otro conserva el suyo, en su propia máquina.",
   apartMerge: "Fusionar las dos",
   apartMergeWhy: "Lo que tienes aquí y lo que hay allí, todo junto.",
   apartMergeHow:

@@ -80,13 +80,14 @@ export default function Apart({ kin, cloud, onPick, onElse, onClose }: Props) {
     );
   }
 
-  const shown = kin === "clash" ? DOORS.filter((one) => one.key !== "merge") : DOORS;
+  const apart = kin === "clash" || kin === "otherPerson";
+  const shown = apart ? DOORS.filter((one) => one.key !== "merge") : DOORS;
+  const why: Word =
+    kin === "otherPerson" ? "apartPersonWhy" : kin === "clash" ? "apartClashWhy" : "apartWhy";
 
   return (
     <Modal title={say("apartTitle")} onClose={onClose}>
-      <p className="px-1 text-[13px] leading-relaxed text-soft">
-        {t(kin === "clash" ? "apartClashWhy" : "apartWhy")}
-      </p>
+      <p className="px-1 text-[13px] leading-relaxed text-soft">{t(why)}</p>
 
       <ul className="mt-3 flex flex-col gap-2">
         {shown.map((door) => (
