@@ -121,6 +121,15 @@ report will never be dismissed for being inconvenient.
   An encrypted cloud raises it, so a release that does not know encryption never
   writes plain files beside the sealed ones. Each machine also writes into the
   log the release it runs, so Tisty can say which computer is behind.
+- **A Tisty is one person's.** Since 1.44, a store belongs to the first
+  identity that vouched for one of its machines and still stands by it. Another
+  person's machine that writes into the same place is still named as the writer
+  of its lines, but it never signs as you and its phrase vouches for no machine
+  of yours; **Merge the two** is refused when the other history answers to
+  another person's phrase, and a machine new to your log has to sign what it
+  writes. A copy of someone else's writing stays theirs whichever way it
+  arrives — copied, joined, carried in a parcel or shared — with its pages,
+  versions, languages and files.
 - **No plugin system.** Nothing loads third-party code into the process.
 - **`unsafe` is forbidden** at the workspace level, not merely discouraged. The
   window's crate is the one exception, and a narrow one: it denies `unsafe`
@@ -437,7 +446,11 @@ stays in the clear, and that is all Folio can read of it.
 it, which your identity's root has certified. A sealed document names its owner
 in a signed block that stays through every version. An edit link adds a token
 that never reaches Folio: an editor signs the next version with their own key and
-that token, and the owner does not change.
+that token, and the owner does not change. Each language of a document shared to
+edit has a token of its own, sealed inside the first language's signed map
+under a key drawn from that language's token, so one edit link opens them all
+and changing it changes them all. A language that does not name that document,
+or answers to another owner, stays in Folio.
 
 **What Tisty takes in.** A document that arrives through a link is checked and
 opened on your computer, and what comes in is its body in Tisty's own language,
