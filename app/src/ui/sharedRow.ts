@@ -279,6 +279,23 @@ const whoSaid = ({ owner, signer, editors, signsAs }: ShareCard) => [
   ...(signsAs?.now ? [fill("shareSignsAs", signsAs.now)] : []),
 ];
 
+// One root signs as the owner, the last edit and an editor alike, so it is listed once, by its first role.
+const printsOf = ({ owner, signer, editors }: ShareCard) => {
+  const rows = new Map<string, string>();
+  const add = (label: string, one: Named) => {
+    if (one.print && !rows.has(one.print)) rows.set(one.print, label);
+  };
+  if (owner) add(fill("sharedPrintOwner", shown(owner)), owner);
+  if (signer) add(fill("sharedPrintSigner", shown(signer)), signer);
+  for (const one of editors) add(shown(one), one);
+  if (!rows.size) return undefined;
+  return {
+    label: t("sharedPrints"),
+    note: t("sharedPrintsWhy"),
+    rows: [...rows].map(([print, label]) => [label, print] as const),
+  };
+};
+
 const leavingActs = (h: Hands): Act[] => {
   const other = h.card.signsAs?.other;
   const signing: Act[] = other
@@ -480,6 +497,7 @@ export const useSharedRow = (
         ...saidOf(hands.status, told, stopping, renewing),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
+      prints: printsOf(hands.card),
       links: linksOf(hands.card, hands.status),
       acts: stopping
         ? stoppingActs(hands)

@@ -135,6 +135,39 @@ describe("the Shared row", () => {
     await waitFor(() => expect(panel().said).toContain(fill("shareSignsAs", "Ana Pérez")));
   });
 
+  it("lists each root's fingerprint once, by its first role, to compare elsewhere", async () => {
+    const { panel } = await held({
+      ...card,
+      taken: true,
+      owner: { name: "Mario", checked: true, print: "70686 67560 35161 46791" },
+      signer: { name: "Ana", checked: false, print: "48210 93755 12880 63349" },
+      editors: [
+        { name: "Ana", checked: false, print: "48210 93755 12880 63349" },
+        { name: "Juan", checked: false, print: "11111 22222 33333 44444" },
+        { name: "Pedro", checked: false, print: null },
+      ],
+    });
+
+    expect(panel().prints).toEqual({
+      label: t("sharedPrints"),
+      note: t("sharedPrintsWhy"),
+      rows: [
+        [fill("sharedPrintOwner", fill("sharedChecked", "Mario")), "70686 67560 35161 46791"],
+        [fill("sharedPrintSigner", "Ana"), "48210 93755 12880 63349"],
+        ["Juan", "11111 22222 33333 44444"],
+      ],
+    });
+  });
+
+  it("shows no fingerprints when nobody named on it has one", async () => {
+    const { panel } = await held({
+      ...card,
+      owner: { name: "Mario", checked: false, print: null },
+    });
+
+    expect(panel().prints).toBeUndefined();
+  });
+
   it("names only the owner when the owner signed the version a copy holds", async () => {
     const { panel } = await held({
       ...card,

@@ -8,6 +8,7 @@ use tisty_envelope::sealing::{link_key, permit_shown};
 use tisty_sharing::{Remembered, Told};
 
 use super::folio::{Card, ToFolio, apart, card_of, keeping, kept_on, remembered_of};
+use super::folio_standing::print_of;
 use super::folio_sync::{Synced, doc_share_sync};
 use crate::{Answer, Refusal, Session, held};
 
@@ -16,6 +17,7 @@ use crate::{Answer, Refusal, Session, held};
 pub struct Named {
     name: String,
     checked: bool,
+    print: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -48,10 +50,12 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
         .filter(|_| was.admin_token.is_none())
         .map(|name| Named {
             checked: checked(owner_root.as_deref()),
+            print: owner_root.as_deref().and_then(print_of),
             name,
         });
     let signer = was.version_by.clone().map(|name| Named {
         checked: checked(was.version_root.as_deref()),
+        print: was.version_root.as_deref().and_then(print_of),
         name,
     });
     let editors = editors
@@ -60,6 +64,7 @@ pub(super) fn who_of(was: &Remembered, maker: Option<&str>) -> Who {
         .map(|one| Named {
             name: one.name.clone(),
             checked: checked(Some(&one.root)),
+            print: print_of(&one.root),
         })
         .collect();
     Who {
