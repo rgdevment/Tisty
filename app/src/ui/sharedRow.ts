@@ -9,6 +9,8 @@ import {
   shareAppeal,
   shareCard,
   shareEditLinkRenewed,
+  shareLanguageAdopted,
+  shareLanguageDropped,
   sharePause,
   shareSignAs,
   shareStatus,
@@ -17,6 +19,7 @@ import {
   shareWaiting,
   toldPlainly,
 } from "../sharing";
+import { tongueName } from "../tongues";
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
@@ -163,17 +166,55 @@ const statusAfterSync = (h: Hands) => {
   if (!h.card.taken) void statusNow(h).catch(() => {});
 };
 
+const cardAgain = (h: Hands) =>
+  void shareCard(h.doc)
+    .then((card) => card && h.setCard(card))
+    .catch(() => {});
+
 const syncNow = (h: Hands) => {
   h.setTold(null);
   void Promise.resolve(h.onKeep?.())
     .then(() => shareSync(h.doc, h.accepted))
-    .then((synced) => syncAnswered(h, synced))
+    .then((synced) => {
+      syncAnswered(h, synced);
+      // Another's version may name a language the owner has to review.
+      if (synced.state === "otherVersion") cardAgain(h);
+    })
     .catch(h.failing)
     .finally(() => {
       h.askWaiting();
       statusAfterSync(h);
     });
 };
+
+// A language someone who edits added waits for its owner, who adopts it or leaves it out (166).
+const proposedSaid = ({ proposed }: ShareCard) =>
+  proposed.map(({ lang, by }) =>
+    by
+      ? fill("shareLanguageProposed", by, tongueName(lang))
+      : fill("shareLanguageProposedUnnamed", tongueName(lang)),
+  );
+
+const proposedActs = (h: Hands): Act[] =>
+  h.card.proposed.flatMap(({ lang }) => [
+    {
+      key: `adopt-${lang}`,
+      label: fill("shareLanguageAdopt", tongueName(lang)),
+      onPick: () =>
+        void shareLanguageAdopted(h.doc, lang)
+          .then((synced) => syncAnswered(h, synced))
+          .catch(h.failing)
+          .finally(() => cardAgain(h)),
+    },
+    {
+      key: `drop-${lang}`,
+      label: fill("shareLanguageDrop", tongueName(lang)),
+      onPick: () =>
+        void shareLanguageDropped(h.doc, lang)
+          .catch(h.failing)
+          .finally(() => cardAgain(h)),
+    },
+  ]);
 
 const syncAct = (h: Hands): Act => ({
   key: "sync",
@@ -475,6 +516,7 @@ export const useSharedRow = (
       ...gistOf(hands.card, hands.status),
       said: [
         ...whoSaid(hands.card),
+        ...proposedSaid(hands.card),
         ...saidOf(hands.status, told, stopping, renewing),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
@@ -483,7 +525,7 @@ export const useSharedRow = (
         ? stoppingActs(hands)
         : renewing
           ? renewingActs(hands)
-          : [syncAct(hands), ...rest],
+          : [syncAct(hands), ...proposedActs(hands), ...rest],
     };
   }, [doc, told, stopping, renewing, hands, onKeep]);
 

@@ -749,6 +749,7 @@ pub struct Card {
     signer: Option<Named>,
     editors: Vec<Named>,
     signs_as: Option<SignsAs>,
+    proposed: Vec<super::folio_languages::ProposedShown>,
 }
 
 pub(super) fn card_of(
@@ -774,6 +775,10 @@ pub(super) fn card_of(
         signer: who.signer,
         editors: who.editors,
         signs_as: signs_as(was, signature),
+        proposed: match taken {
+            true => Vec::new(),
+            false => super::folio_languages::shown_of(was),
+        },
     })
 }
 

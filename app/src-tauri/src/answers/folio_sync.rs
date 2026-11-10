@@ -457,9 +457,16 @@ async fn other_version_brought(
 ) -> Answer<Synced> {
     let (shared_id, key) = (was.id.clone(), was.link_key.clone().unwrap_or_default());
     let home = held(session).paths.private();
-    let opened = apart(move || {
+    let owner_of_the_anchor = was.admin_token.is_some() && was.held_by.is_none();
+    let held_ids = super::folio_languages::held_ids(&held(session).state, was);
+    let (opened, proposals) = apart(move || {
         let door = ToFolio::new(&home)?;
-        opened_from(&door, &shared_id, &key)
+        let opened = opened_from(&door, &shared_id, &key)?;
+        let proposals = match owner_of_the_anchor {
+            true => super::folio_languages::proposals_in(&door, &opened, &held_ids),
+            false => Vec::new(),
+        };
+        Ok((opened, proposals))
     })
     .await?;
     // Folio never serves below what it saved, so a lower number is not to be taken for news (85).
@@ -509,7 +516,10 @@ async fn other_version_brought(
             guest_page(&mut session, page, by.clone(), up)?;
         }
     }
-    let now = kept_after(was, &opened, &received);
+    let mut now = kept_after(was, &opened, &received);
+    if !proposals.is_empty() {
+        now.carried = super::folio_languages::proposals_merged(&now, proposals);
+    }
     kept_on(&mut session, &[(file, now)])?;
     let doubtful = opened.doubtful();
     Ok(Synced::OtherVersion {

@@ -92,6 +92,7 @@ export interface ShareCard {
   signer: Named | null;
   editors: Named[];
   signsAs: { now: string | null; other: string | null } | null;
+  proposed: { lang: string; by: string | null }[];
 }
 
 export type Synced =
@@ -191,6 +192,12 @@ export const shareSignAs = (id: string, name: string): Promise<ShareCard> =>
 
 export const shareEditLinkRenewed = (id: string): Promise<Synced> =>
   invoke("doc_share_edit_link_renewed", { id });
+
+export const shareLanguageAdopted = (id: string, lang: string): Promise<Synced> =>
+  invoke("doc_share_language_adopted", { id, lang });
+
+export const shareLanguageDropped = (id: string, lang: string): Promise<void> =>
+  invoke("doc_share_language_dropped", { id, lang });
 
 export const shareWaiting = (id: string, look: boolean): Promise<ShareWaiting> =>
   invoke("doc_share_waiting", { id, look });

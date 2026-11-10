@@ -22,6 +22,7 @@ const card = {
   signer: null,
   editors: [],
   signsAs: null,
+  proposed: [],
 };
 const status = {
   diesOn: 20_000,
@@ -101,6 +102,28 @@ describe("the Shared row", () => {
     const none = await held(null);
     expect(none.panel().open).toBeUndefined();
     expect(none.panel().mark).toBe(t("sharedBeta"));
+  });
+
+  it("tells the owner of a language someone who edits added, and adopts it or leaves it out", async () => {
+    const proposing = {
+      ...card,
+      edit: "https://tisty.cl/a#k.t",
+      proposed: [{ lang: "fr", by: "Ana" }],
+    };
+    const { panel, pressed } = await held(proposing, {
+      doc_share_language_adopted: { state: "sent", version: 3, told: [], termsUnchecked: false },
+      doc_share_language_dropped: null,
+      doc_share_status: status,
+      doc_share_waiting: { until: null, pending: false },
+    });
+    const french = new Intl.DisplayNames(["fr"], { type: "language" }).of("fr") ?? "fr";
+    const named = french.charAt(0).toLocaleUpperCase("fr") + french.slice(1);
+
+    expect(panel().said).toContain(fill("shareLanguageProposed", "Ana", named));
+    await pressed("adopt-fr");
+    expect(invoked).toHaveBeenCalledWith("doc_share_language_adopted", { id: "d1", lang: "fr" });
+    await pressed("drop-fr");
+    expect(invoked).toHaveBeenCalledWith("doc_share_language_dropped", { id: "d1", lang: "fr" });
   });
 
   it("names what can be edited and its second link", async () => {

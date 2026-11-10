@@ -165,6 +165,17 @@ fn guest_added(
     by: Option<String>,
     page_of: Option<tisty_core::model::DocId>,
 ) -> Answer<tisty_core::model::DocId> {
+    kept_as(session, file, body, (true, by), page_of)
+}
+
+/// What arrived kept as someone else's copy, or as the person's own when they adopt it.
+fn kept_as(
+    session: &mut Session,
+    file: String,
+    body: &str,
+    (guest, by): (bool, Option<String>),
+    page_of: Option<tisty_core::model::DocId>,
+) -> Answer<tisty_core::model::DocId> {
     // Only the guide Tisty sows speaks as Tisty; a name like it from Folio is kept as no name.
     let by = by.filter(|one| !tisty_core::state::same_name(one, tisty_core::untouched::SOWN_BY));
     let order = tisty_core::order::last_of(
@@ -180,7 +191,7 @@ fn guest_added(
         id,
         d: tisty_core::event::DocAdd {
             wrote: None,
-            guest: true,
+            guest,
             sown: false,
             made: None,
             by,
@@ -201,11 +212,19 @@ fn written(session: &Session, body: &str) -> Answer<String> {
         .map_err(|_| Refusal::of("folioGarbled"))
 }
 
-// Pages are written first, so the document's words can point at them as this store does.
 pub(super) fn guests_kept(
     session: &mut Session,
     received: &Received,
     by: Option<String>,
+) -> Answer<(tisty_core::model::DocId, String)> {
+    all_kept_as(session, received, (true, by))
+}
+
+// Pages are written first, so the document's words can point at them as this store does.
+pub(super) fn all_kept_as(
+    session: &mut Session,
+    received: &Received,
+    (guest, by): (bool, Option<String>),
 ) -> Answer<(tisty_core::model::DocId, String)> {
     let files = received
         .pages
@@ -223,9 +242,9 @@ pub(super) fn guests_kept(
             )
         });
     let file = written(session, &body)?;
-    let doc = guest_added(session, file.clone(), &body, by.clone(), None)?;
+    let doc = kept_as(session, file.clone(), &body, (guest, by.clone()), None)?;
     for (page, its) in received.pages.iter().zip(files) {
-        guest_added(session, its, page, by.clone(), Some(doc))?;
+        kept_as(session, its, page, (guest, by.clone()), Some(doc))?;
     }
     Ok((doc, file))
 }
@@ -347,7 +366,7 @@ fn languages_brought(
         .collect()
 }
 
-fn reviewed(anchor: &Opened, its: &Opened) -> bool {
+pub(super) fn reviewed(anchor: &Opened, its: &Opened) -> bool {
     anchor.owner_root.is_some() && anchor.owner_root == its.owner_root
 }
 
@@ -364,7 +383,7 @@ fn language_link(link: &Link, one: &Translation, its: &Opened) -> Option<Link> {
 }
 
 // Languages join by what each says it is, so one that arrived without saying it in its words says it now.
-fn saying_its_language(mut arrived: Received, lang: Option<&str>) -> Received {
+pub(super) fn saying_its_language(mut arrived: Received, lang: Option<&str>) -> Received {
     if let Some(lang) = lang.filter(|_| tisty_markdown::front::lang(&arrived.body).is_none()) {
         arrived.body = tisty_markdown::front::with_field(&arrived.body, "lang", lang);
     }

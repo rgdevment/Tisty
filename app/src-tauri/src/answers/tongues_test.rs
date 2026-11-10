@@ -276,3 +276,74 @@ fn a_refused_join_leaves_both_documents_as_they_were() {
     assert_eq!(body_of(&session, es), "# Red\n");
     assert_eq!(body_of(&session, other), "# Network\n");
 }
+
+#[test]
+fn whoever_edits_through_a_link_translates_into_a_language_of_their_own() {
+    let mut desk = desk();
+    let session = &mut desk.session;
+    session
+        .commit(Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some("ana".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let body = "---\nlang: es\n---\n# Viaje\n";
+    let made =
+        tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body).unwrap();
+    let anchor = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id: anchor,
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body)),
+                guest: true,
+                by: Some("mario".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let editing = |admin: Option<&str>| tisty_sharing::Remembered {
+        id: "Anchor12".into(),
+        version: 1,
+        link_key: Some("key".into()),
+        files_print: None,
+        files_hash: None,
+        files_key: None,
+        admin_token: admin.map(str::to_owned),
+        edit_token: Some("token".into()),
+        words_print: None,
+        signed_as: None,
+        owner: None,
+        owner_name: None,
+        cited: Vec::new(),
+        held_by: None,
+        ttl_days: None,
+        carried: None,
+        sealed_under: None,
+        version_by: None,
+        version_root: None,
+        left_out: Vec::new(),
+    };
+    session
+        .commit(Op::SharingKept {
+            file: made.id,
+            d: editing(None),
+        })
+        .unwrap();
+
+    let english = translated(session, &anchor.to_string(), "en", None).unwrap();
+    let kept = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == english.id)
+        .unwrap();
+
+    assert!(!kept.guest);
+    assert_eq!(kept.by.as_deref(), Some("ana"));
+    assert!(session.state.mine(kept));
+}

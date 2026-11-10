@@ -35,7 +35,18 @@ pub fn translated(
         write_lang(session, &kept, &said)?;
     }
     let anchor = session.state.anchor_of(&kept);
-    let made = session.copy_doc_as(id, &|body| {
+    // Whoever edits through a link may add a language, and it is a document of their own (150).
+    let editing = session
+        .state
+        .docs
+        .get(&anchor)
+        .and_then(|one| {
+            tisty_sharing::remembered(&session.state)
+                .get(&one.file)
+                .cloned()
+        })
+        .is_some_and(|one| one.edited_through_a_link());
+    let made = session.copy_doc_as(id, editing, &|body| {
         let body = tisty_markdown::front::without_field(body, tisty_core::tongues::TRANSLATION_KEY);
         tisty_markdown::front::with_field(&body, "lang", &lang)
     })?;

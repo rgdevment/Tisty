@@ -592,7 +592,7 @@ impl Session {
 
     pub fn copy_doc(&mut self, id: &str) -> Answer<tisty_core::docs::Doc> {
         let copy = worded(&self.locale, "copy");
-        self.copy_doc_as(id, &|body| {
+        self.copy_doc_as(id, false, &|body| {
             // A copy is no translation, so it takes no key that would join it to the other languages.
             let body =
                 tisty_markdown::front::without_field(body, tisty_core::tongues::TRANSLATION_KEY);
@@ -603,10 +603,11 @@ impl Session {
         })
     }
 
-    /// A copy of a document and its pages, its own words written as `told` says.
+    /// A copy of a document and its pages, its own words written as `told` says, and the person's own when `written_here`.
     pub fn copy_doc_as(
         &mut self,
         id: &str,
+        written_here: bool,
         told: &dyn Fn(&str) -> String,
     ) -> Answer<tisty_core::docs::Doc> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
@@ -650,7 +651,9 @@ impl Session {
         let twin = ulid::Ulid::generate();
         let me = self.state.persons.person(&self.config.device_id);
         // Marked as a guest copy too: the copy is made on this machine, which would otherwise vouch for it as mine.
-        let owned_as = |one: &tisty_core::model::Kept| match self.state.theirs(one, me.as_ref()) {
+        let owned_as = |one: &tisty_core::model::Kept| match self.state.theirs(one, me.as_ref())
+            && !written_here
+        {
             true => (true, one.by.clone()),
             false => (false, signing(&self.state)),
         };
