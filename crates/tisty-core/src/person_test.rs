@@ -81,7 +81,13 @@ impl Two {
 
     fn vouch(&mut self, second: i64) -> usize {
         let state = self.state();
-        let ops = certified(&seed(), &state.persons, &machines(&state), at(second));
+        let ops = certified(
+            &seed(),
+            &state.persons,
+            &machines(&state),
+            &device("dev_a"),
+            at(second),
+        );
         let made = ops.len();
         self.wrote("dev_a", ops, second);
         made
@@ -661,8 +667,11 @@ fn the_log_names_the_person_and_no_other() {
     let persons = two.state().persons;
 
     assert!(persons.names_a_person());
-    assert!(persons.names(&seed().root().person()));
-    assert!(!persons.names(&Seed::from_bytes(&[9; 32]).root().person()));
+    assert!(persons.names(&seed().root().person(), &device("dev_a")));
+    assert!(!persons.names(
+        &Seed::from_bytes(&[9; 32]).root().person(),
+        &device("dev_a")
+    ));
     assert!(!Persons::default().names_a_person());
 }
 
@@ -1105,7 +1114,13 @@ fn a_root_does_not_vouch_for_a_machine_that_answers_to_another() {
     two.wrote("dev_b", vec![op], 125);
     let (_room, stranger) = stranger_in(&mut two);
     let state = two.state();
-    let vouched = certified(&stranger, &state.persons, &machines(&state), at(140));
+    let vouched = certified(
+        &stranger,
+        &state.persons,
+        &machines(&state),
+        &device("dev_c"),
+        at(140),
+    );
 
     assert!(vouched.is_empty(), "{vouched:?}");
 }
@@ -1213,7 +1228,7 @@ fn the_owner_stays_the_owner_when_its_first_key_is_retired_after_a_stranger_came
         ),
     ]);
 
-    assert_eq!(state.persons.owner(), Some(owner.person()));
+    assert_eq!(state.persons.owner(&device("dev_a")), Some(owner.person()));
 }
 
 #[test]
@@ -1235,18 +1250,56 @@ fn another_person_s_machine_in_the_store_never_speaks_for_it() {
     let (_room, stranger) = stranger_in(&mut two);
     let state = two.state();
     let them = stranger.root().person();
+    let here = device("dev_a");
 
-    assert_eq!(state.persons.owner(), Some(seed().root().person()));
-    assert_eq!(state.persons.person(&device("dev_c")), None);
-    assert!(!state.persons.names(&them));
+    assert_eq!(state.persons.owner(&here), Some(seed().root().person()));
+    assert_ne!(
+        state.persons.person(&device("dev_c")),
+        Some(seed().root().person())
+    );
+    assert!(!state.persons.names(&them, &here));
     assert!(
         state
             .persons
-            .waiting(&them, &BTreeSet::from([device("dev_a"), device("dev_b")]))
+            .waiting(
+                &them,
+                &BTreeSet::from([device("dev_a"), device("dev_b")]),
+                &here
+            )
             .is_empty(),
         "another phrase could vouch for this store's machines"
     );
     assert_eq!(state.persons.answers_to(&device("dev_c")), vec![them]);
+}
+
+#[test]
+fn a_certificate_dated_before_the_owner_s_never_takes_the_store_from_a_machine_that_said_its_root()
+{
+    let mut two = Two::new();
+    let op = adopting(&two).unwrap();
+    two.wrote("dev_b", vec![op], 125);
+    let (_room, stranger) = stranger_in(&mut two);
+    let anyone = ShareKey::from_bytes(&[5; 32]).public();
+    two.events.insert(
+        0,
+        said(
+            "dev_c",
+            Op::ShareCertified {
+                c: stranger.root().certify(&anyone, at(1)),
+            },
+            1,
+        ),
+    );
+    let state = two.state();
+    let owner = seed().root().person();
+    assert_eq!(owner_in(&two.events), Some(stranger.root().person()));
+
+    for here in [device("dev_a"), device("dev_b")] {
+        assert_eq!(state.persons.owner(&here), Some(owner));
+        assert_eq!(state.persons.person(&here), Some(owner));
+        assert!(state.persons.names(&owner, &here));
+        assert!(!state.persons.names(&stranger.root().person(), &here));
+    }
 }
 
 #[test]

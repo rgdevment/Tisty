@@ -21,12 +21,9 @@ fn the_phrase_of_this_cloud_keeps_its_key_and_signs_for_this_computer_without_ke
         Some(key(7).named_for(&two.cloud))
     );
     assert!(crate::identity::phrase_key(&two.asker).unwrap().is_none());
-    assert!(
-        held(&two.asker)
-            .state
-            .persons
-            .names(&seed(7).root().person())
-    );
+    let asker = held(&two.asker);
+    let here = &asker.config.device_id;
+    assert!(asker.state.persons.names(&seed(7).root().person(), here));
 }
 
 #[test]

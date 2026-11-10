@@ -470,7 +470,8 @@ fn ours_vouched(session: &Mutex<Session>, answer: &Handed, ask: &Ask) -> bool {
     let persons = &session.state.persons;
     matches!(
         answer.vouched_for(ask, &persons.revocations),
-        tisty_share_proto::identity::Verdict::Holds { person, .. } if persons.names(&person)
+        tisty_share_proto::identity::Verdict::Holds { person, .. }
+            if persons.names(&person, &session.config.device_id)
     )
 }
 
