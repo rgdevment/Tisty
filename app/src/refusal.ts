@@ -133,6 +133,7 @@ const KNOWN = [
   "cloudOtherPhrase",
   "otherPerson",
   "importedFromTisty",
+  "pageOfAnother",
   "cloudMarkDamaged",
   "sealingNoCloud",
   "sealingPhrase",

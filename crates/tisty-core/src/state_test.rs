@@ -5057,3 +5057,36 @@ fn a_machine_taken_off_the_list_is_heard_no_more() {
             .contains_key(&crate::event::DeviceId("dev_b".into()))
     );
 }
+
+#[test]
+fn someone_else_s_writing_hangs_only_under_the_same_hand() {
+    let added = |n: i64, guest: bool, by: Option<&str>| {
+        ev(
+            n,
+            "dev_a",
+            Op::DocAdd {
+                id: ulid::Ulid::from_parts(n as u64, 0),
+                d: crate::event::DocAdd {
+                    file: format!("f{n}"),
+                    order: format!("a{n}"),
+                    guest,
+                    by: by.map(str::to_owned),
+                    ..Default::default()
+                },
+            },
+        )
+    };
+    let state = State::replay(&[
+        added(1, true, Some("ana")),
+        added(2, false, Some("mario")),
+        added(3, true, Some("bea")),
+        added(4, true, Some("Ana")),
+        added(5, false, None),
+    ]);
+    let doc = |n: u64| &state.docs[&ulid::Ulid::from_parts(n, 0)];
+
+    assert!(!State::may_hang_under(doc(1), doc(2)));
+    assert!(!State::may_hang_under(doc(1), doc(3)));
+    assert!(State::may_hang_under(doc(1), doc(4)));
+    assert!(State::may_hang_under(doc(5), doc(1)));
+}

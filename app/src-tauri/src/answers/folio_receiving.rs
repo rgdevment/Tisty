@@ -289,7 +289,7 @@ fn with_its_print(app: &AppHandle, doc: tisty_core::model::DocId, entry: (String
     let _ = held(&session).commit_all(tisty_sharing::sent(&[(file, entry)]));
 }
 
-// A token the owner's block does not name is no edit link, so the copy is kept as one to read.
+// A token the owner's block does not name is no edit link: it is turned away, never kept as one to read in silence.
 fn editable(link: &Link, opened: &Opened) -> bool {
     link.token.as_deref().is_some_and(|token| {
         super::folio_editing::named_by_the_block(opened.owner.as_deref(), token)
@@ -438,6 +438,9 @@ fn brought(app: &AppHandle, web: &url::Url) -> Answer<Option<String>> {
     let Some(opened) = looked_for(&door, &link, || question(app, LinkQuestion::Look))? else {
         return Ok(None);
     };
+    if link.token.is_some() && !editable(&link, &opened) {
+        return Err(Refusal::of("folioEditLinkMismatch"));
+    }
     if !asked_to_keep(app, &opened) {
         return Ok(None);
     }

@@ -238,10 +238,15 @@ fn a_document_signed_as_tisty_put_in_the_guide_and_copied_is_never_the_makers_to
 }
 
 #[test]
-fn keeping_both_with_a_version_someone_else_signed_keeps_it_theirs() {
+fn keeping_both_with_a_version_someone_else_signed_keeps_it_theirs_whatever_name_it_took() {
     use super::super::papers::{Arrived, other_version_kept};
     let tmp = tempfile::tempdir().unwrap();
-    let (mut session, _) = named(&tmp);
+    let (mut session, me) = named(&tmp);
+    let me = me.shown();
+    let stranger = tisty_share_proto::seed::Seed::from_bytes(&[8; 32])
+        .root()
+        .person()
+        .shown();
     session
         .commit(tisty_core::Op::Signed {
             d: tisty_core::event::Signature {
@@ -253,7 +258,10 @@ fn keeping_both_with_a_version_someone_else_signed_keeps_it_theirs() {
     let made = tisty_core::docs::create(
         &session.paths.docs(),
         &session.config.device_id,
-        "# Paseos\n\nlo mío.\n",
+        "# Paseos
+
+lo mío.
+",
     )
     .unwrap();
     session
@@ -274,24 +282,31 @@ fn keeping_both_with_a_version_someone_else_signed_keeps_it_theirs() {
             .unwrap();
         session.state.docs[&doc_of(session, &file)].clone()
     };
-    let hers = keep(
+    let posing = keep(
         &mut session,
-        "# Paseos\n\nlo de Ana.\n",
-        Arrived::SignedAs(Some("ana")),
+        "# Paseos
+
+lo de Ana con mi nombre.
+",
+        Arrived::Folio {
+            root: &stranger,
+            name: Some("mario"),
+        },
     );
-    let nameless = keep(
+    let mine_unnamed = keep(
         &mut session,
-        "# Paseos\n\nde nadie.\n",
-        Arrived::SignedAs(None),
-    );
-    let mine = keep(
-        &mut session,
-        "# Paseos\n\notra mía.\n",
-        Arrived::SignedAs(Some("mario")),
+        "# Paseos
+
+mío sin nombre.
+",
+        Arrived::Folio {
+            root: &me,
+            name: None,
+        },
     );
 
-    assert!(hers.guest && hers.by.as_deref() == Some("ana"));
-    assert!(nameless.guest && nameless.by.is_none());
-    assert!(!mine.guest);
-    assert!(session.state.mine(&mine));
+    assert!(posing.guest && posing.by.as_deref() == Some("mario"));
+    assert!(!session.state.mine(&posing));
+    assert!(!mine_unnamed.guest);
+    assert!(session.state.mine(&mine_unnamed));
 }

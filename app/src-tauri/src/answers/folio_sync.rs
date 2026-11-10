@@ -484,7 +484,10 @@ async fn other_version_brought(
         &file,
         received.body.clone(),
         Some(marked),
-        Arrived::SignedAs(received.signed_as.as_deref()),
+        Arrived::Folio {
+            root: &opened.signer,
+            name: received.signed_as.as_deref(),
+        },
     )?;
     let holder = match kept {
         Some(made) => doc_of_file(&session, &made),

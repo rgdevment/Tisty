@@ -163,8 +163,11 @@ pub(crate) fn arrived_as(
     folder: Option<tisty_core::model::FolderId>,
     turned: impl FnOnce(String) -> String,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
-    let paths = held(session).paths.clone();
-    outside_tisty(&paths, from)?;
+    let (paths, own) = {
+        let session = held(session);
+        (session.paths.clone(), tistys_own(&session))
+    };
+    outside_tisty(&own, from)?;
     let (raw, room) = read_any(from)?;
     let raw = turned(raw);
     let near = room
@@ -176,7 +179,7 @@ pub(crate) fn arrived_as(
         let at = at
             .canonicalize()
             .map_err(|_| "no file is there".to_string())?;
-        match tistys_own(&paths, &at) {
+        match own.iter().any(|one| at.starts_with(one)) {
             true => Err("it is one of Tisty's own files".to_string()),
             false => Ok(at),
         }
@@ -207,16 +210,24 @@ pub(crate) fn arrived_as(
     Ok((doc, id, left))
 }
 
-fn tistys_own(paths: &tisty_core::Paths, at: &std::path::Path) -> bool {
+/// Every folder that holds Tisty's own files: its data, settings and cache, and the place it syncs to.
+pub(crate) fn tistys_own(session: &Session) -> Vec<std::path::PathBuf> {
+    let paths = &session.paths;
     [paths.data(), paths.config(), paths.cache()]
-        .iter()
+        .into_iter()
+        .map(std::path::Path::to_path_buf)
+        .chain(session.place())
+        .chain(session.histories())
         .filter_map(|one| one.canonicalize().ok())
-        .any(|one| at.starts_with(one))
+        .collect()
 }
 
 // A file inside Tisty's own folders is a document already here, someone else's copy included, never one to bring in as new.
-pub(crate) fn outside_tisty(paths: &tisty_core::Paths, from: &std::path::Path) -> Answer<()> {
-    match from.canonicalize().is_ok_and(|at| tistys_own(paths, &at)) {
+pub(crate) fn outside_tisty(own: &[std::path::PathBuf], from: &std::path::Path) -> Answer<()> {
+    match from
+        .canonicalize()
+        .is_ok_and(|at| own.iter().any(|one| at.starts_with(one)))
+    {
         true => Err(Refusal::of("importedFromTisty")),
         false => Ok(()),
     }

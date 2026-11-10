@@ -219,6 +219,29 @@ fn cut_loose(served: &Served, book: &str, page: &str) {
 }
 
 #[test]
+fn someone_else_s_document_is_never_hung_under_the_person_s_own() {
+    let served = Served::new();
+    let book = served.wrote(
+        "# Actas
+
+de este año.",
+        None,
+    );
+    let hers = served.theirs(
+        "# De Ana
+
+lo suyo.",
+    );
+
+    let said = served.refused(
+        "page_doc",
+        serde_json::json!({ "doc": hers, "page_of": book }),
+    );
+    assert!(said.contains("someone else's writing"), "{said}");
+    assert!(!served.body_of(&book).contains(&hers));
+}
+
+#[test]
 fn hanging_a_document_as_a_page_writes_the_line_that_names_it_at_the_end() {
     let served = Served::new();
     let book = served.wrote("# Actas\n\nde este año.", None);
@@ -387,6 +410,35 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
 }
 
 impl Served {
+    /// Someone else's writing, kept the way a copy received from them is.
+    fn theirs(&self, body: &str) -> String {
+        self.wrote(
+            "# Mío
+
+algo.",
+            None,
+        );
+        let store = self.data().join("store");
+        let events = tisty_core::store::read_all(&store).unwrap();
+        let device = events.last().unwrap().device.clone();
+        let made = tisty_core::docs::create(&self.data().join("docs"), &device, body).unwrap();
+        tisty_core::Store::open(&store, device)
+            .unwrap()
+            .append(tisty_core::Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: made.id.clone(),
+                    order: "z0".into(),
+                    said: Some(tisty_core::event::Said::of(body)),
+                    guest: true,
+                    by: Some("ana".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        made.id
+    }
+
     fn bolt(&self, doc: &str) {
         let store = self.data().join("store");
         let events = tisty_core::store::read_all(&store).unwrap();
@@ -5086,42 +5138,20 @@ fn tongue_doc_says_what_it_needs_before_it_joins_anything() {
 #[test]
 fn someone_else_s_document_is_not_translated_into_the_person_s_own() {
     let served = Served::new();
-    served.wrote(
-        "# Mío
-
-algo.",
-        None,
-    );
-    let store = served.data().join("store");
-    let events = tisty_core::store::read_all(&store).unwrap();
-    let device = events.last().unwrap().device.clone();
-    let body = "---
+    let made = served.theirs(
+        "---
 lang: es
 ---
 # De Ana
 
-lo suyo.";
-    let made = tisty_core::docs::create(&served.data().join("docs"), &device, body).unwrap();
-    tisty_core::Store::open(&store, device)
-        .unwrap()
-        .append(tisty_core::Op::DocAdd {
-            id: ulid::Ulid::generate(),
-            d: tisty_core::event::DocAdd {
-                file: made.id.clone(),
-                order: "z0".into(),
-                said: Some(tisty_core::event::Said::of(body)),
-                guest: true,
-                by: Some("ana".into()),
-                ..Default::default()
-            },
-        })
-        .unwrap();
+lo suyo.",
+    );
 
     let said = served.refused(
         "write_doc",
         serde_json::json!({ "body": "# Ana's
 
-hers.", "translation_of": made.id, "lang": "en" }),
+hers.", "translation_of": made, "lang": "en" }),
     );
     assert!(said.contains("someone else's writing"), "{said}");
 }

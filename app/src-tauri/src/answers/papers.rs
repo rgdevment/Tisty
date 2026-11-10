@@ -639,6 +639,11 @@ pub fn doc_page(
             Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(_) => {}
         }
+        if let (Some(page), Some(over)) = (session.state.docs.get(&id), session.state.docs.get(&up))
+            && !tisty_core::State::may_hang_under(page, over)
+        {
+            return Err(Refusal::of("pageOfAnother"));
+        }
         // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
         if session.state.docs.get(&id).is_some_and(|one| one.archived) {
             return Err(Refusal::of("awayStaysAway"));
@@ -757,11 +762,14 @@ pub async fn settle_paper(
     Ok(answer)
 }
 
-/// Where the other version came from: one of the person's own machines, or Folio under the name it was signed with.
+/// Where the other version came from: one of the person's own machines, or Folio, signed by a root under a name.
 #[derive(Clone, Copy)]
 pub(super) enum Arrived<'a> {
     Here,
-    SignedAs(Option<&'a str>),
+    Folio {
+        root: &'a str,
+        name: Option<&'a str>,
+    },
 }
 
 // Asked again about the same arrival, keeping both must not leave one more copy each time.
@@ -813,9 +821,8 @@ pub(super) fn other_version_kept(
         .filter(|kept| session.state.theirs(kept, me.as_ref()));
     let (guest, by) = match (theirs, arrived) {
         (Some(kept), _) => (true, kept.by.clone()),
-        (None, Arrived::SignedAs(name))
-            if !name.is_some_and(|one| session.state.mine_to_write(one)) =>
-        {
+        // The name is whatever its signer chose, so only the root says the version is mine.
+        (None, Arrived::Folio { root, name }) if me.is_none_or(|me| me.shown() != root) => {
             (true, name.map(str::to_owned))
         }
         _ => (false, signing(&session.state)),
