@@ -232,6 +232,23 @@ describe("the Shared row", () => {
     expect(panel().said).not.toContain(t("shareRenewed"));
   });
 
+  it("says the new link opens only once the version Folio holds back goes", async () => {
+    const editable = { ...card, edit: "https://tisty.cl/a#k.old" };
+    const { panel, pressed } = await held(editable);
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_edit_link_renewed")
+        return Promise.reject({ code: "folioWait", name: String(Date.now() + 300_000) });
+      if (command === "doc_share_card") return Promise.resolve(editable);
+      return Promise.resolve(null);
+    });
+
+    await pressed("renewAsk");
+    await pressed("renew");
+
+    await waitFor(() => expect(panel().said).toContain(t("shareRenewHeld")));
+    expect(panel().acts?.find((one) => one.key === "sync")?.off).toBe(true);
+  });
+
   it("offers no edit link to change where nobody may edit", async () => {
     const { panel } = await held(card);
 

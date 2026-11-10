@@ -197,7 +197,10 @@ const renewNow = (h: Hands) => {
         h.setTold(`${syncedWords(synced)} ${t("shareRenewWaits")}`);
       else syncAnswered(h, synced);
     })
-    .catch(h.failing)
+    .catch((problem) => {
+      h.failing(problem);
+      if (codeOf(problem) === "folioWait" && untilOf(problem) > 0) h.setTold(t("shareRenewHeld"));
+    })
     .finally(() => {
       void shareCard(h.doc)
         .then((card) => card && h.setCard(card))
