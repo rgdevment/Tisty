@@ -16,7 +16,7 @@ For an assistant Tisty does not know, one line does it, with the full path that 
 $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 ```
 
-Where `<your-assistant>` is whatever yours is called. Then let it in from **Settings › Assistants**. The rest is in [[Assistants and MCP|Assistants-and-MCP]].
+Where `<your-assistant>` is whatever yours is called. If you closed the door, open it again in **Settings › Assistants**. The rest is in [[Assistants and MCP|Assistants-and-MCP]].
 
 ## If you used the command line
 

@@ -16,7 +16,7 @@ Para un asistente que Tisty no conoce, basta una línea, con la ruta completa qu
 $ <tu-asistente> mcp add tisty -- <ruta-a-tisty> mcp
 ```
 
-Donde `<tu-asistente>` es como se llame el tuyo. Después déjalo entrar desde **Configuración › Asistentes**. Lo demás está en [[Asistentes y MCP|Asistentes-y-MCP]].
+Donde `<tu-asistente>` es como se llame el tuyo. Si cerraste la puerta, vuelve a abrirla en **Configuración › Asistentes**. Lo demás está en [[Asistentes y MCP|Asistentes-y-MCP]].
 
 ## Si usabas la línea de comandos
 

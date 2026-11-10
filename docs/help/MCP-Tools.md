@@ -1,6 +1,6 @@
 # MCP tools reference
 
-The tools `tisty mcp` offers an assistant. The assistant picks them on its own; this list is so you know what it can reach. Every tool works on this machine only, and while the door in **Settings › Assistants** is closed, everything is refused.
+The tools `tisty mcp` offers an assistant. The assistant picks them on its own; this list is so you know what it can reach. Every tool works on this machine only. The door comes open on its own until you choose — on a new install, and on an update if you never closed it — and while you keep it closed from **Settings › Assistants**, everything is refused.
 
 Each tool also tells the app the assistant runs in what it does to your things: whether it only reads, whether it can write over or take away something already there, and whether doing it twice changes anything more. An app can use this to ask you before the ones that write.
 
