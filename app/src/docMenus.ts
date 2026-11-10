@@ -32,7 +32,6 @@ export interface Hands {
   parcels: {
     takeParcel: () => unknown;
     packUp: (which: string[], named: string) => unknown;
-    takeOutAll: () => unknown;
   };
   changed: () => void;
   fail: (problem: unknown) => void;
@@ -69,12 +68,6 @@ export const hereChoices = (h: Hands, folder?: string): Choice[] => [
     icon: "⇪",
     label: t("packAll"),
     onPick: () => h.parcels.packUp([], "tisty"),
-  },
-  {
-    key: "takeOutAll",
-    icon: "⇪",
-    label: t("takeOutAll"),
-    onPick: () => h.parcels.takeOutAll(),
   },
 ];
 
@@ -142,12 +135,6 @@ export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
     icon: "⇪",
     label: t("packAll"),
     onPick: () => h.parcels.packUp([], "tisty"),
-  },
-  {
-    key: "takeOutAll",
-    icon: "⇪",
-    label: t("takeOutAll"),
-    onPick: () => h.parcels.takeOutAll(),
   },
   {
     // Only the folder that was shelved answers for itself; one below it comes back with it.

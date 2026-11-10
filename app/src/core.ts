@@ -1410,7 +1410,7 @@ export const docExport = (id: string, into: string): Promise<Taken> =>
   invoke("doc_export", { id, into });
 
 export interface Afoot {
-  stage: "packing" | "takingOut" | "landing";
+  stage: "packing" | "landing";
   far: number;
   done: number;
   whole: number;
@@ -1439,8 +1439,6 @@ export const docsPack = (which: string[], into: string, number?: string): Promis
   invoke("docs_pack", { which, into, number });
 export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
   invoke("docs_unpack", { from, number });
-export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
-  invoke("docs_take_out", { which, into });
 export const docFromHtml = (html: string): Promise<string> => invoke("doc_from_html", { html });
 
 export const docFromText = (text: string): Promise<string | null> =>

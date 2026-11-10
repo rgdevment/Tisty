@@ -1,6 +1,6 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
-import { type Afoot, docsPack, docsTakeOut, docsUnpack, spelled } from "../core";
+import { type Afoot, docsPack, docsUnpack, spelled } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { HOW_MANY } from "./Digits";
@@ -12,12 +12,11 @@ interface Hands {
   afoot: Afoot | null;
   setAfoot: (afoot: Afoot | null) => void;
   setError: (text: string) => void;
-  noted: (text: string) => void;
   said: (text: string, since: number) => void;
   papersChanged: () => void;
 }
 
-export function useParcels({ afoot, setAfoot, setError, noted, said, papersChanged }: Hands) {
+export function useParcels({ afoot, setAfoot, setError, said, papersChanged }: Hands) {
   const [whoFor, setWhoFor] = useState<string | null>(null);
   const [movingTo, setMovingTo] = useState<string | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
@@ -69,40 +68,6 @@ export function useParcels({ afoot, setAfoot, setError, noted, said, papersChang
         setError(saidPlainly(e));
       });
   };
-
-  const takeOutAll = () =>
-    afoot
-      ? Promise.resolve()
-      : pick({ directory: true })
-          .then((at) => {
-            if (typeof at !== "string") return null;
-            setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
-            return docsTakeOut([], at);
-          })
-          .then((took) => {
-            setAfoot(null);
-            if (!took) return;
-            const many = took.docs;
-            if (took.missed > 0 || took.left > 0) {
-              setError(
-                took.missed > 0
-                  ? fill("packedShort", String(many), String(took.missed))
-                  : fill("packedLess", String(many), String(took.left)),
-              );
-              return;
-            }
-            noted(
-              many === 1
-                ? t("tookOutOne")
-                : took.folders
-                  ? fill("tookOutAll", String(many), String(took.folders))
-                  : fill("tookOutAllFlat", String(many)),
-            );
-          })
-          .catch((e) => {
-            setAfoot(null);
-            setError(saidPlainly(e));
-          });
 
   const takeParcel = () =>
     afoot
@@ -190,7 +155,6 @@ export function useParcels({ afoot, setAfoot, setError, noted, said, papersChang
 
   return {
     packUp,
-    takeOutAll,
     takeParcel,
     asking: whoFor !== null || movingTo !== null || locked !== null,
     shown,

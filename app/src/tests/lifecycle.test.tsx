@@ -268,16 +268,6 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         missed: parcel.missed,
         left: parcel.left,
       });
-    case "docs_take_out":
-      parcel.packed.push({ which: args.which as string[], into: String(args.into) });
-      return Promise.resolve({
-        docs: parcel.docs,
-        pages: parcel.pages,
-        folders: parcel.folders,
-        files: parcel.files,
-        missed: parcel.missed,
-        left: parcel.left,
-      });
     case "docs_unpack":
       parcel.opened.push(args.number as string | undefined);
       if (parcel.locked && args.number !== parcel.locked) {
@@ -1236,21 +1226,6 @@ describe("what the menus reach for outside the tree", () => {
     await userEvent.click(screen.getByRole("button", { name: t("openLocked") }));
     await waitFor(() => expect(screen.getByText(fill("landedAlone", "3"))).toBeTruthy());
     expect(parcel.opened).toEqual([undefined, "000000", "123456"]);
-  });
-
-  it("writes everything out as plain markdown, saying how many folders it stood up", async () => {
-    seedDoc({ title: "Acta" });
-    picked.path = Promise.resolve("D:/salida");
-    parcel.docs = 5;
-    parcel.folders = 2;
-    await boot();
-
-    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: t("takeOutAll") }));
-
-    await waitFor(() => expect(parcel.packed).toHaveLength(1));
-    expect(parcel.packed[0].which).toEqual([]);
-    await waitFor(() => expect(screen.getByText(fill("tookOutAll", "5", "2"))).toBeTruthy());
   });
 
   it("says it is working, and how far along, rather than going quiet for minutes", async () => {

@@ -456,63 +456,6 @@ pub async fn docs_pack(
 }
 
 #[tauri::command(async)]
-pub async fn docs_take_out(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, Packing>,
-    which: Vec<String>,
-    into: String,
-) -> Answer<Packed> {
-    let _done = alone.inner().taken()?;
-    let (paths, state, beside) = standing(&session, &which);
-    let asked = which.clone();
-    let at = into.clone();
-    let telling = along_the_way(&app, "takingOut");
-    let sent = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::parcel::plainly(
-            paths.data(),
-            &state,
-            &asked,
-            std::path::Path::new(&at),
-            &tisty_core::parcel::Along {
-                also: beside.as_deref(),
-                say: Some(&telling),
-                then: None,
-            },
-        )
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(|e| {
-        witness::warn(
-            channel::WINDOW,
-            "the documents could not be taken out",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        match e {
-            tisty_core::Error::NothingToCarry => Refusal::of("nothingToCarry"),
-            _ => Refusal::about("cannotWrite", into.clone()),
-        }
-    })?;
-
-    if !sent.left.is_empty() {
-        witness::warn(
-            channel::WINDOW,
-            "documents went out without everything they point at",
-            &[("left", Fact::Count(sent.left.len()))],
-        );
-    }
-    Ok(Packed {
-        docs: sent.docs,
-        pages: sent.pages,
-        folders: sent.folders,
-        files: sent.files,
-        missed: sent.missed,
-        left: sent.left.len(),
-    })
-}
-
-#[tauri::command(async)]
 pub async fn docs_unpack(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,

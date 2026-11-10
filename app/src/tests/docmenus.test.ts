@@ -44,7 +44,7 @@ const hands = () => {
     makeFolder: vi.fn(),
     makeFolderIn: vi.fn(),
     rename: vi.fn(),
-    parcels: { takeParcel: vi.fn(), packUp: vi.fn(), takeOutAll: vi.fn() },
+    parcels: { takeParcel: vi.fn(), packUp: vi.fn() },
     changed: vi.fn(),
     fail: vi.fn(),
     failWith: vi.fn(),
@@ -80,7 +80,6 @@ describe("the menu of the documents themselves", () => {
     pick(choices, "newFolder").onPick?.();
     pick(choices, "unpack").onPick?.();
     pick(choices, "packAll").onPick?.();
-    pick(choices, "takeOutAll").onPick?.();
     pick(choices, "newDiagram").onPick?.();
     pick(hereChoices(h), "newDiagram").onPick?.();
 
@@ -90,7 +89,6 @@ describe("the menu of the documents themselves", () => {
     expect(h.makeFolder).toHaveBeenCalled();
     expect(h.parcels.takeParcel).toHaveBeenCalled();
     expect(h.parcels.packUp).toHaveBeenCalledWith([], "tisty");
-    expect(h.parcels.takeOutAll).toHaveBeenCalled();
   });
 });
 
@@ -105,7 +103,6 @@ describe("the menu of a folder", () => {
     pick(choices, "import").onPick?.();
     pick(choices, "unpack").onPick?.();
     pick(choices, "packAll").onPick?.();
-    pick(choices, "takeOutAll").onPick?.();
     pick(choices, "away").onPick?.();
     pick(choices, "drop").onPick?.();
     pick(choices, "newDiagram").onPick?.();

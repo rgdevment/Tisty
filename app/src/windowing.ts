@@ -127,7 +127,7 @@ export function useWindow() {
   const { setGreet, setStarring, setOffering, greeted, setLeaving } = overlays;
   const dismiss = useCallback(() => setCaptured(undefined), []);
 
-  const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
+  const parcels = useParcels({ afoot, setAfoot, setError, said, papersChanged });
 
   const { asking, marking, strip } = useMarking({
     chosen,
