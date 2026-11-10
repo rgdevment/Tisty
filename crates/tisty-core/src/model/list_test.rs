@@ -11,7 +11,7 @@ fn a_bare_list_serialises_to_the_minimum() {
 #[test]
 fn a_fresh_install_speaks_the_language_of_the_machine() {
     assert_eq!(
-        first_lists("es").map(|(name, _)| name),
+        first_lists("es").map(|(name, _, _)| name),
         [
             "Trabajo",
             "Personal",
@@ -22,14 +22,14 @@ fn a_fresh_install_speaks_the_language_of_the_machine() {
         ]
     );
     assert_eq!(
-        first_lists("en").map(|(name, _)| name),
+        first_lists("en").map(|(name, _, _)| name),
         ["Work", "Personal", "Family", "Money", "Health", "Learning"]
     );
 }
 
 #[test]
 fn a_fresh_install_covers_what_a_life_is_made_of() {
-    let names = first_lists("es").map(|(name, _)| name);
+    let names = first_lists("es").map(|(name, _, _)| name);
     assert_eq!(
         names.len(),
         6,
@@ -42,24 +42,43 @@ fn a_fresh_install_covers_what_a_life_is_made_of() {
 
 #[test]
 fn a_regional_spanish_is_still_spanish() {
-    assert_eq!(first_lists("es-CL").map(|(name, _)| name)[0], "Trabajo");
+    assert_eq!(first_lists("es-CL").map(|(name, _, _)| name)[0], "Trabajo");
     assert_eq!(
-        first_lists("es_419.UTF-8").map(|(name, _)| name)[0],
+        first_lists("es_419.UTF-8").map(|(name, _, _)| name)[0],
         "Trabajo"
     );
 }
 
 #[test]
 fn a_language_we_do_not_speak_is_served_in_english() {
-    assert_eq!(first_lists("fr").map(|(name, _)| name)[0], "Work");
-    assert_eq!(first_lists("").map(|(name, _)| name)[0], "Work");
+    assert_eq!(first_lists("fr").map(|(name, _, _)| name)[0], "Work");
+    assert_eq!(first_lists("").map(|(name, _, _)| name)[0], "Work");
 }
 
 #[test]
 fn every_first_list_wears_an_icon_the_catalogue_knows() {
-    for (_, icon) in first_lists("en") {
+    for (_, icon, _) in first_lists("en") {
         assert!(crate::model::icon::known(icon), "unknown icon: {icon}");
     }
+}
+
+#[test]
+fn every_first_list_wears_a_colour_of_its_own_from_the_palette() {
+    let hues: Vec<&str> = first_lists("en").iter().map(|(_, _, hue)| *hue).collect();
+    for hue in &hues {
+        assert!(
+            crate::model::hue::kept(hue).is_some(),
+            "unknown colour: {hue}"
+        );
+    }
+    let mut apart = hues.clone();
+    apart.sort_unstable();
+    apart.dedup();
+    assert_eq!(
+        apart.len(),
+        hues.len(),
+        "two first lists share a colour: {hues:?}"
+    );
 }
 
 #[test]

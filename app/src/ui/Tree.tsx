@@ -31,6 +31,8 @@ const guestSaid = (doc: Filed) => {
 
 interface Props {
   papers: Papers;
+  unfolded?: boolean;
+  reveal?: { folder: string; at: number } | null;
   open?: string;
   here?: string | null;
   /// The row whose menu is open, so a right click says which one it landed on.
@@ -47,6 +49,8 @@ interface Props {
 
 export default function Tree({
   papers,
+  unfolded = false,
+  reveal,
   open,
   here,
   acting,
@@ -246,6 +250,19 @@ export default function Tree({
   });
 
   useEffect(() => () => cancelAnimationFrame(rolling.current), []);
+
+  const answered = useRef(0);
+  useEffect(() => {
+    if (!reveal || reveal.at === answered.current) return;
+    answered.current = reveal.at;
+    const way = lineTo(reveal.folder);
+    setOpened((were) => new Set([...were, ...way]));
+    requestAnimationFrame(() =>
+      listed.current
+        ?.querySelector<HTMLElement>(`[data-row="${reveal.folder}"]`)
+        ?.scrollIntoView({ block: "nearest" }),
+    );
+  });
 
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
@@ -479,7 +496,7 @@ export default function Tree({
     const name = doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
-    const closed = !spread.has(doc.id) && !pages.some((one) => one.file === open);
+    const closed = !unfolded && !spread.has(doc.id) && !pages.some((one) => one.file === open);
     const mark = worn.mark ? (
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
@@ -610,7 +627,7 @@ export default function Tree({
   };
 
   const branch = (folder: Folded, depth: number) => {
-    const closed = !opened.has(folder.id);
+    const closed = !unfolded && !opened.has(folder.id);
     const kids = under(folder.id);
     const papersIn = inside(folder.id);
     return (
@@ -708,6 +725,7 @@ export default function Tree({
       !one.pageOf &&
       (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
   );
+  const looseOpen = unfolded || opened.has("unfiled");
 
   const tree = (
     <ul aria-label={t("docs")} className="flex flex-col gap-px">
@@ -735,8 +753,8 @@ export default function Tree({
         >
           <Grip
             at={8}
-            open={opened.has("unfiled")}
-            label={fill(opened.has("unfiled") ? "closeFolder" : "openFolder", t("unfiled"))}
+            open={looseOpen}
+            label={fill(looseOpen ? "closeFolder" : "openFolder", t("unfiled"))}
             controls="holds-unfiled"
             onPress={() => fold("unfiled")}
           >
@@ -767,14 +785,14 @@ export default function Tree({
             </span>
           </button>
         </div>
-        {opened.has("unfiled") && (
+        {looseOpen && (
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
             style={{ left: `${SPINE}px`, top: "30px" }}
           />
         )}
-        {opened.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
+        {looseOpen && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
       </li>
     </ul>
   );

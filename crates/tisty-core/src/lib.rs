@@ -15,6 +15,7 @@ pub mod counting;
 pub mod dated;
 pub mod docs;
 pub mod doubled;
+pub mod dressing;
 pub mod event;
 mod growing;
 pub mod guide_seal;

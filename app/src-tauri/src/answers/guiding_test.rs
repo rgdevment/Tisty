@@ -2,6 +2,7 @@ use super::sown;
 use crate::Session;
 use crate::answers::settings::WRITTEN_BY;
 use tisty_core::Paths;
+use tisty_core::untouched::{GUIDE_HUE, GUIDE_ICON};
 
 fn shipped(tongue: &str) -> Option<std::path::PathBuf> {
     Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("resources/guide/{tongue}")))
@@ -43,6 +44,11 @@ fn the_guide_comes_in_both_languages_as_one_document_opened_in_the_persons() {
         assert!(session.state.pages_of(one.id).iter().all(|page| page.sown));
     }
     assert_eq!(session.state.folders.len(), 1, "one folder holds both");
+    let held = session.state.folders.values().next().unwrap();
+    assert_eq!(held.icon.as_deref(), Some(GUIDE_ICON));
+    assert_eq!(held.color.as_deref(), Some(GUIDE_HUE));
+    assert!(tisty_core::model::icon::known(GUIDE_ICON));
+    assert!(tisty_core::model::hue::kept(GUIDE_HUE).is_some());
 
     let walks = std::fs::read_dir(paths.data().join("attachments"))
         .unwrap()

@@ -469,6 +469,32 @@ fn a_list_that_is_not_an_id_is_refused_rather_than_ignored() {
     assert!(view.resolve().is_err());
 }
 
+#[test]
+fn a_view_asks_for_the_overdue_and_the_late_apart() {
+    let asked = |window: &str| {
+        View {
+            window: Some(window.into()),
+            ..bare()
+        }
+        .resolve()
+        .unwrap()
+        .window
+    };
+
+    assert_eq!(
+        asked("overdue"),
+        Some(tisty_core::view::Window::Stands(
+            tisty_core::standing::Standing::Overdue
+        ))
+    );
+    assert_eq!(
+        asked("late"),
+        Some(tisty_core::view::Window::Stands(
+            tisty_core::standing::Standing::Late
+        ))
+    );
+}
+
 fn bare() -> View {
     View {
         archive: false,

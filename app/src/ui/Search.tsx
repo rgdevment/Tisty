@@ -6,6 +6,8 @@ import Field from "./Field";
 
 interface Props {
   fixed?: Scope;
+  query?: string;
+  onQuery?: (query: string) => void;
   onFound: (found: Found | null) => void;
   onError: (message: string) => void;
 }
@@ -18,8 +20,11 @@ const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   archived: "scopeArchived",
 };
 
-export default function Search({ fixed, onFound, onError }: Props) {
-  const [query, setQuery] = useState("");
+export default function Search({ fixed, query: given, onQuery, onFound, onError }: Props) {
+  const [own, setOwn] = useState("");
+  const query = given ?? own;
+  const setQuery = onQuery ?? setOwn;
+  const [attend] = useState(() => !given);
   const [scope, setScope] = useState<Scope>(fixed ?? "either");
 
   useEffect(() => {
@@ -46,6 +51,7 @@ export default function Search({ fixed, onFound, onError }: Props) {
   return (
     <div className="w-full">
       <Field
+        attend={attend}
         icon="⌕"
         value={query}
         hint={t(fixed === "archived" ? "searchArchive" : "searchEverywhere")}

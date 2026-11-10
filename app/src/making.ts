@@ -26,6 +26,9 @@ export interface Drafted {
   readonly source: string;
 }
 
+export const DIAGRAMS_ICON = "shapes";
+export const DIAGRAMS_HUE = "purple";
+
 // Diagrams made outside any folder gather in one, found by its name rather than a setting kept somewhere.
 const homeOf = async (into?: string): Promise<string> => {
   if (into) return into;
@@ -33,7 +36,7 @@ const homeOf = async (into?: string): Promise<string> => {
   // The list on screen may be a round behind, and a second folder of the same name is never refused.
   const { folders } = await docs();
   const found = folders.find((one) => !one.away && !one.parent && one.name === named);
-  return found ? found.id : folderAdd(named);
+  return found ? found.id : folderAdd(named, undefined, DIAGRAMS_ICON, DIAGRAMS_HUE);
 };
 
 export const drafted = async (name: string, kind: Start, into?: string): Promise<Drafted> => {

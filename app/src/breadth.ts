@@ -5,9 +5,9 @@ export type Breadth = { width: number | null; folded: boolean };
 const ON_MAC = navigator.userAgent.includes("Macintosh");
 
 export const RAIL = ON_MAC ? 76 : 56;
-export const NARROWEST = 220;
+export const NARROWEST = 294;
 export const WIDEST = 480;
-export const FOLDS_UNDER = 160;
+export const FOLDS_UNDER = NARROWEST;
 export const WIDE_WINDOW = 1440;
 const AS_SHIPPED_WIDTH = 336;
 const AS_SHIPPED_WIDE = 350;
@@ -47,7 +47,7 @@ export const dragTo = (width: number) =>
 
 export const dragging = (width: number) => {
   const root = document.documentElement;
-  root.style.setProperty(LIVE, `${width < FOLDS_UNDER ? RAIL : fitted(width)}px`);
+  root.style.setProperty(LIVE, `${fitted(width)}px`);
   root.dataset.resizing = "";
 };
 

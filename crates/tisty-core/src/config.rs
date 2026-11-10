@@ -415,6 +415,8 @@ pub struct Config {
     pub quick_keys: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags_read: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dressed: Option<bool>,
     /// The place's history this machine took without asking, so it never takes that one again on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub took_quietly: Option<String>,
@@ -480,6 +482,7 @@ impl Config {
             door_chosen: None,
             quick_keys: None,
             tags_read: None,
+            dressed: None,
             took_quietly: None,
             phrase_confirmed: None,
             key_handed: None,

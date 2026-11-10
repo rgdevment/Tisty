@@ -35,6 +35,7 @@ export default function Board() {
     marking,
     openDoc,
     opening,
+    query,
     reveal,
     say,
     seen,
@@ -44,6 +45,7 @@ export default function Board() {
     setChosen,
     setError,
     setFound,
+    setQuery,
     setSelected,
     shown,
     strip,
@@ -174,7 +176,13 @@ export default function Board() {
           }
         >
           {chosen.named === "search" ? (
-            <Search key="search" onFound={setFound} onError={setError} />
+            <Search
+              key="search"
+              query={query}
+              onQuery={setQuery}
+              onFound={setFound}
+              onError={setError}
+            />
           ) : chosen.named === "archive" ? (
             <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (

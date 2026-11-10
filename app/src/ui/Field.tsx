@@ -3,6 +3,7 @@ import { useAttended } from "../attended";
 import type { Span } from "../core";
 
 interface Props {
+  attend?: boolean;
   icon: string;
   value: string;
   hint: string;
@@ -17,8 +18,16 @@ export interface Mark {
   overruled?: boolean;
 }
 
-export default function Field({ icon, value, hint, marks, onChange, onSubmit }: Props) {
-  const held = useAttended<HTMLInputElement>();
+export default function Field({
+  attend = true,
+  icon,
+  value,
+  hint,
+  marks,
+  onChange,
+  onSubmit,
+}: Props) {
+  const held = useAttended<HTMLInputElement>(attend);
   const [shift, setShift] = useState(0);
   const painted = marks !== undefined;
 
