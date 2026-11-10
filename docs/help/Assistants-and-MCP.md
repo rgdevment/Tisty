@@ -14,7 +14,7 @@ Tisty speaks [MCP](https://modelcontextprotocol.io) through `tisty mcp`, over it
 
 - **On this machine only.** No port, no account, no token. It is not a server, and nothing can reach it from the network.
 - **Nothing listens until you connect it.** The assistant starts `tisty mcp` when it needs it.
-- **You hold the door.** It is open on a new install, and **Settings › Assistants** closes it with one click. While it is closed, everything an assistant tries is refused. Opening and closing it is written into your log.
+- **You hold the door.** It comes open on its own until you choose — on a new install, and on an update if you never closed it — and **Settings › Assistants** closes it with one click. While it is closed, everything an assistant tries is refused. Letting an assistant in and throwing it out are events in your log; that you chose to keep the door closed is kept in this computer's settings.
 
 Since 1.32.1, while the door is open, Tisty also answers to plain `tisty` from any terminal: the installer's copy on Windows and the Homebrew one on a Mac. If you have the Microsoft Store copy and the installer's at once, the newest answers. Close the door and `tisty` stops answering. An assistant that was already open needs a restart to notice.
 

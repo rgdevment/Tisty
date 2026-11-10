@@ -886,10 +886,12 @@ $ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
 Donde `<tu-asistente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
 de comandos: solo abre la puerta del asistente. Habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
-cuenta, sin token, nada por la red. **Tú manejas la puerta.** En una
-instalación nueva viene abierta, y Configuración › Asistentes la cierra con un
-clic; mientras está cerrada, todo lo que intente un asistente se rechaza.
-Abrirla y cerrarla queda escrito en tu registro.
+cuenta, sin token, nada por la red. **Tú manejas la puerta.** Viene abierta
+sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la
+cerraste— y Configuración › Asistentes la cierra con un clic; mientras está
+cerrada, todo lo que intente un asistente se rechaza. Dejar entrar a un
+asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta
+cerrada queda en la configuración de este equipo.
 
 Mientras los asistentes tengan voz, un Tisty estable también responde al nombre
 `tisty` en tu PATH —la Store y Homebrew lo dejan ahí, y la copia del instalador
@@ -908,7 +910,8 @@ escribe y mueve en el texto de tu documento las líneas que las nombran y nada
 más, guardar una copia de un archivo que le señales —en una tarea o dentro de un
 documento, que admite el archivo más grande de los dos— y leer lo que ya está.
 Lo que no puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar
-una tarea tuya, mover un día que pusiste tú, borrar un documento, renombrar ni
+una tarea tuya —salvo en una que abriste a los agentes antes de la 1.31.2—,
+mover un día que pusiste tú, borrar un documento, renombrar ni
 vaciar una carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier
 sitio que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta
 temporal, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico para
@@ -920,8 +923,9 @@ Una tarea que escribiste tú sigue siendo tuya. Un asistente puede decir que est
 hecha, que no debería hacerse o que uno de sus pasos está hecho, y cada cosa
 espera a que la confirmes; no puede describirla, planear ni cambiar sus pasos,
 ni mover su día, su título o su lista. Una tarea que abriste a los agentes antes
-de la 1.31.2 sigue abierta a ellos, con lo que alcanzaron a completar, hasta
-que «Sin agentes», en su menú, la cierra; ya no se puede abrir una nueva.
+de la 1.31.2 sigue abierta a ellos: ahí un asistente todavía puede describirla,
+planear sus pasos y marcarlos, hasta que «Sin agentes», en su menú, la cierra,
+y lo que completó se queda. Ya no se puede abrir una nueva.
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló: la fila dice «por un agente» y lo nombra al pasar el puntero, y el panel
 lateral, la página completa y la bitácora dicen «por Claude Code», «por Codex».

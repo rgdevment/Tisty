@@ -478,7 +478,7 @@ Folio can tell that two documents come from one person, because the manifest
 carries your identity's public key. And a server that hides that a key was taken
 back cannot be caught by a reader on the web.
 
-## An assistant, if you admit one
+## An assistant, while the door is open
 
 Tisty speaks MCP so an assistant already running on your machine can file work
 for

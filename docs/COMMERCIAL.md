@@ -24,8 +24,6 @@ long.
 - Read, audit, or fork the source.
 - Modify it for your own use, without publishing those changes, as long as
   nobody interacts with your modified version over a network.
-- Connect your assistants to it through `tisty mcp`, which runs on the same
-  machine and serves nothing over a network.
 - Write plugins for it, publish them, and license them however you like — as
   long as they are separate works and not derived from Tisty's own code.
 - Contribute changes back.
