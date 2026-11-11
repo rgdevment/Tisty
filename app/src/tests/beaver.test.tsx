@@ -78,7 +78,7 @@ describe("Tisto, the beaver that peeks in", () => {
   });
 });
 
-describe("the thumbs up when a task is done", () => {
+describe("the notice when a task is done", () => {
   it("says the task is done and kept, undoes it, and leaves on its own", () => {
     const undone: string[] = [];
     let left = 0;
