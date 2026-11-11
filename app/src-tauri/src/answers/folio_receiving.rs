@@ -358,7 +358,7 @@ fn editable(link: &Link, opened: &Opened) -> bool {
 }
 
 /// A document has at most twenty languages, its anchor among them (69 bis).
-const OTHER_LANGUAGES_AT_MOST: usize = 19;
+pub(super) const OTHER_LANGUAGES_AT_MOST: usize = 19;
 
 /// Every language the anchor's map names that is not here yet and Folio still serves, read before anything is kept.
 /// One its owner has not reviewed stays out: it is someone else's word in the owner's name (166).
