@@ -2,7 +2,6 @@ import type { Coming, Habit, List } from "../core";
 import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Ahead, { WEEK } from "./Ahead";
-import DayCounts from "./DayCounts";
 
 interface Props {
   apart: string;
@@ -36,11 +35,6 @@ export default function Pulse({
       className={`scroller absolute top-11 bottom-3 z-20 w-[300px] flex-col gap-4 rounded-[10px] border border-hair bg-panel px-3.5 pt-4 pb-5 shadow-lift ${apart}`}
       style={{ right: 12 }}
     >
-      <div>
-        <Cap said={t("theDay")} />
-        <DayCounts counts={counts} />
-      </div>
-
       <div>
         <Cap said={t("upcoming")} />
         <Ahead coming={ahead} routines={routines} days={WEEK} onOpen={onOpen} />

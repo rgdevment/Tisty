@@ -18,7 +18,7 @@ const DAY: { key: string; said: Parameters<typeof t>[0]; tone: string; slice: Sl
 
 interface Props {
   counts: Record<string, number>;
-  onPick?: (slice: Slice) => void;
+  onPick: (slice: Slice) => void;
 }
 
 export default function DayCounts({ counts, onPick }: Props) {
@@ -29,7 +29,7 @@ export default function DayCounts({ counts, onPick }: Props) {
     many: counts[key] ?? 0,
   }));
   const sliceOf = (key: string) => DAY.find((one) => one.key === key)?.slice ?? "today";
-  return <Tiles tiles={tiles} onPick={onPick && ((key) => onPick(sliceOf(key)))} />;
+  return <Tiles tiles={tiles} onPick={(key) => onPick(sliceOf(key))} />;
 }
 
 export function Tiles({ tiles, onPick }: { tiles: Tile[]; onPick?: (key: string) => void }) {

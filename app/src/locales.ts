@@ -1516,7 +1516,6 @@ const en = {
   unvouchedGone: "{name} could not be found or read.",
   unvouchedUnread:
     "Not every attachment was checked: «{name}» could not be read, so what it holds is left out.",
-  theDay: "The day",
   pulseElse: "Everything else",
   pulseUndated: "With no date",
   pulseOverdue: "overdue",
@@ -4599,7 +4598,6 @@ const es: Catalog = {
   unvouchedGone: "{name} no se encontraron o no se pudieron leer.",
   unvouchedUnread:
     "No se revisaron todos los adjuntos: no se pudo leer «{name}», así que lo que guarda quedó fuera.",
-  theDay: "El día",
   pulseElse: "Todo lo demás",
   pulseUndated: "Sin fecha",
   pulseOverdue: "vencidas",

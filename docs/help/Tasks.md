@@ -72,7 +72,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 
 There is no prize for emptying the list.
 
-The window has three columns at most: what you are looking at, the list, and the task you opened. Where the window is wide enough, a column tells you the day — overdue, late, today, ahead, the four quadrants with their counts, the lists and tags in use — counting your whole store, and every figure is a way in.
+The window has three columns at most: what you are looking at, the list, and the task you opened. Where the window is wide enough, a column tells you the rest of the day — what is coming this week, the four quadrants with their counts, the lists in use — counting your whole store, and every figure is a way in. The day's four counts stay at the top of the sidebar.
 
 ## Priorities: the Eisenhower matrix
 

@@ -72,7 +72,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 
 No hay premios por vaciar la lista.
 
-La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. Cuando la ventana es lo bastante ancha, una columna te cuenta el día (lo vencido, lo atrasado, lo de hoy, lo que viene, los cuatro cuadrantes con sus cuentas, las listas y etiquetas en uso), contando todo tu almacén, y cada cifra es una entrada.
+La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. Cuando la ventana es lo bastante ancha, una columna te cuenta el resto del día (lo que viene en la semana, los cuatro cuadrantes con sus cuentas, las listas en uso), contando todo tu almacén, y cada cifra es una entrada. Las cuatro cuentas del día quedan arriba en la barra lateral.
 
 ## Prioridades: la matriz de Eisenhower
 
