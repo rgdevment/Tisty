@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tisty_core::model::{DateSpec, Priority};
 
-use super::{Refused, catalogue::tools_without_hints};
+use super::{Refused, tool_list::tools_without_hints};
 
 const AT_MOST: &[(&str, usize)] = &[
     ("title", 500),
