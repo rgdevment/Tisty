@@ -9,12 +9,12 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Make a task that is already here ring at a given moment. Adds to whatever it rings at already and never takes one away, so a reminder the person set themselves is safe. `read` says what it carries before you add. Use it for the appointment that was filed without one, and leave alone what repeats — a routine already comes back on its own.",
+  "description": "Make a task ring at given moments. It adds to what the task rings at and never removes a reminder (`read` shows them). Not for what repeats: a routine comes back on its own.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "at": {
-        "description": "When to ring, each as a day and an hour like 2026-08-30T20:00",
+        "description": "Each a day and an hour, like 2026-08-30T20:00",
         "items": {
           "type": "string"
         },

@@ -59,6 +59,31 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
+const DOOR_AT_MOST: usize = 42_000;
+const DOOR_SLACK: usize = 1_000;
+
+#[test]
+fn what_an_agent_pays_to_have_tisty_connected_only_shrinks() {
+    let said = ask(&[
+        request("server/discover", &json!({})),
+        request("tools/list", &json!({})),
+    ]);
+    let instructions = said[0]["result"]["instructions"].as_str().unwrap().len();
+    let tools = serde_json::to_string(&said[1]["result"]["tools"])
+        .unwrap()
+        .len();
+    let weight = instructions + tools;
+
+    assert!(
+        weight <= DOOR_AT_MOST,
+        "connecting Tisty costs an agent {weight} bytes ({instructions} of instructions, {tools} of tools), past the {DOOR_AT_MOST} it may: say it in fewer words, or move the how-to into `rules`"
+    );
+    assert!(
+        weight + DOOR_SLACK > DOOR_AT_MOST,
+        "connecting Tisty now costs {weight} bytes: lower DOOR_AT_MOST to just above that, so the saving stays"
+    );
+}
+
 #[test]
 fn the_general_rules_an_agent_is_handed() {
     insta::assert_snapshot!(rules(None));

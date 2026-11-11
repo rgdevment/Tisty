@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tisty_core::model::{DateSpec, Priority};
 
-use super::{Refused, catalogue::tools_without_hints};
+use super::{Refused, tool_list::tools_without_hints};
 
 const AT_MOST: &[(&str, usize)] = &[
     ("title", 500),
@@ -18,40 +18,44 @@ const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200), ("remind"
 
 const EACH_AT_MOST: usize = 2_000;
 
-/// Some clients send `null` for every field they leave out; only a field that says it takes `null` keeps it.
-pub(super) fn without_nulls(name: &str, args: Value) -> Value {
-    let tools = tools_without_hints();
-    let Some(taken) = tools
+pub(super) type Takes = serde_json::Map<String, Value>;
+
+pub(super) fn what_it_takes(name: &str) -> Option<Takes> {
+    tools_without_hints()
         .as_array()
         .and_then(|all| all.iter().find(|one| one["name"] == name))
         .and_then(|one| one["inputSchema"]["properties"].as_object())
-    else {
-        return args;
-    };
-    quieted(taken, args, name == "propose")
+        .cloned()
 }
 
-fn quieted(taken: &serde_json::Map<String, Value>, args: Value, nested: bool) -> Value {
+/// Some clients send `null` for every field they leave out; only a field that says it takes `null` keeps it.
+pub(super) fn without_nulls(taken: Option<&Takes>, args: Value) -> Value {
+    let Some(taken) = taken else {
+        return args;
+    };
+    quieted(taken, args)
+}
+
+fn quieted(taken: &Takes, args: Value) -> Value {
     let Value::Object(said) = args else {
         return args;
     };
     let kept = said
         .into_iter()
         .filter(|(key, sent)| !sent.is_null() || taken.get(key).is_some_and(takes_null))
-        .map(
-            |(key, sent)| match (nested && (key == "tasks" || key == "parts"), sent) {
-                (true, Value::Array(all)) => {
-                    let all = all
-                        .into_iter()
-                        .map(|one| quieted(taken, one, true))
-                        .collect();
-                    (key, Value::Array(all))
-                }
-                (_, sent) => (key, sent),
-            },
-        )
+        .map(|(key, sent)| match (holds_tasks(taken, &key), sent) {
+            (true, Value::Array(all)) => {
+                let all = all.into_iter().map(|one| quieted(taken, one)).collect();
+                (key, Value::Array(all))
+            }
+            (_, sent) => (key, sent),
+        })
         .collect();
     Value::Object(kept)
+}
+
+fn holds_tasks(taken: &Takes, key: &str) -> bool {
+    matches!(key, "tasks" | "parts") && taken.contains_key(key)
 }
 
 fn takes_null(shape: &Value) -> bool {
@@ -67,16 +71,12 @@ fn takes_null(shape: &Value) -> bool {
             .is_some_and(|all| all.iter().any(|one| one.get("type").is_some_and(named)))
 }
 
-pub(super) fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
-    let Some(said) = args.as_object() else {
-        return Ok(());
-    };
-    let tools = tools_without_hints();
-    let Some(taken) = tools
-        .as_array()
-        .and_then(|all| all.iter().find(|one| one["name"] == name))
-        .and_then(|one| one["inputSchema"]["properties"].as_object())
-    else {
+pub(super) fn only_what_it_takes(
+    name: &str,
+    taken: Option<&Takes>,
+    args: &Value,
+) -> Result<(), Refused> {
+    let (Some(said), Some(taken)) = (args.as_object(), taken) else {
         return Ok(());
     };
     if let Some(stray) = said.keys().find(|key| !taken.contains_key(*key)) {

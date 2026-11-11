@@ -5,7 +5,7 @@ use tisty_core::{Paths, State, Store};
 
 use super::super::asked::strings;
 use super::super::asked::text;
-use super::super::jsonrpc::told;
+use super::super::jsonrpc::{mirrored, told};
 use super::super::{
     NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
     hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened, trail,
@@ -376,7 +376,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             }
         ));
     }
-    Ok(told(shown, Value::Object(kept_of)))
+    Ok(mirrored(shown, Value::Object(kept_of)))
 }
 
 pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -482,6 +482,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if super::outward::asked(args)? {
         return super::outward::carried(&body, standing, &pages, kept_of);
     }
+    let warned = match &standing {
+        Some(standing) => {
+            kept_of.insert("notice".into(), json!(standing));
+            format!("({standing})\n\n")
+        }
+        None => String::new(),
+    };
 
     match part_asked(&body, args)? {
         Part::Outline => {
@@ -489,11 +496,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             kept_of.insert("outline".into(), json!(outline_of(&body)));
             Ok(told(
                 format!(
-                    "{}\n\nThis one holds {} characters, so here is what is in it rather than the \
-                     whole of it. Ask for a part with `section`, with `from` and `to`, or with \
-                     `chars`. To change a passage, `edit_doc` takes the words to replace and the \
-                     ones to put there: reading it whole to send it back whole costs many times \
-                     more, and risks writing over what the person did meanwhile.",
+                    "{warned}{}\n\nThis one holds {} characters, so here is what is in it rather \
+                     than the whole of it. Ask for a part with `section`, with `from` and `to`, or \
+                     with `chars`. To change a passage, `edit_doc` takes the words to replace and \
+                     the ones to put there: reading it whole to send it back whole costs many \
+                     times more, and risks writing over what the person did meanwhile.",
                     tisty_core::docs::titled(&body),
                     body.chars().count()
                 ),
@@ -513,11 +520,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
             }
-            let said = match standing {
-                Some(standing) => format!("({standing})\n\n{part}"),
-                None => part,
-            };
-            Ok(told(said, Value::Object(kept_of)))
+            Ok(mirrored(format!("{warned}{part}"), Value::Object(kept_of)))
         }
     }
 }

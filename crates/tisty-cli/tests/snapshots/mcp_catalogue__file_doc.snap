@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes. Moving is not writing, so a document the archive holds by itself moves too and stays put away: that is how something already archived is filed where it belongs.",
+  "description": "Move documents into a folder, or out of every folder by leaving `folder` out. Only the place changes; an archived document moves and stays put away.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -26,10 +26,10 @@ expression: tool
             "type": "array"
           }
         ],
-        "description": "The id of the document to file, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids does the same to all of them in one go, and if one of them cannot, none of them moves."
+        "description": "The id of the document to file, not its title, or a list of ids: if one cannot, none moves"
       },
       "folder": {
-        "description": "An existing folder, by its name, its whole path or its id. Leave it out to take the document out of every folder",
+        "description": "An existing folder, by name, path or id",
         "type": "string"
       }
     },
@@ -39,5 +39,5 @@ expression: tool
     "type": "object"
   },
   "name": "file_doc",
-  "title": "Put a document, or several, in a folder"
+  "title": "Put documents in a folder"
 }

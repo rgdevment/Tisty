@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Read or change one table of a document by what its rows and columns are called, never by its Markdown: set a cell, add or remove a row, sort, rename a column, give it a type, add or remove a column. A row is named by the words of its first cell and a column by its title, as `show` hands them back. A value is written the way its column's type reads it — 1234.5 for a number, 2026-10-28 for a date, true for a checkbox — and one that does not fit is kept as sent and named in the answer. What the document said before is kept, as with `edit_doc`.",
+  "description": "Read or change one table of a document by rows and columns, never its Markdown. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -22,10 +22,10 @@ expression: tool
             "type": "string"
           }
         ],
-        "description": "For set, sort, type, rename and remove_column: the column, by its title or its number from 1"
+        "description": "For set, sort, type, rename and remove_column: its title, or its number from 1"
       },
       "do": {
-        "description": "What to do. Defaults to show, which changes nothing and hands back the columns with their types and the rows by their first cell",
+        "description": "Defaults to show: the columns with their types and the rows, changing nothing",
         "enum": [
           "show",
           "set",
@@ -40,15 +40,15 @@ expression: tool
         "type": "string"
       },
       "doc": {
-        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "description": "The document's id from `docs`, not its title",
         "type": "string"
       },
       "down": {
-        "description": "For sort: from the largest down. Defaults to from the smallest up",
+        "description": "For sort: largest first",
         "type": "boolean"
       },
       "keep_compaction": {
-        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "description": "The person told you in this conversation to keep the compaction awaiting their word",
         "type": "boolean"
       },
       "row": {
@@ -60,7 +60,7 @@ expression: tool
             "type": "string"
           }
         ],
-        "description": "For set and remove: the row, by the words of its first cell or its number from 1"
+        "description": "For set and remove: its first cell's words, or its number from 1"
       },
       "table": {
         "anyOf": [
@@ -71,18 +71,18 @@ expression: tool
             "type": "string"
           }
         ],
-        "description": "Which table, by its number from 1 or by the heading over it. Left out when the document holds only one"
+        "description": "Its number from 1, or the heading over it. Left out when there is one"
       },
       "title": {
         "description": "For rename and add_column: the column's title",
         "type": "string"
       },
       "type": {
-        "description": "For type and add_column: the column's type as written between braces in its head, such as `number`, `money USD sum`, `date`, `check` or `select`; `language` with the topic `tables` lists them. Empty takes the type away",
+        "description": "For type and add_column: as written in braces in its head, like `number`, `money USD sum`, `date`, `check` (`language` «tables»); empty removes it",
         "type": "string"
       },
       "value": {
-        "description": "For set: what goes in the cell. Empty clears it",
+        "description": "For set: what goes in the cell; empty clears it",
         "type": "string"
       },
       "values": {
@@ -93,7 +93,7 @@ expression: tool
             "boolean"
           ]
         },
-        "description": "For add: each column's title with what goes in it. Columns left out stay empty",
+        "description": "For add: each column's title with its value; columns left out stay empty",
         "type": "object"
       }
     },
