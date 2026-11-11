@@ -190,7 +190,10 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
         .as_str()
         .unwrap()
         .to_string();
-    served.call("propose", json!({ "title": "Buy stamps" }));
+    let stamps = served.call("propose", json!({ "title": "Buy stamps" }))["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
     served.call(
         "note",
         json!({ "task": passport, "body": "The photo is ready." }),
@@ -208,6 +211,25 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     let said = served.prompted("pick_up", json!({}));
     assert!(said.contains("\"Buy stamps\""), "{said}");
     assert!(!said.contains("Renew the passport"), "{said}");
+
+    served.call("say_done", json!({ "task": stamps, "body": "Bought ten." }));
+
+    let said = served.prompted("pick_up", json!({}));
+    assert!(
+        !said.contains("Buy stamps"),
+        "what it said is done waits for the person, not for more work: {said}"
+    );
+    assert!(said.contains("the open task we were on"), "{said}");
+}
+
+#[test]
+fn picking_up_before_an_agent_is_let_in_does_not_knock() {
+    let served = Served::new();
+
+    let said = served.prompted("pick_up", json!({}));
+
+    assert!(said.contains("the open task we were on"), "{said}");
+    assert!(!served.knocked());
 }
 
 #[test]
@@ -294,6 +316,11 @@ fn a_long_list_goes_on_with_the_cursor_it_hands_back() {
 
     let first = served.ask("resources/list", json!({}));
     let cursor = first["result"]["nextCursor"].as_str().expect("a cursor");
+    served.written(
+        "# Written between pages
+
+New.",
+    );
     let rest = served.ask("resources/list", json!({ "cursor": cursor }));
     let wrong = served.ask("resources/list", json!({ "cursor": "page two" }));
 
@@ -385,11 +412,16 @@ fn an_address_that_leads_nowhere_is_refused_with_why() {
         "resources/read",
         json!({ "uri": format!("tisty:doc/{doc}?from=0") }),
     );
+    let backwards = served.ask(
+        "resources/read",
+        json!({ "uri": format!("tisty:doc/{doc}?from=3&to=1") }),
+    );
 
     assert_eq!(unknown["error"]["code"], -32002, "{unknown}");
     assert_eq!(elsewhere["error"]["code"], -32002, "{elsewhere}");
     assert_eq!(paged["error"]["code"], -32602, "{paged}");
     assert_eq!(zero["error"]["code"], -32602, "{zero}");
+    assert_eq!(backwards["error"]["code"], -32602, "{backwards}");
 }
 
 #[test]
@@ -408,6 +440,10 @@ fn reading_a_document_before_an_agent_is_let_in_says_who_turns_one_on() {
             .unwrap()
             .contains("no agent is registered"),
         "{said}"
+    );
+    assert_eq!(
+        said["error"]["code"], -32603,
+        "the document is there: {said}"
     );
 }
 

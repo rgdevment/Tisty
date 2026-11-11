@@ -1,10 +1,8 @@
 use serde_json::{Value, json};
-use tisty_core::model::TaskId;
-use tisty_core::{Paths, State};
-use ulid::Ulid;
+use tisty_core::Paths;
 
-use super::TOOLS_STAY_FRESH;
-use super::looking::{placed, what_it_touched};
+use super::looking::{placed, task_touched};
+use super::{TOOLS_STAY_FRESH, admitted};
 
 const SAID_AT_MOST: usize = 2_000;
 
@@ -168,32 +166,19 @@ fn quoted(said: &str) -> String {
 }
 
 fn last_worked_on(paths: &Paths) -> Option<String> {
-    let (state, store) = super::opened(paths).ok()?;
-    let log = store.read_all().ok()?;
+    let (state, agent) = admitted(paths).ok()??;
     let owners = tisty_core::task_docs::behind(&state);
-    log.iter()
-        .rev()
-        .filter(|one| &one.device == store.device())
-        .filter_map(|one| task_touched(&state, &owners, one))
-        .filter_map(|id| state.tasks.get(&id))
-        .find(|task| task.is_open() && !task.folded())
-        .map(|task| format!("{:?} {} [{}]", task.title, placed(&state, task), task.id))
-}
-
-fn task_touched(
-    state: &State,
-    owners: &std::collections::BTreeMap<String, TaskId>,
-    event: &tisty_core::Event,
-) -> Option<TaskId> {
-    let (named, id) = what_it_touched(event)?;
-    if named.starts_with("task.") {
-        return id.parse().ok();
-    }
-    if !named.starts_with("doc.") {
-        return None;
-    }
-    let kept = state.docs.get(&id.parse::<Ulid>().ok()?)?;
-    owners.get(&kept.file).copied()
+    let segments = tisty_core::store::segments_in(&paths.store().join(&agent.0)).ok()?;
+    segments.iter().rev().find_map(|segment| {
+        let events = tisty_core::store::read_tail(segment, 0).ok()?;
+        events
+            .iter()
+            .rev()
+            .filter_map(|one| task_touched(&state, &owners, one))
+            .filter_map(|id| state.tasks.get(&id))
+            .find(|task| task.is_open() && !task.folded() && task.resolved.is_none())
+            .map(|task| format!("{:?} {} [{}]", task.title, placed(&state, task), task.id))
+    })
 }
 
 fn planning(_: &Paths, said: Option<&str>) -> String {
