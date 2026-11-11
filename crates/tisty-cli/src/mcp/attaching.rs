@@ -7,6 +7,7 @@ use ulid::Ulid;
 
 use super::asked::text;
 use super::jsonrpc::told;
+use super::mistaken::{no_document_called, not_a_task_id};
 use super::{Refused, history, hitch, opened};
 
 enum Beside {
@@ -24,9 +25,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
         )),
         (Some(who), None) => {
             let Ok(id) = who.parse::<TaskId>() else {
-                return Err(Refused::Tool(format!(
-                    "{who:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-                )));
+                return Err(Refused::Tool(not_a_task_id(state, &who)));
             };
             match state.tasks.get(&id).filter(|one| !one.folded()) {
                 Some(task) if !task.is_open() => Err(history(task)),
@@ -36,9 +35,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
         }
         (None, Some(which)) => {
             let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-                return Err(Refused::Tool(format!(
-                    "no document here is called {which:?}. `docs` lists them all."
-                )));
+                return Err(Refused::Tool(no_document_called(state, &which)));
             };
             super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {

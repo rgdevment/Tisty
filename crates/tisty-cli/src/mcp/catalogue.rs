@@ -176,7 +176,8 @@ A task an agent filed is yours to keep true, and so is one the person opened to 
 (`open_to_agents` in what `read`, `find` and `catch_up` hand back). On those: `describe` it, \
 `plan` its steps, `tick` each step the moment you finish it, `note` what you learn on the way, \
 mend an open step or a note that is wrong (`reword_step`, `unplan`, `reword_note`), `untick` a \
-tick you gave by mistake — never one the person gave. Mending is for what is wrong or out of \
+tick you gave by mistake — never one the person gave. A test case is a step; what you saw goes \
+in a `note` that opens with the step's text. Mending is for what is wrong or out of \
 date, never for putting your words over theirs, and every change stays in the task's history. \
 The day and the title of an opened task stay the person's; `reschedule` and `rename` reach only \
 what an agent filed.
@@ -210,8 +211,10 @@ Description, Done when, Steps, Notes, When it closes; a routine's: What for, Eve
 time), and every box on it, `- [ ]`, is one of the task's steps. `read` hands it back as \
 `document`. The document tools do not write it: `describe`, `plan`, `reword_step`, `unplan`, \
 `tick` and `untick` keep the page and the steps in agreement, and `append_doc` named by the \
-task's id adds under the assistant's own notes, dated and signed. The sections are the \
-person's: rename, add or remove one only when they ask you in this conversation.
+task's id adds under the assistant's own notes, dated and signed. `note` is the dated line — \
+what happened, what you ruled out, where you stopped; `append_doc` on the task is for what is \
+too long for a line: an analysis, a table, a draft — and is what you compact. The sections \
+are the person's: rename, add or remove one only when they ask you in this conversation.
 
 When a task's page grew long, compact your own part of it: `describe` says what the task is and \
 names its parts; `append_doc` with `replace` writes the assistant's notes again as one dated \
@@ -244,6 +247,10 @@ the person before they publish. Attached files stay here, and `export_doc` write
 folder for that place's tool to upload; diagrams stay mermaid fences, which Confluence and Jira \
 show as code; links to documents and tasks become plain words; pens, underlines, icons and folds \
 go as HTML tags. Each page is read on its own.
+
+Handing a document to a person is theirs to do: Share in the window sends it through Folio, \
+encrypted. Get it ready — current state first, open questions listed — and tell them it is \
+ready; never paste it whole as the handover.
 
 Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
@@ -428,6 +435,8 @@ pub(super) fn rules(args: &Value) -> Value {
 pub(super) enum Effect {
     Reads,
     Adds,
+    // Steps written alike are reached one after another, so the same call again marks the next.
+    Marks,
     Sets,
     Replaces,
     Rewrites,
@@ -452,8 +461,8 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("remind", Effect::Sets),
     ("describe", Effect::Replaces),
     ("plan", Effect::Adds),
-    ("tick", Effect::Sets),
-    ("untick", Effect::Sets),
+    ("tick", Effect::Marks),
+    ("untick", Effect::Marks),
     ("rename", Effect::Replaces),
     ("reword_step", Effect::Replaces),
     ("unplan", Effect::Replaces),
@@ -462,7 +471,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("note", Effect::Adds),
     ("attach", Effect::Adds),
     ("write_doc", Effect::Rewrites),
-    ("append_doc", Effect::Rewrites),
+    ("append_doc", Effect::Adds),
     ("restore_doc", Effect::Rewrites),
     ("edit_doc", Effect::Replaces),
     ("edit_table", Effect::Rewrites),

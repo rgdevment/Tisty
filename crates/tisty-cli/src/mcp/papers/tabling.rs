@@ -6,8 +6,11 @@ use super::editing::writable;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::no_document_called;
 use super::super::spoken::{heard, said_in_tisty};
-use super::super::{Refused, UNSETTLED, by_how_much, grew, hitch, left_loose, loose_words, retold};
+use super::super::{
+    Refused, UNSETTLED, by_how_much, grew, hitch, left_loose, loose_words, opened, retold,
+};
 
 // Enough rows to find one by its first cell, without handing a long table over whole.
 const ROWS_SHOWN: usize = 50;
@@ -17,10 +20,9 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool("`edit_table` needs the `doc` name.".into()));
     };
-    let body = tisty_core::docs::read(&paths.docs(), &which).map_err(|_| {
-        Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        ))
+    let body = tisty_core::docs::read(&paths.docs(), &which).map_err(|_| match opened(paths) {
+        Ok((state, _)) => Refused::Tool(no_document_called(&state, &which)),
+        Err(refused) => refused,
     })?;
     let tables = grid::shown(&body);
     let (nth, table) = chosen(&tables, args, &which)?;

@@ -549,3 +549,20 @@ fn a_store_left_behind_by_a_move_asks_for_a_restart_not_an_update() {
     assert!(said.contains("restart"), "{said}");
     assert!(!said.contains("update Tisty"), "{said}");
 }
+
+#[test]
+fn showing_a_table_stirs_nothing_and_changing_one_does() {
+    assert!(only_reads(
+        "edit_table",
+        &json!({ "arguments": { "doc": "q7ntmzbm-0001" } })
+    ));
+    assert!(only_reads(
+        "edit_table",
+        &json!({ "arguments": { "do": "show" } })
+    ));
+    assert!(!only_reads(
+        "edit_table",
+        &json!({ "arguments": { "do": "add" } })
+    ));
+    assert!(!only_reads("append_doc", &json!({ "arguments": {} })));
+}

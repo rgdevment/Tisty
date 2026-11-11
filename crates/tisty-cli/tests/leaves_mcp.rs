@@ -5212,3 +5212,57 @@ fn a_translation_is_never_a_page_and_the_listing_names_the_languages() {
     let paseos = docs.iter().find(|one| one["doc"] == es.as_str()).unwrap();
     assert_eq!(paseos["languages"].as_array().unwrap().len(), 2, "{listed}");
 }
+
+#[test]
+fn a_step_that_is_not_there_is_answered_with_the_steps_that_could_be_ticked() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let why = served.refused(
+        "tick",
+        serde_json::json!({ "task": task, "step": "read the old formats" }),
+    );
+
+    assert!(
+        why.contains("\"read the old format\", \"write the new one\""),
+        "{why}"
+    );
+}
+
+#[test]
+fn a_tick_names_the_step_that_comes_next() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let said = served.call(
+        "tick",
+        serde_json::json!({ "task": task, "step": "read the old format" }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["next"], "write the new one",
+        "{said}"
+    );
+}
+
+#[test]
+fn a_documents_id_sent_to_read_is_said_to_be_a_document() {
+    let served = Served::new();
+    let doc = served.wrote("# Recetas\n\narroz", None);
+
+    let why = served.refused("read", serde_json::json!({ "task": doc }));
+
+    assert!(why.contains("the document \"Recetas\""), "{why}");
+    assert!(why.contains("`read_doc`"), "{why}");
+}
+
+#[test]
+fn a_tasks_id_sent_to_read_doc_is_said_to_be_a_task() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let why = served.refused("read_doc", serde_json::json!({ "doc": task }));
+
+    assert!(why.contains("the task \"migrate the reader\""), "{why}");
+    assert!(why.contains("`read` it"), "{why}");
+}

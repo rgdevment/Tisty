@@ -8,6 +8,7 @@ use ulid::Ulid;
 
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
+use super::mistaken::{no_document_called, not_a_task_id};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -242,9 +243,7 @@ pub(super) fn inside_a_doc(
         .find(|one| one.file == which)
         .filter(|one| state.doc_in_sight(one));
     if seen.is_none() {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(state, which)));
     }
     let named = doc_named(state, which);
     let body = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
@@ -345,9 +344,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, _) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
     // Hidden is the person taking something out of sight. An agent reading its journal whole
     // would undo that decision on the one task most likely to deserve it.
@@ -757,9 +754,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let (state, store) = opened(paths)?;
     if state.docs.values().all(|one| one.file != which) {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(&state, &which)));
     }
     let Some(cache) = tisty_core::cache::Cache::open(paths.cache()).ok().flatten() else {
         return Err(Refused::Tool(

@@ -8,6 +8,7 @@ mod helping;
 mod jsonrpc;
 mod looking;
 mod mending;
+mod mistaken;
 mod moving;
 mod papers;
 mod placing;
@@ -158,7 +159,7 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
                 Ok((args, taken)) => ("tool", called(paths, name, args, taken.as_ref())),
                 Err(refused) => ("arguments", Err(refused)),
             };
-            if done.is_ok() && !ONLY_READS.contains(&name) {
+            if done.is_ok() && !only_reads(name, &params) {
                 tisty_core::stirring::stir(paths);
             }
             if done.is_err() {
@@ -313,6 +314,14 @@ const ONLY_READS: [&str; 13] = [
     "help",
     "rules",
 ];
+
+fn only_reads(name: &str, params: &Value) -> bool {
+    ONLY_READS.contains(&name)
+        || name == "edit_table"
+            && params["arguments"]["do"]
+                .as_str()
+                .is_none_or(|asked| asked == "show")
+}
 
 fn pointed(name: &str) -> Option<&'static str> {
     const ERASING_A_DOCUMENT: &str = "There is no deleting a document here, on purpose. Mark it \

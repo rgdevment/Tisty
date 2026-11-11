@@ -6,6 +6,7 @@ use tisty_core::{Paths, State, Store};
 use super::super::asked::strings;
 use super::super::asked::text;
 use super::super::jsonrpc::{mirrored, told};
+use super::super::mistaken::no_document_called;
 use super::super::{
     NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
     hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened, trail,
@@ -16,9 +17,7 @@ use super::super::{
 fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
     match state.doc_in_sight(kept) {
         true => Ok(()),
-        false => Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        ))),
+        false => Err(Refused::Missing(no_document_called(state, which))),
     }
 }
 
@@ -35,9 +34,7 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
 
@@ -137,9 +134,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
@@ -387,9 +382,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
     let folder = kept.folder.map(|at| trail(&state, at));
