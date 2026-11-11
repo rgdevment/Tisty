@@ -33,7 +33,7 @@ How an agent works with all of it, and what it saves, is in [A day with your age
 
 A task is also a document, one with an end: that is why it has a page of its own, where a spike gathers what you read, tried and ruled out, the recording of the meeting and the vendor's PDF, before it is split into parts and done. [[The whole idea, with an example|Tasks#a-task-or-a-document]].
 
-![Tisty: not a list you empty, a record of what you worked out](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-01-record.png)
+![Tisty, the working memory for you and your AI agent: what you solved stays in the archive with its steps and its journal, and your agent brings it back when the same work returns](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-01-memory.png)
 
 ## Start here
 

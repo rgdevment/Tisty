@@ -4,7 +4,7 @@ Documents live beside the tasks, for reference material that has no date and nev
 
 For writing in one, see [[The Markdown editor|Markdown-Editor]]; for everything it can hold — callouts, tables, diagrams, math, widgets, code — see the [Tisty Markdown guide](https://markdown.tisty.app).
 
-![Documents beside the tasks, with formulas, diagrams, code and small widgets drawn inside Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-03-notes.png)
+![What you know, one document per subject: corrected in place instead of piling up, with its outline beside it, so your AI agent reads the outline first and then only the section it needs](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-documents.png)
 
 ## A task or a document?
 
@@ -148,6 +148,8 @@ Documents are where the AI agent you connect through [[MCP|Assistants-and-MCP]] 
 More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
 
 ## Sharing
+
+![Share what you know, encrypted: encrypted on your computer before it leaves and signed by you, it opens in any browser with no account and is gone after the days without use you choose](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-folio.png)
 
 When somebody else needs what you know — your PO, the QA joining the project, another team — you hand them the document. The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service apart from Tisty. Pressing **Share…** reads a small signed file to learn whether Folio has opened. While it has not, it says so, with a link to [tisty.cl](https://tisty.cl), and nothing of your document leaves this computer; the ways out above still hand a document to someone. If that file cannot be reached, it says so and offers to try again. Once Folio is open, you make your identity first if this computer has none yet — the key that signs what you share, backed up with your 24-word phrase — then accept its terms the first time, choose what the other person can do and how long it lasts, and get a link. A document in several languages lists them with a box each: the one you share always goes, you can leave out another of yours, and one written by someone else stays here. If Folio changes its terms, Share and Sync ask you to accept the new ones as soon as they can be checked; until then you keep sharing under the ones you accepted.
 

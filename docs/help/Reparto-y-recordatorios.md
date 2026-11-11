@@ -2,8 +2,6 @@
 
 Las prioridades ordenan lo que importa; el reparto decide **cuándo**.
 
-![El reparto: cada tarea cae en su día, y las que no tienen día esperan a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-05-agenda.png)
-
 ## Un río de días
 
 El reparto es un río de días que recorres con el scroll, no una semana que pasas página a página:

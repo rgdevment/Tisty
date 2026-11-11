@@ -4,7 +4,7 @@ Tisty collects nothing and keeps nothing of yours on a server. The one exception
 
 This page is a summary. The full policy, including the parts that are not reassuring, is [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md), and the security reasoning is in [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
-![Yours, nothing else: no account, no subscription, no telemetry, and your files stay on your computer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-08-free.png)
+![Software out of conviction, not subscription: no account, no subscription, no telemetry, and your files stay on your computer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-09-close.png)
 
 ## What is stored
 

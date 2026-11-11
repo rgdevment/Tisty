@@ -58,11 +58,12 @@
 
   <p>
     <img
-      src="assets/store/en-01-record.png"
+      src="assets/screens/web/en-01-memory.png"
       width="92%"
-      alt="Tisty: not a list you empty, a record of what you worked out. A
-      task opened to the whole page keeps its description, its steps and its
-      parts, with the trail of every change and the journal down the side"/>
+      alt="Tisty, the working memory for you and your AI agent: the archive
+      keeps every finished task with its steps and its journal, and your
+      agent asks how did we solve this last time? to bring one back as it
+      was"/>
   </p>
 
   <h4>Download Tisty</h4>
@@ -246,6 +247,8 @@ Something you will do is a task. Something you will come back to is a document.
 - **Pages for what is long** — a runbook, an annex, a book in chapters — with
   folders, languages, tables, diagrams, formulas and a PDF of its own.
 
+![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/web/en-03-documents.png)
+
 ## A Day With Your Agent
 
 What an agent connected to Tisty does with all that, on a real piece of work:
@@ -313,6 +316,8 @@ sees it, every version is signed by you, and the link stops working on its own
 after the days without use you choose. They read it in any browser with no
 account, or edit it in their own Tisty. Your memory stays on your disk; Folio
 only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
+
+![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/web/en-07-folio.png)
 
 ## MCP Server
 
@@ -568,7 +573,7 @@ Tisty it holds a good deal more than text:
 - **A PDF of its own**, A4, Letter or Folio, with its pictures inside,
   shown to you before you export it.
 
-![Markdown notes, plain files, any editor: formulas and a widget drawn inside a document, with the formatting and the PDF in the column beside it](assets/store/en-03-notes.png)
+![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/web/en-06-markdown.png)
 
 The guide Tisty writes the first time it opens carries a page with one of each,
 so you can see all of it before you write a line.
@@ -783,7 +788,7 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words, with the day, the quadrants and the lists counted down the side](assets/store/en-02-tasks.png)
+![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and a task your agent notes the way you say it](assets/screens/web/en-04-day.png)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -804,8 +809,6 @@ untouched, and reopening brings it back. Opened to the whole page it gains a
 column of its own trail — how long it has been open, how much of it is done, and
 every change it has been through.
 
-![One card for each part of life: tasks grouped by list, each with its own icon and name, beside the task that is open](assets/store/en-06-lists.png)
-
 **Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
 of the Eisenhower matrix — the method President Dwight D. Eisenhower is
 credited with, popularised by Stephen Covey in *The 7 Habits of Highly
@@ -821,7 +824,7 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![Decide what matters, then do it: the Eisenhower matrix sorts every task into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-04-priorities.png)
+![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](assets/screens/web/en-05-priorities.png)
 
 **The spread deals your days, one row at a time.** Priorities sort what matters;
 the spread decides when. It runs as a river of days you scroll through rather
@@ -836,8 +839,6 @@ days lay out as a grid, press a day and you land on it in the river. Nothing is
 dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
 so a square with nothing written on it is only a square with nothing written on
 it — never a promise that the day is yours.
-
-![Your week, laid out: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-05-spread.png)
 
 **Tisto keeps you company.** Tisty's beaver peeks over the bar while you write a
 task. It never covers anything, and Settings turns it off. Finishing a task
@@ -876,7 +877,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![Yours, nothing else: Tisto, Tisty's beaver, beside what Tisty never asks of you — no account, no subscription, no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
+![Software out of conviction, not subscription: Tisto, Tisty's beaver, beside what Tisty is, a friend to your AI agents with no account, no subscription and no telemetry, and your files stay on your computer](assets/screens/web/en-09-close.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -996,6 +997,8 @@ the code it signs with, you compare it with the one that machine shows for
 itself, and confirm it. Until then nothing it writes comes in; from then on,
 whatever does not answer to that key is turned away, and Tisty says so.
 
+![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what Tisty leaves in Google Drive, OneDrive or WebDAV, and off your computers nobody reads it](assets/screens/web/en-08-data.png)
+
 **Your cloud, encrypted, if you want it.** In Settings › *Security*, **Encrypt
 my cloud…** encrypts what Tisty keeps in your Google Drive, your OneDrive or
 your WebDAV server with a key that comes from a 24-word phrase only you know.
@@ -1032,7 +1035,7 @@ is yours.
 a while, in its history and its bin, and the names and sizes of the files and
 how many computers you have stay visible. The phrase never passes through
 anybody's hands, so nobody can give it back to you: without it or one of your
-computers, nobody can open your cloud, not even us.
+computers, nobody can open your cloud, not even Tisty.
 
 **And back up by hand, shared folder or not.** One zip with your whole history,
 kept wherever you like, and restored from the same place in *Your data*.
@@ -1055,7 +1058,7 @@ Drive means, from *Reconnect* to a full Drive or
 
 ## An Assistant, If You Use One
 
-![Bring your favourite agents, they do the housekeeping: Settings › Assistants lists the ones installed on this computer and connects each through MCP, with no AI inside Tisty](assets/store/en-07-mcp.png)
+![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-02-agent.png)
 
 **Tisty is not AI and has none inside.** The natural language that turns "call
 the bank at 3" into a task is rules running on your machine: no model, no

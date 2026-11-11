@@ -39,7 +39,7 @@ Lo que guarda una tarea cerrada, y cómo la encuentra el buscador, está en [[El
 
 No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras escribes, y te muestra lo que entendió **antes** de guardar nada, como etiquetas que corriges con un clic.
 
-![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones leídas de palabras simples](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-02-tareas.png)
+![Atrasada no es vencida: se atrasa lo que no hiciste el día que planeaste y vence solo lo que pasó su límite, con los contadores de vencidas, atrasadas, para hoy y por venir](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-dia.png)
 
 | Escribes | Entiende |
 | :-- | :-- |
@@ -78,7 +78,7 @@ La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y l
 
 Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
-![Cuatro cuadrantes de un vistazo: hacer, planificar, delegar y menor, con las sin clasificar al costado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-04-prioridades.png)
+![Urgente no siempre es importante: cada tarea en su cuadrante, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-05-prioridades.png)
 
 | Cuadrante | Qué significa | Se escribe |
 | :-- | :-- | :-- |

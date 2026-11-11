@@ -33,7 +33,7 @@ Cómo trabaja un agente con todo esto, y cuánto ahorra, está en [Un día con t
 
 Una tarea también es un documento, uno que termina: por eso tiene una página propia, donde un spike reúne lo que leíste, probaste y descartaste, la grabación de la reunión y el PDF del proveedor, antes de dividirse en partes y completarse. [[La idea completa, con un ejemplo|Tareas#tarea-o-documento]].
 
-![Tisty: no es una lista que se vacía, es un registro de lo que resolviste](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-01-registro.png)
+![Tisty, la memoria de trabajo tuya y de tu agente de IA: lo que resolviste se queda en el archivo con sus pasos y su bitácora, y tu agente lo trae de vuelta cuando el mismo trabajo regresa](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-01-memoria.png)
 
 ## Para empezar
 

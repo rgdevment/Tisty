@@ -4,7 +4,7 @@ Los documentos viven junto a las tareas, para el material de consulta que no tie
 
 Cómo se escribe en uno está en [[El editor Markdown|Editor-Markdown]]; todo lo que puede llevar (avisos, tablas, diagramas, fórmulas, widgets, código) está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/).
 
-![Documentos junto a las tareas, con fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-03-notas.png)
+![Lo que sabes, en un documento por tema: se corrige en su lugar en vez de apilarse, con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-documentos.png)
 
 ## ¿Tarea o documento?
 
@@ -148,6 +148,8 @@ Los documentos son donde el agente de IA que conectas por [[MCP|Asistentes-y-MCP
 Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 ## Compartir
+
+![Comparte lo que sabes, cifrado: se cifra en tu equipo antes de salir y va firmado por ti, se abre en cualquier navegador sin cuenta y se va solo tras los días sin uso que elijas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-07-folio.png)
 
 Cuando otra persona necesita lo que sabes (tu PO, el QA que llega al proyecto, otro equipo), le entregas el documento. El panel junto a un documento tiene una fila **Compartido** con **Compartir…**. Compartir pasa por Folio, un servicio aparte de Tisty. Al pulsar **Compartir…**, Tisty lee un archivo firmado pequeño para saber si Folio ya abrió. Mientras no abra, te lo dice, con un enlace a [tisty.cl](https://tisty.cl), y nada de tu documento sale de este equipo; las salidas de arriba siguen sirviendo para entregárselo a alguien. Si ese archivo no se puede alcanzar, lo dice y ofrece reintentar. Cuando Folio esté abierto, primero creas tu identidad si este computador todavía no la tiene (la llave que firma lo que compartes, respaldada con tu frase de 24 palabras), luego aceptas sus términos la primera vez, eliges qué puede hacer la otra persona y cuánto dura, y recibes un link. Un documento en varios idiomas los muestra con una casilla cada uno: el que compartes siempre va, puedes dejar fuera otro tuyo, y uno escrito por otra persona se queda aquí. Si Folio cambia sus términos, Compartir y Sincronizar te piden aceptar los nuevos apenas se puedan verificar; mientras tanto sigues compartiendo con los que aceptaste.
 
