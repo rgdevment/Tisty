@@ -26,7 +26,7 @@ use papers::reading::{export_doc, outline_doc, read_doc};
 use papers::tabling::edit_table;
 use papers::writing::{append_doc, restore_doc, write_doc};
 
-use asked::{only_what_it_takes, short_and_plain, text, without_nulls};
+use asked::{only_what_it_takes, short_and_plain, text, what_it_takes, without_nulls};
 
 use attaching::attach;
 use catalogue::{instructions, tools};
@@ -214,8 +214,13 @@ thread_local! {
 }
 
 fn vetted(name: &str, params: &Value) -> Result<Value, Refused> {
-    let args = without_nulls(name, params.get("arguments").cloned().unwrap_or(json!({})));
-    only_what_it_takes(name, &args)?;
+    let taken = what_it_takes(name);
+    let args = without_nulls(
+        name,
+        taken.as_ref(),
+        params.get("arguments").cloned().unwrap_or(json!({})),
+    );
+    only_what_it_takes(name, taken.as_ref(), &args)?;
     short_and_plain(&args)?;
     papers::not_a_task_s_words(name, &args)?;
     Ok(args)

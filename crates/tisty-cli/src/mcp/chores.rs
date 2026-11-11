@@ -9,7 +9,8 @@ use tisty_core::{State, Store};
 use ulid::Ulid;
 
 use super::asked::{
-    day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
+    Takes, day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
+    what_it_takes,
 };
 use super::jsonrpc::{speaking_through, told};
 use super::{
@@ -63,8 +64,9 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let mut done: Vec<Value> = Vec::with_capacity(many.len());
     let (mut written, mut already, mut turned) = (0, 0, 0);
+    let taken = what_it_takes("propose");
     for one in many {
-        match one_of_many(paths, one) {
+        match one_of_many(paths, taken.as_ref(), one) {
             Ok(said) => {
                 let kept = said
                     .get("structuredContent")
@@ -953,8 +955,12 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
 const DRAFTS_AT_MOST: usize = 32;
 
 /// A misspelt argument would otherwise be dropped in silence, teaching the model nothing.
-pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> {
-    only_what_it_takes("propose", one)?;
+pub(super) fn one_of_many(
+    paths: &Paths,
+    taken: Option<&Takes>,
+    one: &Value,
+) -> Result<Value, Refused> {
+    only_what_it_takes("propose", taken, one)?;
     short_and_plain(one)?;
     if one.get("tasks").is_some() {
         return Err(Refused::Tool(
