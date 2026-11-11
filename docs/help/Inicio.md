@@ -18,12 +18,12 @@ Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en 
 
 ## Problemas reales, soluciones reales
 
-- **Quien desarrolla** le vuelve a explicar el proyecto al agente en cada sesión. Con Tisty, el agente pregunta qué cambió, abre la tarea en la que estaba con sus pasos marcados y lee lo que anotó ayer (*el webhook falla con firmas viejas; reintentar, descartado*), y sigue desde ahí.
-- **Un `NOTES.md` que llegó a 256 KB** se relee entero cada vez. En Tisty vive como documentos separados por tema, en páginas, y el agente lee el índice y una sección: cerca de un 95 % menos.
-- **A una PM** le preguntan, un mes después, «¿por qué decidimos esto?». Un documento vivo por tema guarda cada decisión fechada con su porqué, y el agente lo encuentra y lo cita.
-- **Un QA** ve fallar otra vez la misma pantalla. La tarea de regresión archivada guarda los casos de la vez anterior como pasos, con lo que se vio en cada uno.
-- **Un traspaso** a un PO o al QA que llega al proyecto va por Folio: el documento cifrado en tu equipo, firmado por ti, y se va solo cuando nadie lo usa. Mira [Compartir](Documentos#compartir).
-- **En casa**, el trámite del banco que vuelve cada año: la tarea archivada dice cómo lo hiciste la vez anterior.
+- **Quien desarrolla** le vuelve a explicar el proyecto al agente en cada sesión. **Con Tisty:** el agente pregunta qué cambió, abre la tarea en la que estaba con sus pasos marcados y lee lo que anotó ayer (*el webhook falla con firmas viejas; reintentar, descartado*), y sigue desde ahí.
+- **Un `NOTES.md` que llegó a 256 KB** se relee entero cada vez. **Con Tisty:** vive como documentos separados por tema, en páginas, y el agente lee el índice y una sección: cerca de un 95 % menos.
+- **A una PM** le preguntan, un mes después, «¿por qué decidimos esto?». **Con Tisty:** un documento vivo por tema guarda cada decisión fechada con su porqué, y el agente lo encuentra y lo cita.
+- **Un QA** ve fallar otra vez la misma pantalla, y nadie recuerda los casos de la vez anterior. **Con Tisty:** la tarea de regresión archivada los guarda como pasos, con lo que se vio en cada uno.
+- **Un traspaso** a un PO o al QA que llega al proyecto termina pegado en un chat. **Con Tisty:** va por Folio, el documento cifrado en tu equipo, firmado por ti, y se va solo cuando nadie lo usa. Mira [Compartir](Documentos#compartir).
+- **En casa**, el trámite del banco vuelve cada año. **Con Tisty:** la tarea archivada dice cómo lo hiciste la vez anterior.
 
 Cómo trabaja un agente con todo esto, y cuánto ahorra, está en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 

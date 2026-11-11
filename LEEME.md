@@ -212,7 +212,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 Lo que de verdad le pasa a quien trabaja meses con un asistente de IA, y lo que
 pasa en cambio cuando la memoria vive en Tisty.
 
-| El problema | Qué pasa en Tisty |
+| El problema | Con Tisty |
 | --- | --- |
 | **Desarrollo:** en cada sesión nueva le vuelves a explicar el proyecto a tu agente | Pregunta qué cambió desde la última vez, abre la tarea *Migrar pagos a v2* con sus pasos marcados y lee lo que anotó ayer: *el webhook falla con firmas viejas; reintentar, descartado*. Sigue desde ahí. |
 | **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 95 % menos que el archivo entero. |
