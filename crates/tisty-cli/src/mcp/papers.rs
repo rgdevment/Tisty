@@ -20,6 +20,14 @@ use super::asked::text;
 
 pub(super) const FOLDERS_AT_MOST: usize = 64;
 
+pub(super) fn still_arriving(state: &State, which: &str) -> Refused {
+    Refused::Missing(format!(
+        "{} is named in the log but its text is not on this machine yet. It may still be \
+         arriving from another one.",
+        super::doc_named(state, which)
+    ))
+}
+
 pub(super) fn reachable_or(
     paths: &Paths,
     said: &str,
