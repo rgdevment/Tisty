@@ -141,7 +141,6 @@ export default function Sidebar({
             chosen={chosen}
             leaning={leaning}
             onLean={setLeaning}
-            onReveal={reveal}
             revealing={revealing}
             here={here}
             acting={acting}

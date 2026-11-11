@@ -105,7 +105,7 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
 
     expect(screen.getByText("Folio Project")).toBeTruthy();
     expect(screen.getByText("#backend")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Trabajo" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Trabajo" })).toBeNull();
     expect(screen.getByRole("button", { name: t("shrinkTasks") })).toBeTruthy();
   });
 
@@ -187,15 +187,19 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     });
   });
 
-  it("shrinks the library to a glance at what was written lately", () => {
-    const onChoose = vi.fn();
-    bar({ named: "tasks" }, vi.fn(), vi.fn(), onChoose);
+  it("folds the library to its title and its strip of counts while tasks have the room", () => {
+    bar({ named: "tasks" });
     grow();
     const glance = screen.getByRole("region", { name: t("library") });
     expect(glance.textContent).toContain(t("glanceToday"));
     expect(glance.textContent).toContain(t("glanceFolders"));
-    fireEvent.click(screen.getByRole("button", { name: /Arroz chileno/ }));
-    expect(onChoose).toHaveBeenCalledWith({ named: "docs", doc: "D2.md" });
+    expect(screen.queryByRole("button", { name: /Arroz chileno/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Recetas" })).toBeNull();
+  });
+
+  it("keeps the views in sight while the library has the room", () => {
+    bar({ named: "docs" });
+    expect(screen.getByRole("navigation", { name: t("tasksViews") })).toBeTruthy();
   });
 
   it("keeps what was open in the library while tasks have the room", () => {
@@ -206,13 +210,6 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     grow();
     fireEvent.click(screen.getByRole("button", { name: t("growLibrary") }));
 
-    expect(screen.getByText("Clientes")).toBeTruthy();
-  });
-
-  it("opens the folder picked on the shrunk library, the way to it included", () => {
-    bar();
-    grow();
-    fireEvent.click(screen.getByRole("button", { name: "Trabajo" }));
     expect(screen.getByText("Clientes")).toBeTruthy();
   });
 
@@ -227,16 +224,6 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
 
     bar({ named: "search" }, vi.fn(), vi.fn(), vi.fn(), "arroz");
     expect(screen.getByRole("textbox", { name: t("sideSearch") })).toHaveProperty("value", "arroz");
-  });
-
-  it("opens a folder of the shrunk library in the library", () => {
-    const onHere = vi.fn();
-    bar({ named: "tasks" }, vi.fn(), onHere);
-    grow();
-    fireEvent.click(screen.getByRole("button", { name: "Recetas" }));
-    expect(onHere).toHaveBeenCalledWith("F3");
-    expect(screen.getByText("Trabajo")).toBeTruthy();
-    expect(screen.queryByText("Folio Project")).toBeNull();
   });
 
   it("filters the library down to what matches, the folders above it opened", () => {
@@ -314,7 +301,7 @@ describe("what the shrunk library says at a glance", () => {
   const now = new Date(2026, 10, 10, 15, 0);
   const daysAgo = (days: number) => new Date(2026, 10, 10 - days, 9, 0).toISOString();
 
-  it("counts what was written today and this week, the newest first", () => {
+  it("counts what was written today and this week", () => {
     const seen = lately(
       {
         folders: [folder("F1", "Trabajo"), { ...folder("F9", "Viejo"), away: true }],
@@ -331,7 +318,6 @@ describe("what the shrunk library says at a glance", () => {
     expect(seen.today).toBe(1);
     expect(seen.week).toBe(3);
     expect(seen.folders).toBe(1);
-    expect(seen.recent.map((one) => one.id)).toEqual(["A", "B", "C"]);
   });
 
   it("counts nothing written on a day still to come", () => {
@@ -358,7 +344,6 @@ describe("what the shrunk library says at a glance", () => {
     );
     expect(seen.marked).toBe(1);
     expect(seen.today).toBe(1);
-    expect(seen.recent.map((one) => one.id)).toEqual(["A"]);
   });
 });
 

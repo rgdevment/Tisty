@@ -89,15 +89,6 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
   return spec.has_time ? `${named} ${clock.format(at)}` : named;
 }
 
-export function brief(iso: string, now = new Date()): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return "";
-  const away = daysFrom(iso, now);
-  if (away === 0) return formats().clock.format(at);
-  if (away === -1) return formats().relative.format(-1, "day");
-  return formats().date.format(at);
-}
-
 export function shortStamp(iso: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "";

@@ -19,7 +19,6 @@ interface Props {
   chosen: Chosen;
   leaning: Lean;
   onLean: (on: Lean) => void;
-  onReveal: (folder?: string) => void;
   revealing?: Revealed | null;
   here?: string | null;
   acting?: string | null;
@@ -35,7 +34,7 @@ interface Props {
 }
 
 export default function SideLibrary(props: Props) {
-  const { papers, chosen, leaning, onLean, onReveal, onHere, onChoose } = props;
+  const { papers, chosen, leaning, onLean, onHere } = props;
   const many = shown(papers.docs).filter((one) => !one.pageOf).length;
   const lit = chosen.named === "docs";
   const library = () => {
@@ -63,18 +62,7 @@ export default function SideLibrary(props: Props) {
   return (
     <>
       {shrunk && (
-        <LibraryGlance
-          papers={papers}
-          many={many}
-          lit={lit}
-          here={props.here}
-          acting={props.acting}
-          onLean={onLean}
-          onLibrary={library}
-          onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
-          onReveal={onReveal}
-          onDocMenu={props.onDocMenu}
-        />
+        <LibraryGlance papers={papers} many={many} lit={lit} onLean={onLean} onLibrary={library} />
       )}
       <Wide {...props} title={title} hidden={shrunk} />
     </>
