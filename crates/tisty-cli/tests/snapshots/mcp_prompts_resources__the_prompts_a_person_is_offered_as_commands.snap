@@ -1,0 +1,55 @@
+---
+source: crates/tisty-cli/tests/mcp_prompts_resources.rs
+expression: "said[\"result\"]"
+---
+{
+  "cacheScope": "public",
+  "prompts": [
+    {
+      "arguments": [
+        {
+          "description": "A word from the task to pick up; left out, the one last worked on",
+          "name": "task"
+        }
+      ],
+      "description": "What moved since last time, then the open task last worked on and its latest notes.",
+      "name": "pick_up",
+      "title": "Pick up where I left off"
+    },
+    {
+      "arguments": [
+        {
+          "description": "What is to be done; left out, what we have been talking about",
+          "name": "work"
+        }
+      ],
+      "description": "One task with its steps in its list, once no task already covers it.",
+      "name": "plan_task",
+      "title": "Plan this work as a task with steps"
+    },
+    {
+      "arguments": [
+        {
+          "description": "A word for the problem; left out, the one we are on",
+          "name": "problem"
+        }
+      ],
+      "description": "Search the archive of finished tasks and the documents before trying anything new.",
+      "name": "solved_before",
+      "title": "How did we solve this before?"
+    },
+    {
+      "arguments": [
+        {
+          "description": "What the decision is about; left out, plain from the conversation",
+          "name": "subject"
+        }
+      ],
+      "description": "Write the decision just made into the one document on its subject, in place.",
+      "name": "keep_decision",
+      "title": "Keep this decision in its document"
+    }
+  ],
+  "resultType": "complete",
+  "ttlMs": 3600000
+}

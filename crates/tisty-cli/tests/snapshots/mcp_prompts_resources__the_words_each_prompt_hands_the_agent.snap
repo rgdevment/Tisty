@@ -1,0 +1,31 @@
+---
+source: crates/tisty-cli/tests/mcp_prompts_resources.rs
+expression: said
+---
+## plan_task «the passport»
+
+Plan «the passport», with what we have said about it, as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
+
+## plan_task
+
+Plan the work we have been talking about as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
+
+## solved_before «the passport»
+
+How did we solve «the passport» before? Search Tisty before trying anything: `find` reaches the archive, where every finished task is kept whole, and the documents on the subject. `read` the closest tasks for how they ended, their steps and their notes, and `outline_doc` the documents that cover it. Tell me what was done, when, and where it is written, by title and list or folder. If nothing turns up, say so plainly rather than guessing.
+
+## solved_before
+
+How did we solve the problem we are on before? Search Tisty before trying anything: `find` reaches the archive, where every finished task is kept whole, and the documents on the subject. `read` the closest tasks for how they ended, their steps and their notes, and `outline_doc` the documents that cover it. Tell me what was done, when, and where it is written, by title and list or folder. If nothing turns up, say so plainly rather than guessing.
+
+## keep_decision «the passport»
+
+Keep the decision we just made in Tisty, in the one document about «the passport». Ask `rules` «documents» first. `find` that document, `outline_doc` it, and write the decision with `edit_doc` in the passage it belongs to, dated and with its reason; a decision it replaces is struck through and dated, never left standing beside it. If no document covers the subject, ask me which folder it belongs in before `write_doc`. Tell me the document's title and folder.
+
+## keep_decision
+
+Keep the decision we just made in Tisty, in the one document on its subject. Ask `rules` «documents» first. `find` that document, `outline_doc` it, and write the decision with `edit_doc` in the passage it belongs to, dated and with its reason; a decision it replaces is struck through and dated, never left standing beside it. If no document covers the subject, ask me which folder it belongs in before `write_doc`. Tell me the document's title and folder.
+
+## pick_up «the passport»
+
+Pick up where I left off in Tisty. Call `catch_up` first for where things stand. Then `find` the open task about «the passport» — ask me if several fit — and `read` it with its steps and its latest notes. Tell me in a few lines where it stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.

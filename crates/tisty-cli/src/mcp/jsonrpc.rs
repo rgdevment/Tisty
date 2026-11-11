@@ -71,7 +71,7 @@ pub(super) fn discovered() -> Value {
     json!({
         "resultType": "complete",
         "supportedVersions": VERSIONS,
-        "capabilities": { "tools": {} },
+        "capabilities": offered(),
         "instructions": instructions(jiff::Zoned::now().date()),
         "ttlMs": until_the_day_turns(),
         "cacheScope": "public",
@@ -101,10 +101,14 @@ pub(super) fn legacy_greeting(params: &Value) -> Value {
     };
     json!({
         "protocolVersion": speaking,
-        "capabilities": { "tools": {} },
+        "capabilities": offered(),
         "serverInfo": who(),
         "instructions": instructions(jiff::Zoned::now().date()),
     })
+}
+
+fn offered() -> Value {
+    json!({ "tools": {}, "prompts": {}, "resources": {} })
 }
 
 pub(super) fn who() -> Value {

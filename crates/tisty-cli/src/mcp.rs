@@ -11,6 +11,8 @@ mod mending;
 mod moving;
 mod papers;
 mod placing;
+mod prompts;
+mod resources;
 mod spoken;
 mod task_notes;
 mod tool_list;
@@ -135,6 +137,11 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
         "server/discover" => reply(id, discovered()),
         "initialize" => reply(id, legacy_greeting(&params)),
         "ping" => reply(id, json!({})),
+        "prompts/list" => reply(id, prompts::listed()),
+        "prompts/get" => aside(id, prompts::got(paths, &params)),
+        "resources/list" => aside(id, resources::listed(paths, &params)),
+        "resources/templates/list" => reply(id, resources::templates()),
+        "resources/read" => aside(id, resources::read(paths, &params)),
         "tools/list" => reply(
             id,
             json!({
@@ -207,6 +214,14 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
 enum Refused {
     Protocol(i32, String),
     Tool(String),
+}
+
+fn aside(id: Value, said: Result<Value, (i32, String)>) -> String {
+    TOLD.take();
+    match said {
+        Ok(said) => reply(id, said),
+        Err((code, why)) => fault(id, code, &why),
+    }
 }
 
 thread_local! {
@@ -346,21 +361,25 @@ fn turned_away(paths: &Paths) -> Refused {
 }
 
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
-    let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
-    let Some(agent) = config.agent_id.clone() else {
+    let Some((state, agent)) = admitted(paths)? else {
         return Err(turned_away(paths));
     };
-    let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
-    // The log says who may write, not the settings file an agent could edit itself.
-    if !state.agents.contains(&agent) {
-        return Err(turned_away(paths));
-    }
     let key = tisty_core::signing::mine(paths, &agent);
     let store = Store::open(paths.store(), agent)
         .map_err(hitch)?
         .signing_with(key)
         .speaking_through(speaking_through());
     Ok((state, store))
+}
+
+fn admitted(paths: &Paths) -> Result<Option<(State, tisty_core::DeviceId)>, Refused> {
+    let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
+    let Some(agent) = config.agent_id else {
+        return Ok(None);
+    };
+    let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
+    // The log says who may write, not the settings file an agent could edit itself.
+    Ok(state.agents.contains(&agent).then_some((state, agent)))
 }
 
 fn wrote(store: &mut Store, id: tisty_core::model::DocId) -> bool {

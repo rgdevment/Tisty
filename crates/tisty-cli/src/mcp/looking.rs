@@ -858,7 +858,7 @@ pub(super) fn how_it_ended(task: &Task) -> String {
 
 /// Every op carries its own id under the same name, so reading it back as JSON keeps this from
 /// having to know each one — and from going quiet the day another is added.
-fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)> {
+pub(super) fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)> {
     let said = serde_json::to_value(&event.op).ok()?;
     let named = said.get("op")?.as_str()?.to_string();
     let id = said.get("id")?.as_str()?.to_string();
@@ -1264,7 +1264,7 @@ fn pressed(pressing: &[(String, usize)]) -> String {
     format!(" ({})", told.join(", "))
 }
 
-fn placed(state: &State, task: &Task) -> String {
+pub(super) fn placed(state: &State, task: &Task) -> String {
     task.list.and_then(|at| state.lists.get(&at)).map_or_else(
         || "in the inbox".to_string(),
         |one| format!("in {}", one.name),
