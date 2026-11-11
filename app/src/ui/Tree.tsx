@@ -812,7 +812,7 @@ export default function Tree({
         aria-expanded={opened.has("away")}
         aria-label={t("archived")}
         style={{ top: "var(--tisty-docs-head)" }}
-        className="pinned-head sticky z-10 flex w-full items-center gap-1.5 bg-rail px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+        className="pinned-head sticky z-10 flex w-full items-center gap-1.5 bg-sheet px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
       >
         <span
           aria-hidden

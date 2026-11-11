@@ -52,10 +52,10 @@ export default function SideTasks({
   const on = (key: Named) => plain && chosen.named === key;
 
   return (
-    <div className={`flex flex-col px-2.5 ${wide ? "min-h-0 flex-1" : "shrink-0 pb-2"}`}>
+    <div className={`flex flex-col px-2.5 pb-2 ${wide ? "min-h-0 flex-1" : "shrink-0"}`}>
       <Finder query={query} onSearch={onSearch} />
       <div
-        className={`rounded-[10px] border bg-sheet px-2 pt-2 pb-1 transition-colors duration-150 ${
+        className={`flex flex-col rounded-[10px] border bg-sheet px-2 pt-2 pb-1 transition-colors duration-150 ${wide ? "min-h-0 flex-1" : ""} ${
           on("tasks") ? "border-accent/40" : "border-hair"
         }`}
       >
@@ -119,18 +119,18 @@ export default function SideTasks({
             );
           })}
         </nav>
+        {wide && (
+          <Wide
+            counts={counts}
+            lists={lists}
+            tags={tags}
+            chosen={chosen}
+            acting={acting}
+            onListMenu={onListMenu}
+            onChoose={onChoose}
+          />
+        )}
       </div>
-      {wide && (
-        <Wide
-          counts={counts}
-          lists={lists}
-          tags={tags}
-          chosen={chosen}
-          acting={acting}
-          onListMenu={onListMenu}
-          onChoose={onChoose}
-        />
-      )}
     </div>
   );
 }
@@ -148,7 +148,10 @@ function Wide({
   const held = lists.filter((one) => !one.archived);
   const most = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, TAGS_SHOWN);
   return (
-    <div ref={pane} className="scroller fading -mx-2.5 min-h-0 flex-1 px-2.5 pt-1 pb-3">
+    <div
+      ref={pane}
+      className="scroller fading -mx-2 mt-1 min-h-0 flex-1 border-t border-hair px-1 pb-2"
+    >
       <Head said={t("lists")} many={held.length} />
       {held.map((one) => {
         const picked = chosen.list === one.id;
