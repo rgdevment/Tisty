@@ -13,7 +13,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `rules` | Las reglas completas para trabajar aquí; con `topic` «tidying», cómo poner las cosas en orden. Los asistentes las piden primero |
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
-| `catch_up` | Cómo están las cosas, qué se movió desde su último cambio y quién lo movió, y la tarea abierta en la que estaba |
+| `catch_up` | Cómo están las cosas, qué se movió desde la última vez que pasó y quién lo movió, y la tarea abierta en la que estaba |
 | `find` | Buscar en la lista y en el archivo |
 | `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una |
 | `lists` | Las listas que existen |

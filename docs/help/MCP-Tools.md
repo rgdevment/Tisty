@@ -13,7 +13,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `rules` | The full rules for working here; with `topic` «tidying», how to put things back in order. Assistants ask for them first |
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
-| `catch_up` | Where things stand, what has moved since its last change and who moved it, and the open task it was on |
+| `catch_up` | Where things stand, what has moved since it was last here and who moved it, and the open task it was on |
 | `find` | Search the list and the archive |
 | `read` | Read a task: its page, its steps and its latest notes, with who wrote each |
 | `lists` | The lists that exist |
