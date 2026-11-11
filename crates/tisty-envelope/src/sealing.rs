@@ -55,6 +55,7 @@ pub struct Sealed {
     /// What answers for its files, sent now or kept, so the next version can keep them.
     pub files_hash: Option<String>,
     pub editors: Option<Vec<Editor>>,
+    pub print: String,
 }
 
 /// The one who seals and signs, with this machine's key under its certificate.
@@ -453,6 +454,11 @@ impl<'a> Writer<'a> {
             references_fit(&page.html, &document)?;
         }
         let (first, rest) = split(&document)?;
+        let print = crate::reviews::print_over(
+            [first.as_slice(), rest.as_slice()]
+                .into_iter()
+                .chain(pictures.iter().map(Vec::as_slice)),
+        );
         let mut parts = vec![
             squeezed(PartName::First, &first)?,
             squeezed(PartName::Rest, &rest)?,
@@ -468,6 +474,7 @@ impl<'a> Writer<'a> {
             files: files_envelope,
             files_hash: document.files_hash,
             editors: document.editors,
+            print,
         })
     }
 

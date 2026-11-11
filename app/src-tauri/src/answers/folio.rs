@@ -611,6 +611,7 @@ pub(super) fn forget_share(app: &tauri::AppHandle, file: &str) {
         doc_of_file(&session, at).map(|one| one.to_string())
     });
     gone.push((file.to_owned(), was));
+    super::folio_reviewing::forgotten_here(&session.paths.private(), &gone);
     let _ = session.commit_all(tisty_sharing::forgotten(&gone));
 }
 
@@ -783,6 +784,7 @@ pub(super) fn card_of(
 // Every answer that draws the row again carries the languages, or the row would lose them until asked again.
 pub(super) fn full_card(
     host: &str,
+    home: &Path,
     shelf: &BTreeMap<String, Remembered>,
     was: &Remembered,
     signature: &Signature,
@@ -790,7 +792,7 @@ pub(super) fn full_card(
 ) -> Option<Card> {
     let card = card_of(host, was, signature, maker)?;
     Some(Card {
-        languages: super::folio_reviewing::words_on_card(shelf, was),
+        languages: super::folio_reviewing::words_on_card(home, shelf, was),
         ..card
     })
 }
@@ -812,13 +814,14 @@ pub async fn doc_share_card(
 ) -> Answer<Option<Card>> {
     let home = held(&session).paths.private();
     let maker = folio_limits::maker(&home);
-    let host = private_host_apart(home).await?;
+    let host = private_host_apart(home.clone()).await?;
     let session = held(&session);
     let file = file_of(&session, &id)?;
     let shelf = tisty_sharing::remembered(&session.state);
+    let signed = &session.state.signed;
     Ok(shelf
         .get(&file)
-        .and_then(|was| full_card(&host, shelf, was, &session.state.signed, maker.as_ref())))
+        .and_then(|was| full_card(&host, &home, shelf, was, signed, maker.as_ref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -916,6 +919,15 @@ pub(super) fn delivered(
                 .map_err(|stopped| said_kept(&stopped, home, held_as))?;
         }
         keep(std::slice::from_ref(entry))?;
+        if sealed.anchors.contains_key(&going.id) {
+            let print = going.sealed.print.clone();
+            let version = stored.version;
+            folio_reviewed::print_known(
+                home,
+                &going.id,
+                folio_reviewed::Printed { version, print },
+            );
+        }
     }
     Ok(())
 }
@@ -1185,9 +1197,18 @@ pub async fn doc_shared(
             .find(|(_, one)| one.held_by.is_none());
         let maker = folio_limits::maker(&home);
         let shelf = tisty_sharing::remembered(&state);
-        top.and_then(|(_, one)| full_card(door.host(), shelf, one, &state.signed, maker.as_ref()))
-            .map(|one| Card { told, ..one })
-            .ok_or_else(|| Refusal::of("folioGarbled"))
+        top.and_then(|(_, one)| {
+            full_card(
+                door.host(),
+                &home,
+                shelf,
+                one,
+                &state.signed,
+                maker.as_ref(),
+            )
+        })
+        .map(|one| Card { told, ..one })
+        .ok_or_else(|| Refusal::of("folioGarbled"))
     })
     .await
 }
@@ -1338,6 +1359,7 @@ pub async fn doc_share_stop(
             }
             gone.push((at, one));
         }
+        super::folio_reviewing::forgotten_here(&home, &gone);
         let session = app.state::<Mutex<Session>>();
         held(&session).commit_all(tisty_sharing::forgotten(&gone))?;
         Ok(())

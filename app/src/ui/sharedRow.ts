@@ -4,6 +4,7 @@ import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
   type LanguageWord,
+  languagesLooked,
   type Named,
   type ShareCard,
   type ShareStatus,
@@ -310,24 +311,38 @@ const printsOf = ({ owner, signer, editors }: ShareCard) => {
 const theirs = (card: ShareCard) => card.languages.filter((one) => !one.mine && one.lang !== null);
 
 // Someone who edits added these, and readers see one only once its owner keeps it (166).
+const ownersWord = {
+  waiting: "shareOwnerWaits",
+  kept: "shareOwnerKept",
+  changed: "shareOwnerChanged",
+  leftOut: "shareOwnerLeftOut",
+} as const;
+
+const theirWord = {
+  waiting: "shareLanguageWaits",
+  kept: "shareLanguageKept",
+  changed: "shareLanguageChanged",
+} as const;
+
+// A language its owner left out leaves the map, so the owner's own card never names it.
 const languagesSaid = (card: ShareCard) =>
-  card.languages.map((one) => {
-    if (one.mine)
-      return t(
-        one.word === "kept"
-          ? "shareOwnerKept"
-          : one.word === "leftOut"
-            ? "shareOwnerLeftOut"
-            : "shareOwnerWaits",
-      );
-    const name = tongueName(one.lang ?? "");
-    return fill(one.word === "kept" ? "shareLanguageKept" : "shareLanguageWaits", name);
+  card.languages.flatMap((one) => {
+    if (one.mine) return [t(ownersWord[one.word])];
+    if (one.word === "leftOut") return [];
+    return [fill(theirWord[one.word], tongueName(one.lang ?? ""))];
   });
+
+// A language the owner keeps can change in Folio at any time, and only asking after it tells.
+const keepsTheirs = (card: ShareCard) =>
+  theirs(card).some((one) => one.word === "kept" || one.word === "changed");
 
 const reviewActs = (h: Hands, onReview: (one: LanguageWord) => void): Act[] =>
   theirs(h.card).map((one) => ({
     key: `review-${one.document}`,
-    label: fill("shareLanguageReview", tongueName(one.lang ?? "")),
+    label: fill(
+      one.word === "changed" ? "shareLanguageChanges" : "shareLanguageReview",
+      tongueName(one.lang ?? ""),
+    ),
     onPick: () => onReview(one),
   }));
 
@@ -407,7 +422,15 @@ export const useSharedRow = (
     if (!doc) return;
     shareCard(doc)
       .then((now) => {
-        if (!gone) setCard(now);
+        if (gone) return;
+        setCard(now);
+        if (!now || !keepsTheirs(now)) return;
+        void languagesLooked(doc)
+          .then((changed) => (changed && !gone ? shareCard(doc) : null))
+          .then((again) => {
+            if (again && !gone) setCard(again);
+          })
+          .catch(() => {});
       })
       .catch(() => {});
     return () => {
