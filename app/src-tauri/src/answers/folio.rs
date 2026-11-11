@@ -611,6 +611,7 @@ pub(super) fn forget_share(app: &tauri::AppHandle, file: &str) {
         doc_of_file(&session, at).map(|one| one.to_string())
     });
     gone.push((file.to_owned(), was));
+    super::folio_reviewing::forgotten_here(&session.paths.private(), &gone);
     let _ = session.commit_all(tisty_sharing::forgotten(&gone));
 }
 
@@ -918,9 +919,15 @@ pub(super) fn delivered(
                 .map_err(|stopped| said_kept(&stopped, home, held_as))?;
         }
         keep(std::slice::from_ref(entry))?;
-        let print = going.sealed.print.clone();
-        let version = stored.version;
-        folio_reviewed::print_known(home, &going.id, folio_reviewed::Printed { version, print });
+        if sealed.anchors.contains_key(&going.id) {
+            let print = going.sealed.print.clone();
+            let version = stored.version;
+            folio_reviewed::print_known(
+                home,
+                &going.id,
+                folio_reviewed::Printed { version, print },
+            );
+        }
     }
     Ok(())
 }
@@ -1352,6 +1359,7 @@ pub async fn doc_share_stop(
             }
             gone.push((at, one));
         }
+        super::folio_reviewing::forgotten_here(&home, &gone);
         let session = app.state::<Mutex<Session>>();
         held(&session).commit_all(tisty_sharing::forgotten(&gone))?;
         Ok(())

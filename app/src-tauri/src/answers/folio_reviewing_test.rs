@@ -412,30 +412,17 @@ fn what_changed_is_told_against_the_copy_kept_with_the_word_that_stands() {
     };
     let home = tempfile::tempdir().unwrap();
     let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
-    let now = copy(
-        0x15,
-        "One.
+    let now = copy(0x15, "One.\n\nThree.");
+    let told = || {
+        let kept_here = super::copy_of_word(home.path(), &kept, "anaEngl1");
+        super::changes_since(kept_here.as_ref(), &now)
+    };
+    assert_eq!(told(), None);
 
-Three.",
-    );
-    assert_eq!(
-        super::changes_since(home.path(), &kept, "anaEngl1", &now),
-        None
-    );
-
-    folio_reviewed::copy_kept(
-        home.path(),
-        "anaEngl1",
-        &copy(
-            0x13,
-            "One.
-
-Two.",
-        ),
-    );
+    folio_reviewed::copy_kept(home.path(), "anaEngl1", &copy(0x13, "One.\n\nTwo."));
 
     assert_eq!(
-        super::changes_since(home.path(), &kept, "anaEngl1", &now).unwrap(),
+        told().unwrap(),
         [
             Changed::Same("Walks".to_owned()),
             Changed::Same("One.".to_owned()),
@@ -443,11 +430,9 @@ Two.",
             Changed::Came("Three.".to_owned()),
         ]
     );
+    assert_eq!(super::changes_since(Some(&now), &now), None);
     folio_reviewed::copy_kept(home.path(), "anaEngl1", &copy(0x14, "One."));
-    assert_eq!(
-        super::changes_since(home.path(), &kept, "anaEngl1", &now),
-        None
-    );
+    assert_eq!(super::copy_of_word(home.path(), &kept, "anaEngl1"), None);
 }
 
 struct LatestOnly(std::cell::Cell<u32>);
@@ -476,11 +461,16 @@ fn a_version_already_printed_here_is_not_brought_again() {
     assert!(!super::looked_again(&folio, home.path(), &entry));
 
     assert_eq!(folio.0.get(), 1);
-    known(home.path(), "anaEngl1", 3, encoded(0x12));
-    assert_eq!(
-        folio_reviewed::printed(home.path(), "anaEngl1")
-            .unwrap()
-            .print,
-        encoded(0x13)
-    );
+}
+
+#[test]
+fn a_share_that_ends_takes_the_copies_of_the_languages_others_added_with_it() {
+    let home = tempfile::tempdir().unwrap();
+    folio_reviewed::copy_kept(home.path(), "anaEngl1", &copy(0x13, "One."));
+    known(home.path(), "anaEngl1", 4, encoded(0x13));
+
+    super::forgotten_here(home.path(), &[("ancla.md".to_owned(), anchor())]);
+
+    assert_eq!(folio_reviewed::kept_copy(home.path(), "anaEngl1"), None);
+    assert_eq!(folio_reviewed::printed(home.path(), "anaEngl1"), None);
 }

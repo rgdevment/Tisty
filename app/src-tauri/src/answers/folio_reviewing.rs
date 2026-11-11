@@ -45,6 +45,7 @@ pub struct Shown {
     body: String,
     pictures: Vec<ShownPicture>,
     print: String,
+    copied: bool,
     changes: Option<Vec<Changed>>,
 }
 
@@ -68,22 +69,26 @@ pub struct LanguageWord {
 }
 
 // Readers see only the version the owner kept, so one known here to differ waits for the owner again (166).
-fn changed_since(home: &Path, document: &str, kept: Option<&str>) -> bool {
-    folio_reviewed::printed(home, document).is_some_and(|known| Some(known.print.as_str()) != kept)
+fn changed_since(known: &Prints, document: &str, kept: Option<&str>) -> bool {
+    known
+        .get(document)
+        .is_some_and(|known| Some(known.print.as_str()) != kept)
 }
 
-fn word_of(home: &Path, document: &str, said: Option<&Review>) -> Word {
+type Prints = std::collections::BTreeMap<String, Printed>;
+
+fn word_of(known: &Prints, document: &str, said: Option<&Review>) -> Word {
     match said {
         None => Word::Waiting,
         Some(one) if !one.kept => Word::LeftOut,
-        Some(one) if changed_since(home, document, one.print.as_deref()) => Word::Changed,
+        Some(one) if changed_since(known, document, one.print.as_deref()) => Word::Changed,
         Some(_) => Word::Kept,
     }
 }
 
 // Someone who edits hears the owner's word on the language they added, from the reviews its anchor carries.
 fn owners_word_on_mine(
-    home: &Path,
+    known: &Prints,
     shelf: &std::collections::BTreeMap<String, Remembered>,
     was: &Remembered,
 ) -> Option<LanguageWord> {
@@ -104,7 +109,7 @@ fn owners_word_on_mine(
         lang: None,
         title: None,
         word: word_of(
-            home,
+            known,
             &was.id,
             reviews::word_on(&joining, &reviews, &was.id).as_ref(),
         ),
@@ -117,7 +122,8 @@ pub(super) fn words_on_card(
     shelf: &std::collections::BTreeMap<String, Remembered>,
     was: &Remembered,
 ) -> Vec<LanguageWord> {
-    if let Some(mine) = owners_word_on_mine(home, shelf, was) {
+    let known = folio_reviewed::prints(home);
+    if let Some(mine) = owners_word_on_mine(&known, shelf, was) {
         return vec![mine];
     }
     if was.admin_token.is_none() || was.link_key.is_none() {
@@ -128,7 +134,7 @@ pub(super) fn words_on_card(
         .map(|one| LanguageWord {
             word: match one.kept {
                 false => Word::Waiting,
-                true if changed_since(home, &one.document, one.print.as_deref()) => Word::Changed,
+                true if changed_since(&known, &one.document, one.print.as_deref()) => Word::Changed,
                 true => Word::Kept,
             },
             document: one.document,
@@ -221,16 +227,15 @@ pub async fn doc_languages_looked(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<bool> {
-    let (home, kept) = {
+    let (home, anchor, kept) = {
         let session = held(&session);
         let (_, was) = owned(&session, &id)?;
         let shelf = tisty_sharing::remembered(&session.state);
-        (
-            session.paths.private(),
-            kept_entries(&was, &owned_ids(shelf)),
-        )
+        let kept = kept_entries(&was, &owned_ids(shelf));
+        (session.paths.private(), was.id, kept)
     };
-    if kept.is_empty() {
+    let now = tisty_carrier::policy::now();
+    if kept.is_empty() || !folio_reviewed::prints_due(&home, &anchor, now) {
         return Ok(false);
     }
     apart(move || {
@@ -239,6 +244,7 @@ pub async fn doc_languages_looked(
             .iter()
             .map(|entry| looked_again(&door, &home, entry))
             .collect();
+        folio_reviewed::prints_asked(&home, &anchor, now);
         Ok(looked.contains(&true))
     })
     .await
@@ -252,17 +258,25 @@ fn told_whole(copy: &Copy) -> String {
 }
 
 // What changed is told against the copy kept with the owner's word, and only while that word still stands.
-pub(super) fn changes_since(
-    home: &Path,
-    was: &Remembered,
-    document: &str,
-    now: &Copy,
-) -> Option<Vec<Changed>> {
+pub(super) fn copy_of_word(home: &Path, was: &Remembered, document: &str) -> Option<Copy> {
     let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
     let kept = kept_print(was, &reviews, document)?;
-    let copy = folio_reviewed::kept_copy(home, document)
-        .filter(|one| one.print == kept && one.print != now.print)?;
-    merge::changed(&told_whole(&copy), &told_whole(now))
+    folio_reviewed::kept_copy(home, document).filter(|one| one.print == kept)
+}
+
+pub(super) fn changes_since(copy: Option<&Copy>, now: &Copy) -> Option<Vec<Changed>> {
+    let copy = copy.filter(|one| one.print != now.print)?;
+    merge::changed(&told_whole(copy), &told_whole(now))
+}
+
+// Someone else's words stay here only while the share that brought them lasts.
+pub(super) fn forgotten_here(home: &Path, gone: &[(String, Remembered)]) {
+    for (_, was) in gone {
+        folio_reviewed::forgotten(home, &was.id);
+        for one in carried_map(was) {
+            folio_reviewed::forgotten(home, &one.document);
+        }
+    }
 }
 
 fn copy_of(opened: &Opened) -> Copy {
@@ -391,8 +405,10 @@ pub async fn doc_language_shown(
             print: now.print.clone(),
         },
     );
+    let copy = copy_of_word(&home, &was, &document);
     Ok(Shown {
-        changes: changes_since(&home, &was, &document, &now),
+        copied: copy.is_some(),
+        changes: changes_since(copy.as_ref(), &now),
         lang: text(&opened, "lang"),
         title: now.title,
         by: text(&opened, "signed_as").or_else(|| text(&opened, "owner_name")),

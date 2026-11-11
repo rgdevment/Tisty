@@ -104,7 +104,7 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
       <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
         {t(changed ? "reviewChangesWhy" : "reviewWhy")}
       </p>
-      {changed && shown && !shown.changes && (
+      {changed && shown && !shown.copied && (
         <p className="mt-2 text-[12.5px] text-faint">{t("reviewNoCopy")}</p>
       )}
       {told && (

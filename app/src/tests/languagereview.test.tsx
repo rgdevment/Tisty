@@ -10,6 +10,7 @@ const ipc = vi.hoisted(() => ({
   prints: [] as string[],
   refuse: null as null | string,
   changes: null as null | { kind: "same" | "gone" | "came"; text: string }[],
+  copied: false,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -26,6 +27,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         pictures: [{ at: 0, path: "/cache/reviewing/0.png" }],
         print: ipc.prints.shift() ?? "P",
         changes: ipc.changes,
+        copied: ipc.copied,
       });
     if (cmd === "doc_language_reviewed" && ipc.refuse) {
       const code = ipc.refuse;
@@ -51,6 +53,7 @@ beforeEach(() => {
   ipc.prints = [];
   ipc.refuse = null;
   ipc.changes = null;
+  ipc.copied = false;
   adopt("en");
 });
 
@@ -102,6 +105,7 @@ describe("Review a language", () => {
   });
 
   it("shows what changed since the owner kept it, struck out and marked", async () => {
+    ipc.copied = true;
     ipc.changes = [
       { kind: "same", text: "One." },
       { kind: "gone", text: "Two." },
@@ -123,5 +127,14 @@ describe("Review a language", () => {
 
     await screen.findByText("We walk by the river.");
     expect(screen.getByText(t("reviewNoCopy"))).toBeTruthy();
+  });
+
+  it("shows a changed language whole, with no word of a copy, when its changes are not told", async () => {
+    ipc.copied = true;
+    const changed = { ...word, word: "changed" as const };
+    render(<LanguageReview doc="d1" word={changed} onDone={vi.fn()} onClose={vi.fn()} />);
+
+    await screen.findByText("We walk by the river.");
+    expect(screen.queryByText(t("reviewNoCopy"))).toBeNull();
   });
 });

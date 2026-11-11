@@ -592,6 +592,9 @@ pub async fn doc_share_sync(
                 &[(foreign.file, without_the_gone(&current, &gone))],
             )?;
         }
+        for id in &gone {
+            folio_reviewed::forgotten(&paths.private(), id);
+        }
     }
     let checking = paths.clone();
     let agreed = apart(move || may_upload(&checking, tongue)).await;
@@ -868,7 +871,7 @@ async fn other_version_brought(
     }
     let now = kept_after(was, &opened, &received);
     kept_on(&mut session, &[(file, now)])?;
-    if let Some(print) = opened.print.clone() {
+    if let Some(print) = opened.print.clone().filter(|_| was.held_by.is_some()) {
         let version = opened.version;
         folio_reviewed::print_known(&home, &was.id, folio_reviewed::Printed { version, print });
     }

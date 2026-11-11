@@ -113,6 +113,7 @@ export interface LanguageShown {
   body: string;
   pictures: { at: number; path: string }[];
   print: string;
+  copied: boolean;
   changes: { kind: "same" | "gone" | "came"; text: string }[] | null;
 }
 

@@ -6,8 +6,10 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 const KEPT: &str = "folio-reviewed.json";
 const ASKED: &str = "folio-languages-asked.json";
 const PRINTED: &str = "folio-languages-printed.json";
+const LOOKED: &str = "folio-languages-looked.json";
 const COPIES: &str = "folio-kept-copies";
 const DAY: u64 = 24 * 60 * 60;
+const QUARTER: u64 = 15 * 60;
 
 fn all<T: DeserializeOwned>(home: &Path, name: &str) -> BTreeMap<String, T> {
     std::fs::read(home.join(name))
@@ -37,17 +39,34 @@ pub fn saw(home: &Path, anchor: &str, seq: u64) {
     kept(home, KEPT, &seen);
 }
 
+fn due(home: &Path, name: &str, anchor: &str, now: u64, every: u64) -> bool {
+    all::<u64>(home, name)
+        .get(anchor)
+        .is_none_or(|at| now.saturating_sub(*at) >= every)
+}
+
+fn asked(home: &Path, name: &str, anchor: &str, now: u64) {
+    let mut asked = all::<u64>(home, name);
+    asked.insert(anchor.to_owned(), now);
+    kept(home, name, &asked);
+}
+
 // A language others added rarely leaves Folio, so the owner asks after them once a day, not on every press.
 pub fn languages_due(home: &Path, anchor: &str, now: u64) -> bool {
-    all::<u64>(home, ASKED)
-        .get(anchor)
-        .is_none_or(|at| now.saturating_sub(*at) >= DAY)
+    due(home, ASKED, anchor, now, DAY)
 }
 
 pub fn languages_asked(home: &Path, anchor: &str, now: u64) {
-    let mut asked = all::<u64>(home, ASKED);
-    asked.insert(anchor.to_owned(), now);
-    kept(home, ASKED, &asked);
+    asked(home, ASKED, anchor, now);
+}
+
+// The row is drawn each time a document is opened, so the versions it keeps are asked after at most every quarter of an hour.
+pub fn prints_due(home: &Path, anchor: &str, now: u64) -> bool {
+    due(home, LOOKED, anchor, now, QUARTER)
+}
+
+pub fn prints_asked(home: &Path, anchor: &str, now: u64) {
+    asked(home, LOOKED, anchor, now);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,9 +75,12 @@ pub struct Printed {
     pub print: String,
 }
 
-/// The print of the latest version of a document this machine sent or read, which tells whether it changed since its owner's word.
+pub fn prints(home: &Path) -> BTreeMap<String, Printed> {
+    all(home, PRINTED)
+}
+
 pub fn printed(home: &Path, document: &str) -> Option<Printed> {
-    all::<Printed>(home, PRINTED).remove(document)
+    prints(home).remove(document)
 }
 
 pub fn print_known(home: &Path, document: &str, now: Printed) {
@@ -86,7 +108,6 @@ fn copy_at(home: &Path, document: &str) -> Option<PathBuf> {
     plain.then(|| home.join(COPIES).join(format!("{document}.json")))
 }
 
-/// What the owner kept of a language others added, so a later version shows what changed against it.
 pub fn copy_kept(home: &Path, document: &str, copy: &Copy) {
     let (Some(at), Ok(said)) = (copy_at(home, document), serde_json::to_vec(copy)) else {
         return;
@@ -103,6 +124,15 @@ pub fn kept_copy(home: &Path, document: &str) -> Option<Copy> {
 pub fn copy_dropped(home: &Path, document: &str) {
     if let Some(at) = copy_at(home, document) {
         let _ = std::fs::remove_file(at);
+    }
+}
+
+// Someone else's words stay here only while their language is still shared with this machine.
+pub fn forgotten(home: &Path, document: &str) {
+    copy_dropped(home, document);
+    let mut known = prints(home);
+    if known.remove(document).is_some() {
+        kept(home, PRINTED, &known);
     }
 }
 
