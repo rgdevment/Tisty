@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "On a task you may work on — one an agent filed, or one the person opened to agents. `part_of` hangs it under another such task as one of its parts, or with null lets it go to stand on its own. `list` puts a task an agent filed in a better list; a task the person filed keeps its list. One level only: a task with parts is no part, and a part holds none. A closed task, on either side, takes nothing, and a whole said done or not to be done takes no new part until the person decides.",
+  "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done takes no new part.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "list": {
-        "description": "An existing list, by name, for a task an agent filed; `lists` says which",
+        "description": "An existing list, by name (`lists`), for a task an agent filed",
         "type": "string"
       },
       "part_of": {
-        "description": "The id of the task to hang it under, or null to let it go from the one it is a part of",
+        "description": "Id of the task to hang it under, or null to let it go",
         "type": [
           "string",
           "null"
@@ -35,5 +35,5 @@ expression: tool
     "type": "object"
   },
   "name": "move",
-  "title": "Hang a task under another, let it go, or put it in a list"
+  "title": "Hang a task under another, or move it to a list"
 }

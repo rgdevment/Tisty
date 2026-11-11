@@ -116,7 +116,8 @@ steps, a checklist ticked as each one is done; parts, tasks of their own hung un
 deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a \
 date and a deadline, which are not the same; a \
 reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when \
-someone said so; tags for its subjects; and a `source`, where you read it. Its page holds its \
+someone said so; tags for its subjects, in the person's plain words — a word that merely appears \
+in the title is no subject; and a `source`, where you read it. Its page holds its \
 words, notes, pictures and files. A task goes from open, to said done or said not doing by you, \
 to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on \
 answering «how was this solved?».
@@ -237,6 +238,13 @@ written in between, the print no longer matches and nothing is written — read 
 retrying. When a write comes back saying something you did not expect, `restore_doc` puts the \
 document back.
 
+To hand a document to another place — Confluence, Jira, Notion, Linear, GitHub — `read_doc` with \
+`as` «markdown» gives it whole in GitHub Markdown, and `left_out` says what does not travel: tell \
+the person before they publish. Attached files stay here, and `export_doc` writes them into a \
+folder for that place's tool to upload; diagrams stay mermaid fences, which Confluence and Jira \
+show as code; links to documents and tasks become plain words; pens, underlines, icons and folds \
+go as HTML tags. Each page is read on its own.
+
 Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
 person, suggesting a name — «Shall I keep it in a new folder Work / Login?» — and make the folder \
@@ -264,7 +272,10 @@ a mark. A page holds real content that relates to the subject without being part
 runbook, a contract, an annex — never a copy of the body nor a place to write what is new instead \
 of consolidating. Before a new page, read `outline_doc`: what is already in the body or a page is \
 updated there, what belongs to the subject goes in the body, and only what fits nowhere becomes a \
-page, named in the body in reading order with a line saying what it holds. A page of a few lines, \
+page, named in the body in reading order with a line saying what it holds. The line that places a \
+page is `![Its title](tisty:doc/its-id)`, opening bang and all — without it the line is a mention \
+and gives the page no place — with a backslash before a square bracket in the title; pages are \
+read in the order their lines sit, and nothing else. A page of a few lines, \
 or two pages on one thing, are merged back. That list of pages is the index; the headings are \
 the outline, and nobody writes one by hand.
 
@@ -326,7 +337,9 @@ apart in a document — «a highlighted note», info, a tip, a warning — is a 
 opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, written in the \
 document where it belongs; `note` is a task's journal and never that. Plain Markdown is \
 enough: it is turned into the Tisty language on the way in, and the answer says what changed \
-under `turned`. `language` lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
+under `turned`. A document is tagged by writing #word in its own text, for what it is about, \
+reusing what `tags` lists: six is already a lot, and past 64 the rest are dropped. `language` \
+lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
 
 ## When a call is refused
@@ -517,89 +530,34 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. A ticket's progress, its reviews, pull requests and audits are this task's page and its parts, never documents. Tisty tags it #agent by itself.",
+            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "tasks": {
-                        "type": "array",
-                        "items": { "type": "object" },
-                        "description": "Several at once, each shaped like a single one. Left out when proposing one"
-                    },
+                    "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
-                    "parts": {
-                        "type": "array",
-                        "items": { "type": "object" },
-                        "description": "The tasks the work is made of, each shaped like a single one with its own steps; the task around them is finished when they are. One level, at most 32 here — add more later with `part_of`"
-                    },
-                    "part_of": {
-                        "type": "string",
-                        "description": "The id of a task you may work on — one an agent filed, or one the person opened to agents — that this one is a part of"
-                    },
-                    "description": {
-                        "type": "string",
-                        "description": "What you read, in the Tisty language"
-                    },
-                    "date": {
-                        "type": "string",
-                        "description": "The day it is meant to be done, or with a deadline the day the work starts (2026-08-31)"
-                    },
-                    "deadline": {
-                        "type": "string",
-                        "description": "The day it actually runs out (2026-08-31): only once it passes is the task overdue"
-                    },
-                    "remind": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "When to ring, each like 2026-08-30T20:00. Only for what happens once at a set time and cannot be caught up on — an appointment, a flight — set the evening before; never for work any day will do, nor for what repeats"
-                    },
-                    "priority": {
-                        "type": "string",
-                        "enum": ["do", "decide", "delegate", "minor"],
-                        "description": "Only if someone said so. Leave it out otherwise"
-                    },
-                    "list": {
-                        "type": "string",
-                        "description": "The existing list it belongs in, by name; `lists` says which. Expected: left out, it lands in the inbox, and that needs a reason"
-                    },
-                    "tags": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "The subjects it is about, one word each in the person's plain words; capitals and accents decide nothing. Six is already a lot, and a word that merely appears in the title is no subject. Reuse what `tags` lists when it means the same"
-                    },
-                    "steps": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "A checklist, each step at most 100 characters; what needs more is a part"
-                    },
-                    "source": {
-                        "type": "string",
-                        "description": "Where you read it — a message id, a thread link"
-                    },
-                    "again": {
-                        "type": "boolean",
-                        "description": "Only when the person asks you in this conversation to do again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open"
-                    }
+                    "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
+                    "part_of": { "type": "string", "description": "Id of a task you may work on that this one is a part of" },
+                    "description": { "type": "string", "description": "What you read, in the Tisty language" },
+                    "date": { "type": "string", "description": "The day it is meant to be done, or with a deadline the day work starts (2026-08-31)" },
+                    "deadline": { "type": "string", "description": "The day it truly runs out (2026-08-31); only then is it overdue" },
+                    "remind": { "type": "array", "items": { "type": "string" }, "description": "When to ring, like 2026-08-30T20:00: only for a one-off at a set hour that cannot be caught up on, the evening before" },
+                    "priority": { "type": "string", "enum": ["do", "decide", "delegate", "minor"], "description": "Only if someone said so" },
+                    "list": { "type": "string", "description": "An existing list, by name (`lists`). Left out, it lands in the inbox, which needs a reason" },
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Its subjects, one plain word each, reusing what `tags` lists; six is already a lot" },
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "A checklist, each step at most 100 characters; what needs more is a part" },
+                    "source": { "type": "string", "description": "Where you read it: a message id, a thread link" },
+                    "again": { "type": "boolean", "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since; say in the description how the last one ended" }
                 }
             }))
         },
         {
             "name": "remind",
             "title": "Set a task to ring",
-            "description": "Make a task that is already here ring at a given moment. Adds to \
-                            whatever it rings at already and never takes one away, so a reminder \
-                            the person set themselves is safe. `read` says what it carries \
-                            before you add. Use it for the appointment that was filed without \
-                            one, and leave alone what repeats — a routine already comes back on \
-                            its own.",
+            "description": "Make a task ring at given moments. It adds to what the task rings at and never removes a reminder (`read` shows them). Not for what repeats: a routine comes back on its own.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "at": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "When to ring, each as a day and an hour like \
-                                        2026-08-30T20:00"
-                    }
+                    "at": { "type": "array", "items": { "type": "string" }, "description": "Each a day and an hour, like 2026-08-30T20:00" }
                 },
                 "required": ["task", "at"]
             }))
@@ -607,10 +565,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "describe",
             "title": "Describe a task",
-            "description": "Write the description of a task you filed, or one the person opened \
-                            to agents: what it is, in the Tisty language. One already there is written \
-                            over whole, so `read` it first and keep what still holds; what you \
-                            learnt on the way goes in `note`.",
+            "description": "Write the description of a task you may work on (one an agent filed or the person opened to agents). It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
             "inputSchema": on_a_task(
                 json!({ "body": { "type": "string", "description": "What the task is, in the Tisty language" } }),
                 &["body"],
@@ -619,42 +574,28 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "plan",
             "title": "Add steps to a task",
-            "description": "Add a checklist, or more of one, to a task you filed or one the \
-                            person opened to agents. Steps go after the ones already there; \
-                            `read` shows them.",
+            "description": "Add steps to a task you may work on, after those already there (`read` shows them).",
             "inputSchema": on_a_task(
-                json!({ "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each, at most 100 characters" } }),
+                json!({ "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, each at most 100 characters" } }),
                 &["steps"],
             )
         },
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Mark steps of a task done when you did them yourself — the moment \
-                            you did, not at the end. Name each by its text as `read` shows it; \
-                            one unknown name and nothing is ticked, and a name two steps share \
-                            ticks the next one still open. On a task you filed or one the \
-                            person opened to agents the step is ticked; on any other of the \
-                            person's it stays unticked, said done, until they take your word. \
-                            Either way the task stays open until `say_done` and the person.",
+            "description": "Mark steps you did yourself, as you finish each. One unknown name and nothing is ticked; a name two steps share ticks the next open one. On a task you may work on the step is ticked; on the person's others it is said done, for them to take. Closing is `say_done` and the person's.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
             "name": "untick",
             "title": "Take back a tick given by mistake",
-            "description": "Unmark steps an agent ticked that are not done after all, on a task \
-                            you filed or one the person opened to agents. On any other of the person's tasks it \
-                            takes back your word on steps you said were done. Only a tick or a word an agent gave \
-                            can be taken back: one the person gave is theirs, and naming it unticks nothing. Name \
-                            each step by its text as `read` shows it. Unticking closes and opens nothing; the task \
-                            stays as it was.",
+            "description": "Take back a tick, or your word on a step, that an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
             "inputSchema": on_a_task(steps_by_text("to untick"), &[])
         },
         {
             "name": "rename",
             "title": "Rename a task an agent filed",
-            "description": "Give a better title to a task an agent filed. A task the person \
-                            wrote keeps its title, opened to agents or not.",
+            "description": "Give a better title to a task an agent filed. A task the person wrote keeps its title.",
             "inputSchema": on_a_task(
                 json!({ "title": { "type": "string", "description": "The new title" } }),
                 &["title"],
@@ -663,9 +604,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reword_step",
             "title": "Rewrite an open step",
-            "description": "Rewrite a step that is not ticked, on a task you filed or one the \
-                            person opened to agents. A ticked step is refused: `untick` it first \
-                            if the tick was yours by mistake.",
+            "description": "Rewrite an unticked step of a task you may work on. A ticked step is refused: `untick` it first if your tick was a mistake.",
             "inputSchema": on_a_task(
                 json!({
                     "step": { "type": "string", "description": "The step, by its text as `read` shows it" },
@@ -677,17 +616,13 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "unplan",
             "title": "Take open steps off a task",
-            "description": "Take off steps that are not ticked, on a task you filed or one the \
-                            person opened to agents: a step that no longer applies, or one \
-                            written twice. With `to` they are not dropped but handed on, added \
-                            after the steps of the task they belong on. One ticked step among \
-                            them and nothing is taken off.",
+            "description": "Take unticked steps off a task you may work on. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
             "inputSchema": on_a_task(
                 {
                     let mut fields = steps_by_text("to take off");
                     fields["to"] = json!({
                         "type": "string",
-                        "description": "The id of another task you may work on, open and not said done, to add these steps to after its own"
+                        "description": "Id of another open task you may work on, not said done, to hand them to"
                     });
                     fields
                 },
@@ -696,25 +631,12 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "move",
-            "title": "Hang a task under another, let it go, or put it in a list",
-            "description": "On a task you may work on — one an agent filed, or one the person \
-                            opened to agents. `part_of` hangs it under another such task as one \
-                            of its parts, or with null lets it go to stand on its own. `list` \
-                            puts a task an agent filed in a better list; a task the person filed \
-                            keeps its list. One level only: a task with parts is no part, and a \
-                            part holds none. A closed task, on either side, takes nothing, and a \
-                            whole said done or not to be done takes no new part until the person \
-                            decides.",
+            "title": "Hang a task under another, or move it to a list",
+            "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done takes no new part.",
             "inputSchema": on_a_task(
                 json!({
-                    "part_of": {
-                        "type": ["string", "null"],
-                        "description": "The id of the task to hang it under, or null to let it go from the one it is a part of"
-                    },
-                    "list": {
-                        "type": "string",
-                        "description": "An existing list, by name, for a task an agent filed; `lists` says which"
-                    }
+                    "part_of": { "type": ["string", "null"], "description": "Id of the task to hang it under, or null to let it go" },
+                    "list": { "type": "string", "description": "An existing list, by name (`lists`), for a task an agent filed" }
                 }),
                 &[],
             )
@@ -722,12 +644,10 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reword_note",
             "title": "Rewrite a note in a task's journal",
-            "description": "Rewrite a note in the journal of a task you filed or one the person \
-                            opened to agents, named by the id `read` shows beside it. The new \
-                            body replaces the old one whole; a note cannot be emptied.",
+            "description": "Rewrite a note in the journal of a task you may work on, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty.",
             "inputSchema": on_a_task(
                 json!({
-                    "note": { "type": "string", "description": "The note's id, from `read` with `journal`" },
+                    "note": { "type": "string", "description": "The note's id, from `read`" },
                     "body": { "type": "string", "description": "What the note says now, in the Tisty language" }
                 }),
                 &["note", "body"],
@@ -736,12 +656,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "note",
             "title": "Add to a task's journal",
-            "description": "Append to what a task has recorded. Only a task's: a note set apart \
-                            inside a document is a callout, `> [!NOTE]`, written with \
-                            `edit_doc`. Works on tasks the person wrote too. Use it when \
-                            something new turns up about work that already exists, instead of \
-                            filing a duplicate. A closed task is history and takes no note: if \
-                            the work came back, propose it anew.",
+            "description": "Add to a task's journal, the person's tasks too, when something new turns up about existing work, instead of filing a duplicate. A closed task takes none: propose the work anew. A note inside a document is a callout (`> [!NOTE]`), with `edit_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
@@ -752,26 +667,14 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "attach",
-            "title": "Keep a file with a task or in a document",
-            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. An `.html` or `.htm` page attached to a document is a file like any other, shown as a card: Tisty never runs it. The file is copied, not linked. A task and a document both take files up to 650 MB — a recording, a video, a slide deck. Only attach what you were asked to.",
+            "title": "Attach a file to a task or a document",
+            "description": "Copy a file from this machine into Tisty: with `task` onto its journal, with `doc` at the end of that document as a picture or a card. Up to 650 MB; an HTML page is kept, never run. Attach only what you were asked to.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "task": {
-                        "type": "string",
-                        "description": "The task id, if it is kept with a task"
-                    },
-                    "doc": {
-                        "type": "string",
-                        "description": "The document's id, if it goes in a document — an opaque name like `q7ntmzbm-0001`, which `docs` lists"
-                    },
-                    "path": {
-                        "type": "string",
-                        "description": "A path to a file on this machine"
-                    },
-                    "label": {
-                        "type": "string",
-                        "description": "What to call it. Defaults to the file's own name"
-                    }
+                    "task": { "type": "string", "description": "The task id, to keep it with a task" },
+                    "doc": { "type": "string", "description": "The document's id, to add it there" },
+                    "path": { "type": "string", "description": "A path to a file on this machine" },
+                    "label": { "type": "string", "description": "What to call it; defaults to the file's name" }
                 },
                 "required": ["path"]
             }))
@@ -779,56 +682,20 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end — except, when compacting, the pages you marked, which leave the body. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer gives the `size` before and after and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
+            "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `find` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
-                    "body": {
-                        "type": "string",
-                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: in the Tisty language a single newline is a line break, so markdown wrapped at 80 columns reads broken in the middle of its sentences. Nothing checks this on the way in"
-                    },
-                    "doc": {
-                        "type": "string",
-                        "description": "The id of a document to write again — an opaque name like `q7ntmzbm-0001`, not its title — replacing its body. Needs `print`. Left out, a new document is written instead"
-                    },
-                    "print": {
-                        "type": "string",
-                        "description": "The `print` `read_doc` gave you with the text you are working from. If the document has moved on since, nothing is written and you are told to read it again — so the person cannot lose what they wrote while you were thinking"
-                    },
-                    "folder": {
-                        "type": "string",
-                        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: `docs` says which exist, the `folder` tool makes a new one once the person agrees, and a name no folder has is refused here. Left out, it sits outside them all, and that needs a reason. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
-                    },
-                    "compact": {
-                        "type": "boolean",
-                        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Call `rules` first: it says the order. In one whole write: before it, move what leaving pages hold and mark them; in it, today first, then the subject, the decisions and a history naming every link and file taken out — one lost without a name is refused. Only what Tisty confirms is stated as today; what you only read stays dated and unconfirmed. Refused on a document the person began unless `person_asked`. The window shows the person it was compacted, by whom and when, with one click to undo; until they decide, only one more whole `compact` of yours goes in"
-                    },
-                    "person_asked": {
-                        "type": "boolean",
-                        "description": "With `compact`: the person asked you in this conversation to compact a document they began. Never otherwise"
-                    },
-                    "anyway": {
-                        "type": "boolean",
-                        "description": "A new document whose title names the same subject as one already here is refused; this writes it all the same. Only when it truly is another subject"
-                    },
-                    "page_of": {
-                        "type": "string",
-                        "description": "The id of the document this one is a page of — an \
-                                        opaque name like `q7ntmzbm-0001`, not its title. The page \
-                                        is named at the end of that document, and where it is \
-                                        named is where it sits; `page_doc` with `after` puts that \
-                                        line somewhere else. A page follows that document everywhere \
-                                        and takes its folder, so `folder` is ignored, and it holds \
-                                        no pages of its own"
-                    },
-                    "translation_of": {
-                        "type": "string",
-                        "description": "The id of a document this one says the same as, in another language. It is written as a document of its own beside that one, in its folder, and the person sees them as one document with a switch between their languages. Its language comes from `lang` or a `lang:` line in its properties, and that document has to say its own. One document per language: a language the group already has is refused"
-                    },
-                    "lang": {
-                        "type": "string",
-                        "description": "With `translation_of`: the language the body is in, as a tag like `es`, `en` or `pt-BR`, written into its properties"
-                    }
+                    "keep_compaction": kept_compaction_field(),
+                    "body": { "type": "string", "description": "The whole document; its first line is its title. One line per paragraph: a single newline is a line break, so wrapped text reads broken" },
+                    "doc": { "type": "string", "description": "Id of a document to write again whole, not its title; needs `print`. Left out, a new one" },
+                    "print": { "type": "string", "description": "The `print` `read_doc` gave with the text you worked from; if the document changed since, nothing is written" },
+                    "folder": { "type": "string", "description": "The existing folder its subject belongs in, by name, path or id; left out needs a reason. Not with `doc`: `file_doc` moves one" },
+                    "compact": { "type": "boolean", "description": "With `doc` and `print`: this write puts the document back in order, as `rules` «tidying» says. Refused on one the person began unless `person_asked`" },
+                    "person_asked": { "type": "boolean", "description": "With `compact`: the person asked you in this conversation to compact a document they began" },
+                    "anyway": { "type": "boolean", "description": "Write it although a document names the same subject; only when it truly is another" },
+                    "page_of": { "type": "string", "description": "Id of the document this is a page of: it is named at that document's end (`page_doc` moves the line), takes its folder and holds no pages" },
+                    "translation_of": { "type": "string", "description": "Id of a document this one says in another language, joined as one more of its languages; both say their language, in `lang` or a `lang:` property" },
+                    "lang": { "type": "string", "description": "With `translation_of`: the body's language tag, like `es`, `en` or `pt-BR`" }
                 },
                 "required": ["body"]
             }))
@@ -836,30 +703,15 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. For what is chronological by nature — a log, minutes, the dated notes on a task's page. For a fact that changed, `edit_doc` the passage that says the old one: adding the new fact under the old leaves the document saying both. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words. On a task's page, `replace` writes the assistant's notes again whole instead of adding.",
+            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes. For logs, minutes and dated notes; a fact that changed is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
-                    "doc": {
-                        "type": "string",
-                        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title — or a task's id, to add to that task's page"
-                    },
-                    "body": {
-                        "type": "string",
-                        "description": "Markdown to add. A blank line is put between this and what was there"
-                    },
-                    "under": {
-                        "type": "string",
-                        "description": "A heading to add under, written as it reads. It goes at the end of what that heading holds, before the next one of its rank. Left out, it goes at the end of the document"
-                    },
-                    "echo": {
-                        "type": "boolean",
-                        "description": "Hand back the lines around the change as well, instead of reading the document again to see it"
-                    },
-                    "replace": {
-                        "type": "boolean",
-                        "description": "Only with a task's id in `doc`: the assistant's notes on its page are written again, whole, as `body` — one dated digest of state, decisions, what was ruled out and references. The rest of the page stays as it is, a box in it never becomes a step, and what it replaced is kept for `restore_doc` with the task's id"
-                    }
+                    "keep_compaction": kept_compaction_field(),
+                    "doc": { "type": "string", "description": "A document's id, not its title, or a task's to add to its page" },
+                    "body": { "type": "string", "description": "Markdown to add, after a blank line" },
+                    "under": { "type": "string", "description": "A heading, as it reads: adds at the end of what it holds. Left out, at the end of the document" },
+                    "echo": echo_field(),
+                    "replace": { "type": "boolean", "description": "Only with a task's id: rewrite the assistant's notes on its page whole, as one dated digest; a box in it is no step" }
                 },
                 "required": ["doc", "body"]
             }))
@@ -867,17 +719,11 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "restore_doc",
             "title": "Put a document back the way it was",
-            "description": "Undo a write to a document. Changing a passage and replacing a body keep what they replaced, and this puts it back; adding to the end keeps nothing, and neither do the person's own saves. Refused unless the document still reads as that write left it — going back would undo whatever came after — with `even_if_more` to go back over all of it once you have read the document and know that is what you want. What it puts back is kept in turn, so calling it twice leaves the document where it started, which makes it safe to try. Reach for it the moment a write comes back saying something you did not expect, instead of retyping the document from memory.",
+            "description": "Undo the last write to a document: a changed passage or a whole write is put back; appends and the person's saves keep nothing to undo. Refused if written since, unless `even_if_more`. Undoing twice returns it. Use it when a write answers something unexpected, instead of retyping.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": {
-                        "type": "string",
-                        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title — or a task's id, to put back the assistant's notes on its page as they were before the last write"
-                    },
-                    "even_if_more": {
-                        "type": "boolean",
-                        "description": "Go back even when the document has been written since the kept body was set aside, undoing that writing too. Only when you know what has happened to it — the refusal without this names the risk, and the person may be what was written since"
-                    }
+                    "doc": { "type": "string", "description": "A document's id, not its title, or a task's to put back the assistant's notes on its page" },
+                    "even_if_more": { "type": "boolean", "description": "Go back over what was written since too; only once you read it and know, since the person may have written it" }
                 },
                 "required": ["doc"]
             }))
@@ -885,27 +731,18 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "edit_doc",
             "title": "Change a passage of a document",
-            "description": "Replace one passage of a document with another, named either by what it says with `old` or by where it sits with `section` or a line range — which let you change a part of a document you never read. What it said before is kept first, and if that cannot be done the edit is refused rather than made; `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent.",
+            "description": "Replace one passage of a document, named by its text in `old` or by place with `section` or `from` and `to`, which needs no reading of the rest. What it said is kept first for `restore_doc`, or the edit is refused. The answer's `grew` should be close to what you sent.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "keep_compaction": kept_compaction_field(),
                     "doc": named_doc_field(),
-                    "old": {
-                        "type": "string",
-                        "description": "The passage as it is written now, copied from `read_doc`, matching one place only — take in the lines around it if a short one would fit twice. Leave it out when naming a `section` or a line range"
-                    },
-                    "new": {
-                        "type": "string",
-                        "description": "What takes its place. Empty takes the passage out"
-                    },
-                    "section": {
-                        "type": "integer",
-                        "description": "One heading and everything under it, named by its number and not by its words: the `at` of a heading in the `outline` `outline_doc` hands back, counting from 0. Needs `print`"
-                    },
-                    "from": { "type": "integer", "description": "First line to replace, counting from 1. Needs `print`" },
-                    "to": { "type": "integer", "description": "Last line to replace. Left out, it runs to the end. It goes with `from`: on its own it names no place and the edit is refused" },
-                    "print": { "type": "string", "description": "The print the document read at, from `read_doc` or `outline_doc`. It goes with `section` or a line range and nothing else uses it: an edit named by `old` is matched against the text itself. If anyone wrote since you took it, nothing is changed and you are told to ask `outline_doc` where the passage sits now" },
-                    "echo": { "type": "boolean", "description": "Hand back the lines around the change as well, instead of reading the document again to see it" }
+                    "old": { "type": "string", "description": "The passage as written now, from `read_doc`, matching one place only; take in a line around it if needed. Not with `section` or lines" },
+                    "new": { "type": "string", "description": "What takes its place; empty takes the passage out" },
+                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` in the `outline` of `outline_doc`, from 0. Needs `print`" },
+                    "from": { "type": "integer", "description": "First line to replace, from 1. Needs `print`" },
+                    "to": { "type": "integer", "description": "Last line; left out, to the end. Only with `from`" },
+                    "print": { "type": "string", "description": "The `print` from `read_doc` or `outline_doc`, for `section` or lines only. If anyone wrote since, nothing changes: ask `outline_doc` again" },
+                    "echo": echo_field()
                 },
                 "required": ["doc", "new"]
             }))
@@ -913,37 +750,28 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "edit_table",
             "title": "Change a table in a document",
-            "description": "Read or change one table of a document by what its rows and columns are called, never by its Markdown: set a cell, add or remove a row, sort, rename a column, give it a type, add or remove a column. A row is named by the words of its first cell and a column by its title, as `show` hands them back. A value is written the way its column's type reads it — 1234.5 for a number, 2026-10-28 for a date, true for a checkbox — and one that does not fit is kept as sent and named in the answer. What the document said before is kept, as with `edit_doc`.",
+            "description": "Read or change one table of a document by rows and columns, never its Markdown. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "keep_compaction": kept_compaction_field(),
                     "doc": named_doc_field(),
-                    "table": {
-                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
-                        "description": "Which table, by its number from 1 or by the heading over it. Left out when the document holds only one"
-                    },
+                    "table": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "description": "Its number from 1, or the heading over it. Left out when there is one" },
                     "do": {
                         "type": "string",
                         "enum": ["show", "set", "add", "remove", "sort", "type", "rename", "add_column", "remove_column"],
-                        "description": "What to do. Defaults to show, which changes nothing and hands back the columns with their types and the rows by their first cell"
+                        "description": "Defaults to show: the columns with their types and the rows, changing nothing"
                     },
-                    "row": {
-                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
-                        "description": "For set and remove: the row, by the words of its first cell or its number from 1"
-                    },
-                    "column": {
-                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
-                        "description": "For set, sort, type, rename and remove_column: the column, by its title or its number from 1"
-                    },
-                    "value": { "type": "string", "description": "For set: what goes in the cell. Empty clears it" },
+                    "row": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "description": "For set and remove: its first cell's words, or its number from 1" },
+                    "column": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "description": "For set, sort, type, rename and remove_column: its title, or its number from 1" },
+                    "value": { "type": "string", "description": "For set: what goes in the cell; empty clears it" },
                     "values": {
                         "type": "object",
                         "additionalProperties": { "type": ["string", "number", "boolean"] },
-                        "description": "For add: each column's title with what goes in it. Columns left out stay empty"
+                        "description": "For add: each column's title with its value; columns left out stay empty"
                     },
                     "title": { "type": "string", "description": "For rename and add_column: the column's title" },
-                    "type": { "type": "string", "description": "For type and add_column: the column's type as written between braces in its head, such as `number`, `money USD sum`, `date`, `check` or `select`; `language` with the topic `tables` lists them. Empty takes the type away" },
-                    "down": { "type": "boolean", "description": "For sort: from the largest down. Defaults to from the smallest up" }
+                    "type": { "type": "string", "description": "For type and add_column: as written in braces in its head, like `number`, `money USD sum`, `date`, `check` (`language` «tables»); empty removes it" },
+                    "down": { "type": "boolean", "description": "For sort: largest first" }
                 },
                 "required": ["doc"]
             }))
@@ -951,115 +779,63 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "docs",
             "title": "The documents and the folders",
-            "description": "Everything written down to consult — not the words a task keeps with it, which come with the task — the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, and the words it leans on. That is enough to pick which document to open without opening any of them; the `print` of the one you go on to edit comes back from `read_doc` or `outline_doc`. Ask for it before writing, so you do not write again what is already kept.",
+            "description": "The documents, newest first, with each one's folder, whether it is put away or locked, and what it holds (words, sections, key words): enough to pick one unopened. A task's words come with the task. Ask before writing, so nothing is kept twice.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "scope": {
-                        "type": "string",
-                        "enum": ["open", "archive", "either"],
-                        "description": "Defaults to either"
-                    },
+                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
                     "limit": { "type": "integer", "description": "At most 200, 50 by default" },
-                    "after": {
-                        "type": "integer",
-                        "description": "Skip this many. With `total` higher than what came back, \
-                                        ask again with `after` set to how many you have"
-                    },
-                    "folders": {
-                        "type": "boolean",
-                        "description": "Send every folder back too, with its id, path, icon and \
-                                        how much it holds. The answer already names them all in \
-                                        its text, so ask for this only when a name is not enough"
-                    },
-                    "deep": {
-                        "type": "boolean",
-                        "description": "With `folder`: the documents of the folders below it too"
-                    },
-                    "folder": {
-                        "type": "string",
-                        "description": "Only the documents that sit in this one folder, by its \
-                                        name, its whole path or its id. Pages are left out — they \
-                                        are kept where their document is — and what the folders \
-                                        below it hold is theirs, not this one's: the answer \
-                                        names them under `below`, and `deep` brings their documents"
-                    },
-                    "page_of": {
-                        "type": "string",
-                        "description": "Only the pages of this one document, by its id, in reading order"
-                    }
+                    "after": { "type": "integer", "description": "Skip this many, to page on while `total` is higher" },
+                    "folders": { "type": "boolean", "description": "Every folder too, with id, path, icon and size; the text already names them" },
+                    "deep": { "type": "boolean", "description": "With `folder`: the folders below it too" },
+                    "folder": { "type": "string", "description": "Only the documents in this folder, by name, path or id, without pages; the folders below are named under `below`" },
+                    "page_of": { "type": "string", "description": "Only the pages of this document, by id, in reading order" }
                 }
             }))
         },
         {
             "name": "import_doc",
-            "title": "Bring a markdown file on this machine in as a document",
-            "description": "Read one markdown file from disk and keep it here as a document, turning on the way in what the Tisty language has no word for into what it can say, and saying what it changed. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling. The files on disk are left untouched. Nothing is turned away for what it holds: a document carrying what looks like a live credential comes in as written, with a warning at the top for the person to decide about. A task's page brought back hands the task its properties and its words, and makes no document. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+            "title": "Bring a Markdown file in as a document",
+            "description": "Bring one Markdown file from disk in as a document, turned into the Tisty language, saying what changed. Files it points at come in too; links to what cannot are taken out. The file on disk is untouched; a seeming live credential comes in under a warning. A task's exported page goes back to its task. One file per call.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "A markdown file under Downloads, Documents, Pictures, Desktop or the temporary folder"
-                    },
-                    "title": {
-                        "type": "string",
-                        "description": "A title to put at the top, for a file whose first line is not one. Left out, the file name is used"
-                    },
-                    "folder": {
-                        "type": "string",
-                        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: left out, it sits outside them all, and that needs a reason"
-                    },
-                    "page_of": {
-                        "type": "string",
-                        "description": "The id of the document this becomes a page of"
-                    },
-                    "anyway": {
-                        "type": "boolean",
-                        "description": "Bring it in although a document on the same subject is here already — only when this really is another subject; otherwise update that one"
-                    }
+                    "path": { "type": "string", "description": "A Markdown file under Downloads, Documents, Pictures, Desktop or the temporary folder" },
+                    "title": { "type": "string", "description": "A title for a file whose first line is not one; defaults to the file name" },
+                    "folder": { "type": "string", "description": "The existing folder its subject belongs in, by name, path or id. Left out needs a reason" },
+                    "page_of": { "type": "string", "description": "Id of the document it becomes a page of" },
+                    "anyway": { "type": "boolean", "description": "Bring it in although a document has the same subject; only when it truly is another" }
                 },
                 "required": ["path"]
             }))
         },
         {
             "name": "export_doc",
-            "title": "Take a document out to a folder on this machine",
-            "description": "Write a document out as markdown files in a folder the person can reach, with its pages numbered in reading order and its attachments beside them. Nothing here changes and nothing is deleted: an export is a copy. Use it to hand work to something outside Tisty.",
+            "title": "Export a document to a folder",
+            "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
-                    "into": {
-                        "type": "string",
-                        "description": "A folder that exists on this machine, which an \
-                                        export of this document has not been taken to already: \
-                                        one is made inside it, named after the title, under Downloads, Documents, Pictures, Desktop or the temporary folder"
-                    }
+                    "into": { "type": "string", "description": "An existing folder under Downloads, Documents, Pictures, Desktop or the temporary folder, not used for this document before" }
                 },
                 "required": ["doc", "into"]
             }))
         },
         {
             "name": "archive_doc",
-            "title": "Put a document or one of its pages away, or bring it back",
-            "description": "Put a document away when the person asks for that, and bring it back with `archived` false. «Delete it» is `flag_doc` instead. Nothing is deleted and no text changes: `docs` and `find` reach the archive as well, unless their `scope` says otherwise. A single page can be put away on its own, and it stays where it lives — under its document, greyed and read-only — rather than moving to the archive. Putting the document away covers its pages too, and bringing it back wakes each page as it was: one that was already apart stays apart. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
+            "title": "Put a document away, or bring it back",
+            "description": "Put a document or one page away when the person asks, or bring it back with `archived` false; nothing is deleted or changed («delete it» is `flag_doc`). A page put away stays under its document, read-only; a document's pages go and come back with it.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
-                    "archived": {
-                        "type": "boolean",
-                        "description": "True to put it away, which is what happens if you leave this out; false to bring it back"
-                    },
-                    "folder": {
-                        "type": "string",
-                        "description": "A folder to file it in as it goes, or as it comes back, by its name, its whole path or its id. It is filed either way: what the archive holds can still be put where it belongs"
-                    }
+                    "archived": { "type": "boolean", "description": "True, the default, puts it away; false brings it back" },
+                    "folder": { "type": "string", "description": "A folder to file it in on the way, by name, path or id" }
                 },
                 "required": ["doc"]
             }))
         },
         {
             "name": "flag_doc",
-            "title": "Say a document has had its day, which is how a document gets deleted",
-            "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a copy of another, notes folded into a living document, a handover for a flow that was retired — with its `reason`, where what it said lives now in `instead`, and in `body` what makes it old and how you know. Several copies of one thing go in one call, marked alike, so the person settles the set with one click. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. Deleting it and taking the mark off are theirs, from the window; `archive_doc` puts it away only when they ask for that. One mark at a time — a document already marked is refused until the person has looked, and in a set it is skipped and named.",
+            "title": "Mark a document for the person to delete",
+            "description": "How «delete this document» is done: you mark it, and the person deletes it or takes the mark off. Give the `reason`, `instead` where its content lives now, and `body`. Several copies go in one call, so one click settles them. A document already marked is refused, or skipped in a set.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": {
@@ -1067,117 +843,55 @@ pub(super) fn tools_without_hints() -> Value {
                             { "type": "string" },
                             { "type": "array", "items": { "type": "string" }, "minItems": 1 }
                         ],
-                        "description": "The id of the document to mark, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids marks them all alike in one go"
+                        "description": "The id of the document to mark, not its title, or a list of ids marked alike"
                     },
                     "reason": {
                         "type": "string",
                         "enum": ["duplicate_of", "moved", "superseded", "wrong", "obsolete", "scratch"],
-                        "description": "Why it has had its day: a duplicate of another, moved into another (only once what it holds worth keeping is there), superseded by another, wrong, obsolete, or a scratch nobody needs"
+                        "description": "Why it has had its day; moved only once what it held worth keeping is there"
                     },
-                    "instead": {
-                        "type": "string",
-                        "description": "The id of the document or the task that holds what it said now. Needed with duplicate_of, moved and superseded"
-                    },
-                    "body": {
-                        "type": "string",
-                        "description": "What makes it old and how you know, in the person's language: what it describes that no longer exists, and what replaced it"
-                    }
+                    "instead": { "type": "string", "description": "Id of the document or task that holds it now; needed with duplicate_of, moved and superseded" },
+                    "body": { "type": "string", "description": "In the person's language: what makes it old, and how you know" }
                 },
                 "required": ["doc", "body"]
             }))
         },
         {
             "name": "file_doc",
-            "title": "Put a document, or several, in a folder",
-            "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes. Moving is not writing, so a document the archive holds by itself moves too and stays put away: that is how something already archived is filed where it belongs.",
+            "title": "Put documents in a folder",
+            "description": "Move documents into a folder, or out of every folder by leaving `folder` out. Only the place changes; an archived document moves and stays put away.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": many_docs_field("to file"),
-                    "folder": {
-                        "type": "string",
-                        "description": "An existing folder, by its name, its whole path or its id. Leave it out to take the document out of every folder"
-                    }
+                    "folder": { "type": "string", "description": "An existing folder, by name, path or id" }
                 },
                 "required": ["doc"]
             }))
         },
         {
             "name": "page_doc",
-            "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
-            "description": "Needs `doc`, or `order` with `page_of`. A page is real content related to one subject but not part of it — a runbook, a contract, an annex — never a session: a review, a day's progress or a PR's notes belong on the task. Hang a document from another as one of its pages, or take a page out \
-                            by leaving `page_of` out, which makes it a document of its own again, \
-                            back in the folder it came from. A page goes with its document \
-                            everywhere — folder, archive and deletion — and holds no pages of its \
-                            own. Hanging one writes the line that names it at the end of that \
-                            document, the same line `write_doc` with `page_of` writes; `after`, \
-                            `before` and `at` say where that line goes instead. Taking a page \
-                            out writes nothing: the line stays where it was, now pointing at a \
-                            document of its own, and taking it out of the text is yours to do. \
-                            `order` is the third thing this does: it takes the pages of one \
-                            document and deals the lines they already have back out in the order \
-                            you name, which is how several are put in order in one call. The \
-                            order pages are read in is the order their lines sit in the \
-                            document, and nothing else. The line is \
-                            `![Its title](tisty:doc/its-name)`, opening bang and all — without \
-                            it the line is a mention in a sentence and gives the page no place — \
-                            and a square bracket in the title goes in with a backslash before it.",
+            "title": "Make pages, put them in order, or take one out",
+            "description": "Hang a document under another as a page, or with no `page_of` take a page back out to its old folder. A page goes everywhere with its document. Hanging writes the line naming it at the document's end, or where `after`, `before` or `at` say; taking out leaves the line for you to remove. `order` reorders a document's pages. Reading order is line order, each line `![Its title](tisty:doc/its-id)`, bang included.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": many_docs_field("to hang or to take out"),
-                    "page_of": {
-                        "type": "string",
-                        "description": "The id of the document it becomes a page of — an opaque \
-                                        name like `q7ntmzbm-0001`, not its title. Leave it out to \
-                                        make it a document of its own"
-                    },
-                    "after": {
-                        "type": "string",
-                        "description": "The id of another page of that same document. The line \
-                                        naming this page is written straight after the line \
-                                        naming that one, which is what puts it next in reading \
-                                        order. Needs `page_of`, takes one `doc`, and the page you \
-                                        name has to have a line already"
-                    },
-                    "before": {
-                        "type": "string",
-                        "description": "The same, on the other side: the line goes straight \
-                                        before the one naming this page"
-                    },
-                    "order": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "The pages of one document, by their ids, in the order they are to be read. Their lines are moved into each other's places and nothing else in the text moves, so pages you leave out stay where they are. Two or more ids, each named once. Needs `page_of`, and goes on its own: no `doc`, `after`, `before` or `at` — one call says an order, another puts one page somewhere. Every page it names has to have a line of its own already"
-                    },
-                    "at": {
-                        "type": "string",
-                        "enum": ["first", "last"],
-                        "description": "Where to write the line when you are not naming a page \
-                                        to sit beside: \"first\" puts it before every page the \
-                                        document names, \"last\" after them all. It is what to \
-                                        send for a document whose pages no line names yet, \
-                                        since there is no page there to name"
-                    }
+                    "doc": many_docs_field("to hang or take out"),
+                    "page_of": { "type": "string", "description": "Id of the document it becomes a page of. Left out, it becomes a document of its own" },
+                    "after": { "type": "string", "description": "Id of another page of that document, whose line this one's goes right after. Needs `page_of` and one `doc`, and that page needs a line" },
+                    "before": { "type": "string", "description": "The same, right before" },
+                    "order": { "type": "array", "items": { "type": "string" }, "description": "Its pages' ids, two or more, each once, in reading order: their lines trade places, nothing else moves. With `page_of` alone; each needs a line" },
+                    "at": { "type": "string", "enum": ["first", "last"], "description": "Before or after every page line, for when there is no page to name" }
                 }
             }))
         },
         {
             "name": "tongue_doc",
-            "title": "Join a document to the languages of another, or take it out of its own",
-            "description": "A document told in several languages is several documents, one per language, that the person sees as one with a switch between them; `read_doc`, `outline_doc`, `docs` and `find` name them under `languages`. With `of`, this joins `doc` to the languages of that document, moving it into the same folder; both have to say their language, in a `lang:` line of their properties or, for `doc`, in `lang`, which is written there. Without `of`, it takes `doc` out of its languages and the others stay together. To write a new translation, `write_doc` with `translation_of` does it in one call. A page is in the language of its document and joins nothing.",
+            "title": "Join or leave a document's languages",
+            "description": "With `of`, join `doc` to that document's languages, moving it to its folder; without, take `doc` out of its languages. Both say their language in a `lang:` property, or `lang` for `doc`. A new translation is `write_doc` with `translation_of`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": {
-                        "type": "string",
-                        "description": "The id of the document to join or take out — an opaque name like `q7ntmzbm-0001`, not its title"
-                    },
-                    "of": {
-                        "type": "string",
-                        "description": "The id of a document whose languages it joins. Left out, it is taken out of its own"
-                    },
-                    "lang": {
-                        "type": "string",
-                        "description": "The language `doc` is in, as a tag like `es`, `en` or `pt-BR`, when its properties do not say it"
-                    }
+                    "doc": { "type": "string", "description": "Id of the document to join or take out, not its title" },
+                    "of": { "type": "string", "description": "Id of a document whose languages it joins. Left out, it leaves its own" },
+                    "lang": { "type": "string", "description": "The language of `doc`, like `es`, `en` or `pt-BR`, when its properties lack one" }
                 },
                 "required": ["doc"]
             }))
@@ -1185,25 +899,13 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "folder",
             "title": "Make a folder",
-            "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is — and without `inside`, one by that name is found however deep it sits, so a name you mean as a new top-level folder may hand you one inside another. An icon or colour you send changes how it looks; nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
+            "description": "Make a folder for documents (tasks go in lists), with an icon and colour if they fit. A name in use hands back that folder, found at any depth unless `inside` says where; an icon or colour sent restyles it.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "A word or two, at most 40 characters. It is the folder's own name, never a path: send the whole path only to say where to nest it, and then every step but the last has to exist already"
-                    },
-                    "inside": {
-                        "type": "string",
-                        "description": "An existing folder to nest it in, by its name, its whole path or its id. Four deep at most"
-                    },
-                    "icon": {
-                        "type": "string",
-                        "description": "A single emoji, or one name from the drawn catalogue: home, work, money, study, travel, health, food, family, code and the like. An emoji is often the plainer choice"
-                    },
-                    "color": {
-                        "type": "string",
-                        "description": "red, orange, amber, green, teal, blue, indigo, purple, pink, brown or gray"
-                    }
+                    "name": { "type": "string", "description": "Its own name, a word or two, at most 40 characters; a path only to say where to nest it, every step but the last existing" },
+                    "inside": { "type": "string", "description": "An existing folder to nest it in, by name, path or id; four deep at most" },
+                    "icon": { "type": "string", "description": "One emoji, or a drawn name: home, work, money, study, travel, health, food, family, code and the like" },
+                    "color": { "type": "string", "description": "red, orange, amber, green, teal, blue, indigo, purple, pink, brown or gray" }
                 },
                 "required": ["name"]
             }))
@@ -1211,21 +913,17 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest. `pages_loose` names the pages no line in the body names.",
+            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
-                    "print": { "type": "string", "description": "The `print` the previous part came with. Needed only alongside `cursor`, so that two halves are known to be the same document" },
-                    "section": { "type": "integer", "description": "One heading and everything under it, numbered as `outline_doc` numbers them, from 0" },
-                    "from": { "type": "integer", "description": "First line, counting from 1" },
-                    "to": { "type": "integer", "description": "Last line. Left out, it reads to the end" },
-                    "chars": { "type": "integer", "description": "About how many characters to bring. The answer says `next` when there is more" },
-                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top" },
-                    "as": {
-                        "type": "string",
-                        "enum": ["markdown"],
-                        "description": "Bring the whole document in standard GitHub Markdown, to hand to another tool — Confluence, Jira, Notion, Linear, GitHub — whose own tools turn it into their format. Not everything travels, and the answer says what this document loses in `left_out`, which you tell the person before publishing: attached files stay in Tisty — `export_doc` writes them into a folder, from where the other place's tool uploads them; diagrams stay mermaid fences, drawn by GitHub, GitLab and Notion but shown as code by Confluence and Jira; links to other documents and tasks become plain words; pens, underlines, icons and folds go as HTML tags some places show as written. A document put away or marked as having had its day says so first. Pages come apart, each read with `as`. It takes no part of the document: no `section`, lines or `chars`"
-                    }
+                    "print": { "type": "string", "description": "The `print` the previous part came with; only with `cursor`" },
+                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` in `outline_doc`, from 0" },
+                    "from": { "type": "integer", "description": "First line, from 1" },
+                    "to": { "type": "integer", "description": "Last line; left out, to the end" },
+                    "chars": { "type": "integer", "description": "About how many characters to bring; the answer gives `next` when there is more" },
+                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, with `chars`" },
+                    "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»)" }
                 },
                 "required": ["doc"]
             }))
@@ -1233,25 +931,22 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
-            "description": "One call to start on: the lists, the folders, the tags already in use, how much there is, the documents written most recently, and a `cursor`. Send that cursor back as `since` next time and what moved comes with it — the tasks touched and the documents written, whoever did it — beside the lists, the folders and the tags, which come every time. It is meant to be the first thing you ask and the thing you ask again when you come back, in place of `lists` and `tags` and a blind `docs`.",
+            "description": "Where things stand: the lists, folders and tags in use, counts, the latest documents, and a `cursor`; sent back as `since`, it adds what moved since, by anyone. Ask it first and on coming back, instead of `lists`, `tags` and `docs`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "since": {
-                        "type": "string",
-                        "description": "A `cursor` a previous `catch_up` handed back. It adds what moved since to the answer; where things stand comes either way"
-                    }
+                    "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`" }
                 }
             }))
         },
         {
             "name": "reschedule",
-            "title": "Move the day of a task you filed",
-            "description": "Change the `date` or the `deadline` of a task an agent proposed, when what you learnt since moves it: the meeting slipped a week, the document arrived early. It reaches only what an agent filed — a day the person set is theirs, and naming one of their tasks is refused. Send null to take a day off. Nothing else about the task changes, and closing it is still never yours.",
+            "title": "Move the day of a task an agent filed",
+            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it. A day the person set is theirs. Null takes a day off; nothing else changes.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "date": { "type": ["string", "null"], "description": "The day it is to be done, or with a deadline the day the work starts (2026-08-31), or null to take it off" },
-                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by, only once it passes is the task overdue, or null to take it off" }
+                    "task": { "type": "string", "description": "The task id" },
+                    "date": { "type": ["string", "null"], "description": "The day it is to be done, or with a deadline the day work starts (2026-08-31); null takes it off" },
+                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by; null takes it off" }
                 },
                 "required": ["task"]
             }))
@@ -1259,19 +954,11 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "say_done",
             "title": "Say a task is finished",
-            "description": "Say that a task is done, when you did the work yourself — any task \
-                            of the person's too, since it is only your word. Say it in the turn \
-                            the work ends. Every step has to be ticked or said done first; with \
-                            one left it is refused, and so is a whole with a part still open and \
-                            unmarked. \
-                            Reading that it no longer matters is not doing it, and \
-                            goes in `say_not_doing`. It closes nothing: the task stays open, marked, \
-                            until the person finishes it or takes the mark off. Say it once; if \
-                            they have not looked yet, what is new goes in `note` too.",
+            "description": "Say a task is done when you did the work, in the turn it ends; on any task, as your word. Refused while a step is unticked or a part open and unmarked. What stopped mattering is `say_not_doing`. Nothing closes: the person decides. Say it once; news after goes in `note`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "body": { "type": "string", "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In the Tisty language" }
+                    "task": { "type": "string", "description": "The task id" },
+                    "body": { "type": "string", "description": "What you did and what makes you sure (the command and its answer, the commit), in the Tisty language" }
                 },
                 "required": ["task", "body"]
             }))
@@ -1279,15 +966,11 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "say_not_doing",
             "title": "Say a task should not be done",
-            "description": "Say that a task will not be done — it no longer matters, something \
-                            else made it moot — on any task, the person's too, since it is only \
-                            your word. Unticked steps do not stop it. It drops nothing: the task \
-                            stays open, marked, until the person drops it or takes the mark \
-                            off. Say it once; what is new after that goes in `note`.",
+            "description": "Say a task should not be done, on any task, as your word: it stopped mattering or became moot. Unticked steps do not stop it. Nothing drops: the person decides. Say it once; news after goes in `note`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "body": { "type": "string", "description": "The account the person reads before deciding: why it should not be done, and what you found that says so. In the Tisty language" }
+                    "task": { "type": "string", "description": "The task id" },
+                    "body": { "type": "string", "description": "Why it should not be done, and what you found that says so, in the Tisty language" }
                 },
                 "required": ["task", "body"]
             }))
@@ -1295,12 +978,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "sum_up",
             "title": "Say what a document is about",
-            "description": "Leave what you worked out about a document, so the next agent — or you, next week — does not have to read it again to know whether it is the one. A `summary` of what it says, `notes` for what somebody working with it should know. Kept on this machine only: it never syncs, it is not part of the document, and the person does not see it. Stored against the text as it reads now, so a later write marks it as describing an older version. Write it after reading a long document, never instead of reading one, and write what the document says rather than what you would like it to say: the next agent will act on this without opening the document.",
+            "description": "Leave a `summary` and `notes` on a document for the next agent, kept on this machine only and unseen by the person; a later write marks it stale. Write it after reading a long document, never instead, saying what it says.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
-                    "summary": { "type": "string", "description": "What the document says and what a reader would come to it for, in a few lines" },
-                    "notes": { "type": "string", "description": "What the next agent should know about working with it — which section holds what, what is out of date, what it is missing" }
+                    "summary": { "type": "string", "description": "What it says and what a reader comes to it for, in a few lines" },
+                    "notes": { "type": "string", "description": "What working with it needs: which section holds what, what is stale or missing" }
                 },
                 "required": ["doc"]
             }))
@@ -1308,7 +991,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "outline_doc",
             "title": "What is in a document",
-            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive. `by` says whether an agent or the person began it and each page, `alike` names documents elsewhere whose title names the same subject as this one or one of its pages, and `repeated` the headings written in more than one page — the signs that it wants compacting. `dead` lists the links that lead nowhere, `mislabeled` the page lines showing another name than the page's title, and a page marked `loose` has no line naming it, so the window gives it no place.",
+            "description": "A document's headings with their `at`, lines and size, its length and `print`, and its pages with title, length and sections: a few hundred tokens. Ask it first for a long document or a change in part. Also `pointed_at` (who links here), `by` (agent or person) and the signs it wants compacting: `alike`, `repeated`, `dead`, `mislabeled`, `loose`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field()
@@ -1319,14 +1002,14 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything one task holds: its description, its steps, its journal — each note with the id `reword_note` takes — its parts, what it keeps, and its `document`: the page the person reads and writes, with its sections and their grey hints, its boxes ticked as the steps are and its properties written at the top. Ask for it before adding a note, so you do not write down something already written, and before mending anything, so you change what is there now. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and a `notice`, and reads as it ended: it is history to consult, and nothing on it changes. `find` with `part_of` brings the parts of any task, closed or open.",
+            "description": "Everything a task holds: description, steps, journal (note ids for `reword_note`), parts, files and its `document` page. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does"
+                        "description": "Only these, the id always: title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document"
                     }
                 },
                 "required": ["task"]
@@ -1335,61 +1018,45 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "find",
             "title": "Search the list and the archive",
-            "description": "Search the tasks — open and archived alike — and the documents: by words with `query`, by what a task is with the sifting fields (alone or narrowing a query), or by `source` alone to see whether something was filed from it already. A task found by what its page, description, steps or notes say comes with `in` and the `line` that says it, so a past decision often reads without `read`. With `doc` it searches inside that one document instead and hands back the matching lines with their numbers and the section each sits in.",
+            "description": "Search tasks, open and archived, and documents: by words in `query`, by the task fields below, or by `source` to see if it was filed. A task found by its page, steps or notes comes with the `line` saying it. With `doc`, the matching lines inside that document.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "query": { "type": "string", "description": "Words to look for, not a phrase: each word has to turn up in the same task or document (on the same line, with `doc`), in any order, accents or not; put a phrase in quotes when the order is the point. Not needed when sifting by the fields below" },
-                    "source": {
-                        "type": "string",
-                        "description": "Ask whether this exact source was proposed already"
-                    },
-                    "doc": {
-                        "type": "string",
-                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them unless every one of those is blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole"
-                    },
-                    "around": {
-                        "type": "integer",
-                        "description": "With `doc`: how many lines to bring on each side of a hit, 1 by default, 0 for none, at most 10"
-                    },
-                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer" },
-                    "list": { "type": "string", "description": "In this list, named as `lists` names it" },
-                    "folder": { "type": "string", "description": "Only the documents in this folder and the folders below it, by its name, its whole path or its id. Documents whose title says the words come first either way, before those that only mention them" },
-                    "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
-                    "said_done": { "type": "boolean", "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for" },
-                    "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },
-                    "part_of": { "type": "string", "description": "Only the parts of this task, by its id" },
-                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, however it is written: «sereno», «sereno#» and «sereno: » all bring everything read out of that one place" },
-                    "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },
-                    "to": { "type": "string", "description": "Its date or deadline on this day or before" },
-                    "scope": {
-                        "type": "string",
-                        "enum": ["open", "archive", "either"],
-                        "description": "Defaults to either: the open tasks and the archive together, which is where how something was solved before is found"
-                    },
+                    "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
+                    "source": { "type": "string", "description": "Whether this exact source was filed already; not with `query`" },
+                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section" },
+                    "around": { "type": "integer", "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default" },
+                    "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
+                    "list": { "type": "string", "description": "In this list, as `lists` names it" },
+                    "folder": { "type": "string", "description": "Only documents in this folder or below, by name, path or id" },
+                    "by_agent": { "type": "boolean", "description": "True: filed by an agent; false: by the person" },
+                    "said_done": { "type": "boolean", "description": "True: an agent said done or not doing and the person has not decided; false: nobody did" },
+                    "open_to_agents": { "type": "boolean", "description": "True: the person's tasks opened to agents; false: kept to themselves" },
+                    "part_of": { "type": "string", "description": "Only the parts of this task, by id" },
+                    "from_source": { "type": "string", "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there" },
+                    "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },
+                    "to": { "type": "string", "description": "Date or deadline on or before this day" },
+                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either: open and archived together" },
                     "limit": { "type": "integer", "description": "At most 100, 20 by default" },
-                    "after": {
-                        "type": "integer",
-                        "description": "Skip this many tasks, to page on while `total` is higher than what came back. Documents are not paged: `docsTotal` says how many match, and a higher `limit` brings more"
-                    }
+                    "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: `docsTotal` counts them" }
                 }
             }))
         },
         json!({
             "name": "lists",
             "title": "The lists that exist",
-            "description": "The names of the person's lists, so you can file a task into one. You cannot make a list; anything you propose without one lands in the inbox.",
+            "description": "The person's lists, to file a task in. You cannot make one; without one a task lands in the inbox.",
             "inputSchema": { "type": "object", "additionalProperties": false }
         }),
         json!({
             "name": "rules",
             "title": "The rules for working here, by topic",
-            "description": "The rules for working in Tisty, one short guide at a time. Left alone it gives the basics — task or document, whose words count, speaking in titles, updating before adding — and an index of the rest. Ask for the guide your next step needs: «tasks» before filing or working a task, «documents» before writing or changing a document, «tidying» before putting things back in order, consolidating or compacting. «all» gives every rule at once.",
+            "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask «tasks» before filing or working a task, «documents» before writing one, «tidying» before compacting.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
                         "type": "string",
                         "enum": ["tasks", "documents", "tidying", "all", "general"],
-                        "description": "tasks, documents or tidying for that guide; all for every rule at once; left out, the basics and the index. general is what all gave before tidying was split off"
+                        "description": "The guide; left out, the basics and the index"
                     }
                 }
             }))
@@ -1397,45 +1064,37 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "language",
             "title": "What Tisty adds to Markdown",
-            "description": "Plain Markdown needs nothing from here: Tisty takes it as it is and turns it on the way in. Left alone this gives the index of what Tisty adds — pens and their colours, underline, icons, callouts, collapsible sections, tags, cards to other documents, attachments, references, diagrams — apart from what reads as Markdown anywhere. Ask with a `topic` for the one you mean to write, so a pen colour or an icon is one Tisty knows; «all» gives the whole guide. `lang` picks English or Spanish; the language itself is the same.",
+            "description": "What Tisty adds to Markdown, which plain Markdown does not need: pens, underline, icons, callouts, folds, tags, cards, attachments, diagrams. Alone, the index; ask the `topic` you mean to write.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
                         "type": "string",
                         "enum": super::guide::topics(),
-                        "description": "One part of the guide, named as the index names it, or all for the whole of it. Left out, the index"
+                        "description": "One part, named as the index names it, or all"
                     },
-                    "lang": {
-                        "type": "string",
-                        "enum": ["en", "es"],
-                        "description": "en for English, es for Spanish. Left out, English"
-                    }
+                    "lang": { "type": "string", "enum": ["en", "es"], "description": "en, the default, or es" }
                 }
             }))
         }),
         json!({
             "name": "help",
             "title": "How Tisty itself works",
-            "description": "The pages of Tisty's own Help, the ones tisty.app shows: installing, tasks and how they are written, documents, pages and PDF, sync, encrypting the cloud and letting a computer in, assistants, keyboard shortcuts, privacy. Ask it when the person asks how Tisty does something, instead of guessing. Left alone it gives the index; a `topic` gives one page. `lang` picks English or Spanish.",
+            "description": "Tisty's own Help pages, for when the person asks how Tisty does something: installing, tasks, documents, sync, encryption, assistants, shortcuts, privacy. Alone, the index; `topic` gives a page.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
                         "type": "string",
                         "enum": super::helping::topics(),
-                        "description": "One page, named as the index names it. Left out, the index"
+                        "description": "One page, named as the index names it"
                     },
-                    "lang": {
-                        "type": "string",
-                        "enum": ["en", "es"],
-                        "description": "en for English, es for Spanish. Left out, English"
-                    }
+                    "lang": { "type": "string", "enum": ["en", "es"], "description": "en, the default, or es" }
                 }
             }))
         }),
         json!({
             "name": "tags",
             "title": "The tags already in use",
-            "description": "Every tag the person already writes, the most used first, with how many times each one appears, in the plain form they are filed under. Capitals and accents decide nothing: #Camión and #camion are one tag. Ask for it before you tag anything and reuse one when the subject really is the same; a second word for something already tagged splits it in two.",
+            "description": "The tags in use, most used first, with counts; case and accents do not matter. Reuse one for the same subject rather than coining a second.",
             "inputSchema": { "type": "object", "additionalProperties": false }
         })
     ])
@@ -1443,10 +1102,18 @@ pub(super) fn tools_without_hints() -> Value {
 
 /// Seven tools take this field, and seven wordings of it would drift apart.
 fn named_doc_field() -> Value {
+    json!({ "type": "string", "description": "The document's id from `docs`, not its title" })
+}
+
+fn kept_compaction_field() -> Value {
     json!({
-        "type": "string",
-        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title"
+        "type": "boolean",
+        "description": "The person told you in this conversation to keep the compaction awaiting their word"
     })
+}
+
+fn echo_field() -> Value {
+    json!({ "type": "boolean", "description": "Hand back the lines around the change, instead of reading again" })
 }
 
 fn on_a_task(fields: Value, also_required: &[&str]) -> Value {
@@ -1468,9 +1135,9 @@ fn steps_by_text(doing: &str) -> Value {
         "steps": {
             "type": "array",
             "items": { "type": "string" },
-            "description": format!("The steps {doing}, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call")
+            "description": format!("The steps {doing}, by their text as `read` shows it; case and accents do not matter")
         },
-        "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
+        "step": { "type": "string", "description": "One step, by its text" }
     })
 }
 
@@ -1481,7 +1148,7 @@ fn many_docs_field(what: &str) -> Value {
             { "type": "array", "items": { "type": "string" }, "minItems": 1 }
         ],
         "description": format!(
-            "The id of the document {what}, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids does the same to all of them in one go, and if one of them cannot, none of them moves."
+            "The id of the document {what}, not its title, or a list of ids: if one cannot, none moves"
         )
     })
 }

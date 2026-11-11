@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Unmark steps an agent ticked that are not done after all, on a task you filed or one the person opened to agents. On any other of the person's tasks it takes back your word on steps you said were done. Only a tick or a word an agent gave can be taken back: one the person gave is theirs, and naming it unticks nothing. Name each step by its text as `read` shows it. Unticking closes and opens nothing; the task stays as it was.",
+  "description": "Take back a tick, or your word on a step, that an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "step": {
-        "description": "One step, by its text — the same as `steps` with one entry",
+        "description": "One step, by its text",
         "type": "string"
       },
       "steps": {
-        "description": "The steps to untick, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call",
+        "description": "The steps to untick, by their text as `read` shows it; case and accents do not matter",
         "items": {
           "type": "string"
         },

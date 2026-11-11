@@ -9,20 +9,20 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "A document told in several languages is several documents, one per language, that the person sees as one with a switch between them; `read_doc`, `outline_doc`, `docs` and `find` name them under `languages`. With `of`, this joins `doc` to the languages of that document, moving it into the same folder; both have to say their language, in a `lang:` line of their properties or, for `doc`, in `lang`, which is written there. Without `of`, it takes `doc` out of its languages and the others stay together. To write a new translation, `write_doc` with `translation_of` does it in one call. A page is in the language of its document and joins nothing.",
+  "description": "With `of`, join `doc` to that document's languages, moving it to its folder; without, take `doc` out of its languages. Both say their language in a `lang:` property, or `lang` for `doc`. A new translation is `write_doc` with `translation_of`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "doc": {
-        "description": "The id of the document to join or take out — an opaque name like `q7ntmzbm-0001`, not its title",
+        "description": "Id of the document to join or take out, not its title",
         "type": "string"
       },
       "lang": {
-        "description": "The language `doc` is in, as a tag like `es`, `en` or `pt-BR`, when its properties do not say it",
+        "description": "The language of `doc`, like `es`, `en` or `pt-BR`, when its properties lack one",
         "type": "string"
       },
       "of": {
-        "description": "The id of a document whose languages it joins. Left out, it is taken out of its own",
+        "description": "Id of a document whose languages it joins. Left out, it leaves its own",
         "type": "string"
       }
     },
@@ -32,5 +32,5 @@ expression: tool
     "type": "object"
   },
   "name": "tongue_doc",
-  "title": "Join a document to the languages of another, or take it out of its own"
+  "title": "Join or leave a document's languages"
 }

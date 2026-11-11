@@ -9,20 +9,20 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Put a document away when the person asks for that, and bring it back with `archived` false. «Delete it» is `flag_doc` instead. Nothing is deleted and no text changes: `docs` and `find` reach the archive as well, unless their `scope` says otherwise. A single page can be put away on its own, and it stays where it lives — under its document, greyed and read-only — rather than moving to the archive. Putting the document away covers its pages too, and bringing it back wakes each page as it was: one that was already apart stays apart. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
+  "description": "Put a document or one page away when the person asks, or bring it back with `archived` false; nothing is deleted or changed («delete it» is `flag_doc`). A page put away stays under its document, read-only; a document's pages go and come back with it.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "archived": {
-        "description": "True to put it away, which is what happens if you leave this out; false to bring it back",
+        "description": "True, the default, puts it away; false brings it back",
         "type": "boolean"
       },
       "doc": {
-        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "description": "The document's id from `docs`, not its title",
         "type": "string"
       },
       "folder": {
-        "description": "A folder to file it in as it goes, or as it comes back, by its name, its whole path or its id. It is filed either way: what the archive holds can still be put where it belongs",
+        "description": "A folder to file it in on the way, by name, path or id",
         "type": "string"
       }
     },
@@ -32,5 +32,5 @@ expression: tool
     "type": "object"
   },
   "name": "archive_doc",
-  "title": "Put a document or one of its pages away, or bring it back"
+  "title": "Put a document away, or bring it back"
 }

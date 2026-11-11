@@ -9,12 +9,12 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "The rules for working in Tisty, one short guide at a time. Left alone it gives the basics — task or document, whose words count, speaking in titles, updating before adding — and an index of the rest. Ask for the guide your next step needs: «tasks» before filing or working a task, «documents» before writing or changing a document, «tidying» before putting things back in order, consolidating or compacting. «all» gives every rule at once.",
+  "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask «tasks» before filing or working a task, «documents» before writing one, «tidying» before compacting.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "topic": {
-        "description": "tasks, documents or tidying for that guide; all for every rule at once; left out, the basics and the index. general is what all gave before tidying was split off",
+        "description": "The guide; left out, the basics and the index",
         "enum": [
           "tasks",
           "documents",
