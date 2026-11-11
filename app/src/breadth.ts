@@ -1,9 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useLayoutEffect, useSyncExternalStore } from "react";
 import { stored } from "./stored";
 
 export type Breadth = { width: number | null; folded: boolean };
 
-type Kept = Breadth & { foldedNarrow: boolean };
+type Sway = "free" | "giving" | "held";
 
 const ON_MAC = navigator.userAgent.includes("Macintosh");
 
@@ -18,34 +18,65 @@ const LIVE = "--tisty-side-live";
 
 const fitted = (width: number): number => Math.round(Math.min(WIDEST, Math.max(NARROWEST, width)));
 
-const kept = stored<Kept>("tisty.breadth", (said) => ({
+const GUTTER = 8;
+
+const kept = stored<Breadth>("tisty.breadth", (said) => ({
   width: typeof said.width === "number" ? fitted(said.width) : null,
   folded: said.folded === true,
-  foldedNarrow: said.foldedNarrow !== false,
 }));
 
-const NARROW = `not all and (min-width: ${WIDE_WINDOW}px)`;
-
-const narrow = (): boolean => window.matchMedia?.(NARROW).matches ?? false;
-
-const watchNarrow = (change: () => void) => {
-  const query = window.matchMedia?.(NARROW);
-  query?.addEventListener?.("change", change);
-  return () => query?.removeEventListener?.("change", change);
+const room = { need: 0, held: false };
+const heard = new Set<() => void>();
+const tell = () => {
+  for (const one of heard) one();
 };
 
-const seen = (now: Kept, inNarrow: boolean): Breadth => ({
+export const givesWay = (across: number, need: number, width: number | null): boolean => {
+  if (!need) return false;
+  const open = width ?? (across >= WIDE_WINDOW ? AS_SHIPPED_WIDE : AS_SHIPPED_WIDTH);
+  return across - open - GUTTER < need && across - RAIL - GUTTER >= need;
+};
+
+const crowded = () => givesWay(window.innerWidth, room.need, kept.current().width);
+
+const sway = (): Sway => (crowded() ? (room.held ? "held" : "giving") : "free");
+
+const watch = (change: () => void) => {
+  const resized = () => {
+    if (!crowded()) room.held = false;
+    change();
+  };
+  heard.add(change);
+  window.addEventListener("resize", resized);
+  return () => {
+    heard.delete(change);
+    window.removeEventListener("resize", resized);
+  };
+};
+
+const seen = (now: Breadth, how: Sway): Breadth => ({
   width: now.width,
-  folded: inNarrow ? now.foldedNarrow : now.folded,
+  folded: how === "free" ? now.folded : how === "giving",
 });
 
-const current = (): Breadth => seen(kept.current(), narrow());
+const current = (): Breadth => seen(kept.current(), sway());
 
-export const useBreadth = (): Breadth =>
-  seen(kept.use(), useSyncExternalStore(watchNarrow, narrow));
+export const useBreadth = (): Breadth => seen(kept.use(), useSyncExternalStore(watch, sway));
 
-const put = (width: number | null, folded: boolean) =>
-  kept.put({ ...kept.current(), width, ...(narrow() ? { foldedNarrow: folded } : { folded }) });
+export const useRoomFor = (need: number) =>
+  useLayoutEffect(() => {
+    if (room.need === need) return;
+    room.need = need;
+    room.held = false;
+    tell();
+  }, [need]);
+
+const put = (width: number | null, folded: boolean) => {
+  if (!crowded()) return kept.put({ width, folded });
+  kept.put({ ...kept.current(), width });
+  room.held = !folded;
+  tell();
+};
 
 export const fold = (folded: boolean) => put(kept.current().width, folded);
 

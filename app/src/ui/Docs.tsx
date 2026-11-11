@@ -32,6 +32,7 @@ import {
 import { viewDiagram } from "../drawing";
 import { withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
+import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
@@ -91,7 +92,6 @@ const leaves = (): Record<string, Paper> => {
 };
 
 const ASIDE = 344;
-const BESIDE_FROM = 1082;
 
 const NONE: string[] = [];
 
@@ -185,7 +185,7 @@ export default function Docs({
   const wide = room >= WIDE_WINDOW;
   const breadth = useBreadth();
   const spare = room - sideWidth(breadth, wide) - GUTTER;
-  const fits = spare >= BESIDE_FROM;
+  const fits = spare >= DOC_ASIDE_FROM;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.

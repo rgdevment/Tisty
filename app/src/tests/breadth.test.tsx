@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   dragTo,
   fold,
@@ -9,11 +9,14 @@ import {
   sideWidth,
   unwiden,
   useBreadth,
+  useRoomFor,
   WIDEST,
 } from "../breadth";
 import { toldAside } from "../coming";
+import { DOC_ASIDE_FROM, layoutOf } from "../layout";
 import { t } from "../locales";
 import Sidebar from "../ui/Sidebar";
+import type { Chosen } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }));
@@ -45,6 +48,11 @@ function Shown() {
 }
 
 const width = () => screen.getByRole("status").textContent;
+
+function Roomed({ need }: { need: number }) {
+  useRoomFor(need);
+  return <output>{sideWidth(useBreadth(), false)}</output>;
+}
 
 describe("the sidebar can be folded and widened", () => {
   beforeAll(() => {
@@ -138,60 +146,74 @@ describe("the sidebar can be folded and widened", () => {
   });
 });
 
-describe("in a narrow window the sidebar gives way first", () => {
-  const heard = new Set<() => void>();
-  const plain = window.matchMedia;
-  let narrow = false;
+describe("the sidebar gives way to the column on the right", () => {
+  const across = window.innerWidth;
 
-  const resize = (to: boolean) =>
+  const resize = (to: number) =>
     act(() => {
-      narrow = to;
-      for (const one of heard) one();
+      Object.defineProperty(window, "innerWidth", {
+        value: to,
+        configurable: true,
+        writable: true,
+      });
+      window.dispatchEvent(new Event("resize"));
     });
-
-  beforeEach(() => {
-    window.matchMedia = ((query: string) => ({
-      get matches() {
-        return narrow && query.includes("1440px");
-      },
-      addEventListener: (_: string, one: () => void) => heard.add(one),
-      removeEventListener: (_: string, one: () => void) => heard.delete(one),
-    })) as unknown as typeof window.matchMedia;
-  });
 
   afterEach(() => {
-    act(() => {
-      narrow = true;
-      fold(true);
-      narrow = false;
-      unwiden();
-    });
-    window.matchMedia = plain;
-    heard.clear();
+    resize(across);
+    render(<Roomed need={0} />);
+    act(() => unwiden());
   });
 
-  it("folds to its icons as the window narrows, and opens again as it widens", () => {
-    render(<Shown />);
-    expect(width()).toBe("336");
-
-    resize(true);
+  it("folds to its icons only where that makes the column fit", () => {
+    resize(1100);
+    const { rerender } = render(<Roomed need={884} />);
     expect(width()).toBe(String(RAIL));
 
-    resize(false);
+    resize(1300);
+    expect(width()).toBe("336");
+
+    resize(900);
+    expect(width()).toBe("336");
+
+    resize(1100);
+    rerender(<Roomed need={0} />);
     expect(width()).toBe("336");
   });
 
-  it("keeps open in a narrow window what was opened there, apart from the wide one", () => {
-    render(<Shown />);
-    resize(true);
+  it("keeps open what was opened by hand, until the view or the window changes", () => {
+    resize(1100);
+    const { rerender } = render(<Roomed need={884} />);
     act(() => fold(false));
     expect(width()).toBe("336");
 
-    resize(false);
-    act(() => fold(true));
+    rerender(<Roomed need={964} />);
     expect(width()).toBe(String(RAIL));
 
-    resize(true);
+    act(() => fold(false));
+    resize(1400);
+    resize(1100);
+    expect(width()).toBe(String(RAIL));
+  });
+
+  it("leaves the choice made where there is room as it was", () => {
+    resize(1100);
+    render(<Roomed need={884} />);
+    act(() => fold(false));
+    resize(1600);
     expect(width()).toBe("336");
+  });
+});
+
+describe("what each view needs on its right", () => {
+  const room = (chosen: Chosen, open = false) =>
+    layoutOf({ chosen, open, mode: "columns", tight: false, calm: true }).room;
+
+  it("asks room for the day beside the tasks, more with a task open, and for a document's column", () => {
+    expect(room({ named: "tasks" })).toBe(884);
+    expect(room({ named: "tasks" }, true)).toBe(1536);
+    expect(room({ named: "docs", doc: "a.md" })).toBe(DOC_ASIDE_FROM);
+    expect(room({ named: "docs" })).toBe(0);
+    expect(room({ named: "spread" })).toBe(0);
   });
 });

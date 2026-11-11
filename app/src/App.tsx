@@ -111,6 +111,7 @@ export default function App() {
           onDocMenu={docMenu}
           onHereMenu={hereMenu}
           onListMenu={listMenu}
+          room={desk.room}
           onDocsMenu={(at) =>
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }

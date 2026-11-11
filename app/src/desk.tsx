@@ -73,7 +73,7 @@ export function deskOf(state: State, data: Snapshot) {
       )
     : [];
 
-  const { sheet, beside, aside, quiet, papered, lane } = layoutOf({
+  const { sheet, beside, aside, quiet, papered, lane, room } = layoutOf({
     chosen,
     open,
     mode,
@@ -200,6 +200,7 @@ export function deskOf(state: State, data: Snapshot) {
     quiet,
     papered,
     lane,
+    room,
     remember,
     wipe,
     hands,
