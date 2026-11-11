@@ -1421,5 +1421,64 @@
         "said": "the first lists are born with a colour of their own, and the guide's and the diagrams' folders with their icon."
       }
     ]
+  },
+  {
+    "version": "1.46.0",
+    "headline": {
+      "es": "Los idiomas que suman otros esperan tu revisión, y tu agente de IA recuerda gastando menos",
+      "en": "Languages others add wait for your review, and your AI agent remembers for less"
+    },
+    "es": [
+      {
+        "title": "Tú decides qué idiomas salen",
+        "said": "cuando alguien que edita tu documento compartido suma un idioma, queda como propuesta. Lo revisas tal como lo guarda Folio, con quién lo sumó, sus palabras y sus imágenes, y lo mantienes o lo dejas fuera: quienes leen solo ven lo que mantuviste."
+      },
+      {
+        "title": "Los cambios vuelven a esperarte",
+        "said": "si un idioma que mantuviste cambia, su fila lo avisa y te muestra la versión nueva frente a la que aprobaste. Lo que dejaste fuera queda aparte, para volver a revisarlo cuando quieras."
+      },
+      {
+        "title": "Crédito a quien tradujo",
+        "said": "quienes leen ven quién tradujo y quién revisó cada idioma que sumó otra persona. Y al cambiar el link de editar, o al traducir bajo el link de otra persona, Tisty te dice antes qué pasará con esos idiomas."
+      },
+      {
+        "title": "Una barra lateral más tranquila",
+        "said": "los conteos del día se abren sobre todas tus listas y paran en +99, cada lista tiene su menú para editarla, archivarla o eliminarla, y un documento con muchos idiomas muestra solo el que lees y cuántos tiene."
+      },
+      {
+        "title": "Tu agente de IA recuerda gastando menos",
+        "said": "conectar Tisty a tu asistente cuesta un tercio menos, y la ayuda y la guía cuentan cómo tu agente retoma donde quedó, lee por partes y guarda lo que aprende."
+      },
+      {
+        "title": "Atajos para tu agente",
+        "said": "en los asistentes que los muestran, como Claude Code o GitHub Copilot en VS Code, tienes comandos para retomar donde quedaste, planificar una tarea, buscar cómo se resolvió algo o anotar una decisión, y puedes mencionar tus documentos con @: los largos llegan por su índice, nunca enteros."
+      }
+    ],
+    "en": [
+      {
+        "title": "You decide which languages go out",
+        "said": "when someone who edits your shared document adds a language, it waits as a proposal. You review it as Folio holds it, with who added it, its words and its pictures, and keep it or leave it out: readers only see what you kept."
+      },
+      {
+        "title": "Changes wait for you again",
+        "said": "if a language you kept changes, its row says so and shows the new version against the one you approved. What you left out stays aside, to review again whenever you like."
+      },
+      {
+        "title": "Credit for who translated",
+        "said": "readers see who translated and who reviewed each language someone else added. And when you change the edit link, or translate under someone else's, Tisty tells you first what will happen to those languages."
+      },
+      {
+        "title": "A calmer sidebar",
+        "said": "the day's counts open over all your lists and stop at +99, each list has a menu to edit, archive or delete it, and a document in many languages shows only the one you read and how many it has."
+      },
+      {
+        "title": "Your AI agent remembers for less",
+        "said": "connecting Tisty to your assistant costs a third less, and the help and the guide tell how your agent picks up where it left off, reads a part at a time and keeps what it learns."
+      },
+      {
+        "title": "Shortcuts for your agent",
+        "said": "in assistants that show them, such as Claude Code or GitHub Copilot in VS Code, you get commands to pick up where you left off, plan a task, look up how something was solved or keep a decision, and you can mention your documents with @: long ones arrive by their outline, never whole."
+      }
+    ]
   }
 ]
