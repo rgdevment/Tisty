@@ -4,7 +4,7 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Memoria local para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Memoria y contexto locales para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 

@@ -4,7 +4,7 @@
 
 <h1 align="center">Tisty's help</h1>
 
-<p align="center"><strong>Local memory for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>No accounts. No subscriptions. No telemetry. No server.</p>
+<p align="center"><strong>Local memory and context for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>No accounts. No subscriptions. No telemetry. No server.</p>
 
 <p align="center"><strong>English</strong> · <a href="Inicio">Español</a></p>
 
