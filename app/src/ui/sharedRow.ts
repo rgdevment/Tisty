@@ -322,15 +322,20 @@ const theirWord = {
   waiting: "shareLanguageWaits",
   kept: "shareLanguageKept",
   changed: "shareLanguageChanged",
+  leftOut: "shareLanguageLeftOut",
 } as const;
 
-// A language its owner left out leaves the map, so the owner's own card never names it.
 const languagesSaid = (card: ShareCard) =>
-  card.languages.flatMap((one) => {
-    if (one.mine) return [t(ownersWord[one.word])];
-    if (one.word === "leftOut") return [];
-    return [fill(theirWord[one.word], tongueName(one.lang ?? ""))];
-  });
+  card.languages.map((one) =>
+    one.mine ? t(ownersWord[one.word]) : fill(theirWord[one.word], tongueName(one.lang ?? "")),
+  );
+
+const reviewLabel = {
+  waiting: "shareLanguageReview",
+  kept: "shareLanguageReview",
+  changed: "shareLanguageChanges",
+  leftOut: "shareLanguageReviewAgain",
+} as const;
 
 // A language the owner keeps can change in Folio at any time, and only asking after it tells.
 const keepsTheirs = (card: ShareCard) =>
@@ -339,10 +344,7 @@ const keepsTheirs = (card: ShareCard) =>
 const reviewActs = (h: Hands, onReview: (one: LanguageWord) => void): Act[] =>
   theirs(h.card).map((one) => ({
     key: `review-${one.document}`,
-    label: fill(
-      one.word === "changed" ? "shareLanguageChanges" : "shareLanguageReview",
-      tongueName(one.lang ?? ""),
-    ),
+    label: fill(reviewLabel[one.word], tongueName(one.lang ?? "")),
     onPick: () => onReview(one),
   }));
 

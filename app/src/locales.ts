@@ -787,6 +787,8 @@ const en = {
   shareLanguageChanged:
     "{name} changed since you kept it, so readers do not see it until you review it again.",
   shareLanguageChanges: "Review the changes in {name}…",
+  shareLanguageLeftOut: "You left {name} out, so readers do not see it.",
+  shareLanguageReviewAgain: "Review {name} again…",
   shareOwnerWaits: "Its owner has not reviewed this language yet, so readers do not see it.",
   shareOwnerKept:
     "Its owner kept the version of this language they reviewed. If you change it, it waits for them again.",
@@ -3888,6 +3890,8 @@ const es: Catalog = {
   shareLanguageChanged:
     "{name} cambió desde que lo mantuviste, así que quienes leen no lo ven hasta que lo revises de nuevo.",
   shareLanguageChanges: "Revisar los cambios en {name}…",
+  shareLanguageLeftOut: "Dejaste fuera {name}, así que quienes leen no lo ven.",
+  shareLanguageReviewAgain: "Volver a revisar {name}…",
   shareOwnerWaits: "Su dueño todavía no revisa este idioma, así que quienes leen no lo ven.",
   shareOwnerKept:
     "Su dueño mantuvo la versión de este idioma que revisó. Si lo cambias, vuelve a esperarlo.",
