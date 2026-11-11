@@ -19,6 +19,17 @@ expression: "said[\"result\"]"
     {
       "arguments": [
         {
+          "description": "A word from the task to leave; left out, the one we are on",
+          "name": "task"
+        }
+      ],
+      "description": "Tick what is finished and note what was done, ruled out and comes next, so the next session starts from there.",
+      "name": "leave_off",
+      "title": "Leave this where I can pick it up"
+    },
+    {
+      "arguments": [
+        {
           "description": "What is to be done; left out, what we have been talking about",
           "name": "work"
         }

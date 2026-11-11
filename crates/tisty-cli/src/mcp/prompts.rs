@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use tisty_core::Paths;
 
-use super::looking::{placed, task_touched};
+use super::resuming::{last_named, left_off};
 use super::{TOOLS_STAY_FRESH, admitted};
 
 const SAID_AT_MOST: usize = 2_000;
@@ -15,7 +15,7 @@ struct Prompt {
     asks: fn(&Paths, Option<&str>) -> String,
 }
 
-const PROMPTS: [Prompt; 4] = [
+const PROMPTS: [Prompt; 5] = [
     Prompt {
         name: "pick_up",
         title: "Pick up where I left off",
@@ -24,6 +24,15 @@ const PROMPTS: [Prompt; 4] = [
         takes: "task",
         takes_what: "A word from the task to pick up; left out, the one last worked on",
         asks: picking_up,
+    },
+    Prompt {
+        name: "leave_off",
+        title: "Leave this where I can pick it up",
+        description: "Tick what is finished and note what was done, ruled out and comes next, so \
+                      the next session starts from there.",
+        takes: "task",
+        takes_what: "A word from the task to leave; left out, the one we are on",
+        asks: leaving_off,
     },
     Prompt {
         name: "plan_task",
@@ -154,10 +163,32 @@ fn picking_up(paths: &Paths, said: Option<&str>) -> String {
         },
     };
     format!(
-        "Pick up where I left off in Tisty. Call `catch_up` first for where things stand. Then \
-         {which} with its steps and its latest notes. Tell me in a few lines where it stands, \
+        "Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what \
+         moved since your last change here and who moved it. Then {which} with its steps, its \
+         page and its latest notes. Tell me in a few lines what moved, where the task stands, \
          what was done last and what comes next, naming tasks by title and list, never by id. \
          Change nothing yet."
+    )
+}
+
+fn leaving_off(paths: &Paths, said: Option<&str>) -> String {
+    let which = match said {
+        Some(said) => format!(
+            "the open task about {} — `find` it, and ask me if several fit —",
+            quoted(said)
+        ),
+        None => match last_worked_on(paths) {
+            Some(task) => format!("the task we have been on, {task} unless it was another,"),
+            None => "the task we have been on".to_string(),
+        },
+    };
+    format!(
+        "In Tisty, leave {which} where the next session can pick it up. `read` it first. `tick` \
+         every step that is finished. `note` what was done, what was tried and ruled out and why, \
+         and what comes next, in that order. If every step is done and the work holds, \
+         `say_done` with the proof. A decision that outlasts the task goes in its document, \
+         changed in place with `edit_doc`, and the note says where. Change nothing else, and \
+         tell me in a few lines what you left."
     )
 }
 
@@ -167,18 +198,7 @@ fn quoted(said: &str) -> String {
 
 fn last_worked_on(paths: &Paths) -> Option<String> {
     let (state, agent) = admitted(paths).ok()??;
-    let owners = tisty_core::task_docs::behind(&state);
-    let segments = tisty_core::store::segments_in(&paths.store().join(&agent.0)).ok()?;
-    segments.iter().rev().find_map(|segment| {
-        let events = tisty_core::store::read_tail(segment, 0).ok()?;
-        events
-            .iter()
-            .rev()
-            .filter_map(|one| task_touched(&state, &owners, one))
-            .filter_map(|id| state.tasks.get(&id))
-            .find(|task| task.is_open() && !task.folded() && task.resolved.is_none())
-            .map(|task| format!("{:?} {} [{}]", task.title, placed(&state, task), task.id))
-    })
+    last_named(&state, left_off(paths, &state, &agent).as_ref())
 }
 
 fn planning(_: &Paths, said: Option<&str>) -> String {

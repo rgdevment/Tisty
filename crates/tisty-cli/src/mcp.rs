@@ -14,6 +14,7 @@ mod papers;
 mod placing;
 mod prompts;
 mod resources;
+mod resuming;
 mod spoken;
 mod task_notes;
 mod tool_list;

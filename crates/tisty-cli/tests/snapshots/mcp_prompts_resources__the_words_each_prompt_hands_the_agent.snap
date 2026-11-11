@@ -26,6 +26,14 @@ Keep the decision we just made in Tisty, in the one document about «the passpor
 
 Keep the decision we just made in Tisty, in the one document on its subject. Ask `rules` «documents» first. `find` that document, `outline_doc` it, and write the decision with `edit_doc` in the passage it belongs to, dated and with its reason; a decision it replaces is struck through and dated, never left standing beside it. If no document covers the subject, ask me which folder it belongs in before `write_doc`. Tell me the document's title and folder.
 
+## leave_off «the passport»
+
+In Tisty, leave the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — `find` it, and ask me if several fit — where the next session can pick it up. `read` it first. `tick` every step that is finished. `note` what was done, what was tried and ruled out and why, and what comes next, in that order. If every step is done and the work holds, `say_done` with the proof. A decision that outlasts the task goes in its document, changed in place with `edit_doc`, and the note says where. Change nothing else, and tell me in a few lines what you left.
+
+## leave_off
+
+In Tisty, leave the task we have been on where the next session can pick it up. `read` it first. `tick` every step that is finished. `note` what was done, what was tried and ruled out and why, and what comes next, in that order. If every step is done and the work holds, `say_done` with the proof. A decision that outlasts the task goes in its document, changed in place with `edit_doc`, and the note says where. Change nothing else, and tell me in a few lines what you left.
+
 ## pick_up «the passport»
 
-Pick up where I left off in Tisty. Call `catch_up` first for where things stand. Then `find` the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — ask me if several fit — and `read` it with its steps and its latest notes. Tell me in a few lines where it stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.
+Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what moved since your last change here and who moved it. Then `find` the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — ask me if several fit — and `read` it with its steps, its page and its latest notes. Tell me in a few lines what moved, where the task stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.
