@@ -709,6 +709,7 @@ fn the_edit_link_exists_only_where_a_token_does_on_the_host_it_is_given() {
             signer: None,
             editors: Vec::new(),
             signs_as: None,
+            languages: Vec::new(),
         })
     );
     assert_eq!(

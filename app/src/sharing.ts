@@ -94,6 +94,25 @@ export interface ShareCard {
   signer: Named | null;
   editors: Named[];
   signsAs: { now: string | null; other: string | null } | null;
+  languages: LanguageWord[];
+}
+
+export interface LanguageWord {
+  document: string;
+  lang: string | null;
+  title: string | null;
+  word: "waiting" | "kept" | "leftOut";
+  mine: boolean;
+}
+
+export interface LanguageShown {
+  document: string;
+  lang: string | null;
+  title: string | null;
+  by: string | null;
+  body: string;
+  pictures: { at: number; path: string }[];
+  print: string;
 }
 
 export type Synced =
@@ -199,6 +218,16 @@ export const shareSignAs = (id: string, name: string): Promise<ShareCard> =>
 
 export const shareEditLinkRenewed = (id: string): Promise<Synced> =>
   invoke("doc_share_edit_link_renewed", { id });
+
+export const languageShown = (id: string, document: string): Promise<LanguageShown> =>
+  invoke("doc_language_shown", { id, document });
+
+export const languageReviewed = (
+  id: string,
+  document: string,
+  keep: boolean,
+  print: string | null,
+): Promise<void> => invoke("doc_language_reviewed", { id, document, keep, print });
 
 export const shareWaiting = (id: string, look: boolean): Promise<ShareWaiting> =>
   invoke("doc_share_waiting", { id, look });

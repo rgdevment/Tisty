@@ -891,6 +891,10 @@ pub(crate) fn opened(
     let _ = std::fs::create_dir_all(&pictured_at);
     app.asset_protocol_scope()
         .allow_directory(as_asked_for(&pictured_at), true)?;
+    let reviewed_at = answers::folio_reviewing::folder(session.paths.cache());
+    let _ = std::fs::create_dir_all(&reviewed_at);
+    app.asset_protocol_scope()
+        .allow_directory(as_asked_for(&reviewed_at), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),
