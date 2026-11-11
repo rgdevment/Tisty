@@ -3,10 +3,11 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — memoria local para ti y tu agente de IA: una app gratis y de
-    código abierto para notas, documentos y tareas en Windows y macOS"/>
+    alt="Tisty — memoria y contexto locales para ti y tu agente de IA: una app
+    gratis y de código abierto para notas, documentos y tareas en Windows y
+    macOS"/>
 
-  <h1>Tisty — Memoria local para ti y tu agente de IA</h1>
+  <h1>Tisty — Memoria y contexto locales para ti y tu agente de IA</h1>
 
   <p><strong>La memoria de trabajo que sigue siendo tuya: tareas, documentos y
   notas en Markdown, en tu disco, para Windows y macOS.<br/>Tareas que guardan
