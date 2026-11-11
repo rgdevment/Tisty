@@ -145,7 +145,7 @@ function Wide({
           onScroll={(e) => {
             if (!hidden) scrolled.current = e.currentTarget.scrollTop;
           }}
-          className="scroller fading min-h-0 flex-1 px-2.5 pt-1 pb-2"
+          className="scroller fading min-h-0 flex-1 pt-1 pr-2.5 pb-2 pl-4"
         >
           {nothing && (
             <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
