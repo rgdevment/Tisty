@@ -415,8 +415,6 @@ fn topical(title: &str) -> Option<&'static str> {
 pub(super) fn rules(args: &Value) -> Value {
     let said = match args["topic"].as_str() {
         Some("all") => joined(|_| true),
-        // What «general» gave before the guides were split: everything but tidying.
-        Some("general") => joined(|title| topical(title) != Some("tidying")),
         Some(topic @ ("tasks" | "documents" | "tidying")) => {
             joined(|title| topical(title) == Some(topic))
         }
