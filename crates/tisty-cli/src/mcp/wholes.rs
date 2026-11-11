@@ -5,6 +5,7 @@ use tisty_core::model::TaskId;
 
 use super::asked::{Takes, only_what_it_takes, short_and_plain, text};
 use super::chores::{Drafted, drafted, standing};
+use super::mistaken::not_a_task_id;
 use super::order;
 use super::{Refused, alike};
 
@@ -21,9 +22,7 @@ pub(super) fn whole_named(state: &State, args: &Value) -> Result<Option<TaskId>,
         ));
     }
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(state, &said)));
     };
     let Some(whole) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Err(Refused::Tool(format!("no task here has the id {said}.")));

@@ -6,6 +6,7 @@ use ulid::Ulid;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::no_document_called;
 use super::super::{
     FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, doc_titled, folder_named, hitch, holder,
     named_all, named_doc, opened, trail, up_named,
@@ -28,9 +29,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(&state, &which)));
     };
     if state.held_by_another(kept) {
         let holds = holder(&state, kept);
@@ -180,9 +179,7 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     let mut already = Vec::new();
     for which in &many {
         let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
-            return Err(Refused::Tool(format!(
-                "no document here is called {which:?}. `docs` lists them all."
-            )));
+            return Err(Refused::Tool(no_document_called(&state, which)));
         };
         if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {
             return Err(Refused::Tool(format!(

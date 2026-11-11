@@ -12,6 +12,7 @@ use super::asked::{
     Takes, day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
 };
 use super::jsonrpc::{speaking_through, told};
+use super::mistaken::not_a_task_id;
 use super::{
     INBOX_TAG, Refused, already, gone, history, hitch, how_it_ended, moved, opened, order, said,
     unticked, when,
@@ -405,9 +406,7 @@ pub(super) fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Err(gone(&state, &said));
@@ -464,9 +463,7 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
     }
     let (state, mut store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
     let Some(task) = state.tasks.get(&id) else {
         return Err(gone(&state, &said));
@@ -690,6 +687,11 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         });
     }
     let left = task.steps.iter().filter(|step| !step.done).count() - fresh.len();
+    let next = task
+        .steps
+        .iter()
+        .find(|step| !step.done && !fresh.iter().any(|one| one.id == step.id))
+        .map(|step| step.text.clone());
     let mut said = match fresh.len() {
         0 => format!("Nothing new ticked on {:?}: ", task.title),
         n => format!("Ticked {n} step(s) on {:?}. ", task.title),
@@ -697,9 +699,9 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !already.is_empty() {
         said.push_str(&format!("{} ticked already. ", already.len()));
     }
-    said.push_str(&match left {
-        0 => "None left: `say_done` when the work is done.".to_string(),
-        n => format!("{n} still unticked."),
+    said.push_str(&match &next {
+        None => "None left: `say_done` when the work is done.".to_string(),
+        Some(next) => format!("{left} still unticked; next: {next:?}."),
     });
     Ok(told(
         said,
@@ -709,6 +711,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "ticked": fresh.len(),
             "already": already.len(),
             "left": left,
+            "next": next,
         }),
     ))
 }
@@ -792,9 +795,7 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
     let Some(task) = state.tasks.get(&id) else {
         return Err(gone(&state, &said));
@@ -846,9 +847,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
     };
     let (state, mut store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
     let Some(task) = state.tasks.get(&id) else {
         return Err(gone(&state, &said));
@@ -1012,9 +1011,7 @@ pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
 /// An open task, not folded away, named by its id; whose it is, the caller asks.
 fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
+        return Err(Refused::Tool(not_a_task_id(state, said)));
     };
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Err(gone(state, said));
@@ -1164,6 +1161,8 @@ fn marked_as(said: &tisty_core::model::Resolved) -> &'static str {
     if said.drop { "not to be done" } else { "done" }
 }
 
+const STEPS_NAMED_AT_MOST: usize = 12;
+
 /// Steps written alike are a repeated line: naming one reaches the next that `fits`.
 pub(super) fn steps_named<'a>(
     task: &'a Task,
@@ -1186,9 +1185,9 @@ pub(super) fn steps_named<'a>(
             .copied()
         else {
             return Err(Refused::Tool(format!(
-                "no step of {:?} reads {one:?}; nothing was {doing}. `read` shows them as they \
-                 are written.",
-                task.title
+                "no step of {:?} reads {one:?}; nothing was {doing}. {}",
+                task.title,
+                could_be(task, doing, &fits)
             )));
         };
         if !chosen.iter().any(|had| had.id == step.id) {
@@ -1196,6 +1195,26 @@ pub(super) fn steps_named<'a>(
         }
     }
     Ok(chosen)
+}
+
+fn could_be(task: &Task, doing: &str, fits: impl Fn(&tisty_core::model::Step) -> bool) -> String {
+    let all: Vec<String> = task
+        .steps
+        .iter()
+        .filter(|step| fits(step))
+        .map(|step| format!("{:?}", step.text))
+        .collect();
+    match all.len() {
+        0 => format!("None of its steps could be {doing}."),
+        many if many <= STEPS_NAMED_AT_MOST => {
+            format!("These could be {doing}: {}.", all.join(", "))
+        }
+        many => format!(
+            "These could be {doing}: {}, and {} more that `read` shows.",
+            all[..STEPS_NAMED_AT_MOST].join(", "),
+            many - STEPS_NAMED_AT_MOST
+        ),
+    }
 }
 
 // Judged again under the lock: a word holds only for the steps as they were read.

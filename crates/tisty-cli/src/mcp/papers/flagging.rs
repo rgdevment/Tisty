@@ -4,6 +4,7 @@ use tisty_core::{Op, State, Store};
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::named_task;
 use super::super::{Refused, doc_named, hitch, named_all, opened, speaking_through, when};
 use super::{many_docs, said_docs};
 
@@ -33,9 +34,23 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
     let mut already: Vec<String> = Vec::new();
     for which in &many {
         let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
-            return Err(Refused::Tool(format!(
-                "no document here is called {which:?}. `docs` lists them all; nothing was marked."
-            )));
+            return Err(Refused::Tool(match named_task(&state, which) {
+                Some(task) if !task.is_open() => format!(
+                    "{which:?} is the task {:?}, not a document, and it is closed already: the \
+                     archive keeps it, and erasing it is the person's. Nothing was marked.",
+                    task.title
+                ),
+                Some(task) => format!(
+                    "{which:?} is the task {:?}, not a document, and closing a task is the \
+                     person's: `say_not_doing` tells them why it should not be done. Nothing was \
+                     marked.",
+                    task.title
+                ),
+                None => format!(
+                    "no document here is called {which:?}. `docs` lists them all; nothing was \
+                     marked."
+                ),
+            }));
         };
         if state.held_away(kept) {
             return Err(Refused::Tool(format!(

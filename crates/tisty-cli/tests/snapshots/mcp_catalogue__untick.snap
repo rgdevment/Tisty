@@ -5,11 +5,11 @@ expression: tool
 {
   "annotations": {
     "destructiveHint": false,
-    "idempotentHint": true,
+    "idempotentHint": false,
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Take back a tick, or your word on a step, that an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
+  "description": "Take back a tick, or your word on a step, an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

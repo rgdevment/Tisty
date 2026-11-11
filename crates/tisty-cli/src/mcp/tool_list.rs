@@ -80,7 +80,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "untick",
             "title": "Take back a tick given by mistake",
-            "description": "Take back a tick, or your word on a step, that an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
+            "description": "Take back a tick, or your word on a step, an agent gave by mistake. A tick the person gave is theirs, and naming it unticks nothing. It opens and closes nothing.",
             "inputSchema": on_a_task(steps_by_text("to untick"), &[])
         },
         {
@@ -194,7 +194,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes. For logs, minutes and dated notes; a fact that changed is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
+            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
