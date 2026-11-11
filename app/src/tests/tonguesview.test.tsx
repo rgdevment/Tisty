@@ -100,3 +100,25 @@ describe("the switch between languages", () => {
     expect(standingHead()).toBe(-1);
   });
 });
+
+describe("the credit of a language someone else added", () => {
+  it("names who translated it and the owner who reviewed it", () => {
+    const tongues = [
+      doc("es", "es", { guest: "Mario", tongue: ["es", 0] }),
+      doc("en", "en", { guest: "Ana", tongue: ["es", 1] }),
+    ];
+    render(<Tongues tongues={tongues} here="en" onOpen={vi.fn()} />);
+
+    expect(screen.getByText("Translated by Ana · reviewed by Mario")).toBeTruthy();
+  });
+
+  it("says nothing of the owner's own languages", () => {
+    const tongues = [
+      doc("es", "es", { guest: "Mario", tongue: ["es", 0] }),
+      doc("en", "en", { guest: "Mario", tongue: ["es", 1] }),
+    ];
+    render(<Tongues tongues={tongues} here="en" onOpen={vi.fn()} />);
+
+    expect(screen.queryByText(/reviewed by/)).toBeNull();
+  });
+});

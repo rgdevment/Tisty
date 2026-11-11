@@ -4,6 +4,7 @@ import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
   type LanguageWord,
+  languageReviewed,
   languagesLooked,
   type Named,
   type ShareCard,
@@ -215,8 +216,35 @@ const renewNow = (h: Hands) => {
     });
 };
 
+// A new edit link leaves what others added as it is, so the owner may leave those out with the same press.
+const othersInView = (card: ShareCard) => theirs(card).filter((one) => one.word !== "leftOut");
+
+const renewingSaid = (card: ShareCard) => {
+  const names = othersInView(card).map((one) => tongueName(one.lang ?? ""));
+  return names.length > 0 ? [fill("shareRenewTheirs", names.join(", "))] : [];
+};
+
+const leavingOut = (h: Hands) =>
+  othersInView(h.card).reduce<Promise<void>>(
+    (before, one) => before.then(() => languageReviewed(h.doc, one.document, false, null)),
+    Promise.resolve(),
+  );
+
 const renewingActs = (h: Hands): Act[] => [
   { key: "keep", label: t("shareCancel"), onPick: () => h.setRenewing(false) },
+  ...(othersInView(h.card).length > 0
+    ? [
+        {
+          key: "renewLeaving",
+          label: t("shareRenewLeaving"),
+          danger: true,
+          onPick: () =>
+            void leavingOut(h)
+              .then(() => renewNow(h))
+              .catch(h.failing),
+        },
+      ]
+    : []),
   { key: "renew", label: t("shareRenew"), danger: true, onPick: () => renewNow(h) },
 ];
 
@@ -558,6 +586,7 @@ export const useSharedRow = (
         ...whoSaid(hands.card),
         ...languagesSaid(hands.card),
         ...saidOf(hands.status, told, stopping, renewing),
+        ...(renewing ? renewingSaid(hands.card) : []),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
       prints: printsOf(hands.card),

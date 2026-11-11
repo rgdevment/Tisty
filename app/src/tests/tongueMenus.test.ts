@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Filed, Folded } from "../core";
 import type { Hands } from "../docMenus";
-import { fill } from "../locales";
+import { fill, t } from "../locales";
 import { tongueChoices } from "../tongueMenus";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve() }));
@@ -57,5 +57,29 @@ describe("joining as a translation", () => {
 
     expect(red?.into?.label).toBe(fill("tongueOf", "Network"));
     expect(english?.into?.label).toBe(fill("tongueOf", "Red"));
+  });
+});
+
+describe("translating under someone else's edit link", () => {
+  it("says the new language will be a proposal for the owner", () => {
+    const anchor = {
+      ...doc("ancla", null),
+      editing: true,
+      tongue: ["ancla", 0] as [string, number],
+    };
+    const hands = { papers: { docs: [anchor], folders: [] } } as unknown as Hands;
+
+    const translate = tongueChoices(anchor, hands).find((one) => one.key === "translate");
+
+    expect(translate?.hint).toBe(t("translateProposed"));
+  });
+
+  it("says nothing of proposals for one's own document", () => {
+    const own = doc("propio", null);
+    const hands = { papers: { docs: [own], folders: [] } } as unknown as Hands;
+
+    const translate = tongueChoices(own, hands).find((one) => one.key === "translate");
+
+    expect(translate?.hint).toBeUndefined();
   });
 });

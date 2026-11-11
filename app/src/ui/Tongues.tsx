@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Filed } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
 import Glyph from "./Glyph";
 import Menu from "./Menu";
@@ -14,12 +14,32 @@ interface Props {
   onOpen: (tongue: Filed) => void;
 }
 
+// Only a language its anchor's owner kept reaches whoever reads, so another hand on it was reviewed by that owner (166).
+export const creditOf = (one: Filed | undefined, tongues: Filed[]): string | null => {
+  const anchor = tongues.find((it) => it.id === one?.tongue?.[0]);
+  const by = one?.guest;
+  const owner = anchor?.guest;
+  return by && owner && by !== owner ? fill("tongueCredit", by, owner) : null;
+};
+
+const titled = (one: Filed, tongues: Filed[]) =>
+  [one.title, creditOf(one, tongues)].filter(Boolean).join(" · ");
+
+function Credit({ tongues, here }: { tongues: Filed[]; here: string }) {
+  const said = creditOf(
+    tongues.find((one) => one.id === here),
+    tongues,
+  );
+  return said ? <span className="self-center px-1 text-[11.5px] text-faint">{said}</span> : null;
+}
+
 export default function Tongues({ tongues, here, onOpen }: Props) {
   if (tongues.filter((one) => !one.away).length > SIDE_BY_SIDE)
     return <Folded tongues={tongues} here={here} onOpen={onOpen} />;
   return (
     <fieldset className="tongues">
       <legend className="sr-only">{t("tonguesOf")}</legend>
+      <Credit tongues={tongues} here={here} />
       {tongues.map((one) => {
         const lang = one.lang ?? "";
         const on = one.id === here;
@@ -30,7 +50,7 @@ export default function Tongues({ tongues, here, onOpen }: Props) {
             lang={lang}
             aria-pressed={on}
             disabled={one.away}
-            title={one.away ? `${tongueName(lang)} — ${t("isArchived")}` : one.title}
+            title={one.away ? `${tongueName(lang)} — ${t("isArchived")}` : titled(one, tongues)}
             onClick={() => !on && onOpen(one)}
             className={on ? "tongue on" : "tongue"}
           >
@@ -49,6 +69,7 @@ function Folded({ tongues, here, onOpen }: Props) {
   const live = tongues.filter((one) => !one.away);
   return (
     <div className="tongues">
+      <Credit tongues={tongues} here={here} />
       <button
         type="button"
         aria-haspopup="menu"
@@ -75,7 +96,7 @@ function Folded({ tongues, here, onOpen }: Props) {
             code: (one.lang ?? "").toUpperCase(),
             on: one.id === here,
             label: tongueName(one.lang ?? ""),
-            hint: one.title,
+            hint: titled(one, tongues),
             onPick: () => one.id !== here && onOpen(one),
           }))}
           onClose={() => setAt(null)}
