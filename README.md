@@ -3,17 +3,18 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — local memory for you and your AI agent: free open source
-    notes, documents and tasks for Windows and macOS"/>
+    alt="Tisty — local memory for you and your AI agent: a free, open source
+    app for notes, documents and tasks on Windows and macOS"/>
 
   <h1>Tisty — Local Memory for You and Your AI Agent</h1>
 
   <p><strong>The working memory that stays yours: tasks, documents and notes in
   Markdown on your own disk, for Windows and macOS.<br/>Tasks that keep how each
   thing was solved, documents that keep what you know — one per subject — and an
-  MCP server that lets Claude Code, Codex, Cursor or any assistant pick up where
-  it left off, reading a section at a time instead of every file.<br/>No
-  accounts. No subscriptions. No telemetry. No server.</strong></p>
+  MCP server that lets GitHub Copilot, Claude Code, Codex, Cursor or any
+  assistant pick up where it left off, reading a section at a time instead of
+  every file.<br/>No accounts. No subscriptions. No telemetry. No
+  server.</strong></p>
 
   <p>Software out of conviction, not subscription.</p>
 
@@ -353,7 +354,7 @@ the Tisty installed here and starts its own server:
 | Claude Code | `/plugin install tisty --marketplace rgdevment/mcp-plugins` |
 | Claude Desktop | Settings › Developer › Edit Config, and add the JSON above |
 | Cursor | [Cursor Directory](https://cursor.directory/plugins), or the JSON above in `~/.cursor/mcp.json` |
-| VS Code | `code --add-mcp '{"name":"tisty","command":"npx","args":["-y","tisty-mcp"]}'` |
+| GitHub Copilot in VS Code | `code --add-mcp '{"name":"tisty","command":"npx","args":["-y","tisty-mcp"]}'` |
 | Gemini CLI | `gemini extensions install https://github.com/rgdevment/mcp-plugins` |
 | Codex | `codex mcp add tisty -- npx -y tisty-mcp` |
 
@@ -1209,11 +1210,12 @@ it, and while it is closed everything it tries is refused.
 
 ### How do I give my AI agent a memory between sessions?
 
-Connect Tisty over MCP, as [MCP Server](#mcp-server) shows — Claude Code,
-Codex, Cursor, VS Code and Gemini CLI take one line. From then on the agent
-starts a session by asking what moved since the last one, files its work as
-tasks with steps and a journal, and keeps what it learns in documents. The next
-session, on any project, starts from there instead of from a blank chat.
+Connect Tisty over MCP, as [MCP Server](#mcp-server) shows — GitHub Copilot
+in VS Code, Claude Code, Codex, Cursor and Gemini CLI take one line. From then
+on the agent starts a session by asking what moved since the last one, files
+its work as tasks with steps and a journal, and keeps what it learns in
+documents. The next session, on any project, starts from there instead of from
+a blank chat.
 
 ### Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?
 
