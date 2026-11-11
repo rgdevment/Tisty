@@ -4,7 +4,7 @@ expression: "rules(Some(\"tasks\"))"
 ---
 ## What a task is made of
 
-A task has a title, and only what someone actually knows besides: a description of what it is; steps, a checklist ticked as each one is done; parts, tasks of their own hung under it one level deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a date and a deadline, which are not the same; a reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when someone said so; tags for its subjects; and a `source`, where you read it. Its page holds its words, notes, pictures and files. A task goes from open, to said done or said not doing by you, to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on answering «how was this solved?».
+A task has a title, and only what someone actually knows besides: a description of what it is; steps, a checklist ticked as each one is done; parts, tasks of their own hung under it one level deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a date and a deadline, which are not the same; a reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when someone said so; tags for its subjects, in the person's plain words — a word that merely appears in the title is no subject; and a `source`, where you read it. Its page holds its words, notes, pictures and files. A task goes from open, to said done or said not doing by you, to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on answering «how was this solved?».
 
 ## Its two dates
 

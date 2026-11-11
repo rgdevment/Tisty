@@ -9,7 +9,7 @@ use tisty_core::{State, Store};
 use ulid::Ulid;
 
 use super::asked::{
-    day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
+    Takes, day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
 };
 use super::jsonrpc::{speaking_through, told};
 use super::{
@@ -19,14 +19,18 @@ use super::{
 
 /// Eight tasks in one call instead of eight calls: what the door costs an agent is mostly the
 /// conversation it has to send again each time, not the writing.
-pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+pub(super) fn propose(
+    paths: &Paths,
+    taken: Option<&Takes>,
+    args: &Value,
+) -> Result<Value, Refused> {
     let Some(many) = args.get("tasks") else {
         if text(args, "title").is_none() {
             return Err(Refused::Tool(
                 "send a `title` for one task, or `tasks` for several.".into(),
             ));
         }
-        return proposed(paths, args);
+        return proposed(paths, taken, args);
     };
     let Some(many) = many.as_array() else {
         return Err(Refused::Tool(
@@ -64,7 +68,7 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut done: Vec<Value> = Vec::with_capacity(many.len());
     let (mut written, mut already, mut turned) = (0, 0, 0);
     for one in many {
-        match one_of_many(paths, one) {
+        match one_of_many(paths, taken, one) {
             Ok(said) => {
                 let kept = said
                     .get("structuredContent")
@@ -117,7 +121,11 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+pub(super) fn proposed(
+    paths: &Paths,
+    taken: Option<&Takes>,
+    args: &Value,
+) -> Result<Value, Refused> {
     let Some(title) = text(args, "title") else {
         return Err(Refused::Tool("a task needs a `title`.".into()));
     };
@@ -167,7 +175,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let whole = super::wholes::whole_named(&state, args)?;
     let mine = drafted(&state, args, &title, whole)?;
-    let parts = super::wholes::parts_drafted(&state, args, &mine, again)?;
+    let parts = super::wholes::parts_drafted(&state, taken, args, &mine, again)?;
     let (id, planned) = (mine.id, mine.planned);
     let parted: Vec<Value> = parts
         .iter()
@@ -953,15 +961,19 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
 const DRAFTS_AT_MOST: usize = 32;
 
 /// A misspelt argument would otherwise be dropped in silence, teaching the model nothing.
-pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> {
-    only_what_it_takes("propose", one)?;
+pub(super) fn one_of_many(
+    paths: &Paths,
+    taken: Option<&Takes>,
+    one: &Value,
+) -> Result<Value, Refused> {
+    only_what_it_takes("propose", taken, one)?;
     short_and_plain(one)?;
     if one.get("tasks").is_some() {
         return Err(Refused::Tool(
             "a task inside `tasks` cannot carry `tasks` of its own.".into(),
         ));
     }
-    proposed(paths, one)
+    proposed(paths, taken, one)
 }
 
 /// The task and the steps a call names, `step` standing for a list of one.

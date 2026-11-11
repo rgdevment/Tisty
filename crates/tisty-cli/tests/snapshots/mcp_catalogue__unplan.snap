@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Take off steps that are not ticked, on a task you filed or one the person opened to agents: a step that no longer applies, or one written twice. With `to` they are not dropped but handed on, added after the steps of the task they belong on. One ticked step among them and nothing is taken off.",
+  "description": "Take unticked steps off a task you may work on. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "step": {
-        "description": "One step, by its text — the same as `steps` with one entry",
+        "description": "One step, by its text",
         "type": "string"
       },
       "steps": {
-        "description": "The steps to take off, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call",
+        "description": "The steps to take off, by their text as `read` shows it; case and accents do not matter",
         "items": {
           "type": "string"
         },
@@ -29,7 +29,7 @@ expression: tool
         "type": "string"
       },
       "to": {
-        "description": "The id of another task you may work on, open and not said done, to add these steps to after its own",
+        "description": "Id of another open task you may work on, not said done, to hand them to",
         "type": "string"
       }
     },
