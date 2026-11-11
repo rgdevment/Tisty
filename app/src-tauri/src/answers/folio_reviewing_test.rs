@@ -2,6 +2,10 @@ use std::collections::BTreeSet;
 
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use tisty_carrier::folio_client::{Answered, Asked, Door};
+use tisty_carrier::folio_reviewed::{self, Copy};
+use tisty_core::merge::Changed;
+use tisty_envelope::Translation;
 use tisty_envelope::reviews::{self, LeftOut, Signer, Weighing};
 use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 use tisty_sharing::Remembered;
@@ -289,10 +293,19 @@ fn the_owner_s_card_names_the_languages_others_added_with_its_word() {
         ..anchor()
     };
     let was = anchor();
+    let home = tempfile::tempdir().unwrap();
 
-    let before = super::words_on_card(&shelf_of(vec![was.clone(), own_french.clone()]), &was);
+    let before = super::words_on_card(
+        home.path(),
+        &shelf_of(vec![was.clone(), own_french.clone()]),
+        &was,
+    );
     let kept = reviewed_now(&signer, &was, "anaEngl1", Some(&read_as_shown()), 1).unwrap();
-    let after = super::words_on_card(&shelf_of(vec![kept.clone(), own_french]), &kept);
+    let after = super::words_on_card(
+        home.path(),
+        &shelf_of(vec![kept.clone(), own_french]),
+        &kept,
+    );
 
     assert_eq!(
         words_said(&before),
@@ -323,9 +336,10 @@ fn someone_who_edits_hears_the_owner_s_word_on_the_language_they_added() {
         carried: None,
         ..anchor()
     };
+    let home = tempfile::tempdir().unwrap();
     let word = |anchor: Remembered| {
         let shelf = shelf_of(vec![as_edited(anchor), mine.clone()]);
-        words_said(&super::words_on_card(&shelf, &mine))
+        words_said(&super::words_on_card(home.path(), &shelf, &mine))
     };
     let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
     let left = reviewed_now(&signer, &kept, "anaEngl1", None, 1).unwrap();
@@ -341,5 +355,132 @@ fn someone_who_edits_hears_the_owner_s_word_on_the_language_they_added() {
     assert_eq!(
         word(left),
         [("anaEngl1".to_owned(), "leftOut".to_owned(), true)]
+    );
+    let kept_again =
+        reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 2).unwrap();
+    known(home.path(), "anaEngl1", 5, encoded(0x15));
+    assert_eq!(
+        word(kept_again),
+        [("anaEngl1".to_owned(), "changed".to_owned(), true)]
+    );
+}
+
+fn known(home: &std::path::Path, document: &str, version: u64, print: String) {
+    folio_reviewed::print_known(home, document, folio_reviewed::Printed { version, print });
+}
+
+#[test]
+fn a_kept_language_whose_print_changed_since_says_so_on_the_owner_s_card() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let home = tempfile::tempdir().unwrap();
+    let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
+    let own_french = Remembered {
+        id: "marioFr1".to_owned(),
+        ..anchor()
+    };
+    let shelf = shelf_of(vec![kept.clone(), own_french]);
+    let said = || words_said(&super::words_on_card(home.path(), &shelf, &kept));
+
+    known(home.path(), "anaEngl1", 4, encoded(0x13));
+    assert_eq!(said(), [("anaEngl1".to_owned(), "kept".to_owned(), false)]);
+
+    known(home.path(), "anaEngl1", 5, encoded(0x15));
+    assert_eq!(
+        said(),
+        [("anaEngl1".to_owned(), "changed".to_owned(), false)]
+    );
+}
+
+fn copy(print: u8, body: &str) -> Copy {
+    Copy {
+        print: encoded(print),
+        title: Some("Walks".to_owned()),
+        body: body.to_owned(),
+    }
+}
+
+#[test]
+fn what_changed_is_told_against_the_copy_kept_with_the_word_that_stands() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let home = tempfile::tempdir().unwrap();
+    let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
+    let now = copy(
+        0x15,
+        "One.
+
+Three.",
+    );
+    assert_eq!(
+        super::changes_since(home.path(), &kept, "anaEngl1", &now),
+        None
+    );
+
+    folio_reviewed::copy_kept(
+        home.path(),
+        "anaEngl1",
+        &copy(
+            0x13,
+            "One.
+
+Two.",
+        ),
+    );
+
+    assert_eq!(
+        super::changes_since(home.path(), &kept, "anaEngl1", &now).unwrap(),
+        [
+            Changed::Same("Walks".to_owned()),
+            Changed::Same("One.".to_owned()),
+            Changed::Gone("Two.".to_owned()),
+            Changed::Came("Three.".to_owned()),
+        ]
+    );
+    folio_reviewed::copy_kept(home.path(), "anaEngl1", &copy(0x14, "One."));
+    assert_eq!(
+        super::changes_since(home.path(), &kept, "anaEngl1", &now),
+        None
+    );
+}
+
+struct LatestOnly(std::cell::Cell<u32>);
+
+impl Door for LatestOnly {
+    fn ask(&self, asked: &Asked<'_>) -> Option<Answered> {
+        self.0.set(self.0.get() + 1);
+        asked.path.ends_with("/latest").then(|| Answered {
+            status: 200,
+            headers: Vec::new(),
+            body: br#"{"version":4}"#.to_vec(),
+        })
+    }
+}
+
+#[test]
+fn a_version_already_printed_here_is_not_brought_again() {
+    let home = tempfile::tempdir().unwrap();
+    let folio = LatestOnly(std::cell::Cell::new(0));
+    let entry: Translation = serde_json::from_value(serde_json::json!({
+        "lang": "en", "document": "anaEngl1", "key": encoded(0x12),
+    }))
+    .unwrap();
+    known(home.path(), "anaEngl1", 4, encoded(0x13));
+
+    assert!(!super::looked_again(&folio, home.path(), &entry));
+
+    assert_eq!(folio.0.get(), 1);
+    known(home.path(), "anaEngl1", 3, encoded(0x12));
+    assert_eq!(
+        folio_reviewed::printed(home.path(), "anaEngl1")
+            .unwrap()
+            .print,
+        encoded(0x13)
     );
 }

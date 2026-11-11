@@ -101,7 +101,7 @@ export interface LanguageWord {
   document: string;
   lang: string | null;
   title: string | null;
-  word: "waiting" | "kept" | "leftOut";
+  word: "waiting" | "kept" | "changed" | "leftOut";
   mine: boolean;
 }
 
@@ -113,6 +113,7 @@ export interface LanguageShown {
   body: string;
   pictures: { at: number; path: string }[];
   print: string;
+  changes: { kind: "same" | "gone" | "came"; text: string }[] | null;
 }
 
 export type Synced =
@@ -221,6 +222,9 @@ export const shareEditLinkRenewed = (id: string): Promise<Synced> =>
 
 export const languageShown = (id: string, document: string): Promise<LanguageShown> =>
   invoke("doc_language_shown", { id, document });
+
+export const languagesLooked = (id: string): Promise<boolean> =>
+  invoke("doc_languages_looked", { id });
 
 export const languageReviewed = (
   id: string,

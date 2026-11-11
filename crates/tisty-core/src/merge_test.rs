@@ -712,3 +712,40 @@ fn a_paragraph_that_merely_holds_a_full_stop_is_no_list() {
         assert!(!listing(said), "«{said}» no abre ninguna lista");
     }
 }
+
+#[test]
+fn what_changed_is_told_block_by_block_with_what_stayed_around_it() {
+    let was = "Hola.\n\nUno.\n\nDos.";
+    let now = "Hola.\n\nUno y medio.\n\nDos.\n\nTres.";
+
+    let told = changed(was, now).unwrap();
+
+    assert_eq!(
+        told,
+        [
+            Changed::Same("Hola.".into()),
+            Changed::Gone("Uno.".into()),
+            Changed::Came("Uno y medio.".into()),
+            Changed::Same("Dos.".into()),
+            Changed::Came("Tres.".into()),
+        ]
+    );
+}
+
+#[test]
+fn nothing_changed_tells_every_block_as_it_stayed() {
+    let told = changed("Uno.\n\nDos.", "Uno.\n\nDos.").unwrap();
+
+    assert!(told.iter().all(|one| matches!(one, Changed::Same(_))));
+    assert_eq!(told.len(), 2);
+}
+
+#[test]
+fn a_change_past_what_a_merge_weighs_is_not_told() {
+    let many = (0..5000)
+        .map(|at| format!("b{at}"))
+        .collect::<Vec<_>>()
+        .join("\n\n");
+
+    assert!(changed(&many, &many).is_none());
+}

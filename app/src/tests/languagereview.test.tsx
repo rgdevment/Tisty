@@ -9,6 +9,7 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   prints: [] as string[],
   refuse: null as null | string,
+  changes: null as null | { kind: "same" | "gone" | "came"; text: string }[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -24,6 +25,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         body: "We walk by the river.",
         pictures: [{ at: 0, path: "/cache/reviewing/0.png" }],
         print: ipc.prints.shift() ?? "P",
+        changes: ipc.changes,
       });
     if (cmd === "doc_language_reviewed" && ipc.refuse) {
       const code = ipc.refuse;
@@ -48,6 +50,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.prints = [];
   ipc.refuse = null;
+  ipc.changes = null;
   adopt("en");
 });
 
@@ -96,5 +99,29 @@ describe("Review a language", () => {
     await screen.findByText(t("folioLanguageChanged"));
     await waitFor(() => expect(sent("doc_language_shown").length).toBe(2));
     expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("shows what changed since the owner kept it, struck out and marked", async () => {
+    ipc.changes = [
+      { kind: "same", text: "One." },
+      { kind: "gone", text: "Two." },
+      { kind: "came", text: "Three." },
+    ];
+    const changed = { ...word, word: "changed" as const };
+    render(<LanguageReview doc="d1" word={changed} onDone={vi.fn()} onClose={vi.fn()} />);
+
+    expect((await screen.findByText("Two.")).tagName).toBe("DEL");
+    expect(screen.getByText("Three.").tagName).toBe("INS");
+    expect(screen.getByText("Changes in English")).toBeTruthy();
+    expect(screen.queryByText("We walk by the river.")).toBeNull();
+    expect(screen.queryByText(t("reviewNoCopy"))).toBeNull();
+  });
+
+  it("shows a changed language whole when this computer holds no copy of what was kept", async () => {
+    const changed = { ...word, word: "changed" as const };
+    render(<LanguageReview doc="d1" word={changed} onDone={vi.fn()} onClose={vi.fn()} />);
+
+    await screen.findByText("We walk by the river.");
+    expect(screen.getByText(t("reviewNoCopy"))).toBeTruthy();
   });
 });

@@ -784,17 +784,26 @@ const en = {
   shareLanguageWaits: "{name} was added by someone who edits, and waits for your review.",
   shareLanguageKept: "You keep {name}, added by someone who edits.",
   shareLanguageReview: "Review {name}…",
+  shareLanguageChanged:
+    "{name} changed since you kept it, so readers do not see it until you review it again.",
+  shareLanguageChanges: "Review the changes in {name}…",
   shareOwnerWaits: "Its owner has not reviewed this language yet, so readers do not see it.",
   shareOwnerKept:
     "Its owner kept the version of this language they reviewed. If you change it, it waits for them again.",
   shareReviewedWaits: "Your word on this language goes up with the next Sync.",
   reviewPicture: "Picture {name} of this language",
   shareOwnerLeftOut: "Its owner left this language out, so readers do not see it.",
+  shareOwnerChanged:
+    "You changed this language after its owner kept it, so readers do not see it until they review it again.",
   reviewTitle: "Review {name}",
   reviewBy: "Added by {name}",
   reviewWhy:
     "Read it as readers would. If you keep it, readers see this very version, and a later one waits for you again. If you leave it out, nobody sees it.",
   reviewBringing: "Bringing it from Folio…",
+  reviewChangesTitle: "Changes in {name}",
+  reviewChangesWhy:
+    "What is struck out is gone and what is marked is new since you kept it. If you keep it, readers see this version; if you leave it out, nobody sees it.",
+  reviewNoCopy: "This computer does not hold the version you kept, so the whole language is shown.",
   reviewKeep: "Keep",
   reviewLeaveOut: "Leave out",
   sharedOwnerAndSigner: "Created by {name} · Last edited by {other}",
@@ -3876,17 +3885,27 @@ const es: Catalog = {
   shareLanguageWaits: "{name} lo sumó alguien que edita y espera que lo revises.",
   shareLanguageKept: "Mantienes {name}, que sumó alguien que edita.",
   shareLanguageReview: "Revisar {name}…",
+  shareLanguageChanged:
+    "{name} cambió desde que lo mantuviste, así que quienes leen no lo ven hasta que lo revises de nuevo.",
+  shareLanguageChanges: "Revisar los cambios en {name}…",
   shareOwnerWaits: "Su dueño todavía no revisa este idioma, así que quienes leen no lo ven.",
   shareOwnerKept:
     "Su dueño mantuvo la versión de este idioma que revisó. Si lo cambias, vuelve a esperarlo.",
   shareReviewedWaits: "Tu decisión sobre este idioma sale con el próximo Sincronizar.",
   reviewPicture: "Imagen {name} de este idioma",
   shareOwnerLeftOut: "Su dueño dejó fuera este idioma, así que quienes leen no lo ven.",
+  shareOwnerChanged:
+    "Cambiaste este idioma después de que su dueño lo mantuviera, así que quienes leen no lo ven hasta que lo revise de nuevo.",
   reviewTitle: "Revisar {name}",
   reviewBy: "Lo sumó {name}",
   reviewWhy:
     "Léelo como lo leerían. Si lo mantienes, quienes leen ven esta misma versión, y una posterior vuelve a esperarte. Si lo dejas fuera, nadie lo ve.",
   reviewBringing: "Trayéndolo de Folio…",
+  reviewChangesTitle: "Cambios en {name}",
+  reviewChangesWhy:
+    "Lo tachado ya no está y lo marcado es nuevo desde que lo mantuviste. Si lo mantienes, quienes leen ven esta versión; si lo dejas fuera, nadie lo ve.",
+  reviewNoCopy:
+    "Este equipo no guarda la versión que mantuviste, así que se muestra el idioma entero.",
   reviewKeep: "Mantener",
   reviewLeaveOut: "Dejar fuera",
   sharedOwnerAndSigner: "Creado por {name} · Última edición: {other}",
