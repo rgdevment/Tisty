@@ -194,6 +194,28 @@ pub fn keeps(kept: &[Review], document: &str, lang: Option<&str>, print: &str) -
     })
 }
 
+pub fn of_language(anchor_key: &str, id: &str) -> Option<String> {
+    reviewing::of(&decoded(anchor_key)?, id).map(|of| URL_SAFE_NO_PAD.encode(of))
+}
+
+pub struct Joining<'a> {
+    pub anchor: &'a str,
+    pub owner: &'a str,
+    pub anchor_key: &'a str,
+}
+
+// Only what its owner signed comes in from another's version, and one review stays for each language, its latest.
+pub fn joined(joining: &Joining, mine: &[Review], theirs: &[Review]) -> Vec<Review> {
+    let Some(anchor_key) = decoded(joining.anchor_key) else {
+        return mine.to_vec();
+    };
+    let both: Vec<Review> = mine.iter().chain(theirs).cloned().collect();
+    latest(joining.anchor, joining.owner, &anchor_key, &both)
+        .into_values()
+        .cloned()
+        .collect()
+}
+
 pub struct LeftOut {
     anchor_key: Vec<u8>,
     gone: BTreeSet<String>,

@@ -160,6 +160,35 @@ mod editing {
     }
 
     #[test]
+    fn a_language_an_editor_adds_never_takes_the_place_of_the_owner_s_of_its_lang() {
+        let mut anchor = tongue_of(ID, "es", LINK_KEY);
+        anchor.sealing.owner = Some(owner_in(&owned(Some(TOKEN))));
+        anchor.sealing.token = Some(key_text(TOKEN));
+        anchor.document.languages = Some(
+            serde_json::from_value(
+                json!([{ "lang": "en", "document": "marioEn1", "key": key_text(0x13) }]),
+            )
+            .unwrap(),
+        );
+        let family = tisty_envelope::family::Family {
+            anchor,
+            others: vec![tongue_of("anaEnglish", "en", 0x12)],
+        };
+        let (key, certificate) = person(EDITOR);
+        let going =
+            tisty_envelope::family::sealed_family(&mut Writer::new(&key, &certificate), family)
+                .unwrap();
+        let read = reading(&going[0].sealed.main, &asked(), &nothing()).unwrap();
+        let named: Vec<&str> = read.document["languages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|one| one["document"].as_str().unwrap())
+            .collect();
+        assert_eq!(named, ["anaEnglish", "marioEn1"]);
+    }
+
+    #[test]
     fn a_language_an_editor_adds_waits_in_the_map_for_the_owners_review() {
         let mut anchor = tongue_of(ID, "es", LINK_KEY);
         anchor.sealing.owner = Some(owner_in(&owned(Some(TOKEN))));
@@ -1134,4 +1163,54 @@ fn what_rust_seals_is_what_javascript_is_handed() {
             "run with TISTY_WRITE_SAMPLES=1, then node contracts/generate.mjs"
         );
     }
+}
+
+fn mapped(entries: serde_json::Value) -> Vec<tisty_envelope::Translation> {
+    serde_json::from_value(entries).unwrap()
+}
+
+fn named_in_the_map(going: &[tisty_envelope::family::Going]) -> Vec<String> {
+    let anchor =
+        document_of(&opened(&going[0].sealed.main, ("hola", "main"), Some(&the_key(1))).unwrap());
+    anchor["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["document"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[test]
+fn the_owner_s_own_language_takes_the_place_of_its_old_entry_and_never_of_one_that_waits() {
+    let mut anchor = tongue("hola", "es", Some(1));
+    anchor.document.languages = Some(mapped(json!([
+        { "lang": "en", "document": "oldEngl1", "key": key_text(4) },
+        { "lang": "fr", "document": "anaFren1", "key": key_text(5), "pending": true },
+    ])));
+    let going = sealed(Family {
+        anchor,
+        others: vec![
+            tongue("hello", "en", Some(2)),
+            tongue("salut", "fr", Some(3)),
+        ],
+    })
+    .unwrap();
+
+    assert_eq!(named_in_the_map(&going), ["hello", "salut", "anaFren1"]);
+}
+
+#[test]
+fn a_map_past_nineteen_languages_is_refused_and_none_is_taken_out() {
+    let mut anchor = tongue("hola", "es", Some(1));
+    let held: Vec<serde_json::Value> = (0..19u8)
+        .map(|one| json!({ "lang": format!("z{}", char::from(b'a' + one)), "document": format!("other{one:03}") }))
+        .collect();
+    anchor.document.languages = Some(mapped(serde_json::Value::Array(held)));
+
+    let refused = sealed(Family {
+        anchor,
+        others: vec![tongue("hello", "en", Some(2))],
+    });
+
+    assert!(matches!(refused, Err(Refused::DoesNotAdd(_))));
 }

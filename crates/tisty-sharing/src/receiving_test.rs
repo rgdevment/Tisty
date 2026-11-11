@@ -134,3 +134,44 @@ fn another_version_brings_its_editors_and_leaves_what_this_copy_carries() {
     );
     assert_eq!(super::editors_brought(None, Some(r#"{"lang":"en"}"#)), None);
 }
+
+#[test]
+fn the_owner_joins_the_languages_others_added_by_id_and_keeps_what_it_holds() {
+    let mine = r#"{"lang":"es","languages":[{"lang":"en","document":"marioEn1"},{"lang":"fr","document":"marioFr1"}],"cited":[{"document":"c"}]}"#;
+    let theirs = r#"{"languages":[{"lang":"en","document":"anaEngl1"},{"lang":"fr","document":"marioFr1","title":"Nuevo"}]}"#;
+
+    let joined: serde_json::Value =
+        serde_json::from_str(&super::languages_joined(Some(mine), Some(theirs)).unwrap()).unwrap();
+
+    let documents: Vec<&str> = joined["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["document"].as_str().unwrap())
+        .collect();
+    assert_eq!(documents, ["marioEn1", "marioFr1", "anaEngl1"]);
+    assert!(joined["languages"][1].get("title").is_none());
+    assert_eq!(joined["cited"][0]["document"], "c");
+    let untouched = super::languages_joined(Some(mine), Some(r#"{"lang":"de"}"#)).unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&untouched).unwrap(),
+        serde_json::from_str::<serde_json::Value>(mine).unwrap()
+    );
+}
+
+#[test]
+fn the_reviews_a_map_carries_are_written_and_read_back_and_none_leaves_no_field() {
+    let review: tisty_contracts::Review = serde_json::from_value(serde_json::json!({
+        "of": "o", "kept": false, "seq": 2, "root": "r", "machine": "m",
+        "since": "2026-11-03T12:00:00Z", "certificate": "c", "signed": "s",
+    }))
+    .unwrap();
+
+    let with = super::with_reviews(Some(r#"{"lang":"es"}"#), std::slice::from_ref(&review));
+
+    assert_eq!(super::reviews_carried(with.as_deref()), [review]);
+    let without: serde_json::Value =
+        serde_json::from_str(&super::with_reviews(with.as_deref(), &[]).unwrap()).unwrap();
+    assert!(without.get("reviews").is_none());
+    assert_eq!(without["lang"], "es");
+}

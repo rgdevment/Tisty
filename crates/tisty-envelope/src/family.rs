@@ -115,6 +115,28 @@ fn cited_by(tongue: &Tongue) -> Result<Vec<Cited>, Refused> {
     Ok(said)
 }
 
+pub struct Mine<'a> {
+    pub id: Option<&'a str>,
+    pub lang: Option<&'a str>,
+}
+
+/// What stays of the map as it arrived. Only the owner's own language of one lang takes the place of an entry of that lang: someone who edits never takes another's.
+pub fn untouched(
+    held: Vec<Translation>,
+    anchor_lang: Option<&str>,
+    mine: &[Mine],
+    owner_writes: bool,
+) -> Vec<Translation> {
+    let replaces = |tongue: &Mine, one: &Translation| {
+        tongue.id == Some(one.document.as_str())
+            || (owner_writes && one.pending != Some(true) && tongue.lang == Some(one.lang.as_str()))
+    };
+    held.into_iter()
+        .filter(|one| anchor_lang != Some(one.lang.as_str()))
+        .filter(|one| !mine.iter().any(|tongue| replaces(tongue, one)))
+        .collect()
+}
+
 fn languages_sealed(
     writer: &mut Writer,
     family: Family,
@@ -126,27 +148,21 @@ fn languages_sealed(
     } = family;
     if !others.is_empty() {
         languages_add(&anchor, &others)?;
-        // What this writer cannot reach stays in the map as it arrived, or an editor would take it from everyone.
-        let untouched: Vec<Translation> = anchor
-            .document
-            .languages
-            .take()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|one| anchor.document.lang.as_deref() != Some(one.lang.as_str()))
-            .filter(|one| {
-                !others.iter().any(|tongue| {
-                    tongue.sealing.id == one.document
-                        || tongue.document.lang.as_deref() == Some(one.lang.as_str())
-                })
-            })
-            .collect();
         let owner = anchor
             .sealing
             .owner
             .as_ref()
             .map_or_else(|| writer.root().to_owned(), |one| one.root.clone());
         let anothers = owner != writer.root();
+        let mine: Vec<Mine> = others
+            .iter()
+            .map(|tongue| Mine {
+                id: Some(&tongue.sealing.id),
+                lang: tongue.document.lang.as_deref(),
+            })
+            .collect();
+        let held = anchor.document.languages.take().unwrap_or_default();
+        let untouched = untouched(held, anchor.document.lang.as_deref(), &mine, !anothers);
         let mut map = others
             .iter()
             .map(|one| {
@@ -161,7 +177,11 @@ fn languages_sealed(
         if let Some(gone) = gone {
             map.retain(|one| !gone.names(&one.document));
         }
-        map.truncate(OTHER_LANGUAGES_AT_MOST);
+        if map.len() > OTHER_LANGUAGES_AT_MOST {
+            return Err(Refused::DoesNotAdd(
+                "a map holds at most 19 languages besides its anchor, and none is taken out to make room",
+            ));
+        }
         anchor.document.languages = Some(map);
         // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.
         for tongue in &mut others {
