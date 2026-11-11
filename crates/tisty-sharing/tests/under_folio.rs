@@ -545,6 +545,20 @@ fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
     let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
 
     assert_eq!(two.document["reviews"], reviews);
+
+    editor.sent(&second.remembering);
+    let (file, now) = second.remembering[0].clone();
+    let mut newer: Vec<tisty_contracts::Review> = serde_json::from_value(reviews.clone()).unwrap();
+    newer[1].seq = 3;
+    let carried = tisty_sharing::with_reviews(now.carried.as_deref(), &newer);
+    editor.sent(&[(file, Remembered { carried, ..now })]);
+    let third = editor
+        .sealed(signed_as(&editor, copy, &later, "Ana"), vec![])
+        .only_what_changed();
+    assert!(
+        third.going.is_empty(),
+        "someone who edits only carries the owner's word"
+    );
 }
 
 #[test]

@@ -58,6 +58,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned()]),
         granted: BTreeSet::new(),
+        words: std::collections::BTreeMap::new(),
     }
 }
 
@@ -206,6 +207,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
         anchors: BTreeMap::new(),
         changed: BTreeSet::from(["Ab3xK9pQ".to_owned(), "Cited123".to_owned()]),
         granted: BTreeSet::new(),
+        words: std::collections::BTreeMap::new(),
     };
     let starts = BTreeMap::from([
         ("Ab3xK9pQ".to_owned(), "mac".to_owned()),
@@ -1569,4 +1571,88 @@ fn only_what_this_tisty_shares_as_owner_counts_as_its_own() {
     ]);
 
     assert_eq!(owned_ids(&shelf), BTreeSet::from(["marioEn1"]));
+}
+
+#[test]
+fn the_owner_s_word_goes_up_with_the_version_and_its_seq_is_remembered() {
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .push_back((200, r#"{"stored":true,"version":3}"#));
+    let home = tempfile::tempdir().unwrap();
+    let kept = RefCell::new(Vec::new());
+    let mut sealed = sealed_for(None);
+    sealed.words.insert(
+        "Ab3xK9pQ".to_owned(),
+        tisty_sharing::Word {
+            said: r#"{"seq":4}"#.to_owned(),
+            seq: 4,
+        },
+    );
+
+    delivered(
+        &folio,
+        home.path(),
+        None,
+        &kept_in(&kept),
+        &sealed,
+        &BTreeMap::new(),
+        3,
+    )
+    .unwrap();
+
+    let heard = &folio.asked.borrow()[0].1;
+    let header = |name: &str| {
+        heard
+            .iter()
+            .find(|(said, _)| *said == name)
+            .map(|(_, value)| value.clone())
+    };
+    assert_eq!(header("Folio-Reviewed").as_deref(), Some(r#"{"seq":4}"#));
+    assert_eq!(header("Folio-Admin").as_deref(), Some("admin"));
+    assert_eq!(
+        tisty_carrier::folio_reviewed::seen(home.path(), "Ab3xK9pQ"),
+        4
+    );
+}
+
+#[test]
+fn a_review_a_revoked_machine_signed_is_signed_again_and_the_others_stay() {
+    use crate::answers::folio_sync::signed_current;
+    use tisty_envelope::reviews::Signer;
+    use tisty_share_proto::identity::{Root, ShareKey};
+    let since = "2026-11-03T12:00:00Z".parse().unwrap();
+    let machine = |byte: u8| {
+        let key = ShareKey::from_bytes(&[byte; 32]);
+        let certificate = Root::from_bytes(&[0x30; 32]).certify(&key.public(), since);
+        (key, certificate)
+    };
+    let ((old_key, old_certificate), (new_key, new_certificate)) = (machine(0x31), machine(0x32));
+    let anchor_key = "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA";
+    let old = Signer {
+        key: &old_key,
+        certificate: &old_certificate,
+    };
+    let new = Signer {
+        key: &new_key,
+        certificate: &new_certificate,
+    };
+    let review = |signer: &Signer, document: &str| {
+        tisty_envelope::reviews::review_signed(signer, "anclaDoc", anchor_key, document, None, 1)
+            .unwrap()
+    };
+    let reviews = vec![review(&old, "anaEngl1"), review(&new, "anaPort1")];
+    let revoked = BTreeSet::from([old_certificate.share.as_str()]);
+
+    let current = signed_current(&new, "anclaDoc", &reviews, &revoked).unwrap();
+
+    assert!(
+        current
+            .iter()
+            .all(|one| one.machine == new_certificate.share)
+    );
+    assert_eq!(current[0].of, reviews[0].of);
+    assert_eq!(current[1], reviews[1]);
+    assert!(signed_current(&new, "anclaDoc", &reviews, &BTreeSet::new()).is_none());
 }

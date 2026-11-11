@@ -11,10 +11,10 @@ use tisty_carrier::folio_client::{
 };
 use tisty_carrier::folio_hosts;
 use tisty_carrier::folio_limits::{self, FolioLimits, SharingNow};
-use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::{self, Standing, Tongue, Unkept, Unsure};
 use tisty_carrier::folio_today;
 use tisty_carrier::policy;
+use tisty_carrier::{folio_pace, folio_reviewed};
 use tisty_core::Paths;
 use tisty_core::event::Signature;
 use tisty_envelope::family::Going;
@@ -117,6 +117,7 @@ pub(super) fn said(stopped: &Stopped) -> Refusal {
             } => Refusal::about("folioRoomFullOf", format!("{held} {arriving} {most}")),
             Refused::RoomFull { .. } => Refusal::of("folioRoomFull"),
             Refused::LanguagesFull => Refusal::of("folioLanguagesFull"),
+            Refused::Reviewed => Refusal::of("folioReviewed"),
             Refused::TooBig => Refusal::of("folioTooBig"),
             Refused::Slow { until } => Refusal::about("folioWait", until.to_string()),
             Refused::Quota { until } => Refusal::about("folioQuota", until.to_string()),
@@ -858,6 +859,7 @@ pub(super) fn delivered(
             folio_client::permit(door, &going.id, admin, Some(&permit))
                 .map_err(|stopped| said_kept(&stopped, home, held_as))?;
         }
+        let word = sealed.words.get(&going.id);
         let first = starts.get(&going.id).map(|mac| First {
             mac,
             admin,
@@ -871,9 +873,16 @@ pub(super) fn delivered(
                 envelope: &going.sealed.main,
                 files_hash: going.sealed.files_hash.as_deref(),
                 first,
+                reviewed: word.map(|word| folio_client::Word {
+                    admin,
+                    said: &word.said,
+                }),
             },
         )
         .map_err(|stopped| said_kept(&stopped, home, held_as))?;
+        if let Some(word) = word {
+            folio_reviewed::saw(home, &going.id, word.seq);
+        }
         if first_of_its_own(starts, sealed, &going.id) {
             folio_today::counted(home, &going.id, policy::now());
         }

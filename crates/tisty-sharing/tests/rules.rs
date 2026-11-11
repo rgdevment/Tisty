@@ -2124,3 +2124,39 @@ fn the_owner_s_old_entry_its_new_language_replaces_takes_no_place() {
     assert_eq!(again.told, []);
     assert_eq!(every_reader_opens(&again).len(), 20);
 }
+
+#[test]
+fn the_owner_s_word_on_a_language_is_a_change_in_the_anchor() {
+    let (_tmp, mut home) = home();
+    let anchor = home.wrote("---\nlang: es\n---\n\nhola\n", None);
+    let first = sealed_within(&home, &asked(anchor), 20);
+    home.sent(&first.remembering);
+    let unchanged = sealed_within(&home, &asked(anchor), 20).only_what_changed();
+    assert!(unchanged.going.is_empty());
+    let review = serde_json::json!({
+        "of": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", "kept": false, "seq": 1,
+        "root": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ", "machine": "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw",
+        "signed": "eDlbK8-hHnTnO3RxmU9NSgdjN6kaHvRwQkfbkFmCnf5cXpGpKjYyQnH6u4L0vT2sN1rE8wZ7dA3bMfI9oUxKDw",
+    });
+    let with_word: Vec<(String, tisty_sharing::Remembered)> = first
+        .remembering
+        .iter()
+        .map(|(file, one)| {
+            let carried = serde_json::json!({ "reviews": [review] }).to_string();
+            (
+                file.clone(),
+                tisty_sharing::Remembered {
+                    carried: Some(carried),
+                    ..one.clone()
+                },
+            )
+        })
+        .collect();
+    home.sent(&with_word);
+
+    let again = sealed_within(&home, &asked(anchor), 20).only_what_changed();
+
+    assert_eq!(again.going.len(), 1);
+}

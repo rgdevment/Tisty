@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 
 use super::{
     Answered, Asked, Claim, Door, First, Latest, Refused, Stopped, Stored, Taken, Verb, Version,
-    Why, api_of, appeal, edit_link, fetch, fetch_files, latest, pause, permit, read_link, resume,
-    send_files, send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
+    Why, Word, api_of, appeal, edit_link, fetch, fetch_files, latest, pause, permit, read_link,
+    resume, send_files, send_version, solved, start, status, stop, taken_back, zero_bits_at_start,
 };
 
 type Heard = (Verb, String, Vec<(&'static str, String)>, Vec<u8>);
@@ -55,6 +55,7 @@ fn next_version<'a>() -> Version<'a> {
         envelope: b"sealed",
         files_hash: None,
         first: None,
+        reviewed: None,
     }
 }
 
@@ -213,6 +214,7 @@ fn each_refusal_folio_documents_is_told_apart() {
             Refused::LanguagesFull,
         ),
         (409, r#"{"refused":"machines_full"}"#, Refused::MachinesFull),
+        (422, r#"{"refused":"reviewed"}"#, Refused::Reviewed),
         (413, r#"{"refused":"too_big"}"#, Refused::TooBig),
         (
             422,
@@ -545,8 +547,11 @@ fn the_latest_says_when_folio_takes_the_next_version_only_when_it_knows() {
         Ok(Latest {
             version: 3,
             next_at: Some(1_800_000_000_000),
+            reviewed_seq: None,
         })
     );
+    let reviewed = FakeFolio::answering(&[(200, r#"{"version":3,"reviewedSeq":4}"#)]);
+    assert_eq!(latest(&reviewed, "d").unwrap().reviewed_seq, Some(4));
 
     let silent = FakeFolio::answering(&[(200, r#"{"version":3}"#)]);
     assert_eq!(latest(&silent, "d").unwrap().next_at, None);
@@ -577,5 +582,28 @@ fn a_permit_folio_will_not_take_says_why() {
     assert_eq!(
         permit(&folio, "Ab3xK9pQ", "admin", Some("newPermit")),
         Err(Stopped::Refused(Refused::Blocked))
+    );
+}
+
+#[test]
+fn the_owner_s_word_goes_with_its_version_under_its_admin_token() {
+    let folio = FakeFolio::answering(&[(200, r#"{"stored":true,"version":5}"#)]);
+
+    send_version(
+        &folio,
+        &Version {
+            reviewed: Some(Word {
+                admin: "token",
+                said: r#"{"seq":3}"#,
+            }),
+            ..next_version()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(folio.header(0, "Folio-Admin").as_deref(), Some("token"));
+    assert_eq!(
+        folio.header(0, "Folio-Reviewed").as_deref(),
+        Some(r#"{"seq":3}"#)
     );
 }

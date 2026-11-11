@@ -114,6 +114,10 @@ fn opened_head(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
     opened_with(door, id, key, false, |_| false)
 }
 
+pub(super) fn opened_printed(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
+    opened_with(door, id, key, false, |_| true)
+}
+
 // Only a language of another root than the anchor owner's is weighed against a review, so only it is printed.
 fn opened_language(door: &dyn Door, id: &str, key: &str, owner: Option<&str>) -> Answer<Opened> {
     opened_with(door, id, key, true, |its| its != owner)

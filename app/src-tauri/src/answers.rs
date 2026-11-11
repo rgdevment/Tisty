@@ -6,6 +6,7 @@ pub mod clouding;
 pub mod folio;
 pub mod folio_editing;
 pub mod folio_receiving;
+pub mod folio_reviewing;
 pub mod folio_standing;
 pub mod folio_sync;
 pub mod freeing;

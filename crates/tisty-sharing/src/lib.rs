@@ -8,7 +8,7 @@ mod packing;
 mod receiving;
 mod remembering;
 
-pub use finishing::{Carrying, Finished, Sealed, Unfinished};
+pub use finishing::{Carrying, Finished, Sealed, Unfinished, Word};
 pub use gathering::{
     Asked, Desk, Gathered, Offered, Under, citable, gathered, gathered_under, gathered_within,
     languages_offered, left_out_of, signer, signer_among,
