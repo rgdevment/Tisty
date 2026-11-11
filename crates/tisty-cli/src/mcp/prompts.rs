@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::Paths;
 
 use super::looking::named_task;
-use super::resuming::{last_task, left_off, own_events};
+use super::resuming::{last_task, left_off, own_events_newest_first};
 use super::{TOOLS_STAY_FRESH, admitted};
 
 const SAID_AT_MOST: usize = 2_000;
@@ -199,9 +199,8 @@ fn quoted(said: &str) -> String {
 
 fn last_worked_on(paths: &Paths) -> Option<String> {
     let (state, agent) = admitted(paths).ok()??;
-    let mine = own_events(paths, &agent);
-    let left = left_off(paths, &state, mine.iter());
-    last_task(&state, left.as_ref()).map(|task| named_task(&state, task))
+    let left = left_off(paths, &state, own_events_newest_first(paths, &agent));
+    last_task(&state, &left).map(|task| named_task(&state, task))
 }
 
 fn planning(_: &Paths, said: Option<&str>) -> String {

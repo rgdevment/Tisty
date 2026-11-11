@@ -225,8 +225,9 @@ dated history, and `reword_note` mends only what is wrong.
 ## Picking up where you left off
 
 A session starts with `catch_up`, without `since`: it says what moved since you were last here \
-— your last change or your last `catch_up`, whichever came later — and who moved it, and names \
-in `last` the open task you were on. `read` that task — its \
+— your last `catch_up`, or your last change if you never asked — and who moved it, twenty of \
+each in the order they moved, the next `catch_up` bringing the rest; and it names in `last` the \
+open task you were on. `read` that task — its \
 steps, its page and its latest notes — before anything else, rather than starting over. Work \
 it as you go: `tick` each step the moment it is done, and `note` what you did, what you tried \
 and ruled out and why, and what comes next, so the next session starts where this one stopped. \

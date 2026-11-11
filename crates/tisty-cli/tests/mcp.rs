@@ -2555,10 +2555,10 @@ fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_
     assert!(kept["since"].is_string(), "{kept}");
     let moved = kept["tasks"].as_array().expect("what the person did since");
     assert_eq!(
-        moved[0]["title"], "renew the passport",
-        "newest first: {kept}"
+        moved[0]["title"], "cambiar el porton",
+        "in the order they moved: {kept}"
     );
-    assert_eq!(moved[1]["title"], "cambiar el porton", "{kept}");
+    assert_eq!(moved[1]["title"], "renew the passport", "{kept}");
     for one in moved {
         assert_eq!(one["by"], serde_json::json!(["the person"]), "{kept}");
     }
@@ -2568,11 +2568,7 @@ fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_
 fn what_moved_and_the_tags_come_capped_with_how_many_more() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let recipes = served.person().writes_doc(
-        "# Recetas
-
-Arroz.",
-    );
+    let recipes = served.person().writes_doc("# Recetas\n\nArroz.");
     served.call(
         "propose",
         serde_json::json!({ "title": "renew the passport" }),
@@ -2592,6 +2588,68 @@ Arroz.",
         kept["newest"][0],
         serde_json::json!({ "doc": recipes, "title": "Recetas" }),
         "{kept}"
+    );
+    assert_eq!(kept["tasks"][0]["title"], "chore 0", "{kept}");
+
+    let next = served.call("catch_up", serde_json::json!({}));
+    let kept = &next["result"]["structuredContent"];
+    assert_eq!(kept["tasks"][0]["title"], "chore 20", "{kept}");
+    assert_eq!(kept["tasks"].as_array().unwrap().len(), 20, "{kept}");
+    assert_eq!(
+        kept["tasks_more"], 5,
+        "what was only counted comes next: {kept}"
+    );
+
+    let last = served.call("catch_up", serde_json::json!({}));
+    let kept = &last["result"]["structuredContent"];
+    assert_eq!(kept["tasks"].as_array().unwrap().len(), 5, "{kept}");
+    assert!(kept["tasks_more"].is_null(), "{kept}");
+}
+
+#[test]
+fn a_task_from_a_machine_that_synced_late_is_still_heard() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let phone = tempfile::tempdir().unwrap();
+    served.call("catch_up", serde_json::json!({}));
+    served
+        .person()
+        .captures_on_a_machine_not_synced_yet("llamar al dentista", phone.path());
+    served.person().captures("cambiar el porton");
+    served.call("catch_up", serde_json::json!({}));
+
+    served.person().syncs_that_machine(phone.path());
+    let back = served.call("catch_up", serde_json::json!({}));
+    let kept = &back["result"]["structuredContent"];
+    assert_eq!(
+        kept["tasks"][0]["title"], "llamar al dentista",
+        "written before what was already seen, it arrived after: {kept}"
+    );
+}
+
+#[test]
+fn a_client_that_names_itself_another_way_is_still_the_same_hand() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let greeting = |name: &str| {
+        format!(
+            r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2025-06-18","capabilities":{{}},"clientInfo":{{"name":"{name}","version":"1"}}}}}}"#
+        )
+    };
+    served.talk(&[
+        &greeting("codex"),
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+
+    let back = served.talk(&[
+        &greeting("codex-mcp-client"),
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"catch_up","arguments":{}}}"#,
+    ]);
+    let kept = &back[1]["result"]["structuredContent"];
+    assert_eq!(kept["last"]["title"], "pasar biome", "{kept}");
+    assert!(
+        kept["tasks"].is_null(),
+        "its own work is not news to it: {kept}"
     );
 }
 
@@ -2708,6 +2766,47 @@ fn a_description_is_left_out_only_when_its_page_holds_it_line_for_line() {
         kept["description"].is_string(),
         "named in `fields`, it comes even beside its page: {kept}"
     );
+}
+
+#[test]
+fn a_description_with_its_own_headings_is_found_on_its_page() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "renew the passport" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "## Context\n\nThe office moved." }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    let said = read["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(kept["description"].is_null(), "{kept}");
+    assert_eq!(said.matches("The office moved.").count(), 1, "{said}");
+}
+
+#[test]
+fn a_count_of_notes_below_zero_is_refused_saying_what_works() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "renew the passport" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let read = served.call("read", serde_json::json!({ "task": &id, "notes": -1 }));
+    assert_eq!(read["result"]["isError"], true, "{read}");
+    let said = read["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("0 for all"), "{said}");
 }
 
 #[test]

@@ -7,6 +7,8 @@ use tisty_core::event::{Body, ListAdd, LogAdd, StepAdd, StepRef, TaskPatch};
 use tisty_core::{Config, Op, Paths, State, Store, Tag, TaskId};
 use ulid::Ulid;
 
+const PHONE: &str = "dev_phone001";
+
 pub fn task(said: &str) -> TaskId {
     said.parse().unwrap()
 }
@@ -307,6 +309,26 @@ impl Person {
 
     pub fn saves_doc(&self, file: &str, body: &str) {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
+    }
+
+    pub fn captures_on_a_machine_not_synced_yet(&self, text: &str, aside: &Path) -> TaskId {
+        let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
+        let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))
+            .unwrap();
+        Store::open(aside, tisty_core::DeviceId(PHONE.into()))
+            .unwrap()
+            .append_batch(plan.ops)
+            .unwrap();
+        plan.task
+    }
+
+    pub fn syncs_that_machine(&self, aside: &Path) {
+        let into = self.paths.store().join(PHONE);
+        std::fs::create_dir_all(&into).unwrap();
+        for one in std::fs::read_dir(aside.join(PHONE)).unwrap() {
+            let one = one.unwrap().path();
+            std::fs::copy(&one, into.join(one.file_name().unwrap())).unwrap();
+        }
     }
 
     pub fn takes_an_edit_signed_by(&self, file: &str, body: &str, hand: &str) {

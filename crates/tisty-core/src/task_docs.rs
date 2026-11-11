@@ -404,6 +404,13 @@ pub fn described(body: &str, said: &str) -> String {
     out
 }
 
+pub fn holds_description(page: &str, said: &str) -> bool {
+    let page: Vec<&str> = page.lines().map(str::trim_end).collect();
+    let written = deeper(said.trim());
+    let said: Vec<&str> = written.lines().map(str::trim_end).collect();
+    !said.is_empty() && page.windows(said.len()).any(|one| one == said.as_slice())
+}
+
 // The window reads a box hint the same way, so both agree on which hint asks for steps.
 pub(crate) fn boxed(hint: &str) -> bool {
     hint.strip_prefix('-')
