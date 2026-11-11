@@ -7,6 +7,7 @@ import type { Lean } from "../views";
 import { Tiles } from "./DayCounts";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+import { asksForMenu, menuAt } from "./menuKeys";
 import { fitting, useRoom } from "./room";
 import { Leaning } from "./SideTasks";
 
@@ -37,7 +38,8 @@ export default function LibraryGlance({
   onReveal,
   onDocMenu,
 }: Props) {
-  const seen = useMemo(() => lately(papers), [papers]);
+  const day = new Date().toDateString();
+  const seen = useMemo(() => lately(papers, new Date(day)), [papers, day]);
   const tiles = [
     { key: "today", said: t("glanceToday"), many: seen.today, tone: "text-hue-amber" },
     { key: "week", said: t("glanceWeek"), many: seen.week },
@@ -93,6 +95,11 @@ export default function LibraryGlance({
                   onContextMenu={(e) => {
                     e.preventDefault();
                     onDocMenu(doc, { x: e.clientX, y: e.clientY });
+                  }}
+                  onKeyDown={(e) => {
+                    if (!asksForMenu(e)) return;
+                    e.preventDefault();
+                    onDocMenu(doc, menuAt(e));
                   }}
                   className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink ${
                     acting === doc.id ? "bg-active" : ""

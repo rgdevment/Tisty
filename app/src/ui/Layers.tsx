@@ -279,8 +279,8 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
           list={editingList}
           held={data.counts[editingList.id] ?? 0}
           onClose={() => setEditingList(null)}
-          onChanged={listHands.changed}
-          onDropped={listHands.dropped}
+          onChanged={load}
+          onGone={listHands.gone}
           onError={listHands.fail}
         />
       )}

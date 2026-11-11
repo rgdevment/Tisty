@@ -7,6 +7,7 @@ import DayCounts from "./DayCounts";
 import { FIND_KEY, FINDER } from "./finding";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+import { asksForMenu, menuAt } from "./menuKeys";
 import { useFades } from "./room";
 
 const TAGS_SHOWN = 14;
@@ -160,6 +161,11 @@ function Wide({
               if (!onListMenu) return;
               e.preventDefault();
               onListMenu(one, { x: e.clientX, y: e.clientY });
+            }}
+            onKeyDown={(e) => {
+              if (!onListMenu || !asksForMenu(e)) return;
+              e.preventDefault();
+              onListMenu(one, menuAt(e));
             }}
             aria-current={picked ? "page" : undefined}
             className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover ${

@@ -8,14 +8,23 @@ interface Props {
   held: number;
   onClose: () => void;
   onChanged: () => void;
-  onDropped?: (list: string) => void;
+  onGone?: (list: string) => void;
   onError: (problem: unknown) => void;
 }
 
-export default function ListNaming({ list, held, onClose, onChanged, onDropped, onError }: Props) {
+export default function ListNaming({ list, held, onClose, onChanged, onGone, onError }: Props) {
   const done = () => {
     onClose();
     onChanged();
+  };
+  const away = () => {
+    onClose();
+    if (onGone) onGone(list.id);
+    else onChanged();
+  };
+  const failed = (problem: unknown) => {
+    onChanged();
+    onError(problem);
   };
 
   return (
@@ -28,20 +37,15 @@ export default function ListNaming({ list, held, onClose, onChanged, onDropped, 
       action={t("saveIt")}
       dropWord={t("listDrop")}
       onName={(called, drawn, colour) =>
-        settleList(list, called, drawn, colour).then(done).catch(onError)
+        settleList(list, called, drawn, colour).then(done).catch(failed)
       }
       onDrop={() =>
         dropList(list)
-          .then((gone) => {
-            if (!gone) return;
-            onClose();
-            if (onDropped) onDropped(list.id);
-            else onChanged();
-          })
+          .then((dropped) => dropped && away())
           .catch(onError)
       }
       archiveWord={t("listArchive")}
-      onArchive={held === 0 ? () => listArchive(list.id).then(done).catch(onError) : undefined}
+      onArchive={held === 0 ? () => listArchive(list.id).then(away).catch(onError) : undefined}
       onClose={onClose}
     />
   );

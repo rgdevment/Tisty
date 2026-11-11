@@ -141,8 +141,7 @@ export function deskOf(state: State, data: Snapshot) {
 
   const listHands: ListHands = {
     edit: setEditingList,
-    changed: load,
-    dropped: (list) => {
+    gone: (list) => {
       if (chosen.list === list) setChosen({ named: "lists" });
       load();
     },

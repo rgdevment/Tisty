@@ -7,6 +7,7 @@ import { lately } from "../lately";
 import { listChoices } from "../listMenus";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
+import { asksSure } from "../sure";
 import Sidebar from "../ui/Sidebar";
 import { asView, type Chosen } from "../views";
 
@@ -159,6 +160,20 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     );
     expect(screen.queryByText("1000")).toBeNull();
     expect(screen.getByText("99").getAttribute("title")).toBeNull();
+  });
+
+  it("offers a list's own menu from the keyboard, beside its row", () => {
+    const onListMenu = vi.fn();
+    bar({ named: "tasks" }, vi.fn(), vi.fn(), vi.fn(), "", undefined, onListMenu);
+    grow();
+    fireEvent.keyDown(screen.getByRole("button", { name: /Folio Project/ }), {
+      key: "F10",
+      shiftKey: true,
+    });
+    expect(onListMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "L1" }), {
+      x: 24,
+      y: 0,
+    });
   });
 
   it("offers a list's own menu from its row", () => {
@@ -319,6 +334,15 @@ describe("what the shrunk library says at a glance", () => {
     expect(seen.recent.map((one) => one.id)).toEqual(["A", "B", "C"]);
   });
 
+  it("counts nothing written on a day still to come", () => {
+    const seen = lately(
+      { folders: [], docs: [doc("A", "Mañana", null, undefined, daysAgo(-1))] },
+      now,
+    );
+    expect(seen.today).toBe(0);
+    expect(seen.week).toBe(0);
+  });
+
   it("counts the marked, and leaves pages and the archive out", () => {
     const marked = { at: daysAgo(0), said: "agent" };
     const seen = lately(
@@ -345,8 +369,17 @@ describe("a count past what fits", () => {
 });
 
 describe("a list's own menu", () => {
-  const hands = { edit: vi.fn(), changed: vi.fn(), dropped: vi.fn(), fail: vi.fn() };
+  const hands = { edit: vi.fn(), gone: vi.fn(), fail: vi.fn() };
   const list = { id: "L1", name: "Salud", order: "a" };
+  const pick = (key: string) =>
+    listChoices(list, 0, hands)
+      .find((one) => one.key === key)
+      ?.onPick?.();
+
+  afterEach(() => {
+    asksSure(null);
+    vi.clearAllMocks();
+  });
 
   it("opens the list's own window to change its name, icon and colour", () => {
     const edit = listChoices(list, 0, hands).find((one) => one.key === "edit");
@@ -359,5 +392,21 @@ describe("a list's own menu", () => {
       listChoices(list, held, hands).find((one) => one.key === "archive")?.off;
     expect(off(0)).toBe(false);
     expect(off(3)).toBe(true);
+  });
+
+  it("leaves the list once it is archived, so nothing stays open on it", async () => {
+    pick("archive");
+    await vi.waitFor(() => expect(hands.gone).toHaveBeenCalledWith("L1"));
+  });
+
+  it("leaves the list once it is deleted, and stays when the deletion is let go", async () => {
+    asksSure(() => Promise.resolve(false));
+    pick("drop");
+    await act(() => Promise.resolve());
+    expect(hands.gone).not.toHaveBeenCalled();
+
+    asksSure(() => Promise.resolve(true));
+    pick("drop");
+    await vi.waitFor(() => expect(hands.gone).toHaveBeenCalledWith("L1"));
   });
 });

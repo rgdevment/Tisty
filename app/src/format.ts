@@ -4,6 +4,7 @@ import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
   day: Intl.DateTimeFormat;
+  date: Intl.DateTimeFormat;
   clock: Intl.DateTimeFormat;
   whole: Intl.DateTimeFormat;
   relative: Intl.RelativeTimeFormat;
@@ -18,6 +19,7 @@ function formats(): Formats {
     cached = {
       for: code,
       day: new Intl.DateTimeFormat(code, { weekday: "short", day: "numeric", month: "short" }),
+      date: new Intl.DateTimeFormat(code, { day: "numeric", month: "short" }),
       clock: new Intl.DateTimeFormat(code, { hour: "2-digit", minute: "2-digit" }),
       whole: new Intl.DateTimeFormat(code, { dateStyle: "long", timeStyle: "short" }),
       relative: new Intl.RelativeTimeFormat(code, { numeric: "auto" }),
@@ -93,15 +95,14 @@ export function brief(iso: string, now = new Date()): string {
   const away = daysFrom(iso, now);
   if (away === 0) return formats().clock.format(at);
   if (away === -1) return formats().relative.format(-1, "day");
-  return new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
+  return formats().date.format(at);
 }
 
 export function shortStamp(iso: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "";
-  const { clock } = formats();
-  const day = new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
-  return `${day} ${clock.format(at)}`;
+  const { clock, date } = formats();
+  return `${date.format(at)} ${clock.format(at)}`;
 }
 
 export function clockOf(spec: DateSpec): string {

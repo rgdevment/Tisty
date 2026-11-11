@@ -5,8 +5,7 @@ import type { Choice } from "./ui/Menu";
 
 export interface ListHands {
   edit: (list: List) => void;
-  changed: () => void;
-  dropped: (list: string) => void;
+  gone: (list: string) => void;
   fail: (problem: unknown) => void;
 }
 
@@ -36,7 +35,10 @@ export const listChoices = (list: List, held: number, h: ListHands): Choice[] =>
     label: t("listArchive"),
     off: held > 0,
     apart: true,
-    onPick: () => listArchive(list.id).then(h.changed).catch(h.fail),
+    onPick: () =>
+      listArchive(list.id)
+        .then(() => h.gone(list.id))
+        .catch(h.fail),
   },
   {
     key: "drop",
@@ -45,7 +47,7 @@ export const listChoices = (list: List, held: number, h: ListHands): Choice[] =>
     danger: true,
     onPick: () =>
       dropList(list)
-        .then((gone) => gone && h.dropped(list.id))
+        .then((dropped) => dropped && h.gone(list.id))
         .catch(h.fail),
   },
 ];

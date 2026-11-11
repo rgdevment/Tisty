@@ -21,7 +21,10 @@ export function lately(papers: Papers, now = new Date()): Lately {
     .filter((one) => !Number.isNaN(writtenAt(one)))
     .sort((a, b) => writtenAt(b) - writtenAt(a));
   const within = (days: number) =>
-    written.filter((one) => -daysFrom(one.wrote ?? "", now) < days).length;
+    written.filter((one) => {
+      const ago = -daysFrom(one.wrote ?? "", now);
+      return ago >= 0 && ago < days;
+    }).length;
   return {
     today: within(1),
     week: within(WEEK),
