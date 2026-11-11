@@ -36,6 +36,7 @@ const segmented = (page: Document, say: Say, tongues: readonly Tongue[]) => {
     button.setAttribute("lang", one.lang);
     button.setAttribute("aria-pressed", String(one.on));
     button.title = one.label;
+    button.disabled = one.away === true;
     row.append(button);
   }
   return row;
@@ -78,6 +79,7 @@ const stepped = (live: HTMLElement[], from: EventTarget | null, by: number) => {
 
 const picker = (page: Document, say: Say, tongues: readonly Tongue[]) => {
   const now = tongues.find((one) => one.on) ?? tongues[0];
+  const live = tongues.filter((one) => !one.away);
   const box = made(page, "div", "side-tongue-pick");
   const list = made(page, "div", "side-tongue-list");
   list.hidden = true;
@@ -88,27 +90,38 @@ const picker = (page: Document, say: Say, tongues: readonly Tongue[]) => {
   const away = (event: Event) => {
     if (!box.contains(event.target as Node)) shut();
   };
+  const moved = (event: Event) => {
+    if (!list.contains(event.target as Node)) shut();
+  };
   const shut = () => {
     list.hidden = true;
     opener.setAttribute("aria-expanded", "false");
     page.removeEventListener("mousedown", away, true);
+    page.removeEventListener("scroll", moved, true);
+    page.defaultView?.removeEventListener("resize", shut);
   };
-  const items = tongues.map((one) => chosen(page, one, shut));
-  const find = tongues.length >= FIND_FROM ? finder(page, say, items) : null;
+  const items = live.map((one) => chosen(page, one, shut));
+  const find = live.length >= FIND_FROM ? finder(page, say, items) : null;
   opener.addEventListener("click", () => {
     if (!list.hidden) return shut();
+    const at = opener.getBoundingClientRect();
+    list.style.top = `${at.bottom + 4}px`;
+    list.style.left = `${at.left}px`;
+    list.style.width = `${at.width}px`;
     list.hidden = false;
     opener.setAttribute("aria-expanded", "true");
     page.addEventListener("mousedown", away, true);
+    page.addEventListener("scroll", moved, true);
+    page.defaultView?.addEventListener("resize", shut);
     (find ?? items.find((one) => one.classList.contains("on")) ?? items[0])?.focus();
   });
   opener.setAttribute("aria-haspopup", "listbox");
   opener.setAttribute("aria-expanded", "false");
-  opener.setAttribute("aria-label", `${say("tonguesOf")} · ${now.label} · ${tongues.length}`);
+  opener.setAttribute("aria-label", `${say("tonguesOf")} · ${now.label} · ${live.length}`);
   opener.append(
     glyph(page, "language"),
     made(page, "span", "side-tongue-name", now.label),
-    made(page, "span", "side-tongue-many", `${tongues.length}`),
+    made(page, "span", "side-tongue-many", `${live.length}`),
     glyph(page, "chevron"),
   );
   list.addEventListener("keydown", (event) => {
@@ -132,7 +145,9 @@ const picker = (page: Document, say: Say, tongues: readonly Tongue[]) => {
 };
 
 const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) =>
-  tongues.length > IN_ONE_ROW ? picker(page, say, tongues) : segmented(page, say, tongues);
+  tongues.filter((one) => !one.away).length > IN_ONE_ROW
+    ? picker(page, say, tongues)
+    : segmented(page, say, tongues);
 
 const titled = (page: Document, say: Say, panel: Of<"title">) => {
   const head = made(page, "header", "side-title-row");

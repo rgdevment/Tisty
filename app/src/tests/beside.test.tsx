@@ -319,12 +319,23 @@ describe("where the document rests", () => {
   });
 
   it("moves the text aside for a column asked for on a narrow window, never lying over it", async () => {
+    act(() => fold(true));
     widen(1100);
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(roomOf()?.style.paddingRight).toBe("344px");
+    act(() => unwiden());
+  });
+
+  it("lets the column lie over a page it would squeeze past reading", async () => {
+    widen(900);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("0px");
   });
 
   it("reserves nothing while the column is away", async () => {

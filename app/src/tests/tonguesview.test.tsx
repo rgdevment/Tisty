@@ -64,6 +64,26 @@ describe("the switch between languages", () => {
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "fr" }));
   });
 
+  it("keeps three living languages side by side, an archived one beside them", () => {
+    render(
+      <Tongues
+        tongues={[
+          doc("es", "es"),
+          doc("en", "en"),
+          doc("pt", "pt"),
+          doc("de", "de", { away: true }),
+        ]}
+        here="es"
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "English" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Deutsch" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
   it("lets nine or more languages be found by name or code in the list", () => {
     const langs = ["es", "en", "pt", "fr", "de", "it", "nl", "ru", "ja"];
     render(<Tongues tongues={langs.map((lang) => doc(lang, lang))} here="es" onOpen={vi.fn()} />);

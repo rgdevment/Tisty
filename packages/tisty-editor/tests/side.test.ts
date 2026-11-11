@@ -517,6 +517,31 @@ describe("the panels beside a sheet", () => {
     expect(list?.hidden).toBe(true);
   });
 
+  it("leaves an archived language out of the picker and its count, and floats the list", () => {
+    const side = host();
+    const tongues = ["es", "en", "pt", "fr", "de"].map((lang) => ({
+      key: lang,
+      label: lang.toUpperCase(),
+      lang,
+      on: lang === "es",
+      away: lang === "de",
+      onPick: () => {},
+    }));
+    sided(side, say, [{ kind: "title", title: "Guía", tongues }]);
+    const opener = side.querySelector<HTMLButtonElement>(".side-tongue-now");
+    expect(opener?.textContent).toContain("4");
+    opener?.click();
+    const langs = Array.from(side.querySelectorAll(".side-tongue-item"), (one) =>
+      one.getAttribute("lang"),
+    );
+    expect(langs).toEqual(["es", "en", "pt", "fr"]);
+    expect(side.querySelector<HTMLElement>(".side-tongue-list")?.style.top).not.toBe("");
+
+    sided(side, say, [{ kind: "title", title: "Guía", tongues: tongues.slice(1) }]);
+    const row = Array.from(side.querySelectorAll<HTMLButtonElement>(".side-tongues .side-leaf"));
+    expect(row.map((one) => one.disabled)).toEqual([false, false, false, true]);
+  });
+
   it("finds a language by its name or its code once there are nine or more", () => {
     const side = host();
     const langs = ["es", "en", "pt", "fr", "de", "it", "nl", "ru", "ja"];

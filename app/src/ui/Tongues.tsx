@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function Tongues({ tongues, here, onOpen }: Props) {
-  if (tongues.length > SIDE_BY_SIDE)
+  if (tongues.filter((one) => !one.away).length > SIDE_BY_SIDE)
     return <Folded tongues={tongues} here={here} onOpen={onOpen} />;
   return (
     <fieldset className="tongues">

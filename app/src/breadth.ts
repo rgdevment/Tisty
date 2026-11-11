@@ -41,16 +41,21 @@ const crowded = () => givesWay(window.innerWidth, room.need, kept.current().widt
 
 const sway = (): Sway => (crowded() ? (room.held ? "held" : "giving") : "free");
 
+const settle = () => {
+  if (!crowded()) room.held = false;
+};
+
+const resized = () => {
+  settle();
+  tell();
+};
+
 const watch = (change: () => void) => {
-  const resized = () => {
-    if (!crowded()) room.held = false;
-    change();
-  };
+  if (!heard.size) window.addEventListener("resize", resized);
   heard.add(change);
-  window.addEventListener("resize", resized);
   return () => {
     heard.delete(change);
-    window.removeEventListener("resize", resized);
+    if (!heard.size) window.removeEventListener("resize", resized);
   };
 };
 
@@ -73,8 +78,9 @@ export const useRoomFor = (need: number) =>
 
 const put = (width: number | null, folded: boolean) => {
   if (!crowded()) return kept.put({ width, folded });
-  kept.put({ ...kept.current(), width });
   room.held = !folded;
+  kept.put({ ...kept.current(), width });
+  settle();
   tell();
 };
 

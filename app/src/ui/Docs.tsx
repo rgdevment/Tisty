@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
-import { sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -91,6 +91,7 @@ const leaves = (): Record<string, Paper> => {
 };
 
 const ASIDE = 344;
+const READABLE = 520;
 
 const NONE: string[] = [];
 
@@ -111,6 +112,7 @@ interface Props {
   onDropAll?: (docs: Filed[]) => void;
   onTask?: (task: Task) => void;
   onBack?: (doc: Filed) => void;
+  onAsideShut?: (shut: boolean) => void;
   fresh?: number;
 }
 
@@ -142,6 +144,7 @@ export default function Docs({
   onDropAll,
   onTask,
   onBack,
+  onAsideShut,
   fresh = 0,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
@@ -185,6 +188,7 @@ export default function Docs({
   const breadth = useBreadth();
   const spare = room - sideWidth(breadth, wide) - GUTTER;
   const fits = spare >= DOC_ASIDE_FROM;
+  const reachable = room - RAIL - GUTTER >= DOC_ASIDE_FROM;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.
@@ -200,7 +204,8 @@ export default function Docs({
   const paged = useRef(onPaging);
   paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
-  const crossed = useRef(fits);
+  const crossed = useRef(reachable);
+  useEffect(() => onAsideShut?.(shown === false), [shown, onAsideShut]);
 
   useEffect(() => {
     const look = () => setRoom(window.innerWidth);
@@ -208,11 +213,12 @@ export default function Docs({
     return () => window.removeEventListener("resize", look);
   }, []);
 
+  // Only the window decides when a closed column may come back: the sidebar moves with the column itself.
   useEffect(() => {
-    if (crossed.current === fits) return;
-    crossed.current = fits;
+    if (crossed.current === reachable) return;
+    crossed.current = reachable;
     setShown(null);
-  }, [fits]);
+  }, [reachable]);
 
   const keep = useCallback(
     (id: string, text: string, anyway?: boolean) => {
@@ -803,7 +809,8 @@ export default function Docs({
     wrote(laid);
     dressAlike(laid);
   };
-  const reserve = beside ? ASIDE : 0;
+  const narrowest = sheets ? across + 48 : READABLE;
+  const reserve = beside && spare - ASIDE >= narrowest ? ASIDE : 0;
   const place = open
     ? trailed(folders, open.folder ?? null)
         .map((one) => one.name)

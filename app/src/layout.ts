@@ -11,9 +11,10 @@ interface Seen {
   mode: "columns" | "sheet";
   tight: boolean;
   calm: boolean;
+  asideShut?: boolean;
 }
 
-export const layoutOf = ({ chosen, open, mode, tight, calm }: Seen) => {
+export const layoutOf = ({ chosen, open, mode, tight, calm, asideShut }: Seen) => {
   const outside = chosen.named === "docs" || chosen.named === "keeping" || chosen.named === "help";
   const sheet = open && !outside && (mode === "sheet" || tight);
   const beside = open && !outside && !sheet;
@@ -40,7 +41,7 @@ export const layoutOf = ({ chosen, open, mode, tight, calm }: Seen) => {
           : "";
   const room =
     chosen.named === "docs"
-      ? chosen.doc
+      ? chosen.doc && !asideShut
         ? DOC_ASIDE_FROM
         : 0
       : beside && aside

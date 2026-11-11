@@ -77,6 +77,7 @@ export function useWindow() {
   const [makingDiagram, setMakingDiagram] = useState<{ into?: string } | null>(null);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const [editingList, setEditingList] = useState<List | null>(null);
+  const [asideShut, setAsideShut] = useState(false);
   const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
@@ -231,6 +232,8 @@ export function useWindow() {
     setRenaming,
     editingList,
     setEditingList,
+    asideShut,
+    setAsideShut,
     note,
     noted,
     said,

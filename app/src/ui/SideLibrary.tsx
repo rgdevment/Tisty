@@ -35,7 +35,7 @@ interface Props {
 
 export default function SideLibrary(props: Props) {
   const { papers, chosen, leaning, onLean, onHere } = props;
-  const many = shown(papers.docs).filter((one) => !one.pageOf).length;
+  const many = shown(papers.docs).filter((one) => !one.pageOf && !one.away).length;
   const lit = chosen.named === "docs";
   const library = () => {
     onLean("docs");

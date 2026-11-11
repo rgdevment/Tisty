@@ -196,6 +196,20 @@ describe("the sidebar gives way to the column on the right", () => {
     expect(width()).toBe(String(RAIL));
   });
 
+  it("forgets a hand open once a narrower sidebar no longer crowds the column", () => {
+    resize(1190);
+    const { rerender } = render(<Roomed need={884} />);
+    act(() => fold(false));
+    expect(width()).toBe("336");
+
+    act(() => dragTo(NARROWEST));
+    rerender(<Roomed need={884} />);
+    expect(width()).toBe(String(NARROWEST));
+
+    act(() => dragTo(400));
+    expect(width()).toBe(String(RAIL));
+  });
+
   it("leaves the choice made where there is room as it was", () => {
     resize(1100);
     render(<Roomed need={884} />);
@@ -214,6 +228,15 @@ describe("what each view needs on its right", () => {
     expect(room({ named: "tasks" }, true)).toBe(1536);
     expect(room({ named: "docs", doc: "a.md" })).toBe(DOC_ASIDE_FROM);
     expect(room({ named: "docs" })).toBe(0);
+    const shut = layoutOf({
+      chosen: { named: "docs", doc: "a.md" },
+      open: false,
+      mode: "columns",
+      tight: false,
+      calm: true,
+      asideShut: true,
+    });
+    expect(shut.room).toBe(0);
     expect(room({ named: "spread" })).toBe(0);
   });
 });

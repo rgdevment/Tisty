@@ -29,6 +29,7 @@ export function deskOf(state: State, data: Snapshot) {
     setMakingDiagram,
     setRenaming,
     setEditingList,
+    asideShut,
     noted,
     afoot,
     setMenu,
@@ -78,6 +79,7 @@ export function deskOf(state: State, data: Snapshot) {
     open,
     mode,
     tight,
+    asideShut,
     calm: !asking && !greet && !leaving && !torn && !asked && !afoot && !error && !parcels.asking,
   });
 
