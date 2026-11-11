@@ -712,6 +712,16 @@ const said = {
         served: { received: AFTER, revocations: [await revocation(ZORRO.root, ANA.machine, AT)] },
         kept: weighedEditors,
       },
+      {
+        says: "a revoked machine, with no word of when this version arrived",
+        served: { revocations: [await revocation(ANA.root, ANA.machine, AT)] },
+        kept: [weighedEditors[0]],
+      },
+      {
+        says: "the owner's own machine, revoked before this version arrived",
+        served: { received: AFTER, revocations: [await revocation(root, machine, AT)] },
+        kept: [weighedEditors[1]],
+      },
     ],
   },
   editors_in_a_document: {

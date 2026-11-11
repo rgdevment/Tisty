@@ -665,6 +665,56 @@
             "signed": "ulgtdKSbeVPUaRc9PuyguPvwSvVWdCZA8gMRighj0lI2ylIzguWG7_54bOv14DJeHoV7k5CSnOdM88Z0XCWFBw"
           }
         ]
+      },
+      {
+        "says": "a revoked machine, with no word of when this version arrived",
+        "served": {
+          "revocations": [
+            {
+              "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+              "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+              "at": "2026-11-05T00:00:00Z",
+              "signed": "zA-ULsbFhTiSH0kwCdyWHqFwpY8BQiiL4m1pP-_VKTokbvuHndmlJRTUELrr4kuinHjhNv64UjHJ5eBB7iw1CQ"
+            }
+          ]
+        },
+        "kept": [
+          {
+            "in": "editado",
+            "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+            "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+            "since": "2026-11-03T12:00:00Z",
+            "certificate": "Su-1GnToQ4lmHTRgxK6_5jXXK3tZsmk76Y3QKFQJ7-QRp8uSoYP5C47cFHWz8AV6k6uiXFyp9ZPLkGekj5hCAw",
+            "name": "Mario",
+            "owned": true,
+            "signed": "THzMJbqXZoZE62MrS4CM4UzfHIORGYV5YDq0ZVnH3NrfmrZ2L74-TQTdEbudD-FbjqxHjUyqZWjyGK3rd-Q2DA"
+          }
+        ]
+      },
+      {
+        "says": "the owner's own machine, revoked before this version arrived",
+        "served": {
+          "received": "2026-11-06T00:00:00Z",
+          "revocations": [
+            {
+              "root": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4",
+              "machine": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+              "at": "2026-11-05T00:00:00Z",
+              "signed": "n1rwFRIxXngglJ3htlz_YPbyJFd2xDWslbouYuGYR1UwkHsYzsNXA_t5KE_5girlGyzi9zK3G8273ixz4_UgAA"
+            }
+          ]
+        },
+        "kept": [
+          {
+            "in": "editado",
+            "root": "NLTZBDFWy23PC-sKKUm3VZyUDSvLbb6MU6mzAnjjp0Y",
+            "machine": "EqQVksi3wX1AWeeym2Ho_5bHQV8vgDNI8vAX4Fueodo",
+            "since": "2026-11-03T12:00:00Z",
+            "certificate": "h4pk82ZHbEtjCtNOZzEDpTVfKcSJCbeP4jT19n9ClBigPkcJebX00IYu4tjYi-3m_q1_WWYymLhZdR6sy_Y1Dg",
+            "name": "Ana",
+            "signed": "ulgtdKSbeVPUaRc9PuyguPvwSvVWdCZA8gMRighj0lI2ylIzguWG7_54bOv14DJeHoV7k5CSnOdM88Z0XCWFBw"
+          }
+        ]
       }
     ]
   },

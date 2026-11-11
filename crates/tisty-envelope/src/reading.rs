@@ -16,7 +16,7 @@ use tisty_contracts::{
 };
 use tisty_share_proto::identity::{self, Certificate, Revocation, Signed};
 
-use crate::editors::{self, AT_MOST as EDITORS_AT_MOST};
+use crate::editors::AT_MOST as EDITORS_AT_MOST;
 use crate::sealing::{
     ABOUT, MANIFEST_AT_MOST, MARK, OWNER_ABOUT, SIGNATURE_AT_MOST, cipher_of, commitment_holds,
     name_tag, nonce, owner_said,
@@ -611,7 +611,7 @@ pub fn owner_block(main: &Opened) -> Option<String> {
 }
 
 // All a reader looks at once it is open: only it can, and a writer's word counts for nothing.
-pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
+pub fn document_in(main: &Opened, served: &Served) -> Result<Value, Unopened> {
     let (Some(first), Some(rest)) = (main.parts.first(), main.parts.get(1)) else {
         return damaged("it holds no words");
     };
@@ -650,11 +650,30 @@ pub fn document_in(main: &Opened) -> Result<Value, Unopened> {
     for page in pages {
         references_hold(page["html"].as_str().unwrap_or_default(), &held)?;
     }
-    Ok(editors_kept(held, editors, manifest["sealed"] == true))
+    Ok(editors_kept(
+        held,
+        editors,
+        manifest["sealed"] == true,
+        served,
+    ))
 }
 
 // An editor answers for no word, so one a hostile hand wrote never costs the reader the document.
-fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
+// A name stands while its root still answered for the machine that signed it when this version arrived, as the version's own signature does.
+fn editor_stands(one: &Value, id: &str, served: &Served) -> bool {
+    let Ok(editor) = serde_json::from_value::<Editor>(one.clone()) else {
+        return false;
+    };
+    let said =
+        tisty_share_proto::editing::said(&editor.r#in, editor.owned == Some(true), &editor.name);
+    editor.r#in == id
+        && matches!(
+            verdict_on(one, "editor", &said, served),
+            Verdict::Holds | Verdict::Retired
+        )
+}
+
+fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool, served: &Served) -> Value {
     let id = held["id"].as_str().unwrap_or_default().to_owned();
     let kept: Vec<Value> = said
         .filter(|_| sealed)
@@ -662,10 +681,7 @@ fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
         .unwrap_or_default()
         .into_iter()
         .filter(|one| check("editor", one).is_empty())
-        .filter(|one| {
-            serde_json::from_value::<Editor>(one.clone())
-                .is_ok_and(|one| one.r#in == id && editors::holds(&one))
-        })
+        .filter(|one| editor_stands(one, &id, served))
         .take(EDITORS_AT_MOST)
         .collect();
     if let (Some(document), false) = (held.as_object_mut(), kept.is_empty()) {
@@ -674,34 +690,9 @@ fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
     held
 }
 
-// A name stands while its root still answered for the machine that signed it when this version arrived, as the version's own signature does.
-fn editors_weighed(mut document: Value, served: &Served) -> Value {
-    let Some(editors) = document["editors"].as_array().cloned() else {
-        return document;
-    };
-    let standing = |one: &Value| {
-        let (Some(id), Some(name)) = (one["in"].as_str(), one["name"].as_str()) else {
-            return false;
-        };
-        let said = tisty_share_proto::editing::said(id, one["owned"] == true, name);
-        matches!(
-            verdict_on(one, "editor", &said, served),
-            Verdict::Holds | Verdict::Retired
-        )
-    };
-    let kept: Vec<Value> = editors.into_iter().filter(standing).collect();
-    if let Some(fields) = document.as_object_mut() {
-        match kept.is_empty() {
-            true => fields.remove("editors"),
-            false => fields.insert("editors".to_owned(), Value::Array(kept)),
-        };
-    }
-    document
-}
-
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
-    let document = editors_weighed(told_apart(bytes, document_in(&main))?, served);
+    let document = told_apart(bytes, document_in(&main, served))?;
     let Opened {
         parts,
         verdict,
@@ -842,7 +833,8 @@ impl EnvelopeReader for Reader {
     fn open(&mut self, file: Vec<u8>, opening: Opening) -> Result<Vec<Vec<u8>>, String> {
         let open = opened(&file, &opening, &self.served).map_err(|wrong| wrong.to_string())?;
         if opening.kind == EnvelopeKind::Main {
-            told_apart(&file, document_in(&open)).map_err(|wrong| wrong.to_string())?;
+            told_apart(&file, document_in(&open, &self.served))
+                .map_err(|wrong| wrong.to_string())?;
         }
         Ok(open.parts)
     }
