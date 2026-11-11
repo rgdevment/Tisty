@@ -23,7 +23,7 @@ pub struct Proposal {
     document: String,
     lang: String,
     title: Option<String>,
-    kept: bool,
+    word: Word,
     #[serde(skip)]
     print: Option<String>,
 }
@@ -132,10 +132,11 @@ pub(super) fn words_on_card(
     proposals_of(was, &owned_ids(shelf))
         .into_iter()
         .map(|one| LanguageWord {
-            word: match one.kept {
-                false => Word::Waiting,
-                true if changed_since(&known, &one.document, one.print.as_deref()) => Word::Changed,
-                true => Word::Kept,
+            word: match one.word {
+                Word::Kept if changed_since(&known, &one.document, one.print.as_deref()) => {
+                    Word::Changed
+                }
+                word => word,
             },
             document: one.document,
             lang: Some(one.lang),
@@ -167,13 +168,27 @@ fn kept_print(was: &Remembered, reviews: &[Review], document: &str) -> Option<St
         .and_then(|review| review.print.clone())
 }
 
-pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Proposal> {
-    let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
+// What the owner left out is still its own to look at again, so it is named beside the map, once.
+fn foreign_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Translation> {
+    let mut seen = BTreeSet::new();
     carried_map(was)
         .into_iter()
+        .chain(tisty_sharing::languages_set_aside(was.carried.as_deref()))
         .filter(|one| !ours.contains(one.document.as_str()))
+        .filter(|one| seen.insert(one.document.clone()))
+        .collect()
+}
+
+pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Proposal> {
+    let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
+    foreign_of(was, ours)
+        .into_iter()
         .map(|one| Proposal {
-            kept: latest_word(was, &reviews, &one.document).is_some_and(|review| review.kept),
+            word: match latest_word(was, &reviews, &one.document) {
+                None => Word::Waiting,
+                Some(review) if review.kept => Word::Kept,
+                Some(_) => Word::LeftOut,
+            },
             print: kept_print(was, &reviews, &one.document),
             document: one.document,
             lang: one.lang,
@@ -185,7 +200,7 @@ pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Propo
 fn kept_entries(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Translation> {
     let kept: BTreeSet<String> = proposals_of(was, ours)
         .into_iter()
-        .filter(|one| one.kept)
+        .filter(|one| one.word == Word::Kept)
         .map(|one| one.document)
         .collect();
     carried_map(was)
@@ -273,7 +288,7 @@ pub(super) fn changes_since(copy: Option<&Copy>, now: &Copy) -> Option<Vec<Chang
 pub(super) fn forgotten_here(home: &Path, gone: &[(String, Remembered)]) {
     for (_, was) in gone {
         folio_reviewed::forgotten(home, &was.id);
-        for one in carried_map(was) {
+        for one in foreign_of(was, &BTreeSet::new()) {
             folio_reviewed::forgotten(home, &one.document);
         }
     }
@@ -296,7 +311,7 @@ pub(super) fn foreign_entry(
     if ours.contains(document) {
         return Err(Refusal::of("notOneOwnDoc"));
     }
-    carried_map(was)
+    foreign_of(was, ours)
         .into_iter()
         .find(|one| one.document == document && one.key.is_some())
         .ok_or_else(|| Refusal::of("folioGone"))
@@ -427,12 +442,8 @@ pub(super) fn carried_after(was: &Remembered, document: &str, review: Review) ->
     );
     let carried = tisty_sharing::with_reviews(was.carried.as_deref(), &reviews);
     match kept {
-        true => carried,
-        false => tisty_sharing::languages_gone(
-            carried.as_deref(),
-            &BTreeSet::from([document.to_owned()]),
-            &BTreeSet::new(),
-        ),
+        true => tisty_sharing::brought_back(carried.as_deref(), document),
+        false => tisty_sharing::set_aside(carried.as_deref(), document),
     }
 }
 

@@ -256,11 +256,15 @@ fn foreign_languages(session: &Session, doc: tisty_core::model::DocId) -> Option
     let shared = shelf.get(&anchor.file)?;
     shared.admin_token.as_ref()?;
     let ours = owned_ids(shelf);
-    let ids = carried_map(shared)
+    let aside = tisty_sharing::languages_set_aside(shared.carried.as_deref());
+    let mut ids: Vec<String> = carried_map(shared)
         .into_iter()
+        .chain(aside)
         .map(|one| one.document)
         .filter(|id| !ours.contains(id.as_str()))
         .collect();
+    ids.sort();
+    ids.dedup();
     Some(Foreign {
         file: anchor.file.clone(),
         anchor: shared.id.clone(),

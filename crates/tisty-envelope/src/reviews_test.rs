@@ -270,3 +270,33 @@ fn the_next_word_on_a_language_follows_the_highest_one_said_of_it() {
     assert_eq!(one.len(), 1);
     assert_eq!(one[0].seq, 2);
 }
+
+fn word_of(of: &str, kept: bool, seq: u64) -> Review {
+    serde_json::from_value(serde_json::json!({
+        "of": of,
+        "kept": kept,
+        "seq": seq,
+        "root": "r",
+        "machine": "m",
+        "since": "2026-11-03T12:00:00Z",
+        "certificate": "c",
+        "signed": "s",
+    }))
+    .unwrap()
+}
+
+#[test]
+fn past_what_an_anchor_carries_only_the_oldest_words_that_left_a_language_out_go() {
+    let mut reviews: Vec<Review> = (1..=63)
+        .map(|seq| word_of(&format!("fuera{seq}"), false, seq))
+        .collect();
+    reviews.push(word_of("guardado", true, 1));
+
+    let after = super::with_review(&reviews, word_of("nuevo", false, 100));
+
+    assert_eq!(after.len(), super::AT_MOST);
+    assert!(after.iter().all(|one| one.of != "fuera1"));
+    assert!(after.iter().any(|one| one.of == "fuera2"));
+    assert!(after.iter().any(|one| one.of == "guardado"));
+    assert!(after.iter().any(|one| one.of == "nuevo"));
+}

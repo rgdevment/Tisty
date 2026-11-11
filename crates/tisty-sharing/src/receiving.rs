@@ -120,8 +120,50 @@ pub fn languages_gone(
     if let Some(languages) = kept["languages"].as_array_mut() {
         languages.retain(|one| stays(one, "document", gone));
     }
+    if let Some(aside) = kept.get_mut(SET_ASIDE).and_then(Value::as_array_mut) {
+        aside.retain(|one| stays(one, "document", gone));
+    }
     if let Some(reviews) = kept["reviews"].as_array_mut() {
         reviews.retain(|one| stays(one, "of", gone_of));
+    }
+    written(&kept)
+}
+
+const SET_ASIDE: &str = "set_aside";
+
+// What its owner left out leaves the map, and only the owner's log keeps how to reach it again; no version carries it (166).
+pub fn set_aside(was: Option<&str>, document: &str) -> Option<String> {
+    moved(was, document, "languages", SET_ASIDE)
+}
+
+pub fn brought_back(was: Option<&str>, document: &str) -> Option<String> {
+    moved(was, document, SET_ASIDE, "languages")
+}
+
+pub fn languages_set_aside(said: Option<&str>) -> Vec<tisty_contracts::Translation> {
+    serde_json::from_value(object_of(said)[SET_ASIDE].clone()).unwrap_or_default()
+}
+
+fn moved(was: Option<&str>, document: &str, from: &str, to: &str) -> Option<String> {
+    let mut kept = object_of(was);
+    let fields = kept.as_object_mut()?;
+    let names = |one: &Value| one["document"].as_str() == Some(document);
+    let mut there: Vec<Value> = fields
+        .remove(from)
+        .and_then(|said| serde_json::from_value(said).ok())
+        .unwrap_or_default();
+    let taken = there.iter().position(names).map(|at| there.remove(at));
+    if !there.is_empty() {
+        fields.insert(from.to_owned(), Value::Array(there));
+    }
+    if let Some(one) = taken {
+        let mut landing: Vec<Value> = fields
+            .remove(to)
+            .and_then(|said| serde_json::from_value(said).ok())
+            .unwrap_or_default();
+        landing.retain(|held| !names(held));
+        landing.push(one);
+        fields.insert(to.to_owned(), Value::Array(landing));
     }
     written(&kept)
 }

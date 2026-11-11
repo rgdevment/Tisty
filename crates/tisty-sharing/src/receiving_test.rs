@@ -175,3 +175,44 @@ fn the_reviews_a_map_carries_are_written_and_read_back_and_none_leaves_no_field(
     assert!(without.get("reviews").is_none());
     assert_eq!(without["lang"], "es");
 }
+
+#[test]
+fn a_language_set_aside_leaves_the_map_and_comes_back_whole() {
+    let carried = serde_json::json!({
+        "languages": [
+            { "lang": "en", "document": "anaEngl1", "key": "k1", "pending": true },
+            { "lang": "fr", "document": "marioFr1", "key": "k2" },
+        ],
+        "reviews": [],
+    })
+    .to_string();
+
+    let aside = super::set_aside(Some(&carried), "anaEngl1");
+
+    let said: serde_json::Value = serde_json::from_str(aside.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"].as_array().unwrap().len(), 1);
+    let kept = super::languages_set_aside(aside.as_deref());
+    assert_eq!(kept.len(), 1);
+    assert_eq!(kept[0].document, "anaEngl1");
+    assert_eq!(kept[0].key.as_deref(), Some("k1"));
+
+    let back = super::brought_back(aside.as_deref(), "anaEngl1");
+
+    let said: serde_json::Value = serde_json::from_str(back.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"].as_array().unwrap().len(), 2);
+    assert!(said.get("set_aside").is_none());
+    assert!(super::languages_set_aside(back.as_deref()).is_empty());
+}
+
+#[test]
+fn what_folio_no_longer_holds_leaves_what_was_set_aside_too() {
+    let carried = serde_json::json!({
+        "set_aside": [{ "lang": "en", "document": "anaEngl1", "key": "k1" }],
+    })
+    .to_string();
+    let gone = std::collections::BTreeSet::from(["anaEngl1".to_owned()]);
+
+    let after = super::languages_gone(Some(&carried), &gone, &std::collections::BTreeSet::new());
+
+    assert!(super::languages_set_aside(after.as_deref()).is_empty());
+}

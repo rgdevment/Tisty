@@ -300,6 +300,25 @@ pub fn next_seq(reviews: &[Review], of: &str) -> u64 {
         + 1
 }
 
+pub const AT_MOST: usize = 64;
+
+// A map holds at most twenty languages, so past what an anchor carries only the oldest words that left one out go.
+fn within_reach(mut reviews: Vec<Review>) -> Vec<Review> {
+    let over = reviews.len().saturating_sub(AT_MOST);
+    if over == 0 {
+        return reviews;
+    }
+    let mut left_out: Vec<(u64, String)> = reviews
+        .iter()
+        .filter(|one| !one.kept)
+        .map(|one| (one.seq, one.of.clone()))
+        .collect();
+    left_out.sort();
+    let gone: BTreeSet<String> = left_out.into_iter().take(over).map(|(_, of)| of).collect();
+    reviews.retain(|one| one.kept || !gone.contains(&one.of));
+    reviews
+}
+
 pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
     let mut out: Vec<Review> = reviews
         .iter()
@@ -307,7 +326,7 @@ pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
         .cloned()
         .collect();
     out.push(review);
-    out
+    within_reach(out)
 }
 
 pub fn word_on(joining: &Joining, reviews: &[Review], document: &str) -> Option<Review> {
@@ -333,10 +352,12 @@ pub fn joined(joining: &Joining, mine: &[Review], theirs: &[Review]) -> Vec<Revi
         return mine.to_vec();
     };
     let both: Vec<Review> = mine.iter().chain(theirs).cloned().collect();
-    latest(joining.anchor, joining.owner, &anchor_key, &both)
-        .into_values()
-        .cloned()
-        .collect()
+    within_reach(
+        latest(joining.anchor, joining.owner, &anchor_key, &both)
+            .into_values()
+            .cloned()
+            .collect(),
+    )
 }
 
 pub struct LeftOut {

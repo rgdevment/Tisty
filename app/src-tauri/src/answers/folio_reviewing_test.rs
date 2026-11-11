@@ -11,7 +11,7 @@ use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 use tisty_sharing::Remembered;
 
 use super::{
-    Decided, as_shown, foreign_entry, named_here, pictures_kept, proposals_of, reviewed_now,
+    Decided, Word, as_shown, foreign_entry, named_here, pictures_kept, proposals_of, reviewed_now,
 };
 
 fn owners_machine(root: u8, machine: u8) -> (ShareKey, Certificate) {
@@ -78,7 +78,7 @@ fn what_the_owner_keeps_is_signed_so_a_reader_counts_it_and_the_list_says_so() {
     };
     let was = anchor();
     assert_eq!(proposals_of(&was, &ours()).len(), 1);
-    assert!(!proposals_of(&was, &ours())[0].kept);
+    assert_eq!(proposals_of(&was, &ours())[0].word, Word::Waiting);
 
     let now = reviewed_now(&signer, &was, "anaEngl1", Some(&read_as_shown()), 1).unwrap();
 
@@ -107,7 +107,7 @@ fn what_the_owner_keeps_is_signed_so_a_reader_counts_it_and_the_list_says_so() {
     ));
     let listed = proposals_of(&now, &ours());
     assert_eq!(listed.len(), 1);
-    assert!(listed[0].kept);
+    assert_eq!(listed[0].word, Word::Kept);
 }
 
 #[test]
@@ -120,11 +120,38 @@ fn a_language_left_out_leaves_the_map_and_its_word_stays_behind() {
 
     let now = reviewed_now(&signer, &anchor(), "anaEngl1", None, 1).unwrap();
 
-    assert!(proposals_of(&now, &ours()).is_empty());
+    assert!(
+        super::carried_map(&now)
+            .iter()
+            .all(|one| one.document != "anaEngl1")
+    );
+    let listed = proposals_of(&now, &ours());
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].word, Word::LeftOut);
     let reviews = tisty_sharing::reviews_carried(now.carried.as_deref());
     assert_eq!(reviews.len(), 1);
     let gone = LeftOut::by(&encoded(0x11), "anclaDoc", &certificate.root, &reviews).unwrap();
     assert!(gone.names("anaEngl1"));
+}
+
+#[test]
+fn a_language_left_out_keeps_its_key_here_and_comes_back_to_the_map_once_kept() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let left = reviewed_now(&signer, &anchor(), "anaEngl1", None, 1).unwrap();
+
+    let entry = foreign_entry(&left, &ours(), "anaEngl1").unwrap();
+    assert_eq!(entry.key.as_deref(), Some(encoded(0x12).as_str()));
+
+    let back = reviewed_now(&signer, &left, "anaEngl1", Some(&read_as_shown()), 2).unwrap();
+
+    let map = super::carried_map(&back);
+    assert!(map.iter().any(|one| one.document == "anaEngl1"));
+    assert!(tisty_sharing::languages_set_aside(back.carried.as_deref()).is_empty());
+    assert_eq!(proposals_of(&back, &ours())[0].word, Word::Kept);
 }
 
 #[test]
