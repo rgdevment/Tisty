@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.rgdevment/tisty",
   "title": "Tisty",
-  "description": "Local tasks, todo lists and notes as Markdown on your disk, where agents track work you can audit.",
+  "description": "Local memory and context for your AI agent: tasks, notes and documents as Markdown on your disk.",
   "websiteUrl": "https://www.tisty.app/",
   "icons": [
     {
