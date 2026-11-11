@@ -144,12 +144,12 @@ Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una
 | El agente… | Gasta, con Tisty | Ahorro |
 | --- | --- | --- |
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
-| Busca algo resuelto hace meses | cerca de un 2 % | 98 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 5 %, 8 % en el peor caso | 92–95 % menos |
+| Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
 
 Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
 
-Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una cuarta parte de esa bitácora. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra más bien un 70–75 %, y con menos de unos 70 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
+Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test impide que vuelva a crecer. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
 
 ## Lo que conviene saber antes de conectar uno
 

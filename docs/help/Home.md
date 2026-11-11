@@ -19,7 +19,7 @@ And it is the memory of the AI agent you already use. Through a local **MCP serv
 ## Real problems, real fixes
 
 - **A developer** explains the project to the agent again every session. **With Tisty:** the agent asks what moved, opens the task it was on with its ticked steps, and reads what it noted yesterday — *the webhook fails on old signatures; retrying ruled out* — and carries on from there.
-- **A `NOTES.md` that grew to 256 KB** is reread whole every time. **With Tisty:** it lives as documents split by subject, in pages, and the agent reads the outline and one section: about 95% less.
+- **A `NOTES.md` that grew to 256 KB** is reread whole every time. **With Tisty:** it lives as documents split by subject, in pages, and the agent reads the outline and one section: about 94% less.
 - **A PM** is asked, a month later, «why did we decide this?». **With Tisty:** one living document per subject keeps each decision dated with its why, and the agent finds it and quotes it.
 - **A QA** sees the same screen break again, and nobody remembers last time's cases. **With Tisty:** the archived regression task keeps them as steps, with what was seen in each.
 - **A handover** to a PO or to the QA joining the project ends up pasted into a chat. **With Tisty:** it goes through Folio, the document encrypted on your machine, signed by you, gone on its own when unused. See [Sharing](Documents#sharing).
