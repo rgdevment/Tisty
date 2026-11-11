@@ -109,6 +109,32 @@ fn edits(base: &[String], other: &[String]) -> Vec<Edit> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(tag = "kind", content = "text", rename_all = "camelCase")]
+pub enum Changed {
+    Same(String),
+    Gone(String),
+    Came(String),
+}
+
+// Past what a merge would weigh nothing is told, and the window shows the whole version instead.
+pub fn changed(was: &str, now: &str) -> Option<Vec<Changed>> {
+    let (was, now) = (blocks(was), blocks(now));
+    if was.len().saturating_mul(now.len()) > CELLS_AT_MOST {
+        return None;
+    }
+    let mut out = Vec::new();
+    let mut at = 0;
+    for edit in edits(&was, &now) {
+        out.extend(was[at..edit.from].iter().cloned().map(Changed::Same));
+        out.extend(was[edit.from..edit.upto].iter().cloned().map(Changed::Gone));
+        out.extend(edit.said.into_iter().map(Changed::Came));
+        at = edit.upto;
+    }
+    out.extend(was[at..].iter().cloned().map(Changed::Same));
+    Some(out)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Rift {
     pub was: Vec<String>,
