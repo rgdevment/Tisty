@@ -10,7 +10,7 @@
 
 ---
 
-**A task list forgets the moment you tick the box. Your AI agent forgets the moment the session ends.** So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
+**An ordinary task list forgets the moment you tick the box. Your AI agent forgets the moment the session ends.** So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
 
 Tisty is the memory underneath. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
 
