@@ -207,7 +207,7 @@ productivity tool** that lives on your machine and nowhere else.
 What people actually run into when they work with an AI assistant for months,
 and what happens instead when the memory lives in Tisty.
 
-| The problem | What happens in Tisty |
+| The problem | With Tisty |
 | --- | --- |
 | **Developer:** every new session you explain the project to your agent again | It asks what moved since last time, opens the task *Move payments to v2* with its ticked steps, and reads what it noted yesterday: *the webhook fails on old signatures; retrying ruled out*. It carries on from there. |
 | **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 95% less than the whole file. |
