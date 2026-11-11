@@ -27,7 +27,7 @@ That is the history, not today's state: a later event renames, finishes or moves
 On your disk, no, by decision: your operating system's permissions are the protection, and the files stay readable with tools you already have. In a cloud Tisty reaches directly, it can be: see [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud). [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) explains why.
 
 **Can I use it with my team?**
-No. Tisty is for one person by design — no assignees, no permissions, no boards.
+Not as a shared board. Tisty is one person's by design — no assignees, no permissions, no shared database. Each person keeps their own tasks, documents and agent, and when somebody needs what you know, you hand them the document through Folio, encrypted and signed. See [Sharing](Documents#sharing).
 
 **Is there a mobile app? Linux?**
 No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an assistant that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Assistants.
@@ -36,6 +36,12 @@ No mobile app: Tisty is a desktop program for Windows and macOS. Your documents 
 Not as far as anybody knows. The whole window works from the keyboard and that path is tested, but it has never been tried with a real screen reader. If you use one, an [issue](https://github.com/rgdevment/Tisty/issues) saying where it falls apart would be very welcome.
 
 ## AI and assistants
+
+**How do I give my AI agent a memory between sessions?**
+Connect Tisty over MCP, as [[Assistants and MCP|Assistants-and-MCP]] shows — GitHub Copilot in VS Code, Claude Code, Codex, Cursor and Gemini CLI take one line. From then on the agent starts a session by asking what moved since the last one, files its work as tasks with steps and a journal, and keeps what it learns in documents. The next session, on any project, starts from there. See [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+
+**Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?**
+For what changes, yes; for what does not, no. Instructions that rarely move — how to build, the conventions — belong in the files your repository already hands the assistant. What moves — progress, decisions, what was ruled out, what is left — belongs in Tisty, where it is dated, searchable, read a section at a time, and never lost between branches, machines or projects.
 
 **Does Tisty use AI?**
 No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and one click closes it.

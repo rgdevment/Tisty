@@ -7,7 +7,7 @@ Tisty es un lugar tranquilo para dos cosas: lo que tienes que hacer y lo que qui
 
 Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo.
 
-Y no olvida. Una tarea que terminaste se archiva con lo que escribiste en ella, y meses después una búsqueda te cuenta cómo lo resolviste.
+Y no olvida. Una tarea que terminaste se archiva con lo que escribiste en ella, y meses después una búsqueda te cuenta cómo lo resolviste. Tampoco olvida el agente de IA con el que trabajas: conectado por MCP, guarda aquí su memoria y retoma donde quedó, en vez de partir de un chat en blanco.
 
 Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión, y a esta guía vuelves desde Configuración → General.
 
@@ -421,7 +421,9 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 
 ### Un asistente puede escribir aquí
 
-Si usas un asistente como Claude Code o Codex, puede entrar a Tisty por MCP, con un programa que corre en este equipo. Configuración → Asistentes encuentra los que tienes instalados y conecta uno con un clic. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
+Si usas un agente de IA como GitHub Copilot, Claude Code o Codex, puede entrar a Tisty por MCP, con un programa que corre en este equipo. Configuración → Asistentes encuentra los que tienes instalados y conecta uno con un clic. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
+
+Desde ahí, Tisty es su memoria entre sesiones. Empieza preguntando qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, marca los pasos de la tarea en la que está y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
 
 - **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, y marcar uno que ya cumplió su vida, con el porqué.
 - **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.

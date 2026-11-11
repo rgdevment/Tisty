@@ -1,6 +1,8 @@
 # Asistentes y MCP
 
-**Tisty no es IA y no tiene IA dentro.** El lenguaje natural que convierte «llamar al banco a las 3» en una tarea son reglas que corren en tu equipo: sin modelo, sin petición y sin nube. Eso no va a cambiar.
+**Tisty es la memoria que tu agente de IA guarda entre sesiones.** GitHub Copilot, Claude Code, Codex, Cursor o cualquier asistente que hable MCP anota aquí su trabajo como tareas con pasos y bitácora, guarda lo que aprende en documentos y empieza la sesión siguiente desde lo que cambió, no desde un chat en blanco, en este equipo, sin cuenta y sin pasar nada por la red.
+
+**Tisty en sí no es IA y no tiene IA dentro.** El lenguaje natural que convierte «llamar al banco a las 3» en una tarea son reglas que corren en tu equipo: sin modelo, sin petición y sin nube. Eso no va a cambiar.
 
 Pero si ya usas un asistente, seguramente le cuentas cosas que vale la pena guardar: el grupo del colegio pide cartulina para el lunes, la factura vence el 30, el bug que acabas de arreglar y cómo lo hiciste. Por eso Tisty deja una puerta, y tú decides si usarla.
 
@@ -48,7 +50,7 @@ En Claude Code:
 /plugin install tisty --marketplace rgdevment/mcp-plugins
 ```
 
-Cualquier otro asistente que arranque un servidor con un comando, como Cursor, Cline o VS Code, toma el mismo lanzador desde npm:
+Cualquier otro asistente que arranque un servidor con un comando, como GitHub Copilot en VS Code, Cursor o Cline, toma el mismo lanzador desde npm:
 
 ```json
 {
@@ -112,6 +114,21 @@ Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías t�
 
 Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]].
 
+## Un día con tu agente
+
+Lo que hace un agente conectado a Tisty en un trabajo real:
+
+1. **Pregunta qué cambió** desde la última sesión, en vez de releerlo todo.
+2. **Abre la tarea en la que está.** *Para estar lista*, en su página, le dice cuándo termina, y los pasos sin marcar, qué falta.
+3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de ahí.
+4. **Lee el documento del módulo por su índice**, después solo la sección que necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre debates cerrados ni se desvía.
+5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima sesión, u otro agente, no repite el intento fallido.
+6. **Cuando la página de una tarea crece, compacta sus propias notas** en un resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera.
+7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
+8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
+
+Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. Lo que escribiste tú sigue siendo tuyo: el agente solo agrega (una nota en la bitácora, un recordatorio, un archivo) y da su palabra de que un paso o la tarea están hechos, para que tú lo confirmes. Cerrar siempre es tuyo.
+
 ## Firmado con su nombre
 
 Lo que escribe un asistente va firmado con el nombre del programa por el que habló. En la fila dice «por un agente», y el nombre aparece al pasar el puntero; dentro de una tarea (el panel lateral, la página completa y la bitácora) se nombra el programa: «por Claude Code», «por Codex». Configuración › Asistentes cuenta lo que escribió cada uno, y ahí eliges dónde se ve el nombre: en la lista de tareas, dentro de una tarea, en ambas o en ninguna; donde no se ve, dice «por un agente» y el nombre aparece al pasar el puntero. «Solo un rombo» va más allá: ningún texto, solo un pequeño ◆ del color de los asistentes, y quién lo escribió al pasar el puntero. Lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
@@ -121,6 +138,18 @@ Lo que escribe un asistente va firmado con el nombre del programa por el que hab
 Tisty guarda una pequeña ficha de cada documento (sus títulos, cuánto mide, en qué se apoya) que saca del propio texto, en este equipo, y que nunca envía a ninguna parte. Un asistente lee esa ficha para elegir el documento que necesita, y después pide solo la parte que quiere, o cambia esa parte sin leer el resto. Un documento largo no se vuelca en un modelo porque un asistente quería un párrafo.
 
 Después de leer un documento, puede dejar un resumen corto para el siguiente asistente: queda en este equipo, nunca se sincroniza y no forma parte de lo que escribiste.
+
+Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una bitácora de trabajo de 256 KB en Markdown, frente a un agente que relee el archivo entero en cada sesión:
+
+| El agente… | Gasta, con Tisty | Ahorro |
+| --- | --- | --- |
+| Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
+| Busca algo resuelto hace meses | cerca de un 2 % | 98 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 5 %, 8 % en el peor caso | 92–95 % menos |
+
+Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
+
+Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una cuarta parte de esa bitácora. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra más bien un 70–75 %, y con menos de unos 70 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
 
 ## Lo que conviene saber antes de conectar uno
 
