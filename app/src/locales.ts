@@ -683,6 +683,9 @@ const en = {
   tonguesOf: "Its languages",
   tonguesFind: "Find a language",
   translateTo: "Translate into…",
+  translateProposed:
+    "It will be a proposal: readers see it once its owner keeps it. To share it yourself, part it from its languages.",
+  tongueCredit: "Translated by {name} · reviewed by {other}",
   translateWhich: "Into which language",
   tongueOf: "Language of «{name}»",
   joinTongues: "Join with its other language…",
@@ -774,6 +777,9 @@ const en = {
   shareRenewAsk:
     "Whoever has the current edit link can no longer send versions, and keeps the copy they have. You get a new link to give to whoever should keep editing.",
   shareRenew: "Change it",
+  shareRenewTheirs:
+    "The languages others added ({name}) stay in view: changing the link does not take them out. You can leave them out as you change it.",
+  shareRenewLeaving: "Change it and leave them out",
   shareRenewed: "The edit link changed. Copy the new one and give it to whoever keeps editing.",
   shareRenewWaits:
     "The edit link changed, but the version that confirms it has not gone yet: press Sync once more.",
@@ -3782,6 +3788,9 @@ const es: Catalog = {
   tonguesOf: "Sus idiomas",
   tonguesFind: "Buscar idioma",
   translateTo: "Traducir a…",
+  translateProposed:
+    "Será una propuesta: quienes leen la ven cuando su dueño la mantenga. Para compartirla tú, sepárala de sus idiomas.",
+  tongueCredit: "Traducción de {name} · revisada por {other}",
   translateWhich: "A qué idioma",
   tongueOf: "Idioma de «{name}»",
   joinTongues: "Unir con su otro idioma…",
@@ -3877,6 +3886,9 @@ const es: Catalog = {
   shareRenewAsk:
     "Quien tenga el link de editar actual ya no podrá enviar versiones, y se queda con la copia que tiene. Recibes un link nuevo para dárselo a quienes deban seguir editando.",
   shareRenew: "Cambiarlo",
+  shareRenewTheirs:
+    "Los idiomas que sumaron otros ({name}) siguen a la vista: cambiar el link no los saca. Puedes dejarlos fuera al cambiarlo.",
+  shareRenewLeaving: "Cambiarlo y dejarlos fuera",
   shareRenewed: "El link de editar cambió. Copia el nuevo y dáselo a quienes sigan editando.",
   shareRenewWaits:
     "El link de editar cambió, pero la versión que lo confirma todavía no se envía: pulsa Sincronizar otra vez.",

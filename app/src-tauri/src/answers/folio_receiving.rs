@@ -734,6 +734,26 @@ struct Kept {
     left: Vec<String>,
 }
 
+// A language of the anchor's own root goes under the anchor's name, so only another root's name differs and the view credits it (166).
+pub(super) fn language_by(
+    anchor_root: Option<&str>,
+    its_root: Option<&str>,
+    anchors_name: Option<String>,
+    its_name: Option<String>,
+) -> Option<String> {
+    match anchor_root.is_some() && anchor_root == its_root {
+        true => anchors_name,
+        false => its_name,
+    }
+}
+
+fn name_in(document: &serde_json::Value) -> Option<String> {
+    document["owner_name"]
+        .as_str()
+        .or(document["signed_as"].as_str())
+        .map(str::to_owned)
+}
+
 /// Keeps each language beside the anchor already here, and says which one Tisty speaks and which edit links it holds.
 fn languages_kept(
     app: &AppHandle,
@@ -751,7 +771,12 @@ fn languages_kept(
         let kept = (|| {
             let (arrived, told) = kept_here(&data, &its);
             let arrived = saying_its_language(arrived, Some(&one.lang));
-            let by = arrived.owner_name.clone().or(arrived.signed_as.clone());
+            let by = language_by(
+                opened.owner_root.as_deref(),
+                its.owner_root.as_deref(),
+                name_in(&opened.document),
+                arrived.owner_name.clone().or(arrived.signed_as.clone()),
+            );
             let mut session = held(&session);
             session.commit_all(told)?;
             let (its_doc, its_file) = guests_kept(&mut session, &arrived, by)?;

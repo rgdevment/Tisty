@@ -219,6 +219,59 @@ describe("the Shared row", () => {
     );
   });
 
+  it("names the languages others added before the edit link changes and can leave them out with it", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "kept", mine: false },
+      { document: "anaPort1", lang: "pt-BR", title: null, word: "leftOut", mine: false },
+    ];
+    const editable = { ...card, edit: "https://tisty.cl/a#k.old", languages };
+    const { panel, pressed } = await held(editable);
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_edit_link_renewed")
+        return Promise.resolve({ state: "sent", version: 3, told: [] });
+      if (command === "doc_share_card") return Promise.resolve(editable);
+      return Promise.resolve(null);
+    });
+
+    await pressed("renewAsk");
+    expect(panel().said).toContain(fill("shareRenewTheirs", "English"));
+    expect(panel().acts?.map((one) => one.key)).toEqual(["keep", "renewLeaving", "renew"]);
+    await pressed("renewLeaving");
+
+    await waitFor(() =>
+      expect(invoked).toHaveBeenCalledWith("doc_share_edit_link_renewed", { id: "d1" }),
+    );
+    const left = invoked.mock.calls.filter(([command]) => command === "doc_language_reviewed");
+    expect(left.map(([, args]) => args)).toEqual([
+      { id: "d1", document: "anaEngl1", keep: false, print: null },
+    ]);
+  });
+
+  it("leaves the link as it is when leaving a language out fails, and offers nothing twice", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "kept", mine: false },
+      { document: "anaFran1", lang: "fr", title: null, word: "waiting", mine: false },
+    ];
+    const editable = { ...card, edit: "https://tisty.cl/a#k.old", languages };
+    const onError = vi.fn();
+    const { panel, pressed } = await held(editable, {}, onError);
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_language_reviewed") return Promise.reject({ code: "cannotSeal" });
+      if (command === "doc_share_card") return Promise.resolve(editable);
+      return Promise.resolve(null);
+    });
+
+    await pressed("renewAsk");
+    expect(panel().said).toContain(fill("shareRenewTheirs", "English"));
+    await pressed("renewLeaving");
+
+    expect(panel().acts?.some((one) => one.key === "renewLeaving")).toBe(false);
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(invoked.mock.calls.some(([command]) => command === "doc_share_edit_link_renewed")).toBe(
+      false,
+    );
+  });
+
   it("says the change still waits when the Sync inside it brought another version", async () => {
     const editable = { ...card, edit: "https://tisty.cl/a#k.old" };
     const { panel, pressed } = await held(editable);
