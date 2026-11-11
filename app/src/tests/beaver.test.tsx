@@ -1,6 +1,7 @@
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings, Task } from "../core";
+import { fill } from "../locales";
 
 const ipc = vi.hoisted(() => ({ quiet: [] as string[], fails: false }));
 
@@ -93,7 +94,7 @@ describe("the notice when a task is done", () => {
     );
     expect(view.container.textContent).toContain("Vacuna de Rina");
     expect(view.container.querySelector("svg")).toBeNull();
-    view.getByRole("button").click();
+    view.getByRole("button", { name: fill("cheerUndoWhich", "Vacuna de Rina") }).click();
     expect(undone).toEqual(["01T"]);
     act(() => {
       vi.advanceTimersByTime(5100);

@@ -29,12 +29,14 @@ export default function Cheer({ task, onUndo, onDismiss }: Props) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold">{t("done")}</span>
-          <span className="block truncate text-[11.5px] text-faint">
+          <span title={task.title} className="block truncate text-[11.5px] text-faint">
             {fill("cheerKept", task.title)}
           </span>
         </span>
         <button
           type="button"
+          aria-label={fill("cheerUndoWhich", task.title)}
+          title={fill("cheerUndoWhich", task.title)}
           onClick={onUndo}
           className="rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
         >
