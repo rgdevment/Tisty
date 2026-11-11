@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Append to what a task has recorded. Only a task's: a note set apart inside a document is a callout, `> [!NOTE]`, written with `edit_doc`. Works on tasks the person wrote too. Use it when something new turns up about work that already exists, instead of filing a duplicate. A closed task is history and takes no note: if the work came back, propose it anew.",
+  "description": "Add to a task's journal, the person's tasks too, when something new turns up about existing work, instead of filing a duplicate. A closed task takes none: propose the work anew. A note inside a document is a callout (`> [!NOTE]`), with `edit_doc`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

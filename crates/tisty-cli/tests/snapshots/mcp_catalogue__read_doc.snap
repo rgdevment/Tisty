@@ -9,43 +9,43 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest. `pages_loose` names the pages no line in the body names.",
+  "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `pages_loose` names pages no line places.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "as": {
-        "description": "Bring the whole document in standard GitHub Markdown, to hand to another tool — Confluence, Jira, Notion, Linear, GitHub — whose own tools turn it into their format. Not everything travels, and the answer says what this document loses in `left_out`, which you tell the person before publishing: attached files stay in Tisty — `export_doc` writes them into a folder, from where the other place's tool uploads them; diagrams stay mermaid fences, drawn by GitHub, GitLab and Notion but shown as code by Confluence and Jira; links to other documents and tasks become plain words; pens, underlines, icons and folds go as HTML tags some places show as written. A document put away or marked as having had its day says so first. Pages come apart, each read with `as`. It takes no part of the document: no `section`, lines or `chars`",
+        "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»). Not with `section`, lines or `chars`",
         "enum": [
           "markdown"
         ],
         "type": "string"
       },
       "chars": {
-        "description": "About how many characters to bring. The answer says `next` when there is more",
+        "description": "About how many characters to bring; the answer gives `next` when there is more",
         "type": "integer"
       },
       "cursor": {
-        "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top",
+        "description": "The `next` a previous answer gave, with `chars`",
         "type": "integer"
       },
       "doc": {
-        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "description": "The document's id from `docs`, not its title",
         "type": "string"
       },
       "from": {
-        "description": "First line, counting from 1",
+        "description": "First line, from 1",
         "type": "integer"
       },
       "print": {
-        "description": "The `print` the previous part came with. Needed only alongside `cursor`, so that two halves are known to be the same document",
+        "description": "The `print` the previous part came with; only with `cursor`",
         "type": "string"
       },
       "section": {
-        "description": "One heading and everything under it, numbered as `outline_doc` numbers them, from 0",
+        "description": "A heading and all under it, by its `at` in `outline_doc`, from 0",
         "type": "integer"
       },
       "to": {
-        "description": "Last line. Left out, it reads to the end",
+        "description": "Last line; left out, to the end",
         "type": "integer"
       }
     },

@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Mark steps of a task done when you did them yourself — the moment you did, not at the end. Name each by its text as `read` shows it; one unknown name and nothing is ticked, and a name two steps share ticks the next one still open. On a task you filed or one the person opened to agents the step is ticked; on any other of the person's it stays unticked, said done, until they take your word. Either way the task stays open until `say_done` and the person.",
+  "description": "Mark steps you did yourself, as you finish each. One unknown name and nothing is ticked; a name two steps share ticks the next open one. On a task you may work on the step is ticked; on the person's others it is said done, for them to take. Closing is `say_done` and the person's.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "step": {
-        "description": "One step, by its text — the same as `steps` with one entry",
+        "description": "One step, by its text",
         "type": "string"
       },
       "steps": {
-        "description": "The steps you did, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call",
+        "description": "The steps you did, by their text as `read` shows it; case and accents do not matter",
         "items": {
           "type": "string"
         },

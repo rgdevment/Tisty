@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. An `.html` or `.htm` page attached to a document is a file like any other, shown as a card: Tisty never runs it. The file is copied, not linked. A task and a document both take files up to 650 MB — a recording, a video, a slide deck. Only attach what you were asked to.",
+  "description": "Copy a file from this machine into Tisty: with `task` onto its journal, with `doc` at the end of that document as a picture or a card. Up to 650 MB; an HTML page is kept, never run. Attach only what you were asked to.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "doc": {
-        "description": "The document's id, if it goes in a document — an opaque name like `q7ntmzbm-0001`, which `docs` lists",
+        "description": "The document's id, to add it there",
         "type": "string"
       },
       "label": {
-        "description": "What to call it. Defaults to the file's own name",
+        "description": "What to call it; defaults to the file's name",
         "type": "string"
       },
       "path": {
@@ -26,7 +26,7 @@ expression: tool
         "type": "string"
       },
       "task": {
-        "description": "The task id, if it is kept with a task",
+        "description": "The task id, to keep it with a task",
         "type": "string"
       }
     },
@@ -36,5 +36,5 @@ expression: tool
     "type": "object"
   },
   "name": "attach",
-  "title": "Keep a file with a task or in a document"
+  "title": "Attach a file to a task or a document"
 }

@@ -3,7 +3,7 @@ use tisty_core::State;
 use tisty_core::event::Op;
 use tisty_core::model::TaskId;
 
-use super::asked::{only_what_it_takes, short_and_plain, text};
+use super::asked::{Takes, only_what_it_takes, short_and_plain, text};
 use super::chores::{Drafted, drafted, standing};
 use super::order;
 use super::{Refused, alike};
@@ -53,6 +53,7 @@ pub(super) fn whole_named(state: &State, args: &Value) -> Result<Option<TaskId>,
 
 pub(super) fn parts_drafted(
     state: &State,
+    taken: Option<&Takes>,
     args: &Value,
     whole: &Drafted,
     again: bool,
@@ -99,7 +100,7 @@ pub(super) fn parts_drafted(
                  task around it. Nothing was written."
             )));
         }
-        only_what_it_takes("propose", one)?;
+        only_what_it_takes("propose", taken, one)?;
         short_and_plain(one)?;
         let Some(title) = text(one, "title") else {
             return Err(Refused::Tool(

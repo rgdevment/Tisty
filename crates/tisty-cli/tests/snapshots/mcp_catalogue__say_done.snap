@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Say that a task is done, when you did the work yourself — any task of the person's too, since it is only your word. Say it in the turn the work ends. Every step has to be ticked or said done first; with one left it is refused, and so is a whole with a part still open and unmarked. Reading that it no longer matters is not doing it, and goes in `say_not_doing`. It closes nothing: the task stays open, marked, until the person finishes it or takes the mark off. Say it once; if they have not looked yet, what is new goes in `note` too.",
+  "description": "Say a task is done when you did the work, in the turn it ends; on any task, as your word. Refused while a step is unticked or a part open and unmarked. What stopped mattering is `say_not_doing`. Nothing closes: the person decides. Say it once; news after goes in `note`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "body": {
-        "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In the Tisty language",
+        "description": "What you did and what makes you sure (the command and its answer, the commit), in the Tisty language",
         "type": "string"
       },
       "task": {
-        "description": "The task's id, as `find` or `propose` gave it",
+        "description": "The task id",
         "type": "string"
       }
     },

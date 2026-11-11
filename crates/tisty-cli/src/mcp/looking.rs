@@ -7,7 +7,7 @@ use tisty_core::standing::Standing;
 use ulid::Ulid;
 
 use super::asked::{strings, text};
-use super::jsonrpc::told;
+use super::jsonrpc::{mirrored, told};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -197,7 +197,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if hid {
         whole["unpathed"] = json!(UNPATHED);
     }
-    Ok(told(
+    Ok(mirrored(
         format!(
             "{all} task(s) and {papers_all} document(s) match {asked:?}; showing {} and {}.
 {}",
@@ -327,7 +327,7 @@ pub(super) fn inside_a_doc(
                 .join("\n")
         ),
     };
-    Ok(told(
+    Ok(mirrored(
         said,
         json!({
             "doc": which,
@@ -459,10 +459,12 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         plainly.push_str(&format!(" ({notice})"));
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
-        plainly.push_str(
-            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \
-             reword a note, and say done or not doing)",
-        );
+        let notice =
+            "open to agents: yours to describe, plan, tick, mend and say done or not doing";
+        plainly.push_str(&format!(" ({notice})"));
+        if wants("notice") {
+            whole["notice"] = json!(notice);
+        }
     }
     if let Some(body) = &task.description
         && wants("description")
@@ -498,7 +500,7 @@ part [{}] {} — {}",
             plainly.push_str(&format!("\n\n{UNPATHED}"));
         }
     }
-    Ok(told(plainly, whole))
+    Ok(mirrored(plainly, whole))
 }
 
 pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {

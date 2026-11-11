@@ -136,6 +136,11 @@ pub(super) fn told(text: String, structured: Value) -> Value {
         }
         other => other,
     };
+    mirrored(text, structured)
+}
+
+/// A text that only lays out the structured answer travels once, never copied into it.
+pub(super) fn mirrored(text: String, structured: Value) -> Value {
     json!({
         "resultType": "complete",
         "content": [{ "type": "text", "text": text }],

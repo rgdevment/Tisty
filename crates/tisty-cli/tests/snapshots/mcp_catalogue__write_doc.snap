@@ -9,52 +9,52 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end — except, when compacting, the pages you marked, which leave the body. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer gives the `size` before and after and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
+  "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `find` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "anyway": {
-        "description": "A new document whose title names the same subject as one already here is refused; this writes it all the same. Only when it truly is another subject",
+        "description": "Write it although a document names the same subject; only when it truly is another",
         "type": "boolean"
       },
       "body": {
-        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: in the Tisty language a single newline is a line break, so markdown wrapped at 80 columns reads broken in the middle of its sentences. Nothing checks this on the way in",
+        "description": "The whole document; its first line is its title. One line per paragraph: a single newline is a line break, so wrapped text reads broken",
         "type": "string"
       },
       "compact": {
-        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Call `rules` first: it says the order. In one whole write: before it, move what leaving pages hold and mark them; in it, today first, then the subject, the decisions and a history naming every link and file taken out — one lost without a name is refused. Only what Tisty confirms is stated as today; what you only read stays dated and unconfirmed. Refused on a document the person began unless `person_asked`. The window shows the person it was compacted, by whom and when, with one click to undo; until they decide, only one more whole `compact` of yours goes in",
+        "description": "With `doc` and `print`: this write puts the document back in order, as `rules` «tidying» says. Refused on one the person began unless `person_asked`",
         "type": "boolean"
       },
       "doc": {
-        "description": "The id of a document to write again — an opaque name like `q7ntmzbm-0001`, not its title — replacing its body. Needs `print`. Left out, a new document is written instead",
+        "description": "Id of a document to write again whole, not its title; needs `print`. Left out, a new one",
         "type": "string"
       },
       "folder": {
-        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: `docs` says which exist, the `folder` tool makes a new one once the person agrees, and a name no folder has is refused here. Left out, it sits outside them all, and that needs a reason. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here",
+        "description": "The existing folder its subject belongs in, by name, path or id; left out needs a reason. Not with `doc`: `file_doc` moves one",
         "type": "string"
       },
       "keep_compaction": {
-        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "description": "The person told you in this conversation to keep the compaction awaiting their word",
         "type": "boolean"
       },
       "lang": {
-        "description": "With `translation_of`: the language the body is in, as a tag like `es`, `en` or `pt-BR`, written into its properties",
+        "description": "With `translation_of`: the body's language tag, like `es`, `en` or `pt-BR`",
         "type": "string"
       },
       "page_of": {
-        "description": "The id of the document this one is a page of — an opaque name like `q7ntmzbm-0001`, not its title. The page is named at the end of that document, and where it is named is where it sits; `page_doc` with `after` puts that line somewhere else. A page follows that document everywhere and takes its folder, so `folder` is ignored, and it holds no pages of its own",
+        "description": "Id of the document this is a page of: it is named at that document's end (`page_doc` moves the line), takes its folder and holds no pages",
         "type": "string"
       },
       "person_asked": {
-        "description": "With `compact`: the person asked you in this conversation to compact a document they began. Never otherwise",
+        "description": "With `compact`: the person asked you in this conversation to compact a document they began",
         "type": "boolean"
       },
       "print": {
-        "description": "The `print` `read_doc` gave you with the text you are working from. If the document has moved on since, nothing is written and you are told to read it again — so the person cannot lose what they wrote while you were thinking",
+        "description": "The `print` `read_doc` gave with the text you worked from; if the document changed since, nothing is written",
         "type": "string"
       },
       "translation_of": {
-        "description": "The id of a document this one says the same as, in another language. It is written as a document of its own beside that one, in its folder, and the person sees them as one document with a switch between their languages. Its language comes from `lang` or a `lang:` line in its properties, and that document has to say its own. One document per language: a language the group already has is refused",
+        "description": "Id of a document this one says in another language, joined as one more of its languages; both say their language, in `lang` or a `lang:` property",
         "type": "string"
       }
     },

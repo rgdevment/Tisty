@@ -9,16 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Say that a task will not be done — it no longer matters, something else made it moot — on any task, the person's too, since it is only your word. Unticked steps do not stop it. It drops nothing: the task stays open, marked, until the person drops it or takes the mark off. Say it once; what is new after that goes in `note`.",
+  "description": "Say a task should not be done, on any task, as your word: it stopped mattering or became moot. Unticked steps do not stop it. Nothing drops: the person decides. Say it once; news after goes in `note`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "body": {
-        "description": "The account the person reads before deciding: why it should not be done, and what you found that says so. In the Tisty language",
+        "description": "Why it should not be done, and what you found that says so, in the Tisty language",
         "type": "string"
       },
       "task": {
-        "description": "The task's id, as `find` or `propose` gave it",
+        "description": "The task id",
         "type": "string"
       }
     },

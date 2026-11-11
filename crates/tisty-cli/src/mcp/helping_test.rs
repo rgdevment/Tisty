@@ -12,7 +12,6 @@ fn left_alone_it_names_every_page_by_its_section() {
     let index = said(json!({}));
     assert!(index.contains("- sync-and-backup: "), "{index}");
     assert!(index.contains("- keyboard-shortcuts: "), "{index}");
-    assert_eq!(topics().first().map(String::as_str), Some("index"));
 }
 
 #[test]

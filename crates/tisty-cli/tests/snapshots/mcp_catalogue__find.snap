@@ -9,36 +9,36 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Search the tasks — open and archived alike — and the documents: by words with `query`, by what a task is with the sifting fields (alone or narrowing a query), or by `source` alone to see whether something was filed from it already. A task found by what its page, description, steps or notes say comes with `in` and the `line` that says it, so a past decision often reads without `read`. With `doc` it searches inside that one document instead and hands back the matching lines with their numbers and the section each sits in.",
+  "description": "Search tasks, open and archived, and documents: by words in `query`, by the task fields below, or by `source` to see if it was filed. A task found by its page, steps or notes comes with the `line` saying it. With `doc`, the matching lines inside that document.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "after": {
-        "description": "Skip this many tasks, to page on while `total` is higher than what came back. Documents are not paged: `docsTotal` says how many match, and a higher `limit` brings more",
+        "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: `docsTotal` counts them",
         "type": "integer"
       },
       "around": {
-        "description": "With `doc`: how many lines to bring on each side of a hit, 1 by default, 0 for none, at most 10",
+        "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default",
         "type": "integer"
       },
       "by_agent": {
-        "description": "True for what an agent filed, false for what the person wrote",
+        "description": "True: filed by an agent; false: by the person",
         "type": "boolean"
       },
       "doc": {
-        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them unless every one of those is blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole",
+        "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section",
         "type": "string"
       },
       "folder": {
-        "description": "Only the documents in this folder and the folders below it, by its name, its whole path or its id. Documents whose title says the words come first either way, before those that only mention them",
+        "description": "Only documents in this folder or below, by name, path or id",
         "type": "string"
       },
       "from": {
-        "description": "Its date or deadline on this day or after (2026-08-31)",
+        "description": "Date or deadline on or after this day (2026-08-31)",
         "type": "string"
       },
       "from_source": {
-        "description": "Only tasks whose `source` starts with this, however it is written: «sereno», «sereno#» and «sereno: » all bring everything read out of that one place",
+        "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there",
         "type": "string"
       },
       "limit": {
@@ -46,27 +46,27 @@ expression: tool
         "type": "integer"
       },
       "list": {
-        "description": "In this list, named as `lists` names it",
+        "description": "In this list, as `lists` names it",
         "type": "string"
       },
       "open_to_agents": {
-        "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves",
+        "description": "True: the person's tasks opened to agents; false: kept to themselves",
         "type": "boolean"
       },
       "part_of": {
-        "description": "Only the parts of this task, by its id",
+        "description": "Only the parts of this task, by id",
         "type": "string"
       },
       "query": {
-        "description": "Words to look for, not a phrase: each word has to turn up in the same task or document (on the same line, with `doc`), in any order, accents or not; put a phrase in quotes when the order is the point. Not needed when sifting by the fields below",
+        "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting",
         "type": "string"
       },
       "said_done": {
-        "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for",
+        "description": "True: an agent said done or not doing and the person has not decided; false: nobody did",
         "type": "boolean"
       },
       "scope": {
-        "description": "Defaults to either: the open tasks and the archive together, which is where how something was solved before is found",
+        "description": "Defaults to either: open and archived together",
         "enum": [
           "open",
           "archive",
@@ -75,15 +75,15 @@ expression: tool
         "type": "string"
       },
       "source": {
-        "description": "Ask whether this exact source was proposed already",
+        "description": "Whether this exact source was filed already; not with `query`",
         "type": "string"
       },
       "tag": {
-        "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer",
+        "description": "Carrying this tag, # or not. Any sifting field leaves documents out",
         "type": "string"
       },
       "to": {
-        "description": "Its date or deadline on this day or before",
+        "description": "Date or deadline on or before this day",
         "type": "string"
       }
     },
