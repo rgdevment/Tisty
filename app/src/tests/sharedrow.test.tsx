@@ -844,6 +844,7 @@ describe("what Sync warns of", () => {
     for (const [word, said] of [
       ["waiting", "shareOwnerWaits"],
       ["kept", "shareOwnerKept"],
+      ["changed", "shareOwnerChanged"],
       ["leftOut", "shareOwnerLeftOut"],
     ] as const) {
       invoked.mockReset();
@@ -887,5 +888,40 @@ describe("what Sync warns of", () => {
 
     expect(invoked.mock.calls.some(([command]) => command === "doc_share_sync")).toBe(false);
     expect(panel().said).toContain(t("shareReviewedWaits"));
+  });
+
+  it("asks after the languages the owner keeps and draws the row again when one changed", async () => {
+    const said = (word: string) => [
+      { document: "anaEngl1", lang: "en", title: null, word, mine: false },
+    ];
+    const cards = [
+      { ...card, languages: said("kept") },
+      { ...card, languages: said("changed") },
+    ];
+    invoked.mockImplementation((command: string) => {
+      if (command === "doc_share_card") return Promise.resolve(cards.shift() ?? null);
+      if (command === "doc_languages_looked") return Promise.resolve(true);
+      return Promise.reject({ code: "internal", command });
+    });
+    const hook = renderHook(() => useSharedRow("d1", vi.fn()));
+
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("doc_languages_looked", { id: "d1" }));
+    await waitFor(() => {
+      const now = hook.result.current.panel;
+      expect(now?.kind === "held" && now.said).toContain(fill("shareLanguageChanged", "English"));
+    });
+    const now = hook.result.current.panel;
+    const review =
+      now?.kind === "held" ? now.acts?.find((one) => one.key === "review-anaEngl1") : null;
+    expect(review?.label).toBe(fill("shareLanguageChanges", "English"));
+  });
+
+  it("asks Folio nothing while no language others added is kept", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "waiting", mine: false },
+    ];
+    await held({ ...card, languages });
+
+    expect(invoked.mock.calls.some(([command]) => command === "doc_languages_looked")).toBe(false);
   });
 });
