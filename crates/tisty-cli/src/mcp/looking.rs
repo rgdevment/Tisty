@@ -8,7 +8,7 @@ use tisty_core::standing::Standing;
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
-use super::resuming::{last_named, last_shown, left_off, moved_since, whose};
+use super::resuming::{last_task, left_off, looks_now, moved_since, whose};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -379,22 +379,30 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .then(|| {
             let kept = tisty_core::task_docs::of(&state, owner)?;
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
-            let list = task
-                .list
-                .and_then(|at| state.lists.get(&at))
-                .map(|one| one.name.as_str());
             Some((
                 kept.file.clone(),
-                tisty_core::task_front::dressed(&body, task, list),
+                tisty_core::task_front::dressed(&body, task, list_of(&state, task)),
             ))
         })
         .flatten();
-    let on_page = |words: &str| page.as_ref().is_some_and(|(_, body)| body.contains(words));
-    let description = task
-        .description
-        .as_deref()
-        .filter(|one| wants("description") && !on_page(one.trim()));
-    let steps_apart = !task.steps.iter().all(|one| on_page(&one.text));
+    let named = |key: &str| asked.iter().any(|one| one == key);
+    let description = task.description.as_deref().filter(|one| {
+        named("description")
+            || (wants("description")
+                && !page
+                    .as_ref()
+                    .is_some_and(|(_, body)| holds_lines(body, one)))
+    });
+    let boxed: Vec<tisty_core::model::StepId> = page
+        .as_ref()
+        .map(|(_, body)| {
+            tisty_core::stages::shown(task, body)
+                .into_iter()
+                .map(|(id, _)| id)
+                .collect()
+        })
+        .unwrap_or_default();
+    let steps_apart = task.steps.iter().any(|one| !boxed.contains(&one.id));
     if let Some(body) = description {
         whole["description"] = json!(body);
     }
@@ -478,7 +486,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
     }
 
-    let mut plainly = format!("{:?} {} [{}]", task.title, placed(&state, task), task.id);
+    let mut plainly = named_task(&state, task);
     if !task.is_open() {
         let notice = format!(
             "{} — {}: it reads as it ended, and nothing on it changes",
@@ -566,11 +574,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let tags = counted_tags(&state);
 
     let log = store.read_all().map_err(hitch)?;
-    let head = log
-        .iter()
-        .map(|one| one.timestamp)
-        .max()
-        .map(|one| one.to_string());
+    let head = log.iter().map(|one| one.timestamp).max();
 
     let mut kept = serde_json::Map::new();
     kept.insert("lists".into(), json!(named));
@@ -603,16 +607,25 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         counts[how] = json!(many);
     }
     kept.insert("counts".into(), counts);
-    if let Some(head) = &head {
-        kept.insert("cursor".into(), json!(head));
+    if let Some(head) = head {
+        kept.insert("cursor".into(), json!(head.to_string()));
     }
 
-    let left = left_off(paths, &state, store.device());
+    let left = left_off(
+        paths,
+        &state,
+        log.iter().filter(|one| one.device == *store.device()),
+    );
     let mut said = Vec::new();
-    if let Some(last) = last_named(&state, left.as_ref()) {
-        said.push(format!("You last worked on {last}: `read` it."));
-    }
-    if let Some(last) = last_shown(&state, left.as_ref()) {
+    if let Some(task) = last_task(&state, left.as_ref()) {
+        said.push(format!(
+            "You last worked on {}: `read` it.",
+            named_task(&state, task)
+        ));
+        let mut last = json!({ "id": task.id.to_string(), "title": task.title });
+        if let Some(list) = list_of(&state, task) {
+            last["list"] = json!(list);
+        }
         kept.insert("last".into(), last);
     }
     let asked = match text(args, "since") {
@@ -635,7 +648,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         };
         let from = match asked {
             Some(_) => "then".to_string(),
-            None => format!("your last change, {}", when(since)),
+            None => format!("you were last here, {}", when(since)),
         };
         said.push(format!(
             "{} task(s) and {} document(s) moved since {from}{by}.",
@@ -671,12 +684,18 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     }
     if since.is_none() {
-        said.push(
-            "Send the `cursor` back next time and what moved since comes with it as well."
-                .to_string(),
-        );
+        said.push("Next time, what moved since this call comes with it as well.".to_string());
+    }
+    if let Some(head) = head {
+        looks_now(paths, head);
     }
     Ok(told(said.join(" "), Value::Object(kept)))
+}
+
+fn holds_lines(body: &str, words: &str) -> bool {
+    let body: Vec<&str> = body.lines().map(str::trim_end).collect();
+    let words: Vec<&str> = words.trim().lines().map(str::trim_end).collect();
+    !words.is_empty() && body.windows(words.len()).any(|one| one == words.as_slice())
 }
 
 fn counted_tags(state: &State) -> Vec<(&str, usize)> {
@@ -1019,15 +1038,7 @@ pub(super) fn brief(task: &Task, state: &State, today: jiff::civil::Date) -> Val
     put("source", json!(task.source));
     // Where it ended up and how the person ranked it: reading them is how an agent sees a
     // decision it cannot make itself.
-    put(
-        "list",
-        json!(
-            task.list
-                .as_ref()
-                .and_then(|id| state.lists.get(id))
-                .map(|one| &one.name)
-        ),
-    );
+    put("list", json!(list_of(state, task)));
     put(
         "priority",
         json!((task.priority != Priority::Unset).then_some(task.priority)),
@@ -1174,11 +1185,7 @@ impl Sifted {
             return false;
         }
         if let Some(want) = &self.list {
-            let named = task
-                .list
-                .as_ref()
-                .and_then(|id| state.lists.get(id))
-                .map(|one| one.name.to_lowercase());
+            let named = list_of(state, task).map(str::to_lowercase);
             if named.as_deref() != Some(want.as_str()) {
                 return false;
             }
@@ -1278,11 +1285,18 @@ fn pressed(pressing: &[(String, usize)]) -> String {
     format!(" ({})", told.join(", "))
 }
 
+pub(super) fn list_of<'a>(state: &'a State, task: &Task) -> Option<&'a str> {
+    task.list
+        .and_then(|at| state.lists.get(&at))
+        .map(|one| one.name.as_str())
+}
+
 pub(super) fn placed(state: &State, task: &Task) -> String {
-    task.list.and_then(|at| state.lists.get(&at)).map_or_else(
-        || "in the inbox".to_string(),
-        |one| format!("in {}", one.name),
-    )
+    list_of(state, task).map_or_else(|| "in the inbox".to_string(), |one| format!("in {one}"))
+}
+
+pub(super) fn named_task(state: &State, task: &Task) -> String {
+    format!("{:?} {} [{}]", task.title, placed(state, task), task.id)
 }
 
 #[cfg(test)]

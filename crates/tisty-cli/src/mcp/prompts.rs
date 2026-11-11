@@ -1,7 +1,8 @@
 use serde_json::{Value, json};
 use tisty_core::Paths;
 
-use super::resuming::{last_named, left_off};
+use super::looking::named_task;
+use super::resuming::{last_task, left_off, own_events};
 use super::{TOOLS_STAY_FRESH, admitted};
 
 const SAID_AT_MOST: usize = 2_000;
@@ -164,7 +165,7 @@ fn picking_up(paths: &Paths, said: Option<&str>) -> String {
     };
     format!(
         "Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what \
-         moved since your last change here and who moved it. Then {which} with its steps, its \
+         moved since you were last here and who moved it. Then {which} with its steps, its \
          page and its latest notes. Tell me in a few lines what moved, where the task stands, \
          what was done last and what comes next, naming tasks by title and list, never by id. \
          Change nothing yet."
@@ -198,7 +199,9 @@ fn quoted(said: &str) -> String {
 
 fn last_worked_on(paths: &Paths) -> Option<String> {
     let (state, agent) = admitted(paths).ok()??;
-    last_named(&state, left_off(paths, &state, &agent).as_ref())
+    let mine = own_events(paths, &agent);
+    let left = left_off(paths, &state, mine.iter());
+    last_task(&state, left.as_ref()).map(|task| named_task(&state, task))
 }
 
 fn planning(_: &Paths, said: Option<&str>) -> String {

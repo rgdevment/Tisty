@@ -36,4 +36,4 @@ In Tisty, leave the task we have been on where the next session can pick it up. 
 
 ## pick_up «the passport»
 
-Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what moved since your last change here and who moved it. Then `find` the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — ask me if several fit — and `read` it with its steps, its page and its latest notes. Tell me in a few lines what moved, where the task stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.
+Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what moved since you were last here and who moved it. Then `find` the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — ask me if several fit — and `read` it with its steps, its page and its latest notes. Tell me in a few lines what moved, where the task stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.

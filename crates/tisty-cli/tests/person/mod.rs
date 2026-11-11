@@ -309,6 +309,21 @@ impl Person {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }
 
+    pub fn takes_an_edit_signed_by(&self, file: &str, body: &str, hand: &str) {
+        let id = self
+            .state()
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .unwrap()
+            .id;
+        self.saves_doc(file, body);
+        self.wrote(vec![Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(body).by(Some(hand.to_string())),
+        }]);
+    }
+
     pub fn names_who_signs_and_seals(&self) {
         let root = tisty_share_proto::identity::Root::from_bytes(&[3; 32]);
         let key = tisty_share_proto::identity::ShareKey::from_bytes(&[4; 32]);

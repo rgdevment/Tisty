@@ -3,60 +3,82 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Value, json};
 use tisty_core::event::Event;
 use tisty_core::model::{Kept, Task, TaskId};
-use tisty_core::{DeviceId, Paths, State};
+use tisty_core::{DeviceId, Op, Paths, State};
 use ulid::Ulid;
 
 use super::jsonrpc::speaking_through;
-use super::looking::{brief, placed};
+use super::looking::brief;
 
 pub(super) const MOVED_SHOWN: usize = 20;
+const LOOKED: &str = "looked.json";
 
 pub(super) struct LeftOff {
     pub(super) at: jiff::Timestamp,
     pub(super) task: Option<TaskId>,
 }
 
-pub(super) fn left_off(paths: &Paths, state: &State, agent: &DeviceId) -> Option<LeftOff> {
+pub(super) fn own_events(paths: &Paths, agent: &DeviceId) -> Vec<Event> {
+    tisty_core::store::segments_in(&paths.store().join(&agent.0))
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|segment| tisty_core::store::read_tail(segment, 0).ok())
+        .flatten()
+        .collect()
+}
+
+pub(super) fn left_off<'a>(
+    paths: &Paths,
+    state: &State,
+    mine: impl Iterator<Item = &'a Event>,
+) -> Option<LeftOff> {
+    let via = speaking_through();
     let owners = tisty_core::task_docs::behind(state);
-    let segments = tisty_core::store::segments_in(&paths.store().join(&agent.0)).ok()?;
-    let mut at = None;
-    for segment in segments.iter().rev() {
-        let Ok(events) = tisty_core::store::read_tail(segment, 0) else {
-            continue;
-        };
-        for one in events.iter().rev().filter(|one| worked(one)) {
-            let at = *at.get_or_insert(one.timestamp);
-            let open = task_touched(state, &owners, one)
-                .and_then(|id| state.tasks.get(&id))
-                .filter(|task| task.is_open() && !task.folded() && task.resolved.is_none());
-            if let Some(task) = open {
-                return Some(LeftOff {
-                    at,
-                    task: Some(task.id),
-                });
-            }
-        }
-    }
-    at.map(|at| LeftOff { at, task: None })
+    let mut worked: Vec<(jiff::Timestamp, Option<TaskId>)> = mine
+        .filter(|one| one.via == via)
+        .filter_map(|one| {
+            let (named, id) = what_it_touched(one)?;
+            ["task.", "doc.", "folder."]
+                .iter()
+                .any(|kind| named.starts_with(kind))
+                .then(|| (one.timestamp, touched_task(state, &owners, &named, &id)))
+        })
+        .collect();
+    worked.sort_by_key(|(at, _)| std::cmp::Reverse(*at));
+    let task = worked
+        .iter()
+        .filter_map(|(_, task)| state.tasks.get(task.as_ref()?))
+        .find(|task| task.is_open() && !task.folded() && task.resolved.is_none())
+        .map(|task| task.id);
+    let at = worked.first().map(|(at, _)| *at).max(looked(paths));
+    Some(LeftOff { at: at?, task })
 }
 
-pub(super) fn last_named(state: &State, left: Option<&LeftOff>) -> Option<String> {
-    let task = state.tasks.get(&left?.task?)?;
-    Some(format!(
-        "{:?} {} [{}]",
-        task.title,
-        placed(state, task),
-        task.id
-    ))
+pub(super) fn last_task<'a>(state: &'a State, left: Option<&LeftOff>) -> Option<&'a Task> {
+    state.tasks.get(&left?.task?)
 }
 
-pub(super) fn last_shown(state: &State, left: Option<&LeftOff>) -> Option<Value> {
-    let task = state.tasks.get(&left?.task?)?;
-    let mut shown = json!({ "id": task.id.to_string(), "title": task.title });
-    if let Some(list) = task.list.and_then(|at| state.lists.get(&at)) {
-        shown["list"] = json!(list.name);
+fn looked_by_each(paths: &Paths) -> BTreeMap<String, jiff::Timestamp> {
+    std::fs::read(paths.private().join(LOOKED))
+        .ok()
+        .and_then(|said| serde_json::from_slice(&said).ok())
+        .unwrap_or_default()
+}
+
+fn looked(paths: &Paths) -> Option<jiff::Timestamp> {
+    looked_by_each(paths)
+        .get(&speaking_through().unwrap_or_default())
+        .copied()
+}
+
+pub(super) fn looks_now(paths: &Paths, at: jiff::Timestamp) {
+    let mut all = looked_by_each(paths);
+    all.insert(speaking_through().unwrap_or_default(), at);
+    let private = paths.private();
+    if std::fs::create_dir_all(&private).is_ok()
+        && let Ok(said) = serde_json::to_vec(&all)
+    {
+        let _ = tisty_core::store::write_atomic(&private.join(LOOKED), &said);
     }
-    Some(shown)
 }
 
 pub(super) fn whose(
@@ -75,6 +97,17 @@ pub(super) fn whose(
         || "an assistant".to_string(),
         tisty_core::agent::client_named,
     ))
+}
+
+fn mover(state: &State, event: &Event, me: &DeviceId) -> Option<String> {
+    if let Op::DocSaid { d, .. } = &event.op
+        && let Some(hand) = d.by.as_deref()
+        && !state.assistants.contains(&event.device)
+        && !state.mine_to_write(hand)
+    {
+        return Some(hand.to_string());
+    }
+    whose(state, &event.device, event.via.as_deref(), me)
 }
 
 #[derive(Default)]
@@ -107,14 +140,17 @@ pub(super) fn moved_since(
 ) -> Moved {
     let owners = tisty_core::task_docs::behind(state);
     let mut tasks: BTreeMap<TaskId, Touched> = BTreeMap::new();
-    let mut papers: BTreeMap<String, Touched> = BTreeMap::new();
+    let mut papers: BTreeMap<Ulid, Touched> = BTreeMap::new();
     // The log refuses two events at one instant, so leaving out the cursor's own skips nothing.
     for one in log.iter().filter(|one| one.timestamp > since) {
-        let who = whose(state, &one.device, one.via.as_deref(), me);
-        if let Some(task) = task_touched(state, &owners, one) {
+        let Some((named, id)) = what_it_touched(one) else {
+            continue;
+        };
+        let who = mover(state, one, me);
+        if let Some(task) = touched_task(state, &owners, &named, &id) {
             tasks.entry(task).or_default().mark(one, who);
-        } else if let Some((named, id)) = what_it_touched(one)
-            && named.starts_with("doc.")
+        } else if named.starts_with("doc.")
+            && let Ok(id) = id.parse::<Ulid>()
         {
             papers.entry(id).or_default().mark(one, who);
         }
@@ -128,8 +164,7 @@ pub(super) fn moved_since(
     let docs: Vec<(&Kept, Touched)> = papers
         .into_iter()
         .filter_map(|(id, touched)| {
-            let id = id.parse::<Ulid>().ok()?;
-            let kept = state.docs.values().find(|one| one.id == id)?;
+            let kept = state.docs.get(&id)?;
             kept.task_of.is_none().then_some((kept, touched))
         })
         .collect();
@@ -171,12 +206,12 @@ fn shown<T>(
         .collect()
 }
 
-pub(super) fn task_touched(
+fn touched_task(
     state: &State,
     owners: &BTreeMap<String, TaskId>,
-    event: &Event,
+    named: &str,
+    id: &str,
 ) -> Option<TaskId> {
-    let (named, id) = what_it_touched(event)?;
     if named.starts_with("task.") {
         return id.parse().ok();
     }
@@ -186,14 +221,6 @@ pub(super) fn task_touched(
     // Writing a task's document is that task moving, never a document of its own.
     let kept = state.docs.get(&id.parse::<Ulid>().ok()?)?;
     owners.get(&kept.file).copied()
-}
-
-fn worked(event: &Event) -> bool {
-    what_it_touched(event).is_some_and(|(named, _)| {
-        ["task.", "doc.", "folder."]
-            .iter()
-            .any(|kind| named.starts_with(kind))
-    })
 }
 
 fn what_it_touched(event: &Event) -> Option<(String, String)> {

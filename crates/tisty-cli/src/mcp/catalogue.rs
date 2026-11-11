@@ -224,8 +224,9 @@ dated history, and `reword_note` mends only what is wrong.
 
 ## Picking up where you left off
 
-A session starts with `catch_up`, without `since`: it says what moved since your own last change \
-here and who moved it, and names in `last` the open task you were on. `read` that task — its \
+A session starts with `catch_up`, without `since`: it says what moved since you were last here \
+— your last change or your last `catch_up`, whichever came later — and who moved it, and names \
+in `last` the open task you were on. `read` that task — its \
 steps, its page and its latest notes — before anything else, rather than starting over. Work \
 it as you go: `tick` each step the moment it is done, and `note` what you did, what you tried \
 and ruled out and why, and what comes next, so the next session starts where this one stopped. \
@@ -234,7 +235,7 @@ the task goes in its document.
 
 ## Documents
 
-Start with `catch_up`, which says where things stand and what moved since your last change; \
+Start with `catch_up`, which says where things stand and what moved since you were last here; \
 `docs` lists the documents and folders. Before opening a document see whether it carries a \
 `gist`, an earlier reader's summary: it helps you choose, never stands in for the text, and one \
 marked `stale` was written against an older version. After reading a long document, leave yours \

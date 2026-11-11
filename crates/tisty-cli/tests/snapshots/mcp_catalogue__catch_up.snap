@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since your last change, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
+  "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since you were last here, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
