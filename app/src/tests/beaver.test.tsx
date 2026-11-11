@@ -9,7 +9,7 @@ vi.mock("../core", () => ({
     ipc.fails ? Promise.reject(new Error("no")) : Promise.resolve({ quiet: ipc.quiet }),
 }));
 
-import { Head, Paws, QUIET, switched, Thumb, TOLD, tell, useBeaver } from "../ui/Beaver";
+import { Head, Paws, QUIET, switched, TOLD, tell, useBeaver } from "../ui/Beaver";
 import Cheer from "../ui/Cheer";
 
 const task = { id: "01T", title: "Vacuna de Rina" } as Task;
@@ -65,18 +65,16 @@ describe("Tisto, the beaver that peeks in", () => {
     expect(heard).toEqual([false, true]);
   });
 
-  it("draws its head, its paws with three fingers each, and its thumb", () => {
+  it("draws its head and its paws with three fingers each", () => {
     const view = render(
       <>
         <Head className="one" />
         <Paws />
-        <Thumb className="two" />
       </>,
     );
     expect(view.container.querySelector("svg.one")).not.toBeNull();
     expect(view.container.querySelectorAll(".paws .paw")).toHaveLength(2);
     expect(view.container.querySelectorAll(".paw i")).toHaveLength(6);
-    expect(view.container.querySelector("svg.two")).not.toBeNull();
   });
 });
 
@@ -94,6 +92,7 @@ describe("the thumbs up when a task is done", () => {
       />,
     );
     expect(view.container.textContent).toContain("Vacuna de Rina");
+    expect(view.container.querySelector("svg")).toBeNull();
     view.getByRole("button").click();
     expect(undone).toEqual(["01T"]);
     act(() => {

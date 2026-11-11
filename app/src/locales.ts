@@ -444,7 +444,7 @@ const en = {
   noticeChime: "A short tone",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy:
-    "Tisto looks over the bar while you write a task, and gives you a thumbs up when you finish one.",
+    "Tisto looks over the bar while you write a task, and offers to undo it when you finish one.",
   cheerKept: "{name} · kept in the archive",
   cheerUndo: "Undo",
   attachTitle: "Attachments",
@@ -3550,7 +3550,7 @@ const es: Catalog = {
   noticeChime: "Un tono corto",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy:
-    "Tisto se asoma sobre la barra mientras escribes una tarea y levanta el pulgar cuando terminas una.",
+    "Tisto se asoma sobre la barra mientras escribes una tarea y, cuando terminas una, te ofrece deshacerlo.",
   cheerKept: "{name} · queda en el archivo",
   cheerUndo: "Deshacer",
   attachTitle: "Adjuntos",

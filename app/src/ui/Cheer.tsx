@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Task } from "../core";
 import { fill, t } from "../locales";
-import { Head, Thumb } from "./Beaver";
 
 interface Props {
   readonly task: Task;
@@ -21,8 +20,6 @@ export default function Cheer({ task, onUndo, onDismiss }: Props) {
 
   return (
     <div className="cheer">
-      <Head className="cheer-head" />
-      <Thumb className="cheer-thumb" />
       <output className="flex items-center gap-3 rounded-[10px] border border-line bg-bg p-[12px_14px] shadow-lift">
         <span
           aria-hidden="true"
