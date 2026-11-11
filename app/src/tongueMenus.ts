@@ -44,12 +44,15 @@ const saying = (
 export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
   const tongues = tonguesOf(h.papers.docs, doc);
   const said = tongues.length ? tongues.map((one) => one.lang) : [doc.lang];
+  // A language added under someone else's edit link waits for its owner before readers see it (166).
+  const anchor = tongues.find((one) => one.id === doc.tongue?.[0]) ?? doc;
   const lone = doc.away || !!doc.pageOf;
   const translate = (lang: string, from?: string) =>
     docTranslate(doc.id, lang, from)
       .then((made) => {
         h.changed();
         h.open(made.id);
+        if (anchor.editing) h.noted(t("translateProposed"));
       })
       .catch(h.fail);
   const join = (other: Filed, lang?: string, theirs?: string) =>
@@ -71,6 +74,7 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
       key: "translate",
       icon: "◌",
       label: t("translateTo"),
+      hint: anchor.editing ? t("translateProposed") : undefined,
       off: lone || (!doc.lang && doc.locked),
       into: {
         label: t("translateWhich"),
