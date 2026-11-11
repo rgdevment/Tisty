@@ -6,6 +6,7 @@ import { weigh } from "../format";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
+import LanguageReview from "./LanguageReview";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
 import Sharing from "./Sharing";
@@ -250,6 +251,15 @@ export default function Beside(props: Props) {
           onTermsAccepted={shared.onTermsAccepted}
           onShared={shared.onShared}
           onClose={shared.onClosed}
+          onError={props.onError}
+        />
+      )}
+      {shared.reviewing && props.doc && (
+        <LanguageReview
+          doc={props.doc}
+          word={shared.reviewing}
+          onDone={shared.onReviewed}
+          onClose={shared.onReviewClosed}
           onError={props.onError}
         />
       )}

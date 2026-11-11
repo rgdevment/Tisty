@@ -812,4 +812,43 @@ describe("what Sync warns of", () => {
     act(() => result.current.onClosed());
     expect(result.current.asking).toBe(false);
   });
+
+  it("names the languages others added and offers to review each one", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "waiting", mine: false },
+      { document: "anaPort1", lang: "pt-BR", title: null, word: "kept", mine: false },
+    ];
+    const { hook, panel, pressed } = await held({ ...card, languages });
+
+    expect(panel().said?.some((one) => one.includes("English") && one.includes("review"))).toBe(
+      true,
+    );
+    expect(panel().said?.some((one) => one.startsWith("You keep"))).toBe(true);
+    expect(panel().acts?.map((one) => one.key)).toEqual(
+      expect.arrayContaining(["review-anaEngl1", "review-anaPort1"]),
+    );
+
+    await pressed("review-anaEngl1");
+
+    expect(hook.result.current.reviewing?.document).toBe("anaEngl1");
+    act(() => hook.result.current.onReviewClosed());
+    expect(hook.result.current.reviewing).toBeNull();
+  });
+
+  it("tells someone who edits what the owner said of the language they added", async () => {
+    const mine = (word: string) => [
+      { document: "anaEngl1", lang: null, title: null, word, mine: true },
+    ];
+
+    for (const [word, said] of [
+      ["waiting", "shareOwnerWaits"],
+      ["kept", "shareOwnerKept"],
+      ["leftOut", "shareOwnerLeftOut"],
+    ] as const) {
+      invoked.mockReset();
+      const { panel } = await held({ ...card, held: true, languages: mine(word) });
+      expect(panel().said).toContain(t(said));
+      expect(panel().acts).toBeUndefined();
+    }
+  });
 });

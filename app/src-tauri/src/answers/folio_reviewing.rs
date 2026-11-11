@@ -7,7 +7,7 @@ use serde::Serialize;
 use tisty_carrier::folio_reviewed;
 use tisty_contracts::Review;
 use tisty_envelope::Translation;
-use tisty_envelope::reviews::{self, Read, Signer};
+use tisty_envelope::reviews::{self, Joining, Read, Signer};
 use tisty_sharing::Remembered;
 
 use super::folio::{ToFolio, apart, kept_on, remembered_of};
@@ -42,6 +42,80 @@ pub struct Shown {
     body: String,
     pictures: Vec<ShownPicture>,
     print: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Word {
+    Waiting,
+    Kept,
+    LeftOut,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageWord {
+    document: String,
+    lang: Option<String>,
+    title: Option<String>,
+    word: Word,
+    mine: bool,
+}
+
+fn word_of(said: Option<bool>) -> Word {
+    match said {
+        None => Word::Waiting,
+        Some(true) => Word::Kept,
+        Some(false) => Word::LeftOut,
+    }
+}
+
+// Someone who edits hears the owner's word on the language they added, from the reviews its anchor carries.
+fn owners_word_on_mine(
+    shelf: &std::collections::BTreeMap<String, Remembered>,
+    was: &Remembered,
+) -> Option<LanguageWord> {
+    was.admin_token.as_ref()?;
+    let anchor_id = was.held_by.as_deref()?;
+    let anchor = shelf
+        .values()
+        .find(|one| one.id == anchor_id && one.edited_through_a_link())?;
+    let owner = super::folio_editing::root_of_the_block(anchor.owner.as_deref())?;
+    let joining = Joining {
+        anchor: anchor_id,
+        owner: &owner,
+        anchor_key: anchor.link_key.as_deref()?,
+    };
+    let reviews = tisty_sharing::reviews_carried(anchor.carried.as_deref());
+    Some(LanguageWord {
+        document: was.id.clone(),
+        lang: None,
+        title: None,
+        word: word_of(reviews::word_on(&joining, &reviews, &was.id)),
+        mine: true,
+    })
+}
+
+pub(super) fn words_on_card(
+    shelf: &std::collections::BTreeMap<String, Remembered>,
+    was: &Remembered,
+) -> Vec<LanguageWord> {
+    if let Some(mine) = owners_word_on_mine(shelf, was) {
+        return vec![mine];
+    }
+    if was.admin_token.is_none() || was.link_key.is_none() {
+        return Vec::new();
+    }
+    proposals_of(was, &owned_ids(shelf))
+        .into_iter()
+        .map(|one| LanguageWord {
+            document: one.document,
+            lang: Some(one.lang),
+            title: one.title,
+            word: if one.kept { Word::Kept } else { Word::Waiting },
+            mine: false,
+        })
+        .collect()
 }
 
 fn owned(session: &Session, id: &str) -> Answer<(String, Remembered)> {

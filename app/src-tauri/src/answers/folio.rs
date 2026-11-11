@@ -750,6 +750,7 @@ pub struct Card {
     signer: Option<Named>,
     editors: Vec<Named>,
     signs_as: Option<SignsAs>,
+    languages: Vec<super::folio_reviewing::LanguageWord>,
 }
 
 pub(super) fn card_of(
@@ -775,6 +776,7 @@ pub(super) fn card_of(
         signer: who.signer,
         editors: who.editors,
         signs_as: signs_as(was, signature),
+        languages: Vec::new(),
     })
 }
 
@@ -798,9 +800,14 @@ pub async fn doc_share_card(
     let host = private_host_apart(home).await?;
     let session = held(&session);
     let file = file_of(&session, &id)?;
-    Ok(tisty_sharing::remembered(&session.state)
-        .get(&file)
-        .and_then(|was| card_of(&host, was, &session.state.signed, maker.as_ref())))
+    let shelf = tisty_sharing::remembered(&session.state);
+    Ok(shelf.get(&file).and_then(|was| {
+        let card = card_of(&host, was, &session.state.signed, maker.as_ref())?;
+        Some(Card {
+            languages: super::folio_reviewing::words_on_card(shelf, was),
+            ..card
+        })
+    }))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
