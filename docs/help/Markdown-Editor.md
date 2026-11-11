@@ -2,7 +2,7 @@
 
 A document in Tisty is text of yours, kept as a plain `.md` file, that you write here and can read with anything else. Delete Tisty tomorrow and your documents still open in any text editor, on GitHub, or in another notes app.
 
-![Notes that can do the maths: formulas, diagrams and code in plain Markdown](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-03-notes.png)
+![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-06-markdown.png)
 
 ## Writing where you read
 

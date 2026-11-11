@@ -4,7 +4,7 @@
 
 Deja de ser un recordatorio de lo que hay que hacer y se vuelve el registro de cómo se resolvió algo. Por eso existe Tisty: meses después buscas cómo resolviste algo y ahí está: su página con lo que fuiste escribiendo, cómo salió, los pasos y los documentos en que te apoyaste. La página se guarda con la tarea: se lee pero ya no se escribe, y vuelve si la reabres.
 
-![Terminar lo guarda todo: lo que cierras se queda, con sus pasos, su diario y sus archivos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-01-registro.png)
+![Terminar lo guarda todo: el archivo conserva lo que cierras con sus pasos y su bitácora, y tu agente pregunta ¿cómo lo resolvimos la otra vez? para traerlo tal como quedó](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-01-memoria.png)
 
 ## Terminar, descartar, borrar
 

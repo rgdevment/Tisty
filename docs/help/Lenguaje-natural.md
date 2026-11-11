@@ -6,7 +6,7 @@ Son **reglas que corren en tu equipo**: sin modelo, sin petición y sin nube. Le
 
 Los ejemplos salen de las pruebas del propio parser, que definen exactamente hasta dónde llega. Suponen que hoy es **miércoles 5 de agosto de 2026, 09:00**.
 
-![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones se leen de palabras simples](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/es-02-tareas.png)
+![Atrasada no es vencida: las tareas de hoy con las vencidas primero, y la fecha escrita como la dices](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-dia.png)
 
 ## Días
 

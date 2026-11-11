@@ -4,7 +4,7 @@
 
 It stops being a reminder of what to do and becomes the record of how something got solved. This is the reason Tisty exists: months later you search for how you solved something, and it is there — its page with what you wrote along the way, how it went, the steps, the documents you leaned on. The page is put away with the task: it reads but takes no more writing, and comes back if you reopen it.
 
-![Finishing keeps everything: what you close stays, with its steps, journal and files](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-01-record.png)
+![Finishing keeps everything: the archive keeps what you close with its steps and its journal, and your agent asks how did we solve this last time? to bring it back as it was](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-01-memory.png)
 
 ## Completing, dropping, erasing
 
