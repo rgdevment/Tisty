@@ -118,9 +118,10 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
-**Four ready-made requests.** Tisty hands your assistant four requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
+**Five ready-made requests.** Tisty hands your assistant five requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
-- **Pick up where I left off** (`pick_up`) — what moved since last time, then the open task last worked on, with its steps and its latest notes. It changes nothing.
+- **Pick up where I left off** (`pick_up`) — what moved since the agent's last change and who moved it, then the open task it last worked on, with its steps, its page and its latest notes. It changes nothing.
+- **Leave this where I can pick it up** (`leave_off`) — it ticks the finished steps and notes what was done, what was ruled out and why, and what comes next; if everything is done, it says so with the proof, and a decision that outlasts the task goes in its document.
 - **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.
 - **How did we solve this before?** (`solved_before`) — it searches the archive of finished tasks and your documents before trying anything new.
 - **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
@@ -133,8 +134,8 @@ Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or n
 
 What an agent connected to Tisty does on a real piece of work:
 
-1. **It asks what moved** since the last session, instead of rereading everything.
-2. **It opens the task it is on.** *Done when* on its page says when it is finished, and the unticked steps say what is left.
+1. **It asks what moved** since its last session, and who moved it, instead of rereading everything.
+2. **It opens the task it was on**, which Tisty names for it. *Done when* on its page says when it is finished, and the unticked steps say what is left.
 3. **It searches the archive before proposing anything.** If it was solved before, it starts from there.
 4. **It reads the module's document by its outline**, then only the section it needs, and keeps to the decisions and to what is out of scope — so it does not reopen settled debates or wander off.
 5. **It ticks each step when it is done and notes what it ruled out**, so the next session, or another agent, does not repeat the failed attempt.

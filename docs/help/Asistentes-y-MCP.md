@@ -118,9 +118,10 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 Desde la 1.46.0, la memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
 
-**Cuatro pedidos listos.** Tisty le entrega a tu asistente cuatro pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
+**Cinco pedidos listos.** Tisty le entrega a tu asistente cinco pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
-- **Retomar donde lo dejé** (`pick_up`): qué cambió desde la última vez y, después, la tarea abierta en la que se trabajó por última vez, con sus pasos y sus últimas notas. No cambia nada.
+- **Retomar donde lo dejé** (`pick_up`): lo que se movió desde el último cambio del agente y quién lo movió y, después, la tarea abierta en la que trabajó por última vez, con sus pasos, su página y sus últimas notas. No cambia nada.
+- **Dejar esto listo para retomarlo** (`leave_off`): marca los pasos terminados y anota lo que se hizo, lo que se descartó y por qué, y lo que sigue; si todo está hecho, lo dice con la prueba, y una decisión que dura más que la tarea va a su documento.
 - **Planificar este trabajo como una tarea con pasos** (`plan_task`): una tarea con sus pasos, en la lista que le corresponde, una vez que nada abierto ni en el archivo lo cubre ya.
 - **¿Cómo lo resolvimos antes?** (`solved_before`): busca en el archivo de tareas terminadas y en tus documentos antes de probar nada nuevo.
 - **Guardar esta decisión en su documento** (`keep_decision`): la decisión que acabas de tomar va al único documento de su tema, en su lugar, y la que reemplaza queda tachada; si ningún documento lo cubre, te pregunta dónde va.
@@ -133,8 +134,8 @@ Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o
 
 Lo que hace un agente conectado a Tisty en un trabajo real:
 
-1. **Pregunta qué cambió** desde la última sesión, en vez de releerlo todo.
-2. **Abre la tarea en la que está.** *Para estar lista*, en su página, le dice cuándo termina, y los pasos sin marcar, qué falta.
+1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez de releerlo todo.
+2. **Abre la tarea en la que estaba**, que Tisty le nombra. *Para estar lista*, en su página, le dice cuándo termina, y los pasos sin marcar, qué falta.
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de ahí.
 4. **Lee el documento del módulo por su índice**, después solo la sección que necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre debates cerrados ni se desvía.
 5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima sesión, u otro agente, no repite el intento fallido.
