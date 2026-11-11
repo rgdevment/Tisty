@@ -611,7 +611,9 @@ pub(super) fn forget_share(app: &tauri::AppHandle, file: &str) {
         doc_of_file(&session, at).map(|one| one.to_string())
     });
     gone.push((file.to_owned(), was));
-    super::folio_reviewing::forgotten_here(&session.paths.private(), &gone);
+    let ours = super::folio_sync::owned_ids(shelf);
+    let ids = super::folio_reviewing::forgettable(gone.iter().map(|(_, one)| one), &ours);
+    super::folio_reviewing::forgotten_here(&session.paths.private(), &ids);
     let _ = session.commit_all(tisty_sharing::forgotten(&gone));
 }
 
@@ -1336,16 +1338,17 @@ pub async fn doc_share_stop(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<()> {
-    let (file, was, along, home) = {
+    let (file, was, along, home, forgetting) = {
         let session = held(&session);
         let (file, was) = remembered_of(&session, &id)?;
-        let along = going_with(
-            tisty_sharing::remembered(&session.state),
-            &file,
-            &was.id,
-            |at| doc_of_file(&session, at).map(|one| one.to_string()),
-        );
-        (file, was, along, session.paths.private())
+        let shelf = tisty_sharing::remembered(&session.state);
+        let along = going_with(shelf, &file, &was.id, |at| {
+            doc_of_file(&session, at).map(|one| one.to_string())
+        });
+        let ours = super::folio_sync::owned_ids(shelf);
+        let all = std::iter::once(&was).chain(along.iter().map(|(_, one)| one));
+        let forgetting = super::folio_reviewing::forgettable(all, &ours);
+        (file, was, along, session.paths.private(), forgetting)
     };
     apart(move || {
         let door = ToFolio::new(&home)?;
@@ -1359,7 +1362,7 @@ pub async fn doc_share_stop(
             }
             gone.push((at, one));
         }
-        super::folio_reviewing::forgotten_here(&home, &gone);
+        super::folio_reviewing::forgotten_here(&home, &forgetting);
         let session = app.state::<Mutex<Session>>();
         held(&session).commit_all(tisty_sharing::forgotten(&gone))?;
         Ok(())

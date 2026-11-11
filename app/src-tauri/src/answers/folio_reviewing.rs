@@ -10,21 +10,19 @@ use tisty_contracts::Review;
 use tisty_core::merge::{self, Changed};
 use tisty_envelope::Translation;
 use tisty_envelope::reviews::{self, Joining, Read, Signer};
-use tisty_sharing::Remembered;
+use tisty_sharing::{Languages, Remembered};
 
 use super::folio::{ToFolio, apart, kept_on, remembered_of};
-use super::folio_receiving::{Opened, carried_map, opened_printed};
+use super::folio_receiving::{OTHER_LANGUAGES_AT_MOST, Opened, carried_map, opened_printed};
 use super::folio_sync::owned_ids;
 use crate::{Answer, Refusal, Session, held};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proposal {
     document: String,
     lang: String,
     title: Option<String>,
     word: Word,
-    #[serde(skip)]
     print: Option<String>,
 }
 
@@ -169,27 +167,28 @@ fn kept_print(was: &Remembered, reviews: &[Review], document: &str) -> Option<St
 }
 
 // What the owner left out is still its own to look at again, so it is named beside the map, once.
-fn foreign_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Translation> {
+fn foreign_of(carried: &Languages, ours: &BTreeSet<&str>) -> Vec<Translation> {
     let mut seen = BTreeSet::new();
-    carried_map(was)
-        .into_iter()
-        .chain(tisty_sharing::languages_set_aside(was.carried.as_deref()))
+    carried
+        .map
+        .iter()
+        .chain(&carried.set_aside)
         .filter(|one| !ours.contains(one.document.as_str()))
-        .filter(|one| seen.insert(one.document.clone()))
+        .filter(|one| seen.insert(one.document.as_str()))
+        .cloned()
         .collect()
 }
 
-pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Proposal> {
-    let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
-    foreign_of(was, ours)
+fn proposals_in(was: &Remembered, carried: &Languages, ours: &BTreeSet<&str>) -> Vec<Proposal> {
+    foreign_of(carried, ours)
         .into_iter()
         .map(|one| Proposal {
-            word: match latest_word(was, &reviews, &one.document) {
+            word: match latest_word(was, &carried.reviews, &one.document) {
                 None => Word::Waiting,
                 Some(review) if review.kept => Word::Kept,
                 Some(_) => Word::LeftOut,
             },
-            print: kept_print(was, &reviews, &one.document),
+            print: kept_print(was, &carried.reviews, &one.document),
             document: one.document,
             lang: one.lang,
             title: one.title,
@@ -197,16 +196,35 @@ pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Propo
         .collect()
 }
 
+pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Proposal> {
+    let carried = tisty_sharing::languages_carried(was.carried.as_deref());
+    proposals_in(was, &carried, ours)
+}
+
 fn kept_entries(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Translation> {
-    let kept: BTreeSet<String> = proposals_of(was, ours)
+    let carried = tisty_sharing::languages_carried(was.carried.as_deref());
+    let kept: BTreeSet<String> = proposals_in(was, &carried, ours)
         .into_iter()
         .filter(|one| one.word == Word::Kept)
         .map(|one| one.document)
         .collect();
-    carried_map(was)
+    carried
+        .map
         .into_iter()
         .filter(|one| kept.contains(&one.document) && one.key.is_some())
         .collect()
+}
+
+// A language brought back takes its place in the map again, so a full map refuses it before the owner's word is signed.
+pub(super) fn room_for(was: &Remembered, document: &str, top: Option<usize>) -> Answer<()> {
+    let map = carried_map(was);
+    let most = top.map_or(OTHER_LANGUAGES_AT_MOST, |top| {
+        top.saturating_sub(1).min(OTHER_LANGUAGES_AT_MOST)
+    });
+    match map.iter().any(|one| one.document == document) || map.len() < most {
+        true => Ok(()),
+        false => Err(Refusal::of("folioLanguagesFull")),
+    }
 }
 
 // Asking after a version Folio already showed here would only bring the same print back.
@@ -285,12 +303,26 @@ pub(super) fn changes_since(copy: Option<&Copy>, now: &Copy) -> Option<Vec<Chang
 }
 
 // Someone else's words stay here only while the share that brought them lasts.
-pub(super) fn forgotten_here(home: &Path, gone: &[(String, Remembered)]) {
-    for (_, was) in gone {
-        folio_reviewed::forgotten(home, &was.id);
-        for one in foreign_of(was, &BTreeSet::new()) {
-            folio_reviewed::forgotten(home, &one.document);
-        }
+pub(super) fn forgettable<'a>(
+    gone: impl IntoIterator<Item = &'a Remembered>,
+    ours: &BTreeSet<&str>,
+) -> Vec<String> {
+    let mut ids = Vec::new();
+    for was in gone {
+        ids.push(was.id.clone());
+        let carried = tisty_sharing::languages_carried(was.carried.as_deref());
+        ids.extend(
+            foreign_of(&carried, ours)
+                .into_iter()
+                .map(|one| one.document),
+        );
+    }
+    ids
+}
+
+pub(super) fn forgotten_here(home: &Path, ids: &[String]) {
+    for id in ids {
+        folio_reviewed::forgotten(home, id);
     }
 }
 
@@ -311,7 +343,8 @@ pub(super) fn foreign_entry(
     if ours.contains(document) {
         return Err(Refusal::of("notOneOwnDoc"));
     }
-    foreign_of(was, ours)
+    let carried = tisty_sharing::languages_carried(was.carried.as_deref());
+    foreign_of(&carried, ours)
         .into_iter()
         .find(|one| one.document == document && one.key.is_some())
         .ok_or_else(|| Refusal::of("folioGone"))
@@ -373,17 +406,6 @@ pub(super) fn pictures_kept(opened: &Opened, folder: &Path) -> Answer<Vec<ShownP
         });
     }
     Ok(kept)
-}
-
-#[tauri::command]
-pub fn doc_language_proposals(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-) -> Answer<Vec<Proposal>> {
-    let session = held(&session);
-    let (_, was) = owned(&session, &id)?;
-    let shelf = tisty_sharing::remembered(&session.state);
-    Ok(proposals_of(&was, &owned_ids(shelf)))
 }
 
 // The print the owner signs answers for the pictures too, so they are shown with the words.
@@ -507,7 +529,11 @@ pub async fn doc_language_reviewed(
     let (home, was, entry) = {
         let session = held(&session);
         let (_, was, entry) = entry_here(&session, &id, &document)?;
-        (session.paths.private(), was, entry)
+        let home = session.paths.private();
+        if keep {
+            room_for(&was, &document, super::folio::languages_top(&home))?;
+        }
+        (home, was, entry)
     };
     let (decided, copy) = match keep {
         false => (None, None),

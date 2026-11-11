@@ -496,8 +496,23 @@ fn a_share_that_ends_takes_the_copies_of_the_languages_others_added_with_it() {
     folio_reviewed::copy_kept(home.path(), "anaEngl1", &copy(0x13, "One."));
     known(home.path(), "anaEngl1", 4, encoded(0x13));
 
-    super::forgotten_here(home.path(), &[("ancla.md".to_owned(), anchor())]);
+    let ids = super::forgettable([&anchor()], &ours());
+    super::forgotten_here(home.path(), &ids);
 
     assert_eq!(folio_reviewed::kept_copy(home.path(), "anaEngl1"), None);
     assert_eq!(folio_reviewed::printed(home.path(), "anaEngl1"), None);
+}
+
+#[test]
+fn a_language_comes_back_only_while_the_map_has_room_for_it() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let left = reviewed_now(&signer, &anchor(), "anaEngl1", None, 1).unwrap();
+
+    assert!(super::room_for(&left, "anaEngl1", None).is_ok());
+    assert!(super::room_for(&left, "anaEngl1", Some(2)).is_err());
+    assert!(super::room_for(&anchor(), "anaEngl1", Some(2)).is_ok());
 }

@@ -300,3 +300,17 @@ fn past_what_an_anchor_carries_only_the_oldest_words_that_left_a_language_out_go
     assert!(after.iter().any(|one| one.of == "guardado"));
     assert!(after.iter().any(|one| one.of == "nuevo"));
 }
+
+#[test]
+fn the_word_just_signed_stays_even_when_a_machine_that_saw_less_gives_it_the_lowest_seq() {
+    let mut reviews: Vec<Review> = (10..=73)
+        .map(|seq| word_of(&format!("fuera{seq}"), false, seq))
+        .collect();
+    assert_eq!(reviews.len(), super::AT_MOST);
+
+    reviews = super::with_review(&reviews, word_of("recien", false, 4));
+
+    assert_eq!(reviews.len(), super::AT_MOST);
+    assert!(reviews.iter().any(|one| one.of == "recien"));
+    assert!(reviews.iter().all(|one| one.of != "fuera10"));
+}

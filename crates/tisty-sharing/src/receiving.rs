@@ -141,7 +141,31 @@ pub fn brought_back(was: Option<&str>, document: &str) -> Option<String> {
 }
 
 pub fn languages_set_aside(said: Option<&str>) -> Vec<tisty_contracts::Translation> {
-    serde_json::from_value(object_of(said)[SET_ASIDE].clone()).unwrap_or_default()
+    each_alone(&object_of(said)[SET_ASIDE])
+}
+
+// One entry that does not read leaves only itself out, never what the others say.
+fn each_alone<T: serde::de::DeserializeOwned>(said: &Value) -> Vec<T> {
+    said.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|one| serde_json::from_value(one.clone()).ok())
+        .collect()
+}
+
+pub struct Languages {
+    pub map: Vec<tisty_contracts::Translation>,
+    pub set_aside: Vec<tisty_contracts::Translation>,
+    pub reviews: Vec<tisty_contracts::Review>,
+}
+
+pub fn languages_carried(said: Option<&str>) -> Languages {
+    let said = object_of(said);
+    Languages {
+        map: serde_json::from_value(said["languages"].clone()).unwrap_or_default(),
+        set_aside: each_alone(&said[SET_ASIDE]),
+        reviews: serde_json::from_value(said["reviews"].clone()).unwrap_or_default(),
+    }
 }
 
 fn moved(was: Option<&str>, document: &str, from: &str, to: &str) -> Option<String> {

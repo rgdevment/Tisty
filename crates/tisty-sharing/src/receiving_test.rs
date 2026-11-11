@@ -216,3 +216,20 @@ fn what_folio_no_longer_holds_leaves_what_was_set_aside_too() {
 
     assert!(super::languages_set_aside(after.as_deref()).is_empty());
 }
+
+#[test]
+fn an_entry_set_aside_that_does_not_read_leaves_only_itself_out() {
+    let carried = serde_json::json!({
+        "set_aside": [
+            { "lang": 7, "document": "roto0001" },
+            { "lang": "en", "document": "anaEngl1", "key": "k1" },
+        ],
+    })
+    .to_string();
+
+    let aside = super::languages_set_aside(Some(&carried));
+
+    assert_eq!(aside.len(), 1);
+    assert_eq!(aside[0].document, "anaEngl1");
+    assert_eq!(super::languages_carried(Some(&carried)).set_aside, aside);
+}

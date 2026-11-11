@@ -302,15 +302,15 @@ pub fn next_seq(reviews: &[Review], of: &str) -> u64 {
 
 pub const AT_MOST: usize = 64;
 
-// A map holds at most twenty languages, so past what an anchor carries only the oldest words that left one out go.
-fn within_reach(mut reviews: Vec<Review>) -> Vec<Review> {
+// Past what an anchor carries the oldest words that left a language out go, never one just signed under a lower seq.
+fn within_reach(mut reviews: Vec<Review>, spared: Option<&str>) -> Vec<Review> {
     let over = reviews.len().saturating_sub(AT_MOST);
     if over == 0 {
         return reviews;
     }
     let mut left_out: Vec<(u64, String)> = reviews
         .iter()
-        .filter(|one| !one.kept)
+        .filter(|one| !one.kept && Some(one.of.as_str()) != spared)
         .map(|one| (one.seq, one.of.clone()))
         .collect();
     left_out.sort();
@@ -325,8 +325,9 @@ pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
         .filter(|one| one.of != review.of)
         .cloned()
         .collect();
+    let spared = review.of.clone();
     out.push(review);
-    within_reach(out)
+    within_reach(out, Some(&spared))
 }
 
 pub fn word_on(joining: &Joining, reviews: &[Review], document: &str) -> Option<Review> {
@@ -357,6 +358,7 @@ pub fn joined(joining: &Joining, mine: &[Review], theirs: &[Review]) -> Vec<Revi
             .into_values()
             .cloned()
             .collect(),
+        None,
     )
 }
 
