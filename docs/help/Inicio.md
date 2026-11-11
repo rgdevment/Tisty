@@ -4,17 +4,28 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Un historial de lo que aprendiste, un cuaderno Markdown avanzado y una lista de tareas, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Memoria local para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 
 ---
 
-Tisty no es una lista de pendientes que vacías y olvidas. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene.
+**Una lista de tareas olvida en cuanto marcas la casilla. Tu agente de IA olvida en cuanto termina la sesión.** Por eso cada quien lo parcha: un `NOTES.md` detrás de `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día. Se desactualizan, se pierden entre ramas, equipos y proyectos, y el agente los relee enteros en cada sesión.
 
-Si trabajas con un asistente, Tisty le abre una **puerta por MCP**, en tu equipo, sin cuenta y sin red, y tú decides qué puede hacer.
+Tisty es la memoria de fondo. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
 
-Junto a las tareas vive un **cuaderno Markdown** para lo que no tiene fecha, y sigue siendo Markdown normal en tu disco, que cualquier otro editor puede leer.
+Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Tú decides qué puede hacer.
+
+## Problemas reales, soluciones reales
+
+- **Quien desarrolla** le vuelve a explicar el proyecto al agente en cada sesión. Con Tisty, el agente pregunta qué cambió, abre la tarea en la que estaba con sus pasos marcados y lee lo que anotó ayer (*el webhook falla con firmas viejas; reintentar, descartado*), y sigue desde ahí.
+- **Un `NOTES.md` que llegó a 256 KB** se relee entero cada vez. En Tisty vive como documentos separados por tema, en páginas, y el agente lee el índice y una sección: cerca de un 95 % menos.
+- **A una PM** le preguntan, un mes después, «¿por qué decidimos esto?». Un documento vivo por tema guarda cada decisión fechada con su porqué, y el agente lo encuentra y lo cita.
+- **Un QA** ve fallar otra vez la misma pantalla. La tarea de regresión archivada guarda los casos de la vez anterior como pasos, con lo que se vio en cada uno.
+- **Un traspaso** a un PO o al QA que llega al proyecto va por Folio: el documento cifrado en tu equipo, firmado por ti, y se va solo cuando nadie lo usa. Mira [Compartir](Documentos#compartir).
+- **En casa**, el trámite del banco que vuelve cada año: la tarea archivada dice cómo lo hiciste la vez anterior.
+
+Cómo trabaja un agente con todo esto, y cuánto ahorra, está en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 ## ¿Tarea o documento?
 
@@ -37,11 +48,11 @@ Una tarea también es un documento, uno que termina: por eso tiene una página p
 - [[Reparto y recordatorios|Reparto-y-recordatorios]]: repartir el trabajo en los días.
 - [[El archivo|El-archivo]]: historias, rutinas y rastro.
 
-## Tu asistente, por MCP
+## Memoria para tu agente de IA, por MCP
 
-Tisty no tiene IA dentro, y no la va a tener. Pero habla [MCP](https://modelcontextprotocol.io), así que el asistente que ya usas (Claude Code, Codex o cualquier cliente MCP) puede anotar tareas y escribir documentos aquí, en este equipo, sin cuenta y sin pasar nada por la red.
+Tisty no tiene IA dentro, y no la va a tener. Pero habla [MCP](https://modelcontextprotocol.io), así que el agente que ya usas (GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP) guarda aquí su memoria: anota tareas con pasos y bitácora, escribe documentos y retoma donde quedó, en este equipo, sin cuenta y sin pasar nada por la red.
 
-- [[Asistentes y MCP|Asistentes-y-MCP]]: cómo conectar uno y dejarlo entrar.
+- [[Asistentes y MCP|Asistentes-y-MCP]]: cómo conectar uno, dejarlo entrar, un día con tu agente y lo que cuesta.
 - [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]]: los límites, su palabra sobre tus tareas y **Por confirmar**.
 - [[Herramientas MCP|Herramientas-MCP]]: cada herramienta que ofrece el servidor.
 

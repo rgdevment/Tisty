@@ -147,6 +147,19 @@ Lo que escribas en **Esta vez** es de la vuelta que corre. Al completarla se gua
 
 Las tareas que un asistente da por hechas esperan en **Por confirmar**: mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
 
+## Con tu agente
+
+La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas por [[MCP|Asistentes-y-MCP]].
+
+- **Lo que anota es suyo para mantenerlo al día.** Describe la tarea, planifica los pasos, marca cada uno al terminarlo, anota en la bitácora lo que aprende y reparte un trabajo grande en partes.
+- **Lo que escribiste tú sigue siendo tuyo.** El agente solo agrega (una nota en la bitácora, un recordatorio, un archivo) y da su palabra de que un paso o la tarea entera están hechos, para que tú lo confirmes. Cerrar siempre es tuyo.
+- **La página le dice cuándo parar.** *Para estar lista* dice cuándo termina la tarea, y los pasos sin marcar dicen qué falta, así la próxima sesión empieza ahí.
+- **La bitácora evita que se repita.** Lo que se probó y se descartó queda con fecha, y la próxima sesión, u otro agente, lo lee antes de volver a intentarlo.
+- **Un ticket, una tarea.** Anotada con su origen (un ticket, un hilo), el mismo trabajo nunca se anota dos veces.
+- **El archivo responde primero.** Antes de proponer nada, el agente busca en las tareas cerradas, y «¿cómo resolvimos esto?» vuelve con la línea que lo dice.
+
+Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+
 ## Tisto
 
 Tisto es el castor de Tisty, el del lápiz detrás de la oreja. Te acompaña en tres lugares:

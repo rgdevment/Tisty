@@ -7,7 +7,7 @@ Tisty is a quiet place for two things: what you have to do and what you want to 
 
 Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it.
 
-And it does not forget. A task you finished is archived with what you wrote in it, and months later a search tells you how you solved it.
+And it does not forget. A task you finished is archived with what you wrote in it, and months later a search tells you how you solved it. Neither does the AI agent you work with: connected through MCP, it keeps its memory here and picks up where it left off instead of starting from a blank chat.
 
 Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too, and you come back to this guide from Settings → General.
 
@@ -421,7 +421,9 @@ None of this is needed to get started. It is here for when you need it.
 
 ### An assistant can write here
 
-If you use an assistant such as Claude Code or Codex, it can come into Tisty through MCP, with a program that runs on this computer. Settings → Assistants finds the ones you have installed and connects one with a click. What it writes is signed with its name: "by Claude Code", "by Codex".
+If you use an AI agent such as GitHub Copilot, Claude Code or Codex, it can come into Tisty through MCP, with a program that runs on this computer. Settings → Assistants finds the ones you have installed and connects one with a click. What it writes is signed with its name: "by Claude Code", "by Codex".
+
+From then on Tisty is its memory between sessions. It starts by asking what moved since last time, reads a document's outline and then only the section it needs, ticks the steps of the task it is on and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
 
 - **It can** propose tasks, write documents, add to or correct the ones it may write in, and mark one that has had its day, saying why.
 - **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.

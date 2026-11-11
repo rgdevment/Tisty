@@ -147,6 +147,19 @@ What you write under **This time** belongs to the round under way. Completing it
 
 Tasks an assistant claims are done wait under **To confirm** — see [[What an assistant may do|MCP-Permissions]].
 
+## With your agent
+
+The same task that keeps your work is the memory of the AI agent you connect through [[MCP|Assistants-and-MCP]].
+
+- **What it files is its own to keep true.** It describes the task, plans the steps, ticks each one when it is done, notes what it learns in the journal, and splits a big job into parts.
+- **What you wrote stays yours.** The agent only adds — a journal entry, a reminder, a file — and gives its word that a step or the whole task is done, for you to confirm. Closing is always yours.
+- **The page tells it when to stop.** *Done when* says when the task is finished, and the unticked steps say what is left, so the next session starts there.
+- **The journal stops it repeating itself.** What was tried and ruled out stays dated, and the next session, or another agent, reads it before trying again.
+- **One ticket, one task.** Filed with its source — a ticket, a thread — the same work is never filed twice.
+- **The archive answers first.** Before proposing anything, the agent searches the closed tasks, and «how did we solve this?» comes back with the line that says it.
+
+More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+
 ## Tisto
 
 Tisto is Tisty's beaver, the one with a pencil behind its ear. It keeps you company in three places:
