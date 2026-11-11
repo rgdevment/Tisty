@@ -205,7 +205,7 @@ pasa en cambio cuando la memoria vive en Tisty.
 | El problema | Con Tisty |
 | --- | --- |
 | **Desarrollo:** en cada sesión nueva le vuelves a explicar el proyecto a tu agente | Pregunta qué cambió desde la última vez, abre la tarea *Migrar pagos a v2* con sus pasos marcados y lee lo que anotó ayer: *el webhook falla con firmas viejas; reintentar, descartado*. Sigue desde ahí. |
-| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 95 % menos que el archivo entero. |
+| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 94 % menos que el archivo entero. |
 | **Cualquiera:** resolviste esto hace ocho meses y no recuerdas cómo | Buscar *timeouts al guardar* trae la tarea archivada tal como quedó: sus pasos, su bitácora y la línea que dice que la causa era un índice que faltaba. |
 | **PM:** un mes después alguien pregunta «¿por qué decidimos esto?» | Un documento vivo por tema, *Decisiones de checkout*, con cada decisión fechada y su porqué. El agente lo encuentra y lo cita en vez de reabrir el debate. |
 | **QA:** la misma pantalla vuelve a fallar y nadie recuerda los casos de la vez anterior | La tarea de regresión archivada guarda los casos como pasos, con lo que se vio en cada uno. |
@@ -287,8 +287,8 @@ cada sesión:
 | El agente… | Gasta, con Tisty | Ahorro |
 | --- | --- | --- |
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
-| Busca algo resuelto hace meses | cerca de un 2 % | 98 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 5 %, 8 % en el peor caso | 92–95 % menos |
+| Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
 
 De dónde sale el ahorro:
 
@@ -303,11 +303,12 @@ De dónde sale el ahorro:
   leerlos dos veces.
 
 Conectarse también cuesta: la descripción de las herramientas de Tisty pesa
-cerca de una cuarta parte de esa bitácora. Un asistente que carga las
-herramientas solo a medida que las usa no la paga entera; uno que las carga
-todas en cada sesión ahorra más bien un 70–75 %, y con menos de unos 70 KB de
-notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON
-que acompaña cada respuesta, y los tokens los siguen de cerca.
+cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test
+impide que vuelva a crecer. Un asistente que carga las herramientas solo a
+medida que las usa no la paga entera; uno que las carga todas en cada sesión
+ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo
+plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña
+cada respuesta, y los tokens los siguen de cerca.
 
 ## Comparte lo que sabes con Folio
 

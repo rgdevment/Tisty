@@ -115,17 +115,19 @@ beforeEach(() => {
   };
 });
 
-describe("the thumbs up after closing a task", () => {
+describe("the notice after closing a task", () => {
   it("shows up once a task is closed, and its undo opens the task again", async () => {
     render(<App />);
     await screen.findByText("buy bread");
 
     await userEvent.click(screen.getByRole("button", { name: /complete buy bread/i }));
-    await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Reopen «buy bread»" }));
 
     await waitFor(() =>
       expect(ipc.calls.some((one) => one.cmd === "reopen" && one.args.id === "01A")).toBe(true),
     );
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Undo" })).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Reopen «buy bread»" })).toBeNull(),
+    );
   });
 });

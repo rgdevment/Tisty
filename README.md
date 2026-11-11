@@ -200,7 +200,7 @@ and what happens instead when the memory lives in Tisty.
 | The problem | With Tisty |
 | --- | --- |
 | **Developer:** every new session you explain the project to your agent again | It asks what moved since last time, opens the task *Move payments to v2* with its ticked steps, and reads what it noted yesterday: *the webhook fails on old signatures; retrying ruled out*. It carries on from there. |
-| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 95% less than the whole file. |
+| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 94% less than the whole file. |
 | **Anyone:** you solved this eight months ago and cannot remember how | A search for *timeouts on save* brings back the archived task as it was left: its steps, its journal, and the line saying the cause was a missing index. |
 | **PM:** a month later somebody asks «why did we decide this?» | One living document per subject, *Checkout decisions*, each decision dated with its why. The agent finds it and quotes it instead of reopening the debate. |
 | **QA:** the same screen breaks again and nobody remembers last time's cases | The archived regression task keeps its cases as steps, with what was seen in each. |
@@ -281,8 +281,8 @@ agent that rereads the whole file every session:
 | The agent… | Spends, with Tisty | Saving |
 | --- | --- | --- |
 | Picks up the work, with nothing new | about 1% | 99% less |
-| Looks for something solved months ago | about 2% | 98% less |
-| Looks up one subject: the outline and one section | about 5%, 8% at worst | 92–95% less |
+| Looks for something solved months ago | about 3% | 97% less |
+| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
 
 Where the saving comes from:
 
@@ -297,11 +297,11 @@ Where the saving comes from:
   consolidated rather than read twice.
 
 Connecting costs something too: the description of Tisty's tools weighs about a
-quarter of that log. An assistant that loads tools only as it uses them does not
-pay it whole; one that loads every tool each session saves closer to 70–75%,
-and below some 70 KB of notes a plain file is cheaper. The counts are
-characters, with the JSON each answer carries included, and tokens follow them
-closely.
+sixth of that log, a third less than it did, and a test keeps it from growing.
+An assistant that loads tools only as it uses them does not pay it whole; one
+that loads every tool each session saves 72–83%, and below some 50 KB of notes
+a plain file is cheaper. The counts are characters, with the JSON each answer
+carries included, and tokens follow them closely.
 
 ## Share What You Know With Folio
 

@@ -159,12 +159,12 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | The agent… | Spends, with Tisty | Saving |
 | --- | --- | --- |
 | Picks up the work, with nothing new | about 1% | 99% less |
-| Looks for something solved months ago | about 2% | 98% less |
-| Looks up one subject: the outline and one section | about 5%, 8% at worst | 92–95% less |
+| Looks for something solved months ago | about 3% | 97% less |
+| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
 
 No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; picking up again brings only what moved; and what is finished costs nothing until it is searched.
 
-Connecting costs something too: the description of Tisty's tools weighs about a quarter of that log. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves closer to 70–75%, and below some 70 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
+Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 
 ## The one thing worth knowing before you connect one
 
