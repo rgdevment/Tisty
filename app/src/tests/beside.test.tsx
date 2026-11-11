@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { wordsIn as worded } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fold, RAIL, unwiden } from "../breadth";
 import type { Filed } from "../core";
 import { DOC } from "../markdown";
 import Docs from "../ui/Docs";
@@ -193,12 +194,21 @@ describe("the column beside a document", () => {
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
   });
 
-  it("stays away by default a pixel under the 1440 threshold", async () => {
-    widen(1439);
+  it("stays away by default a pixel short of the room it needs beside the sidebar", async () => {
+    widen(1425);
     show();
 
     await screen.findByLabelText("editor");
     expect(column()).toBeNull();
+  });
+
+  it("shows itself on a smaller window once the sidebar is folded to its icons", async () => {
+    act(() => fold(true));
+    widen(1082 + RAIL + 8);
+    show();
+
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+    act(() => unwiden());
   });
 
   it("stays closed while the window stays the size it was", async () => {

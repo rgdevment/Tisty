@@ -13,7 +13,7 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + `E` (en un documento) | Abrir o dejar todo el documento |
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |
-| `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho |
+| `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho. Una ventana angosta la trae plegada, y recuerda aparte de una ancha si la abriste |
 | `Ctrl`/`⌘` + `S` (en la ventana de diagramas) | Guardar el diagrama en su documento |
 | `Enter` · `Tab` · `Supr` · `F2` (en un mapa mental) | Agregar una hermana, agregar una hija, borrar la idea, renombrarla |
 | `Supr` (en un esquema, un diagrama libre o un diagrama de clases) | Borrar lo elegido |

@@ -91,6 +91,7 @@ const leaves = (): Record<string, Paper> => {
 };
 
 const ASIDE = 344;
+const BESIDE_FROM = 1082;
 
 const NONE: string[] = [];
 
@@ -183,6 +184,8 @@ export default function Docs({
   const [shown, setShown] = useState<boolean | null>(null);
   const wide = room >= WIDE_WINDOW;
   const breadth = useBreadth();
+  const spare = room - sideWidth(breadth, wide) - GUTTER;
+  const fits = spare >= BESIDE_FROM;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.
@@ -198,7 +201,7 @@ export default function Docs({
   const paged = useRef(onPaging);
   paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
-  const crossed = useRef(wide);
+  const crossed = useRef(fits);
 
   useEffect(() => {
     const look = () => setRoom(window.innerWidth);
@@ -207,10 +210,10 @@ export default function Docs({
   }, []);
 
   useEffect(() => {
-    if (crossed.current === wide) return;
-    crossed.current = wide;
+    if (crossed.current === fits) return;
+    crossed.current = fits;
     setShown(null);
-  }, [wide]);
+  }, [fits]);
 
   const keep = useCallback(
     (id: string, text: string, anyway?: boolean) => {
@@ -645,7 +648,7 @@ export default function Docs({
   const at = inOrder.findIndex((one) => one.file === own?.file);
   const next = at < 0 ? undefined : inOrder[at + 1];
 
-  const beside = Boolean(open) && (shown ?? wide);
+  const beside = Boolean(open) && (shown ?? fits);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -801,7 +804,6 @@ export default function Docs({
     wrote(laid);
     dressAlike(laid);
   };
-  const spare = room - sideWidth(breadth, wide) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   const place = open
     ? trailed(folders, open.folder ?? null)

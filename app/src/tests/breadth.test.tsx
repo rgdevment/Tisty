@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   dragTo,
   fold,
@@ -134,6 +134,64 @@ describe("the sidebar can be folded and widened", () => {
     render(<Shown />);
     bar({ named: "keeping" } as typeof chosen);
     fireEvent.keyDown(document.body, { key: "b", ctrlKey: true });
+    expect(width()).toBe("336");
+  });
+});
+
+describe("in a narrow window the sidebar gives way first", () => {
+  const heard = new Set<() => void>();
+  const plain = window.matchMedia;
+  let narrow = false;
+
+  const resize = (to: boolean) =>
+    act(() => {
+      narrow = to;
+      for (const one of heard) one();
+    });
+
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      get matches() {
+        return narrow && query.includes("1440px");
+      },
+      addEventListener: (_: string, one: () => void) => heard.add(one),
+      removeEventListener: (_: string, one: () => void) => heard.delete(one),
+    })) as unknown as typeof window.matchMedia;
+  });
+
+  afterEach(() => {
+    act(() => {
+      narrow = true;
+      fold(true);
+      narrow = false;
+      unwiden();
+    });
+    window.matchMedia = plain;
+    heard.clear();
+  });
+
+  it("folds to its icons as the window narrows, and opens again as it widens", () => {
+    render(<Shown />);
+    expect(width()).toBe("336");
+
+    resize(true);
+    expect(width()).toBe(String(RAIL));
+
+    resize(false);
+    expect(width()).toBe("336");
+  });
+
+  it("keeps open in a narrow window what was opened there, apart from the wide one", () => {
+    render(<Shown />);
+    resize(true);
+    act(() => fold(false));
+    expect(width()).toBe("336");
+
+    resize(false);
+    act(() => fold(true));
+    expect(width()).toBe(String(RAIL));
+
+    resize(true);
     expect(width()).toBe("336");
   });
 });

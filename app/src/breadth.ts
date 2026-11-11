@@ -1,6 +1,9 @@
+import { useSyncExternalStore } from "react";
 import { stored } from "./stored";
 
 export type Breadth = { width: number | null; folded: boolean };
+
+type Kept = Breadth & { foldedNarrow: boolean };
 
 const ON_MAC = navigator.userAgent.includes("Macintosh");
 
@@ -15,35 +18,52 @@ const LIVE = "--tisty-side-live";
 
 const fitted = (width: number): number => Math.round(Math.min(WIDEST, Math.max(NARROWEST, width)));
 
-const kept = stored<Breadth>("tisty.breadth", (said) => ({
+const kept = stored<Kept>("tisty.breadth", (said) => ({
   width: typeof said.width === "number" ? fitted(said.width) : null,
   folded: said.folded === true,
+  foldedNarrow: said.foldedNarrow !== false,
 }));
 
-export const useBreadth = kept.use;
+const NARROW = `not all and (min-width: ${WIDE_WINDOW}px)`;
 
-export const fold = (folded: boolean) => kept.put({ ...kept.current(), folded });
+const narrow = (): boolean => window.matchMedia?.(NARROW).matches ?? false;
 
-export const flipFold = () => fold(!kept.current().folded);
+const watchNarrow = (change: () => void) => {
+  const query = window.matchMedia?.(NARROW);
+  query?.addEventListener?.("change", change);
+  return () => query?.removeEventListener?.("change", change);
+};
 
-export const unwiden = () => kept.put({ width: null, folded: false });
+const seen = (now: Kept, inNarrow: boolean): Breadth => ({
+  width: now.width,
+  folded: inNarrow ? now.foldedNarrow : now.folded,
+});
+
+const current = (): Breadth => seen(kept.current(), narrow());
+
+export const useBreadth = (): Breadth =>
+  seen(kept.use(), useSyncExternalStore(watchNarrow, narrow));
+
+const put = (width: number | null, folded: boolean) =>
+  kept.put({ ...kept.current(), width, ...(narrow() ? { foldedNarrow: folded } : { folded }) });
+
+export const fold = (folded: boolean) => put(kept.current().width, folded);
+
+export const flipFold = () => fold(!current().folded);
+
+export const unwiden = () => put(null, false);
 
 export const nudge = (from: number, by: number) => {
-  const was = kept.current();
-  if (was.folded) {
+  if (current().folded) {
     if (by > 0) fold(false);
     return;
   }
   if (by < 0 && from <= NARROWEST) return fold(true);
-  kept.put({ width: fitted(from + by), folded: false });
+  put(fitted(from + by), false);
 };
 
 export const dragTo = (width: number) =>
-  kept.put(
-    width < FOLDS_UNDER
-      ? { ...kept.current(), folded: true }
-      : { width: fitted(width), folded: false },
-  );
+  width < FOLDS_UNDER ? fold(true) : put(fitted(width), false);
 
 export const dragging = (width: number) => {
   const root = document.documentElement;
