@@ -268,7 +268,7 @@ fn weighed(root: &str, machine: &str, served: &Served) -> Vec<Revocation> {
         .collect()
 }
 
-fn verdict_on(signature: &Value, about: &str, said: &[u8], served: &Served) -> Verdict {
+pub(crate) fn verdict_on(signature: &Value, about: &str, said: &[u8], served: &Served) -> Verdict {
     let text = |name: &str| signature[name].as_str().unwrap_or_default().to_owned();
     let Ok(since) = text("since").parse::<Timestamp>() else {
         return Verdict::Unreadable;

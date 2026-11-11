@@ -157,7 +157,8 @@ fn languages_sealed(
         map.extend(untouched);
         let reviews = anchor.document.reviews.as_deref().unwrap_or_default();
         let anchor_key = anchor.sealing.link_key.as_deref();
-        if let Some(gone) = LeftOut::by(anchor_key, &anchor.sealing.id, &owner, reviews) {
+        let gone = anchor_key.and_then(|key| LeftOut::by(key, &anchor.sealing.id, &owner, reviews));
+        if let Some(gone) = gone {
             map.retain(|one| !gone.names(&one.document));
         }
         map.truncate(OTHER_LANGUAGES_AT_MOST);
