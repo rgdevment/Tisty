@@ -477,8 +477,14 @@ that never reaches Folio: an editor signs the next version with their own key an
 that token, and the owner does not change. Each language of a document shared to
 edit has a token of its own, sealed inside the first language's signed map
 under a key drawn from that language's token, so one edit link opens them all
-and changing it changes them all. A language that does not name that document,
-or answers to another owner, stays in Folio.
+and changing it changes them all. A language that does not name that document
+stays in Folio. One added by someone who edits, under another root, comes in
+only while the owner's latest signed review keeps the very version read: the
+review names its print, a hash of what it says, and the owner's word on all of a
+document's reviews is signed too and served beside it. A reader never takes a
+word older than one it has already seen, and the entries of those who edited
+are weighed against what their roots took back, as the version's own signature
+is.
 
 **What Tisty takes in.** A document that arrives through a link is checked and
 opened on your computer, and what comes in is its body in Tisty's own language,

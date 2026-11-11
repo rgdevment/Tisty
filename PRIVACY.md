@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 7, 2026
+**Last updated:** November 11, 2026
 
 ## The short version
 
@@ -17,13 +17,12 @@ its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, one per picture if you press **Download** above the help,
 one per picture from the internet if you ask for them in the viewer of a
 Markdown file from outside, and those of sharing by link if you press **Share**
-or **Sync**, manage a share, open a shared link or delete a document you shared.
-Never otherwise. A copy installed
-from the Microsoft
-Store asks Windows
-what the Store has and leaves the rest to the Store, and reads the Store's public
-catalog to see which version that is; it reads that same small file only if the
-catalog does not answer. All of them are described in full below.
+or **Sync**, manage a share, open a shared link, open a document you shared with
+a language you kept from someone else, or delete a document you shared. Never
+otherwise. A copy installed from the Microsoft Store asks Windows what the Store
+has and leaves the rest to the Store, and reads the Store's public catalog to
+see which version that is; it reads that same small file only if the catalog
+does not answer. All of them are described in full below.
 
 Since version 1.30, Tisty can also sync through your own Google Drive, since
 1.31 through your own OneDrive, and since 1.32 through a WebDAV server of your
@@ -162,14 +161,33 @@ visible instead of making it for you.
 - **What you share by link** — so that your other computers can manage a share,
   the log keeps, for each one, its identifier, its version, the key of its link
   and the tokens that manage or edit it, with a print of what was last sent of
-  each document so that a Sync sends only what changed. They travel with the
-  log to the folder or cloud you sync through, so whoever can read the log can
-  open that link. They are not put in a parcel. The limits Folio last published
-  and the terms you accepted stay in `private/`, and so do the waits that pace
-  sharing: when you pressed Sync on each share, until when Folio asked this
-  computer to wait, for a document, for your network or for the rest of the
-  day, and which documents were shared for the first time today, counted by
-  the day as Folio counts them. None of those leaves this computer.
+  each document so that a Sync sends only what changed. Of a document others
+  added languages to, it also keeps the owner's signed word on each one reviewed
+  and, on the owner's side, the key of each one left out, which no version
+  carries, so it can be reviewed again from any of your computers. They travel
+  with the log to the folder or cloud you sync through, so whoever can read the
+  log can open that link, and the languages left out of it. They are not put in
+  a parcel. The limits Folio last published and the terms you accepted stay in
+  `private/`, and so do the waits that pace sharing: when you pressed Sync on
+  each share, until when Folio asked this computer to wait, for a document, for
+  your network or for the rest of the day, which documents were shared for the
+  first time today, counted by the day as Folio counts them, and when this
+  computer last asked Folio after the languages others added to a document.
+  None of those leaves this computer.
+- **The languages others added to what you share** — since 1.46, `private/`
+  also keeps, by document identifier, the highest word of a document's owner
+  this computer has seen (`folio-reviewed.json`), so an older word served again
+  never counts, and the number and print of the latest version of each of a
+  shared document's languages it sent or read (`folio-languages-printed.json`),
+  so it can tell you that a language you kept has changed. When you keep a
+  language someone else added, it also keeps a copy of its title and words as
+  you read them, in `folio-kept-copies/`, to show you what changed since: that
+  copy is someone else's writing, and only the computer where you pressed
+  **Keep** holds it. It goes when you leave the language out, and it and the
+  language's print go when Folio no longer holds that language, or when the
+  share that brought it stops or is forgotten. The pictures of a language under
+  review are written to Tisty's cache so the window can show them, and the next
+  language you review replaces them. None of these leaves this computer.
 - **A `private/` folder** — anything placed here never leaves the machine
   under any transport.
 - **The guide** — the one thing Tisty writes for you rather than the other way
@@ -222,7 +240,9 @@ defence, because the remedy barely exists.
 - Does not make background network calls, except the update check below and,
   only if you connect Google Drive, OneDrive or a WebDAV server, the requests
   that sync with it, and the `cloud.json` check, at most once an hour, that
-  rides along.
+  rides along. Opening a document you shared with a language you kept from
+  someone else also asks Folio after that language, at most every quarter of an
+  hour, as *Sharing by link* describes.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -246,12 +266,13 @@ Tisty and a share already out do not.
 | :--- | :--- |
 | **When you press Share or Sync** | Tisty reads `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/limits/limits.json` and its signature, `limits.json.minisig`, to learn whether sharing is open, what it allows and whether Folio's terms changed. Whether sharing is open counts for an hour; whether the terms changed is asked again on each Share or Sync, at most once a minute. A try that reached nothing, or brought a file whose signature did not hold, does not count, so the next press asks again. Nothing is uploaded, GitHub serves them, not Folio, and the request says only `tisty/<version>`. If that file says sharing is closed, or it cannot be read, it stops there. If sharing is open and you have not accepted the current terms, it reads `TERMINOS.md` or `TERMS.md` from `main/docs/` in the same repository |
 | **Folio's private address** | `tisty.cl`, unless `domains/hosts.json` in the same repository names another. Tisty reads that file and its signature, `hosts.json.minisig`, from `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/domains/` before talking to Folio, when you press **Share**, and when the **Shared** row shows a document's links. It keeps the last one whose signature held and asks again only once that copy is two days old, or within the hour while it holds none. An older one never replaces a newer one, nothing is uploaded, and the request says only `tisty/<version>`. Below, «that address» is this one |
-| **When you confirm** | Tisty asks `https://<private address>/api/v1` for an identifier, then sends what you chose, sealed on this computer: the document with its pages, pictures and files, its other languages, the documents it cites and the name you sign it with. When others edited it through its link, the names each of them signed with travel too, each signed by its own key, so whoever opens it sees who created it and who edited it. The key travels in the link, after the `#`, and never reaches the server. Neither does the token of an edit link, which signs on this computer. Requests to that address follow no redirect, wait at most two minutes and say `tisty/<version>` |
-| **What Folio sees** | Not the title, the words, the pictures or the files: those are inside the seal. In the clear it gets each envelope's manifest (identifier, version, sizes, signature, the version of Folio's terms you accepted, with no date, and the public keys of your identity and of this computer, so it can tell that two documents come from one person), how many days the link lasts, the token that manages it, a print of the sealed files, and any notice that your identity took back a computer's key. Like any server, it also gets the address and the time of each request |
-| **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and whether sharing is open does not change it. Tisty accepts only an `https` link on `tisty.cl`, `folio.tisty.app` or Folio's private address, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://<private address>/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, with «verified» beside what the maker of Tisty signed under the root Folio's signed limits name, which Tisty already holds. When a signer's alias is a domain, Tisty checks it against the list Folio signs, reading one small file from `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/domains/` and keeping it for a day, and nothing is kept unless you press **Bring it**. Bringing it also asks for each of the document's other languages, up to 19, under the same address. A share Tisty already remembers asks again before looking for languages added since, and asks nothing more if you say no; on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
-| **When you press Sync, See reads and expiry, Pause, Resume, Appeal, Change the edit link or Stop** | Tisty talks to that same address, for that document and for those that travel with it. Changing the edit link sends Folio only the public key of the new link's token, never the token, and then the next version. Sync first asks for the latest version of the document and of each of its languages, brings a newer one in apart and keeps any wait Folio names, then sends only the documents of the share that changed, if any. Each press repeats any notice that your identity took back a computer's key. While a wait Folio named still runs, a press asks nothing and says how long is left |
+| **When you confirm** | Tisty asks `https://<private address>/api/v1` for an identifier, then sends what you chose, sealed on this computer: the document with its pages, pictures and files, its other languages, the documents it cites and the name you sign it with. When others edited it through its link, the names each of them signed with travel too, each signed by its own key, so whoever opens it sees who created it and who edited it. A language someone who edits adds stays theirs, under the name they sign with: readers see it only once you keep it, as the version you read, credited to them and to you as who reviewed it. The key travels in the link, after the `#`, and never reaches the server. Neither does the token of an edit link, which signs on this computer. Requests to that address follow no redirect, wait at most two minutes and say `tisty/<version>` |
+| **What Folio sees** | Not the title, the words, the pictures, the files or the names anyone signs with: those are inside the seal, and so are your reviews of the languages others added. In the clear it gets each envelope's manifest (identifier, version, sizes, signature, the version of Folio's terms you accepted, with no date, and the public keys of your identity and of this computer, so it can tell that two documents come from one person), how many days the link lasts, the token that manages it, a print of the sealed files, and any notice that your identity took back a computer's key. Once you review a language someone else added to a document of yours, it also gets, beside that document, your word on all your reviews of it: signed by this computer, it names the document, a number that grows each time you send it and a hash of your reviews, never which languages you kept or left out. Folio serves that word, and the notices of whoever signed, owns or edited a document, to whoever opens it, so their Tisty can weigh the signatures. Like any server, it also gets the address and the time of each request |
+| **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and whether sharing is open does not change it. Tisty accepts only an `https` link on `tisty.cl`, `folio.tisty.app` or Folio's private address, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://<private address>/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, with «verified» beside what the maker of Tisty signed under the root Folio's signed limits name, which Tisty already holds. When a signer's alias is a domain, Tisty checks it against the list Folio signs, reading one small file from `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/domains/` and keeping it for a day, and nothing is kept unless you press **Bring it**. Bringing it also asks for each of the document's other languages, up to 19, under the same address, and keeps only the owner's own and those the owner kept, as the version the owner read. Each goes under the name its author signs with, the owner's own under the owner's, so one someone else added reads «Translated by» that person «· reviewed by» the owner, unless both sign with one name. A share Tisty already remembers asks again before looking for languages added since, and asks nothing more if you say no; on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
+| **When you press Sync, See reads and expiry, Pause, Resume, Appeal, Change the edit link or Stop** | Tisty talks to that same address, for that document and for those that travel with it. Changing the edit link sends Folio only the public key of the new link's token, never the token, and then the next version. Sync first asks for the latest version of the document and of each of its languages, brings a newer one in apart and keeps any wait Folio names, then sends only the documents of the share that changed, if any. On a document you own, once you have reviewed a language someone else added, Sync sends your word on your reviews in the same request as the document's version, with the token that manages it, so Folio keeps both or neither. Before sending, and at most once a day for that document, it also asks for the latest version of each language others added to it, the ones you left out included, to let go of any Folio no longer holds. A language you add through someone else's edit link goes up as your own, under the name you sign with, and waits for their word. Each press repeats any notice that your identity took back a computer's key. While a wait Folio named still runs, a press asks nothing and says how long is left |
+| **When you review a language someone else added** | Only on a document you own. **Review** asks that same address for the language as Folio holds it, its words and pictures, and opens it here to show you; **Keep** asks for it once more, so that what you sign is the version you read. Your word, kept or left out, is signed on this computer and goes up with the next Sync, which the row presses for you |
 | **When you delete a shared document** | Tisty asks that same address to stop its share. If the document was deleted on another of your computers, this one asks the next time you delete any document or go through **Share** here. A share you only held through an edit link is forgotten with no request |
-| **On its own** | Nothing. A shared row does not check on Folio by itself; it finds out when you press something. To say how long a wait has left, it reads only this computer |
+| **On its own** | One thing. When you open a document you shared that holds a language you kept from someone else, its **Shared** row asks that same address for the latest version of each such language, at most once every quarter of an hour for that document. Only a version this computer has not seen is brought, its words and pictures, and opened here, to tell you whether it changed since you kept it. Nothing else is sent, and nothing is asked while you keep no one else's language. Otherwise a shared row does not check on Folio by itself; it finds out when you press something. To say how long a wait has left, it reads only this computer |
 
 ## The request Tisty makes on its own
 
