@@ -1,5 +1,5 @@
 {
-  "version": "1.9.0",
+  "version": "1.9.1",
   "contracts": {
     "text": {
       "contract": "text",
@@ -2067,7 +2067,7 @@
           "type": "list",
           "of": "editor",
           "at_most": 64,
-          "says": "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader keeps only those whose signature holds and whose in is this document's id, and leaves the rest aside without refusing the document."
+          "says": "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader keeps only those whose signature holds and whose in is this document's id, weighing each machine against the served revocations as it weighs the version's own: holds and retired stay, doubtful goes. It leaves the rest aside without refusing the document."
         },
         "made": {
           "type": "time"
@@ -4812,7 +4812,7 @@
         "revocations": {
           "type": "list",
           "of": "revocation",
-          "says": "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines, and beside an anchor the machine of its reviewed too."
+          "says": "What the root of its signature and the root of its owner have revoked, as far as the server knows, and the roots of those who sent a version of it besides its owner, up to 16 of them, the first to edit first: a reader weighs the version's machines, each editor's, and beside an anchor the machine of its reviewed too."
         },
         "reviewed": {
           "type": "reviewed",

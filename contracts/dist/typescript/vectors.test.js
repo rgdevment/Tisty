@@ -118,6 +118,23 @@ test("a document keeps only the editors signed for it", async () => {
   );
 });
 
+for (const { says, served, kept } of VECTORS.editors_weighed.cases) {
+  test(`an editor's machine is weighed against what was revoked: ${says}`, async () => {
+    const { id, editors } = VECTORS.editors_weighed;
+    const standing = await Promise.all(
+      editors.map(async (one) => {
+        if (one.in !== id || !(await editorHolds(one))) return false;
+        const verdict = await verdictOf(one, served);
+        return verdict === "holds" || verdict === "retired";
+      }),
+    );
+    assert.deepEqual(
+      editors.filter((_, at) => standing[at]),
+      kept,
+    );
+  });
+}
+
 for (const { says, holds, entry } of VECTORS.editors) {
   test(`an editor ${holds ? "holds" : "is left aside"}: ${says}`, async () => {
     assert.equal(await editorHolds(entry), holds);
