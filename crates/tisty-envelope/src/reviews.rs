@@ -4,7 +4,7 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use sha2::{Digest, Sha256};
 use tisty_contracts::{Review, Reviewed, Served, Verdict};
-use tisty_share_proto::identity::{Certificate, Signed};
+use tisty_share_proto::identity::{Certificate, ShareKey, Signed};
 use tisty_share_proto::reviewing::{self, Kept, Said};
 
 fn decoded(said: &str) -> Option<Vec<u8>> {
@@ -192,6 +192,119 @@ pub fn keeps(kept: &[Review], document: &str, lang: Option<&str>, print: &str) -
             && one.lang.as_deref() == lang
             && one.print.as_deref() == Some(print)
     })
+}
+
+pub struct Read<'a> {
+    pub lang: &'a str,
+    pub title: Option<&'a str>,
+    pub key: &'a str,
+    pub print: &'a str,
+}
+
+pub struct Signer<'a> {
+    pub key: &'a ShareKey,
+    pub certificate: &'a Certificate,
+}
+
+fn review_of(said: &Said, signed: Signed) -> Review {
+    let kept = said.kept.as_ref();
+    Review {
+        of: URL_SAFE_NO_PAD.encode(said.of),
+        kept: kept.is_some(),
+        document: kept.map(|one| one.document.to_owned()),
+        lang: kept.map(|one| one.lang.to_owned()),
+        title: kept.and_then(|one| one.title.map(str::to_owned)),
+        key: kept.map(|one| URL_SAFE_NO_PAD.encode(one.key)),
+        print: kept.map(|one| URL_SAFE_NO_PAD.encode(one.print)),
+        seq: said.seq,
+        root: signed.certificate.root,
+        machine: signed.certificate.share,
+        since: signed.certificate.since.to_string(),
+        certificate: signed.certificate.sig,
+        signed: signed.sig,
+    }
+}
+
+/// Kept when it says what the owner read, left out when it says nothing of it.
+pub fn review_signed(
+    signer: &Signer,
+    anchor: &str,
+    anchor_key: &str,
+    document: &str,
+    read: Option<&Read>,
+    seq: u64,
+) -> Option<Review> {
+    let of = reviewing::of(&decoded(anchor_key)?, document)?;
+    let bytes = match read {
+        Some(read) => Some((decoded(read.key)?, decoded(read.print)?)),
+        None => None,
+    };
+    let kept = read.zip(bytes.as_ref()).map(|(read, (key, print))| Kept {
+        document,
+        lang: read.lang,
+        title: read.title,
+        key,
+        print,
+    });
+    let said = Said {
+        anchor,
+        of: &of,
+        seq,
+        kept,
+    };
+    let signed = reviewing::signed(signer.key, signer.certificate, &said)?;
+    Some(review_of(&said, signed))
+}
+
+// The owner never writes its word over a review a machine it revoked signed, so that review is signed again as it was.
+pub fn signed_again(signer: &Signer, anchor: &str, review: &Review) -> Option<Review> {
+    let bytes = bytes_of(review)?;
+    let said = said(anchor, review, &bytes)?;
+    let signed = reviewing::signed(signer.key, signer.certificate, &said)?;
+    Some(review_of(&said, signed))
+}
+
+pub fn word_signed(
+    signer: &Signer,
+    anchor: &str,
+    seq: u64,
+    reviews: &[Review],
+) -> Option<Reviewed> {
+    let hash = reviews_hash(anchor, reviews)?;
+    let said = reviewing::reviewed(anchor, seq, &hash);
+    let signed = signer
+        .key
+        .sign(signer.certificate, reviewing::REVIEWED, &said)?;
+    Some(Reviewed {
+        anchor: anchor.to_owned(),
+        seq,
+        reviews: URL_SAFE_NO_PAD.encode(hash),
+        root: signed.certificate.root,
+        machine: signed.certificate.share,
+        since: signed.certificate.since.to_string(),
+        certificate: signed.certificate.sig,
+        signed: signed.sig,
+    })
+}
+
+pub fn next_seq(reviews: &[Review], of: &str) -> u64 {
+    reviews
+        .iter()
+        .filter(|one| one.of == of)
+        .map(|one| one.seq)
+        .max()
+        .unwrap_or(0)
+        + 1
+}
+
+pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
+    let mut out: Vec<Review> = reviews
+        .iter()
+        .filter(|one| one.of != review.of)
+        .cloned()
+        .collect();
+    out.push(review);
+    out
 }
 
 pub fn of_language(anchor_key: &str, id: &str) -> Option<String> {

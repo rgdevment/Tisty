@@ -160,3 +160,113 @@ fn the_owner_takes_in_only_what_its_root_signed_and_keeps_one_review_for_each_la
     let kept_still = joined(&joining, &mine, &by_someone_else);
     assert_eq!(kept_still, mine);
 }
+
+fn owners_machine(
+    root: u8,
+    machine: u8,
+) -> (
+    tisty_share_proto::identity::ShareKey,
+    tisty_share_proto::identity::Certificate,
+) {
+    use tisty_share_proto::identity::{Root, ShareKey};
+    let key = ShareKey::from_bytes(&[machine; 32]);
+    let since = "2026-11-03T12:00:00Z".parse().unwrap();
+    let certificate = Root::from_bytes(&[root; 32]).certify(&key.public(), since);
+    (key, certificate)
+}
+
+fn encoded(byte: u8) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode([byte; 32])
+}
+
+#[test]
+fn what_the_owner_signs_is_what_a_reader_counts() {
+    use super::{Read, Signer, review_signed, word_signed};
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let anchor_key = encoded(0x11);
+    let (its_key, print) = (encoded(0x12), encoded(0x13));
+    let read = Read {
+        lang: "en",
+        title: Some("Walks"),
+        key: &its_key,
+        print: &print,
+    };
+    let keeping =
+        review_signed(&signer, "anclaDoc", &anchor_key, "anaEngl1", Some(&read), 1).unwrap();
+    let leaving = review_signed(&signer, "anclaDoc", &anchor_key, "anaPort1", None, 1).unwrap();
+    let reviews = vec![keeping.clone(), leaving];
+    let served = Served {
+        received: None,
+        revocations: None,
+        reviewed: Some(word_signed(&signer, "anclaDoc", 2, &reviews).unwrap()),
+        reviewed_received: None,
+    };
+    let weighing = Weighing {
+        anchor: "anclaDoc",
+        owner: &certificate.root,
+        anchor_key: &anchor_key,
+        served: &served,
+        seen: 0,
+    };
+
+    let counted = kept(&weighing, &reviews).unwrap();
+
+    assert_eq!(counted.seq, 2);
+    assert_eq!(counted.reviews, [keeping]);
+    assert!(keeps(&counted.reviews, "anaEngl1", Some("en"), &print));
+    let gone = LeftOut::by(&anchor_key, "anclaDoc", &certificate.root, &reviews).unwrap();
+    assert!(gone.names("anaPort1"));
+}
+
+#[test]
+fn a_review_signed_again_by_another_machine_of_the_owner_still_holds() {
+    use super::{Signer, review_signed, signed_again};
+    let (old_key, old_certificate) = owners_machine(0x30, 0x31);
+    let (new_key, new_certificate) = owners_machine(0x30, 0x32);
+    let anchor_key = encoded(0x11);
+    let old = Signer {
+        key: &old_key,
+        certificate: &old_certificate,
+    };
+    let first = review_signed(&old, "anclaDoc", &anchor_key, "anaPort1", None, 3).unwrap();
+
+    let again = signed_again(
+        &Signer {
+            key: &new_key,
+            certificate: &new_certificate,
+        },
+        "anclaDoc",
+        &first,
+    )
+    .unwrap();
+
+    assert_ne!(again.machine, first.machine);
+    assert_eq!(
+        (again.of.as_str(), again.seq, again.kept),
+        (first.of.as_str(), 3, false)
+    );
+    assert!(holds(
+        "anclaDoc",
+        &old_certificate.root,
+        &decoded(&anchor_key).unwrap(),
+        &again
+    ));
+}
+
+#[test]
+fn the_next_word_on_a_language_follows_the_highest_one_said_of_it() {
+    use super::{next_seq, with_review};
+    let (_, reviews) = scenario("kept and then left out: the higher seq counts");
+    let of = reviews[0].of.clone();
+
+    assert_eq!(next_seq(&reviews, &of), 3);
+    assert_eq!(next_seq(&reviews, "otro"), 1);
+    let one = with_review(&reviews, reviews[1].clone());
+    assert_eq!(one.len(), 1);
+    assert_eq!(one[0].seq, 2);
+}

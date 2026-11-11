@@ -209,6 +209,8 @@ const KNOWN = [
   "folioGarbled",
   "folioFull",
   "folioLanguagesFull",
+  "folioReviewed",
+  "folioLanguageChanged",
   "folioTooBig",
   "folioWait",
   "folioUploadsOff",
