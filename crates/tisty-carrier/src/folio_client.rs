@@ -75,6 +75,7 @@ pub enum Refused {
     },
     LanguagesFull,
     MachinesFull,
+    Reviewed,
     TooBig,
     Envelope {
         why: Why,
@@ -149,6 +150,14 @@ pub struct Version<'a> {
     pub envelope: &'a [u8],
     pub files_hash: Option<&'a str>,
     pub first: Option<First<'a>>,
+    pub reviewed: Option<Word<'a>>,
+}
+
+/// The owner's word on an anchor's reviews goes with the version that carries them, under its admin token, or neither stays.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Word<'a> {
+    pub admin: &'a str,
+    pub said: &'a str,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -310,6 +319,12 @@ pub fn send_version(door: &dyn Door, version: &Version<'_>) -> Result<Stored, St
             headers.push(("Folio-Anchor", anchor.to_owned()));
         }
     }
+    if let Some(word) = &version.reviewed {
+        if version.first.is_none() {
+            headers.push(("Folio-Admin", word.admin.to_owned()));
+        }
+        headers.push(("Folio-Reviewed", word.said.to_owned()));
+    }
     asked_with_proof(
         door,
         Asked {
@@ -340,6 +355,8 @@ pub struct Latest {
     pub version: u64,
     #[serde(default, rename = "nextAt")]
     pub next_at: Option<u64>,
+    #[serde(default, rename = "reviewedSeq")]
+    pub reviewed_seq: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

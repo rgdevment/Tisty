@@ -713,6 +713,17 @@ impl Gathering<'_> {
 
     // The anchor's map names each language and every language wears the anchor's sheet, so a change there is one in them.
     fn printed_with_its_family(&mut self, anchor: &Tongue, others: &[Tongue]) {
+        // The owner's word on a language is a change in its own anchor; someone who edits only carries it.
+        let owners = anchor.sealing.owner.is_none();
+        if let Some(reviews) = anchor
+            .document
+            .reviews
+            .as_ref()
+            .filter(|one| owners && !one.is_empty())
+        {
+            let said = serde_json::to_string(reviews).unwrap_or_default();
+            self.printed_with(&anchor.sealing.id, &said);
+        }
         if others.is_empty() {
             return;
         }

@@ -8,8 +8,10 @@ use tisty_carrier::folio_terms::Tongue;
 use tisty_carrier::policy;
 use tisty_carrier::{folio_pace, folio_reviewed};
 
+use tisty_contracts::Review;
 use tisty_core::Paths;
-use tisty_envelope::reviews::{self, Joining};
+use tisty_envelope::reviews::{self, Joining, Signer};
+use tisty_share_proto::identity::{Certificate, ShareKey};
 use tisty_sharing::{Desk, Received, Remembered, Told};
 
 use super::folio_editing::{
@@ -184,6 +186,9 @@ pub(super) fn before_upload(
     match folio_client::latest(door, &was.id) {
         Ok(latest) => {
             let next = held_until_next(&latest, home, &was.id, now);
+            if let Some(seq) = latest.reviewed_seq {
+                folio_reviewed::saw(home, &was.id, seq);
+            }
             if latest.version > was.version {
                 return Ok(Ahead::Newer);
             }
@@ -303,6 +308,100 @@ pub(super) fn without_the_gone(shared: &Remembered, gone: &BTreeSet<String>) -> 
         carried: tisty_sharing::languages_gone(shared.carried.as_deref(), gone, &gone_of),
         ..shared.clone()
     }
+}
+
+fn owners_signer(session: &Session) -> Option<(ShareKey, Certificate)> {
+    let device = session.config.device_id.clone();
+    tisty_core::person::signer(&session.paths, &session.state.persons, &device)
+}
+
+// The owner never writes its word over a review a machine it revoked signed: that review is signed again first (166).
+pub(super) fn reviews_current(
+    session: &Session,
+    doc: tisty_core::model::DocId,
+) -> Option<(String, Remembered)> {
+    let kept = session.state.docs.get(&doc)?;
+    let anchor = session.state.docs.get(&session.state.anchor_of(kept))?;
+    let shared = tisty_sharing::remembered(&session.state)
+        .get(&anchor.file)?
+        .clone();
+    shared.admin_token.as_ref()?;
+    let reviews = tisty_sharing::reviews_carried(shared.carried.as_deref());
+    if reviews.is_empty() {
+        return None;
+    }
+    let (key, certificate) = owners_signer(session)?;
+    let revoked: BTreeSet<&str> = session
+        .state
+        .persons
+        .revocations
+        .iter()
+        .filter(|one| one.root == certificate.root)
+        .map(|one| one.share.as_str())
+        .collect();
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let current = signed_current(&signer, &shared.id, &reviews, &revoked)?;
+    let carried = tisty_sharing::with_reviews(shared.carried.as_deref(), &current);
+    Some((anchor.file.clone(), Remembered { carried, ..shared }))
+}
+
+pub(super) fn signed_current(
+    signer: &Signer,
+    anchor: &str,
+    reviews: &[Review],
+    revoked: &BTreeSet<&str>,
+) -> Option<Vec<Review>> {
+    let stale = |one: &Review| revoked.contains(one.machine.as_str());
+    if !reviews.iter().any(stale) {
+        return None;
+    }
+    let current = reviews
+        .iter()
+        .map(|one| match stale(one) {
+            true => reviews::signed_again(signer, anchor, one).unwrap_or_else(|| one.clone()),
+            false => one.clone(),
+        })
+        .collect();
+    Some(current)
+}
+
+// The word names the reviews the version carries, one higher than any seen, so Folio keeps both or neither.
+pub(super) fn words_for(
+    session: &Session,
+    home: &std::path::Path,
+    sealed: &tisty_sharing::Sealed,
+) -> std::collections::BTreeMap<String, tisty_sharing::Word> {
+    let reviewed: Vec<(&Remembered, Vec<Review>)> = sealed
+        .remembering
+        .iter()
+        .map(|(_, one)| one)
+        .filter(|one| one.admin_token.is_some())
+        .filter(|one| sealed.going.iter().any(|going| going.id == one.id))
+        .map(|one| (one, tisty_sharing::reviews_carried(one.carried.as_deref())))
+        .filter(|(_, reviews)| !reviews.is_empty())
+        .collect();
+    if reviewed.is_empty() {
+        return std::collections::BTreeMap::new();
+    }
+    let Some((key, certificate)) = owners_signer(session) else {
+        return std::collections::BTreeMap::new();
+    };
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    reviewed
+        .into_iter()
+        .filter_map(|(one, reviews)| {
+            let seq = folio_reviewed::seen(home, &one.id) + 1;
+            let word = reviews::word_signed(&signer, &one.id, seq, &reviews)?;
+            let said = serde_json::to_string(&word).ok()?;
+            Some((one.id.clone(), tisty_sharing::Word { said, seq }))
+        })
+        .collect()
 }
 
 pub(super) fn first_ahead(
@@ -476,6 +575,12 @@ pub async fn doc_share_sync(
     if !link_matches_block(&was) {
         return Err(Refusal::of("folioEditLinkMismatch"));
     }
+    {
+        let mut session = held(&session);
+        if let Some(current) = reviews_current(&session, doc) {
+            kept_on(&mut session, &[current])?;
+        }
+    }
     if let Some(foreign) = foreign.filter(|_| !gone.is_empty()) {
         let mut session = held(&session);
         let current = tisty_sharing::remembered(&session.state)
@@ -497,6 +602,7 @@ pub async fn doc_share_sync(
     let (sealed, starts) =
         sealed_for_folio(&app, &session, asked, false, terms, Some(&was.id)).await?;
     let mut sealed = sealed.only_what_changed();
+    sealed.words = words_for(&held(&session), &home, &sealed);
     if sealed.going.is_empty() {
         folio_pace::take_back(&home, &was.id, pressed_at);
         return unchanged_answered(&session, &paths, tongue).await;
@@ -642,6 +748,7 @@ pub(super) fn still_owed(
         anchors: sealed.anchors.clone(),
         changed: sealed.changed.clone(),
         granted: sealed.granted.clone(),
+        words: sealed.words.clone(),
     }
 }
 

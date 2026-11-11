@@ -32,6 +32,13 @@ pub struct Sealed {
     pub changed: BTreeSet<String>,
     /// Documents Folio already holds whose token is new, so Folio learns its permit before their version.
     pub granted: BTreeSet<String>,
+    pub words: BTreeMap<String, Word>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Word {
+    pub said: String,
+    pub seq: u64,
 }
 
 impl Sealed {
@@ -254,6 +261,7 @@ impl Gathered {
             anchors,
             changed,
             granted,
+            words: BTreeMap::new(),
         })
     }
 }
