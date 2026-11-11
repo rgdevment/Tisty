@@ -54,16 +54,6 @@
     </a>
   </p>
 
-  <p>
-    <a href="https://www.producthunt.com/products/tisty?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-tisty">
-      <img
-        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1290086&theme=neutral"
-        width="250"
-        height="54"
-        alt="Tisty on Product Hunt"/>
-    </a>
-  </p>
-
 [![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
 
   <p>
