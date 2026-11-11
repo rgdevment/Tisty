@@ -3819,6 +3819,36 @@ fn a_name_that_is_not_here_hands_back_the_one_that_is() {
 }
 
 #[test]
+fn a_long_marked_document_read_as_its_outline_still_says_it_is_marked() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let paragraph = "The beta channel shipped a nightly build to testers. ".repeat(20);
+    let body = format!(
+        "# Handover\n\n{}",
+        (1..=15)
+            .map(|at| format!("## Part {at}\n\n{paragraph}\n"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    let doc = wrote_paper(&served, &body);
+    let marked = served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired in 0.1.0" }),
+    );
+    assert!(marked["result"]["isError"].is_null(), "{marked}");
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &doc }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["whole"], false, "{read}");
+    assert!(
+        kept["notice"]
+            .as_str()
+            .is_some_and(|said| said.contains("has had its day")),
+        "{read}"
+    );
+}
+
+#[test]
 fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
     let served = Served::new();
     served.person().lets_the_agent_in();

@@ -482,6 +482,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if super::outward::asked(args)? {
         return super::outward::carried(&body, standing, &pages, kept_of);
     }
+    let warned = match &standing {
+        Some(standing) => {
+            kept_of.insert("notice".into(), json!(standing));
+            format!("({standing})\n\n")
+        }
+        None => String::new(),
+    };
 
     match part_asked(&body, args)? {
         Part::Outline => {
@@ -489,11 +496,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             kept_of.insert("outline".into(), json!(outline_of(&body)));
             Ok(told(
                 format!(
-                    "{}\n\nThis one holds {} characters, so here is what is in it rather than the \
-                     whole of it. Ask for a part with `section`, with `from` and `to`, or with \
-                     `chars`. To change a passage, `edit_doc` takes the words to replace and the \
-                     ones to put there: reading it whole to send it back whole costs many times \
-                     more, and risks writing over what the person did meanwhile.",
+                    "{warned}{}\n\nThis one holds {} characters, so here is what is in it rather \
+                     than the whole of it. Ask for a part with `section`, with `from` and `to`, or \
+                     with `chars`. To change a passage, `edit_doc` takes the words to replace and \
+                     the ones to put there: reading it whole to send it back whole costs many \
+                     times more, and risks writing over what the person did meanwhile.",
                     tisty_core::docs::titled(&body),
                     body.chars().count()
                 ),
@@ -513,15 +520,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
             }
-            let said = match standing {
-                Some(standing) => {
-                    let shown = format!("({standing})\n\n{part}");
-                    kept_of.insert("notice".into(), json!(standing));
-                    shown
-                }
-                None => part,
-            };
-            Ok(mirrored(said, Value::Object(kept_of)))
+            Ok(mirrored(format!("{warned}{part}"), Value::Object(kept_of)))
         }
     }
 }

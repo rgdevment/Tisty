@@ -459,10 +459,12 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         plainly.push_str(&format!(" ({notice})"));
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
-        let notice = "open to agents: yours to describe, plan, tick, untick, reword or unplan an \
-                      open step, reword a note, and say done or not doing";
+        let notice =
+            "open to agents: yours to describe, plan, tick, mend and say done or not doing";
         plainly.push_str(&format!(" ({notice})"));
-        whole["notice"] = json!(notice);
+        if wants("notice") {
+            whole["notice"] = json!(notice);
+        }
     }
     if let Some(body) = &task.description
         && wants("description")
