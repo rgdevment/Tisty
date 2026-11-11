@@ -147,6 +147,10 @@ impl Person {
         self.wrote(ops);
     }
 
+    pub fn hides(&self, id: TaskId) {
+        self.wrote(vec![Op::TaskHide { id }]);
+    }
+
     pub fn erases(&self, id: TaskId) {
         let ops = tisty_core::task_docs::erased_with(&self.state(), id);
         self.wrote(ops);

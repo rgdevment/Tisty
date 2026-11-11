@@ -35,6 +35,11 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
     for which in &many {
         let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
             return Err(Refused::Tool(match named_task(&state, which) {
+                Some(task) if !task.is_open() => format!(
+                    "{which:?} is the task {:?}, not a document, and it is closed already: the \
+                     archive keeps it, and erasing it is the person's. Nothing was marked.",
+                    task.title
+                ),
                 Some(task) => format!(
                     "{which:?} is the task {:?}, not a document, and closing a task is the \
                      person's: `say_not_doing` tells them why it should not be done. Nothing was \

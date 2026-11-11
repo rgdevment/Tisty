@@ -5372,3 +5372,56 @@ fn a_tasks_page_sent_where_a_task_goes_names_the_task() {
     );
     assert!(why.contains(&task), "{why}");
 }
+
+#[test]
+fn flagging_a_closed_task_says_the_archive_keeps_it() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.person().closes(person::task(&task));
+
+    let why = served.refused(
+        "flag_doc",
+        serde_json::json!({ "doc": task, "reason": "obsolete", "body": "nobody needs it" }),
+    );
+
+    assert!(why.contains("closed already"), "{why}");
+    assert!(!why.contains("`say_not_doing`"), "{why}");
+}
+
+#[test]
+fn a_closed_task_named_as_the_doc_to_attach_to_is_history() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.person().closes(person::task(&task));
+
+    let why = served.refused(
+        "attach",
+        serde_json::json!({ "doc": task, "path": "photo.png" }),
+    );
+
+    assert!(why.contains("was closed"), "{why}");
+    assert!(!why.contains("send it as `task`"), "{why}");
+}
+
+#[test]
+fn the_page_of_a_task_the_person_hid_takes_no_summary() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.said(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "what I found" }),
+    );
+    let state = served.person().state();
+    let page = tisty_core::task_docs::of(&state, person::task(&task))
+        .expect("the note made the task a page")
+        .file
+        .clone();
+    served.person().hides(person::task(&task));
+
+    let why = served.refused(
+        "sum_up",
+        serde_json::json!({ "doc": page, "summary": "how the reader moved" }),
+    );
+
+    assert!(why.contains("no document here"), "{why}");
+}

@@ -8,7 +8,7 @@ use ulid::Ulid;
 
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
-use super::mistaken::{no_document_called, not_a_task_id};
+use super::mistaken::{named_document, no_document_called, not_a_task_id};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -753,7 +753,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
 
     let (state, store) = opened(paths)?;
-    if state.docs.values().all(|one| one.file != which) {
+    if named_document(&state, &which).is_none() {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     }
     let Some(cache) = tisty_core::cache::Cache::open(paths.cache()).ok().flatten() else {

@@ -41,13 +41,14 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
         }
         (None, Some(which)) => {
             let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-                return Err(Refused::Tool(match named_task(state, &which) {
-                    Some(task) => format!(
+                return Err(match named_task(state, &which) {
+                    Some(task) if !task.is_open() => history(task),
+                    Some(task) => Refused::Tool(format!(
                         "{which:?} is the task {:?}: send it as `task` to attach the file to it.",
                         task.title
-                    ),
-                    None => no_document_called(state, &which),
-                }));
+                    )),
+                    None => Refused::Tool(no_document_called(state, &which)),
+                });
             };
             super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {
