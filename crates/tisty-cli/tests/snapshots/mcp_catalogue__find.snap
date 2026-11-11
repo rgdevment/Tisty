@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Search tasks, open and archived, and documents: by words in `query`, by the task fields below, or by `source` to see if it was filed. A task found by its page, steps or notes comes with the `line` saying it. With `doc`, the matching lines inside that document.",
+  "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a hit with `read` or `read_doc`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

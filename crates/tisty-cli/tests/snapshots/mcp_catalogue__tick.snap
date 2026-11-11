@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Mark steps you did yourself, as you finish each. One unknown name and nothing is ticked; a name two steps share ticks the next open one. On a task you may work on the step is ticked; on the person's others it is said done, for them to take. Closing is `say_done` and the person's.",
+  "description": "Tick steps of a task by their text as you finish each. All or nothing: one unknown text ticks none, and a text two steps share ticks the next open one. On the person's tasks not open to you, it reports the step done for them to confirm. A finished task is `say_done`; a wrong tick is `untick`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

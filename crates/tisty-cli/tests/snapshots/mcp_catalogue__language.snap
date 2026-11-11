@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "What Tisty adds to Markdown, which plain Markdown does not need: pens, underline, icons, callouts, folds, tags, cards, attachments, diagrams. Alone, the index; ask the `topic` you mean to write.",
+  "description": "Reference for the Markdown extensions Tisty reads, to look up before writing one: pens, underline, icons, callouts, folds, tags, cards, attachments, diagrams. Plain Markdown needs none. Without `topic`, the index. How the app works is `help`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
