@@ -2,8 +2,6 @@
 
 Priorities sort what matters; the spread decides **when**.
 
-![The spread: every task lands on its day, and the ones with no day wait on the left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-05-spread.png)
-
 ## A river of days
 
 The spread runs as a river of days you scroll through rather than a week you page:

@@ -59,12 +59,12 @@
 
   <p>
     <img
-      src="assets/store/es-01-registro.png"
+      src="assets/screens/web/es-01-memoria.png"
       width="92%"
-      alt="Tisty: no es una lista que vacías, es un registro de lo que
-      resolviste. Una tarea abierta a página completa conserva su descripción,
-      sus pasos y sus partes, con el rastro de cada cambio y el diario al
-      costado"/>
+      alt="Tisty, la memoria de trabajo tuya y de tu agente de IA: el archivo
+      guarda cada tarea terminada con sus pasos y su bitácora, y tu agente
+      pregunta ¿cómo lo resolvimos la otra vez? para traer una tal como
+      quedó"/>
   </p>
 
   <h4>Descargar Tisty</h4>
@@ -252,6 +252,8 @@ Lo que vas a hacer es una tarea. Lo que vas a volver a leer es un documento.
 - **Páginas para lo largo** — un runbook, un anexo, un libro por capítulos — con
   carpetas, idiomas, tablas, diagramas, fórmulas y un PDF propio.
 
+![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/web/es-03-documentos.png)
+
 ## Un día con tu agente
 
 Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
@@ -320,6 +322,8 @@ cada versión va firmada por ti, y el enlace deja de funcionar solo después de
 los días sin uso que elijas. Se lee en cualquier navegador y sin cuenta, o se
 edita en su propio Tisty. Tu memoria se queda en tu disco; Folio solo lleva una
 copia. Más en [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad).
+
+![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/web/es-07-folio.png)
 
 ## Servidor MCP
 
@@ -582,7 +586,7 @@ editor— y en Tisty lleva bastante más que texto:
 - **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
-![Notas en Markdown, archivos simples, cualquier editor: fórmulas y un widget dibujados dentro de un documento, con el formato y el PDF en la columna de al lado](assets/store/es-03-notas.png)
+![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/web/es-06-markdown.png)
 
 La guía que Tisty escribe la primera vez que se abre trae una página con uno de
 cada cosa, para que lo veas todo antes de escribir una línea.
@@ -803,7 +807,7 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples, con el día, los cuadrantes y las listas contados al costado](assets/store/es-02-tareas.png)
+![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y una tarea que tu agente anota tal como la dices](assets/screens/web/es-04-dia.png)
 
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00
@@ -824,8 +828,6 @@ ella, para leer y sin tocar, y reabrirla la trae de vuelta. Abierta a toda la
 página gana una columna con su propio trayecto: cuántos días lleva abierta,
 cuánto va hecho y cada cambio por el que ha pasado.
 
-![Una tarjeta para cada parte de tu vida: las tareas agrupadas por lista, cada una con su ícono y su nombre, junto a la tarea abierta](assets/store/es-06-listas.png)
-
 **Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
 cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
 Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
@@ -841,7 +843,7 @@ Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
 
-![Decide qué importa y hazlo: la matriz de Eisenhower reparte cada tarea en hacer, planificar, delegar o menor, con las sin clasificar al costado](assets/store/es-04-prioridades.png)
+![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](assets/screens/web/es-05-prioridades.png)
 
 **El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
 que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
@@ -857,8 +859,6 @@ días se ordenan en cuadrícula, pulsas un día y caes en él dentro del río. A
 se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio,
 así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
 la promesa de que ese día es tuyo.
-
-![Tu semana, repartida: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-05-agenda.png)
 
 **Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
 escribes una tarea. Nunca tapa nada, y se apaga desde Configuración. Al terminar
@@ -899,7 +899,7 @@ se oculta.
 
 ## Tus datos y tu privacidad
 
-![Tuyo, y nada más: Tisto, el castor de Tisty, junto a lo que Tisty nunca te pide — sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu equipo](assets/store/es-08-gratis.png)
+![Software por convicción, no por suscripción: Tisto, el castor de Tisty, junto a lo que Tisty es, amigo de tus agentes de IA, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/screens/web/es-09-cierre.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -1023,6 +1023,8 @@ muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
 escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
 te lo dice.
 
+![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que Tisty deja en Google Drive, OneDrive o WebDAV, y fuera de tus equipos nadie lo lee](assets/screens/web/es-08-datos.png)
+
 **Tu nube, cifrada, si quieres.** En Configuración › *Seguridad*, **Cifrar mi
 nube…** cifra lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor
 WebDAV con una llave que sale de una frase de 24 palabras que solo tú conoces.
@@ -1059,7 +1061,7 @@ qué equipo es tuyo.
 cifrar, en su historial y su papelera, y los nombres y tamaños de los archivos y
 cuántos equipos tienes siguen a la vista. La frase nunca pasa por las manos de
 nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos,
-nadie puede abrir tu nube, ni siquiera nosotros.
+nadie puede abrir tu nube, ni siquiera Tisty.
 
 **Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
 historial, guardado donde quieras, y restaurado desde el mismo sitio en *Tus
@@ -1083,7 +1085,7 @@ aviso de Google Drive, de *Reconectar* a un Drive lleno o
 
 ## Un asistente, si usas uno
 
-![Trae a tus agentes favoritos, ellos ordenan la casa: Configuración › Asistentes muestra los que hay en este equipo y conecta cada uno por MCP, sin IA dentro de Tisty](assets/store/es-07-mcp.png)
+![No más chats en blanco, abre la puerta MCP: Configuración › Asistentes dice que Tisty no lleva IA dentro y conecta los asistentes de este equipo, así tu agente pregunta ¿en qué íbamos? y abre la tarea en la que estaba](assets/screens/web/es-02-agente.png)
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas

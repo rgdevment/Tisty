@@ -39,7 +39,7 @@ What a closed task keeps, and how search finds it, is in [[The archive|Archive]]
 
 There is no form to fill in. Type the whole sentence in the bar at the top, and Tisty pulls the day, the list and the priority out of it as you go — and shows you what it understood **before** anything is saved, as chips you can correct with one click.
 
-![Type it the way you say it: tags, lists, priority, dates and repeats read from plain words](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-02-tasks.png)
+![Late is not overdue: a task is late when its planned day slips by and overdue only when its deadline passes, with the counts of overdue, late, for today and ahead](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-day.png)
 
 | You write | It understands |
 | :-- | :-- |
@@ -78,7 +78,7 @@ The window has three columns at most: what you are looking at, the list, and the
 
 Two questions, four boxes: whether it is pressing, and whether it matters.
 
-![Four quadrants at one glance: do, schedule, delegate and minor, with the unclassified pile on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/store/en-04-priorities.png)
+![Urgent is not always important: each task in its quadrant, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-05-priorities.png)
 
 | Quadrant | Meaning | Type |
 | :-- | :-- | :-- |

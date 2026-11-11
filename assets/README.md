@@ -1,14 +1,14 @@
 # Assets
 
 What is drawn for Tisty and used outside the build: the mark, the mascot and
-the Microsoft Store images. What the application itself ships with lives next to
-the code that reads it, in `app/src-tauri/icons/` and `app/src/assets/`.
+the screens that present it. What the application itself ships with lives next
+to the code that reads it, in `app/src-tauri/icons/` and `app/src/assets/`.
 
 | Folder | What it holds | Where it goes |
 | --- | --- | --- |
 | `icons/` | The mark, from its SVG master | README, Store listing, press |
 | `mascot/` | Tisto, Tisty's beaver, in colour and in one ink | Sources of the drawings the app and the Store use |
-| `store/` | The Microsoft Store screenshots, one set per language | The Store listing, the READMEs and the wiki |
+| `screens/` | The screens that present Tisty, one set per language | The Store listing, the READMEs, the help and tisty.app |
 
 ## Icons
 
@@ -62,10 +62,18 @@ a single colour. `mascot/tisty-head-left.svg` and `mascot/tisty-head-mono-left.s
 are the same two turned to look left; the window draws that one at the end of
 the tasks bar, so Tisto looks at what is being written.
 
-## Store images
+## Screens
 
-`store/` holds one screenshot per feature and language, named
-`<language>-<order>-<subject>.png`: `en-` in English and `es-` in Spanish, with
-the same order in both. The READMEs show them from this folder, and the wiki
-links to them on `main`, so renaming one means updating the wiki in the same
-change.
+`screens/` holds the screens that present Tisty, one per subject and language,
+named `<language>-<order>-<subject>.png`: `en-` in English and `es-` in Spanish,
+with the same order in both. They present what Tisty is, not what a version
+brings.
+
+| Folder | Size | Where it goes |
+| --- | --- | --- |
+| `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
+| `web/` | 1280×720, lighter | The READMEs and the help |
+
+The help links to `web/` on `main`, so renaming a screen means updating the
+help in the same change, and tisty.app reads its picture from `store/` through
+`scripts/apps.mjs` in its own repository.
