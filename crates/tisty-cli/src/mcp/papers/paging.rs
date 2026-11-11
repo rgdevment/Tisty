@@ -9,6 +9,7 @@ use tisty_core::{Op, Paths};
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::no_document_called;
 use super::super::{
     Held, Refused, Spot, doc_named, hitch, holder, named_all, named_doc, opened, up_named,
 };
@@ -90,9 +91,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         None => None,
         Some(said) => {
             let Some(up) = state.docs.values().find(|one| one.file == said) else {
-                return Err(Refused::Tool(format!(
-                    "no document here is called {said:?}. `docs` lists them all."
-                )));
+                return Err(Refused::Tool(no_document_called(&state, &said)));
             };
             if up.page_of.is_some() {
                 return Err(Refused::Tool(format!(
@@ -320,9 +319,7 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
     let mut already = Vec::new();
     for which in many {
         let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
-            return Err(Refused::Tool(format!(
-                "no document here is called {which:?}. `docs` lists them all."
-            )));
+            return Err(Refused::Tool(no_document_called(state, which)));
         };
         super::compacting::awaiting(state, kept)?;
         if state.shut(kept.id) {

@@ -6,6 +6,7 @@ use tisty_core::{Paths, State, Store};
 use super::super::asked::strings;
 use super::super::asked::text;
 use super::super::jsonrpc::{mirrored, told};
+use super::super::mistaken::{no_document_by_that_id, no_document_called};
 use super::super::{
     NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
     hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened, trail,
@@ -16,9 +17,7 @@ use super::super::{
 fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
     match state.doc_in_sight(kept) {
         true => Ok(()),
-        false => Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        ))),
+        false => Err(Refused::Missing(no_document_called(state, which))),
     }
 }
 
@@ -35,9 +34,7 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
 
@@ -137,9 +134,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
@@ -387,9 +382,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     };
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
     let folder = kept.folder.map(|at| trail(&state, at));
@@ -585,10 +578,7 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
     };
     let (state, mut store) = opened(paths)?;
     let Some(up) = state.docs.values().find(|one| one.file == said) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {said:?}. Ids are opaque, like q7ntmzbm-0001, and a title \
-             is not one — `docs` prints the id beside the title of every document."
-        )));
+        return Err(Refused::Tool(no_document_by_that_id(&state, &said)));
     };
     if state.shut(up.id) {
         return Err(Refused::Tool(format!(
@@ -686,10 +676,7 @@ pub(super) fn beside_ready(
     };
 
     let Some(mark) = state.docs.values().find(|one| one.file == anchor) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {anchor:?}. Ids are opaque, like q7ntmzbm-0001, and a \
-             title is not one — `docs` prints the id beside the title of every document."
-        )));
+        return Err(Refused::Tool(no_document_by_that_id(state, anchor)));
     };
     if mark.page_of != Some(up) {
         return Err(Refused::Tool(format!(
@@ -820,10 +807,7 @@ fn ordered(
     let held: Vec<String> = body.lines().map(str::to_string).collect();
     for id in order {
         let Some(page) = state.docs.values().find(|one| one.file == *id) else {
-            return Err(Refused::Tool(format!(
-                "no document here is called {id:?}. Ids are opaque, like q7ntmzbm-0001, and a \
-                 title is not one — `docs` prints the id beside the title of every document."
-            )));
+            return Err(Refused::Tool(no_document_by_that_id(state, id)));
         };
         if page.page_of != Some(up) {
             return Err(Refused::Tool(format!(

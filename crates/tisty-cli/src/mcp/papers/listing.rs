@@ -3,6 +3,7 @@ use tisty_core::Paths;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::not_a_document;
 use super::super::{
     LISTED_AT_MOST, Refused, folder_found, gist_of, named_doc, opened, placing, said, scoped,
     shortened, trail,
@@ -36,10 +37,12 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
                 .find(|one| one.file == said)
                 .map(|one| one.id)
                 .ok_or_else(|| {
-                    Refused::Tool(format!(
-                        "no document here is called {said:?}, so nothing hangs from it. `docs` \
-                         lists them all."
-                    ))
+                    Refused::Tool(not_a_document(&state, &said).unwrap_or_else(|| {
+                        format!(
+                            "no document here is called {said:?}, so nothing hangs from it. \
+                             `docs` lists them all."
+                        )
+                    }))
                 })?,
         ),
         None => None,

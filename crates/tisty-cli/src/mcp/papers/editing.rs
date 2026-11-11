@@ -6,6 +6,7 @@ use tisty_core::Paths;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::no_document_called;
 use super::super::spoken::spoken;
 use super::super::{
     Refused, UNSETTLED, by_how_much, doc_named, for_the_person, grew, hitch, left_loose,
@@ -20,9 +21,7 @@ pub(super) fn writable(
 ) -> Result<(tisty_core::State, tisty_core::Store, String), Refused> {
     let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(&state, which)));
     };
     let named = doc_named(&state, which);
     if state.held_away(kept) {

@@ -7,6 +7,7 @@ use ulid::Ulid;
 
 use super::asked::text;
 use super::jsonrpc::told;
+use super::mistaken::{a_document, named_document, named_task, no_document_called, not_a_task_id};
 use super::{Refused, history, hitch, opened};
 
 enum Beside {
@@ -24,9 +25,13 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
         )),
         (Some(who), None) => {
             let Ok(id) = who.parse::<TaskId>() else {
-                return Err(Refused::Tool(format!(
-                    "{who:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-                )));
+                return Err(Refused::Tool(match named_document(state, &who) {
+                    Some(kept) if kept.task_of.is_none() => format!(
+                        "{who:?} is {}: send it as `doc` to attach the file there.",
+                        a_document(kept)
+                    ),
+                    _ => not_a_task_id(state, &who),
+                }));
             };
             match state.tasks.get(&id).filter(|one| !one.folded()) {
                 Some(task) if !task.is_open() => Err(history(task)),
@@ -36,9 +41,14 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
         }
         (None, Some(which)) => {
             let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-                return Err(Refused::Tool(format!(
-                    "no document here is called {which:?}. `docs` lists them all."
-                )));
+                return Err(match named_task(state, &which) {
+                    Some(task) if !task.is_open() => history(task),
+                    Some(task) => Refused::Tool(format!(
+                        "{which:?} is the task {:?}: send it as `task` to attach the file to it.",
+                        task.title
+                    )),
+                    None => Refused::Tool(no_document_called(state, &which)),
+                });
             };
             super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {

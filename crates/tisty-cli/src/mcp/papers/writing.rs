@@ -6,6 +6,7 @@ use ulid::Ulid;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::mistaken::no_document_called;
 use super::super::{
     Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, doc_named, doc_titled, folder_named,
     for_the_person, grew, hitch, left_loose, loose_words, named_doc, named_twice, opened, retold,
@@ -315,9 +316,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ));
     }
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(&state, &which)));
     };
     let named = doc_named(&state, &which);
     if state.held_away(kept) {
@@ -420,9 +419,7 @@ pub(super) fn over_again(
     body: &str,
 ) -> Result<Value, Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(state, which)));
     };
     let called = doc_named(state, which);
     if state.held_away(kept) {
@@ -638,9 +635,7 @@ pub(super) fn where_it_lands(
         None => None,
         Some(said) => {
             let Some(up) = state.docs.values().find(|one| one.file == said) else {
-                return Err(Refused::Tool(format!(
-                    "no document here is called {said:?}. `docs` lists them all."
-                )));
+                return Err(Refused::Tool(no_document_called(state, &said)));
             };
             let named = doc_named(state, &said);
             if up.page_of.is_some() {
