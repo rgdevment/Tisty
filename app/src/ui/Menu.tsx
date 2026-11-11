@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { folded } from "../folding";
 
 export interface Choice {
   key: string;
@@ -9,6 +10,8 @@ export interface Choice {
   apart?: boolean;
   off?: boolean;
   hint?: string;
+  code?: string;
+  on?: boolean;
   into?: { label: string; choices: Choice[] };
   onPick?: () => void;
 }
@@ -20,18 +23,24 @@ interface Props {
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
   up?: boolean;
   keeps?: boolean;
+  find?: string;
   onClose: () => void;
 }
 
 const EDGE = 6;
 const TALLEST = 0.8;
 
-export default function Menu({ at, choices, label, up, keeps, onClose }: Props) {
+export default function Menu({ at, choices, label, up, keeps, find, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
   const [where, setWhere] = useState<{ x: number; y: number; tall?: number }>(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
+  const [asked, setAsked] = useState("");
   const showing = deeper ?? { label, choices };
-  const live = showing.choices.filter((one) => !one.off);
+  const sought = deeper ? "" : folded(asked.trim());
+  const live = showing.choices.filter(
+    (one) => !one.off && folded(`${one.label} ${one.code ?? ""}`).includes(sought),
+  );
+  const sifting = Boolean(find) && !deeper;
 
   // Down when it fits below, up when it fits above, and only past what the window holds does it scroll.
   useLayoutEffect(() => {
@@ -61,9 +70,10 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
   }, []);
 
   useEffect(() => {
+    if (sifting) return card.current?.querySelector<HTMLElement>("input")?.focus();
     const items = card.current?.querySelectorAll<HTMLElement>("[role=menuitem]");
     items?.[deeper ? 1 : 0]?.focus();
-  }, [deeper]);
+  }, [deeper, sifting]);
 
   useEffect(() => {
     const away = (e: Event) => {
@@ -114,6 +124,24 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
       }}
       className="scroller fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
     >
+      {sifting && (
+        <input
+          type="search"
+          value={asked}
+          placeholder={find}
+          aria-label={find}
+          onChange={(e) => setAsked(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const first = live.find((one) => !one.into);
+            if (!first) return;
+            onClose();
+            first.onPick?.();
+          }}
+          className="mx-1 mb-1 w-[calc(100%-0.5rem)] rounded-md bg-hover px-2.5 py-1.5 text-[12.5px] text-ink outline-none placeholder:text-faint"
+        />
+      )}
       {deeper && (
         <button
           type="button"
@@ -142,12 +170,23 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
             }}
             className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
               one.danger ? "text-urgent" : "text-ink"
-            }`}
+            }${one.on ? " font-semibold" : ""}`}
           >
-            <span aria-hidden className="w-3.5 shrink-0 text-center text-[11.5px] text-faint">
-              {one.icon ?? ""}
-            </span>
+            {one.code ? (
+              <span aria-hidden className="w-9 shrink-0 text-[10.5px] tracking-[0.04em] text-faint">
+                {one.code}
+              </span>
+            ) : (
+              <span aria-hidden className="w-3.5 shrink-0 text-center text-[11.5px] text-faint">
+                {one.icon ?? ""}
+              </span>
+            )}
             <span className="truncate">{one.label}</span>
+            {one.on && (
+              <span aria-hidden className="ml-auto pl-3 text-[11.5px] text-faint">
+                ✓
+              </span>
+            )}
             {one.into && (
               <span aria-hidden className="ml-auto pl-3 text-[11.5px] text-faint">
                 ›

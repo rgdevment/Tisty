@@ -474,6 +474,108 @@ describe("the panels beside a sheet", () => {
     expect(asked).toEqual(["a"]);
   });
 
+  it("keeps up to three languages side by side, and gathers more in one picker", () => {
+    const side = host();
+    const picked: string[] = [];
+    const tongue = (lang: string, label: string) => ({
+      key: lang,
+      label,
+      lang,
+      on: lang === "es",
+      onPick: () => picked.push(lang),
+    });
+    sided(side, say, [
+      { kind: "title", title: "Guía", tongues: [tongue("es", "Español"), tongue("en", "English")] },
+    ]);
+    expect(side.querySelector(".side-tongues")).not.toBeNull();
+    expect(side.querySelector(".side-tongue-pick")).toBeNull();
+
+    const many = ["es", "en", "pt", "fr"].map((lang) => tongue(lang, lang.toUpperCase()));
+    sided(side, say, [{ kind: "title", title: "Guía", tongues: many }]);
+    const opener = side.querySelector<HTMLButtonElement>(".side-tongue-now");
+    const list = side.querySelector<HTMLElement>(".side-tongue-list");
+    expect(opener?.textContent).toContain("ES");
+    expect(opener?.textContent).toContain("4");
+    expect(list?.hidden).toBe(true);
+    expect(side.querySelector(".side-tongue-find")).toBeNull();
+
+    opener?.click();
+    expect(list?.hidden).toBe(false);
+    expect(opener?.getAttribute("aria-expanded")).toBe("true");
+    const items = Array.from(side.querySelectorAll<HTMLButtonElement>(".side-tongue-item"));
+    expect(items.map((one) => one.querySelector(".side-tongue-code")?.textContent)).toEqual([
+      "ES",
+      "EN",
+      "PT",
+      "FR",
+    ]);
+    items[0]?.click();
+    expect(picked).toEqual([]);
+    opener?.click();
+    items[3]?.click();
+    expect(picked).toEqual(["fr"]);
+    expect(list?.hidden).toBe(true);
+  });
+
+  it("leaves an archived language out of the picker and its count, and floats the list", () => {
+    const side = host();
+    const tongues = ["es", "en", "pt", "fr", "de"].map((lang) => ({
+      key: lang,
+      label: lang.toUpperCase(),
+      lang,
+      on: lang === "es",
+      away: lang === "de",
+      onPick: () => {},
+    }));
+    sided(side, say, [{ kind: "title", title: "Guía", tongues }]);
+    const opener = side.querySelector<HTMLButtonElement>(".side-tongue-now");
+    expect(opener?.textContent).toContain("4");
+    opener?.click();
+    const langs = Array.from(side.querySelectorAll(".side-tongue-item"), (one) =>
+      one.getAttribute("lang"),
+    );
+    expect(langs).toEqual(["es", "en", "pt", "fr"]);
+    expect(side.querySelector<HTMLElement>(".side-tongue-list")?.style.top).not.toBe("");
+
+    sided(side, say, [{ kind: "title", title: "Guía", tongues: tongues.slice(1) }]);
+    const row = Array.from(side.querySelectorAll<HTMLButtonElement>(".side-tongues .side-leaf"));
+    expect(row.map((one) => one.disabled)).toEqual([false, false, false, true]);
+  });
+
+  it("finds a language by its name or its code once there are nine or more", () => {
+    const side = host();
+    const langs = ["es", "en", "pt", "fr", "de", "it", "nl", "ru", "ja"];
+    const names = ["Español", "English", "Português", "Français", "Deutsch", "Italiano"];
+    sided(side, say, [
+      {
+        kind: "title",
+        title: "Saludos",
+        tongues: langs.map((lang, at) => ({
+          key: lang,
+          label: names[at] ?? lang,
+          lang,
+          on: at === 0,
+          onPick: () => {},
+        })),
+      },
+    ]);
+    side.querySelector<HTMLButtonElement>(".side-tongue-now")?.click();
+    const find = side.querySelector<HTMLInputElement>(".side-tongue-find");
+    expect(find?.placeholder).toBe("tonguesFind");
+    const seen = () =>
+      Array.from(side.querySelectorAll<HTMLElement>(".side-tongue-item"))
+        .filter((one) => !one.hidden)
+        .map((one) => one.getAttribute("lang"));
+
+    if (find) find.value = "franc";
+    find?.dispatchEvent(new Event("input"));
+    expect(seen()).toEqual(["fr"]);
+
+    if (find) find.value = "RU";
+    find?.dispatchEvent(new Event("input"));
+    expect(seen()).toEqual(["ru"]);
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);

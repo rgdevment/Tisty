@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
-import { sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -32,6 +32,7 @@ import {
 import { viewDiagram } from "../drawing";
 import { withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
+import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
@@ -76,7 +77,6 @@ const remembered = (held: Map<string, Read>, file: string, read: Read) => {
 };
 
 const GUTTER = 8;
-const SHEET = 820;
 
 const leaves = (): Record<string, Paper> => {
   try {
@@ -91,6 +91,7 @@ const leaves = (): Record<string, Paper> => {
 };
 
 const ASIDE = 344;
+const READABLE = 520;
 
 const NONE: string[] = [];
 
@@ -111,6 +112,7 @@ interface Props {
   onDropAll?: (docs: Filed[]) => void;
   onTask?: (task: Task) => void;
   onBack?: (doc: Filed) => void;
+  onAsideShut?: (shut: boolean) => void;
   fresh?: number;
 }
 
@@ -142,6 +144,7 @@ export default function Docs({
   onDropAll,
   onTask,
   onBack,
+  onAsideShut,
   fresh = 0,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
@@ -183,6 +186,9 @@ export default function Docs({
   const [shown, setShown] = useState<boolean | null>(null);
   const wide = room >= WIDE_WINDOW;
   const breadth = useBreadth();
+  const spare = room - sideWidth(breadth, wide) - GUTTER;
+  const fits = spare >= DOC_ASIDE_FROM;
+  const reachable = room - RAIL - GUTTER >= DOC_ASIDE_FROM;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.
@@ -198,7 +204,8 @@ export default function Docs({
   const paged = useRef(onPaging);
   paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
-  const crossed = useRef(wide);
+  const crossed = useRef(reachable);
+  useEffect(() => onAsideShut?.(shown === false), [shown, onAsideShut]);
 
   useEffect(() => {
     const look = () => setRoom(window.innerWidth);
@@ -206,11 +213,12 @@ export default function Docs({
     return () => window.removeEventListener("resize", look);
   }, []);
 
+  // Only the window decides when a closed column may come back: the sidebar moves with the column itself.
   useEffect(() => {
-    if (crossed.current === wide) return;
-    crossed.current = wide;
+    if (crossed.current === reachable) return;
+    crossed.current = reachable;
     setShown(null);
-  }, [wide]);
+  }, [reachable]);
 
   const keep = useCallback(
     (id: string, text: string, anyway?: boolean) => {
@@ -645,7 +653,7 @@ export default function Docs({
   const at = inOrder.findIndex((one) => one.file === own?.file);
   const next = at < 0 ? undefined : inOrder[at + 1];
 
-  const beside = Boolean(open) && (shown ?? wide);
+  const beside = Boolean(open) && (shown ?? fits);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -801,8 +809,8 @@ export default function Docs({
     wrote(laid);
     dressAlike(laid);
   };
-  const spare = room - sideWidth(breadth, wide) - GUTTER;
-  const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
+  const narrowest = sheets ? across + 48 : READABLE;
+  const reserve = beside && spare - ASIDE >= narrowest ? ASIDE : 0;
   const place = open
     ? trailed(folders, open.folder ?? null)
         .map((one) => one.name)

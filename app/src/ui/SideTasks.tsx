@@ -1,11 +1,13 @@
 import type { Counted, List } from "../core";
-import { todayLong } from "../format";
+import { capped, exactly, todayLong } from "../format";
 import { fill, t } from "../locales";
+import { keepOnly } from "../only";
 import type { Chosen, Lean, Named } from "../views";
 import DayCounts from "./DayCounts";
 import { FIND_KEY, FINDER } from "./finding";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+import { asksForMenu, menuAt } from "./menuKeys";
 import { useFades } from "./room";
 
 const TAGS_SHOWN = 14;
@@ -23,6 +25,8 @@ interface Props {
   lists: List[];
   tags: Counted[];
   chosen: Chosen;
+  acting?: string | null;
+  onListMenu?: (list: List, at: { x: number; y: number }) => void;
   leaning: Lean;
   onLean: (on: Lean) => void;
   onChoose: (chosen: Chosen) => void;
@@ -35,6 +39,8 @@ export default function SideTasks({
   lists,
   tags,
   chosen,
+  acting,
+  onListMenu,
   leaning,
   onLean,
   onChoose,
@@ -46,70 +52,84 @@ export default function SideTasks({
   const on = (key: Named) => plain && chosen.named === key;
 
   return (
-    <div className={`flex flex-col px-2.5 ${wide ? "min-h-0 flex-1" : "shrink-0 pb-2"}`}>
+    <div className={`flex flex-col px-2.5 pb-1 ${wide ? "min-h-0 flex-1" : "shrink-0"}`}>
       <Finder query={query} onSearch={onSearch} />
-      <div
-        className={`rounded-[10px] border bg-sheet px-2 pt-2 pb-1 transition-colors duration-150 ${
-          on("tasks") ? "border-accent/40" : "border-hair"
-        }`}
-      >
-        <div className="flex items-center gap-2 pl-1.5">
-          <button
-            type="button"
-            onClick={() => onChoose({ named: "tasks" })}
-            aria-current={on("tasks") ? "page" : undefined}
-            className={`text-[21px] leading-tight font-semibold hover:text-accent ${on("tasks") ? "text-accent" : "text-ink"}`}
+      <div className="flex items-center gap-2 pl-2.5">
+        <button
+          type="button"
+          onClick={() => onChoose({ named: "tasks" })}
+          aria-current={on("tasks") ? "page" : undefined}
+          className={`flex items-center gap-2 font-semibold hover:text-accent ${
+            wide ? "text-[13px]" : "text-[12.5px]"
+          } ${on("tasks") ? "text-accent" : wide ? "text-ink" : "text-faint"}`}
+        >
+          {wide && <Glyph name="sun" className="h-4 w-4 text-accent" />}
+          {t("tasks")}
+        </button>
+        <span className="truncate text-[11.5px] text-faint">{todayLong()}</span>
+        {counts.tasks ? (
+          <span
+            title={exactly(counts.tasks)}
+            className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums"
           >
-            {t("tasks")}
-          </button>
-          <span className="truncate text-[11.5px] text-faint">{todayLong()}</span>
-          {counts.tasks ? (
-            <span className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums">
-              {counts.tasks}
-            </span>
-          ) : null}
-          <span className={counts.tasks ? "" : "ml-auto"}>
-            <Leaning
-              toward={wide ? "docs" : "tasks"}
-              label={t(wide ? "shrinkTasks" : "growTasks")}
-              onLean={onLean}
-            />
+            {capped(counts.tasks)}
           </span>
-        </div>
-        <div className="mt-2">
-          <DayCounts
-            counts={counts}
-            onPick={(slice) => onChoose({ named: "tasks", slice, lists: chosen.lists })}
+        ) : null}
+        <span className={counts.tasks ? "" : "ml-auto"}>
+          <Leaning
+            toward={wide ? "docs" : "tasks"}
+            label={t(wide ? "shrinkTasks" : "growTasks")}
+            onLean={onLean}
           />
-        </div>
-        <nav aria-label={t("tasksViews")} className="mt-2 flex gap-0.5 border-t border-hair pt-1">
-          {VIEWS.map(({ key, icon }) => {
-            const said =
-              key === "lists"
-                ? `${t(key)} · ${lists.length}`
-                : counts[key]
-                  ? `${t(key)} · ${counts[key]}`
-                  : t(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onChoose({ named: key })}
-                aria-label={said}
-                aria-current={on(key) ? "page" : undefined}
-                title={said}
-                className={`grid h-8 flex-1 place-items-center rounded-md transition-colors duration-150 hover:bg-hover ${
-                  on(key) ? "bg-active text-accent" : "text-faint hover:text-ink"
-                }`}
-              >
-                <Glyph name={icon} />
-              </button>
-            );
-          })}
-        </nav>
+        </span>
       </div>
+      <div className="mt-1.5">
+        <DayCounts
+          counts={counts}
+          onPick={(slice) => {
+            keepOnly([]);
+            onChoose({ named: "tasks", slice });
+          }}
+        />
+      </div>
+      <nav
+        aria-label={t("tasksViews")}
+        className="mt-2 grid grid-cols-5 rounded-[10px] bg-hover p-0.5"
+      >
+        {VIEWS.map(({ key, icon }) => {
+          const said =
+            key === "lists"
+              ? `${t(key)} · ${lists.length}`
+              : counts[key]
+                ? `${t(key)} · ${counts[key]}`
+                : t(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onChoose({ named: key })}
+              aria-label={said}
+              aria-current={on(key) ? "page" : undefined}
+              title={said}
+              className={`grid h-7 place-items-center rounded-md transition-colors duration-150 ${
+                on(key) ? "bg-sheet text-accent ring-1 ring-hair" : "text-faint hover:text-ink"
+              }`}
+            >
+              <Glyph name={icon} />
+            </button>
+          );
+        })}
+      </nav>
       {wide && (
-        <Wide counts={counts} lists={lists} tags={tags} chosen={chosen} onChoose={onChoose} />
+        <Wide
+          counts={counts}
+          lists={lists}
+          tags={tags}
+          chosen={chosen}
+          acting={acting}
+          onListMenu={onListMenu}
+          onChoose={onChoose}
+        />
       )}
     </div>
   );
@@ -120,13 +140,15 @@ function Wide({
   lists,
   tags,
   chosen,
+  acting,
+  onListMenu,
   onChoose,
 }: Omit<Props, "leaning" | "onLean" | "query" | "onSearch">) {
   const pane = useFades<HTMLDivElement>();
   const held = lists.filter((one) => !one.archived);
   const most = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, TAGS_SHOWN);
   return (
-    <div ref={pane} className="scroller fading -mx-2.5 min-h-0 flex-1 px-2.5 pt-1 pb-3">
+    <div ref={pane} className="scroller fading -mx-2.5 mt-1 min-h-0 flex-1 px-2.5 pb-2">
       <Head said={t("lists")} many={held.length} />
       {held.map((one) => {
         const picked = chosen.list === one.id;
@@ -135,10 +157,20 @@ function Wide({
             key={one.id}
             type="button"
             onClick={() => onChoose({ named: "lists", list: one.id })}
+            onContextMenu={(e) => {
+              if (!onListMenu) return;
+              e.preventDefault();
+              onListMenu(one, { x: e.clientX, y: e.clientY });
+            }}
+            onKeyDown={(e) => {
+              if (!onListMenu || !asksForMenu(e)) return;
+              e.preventDefault();
+              onListMenu(one, menuAt(e));
+            }}
             aria-current={picked ? "page" : undefined}
             className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover ${
-              picked ? "bg-active font-semibold text-ink" : "text-soft hover:text-ink"
-            }`}
+              picked ? "bg-accent-soft font-semibold text-accent" : "text-soft hover:text-ink"
+            } ${acting === one.id ? "bg-active" : ""}`}
           >
             <span className={`flex w-4 shrink-0 justify-center ${painted(one.color)}`}>
               {one.icon ? (
@@ -149,8 +181,11 @@ function Wide({
             </span>
             <span className="truncate">{one.name}</span>
             {counts[one.id] ? (
-              <span className="ml-auto text-[11.5px] font-normal text-faint tabular-nums">
-                {counts[one.id]}
+              <span
+                title={exactly(counts[one.id])}
+                className="ml-auto text-[11.5px] font-normal text-faint tabular-nums"
+              >
+                {capped(counts[one.id])}
               </span>
             ) : null}
           </button>
@@ -166,14 +201,18 @@ function Wide({
               type="button"
               onClick={() => onChoose({ named: "tags", tags: [one.tag] })}
               aria-pressed={picked}
-              className={`flex items-baseline gap-1.5 rounded-md px-2 py-0.5 text-[11.5px] transition-colors duration-150 ${
+              className={`flex items-baseline gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] transition-colors duration-150 ${
                 picked
                   ? "bg-accent-soft text-ink"
                   : "bg-hover text-soft hover:bg-active hover:text-ink"
               }`}
             >
               #{one.tag}
-              {one.tasks ? <span className="text-faint tabular-nums">{one.tasks}</span> : null}
+              {one.tasks ? (
+                <span title={exactly(one.tasks)} className="text-faint tabular-nums">
+                  {capped(one.tasks)}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -181,7 +220,7 @@ function Wide({
           <button
             type="button"
             onClick={() => onChoose({ named: "tags" })}
-            className="rounded-md px-2 py-0.5 text-[11.5px] text-faint hover:text-ink"
+            className="rounded-full px-2.5 py-0.5 text-[11.5px] text-faint hover:text-ink"
           >
             {fill("tagsSeeAll", String(tags.length))}
           </button>
@@ -194,9 +233,11 @@ function Wide({
 
 function Head({ said, many }: { said: string; many: number }) {
   return (
-    <p className="flex items-center gap-2 px-2.5 pt-3 pb-1 text-[11.5px] font-semibold text-soft">
+    <p className="flex items-center gap-2 px-2.5 pt-3 pb-1 text-[11.5px] font-semibold text-faint">
       {said}
-      <span className="font-normal text-faint tabular-nums">{many || ""}</span>
+      <span title={exactly(many)} className="font-normal text-faint tabular-nums">
+        {many ? capped(many) : ""}
+      </span>
     </p>
   );
 }

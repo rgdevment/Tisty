@@ -1,14 +1,20 @@
 import type { Chosen } from "./views";
 
+export const DOC_ASIDE_FROM = 1082;
+const PULSE_FROM = 884;
+const TASK_BESIDE_FROM = 964;
+const BOTH_FROM = 1536;
+
 interface Seen {
   chosen: Chosen;
   open: boolean;
   mode: "columns" | "sheet";
   tight: boolean;
   calm: boolean;
+  asideShut?: boolean;
 }
 
-export const layoutOf = ({ chosen, open, mode, tight, calm }: Seen) => {
+export const layoutOf = ({ chosen, open, mode, tight, calm, asideShut }: Seen) => {
   const outside = chosen.named === "docs" || chosen.named === "keeping" || chosen.named === "help";
   const sheet = open && !outside && (mode === "sheet" || tight);
   const beside = open && !outside && !sheet;
@@ -33,5 +39,17 @@ export const layoutOf = ({ chosen, open, mode, tight, calm }: Seen) => {
         : aside
           ? "@min-[884px]:pr-[324px]"
           : "";
-  return { sheet, beside, aside, quiet, papered, lane };
+  const room =
+    chosen.named === "docs"
+      ? chosen.doc && !asideShut
+        ? DOC_ASIDE_FROM
+        : 0
+      : beside && aside
+        ? BOTH_FROM
+        : aside
+          ? PULSE_FROM
+          : beside
+            ? TASK_BESIDE_FROM
+            : 0;
+  return { sheet, beside, aside, quiet, papered, lane, room };
 };

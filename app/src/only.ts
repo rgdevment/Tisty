@@ -3,6 +3,12 @@ import type { List } from "./core";
 import { useGrouped } from "./grouping";
 import type { Chosen } from "./views";
 
+export const keepOnly = (lists: string[]) => {
+  try {
+    window.localStorage.setItem("tisty.only", JSON.stringify(lists));
+  } catch {}
+};
+
 export const useOnly = (chosen: Chosen): [Chosen, boolean] => {
   const byList = useGrouped() === "list";
   const seen = useMemo(
@@ -22,9 +28,7 @@ export const useOnlyAlive = (
     if (!known || !wanted?.length) return;
     const alive = wanted.filter((id) => known.some((one) => one.id === id));
     if (alive.length === wanted.length) return;
-    try {
-      window.localStorage.setItem("tisty.only", JSON.stringify(alive));
-    } catch {}
+    keepOnly(alive);
     setChosen((was) => ({ ...was, lists: alive }));
   }, [known, chosen.lists, setChosen]);
 };

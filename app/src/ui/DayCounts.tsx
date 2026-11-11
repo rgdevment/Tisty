@@ -1,5 +1,13 @@
+import { capped, exactly } from "../format";
 import { t } from "../locales";
 import type { Slice } from "../views";
+
+export interface Tile {
+  key: string;
+  said: string;
+  many: number;
+  tone?: string;
+}
 
 const DAY: { key: string; said: Parameters<typeof t>[0]; tone: string; slice: Slice }[] = [
   { key: "overdue", said: "pulseOverdue", tone: "text-urgent", slice: "overdue" },
@@ -10,21 +18,38 @@ const DAY: { key: string; said: Parameters<typeof t>[0]; tone: string; slice: Sl
 
 interface Props {
   counts: Record<string, number>;
-  onPick?: (slice: Slice) => void;
+  onPick: (slice: Slice) => void;
 }
 
 export default function DayCounts({ counts, onPick }: Props) {
-  const box = "min-w-0 rounded-[10px] border border-hair px-2 py-1 text-left";
+  const tiles = DAY.map(({ key, said, tone }) => ({
+    key,
+    said: t(said),
+    tone,
+    many: counts[key] ?? 0,
+  }));
+  const sliceOf = (key: string) => DAY.find((one) => one.key === key)?.slice ?? "today";
+  return <Tiles tiles={tiles} onPick={(key) => onPick(sliceOf(key))} />;
+}
+
+export function Tiles({ tiles, onPick }: { tiles: Tile[]; onPick?: (key: string) => void }) {
+  const strip = "grid grid-cols-4 rounded-[10px] bg-hover p-0.5";
+  const cell = (at: number) =>
+    `relative min-w-0 rounded-md px-1 py-1.5 text-center ${
+      at ? "before:absolute before:inset-y-3 before:left-0 before:w-px before:bg-hair" : ""
+    }`;
   const number = "block text-[21px] leading-tight font-semibold tabular-nums";
-  const word = "block truncate text-[9px] leading-tight text-faint";
+  const word = "block truncate text-[10.5px] leading-tight text-faint";
 
   if (!onPick) {
     return (
-      <dl className="grid grid-cols-4 gap-1.5">
-        {DAY.map(({ key, said, tone }) => (
-          <div key={key} className={box}>
-            <dt className={`${number} ${tone}`}>{counts[key] ?? 0}</dt>
-            <dd className={word}>{t(said)}</dd>
+      <dl className={strip}>
+        {tiles.map(({ key, said, tone, many }, at) => (
+          <div key={key} className={cell(at)}>
+            <dt title={exactly(many)} className={`${number} ${tone ?? ""}`}>
+              {capped(many)}
+            </dt>
+            <dd className={word}>{said}</dd>
           </div>
         ))}
       </dl>
@@ -32,16 +57,18 @@ export default function DayCounts({ counts, onPick }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-1.5">
-      {DAY.map(({ key, said, tone, slice }) => (
+    <div className={strip}>
+      {tiles.map(({ key, said, tone, many }, at) => (
         <button
           key={key}
           type="button"
-          onClick={() => onPick(slice)}
-          className={`${box} transition-colors duration-150 hover:bg-hover`}
+          onClick={() => onPick(key)}
+          className={`${cell(at)} transition-colors duration-150 hover:bg-active`}
         >
-          <span className={`${number} ${tone}`}>{counts[key] ?? 0}</span>
-          <span className={word}>{t(said)}</span>
+          <span title={exactly(many)} className={`${number} ${tone ?? ""}`}>
+            {capped(many)}
+          </span>
+          <span className={word}>{said}</span>
         </button>
       ))}
     </div>
