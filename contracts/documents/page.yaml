@@ -448,7 +448,7 @@ says: >-
   trusts the server: it says according to the server, and a server that hides a revocation cannot be caught on the web.
 fields:
   received: { type: time, says: "When the server received this version. Nothing in the document can write this date." }
-  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows: a reader weighs both machines, and beside an anchor the machine of its reviewed too." }
+  revocations: { type: list, of: revocation, says: "What the root of its signature and the root of its owner have revoked, as far as the server knows, and the roots of those who sent a version of it besides its owner, up to 16 of them, the first to edit first: a reader weighs the version's machines, each editor's, and beside an anchor the machine of its reviewed too." }
   reviewed: { type: reviewed, says: "Beside an anchor, the reviewed its owner last wrote, as the server holds it." }
   reviewed_received: { type: time, says: "When the server received that reviewed, with the owner's version it came in." }
 cases:

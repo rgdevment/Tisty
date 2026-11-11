@@ -2,7 +2,7 @@ use crate::identity::{self, Certificate, ShareKey, Signed, Verdict};
 
 const ABOUT: &str = "editor";
 
-fn said(id: &str, owned: bool, name: &str) -> Vec<u8> {
+pub fn said(id: &str, owned: bool, name: &str) -> Vec<u8> {
     let mut said = (id.len() as u64).to_be_bytes().to_vec();
     said.extend_from_slice(id.as_bytes());
     said.push(u8::from(owned));

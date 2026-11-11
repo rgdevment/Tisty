@@ -207,6 +207,43 @@ mod editing {
     }
 
     #[test]
+    fn a_name_whose_machine_was_revoked_before_the_version_arrived_is_left_aside() {
+        let (key, certificate) = person(OWNER);
+        let signed: Document = serde_json::from_value(json!({
+            "id": ID, "owner_name": "Mario", "signed_as": "Mario", "html": "<p>a</p>", "body": "a"
+        }))
+        .unwrap();
+        let main = Writer::new(&key, &certificate)
+            .sealed(
+                signed,
+                vec![],
+                vec![],
+                &sealing(ID, Some(key_text(LINK_KEY))),
+            )
+            .unwrap()
+            .main;
+        let revoked = Root::from_bytes(&[OWNER; 32])
+            .revoke(&key.public(), "2026-11-05T00:00:00Z".parse().unwrap());
+        let served = |received: &str| Served {
+            received: Some(received.into()),
+            revocations: Some(vec![Revocation {
+                root: revoked.root.clone(),
+                machine: revoked.share.clone(),
+                at: revoked.at.to_string(),
+                signed: revoked.sig.clone(),
+            }]),
+            reviewed: None,
+            reviewed_received: None,
+        };
+
+        let before = reading(&main, &asked(), &served("2026-11-04T00:00:00Z")).unwrap();
+        let after = reading(&main, &asked(), &served("2026-11-06T00:00:00Z")).unwrap();
+
+        assert_eq!(before.document["editors"][0]["name"], "Mario");
+        assert!(after.document.get("editors").is_none());
+    }
+
+    #[test]
     fn an_editor_with_the_token_signs_under_its_own_root_and_the_owner_stays() {
         let owner = owner_in(&owned(Some(TOKEN)));
         let main = edited(owner.clone(), Some(TOKEN), "Mario").unwrap();

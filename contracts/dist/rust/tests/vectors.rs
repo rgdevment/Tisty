@@ -130,6 +130,11 @@ fn editors_kept(id: &str, editors: &[Value]) -> Vec<Value> {
     editors.iter().filter(|one| one["in"] == id && editor_holds(one)).cloned().collect()
 }
 
+fn editors_weighed(id: &str, editors: &[Value], served: &Value) -> Vec<Value> {
+    let standing = |one: &Value| matches!(verdict_of(one, served), "holds" | "retired");
+    editors_kept(id, editors).into_iter().filter(standing).collect()
+}
+
 // The one rule of who may sign a version: its owner, or whoever holds the token its owner allowed.
 fn owner_answers(manifest: &Value, signature: &Value, manifest_bytes: &[u8], index: &[u8]) -> Result<(), String> {
     let owner = &manifest["owner"];
@@ -668,6 +673,15 @@ fn a_document_keeps_only_the_editors_signed_for_it() {
     let said = &vectors()["editors_in_a_document"];
     let kept = editors_kept(said["id"].as_str().unwrap(), said["editors"].as_array().unwrap());
     assert_eq!(Value::Array(kept), said["kept"]);
+}
+
+#[test]
+fn an_editor_s_machine_is_weighed_against_what_was_revoked() {
+    let said = &vectors()["editors_weighed"];
+    let (id, editors) = (said["id"].as_str().unwrap(), said["editors"].as_array().unwrap());
+    for one in said["cases"].as_array().unwrap() {
+        assert_eq!(Value::Array(editors_weighed(id, editors, &one["served"])), one["kept"], "{}", one["says"]);
+    }
 }
 
 #[test]

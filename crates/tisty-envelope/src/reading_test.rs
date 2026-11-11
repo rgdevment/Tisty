@@ -428,11 +428,11 @@ fn an_editor_that_breaks_the_contract_or_belongs_elsewhere_is_left_aside_and_the
     let id = all["editors"][0]["entry"]["in"].clone();
     let held = json!({ "id": id, "html": "<p>x</p>", "body": "x" });
 
-    let kept = editors_kept(held.clone(), Some(said.clone()), true);
+    let kept = editors_kept(held.clone(), Some(said.clone()), true, &nothing_served());
     assert_eq!(kept["editors"], json!([all["editors"][0]["entry"]]));
     assert_eq!(kept["body"], "x");
 
-    let public = editors_kept(held, Some(said), false);
+    let public = editors_kept(held, Some(said), false, &nothing_served());
     assert!(public.get("editors").is_none());
 }
 
@@ -441,6 +441,24 @@ fn a_document_keeps_only_the_editors_the_contract_says_it_keeps() {
     let all = all();
     let said = &all["editors_in_a_document"];
     let held = json!({ "id": said["id"], "html": "<p>x</p>", "body": "x" });
-    let kept = editors_kept(held, Some(said["editors"].clone()), true);
+    let kept = editors_kept(held, Some(said["editors"].clone()), true, &nothing_served());
     assert_eq!(kept["editors"], said["kept"]);
+}
+
+#[test]
+fn an_editor_s_machine_is_weighed_against_what_was_revoked_as_the_contract_says() {
+    let all: Value = serde_json::from_str(VECTORS).unwrap();
+    let said = &all["editors_weighed"];
+    for one in said["cases"].as_array().unwrap() {
+        let served: Served = serde_json::from_value(one["served"].clone()).unwrap();
+        let document = serde_json::json!({ "id": said["id"] });
+
+        let weighed = super::editors_kept(document, Some(said["editors"].clone()), true, &served);
+
+        let kept = weighed
+            .get("editors")
+            .cloned()
+            .unwrap_or(Value::Array(Vec::new()));
+        assert_eq!(kept, one["kept"], "{}", one["says"]);
+    }
 }
