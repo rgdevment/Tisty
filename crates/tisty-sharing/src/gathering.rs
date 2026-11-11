@@ -12,7 +12,7 @@ use tisty_core::model::{DocId, Kept};
 use tisty_core::person::Persons;
 use tisty_core::{Paths, State, docs, person};
 use tisty_envelope::clean;
-use tisty_envelope::family::{Family, Tongue};
+use tisty_envelope::family::{Family, Mine, Tongue, untouched};
 use tisty_envelope::sealing::link_key;
 use tisty_envelope::travelling::{Named, Places, Reached, body_ready, named, ready, words_in};
 use tisty_share_proto::identity::{Certificate, Person, ShareKey};
@@ -629,20 +629,23 @@ impl Gathering<'_> {
         })
     }
 
-    // The map also names languages others added, which this Tisty never seals, and they keep their place too.
+    // The map also names languages others added, which this Tisty never seals, and those it keeps hold their place too.
     fn held_by_others(&self, kept: &Kept, anchor_id: DocId) -> usize {
         let group = languages_of(self.desk.state, kept);
-        let ours: BTreeSet<&str> = group
-            .iter()
-            .filter_map(|one| self.shelf.get(&one.file))
-            .map(|one| one.id.as_str())
-            .collect();
         let anchor = group.iter().find(|one| one.id == anchor_id);
-        let map = carried_by(anchor.and_then(|one| self.shelf.get(&one.file))).languages;
-        map.unwrap_or_default()
+        let anchor_shared = anchor.and_then(|one| self.shelf.get(&one.file));
+        let owner_writes = anchor_shared.is_none_or(|one| !one.edited_through_a_link());
+        let mine: Vec<Mine> = group
             .iter()
-            .filter(|one| !ours.contains(one.document.as_str()))
-            .count()
+            .filter(|one| one.id != anchor_id)
+            .map(|one| Mine {
+                id: self.shelf.get(&one.file).map(|shared| shared.id.as_str()),
+                lang: one.lang.as_deref(),
+            })
+            .collect();
+        let held = carried_by(anchor_shared).languages.unwrap_or_default();
+        let anchor_lang = anchor.and_then(|one| one.lang.as_deref());
+        untouched(held, anchor_lang, &mine, owner_writes).len()
     }
 
     fn family(&mut self, doc: DocId, chosen: &[Chosen]) -> Result<Family, Unshared> {
@@ -674,7 +677,10 @@ impl Gathering<'_> {
                 .filter(|one| held_there(one) && !going.iter().any(|goes| goes.id == one.id))
                 .count()
             + self.held_by_others(kept, anchor_id);
-        let top = self.under.languages_at_most.unwrap_or(LANGUAGES_AT_MOST);
+        let top = self
+            .under
+            .languages_at_most
+            .map_or(LANGUAGES_AT_MOST, |most| most.min(LANGUAGES_AT_MOST));
         if taken > top {
             return Err(Unshared::LanguagesFull);
         }

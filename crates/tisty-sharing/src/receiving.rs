@@ -83,12 +83,11 @@ pub fn languages_joined(was: Option<&str>, arrived: Option<&str>) -> Option<Stri
     };
     let mut joined = kept["languages"].as_array().cloned().unwrap_or_default();
     for one in theirs {
-        match joined
-            .iter_mut()
-            .find(|held| held["document"] == one["document"])
+        if joined
+            .iter()
+            .all(|held| held["document"] != one["document"])
         {
-            Some(held) => *held = one,
-            None => joined.push(one),
+            joined.push(one);
         }
     }
     kept["languages"] = Value::Array(joined);

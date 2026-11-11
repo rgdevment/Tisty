@@ -136,7 +136,7 @@ fn another_version_brings_its_editors_and_leaves_what_this_copy_carries() {
 }
 
 #[test]
-fn the_owner_joins_the_languages_others_added_by_id_and_never_by_lang() {
+fn the_owner_joins_the_languages_others_added_by_id_and_keeps_what_it_holds() {
     let mine = r#"{"lang":"es","languages":[{"lang":"en","document":"marioEn1"},{"lang":"fr","document":"marioFr1"}],"cited":[{"document":"c"}]}"#;
     let theirs = r#"{"languages":[{"lang":"en","document":"anaEngl1"},{"lang":"fr","document":"marioFr1","title":"Nuevo"}]}"#;
 
@@ -150,7 +150,7 @@ fn the_owner_joins_the_languages_others_added_by_id_and_never_by_lang() {
         .map(|one| one["document"].as_str().unwrap())
         .collect();
     assert_eq!(documents, ["marioEn1", "marioFr1", "anaEngl1"]);
-    assert_eq!(joined["languages"][1]["title"], "Nuevo");
+    assert!(joined["languages"][1].get("title").is_none());
     assert_eq!(joined["cited"][0]["document"], "c");
     let untouched = super::languages_joined(Some(mine), Some(r#"{"lang":"de"}"#)).unwrap();
     assert_eq!(

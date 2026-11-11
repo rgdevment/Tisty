@@ -1546,3 +1546,27 @@ fn a_language_another_sent_a_newer_version_of_is_the_one_brought() {
     let asked = folio.asked.borrow();
     assert_eq!(asked.len(), 2);
 }
+
+#[test]
+fn only_what_this_tisty_shares_as_owner_counts_as_its_own() {
+    use crate::answers::folio_sync::owned_ids;
+    let shelf = BTreeMap::from([
+        (
+            "mine.md".to_owned(),
+            Remembered {
+                id: "marioEn1".into(),
+                ..remembered(Some("key"), Some("token"))
+            },
+        ),
+        (
+            "theirs.md".to_owned(),
+            Remembered {
+                id: "anaEngl1".into(),
+                admin_token: None,
+                ..remembered(Some("key"), Some("token"))
+            },
+        ),
+    ]);
+
+    assert_eq!(owned_ids(&shelf), BTreeSet::from(["marioEn1"]));
+}

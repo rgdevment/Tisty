@@ -4,9 +4,9 @@ use serde::Serialize;
 use std::collections::BTreeSet;
 use tisty_carrier::folio_client::{self, Door, Refused, Stopped};
 use tisty_carrier::folio_limits::{self, FolioLimits};
-use tisty_carrier::folio_pace;
 use tisty_carrier::folio_terms::Tongue;
 use tisty_carrier::policy;
+use tisty_carrier::{folio_pace, folio_reviewed};
 
 use tisty_core::Paths;
 use tisty_envelope::reviews::{self, Joining};
@@ -231,28 +231,53 @@ fn its_other_languages(
 
 struct Foreign {
     file: String,
-    shared: Remembered,
+    anchor: String,
     ids: Vec<String>,
 }
 
-/// What the owner's map names that none of its languages here are: languages others added.
+// What this Tisty edits through someone else's link is theirs, so only what it shares as owner is its own.
+pub(super) fn owned_ids(shelf: &std::collections::BTreeMap<String, Remembered>) -> BTreeSet<&str> {
+    shelf
+        .values()
+        .filter(|one| one.admin_token.is_some())
+        .map(|one| one.id.as_str())
+        .collect()
+}
+
 fn foreign_languages(session: &Session, doc: tisty_core::model::DocId) -> Option<Foreign> {
     let kept = session.state.docs.get(&doc)?;
     let anchor = session.state.docs.get(&session.state.anchor_of(kept))?;
     let shelf = tisty_sharing::remembered(&session.state);
-    let shared = shelf.get(&anchor.file)?.clone();
+    let shared = shelf.get(&anchor.file)?;
     shared.admin_token.as_ref()?;
-    let ours: BTreeSet<&str> = shelf.values().map(|one| one.id.as_str()).collect();
-    let ids = carried_map(&shared)
+    let ours = owned_ids(shelf);
+    let ids = carried_map(shared)
         .into_iter()
         .map(|one| one.document)
         .filter(|id| !ours.contains(id.as_str()))
         .collect();
     Some(Foreign {
         file: anchor.file.clone(),
-        shared,
+        anchor: shared.id.clone(),
         ids,
     })
+}
+
+fn gone_when_due(
+    door: &dyn Door,
+    home: &std::path::Path,
+    foreign: Option<&Foreign>,
+    now: u64,
+) -> BTreeSet<String> {
+    let Some(foreign) = foreign.filter(|one| !one.ids.is_empty()) else {
+        return BTreeSet::new();
+    };
+    if !folio_reviewed::languages_due(home, &foreign.anchor, now) {
+        return BTreeSet::new();
+    }
+    let gone = gone_from_folio(door, &foreign.ids);
+    folio_reviewed::languages_asked(home, &foreign.anchor, now);
+    gone
 }
 
 pub(super) fn gone_from_folio(door: &dyn Door, ids: &[String]) -> BTreeSet<String> {
@@ -391,11 +416,7 @@ pub async fn doc_share_sync(
             foreign_languages(&session, doc),
         )
     };
-    let foreign_ids = foreign
-        .as_ref()
-        .map(|one| one.ids.clone())
-        .unwrap_or_default();
-    let (ahead, language_ahead, granted, gone) = {
+    let (ahead, language_ahead, granted, gone, foreign) = {
         let (home, was, unchanged) = (home.clone(), was.clone(), looked.unchanged);
         apart(move || {
             let limits = folio_limits::kept(&home);
@@ -414,10 +435,10 @@ pub async fn doc_share_sync(
                 false => None,
             };
             let gone = match ahead == Ahead::Upload {
-                true => gone_from_folio(&door, &foreign_ids),
+                true => gone_when_due(&door, &home, foreign.as_ref(), pressed_at),
                 false => BTreeSet::new(),
             };
-            Ok((ahead, language_ahead, granted, gone))
+            Ok((ahead, language_ahead, granted, gone, foreign))
         })
         .await?
     };
@@ -456,8 +477,16 @@ pub async fn doc_share_sync(
         return Err(Refusal::of("folioEditLinkMismatch"));
     }
     if let Some(foreign) = foreign.filter(|_| !gone.is_empty()) {
-        let now = without_the_gone(&foreign.shared, &gone);
-        kept_on(&mut held(&session), &[(foreign.file, now)])?;
+        let mut session = held(&session);
+        let current = tisty_sharing::remembered(&session.state)
+            .get(&foreign.file)
+            .cloned();
+        if let Some(current) = current {
+            kept_on(
+                &mut session,
+                &[(foreign.file, without_the_gone(&current, &gone))],
+            )?;
+        }
     }
     let checking = paths.clone();
     let agreed = apart(move || may_upload(&checking, tongue)).await;
