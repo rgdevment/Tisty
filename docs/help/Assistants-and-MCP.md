@@ -118,7 +118,7 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
-**Four ready-made requests.** Tisty hands your assistant four requests it shows as commands. Claude Code lists them after `/` as `/mcp__tisty__pick_up` and so on; other assistants that take requests from a server show them in their own menu.
+**Four ready-made requests.** Tisty hands your assistant four requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
 - **Pick up where I left off** (`pick_up`) — what moved since last time, then the open task last worked on, with its steps and its latest notes. It changes nothing.
 - **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.

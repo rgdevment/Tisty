@@ -118,7 +118,7 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 Desde la 1.46.0, la memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
 
-**Cuatro pedidos listos.** Tisty le entrega a tu asistente cuatro pedidos que muestra como comandos. Claude Code los lista tras `/` como `/mcp__tisty__pick_up` y los demás; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
+**Cuatro pedidos listos.** Tisty le entrega a tu asistente cuatro pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
 - **Retomar donde lo dejé** (`pick_up`): qué cambió desde la última vez y, después, la tarea abierta en la que se trabajó por última vez, con sus pasos y sus últimas notas. No cambia nada.
 - **Planificar este trabajo como una tarea con pasos** (`plan_task`): una tarea con sus pasos, en la lista que le corresponde, una vez que nada abierto ni en el archivo lo cubre ya.
