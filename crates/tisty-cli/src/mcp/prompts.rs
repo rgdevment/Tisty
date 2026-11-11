@@ -144,7 +144,10 @@ fn argument(prompt: &Prompt, params: &Value) -> Result<Option<String>, (i32, Str
 fn picking_up(paths: &Paths, said: Option<&str>) -> String {
     let which = match said {
         Some(said) => {
-            format!("`find` the open task about «{said}» — ask me if several fit — and `read` it")
+            format!(
+                "`find` the open task about {} — ask me if several fit — and `read` it",
+                quoted(said)
+            )
         }
         None => match last_worked_on(paths) {
             Some(task) => format!("`read` {task}, the open task last worked on here,"),
@@ -158,6 +161,10 @@ fn picking_up(paths: &Paths, said: Option<&str>) -> String {
          what was done last and what comes next, naming tasks by title and list, never by id. \
          Change nothing yet."
     )
+}
+
+fn quoted(said: &str) -> String {
+    format!("«{said}» (or all I typed after the command, if a client cut it at a space)")
 }
 
 fn last_worked_on(paths: &Paths) -> Option<String> {
@@ -191,7 +198,7 @@ fn task_touched(
 
 fn planning(_: &Paths, said: Option<&str>) -> String {
     let work = match said {
-        Some(said) => format!("«{said}», with what we have said about it,"),
+        Some(said) => format!("{}, with what we have said about it,", quoted(said)),
         None => "the work we have been talking about".to_string(),
     };
     format!(
@@ -206,7 +213,7 @@ fn planning(_: &Paths, said: Option<&str>) -> String {
 
 fn looking_back(_: &Paths, said: Option<&str>) -> String {
     let problem = match said {
-        Some(said) => format!("«{said}»"),
+        Some(said) => quoted(said),
         None => "the problem we are on".to_string(),
     };
     format!(
@@ -221,7 +228,7 @@ fn looking_back(_: &Paths, said: Option<&str>) -> String {
 
 fn keeping(_: &Paths, said: Option<&str>) -> String {
     let about = match said {
-        Some(said) => format!("the one document about «{said}»"),
+        Some(said) => format!("the one document about {}", quoted(said)),
         None => "the one document on its subject".to_string(),
     };
     format!(

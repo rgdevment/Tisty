@@ -8,6 +8,7 @@ const SCHEME: &str = "tisty:doc/";
 const LISTED_AT_ONCE: usize = 50;
 const MARKDOWN: &str = "text/markdown";
 const NOT_FOUND: i32 = -32002;
+const LIST_STAYS_FRESH: i64 = 60_000;
 
 pub(super) fn listed(paths: &Paths, params: &Value) -> Result<Value, (i32, String)> {
     let past = match params.get("cursor").and_then(Value::as_str) {
@@ -44,11 +45,11 @@ pub(super) fn listed(paths: &Paths, params: &Value) -> Result<Value, (i32, Strin
                 .unwrap_or_else(|| "Untitled document".to_string());
             let mut listed = json!({
                 "uri": format!("{SCHEME}{}", one.file),
-                "name": title,
+                "name": &title,
                 "mimeType": MARKDOWN,
             });
             if let Some(where_at) = sits(&state, one) {
-                listed["description"] = json!(where_at);
+                listed["description"] = json!(format!("{title} — {where_at}"));
             }
             listed
         })
@@ -64,7 +65,7 @@ fn page(resources: Vec<Value>, next: Option<String>) -> Value {
     let mut listed = json!({
         "resultType": "complete",
         "resources": resources,
-        "ttlMs": 0,
+        "ttlMs": LIST_STAYS_FRESH,
         "cacheScope": "private",
     });
     if let Some(next) = next {
@@ -75,8 +76,8 @@ fn page(resources: Vec<Value>, next: Option<String>) -> Value {
 
 fn sits(state: &State, kept: &Kept) -> Option<String> {
     match (kept.page_of.and_then(|up| state.docs.get(&up)), kept.folder) {
-        (Some(up), _) => Some(format!("A page of {}", doc_titled(state, &up.file))),
-        (None, Some(at)) => Some(trail(state, at)),
+        (Some(up), _) => Some(format!("a page of {}", doc_titled(state, &up.file))),
+        (None, Some(at)) => Some(format!("in {}", trail(state, at))),
         (None, None) => None,
     }
 }

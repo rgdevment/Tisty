@@ -271,7 +271,7 @@ fn every_document_not_put_away_is_listed_newest_first_with_where_it_sits() {
         json!([
             { "uri": format!("tisty:doc/{plan}"), "name": "Release plan", "mimeType": "text/markdown" },
             { "uri": format!("tisty:doc/{recipes}"), "name": "Recipes", "mimeType": "text/markdown",
-              "description": "Kitchen" },
+              "description": "Recipes — in Kitchen" },
         ]),
         "{said}"
     );
