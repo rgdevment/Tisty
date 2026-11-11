@@ -12,6 +12,7 @@ export type ReadWord =
   | "tags"
   | "viewDocApart"
   | "tonguesOf"
+  | "tonguesFind"
   | "besideDetails"
   | "besideShut"
   | "leafA4"

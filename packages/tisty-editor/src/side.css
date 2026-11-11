@@ -114,6 +114,113 @@
   color: var(--tisty-soft);
   font-size: 12.5px;
 }
+.side-tongues .side-leaf {
+  overflow: hidden;
+  padding-inline: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-tongue-pick {
+  position: relative;
+}
+.side-tongue-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-ink);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.side-tongue-now:hover,
+.side-tongue-now[aria-expanded="true"] {
+  background: var(--tisty-hover);
+}
+.side-tongue-now svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--tisty-faint);
+}
+.side-tongue-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-tongue-many {
+  margin-left: auto;
+  color: var(--tisty-faint);
+  font-variant-numeric: tabular-nums;
+}
+.side-tongue-list {
+  position: fixed;
+  z-index: 70;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 10px;
+  background: var(--tisty-sheet);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+.side-tongue-list[hidden],
+.side-tongue-item[hidden] {
+  display: none;
+}
+.side-tongue-find {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+.side-tongue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-soft);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.side-tongue-item:hover,
+.side-tongue-item:focus-visible {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+  outline: none;
+}
+.side-tongue-item.on {
+  color: var(--tisty-ink);
+  font-weight: 600;
+}
+.side-tongue-code {
+  width: 36px;
+  flex-shrink: 0;
+  color: var(--tisty-faint);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+.side-tongue-mark {
+  margin-left: auto;
+  color: var(--tisty-faint);
+}
 .side-leaf:disabled {
   cursor: not-allowed;
   opacity: 0.5;

@@ -177,6 +177,7 @@ export default function Beside(props: Props) {
           label: tongueName(one.lang ?? ""),
           lang: one.lang ?? "",
           on: one.file === paper || one.id === up?.id,
+          away: one.away,
           onPick: () => latest.current.onTongue?.(one),
         })),
         onApart: () => latest.current.onApart(),

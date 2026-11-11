@@ -33,15 +33,12 @@ const show = (counts: Record<string, number>, hands = picked()) => {
 };
 
 describe("the day beside the list", () => {
-  it("counts the whole store, not the slice on screen", () => {
+  it("leaves the day's four counts to the sidebar, which already shows them", () => {
     show({ overdue: 2, late: 3, dueToday: 5, upcoming: 9 });
 
-    const said = (label: string) =>
-      screen.getByText(label).parentElement?.querySelector("dt")?.textContent;
-    expect(said("overdue")).toBe("2");
-    expect(said("late")).toBe("3");
-    expect(said("for today")).toBe("5");
-    expect(said("ahead")).toBe("9");
+    expect(screen.queryByText("The day")).toBeNull();
+    expect(screen.queryByText("overdue")).toBeNull();
+    expect(screen.queryByText("ahead")).toBeNull();
   });
 
   it("takes each quadrant from the tally, and opens Priorities from any of them", async () => {

@@ -1,23 +1,13 @@
 import { useState } from "react";
 import { useAttended } from "../attended";
-import {
-  type List,
-  listAdd,
-  listArchive,
-  listDrop,
-  listLook,
-  listRename,
-  listUnarchive,
-  type Task,
-} from "../core";
+import { type List, listAdd, listUnarchive, type Task } from "../core";
 import type { Standing } from "../deadlines";
 import { running, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { sure } from "../sure";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-import Naming from "./Naming";
+import ListNaming from "./ListNaming";
 import Pick from "./Pick";
 
 const whenOf = (task: Task, stands?: Standing) =>
@@ -74,44 +64,7 @@ export default function Lists({
       .catch((e) => onError(saidPlainly(e)));
   };
 
-  const settle = (list: List, called: string, drawn?: string, colour?: string) => {
-    const wanted = called.trim();
-    if (!wanted) return;
-    Promise.all([
-      wanted === list.name ? Promise.resolve() : listRename(list.id, wanted),
-      drawn === (list.icon ?? undefined) && colour === (list.color ?? undefined)
-        ? Promise.resolve()
-        : listLook(list.id, drawn, colour),
-    ])
-      .then(() => {
-        setEditing(null);
-        onChanged();
-      })
-      .catch((e) => onError(saidPlainly(e)));
-  };
-
   const field = useAttended<HTMLInputElement>(making);
-
-  const drop = (list: List) => {
-    sure(fill("listDropSure", list.name))
-      .then((sure) => {
-        if (!sure) return undefined;
-        setEditing(null);
-        return listDrop(list.id).then(() => {
-          onChanged();
-        });
-      })
-      .catch((e) => onError(saidPlainly(e)));
-  };
-
-  const shelve = (list: List) => {
-    listArchive(list.id)
-      .then(() => {
-        setEditing(null);
-        onChanged();
-      })
-      .catch((e) => onError(saidPlainly(e)));
-  };
 
   const restore = (list: List) => {
     listUnarchive(list.id)
@@ -263,20 +216,13 @@ export default function Lists({
         )}
       </div>
       {editing && (
-        <Naming
+        <ListNaming
           key={editing.id}
-          title={t("editList")}
-          invite={t("listName")}
-          called={editing.name}
-          drawn={editing.icon ?? undefined}
-          painted={editing.color ?? undefined}
-          action={t("saveIt")}
-          dropWord={t("listDrop")}
-          onName={(called, drawn, colour) => settle(editing, called, drawn, colour)}
-          onDrop={() => drop(editing)}
-          archiveWord={t("listArchive")}
-          onArchive={(counts[editing.id] ?? 0) === 0 ? () => shelve(editing) : undefined}
+          list={editing}
+          held={counts[editing.id] ?? 0}
           onClose={() => setEditing(null)}
+          onChanged={onChanged}
+          onError={onError}
         />
       )}
     </main>

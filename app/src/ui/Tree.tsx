@@ -573,7 +573,7 @@ export default function Tree({
               lifted?.id === doc.id ? "ring-1 ring-accent " : ""
             }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.away ? "text-faint " : ""}${
               open === doc.file
-                ? "bg-active text-ink"
+                ? "bg-accent-soft font-semibold text-accent"
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
             }`}
           >

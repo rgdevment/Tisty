@@ -1,5 +1,6 @@
 import type { Found, List, Snapshot } from "../core";
 import { t } from "../locales";
+import { keepOnly } from "../only";
 import {
   type Chosen,
   LAYERS,
@@ -77,7 +78,7 @@ export function SliceBar({
         chosen={chosen.lists ?? []}
         onChange={(lists) => {
           setSelected(undefined);
-          window.localStorage.setItem("tisty.only", JSON.stringify(lists));
+          keepOnly(lists);
           setChosen({ ...chosen, named: "tasks", lists });
         }}
       />

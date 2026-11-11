@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Found, Snapshot, Task } from "../core";
 
+Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
+
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));

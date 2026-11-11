@@ -4,6 +4,7 @@ import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
   day: Intl.DateTimeFormat;
+  date: Intl.DateTimeFormat;
   clock: Intl.DateTimeFormat;
   whole: Intl.DateTimeFormat;
   relative: Intl.RelativeTimeFormat;
@@ -18,6 +19,7 @@ function formats(): Formats {
     cached = {
       for: code,
       day: new Intl.DateTimeFormat(code, { weekday: "short", day: "numeric", month: "short" }),
+      date: new Intl.DateTimeFormat(code, { day: "numeric", month: "short" }),
       clock: new Intl.DateTimeFormat(code, { hour: "2-digit", minute: "2-digit" }),
       whole: new Intl.DateTimeFormat(code, { dateStyle: "long", timeStyle: "short" }),
       relative: new Intl.RelativeTimeFormat(code, { numeric: "auto" }),
@@ -57,6 +59,14 @@ export function stamped(iso: string, now = new Date()): string {
 // On paper a date is read later and elsewhere, so it says the whole day, never «today».
 export const numbered = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
+const SHOWN_UP_TO = 99;
+
+export const capped = (many: number): string =>
+  many > SHOWN_UP_TO ? `+${SHOWN_UP_TO}` : String(many);
+
+export const exactly = (many: number): string | undefined =>
+  many > SHOWN_UP_TO ? numbered(many) : undefined;
+
 export const wholeStamp = (at: Date): string => formats().whole.format(at);
 
 export const dayOf = (iso: string): string => formats().day.format(new Date(iso));
@@ -82,9 +92,8 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
 export function shortStamp(iso: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "";
-  const { clock } = formats();
-  const day = new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
-  return `${day} ${clock.format(at)}`;
+  const { clock, date } = formats();
+  return `${date.format(at)} ${clock.format(at)}`;
 }
 
 export function clockOf(spec: DateSpec): string {

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { fold, railed, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { fold, railed, sideWidth, useBreadth, useRoomFor, WIDE_WINDOW } from "../breadth";
 import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
@@ -40,6 +40,8 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
+  onListMenu?: (list: List, at: { x: number; y: number }) => void;
+  room?: number;
   onSync?: () => Promise<unknown> | undefined;
   onTrouble?: (text: string) => void;
 }
@@ -65,9 +67,12 @@ export default function Sidebar({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  onListMenu,
+  room = 0,
   onSync,
   onTrouble,
 }: Props) {
+  useRoomFor(room);
   const knocked = useKnocking().waiting.length > 0;
   const told = knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined;
   const keeping = chosen.named === "keeping";
@@ -126,6 +131,8 @@ export default function Sidebar({
             leaning={leaning}
             onLean={setLeaning}
             onChoose={onChoose}
+            acting={acting}
+            onListMenu={onListMenu}
             query={query}
             onSearch={onSearch ?? (() => onChoose({ named: "search" }))}
           />
@@ -134,7 +141,6 @@ export default function Sidebar({
             chosen={chosen}
             leaning={leaning}
             onLean={setLeaning}
-            onReveal={reveal}
             revealing={revealing}
             here={here}
             acting={acting}

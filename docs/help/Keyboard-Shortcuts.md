@@ -13,7 +13,7 @@ The whole window works from the keyboard.
 | `Ctrl`/`⌘` + `E` (in a document) | Open or leave the whole document |
 | `F1` | Open the Tisty Markdown guide, without a connection |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
-| `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width |
+| `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width. When the column on the right does not fit beside it, the sidebar folds to its icons by itself; opened by hand, it stays open until you change view or the window's size |
 | `Ctrl`/`⌘` + `S` (in the diagram window) | Save the diagram into its document |
 | `Enter` · `Tab` · `Delete` · `F2` (in a mind map) | Add a sibling, add a child, remove the idea, rename it |
 | `Delete` (on a schema, freeform diagram or class diagram) | Remove what is chosen |

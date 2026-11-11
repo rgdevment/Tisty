@@ -1,17 +1,16 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
 import type { Filed, Folded, Papers } from "../core";
+import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
 import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
-import { painted } from "./Hue";
-import { fitting, useFades, useRoom } from "./room";
+import LibraryGlance from "./LibraryGlance";
+import { useFades } from "./room";
 import { Leaning } from "./SideTasks";
 import Tree from "./Tree";
-
-const SQUARE = 36;
 
 export type Revealed = { folder: string; at: number };
 
@@ -20,7 +19,6 @@ interface Props {
   chosen: Chosen;
   leaning: Lean;
   onLean: (on: Lean) => void;
-  onReveal: (folder?: string) => void;
   revealing?: Revealed | null;
   here?: string | null;
   acting?: string | null;
@@ -36,24 +34,28 @@ interface Props {
 }
 
 export default function SideLibrary(props: Props) {
-  const { papers, chosen, leaning, onLean, onReveal, onHere } = props;
-  const many = shown(papers.docs).filter((one) => !one.pageOf).length;
+  const { papers, chosen, leaning, onLean, onHere } = props;
+  const many = shown(papers.docs).filter((one) => !one.pageOf && !one.away).length;
   const lit = chosen.named === "docs";
+  const library = () => {
+    onLean("docs");
+    onHere();
+  };
 
   const title = (
     <>
       <button
         type="button"
-        onClick={() => {
-          onLean("docs");
-          onHere();
-        }}
+        onClick={library}
         aria-current={lit ? "page" : undefined}
-        className={`text-[13px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
+        className={`flex items-center gap-2 text-[13px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
       >
+        <Glyph name="library" className="h-4 w-4 text-hue-amber" />
         {t("library")}
       </button>
-      <span className="text-[11.5px] text-faint tabular-nums">{many || ""}</span>
+      <span title={exactly(many)} className="text-[11.5px] text-faint tabular-nums">
+        {many ? capped(many) : ""}
+      </span>
     </>
   );
 
@@ -61,16 +63,7 @@ export default function SideLibrary(props: Props) {
   return (
     <>
       {shrunk && (
-        <div className="relative shrink-0 pb-2">
-          <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
-          <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-            {title}
-            <span className="ml-auto -mr-1.5">
-              <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
-            </span>
-          </div>
-          <Shelf papers={papers} here={props.here} onPick={onReveal} />
-        </div>
+        <LibraryGlance papers={papers} many={many} lit={lit} onLean={onLean} onLibrary={library} />
       )}
       <Wide {...props} title={title} hidden={shrunk} />
     </>
@@ -113,69 +106,68 @@ function Wide({
   };
 
   return (
-    <div
-      hidden={hidden}
-      className={`relative min-h-0 flex-1 flex-col ${hidden ? "hidden" : "flex"}`}
-    >
-      <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
-      <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-        {title}
-        <span className="ml-auto -mr-1.5 flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => (sifting ? close() : setSifting(true))}
-            aria-pressed={sifting}
-            aria-label={t("siftDocs")}
-            title={t("siftDocs")}
-            className={`grid size-6 place-items-center rounded-md hover:bg-hover hover:text-ink ${
-              sifting ? "bg-active text-ink" : "text-faint"
-            }`}
-          >
-            <Glyph name="filter" className="h-[13px] w-[13px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              const box = e.currentTarget.getBoundingClientRect();
-              onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
-            }}
-            aria-label={t("docsActions")}
-            aria-haspopup="menu"
-            className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-          >
-            <Glyph name="plus" className="h-[13px] w-[13px]" />
-          </button>
-          <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
-        </span>
-      </div>
-      {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}
-      <div
-        ref={pane}
-        onScroll={(e) => {
-          if (!hidden) scrolled.current = e.currentTarget.scrollTop;
-        }}
-        className="scroller fading min-h-0 flex-1 px-2.5 pb-4"
-      >
-        {nothing && (
-          <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
-        )}
-        <div className={nothing ? "hidden" : undefined}>
-          <Tree
-            papers={left}
-            reveal={revealing}
-            unfolded={Boolean(asked)}
-            open={chosen.doc}
-            here={here}
-            acting={acting}
-            onHere={onHere}
-            onMove={onMove}
-            onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
-            onFile={onFile}
-            onPage={onPage}
-            onFolderMenu={onFolderMenu}
-            onHereMenu={onHereMenu}
-            onDocMenu={onDocMenu}
-          />
+    <div hidden={hidden} className={`min-h-0 flex-1 flex-col pb-2 ${hidden ? "hidden" : "flex"}`}>
+      <span aria-hidden="true" className="mx-5 mt-2 mb-3 h-px shrink-0 bg-hair" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center gap-2 pr-4 pb-1 pl-5">
+          {title}
+          <span className="ml-auto -mr-1.5 flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => (sifting ? close() : setSifting(true))}
+              aria-pressed={sifting}
+              aria-label={t("siftDocs")}
+              title={t("siftDocs")}
+              className={`grid size-6 place-items-center rounded-md hover:bg-hover hover:text-ink ${
+                sifting ? "bg-active text-ink" : "text-faint"
+              }`}
+            >
+              <Glyph name="filter" className="h-[13px] w-[13px]" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                const box = e.currentTarget.getBoundingClientRect();
+                onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
+              }}
+              aria-label={t("docsActions")}
+              aria-haspopup="menu"
+              className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+            >
+              <Glyph name="plus" className="h-[13px] w-[13px]" />
+            </button>
+            <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
+          </span>
+        </div>
+        {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}
+        <div
+          ref={pane}
+          onScroll={(e) => {
+            if (!hidden) scrolled.current = e.currentTarget.scrollTop;
+          }}
+          className="scroller fading min-h-0 flex-1 px-2.5 pt-1 pb-2"
+        >
+          {nothing && (
+            <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
+          )}
+          <div className={nothing ? "hidden" : undefined}>
+            <Tree
+              papers={left}
+              reveal={revealing}
+              unfolded={Boolean(asked)}
+              open={chosen.doc}
+              here={here}
+              acting={acting}
+              onHere={onHere}
+              onMove={onMove}
+              onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
+              onFile={onFile}
+              onPage={onPage}
+              onFolderMenu={onFolderMenu}
+              onHereMenu={onHereMenu}
+              onDocMenu={onDocMenu}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -195,7 +187,7 @@ function Sift({
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
-      className="mx-2.5 mb-1.5 flex h-[30px] shrink-0 items-center gap-2 rounded-md bg-hover px-2.5 text-faint focus-within:bg-active"
+      className="mx-2.5 mt-1 mb-1 flex h-[30px] shrink-0 items-center gap-2 rounded-md bg-hover px-2.5 text-faint focus-within:bg-active"
     >
       <Glyph name="filter" className="h-[13px] w-[13px]" />
       <input
@@ -218,57 +210,5 @@ function Sift({
         <Glyph name="close" className="h-3 w-3" />
       </button>
     </form>
-  );
-}
-
-function Shelf({
-  papers,
-  here,
-  onPick,
-}: {
-  papers: Papers;
-  here?: string | null;
-  onPick: (folder?: string) => void;
-}) {
-  const strip = useRef<HTMLDivElement>(null);
-  const room = useRoom(strip, "width");
-  const top = papers.folders.filter((one) => one.parent === null && !one.away);
-  const fits = fitting(top.length, room, SQUARE);
-  const hidden = top.length - fits;
-
-  return (
-    <div ref={strip} className="flex gap-1 overflow-hidden px-4">
-      {top.slice(0, fits).map((folder) => (
-        <button
-          key={folder.id}
-          type="button"
-          onClick={() => onPick(folder.id)}
-          aria-label={folder.name}
-          aria-current={here === folder.id ? "true" : undefined}
-          title={folder.name}
-          className={`grid size-8 shrink-0 place-items-center rounded-md hover:bg-hover ${
-            here === folder.id ? "bg-active" : ""
-          }`}
-        >
-          <span
-            className={`grid size-6 place-items-center rounded-md bg-current/10 ${painted(folder.color)}`}
-          >
-            <Glyph name={folder.icon ?? "folder"} className="h-[13px] w-[13px]" />
-          </span>
-        </button>
-      ))}
-      {hidden > 0 && (
-        <button
-          type="button"
-          onClick={() => onPick()}
-          aria-label={fill("foldersMore", String(hidden))}
-          title={fill("foldersMore", String(hidden))}
-          className="h-8 shrink-0 rounded-md px-2 text-[11.5px] font-semibold text-faint hover:bg-hover hover:text-ink"
-        >
-          +{hidden}
-        </button>
-      )}
-      {!top.length && <p className="px-1 py-1.5 text-[11.5px] text-faint">{t("noDocsYet")}</p>}
-    </div>
   );
 }

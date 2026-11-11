@@ -51,6 +51,7 @@ The first line of the document is its title — there is no name to fill in.
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.
 - **The filter** in the Library's header keeps only the folders and documents whose name holds what you type, accents and case aside, with the folders above each one open; a folder that matches keeps all it holds. `Esc` closes it.
+- **When tasks take the room**, the Library folds to its title and one strip: how many documents were written today and this week, how many folders, and how many an agent marked as having had their day. The arrow beside its title gives it the room again.
 - **Archive a whole folder** with the right button when work is over: it drops to the **Archived** shelf at the foot of the tree with its icon, subfolders and pages exactly as you left them. There it reads and exports, but nothing writes into it and nothing new goes in.
 - **Bring it back** and it returns the same — including documents you had archived by hand in there, which stay archived.
 
@@ -77,7 +78,7 @@ A long document in parts — a year of minutes, a book by chapters — is one do
 
 ## Several languages
 
-A document can be told in several languages: each language is a document of its own, and Tisty shows them as one, in the language of the app, with a switch in the title panel, or above the sheet when the panel is shut, that keeps your place.
+A document can be told in several languages: each language is a document of its own, and Tisty shows them as one, in the language of the app, with a switch in the title panel, or above the sheet when the panel is shut, that keeps your place. From four languages on, the switch, above the sheet and in the panel alike, becomes one button with the language shown and how many there are; it lists them all with their code, and from nine on a field finds one by its name or its code.
 
 - **Translate into…**, in the document's menu, writes a copy of its words and pages in the language you pick, ready to translate section by section. If the document does not say its language yet, it asks.
 - **Join with its other language…** puts two documents you already have together, in either order: it asks each one's language by its name, and **Take out of its languages** parts them again.
@@ -96,7 +97,7 @@ Tasks have to be typed: there is no importer for another program's task list.
 
 Tisty does not need to own a file to show it. Pick Tisty under **Open with** for a `.md` or `.markdown` file — it never takes over as the default program — or follow a `tisty://open?path=…` link, and the file opens **read only** in a light viewer of its own, with the system's title bar, without coming into your store. It reads up to 1 MB, about a million characters, and says so when a file is heavier.
 
-- **The column beside the page** holds **Edit**, **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **See the document** returns from it), the file's headings and its details: its folder, size, date and properties. In a narrow window it folds away, and its button in the bar (`Ctrl`/`⌘` + `\`) opens it.
+- **The column beside the page** holds **Edit**, **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **See the document** returns from it), the file's headings and its details: its folder, size, date and properties. While it is open, the page moves aside for it and narrows if it has to, so the column never covers the text. In a narrow window the sidebar folds to its icons first, so the column keeps its place; only when even that is not enough does it fold away, and its button in the bar (`Ctrl`/`⌘` + `\`) opens it.
 - **The bar** has **Find in the text** (`Ctrl`/`⌘` + `F`), the theme and **More**, which also holds larger and smaller text, **Copy Markdown**, **Print** and **Show in folder**. The theme and your place in the file are remembered.
 - **It reads the file as it was written for other programs.** A centred header stays centred, a badge sits in its line, lines an editor cut at a column join up, and `#ff0000` or `[[x]]` stay as words. Diagrams and formulas are drawn, and so is a [widget](Widgets), since nothing in it runs.
 - **Pictures** beside the file show when they sit in its folder or below it. Pictures from the internet wait: a line above the page says how many, and **Show them** fetches them. It asks again each time you open the file ([what that sends](Privacy#the-network-requests-tisty-makes)).

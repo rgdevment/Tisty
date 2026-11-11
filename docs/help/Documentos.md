@@ -51,6 +51,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.
 - **El filtro** del encabezado de la Biblioteca deja solo las carpetas y los documentos cuyo nombre contiene lo que escribes, sin mirar acentos ni mayúsculas, con las carpetas de arriba de cada uno abiertas; una carpeta que coincide conserva todo lo que tiene. `Esc` lo cierra.
+- **Cuando las tareas toman el espacio**, la Biblioteca se pliega a su título y una franja: cuántos documentos se escribieron hoy y esta semana, cuántas carpetas hay y cuántos marcó un agente como pasados. La flecha junto a su título le devuelve el espacio.
 - **Archiva una carpeta entera** con el botón derecho cuando el asunto terminó: baja al estante de **Archivados**, al pie del árbol, con su icono, sus subcarpetas y sus páginas tal como las dejaste. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo.
 - **Desarchívala** y vuelve igual, incluidos los documentos que habías archivado a mano ahí, que siguen archivados.
 
@@ -77,7 +78,7 @@ Un documento largo por partes (un año de actas, un libro por capítulos) es un 
 
 ## Varios idiomas
 
-Un documento puede estar en varios idiomas: cada idioma es un documento propio, y Tisty los muestra como uno solo, en el idioma de la app, con un selector en el panel del título, o sobre la hoja si cerraste el panel, que te deja en la misma sección.
+Un documento puede estar en varios idiomas: cada idioma es un documento propio, y Tisty los muestra como uno solo, en el idioma de la app, con un selector en el panel del título, o sobre la hoja si cerraste el panel, que te deja en la misma sección. Desde cuatro idiomas, el selector, sobre la hoja y en el panel por igual, pasa a ser un solo botón con el idioma que ves y cuántos hay; los lista todos con su código, y desde nueve un campo busca uno por su nombre o su código.
 
 - **Traducir a…**, en el menú del documento, escribe una copia de su texto y sus páginas en el idioma que elijas, lista para traducir sección por sección. Si el documento todavía no dice su idioma, te lo pregunta.
 - **Unir con su otro idioma…** junta dos documentos que ya tienes, en cualquier orden: te pregunta el idioma de cada uno por su nombre, y **Separar de sus idiomas** los vuelve a separar.
@@ -96,7 +97,7 @@ Las tareas hay que escribirlas: no hay importador para la lista de tareas de otr
 
 Tisty no necesita quedarse con un archivo para mostrarlo. Elige Tisty en **Abrir con** para un archivo `.md` o `.markdown` (nunca se pone como programa predeterminado) o sigue un enlace `tisty://open?path=…`, y el archivo se abre en **solo lectura** en un visor liviano propio, con la barra de título del sistema, sin entrar a tu almacén. Lee hasta 1 MB, cerca de un millón de caracteres, y avisa cuando un archivo pesa más.
 
-- **La columna junto a la página** tiene **Editar**, **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **Ver el documento** regresa de ahí), los títulos del archivo y sus detalles: su carpeta, peso, fecha y propiedades. En una ventana angosta se pliega, y su botón en la barra (`Ctrl`/`⌘` + `\`) la abre.
+- **La columna junto a la página** tiene **Editar**, **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`; **Ver el documento** regresa de ahí), los títulos del archivo y sus detalles: su carpeta, peso, fecha y propiedades. Mientras está abierta, la página se corre para dejarle lugar y se angosta si hace falta, así la columna nunca tapa el texto. En una ventana angosta la barra lateral se pliega primero a sus iconos, para que la columna conserve su lugar; solo si ni así cabe se pliega, y su botón en la barra (`Ctrl`/`⌘` + `\`) la abre.
 - **La barra** tiene **Buscar en el texto** (`Ctrl`/`⌘` + `F`), el tema y **Más**, que además trae texto más grande y más pequeño, **Copiar el Markdown**, **Imprimir** y **Mostrar en la carpeta**. El tema y tu lugar en el archivo se recuerdan.
 - **Lee el archivo como se escribió para otros programas.** Un encabezado centrado sigue centrado, una insignia queda en su línea, las líneas que un editor cortó por columnas se juntan, y `#ff0000` o `[[x]]` quedan como palabras. Los diagramas y las fórmulas se dibujan, y también un [widget](Widgets-en-documentos), porque nada en él se ejecuta.
 - **Las imágenes** junto al archivo se muestran si están en su carpeta o más abajo. Las imágenes de internet esperan: una línea sobre la página dice cuántas hay, y **Mostrarlas** las trae. Vuelve a preguntar cada vez que abres el archivo ([qué envía eso](Privacidad#las-peticiones-de-red-que-hace-tisty)).

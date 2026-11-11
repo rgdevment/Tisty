@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { fold } from "../breadth";
 import type { List, Papers } from "../core";
+import { capped } from "../format";
 import { fill, t } from "../locales";
 import type { Chosen, Named } from "../views";
 import Glyph from "./Glyph";
@@ -76,7 +77,7 @@ export default function SideRail({
                 aria-hidden="true"
                 className="absolute top-1 right-0.5 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-urgent px-1 text-[9px] leading-none font-semibold text-bg"
               >
-                {late}
+                {capped(late)}
               </span>
             ) : null}
           </button>

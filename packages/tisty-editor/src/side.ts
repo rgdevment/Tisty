@@ -17,7 +17,11 @@ export type Turn = { readonly on: boolean; readonly onTurn: (on: boolean) => voi
 export type Step = { readonly key: string; readonly label: string; readonly onPick: () => void };
 
 /** One language a document is told in, named in its own words, and the one shown now. */
-export type Tongue = Step & { readonly lang: string; readonly on: boolean };
+export type Tongue = Step & {
+  readonly lang: string;
+  readonly on: boolean;
+  readonly away?: boolean;
+};
 
 export type Leaf = {
   readonly key: string;
