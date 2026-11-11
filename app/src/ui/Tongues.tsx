@@ -6,6 +6,7 @@ import Glyph from "./Glyph";
 import Menu from "./Menu";
 
 const SIDE_BY_SIDE = 3;
+const FIND_FROM = 9;
 
 interface Props {
   tongues: Filed[];
@@ -57,19 +58,22 @@ function Folded({ tongues, here, onOpen }: Props) {
           const box = e.currentTarget.getBoundingClientRect();
           setAt({ x: box.left, y: box.bottom + 4 });
         }}
-        className="tongue on flex items-center gap-1.5"
+        className="flex items-center gap-2 rounded-md border border-line px-2.5 py-1 text-ink hover:bg-hover"
       >
+        <Glyph name="language" className="h-3.5 w-3.5 text-faint" />
         <span lang={shown?.lang ?? undefined}>{said}</span>
-        <span className="font-normal text-faint tabular-nums">{live.length}</span>
+        <span className="text-faint tabular-nums">{live.length}</span>
         <Glyph name="chevron" className="h-3 w-3 text-faint" />
       </button>
       {at && (
         <Menu
           at={at}
           label={t("tonguesOf")}
+          find={live.length >= FIND_FROM ? t("tonguesFind") : undefined}
           choices={live.map((one) => ({
             key: one.id,
-            icon: one.id === here ? "✓" : "",
+            code: (one.lang ?? "").toUpperCase(),
+            on: one.id === here,
             label: tongueName(one.lang ?? ""),
             hint: one.title,
             onPick: () => one.id !== here && onOpen(one),

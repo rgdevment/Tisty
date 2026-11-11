@@ -13,6 +13,7 @@ const LEAF: Record<Paper, ReadWord> = {
 };
 
 const IN_ONE_ROW = 3;
+const FIND_FROM = 9;
 
 const trailed = (page: Document, panel: Of<"title">) => {
   const line = made(page, "p", "side-under");
@@ -24,20 +25,114 @@ const trailed = (page: Document, panel: Of<"title">) => {
   return line;
 };
 
-const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) => {
-  const many = tongues.length > IN_ONE_ROW ? " side-tongues-many" : "";
-  const row = made(page, "div", `side-leaves side-tongues${many}`);
+const plain = (said: string) => said.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+const segmented = (page: Document, say: Say, tongues: readonly Tongue[]) => {
+  const row = made(page, "div", "side-leaves side-tongues");
   row.setAttribute("role", "group");
   row.setAttribute("aria-label", say("tonguesOf"));
   for (const one of tongues) {
     const button = pressed(page, "side-leaf", one.label, () => !one.on && one.onPick());
     button.setAttribute("lang", one.lang);
-    button.title = one.label;
     button.setAttribute("aria-pressed", String(one.on));
+    button.title = one.label;
     row.append(button);
   }
   return row;
 };
+
+const chosen = (page: Document, one: Tongue, shut: () => void) => {
+  const item = pressed(page, one.on ? "side-tongue-item on" : "side-tongue-item", "", () => {
+    shut();
+    if (!one.on) one.onPick();
+  });
+  item.setAttribute("role", "option");
+  item.setAttribute("aria-selected", String(one.on));
+  item.setAttribute("lang", one.lang);
+  item.dataset.find = plain(`${one.label} ${one.lang}`);
+  item.append(
+    made(page, "span", "side-tongue-code", one.lang.toUpperCase()),
+    made(page, "span", "side-tongue-label", one.label),
+  );
+  if (one.on) item.append(made(page, "span", "side-tongue-mark", "✓"));
+  return item;
+};
+
+const finder = (page: Document, say: Say, items: HTMLElement[]) => {
+  const find = made(page, "input", "side-tongue-find");
+  find.type = "search";
+  find.placeholder = say("tonguesFind");
+  find.setAttribute("aria-label", say("tonguesFind"));
+  find.addEventListener("input", () => {
+    const asked = plain(find.value.trim());
+    for (const item of items) item.hidden = !item.dataset.find?.includes(asked);
+  });
+  return find;
+};
+
+const stepped = (live: HTMLElement[], from: EventTarget | null, by: number) => {
+  const at = live.indexOf(from as HTMLElement);
+  if (at < 0) return live[by > 0 ? 0 : live.length - 1];
+  return live[(at + by + live.length) % live.length];
+};
+
+const picker = (page: Document, say: Say, tongues: readonly Tongue[]) => {
+  const now = tongues.find((one) => one.on) ?? tongues[0];
+  const box = made(page, "div", "side-tongue-pick");
+  const list = made(page, "div", "side-tongue-list");
+  list.hidden = true;
+  list.setAttribute("role", "listbox");
+  list.setAttribute("aria-label", say("tonguesOf"));
+  const opener = made(page, "button", "side-tongue-now");
+  opener.type = "button";
+  const away = (event: Event) => {
+    if (!box.contains(event.target as Node)) shut();
+  };
+  const shut = () => {
+    list.hidden = true;
+    opener.setAttribute("aria-expanded", "false");
+    page.removeEventListener("mousedown", away, true);
+  };
+  const items = tongues.map((one) => chosen(page, one, shut));
+  const find = tongues.length >= FIND_FROM ? finder(page, say, items) : null;
+  opener.addEventListener("click", () => {
+    if (!list.hidden) return shut();
+    list.hidden = false;
+    opener.setAttribute("aria-expanded", "true");
+    page.addEventListener("mousedown", away, true);
+    (find ?? items.find((one) => one.classList.contains("on")) ?? items[0])?.focus();
+  });
+  opener.setAttribute("aria-haspopup", "listbox");
+  opener.setAttribute("aria-expanded", "false");
+  opener.setAttribute("aria-label", `${say("tonguesOf")} · ${now.label} · ${tongues.length}`);
+  opener.append(
+    glyph(page, "language"),
+    made(page, "span", "side-tongue-name", now.label),
+    made(page, "span", "side-tongue-many", `${tongues.length}`),
+    glyph(page, "chevron"),
+  );
+  list.addEventListener("keydown", (event) => {
+    const live = items.filter((one) => !one.hidden);
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      shut();
+      opener.focus();
+    } else if (event.key === "Enter" && event.target === find) {
+      event.preventDefault();
+      live[0]?.click();
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      stepped(live, event.target, event.key === "ArrowDown" ? 1 : -1)?.focus();
+    }
+  });
+  if (find) list.append(find);
+  list.append(...items);
+  box.append(opener, list);
+  return box;
+};
+
+const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) =>
+  tongues.length > IN_ONE_ROW ? picker(page, say, tongues) : segmented(page, say, tongues);
 
 const titled = (page: Document, say: Say, panel: Of<"title">) => {
   const head = made(page, "header", "side-title-row");

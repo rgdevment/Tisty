@@ -64,6 +64,18 @@ describe("the switch between languages", () => {
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "fr" }));
   });
 
+  it("lets nine or more languages be found by name or code in the list", () => {
+    const langs = ["es", "en", "pt", "fr", "de", "it", "nl", "ru", "ja"];
+    render(<Tongues tongues={langs.map((lang) => doc(lang, lang))} here="es" onOpen={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Español/ }));
+    const find = screen.getByRole("searchbox", { name: "Find a language" });
+    fireEvent.change(find, { target: { value: "franc" } });
+    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual(["FRFrançais"]);
+    fireEvent.change(find, { target: { value: "ja" } });
+    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual(["JA日本語"]);
+  });
+
   it("stands under no heading when no sheet is drawn", () => {
     expect(standingHead()).toBe(-1);
   });
