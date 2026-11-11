@@ -7,6 +7,7 @@ import {
   type Filed,
   type Folded,
   type Found,
+  type List,
   starDue,
   type Task,
 } from "./core";
@@ -75,6 +76,8 @@ export function useWindow() {
   // Where a diagram being named will be made: a folder, or none for the diagrams' own.
   const [makingDiagram, setMakingDiagram] = useState<{ into?: string } | null>(null);
   const [renaming, setRenaming] = useState<Folded | null>(null);
+  const [editingList, setEditingList] = useState<List | null>(null);
+  const [asideShut, setAsideShut] = useState(false);
   const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
@@ -227,6 +230,10 @@ export function useWindow() {
     setMakingDiagram,
     renaming,
     setRenaming,
+    editingList,
+    setEditingList,
+    asideShut,
+    setAsideShut,
     note,
     noted,
     said,

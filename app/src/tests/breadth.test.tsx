@@ -9,11 +9,14 @@ import {
   sideWidth,
   unwiden,
   useBreadth,
+  useRoomFor,
   WIDEST,
 } from "../breadth";
 import { toldAside } from "../coming";
+import { DOC_ASIDE_FROM, layoutOf } from "../layout";
 import { t } from "../locales";
 import Sidebar from "../ui/Sidebar";
+import type { Chosen } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }));
@@ -45,6 +48,11 @@ function Shown() {
 }
 
 const width = () => screen.getByRole("status").textContent;
+
+function Roomed({ need }: { need: number }) {
+  useRoomFor(need);
+  return <output>{sideWidth(useBreadth(), false)}</output>;
+}
 
 describe("the sidebar can be folded and widened", () => {
   beforeAll(() => {
@@ -135,5 +143,100 @@ describe("the sidebar can be folded and widened", () => {
     bar({ named: "keeping" } as typeof chosen);
     fireEvent.keyDown(document.body, { key: "b", ctrlKey: true });
     expect(width()).toBe("336");
+  });
+});
+
+describe("the sidebar gives way to the column on the right", () => {
+  const across = window.innerWidth;
+
+  const resize = (to: number) =>
+    act(() => {
+      Object.defineProperty(window, "innerWidth", {
+        value: to,
+        configurable: true,
+        writable: true,
+      });
+      window.dispatchEvent(new Event("resize"));
+    });
+
+  afterEach(() => {
+    resize(across);
+    render(<Roomed need={0} />);
+    act(() => unwiden());
+  });
+
+  it("folds to its icons only where that makes the column fit", () => {
+    resize(1100);
+    const { rerender } = render(<Roomed need={884} />);
+    expect(width()).toBe(String(RAIL));
+
+    resize(1300);
+    expect(width()).toBe("336");
+
+    resize(900);
+    expect(width()).toBe("336");
+
+    resize(1100);
+    rerender(<Roomed need={0} />);
+    expect(width()).toBe("336");
+  });
+
+  it("keeps open what was opened by hand, until the view or the window changes", () => {
+    resize(1100);
+    const { rerender } = render(<Roomed need={884} />);
+    act(() => fold(false));
+    expect(width()).toBe("336");
+
+    rerender(<Roomed need={964} />);
+    expect(width()).toBe(String(RAIL));
+
+    act(() => fold(false));
+    resize(1400);
+    resize(1100);
+    expect(width()).toBe(String(RAIL));
+  });
+
+  it("forgets a hand open once a narrower sidebar no longer crowds the column", () => {
+    resize(1190);
+    const { rerender } = render(<Roomed need={884} />);
+    act(() => fold(false));
+    expect(width()).toBe("336");
+
+    act(() => dragTo(NARROWEST));
+    rerender(<Roomed need={884} />);
+    expect(width()).toBe(String(NARROWEST));
+
+    act(() => dragTo(400));
+    expect(width()).toBe(String(RAIL));
+  });
+
+  it("leaves the choice made where there is room as it was", () => {
+    resize(1100);
+    render(<Roomed need={884} />);
+    act(() => fold(false));
+    resize(1600);
+    expect(width()).toBe("336");
+  });
+});
+
+describe("what each view needs on its right", () => {
+  const room = (chosen: Chosen, open = false) =>
+    layoutOf({ chosen, open, mode: "columns", tight: false, calm: true }).room;
+
+  it("asks room for the day beside the tasks, more with a task open, and for a document's column", () => {
+    expect(room({ named: "tasks" })).toBe(884);
+    expect(room({ named: "tasks" }, true)).toBe(1536);
+    expect(room({ named: "docs", doc: "a.md" })).toBe(DOC_ASIDE_FROM);
+    expect(room({ named: "docs" })).toBe(0);
+    const shut = layoutOf({
+      chosen: { named: "docs", doc: "a.md" },
+      open: false,
+      mode: "columns",
+      tight: false,
+      calm: true,
+      asideShut: true,
+    });
+    expect(shut.room).toBe(0);
+    expect(room({ named: "spread" })).toBe(0);
   });
 });

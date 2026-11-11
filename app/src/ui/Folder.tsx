@@ -6,16 +6,9 @@ import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+import { asksForMenu, menuAt } from "./menuKeys";
 
 const PEEK = 8;
-
-const asksForMenu = (e: React.KeyboardEvent) =>
-  e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
-
-const menuAt = (e: React.KeyboardEvent) => {
-  const box = (e.target as HTMLElement).getBoundingClientRect();
-  return { x: box.left + 24, y: box.bottom };
-};
 
 const INDEX = "columns-1 gap-x-8 md:columns-2 xl:columns-3";
 const ROW =

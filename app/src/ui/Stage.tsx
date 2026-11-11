@@ -46,6 +46,7 @@ export default function Stage() {
     parcels,
     ready,
     remember,
+    setAsideShut,
     setCameFrom,
     setChosen,
     setDealing,
@@ -117,6 +118,7 @@ export default function Stage() {
         opening(one);
       }}
       onBack={bringBack}
+      onAsideShut={setAsideShut}
       fresh={carried}
     />
   ) : chosen.named === "lists" && !chosen.list && !sheet ? (

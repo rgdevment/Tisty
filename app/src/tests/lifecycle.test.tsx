@@ -9,6 +9,8 @@ import Docs from "../ui/Docs";
 import { SETTLING_MS } from "../ui/Sure";
 import Tree from "../ui/Tree";
 
+Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
+
 interface FakeFolder {
   id: string;
   name: string;
@@ -456,7 +458,9 @@ describe("creating a document", () => {
     await chooseFor("Personal", t("newDoc"));
     await screen.findByTestId("editor");
 
-    const branch = screen.getByRole("button", { name: "Personal" }).closest("li") as HTMLElement;
+    const branch = screen
+      .getAllByRole("button", { name: "Personal" })[0]
+      .closest("li") as HTMLElement;
     expect(within(branch).getByRole("button", { name: t("untitledDoc") })).toBeTruthy();
   });
 });
@@ -1122,7 +1126,7 @@ describe("standing inside a folder", () => {
     await userEvent.click(screen.getByRole("button", { name: "Acta" }));
     await screen.findByTestId("editor");
 
-    await userEvent.click(screen.getByRole("button", { name: "Trabajo" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Trabajo" })[0]);
 
     expect(screen.queryByTestId("editor")).toBeNull();
     expect(await screen.findByRole("heading", { name: /Trabajo/ })).toBeTruthy();

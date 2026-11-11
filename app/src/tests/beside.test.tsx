@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { wordsIn as worded } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fold, RAIL, unwiden } from "../breadth";
 import type { Filed } from "../core";
 import { DOC } from "../markdown";
 import Docs from "../ui/Docs";
@@ -193,12 +194,21 @@ describe("the column beside a document", () => {
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
   });
 
-  it("stays away by default a pixel under the 1440 threshold", async () => {
-    widen(1439);
+  it("stays away by default a pixel short of the room it needs beside the sidebar", async () => {
+    widen(1425);
     show();
 
     await screen.findByLabelText("editor");
     expect(column()).toBeNull();
+  });
+
+  it("shows itself on a smaller window once the sidebar is folded to its icons", async () => {
+    act(() => fold(true));
+    widen(1082 + RAIL + 8);
+    show();
+
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+    act(() => unwiden());
   });
 
   it("stays closed while the window stays the size it was", async () => {
@@ -300,16 +310,27 @@ describe("where the document rests", () => {
     expect(roomOf()?.style.paddingRight).toBe("344px");
   });
 
-  it("counts the sidebar at the width it really has, and lets the column float when it does not fit", async () => {
+  it("makes room for the column where the page has to narrow beside it", async () => {
     widen(1500);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    expect(roomOf()?.style.paddingRight).toBe("0px");
+    expect(roomOf()?.style.paddingRight).toBe("344px");
   });
 
-  it("lets the column lie over the text rather than pushing it", async () => {
+  it("moves the text aside for a column asked for on a narrow window, never lying over it", async () => {
+    act(() => fold(true));
     widen(1100);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("344px");
+    act(() => unwiden());
+  });
+
+  it("lets the column lie over a page it would squeeze past reading", async () => {
+    widen(900);
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
     await screen.findByRole("complementary", { name: "About this document" });
@@ -331,22 +352,6 @@ describe("where the document rests", () => {
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
     expect(sheetOf()?.style.maxWidth).toBe("842px");
-  });
-
-  it("reserves room right at 1522, the exact width the column needs to fit beside the page", async () => {
-    widen(1522);
-    show();
-    await screen.findByRole("complementary", { name: "About this document" });
-
-    expect(roomOf()?.style.paddingRight).toBe("344px");
-  });
-
-  it("reserves nothing a single pixel short of 1522", async () => {
-    widen(1521);
-    show();
-    await screen.findByRole("complementary", { name: "About this document" });
-
-    expect(roomOf()?.style.paddingRight).toBe("0px");
   });
 });
 
