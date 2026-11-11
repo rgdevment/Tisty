@@ -3,10 +3,10 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — local memory for you and your AI agent: a free, open source
-    app for notes, documents and tasks on Windows and macOS"/>
+    alt="Tisty — local memory and context for you and your AI agent: a free,
+    open source app for notes, documents and tasks on Windows and macOS"/>
 
-  <h1>Tisty — Local Memory for You and Your AI Agent</h1>
+  <h1>Tisty — Local Memory and Context for You and Your AI Agent</h1>
 
   <p><strong>The working memory that stays yours: tasks, documents and notes in
   Markdown on your own disk, for Windows and macOS.<br/>Tasks that keep how each
