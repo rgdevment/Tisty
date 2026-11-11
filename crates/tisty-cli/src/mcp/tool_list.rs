@@ -74,7 +74,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Mark steps you did yourself, as you finish each. One unknown name and nothing is ticked; a name two steps share ticks the next open one. On a task you may work on the step is ticked; on the person's others it is said done, for them to take. Closing is `say_done` and the person's.",
+            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's tasks not open to you, it reports the step done for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
@@ -86,7 +86,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "rename",
             "title": "Rename a task an agent filed",
-            "description": "Give a better title to a task an agent filed. A task the person wrote keeps its title.",
+            "description": "Retitle a task an agent filed, when the title no longer says what it is. The person's own tasks are refused: offer the title in a `note`. On a task you may work on, steps are `reword_step` and the page `describe`.",
             "inputSchema": on_a_task(
                 json!({ "title": { "type": "string", "description": "The new title" } }),
                 &["title"],
@@ -509,7 +509,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "find",
             "title": "Search the list and the archive",
-            "description": "Search tasks, open and archived, and documents: by words in `query`, by the task fields below, or by `source` to see if it was filed. A task found by its page, steps or notes comes with the `line` saying it. With `doc`, the matching lines inside that document.",
+            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
@@ -555,7 +555,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "language",
             "title": "What Tisty adds to Markdown",
-            "description": "What Tisty adds to Markdown, which plain Markdown does not need: pens, underline, icons, callouts, folds, tags, cards, attachments, diagrams. Alone, the index; ask the `topic` you mean to write.",
+            "description": "Reference for the Markdown extensions Tisty reads, to look up before writing one: pens, underline, icons, callouts, folds, tags, cards, attachments, diagrams. Plain Markdown needs none. Without `topic`, the index; then ask only the topic you will write. How the app works is `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
