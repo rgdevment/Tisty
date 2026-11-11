@@ -3,16 +3,17 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — free open source notes, documents and tasks for Windows and macOS"/>
+    alt="Tisty — local memory for you and your AI agent: free open source
+    notes, documents and tasks for Windows and macOS"/>
 
-  <h1>Tisty — Free Open Source Notes, Documents and Tasks</h1>
+  <h1>Tisty — Local Memory for You and Your AI Agent</h1>
 
-  <p><strong>Notes, documents and tasks that stay yours: Markdown and plain text
-  on your own disk, for Windows and macOS.<br/>Documents that grow into books, with
-  diagrams, formulas, code, widgets and their own PDF — and tasks that become the
-  record of what you worked out, searchable years later, with an MCP door for
-  your assistant.<br/>No accounts. No subscriptions. No telemetry. No
-  server.</strong></p>
+  <p><strong>The working memory that stays yours: tasks, documents and notes in
+  Markdown on your own disk, for Windows and macOS.<br/>Tasks that keep how each
+  thing was solved, documents that keep what you know — one per subject — and an
+  MCP server that lets Claude Code, Codex, Cursor or any assistant pick up where
+  it left off, reading a section at a time instead of every file.<br/>No
+  accounts. No subscriptions. No telemetry. No server.</strong></p>
 
   <p>Software out of conviction, not subscription.</p>
 
@@ -109,19 +110,25 @@
 
 ---
 
-**Tisty** is open source: read it, build it, run it, or take one of the signed
+**A task list forgets the moment you tick the box. Your AI agent forgets the
+moment the session ends.**
+
+Everybody patches that in their own way: a `NOTES.md` hidden behind
+`.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date.
+They go stale, they pile up, they get lost between branches, machines and
+projects — and the agent rereads all of it, every session, at full price. The
+assistant is brilliant at the file in front of it and forgets the picture: why
+something was decided six months ago, what failed last time, what is still left.
+
+**Tisty is the memory underneath.** Tasks that keep how each thing was solved,
+with their steps and a dated journal. Documents that keep what you know, one
+per subject, corrected in place instead of piled up. All of it on your own disk:
+visual and comfortable for you, and for your agent a **local MCP server** that
+says what moved since last time and reads an outline first, then only the
+section it needs.
+
+It is open source: read it, build it, run it, or take one of the signed
 releases already out there. Nothing is hidden and all of it can be audited.
-
-It is a place to write. **Documents** are Markdown files on your own disk
-that hold far more than text: a book in pages, diagrams drawn from a few lines,
-formulas, code named after its file, small widgets, pictures and PDFs that
-travel with them, and a PDF of their own when you print. Search reads them with
-the tasks, and an assistant can read and write them too.
-
-It is not a **to-do app** as you know it. A list gets emptied and forgotten. Here
-what you close stays: what you did, when, and what you worked out on the way.
-Months later you search for how you solved something and it is there — the
-description, the journal, the steps, the documents you leaned on.
 
 I am not a company. I am a developer who kept solving the same problem twice, so
 I built the **notes, documents and task manager** I wanted and gave it away. It
@@ -129,8 +136,15 @@ is meant to stay small and useful, not to grow a thousand features nobody uses.
 No ads, no telemetry, no accounts, no subscriptions — a **local-first
 productivity tool** that lives on your machine and nowhere else.
 
-**Why people choose Tisty over other task managers:**
+**Why people choose Tisty:**
 
+- **Memory that outlasts the session** — your agent starts from what moved, the
+  task it was on and what it noted yesterday, not from a blank chat.
+- **Made for agents as much as for people** — an outline costs a few hundred
+  tokens, a read brings one section, and picking up again brings only what
+  changed: a fraction of rereading your Markdown files.
+- **Finishing keeps everything** — a closed task goes to the archive whole, and
+  a search answers «how did we solve this?» with the line that says it.
 - **100% local** — your tasks, your journal and your documents live on your
   computer and go only where you send them. No server of ours, no account. If
   you sync two machines, you can ask Tisty to leave the largest attachments in
@@ -142,8 +156,6 @@ productivity tool** that lives on your machine and nowhere else.
 - **Truly free** — no premium tier, no feature gates, no trial. AGPL v3.
 - **Your data outlives the app** — plain text and Markdown on your own disk,
   readable with `cat` and searchable with `grep`.
-- **Finishing keeps everything** — completing a task moves it to the archive
-  with its steps, its notes and its attachments intact, documents included.
 - **Fast and native** — a Rust core inside a Tauri window: it starts quickly,
   stays small, and looks like it belongs on both systems.
 
@@ -152,11 +164,19 @@ productivity tool** that lives on your machine and nowhere else.
 > keeps improving because of real-world use. Questions, ideas and how you use
 > it go to [Discussions](https://github.com/rgdevment/Tisty/discussions).
 >
-> **It is for one person, by design.** No assignees, no permissions, no boards.
-> If you need to run a team, Tisty will not carry that.
+> **Each person keeps their own Tisty, by design.** A developer, a PM and a QA
+> each have their own tasks, documents and lessons, and their own agent working
+> from them. When someone needs what you know, you hand them the document
+> through [Folio](#share-what-you-know-with-folio). No assignees, no
+> permissions, no boards: if you need to run a team, Tisty will not carry that.
 
 ## Table of Contents
 
+- [Real Problems, Real Fixes](#real-problems-real-fixes)
+- [Tasks and Documents, for You and Your Agent](#tasks-and-documents-for-you-and-your-agent)
+- [A Day With Your Agent](#a-day-with-your-agent)
+- [What It Costs Your Agent](#what-it-costs-your-agent)
+- [Share What You Know With Folio](#share-what-you-know-with-folio)
 - [MCP Server](#mcp-server)
 - [Tools](#tools)
 - [Why I Built This](#why-i-built-this)
@@ -180,6 +200,128 @@ productivity tool** that lives on your machine and nowhere else.
 - [Contributing](#contributing)
 - [Licence](#licence)
 - [Project health](#project-health)
+
+## Real Problems, Real Fixes
+
+What people actually run into when they work with an AI assistant for months,
+and what happens instead when the memory lives in Tisty.
+
+| The problem | What happens in Tisty |
+| --- | --- |
+| **Developer:** every new session you explain the project to your agent again | It asks what moved since last time, opens the task *Move payments to v2* with its ticked steps, and reads what it noted yesterday: *the webhook fails on old signatures; retrying ruled out*. It carries on from there. |
+| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 95% less than the whole file. |
+| **Anyone:** you solved this eight months ago and cannot remember how | A search for *timeouts on save* brings back the archived task as it was left: its steps, its journal, and the line saying the cause was a missing index. |
+| **PM:** a month later somebody asks «why did we decide this?» | One living document per subject, *Checkout decisions*, each decision dated with its why. The agent finds it and quotes it instead of reopening the debate. |
+| **QA:** the same screen breaks again and nobody remembers last time's cases | The archived regression task keeps its cases as steps, with what was seen in each. |
+| **Handover** between PM and PO, or developer and QA, pasted into a chat | You hand over the document through Folio: encrypted on your machine before it leaves, signed by you, gone on its own after days unused. |
+| **Business rules** that must not land in somebody else's database | Tisty keeps them on your disk and sends them nowhere. What your agent reads goes where that agent goes, so pair it with one your company allows. |
+| **At home:** the bank paperwork that comes back every year | Next year, the archived task tells you how you did it last time. |
+
+## Tasks and Documents, for You and Your Agent
+
+Tisty keeps two kinds of things, and the same two serve you and your agent.
+Something you will do is a task. Something you will come back to is a document.
+
+### Tasks: what to do, who does it, how it was solved
+
+- **Priority, by its name** — the Eisenhower matrix: *do*, *decide*,
+  *delegate*, *drop*. A date and a deadline are kept apart, so a planned day
+  that slipped is late and only a deadline that passed is overdue. Lists, tags,
+  and a reminder for what cannot wait.
+- **Steps and parts** — a big job splits into parts, each with its own steps
+  and its own day.
+- **Shared work, clear ownership** — what your agent files is its own to keep
+  true: it describes it, plans the steps, ticks each one when it is done and
+  notes what it learns. What you wrote stays yours: the agent only adds — a
+  journal entry, a reminder, a file — and gives its word that a step or the
+  whole task is done, for you to confirm. Closing is always yours, and every
+  entry says which agent wrote it.
+- **A journal** — dated notes that are never rewritten: what was tried, what
+  was ruled out, and why.
+- **A page per task** — *Description*, *Done when*, *Steps*, *Notes* and *When
+  it closes*: the agent knows when it is finished before it starts.
+- **One ticket, one task** — filed with its source, a ticket or a thread, the
+  same work is never filed twice.
+- **The archive** — a closed task is kept whole, and a search answers «how did
+  we solve this?» with the line that says it.
+
+### Documents: what you know, one per subject
+
+- **One living document per subject** — it opens with what holds today, then
+  the subject, what is out of scope, the decisions dated with their why (a
+  replaced one is struck through, not erased) and its history.
+- **Corrected in place** — the passage that changed is rewritten; no second
+  copy is piled beside the first.
+- **Pages for what is long** — a runbook, an annex, a book in chapters — with
+  folders, languages, tables, diagrams, formulas and a PDF of its own.
+
+## A Day With Your Agent
+
+What an agent connected to Tisty does with all that, on a real piece of work:
+
+1. **It asks what moved** since the last session, instead of rereading
+   everything.
+2. **It opens the task it is on.** *Done when* says when it is finished, and
+   the unticked steps say what is left.
+3. **It searches the archive before proposing anything.** If it was solved
+   before, it starts from there.
+4. **It reads the module's document by its outline**, then only the section it
+   needs, and keeps to the decisions and to what is out of scope — so it does
+   not reopen settled debates or wander off.
+5. **It ticks each step when it is done and notes what it ruled out**, so the
+   next session, or another agent, does not repeat the failed attempt.
+6. **When a task's page grows long, it compacts its own notes** into one dated
+   digest — state, decisions, what was ruled out. The journal stays whole.
+7. **It ends by saying what it did and how it knows it holds.** You review it
+   and close it.
+8. **After reading a long document, it leaves a summary** for the next agent
+   to choose by. When the document changes, the summary is marked stale.
+
+Your tasks tell your agent what is left and how far it may go; your documents
+tell it what was already decided. What it learns stays written down for next
+time.
+
+## What It Costs Your Agent
+
+Most MCP servers talk to your agent without pause. Tisty knows what each answer
+costs, and keeps cutting it. Measured on a 256 KB Markdown work log, against an
+agent that rereads the whole file every session:
+
+| The agent… | Spends, with Tisty | Saving |
+| --- | --- | --- |
+| Picks up the work, with nothing new | about 1% | 99% less |
+| Looks for something solved months ago | about 2% | 98% less |
+| Looks up one subject: the outline and one section | about 5%, 8% at worst | 92–95% less |
+
+Where the saving comes from:
+
+- **No document holds more than 64,000 characters**, so a log that size is kept
+  as subjects in pages, never as one wall of text.
+- **No read brings more than about 12,000 characters.** Past that, a document
+  asked for whole comes back as its outline.
+- **The outline says what each section weighs** before anything is opened.
+- **Picking up again brings only what moved** since the last time.
+- **What is finished is archived**, and costs nothing until it is searched.
+- **The outline points at repeated subjects and headings**, so they can be
+  consolidated rather than read twice.
+
+Connecting costs something too: the description of Tisty's tools weighs about a
+quarter of that log. An assistant that loads tools only as it uses them does not
+pay it whole; one that loads every tool each session saves closer to 70–75%,
+and below some 70 KB of notes a plain file is cheaper. The counts are
+characters, with the JSON each answer carries included, and tokens follow them
+closely.
+
+## Share What You Know With Folio
+
+When somebody else needs what you know — your PO, the QA joining the project,
+another team — you hand them the document through
+[Folio by Tisty](https://github.com/rgdevment/Folio-by-Tisty). It is encrypted
+on your machine before it leaves, the key travels in the link where no server
+sees it, every version is signed by you, and the link stops working on its own
+after the days without use you choose. They read it in any browser with no
+account, or edit it in their own Tisty. Your memory stays on your disk; Folio
+only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
 
 ## MCP Server
 
@@ -312,9 +454,11 @@ flowchart TD
   D --> G[Read, correct and add to it<br/>for years]
 ```
 
-**It is for one person.** No assignees, no permissions, no boards. If you need
-to run a team, Tisty will not carry that, and you deserve to know before you
-install it rather than after.
+**It is one person's.** Each person keeps their own Tisty, with their own
+agent working from it, and hands a document to somebody else through
+[Folio](#share-what-you-know-with-folio). No assignees, no permissions, no
+boards. If you need to run a team, Tisty will not carry that, and you deserve to
+know before you install it rather than after.
 
 **It is not something I sell.** Nothing is locked, nothing expires, and there is
 no version of this with more in it. It is a program I wrote for myself and gave
@@ -327,7 +471,8 @@ would still be there and still make sense.
 ## What Makes It Different
 
 If you are looking for a **free, open-source, offline place for your documents
-and tasks, with no account, no subscription and no AI**, this is what Tisty is:
+and tasks, with no account, no subscription and no AI inside — and a memory
+your own AI agent reads over MCP**, this is what Tisty is:
 
 | | |
 |---|---|
@@ -337,6 +482,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Offline | always. Only sharing a document by link needs a connection |
 | AI inside | **none**, and none is coming |
 | Your own assistant | yes, over **MCP**, through a door one click closes |
+| Memory for your agent | what moved since last time, outlines first and one section at a time |
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
 | Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
@@ -540,9 +686,15 @@ with it, while whatever arrives from somebody else keeps theirs.
 
 ## Who Is This For?
 
-Someone who works alone, or mostly alone, and whose tasks leave a trail worth
-keeping. Developers, sysadmins, freelancers, researchers, students — anyone who
-has ever solved the same problem twice and known it the second time.
+Anyone whose work leaves a trail worth keeping, and who wants their AI agent to
+remember it too. A developer who jumps between sessions, branches and dozens of
+projects. A PM who keeps the decisions and the why behind them. A QA who keeps
+the cases that broke last time. A tech lead who keeps the runbooks. Sysadmins,
+freelancers, researchers, students — anyone who has ever solved the same problem
+twice and known it the second time.
+
+Each of them keeps their own Tisty: what one learns is not the same as what
+another needs, and their agents work from different memories.
 
 And anyone who writes things that last: a manual, the minutes of a year, notes
 for a course, the documentation of a system, a book in chapters — and wants it
@@ -1055,6 +1207,22 @@ If you already use an assistant of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
 it, and while it is closed everything it tries is refused.
 
+### How do I give my AI agent a memory between sessions?
+
+Connect Tisty over MCP, as [MCP Server](#mcp-server) shows — Claude Code,
+Codex, Cursor, VS Code and Gemini CLI take one line. From then on the agent
+starts a session by asking what moved since the last one, files its work as
+tasks with steps and a journal, and keeps what it learns in documents. The next
+session, on any project, starts from there instead of from a blank chat.
+
+### Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?
+
+For what changes, yes; for what does not, no. Instructions that rarely move —
+how to build, the conventions — belong in the files your repository already
+hands the assistant. What moves — progress, decisions, what was ruled out, what
+is left — belongs in Tisty, where it is dated, searchable, read a section at a
+time, and never lost between branches, machines or projects.
+
 ### Can I use it on two computers?
 
 Yes, two ways. Connect your own Google Drive,
@@ -1089,8 +1257,12 @@ the parts that are not reassuring.
 
 ### Can I use it with my team?
 
-No. Tisty is for one person by design — no assignees, no permissions, no
-boards — and you deserve to know that before you install it rather than after.
+Not as a shared board. Tisty is one person's by design — no assignees, no
+permissions, no shared database — and you deserve to know that before you
+install it rather than after. What a team does get: each person keeps their own
+tasks, documents and agent, and when somebody needs what you know, you hand
+them the document through [Folio](#share-what-you-know-with-folio), encrypted
+and signed.
 
 ### Can I bring my notes over from another app?
 
