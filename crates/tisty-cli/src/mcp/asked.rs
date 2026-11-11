@@ -29,34 +29,33 @@ pub(super) fn what_it_takes(name: &str) -> Option<Takes> {
 }
 
 /// Some clients send `null` for every field they leave out; only a field that says it takes `null` keeps it.
-pub(super) fn without_nulls(name: &str, taken: Option<&Takes>, args: Value) -> Value {
+pub(super) fn without_nulls(taken: Option<&Takes>, args: Value) -> Value {
     let Some(taken) = taken else {
         return args;
     };
-    quieted(taken, args, name == "propose")
+    quieted(taken, args)
 }
 
-fn quieted(taken: &serde_json::Map<String, Value>, args: Value, nested: bool) -> Value {
+fn quieted(taken: &Takes, args: Value) -> Value {
     let Value::Object(said) = args else {
         return args;
     };
     let kept = said
         .into_iter()
         .filter(|(key, sent)| !sent.is_null() || taken.get(key).is_some_and(takes_null))
-        .map(
-            |(key, sent)| match (nested && (key == "tasks" || key == "parts"), sent) {
-                (true, Value::Array(all)) => {
-                    let all = all
-                        .into_iter()
-                        .map(|one| quieted(taken, one, true))
-                        .collect();
-                    (key, Value::Array(all))
-                }
-                (_, sent) => (key, sent),
-            },
-        )
+        .map(|(key, sent)| match (holds_tasks(taken, &key), sent) {
+            (true, Value::Array(all)) => {
+                let all = all.into_iter().map(|one| quieted(taken, one)).collect();
+                (key, Value::Array(all))
+            }
+            (_, sent) => (key, sent),
+        })
         .collect();
     Value::Object(kept)
+}
+
+fn holds_tasks(taken: &Takes, key: &str) -> bool {
+    matches!(key, "tasks" | "parts") && taken.contains_key(key)
 }
 
 fn takes_null(shape: &Value) -> bool {
