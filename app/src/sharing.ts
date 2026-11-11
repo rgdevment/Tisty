@@ -94,7 +94,7 @@ export interface ShareCard {
   signer: Named | null;
   editors: Named[];
   signsAs: { now: string | null; other: string | null } | null;
-  languages?: LanguageWord[];
+  languages: LanguageWord[];
 }
 
 export interface LanguageWord {
@@ -111,7 +111,7 @@ export interface LanguageShown {
   title: string | null;
   by: string | null;
   body: string;
-  pictures: { at: number; kind: string; data: string }[];
+  pictures: { at: number; path: string }[];
   print: string;
 }
 

@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 use std::sync::Mutex;
 
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD;
+use std::path::{Path, PathBuf};
+
 use serde::Serialize;
 use tisty_carrier::folio_reviewed;
 use tisty_contracts::Review;
@@ -28,8 +28,7 @@ pub struct Proposal {
 #[serde(rename_all = "camelCase")]
 pub struct ShownPicture {
     at: u64,
-    kind: String,
-    data: String,
+    path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -192,19 +191,33 @@ fn text(opened: &Opened, field: &str) -> Option<String> {
     opened.document[field].as_str().map(str::to_owned)
 }
 
-pub(super) fn pictures_of(opened: &Opened) -> Vec<ShownPicture> {
+pub fn folder(cache: &Path) -> PathBuf {
+    cache.join("reviewing")
+}
+
+// Only the language being reviewed is kept, and its pictures go to the window as files it reads, never inside an answer.
+pub(super) fn pictures_kept(opened: &Opened, folder: &Path) -> Answer<Vec<ShownPicture>> {
+    let _ = std::fs::remove_dir_all(folder);
+    std::fs::create_dir_all(folder).map_err(|_| Refusal::of("folioGarbled"))?;
     let said = opened.document["pictures"]
         .as_array()
         .cloned()
         .unwrap_or_default();
-    said.iter()
-        .zip(&opened.pictures)
-        .map(|(one, bytes)| ShownPicture {
-            at: one["at"].as_u64().unwrap_or_default(),
-            kind: one["kind"].as_str().unwrap_or_default().to_owned(),
-            data: STANDARD.encode(bytes),
-        })
-        .collect()
+    let mut kept = Vec::with_capacity(said.len());
+    for (one, bytes) in said.iter().zip(&opened.pictures) {
+        let at = one["at"].as_u64().unwrap_or_default();
+        let ending = match one["kind"].as_str() {
+            Some("image/jpeg") => "jpg",
+            _ => "png",
+        };
+        let path = folder.join(format!("{at}.{ending}"));
+        std::fs::write(&path, bytes).map_err(|_| Refusal::of("folioGarbled"))?;
+        kept.push(ShownPicture {
+            at,
+            path: path.to_string_lossy().into_owned(),
+        });
+    }
+    Ok(kept)
 }
 
 #[tauri::command]
@@ -225,20 +238,30 @@ pub async fn doc_language_shown(
     id: String,
     document: String,
 ) -> Answer<Shown> {
-    let (home, was, entry) = {
+    let (home, cache, was, entry) = {
         let session = held(&session);
         let (_, was, entry) = entry_here(&session, &id, &document)?;
-        (session.paths.private(), was, entry)
+        (
+            session.paths.private(),
+            session.paths.cache().to_path_buf(),
+            was,
+            entry,
+        )
     };
     let anchor = was.id.clone();
-    let opened = apart(move || its_language(home, anchor, entry)).await?;
+    let (opened, pictures) = apart(move || {
+        let opened = its_language(home, anchor, entry)?;
+        let pictures = pictures_kept(&opened, &folder(&cache))?;
+        Ok((opened, pictures))
+    })
+    .await?;
     Ok(Shown {
         document,
         lang: text(&opened, "lang"),
         title: text(&opened, "title"),
         by: text(&opened, "signed_as").or_else(|| text(&opened, "owner_name")),
         body: text(&opened, "body").unwrap_or_default(),
-        pictures: pictures_of(&opened),
+        pictures,
         print: opened.print.clone().unwrap_or_default(),
     })
 }

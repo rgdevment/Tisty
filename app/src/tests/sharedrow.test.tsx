@@ -22,6 +22,7 @@ const card = {
   signer: null,
   editors: [],
   signsAs: null,
+  languages: [],
 };
 const status = {
   diesOn: 20_000,
@@ -850,5 +851,41 @@ describe("what Sync warns of", () => {
       expect(panel().said).toContain(t(said));
       expect(panel().acts).toBeUndefined();
     }
+  });
+
+  it("asks for the card again and sends the owner's word once a language is reviewed", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "waiting", mine: false },
+    ];
+    const sent = { state: "sent", version: 2, told: [], termsUnchecked: false };
+    const { hook } = await held({ ...card, languages }, { doc_share_sync: sent });
+    const cardsBefore = invoked.mock.calls.filter(
+      ([command]) => command === "doc_share_card",
+    ).length;
+
+    await act(async () => hook.result.current.onReviewed());
+
+    await waitFor(() =>
+      expect(invoked.mock.calls.some(([command]) => command === "doc_share_sync")).toBe(true),
+    );
+    const cardsAfter = invoked.mock.calls.filter(
+      ([command]) => command === "doc_share_card",
+    ).length;
+    expect(cardsAfter).toBeGreaterThan(cardsBefore);
+    expect(hook.result.current.reviewing).toBeNull();
+  });
+
+  it("keeps the owner's word for the next Sync while Folio asks to wait", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "waiting", mine: false },
+    ];
+    const waiting = { until: Date.now() + 5 * 60_000, pending: false };
+    const { hook, panel } = await held({ ...card, languages }, { doc_share_waiting: waiting });
+    await waitFor(() => expect(panel().acts?.find((one) => one.key === "sync")?.off).toBe(true));
+
+    await act(async () => hook.result.current.onReviewed());
+
+    expect(invoked.mock.calls.some(([command]) => command === "doc_share_sync")).toBe(false);
+    expect(panel().said).toContain(t("shareReviewedWaits"));
   });
 });

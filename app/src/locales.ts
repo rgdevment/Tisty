@@ -784,7 +784,10 @@ const en = {
   shareLanguageKept: "You keep {name}, added by someone who edits.",
   shareLanguageReview: "Review {name}…",
   shareOwnerWaits: "Its owner has not reviewed this language yet, so readers do not see it.",
-  shareOwnerKept: "Its owner keeps this language, so readers see the version the owner reviewed.",
+  shareOwnerKept:
+    "Its owner kept the version of this language they reviewed. If you change it, it waits for them again.",
+  shareReviewedWaits: "Your word on this language goes up with the next Sync.",
+  reviewPicture: "Picture {name} of this language",
   shareOwnerLeftOut: "Its owner left this language out, so readers do not see it.",
   reviewTitle: "Review {name}",
   reviewBy: "Added by {name}",
@@ -3867,7 +3870,10 @@ const es: Catalog = {
   shareLanguageKept: "Mantienes {name}, que sumó alguien que edita.",
   shareLanguageReview: "Revisar {name}…",
   shareOwnerWaits: "Su dueño todavía no revisa este idioma, así que quienes leen no lo ven.",
-  shareOwnerKept: "Su dueño mantiene este idioma, así que quienes leen ven la versión que revisó.",
+  shareOwnerKept:
+    "Su dueño mantuvo la versión de este idioma que revisó. Si lo cambias, vuelve a esperarlo.",
+  shareReviewedWaits: "Tu decisión sobre este idioma sale con el próximo Sincronizar.",
+  reviewPicture: "Imagen {name} de este idioma",
   shareOwnerLeftOut: "Su dueño dejó fuera este idioma, así que quienes leen no lo ven.",
   reviewTitle: "Revisar {name}",
   reviewBy: "Lo sumó {name}",

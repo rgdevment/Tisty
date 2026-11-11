@@ -780,6 +780,21 @@ pub(super) fn card_of(
     })
 }
 
+// Every answer that draws the row again carries the languages, or the row would lose them until asked again.
+pub(super) fn full_card(
+    host: &str,
+    shelf: &BTreeMap<String, Remembered>,
+    was: &Remembered,
+    signature: &Signature,
+    maker: Option<&folio_limits::FolioMaker>,
+) -> Option<Card> {
+    let card = card_of(host, was, signature, maker)?;
+    Some(Card {
+        languages: super::folio_reviewing::words_on_card(shelf, was),
+        ..card
+    })
+}
+
 pub(super) fn file_of(session: &Session, id: &str) -> Answer<String> {
     let doc = doc_id(id)?;
     let kept = session
@@ -801,13 +816,9 @@ pub async fn doc_share_card(
     let session = held(&session);
     let file = file_of(&session, &id)?;
     let shelf = tisty_sharing::remembered(&session.state);
-    Ok(shelf.get(&file).and_then(|was| {
-        let card = card_of(&host, was, &session.state.signed, maker.as_ref())?;
-        Some(Card {
-            languages: super::folio_reviewing::words_on_card(shelf, was),
-            ..card
-        })
-    }))
+    Ok(shelf
+        .get(&file)
+        .and_then(|was| full_card(&host, shelf, was, &session.state.signed, maker.as_ref())))
 }
 
 type Keep<'a> = &'a dyn Fn(&[(String, Remembered)]) -> Answer<()>;
@@ -1173,7 +1184,8 @@ pub async fn doc_shared(
             .iter()
             .find(|(_, one)| one.held_by.is_none());
         let maker = folio_limits::maker(&home);
-        top.and_then(|(_, one)| card_of(door.host(), one, &state.signed, maker.as_ref()))
+        let shelf = tisty_sharing::remembered(&state);
+        top.and_then(|(_, one)| full_card(door.host(), shelf, one, &state.signed, maker.as_ref()))
             .map(|one| Card { told, ..one })
             .ok_or_else(|| Refusal::of("folioGarbled"))
     })

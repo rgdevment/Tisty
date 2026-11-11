@@ -7,7 +7,7 @@ use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 use tisty_sharing::Remembered;
 
 use super::{
-    Decided, as_shown, foreign_entry, named_here, pictures_of, proposals_of, reviewed_now,
+    Decided, as_shown, foreign_entry, named_here, pictures_kept, proposals_of, reviewed_now,
 };
 
 fn owners_machine(root: u8, machine: u8) -> (ShareKey, Certificate) {
@@ -236,14 +236,23 @@ fn what_is_kept_is_the_version_shown_and_one_that_changed_is_shown_again() {
 #[test]
 fn the_pictures_go_with_the_words_shown() {
     let opened = opened_with(
-        serde_json::json!({ "pictures": [{ "at": 0, "name": "a", "kind": "png" }] }),
+        serde_json::json!({ "pictures": [{ "at": 0, "name": "a", "kind": "image/jpeg" }] }),
         Some("P"),
     );
+    let cache = tempfile::tempdir().unwrap();
+    let folder = super::folder(cache.path());
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("left.png"), b"old").unwrap();
 
-    let pictures = pictures_of(&opened);
+    let pictures = pictures_kept(&opened, &folder).unwrap();
 
-    assert_eq!(pictures.len(), 1);
-    assert_eq!(serde_json::to_value(&pictures[0]).unwrap()["data"], "AQID");
+    let path = serde_json::to_value(&pictures[0]).unwrap()["path"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(std::fs::read(&path).unwrap(), [1, 2, 3]);
+    assert!(path.ends_with("0.jpg"));
+    assert!(!folder.join("left.png").exists());
 }
 
 fn shelf_of(entries: Vec<Remembered>) -> std::collections::BTreeMap<String, Remembered> {

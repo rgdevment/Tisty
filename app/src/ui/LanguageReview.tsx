@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fill, t } from "../locales";
 import { type LanguageShown, type LanguageWord, languageReviewed, languageShown } from "../sharing";
 import { tongueName } from "../tongues";
@@ -18,28 +19,34 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
   const [shown, setShown] = useState<LanguageShown | null>(null);
   const [told, setTold] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [round, setRound] = useState(0);
   // The window hands new callbacks on each render, and only a new language or a new look asks Folio again.
   const latest = useRef({ onClose, onError });
   latest.current = { onClose, onError };
+  const open = useRef(true);
 
-  useEffect(() => {
-    let gone = false;
+  useEffect(
+    () => () => {
+      open.current = false;
+    },
+    [],
+  );
+
+  const bring = useCallback(() => {
     setShown(null);
-    void round;
     languageShown(doc, word.document)
       .then((now) => {
-        if (!gone) setShown(now);
+        if (open.current) setShown(now);
       })
       .catch((problem) => {
-        if (gone) return;
+        if (!open.current) return;
         latest.current.onError?.(problem);
         latest.current.onClose();
       });
-    return () => {
-      gone = true;
-    };
-  }, [doc, word.document, round]);
+  }, [doc, word.document]);
+
+  useEffect(() => {
+    bring();
+  }, [bring]);
 
   const decide = (keep: boolean) => {
     setBusy(true);
@@ -49,7 +56,7 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
       .catch((problem) => {
         if (codeOf(problem) === "folioLanguageChanged") {
           setTold(t("folioLanguageChanged"));
-          setRound((was) => was + 1);
+          bring();
           return;
         }
         onError?.(problem);
@@ -78,8 +85,8 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
           {shown.pictures.map((one) => (
             <img
               key={one.at}
-              alt=""
-              src={`data:${one.kind};base64,${one.data}`}
+              alt={fill("reviewPicture", String(one.at + 1))}
+              src={convertFileSrc(one.path)}
               className="mt-3 max-w-full rounded-[10px]"
             />
           ))}

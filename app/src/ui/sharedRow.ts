@@ -179,11 +179,14 @@ const syncNow = (h: Hands) => {
     });
 };
 
+const syncOff = (h: Hands) =>
+  Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0);
+
 const syncAct = (h: Hands): Act => ({
   key: "sync",
   label: syncLabel(h),
   main: true,
-  off: Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0),
+  off: syncOff(h),
   onPick: () => syncNow(h),
 });
 
@@ -304,12 +307,11 @@ const printsOf = ({ owner, signer, editors }: ShareCard) => {
   };
 };
 
-const theirs = (card: ShareCard) =>
-  (card.languages ?? []).filter((one) => !one.mine && one.lang !== null);
+const theirs = (card: ShareCard) => card.languages.filter((one) => !one.mine && one.lang !== null);
 
 // Someone who edits added these, and readers see one only once its owner keeps it (166).
 const languagesSaid = (card: ShareCard) =>
-  (card.languages ?? []).map((one) => {
+  card.languages.map((one) => {
     if (one.mine)
       return t(
         one.word === "kept"
@@ -549,14 +551,15 @@ export const useSharedRow = (
     termsOnly,
     reviewing,
     onReviewClosed: () => setReviewing(null),
-    // The owner's word goes up with the anchor's next version, so it is sent as soon as it is given.
+    // The owner's word goes up with the anchor's next version, so it is sent as soon as Sync is free to go.
     onReviewed: () => {
       setReviewing(null);
       if (!doc || !hands) return;
       void shareCard(doc)
         .then((now) => now && setCard(now))
         .catch(() => {});
-      syncNow(hands);
+      if (syncOff(hands)) setTold(t("shareReviewedWaits"));
+      else syncNow(hands);
     },
     onShared: (now: ShareCard) => setCard(now),
     onTermsAccepted: () => {

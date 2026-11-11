@@ -12,6 +12,7 @@ const ipc = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (at: string) => `asset://${at}`,
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "doc_language_shown")
@@ -21,7 +22,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         title: "Walks",
         by: "Ana",
         body: "We walk by the river.",
-        pictures: [{ at: 0, kind: "image/png", data: "AQID" }],
+        pictures: [{ at: 0, path: "/cache/reviewing/0.png" }],
         print: ipc.prints.shift() ?? "P",
       });
     if (cmd === "doc_language_reviewed" && ipc.refuse) {
@@ -58,7 +59,9 @@ describe("Review a language", () => {
 
     await screen.findByText("We walk by the river.");
     expect(screen.getByText("Added by Ana")).toBeTruthy();
-    expect(document.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,AQID");
+    expect(
+      screen.getByRole("img", { name: "Picture 1 of this language" }).getAttribute("src"),
+    ).toBe("asset:///cache/reviewing/0.png");
     await userEvent.click(screen.getByRole("button", { name: t("reviewKeep") }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
