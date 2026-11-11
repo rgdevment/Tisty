@@ -1334,6 +1334,13 @@ fn version_signed(by: &str, owner: &str) -> crate::answers::folio_receiving::Ope
         version: 7,
         verdict: tisty_contracts::Verdict::Holds,
         contract: Some("1.7.1".to_owned()),
+        served: tisty_contracts::Served {
+            received: None,
+            revocations: None,
+            reviewed: None,
+            reviewed_received: None,
+        },
+        print: None,
     }
 }
 
