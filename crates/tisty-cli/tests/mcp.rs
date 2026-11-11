@@ -1321,7 +1321,7 @@ fn a_method_nobody_here_speaks_says_so_and_carries_on() {
     let served = Served::new();
 
     let said = served.talk(&[
-        r#"{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}"#,
+        r#"{"jsonrpc":"2.0","id":1,"method":"completion/complete","params":{}}"#,
         r#"{"jsonrpc":"2.0","id":2,"method":"ping","params":{}}"#,
     ]);
 

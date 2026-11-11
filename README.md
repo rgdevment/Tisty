@@ -383,6 +383,10 @@ deleting to you. Each tool is described in
   `catch_up`, `lists`, `tags`
 - **How to work here** — `rules`, `language`, `help`
 
+Beside the tools, it offers four ready-made requests your assistant shows as
+commands (`pick_up`, `plan_task`, `solved_before`, `keep_decision`), and your
+documents to mention with `@`, a long one as its outline.
+
 ## Why I Built This
 
 Organising your day is harder than a list makes it look. There are more moving
