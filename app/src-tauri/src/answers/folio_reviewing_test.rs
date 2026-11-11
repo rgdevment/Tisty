@@ -6,7 +6,9 @@ use tisty_envelope::reviews::{self, LeftOut, Signer, Weighing};
 use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 use tisty_sharing::Remembered;
 
-use super::{Decided, proposals_of, reviewed_now};
+use super::{
+    Decided, as_shown, foreign_entry, named_here, pictures_of, proposals_of, reviewed_now,
+};
 
 fn owners_machine(root: u8, machine: u8) -> (ShareKey, Certificate) {
     let key = ShareKey::from_bytes(&[machine; 32]);
@@ -74,7 +76,7 @@ fn what_the_owner_keeps_is_signed_so_a_reader_counts_it_and_the_list_says_so() {
     assert_eq!(proposals_of(&was, &ours()).len(), 1);
     assert!(!proposals_of(&was, &ours())[0].kept);
 
-    let now = reviewed_now(&signer, &was, "anaEngl1", Some(&read_as_shown())).unwrap();
+    let now = reviewed_now(&signer, &was, "anaEngl1", Some(&read_as_shown()), 1).unwrap();
 
     let reviews = tisty_sharing::reviews_carried(now.carried.as_deref());
     let word = reviews::word_signed(&signer, "anclaDoc", 1, &reviews).unwrap();
@@ -112,7 +114,7 @@ fn a_language_left_out_leaves_the_map_and_its_word_stays_behind() {
         certificate: &certificate,
     };
 
-    let now = reviewed_now(&signer, &anchor(), "anaEngl1", None).unwrap();
+    let now = reviewed_now(&signer, &anchor(), "anaEngl1", None, 1).unwrap();
 
     assert!(proposals_of(&now, &ours()).is_empty());
     let reviews = tisty_sharing::reviews_carried(now.carried.as_deref());
@@ -128,11 +130,118 @@ fn a_second_word_on_one_language_takes_the_place_of_the_first_and_counts_higher(
         key: &key,
         certificate: &certificate,
     };
-    let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown())).unwrap();
+    let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
 
-    let left = reviewed_now(&signer, &kept, "anaEngl1", None).unwrap();
+    let left = reviewed_now(&signer, &kept, "anaEngl1", None, 1).unwrap();
 
     let reviews = tisty_sharing::reviews_carried(left.carried.as_deref());
     assert_eq!(reviews.len(), 1);
     assert_eq!((reviews[0].seq, reviews[0].kept), (2, false));
+}
+
+#[test]
+fn a_word_counts_above_every_word_seen_for_the_anchor() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+
+    let now = reviewed_now(&signer, &anchor(), "anaEngl1", None, 7).unwrap();
+
+    let reviews = tisty_sharing::reviews_carried(now.carried.as_deref());
+    assert_eq!(reviews[0].seq, 7);
+}
+
+#[test]
+fn the_owner_s_word_goes_only_on_a_language_others_added_that_the_map_names() {
+    let was = anchor();
+
+    assert_eq!(foreign_entry(&was, &ours(), "anaEngl1").unwrap().lang, "en");
+    assert_eq!(
+        foreign_entry(&was, &ours(), "marioFr1").err().unwrap().code,
+        "notOneOwnDoc"
+    );
+    assert_eq!(
+        foreign_entry(&was, &ours(), "nobody12").err().unwrap().code,
+        "folioGone"
+    );
+}
+
+fn opened_with(
+    said: serde_json::Value,
+    print: Option<&str>,
+) -> crate::answers::folio_receiving::Opened {
+    crate::answers::folio_receiving::Opened {
+        document: said,
+        pictures: vec![vec![1, 2, 3]],
+        files: Vec::new(),
+        owner: None,
+        owner_root: Some("ana".to_owned()),
+        signer: "ana".to_owned(),
+        version: 1,
+        verdict: tisty_contracts::Verdict::Holds,
+        contract: None,
+        served: tisty_contracts::Served {
+            received: None,
+            revocations: None,
+            reviewed: None,
+            reviewed_received: None,
+        },
+        print: print.map(str::to_owned),
+    }
+}
+
+#[test]
+fn a_document_that_names_another_anchor_takes_no_word_of_this_one() {
+    let its = |anchor: &str| {
+        opened_with(
+            serde_json::json!({ "anchor": anchor, "lang": "en" }),
+            Some("P"),
+        )
+    };
+
+    assert!(named_here(its("anclaDoc"), "anclaDoc").is_ok());
+    assert_eq!(
+        named_here(its("otroDoc1"), "anclaDoc").err().unwrap().code,
+        "folioUnopened"
+    );
+}
+
+#[test]
+fn what_is_kept_is_the_version_shown_and_one_that_changed_is_shown_again() {
+    let opened = opened_with(
+        serde_json::json!({ "lang": "en", "title": "Walks" }),
+        Some("P1"),
+    );
+
+    let decided = as_shown(&opened, "k".to_owned(), Some("P1")).unwrap();
+    assert_eq!(
+        (decided.lang.as_str(), decided.print.as_str()),
+        ("en", "P1")
+    );
+    assert_eq!(
+        as_shown(&opened, "k".to_owned(), Some("P0"))
+            .err()
+            .unwrap()
+            .code,
+        "folioLanguageChanged"
+    );
+    assert_eq!(
+        as_shown(&opened, "k".to_owned(), None).err().unwrap().code,
+        "folioLanguageChanged"
+    );
+}
+
+#[test]
+fn the_pictures_go_with_the_words_shown() {
+    let opened = opened_with(
+        serde_json::json!({ "pictures": [{ "at": 0, "name": "a", "kind": "png" }] }),
+        Some("P"),
+    );
+
+    let pictures = pictures_of(&opened);
+
+    assert_eq!(pictures.len(), 1);
+    assert_eq!(serde_json::to_value(&pictures[0]).unwrap()["data"], "AQID");
 }

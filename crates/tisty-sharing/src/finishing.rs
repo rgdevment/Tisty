@@ -35,7 +35,6 @@ pub struct Sealed {
     pub words: BTreeMap<String, Word>,
 }
 
-/// The owner's word on an anchor's reviews, signed for the version that carries them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Word {
     pub said: String,

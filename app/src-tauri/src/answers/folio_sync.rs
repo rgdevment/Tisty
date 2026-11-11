@@ -327,6 +327,9 @@ pub(super) fn reviews_current(
         .clone();
     shared.admin_token.as_ref()?;
     let reviews = tisty_sharing::reviews_carried(shared.carried.as_deref());
+    if reviews.is_empty() {
+        return None;
+    }
     let (key, certificate) = owners_signer(session)?;
     let revoked: BTreeSet<&str> = session
         .state
@@ -371,6 +374,18 @@ pub(super) fn words_for(
     home: &std::path::Path,
     sealed: &tisty_sharing::Sealed,
 ) -> std::collections::BTreeMap<String, tisty_sharing::Word> {
+    let reviewed: Vec<(&Remembered, Vec<Review>)> = sealed
+        .remembering
+        .iter()
+        .map(|(_, one)| one)
+        .filter(|one| one.admin_token.is_some())
+        .filter(|one| sealed.going.iter().any(|going| going.id == one.id))
+        .map(|one| (one, tisty_sharing::reviews_carried(one.carried.as_deref())))
+        .filter(|(_, reviews)| !reviews.is_empty())
+        .collect();
+    if reviewed.is_empty() {
+        return std::collections::BTreeMap::new();
+    }
     let Some((key, certificate)) = owners_signer(session) else {
         return std::collections::BTreeMap::new();
     };
@@ -378,17 +393,9 @@ pub(super) fn words_for(
         key: &key,
         certificate: &certificate,
     };
-    sealed
-        .remembering
-        .iter()
-        .map(|(_, one)| one)
-        .filter(|one| one.admin_token.is_some())
-        .filter(|one| sealed.going.iter().any(|going| going.id == one.id))
-        .filter_map(|one| {
-            let reviews = tisty_sharing::reviews_carried(one.carried.as_deref());
-            if reviews.is_empty() {
-                return None;
-            }
+    reviewed
+        .into_iter()
+        .filter_map(|(one, reviews)| {
             let seq = folio_reviewed::seen(home, &one.id) + 1;
             let word = reviews::word_signed(&signer, &one.id, seq, &reviews)?;
             let said = serde_json::to_string(&word).ok()?;

@@ -225,7 +225,6 @@ fn review_of(said: &Said, signed: Signed) -> Review {
     }
 }
 
-/// Kept when it says what the owner read, left out when it says nothing of it.
 pub fn review_signed(
     signer: &Signer,
     anchor: &str,
