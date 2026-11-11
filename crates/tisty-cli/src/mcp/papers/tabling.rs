@@ -19,26 +19,16 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool("`edit_table` needs the `doc` name.".into()));
     };
-    let (state, _) = opened(paths)?;
-    if !state
-        .docs
-        .values()
-        .any(|one| one.file == which && state.doc_in_sight(one))
-    {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
-    }
-    let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
-    let tables = grid::shown(&body);
-    let (nth, table) = chosen(&tables, args, &which)?;
     let asked = args["do"].as_str().unwrap_or("show");
     if asked == "show" {
-        return Ok(told(described(nth, table), shape(&which, nth, table, &[])));
+        return shown(paths, args, &which);
     }
+    let (state, mut store, named) = writable(paths, args, &which)?;
+    let body = text_of(paths, &state, &which)?;
+    let tables = grid::shown(&body);
+    let (nth, table) = chosen(&tables, args, &which)?;
     let mut changed = Vec::new();
     let (edits, touched) = edits_for(asked, table, args, &mut changed)?;
-    let (state, mut store, named) = writable(paths, args, &which)?;
     let next = grid::edits(&body, table.at.clone(), &edits).map_err(refused)?;
     super::writing::still_speaks(&body, &next)?;
     let print = tisty_core::attach::printed(body.as_bytes());
@@ -72,6 +62,23 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
         shaped,
     );
     Ok(heard(reply, &changed))
+}
+
+fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
+    let (state, _) = opened(paths)?;
+    if state.docs.values().all(|one| one.file != which) {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    }
+    let body = text_of(paths, &state, which)?;
+    let tables = grid::shown(&body);
+    let (nth, table) = chosen(&tables, args, which)?;
+    Ok(told(described(nth, table), shape(which, nth, table, &[])))
+}
+
+fn text_of(paths: &Paths, state: &tisty_core::State, which: &str) -> Result<String, Refused> {
+    tisty_core::docs::read(&paths.docs(), which).map_err(|_| super::still_arriving(state, which))
 }
 
 // Capitals, accents and the spaces at either end decide nothing, as with steps and tags.

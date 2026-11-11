@@ -137,6 +137,25 @@ fn a_file_the_log_does_not_know_is_no_document_to_show() {
 }
 
 #[test]
+fn a_document_whose_text_has_not_arrived_says_it_may_still_be_arriving() {
+    let served = Served::new();
+    let doc = served.wrote(SHOPPING);
+    let docs = served.home.path().join("data").join("docs");
+    std::fs::remove_file(tisty_core::docs::resolve(&docs, &doc).unwrap()).unwrap();
+
+    let shown = served.table(&doc, json!({}));
+    let added = served.table(
+        &doc,
+        json!({ "do": "add", "values": { "Producto": "Sal" } }),
+    );
+
+    for one in [&shown, &added] {
+        assert_eq!(one["isError"], true, "{one}");
+        assert!(said(one).contains("may still be arriving"), "{one}");
+    }
+}
+
+#[test]
 fn a_cell_is_set_by_its_row_s_first_cell_and_its_column_title_in_its_type_s_form() {
     let served = Served::new();
     let doc = served.wrote(SHOPPING);

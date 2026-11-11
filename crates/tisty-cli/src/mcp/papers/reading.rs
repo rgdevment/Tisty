@@ -144,11 +144,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     in_sight(&state, kept, &which)?;
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
     let Some(card) = tisty_core::docs::card_of(&paths.docs(), held.as_ref(), &which) else {
-        return Err(Refused::Missing(format!(
-            "{} is named in the log but its text is not on this machine yet. It may still \
-             be arriving from another one.",
-            doc_named(&state, &which)
-        )));
+        return Err(super::still_arriving(&state, &which));
     };
     let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let pages = state.pages_read(kept.id, &whole);
