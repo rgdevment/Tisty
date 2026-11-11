@@ -5,7 +5,7 @@ use tisty_core::{Paths, State, Store};
 
 use super::super::asked::strings;
 use super::super::asked::text;
-use super::super::jsonrpc::told;
+use super::super::jsonrpc::{mirrored, told};
 use super::super::{
     NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
     hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened, trail,
@@ -376,7 +376,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             }
         ));
     }
-    Ok(told(shown, Value::Object(kept_of)))
+    Ok(mirrored(shown, Value::Object(kept_of)))
 }
 
 pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -517,7 +517,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 Some(standing) => format!("({standing})\n\n{part}"),
                 None => part,
             };
-            Ok(told(said, Value::Object(kept_of)))
+            Ok(mirrored(said, Value::Object(kept_of)))
         }
     }
 }

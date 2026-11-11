@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-use super::jsonrpc::told;
+use super::jsonrpc::mirrored;
 
 pub(super) fn topics() -> Vec<String> {
     tisty_help::pages(false)
@@ -52,7 +52,7 @@ pub(super) fn help(args: &Value) -> Value {
             None => format!("No topic is called {topic:?}.\n\n{}", indexed(spanish)),
         },
     };
-    told(
+    mirrored(
         said.clone(),
         json!({
             "help": said,

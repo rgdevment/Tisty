@@ -422,7 +422,7 @@ pub(super) fn rules(args: &Value) -> Value {
         }
         _ => format!("{}\n\n{INDEX}", joined(|title| topical(title).is_none())),
     };
-    super::jsonrpc::told(said.clone(), json!({ "rules": said }))
+    super::jsonrpc::mirrored(said.clone(), json!({ "rules": said }))
 }
 
 /// Every tool says its arguments the same way, and the three lines that say so were three lines
