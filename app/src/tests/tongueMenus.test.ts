@@ -4,7 +4,7 @@ import type { Hands } from "../docMenus";
 import { fill, t } from "../locales";
 import { tongueChoices } from "../tongueMenus";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve() }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve({ id: "nuevo" }) }));
 
 const doc = (id: string, folder: string | null): Filed => ({
   id,
@@ -72,6 +72,27 @@ describe("translating under someone else's edit link", () => {
     const translate = tongueChoices(anchor, hands).find((one) => one.key === "translate");
 
     expect(translate?.hint).toBe(t("translateProposed"));
+  });
+
+  it("tells it again once the language is made, where everyone sees it", async () => {
+    const anchor = {
+      ...doc("ancla", null),
+      editing: true,
+      tongue: ["ancla", 0] as [string, number],
+    };
+    const noted = vi.fn();
+    const hands = {
+      papers: { docs: [anchor], folders: [] },
+      changed: vi.fn(),
+      open: vi.fn(),
+      fail: vi.fn(),
+      noted,
+    } as unknown as Hands;
+
+    const translate = tongueChoices(anchor, hands).find((one) => one.key === "translate");
+    translate?.into?.choices.find((one) => one.key === "en")?.onPick?.();
+
+    await vi.waitFor(() => expect(noted).toHaveBeenCalledWith(t("translateProposed")));
   });
 
   it("says nothing of proposals for one's own document", () => {

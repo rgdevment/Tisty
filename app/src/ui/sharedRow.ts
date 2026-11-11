@@ -216,32 +216,39 @@ const renewNow = (h: Hands) => {
     });
 };
 
-// A new edit link leaves what others added as it is, so the owner may leave those out with the same press.
-const othersInView = (card: ShareCard) => theirs(card).filter((one) => one.word !== "leftOut");
-
 const renewingSaid = (card: ShareCard) => {
-  const names = othersInView(card).map((one) => tongueName(one.lang ?? ""));
+  const names = inView(card).map((one) => tongueName(one.lang ?? ""));
   return names.length > 0 ? [fill("shareRenewTheirs", names.join(", "))] : [];
 };
 
 const leavingOut = (h: Hands) =>
-  othersInView(h.card).reduce<Promise<void>>(
+  inView(h.card).reduce<Promise<void>>(
     (before, one) => before.then(() => languageReviewed(h.doc, one.document, false, null)),
     Promise.resolve(),
   );
 
+// The question leaves the row at once, so a second press never signs twice; one that fails stops the link from changing.
+const renewLeaving = (h: Hands) => {
+  h.setRenewing(false);
+  void leavingOut(h)
+    .then(() => renewNow(h))
+    .catch((problem) => {
+      h.failing(problem);
+      void shareCard(h.doc)
+        .then((card) => card && h.setCard(card))
+        .catch(() => {});
+    });
+};
+
 const renewingActs = (h: Hands): Act[] => [
   { key: "keep", label: t("shareCancel"), onPick: () => h.setRenewing(false) },
-  ...(othersInView(h.card).length > 0
+  ...(inView(h.card).length > 0
     ? [
         {
           key: "renewLeaving",
           label: t("shareRenewLeaving"),
           danger: true,
-          onPick: () =>
-            void leavingOut(h)
-              .then(() => renewNow(h))
-              .catch(h.failing),
+          onPick: () => renewLeaving(h),
         },
       ]
     : []),
@@ -365,9 +372,11 @@ const reviewLabel = {
   leftOut: "shareLanguageReviewAgain",
 } as const;
 
+const inView = (card: ShareCard) =>
+  theirs(card).filter((one) => one.word === "kept" || one.word === "changed");
+
 // A language the owner keeps can change in Folio at any time, and only asking after it tells.
-const keepsTheirs = (card: ShareCard) =>
-  theirs(card).some((one) => one.word === "kept" || one.word === "changed");
+const keepsTheirs = (card: ShareCard) => inView(card).length > 0;
 
 const reviewActs = (h: Hands, onReview: (one: LanguageWord) => void): Act[] =>
   theirs(h.card).map((one) => ({

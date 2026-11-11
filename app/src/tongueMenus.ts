@@ -52,6 +52,7 @@ export const tongueChoices = (doc: Filed, h: Hands): Choice[] => {
       .then((made) => {
         h.changed();
         h.open(made.id);
+        if (anchor.editing) h.noted(t("translateProposed"));
       })
       .catch(h.fail);
   const join = (other: Filed, lang?: string, theirs?: string) =>

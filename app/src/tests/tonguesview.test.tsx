@@ -112,6 +112,18 @@ describe("the credit of a language someone else added", () => {
     expect(screen.getByText("Translated by Ana · reviewed by Mario")).toBeTruthy();
   });
 
+  it("credits a language in the folded list and on its button", () => {
+    const tongues = [
+      doc("es", "es", { guest: "Mario", tongue: ["es", 0] }),
+      doc("en", "en", { guest: "Ana", tongue: ["es", 1] }),
+      doc("fr", "fr", { guest: "Mario", tongue: ["es", 2] }),
+      doc("de", "de", { guest: "Mario", tongue: ["es", 3] }),
+    ];
+    render(<Tongues tongues={tongues} here="en" onOpen={vi.fn()} />);
+
+    expect(screen.getByText("Translated by Ana · reviewed by Mario")).toBeTruthy();
+  });
+
   it("says nothing of the owner's own languages", () => {
     const tongues = [
       doc("es", "es", { guest: "Mario", tongue: ["es", 0] }),

@@ -5,9 +5,9 @@ use tisty_envelope::Translation;
 
 use super::languages_brought;
 use super::{
-    Link, Opened, belongs, editable, editable_language, granted_entry, kept_reviews, language_link,
-    link_of, looked_for, owner_apart, reached, reviewed, saying_its_language, served_by,
-    signer_alias, speaks,
+    Link, Opened, belongs, editable, editable_language, granted_entry, kept_reviews, language_by,
+    language_link, link_of, looked_for, owner_apart, reached, reviewed, saying_its_language,
+    served_by, signer_alias, speaks,
 };
 
 #[derive(Default)]
@@ -813,4 +813,22 @@ fn a_link_brings_the_language_its_owner_kept_by_the_key_the_owner_signed_and_one
     assert_eq!(brought[0].0.title.as_deref(), Some("Walks"));
     assert!(left.is_empty());
     assert!(kept_reviews(&anchor, &anchor_key, 3).is_none());
+}
+
+#[test]
+fn a_language_of_the_anchor_s_root_goes_under_the_anchor_s_name_and_another_s_under_its_own() {
+    let name = |said: &str| Some(said.to_owned());
+
+    assert_eq!(
+        language_by(Some("mario"), Some("mario"), name("Mario"), name("Ana")),
+        name("Mario")
+    );
+    assert_eq!(
+        language_by(Some("mario"), Some("ana"), name("Mario"), name("Ana")),
+        name("Ana")
+    );
+    assert_eq!(
+        language_by(None, None, name("Mario"), name("Ana")),
+        name("Ana")
+    );
 }

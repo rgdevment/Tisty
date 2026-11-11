@@ -14,7 +14,7 @@ interface Props {
   onOpen: (tongue: Filed) => void;
 }
 
-// Only a language its anchor's owner kept reaches whoever reads, so another hand on it was reviewed by that owner (166).
+// Each language arrives under its root's name and only one its anchor's owner kept reaches a reader, so another name means that owner reviewed it (166).
 export const creditOf = (one: Filed | undefined, tongues: Filed[]): string | null => {
   const anchor = tongues.find((it) => it.id === one?.tongue?.[0]);
   const by = one?.guest;
@@ -23,7 +23,7 @@ export const creditOf = (one: Filed | undefined, tongues: Filed[]): string | nul
 };
 
 const titled = (one: Filed, tongues: Filed[]) =>
-  [one.title, creditOf(one, tongues)].filter(Boolean).join(" · ");
+  [one.title, creditOf(one, tongues)].filter(Boolean).join(" — ");
 
 function Credit({ tongues, here }: { tongues: Filed[]; here: string }) {
   const said = creditOf(
