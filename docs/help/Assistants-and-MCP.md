@@ -1,6 +1,8 @@
 # Assistants and MCP
 
-**Tisty is not AI and has none inside.** The natural language that turns «call the bank at 3» into a task is rules running on your machine: no model, no request, no cloud. That is not going to change.
+**Tisty is the memory your AI agent keeps between sessions.** GitHub Copilot, Claude Code, Codex, Cursor or any assistant that speaks MCP files its work here as tasks with steps and a journal, keeps what it learns in documents, and starts the next session from what moved instead of from a blank chat — on this computer, with no account and nothing over the network.
+
+**Tisty itself is not AI and has none inside.** The natural language that turns «call the bank at 3» into a task is rules running on your machine: no model, no request, no cloud. That is not going to change.
 
 But if you already use an assistant, you are probably telling it things worth keeping — the school group says card stock on Monday, the invoice is due on the 30th, the bug you just fixed and how. So Tisty leaves a door, and you decide whether to use it.
 
@@ -48,7 +50,7 @@ In Claude Code:
 /plugin install tisty --marketplace rgdevment/mcp-plugins
 ```
 
-Any other assistant that starts a server by command, such as Cursor, Cline or VS Code, takes the same launcher from npm:
+Any other assistant that starts a server by command, such as GitHub Copilot in VS Code, Cursor or Cline, takes the same launcher from npm:
 
 ```json
 {
@@ -112,6 +114,21 @@ It can **never** close or delete a task, delete a document, or move a day you se
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
+## A day with your agent
+
+What an agent connected to Tisty does on a real piece of work:
+
+1. **It asks what moved** since the last session, instead of rereading everything.
+2. **It opens the task it is on.** *Done when* on its page says when it is finished, and the unticked steps say what is left.
+3. **It searches the archive before proposing anything.** If it was solved before, it starts from there.
+4. **It reads the module's document by its outline**, then only the section it needs, and keeps to the decisions and to what is out of scope — so it does not reopen settled debates or wander off.
+5. **It ticks each step when it is done and notes what it ruled out**, so the next session, or another agent, does not repeat the failed attempt.
+6. **When a task's page grows long, it compacts its own notes** into one dated digest — state, decisions, what was ruled out. The journal stays whole.
+7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
+8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
+
+Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. What you wrote stays yours: the agent only adds — a journal entry, a reminder, a file — and gives its word that a step or the task is done, for you to confirm. Closing is always yours.
+
 ## Signed by name
 
 What an assistant writes is signed with the name of the program it spoke through. In a row it reads «by an agent», and the name shows when you hover over it; inside a task — the side panel, the whole page and the journal — it names the program: «by Claude Code», «by Codex». Settings › Assistants counts what each one wrote, and there you choose where the name shows: in the task list, inside a task, both or neither — wherever it does not, it reads «by an agent» and the name waits on hover. «Only a diamond» goes further: no words anywhere, just a small ◆ in the assistants' colour, with who wrote it on hover. What was written before programs said their name reads «by an assistant».
@@ -121,6 +138,18 @@ What an assistant writes is signed with the name of the program it spoke through
 Tisty keeps a small card for each document — its headings, how long it is, what it leans on — worked out from the text itself, on this machine, and never sent anywhere. An assistant reads that card to pick the document it needs, then asks for only the part it wants, or changes that part without reading the rest. A long document is not poured into a model because an assistant wanted one paragraph of it.
 
 Having read a document, it can leave a short summary for the next assistant — kept on this machine, never synced, and not part of what you wrote.
+
+Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB Markdown work log, against an agent that rereads the whole file every session:
+
+| The agent… | Spends, with Tisty | Saving |
+| --- | --- | --- |
+| Picks up the work, with nothing new | about 1% | 99% less |
+| Looks for something solved months ago | about 2% | 98% less |
+| Looks up one subject: the outline and one section | about 5%, 8% at worst | 92–95% less |
+
+No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; picking up again brings only what moved; and what is finished costs nothing until it is searched.
+
+Connecting costs something too: the description of Tisty's tools weighs about a quarter of that log. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves closer to 70–75%, and below some 70 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 
 ## The one thing worth knowing before you connect one
 
