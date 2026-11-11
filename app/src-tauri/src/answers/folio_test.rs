@@ -1334,6 +1334,13 @@ fn version_signed(by: &str, owner: &str) -> crate::answers::folio_receiving::Ope
         version: 7,
         verdict: tisty_contracts::Verdict::Holds,
         contract: Some("1.7.1".to_owned()),
+        served: tisty_contracts::Served {
+            received: None,
+            revocations: None,
+            reviewed: None,
+            reviewed_received: None,
+        },
+        print: None,
     }
 }
 
@@ -1378,7 +1385,7 @@ fn whoever_edits_takes_the_owners_block_from_each_version_and_the_owner_keeps_it
 }
 
 #[test]
-fn whoever_edits_takes_each_version_s_map_and_the_owner_keeps_its_own() {
+fn whoever_edits_takes_each_version_s_map_and_the_owner_joins_it_to_its_own_by_id() {
     use crate::answers::folio_sync::kept_after;
     let held = r#"{"languages":[{"lang":"en","document":"English1"}],"editors":[]}"#;
     let arrived = tisty_sharing::Received {
@@ -1402,6 +1409,40 @@ fn whoever_edits_takes_each_version_s_map_and_the_owner_keeps_its_own() {
     let now = kept_after(&owner, &version_signed("ana", "{}"), &arrived);
     let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
     assert_eq!(said["languages"][0]["document"], "English1");
+    assert_eq!(said["languages"][1]["document"], "German12");
+}
+
+#[test]
+fn a_language_folio_no_longer_holds_leaves_the_owner_s_map_with_its_review() {
+    use crate::answers::folio_sync::{gone_from_folio, without_the_gone};
+    let folio = FakeFolio::default();
+    folio
+        .answers
+        .borrow_mut()
+        .extend([(404, r#"{"refused":"missing"}"#), (200, r#"{"version":2}"#)]);
+
+    let gone = gone_from_folio(&folio, &["anaGone1".to_owned(), "anaHere1".to_owned()]);
+
+    assert_eq!(gone, BTreeSet::from(["anaGone1".to_owned()]));
+    let key = "a-key_0QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQA";
+    let of = |id: &str| tisty_envelope::reviews::of_language(key, id).unwrap();
+    let shared = Remembered {
+        link_key: Some(key.to_owned()),
+        carried: Some(
+            serde_json::json!({
+                "languages": [{ "lang": "en", "document": "anaGone1" }, { "lang": "de", "document": "anaHere1" }],
+                "reviews": [{ "of": of("anaGone1") }, { "of": of("anaHere1") }],
+            })
+            .to_string(),
+        ),
+        ..remembered(Some(key), Some("token"))
+    };
+    let now = without_the_gone(&shared, &gone);
+    let said: serde_json::Value = serde_json::from_str(now.carried.as_deref().unwrap()).unwrap();
+    assert_eq!(said["languages"].as_array().unwrap().len(), 1);
+    assert_eq!(said["languages"][0]["document"], "anaHere1");
+    assert_eq!(said["reviews"].as_array().unwrap().len(), 1);
+    assert_eq!(said["reviews"][0]["of"], of("anaHere1"));
 }
 
 #[test]
@@ -1504,4 +1545,28 @@ fn a_language_another_sent_a_newer_version_of_is_the_one_brought() {
     assert_eq!(ahead.map(|(_, one)| one.id).as_deref(), Some("French12"));
     let asked = folio.asked.borrow();
     assert_eq!(asked.len(), 2);
+}
+
+#[test]
+fn only_what_this_tisty_shares_as_owner_counts_as_its_own() {
+    use crate::answers::folio_sync::owned_ids;
+    let shelf = BTreeMap::from([
+        (
+            "mine.md".to_owned(),
+            Remembered {
+                id: "marioEn1".into(),
+                ..remembered(Some("key"), Some("token"))
+            },
+        ),
+        (
+            "theirs.md".to_owned(),
+            Remembered {
+                id: "anaEngl1".into(),
+                admin_token: None,
+                ..remembered(Some("key"), Some("token"))
+            },
+        ),
+    ]);
+
+    assert_eq!(owned_ids(&shelf), BTreeSet::from(["marioEn1"]));
 }

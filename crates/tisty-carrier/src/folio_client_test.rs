@@ -427,6 +427,8 @@ fn a_document_comes_with_what_its_headers_say() {
             ("folio-version".to_owned(), "4".to_owned()),
             ("folio-arrived".to_owned(), "1000".to_owned()),
             ("folio-revocations".to_owned(), "[]".to_owned()),
+            ("folio-reviewed".to_owned(), r#"{"seq":2}"#.to_owned()),
+            ("folio-reviewed-arrived".to_owned(), "900".to_owned()),
         ],
         body: b"sealed".to_vec(),
     }));
@@ -436,6 +438,8 @@ fn a_document_comes_with_what_its_headers_say() {
     assert_eq!(fetched.bytes, b"sealed");
     assert_eq!((fetched.version, fetched.arrived_ms), (4, 1000));
     assert_eq!(fetched.revocations.as_deref(), Some("[]"));
+    assert_eq!(fetched.reviewed.as_deref(), Some(r#"{"seq":2}"#));
+    assert_eq!(fetched.reviewed_arrived_ms, Some(900));
 }
 
 #[test]

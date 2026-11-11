@@ -227,6 +227,8 @@ pub struct Fetched {
     pub version: u64,
     pub arrived_ms: i64,
     pub revocations: Option<String>,
+    pub reviewed: Option<String>,
+    pub reviewed_arrived_ms: Option<i64>,
 }
 
 pub fn fetch(door: &dyn Door, id: &str) -> Result<Fetched, Stopped> {
@@ -246,11 +248,17 @@ pub fn fetch(door: &dyn Door, id: &str) -> Result<Fetched, Stopped> {
         .and_then(|said| said.parse().ok())
         .ok_or(Stopped::Garbled)?;
     let revocations = answered.header("Folio-Revocations").map(str::to_owned);
+    let reviewed = answered.header("Folio-Reviewed").map(str::to_owned);
+    let reviewed_arrived_ms = answered
+        .header("Folio-Reviewed-Arrived")
+        .and_then(|said| said.parse().ok());
     Ok(Fetched {
         bytes: answered.body,
         version,
         arrived_ms,
         revocations,
+        reviewed,
+        reviewed_arrived_ms,
     })
 }
 

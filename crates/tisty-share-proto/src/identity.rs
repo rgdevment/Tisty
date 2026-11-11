@@ -7,7 +7,7 @@ use zeroize::Zeroizing;
 
 const CERTIFIED: &[u8] = b"tisty-share.certificate.v1\0";
 const REVOKED: &[u8] = b"tisty-share.revocation.v1\0";
-const SIGNED: &[u8] = b"tisty-share.signed.v1\0";
+pub(crate) const SIGNED: &[u8] = b"tisty-share.signed.v1\0";
 const PERMITTED: &[u8] = b"tisty-share.permit.v1\0";
 const FINGERPRINT: &[u8] = b"tisty-share.person.v1\0";
 const SUFFIX: &[u8] = b"tisty-share.suffix.v1\0";
