@@ -861,8 +861,8 @@ la promesa de que ese día es tuyo.
 ![Tu semana, repartida: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-05-agenda.png)
 
 **Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
-escribes una tarea y levanta el pulgar cuando terminas una. Nunca tapa nada, y
-se apaga desde Configuración.
+escribes una tarea. Nunca tapa nada, y se apaga desde Configuración. Al terminar
+una tarea, un aviso ofrece **Deshacer**, por si fue un error.
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.

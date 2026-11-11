@@ -162,10 +162,6 @@ More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
 
 ## Tisto
 
-Tisto is Tisty's beaver, the one with a pencil behind its ear. It keeps you company in three places:
+Tisto is Tisty's beaver, the one with a pencil behind its ear. Once you have typed a few characters in the bar to write a task, it peeks over it and looks at what you write. It never covers anything, and it leaves on its own. To work without it, turn off **Let Tisto peek in** in Settings → General.
 
-- **Writing a task:** once you have typed a few characters in the bar, it peeks over it and looks at what you write.
-- **Quick capture:** it sits in a corner of the small window.
-- **Finishing a task:** it gives you a thumbs up beside **Done**. Only for whole tasks you finish yourself: not for parts, not for tasks that repeat, and not for what an assistant closes.
-
-It never covers anything, and it leaves on its own. To work without it, turn off **Let Tisto peek in** in Settings → General.
+When you finish a task, a notice says it is kept in the archive and offers **Undo**, which reopens it. It shows for whole tasks you finish yourself, not for parts or tasks that repeat, only for the last one you finished, and whether Tisto peeks in or not.
