@@ -53,19 +53,16 @@ export default function LibraryGlance({
   ];
 
   return (
-    <section aria-label={t("library")} className="shrink-0 px-2.5 pt-1 pb-2">
-      <div
-        className={`rounded-[10px] border bg-sheet px-2 pt-2 pb-1 transition-colors duration-150 ${
-          lit ? "border-hue-amber/40" : "border-hair"
-        }`}
-      >
-        <div className="flex items-center gap-2 pl-1.5">
+    <section aria-label={t("library")} className="shrink-0 px-2.5 pb-2">
+      <span aria-hidden="true" className="mx-2.5 mt-2 mb-3 block h-px bg-hair" />
+      <div>
+        <div className="flex items-center gap-2 pl-2.5">
           <button
             type="button"
             onClick={onLibrary}
             aria-current={lit ? "page" : undefined}
-            className={`text-[21px] leading-tight font-semibold hover:text-hue-amber ${
-              lit ? "text-hue-amber" : "text-ink"
+            className={`text-[12.5px] font-semibold hover:text-hue-amber ${
+              lit ? "text-hue-amber" : "text-faint"
             }`}
           >
             {t("library")}
@@ -82,7 +79,7 @@ export default function LibraryGlance({
             <Leaning toward="docs" label={t("growLibrary")} onLean={onLean} />
           </span>
         </div>
-        <div className="mt-2">
+        <div className="mt-1.5">
           <Tiles tiles={tiles} />
         </div>
         {seen.recent.length > 0 && (
@@ -101,7 +98,7 @@ export default function LibraryGlance({
                     e.preventDefault();
                     onDocMenu(doc, menuAt(e));
                   }}
-                  className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink ${
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] text-soft hover:bg-hover hover:text-ink ${
                     acting === doc.id ? "bg-active" : ""
                   }`}
                 >
@@ -115,7 +112,7 @@ export default function LibraryGlance({
             ))}
           </ul>
         )}
-        <div className="mt-1.5 border-t border-hair pt-1">
+        <div className="mt-1.5 px-1">
           <Shelf papers={papers} here={here} onPick={onReveal} />
         </div>
       </div>

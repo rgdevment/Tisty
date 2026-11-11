@@ -33,15 +33,19 @@ export default function DayCounts({ counts, onPick }: Props) {
 }
 
 export function Tiles({ tiles, onPick }: { tiles: Tile[]; onPick?: (key: string) => void }) {
-  const box = "min-w-0 rounded-[10px] border border-hair px-2 py-1 text-left";
+  const strip = "grid grid-cols-4 rounded-[10px] bg-hover p-0.5";
+  const cell = (at: number) =>
+    `relative min-w-0 rounded-md px-1 py-1.5 text-center ${
+      at ? "before:absolute before:inset-y-3 before:left-0 before:w-px before:bg-hair" : ""
+    }`;
   const number = "block text-[21px] leading-tight font-semibold tabular-nums";
-  const word = "block truncate text-[9px] leading-tight text-faint";
+  const word = "block truncate text-[10.5px] leading-tight text-faint";
 
   if (!onPick) {
     return (
-      <dl className="grid grid-cols-4 gap-1.5">
-        {tiles.map(({ key, said, tone, many }) => (
-          <div key={key} className={box}>
+      <dl className={strip}>
+        {tiles.map(({ key, said, tone, many }, at) => (
+          <div key={key} className={cell(at)}>
             <dt title={exactly(many)} className={`${number} ${tone ?? ""}`}>
               {capped(many)}
             </dt>
@@ -53,13 +57,13 @@ export function Tiles({ tiles, onPick }: { tiles: Tile[]; onPick?: (key: string)
   }
 
   return (
-    <div className="grid grid-cols-4 gap-1.5">
-      {tiles.map(({ key, said, tone, many }) => (
+    <div className={strip}>
+      {tiles.map(({ key, said, tone, many }, at) => (
         <button
           key={key}
           type="button"
           onClick={() => onPick(key)}
-          className={`${box} transition-colors duration-150 hover:bg-hover`}
+          className={`${cell(at)} transition-colors duration-150 hover:bg-active`}
         >
           <span title={exactly(many)} className={`${number} ${tone ?? ""}`}>
             {capped(many)}
