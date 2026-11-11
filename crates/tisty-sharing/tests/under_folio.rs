@@ -530,7 +530,13 @@ fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
         admin_token: None,
         owner: reading::owner_block(&reading::opened(main, &opening, &served).unwrap()),
         owner_name: Some("Mario".to_owned()),
-        carried: Some(serde_json::json!({ "reviews": reviews }).to_string()),
+        carried: Some(
+            serde_json::json!({
+                "reviews": reviews,
+                "set_aside": [{ "lang": "en", "document": "aparte01", "key": key }],
+            })
+            .to_string(),
+        ),
         ..shared.clone()
     };
     editor.sent(&[(file, arrived)]);
@@ -545,6 +551,10 @@ fn whoever_edits_sends_the_owners_reviews_as_they_arrived() {
     let two = reading::reading(&second.going[0].sealed.main, &opening, &served).unwrap();
 
     assert_eq!(two.document["reviews"], reviews);
+    assert!(
+        !two.document.to_string().contains("aparte01"),
+        "what the owner set aside never travels"
+    );
 
     editor.sent(&second.remembering);
     let (file, now) = second.remembering[0].clone();

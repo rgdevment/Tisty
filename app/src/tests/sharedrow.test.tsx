@@ -916,6 +916,17 @@ describe("what Sync warns of", () => {
     expect(review?.label).toBe(fill("shareLanguageChanges", "English"));
   });
 
+  it("names a language the owner left out and offers to review it again", async () => {
+    const languages = [
+      { document: "anaEngl1", lang: "en", title: null, word: "leftOut", mine: false },
+    ];
+    const { panel } = await held({ ...card, languages });
+
+    expect(panel().said).toContain(fill("shareLanguageLeftOut", "English"));
+    const again = panel().acts?.find((one) => one.key === "review-anaEngl1");
+    expect(again?.label).toBe(fill("shareLanguageReviewAgain", "English"));
+  });
+
   it("asks Folio nothing while no language others added is kept", async () => {
     const languages = [
       { document: "anaEngl1", lang: "en", title: null, word: "waiting", mine: false },
