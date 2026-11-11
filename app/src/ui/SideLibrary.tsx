@@ -48,8 +48,9 @@ export default function SideLibrary(props: Props) {
         type="button"
         onClick={library}
         aria-current={lit ? "page" : undefined}
-        className={`text-[12.5px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-faint"}`}
+        className={`flex items-center gap-2 text-[13px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
       >
+        <Glyph name="library" className="h-4 w-4 text-hue-amber" />
         {t("library")}
       </button>
       <span title={exactly(many)} className="text-[11.5px] text-faint tabular-nums">

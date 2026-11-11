@@ -59,8 +59,11 @@ export default function SideTasks({
           type="button"
           onClick={() => onChoose({ named: "tasks" })}
           aria-current={on("tasks") ? "page" : undefined}
-          className={`text-[12.5px] font-semibold hover:text-accent ${on("tasks") ? "text-accent" : "text-faint"}`}
+          className={`flex items-center gap-2 font-semibold hover:text-accent ${
+            wide ? "text-[13px]" : "text-[12.5px]"
+          } ${on("tasks") ? "text-accent" : wide ? "text-ink" : "text-faint"}`}
         >
+          {wide && <Glyph name="sun" className="h-4 w-4 text-accent" />}
           {t("tasks")}
         </button>
         <span className="truncate text-[11.5px] text-faint">{todayLong()}</span>
