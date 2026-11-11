@@ -5264,5 +5264,111 @@ fn a_tasks_id_sent_to_read_doc_is_said_to_be_a_task() {
     let why = served.refused("read_doc", serde_json::json!({ "doc": task }));
 
     assert!(why.contains("the task \"migrate the reader\""), "{why}");
-    assert!(why.contains("`read` it"), "{why}");
+    assert!(why.contains("`read` shows it"), "{why}");
+}
+
+#[test]
+fn a_step_untick_does_not_find_is_answered_with_the_ticks_an_agent_gave() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.said(
+        "tick",
+        serde_json::json!({ "task": task, "step": "write the new one" }),
+    );
+
+    let why = served.refused(
+        "untick",
+        serde_json::json!({ "task": task, "step": "write the old one" }),
+    );
+
+    assert!(
+        why.contains("These could be unticked: \"write the new one\"."),
+        "{why}"
+    );
+}
+
+#[test]
+fn a_missed_step_names_twelve_of_the_steps_and_counts_the_rest() {
+    let served = Served::new();
+    let steps: Vec<String> = (1..=14).map(|n| format!("step {n}")).collect();
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "a long checklist", "steps": steps }),
+    );
+    let task = filed["result"]["structuredContent"]["id"].as_str().unwrap();
+
+    let why = served.refused(
+        "tick",
+        serde_json::json!({ "task": task, "step": "step 15" }),
+    );
+
+    assert!(why.contains("\"step 12\", and 2 more"), "{why}");
+    assert!(!why.contains("\"step 13\""), "{why}");
+}
+
+#[test]
+fn a_documents_id_sent_to_note_says_how_a_document_is_written() {
+    let served = Served::new();
+    let doc = served.wrote("# Recetas\n\narroz", None);
+
+    let why = served.refused("note", serde_json::json!({ "task": doc, "body": "probé" }));
+
+    assert!(why.contains("the document \"Recetas\""), "{why}");
+    assert!(why.contains("`append_doc`"), "{why}");
+}
+
+#[test]
+fn attach_told_the_wrong_kind_of_id_says_which_field_takes_it() {
+    let served = Served::new();
+    let doc = served.wrote("# Recetas\n\narroz", None);
+    let task = filed_with_steps(&served);
+
+    let under_task = served.refused(
+        "attach",
+        serde_json::json!({ "task": doc, "path": "photo.png" }),
+    );
+    let under_doc = served.refused(
+        "attach",
+        serde_json::json!({ "doc": task, "path": "photo.png" }),
+    );
+
+    assert!(under_task.contains("send it as `doc`"), "{under_task}");
+    assert!(under_doc.contains("send it as `task`"), "{under_doc}");
+}
+
+#[test]
+fn flagging_a_task_says_closing_it_is_the_persons() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let why = served.refused(
+        "flag_doc",
+        serde_json::json!({ "doc": task, "reason": "obsolete", "body": "nobody needs it" }),
+    );
+
+    assert!(why.contains("the task \"migrate the reader\""), "{why}");
+    assert!(why.contains("`say_not_doing`"), "{why}");
+}
+
+#[test]
+fn a_tasks_page_sent_where_a_task_goes_names_the_task() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.said(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "what I found" }),
+    );
+    let state = served.person().state();
+    let page = tisty_core::task_docs::of(&state, person::task(&task))
+        .expect("the note made the task a page")
+        .file
+        .clone();
+
+    let why = served.refused("read", serde_json::json!({ "task": page }));
+
+    assert!(
+        why.contains("is the page of the task \"migrate the reader\""),
+        "{why}"
+    );
+    assert!(why.contains(&task), "{why}");
 }

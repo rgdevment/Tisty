@@ -249,8 +249,8 @@ show as code; links to documents and tasks become plain words; pens, underlines,
 go as HTML tags. Each page is read on its own.
 
 Handing a document to a person is theirs to do: Share in the window sends it through Folio, \
-encrypted. Get it ready — current state first, open questions listed — and tell them it is \
-ready; never paste it whole as the handover.
+encrypted, and says so when Folio cannot be reached. Get it ready — current state first, open \
+questions listed — and tell them it is ready; never paste it whole as the handover.
 
 Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
@@ -471,7 +471,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("note", Effect::Adds),
     ("attach", Effect::Adds),
     ("write_doc", Effect::Rewrites),
-    ("append_doc", Effect::Adds),
+    ("append_doc", Effect::Rewrites),
     ("restore_doc", Effect::Rewrites),
     ("edit_doc", Effect::Replaces),
     ("edit_table", Effect::Rewrites),
