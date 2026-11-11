@@ -306,6 +306,13 @@ pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
     out
 }
 
+pub fn word_on(joining: &Joining, reviews: &[Review], document: &str) -> Option<bool> {
+    let anchor_key = decoded(joining.anchor_key)?;
+    let of = URL_SAFE_NO_PAD.encode(reviewing::of(&anchor_key, document)?);
+    let latest = latest(joining.anchor, joining.owner, &anchor_key, reviews);
+    latest.get(of.as_str()).map(|one| one.kept)
+}
+
 pub fn of_language(anchor_key: &str, id: &str) -> Option<String> {
     reviewing::of(&decoded(anchor_key)?, id).map(|of| URL_SAFE_NO_PAD.encode(of))
 }
