@@ -2,6 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::model::{Kept, TaskId};
 use tisty_core::{Op, Paths, State, Store};
 
+use super::super::mistaken::no_document_called;
 use super::super::{Refused, doc_named, hitch, opened};
 use super::writing::over_again;
 
@@ -92,9 +93,7 @@ pub(super) fn compacted(
     first: Option<Original>,
 ) -> Result<Value, Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
+        return Err(Refused::Tool(no_document_called(state, which)));
     };
     if !agents_wrote(state, kept) && !flag(args, "person_asked") {
         return Err(Refused::Tool(format!(
