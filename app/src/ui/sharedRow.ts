@@ -4,6 +4,7 @@ import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
   type LanguageWord,
+  languageReviewed,
   languagesLooked,
   type Named,
   type ShareCard,
@@ -215,8 +216,42 @@ const renewNow = (h: Hands) => {
     });
 };
 
+const renewingSaid = (card: ShareCard) => {
+  const names = inView(card).map((one) => tongueName(one.lang ?? ""));
+  return names.length > 0 ? [fill("shareRenewTheirs", names.join(", "))] : [];
+};
+
+const leavingOut = (h: Hands) =>
+  inView(h.card).reduce<Promise<void>>(
+    (before, one) => before.then(() => languageReviewed(h.doc, one.document, false, null)),
+    Promise.resolve(),
+  );
+
+// The question leaves the row at once, so a second press never signs twice; one that fails stops the link from changing.
+const renewLeaving = (h: Hands) => {
+  h.setRenewing(false);
+  void leavingOut(h)
+    .then(() => renewNow(h))
+    .catch((problem) => {
+      h.failing(problem);
+      void shareCard(h.doc)
+        .then((card) => card && h.setCard(card))
+        .catch(() => {});
+    });
+};
+
 const renewingActs = (h: Hands): Act[] => [
   { key: "keep", label: t("shareCancel"), onPick: () => h.setRenewing(false) },
+  ...(inView(h.card).length > 0
+    ? [
+        {
+          key: "renewLeaving",
+          label: t("shareRenewLeaving"),
+          danger: true,
+          onPick: () => renewLeaving(h),
+        },
+      ]
+    : []),
   { key: "renew", label: t("shareRenew"), danger: true, onPick: () => renewNow(h) },
 ];
 
@@ -337,9 +372,11 @@ const reviewLabel = {
   leftOut: "shareLanguageReviewAgain",
 } as const;
 
+const inView = (card: ShareCard) =>
+  theirs(card).filter((one) => one.word === "kept" || one.word === "changed");
+
 // A language the owner keeps can change in Folio at any time, and only asking after it tells.
-const keepsTheirs = (card: ShareCard) =>
-  theirs(card).some((one) => one.word === "kept" || one.word === "changed");
+const keepsTheirs = (card: ShareCard) => inView(card).length > 0;
 
 const reviewActs = (h: Hands, onReview: (one: LanguageWord) => void): Act[] =>
   theirs(h.card).map((one) => ({
@@ -558,6 +595,7 @@ export const useSharedRow = (
         ...whoSaid(hands.card),
         ...languagesSaid(hands.card),
         ...saidOf(hands.status, told, stopping, renewing),
+        ...(renewing ? renewingSaid(hands.card) : []),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
       prints: printsOf(hands.card),
