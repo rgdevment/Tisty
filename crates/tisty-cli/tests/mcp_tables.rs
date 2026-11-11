@@ -15,10 +15,14 @@ impl Served {
         let served = Self {
             home: tempfile::tempdir().unwrap(),
         };
-        let person = person::Person::at(served.home.path());
+        let person = served.person();
         person.begins("algo mio");
         person.lets_the_agent_in();
         served
+    }
+
+    fn person(&self) -> person::Person {
+        person::Person::at(self.home.path())
     }
 
     fn call(&self, name: &str, args: Value) -> Value {
@@ -107,6 +111,48 @@ fn a_table_is_shown_by_its_columns_with_their_types_and_its_rows_by_their_first_
     );
     assert!(said(&shown).contains("Precio {money CLP sum}"), "{shown}");
     assert_eq!(served.body(&doc), SHOPPING, "showing writes nothing");
+}
+
+#[test]
+fn an_agent_the_person_shut_out_is_shown_no_table() {
+    let served = Served::new();
+    let doc = served.wrote(SHOPPING);
+    served.person().shuts_the_agent_out();
+
+    let shown = served.table(&doc, json!({}));
+
+    assert_eq!(shown["isError"], true, "{shown}");
+    assert!(!said(&shown).contains("Arroz"), "{shown}");
+}
+
+#[test]
+fn a_file_the_log_does_not_know_is_no_document_to_show() {
+    let served = Served::new();
+    served.person().saves_doc("q7ntmzbm-0001", SHOPPING);
+
+    let shown = served.table("q7ntmzbm-0001", json!({}));
+
+    assert_eq!(shown["isError"], true, "{shown}");
+    assert!(said(&shown).contains("no document here"), "{shown}");
+}
+
+#[test]
+fn a_document_whose_text_has_not_arrived_says_it_may_still_be_arriving() {
+    let served = Served::new();
+    let doc = served.wrote(SHOPPING);
+    let docs = served.home.path().join("data").join("docs");
+    std::fs::remove_file(tisty_core::docs::resolve(&docs, &doc).unwrap()).unwrap();
+
+    let shown = served.table(&doc, json!({}));
+    let added = served.table(
+        &doc,
+        json!({ "do": "add", "values": { "Producto": "Sal" } }),
+    );
+
+    for one in [&shown, &added] {
+        assert_eq!(one["isError"], true, "{one}");
+        assert!(said(one).contains("may still be arriving"), "{one}");
+    }
 }
 
 #[test]
