@@ -185,7 +185,7 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
                     );
                     fault(id, code, &why)
                 }
-                Err(Refused::Tool(why)) => {
+                Err(Refused::Tool(why) | Refused::Unable(why) | Refused::Missing(why)) => {
                     if !told {
                         witness::note(
                             witness::channel::AGENT,
@@ -214,6 +214,8 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
 enum Refused {
     Protocol(i32, String),
     Tool(String),
+    Unable(String),
+    Missing(String),
 }
 
 fn aside(id: Value, said: Result<Value, (i32, String)>) -> String {
@@ -353,7 +355,7 @@ fn pointed(name: &str) -> Option<&'static str> {
 
 fn turned_away(paths: &Paths) -> Refused {
     let _ = tisty_core::agent::knock(paths, speaking_through().as_deref());
-    Refused::Tool(
+    Refused::Unable(
         "no agent is registered on this machine. The person turns one on in Tisty's settings, \
          under Assistants."
             .into(),
@@ -433,7 +435,7 @@ fn hitch(e: tisty_core::Error) -> Refused {
         }
         TOLD.set(true);
     }
-    Refused::Tool(match e {
+    Refused::Unable(match e {
         tisty_core::Error::AlreadyRunning => {
             "Tisty is being written to right now. Try the same call again.".into()
         }

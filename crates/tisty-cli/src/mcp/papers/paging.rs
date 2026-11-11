@@ -286,7 +286,7 @@ fn what_was_put(
                 ),
                 (true, false) => String::new(),
             },
-            Err(Refused::Tool(why)) => format!(
+            Err(Refused::Tool(why) | Refused::Unable(why) | Refused::Missing(why)) => format!(
                 " No line was written for {}, so {} loose: {why}",
                 match hung.len() {
                     1 => "it",
@@ -304,7 +304,7 @@ fn what_was_put(
         let (now, mut store) = opened(paths)?;
         put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
             Ok(()) => format!(" Its line sits {}.", where_said(state, held.spot())),
-            Err(Refused::Tool(why)) => {
+            Err(Refused::Tool(why) | Refused::Unable(why) | Refused::Missing(why)) => {
                 format!(" It is a page now, but no line was written for it, so it is loose: {why}")
             }
             Err(other) => return Err(other),

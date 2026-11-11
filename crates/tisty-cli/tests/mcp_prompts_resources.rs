@@ -312,14 +312,18 @@ fn a_long_list_goes_on_with_the_cursor_it_hands_back() {
             )
         })
         .collect();
-    served.talk(&writes);
+    let wrote = served.talk(&writes);
+    let oldest = wrote[0]["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let first = served.ask("resources/list", json!({}));
     let cursor = first["result"]["nextCursor"].as_str().expect("a cursor");
-    served.written(
-        "# Written between pages
-
-New.",
+    served.written("# Written between pages\n\nNew.");
+    served.call(
+        "append_doc",
+        json!({ "doc": oldest, "body": "Edited between pages." }),
     );
     let rest = served.ask("resources/list", json!({ "cursor": cursor }));
     let wrong = served.ask("resources/list", json!({ "cursor": "page two" }));

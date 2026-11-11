@@ -2,10 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::model::{DocId, Kept};
 use tisty_core::{Paths, State};
 
-use super::{
-    Refused, TOLD, TOOLS_STAY_FRESH, admitted, doc_titled, outline_doc, read_doc, trail,
-    turned_away,
-};
+use super::{Refused, TOOLS_STAY_FRESH, admitted, doc_titled, outline_doc, read_doc, trail};
 
 const SCHEME: &str = "tisty:doc/";
 const LISTED_AT_ONCE: usize = 50;
@@ -18,22 +15,22 @@ const LIST_STAYS_FRESH: i64 = 60_000;
 pub(super) fn listed(paths: &Paths, params: &Value) -> Result<Value, (i32, String)> {
     let after = match params.get("cursor").and_then(Value::as_str) {
         None => None,
-        Some(said) => Some(unmarked(said).ok_or_else(|| {
+        Some(said) => Some(said.parse::<DocId>().map_err(|_| {
             (
                 BAD_PARAMS,
                 format!("{said:?} is not a cursor this server handed out."),
             )
         })?),
     };
-    let Some((state, _)) = admitted(paths).map_err(broke)? else {
+    let Some((state, _)) = admitted(paths).map_err(refused)? else {
         return Ok(page(Vec::new(), None));
     };
     let mut kept: Vec<&Kept> = state
         .papers()
         .filter(|one| !state.held_away(one))
-        .filter(|one| after.is_none_or(|after| order_of(one) < after))
+        .filter(|one| after.is_none_or(|after| one.id < after))
         .collect();
-    kept.sort_by_key(|one| std::cmp::Reverse(order_of(one)));
+    kept.sort_by_key(|one| std::cmp::Reverse(one.id));
     let shown: Vec<&Kept> = kept.iter().take(LISTED_AT_ONCE).copied().collect();
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
     let files: Vec<String> = shown.iter().map(|one| one.file.clone()).collect();
@@ -67,28 +64,8 @@ pub(super) fn listed(paths: &Paths, params: &Value) -> Result<Value, (i32, Strin
     let next = shown
         .last()
         .filter(|_| kept.len() > shown.len())
-        .map(|last| marked(order_of(last)));
+        .map(|last| last.id.to_string());
     Ok(page(resources, next))
-}
-
-fn order_of(kept: &Kept) -> (Option<jiff::Timestamp>, DocId) {
-    (kept.wrote, kept.id)
-}
-
-fn marked((wrote, id): (Option<jiff::Timestamp>, DocId)) -> String {
-    match wrote {
-        Some(at) => format!("{}~{id}", at.as_nanosecond()),
-        None => format!("-~{id}"),
-    }
-}
-
-fn unmarked(said: &str) -> Option<(Option<jiff::Timestamp>, DocId)> {
-    let (wrote, id) = said.split_once('~')?;
-    let wrote = match wrote {
-        "-" => None,
-        at => Some(jiff::Timestamp::from_nanosecond(at.parse().ok()?).ok()?),
-    };
-    Some((wrote, id.parse().ok()?))
 }
 
 fn page(resources: Vec<Value>, next: Option<String>) -> Value {
@@ -137,22 +114,6 @@ struct Address {
 pub(super) fn read(paths: &Paths, params: &Value) -> Result<Value, (i32, String)> {
     let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
     let asked = addressed(uri)?;
-    let Some((state, _)) = admitted(paths).map_err(broke)? else {
-        return Err(broke(turned_away(paths)));
-    };
-    if !state
-        .docs
-        .values()
-        .any(|one| one.file == asked.doc && state.doc_in_sight(one))
-    {
-        return Err((
-            NOT_FOUND,
-            format!(
-                "no document here is called {:?}. `docs` lists them all.",
-                asked.doc
-            ),
-        ));
-    }
     let mut args = json!({ "doc": asked.doc });
     if let Some(from) = asked.from {
         args["from"] = json!(from);
@@ -160,7 +121,7 @@ pub(super) fn read(paths: &Paths, params: &Value) -> Result<Value, (i32, String)
     if let Some(to) = asked.to {
         args["to"] = json!(to);
     }
-    let said = read_doc(paths, &args).map_err(unreadable)?;
+    let said = read_doc(paths, &args).map_err(refused)?;
     let held = &said["structuredContent"];
     let (text, mime) = match held.get("body") {
         Some(_) => (with_the_rest(&said, &asked), MARKDOWN),
@@ -231,7 +192,7 @@ fn with_the_rest(said: &Value, asked: &Address) -> String {
 }
 
 fn outlined(paths: &Paths, asked: &Address, held: &Value) -> Result<String, (i32, String)> {
-    let outline = outline_doc(paths, &json!({ "doc": asked.doc })).map_err(unreadable)?;
+    let outline = outline_doc(paths, &json!({ "doc": asked.doc })).map_err(refused)?;
     let shown = outline["content"][0]["text"].as_str().unwrap_or_default();
     let notice = match held["notice"].as_str() {
         Some(notice) => format!("({notice})\n\n"),
@@ -246,16 +207,11 @@ fn outlined(paths: &Paths, asked: &Address, held: &Value) -> Result<String, (i32
     ))
 }
 
-fn broke(why: Refused) -> (i32, String) {
-    match why {
-        Refused::Protocol(_, why) | Refused::Tool(why) => (BROKE, why),
-    }
-}
-
-fn unreadable(why: Refused) -> (i32, String) {
+fn refused(why: Refused) -> (i32, String) {
     match why {
         Refused::Protocol(code, why) => (code, why),
-        Refused::Tool(why) if TOLD.get() => (BROKE, why),
+        Refused::Missing(why) => (NOT_FOUND, why),
+        Refused::Unable(why) => (BROKE, why),
         Refused::Tool(why) => (BAD_PARAMS, why),
     }
 }
