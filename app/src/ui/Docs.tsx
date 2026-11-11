@@ -77,7 +77,6 @@ const remembered = (held: Map<string, Read>, file: string, read: Read) => {
 };
 
 const GUTTER = 8;
-const SHEET = 820;
 
 const leaves = (): Record<string, Paper> => {
   try {
@@ -804,7 +803,7 @@ export default function Docs({
     wrote(laid);
     dressAlike(laid);
   };
-  const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
+  const reserve = beside ? ASIDE : 0;
   const place = open
     ? trailed(folders, open.folder ?? null)
         .map((one) => one.name)
