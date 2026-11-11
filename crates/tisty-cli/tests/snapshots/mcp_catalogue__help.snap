@@ -22,29 +22,7 @@ expression: tool
         "type": "string"
       },
       "topic": {
-        "description": "One page, named as the index names it",
-        "enum": [
-          "index",
-          "installation",
-          "keyboard-shortcuts",
-          "tasks",
-          "natural-language",
-          "spread-and-reminders",
-          "archive",
-          "assistants-and-mcp",
-          "mcp-permissions",
-          "mcp-tools",
-          "documents",
-          "markdown-editor",
-          "convert-to-and-from-markdown",
-          "pages-and-pdf",
-          "diagrams",
-          "widgets",
-          "sync-and-backup",
-          "privacy",
-          "command-line",
-          "faq"
-        ],
+        "description": "One page, named as the index names it in either language",
         "type": "string"
       }
     },

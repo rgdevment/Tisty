@@ -14,7 +14,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "again": {
-        "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since; say in the description how the last one ended",
+        "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since, never for one still open; say in the description how the last one ended",
         "type": "boolean"
       },
       "date": {

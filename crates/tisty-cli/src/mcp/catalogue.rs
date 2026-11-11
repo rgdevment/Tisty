@@ -546,7 +546,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "tags": { "type": "array", "items": { "type": "string" }, "description": "Its subjects, one plain word each, reusing what `tags` lists; six is already a lot" },
                     "steps": { "type": "array", "items": { "type": "string" }, "description": "A checklist, each step at most 100 characters; what needs more is a part" },
                     "source": { "type": "string", "description": "Where you read it: a message id, a thread link" },
-                    "again": { "type": "boolean", "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since; say in the description how the last one ended" }
+                    "again": { "type": "boolean", "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since, never for one still open; say in the description how the last one ended" }
                 }
             }))
         },
@@ -632,7 +632,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "move",
             "title": "Hang a task under another, or move it to a list",
-            "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done takes no new part.",
+            "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done or not doing takes no new part.",
             "inputSchema": on_a_task(
                 json!({
                     "part_of": { "type": ["string", "null"], "description": "Id of the task to hang it under, or null to let it go" },
@@ -848,7 +848,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "reason": {
                         "type": "string",
                         "enum": ["duplicate_of", "moved", "superseded", "wrong", "obsolete", "scratch"],
-                        "description": "Why it has had its day; moved only once what it held worth keeping is there"
+                        "description": "A copy of another, moved into another (only once what it held worth keeping is there), superseded by another, wrong, obsolete, or a scratch nobody needs"
                     },
                     "instead": { "type": "string", "description": "Id of the document or task that holds it now; needed with duplicate_of, moved and superseded" },
                     "body": { "type": "string", "description": "In the person's language: what makes it old, and how you know" }
@@ -913,7 +913,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
+            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `pages_loose` names pages no line places.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -923,7 +923,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "to": { "type": "integer", "description": "Last line; left out, to the end" },
                     "chars": { "type": "integer", "description": "About how many characters to bring; the answer gives `next` when there is more" },
                     "cursor": { "type": "integer", "description": "The `next` a previous answer gave, with `chars`" },
-                    "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»)" }
+                    "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»). Not with `section`, lines or `chars`" }
                 },
                 "required": ["doc"]
             }))
@@ -1055,7 +1055,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "topic": {
                         "type": "string",
-                        "enum": ["tasks", "documents", "tidying", "all", "general"],
+                        "enum": ["tasks", "documents", "tidying", "all"],
                         "description": "The guide; left out, the basics and the index"
                     }
                 }
@@ -1084,8 +1084,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "topic": {
                         "type": "string",
-                        "enum": super::helping::topics(),
-                        "description": "One page, named as the index names it"
+                        "description": "One page, named as the index names it in either language"
                     },
                     "lang": { "type": "string", "enum": ["en", "es"], "description": "en, the default, or es" }
                 }

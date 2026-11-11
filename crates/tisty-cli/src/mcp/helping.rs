@@ -2,16 +2,6 @@ use serde_json::{Value, json};
 
 use super::jsonrpc::mirrored;
 
-pub(super) fn topics() -> Vec<String> {
-    tisty_help::pages(false)
-        .iter()
-        .map(|one| match one.slug() {
-            slug if slug.is_empty() => "index".to_string(),
-            slug => slug,
-        })
-        .collect()
-}
-
 fn page_of(spanish: bool, topic: &str) -> Option<&'static tisty_help::Page> {
     let slug = if topic == "index" { "" } else { topic };
     tisty_help::found(spanish, slug).or_else(|| {

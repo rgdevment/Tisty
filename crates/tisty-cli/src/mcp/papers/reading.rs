@@ -514,7 +514,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 kept_of.insert("whole".into(), json!(false));
             }
             let said = match standing {
-                Some(standing) => format!("({standing})\n\n{part}"),
+                Some(standing) => {
+                    let shown = format!("({standing})\n\n{part}");
+                    kept_of.insert("notice".into(), json!(standing));
+                    shown
+                }
                 None => part,
             };
             Ok(mirrored(said, Value::Object(kept_of)))

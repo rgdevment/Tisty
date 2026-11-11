@@ -37,7 +37,7 @@ expression: tool
         "type": "string"
       },
       "reason": {
-        "description": "Why it has had its day; moved only once what it held worth keeping is there",
+        "description": "A copy of another, moved into another (only once what it held worth keeping is there), superseded by another, wrong, obsolete, or a scratch nobody needs",
         "enum": [
           "duplicate_of",
           "moved",

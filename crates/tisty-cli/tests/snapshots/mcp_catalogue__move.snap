@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done takes no new part.",
+  "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done or not doing takes no new part.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

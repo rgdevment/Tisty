@@ -3838,6 +3838,12 @@ fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
         "{read}"
     );
     assert!(
+        read["result"]["structuredContent"]["notice"]
+            .as_str()
+            .is_some_and(|said| said.contains("has had its day")),
+        "a client reading the fields alone is still warned: {read}"
+    );
+    assert!(
         read["result"]["structuredContent"]["archived"].is_null(),
         "marking it must not put it away: {read}"
     );
@@ -5161,6 +5167,12 @@ fn a_task_the_person_wrote_takes_no_fill_in_until_they_open_it() {
     assert_eq!(
         read["result"]["structuredContent"]["open_to_agents"], true,
         "{read}"
+    );
+    assert!(
+        read["result"]["structuredContent"]["notice"]
+            .as_str()
+            .is_some_and(|said| said.contains("yours to describe")),
+        "a client reading the fields alone still learns what it may do: {read}"
     );
     let sifted = served.call("find", serde_json::json!({ "open_to_agents": true }));
     assert!(sifted.to_string().contains(&id), "{sifted}");

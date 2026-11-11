@@ -9,12 +9,12 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
+  "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `pages_loose` names pages no line places.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "as": {
-        "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»)",
+        "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»). Not with `section`, lines or `chars`",
         "enum": [
           "markdown"
         ],
