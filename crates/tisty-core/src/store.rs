@@ -732,7 +732,13 @@ pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
                 .is_some_and(is_segment)
         })
         .collect();
-    found.sort();
+    found.sort_by_key(|at| {
+        at.file_name()
+            .and_then(|n| n.to_str())
+            .and_then(|n| n.strip_suffix(".tisty"))
+            .and_then(|stem| stem.parse::<u64>().ok())
+            .map_or((true, 0), |seg| (false, seg))
+    });
     Ok(found)
 }
 

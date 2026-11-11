@@ -28,6 +28,24 @@ fn the_segments_of_a_machine_always_come_back_in_the_order_they_were_written() {
         ]
     );
 }
+
+#[test]
+fn segments_past_six_digits_still_come_back_in_the_order_they_were_written() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join("dev_a");
+    std::fs::create_dir_all(&at).unwrap();
+    for leaf in ["1000000.tisty", "active.tisty", "999999.tisty"] {
+        std::fs::write(at.join(leaf), b"x").unwrap();
+    }
+
+    let found: Vec<String> = segments_in(&at)
+        .unwrap()
+        .iter()
+        .filter_map(|one| one.file_name()?.to_str().map(str::to_string))
+        .collect();
+
+    assert_eq!(found, vec!["999999.tisty", "1000000.tisty", "active.tisty"]);
+}
 use super::identity::set_aside;
 use super::*;
 use crate::event::TaskAdd;

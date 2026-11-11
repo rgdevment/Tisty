@@ -80,7 +80,7 @@ pub(super) fn propose(
                 }
                 done.push(kept);
             }
-            Err(Refused::Tool(said)) => {
+            Err(Refused::Tool(said) | Refused::Unable(said) | Refused::Missing(said)) => {
                 turned += 1;
                 done.push(json!({
                     "title": text(one, "title"),

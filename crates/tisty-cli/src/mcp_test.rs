@@ -540,11 +540,11 @@ fn a_document_right_at_the_budget_is_still_handed_over_whole() {
 
 #[test]
 fn a_store_left_behind_by_a_move_asks_for_a_restart_not_an_update() {
-    let Refused::Tool(said) = hitch(tisty_core::Error::UnsupportedVersion {
+    let Refused::Unable(said) = hitch(tisty_core::Error::UnsupportedVersion {
         version: tisty_core::moving::FENCE_VERSION,
         device: "dev_a".into(),
     }) else {
-        panic!("not a tool refusal");
+        panic!("not a refusal the store caused");
     };
     assert!(said.contains("restart"), "{said}");
     assert!(!said.contains("update Tisty"), "{said}");

@@ -114,6 +114,21 @@ It can **never** close or delete a task, delete a document, or move a day you se
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
+## Ready-made requests and @-mentions
+
+Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
+
+**Four ready-made requests.** Tisty hands your assistant four requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
+
+- **Pick up where I left off** (`pick_up`) — what moved since last time, then the open task last worked on, with its steps and its latest notes. It changes nothing.
+- **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.
+- **How did we solve this before?** (`solved_before`) — it searches the archive of finished tasks and your documents before trying anything new.
+- **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
+
+Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or nothing, and then it works from what you have been talking about.
+
+**Documents to mention.** Your documents that are not put away are offered too, so you can hand one to the assistant by name: in Claude Code, type `@` and pick it by its title and folder. A document of up to about 12,000 characters arrives whole; a longer one arrives as its outline, its headings and their lines, and the assistant asks for the part it needs.
+
 ## A day with your agent
 
 What an agent connected to Tisty does on a real piece of work:

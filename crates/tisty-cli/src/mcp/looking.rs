@@ -610,39 +610,26 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     "`since` has to be a `cursor` a previous `catch_up` handed back, not {since:?}."
                 ))
             })?;
-            let mut tasks: Vec<String> = Vec::new();
+            let owners = tisty_core::task_docs::behind(&state);
+            let mut tasks: Vec<TaskId> = Vec::new();
             let mut papers: Vec<String> = Vec::new();
             // The log refuses two events at the very same instant, so what the cursor named is
             // behind us and nothing is skipped by leaving it out.
             for one in log.iter().filter(|one| one.timestamp > since) {
-                let Some((named, id)) = what_it_touched(one) else {
-                    continue;
-                };
-                if named.starts_with("task.") && !tasks.contains(&id) {
-                    tasks.push(id);
-                } else if named.starts_with("doc.") && !papers.contains(&id) {
-                    papers.push(id);
-                }
-            }
-            // Writing a task's document is that task moving, never a document of its own.
-            let owners = tisty_core::task_docs::behind(&state);
-            for one in &papers {
-                let behind = one
-                    .parse::<Ulid>()
-                    .ok()
-                    .and_then(|id| state.docs.get(&id))
-                    .and_then(|kept| owners.get(&kept.file))
-                    .map(|task| task.to_string());
-                if let Some(task) = behind
-                    && !tasks.contains(&task)
+                if let Some(task) = task_touched(&state, &owners, one) {
+                    if !tasks.contains(&task) {
+                        tasks.push(task);
+                    }
+                } else if let Some((named, id)) = what_it_touched(one)
+                    && named.starts_with("doc.")
+                    && !papers.contains(&id)
                 {
-                    tasks.push(task);
+                    papers.push(id);
                 }
             }
             let moved: Vec<Value> = tasks
                 .iter()
-                .filter_map(|id| id.parse::<TaskId>().ok())
-                .filter_map(|id| state.tasks.get(&id))
+                .filter_map(|id| state.tasks.get(id))
                 .filter(|one| !one.folded())
                 .map(|one| brief(one, &state, today))
                 .collect();
@@ -858,6 +845,23 @@ pub(super) fn how_it_ended(task: &Task) -> String {
 
 /// Every op carries its own id under the same name, so reading it back as JSON keeps this from
 /// having to know each one — and from going quiet the day another is added.
+pub(super) fn task_touched(
+    state: &State,
+    owners: &std::collections::BTreeMap<String, TaskId>,
+    event: &tisty_core::event::Event,
+) -> Option<TaskId> {
+    let (named, id) = what_it_touched(event)?;
+    if named.starts_with("task.") {
+        return id.parse().ok();
+    }
+    if !named.starts_with("doc.") {
+        return None;
+    }
+    // Writing a task's document is that task moving, never a document of its own.
+    let kept = state.docs.get(&id.parse::<Ulid>().ok()?)?;
+    owners.get(&kept.file).copied()
+}
+
 fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)> {
     let said = serde_json::to_value(&event.op).ok()?;
     let named = said.get("op")?.as_str()?.to_string();
@@ -1264,7 +1268,7 @@ fn pressed(pressing: &[(String, usize)]) -> String {
     format!(" ({})", told.join(", "))
 }
 
-fn placed(state: &State, task: &Task) -> String {
+pub(super) fn placed(state: &State, task: &Task) -> String {
     task.list.and_then(|at| state.lists.get(&at)).map_or_else(
         || "in the inbox".to_string(),
         |one| format!("in {}", one.name),
