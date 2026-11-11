@@ -49,7 +49,7 @@ export default function SideLibrary(props: Props) {
         type="button"
         onClick={library}
         aria-current={lit ? "page" : undefined}
-        className={`text-[13px] font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
+        className={`text-[21px] leading-tight font-semibold hover:text-hue-amber ${lit ? "text-hue-amber" : "text-ink"}`}
       >
         {t("library")}
       </button>
@@ -119,67 +119,72 @@ function Wide({
   return (
     <div
       hidden={hidden}
-      className={`relative min-h-0 flex-1 flex-col ${hidden ? "hidden" : "flex"}`}
+      className={`min-h-0 flex-1 flex-col px-2.5 pt-1 pb-2 ${hidden ? "hidden" : "flex"}`}
     >
-      <span aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-hair" />
-      <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-        {title}
-        <span className="ml-auto -mr-1.5 flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => (sifting ? close() : setSifting(true))}
-            aria-pressed={sifting}
-            aria-label={t("siftDocs")}
-            title={t("siftDocs")}
-            className={`grid size-6 place-items-center rounded-md hover:bg-hover hover:text-ink ${
-              sifting ? "bg-active text-ink" : "text-faint"
-            }`}
-          >
-            <Glyph name="filter" className="h-[13px] w-[13px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              const box = e.currentTarget.getBoundingClientRect();
-              onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
-            }}
-            aria-label={t("docsActions")}
-            aria-haspopup="menu"
-            className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-          >
-            <Glyph name="plus" className="h-[13px] w-[13px]" />
-          </button>
-          <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
-        </span>
-      </div>
-      {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}
       <div
-        ref={pane}
-        onScroll={(e) => {
-          if (!hidden) scrolled.current = e.currentTarget.scrollTop;
-        }}
-        className="scroller fading min-h-0 flex-1 px-2.5 pb-4"
+        className={`flex min-h-0 flex-1 flex-col rounded-[10px] border bg-sheet transition-colors duration-150 ${
+          chosen.named === "docs" ? "border-hue-amber/40" : "border-hair"
+        }`}
       >
-        {nothing && (
-          <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
-        )}
-        <div className={nothing ? "hidden" : undefined}>
-          <Tree
-            papers={left}
-            reveal={revealing}
-            unfolded={Boolean(asked)}
-            open={chosen.doc}
-            here={here}
-            acting={acting}
-            onHere={onHere}
-            onMove={onMove}
-            onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
-            onFile={onFile}
-            onPage={onPage}
-            onFolderMenu={onFolderMenu}
-            onHereMenu={onHereMenu}
-            onDocMenu={onDocMenu}
-          />
+        <div className="flex items-center gap-2 border-b border-hair px-3.5 pt-2 pb-1.5">
+          {title}
+          <span className="ml-auto -mr-1.5 flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => (sifting ? close() : setSifting(true))}
+              aria-pressed={sifting}
+              aria-label={t("siftDocs")}
+              title={t("siftDocs")}
+              className={`grid size-6 place-items-center rounded-md hover:bg-hover hover:text-ink ${
+                sifting ? "bg-active text-ink" : "text-faint"
+              }`}
+            >
+              <Glyph name="filter" className="h-[13px] w-[13px]" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                const box = e.currentTarget.getBoundingClientRect();
+                onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
+              }}
+              aria-label={t("docsActions")}
+              aria-haspopup="menu"
+              className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+            >
+              <Glyph name="plus" className="h-[13px] w-[13px]" />
+            </button>
+            <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
+          </span>
+        </div>
+        {sifting && <Sift query={query} onQuery={setQuery} onClose={close} />}
+        <div
+          ref={pane}
+          onScroll={(e) => {
+            if (!hidden) scrolled.current = e.currentTarget.scrollTop;
+          }}
+          className="scroller fading min-h-0 flex-1 px-1 pt-1 pb-2"
+        >
+          {nothing && (
+            <p className="px-2.5 py-2 text-[12.5px] text-faint">{fill("siftNothing", asked)}</p>
+          )}
+          <div className={nothing ? "hidden" : undefined}>
+            <Tree
+              papers={left}
+              reveal={revealing}
+              unfolded={Boolean(asked)}
+              open={chosen.doc}
+              here={here}
+              acting={acting}
+              onHere={onHere}
+              onMove={onMove}
+              onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
+              onFile={onFile}
+              onPage={onPage}
+              onFolderMenu={onFolderMenu}
+              onHereMenu={onHereMenu}
+              onDocMenu={onDocMenu}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -199,7 +204,7 @@ function Sift({
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
-      className="mx-2.5 mb-1.5 flex h-[30px] shrink-0 items-center gap-2 rounded-md bg-hover px-2.5 text-faint focus-within:bg-active"
+      className="mx-1.5 mt-1.5 flex h-[30px] shrink-0 items-center gap-2 rounded-md bg-hover px-2.5 text-faint focus-within:bg-active"
     >
       <Glyph name="filter" className="h-[13px] w-[13px]" />
       <input
