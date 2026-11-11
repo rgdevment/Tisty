@@ -1,6 +1,7 @@
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings, Task } from "../core";
+import { fill } from "../locales";
 
 const ipc = vi.hoisted(() => ({ quiet: [] as string[], fails: false }));
 
@@ -9,7 +10,7 @@ vi.mock("../core", () => ({
     ipc.fails ? Promise.reject(new Error("no")) : Promise.resolve({ quiet: ipc.quiet }),
 }));
 
-import { Head, Paws, QUIET, switched, Thumb, TOLD, tell, useBeaver } from "../ui/Beaver";
+import { Head, Paws, QUIET, switched, TOLD, tell, useBeaver } from "../ui/Beaver";
 import Cheer from "../ui/Cheer";
 
 const task = { id: "01T", title: "Vacuna de Rina" } as Task;
@@ -65,22 +66,20 @@ describe("Tisto, the beaver that peeks in", () => {
     expect(heard).toEqual([false, true]);
   });
 
-  it("draws its head, its paws with three fingers each, and its thumb", () => {
+  it("draws its head and its paws with three fingers each", () => {
     const view = render(
       <>
         <Head className="one" />
         <Paws />
-        <Thumb className="two" />
       </>,
     );
     expect(view.container.querySelector("svg.one")).not.toBeNull();
     expect(view.container.querySelectorAll(".paws .paw")).toHaveLength(2);
     expect(view.container.querySelectorAll(".paw i")).toHaveLength(6);
-    expect(view.container.querySelector("svg.two")).not.toBeNull();
   });
 });
 
-describe("the thumbs up when a task is done", () => {
+describe("the notice when a task is done", () => {
   it("says the task is done and kept, undoes it, and leaves on its own", () => {
     const undone: string[] = [];
     let left = 0;
@@ -94,7 +93,8 @@ describe("the thumbs up when a task is done", () => {
       />,
     );
     expect(view.container.textContent).toContain("Vacuna de Rina");
-    view.getByRole("button").click();
+    expect(view.container.querySelector("svg")).toBeNull();
+    view.getByRole("button", { name: fill("cheerUndoWhich", "Vacuna de Rina") }).click();
     expect(undone).toEqual(["01T"]);
     act(() => {
       vi.advanceTimersByTime(5100);

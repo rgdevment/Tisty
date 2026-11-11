@@ -204,33 +204,3 @@ export function Paws({ className }: { readonly className?: string }) {
     </span>
   );
 }
-
-export function Thumb({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 48 60" aria-hidden="true">
-      <rect
-        x="6"
-        y="2"
-        width="15"
-        height="30"
-        rx="7.5"
-        fill="#C8902F"
-        stroke="#4A4640"
-        strokeWidth="3"
-      />
-      <path
-        d="M4 28 Q4 22 12 22 H38 Q45 22 45 30 V48 Q45 57 36 57 H14 Q4 57 4 47 Z"
-        fill="#C8902F"
-        stroke="#4A4640"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M22 34 H40 M22 42 H40 M22 50 H38"
-        stroke="#4A4640"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}

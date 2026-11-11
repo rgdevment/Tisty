@@ -1549,27 +1549,6 @@ label[for] {
   width: 360px;
   transform: translateX(-50%);
 }
-.cheer > .cheer-head {
-  position: absolute;
-  bottom: calc(100% - 26px);
-  left: 60px;
-  width: 112px;
-  height: auto;
-  pointer-events: none;
-}
-.cheer > .cheer-thumb {
-  position: absolute;
-  z-index: 2;
-  bottom: calc(100% - 6px);
-  left: 14px;
-  width: 40px;
-  height: auto;
-  pointer-events: none;
-}
-.cheer > output {
-  position: relative;
-  z-index: 1;
-}
 
 html[data-previewing] [data-chrome] {
   display: none;

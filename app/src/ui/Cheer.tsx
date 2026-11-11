@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Task } from "../core";
 import { fill, t } from "../locales";
-import { Head, Thumb } from "./Beaver";
 
 interface Props {
   readonly task: Task;
@@ -21,8 +20,6 @@ export default function Cheer({ task, onUndo, onDismiss }: Props) {
 
   return (
     <div className="cheer">
-      <Head className="cheer-head" />
-      <Thumb className="cheer-thumb" />
       <output className="flex items-center gap-3 rounded-[10px] border border-line bg-bg p-[12px_14px] shadow-lift">
         <span
           aria-hidden="true"
@@ -32,12 +29,14 @@ export default function Cheer({ task, onUndo, onDismiss }: Props) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold">{t("done")}</span>
-          <span className="block truncate text-[11.5px] text-faint">
+          <span title={task.title} className="block truncate text-[11.5px] text-faint">
             {fill("cheerKept", task.title)}
           </span>
         </span>
         <button
           type="button"
+          aria-label={fill("cheerUndoWhich", task.title)}
+          title={fill("cheerUndoWhich", task.title)}
           onClick={onUndo}
           className="rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
         >

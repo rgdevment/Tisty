@@ -21,7 +21,6 @@ import { saidPlainly } from "./refusal";
 import { asksShape, type ShapeChoice } from "./reshaping";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
-import { useBeaver } from "./ui/Beaver";
 import type { Asked, MenuOpen, Shaping, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
@@ -48,7 +47,6 @@ export function useWindow() {
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
   const [cheered, setCheered] = useState<Task | undefined>();
-  const peeks = useBeaver();
 
   const [dealing, setDealing] = useState(false);
 
@@ -139,7 +137,7 @@ export function useWindow() {
     say,
     setError,
     lookForAStar: () => lookForAStar(),
-    cheer: peeks ? setCheered : undefined,
+    cheer: setCheered,
   });
   const { reach, further } = useReach(chosen);
   const { data, load, latest, settling, stuck, setStuck } = useSnapshot({
