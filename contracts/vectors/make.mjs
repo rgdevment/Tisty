@@ -512,6 +512,7 @@ const languagesShown = [
     shown: [anasEnglish],
   }),
 ];
+const weighedEditors = [editorsSaid[0].entry, editorsSaid[1].entry];
 const swapManifest = (bytes, change, signed) => {
   const size = bytes.readUInt32BE(4);
   const manifest = JSON.parse(bytes.subarray(8, 8 + size).toString());
@@ -691,6 +692,28 @@ const said = {
     owner_revoked: { envelope: asHex(anas), served: { received: AFTER, revocations: [await revocation(root, machine, AT)] }, verdict: "doubtful" },
   },
   editors: editorsSaid,
+  editors_weighed: {
+    id: EDITED,
+    editors: weighedEditors,
+    cases: [
+      { says: "no revocation names their machines", served: { received: AFTER }, kept: weighedEditors },
+      {
+        says: "a machine its root revoked before this version arrived",
+        served: { received: AFTER, revocations: [await revocation(ANA.root, ANA.machine, AT)] },
+        kept: [weighedEditors[0]],
+      },
+      {
+        says: "a machine its root revoked after this version arrived, which counts as retired",
+        served: { received: BEFORE, revocations: [await revocation(ANA.root, ANA.machine, AT)] },
+        kept: weighedEditors,
+      },
+      {
+        says: "a revocation by another root, which counts for nothing",
+        served: { received: AFTER, revocations: [await revocation(ZORRO.root, ANA.machine, AT)] },
+        kept: weighedEditors,
+      },
+    ],
+  },
   editors_in_a_document: {
     id: EDITED,
     editors: [editorsSaid[0].entry, editorsSaid[2].entry, editorsSaid[3].entry, editorsSaid[1].entry],

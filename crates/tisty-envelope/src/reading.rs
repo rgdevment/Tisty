@@ -674,9 +674,34 @@ fn editors_kept(mut held: Value, said: Option<Value>, sealed: bool) -> Value {
     held
 }
 
+// A name stands while its root still answered for the machine that signed it when this version arrived, as the version's own signature does.
+fn editors_weighed(mut document: Value, served: &Served) -> Value {
+    let Some(editors) = document["editors"].as_array().cloned() else {
+        return document;
+    };
+    let standing = |one: &Value| {
+        let (Some(id), Some(name)) = (one["in"].as_str(), one["name"].as_str()) else {
+            return false;
+        };
+        let said = tisty_share_proto::editing::said(id, one["owned"] == true, name);
+        matches!(
+            verdict_on(one, "editor", &said, served),
+            Verdict::Holds | Verdict::Retired
+        )
+    };
+    let kept: Vec<Value> = editors.into_iter().filter(standing).collect();
+    if let Some(fields) = document.as_object_mut() {
+        match kept.is_empty() {
+            true => fields.remove("editors"),
+            false => fields.insert("editors".to_owned(), Value::Array(kept)),
+        };
+    }
+    document
+}
+
 pub fn reading(bytes: &[u8], opening: &Opening, served: &Served) -> Result<Reading, Unopened> {
     let main = opened(bytes, opening, served)?;
-    let document = told_apart(bytes, document_in(&main))?;
+    let document = editors_weighed(told_apart(bytes, document_in(&main))?, served);
     let Opened {
         parts,
         verdict,

@@ -444,3 +444,17 @@ fn a_document_keeps_only_the_editors_the_contract_says_it_keeps() {
     let kept = editors_kept(held, Some(said["editors"].clone()), true);
     assert_eq!(kept["editors"], said["kept"]);
 }
+
+#[test]
+fn an_editor_s_machine_is_weighed_against_what_was_revoked_as_the_contract_says() {
+    let all: Value = serde_json::from_str(VECTORS).unwrap();
+    let said = &all["editors_weighed"];
+    for one in said["cases"].as_array().unwrap() {
+        let served: Served = serde_json::from_value(one["served"].clone()).unwrap();
+        let document = serde_json::json!({ "id": said["id"], "editors": said["editors"] });
+
+        let weighed = super::editors_weighed(document, &served);
+
+        assert_eq!(weighed["editors"], one["kept"], "{}", one["says"]);
+    }
+}

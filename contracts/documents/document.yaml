@@ -23,7 +23,7 @@ fields:
   sheet: { type: sheet, says: "How it is laid on paper." }
   signed_as: { type: name, says: "The name whoever shares it chose for themselves, their alias unless they chose otherwise. Where it is sealed, only a reader with the key sees it; what is public shows it to anyone. Never a proof." }
   owner_name: { type: name, says: "The name its owner chose for themselves, which an editor carries as it arrived: the manifest's name_tag answers for it. Only what is sealed has one, and only a reader with the key sees it." }
-  editors: { type: list, of: editor, at_most: 64, says: "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader keeps only those whose signature holds and whose in is this document's id, and leaves the rest aside without refusing the document." }
+  editors: { type: list, of: editor, at_most: 64, says: "Who signed its versions, in the order they first did, each under the name they chose. Only what is sealed has them, and only a reader with the key sees them. A reader keeps only those whose signature holds and whose in is this document's id, weighing each machine against the served revocations as it weighs the version's own: holds and retired stay, doubtful goes. It leaves the rest aside without refusing the document." }
   made: { type: time }
   wrote: { type: time }
   body: { type: text, required: true, bytes_at_most: 512000, says: "Its words as they travel, in the Tisty language, at most 500 KiB, so another Tisty can take them in. HTML typed by hand goes as the HTML does: no comments, and what it names in place or gone." }
