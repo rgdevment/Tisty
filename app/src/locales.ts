@@ -699,6 +699,10 @@ const en = {
   folioFullOf: "You already share {name} documents at a time. Stop sharing one to share this one.",
   folioLanguagesFull:
     "Folio already holds as many languages of this document as it takes. Stop sharing one of them to add another.",
+  folioReviewed:
+    "Folio did not take what you decided about this document's languages. Sync it again.",
+  folioLanguageChanged:
+    "This language changed since you looked at it. Look at it again before you decide.",
   folioLanguagesFullOf:
     "This document already has {name} languages shared. Stop sharing one of them to add another.",
   folioTooBig: "This document is larger than Folio takes.",
@@ -3763,6 +3767,10 @@ const es: Catalog = {
     "Ya compartes {name} documentos a la vez. Deja de compartir uno para compartir este.",
   folioLanguagesFull:
     "Folio ya tiene todos los idiomas de este documento que acepta. Deja de compartir uno para agregar otro.",
+  folioReviewed:
+    "Folio no aceptó lo que decidiste sobre los idiomas de este documento. Vuelve a sincronizarlo.",
+  folioLanguageChanged:
+    "Este idioma cambió desde que lo miraste. Míralo de nuevo antes de decidir.",
   folioLanguagesFullOf:
     "Este documento ya tiene {name} idiomas compartidos. Deja de compartir uno para agregar otro.",
   folioTooBig: "Este documento es más grande de lo que acepta Folio.",
