@@ -391,6 +391,11 @@ cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
   `find`, `catch_up`, `lists`, `tags`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
+Además de las herramientas, ofrece cuatro pedidos listos que tu asistente
+muestra como comandos (`pick_up`, `plan_task`, `solved_before`,
+`keep_decision`), y tus documentos para mencionar con `@`, uno largo como su
+índice.
+
 ## Por qué lo hice
 
 Organizar tu día es más difícil de lo que una lista aparenta. Hay más piezas de
