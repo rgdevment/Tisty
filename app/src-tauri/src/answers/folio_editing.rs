@@ -7,7 +7,7 @@ use tisty_core::event::Signature;
 use tisty_envelope::sealing::{link_key, permit_shown};
 use tisty_sharing::{Remembered, Told};
 
-use super::folio::{Card, ToFolio, apart, card_of, keeping, kept_on, remembered_of};
+use super::folio::{Card, ToFolio, apart, full_card, keeping, kept_on, remembered_of};
 use super::folio_standing::{imitates_maker, print_of};
 use super::folio_sync::{Synced, doc_share_sync};
 use crate::{Answer, Refusal, Session, held};
@@ -126,7 +126,8 @@ pub async fn doc_share_sign_as(
         was.signed_as = Some(name);
         kept_on(&mut session, &[(file, was.clone())])?;
     }
-    card_of(&host, &was, &session.state.signed, maker.as_ref())
+    let shelf = tisty_sharing::remembered(&session.state);
+    full_card(&host, shelf, &was, &session.state.signed, maker.as_ref())
         .ok_or_else(|| Refusal::of("folioGarbled"))
 }
 
