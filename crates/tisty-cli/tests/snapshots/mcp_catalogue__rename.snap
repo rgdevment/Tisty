@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Retitle a task an agent filed, when the title no longer says what it is. The person's own tasks are refused: offer the title in a `note`. Steps are `reword_step`, the page `describe`.",
+  "description": "Retitle a task an agent filed, when the title no longer says what it is. The person's own tasks are refused: offer the title in a `note`. On a task you may work on, steps are `reword_step` and the page `describe`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
