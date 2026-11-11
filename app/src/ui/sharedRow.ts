@@ -3,6 +3,7 @@ import type { Panel } from "tisty-editor/read";
 import { copied } from "../core";
 import { fill, locale, t } from "../locales";
 import {
+  type LanguageWord,
   type Named,
   type ShareCard,
   type ShareStatus,
@@ -17,6 +18,7 @@ import {
   shareWaiting,
   toldPlainly,
 } from "../sharing";
+import { tongueName } from "../tongues";
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
@@ -177,11 +179,14 @@ const syncNow = (h: Hands) => {
     });
 };
 
+const syncOff = (h: Hands) =>
+  Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0);
+
 const syncAct = (h: Hands): Act => ({
   key: "sync",
   label: syncLabel(h),
   main: true,
-  off: Boolean((h.status?.blocked && !h.status.mayCorrect) || h.status?.paused || h.minutes > 0),
+  off: syncOff(h),
   onPick: () => syncNow(h),
 });
 
@@ -302,6 +307,30 @@ const printsOf = ({ owner, signer, editors }: ShareCard) => {
   };
 };
 
+const theirs = (card: ShareCard) => card.languages.filter((one) => !one.mine && one.lang !== null);
+
+// Someone who edits added these, and readers see one only once its owner keeps it (166).
+const languagesSaid = (card: ShareCard) =>
+  card.languages.map((one) => {
+    if (one.mine)
+      return t(
+        one.word === "kept"
+          ? "shareOwnerKept"
+          : one.word === "leftOut"
+            ? "shareOwnerLeftOut"
+            : "shareOwnerWaits",
+      );
+    const name = tongueName(one.lang ?? "");
+    return fill(one.word === "kept" ? "shareLanguageKept" : "shareLanguageWaits", name);
+  });
+
+const reviewActs = (h: Hands, onReview: (one: LanguageWord) => void): Act[] =>
+  theirs(h.card).map((one) => ({
+    key: `review-${one.document}`,
+    label: fill("shareLanguageReview", tongueName(one.lang ?? "")),
+    onPick: () => onReview(one),
+  }));
+
 const leavingActs = (h: Hands): Act[] => {
   const other = h.card.signsAs?.other;
   const signing: Act[] = other
@@ -338,6 +367,7 @@ export const useSharedRow = (
   const [renewing, setRenewing] = useState(false);
   const [waitUntil, setWaitUntil] = useState(0);
   const [pending, setPending] = useState(false);
+  const [reviewing, setReviewing] = useState<LanguageWord | null>(null);
   const pendingNow = useRef(pending);
   pendingNow.current = pending;
   const [now, setNow] = useState(() => Date.now());
@@ -370,6 +400,7 @@ export const useSharedRow = (
     setStatus(null);
     setStopping(false);
     setRenewing(false);
+    setReviewing(null);
     setAccepted(undefined);
     setWaitUntil(0);
     setPending(false);
@@ -488,7 +519,7 @@ export const useSharedRow = (
         label: t("sharedLabel"),
         mark: t("sharedBeta"),
         gist: t("sharedHeldGist"),
-        said: [t("sharedHeldWhy")],
+        said: [t("sharedHeldWhy"), ...languagesSaid(hands.card)],
         links: linksOf(hands.card, hands.status),
       };
     const rest = hands.card.taken ? leavingActs(hands) : managingActs(hands);
@@ -500,6 +531,7 @@ export const useSharedRow = (
       ...gistOf(hands.card, hands.status),
       said: [
         ...whoSaid(hands.card),
+        ...languagesSaid(hands.card),
         ...saidOf(hands.status, told, stopping, renewing),
         ...(hands.minutes > 0 && hands.pending ? [t("shareSyncPending")] : []),
       ],
@@ -509,7 +541,7 @@ export const useSharedRow = (
         ? stoppingActs(hands)
         : renewing
           ? renewingActs(hands)
-          : [syncAct(hands), ...rest],
+          : [syncAct(hands), ...reviewActs(hands, setReviewing), ...rest],
     };
   }, [doc, told, stopping, renewing, hands, onKeep]);
 
@@ -517,6 +549,18 @@ export const useSharedRow = (
     panel,
     asking,
     termsOnly,
+    reviewing,
+    onReviewClosed: () => setReviewing(null),
+    // The owner's word goes up with the anchor's next version, so it is sent as soon as Sync is free to go.
+    onReviewed: () => {
+      setReviewing(null);
+      if (!doc || !hands) return;
+      void shareCard(doc)
+        .then((now) => now && setCard(now))
+        .catch(() => {});
+      if (syncOff(hands)) setTold(t("shareReviewedWaits"));
+      else syncNow(hands);
+    },
     onShared: (now: ShareCard) => setCard(now),
     onTermsAccepted: () => {
       setAsking(false);

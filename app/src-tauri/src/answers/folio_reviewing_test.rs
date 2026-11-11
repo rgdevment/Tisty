@@ -7,7 +7,7 @@ use tisty_share_proto::identity::{Certificate, Root, ShareKey};
 use tisty_sharing::Remembered;
 
 use super::{
-    Decided, as_shown, foreign_entry, named_here, pictures_of, proposals_of, reviewed_now,
+    Decided, as_shown, foreign_entry, named_here, pictures_kept, proposals_of, reviewed_now,
 };
 
 fn owners_machine(root: u8, machine: u8) -> (ShareKey, Certificate) {
@@ -236,12 +236,110 @@ fn what_is_kept_is_the_version_shown_and_one_that_changed_is_shown_again() {
 #[test]
 fn the_pictures_go_with_the_words_shown() {
     let opened = opened_with(
-        serde_json::json!({ "pictures": [{ "at": 0, "name": "a", "kind": "png" }] }),
+        serde_json::json!({ "pictures": [{ "at": 0, "name": "a", "kind": "image/jpeg" }] }),
         Some("P"),
     );
+    let cache = tempfile::tempdir().unwrap();
+    let folder = super::folder(cache.path());
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("left.png"), b"old").unwrap();
 
-    let pictures = pictures_of(&opened);
+    let pictures = pictures_kept(&opened, &folder).unwrap();
 
-    assert_eq!(pictures.len(), 1);
-    assert_eq!(serde_json::to_value(&pictures[0]).unwrap()["data"], "AQID");
+    let path = serde_json::to_value(&pictures[0]).unwrap()["path"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(std::fs::read(&path).unwrap(), [1, 2, 3]);
+    assert!(path.ends_with("0.jpg"));
+    assert!(!folder.join("left.png").exists());
+}
+
+fn shelf_of(entries: Vec<Remembered>) -> std::collections::BTreeMap<String, Remembered> {
+    entries
+        .into_iter()
+        .map(|one| (format!("{}.md", one.id), one))
+        .collect()
+}
+
+fn words_said(words: &[super::LanguageWord]) -> Vec<(String, String, bool)> {
+    let said = serde_json::to_value(words).unwrap();
+    said.as_array()
+        .unwrap()
+        .iter()
+        .map(|one| {
+            (
+                one["document"].as_str().unwrap().to_owned(),
+                one["word"].as_str().unwrap().to_owned(),
+                one["mine"].as_bool().unwrap(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn the_owner_s_card_names_the_languages_others_added_with_its_word() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let own_french = Remembered {
+        id: "marioFr1".to_owned(),
+        ..anchor()
+    };
+    let was = anchor();
+
+    let before = super::words_on_card(&shelf_of(vec![was.clone(), own_french.clone()]), &was);
+    let kept = reviewed_now(&signer, &was, "anaEngl1", Some(&read_as_shown()), 1).unwrap();
+    let after = super::words_on_card(&shelf_of(vec![kept.clone(), own_french]), &kept);
+
+    assert_eq!(
+        words_said(&before),
+        [("anaEngl1".to_owned(), "waiting".to_owned(), false)]
+    );
+    assert_eq!(
+        words_said(&after),
+        [("anaEngl1".to_owned(), "kept".to_owned(), false)]
+    );
+}
+
+#[test]
+fn someone_who_edits_hears_the_owner_s_word_on_the_language_they_added() {
+    let (key, certificate) = owners_machine(0x30, 0x31);
+    let signer = Signer {
+        key: &key,
+        certificate: &certificate,
+    };
+    let as_edited = |was: Remembered| Remembered {
+        admin_token: None,
+        edit_token: Some("token".to_owned()),
+        owner: Some(serde_json::json!({ "root": certificate.root }).to_string()),
+        ..was
+    };
+    let mine = Remembered {
+        id: "anaEngl1".to_owned(),
+        held_by: Some("anclaDoc".to_owned()),
+        carried: None,
+        ..anchor()
+    };
+    let word = |anchor: Remembered| {
+        let shelf = shelf_of(vec![as_edited(anchor), mine.clone()]);
+        words_said(&super::words_on_card(&shelf, &mine))
+    };
+    let kept = reviewed_now(&signer, &anchor(), "anaEngl1", Some(&read_as_shown()), 1).unwrap();
+    let left = reviewed_now(&signer, &kept, "anaEngl1", None, 1).unwrap();
+
+    assert_eq!(
+        word(anchor()),
+        [("anaEngl1".to_owned(), "waiting".to_owned(), true)]
+    );
+    assert_eq!(
+        word(kept),
+        [("anaEngl1".to_owned(), "kept".to_owned(), true)]
+    );
+    assert_eq!(
+        word(left),
+        [("anaEngl1".to_owned(), "leftOut".to_owned(), true)]
+    );
 }
