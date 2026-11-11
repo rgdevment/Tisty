@@ -4,8 +4,10 @@ use std::sync::Mutex;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
-use tisty_carrier::folio_reviewed;
+use tisty_carrier::folio_client;
+use tisty_carrier::folio_reviewed::{self, Copy, Printed};
 use tisty_contracts::Review;
+use tisty_core::merge::{self, Changed};
 use tisty_envelope::Translation;
 use tisty_envelope::reviews::{self, Joining, Read, Signer};
 use tisty_sharing::Remembered;
@@ -22,6 +24,8 @@ pub struct Proposal {
     lang: String,
     title: Option<String>,
     kept: bool,
+    #[serde(skip)]
+    print: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -41,6 +45,8 @@ pub struct Shown {
     body: String,
     pictures: Vec<ShownPicture>,
     print: String,
+    copied: bool,
+    changes: Option<Vec<Changed>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -48,6 +54,7 @@ pub struct Shown {
 pub enum Word {
     Waiting,
     Kept,
+    Changed,
     LeftOut,
 }
 
@@ -61,16 +68,27 @@ pub struct LanguageWord {
     mine: bool,
 }
 
-fn word_of(said: Option<bool>) -> Word {
+// Readers see only the version the owner kept, so one known here to differ waits for the owner again (166).
+fn changed_since(known: &Prints, document: &str, kept: Option<&str>) -> bool {
+    known
+        .get(document)
+        .is_some_and(|known| Some(known.print.as_str()) != kept)
+}
+
+type Prints = std::collections::BTreeMap<String, Printed>;
+
+fn word_of(known: &Prints, document: &str, said: Option<&Review>) -> Word {
     match said {
         None => Word::Waiting,
-        Some(true) => Word::Kept,
-        Some(false) => Word::LeftOut,
+        Some(one) if !one.kept => Word::LeftOut,
+        Some(one) if changed_since(known, document, one.print.as_deref()) => Word::Changed,
+        Some(_) => Word::Kept,
     }
 }
 
 // Someone who edits hears the owner's word on the language they added, from the reviews its anchor carries.
 fn owners_word_on_mine(
+    known: &Prints,
     shelf: &std::collections::BTreeMap<String, Remembered>,
     was: &Remembered,
 ) -> Option<LanguageWord> {
@@ -90,16 +108,22 @@ fn owners_word_on_mine(
         document: was.id.clone(),
         lang: None,
         title: None,
-        word: word_of(reviews::word_on(&joining, &reviews, &was.id)),
+        word: word_of(
+            known,
+            &was.id,
+            reviews::word_on(&joining, &reviews, &was.id).as_ref(),
+        ),
         mine: true,
     })
 }
 
 pub(super) fn words_on_card(
+    home: &Path,
     shelf: &std::collections::BTreeMap<String, Remembered>,
     was: &Remembered,
 ) -> Vec<LanguageWord> {
-    if let Some(mine) = owners_word_on_mine(shelf, was) {
+    let known = folio_reviewed::prints(home);
+    if let Some(mine) = owners_word_on_mine(&known, shelf, was) {
         return vec![mine];
     }
     if was.admin_token.is_none() || was.link_key.is_none() {
@@ -108,10 +132,14 @@ pub(super) fn words_on_card(
     proposals_of(was, &owned_ids(shelf))
         .into_iter()
         .map(|one| LanguageWord {
+            word: match one.kept {
+                false => Word::Waiting,
+                true if changed_since(&known, &one.document, one.print.as_deref()) => Word::Changed,
+                true => Word::Kept,
+            },
             document: one.document,
             lang: Some(one.lang),
             title: one.title,
-            word: if one.kept { Word::Kept } else { Word::Waiting },
             mine: false,
         })
         .collect()
@@ -125,26 +153,138 @@ fn owned(session: &Session, id: &str) -> Answer<(String, Remembered)> {
     Ok((file, was))
 }
 
+fn latest_word<'a>(was: &Remembered, reviews: &'a [Review], document: &str) -> Option<&'a Review> {
+    let of = reviews::of_language(was.link_key.as_deref().unwrap_or_default(), document)?;
+    reviews
+        .iter()
+        .filter(|review| review.of == of)
+        .max_by_key(|review| review.seq)
+}
+
+fn kept_print(was: &Remembered, reviews: &[Review], document: &str) -> Option<String> {
+    latest_word(was, reviews, document)
+        .filter(|review| review.kept)
+        .and_then(|review| review.print.clone())
+}
+
 pub(super) fn proposals_of(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Proposal> {
-    let key = was.link_key.as_deref().unwrap_or_default();
     let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
     carried_map(was)
         .into_iter()
         .filter(|one| !ours.contains(one.document.as_str()))
-        .map(|one| {
-            let of = reviews::of_language(key, &one.document);
-            let latest = reviews
-                .iter()
-                .filter(|review| Some(&review.of) == of.as_ref())
-                .max_by_key(|review| review.seq);
-            Proposal {
-                kept: latest.is_some_and(|review| review.kept),
-                document: one.document,
-                lang: one.lang,
-                title: one.title,
-            }
+        .map(|one| Proposal {
+            kept: latest_word(was, &reviews, &one.document).is_some_and(|review| review.kept),
+            print: kept_print(was, &reviews, &one.document),
+            document: one.document,
+            lang: one.lang,
+            title: one.title,
         })
         .collect()
+}
+
+fn kept_entries(was: &Remembered, ours: &BTreeSet<&str>) -> Vec<Translation> {
+    let kept: BTreeSet<String> = proposals_of(was, ours)
+        .into_iter()
+        .filter(|one| one.kept)
+        .map(|one| one.document)
+        .collect();
+    carried_map(was)
+        .into_iter()
+        .filter(|one| kept.contains(&one.document) && one.key.is_some())
+        .collect()
+}
+
+// Asking after a version Folio already showed here would only bring the same print back.
+pub(super) fn looked_again(
+    door: &dyn folio_client::Door,
+    home: &Path,
+    entry: &Translation,
+) -> bool {
+    let Ok(latest) = folio_client::latest(door, &entry.document) else {
+        return false;
+    };
+    let was = folio_reviewed::printed(home, &entry.document);
+    if was
+        .as_ref()
+        .is_some_and(|one| one.version >= latest.version)
+    {
+        return false;
+    }
+    let key = entry.key.as_deref().unwrap_or_default();
+    let Some((version, print)) = opened_printed(door, &entry.document, key)
+        .ok()
+        .and_then(|opened| Some((opened.version, opened.print?)))
+    else {
+        return false;
+    };
+    let changed = was.is_none_or(|one| one.print != print);
+    folio_reviewed::print_known(home, &entry.document, Printed { version, print });
+    changed
+}
+
+#[tauri::command]
+pub async fn doc_languages_looked(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<bool> {
+    let (home, anchor, kept) = {
+        let session = held(&session);
+        let (_, was) = owned(&session, &id)?;
+        let shelf = tisty_sharing::remembered(&session.state);
+        let kept = kept_entries(&was, &owned_ids(shelf));
+        (session.paths.private(), was.id, kept)
+    };
+    let now = tisty_carrier::policy::now();
+    if kept.is_empty() || !folio_reviewed::prints_due(&home, &anchor, now) {
+        return Ok(false);
+    }
+    apart(move || {
+        let door = ToFolio::new(&home)?;
+        let looked: Vec<bool> = kept
+            .iter()
+            .map(|entry| looked_again(&door, &home, entry))
+            .collect();
+        folio_reviewed::prints_asked(&home, &anchor, now);
+        Ok(looked.contains(&true))
+    })
+    .await
+}
+
+fn told_whole(copy: &Copy) -> String {
+    match &copy.title {
+        Some(title) => format!("{title}\n\n{}", copy.body),
+        None => copy.body.clone(),
+    }
+}
+
+// What changed is told against the copy kept with the owner's word, and only while that word still stands.
+pub(super) fn copy_of_word(home: &Path, was: &Remembered, document: &str) -> Option<Copy> {
+    let reviews = tisty_sharing::reviews_carried(was.carried.as_deref());
+    let kept = kept_print(was, &reviews, document)?;
+    folio_reviewed::kept_copy(home, document).filter(|one| one.print == kept)
+}
+
+pub(super) fn changes_since(copy: Option<&Copy>, now: &Copy) -> Option<Vec<Changed>> {
+    let copy = copy.filter(|one| one.print != now.print)?;
+    merge::changed(&told_whole(copy), &told_whole(now))
+}
+
+// Someone else's words stay here only while the share that brought them lasts.
+pub(super) fn forgotten_here(home: &Path, gone: &[(String, Remembered)]) {
+    for (_, was) in gone {
+        folio_reviewed::forgotten(home, &was.id);
+        for one in carried_map(was) {
+            folio_reviewed::forgotten(home, &one.document);
+        }
+    }
+}
+
+fn copy_of(opened: &Opened) -> Copy {
+    Copy {
+        print: opened.print.clone().unwrap_or_default(),
+        title: text(opened, "title"),
+        body: text(opened, "body").unwrap_or_default(),
+    }
 }
 
 // The owner's word goes only on a language others added that the map names, never on one of its own.
@@ -248,21 +388,34 @@ pub async fn doc_language_shown(
             entry,
         )
     };
-    let anchor = was.id.clone();
+    let (anchor, private) = (was.id.clone(), home.clone());
     let (opened, pictures) = apart(move || {
-        let opened = its_language(home, anchor, entry)?;
+        let opened = its_language(private, anchor, entry)?;
         let pictures = pictures_kept(&opened, &folder(&cache))?;
         Ok((opened, pictures))
     })
     .await?;
+    let now = copy_of(&opened);
+    let version = opened.version;
+    folio_reviewed::print_known(
+        &home,
+        &document,
+        Printed {
+            version,
+            print: now.print.clone(),
+        },
+    );
+    let copy = copy_of_word(&home, &was, &document);
     Ok(Shown {
-        document,
+        copied: copy.is_some(),
+        changes: changes_since(copy.as_ref(), &now),
         lang: text(&opened, "lang"),
-        title: text(&opened, "title"),
+        title: now.title,
         by: text(&opened, "signed_as").or_else(|| text(&opened, "owner_name")),
-        body: text(&opened, "body").unwrap_or_default(),
+        body: now.body,
         pictures,
-        print: opened.print.clone().unwrap_or_default(),
+        print: now.print,
+        document,
     })
 }
 
@@ -345,13 +498,16 @@ pub async fn doc_language_reviewed(
         let (_, was, entry) = entry_here(&session, &id, &document)?;
         (session.paths.private(), was, entry)
     };
-    let decided = match keep {
-        false => None,
+    let (decided, copy) = match keep {
+        false => (None, None),
         true => {
             let key = entry.key.clone().unwrap_or_default();
             let (home, anchor) = (home.clone(), was.id.clone());
             let opened = apart(move || its_language(home, anchor, entry)).await?;
-            Some(as_shown(&opened, key, print.as_deref())?)
+            (
+                Some(as_shown(&opened, key, print.as_deref())?),
+                Some(copy_of(&opened)),
+            )
         }
     };
     let mut session = held(&session);
@@ -366,7 +522,12 @@ pub async fn doc_language_reviewed(
     };
     let at_least = folio_reviewed::seen(&home, &now.id) + 1;
     let after = reviewed_now(&signer, &now, &document, decided.as_ref(), at_least)?;
-    kept_on(&mut session, &[(file, after)])
+    kept_on(&mut session, &[(file, after)])?;
+    match copy {
+        Some(copy) => folio_reviewed::copy_kept(&home, &document, &copy),
+        None => folio_reviewed::copy_dropped(&home, &document),
+    }
+    Ok(())
 }
 
 #[cfg(test)]

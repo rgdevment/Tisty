@@ -122,6 +122,10 @@ pub fn reviews_hash(anchor: &str, reviews: &[Review]) -> Option<Vec<u8>> {
 
 /// Over what opens, so sealing it again under another head, number or key leaves it as it was.
 pub fn print_of(parts: &[Vec<u8>]) -> String {
+    print_over(parts.iter().map(Vec::as_slice))
+}
+
+pub(crate) fn print_over<'a>(parts: impl IntoIterator<Item = &'a [u8]>) -> String {
     let mut whole = Sha256::new();
     whole.update(b"tisty-language-print\0");
     for one in parts {
@@ -306,11 +310,11 @@ pub fn with_review(reviews: &[Review], review: Review) -> Vec<Review> {
     out
 }
 
-pub fn word_on(joining: &Joining, reviews: &[Review], document: &str) -> Option<bool> {
+pub fn word_on(joining: &Joining, reviews: &[Review], document: &str) -> Option<Review> {
     let anchor_key = decoded(joining.anchor_key)?;
     let of = URL_SAFE_NO_PAD.encode(reviewing::of(&anchor_key, document)?);
     let latest = latest(joining.anchor, joining.owner, &anchor_key, reviews);
-    latest.get(of.as_str()).map(|one| one.kept)
+    latest.get(of.as_str()).map(|one| (*one).clone())
 }
 
 pub fn of_language(anchor_key: &str, id: &str) -> Option<String> {

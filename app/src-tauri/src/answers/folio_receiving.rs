@@ -106,8 +106,9 @@ impl Opened {
     }
 }
 
+// A version another of one's machines sent tells this one too whether the owner's word still stands on it.
 pub(super) fn opened_from(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {
-    opened_with(door, id, key, true, |_| false)
+    opened_with(door, id, key, true, |_| true)
 }
 
 fn opened_head(door: &dyn Door, id: &str, key: &str) -> Answer<Opened> {

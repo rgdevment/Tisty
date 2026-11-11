@@ -751,6 +751,43 @@ fn a_picture_made_here_passes_what_the_seal_asks() {
     assert_eq!(main.parts[2], picture.bytes);
 }
 
+#[test]
+fn the_print_a_writer_tells_is_the_one_a_reader_takes_of_what_it_opened() {
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let picture = made(&tiny_png()).unwrap();
+    let said = document(json!({
+        "id": "x",
+        "pictures": [{ "at": 0, "name": "picture-0.png", "kind": picture.kind.said(), "size": picture.bytes.len(), "width": picture.width, "height": picture.height }],
+        "html": "<img src=\"tisty:picture/0\" alt=\"a\" width=\"4\" height=\"2\">",
+        "body": "a",
+    }));
+
+    let sealed = writer
+        .sealed(
+            said,
+            vec![picture.bytes],
+            vec![],
+            &sealing("x", Some(key_text(1))),
+        )
+        .unwrap();
+
+    let main = opened(&sealed.main, ("x", "main"), Some(&the_key(1))).unwrap();
+    assert_eq!(sealed.print, tisty_envelope::reviews::print_of(&main.parts));
+}
+
+fn tiny_png() -> Vec<u8> {
+    let source = image::RgbImage::from_pixel(4, 2, image::Rgb([1, 2, 3]));
+    let mut bytes = Vec::new();
+    image::DynamicImage::ImageRgb8(source)
+        .write_to(
+            &mut std::io::Cursor::new(&mut bytes),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+    bytes
+}
+
 fn tongue(id: &str, lang: &str, key: Option<u8>) -> Tongue {
     Tongue {
         document: document(

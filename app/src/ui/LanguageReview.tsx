@@ -15,6 +15,34 @@ interface Props {
 
 const codeOf = (problem: unknown) => (problem as { code?: string } | null)?.code;
 
+type Said = NonNullable<LanguageShown["changes"]>;
+
+const blockTone = "mt-2 block whitespace-pre-wrap text-[12.5px] leading-relaxed first:mt-0";
+
+const toneOf = {
+  same: "text-ink",
+  gone: "text-faint line-through decoration-faint",
+  came: "rounded-md bg-hue-green/10 px-1 text-ink no-underline",
+} as const;
+
+const tagOf = { same: "p", gone: "del", came: "ins" } as const;
+
+function Changes({ said }: { said: Said }) {
+  return (
+    <div>
+      {said.map((one, at) => {
+        const Tag = tagOf[one.kind];
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: what changed is told once and never moves
+          <Tag key={at} className={`${blockTone} ${toneOf[one.kind]}`}>
+            {one.text}
+          </Tag>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LanguageReview({ doc, word, onDone, onClose, onError }: Props) {
   const [shown, setShown] = useState<LanguageShown | null>(null);
   const [told, setTold] = useState<string | null>(null);
@@ -65,10 +93,20 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
   };
 
   const name = tongueName(word.lang ?? shown?.lang ?? "");
+  const changed = word.word === "changed";
   return (
-    <Modal title={fill("reviewTitle", name)} wide onClose={onClose}>
+    <Modal
+      title={fill(changed ? "reviewChangesTitle" : "reviewTitle", name)}
+      wide
+      onClose={onClose}
+    >
       {shown?.by && <p className="mt-2 text-[12.5px] text-soft">{fill("reviewBy", shown.by)}</p>}
-      <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("reviewWhy")}</p>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
+        {t(changed ? "reviewChangesWhy" : "reviewWhy")}
+      </p>
+      {changed && shown && !shown.copied && (
+        <p className="mt-2 text-[12.5px] text-faint">{t("reviewNoCopy")}</p>
+      )}
       {told && (
         <p role="status" className="mt-3 text-[12.5px] text-ink">
           {told}
@@ -78,10 +116,16 @@ export default function LanguageReview({ doc, word, onDone, onClose, onError }: 
         <p className="mt-4 text-[12.5px] text-faint">{t("reviewBringing")}</p>
       ) : (
         <div className="scroller mt-4 max-h-[50vh] rounded-[10px] border border-hair p-3">
-          {shown.title && <p className="text-[13px] font-medium text-ink">{shown.title}</p>}
-          <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">
-            {shown.body}
-          </p>
+          {shown.changes ? (
+            <Changes said={shown.changes} />
+          ) : (
+            <>
+              {shown.title && <p className="text-[13px] font-medium text-ink">{shown.title}</p>}
+              <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">
+                {shown.body}
+              </p>
+            </>
+          )}
           {shown.pictures.map((one) => (
             <img
               key={one.at}

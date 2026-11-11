@@ -115,7 +115,7 @@ pub async fn doc_share_sign_as(
 ) -> Answer<Card> {
     let home = held(&session).paths.private();
     let maker = folio_limits::maker(&home);
-    let host = super::folio::private_host_apart(home).await?;
+    let host = super::folio::private_host_apart(home.clone()).await?;
     let mut session = held(&session);
     let (file, mut was) = remembered_of(&session, &id)?;
     if signs_as(&was, &session.state.signed).is_none() {
@@ -127,8 +127,15 @@ pub async fn doc_share_sign_as(
         kept_on(&mut session, &[(file, was.clone())])?;
     }
     let shelf = tisty_sharing::remembered(&session.state);
-    full_card(&host, shelf, &was, &session.state.signed, maker.as_ref())
-        .ok_or_else(|| Refusal::of("folioGarbled"))
+    full_card(
+        &host,
+        &home,
+        shelf,
+        &was,
+        &session.state.signed,
+        maker.as_ref(),
+    )
+    .ok_or_else(|| Refusal::of("folioGarbled"))
 }
 
 // Said before sending and answered once a press: what follows the upload is no time to ask (140).

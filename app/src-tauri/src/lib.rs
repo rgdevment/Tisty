@@ -1287,6 +1287,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::folio_reviewing::doc_language_proposals,
         answers::folio_reviewing::doc_language_shown,
         answers::folio_reviewing::doc_language_reviewed,
+        answers::folio_reviewing::doc_languages_looked,
         answers::folio::doc_share_status,
         answers::folio::doc_share_pause,
         answers::folio::doc_share_stop,

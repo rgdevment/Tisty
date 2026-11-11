@@ -38,6 +38,7 @@ fn it_sums_up_all_its_envelopes_and_what_the_person_is_told() {
             files: files.map(|size| vec![0; size]),
             files_hash: None,
             editors: None,
+            print: String::new(),
         },
     };
     let said = summed_up(tisty_sharing::Sealed {

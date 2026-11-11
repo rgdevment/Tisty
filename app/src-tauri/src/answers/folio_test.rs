@@ -50,6 +50,7 @@ fn sealed_for(files: Option<Vec<u8>>) -> tisty_sharing::Sealed {
                 main: vec![1],
                 files_hash: files.as_ref().map(|_| "hash".to_owned()),
                 editors: None,
+                print: String::new(),
                 files,
             },
         }],
@@ -198,6 +199,7 @@ fn a_root_and_what_it_cites() -> (tisty_sharing::Sealed, BTreeMap<String, String
             files: None,
             files_hash: None,
             editors: None,
+            print: String::new(),
         },
     };
     let sealed = tisty_sharing::Sealed {
