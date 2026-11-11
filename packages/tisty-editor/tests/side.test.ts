@@ -474,6 +474,44 @@ describe("the panels beside a sheet", () => {
     expect(asked).toEqual(["a"]);
   });
 
+  it("lays four or more languages in rows of three, each named whole on hover", () => {
+    const side = host();
+    const tongue = (lang: string, label: string) => ({
+      key: lang,
+      label,
+      lang,
+      on: lang === "es",
+      onPick: () => {},
+    });
+    sided(side, say, [
+      { kind: "title", title: "Guía", tongues: [tongue("es", "Español"), tongue("en", "English")] },
+    ]);
+    expect(side.querySelector(".side-tongues")?.classList.contains("side-tongues-many")).toBe(
+      false,
+    );
+
+    sided(side, say, [
+      {
+        kind: "title",
+        title: "Guía",
+        tongues: [
+          tongue("es", "Español"),
+          tongue("en", "English"),
+          tongue("pt", "Português"),
+          tongue("fr", "Français"),
+        ],
+      },
+    ]);
+    const row = side.querySelector(".side-tongues");
+    expect(row?.classList.contains("side-tongues-many")).toBe(true);
+    expect(Array.from(row?.querySelectorAll("button") ?? [], (one) => one.title)).toEqual([
+      "Español",
+      "English",
+      "Português",
+      "Français",
+    ]);
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);

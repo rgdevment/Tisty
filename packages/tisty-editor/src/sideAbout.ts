@@ -12,6 +12,8 @@ const LEAF: Record<Paper, ReadWord> = {
   tabloid: "leafTabloid",
 };
 
+const IN_ONE_ROW = 3;
+
 const trailed = (page: Document, panel: Of<"title">) => {
   const line = made(page, "p", "side-under");
   if (panel.under) line.append(panel.under);
@@ -23,12 +25,14 @@ const trailed = (page: Document, panel: Of<"title">) => {
 };
 
 const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) => {
-  const row = made(page, "div", "side-leaves side-tongues");
+  const many = tongues.length > IN_ONE_ROW ? " side-tongues-many" : "";
+  const row = made(page, "div", `side-leaves side-tongues${many}`);
   row.setAttribute("role", "group");
   row.setAttribute("aria-label", say("tonguesOf"));
   for (const one of tongues) {
     const button = pressed(page, "side-leaf", one.label, () => !one.on && one.onPick());
     button.setAttribute("lang", one.lang);
+    button.title = one.label;
     button.setAttribute("aria-pressed", String(one.on));
     row.append(button);
   }

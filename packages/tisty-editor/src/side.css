@@ -114,6 +114,16 @@
   color: var(--tisty-soft);
   font-size: 12.5px;
 }
+.side-tongues .side-leaf {
+  overflow: hidden;
+  padding-inline: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-tongues-many {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .side-leaf:disabled {
   cursor: not-allowed;
   opacity: 0.5;
