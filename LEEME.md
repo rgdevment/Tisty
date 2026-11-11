@@ -113,8 +113,8 @@
 
 ---
 
-**Una lista de tareas olvida en cuanto marcas la casilla. Tu agente de IA olvida
-en cuanto termina la sesión.**
+**Una lista de tareas común olvida en cuanto marcas la casilla. Tu agente de IA
+olvida en cuanto termina la sesión.**
 
 Cada quien lo parcha a su manera: un `NOTES.md` escondido detrás de
 `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día.

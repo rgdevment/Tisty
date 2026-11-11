@@ -111,8 +111,8 @@
 
 ---
 
-**A task list forgets the moment you tick the box. Your AI agent forgets the
-moment the session ends.**
+**An ordinary task list forgets the moment you tick the box. Your AI agent
+forgets the moment the session ends.**
 
 Everybody patches that in their own way: a `NOTES.md` hidden behind
 `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date.
