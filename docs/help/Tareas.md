@@ -162,10 +162,6 @@ Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 ## Tisto
 
-Tisto es el castor de Tisty, el del lápiz detrás de la oreja. Te acompaña en tres lugares:
+Tisto es el castor de Tisty, el del lápiz detrás de la oreja. Cuando llevas unos cuantos caracteres en la barra para escribir una tarea, se asoma sobre ella y mira lo que escribes. Nunca tapa nada y se va solo. Para trabajar sin él, apaga **Que Tisto se asome** en Configuración → General.
 
-- **Al escribir una tarea:** cuando llevas unos cuantos caracteres en la barra, se asoma sobre ella y mira lo que escribes.
-- **En la captura rápida:** queda en una esquina de la ventanita.
-- **Al terminar una tarea:** levanta el pulgar junto a **Hecha**. Solo con tareas principales que terminas tú: no con sus partes, no con las que se repiten y no con lo que cierra un asistente.
-
-Nunca tapa nada y se va solo. Para trabajar sin él, apaga **Que Tisto se asome** en Configuración → General.
+Al terminar una tarea, un aviso dice que queda en el archivo y ofrece **Deshacer**, que la reabre. Sale con las tareas principales que terminas tú, no con sus partes ni con las que se repiten, solo para la última que terminaste, y aunque Tisto no se asome.
