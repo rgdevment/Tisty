@@ -2461,6 +2461,46 @@ fn one_call_says_where_things_stand_before_anything_is_asked_for() {
 }
 
 #[test]
+fn a_task_that_comes_back_every_month_reaches_the_agent_on_its_day() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let person = served.person();
+    let id = person.captures("write this month's news article");
+    person.dates(id, "today");
+    person.repeats(id, "every month");
+    person.captures("someday, a new logo");
+
+    let back = served.call("catch_up", serde_json::json!({}));
+    let kept = &back["result"]["structuredContent"];
+    let text = back["result"]["content"][0]["text"].as_str().unwrap();
+
+    assert_eq!(
+        kept["pressing"],
+        serde_json::json!([{
+            "id": id.to_string(),
+            "title": "write this month's news article",
+            "standing": "today"
+        }]),
+        "{kept}"
+    );
+    assert_eq!(kept["counts"]["today"], serde_json::json!(1), "{kept}");
+    assert!(
+        text.contains("Pressing, most first: \"write this month's news article\" in the inbox"),
+        "{text}"
+    );
+    assert!(text.contains("`read` one"), "{text}");
+
+    let cursor = kept["cursor"].as_str().unwrap();
+    let again = served.call("catch_up", serde_json::json!({ "since": cursor }));
+    assert!(
+        again["result"]["structuredContent"]
+            .get("pressing")
+            .is_none(),
+        "only a session's first look names what presses: {again}"
+    );
+}
+
+#[test]
 fn coming_back_with_the_cursor_brings_only_what_moved() {
     let served = Served::new();
     served.person().lets_the_agent_in();

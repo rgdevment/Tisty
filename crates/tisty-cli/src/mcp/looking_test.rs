@@ -64,26 +64,3 @@ fn what_find_read_and_catch_up_hand_over_carries_the_standing() {
         );
     }
 }
-
-#[test]
-fn catching_up_counts_what_asks_for_attention_today_even_when_it_is_none() {
-    let mut state = State::default();
-    for (task, _) in filed() {
-        state.tasks.insert(task.id, task);
-    }
-    let pressing = pressing(&state, today());
-
-    assert_eq!(
-        pressing,
-        vec![
-            ("overdue".to_string(), 1),
-            ("due_soon".to_string(), 1),
-            ("late".to_string(), 1)
-        ]
-    );
-    assert_eq!(pressed(&pressing), " (1 overdue, 1 due soon, 1 late)");
-    let quiet = super::pressing(&State::default(), today());
-    assert!(quiet.iter().all(|(_, many)| *many == 0), "{quiet:?}");
-    assert_eq!(quiet.len(), 3);
-    assert_eq!(pressed(&quiet), "");
-}

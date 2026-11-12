@@ -422,7 +422,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
-            "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what others moved since your last `catch_up`, and `last`, the open task you were on. Ask it first.",
+            "description": "Where things stand: lists, folders, top tags, counts, pressing tasks, newest documents, a `cursor`; what others moved since your last `catch_up`; `last`, the open task you were on. Ask it first.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`, to count from there instead: it only reads, and brings your own changes too" }

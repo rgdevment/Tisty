@@ -136,7 +136,7 @@ Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or n
 
 What an agent connected to Tisty does on a real piece of work:
 
-1. **It asks what moved** since its last session, and who moved it, instead of rereading everything.
+1. **It asks what moved** since its last session, and who moved it, instead of rereading everything. The same answer names the tasks that press, overdue first, so one that comes back every month reaches it on its day.
 2. **It opens the task it was on**, which Tisty names for it. *Done when* on its page says when it is finished, and the unticked steps say what is left.
 3. **It searches the archive before proposing anything.** If it was solved before, it starts from there.
 4. **It reads the module's document by its outline**, then only the section it needs, and keeps to the decisions and to what is out of scope — so it does not reopen settled debates or wander off.
