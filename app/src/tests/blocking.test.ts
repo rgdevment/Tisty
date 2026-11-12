@@ -1,9 +1,10 @@
-import { completionStatus, startCompletion } from "@codemirror/autocomplete";
+import { completionStatus, currentCompletions, startCompletion } from "@codemirror/autocomplete";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { aimed, caretAt, wrapped } from "tisty-editor/edit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { t } from "../locales";
 import { edited } from "../ui/hosting";
 
 const block = () => {
@@ -251,6 +252,81 @@ describe("writing a block in place", () => {
     pressEscape();
     expect(left).toEqual(["Esto es ==juan==  /"]);
     page.remove();
+  });
+
+  describe("Enter while a list is offered", () => {
+    const typing = (view: EditorView, text: string) => {
+      const at = view.state.doc.length;
+      view.dispatch({
+        changes: { from: at, insert: text },
+        selection: { anchor: at + text.length },
+        userEvent: "input.type",
+      });
+    };
+    const enter = (view: EditorView) =>
+      view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+      );
+    // A list just opened ignores Enter for a moment, so the clock is moved past it.
+    const offeredFor = async (view: EditorView) => {
+      await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
+      vi.setSystemTime(Date.now() + 1000);
+    };
+
+    beforeEach(() => vi.useFakeTimers({ toFake: ["Date"] }));
+    afterEach(() => vi.useRealTimers());
+
+    it("takes the / menu's choice, even pressed right after a letter, instead of starting a paragraph", async () => {
+      const { page, one } = block();
+      const editing = edited(
+        one,
+        "Leche",
+        () => {},
+        () => {},
+      );
+      typing(editing.view, " /quo");
+      await offeredFor(editing.view);
+      typing(editing.view, "t");
+      enter(editing.view);
+      expect(editing.view.state.doc.toString()).toBe("Leche\n\n> ");
+      editing.leave();
+      page.remove();
+    });
+
+    it("keeps a tag as typed and starts the next paragraph, its list open or not", async () => {
+      const { page, one } = block();
+      const editing = edited(
+        one,
+        "Comprar pan",
+        () => {},
+        () => {},
+        () => ({ kinds: [], tags: ["casa"], ask: vi.fn() }),
+      );
+      typing(editing.view, " #ca");
+      await offeredFor(editing.view);
+      enter(editing.view);
+      expect(editing.view.state.doc.toString()).toBe("Comprar pan #ca\n\n");
+      editing.leave();
+      page.remove();
+    });
+
+    it("offers a template's label only what fits its one line, and takes it without leaving", async () => {
+      const { page, one } = block();
+      const left = vi.fn();
+      const editing = edited(one, "## Notas", () => {}, left, undefined, true);
+      typing(editing.view, " /");
+      await offeredFor(editing.view);
+      const labels = currentCompletions(editing.view.state).map((each) => each.label);
+      expect(labels).toContain(t("bold"));
+      expect(labels).not.toContain(t("table"));
+      expect(labels).not.toContain(t("bigTitle"));
+      typing(editing.view, "bold");
+      enter(editing.view);
+      expect(left).not.toHaveBeenCalled();
+      expect(editing.view.state.doc.toString()).not.toContain("/");
+      editing.leave();
+      page.remove();
+    });
   });
 
   it("puts the drawn block back once it is left, so nothing is missing until the page is drawn again", () => {

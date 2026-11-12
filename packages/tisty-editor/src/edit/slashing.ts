@@ -1,9 +1,11 @@
 import {
+  acceptCompletion,
   autocompletion,
   type Completion,
   type CompletionContext,
   type CompletionResult,
   completionStatus,
+  selectedCompletion,
   startCompletion,
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
@@ -413,8 +415,11 @@ const askedHere = (context: CompletionContext): { from: number; word: number } |
   return { from: slash, word: slash + 1 };
 };
 
+// A label is one line, so what starts a line or a block of its own is not offered there.
+const inLine = (how: Put) => "wrap" in how || "inline" in how || ("ask" in how && !how.block);
+
 export const offered =
-  (asking?: () => Asking | undefined) =>
+  (asking?: () => Asking | undefined, oneLine = false) =>
   (context: CompletionContext): CompletionResult | null => {
     const asked = askedHere(context);
     if (!asked || coded(context.state, asked.from)) return null;
@@ -423,6 +428,7 @@ export const offered =
     const { say } = context.state.facet(hosted);
     const shown = SLASHED.filter(
       (one) =>
+        (!oneLine || inLine(one.put)) &&
         (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
         (one.key !== "step" || (asking?.()?.steps?.().length ?? 0) > 0) &&
         (!word || matched(say(one.label), word) || matched(one.key, word)),
@@ -487,6 +493,7 @@ export const stepping =
     return { from: found.from, filter: false, options };
   };
 
+const TAG = "tag";
 const TAGGED = new RegExp(`${TAG_EDGE}#${TAG_WORD}$`, "u");
 const REST = new RegExp(`^${TAG_TAIL}*`, "u");
 
@@ -518,10 +525,14 @@ export const tagging =
       options: [context.state.sliceDoc(hash + 1, to), ...shown.slice(0, 30)].map((one) => ({
         label: `#${one}`,
         apply: `#${one}`,
-        type: "tag",
+        type: TAG,
       })),
     };
   };
+
+// A tag is kept as typed, so with its list open Enter still ends the line as it would without it.
+export const pickOnEnter = (view: EditorView): boolean =>
+  selectedCompletion(view.state)?.type !== TAG && acceptCompletion(view);
 
 const drawn = (completion: Completion, _: EditorState, view: EditorView): Node | null => {
   const path = completion.type ? markup(completion.type) : null;
@@ -628,9 +639,27 @@ const dressed = (say: Hosted["say"]) =>
     },
   });
 
-export const slashing = (say: Hosted["say"], asking?: () => Asking | undefined) => [
+type Source = (context: CompletionContext) => CompletionResult | null;
+
+// One source asked again at each letter, so nothing left thinking greys the menu out under an Enter.
+const together = (sources: readonly Source[]): Source => {
+  const asked: Source = (context) => {
+    for (const source of sources) {
+      const result = source(context);
+      if (result) return { ...result, update: (_, __, ___, next) => asked(next) };
+    }
+    return null;
+  };
+  return asked;
+};
+
+export const slashing = (
+  say: Hosted["say"],
+  asking?: () => Asking | undefined,
+  oneLine = false,
+) => [
   autocompletion({
-    override: [offered(asking), tagging(asking), stepping(asking)],
+    override: [together([offered(asking, oneLine), tagging(asking), stepping(asking)])],
     icons: false,
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,
