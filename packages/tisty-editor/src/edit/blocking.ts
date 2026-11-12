@@ -1,4 +1,4 @@
-import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
+import { acceptCompletion, closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import {
@@ -365,6 +365,8 @@ export const edited = (
                 return true;
               },
             },
+            // The menu in sight takes Enter before a paragraph, a list or a label can.
+            { key: "Enter", run: acceptCompletion },
             // A template's label or hint is one line, so Enter ends it instead of starting words below.
             {
               key: "Enter",

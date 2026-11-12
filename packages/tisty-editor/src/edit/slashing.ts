@@ -607,9 +607,23 @@ const dressed = (say: Hosted["say"]) =>
     },
   });
 
+type Source = (context: CompletionContext) => CompletionResult | null;
+
+// One source asked again at each letter, so nothing left thinking greys the menu out under an Enter.
+const together = (sources: readonly Source[]): Source => {
+  const asked: Source = (context) => {
+    for (const source of sources) {
+      const result = source(context);
+      if (result) return { ...result, update: (_, __, ___, next) => asked(next) };
+    }
+    return null;
+  };
+  return asked;
+};
+
 export const slashing = (say: Hosted["say"], asking?: () => Asking | undefined) => [
   autocompletion({
-    override: [offered(asking), tagging(asking), stepping(asking)],
+    override: [together([offered(asking), tagging(asking), stepping(asking)])],
     icons: false,
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,

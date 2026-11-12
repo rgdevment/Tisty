@@ -253,6 +253,35 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("takes the / menu's choice on Enter, even pressed right after a letter, instead of starting a paragraph", async () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Leche",
+      () => {},
+      () => {},
+    );
+    const view = editing.view;
+    const typing = (text: string) => {
+      const at = view.state.doc.length;
+      view.dispatch({
+        changes: { from: at, insert: text },
+        selection: { anchor: at + text.length },
+        userEvent: "input.type",
+      });
+    };
+    typing(" /quo");
+    await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
+    await new Promise((done) => setTimeout(done, 100));
+    typing("t");
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    );
+    expect(view.state.doc.toString()).toBe("Leche\n\n> ");
+    editing.leave();
+    page.remove();
+  });
+
   it("puts the drawn block back once it is left, so nothing is missing until the page is drawn again", () => {
     const { page, one } = block();
     const editing = edited(
