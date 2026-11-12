@@ -60,6 +60,46 @@ export const NAMED = [
 
 export type Shape = Bracketed | (typeof NAMED)[number];
 
+const POINTED: ReadonlySet<string> = new Set([
+  "decision",
+  "circle",
+  "double",
+  "sm-circ",
+  "fr-circ",
+  "f-circ",
+  "cross-circ",
+  "tri",
+  "flip-tri",
+  "hourglass",
+  "bang",
+  "cloud",
+  "bolt",
+  "database",
+  "h-cyl",
+  "lin-cyl",
+  "lean",
+  "leanLeft",
+  "trapezoid",
+  "trapezoidDown",
+  "curv-trap",
+  "doc",
+  "docs",
+  "lin-doc",
+  "tag-doc",
+  "flag",
+  "paper-tape",
+  "delay",
+  "notch-pent",
+  "bow-rect",
+  "brace",
+  "brace-r",
+  "braces",
+  "text",
+]);
+
+export const meetsInTheMiddle = (shape: string | null | undefined) =>
+  shape != null && POINTED.has(shape);
+
 // Each shape, then Mermaid's names for it, the written one first; Mermaid's `flag` is the paper tape.
 const NAMES = `
 process rect proc process rectangle
