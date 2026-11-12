@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 11, 2026
+**Last updated:** November 12, 2026
 
 ## The short version
 
@@ -540,11 +540,12 @@ happens on its own:
   computer's settings.
 - **What it may do is bounded.** File a task, add to the journal, say a task is
   done, yours too — which marks it for you and closes nothing — write a
-  document, write one again whole, keep a copy of a file you point it at, and
-  read what is already there. It may not close or delete anything, tick a step
-  of yours or finish a task of yours — save on one you opened to agents before
-  1.31.2 — reach a task you hid, or take files from
-  outside the folders where a download lands.
+  document, write one again whole, mark a document that had its day for you to
+  delete, archive or keep, put one away or bring it back when you ask, keep a
+  copy of a file you point it at, and read what is already there. It may not
+  close or delete anything, tick a step of yours or finish a task of yours —
+  save on one you opened to agents before 1.31.2 — reach a task you hid, or
+  take files from outside the folders where a download lands.
   Bringing a markdown file in copies what that file's text points at, and only
   what sits in that file's own folder or below it, so what leaves your disk is
   bounded by the file you named rather than by what its text asks for. To
