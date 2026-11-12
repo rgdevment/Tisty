@@ -238,6 +238,9 @@ waits in Brainstorm.
   dragging.
 - **Sorted out later** — each idea becomes a task or goes into the document it
   belongs to, and the Library counts the ones still waiting.
+- **With your AI agent too** — ask it to brainstorm with you and it jots the
+  ideas you keep; ask it to sort them and it groups them, turns one into a task
+  or files it in its document, and only marks the old ones, for you to delete.
 
 ![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/web/en-03-brainstorm.png)
 
@@ -413,9 +416,9 @@ document for you to delete, put away or keep. Each tool is described in
   `catch_up`
 - **How to work here** — `rules`, `language`, `help`
 
-Beside the tools, it offers five ready-made requests your assistant shows as
+Beside the tools, it offers seven ready-made requests your assistant shows as
 commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`), and your documents to mention with `@`, a long one as its
+`keep_decision`, `brainstorm`, `sort_ideas`), and your documents to mention with `@`, a long one as its
 outline.
 
 ## Why I Built This
@@ -476,6 +479,9 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
+  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  I -->|Turn into a task| T
+  I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
   P --> S{Too big for one go?}
   S -->|Yes| K[Split it into parts]

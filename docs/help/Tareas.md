@@ -21,6 +21,9 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
+  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  I -->|Convertir en tarea| T
+  I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   P --> S{¿Es mucho para una vez?}
   S -->|Sí| K[Divídela en partes]

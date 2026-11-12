@@ -242,6 +242,9 @@ espera en la Lluvia de ideas.
   las reordenas arrastrándolas.
 - **Las ordenas después** — cada idea se convierte en tarea o va al documento
   que le corresponde, y la biblioteca cuenta las que siguen esperando.
+- **También con tu agente de IA** — pídele una lluvia de ideas y anota las que
+  te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
+  anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
 ![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/web/es-03-ideas.png)
 
@@ -423,9 +426,9 @@ conserves. Cada herramienta se describe en
   `find`, `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
-Además de las herramientas, ofrece cinco pedidos listos que tu asistente
+Además de las herramientas, ofrece siete pedidos listos que tu asistente
 muestra como comandos (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`), y tus documentos para mencionar con `@`, uno largo como su
+`keep_decision`, `brainstorm`, `sort_ideas`), y tus documentos para mencionar con `@`, uno largo como su
 índice.
 
 ## Por qué lo hice
@@ -487,6 +490,9 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
+  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  I -->|Convertir en tarea| T
+  I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   P --> S{¿Es mucho para una vez?}
   S -->|Sí| K[Divídela en partes]

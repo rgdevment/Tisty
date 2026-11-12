@@ -25,6 +25,9 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
+  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  I -->|Turn into a task| T
+  I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
   P --> S{Too big for one go?}
   S -->|Yes| K[Split it into parts]
