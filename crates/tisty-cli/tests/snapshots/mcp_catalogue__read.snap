@@ -21,7 +21,7 @@ expression: tool
         "type": "array"
       },
       "notes": {
-        "description": "How many of the latest journal notes, up to 10 by default; 0 for all",
+        "description": "How many latest journal notes, each cut at 4000 chars; 0: all, whole",
         "type": "integer"
       },
       "task": {

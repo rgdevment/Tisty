@@ -108,7 +108,7 @@ pub(super) fn noted_on_page(
         return Ok(told(said, kept));
     }
     // A page that cannot take it right now leaves the note in the History, never nowhere.
-    let length = body.trim().chars().count();
+    let length = super::chores::note_length(body);
     if length > super::chores::NOTE_AT_MOST {
         return Err(Refused::Tool(format!(
             "{title:?}'s page could not be written just now, and at {length} characters this \
@@ -185,6 +185,7 @@ fn folding(
             after: tisty_core::assistant_notes::section(&after)
                 .unwrap_or_default()
                 .to_string(),
+            undone: false,
         },
         by: tisty_core::assistant_notes::signed(words),
     }))

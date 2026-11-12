@@ -803,7 +803,7 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
-    if let Some(why) = too_long_a_note(&state, task, &body) {
+    if let Some(why) = too_long_a_note(&state, task, &body, false) {
         return Err(why);
     }
 
@@ -822,23 +822,39 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 pub(super) const NOTE_AT_MOST: usize = 4_000;
 
+pub(super) fn note_length(body: &str) -> usize {
+    body.trim().chars().count()
+}
+
 // Every pickup reads the latest notes, so a note that runs long is paid for again and again.
-pub(super) fn too_long_a_note(state: &State, task: &Task, body: &str) -> Option<Refused> {
-    let length = body.chars().count();
+pub(super) fn too_long_a_note(
+    state: &State,
+    task: &Task,
+    body: &str,
+    rewording: bool,
+) -> Option<Refused> {
+    let length = note_length(body);
     if length <= NOTE_AT_MOST {
         return None;
     }
-    let instead = match state.attended_by_agents(task) {
-        true => {
-            "An analysis, a table or a draft goes on the task's page with `append_doc` and the \
-             task's id; then note one line saying it is there."
-        }
-        false => "Keep it in a document of its own with `write_doc`, and note one line naming it.",
+    let owner = tisty_core::task_docs::owner(state, task.id);
+    let locked = tisty_core::task_docs::of(state, owner).is_some_and(|page| state.shut(page.id));
+    let elsewhere = match state.attended_by_agents(task) && !locked {
+        true => "on the task's page with `append_doc` and the task's id",
+        false => "in a document of its own with `write_doc`",
     };
-    Some(Refused::Tool(format!(
-        "a journal note says what happened in a line or a paragraph, at most {NOTE_AT_MOST} \
-         characters, and this one has {length}. Nothing was noted. {instead}"
-    )))
+    Some(Refused::Tool(match rewording {
+        false => format!(
+            "a journal note says what happened in a line or a paragraph, at most {NOTE_AT_MOST} \
+             characters, and this one has {length}. Nothing was noted. Put an analysis, a table \
+             or a draft {elsewhere}, then note one line saying where it is."
+        ),
+        true => format!(
+            "a rewritten note may grow only up to {NOTE_AT_MOST} characters, and this one would \
+             have {length}. The note was left as it was. Shorten it, or put the long part \
+             {elsewhere} and reword the note to one line saying where it is."
+        ),
+    }))
 }
 
 pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {

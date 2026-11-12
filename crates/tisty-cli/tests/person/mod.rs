@@ -311,6 +311,24 @@ impl Person {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }
 
+    pub fn locks_doc(&self, file: &str) {
+        let id = self
+            .state()
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .unwrap()
+            .id;
+        self.wrote(vec![Op::DocLock { id }]);
+    }
+
+    // A folder where the file was is a disk that will not take the page, whatever the platform.
+    pub fn leaves_doc_unwritable(&self, file: &str) {
+        let at = tisty_core::docs::resolve(&self.paths.docs(), file).unwrap();
+        std::fs::remove_file(&at).unwrap();
+        std::fs::create_dir(&at).unwrap();
+    }
+
     pub fn captures_on_a_machine_not_synced_yet(&self, text: &str, aside: &Path) -> TaskId {
         let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
         let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))

@@ -246,8 +246,8 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
         )));
     };
     let (entry, was) = (note.id, note.body.clone());
-    if body.chars().count() > was.chars().count()
-        && let Some(why) = super::chores::too_long_a_note(&state, task, &body)
+    if super::chores::note_length(&body) > super::chores::note_length(&was)
+        && let Some(why) = super::chores::too_long_a_note(&state, task, &body, true)
     {
         return Err(why);
     }

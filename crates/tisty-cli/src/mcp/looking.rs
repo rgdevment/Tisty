@@ -413,7 +413,10 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let (body, boxed) =
                 tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
             let yours = task.is_open() && state.attended_by_agents(task);
-            Some(Page::new(kept.file.clone(), body, boxed, yours))
+            let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
+                .filter(|slot| !slot.undone)
+                .map(|slot| slot.after);
+            Some(Page::new(kept.file.clone(), body, boxed, yours, digest))
         })
         .flatten();
     let named = |key: &str| asked.iter().any(|one| one == key);

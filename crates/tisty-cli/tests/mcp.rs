@@ -7643,11 +7643,12 @@ fn a_task_the_agent_cannot_write_is_never_asked_to_have_its_notes_compacted() {
     );
 }
 
-#[test]
-fn a_digest_comes_whole_as_the_latest_note() {
-    let served = Served::new();
-    served.person().lets_the_agent_in();
-    let id = agents_task(&served, "move payments to v2");
+fn digested_at_length(served: &Served) -> String {
+    let id = agents_task(served, "move payments to v2");
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": "Tried the old signature. ".repeat(180) }),
+    );
     let digest = format!(
         "{}Ruled out: the old signature.",
         "State: the client is switched. ".repeat(170)
@@ -7657,13 +7658,55 @@ fn a_digest_comes_whole_as_the_latest_note() {
         "append_doc",
         serde_json::json!({ "doc": &id, "body": digest, "replace": true }),
     );
+    id
+}
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
-    let latest = read["result"]["structuredContent"]["document"]["latest_note"]
-        .as_str()
-        .unwrap_or_default()
-        .to_string();
-    assert!(latest.ends_with("Ruled out: the old signature."), "{read}");
+fn page_said(served: &Served, id: &str) -> serde_json::Value {
+    served.call("read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
+        ["document"]
+        .clone()
+}
+
+#[test]
+fn a_digest_comes_whole_at_pickup_and_a_long_note_after_it_is_cut() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = digested_at_length(&served);
+
+    let page = page_said(&served, &id);
+    let digest = page["digest"].as_str().unwrap_or_default();
+    assert!(digest.ends_with("Ruled out: the old signature."), "{page}");
+    assert!(
+        page["latest_note"].is_null(),
+        "the digest is the latest: {page}"
+    );
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": "Week 9: ".to_string() + &"analysis ".repeat(700) }),
+    );
+    let page = page_said(&served, &id);
+    assert!(
+        page["digest"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("Ruled out: the old signature."),
+        "{page}"
+    );
+    let latest = page["latest_note"].as_str().unwrap_or_default();
+    assert!(latest.contains("Week 9"), "{page}");
+    assert!(latest.chars().count() <= 3_001, "{page}");
+}
+
+#[test]
+fn a_digest_put_back_is_no_longer_shown_as_one() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = digested_at_length(&served);
+    served.call("restore_doc", serde_json::json!({ "doc": &id }));
+
+    let page = page_said(&served, &id);
+    assert!(page["digest"].is_null(), "{page}");
 }
 
 #[test]
@@ -7684,4 +7727,140 @@ fn a_document_line_find_quotes_keeps_the_person_s_disk_out() {
         .unwrap_or_default()
         .to_string();
     assert!(!line.contains("Desktop"), "{line}");
+}
+
+fn page_file_of(served: &Served, id: &str) -> String {
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": id, "body": "Started on it." }),
+    );
+    served.call("read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
+        ["document"]["file"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn a_note_too_long_on_a_locked_page_is_sent_to_a_document_of_its_own() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    let file = page_file_of(&served, &id);
+    served.person().locks_doc(&file);
+
+    let long = served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "x".repeat(4_001) }),
+    );
+
+    let said = text_of(&long);
+    assert!(said.contains("`write_doc`"), "{said}");
+    assert!(!said.contains("`append_doc`"), "{said}");
+}
+
+fn first_note_of(served: &Served, id: &str) -> String {
+    served.call(
+        "read",
+        serde_json::json!({ "task": id, "fields": ["journal"], "notes": 0 }),
+    )["result"]["structuredContent"]["journal"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn a_note_rewritten_may_shrink_but_not_grow_past_the_note_limit() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    served
+        .person()
+        .notes(id.parse().unwrap(), &"z".repeat(4_500));
+    let note = first_note_of(&served, &id);
+
+    let shorter = served.call(
+        "reword_note",
+        serde_json::json!({ "task": &id, "note": &note, "body": "z".repeat(4_400) }),
+    );
+    assert!(shorter["result"]["isError"].is_null(), "{shorter}");
+
+    let longer = served.call(
+        "reword_note",
+        serde_json::json!({ "task": &id, "note": &note, "body": "z".repeat(4_450) }),
+    );
+    assert_eq!(longer["result"]["isError"], true, "{longer}");
+    let said = text_of(&longer);
+    assert!(said.contains("may grow only up to 4000"), "{said}");
+    assert!(said.contains("reword the note to one line"), "{said}");
+    assert!(!said.contains("Nothing was noted"), "{said}");
+}
+
+#[test]
+fn a_page_that_cannot_be_written_keeps_a_short_note_in_the_history_and_refuses_a_long_one() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    let file = page_file_of(&served, &id);
+    served.person().leaves_doc_unwritable(&file);
+
+    let long = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": "y".repeat(5_000) }),
+    );
+    assert_eq!(long["result"]["isError"], true, "{long}");
+    assert!(
+        text_of(&long).contains("too long for its History"),
+        "{long}"
+    );
+
+    let short = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": "Switched the client." }),
+    );
+    assert_eq!(
+        short["result"]["structuredContent"]["in"], "history",
+        "{short}"
+    );
+}
+
+#[test]
+fn notes_asked_by_count_come_whole_up_to_the_note_limit_and_older_giants_are_cut() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    served
+        .person()
+        .notes(id.parse().unwrap(), &"z".repeat(20_000));
+    served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "w".repeat(3_500) }),
+    );
+
+    let asked = served.call(
+        "read",
+        serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 2 }),
+    );
+    let journal = asked["result"]["structuredContent"]["journal"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(journal[0]["cut"], true, "{asked}");
+    assert!(
+        journal[0]["body"].as_str().unwrap().chars().count() <= 4_001,
+        "{asked}"
+    );
+    assert!(journal[1]["cut"].is_null(), "{asked}");
+    assert!(text_of(&asked).contains("`notes` 0 brings every note whole"));
+
+    let every = served.call(
+        "read",
+        serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 0 }),
+    );
+    let first = every["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap()
+        .chars()
+        .count();
+    assert_eq!(first, 20_000, "{every}");
 }
