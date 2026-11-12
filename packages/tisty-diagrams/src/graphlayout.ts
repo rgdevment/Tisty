@@ -57,13 +57,15 @@ export interface Room {
   readonly along: readonly number[];
 }
 
+const NO_ROOM: Room = { aside: new Map(), along: [] };
+
 /** Layers along the direction the diagram says, nodes side by side in the order they were written. */
 export const layered = (
   ids: readonly string[],
   edges: readonly (readonly [string, string])[],
   sizes: ReadonlyMap<string, Size>,
   direction: Direction,
-  room: Room = { aside: new Map(), along: [] },
+  room: Room = NO_ROOM,
 ): Laid => {
   const rank = ranksOf(ids, edges);
   const layers: string[][] = [];

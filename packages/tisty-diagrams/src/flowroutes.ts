@@ -189,9 +189,12 @@ const lengthOf = (a: Point, b: Point) => Math.abs(b.x - a.x) + Math.abs(b.y - a.
 
 const longestRun = (way: readonly Point[]): readonly [Point, Point] =>
   way
-    .slice(1)
-    .map((one, at) => [way[at], one] as const)
-    .reduce((best, run) => (lengthOf(run[0], run[1]) > lengthOf(best[0], best[1]) ? run : best));
+    .slice(2)
+    .map((one, at) => [way[at + 1], one] as const)
+    .reduce<readonly [Point, Point]>(
+      (best, run) => (lengthOf(run[0], run[1]) > lengthOf(best[0], best[1]) ? run : best),
+      [way[0], way[1]],
+    );
 
 /** An arrow in right-angled runs between the nearest sides, round any shape in its way; the window and the picture both draw this one. */
 export const routeOf = (
@@ -333,7 +336,7 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
     const spots = spotsAlong(route, size);
     const spot =
       spots.find((one) => cost(one) === 0) ??
-      spots.reduce((best, one) => (cost(one) < cost(best) ? one : best));
+      spots.slice(1).reduce((best, one) => (cost(one) < cost(best) ? one : best), spots[0]);
     taken.push(box(spot));
     return { ...route, labelX: spot.x, labelY: spot.y };
   });
