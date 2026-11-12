@@ -110,6 +110,15 @@ export const dropped = (body: string, at: number): string => {
   return sewn(sheet);
 };
 
+// By what it says, not where it sits: the sheet may have moved while the idea was away.
+export const without = (body: string, idea: Note): string => {
+  const at = cut(body).blocks.findIndex((block) => {
+    const one = noteOf(block);
+    return one.heading === idea.heading && one.text === idea.text;
+  });
+  return at < 0 ? body : dropped(body, at);
+};
+
 export const ordered = (body: string, order: number[]): string => {
   const sheet = cut(body);
   sheet.blocks = order.map((at) => sheet.blocks[at]).filter((one) => one !== undefined);

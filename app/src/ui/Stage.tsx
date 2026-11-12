@@ -117,6 +117,10 @@ export default function Stage() {
         if (one.list) setChosen({ named: "lists", list: one.list });
         opening(one);
       }}
+      onSeeTask={(one) => {
+        setChosen(one.list ? { named: "lists", list: one.list } : { named: "tasks", slice: "all" });
+        opening(one);
+      }}
       onBack={bringBack}
       onAsideShut={setAsideShut}
       fresh={carried}

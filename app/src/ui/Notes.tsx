@@ -1,5 +1,8 @@
+import { emit } from "@tauri-apps/api/event";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { locale, t } from "../locales";
+import { ideaToDoc } from "../brainstorm";
+import { capture, type Filed, type Task } from "../core";
+import { fill, locale, t } from "../locales";
 import "../notes.css";
 import {
   added,
@@ -15,8 +18,11 @@ import {
   saidWhen,
   shapeOf,
   shifted,
+  without,
 } from "../notes";
 import { Left } from "./Field";
+import FileIdea from "./FileIdea";
+import Glyph from "./Glyph";
 
 interface Props {
   title: string;
@@ -24,6 +30,11 @@ interface Props {
   reading: boolean;
   onWrite: (body: string) => void;
   onEditor?: () => void;
+  known?: Filed[];
+  own?: string;
+  onError?: (problem: unknown) => void;
+  onDoc?: (file: string) => void;
+  onTask?: (task: Task) => void;
 }
 
 interface Lifted {
@@ -50,8 +61,25 @@ function nearest(x: number, y: number, from: number): number | null {
   return best?.at ?? null;
 }
 
-export default function Notes({ title, body, reading, onWrite, onEditor }: Props) {
+export default function Notes({
+  title,
+  body,
+  reading,
+  onWrite,
+  onEditor,
+  known = [],
+  own = "",
+  onError = () => {},
+  onDoc,
+  onTask,
+}: Props) {
+  const [sent, send] = useSent();
   const [raw, setRaw] = useState(false);
+  const [filing, setFiling] = useState<Note | null>(null);
+  const latest = useRef(body);
+  latest.current = body;
+  const settled = (idea: Note) => () => onWrite(without(latest.current, idea));
+  const failed = (problem: unknown) => onError(problem);
   const { notes } = boardOf(body);
   const intro = introOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
@@ -143,6 +171,17 @@ export default function Notes({ title, body, reading, onWrite, onEditor }: Props
           {t(raw ? "notesAsNotes" : "notesAsText")}
         </button>
       </div>
+      {sent && (
+        <p
+          role="status"
+          className="mt-3 flex items-center gap-3 rounded-md bg-accent-soft px-3 py-1.5 text-[12.5px] text-accent"
+        >
+          <span className="min-w-0 flex-1 truncate">{sent.text}</span>
+          <button type="button" onClick={sent.open} className="shrink-0 font-semibold underline">
+            {sent.action}
+          </button>
+        </p>
+      )}
       {!raw && intro && <p className="mt-3 text-[12.5px] whitespace-pre-wrap text-soft">{intro}</p>}
       {raw ? (
         <pre className="mt-6 overflow-x-auto rounded-[10px] border border-line bg-bg p-5 font-mono text-[12.5px] whitespace-pre-wrap text-ink">
@@ -172,12 +211,60 @@ export default function Notes({ title, body, reading, onWrite, onEditor }: Props
                 else if (text !== note.text) onWrite(rewritten(body, at, text));
               }}
               onDrop={() => onWrite(dropped(body, at))}
+              onFile={() => setFiling(note)}
+              onTask={() =>
+                void capture(note.text)
+                  .then((task) => {
+                    settled(note)();
+                    void emit("captured");
+                    send(fill("ideaMadeTask", task.title), t("ideaSeeTask"), () => onTask?.(task));
+                  })
+                  .catch(failed)
+              }
             />
           ))}
         </ul>
       )}
+      {filing && (
+        <FileIdea
+          idea={filing.text}
+          known={known}
+          own={own}
+          onClose={() => setFiling(null)}
+          onPick={(file) => {
+            setFiling(null);
+            const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
+            void ideaToDoc(file, filing.text, title)
+              .then(() => {
+                settled(filing)();
+                send(fill("ideaFiledIn", there), t("ideaOpenDoc"), () => onDoc?.(file));
+              })
+              .catch(failed);
+          }}
+        />
+      )}
     </section>
   );
+}
+
+const SENT_FOR = 8_000;
+
+interface Sent {
+  text: string;
+  action: string;
+  open: () => void;
+}
+
+function useSent(): [Sent | null, (text: string, action: string, open: () => void) => void] {
+  const [sent, setSent] = useState<Sent | null>(null);
+  const fading = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(fading.current), []);
+  const send = (text: string, action: string, open: () => void) => {
+    clearTimeout(fading.current);
+    setSent({ text, action, open });
+    fading.current = setTimeout(() => setSent(null), SENT_FOR);
+  };
+  return [sent, send];
 }
 
 const SLIDES_FOR = 220;
@@ -220,6 +307,8 @@ interface StickyProps {
   onMove: (by: number) => void;
   onText: (text: string) => void;
   onDrop: () => void;
+  onFile: () => void;
+  onTask: () => void;
 }
 
 const EARLIER = new Set(["ArrowUp", "ArrowLeft"]);
@@ -239,6 +328,8 @@ function Sticky({
   onMove,
   onText,
   onDrop,
+  onFile,
+  onTask,
 }: StickyProps) {
   const shape = shapeOf(note.heading, nth);
   const words = useRef<HTMLTextAreaElement>(null);
@@ -307,9 +398,21 @@ function Sticky({
         </span>
       )}
       {!reading && (
-        <button type="button" onClick={onDrop} className="sticky-drop" aria-label={t("notesDrop")}>
-          ×
-        </button>
+        <span className="sticky-tools">
+          {note.text && (
+            <button type="button" onClick={onFile} aria-label={t("ideaFile")} title={t("ideaFile")}>
+              <Glyph name="folder-in" className="h-[13px] w-[13px]" />
+            </button>
+          )}
+          {note.text && (
+            <button type="button" onClick={onTask} aria-label={t("ideaTask")} title={t("ideaTask")}>
+              <Glyph name="check-mark" className="h-[13px] w-[13px]" />
+            </button>
+          )}
+          <button type="button" onClick={onDrop} aria-label={t("notesDrop")} title={t("notesDrop")}>
+            ×
+          </button>
+        </span>
       )}
     </li>
   );

@@ -32,6 +32,7 @@ const guestSaid = (doc: Filed) => {
 interface Props {
   papers: Papers;
   pinned?: string | null;
+  ideas?: number;
   unfolded?: boolean;
   reveal?: { folder: string; at: number } | null;
   open?: string;
@@ -51,6 +52,7 @@ interface Props {
 export default function Tree({
   papers,
   pinned,
+  ideas,
   unfolded = false,
   reveal,
   open,
@@ -613,6 +615,14 @@ export default function Tree({
             {doc.guest !== null && doc.guest !== undefined && (
               <span title={guestSaid(doc)} className="shrink-0 truncate text-[10.5px] text-faint">
                 {doc.guest || t("guestNone")}
+              </span>
+            )}
+            {doc === pin && ideas !== undefined && ideas > 0 && (
+              <span
+                title={fill("ideasWaiting", String(ideas))}
+                className="ml-auto shrink-0 rounded-full bg-hover px-1.5 text-[10.5px] text-soft"
+              >
+                {ideas}
               </span>
             )}
             {pages.length > 0 && (

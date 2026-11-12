@@ -34,3 +34,24 @@ fn a_new_idea_never_takes_the_colour_of_the_one_before_it() {
         body.push_str(&format!("\n\n## 2026-11-12 00:19 · {colour}\n\nidea"));
     }
 }
+
+#[test]
+fn every_section_outside_a_fence_counts_as_one_idea_waiting() {
+    let mut body = opening("Ideas");
+    assert_eq!(ideas(&body), 0);
+    body.push_str("\n## 2026-11-12 00:19 · blue\n\nuna\n\n## 2026-11-12 00:20 · pink\n\n```md\n## no es idea\n```\n");
+    assert_eq!(ideas(&body), 2);
+}
+
+#[test]
+fn a_filed_idea_is_a_note_that_says_where_and_when_it_came_from() {
+    let on = jiff::civil::date(2026, 11, 12);
+    assert_eq!(
+        filed(
+            " Probar con harina integral\nY menos sal ",
+            "Lluvia de ideas",
+            on
+        ),
+        "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar con harina integral\n> Y menos sal"
+    );
+}
