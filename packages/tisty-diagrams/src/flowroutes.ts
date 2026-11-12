@@ -264,7 +264,7 @@ export const endWordBox = (at: Point, side: Position, said: string): Rect => {
 };
 
 const ROUGH = [0.5, 0.25, 0.75];
-const FINE = [0.5, 0.25, 0.75, 0.1, 0.9, 0.4, 0.6];
+const FINE = [0.1, 0.9, 0.4, 0.6];
 
 const spotsAlong = (
   route: Route,
@@ -390,7 +390,7 @@ const endsApart = (joints: readonly Joint[], first: readonly Route[]): Ends[] =>
   return ends;
 };
 
-const crossEachOther = (one: Rect, other: Rect) => {
+export const crossEachOther = (one: Rect, other: Rect) => {
   const [upright, flat] = one.wide === 0 ? [one, other] : [other, one];
   if (upright.wide !== 0 || flat.tall !== 0) return false;
   return (
@@ -410,7 +410,10 @@ const crossingsIn = (routes: readonly Route[]) => {
         .slice(at + 1)
         .reduce(
           (more, theirs) =>
-            more + runs.filter((run) => theirs.some((one) => crossEachOther(run, one))).length,
+            more +
+            runs.filter(
+              (run) => sharedRun(run, theirs) || theirs.some((one) => crossEachOther(run, one)),
+            ).length,
           0,
         ),
     0,
@@ -427,7 +430,7 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
         ? routeOf(joint.from, joint.to, shapes, within, ends[at])
         : first[at],
     );
-  // A spread end can change which way an arrow runs, and so its order: each order is tried, the one crossing least kept.
+  // A spread end can change which way an arrow runs, and so its order: another order is tried while it crosses or merges less.
   let ends = endsApart(joints, first);
   let routes = laidWith(ends);
   let least = crossingsIn(routes);
@@ -436,11 +439,10 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
     if (JSON.stringify(next) === JSON.stringify(ends)) break;
     const tried = laidWith(next);
     const crossing = crossingsIn(tried);
+    if (crossing >= least) break;
     ends = next;
-    if (crossing < least) {
-      routes = tried;
-      least = crossing;
-    }
+    routes = tried;
+    least = crossing;
   }
   const lines = routes.map((route) => runsOf(route.way));
   const taken: Rect[] = joints.flatMap((joint, at) => {
@@ -477,7 +479,9 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
       spots.find((one) => cost(one) === 0) ??
       spots.slice(1).reduce((best, one) => (cost(one) < cost(best) ? one : best), spots[0]);
     const rough = spotsAlong(route, size, ROUGH);
-    const spot = rough.find((one) => cost(one) === 0) ?? finest(spotsAlong(route, size, FINE));
+    const spot =
+      rough.find((one) => cost(one) === 0) ??
+      finest([...rough, ...spotsAlong(route, size, FINE).slice(1)]);
     taken.push(box(spot));
     return { ...route, labelX: spot.x, labelY: spot.y };
   });

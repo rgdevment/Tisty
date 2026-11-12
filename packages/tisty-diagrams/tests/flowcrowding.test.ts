@@ -2,7 +2,14 @@ import type { Edge, InternalNode } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { readClasses } from "../src/classes";
 import { readFlow } from "../src/flow";
-import { endWordBox, overlaps, routeOf, routesOf, sharedRun } from "../src/flowroutes";
+import {
+  crossEachOther,
+  endWordBox,
+  overlaps,
+  routeOf,
+  routesOf,
+  sharedRun,
+} from "../src/flowroutes";
 import type { Rect } from "../src/graphlayout";
 import { layered } from "../src/graphlayout";
 import { pillSize } from "../src/picture";
@@ -128,17 +135,6 @@ const crowdingIn = (scene: Scene) => {
       : []),
   ]);
   return { crossed, covering };
-};
-
-const crossEachOther = (one: Rect, other: Rect) => {
-  const [upright, flat] = one.wide === 0 ? [one, other] : [other, one];
-  if (upright.wide !== 0 || flat.tall !== 0) return false;
-  return (
-    upright.x > flat.x &&
-    upright.x < flat.x + flat.wide &&
-    flat.y > upright.y &&
-    flat.y < upright.y + upright.tall
-  );
 };
 
 const node = (id: string, x: number, y: number, shape = "process") =>
