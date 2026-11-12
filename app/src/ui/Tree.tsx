@@ -31,6 +31,7 @@ const guestSaid = (doc: Filed) => {
 
 interface Props {
   papers: Papers;
+  pinned?: string | null;
   unfolded?: boolean;
   reveal?: { folder: string; at: number } | null;
   open?: string;
@@ -49,6 +50,7 @@ interface Props {
 
 export default function Tree({
   papers,
+  pinned,
   unfolded = false,
   reveal,
   open,
@@ -380,9 +382,11 @@ export default function Tree({
   const under = (parent: string | null) =>
     papers.folders.filter((one) => one.parent === parent && one.away === shelved(parent));
 
+  const pin = papers.docs.find((one) => one.file === pinned && !one.away && !one.pageOf);
+
   const inside = (folder: string | null) =>
     papers.docs.filter(
-      (one) => !one.pageOf && one.folder === folder && one.away === shelved(folder),
+      (one) => one !== pin && !one.pageOf && one.folder === folder && one.away === shelved(folder),
     );
 
   const pagesOf = (id: string) => papers.docs.filter((one) => one.pageOf === id);
@@ -501,8 +505,14 @@ export default function Tree({
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
-        name={page ? (doc.archived ? "archive" : "alignleft") : "page"}
-        className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
+        name={page ? (doc.archived ? "archive" : "alignleft") : doc === pin ? "brain" : "page"}
+        className={
+          page
+            ? "h-[11px] w-[11px] opacity-70"
+            : doc === pin
+              ? "brainstorm-mark h-[14px] w-[14px]"
+              : "h-[13px] w-[13px]"
+        }
       />
     );
     return (
@@ -721,6 +731,7 @@ export default function Tree({
 
   const loose = papers.docs.filter(
     (one) =>
+      one !== pin &&
       !one.away &&
       !one.pageOf &&
       (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
@@ -740,6 +751,7 @@ export default function Tree({
           {fill("liftedHint", lifted.name, onMac ? "⌘" : "Ctrl+")}
         </li>
       )}
+      {pin && paper(pin, 0)}
       {under(null).flatMap((folder) => [branch(folder, 0)])}
 
       <li className="relative">

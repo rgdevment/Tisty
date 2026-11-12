@@ -6,6 +6,7 @@ pub mod assistant_notes;
 pub mod attach;
 pub mod backup;
 pub mod beside;
+pub mod brainstorm;
 pub mod cache;
 pub mod called;
 pub mod capture;

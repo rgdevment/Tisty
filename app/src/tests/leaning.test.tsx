@@ -11,7 +11,14 @@ import { asksSure } from "../sure";
 import Sidebar from "../ui/Sidebar";
 import { asView, type Chosen } from "../views";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
+const ipc = vi.hoisted(() => ({ sent: [] as string[] }));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string) => {
+    ipc.sent.push(cmd);
+    return Promise.resolve(null);
+  },
+}));
 vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }));
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: () => Promise.resolve() }));
 
@@ -200,6 +207,15 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
   it("keeps the views in sight while the library has the room", () => {
     bar({ named: "docs" });
     expect(screen.getByRole("navigation", { name: t("tasksViews") })).toBeTruthy();
+  });
+
+  it("opens the quick capture from a button, for whoever does not reach for the keyboard", () => {
+    bar({ named: "tasks" });
+    ipc.sent = [];
+
+    fireEvent.click(screen.getByRole("button", { name: t("captureNew") }));
+
+    expect(ipc.sent).toContain("sow");
   });
 
   it("keeps what was open in the library while tasks have the room", () => {

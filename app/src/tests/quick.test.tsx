@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { t } from "../locales";
 import Quick from "../Quick";
 
 const ipc = vi.hoisted(() => ({
@@ -11,6 +12,7 @@ const win = vi.hoisted(() => ({
   hidden: 0,
   focus: null as ((state: { payload: boolean }) => void) | null,
   emitted: [] as string[],
+  heard: {} as Record<string, (event: { payload: unknown }) => void>,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -33,6 +35,8 @@ vi.mock("@tauri-apps/api/core", () => ({
           spans: [],
           offers: [],
         });
+      case "jot":
+        return Promise.resolve({ file: "mac0-0001", made: true });
       case "shortcut":
         return Promise.resolve("Ctrl+Shift+Space");
       case "capture":
@@ -71,7 +75,10 @@ vi.mock("@tauri-apps/api/event", () => ({
     win.emitted.push(name);
     return Promise.resolve();
   },
-  listen: () => Promise.resolve(() => {}),
+  listen: (name: string, fn: (event: { payload: unknown }) => void) => {
+    win.heard[name] = fn;
+    return Promise.resolve(() => {});
+  },
 }));
 
 beforeEach(() => {
@@ -125,11 +132,107 @@ describe("capturing without the window", () => {
     await waitFor(() => expect(sent("snapshot").length).toBe(2));
   });
 
-  it("spends its height on the sentence, not on instructions", async () => {
+  it("spends its height on the sentence, and its shortcut sits in the row of modes", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");
 
     expect(screen.queryByText(/Esc/)).toBeNull();
-    expect(screen.queryByText(/Ctrl\+Shift\+Space/)).toBeNull();
+    const keys = await screen.findByText("Ctrl+Shift+Space");
+    expect(keys.parentElement).toBe(screen.getByRole("button", { name: "Task" }).parentElement);
+  });
+
+  it("winks instead of giving an example when its turn in the hundred comes", async () => {
+    localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: 1 }));
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    act(() => win.focus?.({ payload: true }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox").getAttribute("placeholder")).toBe(t("taskWink")),
+    );
+    localStorage.clear();
+  });
+
+  it("spends no turn of the hundred while it is only made, hidden, at start", async () => {
+    localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: 1 }));
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    expect(JSON.parse(localStorage.getItem("tisty.wink") ?? "{}").seen).toBe(0);
+    localStorage.clear();
+  });
+
+  it("invites a task with one of its examples each time it opens", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    act(() => win.focus?.({ payload: true }));
+
+    await waitFor(() =>
+      expect(t("taskExamples").split("\n")).toContain(
+        screen.getByRole("textbox").getAttribute("placeholder"),
+      ),
+    );
+  });
+
+  it("holds an idea to 140 characters, a task to none", async () => {
+    render(<Quick />);
+    const task = await screen.findByRole("textbox");
+    expect(task.getAttribute("maxlength")).toBeNull();
+
+    await userEvent.keyboard("{Tab}");
+
+    expect(screen.getByRole("textbox").getAttribute("maxlength")).toBe("140");
+  });
+
+  it("drops a loose idea in the brainstorm instead of filing a task, after Tab", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    await userEvent.keyboard("{Tab}");
+    await userEvent.type(screen.getByRole("textbox"), "call the vet{Enter}");
+
+    await waitFor(() => expect(sent("jot").length).toBe(1));
+    expect(sent("jot")[0].args).toEqual({ idea: "call the vet", title: "Brainstorm" });
+    expect(sent("capture")).toEqual([]);
+    expect(win.emitted).toContain("jotted");
+    expect(await screen.findByText(/call the vet/)).toBeTruthy();
+  });
+
+  it("goes back to a task when Tab is pressed again", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    await userEvent.keyboard("{Tab}{Tab}");
+    await userEvent.type(screen.getByRole("textbox"), "buy milk{Enter}");
+
+    await waitFor(() => expect(sent("capture").length).toBe(1));
+    expect(sent("jot")).toEqual([]);
+  });
+
+  it("opens ready for an idea from the idea shortcut, and the same shortcut again closes it", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    act(() => win.heard.door?.({ payload: { door: "idea", again: false } }));
+    expect(await screen.findByRole("button", { name: "Idea", pressed: true })).toBeTruthy();
+    win.hidden = 0;
+
+    act(() => win.heard.door?.({ payload: { door: "idea", again: true } }));
+    await waitFor(() => expect(win.hidden).toBeGreaterThan(0));
+  });
+
+  it("switches to a task, without closing, when the task shortcut comes while an idea is open", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+    act(() => win.heard.door?.({ payload: { door: "idea", again: false } }));
+    await screen.findByRole("button", { name: "Idea", pressed: true });
+    win.hidden = 0;
+
+    act(() => win.heard.door?.({ payload: { door: "task", again: true } }));
+
+    expect(await screen.findByRole("button", { name: "Task", pressed: true })).toBeTruthy();
+    expect(win.hidden).toBe(0);
   });
 });

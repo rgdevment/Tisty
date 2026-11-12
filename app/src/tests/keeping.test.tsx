@@ -3214,8 +3214,10 @@ describe("the quick capture shortcut", () => {
     let bound: string | null = "Ctrl+Shift+Space";
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => {
-      if (cmd === "shortcuts_offered") return Promise.resolve(["Ctrl+Shift+Space", "Ctrl+Shift+T"]);
-      if (cmd === "shortcut") return Promise.resolve(bound);
+      const idea = args?.door === "idea";
+      if (cmd === "shortcuts_offered")
+        return Promise.resolve(idea ? ["Ctrl+Alt+I"] : ["Ctrl+Shift+Space", "Ctrl+Shift+T"]);
+      if (cmd === "shortcut") return Promise.resolve(idea ? "Ctrl+Alt+I" : bound);
       if (cmd === "keep_shortcut")
         return keep(String(args?.keys)).then((now) => {
           bound = now as string | null;
@@ -3254,6 +3256,18 @@ describe("the quick capture shortcut", () => {
 
     expect(await screen.findByText(fill("keysTaken", "Ctrl+Shift+T"))).toBeTruthy();
     expect((picker as HTMLSelectElement).value).toBe("Ctrl+Shift+Space");
+  });
+
+  it("keeps a shortcut of its own for an idea, beside the one for a task", async () => {
+    shown((keys) => Promise.resolve(keys));
+    const picker = await screen.findByRole("combobox", { name: t("quickIdeaKeys") });
+    await waitFor(() => expect((picker as HTMLSelectElement).value).toBe("Ctrl+Alt+I"));
+
+    await userEvent.selectOptions(picker, "off");
+
+    await waitFor(() =>
+      expect(sent("keep_shortcut")[0]?.args).toEqual({ keys: "off", door: "idea" }),
+    );
   });
 });
 

@@ -208,6 +208,36 @@ describe("the document being written", () => {
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
 
+  it("opens a document that asks for notes as notes, never in the editor", async () => {
+    store.bodies["a3f1-0002"] = [
+      "---\nview: notes\nbrainstorm: on\n---",
+      "# Lluvia",
+      "## 2026-11-12 01:07 · lime",
+      "erase una vez",
+    ].join("\n\n");
+    render(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    expect(await screen.findByRole("button", { name: t("notesAsText") })).toBeTruthy();
+    expect(screen.queryByLabelText("editor")).toBeNull();
+  });
+
+  it("lets a plain notes document back into the editor, where its properties can change", async () => {
+    store.bodies["a3f1-0002"] = [
+      "---\nview: notes\n---",
+      "# Tablero",
+      "Algo escrito bajo el título.",
+      "## uno",
+      "x",
+    ].join("\n\n");
+    render(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    expect(await screen.findByText("Algo escrito bajo el título.")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("notesAsText") }));
+
+    await waitFor(() => screen.getByLabelText("editor"));
+    expect(screen.getByRole("button", { name: t("notesAsNotes") })).toBeTruthy();
+  });
+
   it("says a document is on its way instead of throwing a refusal at the person", async () => {
     store.coming = true;
     const onError = vi.fn();

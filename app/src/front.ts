@@ -22,6 +22,12 @@ export const landscapeIn = (body: string): boolean => laidIn(body).landscape;
 
 export const sheetsIn = (body: string): boolean => laidIn(body).sheets;
 
+export const notedIn = (body: string): boolean =>
+  valuesIn(body, "view")?.[0]?.toLowerCase() === "notes";
+
+export const brainstormIn = (body: string): boolean =>
+  valuesIn(body, "brainstorm")?.[0]?.toLowerCase() === "on";
+
 // What a page is unless it says otherwise is never written down, so only a change from it is.
 const withProperty = (body: string, key: string, value: string | null): string => {
   const line = body.includes("\r\n") ? "\r\n" : "\n";

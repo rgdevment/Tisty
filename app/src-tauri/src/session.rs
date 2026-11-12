@@ -17,6 +17,7 @@ pub struct Session {
     pub asked: std::collections::HashMap<String, (String, Option<String>)>,
     pub written: tisty_core::paged::Told,
     pub locale: Option<String>,
+    pub brainstorm: Option<String>,
     /// The fingerprint is read from the directory entry, which lags a write on Windows, so what
     /// was committed here is counted rather than measured.
     writes: u64,
@@ -110,6 +111,7 @@ impl Session {
             store,
             cache,
             corpus: tisty_core::docs::Corpus::default(),
+            brainstorm: None,
             print,
             minded: std::collections::HashMap::new(),
             asked: std::collections::HashMap::new(),
