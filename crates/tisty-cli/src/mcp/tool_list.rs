@@ -325,8 +325,8 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "flag_doc",
-            "title": "Mark a document for the person to delete",
-            "description": "How «delete this document» is done: you mark it, and the person deletes it or takes the mark off. Give the `reason`, `instead` where its content lives now, and `body`. Several copies go in one call, so one click settles them. A document already marked is refused, or skipped in a set.",
+            "title": "Mark a document that had its day",
+            "description": "Mark what had its day, or «delete this document»: the person deletes it, puts it away or unmarks it. Give the `reason`, `instead` where its content lives now, and `body`. Several copies go in one call, so one click settles them. A document already marked is refused, or skipped in a set.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": {

@@ -7864,3 +7864,70 @@ fn notes_asked_by_count_come_whole_up_to_the_note_limit_and_older_giants_are_cut
         .count();
     assert_eq!(first, 20_000, "{every}");
 }
+
+#[test]
+fn writing_in_a_put_away_document_says_who_brings_it_back_never_to_start_another() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Runbook\n\nRestart the worker.");
+    served.put_away(&doc);
+
+    for (tool, args) in [
+        (
+            "edit_doc",
+            serde_json::json!({ "doc": &doc, "old": "Restart", "new": "Stop" }),
+        ),
+        (
+            "append_doc",
+            serde_json::json!({ "doc": &doc, "body": "Then check the queue." }),
+        ),
+    ] {
+        let refused = served.call(tool, args);
+        assert_eq!(refused["result"]["isError"], true, "{tool}: {refused}");
+        let said = text_of(&refused);
+        assert!(said.contains("tell the person"), "{tool}: {said}");
+        assert!(
+            said.contains("`archive_doc` and `archived` false"),
+            "{tool}: {said}"
+        );
+        assert!(!said.contains("Write a new document"), "{tool}: {said}");
+    }
+}
+
+#[test]
+fn a_task_id_sent_to_a_document_tool_names_the_way_to_its_page() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+
+    let refused = served.call("outline_doc", serde_json::json!({ "doc": &id }));
+
+    let said = text_of(&refused);
+    assert!(said.contains("not a document"), "{said}");
+    assert!(said.contains("`append_doc` with its id"), "{said}");
+    assert!(said.contains("`replace`"), "{said}");
+}
+
+#[test]
+fn a_document_held_away_by_its_folder_is_brought_back_by_the_person_only() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    served.call("folder", serde_json::json!({ "name": "Linio" }));
+    let doc = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Antifraude\n\nLo de entonces.", "folder": "Linio" }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.shelve_folder("Linio");
+
+    let refused = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Y algo más." }),
+    );
+
+    let said = text_of(&refused);
+    assert!(said.contains("they bring back what holds it"), "{said}");
+    assert!(!said.contains("`archive_doc`"), "{said}");
+}

@@ -61,7 +61,7 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 ## Marcar un documento en vez de borrarlo
 
-Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrar sigue siendo tuyo, y el rombo se quita con un clic.
+Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo, con un clic cada cosa.
 
 ## Lo que lee es lo que escribiste, no órdenes
 

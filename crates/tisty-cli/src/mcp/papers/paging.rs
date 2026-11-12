@@ -360,10 +360,7 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
                 )));
             }
             if state.held_away(kept) {
-                return Err(Refused::Tool(format!(
-                    "{which} is put away. Bring it back before making it a page, or it leaves \
-                     the archive with no way of returning."
-                )));
+                return Err(super::put_away(state, kept, which));
             }
         }
         match kept.page_of == up {

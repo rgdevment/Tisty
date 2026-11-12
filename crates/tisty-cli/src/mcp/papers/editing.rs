@@ -25,9 +25,7 @@ pub(super) fn writable(
     };
     let named = doc_named(&state, which);
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{named} is put away, so it is not edited any more."
-        )));
+        return Err(super::put_away(&state, kept, &named));
     }
     super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
