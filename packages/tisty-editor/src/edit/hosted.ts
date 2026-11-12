@@ -117,4 +117,4 @@ export type EditWord =
   | "untitled"
   | "wholeLeave"
   | "widgetIt"
-  | `said${"note" | "tip" | "important" | "warning" | "caution"}`;
+  | `said${"note" | "tip" | "important" | "warning" | "caution" | "idea"}`;

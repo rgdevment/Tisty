@@ -252,6 +252,21 @@ A callout is a quote whose first line names its kind in brackets. Five kinds, ea
 - The same five kinds can also be written the way other tools write them, as a block between `:::tip` and a lone `:::`; Tisty draws it as the same callout.
 - On copying as standard Markdown, a `:::tip` callout becomes `> [!TIP]`, the way GitHub writes it.
 
+### Sticky notes
+
+A sixth kind, `[!IDEA]`, is a note stuck on the sheet. Its first line, past the marker, says when it was written, its colour and the side it sits on:
+
+```markdown
+> [!IDEA] 2026-11-12 09:12 · blue · right
+> Try it with wholemeal flour.
+```
+
+- Tisty draws it as a sticky note, written by hand, a little tilted and held by tape or a pin. The first line is never shown as words.
+- The parts go in any order, split by ` · `, and none is required. The colour is one of `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` or `magenta`; without one, the note keeps the sheet's colour inside a dashed line.
+- `right` or `left` sets it beside the paragraphs that follow, the words flowing round it; without a side it stands between the blocks around it.
+- Pictures and anything else a callout holds fit inside, as long as every line carries its `>`.
+- Obsidian shows it as a callout of kind idea, and GitHub as a quote.
+
 ## Collapsible sections
 
 A title you click to open or fold what is under it. Pick **Collapsible section** in the `/` menu, or write it:

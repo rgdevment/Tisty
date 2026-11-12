@@ -399,6 +399,7 @@ fn marked(source: &str) -> Option<Callout> {
         "important" => Callout::Important,
         "warning" => Callout::Warning,
         "caution" => Callout::Caution,
+        "idea" => Callout::Idea,
         _ => return None,
     })
 }
@@ -422,7 +423,10 @@ fn unmark(quote: &mut Block, text: &str) {
     };
     let after = start + 2 + close + 1;
     let rest = &text[after..];
-    let cut = after + (rest.len() - rest.trim_start_matches([' ', '\t']).len());
+    let cut = match quote.kind {
+        Kind::Callout(Callout::Idea) => after + rest.find('\n').unwrap_or(rest.len()),
+        _ => after + (rest.len() - rest.trim_start_matches([' ', '\t']).len()),
+    };
     first.spans.retain(|one| one.at.end > cut);
     for one in &mut first.spans {
         one.at.start = one.at.start.max(cut);

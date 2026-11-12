@@ -187,8 +187,16 @@ fn called(kind: Callout, at: &str, block: &Block, text: &str, drawing: &Drawing,
         Callout::Important => "important",
         Callout::Warning => "warning",
         Callout::Caution => "caution",
+        Callout::Idea => "idea",
     };
-    let open = format!("<blockquote class=\"callout\" data-callout=\"{name}\" {at}>");
+    let head = crate::idea_head(&text[block.at.clone()]);
+    let mut said = String::new();
+    for (key, value) in [("when", head.when), ("hue", head.hue), ("side", head.side)] {
+        if let Some(value) = value {
+            let _ = write!(said, " data-{key}=\"{value}\"");
+        }
+    }
+    let open = format!("<blockquote class=\"callout\" data-callout=\"{name}\"{said} {at}>");
     wrapped(&open, "</blockquote>", block, text, drawing, out);
 }
 

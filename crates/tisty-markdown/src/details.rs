@@ -93,6 +93,7 @@ fn called(said: &str) -> Option<Callout> {
         "important" => Callout::Important,
         "warning" => Callout::Warning,
         "caution" => Callout::Caution,
+        "idea" => Callout::Idea,
         _ => return None,
     })
 }

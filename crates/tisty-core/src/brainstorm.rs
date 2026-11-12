@@ -13,10 +13,7 @@ pub fn opening(title: &str) -> String {
 
 pub const IDEA_AT_MOST: usize = 140;
 
-pub const COLOURS: [&str; 12] = [
-    "pink", "coral", "orange", "yellow", "lime", "green", "teal", "cyan", "blue", "lavender",
-    "violet", "magenta",
-];
+pub const COLOURS: [&str; 12] = tisty_markdown::IDEA_HUES;
 
 pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
     format!(

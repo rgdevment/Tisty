@@ -162,6 +162,7 @@ fn quoted(said: &str, start: usize, kind: Callout, edits: &mut Edits) {
         Callout::Important => "IMPORTANT",
         Callout::Warning => "WARNING",
         Callout::Caution => "CAUTION",
+        Callout::Idea => "IDEA",
     };
     edits.push((start..start + first, format!("> [!{name}]")));
     for (at, _) in said.match_indices('\n').filter(|(at, _)| *at < last) {

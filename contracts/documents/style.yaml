@@ -116,6 +116,16 @@ values:
     border_width: "3px"
     tint_percent: 7
     hues: { note: blue, tip: green, important: indigo, warning: amber, caution: red }
+    idea:
+      says: "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows the head line as words."
+      hues: [pink, coral, orange, yellow, lime, green, teal, cyan, blue, lavender, violet, magenta]
+      fill:
+        light: { pink: "#feb2b9", coral: "#fea284", orange: "#fbb974", yellow: "#f3dd7b", lime: "#bce671", green: "#90cd95", teal: "#6ed0c0", cyan: "#87ddf1", blue: "#83bff6", lavender: "#bdc3fe", violet: "#bc95e5", magenta: "#f5a3db" }
+        dark: { pink: "#ae4c61", coral: "#9e4331", orange: "#a25e24", yellow: "#896a10", lime: "#5f7723", green: "#206f3c", teal: "#19746b", cyan: "#1c788e", blue: "#155d9f", lavender: "#645fb3", violet: "#623586", magenta: "#974180" }
+      ink: { light: "#2a2520", dark: "#fbf5ea" }
+      plain: "Without a hue, it wears the sheet's colour inside a dashed line of hair."
+      side: "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it."
+      width: { least: "150px", most: "256px" }
     label: { size: "11.5px", weight: 600, spacing: "0.04em", capitals: true, margin_bottom: "2px", says: "The word of its kind, which the reader writes above its words in the reader's own language, in its hue." }
   pens:
     named: { yellow: pen-yellow, green: pen-green, blue: pen-blue, pink: pen-pink }

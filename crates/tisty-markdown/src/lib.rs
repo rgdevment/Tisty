@@ -294,6 +294,54 @@ pub enum Callout {
     Important,
     Warning,
     Caution,
+    Idea,
+}
+
+pub const IDEA_HUES: [&str; 12] = [
+    "pink", "coral", "orange", "yellow", "lime", "green", "teal", "cyan", "blue", "lavender",
+    "violet", "magenta",
+];
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IdeaHead<'a> {
+    pub when: Option<&'a str>,
+    pub hue: Option<&'static str>,
+    pub side: Option<&'static str>,
+}
+
+pub fn idea_head(source: &str) -> IdeaHead<'_> {
+    let mut head = IdeaHead::default();
+    let Some(words) = source
+        .lines()
+        .next()
+        .and_then(|line| line.trim_start().strip_prefix('>'))
+        .map(str::trim_start)
+        .and_then(|line| {
+            line.get(7..)
+                .filter(|_| line[..7].eq_ignore_ascii_case("[!idea]"))
+        })
+    else {
+        return head;
+    };
+    for part in words.split(" · ").map(str::trim) {
+        let lower = part.to_ascii_lowercase();
+        if let Some(hue) = IDEA_HUES.iter().find(|one| **one == lower) {
+            head.hue = Some(hue);
+        } else if lower == "left" || lower == "right" {
+            head.side = Some(if lower == "left" { "left" } else { "right" });
+        } else if head.when.is_none() && stamped(part) {
+            head.when = Some(part);
+        }
+    }
+    head
+}
+
+fn stamped(said: &str) -> bool {
+    let shape = said
+        .chars()
+        .map(|c| if c.is_ascii_digit() { '9' } else { c });
+    let shape: String = shape.collect();
+    shape == "9999-99-99 99:99" || shape == "9999-99-99"
 }
 
 impl Doc {
