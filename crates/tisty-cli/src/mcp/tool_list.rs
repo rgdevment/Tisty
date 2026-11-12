@@ -502,7 +502,7 @@ pub(super) fn tools_without_hints() -> Value {
                         "items": { "type": "string" },
                         "description": "Only these keys of the answer; the id always comes"
                     },
-                    "notes": { "type": "integer", "description": "How many of the latest journal notes, 10 by default; 0 for all" }
+                    "notes": { "type": "integer", "description": "How many latest journal notes, each cut at 4000 chars; 0: all, whole" }
                 },
                 "required": ["task"]
             }))

@@ -8,9 +8,9 @@ use super::super::asked::text;
 use super::super::jsonrpc::{mirrored, told};
 use super::super::mistaken::{no_document_by_that_id, no_document_called};
 use super::super::{
-    NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
-    hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened, trail,
-    up_named, when,
+    A_GIST_IN_A_LINE, A_SUMMARY_IN_A_LIST, NEWEST_SHOWN, Part, Refused, Spot, card_alone,
+    card_moved, carried_off, doc_named, gist_of, gist_told, hitch, line_of, named_all, named_doc,
+    opened, part_asked, retold, said, shortened, trail, up_named, when,
 };
 
 // A task the person put out of sight keeps its words out of sight too, as `read` does.
@@ -171,10 +171,11 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             if one.archived {
                 row.insert("apart".into(), json!(true));
             }
-            if one.flagged.is_some() && !state.held_away(one) {
+            let marked = one.flagged.is_some() && !state.held_away(one);
+            if marked {
                 row.insert("flagged".into(), json!(true));
             }
-            if !told_of.contains(&one.file) {
+            if !told_of.contains(&one.file) && !marked {
                 row.insert("loose".into(), json!(true));
             }
             Value::Object(row)
@@ -182,8 +183,10 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .collect();
 
     let pointing = pointed_at(paths, &state, &which);
+    // A page marked old waits to be deleted, so it is no sign the document wants compacting.
     let page_cards: Vec<(&str, &tisty_core::docs::Card)> = pages
         .iter()
+        .filter(|one| one.flagged.is_none() || state.held_away(one))
         .filter_map(|one| cards.get(&one.file).map(|card| (one.file.as_str(), card)))
         .collect();
     let alike = super::alike::alike(&state, kept, &pages);
@@ -270,60 +273,14 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         );
     }
     if !rows.is_empty() {
-        let away = rows
-            .iter()
-            .filter(|row| row["apart"] == json!(true))
-            .count();
-        let marked = rows
-            .iter()
-            .filter(|row| row["flagged"] == json!(true))
-            .count();
-        let adrift = rows
-            .iter()
-            .filter(|row| row["loose"] == json!(true))
-            .count();
-        shown.push_str(&format!(
-            "\n\nPages, in the order they are read ({}{}{}{}):",
-            rows.len(),
-            match away {
-                0 => String::new(),
-                _ => format!(", {away} of them put away on their own"),
-            },
-            match marked {
-                0 => String::new(),
-                _ => format!(", {marked} an agent gave up for old"),
-            },
-            match adrift {
-                0 => String::new(),
-                _ => format!(", {adrift} no line in the document names"),
-            }
-        ));
-        for row in &rows {
-            let holds = match (row["words"].as_u64(), row["sections"].as_u64()) {
-                (Some(words), Some(sections)) => format!(" ({words} words, {sections} sections)"),
-                (Some(words), None) => format!(" ({words} words)"),
-                _ => String::new(),
-            };
-            let state_of = match (
-                row["archived"] == json!(true),
-                row["apart"] == json!(true),
-                row["flagged"] == json!(true),
-            ) {
-                (true, true, _) => " — in the archive on its own, read-only",
-                (true, false, _) => " — in the archive with the document, read-only",
-                (false, _, true) => " — an agent says it has had its day",
-                (false, _, false) => "",
-            };
-            let adrift = match row["loose"] == json!(true) {
-                true => " — loose: no line names it, so the window gives it no place",
-                false => "",
-            };
-            shown.push_str(&format!(
-                "\n  {} — {}{holds}{state_of}{adrift}",
-                said(row, "doc"),
-                said(row, "title")
-            ));
-        }
+        shown.push_str(&pages_told(&rows));
+    }
+    if let Some(told) = kept_of
+        .get("gist")
+        .map(|one| gist_told(one, usize::MAX, A_SUMMARY_IN_A_LIST))
+        .filter(|one| !one.is_empty())
+    {
+        shown.push_str(&format!("\n\n{told}"));
     }
     if !alike.is_empty() {
         shown.push_str(&format!(
@@ -368,6 +325,81 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     }
     Ok(mirrored(shown, Value::Object(kept_of)))
+}
+
+fn pages_told(rows: &[Value]) -> String {
+    let mut shown = String::new();
+    let away = rows
+        .iter()
+        .filter(|row| row["apart"] == json!(true))
+        .count();
+    let marked = rows
+        .iter()
+        .filter(|row| row["flagged"] == json!(true))
+        .count();
+    let adrift = rows
+        .iter()
+        .filter(|row| row["loose"] == json!(true))
+        .count();
+    shown.push_str(&format!(
+        "\n\nPages, in the order they are read ({}{}{}{}):",
+        rows.len(),
+        match away {
+            0 => String::new(),
+            _ => format!(", {away} of them put away on their own"),
+        },
+        match marked {
+            0 => String::new(),
+            _ => format!(", {marked} an agent gave up for old"),
+        },
+        match adrift {
+            0 => String::new(),
+            _ => format!(", {adrift} no line in the document names"),
+        }
+    ));
+    let waiting: Vec<String> = rows
+        .iter()
+        .filter(|row| row["flagged"] == json!(true) && row["archived"] != json!(true))
+        .map(|row| format!("{} — {}", said(row, "doc"), said(row, "title")))
+        .collect();
+    for row in rows
+        .iter()
+        .filter(|row| row["flagged"] != json!(true) || row["archived"] == json!(true))
+    {
+        let holds = match (row["words"].as_u64(), row["sections"].as_u64()) {
+            (Some(words), Some(sections)) => format!(" ({words} words, {sections} sections)"),
+            (Some(words), None) => format!(" ({words} words)"),
+            _ => String::new(),
+        };
+        let state_of = match (row["archived"] == json!(true), row["apart"] == json!(true)) {
+            (true, true) => " — in the archive on its own, read-only",
+            (true, false) => " — in the archive with the document, read-only",
+            (false, _) => "",
+        };
+        let adrift = match row["loose"] == json!(true) {
+            true => " — loose: no line names it, so the window gives it no place",
+            false => "",
+        };
+        let gist = match row
+            .get("gist")
+            .map(|one| gist_told(one, A_GIST_IN_A_LINE, A_GIST_IN_A_LINE))
+        {
+            Some(told) if !told.is_empty() => format!("\n  · {told}"),
+            _ => String::new(),
+        };
+        shown.push_str(&format!(
+            "\n  {} — {}{holds}{state_of}{adrift}{gist}",
+            said(row, "doc"),
+            said(row, "title")
+        ));
+    }
+    if !waiting.is_empty() {
+        shown.push_str(&format!(
+            "\n  Marked old by an agent and waiting for the person to delete: {}.",
+            waiting.join("; ")
+        ));
+    }
+    shown
 }
 
 pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {

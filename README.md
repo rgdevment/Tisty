@@ -294,6 +294,9 @@ Where the saving comes from:
   as subjects in pages, never as one wall of text.
 - **No read brings more than about 12,000 characters.** Past that, a document
   asked for whole comes back as its outline.
+- **A task's page comes whole only while it is short**, about 4,000 characters.
+  Past that come its sections and the agent's latest note, and its journal is
+  counted by size, not by number of notes.
 - **The outline says what each section weighs** before anything is opened.
 - **Picking up again brings only what moved** since the last time.
 - **What is finished is archived**, and costs nothing until it is searched.

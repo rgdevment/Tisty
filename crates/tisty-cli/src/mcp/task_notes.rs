@@ -108,6 +108,14 @@ pub(super) fn noted_on_page(
         return Ok(told(said, kept));
     }
     // A page that cannot take it right now leaves the note in the History, never nowhere.
+    let length = super::chores::note_length(body);
+    if length > super::chores::NOTE_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "{title:?}'s page could not be written just now, and at {length} characters this \
+             is too long for its History, so nothing was written. Try `append_doc` again in \
+             a moment, or keep it in a document of its own with `write_doc`."
+        )));
+    }
     let zone = jiff::tz::TimeZone::system().iana_name().map(str::to_string);
     let d = tisty_core::event::LogAdd::new(ulid::Ulid::generate(), body.trim()).in_zone(zone);
     store
@@ -122,7 +130,7 @@ pub(super) fn noted_on_page(
     ))
 }
 
-const DIGEST_AT_MOST: usize = 6_000;
+pub(super) const DIGEST_AT_MOST: usize = 6_000;
 const THEIRS_SHOWN: usize = 5;
 
 struct Folded {
@@ -177,6 +185,7 @@ fn folding(
             after: tisty_core::assistant_notes::section(&after)
                 .unwrap_or_default()
                 .to_string(),
+            undone: false,
         },
         by: tisty_core::assistant_notes::signed(words),
     }))

@@ -567,3 +567,19 @@ fn showing_a_table_stirs_nothing_and_changing_one_does() {
     ));
     assert!(!only_reads("append_doc", &json!({ "arguments": {} })));
 }
+
+#[test]
+fn a_gist_said_in_words_marks_it_stale_even_with_notes_alone() {
+    let notes_alone = json!({ "notes": "Section 2 holds the rules.", "stale": true });
+    let told = gist_told(&notes_alone, 120, 120);
+    assert!(told.starts_with("Its notes: Section 2"), "{told}");
+    assert!(told.contains("stale"), "{told}");
+
+    let long = json!({ "summary": "a".repeat(200) });
+    let told = gist_told(&long, 120, 120);
+    assert_eq!(
+        told.chars().count(),
+        "An agent's summary: ".len() + 121,
+        "{told}"
+    );
+}
