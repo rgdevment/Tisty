@@ -8,6 +8,7 @@ use tisty_core::standing::Standing;
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
+use super::pressing::{name_pressing, pressed, pressing, tallied};
 use super::resuming::{
     Asked, MOVED_SHOWN, Since, ended_task, last_task, left_off, looks_now, moved_since, seen_whole,
     whose,
@@ -590,8 +591,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .count();
     let papers = state.papers().filter(|one| !state.held_away(one)).count();
     let pressing = pressing(&state, today);
+    let tally = tallied(&pressing);
     let mut counts = json!({ "open": open, "docs": papers });
-    for (how, many) in &pressing {
+    for (how, many) in &tally {
         counts[how] = json!(many);
     }
     kept.insert("counts".into(), counts);
@@ -726,8 +728,11 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             named.len(),
             folders.len(),
             tags.len(),
-            pressed(&pressing),
+            pressed(&tally),
         ));
+        if let Some(named) = name_pressing(&state, &pressing, today, &mut kept) {
+            said.push(named);
+        }
         if folders.len() > AT_A_GLANCE {
             said.push(format!(
                 "Here are the first {AT_A_GLANCE} folders; `docs` names every one."
@@ -1346,37 +1351,6 @@ impl Sifted {
 pub(super) fn standing_of(task: &Task, today: jiff::civil::Date) -> Option<Standing> {
     let how = tisty_core::standing::standing(task, today);
     (task.is_open() && how != Standing::Undated).then_some(how)
-}
-
-/// Every count goes out even at zero, so a missing key never has to be read as «none».
-pub(super) fn pressing(state: &State, today: jiff::civil::Date) -> Vec<(String, usize)> {
-    let mut many = [
-        (Standing::Overdue, 0),
-        (Standing::DueSoon, 0),
-        (Standing::Late, 0),
-    ];
-    for task in state.tasks.values().filter(|one| !one.folded()) {
-        if let Some(how) = standing_of(task, today)
-            && let Some((_, count)) = many.iter_mut().find(|(one, _)| *one == how)
-        {
-            *count += 1;
-        }
-    }
-    many.into_iter()
-        .map(|(how, count)| (json!(how).as_str().unwrap_or_default().to_string(), count))
-        .collect()
-}
-
-fn pressed(pressing: &[(String, usize)]) -> String {
-    let told: Vec<String> = pressing
-        .iter()
-        .filter(|(_, many)| *many > 0)
-        .map(|(how, many)| format!("{many} {}", how.replace('_', " ")))
-        .collect();
-    if told.is_empty() {
-        return String::new();
-    }
-    format!(" ({})", told.join(", "))
 }
 
 pub(super) fn list_of<'a>(state: &'a State, task: &Task) -> Option<&'a str> {
