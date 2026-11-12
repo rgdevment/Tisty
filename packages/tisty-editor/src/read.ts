@@ -27,21 +27,26 @@ export {
   type IdeaHead,
   iconed,
   ideaParts,
+  ideaStamp,
+  ideaWhen,
   isHue,
   PAGE_CSS,
   type PartCarded,
   type PartCards,
   partCarded,
   piece,
+  pinMarkup,
   type Read,
   type Reading,
   type ReadWord,
   readAs,
   recarded,
   type Say,
+  type Shape,
   saidKinds,
   sayingDays,
   saysAny,
+  shapeOf,
   shell,
   sideways,
   sourceOf,
@@ -82,5 +87,5 @@ export {
   type Tongue,
   wordsIn,
 } from "./side";
-export { charsAt, spanned } from "./spans";
+export { bytesAt, charsAt, spanned } from "./spans";
 export { weighed } from "./weighed";

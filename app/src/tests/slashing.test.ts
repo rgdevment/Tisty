@@ -132,6 +132,18 @@ describe("the / menu in a block", () => {
     expect(said.text.slice(0, said.at)).toBe("```mermaid\n");
   });
 
+  it("sticks a note dated now, in a colour of its own, to the right", () => {
+    const stuck = typed("/", "callout-idea").text;
+    expect(stuck).toMatch(/^> \[!IDEA\] \d{4}-\d{2}-\d{2} \d{2}:\d{2} · [a-z]+ · right\n> $/);
+    expect(asked("/ide")?.options.some((each) => each.label.includes("Idea"))).toBe(true);
+    const after = "> [!IDEA] 2026-11-12 09:00 · teal · right\n> una\n\n/";
+    for (let n = 0; n < 24; n++) {
+      const heads = [...typed(after, "callout-idea").text.matchAll(/\[!IDEA\] [^·]+ · (\w+)/g)];
+      expect(heads).toHaveLength(2);
+      expect(heads[1][1]).not.toBe("teal");
+    }
+  });
+
   it("writes a callout in Tisty's own words", () => {
     expect(typed("/", "callout-tip").text).toBe("> [!TIP]\n> ");
   });

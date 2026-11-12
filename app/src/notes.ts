@@ -1,4 +1,4 @@
-import { IDEA_HUES, ideaParts, saysAny } from "tisty-editor/read";
+import { IDEA_HUES, ideaParts, ideaStamp } from "tisty-editor/read";
 
 export interface Note {
   heading: string;
@@ -13,7 +13,6 @@ export interface Board {
 const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
 const FENCE = /^[>\s]*(```|~~~)/;
 const QUOTED = /^\s*>/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/;
 
 export const IDEA_AT_MOST = 140;
 
@@ -144,66 +143,8 @@ export const added = (body: string, heading: string): string => {
   return sewn(sheet);
 };
 
-const two = (n: number) => String(n).padStart(2, "0");
+export const stampOf = ideaStamp;
 
-export const stampOf = (at: Date): string =>
-  `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
-
-export function saidWhen(heading: string, locale: string): string {
-  const stamp = STAMP.exec(ideaParts(heading).when ?? "");
-  if (!stamp) {
-    return heading
-      .split(" · ")
-      .map((part) => part.trim())
-      .filter((part) => part && !saysAny(ideaParts(part)))
-      .join(" · ");
-  }
-  const [year, month, day] = stamp.slice(1, 4).map(Number);
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(
-    new Date(year, month - 1, day),
-  );
-  return stamp[4] ? `${date} · ${stamp[4]}:${stamp[5]}` : date;
-}
-
-export interface Shape {
-  tilt: number;
-  hue: number;
-  wide: number;
-  drop: number;
-  nudge: number;
-  space: number;
-  hold: "pin" | "tape" | "corner-left" | "corner-right";
-  angle: number;
-  along: number;
-  pin: number;
-}
-
-const HOLDS: Shape["hold"][] = ["pin", "tape", "corner-left", "corner-right"];
-
-const hashed = (text: string): number => {
-  let h = 0x811c9dc5;
-  for (const letter of text) h = Math.imul(h ^ (letter.codePointAt(0) ?? 0), 0x01000193);
-  h ^= h >>> 16;
-  h = Math.imul(h, 0x85ebca6b);
-  h ^= h >>> 13;
-  h = Math.imul(h, 0xc2b2ae35);
-  return (h ^ (h >>> 16)) >>> 0;
-};
+export { ideaWhen as saidWhen, type Shape, shapeOf } from "tisty-editor/read";
 
 export const HUES = 12;
-
-export function shapeOf(heading: string, nth = 0): Shape {
-  const pick = (salt: number, range: number) => hashed(`${salt}|${heading}#${nth}`) % range;
-  return {
-    tilt: pick(1, 15) - 7,
-    hue: pick(2, HUES),
-    wide: pick(3, 7),
-    drop: pick(4, 6),
-    nudge: pick(5, 7) - 3,
-    space: pick(10, 6),
-    hold: HOLDS[pick(6, HOLDS.length)],
-    angle: pick(7, 31) - 15,
-    along: pick(8, 61) + 20,
-    pin: pick(9, 4),
-  };
-}

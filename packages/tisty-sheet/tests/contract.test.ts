@@ -21,6 +21,11 @@ type Style = {
         hues: string[];
         fill: { light: Record<string, string>; dark: Record<string, string> };
         ink: { light: string; dark: string };
+        pins: { light: string[]; dark: string[] };
+        needle: { light: string; dark: string };
+        size: string;
+        line_height: number;
+        tape: { light: string; dark: string };
         width: { least: string; most: string };
         padding: string;
         margin: string;
@@ -61,7 +66,7 @@ const said = (css: string, selector: string, property: string): string | undefin
 
 const tokensOf = (css: string) =>
   Object.fromEntries(
-    [...css.matchAll(/--tisty-([a-z-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value]),
+    [...css.matchAll(/--tisty-([a-z0-9-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value]),
   );
 const colorsOf = (css: string) =>
   Object.fromEntries(Object.entries(tokensOf(css)).filter(([name]) => !name.startsWith("idea-")));
@@ -77,9 +82,23 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     const [light, dark] = tokens.split('[data-theme="dark"]');
     expect(colorsOf(light)).toEqual(style.colors.light);
     expect(colorsOf(dark)).toEqual(style.colors.dark);
-    const { fill, ink } = style.callouts.idea;
-    expect(ideasOf(light)).toEqual({ ...fill.light, ink: ink.light });
-    expect(ideasOf(dark)).toEqual({ ...fill.dark, ink: ink.dark });
+    const { fill, ink, pins, tape, needle } = style.callouts.idea;
+    const held = (theme: "light" | "dark") =>
+      Object.fromEntries(pins[theme].map((one, n) => [`pin-${n}`, one]));
+    expect(ideasOf(light)).toEqual({
+      ...fill.light,
+      ink: ink.light,
+      ...held("light"),
+      tape: tape.light,
+      needle: needle.light,
+    });
+    expect(ideasOf(dark)).toEqual({
+      ...fill.dark,
+      ink: ink.dark,
+      ...held("dark"),
+      tape: tape.dark,
+      needle: needle.dark,
+    });
   });
 
   it("its letters", () => {
@@ -156,11 +175,18 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, note, "min-width")).toBe(idea.width.least);
     expect(said(page, note, "max-width")).toBe(idea.width.most);
     expect(said(page, note, "padding")).toBe(idea.padding);
+    expect(said(page, note, "font-size")).toBe(idea.size);
+    expect(Number(said(page, note, "line-height"))).toBe(idea.line_height);
     expect(said(page, note, "margin")).toBe(idea.margin);
     for (const side of ["right", "left"] as const) {
       expect(said(page, `${note}[data-side="${side}"]`, "margin")).toBe(idea.beside[side]);
       expect(said(page, `${note}[data-side="${side}"]`, "float")).toBe(side);
     }
+    const below = ["hr", ".sheet-turn", ".table", "figure", "pre", "details", ".math"];
+    for (const wide of [...below, "p:has(> img:only-child)"])
+      expect(said(page, `.page > ${wide}`, "clear"), wide).toBe("both");
+    expect(said(page, ".page", "display")).toBe("flow-root");
+    expect(said(page, "blockquote.callout > .sticky-pin:first-child + *", "margin-top")).toBe("0");
     for (const hue of idea.hues) {
       expect(said(page, `${note}[data-hue="${hue}"]`, "--idea-fill")).toBe(
         `var(--tisty-idea-${hue})`,
