@@ -2,10 +2,11 @@
   "author": "rgdevment",
   "files": {
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
+    "en/brainstorm.png": "37f2143ccad1a144b627416f60751445d304bb191df01fad699ec7fb32ce233c",
     "en/capture.png": "230006bf09f9f2dd20d168c50c540866a45eed4d723ed2633bc78db94e340b9d",
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
     "en/diagrams.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
-    "en/guide.md": "f12281ccc4450ec5a21582e21f30b22b5ead7fbd75e3f2479a461ab3cbcda541",
+    "en/guide.md": "060ae77a47fd58bcec5852fcb91f0c5a0d698daba7cf2fc06ce2f8199b7fc083",
     "en/languages.png": "5aada4eef5d3d6b567619043adbdbbb901211e364753ee7a08ccb64abd5c6812",
     "en/page.md": "864b067c1331a669d9bf2c7d27f95719593aeda3cd964206b7b56cbaf078909f",
     "en/priorities.png": "ba5db54be0e48ddd5ecc84b4caea07622da38bb7023b3ad1cf308b822b66c439",
@@ -21,7 +22,8 @@
     "es/cartilla.pdf": "284c3eef816388b2062d7aa44c587529a978fa6d4a99ad8c268cd2b7e2b82682",
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
-    "es/guia.md": "40588927fe86cd0a81d37a3eb25f2ebefbaf97cd6b1d7c075f9d5933a872d5a7",
+    "es/guia.md": "32dad98eef6360db9251f035325ab8ff0893fe54d5d0df578b205712d070683c",
+    "es/ideas.png": "d361f820cf77500da4aea630151226effcefdf3625b2fa4219502bd77b393507",
     "es/idiomas.png": "5aada4eef5d3d6b567619043adbdbbb901211e364753ee7a08ccb64abd5c6812",
     "es/muestra.md": "5f151d49ae2d2e830f7a8adc82d7aeffe49932e9e6a3462095f1e5c51c576e88",
     "es/pagina.md": "a5d5aea1284ed3a2b6fed7759e1114e1042102577756a559a698992b468cf2c5",
@@ -39,6 +41,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "mpOUrqW6DQICYvp29xRTFe0JEXj_UECB1TTpM5RrGhHGEYcxcTR5CVYnhxHbzPOMEPzJEmSYfhr9Myc0-O7ZBQ"
+    "sig": "YF992214b_dQewxpibMePIMElju7i-0zEMvCKkjoZEbINxjTtXqwrvBZ0sWAUkb4kiN4t978RWMSDjzw5ZkSDw"
   }
 }
