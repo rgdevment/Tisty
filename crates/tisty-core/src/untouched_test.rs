@@ -86,6 +86,7 @@ const SHIPPED_PAGE: &str = include_str!("../../../fixtures/guide-1.24.4/pagina.m
 fn as_in_1_24_4(body: &str) -> Said {
     Said {
         key: None,
+        brainstorm: false,
         lang: None,
         title: crate::docs::titled(body),
         bytes: None,

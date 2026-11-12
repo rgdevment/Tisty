@@ -278,7 +278,7 @@ pub(super) fn standing_out(body: &str) -> Vec<String> {
 }
 
 /// A document imported from Windows keeps its line endings, and nobody types those.
-pub(super) fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
+pub fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
     if was.contains(old) || !was.contains("\r\n") {
         return (old.to_string(), new.to_string());
     }

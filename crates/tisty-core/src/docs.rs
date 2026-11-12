@@ -20,10 +20,10 @@ pub use carried::{
 };
 pub use prints::{Prints, Seen};
 pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
-use text::{Fencing, as_written, unspanned, wordless};
+use text::{Fencing, unspanned, wordless};
 pub use text::{
-    Heading, ends_fenced, fenced_between, fencing, headings, lines_between, marked, outlined,
-    section_lines, settled, spelled, titled,
+    Heading, as_written, ends_fenced, fenced_between, fencing, headings, lines_between, marked,
+    outlined, section_lines, settled, spelled, titled,
 };
 
 const EXTENSION: &str = "md";

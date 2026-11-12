@@ -166,3 +166,48 @@ fn an_idea_is_not_filed_in_a_document_that_is_not_there() {
 
     assert_eq!(refused.code, "noSuchDoc");
 }
+
+#[test]
+fn the_person_takes_an_agents_mark_off_one_idea_and_leaves_the_rest() {
+    let (_tmp, mut session) = session();
+    let made = jotting(
+        &mut session,
+        "entradas del concierto",
+        "Lluvia de ideas",
+        at(7),
+        0,
+    )
+    .unwrap();
+    jotting(
+        &mut session,
+        "pan con masa madre",
+        "Lluvia de ideas",
+        at(9),
+        5,
+    )
+    .unwrap();
+    let on = tisty_core::brainstorm::ideas_on(&body(&session, &made.file));
+    let id = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == made.file)
+        .unwrap()
+        .id;
+    for idea in &on {
+        session
+            .commit(Op::IdeaFlag {
+                id,
+                idea: idea.clone(),
+                d: tisty_core::event::Flag::new("ya fue").because(Some("obsolete".into()), None),
+            })
+            .unwrap();
+    }
+
+    unflagging(&mut session, &made.file, on[0].clone()).unwrap();
+    unflagging(&mut session, &made.file, on[0].clone()).unwrap();
+
+    let left = &session.state.docs[&id].ideas_flagged;
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].idea, on[1]);
+}

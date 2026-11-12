@@ -10,8 +10,8 @@ mod task;
 
 pub use date::DateSpec;
 pub use folder::{
-    Compacted, DEEPEST, DocId, FLAG_REASONS, FOLDER_NAME_AT_MOST, Flagged, Folder, FolderId, Kept,
-    reason_points_elsewhere,
+    Compacted, DEEPEST, DocId, FLAG_REASONS, FOLDER_NAME_AT_MOST, Flagged, FlaggedIdea, Folder,
+    FolderId, Kept, reason_points_elsewhere,
 };
 pub use list::{FIRST, List, ListId, first_lists, sown, spoken};
 pub use repeat::{Cadence, From, Repeat, Unit};

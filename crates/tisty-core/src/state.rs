@@ -425,6 +425,10 @@ impl State {
             Op::DocUnarchive { id } => self.shelve(*id, false, true),
             Op::DocFlag { id, d } => self.doc_flagged(event, id, d),
             Op::DocUnflag { id } => self.doc_marked(id, |doc| doc.flagged = None),
+            Op::IdeaFlag { id, idea, d } => self.idea_flagged(event, id, idea, d),
+            Op::IdeaUnflag { id, idea } => {
+                self.doc_marked(id, |doc| doc.ideas_flagged.retain(|one| one.idea != *idea))
+            }
             Op::DocCompacted { id, print, before } => {
                 let said = crate::model::Compacted {
                     at: event.timestamp,

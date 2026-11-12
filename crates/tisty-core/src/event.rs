@@ -1,7 +1,7 @@
 mod op;
 
 pub use op::{
-    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Edited, Filed, Flag, FolderAdd, Held, KNOWN_OPS,
+    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Edited, Filed, Flag, FolderAdd, Held, Idea, KNOWN_OPS,
     ListAdd, LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged, RETIRED_OPS,
     Remembered, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd,
     TaskMove, TaskPatch, Tongue,
@@ -129,6 +129,8 @@ impl Event {
             | Op::DocUnarchive { id }
             | Op::DocFlag { id, .. }
             | Op::DocUnflag { id }
+            | Op::IdeaFlag { id, .. }
+            | Op::IdeaUnflag { id, .. }
             | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocLock { id }

@@ -5,6 +5,7 @@ mod chores;
 mod guide;
 mod handing;
 mod helping;
+mod ideas;
 mod jsonrpc;
 mod looking;
 mod mending;
@@ -1259,9 +1260,19 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         });
     }
 
-    match body.chars().count() > WHOLE_UP_TO {
-        true => Ok(Part::Outline),
-        false => Ok(held(1, last)),
+    match (body.chars().count() > WHOLE_UP_TO, ideas::is_sheet(body)) {
+        (false, _) => Ok(held(1, last)),
+        // A sheet's headings are only the minutes its ideas came, so its outline would say nothing.
+        (true, true) => {
+            let to = as_far_as(body, 1, WHOLE_UP_TO, last);
+            Ok(Part::Held {
+                body: tisty_core::docs::lines_between(body, 1, to),
+                from: 1,
+                to,
+                next: (to < last).then_some(to + 1),
+            })
+        }
+        (true, false) => Ok(Part::Outline),
     }
 }
 

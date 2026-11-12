@@ -98,6 +98,11 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
     let with = beside(&state, args)?;
+    if let Beside::Doc(which) = &with
+        && super::ideas::sheet_named(paths, &state, which).is_some()
+    {
+        return Err(super::ideas::nothing_but_ideas(&state, which));
+    }
 
     let asked = std::path::Path::new(&said);
     let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {

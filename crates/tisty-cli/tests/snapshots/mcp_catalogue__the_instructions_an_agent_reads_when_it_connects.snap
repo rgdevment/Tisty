@@ -12,10 +12,10 @@ Tisty is one person's tasks and documents, on this machine.
 - File a task with its `source` when you have one: Tisty refuses a second one from it.
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.
 - A refused call says why and what would work: do that, never resend it unchanged.
-- Plain Markdown is fine: Tisty turns it into its own language on the way in.
 
 Before you act, ask for the short guide it needs:
 - Filing or working a task: `rules` «tasks» (steps, parts, dates, reminders, priority, saying done, the archive).
 - Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to Markdown, one topic at a time.
 - Tidying, consolidating or compacting: `rules` «tidying».
+- Jotting or sorting ideas on Brainstorm: `rules` «ideas».
 - Anything else: `rules` alone gives the basics and this index again.

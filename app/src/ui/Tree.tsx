@@ -33,6 +33,7 @@ interface Props {
   papers: Papers;
   pinned?: string | null;
   ideas?: number;
+  ideasMarked?: number;
   unfolded?: boolean;
   reveal?: { folder: string; at: number } | null;
   open?: string;
@@ -53,6 +54,7 @@ export default function Tree({
   papers,
   pinned,
   ideas,
+  ideasMarked,
   unfolded = false,
   reveal,
   open,
@@ -601,6 +603,16 @@ export default function Tree({
                   clientNamed(doc.flagged.via)
                     ? fill("docFlaggedBy", clientNamed(doc.flagged.via) as string)
                     : t("docFlagged")
+                }
+                className="shrink-0 text-[9px] text-hue-teal"
+              >
+                ◆
+              </span>
+            )}
+            {doc === pin && ideasMarked !== undefined && ideasMarked > 0 && (
+              <span
+                title={
+                  ideasMarked === 1 ? t("ideaMarked") : fill("ideasMarked", String(ideasMarked))
                 }
                 className="shrink-0 text-[9px] text-hue-teal"
               >

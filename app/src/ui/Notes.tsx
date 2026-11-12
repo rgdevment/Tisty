@@ -1,7 +1,7 @@
 import { emit } from "@tauri-apps/api/event";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { ideaToDoc } from "../brainstorm";
-import { capture, type Filed, type Task } from "../core";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { ideaToDoc, ideaUnflag } from "../brainstorm";
+import { capture, type Filed, type IdeaMarked, type Task } from "../core";
 import { fill, locale, t } from "../locales";
 import "../notes.css";
 import {
@@ -20,9 +20,11 @@ import {
   shifted,
   without,
 } from "../notes";
+import { sure } from "../sure";
 import { Left } from "./Field";
 import FileIdea from "./FileIdea";
 import Glyph from "./Glyph";
+import { IdeaMarkBar, IdeaMarkStrip, markedBy, markOf } from "./IdeaMark";
 
 interface Props {
   title: string;
@@ -35,6 +37,7 @@ interface Props {
   onError?: (problem: unknown) => void;
   onDoc?: (file: string) => void;
   onTask?: (task: Task) => void;
+  onMarks?: () => void;
 }
 
 interface Lifted {
@@ -72,6 +75,7 @@ export default function Notes({
   onError = () => {},
   onDoc,
   onTask,
+  onMarks = () => {},
 }: Props) {
   const [sent, send] = useSent();
   const [raw, setRaw] = useState(false);
@@ -82,6 +86,37 @@ export default function Notes({
   const failed = (problem: unknown) => onError(problem);
   const { notes } = boardOf(body);
   const intro = introOf(body);
+  const marks = known.find((one) => one.file === own)?.ideasFlagged ?? [];
+  const marked = notes.filter((note) => markOf(marks, note));
+  const unmark = (gone: Note[]) =>
+    void Promise.all(gone.map((note) => ideaUnflag(own, note.heading, note.text)))
+      .then(onMarks)
+      .catch(failed);
+  const dropMarked = (gone: Note[]) => {
+    onWrite(gone.reduce((left, note) => without(left, note), latest.current));
+    unmark(gone);
+  };
+  const dropAllMarked = async () => {
+    const listed = marked.map((one) => `«${one.text}»`).join("\n");
+    if (marked.length > 1 && !(await sure(fill("ideasDropAllSure", String(marked.length), listed))))
+      return;
+    dropMarked(marked);
+  };
+  const stripOf = (note: Note) => {
+    const mark = markOf(marks, note);
+    return mark ? (
+      <IdeaMarkStrip
+        mark={mark}
+        reading={reading}
+        notes={notes}
+        known={known}
+        onDoc={onDoc}
+        onTask={onTask}
+        onDrop={() => dropMarked([note])}
+        onUnmark={() => unmark([note])}
+      />
+    ) : null;
+  };
   const [fresh, setFresh] = useState<number | null>(null);
   const [lifted, setLifted] = useState<Lifted | null>(null);
   const newestFirst = notes
@@ -182,6 +217,14 @@ export default function Notes({
           </button>
         </p>
       )}
+      {!raw && marked.length > 0 && (
+        <IdeaMarkBar
+          marks={marked.map((note) => markOf(marks, note)).filter((one) => one !== undefined)}
+          reading={reading}
+          onDropAll={() => void dropAllMarked()}
+          onUnmarkAll={() => unmark(marked)}
+        />
+      )}
       {!raw && intro && <p className="mt-3 text-[12.5px] whitespace-pre-wrap text-soft">{intro}</p>}
       {raw ? (
         <pre className="mt-6 overflow-x-auto rounded-[10px] border border-line bg-bg p-5 font-mono text-[12.5px] whitespace-pre-wrap text-ink">
@@ -198,6 +241,8 @@ export default function Notes({
               note={note}
               nth={nth}
               hue={hue}
+              mark={markOf(marks, note)}
+              strip={stripOf(note)}
               shown={shown}
               reading={reading}
               focused={fresh === at}
@@ -296,6 +341,8 @@ function useSlides(wall: React.RefObject<HTMLUListElement | null>, order: string
 interface StickyProps {
   stamp: string;
   note: Note;
+  mark?: IdeaMarked;
+  strip?: ReactNode;
   nth: number;
   hue: number;
   shown: number;
@@ -317,6 +364,8 @@ const LATER = new Set(["ArrowDown", "ArrowRight"]);
 function Sticky({
   stamp,
   note,
+  mark,
+  strip,
   nth,
   hue,
   shown,
@@ -351,6 +400,7 @@ function Sticky({
       data-pin={shape.pin}
       data-lifted={lift ? "" : undefined}
       data-target={target ? "" : undefined}
+      data-marked={mark ? "" : undefined}
       onPointerDown={(e) => {
         if (reading || e.button !== 0) return;
         if ((e.target as HTMLElement).closest("textarea, button")) return;
@@ -376,6 +426,11 @@ function Sticky({
       }
     >
       {shape.hold === "pin" ? <Pin /> : <span aria-hidden="true" className="sticky-hold" />}
+      {mark && (
+        <span className="sticky-corner" title={markedBy(mark.mark)}>
+          ◆
+        </span>
+      )}
       <p className="sticky-when">{saidWhen(note.heading, locale())}</p>
       {reading ? (
         <p className="sticky-words">{note.text}</p>
@@ -392,12 +447,13 @@ function Sticky({
           className="sticky-words"
         />
       )}
-      {!reading && (
+      {strip}
+      {!reading && !mark && (
         <span className="sticky-left">
           <Left most={IDEA_AT_MOST} used={used} />
         </span>
       )}
-      {!reading && (
+      {!reading && !mark && (
         <span className="sticky-tools">
           {note.text && (
             <button type="button" onClick={onFile} aria-label={t("ideaFile")} title={t("ideaFile")}>

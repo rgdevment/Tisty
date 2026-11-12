@@ -547,7 +547,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "topic": {
                         "type": "string",
-                        "enum": ["tasks", "documents", "tidying", "all"],
+                        "enum": ["tasks", "documents", "tidying", "ideas", "all"],
                         "description": "The guide; left out, the basics and the index"
                     }
                 }

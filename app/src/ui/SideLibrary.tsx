@@ -157,6 +157,7 @@ function Wide({
               papers={left}
               pinned={pinned?.file ?? null}
               ideas={pinned?.ideas}
+              ideasMarked={pinned?.marked}
               reveal={revealing}
               unfolded={Boolean(asked)}
               open={chosen.doc}

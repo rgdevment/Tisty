@@ -243,6 +243,9 @@ pub(super) fn proposed(
             }),
         ));
     };
+    let from_idea = source
+        .as_deref()
+        .and_then(|one| super::ideas::made_a_task(paths, &state, &mut store, one));
     let landed = text(args, "list");
     let where_at = match &landed {
         Some(name) => format!("in {name}"),
@@ -274,6 +277,12 @@ pub(super) fn proposed(
     };
     if landed.is_none() && whole.is_none() {
         parts_said.push_str(&super::placing::loose_task(&state, &title));
+    }
+    if let Some(moved) = from_idea {
+        parts_said.push_str(&moved.said);
+        if moved.off {
+            kept.insert("from_idea".into(), json!(moved.said.trim()));
+        }
     }
     Ok(told(
         match planned {

@@ -2258,6 +2258,7 @@ fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
                     order: "a0".into(),
                     said: Some(crate::event::Said {
                         key: None,
+                        brainstorm: false,
                         lang: None,
                         title: "Acta".into(),
                         bytes: None,
@@ -3157,6 +3158,7 @@ fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
                 id: one,
                 d: crate::event::Said {
                     key: None,
+                    brainstorm: false,
                     lang: None,
                     title: "gcp".into(),
                     bytes: None,
@@ -3935,6 +3937,69 @@ fn what_an_assistant_marked_carries_the_hand_that_said_it() {
 
     state.apply(&ev(3, "dev_laptop", Op::DocUnflag { id: one }));
     assert!(state.docs[&one].flagged.is_none(), "the person took it off");
+}
+
+#[test]
+fn an_idea_marked_on_a_sheet_leaves_the_sheet_itself_unmarked() {
+    let mut state = State::default();
+    let sheet = doc(&mut state, "a3f1-0001", None);
+    let idea = |text: &str| crate::event::Idea {
+        heading: "2026-06-14 08:12 · pink".into(),
+        text: text.into(),
+    };
+
+    let mut said = ev(
+        2,
+        "dev_agent",
+        Op::IdeaFlag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+            d: crate::event::Flag::new("el concierto ya fue")
+                .because(Some("obsolete".into()), None),
+        },
+    );
+    said.via = Some("claude-code".into());
+    state.apply(&said);
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::IdeaFlag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+            d: crate::event::Flag::new("fue el 20 de julio").because(Some("obsolete".into()), None),
+        },
+    ));
+
+    let kept = &state.docs[&sheet];
+    assert!(kept.flagged.is_none(), "the whole sheet was marked");
+    assert_eq!(kept.ideas_flagged.len(), 1, "marking twice kept two marks");
+    assert_eq!(kept.ideas_flagged[0].mark.body, "fue el 20 de julio");
+
+    state.apply(&ev(
+        4,
+        "dev_laptop",
+        Op::IdeaUnflag {
+            id: sheet,
+            idea: idea("otra idea con la misma hora"),
+        },
+    ));
+    assert_eq!(
+        state.docs[&sheet].ideas_flagged.len(),
+        1,
+        "another idea lost its mark"
+    );
+    state.apply(&ev(
+        5,
+        "dev_laptop",
+        Op::IdeaUnflag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+        },
+    ));
+    assert!(
+        state.docs[&sheet].ideas_flagged.is_empty(),
+        "the person took it off"
+    );
 }
 
 #[test]
@@ -4899,6 +4964,7 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
             id: owned,
             d: crate::event::Said {
                 key: None,
+                brainstorm: false,
                 lang: None,
                 title: "gcp".into(),
                 bytes: None,

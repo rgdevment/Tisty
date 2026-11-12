@@ -17,7 +17,6 @@ what you ruled out too, then `say_done`.\n\
 - File a task with its `source` when you have one: Tisty refuses a second one from it.\n\
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.\n\
 - A refused call says why and what would work: do that, never resend it unchanged.\n\
-- Plain Markdown is fine: Tisty turns it into its own language on the way in.\n\
 \n\
 Before you act, ask for the short guide it needs:\n\
 - Filing or working a task: `rules` «tasks» (steps, parts, dates, reminders, priority, saying \
@@ -25,6 +24,7 @@ done, the archive).\n\
 - Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
 Markdown, one topic at a time.\n\
 - Tidying, consolidating or compacting: `rules` «tidying».\n\
+- Jotting or sorting ideas on Brainstorm: `rules` «ideas».\n\
 - Anything else: `rules` alone gives the basics and this index again.";
 
 const TAUGHT: &str = "\
@@ -55,7 +55,7 @@ in the document \"Release plan\", in the folder Work». A new task or document c
 Anywhere in an answer, what sits in square brackets is an id, kept for your calls. Show an id \
 only when the person asks for it by name.
 
-## A task or a document
+## A task, a document or an idea
 
 Tell them apart before you write either, and when you cannot tell, ask the person whether it is \
 something to do or something to keep.
@@ -70,6 +70,13 @@ A document is something to keep and read again: a manual, a recipe, a procedure,
 client or a machine, minutes kept over a year. It is corrected, added to and grown for years, \
 and it rarely ends. Adding to the document that already covers a subject beats writing a second \
 one.
+
+An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
+something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for the \
+person to sort it out: it becomes a task, goes into the document on its subject, or is set aside. \
+A note is something else: the dated line in a task's journal, which `note` writes. When the \
+person says «jot this idea» or asks for a brainstorm, the ideas go on Brainstorm, as `rules` \
+«ideas» says.
 
 So: something that will be done is a task — `propose` it. Something that will be looked up \
 again is a document — `write_doc`, or update the one that covers it. A recipe is not a \
@@ -277,7 +284,8 @@ questions listed — and tell them it is ready; never paste it whole as the hand
 Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
 person, suggesting a name — «Shall I keep it in a new folder Work / Login?» — and make the folder \
-only once they agree. A document stays outside every folder only when the person asks for that.
+only once they agree. A document stays outside every folder only when the person asks for that, \
+or when it is Brainstorm, which the window keeps pinned at the top.
 
 A document can hold pages, one level deep, for one long thing in parts — a book by chapters, a \
 year of minutes; `page_doc` and `write_doc` with `page_of` say how. A locked document, or \
@@ -364,7 +372,8 @@ even when it may be worth keeping: keeping it is the person's choice. «Clean up
 away»: `archive_doc` puts a document away, or \
 brings it back, only when the person says archive, put away or bring back. \
 Nothing here closes, drops or erases a task: finishing one is `say_done`, and the closing stays \
-theirs.
+theirs. An idea on Brainstorm is marked the same way, one by one, never the whole sheet: `rules` \
+«ideas».
 
 ## Writing
 
@@ -379,6 +388,48 @@ under `turned`. A document is tagged by writing #word in its own text, for what 
 reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest are dropped. `language` \
 lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
+
+## Brainstorm
+
+An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
+something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for the \
+person to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
+
+Brainstorm is the person's sheet of ideas: an ordinary document with `brainstorm: on` in its \
+properties, pinned at the top of the Library and shown as sticky notes, whatever title it carries \
+in their language. `catch_up` names it and says how many ideas wait. Each idea is a section headed \
+by the minute it came and its colour — `## 2026-11-12 09:40 · yellow` — with its words under it, \
+140 characters at most. An idea is named in a call by the sheet's id, `#` and its heading without \
+the hashes: `46zdmrtt-0109#2026-11-12 09:40 · yellow`. `read_doc` brings the sheet by parts, oldest \
+idea first, never as its outline; the window shows the newest first.
+
+To jot ideas — the person's own, or ones you think up with them on a subject they asked about — \
+`append_doc` on the sheet with one idea per paragraph, or one per item of a list. Tisty dates each \
+one now and gives it its colour. An idea past 140 characters is refused: a longer thought belongs \
+in a document. Never write a heading on the sheet, and never jot what the person did not ask for.
+
+Sorting is the person's to ask for and theirs to decide. Read the sheet, then say in a few lines \
+what you see: which ideas belong together and why, which already have a task or a document, which \
+are old or done. Propose, then act on what they agree to:
+- An idea that is something to do becomes a task: `propose` it in its list with `source` set to \
+the idea's name, so it never makes two. Tisty takes it off the sheet, as the window's «Turn into a \
+task» does.
+- An idea that belongs in a document goes into the one on its subject — `find` it first — as a \
+note that quotes it, added with `append_doc`: `> [!NOTE]`, the sheet's title, ` · ` and today's \
+date on the first line, then the idea's lines, each opening with `> `. Tisty takes it off the \
+sheet, as the window's «File in a document» does.
+- A group of alike ideas, or one that grows into a plan, becomes a document or a passage of one, \
+in your words, where its subject lives. Then mark each idea it gathered `moved`, with `instead` \
+the document or task that holds it now.
+- An idea that is done, out of date, a copy of another or a scratch is marked with `flag_doc`: \
+its name in `doc`, several in one call, the `reason` — `duplicate_of` with `instead` the idea \
+that stays, `moved`, `obsolete`, `wrong` or `scratch` — and in `body` why, in the person's \
+language. The person sees a ◆ on each note, and deletes it or takes the mark off.
+
+No other way takes an idea off the sheet: a write that leaves one out is refused, and so is \
+marking the whole sheet, which only the person deletes or archives, from the window. Reword an \
+idea only when the person asks, within 140 characters. Its place on the sheet and its colour are \
+the person's.
 
 ## When a call is refused
 
@@ -413,6 +464,7 @@ const TOPICS: &[(&str, &[&str])] = &[
         ],
     ),
     ("tidying", &["Compacting"]),
+    ("ideas", &["Brainstorm"]),
 ];
 
 const INDEX: &str = "\
@@ -425,6 +477,8 @@ search.
 updating before adding, marking what has had its day, and writing.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
 compacting them.
+- `rules` «ideas»: Brainstorm, the person's sheet of ideas: jotting them, turning them into tasks \
+and documents, and marking the old ones.
 - `rules` «all»: every rule at once.
 - `language`: what Tisty adds to Markdown, one topic at a time; plain Markdown needs none of it.";
 
@@ -455,7 +509,7 @@ fn topical(title: &str) -> Option<&'static str> {
 pub(super) fn rules(args: &Value) -> Value {
     let said = match args["topic"].as_str() {
         Some("all") => joined(|_| true),
-        Some(topic @ ("tasks" | "documents" | "tidying")) => {
+        Some(topic @ ("tasks" | "documents" | "tidying" | "ideas")) => {
             joined(|title| topical(title) == Some(topic))
         }
         _ => format!("{}\n\n{INDEX}", joined(|title| topical(title).is_none())),

@@ -3,7 +3,7 @@ use tisty_core::Paths;
 
 use super::looking::named_task;
 use super::resuming::{last_task, left_off, own_events_newest_first};
-use super::{TOOLS_STAY_FRESH, admitted};
+use super::{TOOLS_STAY_FRESH, admitted, doc_named};
 
 const SAID_AT_MOST: usize = 2_000;
 
@@ -16,7 +16,7 @@ struct Prompt {
     asks: fn(&Paths, Option<&str>) -> String,
 }
 
-const PROMPTS: [Prompt; 5] = [
+const PROMPTS: [Prompt; 7] = [
     Prompt {
         name: "pick_up",
         title: "Pick up where I left off",
@@ -60,6 +60,24 @@ const PROMPTS: [Prompt; 5] = [
         takes: "subject",
         takes_what: "What the decision is about; left out, plain from the conversation",
         asks: keeping,
+    },
+    Prompt {
+        name: "brainstorm",
+        title: "Brainstorm ideas with me",
+        description: "Think up short ideas on a subject together, and jot on Brainstorm the ones I \
+                      keep.",
+        takes: "subject",
+        takes_what: "What the ideas are about; left out, what we have been talking about",
+        asks: brainstorming,
+    },
+    Prompt {
+        name: "sort_ideas",
+        title: "Sort out my Brainstorm",
+        description: "Group the ideas waiting on Brainstorm and propose which become tasks, which \
+                      go into documents and which are marked as old.",
+        takes: "subject",
+        takes_what: "A word for the ideas to sort; left out, all of them",
+        asks: sorting_ideas,
     },
 ];
 
@@ -249,5 +267,50 @@ fn keeping(_: &Paths, said: Option<&str>) -> String {
          which it replaces. If no document covers the subject, \
          ask me which folder it belongs in before `write_doc`. Tell me the document's title and \
          folder."
+    )
+}
+
+fn sheet_named(paths: &Paths) -> String {
+    admitted(paths)
+        .ok()
+        .flatten()
+        .and_then(|(state, _)| {
+            super::ideas::sheet(paths, &state).map(|(kept, _)| doc_named(&state, &kept.file))
+        })
+        .map_or_else(
+            || "Brainstorm (`catch_up` names it)".to_string(),
+            |named| format!("Brainstorm, {named}"),
+        )
+}
+
+fn brainstorming(paths: &Paths, said: Option<&str>) -> String {
+    let about = match said {
+        Some(said) => format!("about {}", quoted(said)),
+        None => "about what we have been talking about".to_string(),
+    };
+    format!(
+        "Brainstorm with me in Tisty {about}. Ask `rules` «ideas» first. Offer ideas a few words \
+         long, 140 characters at most, numbered so I can pick, and say which ones are already on \
+         {} or already a task or a document (`find`). Jot nothing until I say which to keep; then \
+         `append_doc` the ones I keep on Brainstorm, one per item of a list, and tell me how many \
+         went on.",
+        sheet_named(paths)
+    )
+}
+
+fn sorting_ideas(paths: &Paths, said: Option<&str>) -> String {
+    let which = match said {
+        Some(said) => format!("the ideas about {}", quoted(said)),
+        None => "every idea".to_string(),
+    };
+    format!(
+        "Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read_doc` {}, and \
+         look at {which} on it. Tell me in a few lines, by their words and never by id, which \
+         belong together and why, which would become a task and in which list, which belong in a \
+         document and which one (`find` it), and which are done, old or repeated. Change nothing \
+         until I say which. Then do only what I agreed to, as `rules` «ideas» says: `propose` with \
+         the idea as `source`, a note quoting it with `append_doc`, or a mark with `flag_doc`. \
+         Tell me at the end what went where and what waits for me.",
+        sheet_named(paths)
     )
 }

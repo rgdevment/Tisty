@@ -733,6 +733,10 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "Here are the first {AT_A_GLANCE} folders; `docs` names every one."
             ));
         }
+        if let Some((glanced, sheet)) = super::ideas::glance(paths, &state) {
+            said.push(glanced);
+            kept.insert("brainstorm".into(), sheet);
+        }
     }
     if since.is_none() {
         said.push("Next time, what moved since this call comes with it as well.".to_string());

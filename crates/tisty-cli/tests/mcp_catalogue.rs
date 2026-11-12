@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 41_350;
+const DOOR_AT_MOST: usize = 41_341;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -92,6 +92,11 @@ fn the_general_rules_an_agent_is_handed() {
 #[test]
 fn the_tidying_rules_an_agent_is_handed() {
     insta::assert_snapshot!(rules(Some("tidying")));
+}
+
+#[test]
+fn the_idea_rules_an_agent_is_handed() {
+    insta::assert_snapshot!(rules(Some("ideas")));
 }
 
 #[test]
