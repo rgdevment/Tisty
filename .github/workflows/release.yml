@@ -1799,7 +1799,7 @@ jobs:
 
           	  url "https://github.com/${{ github.repository }}/releases/download/v#{version}/tisty-installer-#{version}-macos-#{arch}.dmg"
           	  name "Tisty"
-          	  desc "Notes, documents and tasks, all local, no subscription, no telemetry${SUFFIX}"
+          	  desc "Local memory and context for you and your AI agent, in Markdown on disk${SUFFIX}"
           	  homepage "https://www.tisty.app/"
 
           	  auto_updates true
