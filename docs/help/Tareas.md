@@ -72,7 +72,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 - **Hoy**: lo que pide el día, lo más urgente primero: **Vencidas** (pasó su límite, en rojo), **Por vencer** (faltan tres días o menos para su límite), **Atrasadas** (pasó el día que planeaste, en ámbar), **Para hoy** y **En curso** (empezó y aún no llega a su límite), plegado para que un proyecto largo no llene la lista todos los días. Cada fila dice cuándo vence («vence en 3 días», «vence mañana») o, si está atrasada, desde cuándo.
 - **Próximo**: lo que viene.
 - **Se repiten**: lo que vuelve por su cuenta.
-- **Todas**: todo lo abierto, sin filtro.
+- **Todas**: todo lo abierto, sin filtro. El icono de la bandeja de entrada, el primero de la fila de vistas en la barra lateral, la abre sobre todas las listas.
 - **Vencidas** y **Atrasadas**: solo lo vencido, o solo lo atrasado. Cada una se abre desde su cuenta entre las cuatro del día, arriba en la barra lateral, y mientras estás en ella aparece junto a Hoy. Las otras dos cuentas, **para hoy** y **por venir**, abren Hoy y Próximo. Una cuenta siempre se abre sobre todas las listas, aunque hubieras filtrado la vista a algunas. Pasado 99, una cuenta dice **+99**, y el número completo aparece al pasar el puntero.
 
 No hay premios por vaciar la lista.
