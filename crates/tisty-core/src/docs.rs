@@ -13,10 +13,10 @@ mod text;
 pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
 use carried::kept_still;
 pub use carried::{
-    Carried, NotesBefore, before_left_at, carried_at, carried_print, forget_carried,
+    Carried, NotesBefore, RestorePoint, before_left_at, carried_at, carried_print, forget_carried,
     forget_what_was_carried, keep_carried, keep_notes_before, keep_notes_left, kept_before,
     print_of, print_of_text, read_as_printed, read_before, read_carried, read_notes_before,
-    read_notes_left,
+    read_notes_left, restore_point, rewrite_if, set_restore_point,
 };
 pub use prints::{Prints, Seen};
 pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
@@ -327,28 +327,6 @@ pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<
             }
             many => Ok(Change::Twice(many)),
         }
-    })
-}
-
-/// Over `was` only: a correction keeps the restore point the write before it left, now leading here.
-pub fn rewrite_if(
-    root: &Path,
-    data: &Path,
-    id: &str,
-    was: &str,
-    body: &str,
-) -> Result<Option<String>> {
-    alone(root, || {
-        if read(root, id)? != was {
-            return Ok(None);
-        }
-        written(root, id, body)?;
-        let pointed_here = before_left_at(data, id)
-            .is_some_and(|print| print == crate::attach::printed(settled(was).as_bytes()));
-        if let Some(original) = read_before(data, id).filter(|_| pointed_here) {
-            kept_before(data, id, &original, body)?;
-        }
-        Ok(Some(settled(body)))
     })
 }
 

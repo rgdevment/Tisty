@@ -382,13 +382,11 @@ function Settled({
     onPick: onDiscard,
   };
   const choices: Choice[] = open
-    ? [
-        ...(task.resolved?.drop
-          ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: () => onComplete() }]
-          : task.resolved
-            ? [discard]
-            : []),
-      ]
+    ? task.resolved?.drop
+      ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: () => onComplete() }]
+      : task.resolved
+        ? [discard]
+        : []
     : [
         ...(reading === "routine"
           ? []

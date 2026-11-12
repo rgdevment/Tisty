@@ -6,7 +6,8 @@ use ulid::Ulid;
 fn ev(ms: i64, who: &str, op: Op) -> Event {
     Event::new(
         DeviceId(who.into()),
-        jiff::Timestamp::from_millisecond(ms).unwrap(),
+        jiff::Timestamp::from_millisecond(crate::state::ANY_TASK_FROM.as_millisecond() + ms)
+            .unwrap(),
         op,
     )
 }
@@ -408,4 +409,31 @@ fn an_assistant_moves_a_part_from_one_of_the_persons_wholes_to_another() {
     );
 
     assert_eq!(whole_of(&state, part), Some(mine));
+}
+
+#[test]
+fn an_assistant_hangs_nothing_under_a_closed_whole() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_a", "move house", None);
+    state.apply(&ev(
+        3,
+        "dev_a",
+        Op::TaskDone {
+            id: whole,
+            filled: false,
+        },
+    ));
+    let part = written(&mut state, 4, "dev_agent", "book the van", None);
+
+    agent_moves(
+        &mut state,
+        5,
+        part,
+        TaskMove {
+            part_of: Some(Some(whole)),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(whole_of(&state, part), None);
 }

@@ -275,7 +275,7 @@ impl State {
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
             && let Some(task) = self.tasks.get(&id)
-            && !self.lets_agents(task, &event.op)
+            && !self.lets_agents(task, event)
         {
             crate::witness::warn(
                 crate::witness::channel::STORE,
@@ -348,7 +348,8 @@ impl State {
             Op::TaskMove { id, d } => {
                 self.with_task(*id, |t| move_task(t, d));
                 if let Some(whole) = d.part_of {
-                    self.task_parted(*id, whole);
+                    let agent = self.assistants.contains(&event.device);
+                    self.task_parted(*id, whole, agent);
                 }
             }
 
@@ -537,13 +538,16 @@ impl State {
         }
     }
 
-    fn lets_agents(&self, task: &Task, op: &Op) -> bool {
-        let reaches = task.is_open() || self.settled_by_agents(task);
-        match op {
+    fn lets_agents(&self, task: &Task, event: &Event) -> bool {
+        let settled = self.settled_by_agents(task);
+        let widened = event.timestamp >= ANY_TASK_FROM;
+        let reaches = (task.is_open() || settled) && (widened || settled);
+        let filed = self.filed_by_agents(task);
+        match &event.op {
             Op::TaskLog { .. } | Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
             Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
             Op::TaskUpdate { d, .. } => {
-                self.filed_by_agents(task) || only_bells(d) || (reaches && only_title(d))
+                filed || only_bells(d) || (widened && reaches && only_title(d))
             }
             // A word on any task is only a word: the person decides, so it needs no door.
             Op::TaskResolve { d, .. } => d.word || self.settled_by_agents(task),
@@ -552,7 +556,11 @@ impl State {
             Op::StepText { d, .. } => reaches && mendable(task, d.step),
             Op::StepRemove { d, .. } => reaches && mendable(task, d.step),
             Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
-            Op::TaskMove { d, .. } => reaches && (d.list.is_some() || d.part_of.is_some()),
+            Op::TaskMove { d, .. } => {
+                reaches
+                    && (d.list.is_some() || d.part_of.is_some())
+                    && (widened || filed || d.list.is_none())
+            }
             _ => false,
         }
     }
@@ -864,7 +872,7 @@ impl State {
     }
 
     // A task opened before 1.31.2 keeps the ticks and closings its log already holds.
-    fn settled_by_agents(&self, task: &Task) -> bool {
+    pub(crate) fn settled_by_agents(&self, task: &Task) -> bool {
         task.open_to_agents || self.filed_by_agents(task)
     }
 
@@ -1240,6 +1248,9 @@ pub(crate) fn only_bells(d: &TaskPatch) -> bool {
                 ..Default::default()
             }
 }
+
+// Older writes keep the door they were judged by, so replaying an old log changes nothing.
+pub(crate) const ANY_TASK_FROM: jiff::Timestamp = jiff::Timestamp::constant(1_794_441_600, 0);
 
 pub(crate) fn only_title(d: &TaskPatch) -> bool {
     d.title.is_some()

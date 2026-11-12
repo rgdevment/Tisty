@@ -3,7 +3,7 @@ use crate::event::{DeviceId, Event, LogAdd, Resolve, StepAdd, StepRef, TaskPatch
 use ulid::Ulid;
 
 fn at(ms: i64) -> jiff::Timestamp {
-    jiff::Timestamp::from_millisecond(ms).unwrap()
+    jiff::Timestamp::from_millisecond(crate::state::ANY_TASK_FROM.as_millisecond() + ms).unwrap()
 }
 
 fn ev(ms: i64, who: &str, op: Op) -> Event {
@@ -593,4 +593,22 @@ fn a_closed_task_of_the_persons_takes_no_words_from_an_assistant() {
     let task = &state.tasks[&id];
     assert_eq!(task.description, None, "history reads as it ended");
     assert_eq!(task.title, "renew the certificate");
+}
+
+#[test]
+fn a_write_from_before_any_task_was_open_stays_let_go() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, -30, "dev_laptop", "renew the certificate");
+    let describe = |body: &str| Op::TaskDescribe {
+        id,
+        d: crate::event::Body {
+            body: Some(body.into()),
+        },
+    };
+
+    state.apply(&ev(-10, "dev_agent", describe("written by an older build")));
+    assert_eq!(state.tasks[&id].description, None, "the old door judged it");
+
+    state.apply(&ev(10, "dev_agent", describe("written now")));
+    assert_eq!(state.tasks[&id].description.as_deref(), Some("written now"));
 }

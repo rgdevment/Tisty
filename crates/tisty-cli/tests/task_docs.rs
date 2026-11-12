@@ -439,3 +439,103 @@ fn putting_the_persons_page_back_undoes_the_assistants_edit() {
 
     assert_eq!(body(), before);
 }
+
+fn persons_task(served: &Served) -> String {
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    found["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+fn page_of(served: &Served, file: &str) -> serde_json::Value {
+    served.call("read_doc", serde_json::json!({ "doc": file }))["result"]["structuredContent"]
+        .clone()
+}
+
+#[test]
+fn a_page_behind_its_steps_takes_an_edit_without_touching_them() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    let person = served.person();
+    person.adds_step(person::task(&task), "pagar");
+    person.adds_step(person::task(&task), "llamar");
+    person.ticks(person::task(&task), 1);
+    served.written_for(&task, "Mis palabras.\n\n- [ ] pagar");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Mis palabras, corregidas." }),
+    );
+
+    assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let steps = read["result"]["structuredContent"]["steps"].clone();
+    assert_eq!(steps[0]["text"], "pagar", "{read}");
+    assert_eq!(
+        steps[0]["done"], true,
+        "the stale box took no tick away: {read}"
+    );
+    assert_eq!(
+        steps[1]["text"], "llamar",
+        "a step with no line stays: {read}"
+    );
+}
+
+#[test]
+fn a_refused_page_write_keeps_the_step_back_from_before_it() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let first = page_of(&served, &file)["body"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Otras palabras." }),
+    );
+    let print = page_of(&served, &file)["print"].clone();
+
+    let refused = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": file, "print": print, "body": "Sin cabecera." }),
+    );
+    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    let restored = served.call("restore_doc", serde_json::json!({ "doc": file }));
+
+    assert_ne!(restored["result"]["isError"], true, "{restored}");
+    assert_eq!(
+        page_of(&served, &file)["body"].as_str(),
+        Some(first.as_str())
+    );
+}
+
+#[test]
+fn a_tick_on_a_copy_of_the_persons_page_is_not_the_assistants_word() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    let person = served.person();
+    person.adds_step(person::task(&task), "pagar");
+    served.written_for(&task, "Mis palabras.\n\n- [ ] pagar");
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let copy = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap()
+        .replace("- [ ] pagar", "- [x] pagar");
+    let at = served.home.path().join("copy.md");
+    std::fs::write(&at, copy).unwrap();
+
+    let brought = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_string_lossy() }),
+    );
+
+    assert_ne!(brought["result"]["isError"], true, "{brought}");
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let step = &read["result"]["structuredContent"]["steps"][0];
+    assert_eq!(step["done"], false, "{read}");
+    assert!(step["said_done"].is_null(), "{read}");
+}

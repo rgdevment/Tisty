@@ -142,16 +142,19 @@ struct Standing {
 }
 
 /// The same door `State::apply` keeps for an assistant's hand.
-fn lets(op: &Op, standing: &Standing) -> bool {
+fn lets(event: &Event, standing: &Standing) -> bool {
     let filed = standing.filed_by_agent;
     let settles = filed || standing.open_to_agents;
-    let reaches = !standing.closed || settles;
-    match op {
+    let widened = event.timestamp >= crate::state::ANY_TASK_FROM;
+    let reaches = (!standing.closed || settles) && (widened || settles);
+    match &event.op {
         Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
         Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
         Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
         Op::TaskUpdate { d, .. } => {
-            filed || crate::state::only_bells(d) || (reaches && crate::state::only_title(d))
+            filed
+                || crate::state::only_bells(d)
+                || (widened && reaches && crate::state::only_title(d))
         }
         Op::TaskResolve { d, .. } => d.word || settles,
         Op::StepDone { .. } => settles,
@@ -159,7 +162,11 @@ fn lets(op: &Op, standing: &Standing) -> bool {
         Op::StepText { d, .. } => reaches && mendable(standing, d.step),
         Op::StepRemove { d, .. } => reaches && mendable(standing, d.step),
         Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
-        Op::TaskMove { d, .. } => reaches && (d.list.is_some() || d.part_of.is_some()),
+        Op::TaskMove { d, .. } => {
+            reaches
+                && (d.list.is_some() || d.part_of.is_some())
+                && (widened || filed || d.list.is_none())
+        }
         _ => false,
     }
 }
@@ -212,7 +219,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         // The trail tells what landed: what `State::apply` lets go of an assistant's hand is
         // no chapter, or the trail would tell of steps and marks the task never took.
         let by_assistant = assistants.contains(&event.device);
-        if by_assistant && !lets(&event.op, &standing) {
+        if by_assistant && !lets(event, &standing) {
             continue;
         }
         // Writing in a section for a while is one chapter, not one per block left.

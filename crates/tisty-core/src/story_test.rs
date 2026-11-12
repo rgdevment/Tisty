@@ -3,7 +3,7 @@ use crate::event::{Body, LogAdd, StepAdd, StepRef, TaskAdd, TaskMove, TaskPatch}
 use ulid::Ulid;
 
 fn at(seconds: i64) -> Timestamp {
-    Timestamp::from_second(1_770_000_000 + seconds).unwrap()
+    Timestamp::from_second(crate::state::ANY_TASK_FROM.as_second() + seconds).unwrap()
 }
 
 fn here() -> DeviceId {
@@ -1026,6 +1026,49 @@ fn an_assistant_moving_the_persons_task_to_a_list_is_a_chapter() {
                 from: None,
                 to: Some(list),
             },
+        ]
+    );
+}
+
+#[test]
+fn an_assistants_words_on_a_closed_task_of_the_persons_are_no_chapter() {
+    let id = Ulid::generate();
+    let agent = DeviceId("dev_agent".into());
+    let mut joined = event(
+        1,
+        Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: None,
+        },
+    );
+    joined.device = agent.clone();
+    let mut described = event(
+        20,
+        Op::TaskDescribe {
+            id,
+            d: Body {
+                body: Some("rewritten later".into()),
+            },
+        },
+    );
+    described.device = agent;
+    let log = vec![
+        joined,
+        born(id, "renew the certificate"),
+        event(10, Op::TaskDone { id, filled: false }),
+        described,
+    ];
+
+    let told = story(&log, id);
+
+    assert_eq!(
+        chapters(&told),
+        vec![
+            &Chapter::Born {
+                title: "renew the certificate".into()
+            },
+            &Chapter::Closed,
         ]
     );
 }

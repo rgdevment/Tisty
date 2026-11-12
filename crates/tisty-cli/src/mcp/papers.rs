@@ -208,7 +208,7 @@ const WRITES_DOCUMENTS: [&str; 10] = [
 
 // A task's page is written like a document, but it ends, moves and holds files as its task does.
 pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
-    if !WRITES_DOCUMENTS.contains(&name) || task_pages::page_written(name, args).is_some() {
+    if !WRITES_DOCUMENTS.contains(&name) || task_pages::page_named(name, args).is_some() {
         return Ok(());
     }
     let named = ["doc", "page_of"]

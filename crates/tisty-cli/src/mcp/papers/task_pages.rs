@@ -1,4 +1,5 @@
 use serde_json::Value;
+use tisty_core::docs::RestorePoint;
 use tisty_core::model::TaskId;
 use tisty_core::{Op, Paths, State, Store};
 
@@ -14,10 +15,22 @@ const WRITE_A_PAGE: [&str; 5] = [
     "restore_doc",
 ];
 
-pub(in crate::mcp) fn page_written(name: &str, args: &Value) -> Option<String> {
+pub(in crate::mcp) fn page_named(name: &str, args: &Value) -> Option<String> {
     let file = text(args, "doc")?;
     (WRITE_A_PAGE.contains(&name) && tisty_core::task_docs::task_of_file(&file).is_some())
         .then_some(file)
+}
+
+pub(in crate::mcp) fn page_written(name: &str, args: &Value) -> Option<String> {
+    let only_shown = name == "edit_table" && text(args, "do").is_none_or(|asked| asked == "show");
+    page_named(name, args).filter(|_| !only_shown)
+}
+
+struct PageWrite<'a> {
+    file: &'a str,
+    before: String,
+    after: String,
+    point: Option<RestorePoint>,
 }
 
 pub(in crate::mcp) fn on_its_page(
@@ -34,10 +47,17 @@ pub(in crate::mcp) fn on_its_page(
     }
     let root = paths.docs();
     let before = tisty_core::docs::read(&root, file).map_err(hitch)?;
+    let point = tisty_core::docs::restore_point(paths.data(), file);
     let mut said = write()?;
     let after = tisty_core::docs::read(&root, file).map_err(hitch)?;
     if after != before {
-        let settled = settled(paths, id, file, &before, &after)?;
+        let page = PageWrite {
+            file,
+            before,
+            after,
+            point,
+        };
+        let settled = settled(paths, id, &page)?;
         told_also(&mut said, &settled);
     }
     Ok(said)
@@ -54,20 +74,15 @@ fn told_also(said: &mut Value, more: &str) {
     }
 }
 
-fn settled(
-    paths: &Paths,
-    id: TaskId,
-    file: &str,
-    before: &str,
-    after: &str,
-) -> Result<String, Refused> {
+fn settled(paths: &Paths, id: TaskId, page: &PageWrite) -> Result<String, Refused> {
     let (state, mut store) = opened(paths)?;
     let Some(task) = state.tasks.get(&id) else {
         return Ok(String::new());
     };
+    let (before, after) = (page.before.as_str(), page.after.as_str());
     let named = tisty_core::task_docs::task_in;
     if named(after) != named(before) {
-        put_back(paths, &state, &mut store, file, after, before)?;
+        undone(paths, &state, &mut store, page)?;
         return Err(Refused::Tool(format!(
             "the lines between `---` at the top of {:?}'s page name its task, and this write \
              changed them, so the page was put back as it was. Write again keeping those lines \
@@ -75,10 +90,9 @@ fn settled(
             task.title
         )));
     }
-    let shown = tisty_core::stages::ticked(task, before);
-    let mut ops = tisty_core::stages::reconciled(task, Some(&shown), after);
+    let mut ops = tisty_core::stages::reconciled(task, Some(before), after);
     if let Some(why) = broken_rule(task, &ops) {
-        put_back(paths, &state, &mut store, file, after, before)?;
+        undone(paths, &state, &mut store, page)?;
         return Err(Refused::Tool(format!(
             "on {:?}'s page, {why}, so the page was put back as it was. Leave that box as it \
              stands and write again.",
@@ -107,7 +121,7 @@ fn settled(
         })
         .map_err(hitch)?;
     if written.is_none() {
-        put_back(paths, &state, &mut store, file, after, before)?;
+        undone(paths, &state, &mut store, page)?;
         return Err(moved(task));
     }
     if steps == 0 {
@@ -116,13 +130,27 @@ fn settled(
     let (state, mut store) = opened(paths)?;
     if let Some(task) = state.tasks.get(&id) {
         let ticked = tisty_core::stages::ticked(task, after);
-        put_back(paths, &state, &mut store, file, after, &ticked)?;
+        put_back(paths, &state, &mut store, page.file, after, &ticked)?;
     }
     Ok(format!(
         " Its boxes went to {:?} as {steps} change(s) to its steps; a box ticked on the \
          person's task stays your word until they take it.",
         task.title
     ))
+}
+
+// A refused write leaves no trace: the page and its one step back are as they were before it.
+fn undone(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    page: &PageWrite,
+) -> Result<(), Refused> {
+    let back = put_back(paths, state, store, page.file, &page.after, &page.before)?;
+    if back && let Some(point) = &page.point {
+        tisty_core::docs::set_restore_point(paths.data(), page.file, point).map_err(hitch)?;
+    }
+    Ok(())
 }
 
 /// Only over what this write left: a page the window saved since keeps the person's words.
@@ -133,14 +161,14 @@ fn put_back(
     file: &str,
     left: &str,
     body: &str,
-) -> Result<(), Refused> {
+) -> Result<bool, Refused> {
     if left == body {
-        return Ok(());
+        return Ok(true);
     }
     let whole = tisty_core::docs::rewrite_if(&paths.docs(), paths.data(), file, left, body)
         .map_err(hitch)?;
     match whole {
-        Some(whole) => retold(state, store, file, &whole),
-        None => Ok(()),
+        Some(whole) => retold(state, store, file, &whole).map(|()| true),
+        None => Ok(false),
     }
 }

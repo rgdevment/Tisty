@@ -417,9 +417,14 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
         true => Vec::new(),
         false => taken.ops.iter().flat_map(beyond_its_title).collect(),
     };
+    // A copy that went out may carry ticks the person took back since; only its own page speaks for the agent.
+    let ops_of_a_copy = |op: &tisty_core::Op| {
+        state.filed_by_agents(task) || !matches!(op, tisty_core::Op::StepDone { .. })
+    };
     let mut ops: Vec<tisty_core::Op> = taken
         .ops
         .into_iter()
+        .filter(ops_of_a_copy)
         .filter_map(|op| as_an_assistant(&state, task, op))
         .collect();
     let mut file = kept.map(|(file, _)| file);

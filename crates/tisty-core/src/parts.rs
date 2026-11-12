@@ -14,24 +14,25 @@ impl State {
     }
 
     /// Judged at replay, so two machines that crossed a move agree on where the part landed.
-    pub(crate) fn may_hold(&self, whole: TaskId, part: &Task) -> bool {
+    pub(crate) fn may_hold(&self, whole: TaskId, part: &Task, agent: bool) -> bool {
         let Some(holder) = self.tasks.get(&whole) else {
             return false;
         };
         whole != part.id
+            && (holder.is_open() || !agent)
             && holder.part_of.is_none()
             && !self.holds_parts(part.id)
             && !repeats(holder)
             && !repeats(part)
     }
 
-    pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>) {
+    pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>, agent: bool) {
         let landed = match whole {
             None => true,
             Some(whole) => self
                 .tasks
                 .get(&id)
-                .is_some_and(|part| self.may_hold(whole, part)),
+                .is_some_and(|part| self.may_hold(whole, part, agent)),
         };
         if landed && let Some(task) = self.tasks.get_mut(&id) {
             task.part_of = whole;
