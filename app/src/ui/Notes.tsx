@@ -477,13 +477,9 @@ function Sticky({
 
 function Pin() {
   const id = useId().replace(/[^\w-]/g, "");
-  return (
-    <span
-      aria-hidden="true"
-      className="contents"
-      ref={(held) => {
-        if (held) held.innerHTML = pinMarkup(`pin-${id}`);
-      }}
-    />
-  );
+  const held = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (held.current) held.current.innerHTML = pinMarkup(`pin-${id}`);
+  }, [id]);
+  return <span ref={held} aria-hidden="true" className="contents" />;
 }

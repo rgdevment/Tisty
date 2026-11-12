@@ -304,7 +304,8 @@ blockquote.callout::before {
   text-transform: uppercase;
   color: var(--said);
 }
-blockquote.callout > :first-child {
+blockquote.callout > :first-child,
+blockquote.callout > .sticky-pin:first-child + * {
   margin-top: 0;
 }
 blockquote.callout > :last-child {

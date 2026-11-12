@@ -107,6 +107,9 @@ type Props = {
 
 type Arrival = Crossing & { at: number };
 
+// A block named by its first byte in the new words, and where on the window's screen it should stand.
+type Landing = { bytes: number; y: number; turn: number };
+
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const fixed = Boolean(props.inline && props.shaping);
@@ -178,7 +181,7 @@ export default function Sheet(props: Readonly<Props>) {
     label?: string;
   } | null>(null);
   const askedOn = useRef("");
-  const landing = useRef<{ bytes: number; y: number; turn: number } | null>(null);
+  const landing = useRef<Landing | null>(null);
   const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
@@ -194,14 +197,33 @@ export default function Sheet(props: Readonly<Props>) {
     [],
   );
 
+  // The first block in sight, found again in the new words, so a page drawn anew keeps it where it was.
+  const inSight = useCallback((before: string, next: string): Landing | null => {
+    const page = shown.current?.document;
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    const sheet = room.current;
+    if (!page || !frame || !sheet || showing.current !== before) return null;
+    const top = sheet.getBoundingClientRect().top;
+    const block = Array.from(page.querySelectorAll<HTMLElement>(".page > [data-at]")).find(
+      (one) => one.getBoundingClientRect().bottom + frame.top > top,
+    );
+    const at = spanned(block?.dataset.at ?? null);
+    if (!block || !at) return null;
+    const from = charsAt(before, at[0]);
+    const start = reanchored(before, next, from, charsAt(before, at[1]))?.[0] ?? from;
+    const y = block.getBoundingClientRect().top + frame.top;
+    return { bytes: bytesAt(next, start), y, turn: turnedNow.current };
+  }, []);
+
   const whole = useCallback(
-    (next: string) => {
+    (next: string, kept?: Omit<Landing, "turn">) => {
       const before = latest.current;
+      landing.current = kept ? { ...kept, turn: turnedNow.current } : inSight(before, next);
       written(next);
       setDrawn(next);
       settled(before, next);
     },
-    [written, settled],
+    [written, settled, inSight],
   );
 
   const quiet = useRef(false);
@@ -715,8 +737,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (reading || showing.current !== latest.current) return;
     const next = movedBlock(latest.current, note, to);
     if (next.text === latest.current) return;
-    landing.current = { bytes: bytesAt(next.text, next.at), y, turn: turnedNow.current };
-    whole(next.text);
+    whole(next.text, { bytes: bytesAt(next.text, next.at), y });
   };
 
   const parted = (at: [number, number]) => {
@@ -930,18 +951,20 @@ export default function Sheet(props: Readonly<Props>) {
     }
   }, [lately, turned, drawn]);
 
-  // A page drawn anew lays its sheets and its height again, so a moved note is put back where it was let go.
+  // A page drawn anew lays its sheets and its height again, so the block it was kept by goes back where it was.
   useEffect(() => {
     const wanted = landing.current;
-    if (!wanted || drawn !== latest.current || turned === wanted.turn) return;
+    if (!wanted || turned === wanted.turn) return;
     landing.current = null;
+    // Words that moved on before this drawing count bytes this page does not hold.
+    if (drawn !== latest.current) return;
     const settle = requestAnimationFrame(() => {
       const page = shown.current?.document;
-      const note = page?.querySelector<HTMLElement>(`.page > [data-at^="${wanted.bytes}-"]`);
+      const block = page?.querySelector<HTMLElement>(`.page > [data-at^="${wanted.bytes}-"]`);
       const frame = shown.current?.frameElement?.getBoundingClientRect();
       const sheet = room.current;
-      if (!note || !frame || !sheet) return;
-      sheet.scrollTop += note.getBoundingClientRect().top + frame.top - wanted.y;
+      if (!block || !frame || !sheet) return;
+      sheet.scrollTop += block.getBoundingClientRect().top + frame.top - wanted.y;
     });
     return () => cancelAnimationFrame(settle);
   }, [turned, drawn]);

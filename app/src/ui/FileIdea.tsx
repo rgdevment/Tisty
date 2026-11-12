@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Filed } from "../core";
 import { folded } from "../folding";
 import { t } from "../locales";
@@ -32,12 +32,16 @@ const whereOf = (one: Filed, byId: ReadonlyMap<string, Filed>): string => {
 export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
   const asked = folded(query.trim());
-  const byId = new Map(known.map((one) => [one.id, one]));
+  const where = useMemo(() => {
+    const byId = new Map(known.map((one) => [one.id, one]));
+    return new Map(known.map((one) => [one.file, whereOf(one, byId)]));
+  }, [known]);
   const open = known
     .filter((one) => one.file !== own && !one.away && !one.locked && !one.gone)
     .filter(
       (one) =>
-        !asked || folded(`${one.title || t("untitledDoc")} ${whereOf(one, byId)}`).includes(asked),
+        !asked ||
+        folded(`${one.title || t("untitledDoc")} ${where.get(one.file) ?? ""}`).includes(asked),
     )
     .sort(
       (a, b) =>
@@ -72,9 +76,9 @@ export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
                 className="flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
               >
                 <span className="min-w-0 truncate">{one.title || t("untitledDoc")}</span>
-                {whereOf(one, byId) && (
+                {where.get(one.file) && (
                   <span className="min-w-0 shrink truncate text-[11.5px] text-faint">
-                    {whereOf(one, byId)}
+                    {where.get(one.file)}
                   </span>
                 )}
               </button>
