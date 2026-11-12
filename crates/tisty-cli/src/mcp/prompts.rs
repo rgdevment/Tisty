@@ -309,7 +309,7 @@ fn sorting_ideas(paths: &Paths, said: Option<&str>) -> String {
          belong together and why, which would become a task and in which list, which belong in a \
          document and which one (`find` it), and which are done, old or repeated. Change nothing \
          until I say which. Then do only what I agreed to, as `rules` «ideas» says: `propose` with \
-         the idea as `source`, a note quoting it with `append_doc`, or a mark with `flag_doc`. \
+         the idea as `source`, the idea itself with `append_doc`, or a mark with `flag_doc`. \
          Tell me at the end what went where and what waits for me.",
         sheet_named(paths)
     )

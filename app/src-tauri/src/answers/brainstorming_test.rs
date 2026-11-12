@@ -32,9 +32,9 @@ fn the_first_idea_makes_the_brainstorm_and_every_later_one_lands_in_it() {
         "one brainstorm, never one per idea"
     );
     let written = body(&session, &first.file);
-    assert!(written.contains("## 2026-11-11 09:07 · pink\n\nllamar al vet"));
+    assert!(written.contains("> [!IDEA] 2026-11-11 09:07 · pink\n> llamar al vet"));
     assert!(
-        written.contains("## 2026-11-11 09:09 · coral\n\nprobar el alias"),
+        written.contains("> [!IDEA] 2026-11-11 09:09 · coral\n> probar el alias"),
         "the same roll twice still gives the next idea a colour of its own"
     );
     assert!(
@@ -137,19 +137,17 @@ fn an_idea_filed_in_a_document_lands_at_its_end_and_leaves_the_rest_as_it_was() 
         })
         .unwrap();
 
-    let on = jiff::civil::date(2026, 11, 12);
     filing(
         &mut session,
         &made.id,
         "  Probar con harina integral  ",
-        "Lluvia de ideas",
-        on,
+        "2026-11-12 09:40 · yellow",
     )
     .unwrap();
 
     assert_eq!(
         body(&session, &made.id),
-        "# Recetas\n\nPan amasado.\n\n> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar con harina integral\n"
+        "# Recetas\n\nPan amasado.\n\n> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar con harina integral\n"
     );
     assert!(
         body(&session, &brainstorm.file).contains("una idea"),
@@ -161,8 +159,13 @@ fn an_idea_filed_in_a_document_lands_at_its_end_and_leaves_the_rest_as_it_was() 
 fn an_idea_is_not_filed_in_a_document_that_is_not_there() {
     let (_tmp, mut session) = session();
 
-    let on = jiff::civil::date(2026, 11, 12);
-    let refused = filing(&mut session, "nadie-0001", "una idea", "Ideas", on).unwrap_err();
+    let refused = filing(
+        &mut session,
+        "nadie-0001",
+        "una idea",
+        "2026-11-12 09:40 · blue",
+    )
+    .unwrap_err();
 
     assert_eq!(refused.code, "noSuchDoc");
 }

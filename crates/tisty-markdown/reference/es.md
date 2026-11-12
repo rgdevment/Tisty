@@ -252,6 +252,22 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 - Los mismos cinco tipos también se pueden escribir como lo hacen otras herramientas, como un bloque entre `:::tip` y un `:::` solo; Tisty lo dibuja como el mismo aviso.
 - Al copiar como Markdown estándar, un aviso `:::tip` pasa a `> [!TIP]`, como lo escribe GitHub.
 
+### Notas adhesivas
+
+Un sexto tipo, `[!IDEA]`, es una nota pegada en la hoja. Su primera línea, después de la marca, dice cuándo se escribió, su color y el lado en que va:
+
+```markdown
+> [!IDEA] 2026-11-12 09:12 · blue · right
+> Probar con harina integral.
+```
+
+- Tisty la dibuja como una nota adhesiva, con letra de mano, un poco torcida y sujeta con cinta o chinche. Una primera línea que dice una fecha, un color o un lado nunca se muestra como palabras; una que no dice ninguno es el comienzo de la nota.
+- Las partes van en cualquier orden, separadas por ` · `, y ninguna es obligatoria. El color es uno de `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` o `magenta`; sin color, la nota lleva el color de la hoja dentro de una línea punteada.
+- `right` o `left` la deja al costado de los párrafos que siguen, con el texto rodeándola; sin lado, va entre los bloques que la rodean.
+- Dentro caben imágenes y todo lo que cabe en un aviso, siempre que cada línea lleve su `>`.
+- La Lluvia de ideas escribe así cada una de sus ideas, y anexar una a un documento la lleva entera, a la derecha.
+- Obsidian la muestra como un aviso de tipo idea, y GitHub como una cita. Exportada como Markdown estándar sale como un `[!NOTE]`, sin su primera línea.
+
 ## Secciones plegables
 
 Un título en el que haces clic para abrir o plegar lo que hay debajo. Elige **Sección plegable** en el menú `/`, o escríbela:

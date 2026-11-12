@@ -34,7 +34,7 @@ const papers: Filed[] = [
 ];
 
 const BODY =
-  "---\nview: notes\n---\n\n# Ideas\n\n## 2026-11-10 18:40\n\nprimera\n\n## 2026-11-11 09:12\n\nsegunda\n";
+  "---\nview: notes\n---\n\n# Ideas\n\n> [!IDEA] 2026-11-10 18:40\n> primera\n\n> [!IDEA] 2026-11-11 09:12\n> segunda\n";
 
 describe("a brainstorm shown as notes", () => {
   it("puts the newest idea first", () => {
@@ -45,7 +45,7 @@ describe("a brainstorm shown as notes", () => {
     expect(notes[1].textContent).toContain("primera");
   });
 
-  it("writes a note back into its own section when it loses the focus", () => {
+  it("writes a note back into its own sticky note when it loses the focus", () => {
     const onWrite = vi.fn();
     render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
 
@@ -55,8 +55,8 @@ describe("a brainstorm shown as notes", () => {
 
     expect(onWrite).toHaveBeenCalledTimes(1);
     const written: string = onWrite.mock.calls[0][0];
-    expect(written).toContain("## 2026-11-11 09:12\n\nsegunda, mejorada");
-    expect(written).toContain("## 2026-11-10 18:40\n\nprimera");
+    expect(written).toContain("> [!IDEA] 2026-11-11 09:12\n> segunda, mejorada");
+    expect(written).toContain("> [!IDEA] 2026-11-10 18:40\n> primera");
   });
 
   it("does not write when nothing changed", () => {
@@ -101,10 +101,8 @@ describe("a brainstorm shown as notes", () => {
   it("paints each idea with the colour written in its heading, wherever it moves", () => {
     const painted = [
       "# Ideas",
-      "## 2026-11-12 00:19 · blue",
-      "una",
-      "## 2026-11-12 00:19 · coral",
-      "otra",
+      "> [!IDEA] 2026-11-12 00:19 · blue\n> una",
+      "> [!IDEA] 2026-11-12 00:19 · coral\n> otra",
     ].join("\n\n");
     render(<Notes title="Ideas" body={painted} reading onWrite={() => {}} />);
 
@@ -121,7 +119,7 @@ describe("a brainstorm shown as notes", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Show Markdown" }));
 
-    expect(screen.getByText(/## 2026-11-11 09:12/)).toBeTruthy();
+    expect(screen.getByText(/\[!IDEA\] 2026-11-11 09:12/)).toBeTruthy();
     expect(screen.queryAllByRole("textbox")).toEqual([]);
     expect(screen.queryByRole("button", { name: "New idea" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show notes" }));
@@ -182,7 +180,7 @@ describe("a brainstorm shown as notes", () => {
     expect(ipc.calls.find((one) => one.cmd === "idea_to_doc")?.args).toEqual({
       file: "a3f1-0001",
       idea: "primera",
-      from: "Ideas",
+      heading: "2026-11-10 18:40",
     });
     expect(onWrite.mock.calls[0][0]).not.toContain("primera");
     expect(screen.getByRole("status").textContent).toContain("Filed at the end of «Recetas»");

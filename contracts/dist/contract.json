@@ -1,5 +1,5 @@
 {
-  "version": "1.9.2",
+  "version": "1.10.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -5274,6 +5274,94 @@
             "important": "indigo",
             "warning": "amber",
             "caution": "red"
+          },
+          "idea": {
+            "says": "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. A head line naming none of the three is the note's own first words. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows a head line that names one as words. Above its words it writes its date and time in the reader's own words, where other callouts write their kind; a note without a time writes the word of its kind. Outside Tisty it leaves as a note, without its head line.",
+            "hues": [
+              "pink",
+              "coral",
+              "orange",
+              "yellow",
+              "lime",
+              "green",
+              "teal",
+              "cyan",
+              "blue",
+              "lavender",
+              "violet",
+              "magenta"
+            ],
+            "fill": {
+              "light": {
+                "pink": "#feb2b9",
+                "coral": "#fea284",
+                "orange": "#fbb974",
+                "yellow": "#f3dd7b",
+                "lime": "#bce671",
+                "green": "#90cd95",
+                "teal": "#6ed0c0",
+                "cyan": "#87ddf1",
+                "blue": "#83bff6",
+                "lavender": "#bdc3fe",
+                "violet": "#bc95e5",
+                "magenta": "#f5a3db"
+              },
+              "dark": {
+                "pink": "#ae4c61",
+                "coral": "#9e4331",
+                "orange": "#a25e24",
+                "yellow": "#896a10",
+                "lime": "#5f7723",
+                "green": "#206f3c",
+                "teal": "#19746b",
+                "cyan": "#1c788e",
+                "blue": "#155d9f",
+                "lavender": "#645fb3",
+                "violet": "#623586",
+                "magenta": "#974180"
+              }
+            },
+            "ink": {
+              "light": "#2a2520",
+              "dark": "#fbf5ea"
+            },
+            "plain": "Without a hue, it wears the sheet's colour inside a dashed line of hair.",
+            "side": "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it. A rule, the turn to a new sheet, a table, a figure of code or a diagram, a widget, a formula, a details block and a picture alone go below a floated note, never beside it, and the sheet holds the note whole.",
+            "width": {
+              "least": "150px",
+              "most": "256px"
+            },
+            "pins": {
+              "light": [
+                "#d4343a",
+                "#2f6fe0",
+                "#c98a00",
+                "#16824c"
+              ],
+              "dark": [
+                "#ff6369",
+                "#5ea2ff",
+                "#ffc457",
+                "#3dd68c"
+              ]
+            },
+            "needle": {
+              "light": "#5c636b",
+              "dark": "#c3c8ce"
+            },
+            "tape": {
+              "light": "rgb(70 62 48 / 0.22)",
+              "dark": "rgb(255 255 255 / 0.26)"
+            },
+            "padding": "24px 14px 18px",
+            "size": "16px",
+            "line_height": 1.3,
+            "margin": "14px 0",
+            "beside": {
+              "right": "4px 0 12px 20px",
+              "left": "4px 20px 12px 0",
+              "says": "The margin of a note floated to that side, in place of its own."
+            }
           },
           "label": {
             "size": "11.5px",

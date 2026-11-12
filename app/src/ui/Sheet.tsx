@@ -28,7 +28,7 @@ import {
   wrapped,
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
-import { charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
+import { bytesAt, charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -50,6 +50,8 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { carried, firstInSight } from "./sighted";
+import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
@@ -105,6 +107,12 @@ type Props = {
 };
 
 type Arrival = Crossing & { at: number };
+
+// A block named by its first byte in the new words, and where on the window's screen it should stand.
+type Landing = { bytes: number; y: number; turn: number };
+
+// Pictures, diagrams and the sheets they push down can arrive this long after a page is drawn.
+const HELD_FOR = 4000;
 
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
@@ -177,6 +185,8 @@ export default function Sheet(props: Readonly<Props>) {
     label?: string;
   } | null>(null);
   const askedOn = useRef("");
+  const landing = useRef<Landing | null>(null);
+  const holdingNow = useRef(() => {});
   const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
@@ -192,14 +202,39 @@ export default function Sheet(props: Readonly<Props>) {
     [],
   );
 
+  // The first block in sight, found again in the new words, so a page drawn anew keeps it where it was.
+  const inSight = useCallback((before: string, next: string, moving?: number): Landing | null => {
+    const page = shown.current?.document;
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    const sheet = room.current;
+    if (!page || !frame || !sheet || showing.current !== before) return null;
+    const top = sheet.getBoundingClientRect().top - frame.top;
+    const blocks = Array.from(
+      page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"),
+    ).filter((one) => moving === undefined || spanned(one.dataset.at ?? null)?.[0] !== moving);
+    const block = firstInSight(blocks, top);
+    const at = spanned(block?.dataset.at ?? null);
+    if (!block || !at) return null;
+    const from = charsAt(before, at[0]);
+    const start = reanchored(before, next, from, charsAt(before, at[1]))?.[0] ?? from;
+    const y = block.getBoundingClientRect().top + frame.top;
+    return { bytes: bytesAt(next, start), y, turn: turnedNow.current };
+  }, []);
+
+  // `moving` is the first byte of a block on its way elsewhere, which cannot hold the view in place.
   const whole = useCallback(
-    (next: string) => {
+    (next: string, moving?: number) => {
       const before = latest.current;
+      const waiting = landing.current;
+      // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
+      landing.current =
+        inSight(before, next, moving) ??
+        (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
       written(next);
       setDrawn(next);
       settled(before, next);
     },
-    [written, settled],
+    [written, settled, inSight],
   );
 
   const quiet = useRef(false);
@@ -708,6 +743,14 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
+  const restuck = (note: [number, number], to: number) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const now = latest.current;
+    const next = movedBlock(now, note, to);
+    if (next !== now) whole(next, bytesAt(now, note[0]));
+  };
+
   const parted = (at: [number, number]) => {
     if (open.current) return left();
     if (reading || hanging.current || showing.current !== latest.current) return;
@@ -919,6 +962,35 @@ export default function Sheet(props: Readonly<Props>) {
     }
   }, [lately, turned, drawn]);
 
+  // A page drawn anew lays its sheets and its height again, so the block it was kept by goes back where it was.
+  useEffect(() => {
+    const wanted = landing.current;
+    if (!wanted || turned === wanted.turn) return;
+    landing.current = null;
+    // Words that moved on before this drawing count bytes this page does not hold.
+    if (drawn !== latest.current) return;
+    const sheet = room.current;
+    const held = shown.current?.frameElement as HTMLElement | null | undefined;
+    if (!sheet || !held) return;
+    holdingNow.current();
+    holdingNow.current = settles({
+      at: () => room.current,
+      want: () => {
+        const block = shown.current?.document.querySelector<HTMLElement>(
+          `.page > [data-at^="${wanted.bytes}-"]`,
+        );
+        if (!block) return null;
+        const top = block.getBoundingClientRect().top + held.getBoundingClientRect().top;
+        return sheet.scrollTop + top - wanted.y;
+      },
+      done: () => {},
+      put: () => {},
+      keeps: { waits: HELD_FOR, inside: () => shown.current?.document ?? null },
+    });
+  }, [turned, drawn]);
+
+  useEffect(() => () => holdingNow.current(), []);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {
     if (!looking) return;
@@ -982,6 +1054,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={reading ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
+          onStick={reading || fixed ? undefined : restuck}
           onPart={reading || fixed || !props.onPart ? undefined : parted}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}

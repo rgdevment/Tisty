@@ -22,7 +22,7 @@ const CONCERT = "2026-06-14 08:12 · pink";
 const ROOF = "2026-09-03 18:05 · teal";
 const BREAD = "2026-11-12 09:40 · yellow";
 
-const BODY = `---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n\n## ${CONCERT}\n\nComprar entradas del concierto de julio\n\n## ${ROOF}\n\nPedir presupuesto para arreglar el techo\n\n## ${BREAD}\n\nProbar pan con masa madre\n`;
+const BODY = `---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n\n> [!IDEA] ${CONCERT}\n> Comprar entradas del concierto de julio\n\n> [!IDEA] ${ROOF}\n> Pedir presupuesto para arreglar el techo\n\n> [!IDEA] ${BREAD}\n> Probar pan con masa madre\n`;
 
 const marked = (heading: string, text: string, reason: string, instead?: string): IdeaMarked => ({
   heading,
@@ -145,7 +145,7 @@ describe("an idea an agent marked", () => {
     const written: string = onWrite.mock.calls[0][0];
     expect(written).not.toContain("Comprar entradas");
     expect(written).not.toContain("Pedir presupuesto");
-    expect(written).toContain(`## ${BREAD}\n\nProbar pan con masa madre\n`);
+    expect(written).toContain(`> [!IDEA] ${BREAD}\n> Probar pan con masa madre\n`);
   });
 
   it("names the idea it repeats, and a mark on an idea since changed shows nowhere", () => {

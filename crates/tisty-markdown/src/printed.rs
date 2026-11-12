@@ -29,11 +29,13 @@ fn node(block: &Block, text: &str) -> Option<Value> {
         }),
         Kind::Paragraph => json!({ "type": "paragraph", "content": runs(&block.spans, text) }),
         Kind::Quote => json!({ "type": "blockquote", "content": inner(block) }),
-        Kind::Callout(kind) => json!({
-            "type": "callout",
-            "attrs": { "kind": called(*kind) },
-            "content": inner(block),
-        }),
+        Kind::Callout(kind) => {
+            let mut attrs = json!({ "kind": called(*kind) });
+            for (key, value) in crate::IdeaHead::of(*kind, &text[block.at.clone()]).said() {
+                attrs[key] = json!(value);
+            }
+            json!({ "type": "callout", "attrs": attrs, "content": inner(block) })
+        }
         Kind::List { start } => listed(block, *start, text),
         Kind::Item { .. } => return None,
         Kind::Code { tongue, .. } => {
@@ -84,6 +86,7 @@ fn called(kind: Callout) -> &'static str {
         Callout::Important => "important",
         Callout::Warning => "warning",
         Callout::Caution => "caution",
+        Callout::Idea => "idea",
     }
 }
 

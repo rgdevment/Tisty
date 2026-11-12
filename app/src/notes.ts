@@ -1,3 +1,5 @@
+import { IDEA_HUES, ideaParts, ideaStamp } from "tisty-editor/read";
+
 export interface Note {
   heading: string;
   text: string;
@@ -8,32 +10,15 @@ export interface Board {
   notes: Note[];
 }
 
-const SECTION = /^## (.*)$/;
-const FENCE = /^(```|~~~)/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?: · [a-z]+)?$/;
-const PAINTED = / · ([a-z]+)$/;
+const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
+const FENCE = /^[>\s]*(```|~~~)/;
+const QUOTED = /^\s*>/;
 
 export const IDEA_AT_MOST = 140;
 
-export const COLOURS = [
-  "pink",
-  "coral",
-  "orange",
-  "yellow",
-  "lime",
-  "green",
-  "teal",
-  "cyan",
-  "blue",
-  "lavender",
-  "violet",
-  "magenta",
-];
+export const COLOURS = IDEA_HUES;
 
-export const colourOf = (heading: string): number => {
-  const said = PAINTED.exec(heading);
-  return said ? COLOURS.indexOf(said[1]) : -1;
-};
+export const colourOf = (heading: string): number => COLOURS.indexOf(ideaParts(heading).hue ?? "");
 
 interface Cut {
   ending: string;
@@ -46,9 +31,18 @@ function cut(body: string): Cut {
   const head: string[] = [];
   const blocks: string[][] = [];
   let fenced = false;
+  let fencedInQuote = false;
+  let quoting = false;
   for (const line of body.split(/\r?\n/)) {
-    const opens = !fenced && SECTION.test(line);
-    if (FENCE.test(line)) fenced = !fenced;
+    const quoted = QUOTED.test(line);
+    // Markdown ends a fence opened inside a quote where the quote ends, closed or not.
+    if (fenced && fencedInQuote && !quoted) fenced = false;
+    const opens = !fenced && !quoting && OPENER.test(line);
+    if (FENCE.test(line)) {
+      fencedInQuote = !fenced && quoted;
+      fenced = !fenced;
+    }
+    quoting = quoted;
     if (opens) blocks.push([line]);
     else if (blocks.length) blocks[blocks.length - 1].push(line);
     else head.push(line);
@@ -56,15 +50,17 @@ function cut(body: string): Cut {
   return { ending, head, blocks };
 }
 
+const unquoted = (line: string): string => line.replace(/^\s*> ?/, "");
+
 const noteOf = (block: string[]): Note => ({
-  heading: (SECTION.exec(block[0])?.[1] ?? "").trim(),
-  text: block.slice(1).join("\n").trim(),
+  heading: (OPENER.exec(block[0])?.[1] ?? "").trim(),
+  text: block.slice(1).map(unquoted).join("\n").trim(),
 });
 
 const blockOf = (heading: string, text: string): string[] => [
-  `## ${heading}`,
+  `> [!IDEA] ${heading}`,
+  ...(text ? text.split("\n").map((line) => (line ? `> ${line}` : ">")) : []),
   "",
-  ...(text ? [...text.split("\n"), ""] : []),
 ];
 
 // Untouched notes go back byte for byte, so one edit never rewrites the whole file in sync.
@@ -147,59 +143,8 @@ export const added = (body: string, heading: string): string => {
   return sewn(sheet);
 };
 
-const two = (n: number) => String(n).padStart(2, "0");
+export const stampOf = ideaStamp;
 
-export const stampOf = (at: Date): string =>
-  `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
-
-export function saidWhen(heading: string, locale: string): string {
-  const stamp = STAMP.exec(heading);
-  if (!stamp) return heading;
-  const [, year, month, day, hour, minute] = stamp.map(Number);
-  const at = new Date(year, month - 1, day, hour, minute);
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(at);
-  return `${date} · ${two(hour)}:${two(minute)}`;
-}
-
-export interface Shape {
-  tilt: number;
-  hue: number;
-  wide: number;
-  drop: number;
-  nudge: number;
-  space: number;
-  hold: "pin" | "tape" | "corner-left" | "corner-right";
-  angle: number;
-  along: number;
-  pin: number;
-}
-
-const HOLDS: Shape["hold"][] = ["pin", "tape", "corner-left", "corner-right"];
-
-const hashed = (text: string): number => {
-  let h = 0x811c9dc5;
-  for (const letter of text) h = Math.imul(h ^ (letter.codePointAt(0) ?? 0), 0x01000193);
-  h ^= h >>> 16;
-  h = Math.imul(h, 0x85ebca6b);
-  h ^= h >>> 13;
-  h = Math.imul(h, 0xc2b2ae35);
-  return (h ^ (h >>> 16)) >>> 0;
-};
+export { ideaWhen as saidWhen, type Shape, shapeOf } from "tisty-editor/read";
 
 export const HUES = 12;
-
-export function shapeOf(heading: string, nth = 0): Shape {
-  const pick = (salt: number, range: number) => hashed(`${salt}|${heading}#${nth}`) % range;
-  return {
-    tilt: pick(1, 15) - 7,
-    hue: pick(2, HUES),
-    wide: pick(3, 7),
-    drop: pick(4, 6),
-    nudge: pick(5, 7) - 3,
-    space: pick(10, 6),
-    hold: HOLDS[pick(6, HOLDS.length)],
-    angle: pick(7, 31) - 15,
-    along: pick(8, 61) + 20,
-    pin: pick(9, 4),
-  };
-}

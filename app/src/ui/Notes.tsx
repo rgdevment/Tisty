@@ -4,6 +4,7 @@ import { ideaToDoc, ideaUnflag } from "../brainstorm";
 import { capture, type Filed, type IdeaMarked, type Task } from "../core";
 import { fill, locale, t } from "../locales";
 import "../notes.css";
+import { pinMarkup } from "tisty-editor/read";
 import {
   added,
   boardOf,
@@ -279,7 +280,7 @@ export default function Notes({
           onPick={(file) => {
             setFiling(null);
             const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
-            void ideaToDoc(file, filing.text, title)
+            void ideaToDoc(file, filing.text, filing.heading)
               .then(() => {
                 settled(filing)();
                 send(fill("ideaFiledIn", there), t("ideaOpenDoc"), () => onDoc?.(file));
@@ -475,37 +476,10 @@ function Sticky({
 }
 
 function Pin() {
-  const id = useId();
-  const cap = `${id}-cap`;
-  const neck = `${id}-neck`;
-  const shade = (mix: string) => ({ stopColor: `color-mix(in srgb, var(--pin), ${mix})` });
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 44" className="sticky-pin">
-      <defs>
-        <radialGradient id={cap} cx="0.35" cy="0.3" r="0.8">
-          <stop offset="0" style={shade("white 45%")} />
-          <stop offset="0.45" style={{ stopColor: "var(--pin)" }} />
-          <stop offset="1" style={shade("black 45%")} />
-        </radialGradient>
-        <linearGradient id={neck} x1="0" x2="1">
-          <stop offset="0" style={shade("black 35%")} />
-          <stop offset="0.35" style={shade("white 25%")} />
-          <stop offset="1" style={shade("black 45%")} />
-        </linearGradient>
-      </defs>
-      <line
-        x1="12"
-        y1="30"
-        x2="14.5"
-        y2="43"
-        style={{ stroke: "var(--tisty-pin-needle)" }}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <ellipse cx="12" cy="28.5" rx="9" ry="3.6" fill={`url(#${cap})`} />
-      <path d="M8 9 L16 9 L14.2 27 L9.8 27 Z" fill={`url(#${neck})`} />
-      <ellipse cx="12" cy="8" rx="8" ry="6.5" fill={`url(#${cap})`} />
-      <ellipse cx="9.5" cy="5.5" rx="2.6" ry="1.6" fill="white" opacity="0.6" />
-    </svg>
-  );
+  const id = useId().replace(/[^\w-]/g, "");
+  const held = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (held.current) held.current.innerHTML = pinMarkup(`pin-${id}`);
+  }, [id]);
+  return <span ref={held} aria-hidden="true" className="contents" />;
 }

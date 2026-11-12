@@ -19,6 +19,8 @@ const topOf = (one: HTMLElement, sheet: HTMLElement) =>
 
 const bottomOf = (one: HTMLElement, sheet: HTMLElement) => topOf(one, sheet) + one.offsetHeight;
 
+const floating = (one: HTMLElement) => one.matches('blockquote[data-callout="idea"][data-side]');
+
 // The band between two sheets starts at the foot of the one above, its bottom margin included.
 export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   const sheet = page.querySelector<HTMLElement>(".page");
@@ -29,6 +31,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   const room = tall - 2 * y - 1;
   let begins = y;
   let ended = y;
+  let deepest = y;
   let fresh = true;
   // A heading never stays alone at the foot: the turn takes the headings right above along.
   let heads: HTMLElement[] = [];
@@ -41,6 +44,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
       one.style.setProperty("--fill", `${Math.max(0, begins + room - ended)}px`);
       begins = bottomOf(one, sheet) + y;
       ended = begins;
+      deepest = begins;
       fresh = true;
       heads = [];
       continue;
@@ -56,6 +60,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
       );
       (moving ? heads[0] : one).before(turn);
       begins = bottomOf(turn, sheet) + y;
+      deepest = begins;
       fresh = true;
       if (!moving) heads = [];
       headsOpen = true;
@@ -66,9 +71,11 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
       headsOpen = fresh;
     }
     fresh = false;
-    ended = bottomOf(one, sheet);
+    deepest = Math.max(deepest, bottomOf(one, sheet));
+    // A break clears a floated note, so its fill still starts where the blocks in the flow end.
+    if (!floating(one)) ended = bottomOf(one, sheet);
   }
-  sheet.style.setProperty("--last", `${Math.max(0, begins + room - ended)}px`);
+  sheet.style.setProperty("--last", `${Math.max(0, begins + room - Math.max(ended, deepest))}px`);
   if (!said) return true;
   for (const one of sheet.querySelectorAll<HTMLElement>(":scope > hr")) {
     const label = page.createElement("div");

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Filed } from "../core";
 import { folded } from "../folding";
 import { t } from "../locales";
+import { tongueName } from "../tongues";
 import Modal from "./Modal";
 
 interface Props {
@@ -14,12 +15,34 @@ interface Props {
 
 const MOST = 12;
 
+const spoken = (one: Filed): string => (one.tongue && one.lang ? tongueName(one.lang) : "");
+
+// A page carries no language of its own: it is in the language of the document it hangs from.
+const whereOf = (one: Filed, byId: ReadonlyMap<string, Filed>): string => {
+  const above = one.pageOf ? byId.get(one.pageOf) : undefined;
+  let root = one;
+  for (let steps = 0; root.pageOf && steps < byId.size; steps++) {
+    const up = byId.get(root.pageOf);
+    if (!up) break;
+    root = up;
+  }
+  return [above?.title || (above && t("untitledDoc")), spoken(root)].filter(Boolean).join(" · ");
+};
+
 export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
   const asked = folded(query.trim());
+  const where = useMemo(() => {
+    const byId = new Map(known.map((one) => [one.id, one]));
+    return new Map(known.map((one) => [one.file, whereOf(one, byId)]));
+  }, [known]);
   const open = known
     .filter((one) => one.file !== own && !one.away && !one.locked && !one.gone)
-    .filter((one) => !asked || folded(one.title || t("untitledDoc")).includes(asked))
+    .filter(
+      (one) =>
+        !asked ||
+        folded(`${one.title || t("untitledDoc")} ${where.get(one.file) ?? ""}`).includes(asked),
+    )
     .sort(
       (a, b) =>
         (b.wrote ?? "").localeCompare(a.wrote ?? "") ||
@@ -50,9 +73,14 @@ export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => onPick(one.file)}
-                className="w-full truncate rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
+                className="flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
               >
-                {one.title || t("untitledDoc")}
+                <span className="min-w-0 truncate">{one.title || t("untitledDoc")}</span>
+                {where.get(one.file) && (
+                  <span className="min-w-0 shrink truncate text-[11.5px] text-faint">
+                    {where.get(one.file)}
+                  </span>
+                )}
               </button>
             </li>
           ))

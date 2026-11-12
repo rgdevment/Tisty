@@ -294,6 +294,77 @@ pub enum Callout {
     Important,
     Warning,
     Caution,
+    Idea,
+}
+
+pub const IDEA_HUES: [&str; 12] = [
+    "pink", "coral", "orange", "yellow", "lime", "green", "teal", "cyan", "blue", "lavender",
+    "violet", "magenta",
+];
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct IdeaHead<'a> {
+    pub when: Option<&'a str>,
+    pub hue: Option<&'static str>,
+    pub side: Option<&'static str>,
+}
+
+pub fn idea_words(line: &str) -> Option<&str> {
+    let rest = line.trim_start().strip_prefix('>')?.trim_start();
+    rest.get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map(|_| rest[7..].trim())
+}
+
+pub fn idea_head(source: &str) -> IdeaHead<'_> {
+    source
+        .lines()
+        .next()
+        .and_then(idea_words)
+        .map(idea_parts)
+        .unwrap_or_default()
+}
+
+pub fn idea_parts(words: &str) -> IdeaHead<'_> {
+    let mut head = IdeaHead::default();
+    for part in words.split(" · ").map(str::trim) {
+        let lower = part.to_ascii_lowercase();
+        if let Some(hue) = IDEA_HUES.iter().find(|one| **one == lower) {
+            head.hue = Some(hue);
+        } else if lower == "left" || lower == "right" {
+            head.side = Some(if lower == "left" { "left" } else { "right" });
+        } else if head.when.is_none() && stamped(part) {
+            head.when = Some(part);
+        }
+    }
+    head
+}
+
+impl<'a> IdeaHead<'a> {
+    pub fn says_any(&self) -> bool {
+        self.when.is_some() || self.hue.is_some() || self.side.is_some()
+    }
+
+    pub(crate) fn of(kind: Callout, source: &'a str) -> Self {
+        match kind {
+            Callout::Idea => idea_head(source),
+            _ => Self::default(),
+        }
+    }
+
+    pub(crate) fn said(&self) -> impl Iterator<Item = (&'static str, &'a str)> {
+        [("when", self.when), ("hue", self.hue), ("side", self.side)]
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|value| (key, value)))
+    }
+}
+
+fn stamped(said: &str) -> bool {
+    let shape = said
+        .chars()
+        .map(|c| if c.is_ascii_digit() { '9' } else { c });
+    let shape: String = shape.collect();
+    shape == "9999-99-99 99:99" || shape == "9999-99-99"
 }
 
 impl Doc {

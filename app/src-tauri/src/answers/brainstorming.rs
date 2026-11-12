@@ -81,24 +81,12 @@ pub fn idea_to_doc(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
     idea: String,
-    from: String,
+    heading: String,
 ) -> Answer<()> {
-    filing(
-        &mut held(&session),
-        &file,
-        &idea,
-        &from,
-        jiff::Zoned::now().date(),
-    )
+    filing(&mut held(&session), &file, &idea, &heading)
 }
 
-pub fn filing(
-    session: &mut Session,
-    file: &str,
-    idea: &str,
-    from: &str,
-    on: jiff::civil::Date,
-) -> Answer<()> {
+pub fn filing(session: &mut Session, file: &str, idea: &str, heading: &str) -> Answer<()> {
     if idea.trim().is_empty() {
         return Err(Refusal::of("untitled"));
     }
@@ -109,7 +97,7 @@ pub fn filing(
     let whole = tisty_core::docs::append(
         &session.paths.docs(),
         file,
-        &tisty_core::brainstorm::filed(idea, from, on),
+        &tisty_core::brainstorm::filed(idea, heading),
     )
     .map_err(super::papers::unwritten)?;
     session.corpus.forget(file);

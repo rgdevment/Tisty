@@ -54,7 +54,7 @@ export type ReadWord =
   | "table"
   | "tableStars"
   | "tableTypeCheck"
-  | `said${"note" | "tip" | "important" | "warning" | "caution"}`;
+  | `said${"note" | "tip" | "important" | "warning" | "caution" | "idea"}`;
 
 /** A word in the reader's language, with the values it names filled in, in its own order. */
 export type Say = (word: ReadWord, ...filled: string[]) => string;

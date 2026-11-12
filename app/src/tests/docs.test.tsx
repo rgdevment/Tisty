@@ -212,8 +212,7 @@ describe("the document being written", () => {
     store.bodies["a3f1-0002"] = [
       "---\nview: notes\nbrainstorm: on\n---",
       "# Lluvia",
-      "## 2026-11-12 01:07 · lime",
-      "erase una vez",
+      "> [!IDEA] 2026-11-12 01:07 · lime\n> erase una vez",
     ].join("\n\n");
     render(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
@@ -226,8 +225,7 @@ describe("the document being written", () => {
       "---\nview: notes\n---",
       "# Tablero",
       "Algo escrito bajo el título.",
-      "## uno",
-      "x",
+      "> [!IDEA] uno\n> x",
     ].join("\n\n");
     render(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 

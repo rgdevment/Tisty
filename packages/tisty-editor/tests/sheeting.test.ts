@@ -35,6 +35,24 @@ describe("sheets laid on the page", () => {
     expect(sheet.style.getPropertyValue("--last")).not.toBe("");
   });
 
+  it("fills a sheet from the blocks in the flow, while a floated note still ends the page", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["blockquote", 50, 80],
+      ["hr", 52, 2],
+      ["p", 70, 20],
+      ["blockquote", 90, 100],
+    ]);
+    for (const at of [1, 4]) {
+      const note = sheet.children[at] as HTMLElement;
+      note.dataset.callout = "idea";
+      note.dataset.side = "right";
+    }
+    sheeted(document, { wide: 794, tall: 200, x: 10, y: 10 });
+    expect((sheet.children[2] as HTMLElement).style.getPropertyValue("--fill")).toBe("139px");
+    expect(sheet.style.getPropertyValue("--last")).toBe("53px");
+  });
+
   it("does not take the hidden properties for the block that stays, which would leave a blank sheet", () => {
     const sheet = laid([
       ["dl", 10, 0],
