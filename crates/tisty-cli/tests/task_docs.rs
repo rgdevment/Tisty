@@ -200,6 +200,10 @@ fn a_box_written_on_the_persons_page_is_a_step_and_its_tick_waits_for_them() {
         }),
     );
     assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let told = edited["result"]["structuredContent"]["said"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(told.contains("Its boxes went"), "{edited}");
 
     let read = served.call("read", serde_json::json!({ "task": task }));
     let steps = read["result"]["structuredContent"]["steps"]

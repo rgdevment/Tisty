@@ -178,6 +178,26 @@ fn a_part_of_the_persons_whole_moves_and_is_let_go() {
 }
 
 #[test]
+fn letting_the_persons_part_go_leaves_its_list_alone() {
+    let served = Served::new();
+    served.person().adds_list("Work");
+    let whole = served.filed("Release 2.0");
+    went(&served.call("move", json!({ "task": &whole, "list": "Work" })));
+    let persons = served.person().captures("book the van");
+    went(&served.call(
+        "move",
+        json!({ "task": persons.to_string(), "part_of": &whole }),
+    ));
+
+    went(&served.call(
+        "move",
+        json!({ "task": persons.to_string(), "part_of": null }),
+    ));
+
+    assert!(served.task(&persons.to_string())["list"].is_null());
+}
+
+#[test]
 fn a_list_is_chosen_for_any_task() {
     let served = Served::new();
     served.person().adds_list("Work");

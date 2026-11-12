@@ -728,7 +728,8 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
-    if !state.filed_by_agents(task) {
+    let ticked_by_an_agent = task.steps.iter().any(|step| step.done && step.by_agent);
+    if !state.filed_by_agents(task) && !ticked_by_an_agent {
         return unsay(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "unticking") {

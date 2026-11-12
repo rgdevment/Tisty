@@ -545,19 +545,15 @@ impl State {
                 self.filed_by_agents(task) || only_bells(d) || only_title(d)
             }
             // A word on any task is only a word: the person decides, so it needs no door.
-            Op::TaskResolve { d, .. } => d.word || self.filed_by_agents(task),
-            Op::StepDone { .. } => self.filed_by_agents(task),
-            Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
+            Op::TaskResolve { d, .. } => d.word || self.settled_by_agents(task),
+            Op::StepDone { .. } => self.settled_by_agents(task),
+            Op::StepUndone { d, .. } => ticked_by_agent(task, d.step),
             Op::StepText { d, .. } => mendable(task, d.step),
             Op::StepRemove { d, .. } => mendable(task, d.step),
             Op::TaskLogEdit { d, .. } => !d.body.trim().is_empty(),
             Op::TaskMove { d, .. } => d.list.is_some() || d.part_of.is_some(),
             _ => false,
         }
-    }
-
-    fn untickable_by_agents(&self, task: &Task, step: StepId) -> bool {
-        self.filed_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
     }
 
     fn step_marked(&mut self, event: &Event, task: TaskId, step: StepId, done: bool) {
@@ -864,6 +860,11 @@ impl State {
             .filter(|task| task.list == list)
             .map(|task| task.order.as_str())
             .collect()
+    }
+
+    // A task opened before 1.31.2 keeps the ticks and closings its log already holds.
+    fn settled_by_agents(&self, task: &Task) -> bool {
+        task.open_to_agents || self.filed_by_agents(task)
     }
 
     pub fn filed_by_agents(&self, task: &Task) -> bool {
@@ -1246,6 +1247,10 @@ pub(crate) fn only_title(d: &TaskPatch) -> bool {
                 title: d.title.clone(),
                 ..Default::default()
             }
+}
+
+fn ticked_by_agent(task: &Task, step: StepId) -> bool {
+    task.step(step).is_some_and(|one| one.by_agent)
 }
 
 fn mendable(task: &Task, step: StepId) -> bool {

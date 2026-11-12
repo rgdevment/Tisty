@@ -986,3 +986,46 @@ fn a_second_step_of_the_same_name_taken_off_still_reads_as_taken_off() {
         1
     );
 }
+
+#[test]
+fn an_assistant_moving_the_persons_task_to_a_list_is_a_chapter() {
+    let id = Ulid::generate();
+    let list = Ulid::generate();
+    let agent = DeviceId("dev_agent".into());
+    let mut joined = event(
+        1,
+        Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: None,
+        },
+    );
+    joined.device = agent.clone();
+    let mut filed = event(
+        10,
+        Op::TaskMove {
+            id,
+            d: crate::event::TaskMove {
+                list: Some(Some(list)),
+                ..Default::default()
+            },
+        },
+    );
+    filed.device = agent;
+    let log = vec![joined, born(id, "renew the certificate"), filed];
+
+    let told = story(&log, id);
+
+    assert_eq!(
+        chapters(&told),
+        vec![
+            &Chapter::Born {
+                title: "renew the certificate".into()
+            },
+            &Chapter::Filed {
+                from: None,
+                to: Some(list),
+            },
+        ]
+    );
+}

@@ -67,7 +67,11 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 json!({ "id": id.to_string(), "title": task.title, "moved": false }),
             ));
         };
-        if d.list.is_none() && task.list.is_none() && up.list.is_some() {
+        if d.list.is_none()
+            && task.list.is_none()
+            && up.list.is_some()
+            && state.filed_by_agents(task)
+        {
             d.list = Some(up.list);
         }
     }

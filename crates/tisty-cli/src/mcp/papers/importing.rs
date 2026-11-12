@@ -377,6 +377,18 @@ pub(super) fn as_an_assistant(
     }
 }
 
+fn beyond_its_title(op: &tisty_core::Op) -> bool {
+    match op {
+        tisty_core::Op::TaskUpdate { d, .. } => {
+            *d != tisty_core::event::TaskPatch {
+                title: d.title.clone(),
+                ..Default::default()
+            }
+        }
+        _ => false,
+    }
+}
+
 // A task's page coming back hands the task its properties and its words, and is no document of its own.
 fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
@@ -395,6 +407,7 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             "that page names no task here any more.".into(),
         ));
     };
+    let held_back = !state.filed_by_agents(task) && taken.ops.iter().any(beyond_its_title);
     let mut ops: Vec<tisty_core::Op> = taken
         .ops
         .into_iter()
@@ -457,9 +470,15 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
         true => " Its page changed while this came in, so the page's words were left as they are.",
         false => "",
     };
+    let properties = match held_back {
+        true => {
+            " Its day, priority, tags and repeat stay the person's: of its properties only the title came in."
+        }
+        false => "",
+    };
     Ok(told(
         format!(
-            "{title:?} came back as its task's own page: its properties and its boxes went to the task and its words to the task's page. No new document was made.{words}"
+            "{title:?} came back as its task's own page: its properties and its boxes went to the task and its words to the task's page. No new document was made.{properties}{words}"
         ),
         json!({ "task": id.to_string(), "title": title }),
     ))

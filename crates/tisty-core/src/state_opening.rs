@@ -101,7 +101,7 @@ fn filled_in(state: &mut State, ms: i64, id: TaskId) -> StepId {
 }
 
 #[test]
-fn an_opening_from_before_gives_an_assistant_no_more_than_any_task() {
+fn an_opening_from_before_keeps_the_ticks_and_the_mark_its_log_holds() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
     state.apply(&ev(3, "dev_laptop", opened(id, true)));
@@ -109,9 +109,25 @@ fn an_opening_from_before_gives_an_assistant_no_more_than_any_task() {
     let step = filled_in(&mut state, 10, id);
 
     let task = &state.tasks[&id];
-    assert!(!state.filed_by_agents(task));
-    assert!(task.steps.iter().any(|s| s.id == step && !s.done));
-    assert!(task.resolved.is_none());
+    assert!(
+        task.steps
+            .iter()
+            .any(|s| s.id == step && s.done && s.by_agent)
+    );
+    assert!(task.resolved.is_some());
+
+    state.apply(&ev(
+        20,
+        "dev_agent",
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    assert!(
+        !state.tasks[&id].step(step).unwrap().done,
+        "an assistant takes back a tick it gave"
+    );
 }
 
 #[test]

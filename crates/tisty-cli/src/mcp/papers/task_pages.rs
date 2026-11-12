@@ -38,11 +38,20 @@ pub(in crate::mcp) fn on_its_page(
     let after = tisty_core::docs::read(&root, file).map_err(hitch)?;
     if after != before {
         let settled = settled(paths, id, file, &before, &after)?;
-        if let Some(text) = said["content"][0]["text"].as_str() {
-            said["content"][0]["text"] = Value::String(format!("{text}{settled}"));
-        }
+        told_also(&mut said, &settled);
     }
     Ok(said)
+}
+
+fn told_also(said: &mut Value, more: &str) {
+    if more.is_empty() {
+        return;
+    }
+    for at in ["/content/0/text", "/structuredContent/said"] {
+        if let Some(Value::String(text)) = said.pointer_mut(at) {
+            text.push_str(more);
+        }
+    }
 }
 
 fn settled(
@@ -56,19 +65,20 @@ fn settled(
     let Some(task) = state.tasks.get(&id) else {
         return Ok(String::new());
     };
-    let owner = tisty_core::task_docs::owner(&state, id);
-    if tisty_core::task_docs::task_in(after) != Some(owner) {
-        write_page(paths, &state, &mut store, file, before)?;
+    let named = tisty_core::task_docs::task_in;
+    if named(after) != named(before) {
+        put_back(paths, &state, &mut store, file, after, before)?;
         return Err(Refused::Tool(format!(
-            "the lines between `---` at the top of {:?}'s page name its task, and the page \
-             lost them, so it was put back as it was. Write again keeping those lines as they are.",
+            "the lines between `---` at the top of {:?}'s page name its task, and this write \
+             changed them, so the page was put back as it was. Write again keeping those lines \
+             as they are.",
             task.title
         )));
     }
     let shown = tisty_core::stages::ticked(task, before);
     let mut ops = tisty_core::stages::reconciled(task, Some(&shown), after);
     if let Some(why) = broken_rule(task, &ops) {
-        write_page(paths, &state, &mut store, file, before)?;
+        put_back(paths, &state, &mut store, file, after, before)?;
         return Err(Refused::Tool(format!(
             "on {:?}'s page, {why}, so the page was put back as it was. Leave that box as it \
              stands and write again.",
@@ -84,51 +94,55 @@ fn settled(
         .iter()
         .filter(|op| !matches!(op, Op::TaskPaged { .. }))
         .count();
-    if !ops.is_empty() {
-        let asked = ops.clone();
-        let written = store
-            .append_batch_unless(ops, |events| {
-                let held = State::replay(events);
-                held.tasks
-                    .get(&id)
-                    .is_none_or(|now| !now.is_open() || broken_rule(now, &asked).is_some())
-            })
-            .map_err(hitch)?;
-        if written.is_none() {
-            write_page(paths, &state, &mut store, file, before)?;
-            return Err(moved(task));
+    if steps == 0 {
+        if !ops.is_empty() {
+            store.append_batch(ops).map_err(hitch)?;
         }
+        return Ok(String::new());
     }
-    reticked(paths, id, file, after)?;
-    Ok(match steps {
-        0 => String::new(),
-        many => format!(
-            " Its boxes went to {:?} as {many} change(s) to its steps; a box ticked on the \
-             person's task stays your word until they take it.",
-            task.title
-        ),
-    })
-}
-
-fn reticked(paths: &Paths, id: TaskId, file: &str, after: &str) -> Result<(), Refused> {
+    let asked = ops.clone();
+    let written = store
+        .append_batch_unless(ops, |events| {
+            let held = State::replay(events);
+            held.tasks
+                .get(&id)
+                .is_none_or(|now| !now.is_open() || broken_rule(now, &asked).is_some())
+        })
+        .map_err(hitch)?;
+    if written.is_none() {
+        put_back(paths, &state, &mut store, file, after, before)?;
+        return Err(moved(task));
+    }
     let (state, mut store) = opened(paths)?;
-    let Some(task) = state.tasks.get(&id) else {
-        return Ok(());
-    };
-    let now = tisty_core::stages::ticked(task, after);
-    if now != after {
-        write_page(paths, &state, &mut store, file, &now)?;
+    if let Some(task) = state.tasks.get(&id) {
+        let ticked = tisty_core::stages::ticked(task, after);
+        put_back(paths, &state, &mut store, file, after, &ticked)?;
     }
-    Ok(())
+    Ok(format!(
+        " Its boxes went to {:?} as {steps} change(s) to its steps; a box ticked on the \
+         person's task stays your word until they take it.",
+        task.title
+    ))
 }
 
-fn write_page(
+/// Only over what this write left: a page the window saved since keeps the person's words.
+fn put_back(
     paths: &Paths,
     state: &State,
     store: &mut Store,
     file: &str,
+    left: &str,
     body: &str,
 ) -> Result<(), Refused> {
-    tisty_core::docs::write(&paths.docs(), file, body).map_err(hitch)?;
-    retold(state, store, file, body)
+    if left == body {
+        return Ok(());
+    }
+    let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), file, |now| {
+        (now == left).then(|| body.to_string())
+    })
+    .map_err(hitch)?;
+    match whole {
+        Some(whole) => retold(state, store, file, &whole),
+        None => Ok(()),
+    }
 }
