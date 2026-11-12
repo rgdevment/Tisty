@@ -263,6 +263,7 @@ function Sticky({
           rotate: lift ? "0deg" : `${shape.tilt}deg`,
           translate: lift ? `${nudge + lift.dx}px ${lift.dy}px` : `${nudge}px 0`,
           marginTop: `${shape.drop * 10}px`,
+          marginInline: `${shape.space * 5}px`,
           "--angle": `${shape.angle}deg`,
           "--along": `${shape.along}%`,
         } as React.CSSProperties

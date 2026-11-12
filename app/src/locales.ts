@@ -26,6 +26,8 @@ const en = {
   nothingOpen: "Nothing here",
   noTagsYet: "No tags yet",
   addTask: "Add a task",
+  taskExamples:
+    "Take the pill every day at 9\nTake Rina to the vet on Tuesday at 10\nPay the electricity bill by Friday\nCall mum on Sunday\nBuy bread and milk today\nRenew the ID card on December 15\nWater the plants every Monday\nSend the report tomorrow #work\nService the car every 6 months\nSofía's birthday on January 3 at 8pm",
   brainstorm: "Brainstorm",
   jotIdea: "Jot down a loose idea",
   modeTask: "Task",
@@ -3142,6 +3144,8 @@ const es: Catalog = {
   nothingOpen: "Nada por aquí",
   noTagsYet: "Ninguna etiqueta todavía",
   addTask: "Añadir una tarea",
+  taskExamples:
+    "Tomar la pastilla todos los días a las 9\nLlevar a Rina a la veterinaria el martes a las 10\nPagar la luz antes del viernes\nLlamar a mamá el domingo\nComprar pan y leche hoy\nRenovar el carnet el 15 de diciembre\nRegar las plantas cada lunes\nEnviar el informe mañana #trabajo\nRevisar el auto cada 6 meses\nCumpleaños de Sofía el 3 de enero a las 20",
   brainstorm: "Lluvia de ideas",
   jotIdea: "Anota una idea suelta",
   modeTask: "Tarea",

@@ -1,13 +1,15 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { jot } from "./brainstorm";
-import { capture, type Priority, type Snapshot, snapshot } from "./core";
+import { capture, type Priority, type Snapshot, shortcut, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
 import IdeaField from "./ui/IdeaField";
+
+const anyOf = (all: string[]): string => all[Math.floor(Math.random() * all.length)] ?? "";
 
 export default function Quick() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -19,6 +21,19 @@ export default function Quick() {
   const jottingNow = useRef(false);
   jottingNow.current = jotting;
   const going = useRef<ReturnType<typeof setTimeout>>(null);
+  const [keys, setKeys] = useState<string | null>(null);
+  useEffect(() => {
+    if (round < 0) return;
+    shortcut(jotting ? "idea" : "task")
+      .then(setKeys)
+      .catch(() => setKeys(null));
+  }, [jotting, round]);
+  const locale = data?.locale;
+  const example = useMemo(
+    () =>
+      round >= 0 && locale !== undefined ? anyOf(t("taskExamples").split("\n")) : t("addTask"),
+    [round, locale],
+  );
 
   useEffect(() => {
     const window = getCurrentWindow();
@@ -104,7 +119,7 @@ export default function Quick() {
 
   return (
     <Frame>
-      {!kept && <Modes jotting={jotting} onSwitch={setJotting} />}
+      {!kept && <Modes jotting={jotting} keys={keys} onSwitch={setJotting} />}
       {kept ? (
         <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
@@ -124,7 +139,7 @@ export default function Quick() {
       ) : (
         <CaptureField
           key={round}
-          invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
+          invite={where === "unset" ? example : fill("addTo", said(where))}
           lists={data.lists}
           tags={data.tags}
           onCapture={(written, edits) => {
@@ -146,8 +161,9 @@ export default function Quick() {
 
 function Modes({
   jotting,
+  keys,
   onSwitch,
-}: Readonly<{ jotting: boolean; onSwitch: (jotting: boolean) => void }>) {
+}: Readonly<{ jotting: boolean; keys: string | null; onSwitch: (jotting: boolean) => void }>) {
   return (
     <div className="mb-2 flex items-center gap-1 px-1 text-[11.5px]">
       {[false, true].map((idea) => (
@@ -162,6 +178,14 @@ function Modes({
           {t(idea ? "modeIdea" : "modeTask")}
         </button>
       ))}
+      {keys && (
+        <kbd
+          title={t(jotting ? "quickIdeaKeys" : "quickKeys")}
+          className="ml-auto rounded-md bg-hover px-1.5 py-px font-sans text-[11.5px] text-soft"
+        >
+          {keys}
+        </kbd>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { t } from "../locales";
 import Quick from "../Quick";
 
 const ipc = vi.hoisted(() => ({
@@ -131,12 +132,20 @@ describe("capturing without the window", () => {
     await waitFor(() => expect(sent("snapshot").length).toBe(2));
   });
 
-  it("spends its height on the sentence, not on instructions", async () => {
+  it("spends its height on the sentence, and its shortcut sits in the row of modes", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");
 
     expect(screen.queryByText(/Esc/)).toBeNull();
-    expect(screen.queryByText(/Ctrl\+Shift\+Space/)).toBeNull();
+    const keys = await screen.findByText("Ctrl+Shift+Space");
+    expect(keys.parentElement).toBe(screen.getByRole("button", { name: "Task" }).parentElement);
+  });
+
+  it("invites a task with one of its examples, in the person's language", async () => {
+    render(<Quick />);
+    const field = await screen.findByRole("textbox");
+
+    expect(t("taskExamples").split("\n")).toContain(field.getAttribute("placeholder"));
   });
 
   it("drops a loose idea in the brainstorm instead of filing a task, after Tab", async () => {

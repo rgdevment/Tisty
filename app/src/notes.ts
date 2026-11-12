@@ -123,6 +123,7 @@ export interface Shape {
   wide: number;
   drop: number;
   nudge: number;
+  space: number;
   hold: "pin" | "tape" | "corner-left" | "corner-right";
   angle: number;
   along: number;
@@ -148,9 +149,10 @@ export function shapeOf(heading: string, nth = 0): Shape {
   return {
     tilt: pick(1, 15) - 7,
     hue: pick(2, HUES),
-    wide: pick(3, 4),
+    wide: pick(3, 7),
     drop: pick(4, 6),
     nudge: pick(5, 7) - 3,
+    space: pick(10, 6),
     hold: HOLDS[pick(6, HOLDS.length)],
     angle: pick(7, 31) - 15,
     along: pick(8, 61) + 20,

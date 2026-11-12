@@ -3,7 +3,7 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: center;
-  gap: 10px 18px;
+  gap: 10px 6px;
   padding-top: 28px;
 }
 
@@ -56,13 +56,22 @@
   background: var(--tisty-note-11);
 }
 .sticky-note[data-wide="1"] {
-  width: 184px;
+  width: 150px;
 }
 .sticky-note[data-wide="2"] {
-  width: 200px;
+  width: 184px;
 }
 .sticky-note[data-wide="3"] {
-  width: 216px;
+  width: 200px;
+}
+.sticky-note[data-wide="4"] {
+  width: 218px;
+}
+.sticky-note[data-wide="5"] {
+  width: 236px;
+}
+.sticky-note[data-wide="6"] {
+  width: 256px;
 }
 .sticky-note[data-lifted] {
   z-index: 3;
