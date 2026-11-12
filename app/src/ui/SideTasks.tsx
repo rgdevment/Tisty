@@ -1,4 +1,4 @@
-import type { Counted, List } from "../core";
+import { type Counted, type List, sow } from "../core";
 import { capped, exactly, todayLong } from "../format";
 import { fill, t } from "../locales";
 import { keepOnly } from "../only";
@@ -94,7 +94,7 @@ export default function SideTasks({
       </div>
       <nav
         aria-label={t("tasksViews")}
-        className="mt-2 grid grid-cols-5 rounded-[10px] bg-hover p-0.5"
+        className="mt-2 grid grid-cols-6 rounded-[10px] bg-hover p-0.5"
       >
         {VIEWS.map(({ key, icon }) => {
           const said =
@@ -119,6 +119,15 @@ export default function SideTasks({
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => void sow().catch(() => {})}
+          aria-label={t("captureNew")}
+          title={t("captureNew")}
+          className="grid h-7 place-items-center rounded-md text-accent transition-colors duration-150 hover:bg-sheet"
+        >
+          <Glyph name="plus" />
+        </button>
       </nav>
       {wide && (
         <Wide
