@@ -5,6 +5,7 @@ import {
   added,
   boardOf,
   dropped,
+  HUES,
   type Note,
   ordered,
   rewritten,
@@ -50,13 +51,15 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
   const { notes } = boardOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
   const [lifted, setLifted] = useState<Lifted | null>(null);
-  const newestFirst = notes
-    .map((note, at) => ({
-      note,
-      at,
-      nth: notes.slice(0, at).filter((one) => one.heading === note.heading).length,
-    }))
-    .reverse();
+  const newestFirst = apart(
+    notes
+      .map((note, at) => ({
+        note,
+        at,
+        nth: notes.slice(0, at).filter((one) => one.heading === note.heading).length,
+      }))
+      .reverse(),
+  );
 
   const moved = (from: number, to: number) => {
     if (from === to || to < 0 || to >= newestFirst.length) return;
@@ -133,12 +136,13 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
         <p className="pt-6 text-[12.5px] text-faint">{t("notesNone")}</p>
       ) : (
         <ul ref={wall} className="notes-wall">
-          {newestFirst.map(({ note, at, nth }, shown) => (
+          {newestFirst.map(({ note, at, nth, hue }, shown) => (
             <Sticky
               key={`${note.heading}#${nth}#${note.text}`}
               stamp={`${note.heading}#${nth}#${note.text}`}
               note={note}
               nth={nth}
+              hue={hue}
               shown={shown}
               reading={reading}
               focused={fresh === at}
@@ -158,6 +162,17 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
       )}
     </section>
   );
+}
+
+// Two neighbours never share a colour, so a run of notes from one minute still reads as many.
+function apart<T extends { note: Note; nth: number }>(laid: T[]): (T & { hue: number })[] {
+  let before = -1;
+  return laid.map((one) => {
+    const drawn = shapeOf(one.note.heading, one.nth).hue;
+    const hue = drawn === before ? (drawn + 5) % HUES : drawn;
+    before = hue;
+    return { ...one, hue };
+  });
 }
 
 const SLIDES_FOR = 220;
@@ -189,6 +204,7 @@ interface StickyProps {
   stamp: string;
   note: Note;
   nth: number;
+  hue: number;
   shown: number;
   reading: boolean;
   focused: boolean;
@@ -207,6 +223,7 @@ function Sticky({
   stamp,
   note,
   nth,
+  hue,
   shown,
   reading,
   focused,
@@ -230,7 +247,7 @@ function Sticky({
       data-shown={shown}
       data-key={stamp}
       className="sticky-note"
-      data-hue={shape.hue}
+      data-hue={hue}
       data-wide={shape.wide}
       data-hold={shape.hold}
       data-pin={shape.pin}

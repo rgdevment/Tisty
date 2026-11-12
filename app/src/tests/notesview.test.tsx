@@ -69,4 +69,23 @@ describe("a brainstorm shown as notes", () => {
     const written: string = onWrite.mock.calls[0][0];
     expect(written.indexOf("segunda")).toBeLessThan(written.indexOf("primera"));
   });
+
+  it("never gives two neighbouring ideas the same colour", () => {
+    const many = Array.from({ length: 24 }, (_, at) => `## 2026-11-12 00:19\n\nidea ${at}`);
+    render(
+      <Notes
+        title="Ideas"
+        body={`# Ideas\n\n${many.join("\n\n")}\n`}
+        reading
+        onWrite={() => {}}
+        onText={() => {}}
+      />,
+    );
+
+    const hues = within(screen.getByRole("list"))
+      .getAllByRole("listitem")
+      .map((one) => one.dataset.hue);
+    expect(hues.every((hue, at) => at === 0 || hue !== hues[at - 1])).toBe(true);
+    expect(new Set(hues).size).toBeGreaterThan(6);
+  });
 });

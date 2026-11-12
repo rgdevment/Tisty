@@ -100,22 +100,23 @@ export interface Shape {
 
 const HOLDS: Shape["hold"][] = ["pin", "tape", "corner-left", "corner-right"];
 
-const mixed = (seed: number, salt: number): number => {
-  let h = Math.imul(seed ^ Math.imul(salt + 1, 0x9e3779b9), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+const hashed = (text: string): number => {
+  let h = 0x811c9dc5;
+  for (const letter of text) h = Math.imul(h ^ (letter.codePointAt(0) ?? 0), 0x01000193);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
   return (h ^ (h >>> 16)) >>> 0;
 };
 
-// Drawn from when it came, not from its words, so editing a note never repaints it.
+export const HUES = 12;
+
 export function shapeOf(heading: string, nth = 0): Shape {
-  let seed = 0x811c9dc5;
-  for (const letter of `${heading}#${nth}`) {
-    seed = Math.imul(seed ^ (letter.codePointAt(0) ?? 0), 0x01000193);
-  }
-  const pick = (salt: number, range: number) => mixed(seed, salt) % range;
+  const pick = (salt: number, range: number) => hashed(`${salt}|${heading}#${nth}`) % range;
   return {
     tilt: pick(1, 15) - 7,
-    hue: pick(2, 12),
+    hue: pick(2, HUES),
     wide: pick(3, 4),
     drop: pick(4, 6),
     nudge: pick(5, 7) - 3,
