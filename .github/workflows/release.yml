@@ -222,6 +222,11 @@ jobs:
           VERSION: ${{ steps.resolve.outputs.version }}
         run: bash scripts/news.sh "$VERSION"
 
+      - name: tisty.app has an article for this version, in both languages
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: bash scripts/article.sh "$VERSION"
+
       - name: What a person reads was read against this version
         env:
           VERSION: ${{ steps.resolve.outputs.version }}

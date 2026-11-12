@@ -216,9 +216,15 @@ send, and when what you send is a tag it asks
 `scripts/news.sh` whether `app/src/news.json` says what changed in that version:
 the window an update opens with is the only place the app says it. A candidate
 is exempt, and so is a patch whose minor release already has its entry, since
-the window tells that release's news again. Nothing slower goes in any of
-them: the suite, the build and the markdown lint are minutes, and they belong
-to CI.
+the window tells that release's news again. A minor release also needs the
+article tisty.app publishes as its news, in `docs/news/<version>/` as `en.md`
+and `es.md`: `scripts/article.sh` refuses one that is missing, says fewer than
+150 words, has fewer than two `##` sections or does not read in its own
+language, or whose two languages do not line up in sections and pictures, and
+it suggests a screen when the article shows none. A picture is a path relative
+to the article, so it stays as that version shipped it. Nothing slower goes in
+any of them: the suite, the build and the markdown lint are minutes, and they
+belong to CI.
 
 One of those rules keeps a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is
