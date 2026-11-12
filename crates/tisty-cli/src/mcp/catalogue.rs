@@ -22,7 +22,7 @@ what you ruled out too, then `say_done`.\n\
 Before you act, ask for the short guide it needs:\n\
 - Filing or working a task: `rules` «tasks» (steps, parts, dates, reminders, priority, saying \
 done, the archive).\n\
-- Writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
+- Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
 Markdown, one topic at a time.\n\
 - Tidying, consolidating or compacting: `rules` «tidying».\n\
 - Anything else: `rules` alone gives the basics and this index again.";
@@ -161,7 +161,7 @@ description how the last one ended.
 Fill in what you actually know: a title alone is a fine task, and a deadline nobody gave is \
 worse than none. Write in the language the person writes in. Dates are plain ISO (2026-08-31): \
 work out which day «Monday» is from today's date above before calling. Name the list it belongs in \
-— `lists` or `catch_up` say which, and you cannot make one; a task stays in the inbox only when \
+— `catch_up` says which, and you cannot make one; a task stays in the inbox only when \
 the person asks for that or no list fits, and then say which list you would have wanted. Tisty \
 tags what you propose #agent by itself.
 
@@ -357,7 +357,7 @@ opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, wr
 document where it belongs; `note` is a task's journal and never that. Plain Markdown is \
 enough: it is turned into the Tisty language on the way in, and the answer says what changed \
 under `turned`. A document is tagged by writing #word in its own text, for what it is about, \
-reusing what `tags` lists: six is already a lot, and past 64 the rest are dropped. `language` \
+reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest are dropped. `language` \
 lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
 
@@ -448,6 +448,8 @@ pub(super) fn rules(args: &Value) -> Value {
 #[derive(Clone, Copy)]
 pub(super) enum Effect {
     Reads,
+    // Changes nothing the person keeps, but the next call hears only what moved after this one.
+    Looks,
     Adds,
     // Steps written alike are reached one after another, so the same call again marks the next.
     Marks,
@@ -458,7 +460,7 @@ pub(super) enum Effect {
 
 impl Effect {
     fn annotations(self) -> Value {
-        let reads = matches!(self, Effect::Reads);
+        let reads = matches!(self, Effect::Reads | Effect::Looks);
         let overwrites = matches!(self, Effect::Replaces | Effect::Rewrites);
         let again = matches!(self, Effect::Reads | Effect::Sets | Effect::Replaces);
         json!({
@@ -499,7 +501,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tongue_doc", Effect::Sets),
     ("folder", Effect::Sets),
     ("read_doc", Effect::Reads),
-    ("catch_up", Effect::Reads),
+    ("catch_up", Effect::Looks),
     ("reschedule", Effect::Replaces),
     ("say_done", Effect::Sets),
     ("say_not_doing", Effect::Sets),
@@ -514,9 +516,13 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tags", Effect::Reads),
 ];
 
+/// Still answered when a client calls them by name, but `catch_up` already brings both.
+pub(super) const UNLISTED: [&str; 2] = ["lists", "tags"];
+
 pub(super) fn tools() -> Value {
     let mut all = super::tool_list::tools_without_hints();
     if let Value::Array(each) = &mut all {
+        each.retain(|one| !UNLISTED.contains(&one["name"].as_str().unwrap_or_default()));
         for one in each {
             let name = one["name"].as_str().unwrap_or_default();
             // A tool left out of EFFECTS is announced as the most careful kind rather than bare.

@@ -33,8 +33,8 @@ pub(super) fn tools_without_hints() -> Value {
                     "deadline": { "type": "string", "description": "The day it truly runs out (2026-08-31); only then is it overdue" },
                     "remind": { "type": "array", "items": { "type": "string" }, "description": "When to ring, like 2026-08-30T20:00: only for a one-off at a set hour that cannot be caught up on, the evening before" },
                     "priority": { "type": "string", "enum": ["do", "decide", "delegate", "minor"], "description": "Only if someone said so" },
-                    "list": { "type": "string", "description": "An existing list, by name (`lists`). Left out, it lands in the inbox, which needs a reason" },
-                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Its subjects, one plain word each, reusing what `tags` lists; six is already a lot" },
+                    "list": { "type": "string", "description": "An existing list, by name, as `catch_up` names it. Left out, it lands in the inbox, which needs a reason" },
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Its subjects, one plain word each, reusing the tags `catch_up` shows; six is already a lot" },
                     "steps": { "type": "array", "items": { "type": "string" }, "description": "A checklist, each step at most 100 characters; what needs more is a part" },
                     "source": { "type": "string", "description": "Where you read it: a message id, a thread link" },
                     "again": { "type": "boolean", "description": "Only when the person asks in this conversation to redo what was filed from this source and closed since, never for one still open; say in the description how the last one ended" }
@@ -74,7 +74,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's tasks not open to you, it reports the step done for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
+            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's tasks not open to you, it reports the step done for them to confirm. Refused once the task is said done: `note` instead. The answer says how many are `left` and the `next` one. The whole task is `say_done`; a wrong tick, `untick`.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
@@ -127,7 +127,7 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": on_a_task(
                 json!({
                     "part_of": { "type": ["string", "null"], "description": "Id of the task to hang it under, or null to let it go" },
-                    "list": { "type": "string", "description": "An existing list, by name (`lists`), for a task an agent filed" }
+                    "list": { "type": "string", "description": "An existing list, by name, as `catch_up` names it, for a task an agent filed" }
                 }),
                 &[],
             )
@@ -194,7 +194,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
+            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes, unless `replace` rewrites a task page's assistant notes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -241,7 +241,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "edit_table",
             "title": "Change a table in a document",
-            "description": "Read or change one table of a document by rows and columns, never its Markdown. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
+            "description": "Read or change one table of a document by rows and columns, never its Markdown; without `do` it only shows the table. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -422,10 +422,10 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
-            "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since you were last here, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
+            "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what others moved since your last `catch_up`, and `last`, the open task you were on. Ask it first.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`, to count from there instead" }
+                    "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`, to count from there instead: it only reads, and brings your own changes too" }
                 }
             }))
         },
@@ -509,8 +509,8 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "find",
-            "title": "Search the list and the archive",
-            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
+            "title": "Search tasks and documents, archive included",
+            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. Answers `matches` and `total` for tasks, `docs` and `docsTotal` for documents; a task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
@@ -518,7 +518,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section" },
                     "around": { "type": "integer", "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default" },
                     "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
-                    "list": { "type": "string", "description": "In this list, as `lists` names it" },
+                    "list": { "type": "string", "description": "In this list, as `catch_up` names it" },
                     "folder": { "type": "string", "description": "Only documents in this folder or below, by name, path or id" },
                     "by_agent": { "type": "boolean", "description": "True: filed by an agent; false: by the person" },
                     "said_done": { "type": "boolean", "description": "True: an agent said done or not doing and the person has not decided; false: nobody did" },

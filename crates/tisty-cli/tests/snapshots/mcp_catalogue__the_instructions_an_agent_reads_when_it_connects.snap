@@ -16,6 +16,6 @@ Tisty is one person's tasks and documents, on this machine.
 
 Before you act, ask for the short guide it needs:
 - Filing or working a task: `rules` «tasks» (steps, parts, dates, reminders, priority, saying done, the archive).
-- Writing or changing a document: `rules` «documents», and `language` for what Tisty adds to Markdown, one topic at a time.
+- Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to Markdown, one topic at a time.
 - Tidying, consolidating or compacting: `rules` «tidying».
 - Anything else: `rules` alone gives the basics and this index again.

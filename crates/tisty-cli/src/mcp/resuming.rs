@@ -11,8 +11,33 @@ use super::looking::brief;
 
 pub(super) const MOVED_SHOWN: usize = 20;
 const LOOKED: &str = "looked";
+/// A retry, a subagent or a second window asking within this long hears the same news again.
+const SAID_AGAIN_WITHIN: i64 = 60;
 
 pub(super) type Seen = BTreeMap<String, (jiff::Timestamp, u64)>;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Looked {
+    seen: Seen,
+    #[serde(default)]
+    at: Option<jiff::Timestamp>,
+    #[serde(default)]
+    was: Option<Seen>,
+    #[serde(default)]
+    was_at: Option<jiff::Timestamp>,
+    #[serde(default)]
+    whole: bool,
+}
+
+impl Looked {
+    fn saying_again(&self, now: jiff::Timestamp) -> bool {
+        self.whole
+            && self.was.is_some()
+            && self
+                .at
+                .is_some_and(|at| now.as_second() - at.as_second() < SAID_AGAIN_WITHIN)
+    }
+}
 
 pub(super) enum Since {
     At(jiff::Timestamp),
@@ -39,8 +64,11 @@ impl Since {
 
 pub(super) struct LeftOff {
     pub(super) seen: Option<Seen>,
+    pub(super) looked_at: Option<jiff::Timestamp>,
     pub(super) at: Option<jiff::Timestamp>,
     pub(super) task: Option<TaskId>,
+    pub(super) task_at: Option<jiff::Timestamp>,
+    pub(super) ended: Option<TaskId>,
 }
 
 pub(super) fn hand(via: Option<&str>) -> Option<String> {
@@ -78,6 +106,8 @@ pub(super) fn left_off<E: std::borrow::Borrow<Event>>(
     let owners = tisty_core::task_docs::behind(state);
     let mut at = None;
     let mut task = None;
+    let mut task_at = None;
+    let mut ended = None;
     for one in mine_newest_first {
         let one = one.borrow();
         if hand(one.via.as_deref()) != me {
@@ -93,23 +123,42 @@ pub(super) fn left_off<E: std::borrow::Borrow<Event>>(
             continue;
         }
         at.get_or_insert(one.timestamp);
-        task = touched_task(state, &owners, &named, &id)
-            .and_then(|id| state.tasks.get(&id))
-            .filter(|task| task.is_open() && !task.folded() && task.resolved.is_none())
-            .map(|task| task.id);
-        if task.is_some() {
-            break;
+        let Some(touched) = touched_task(state, &owners, &named, &id) else {
+            continue;
+        };
+        match state.tasks.get(&touched).filter(|kept| !kept.folded()) {
+            Some(kept) if kept.is_open() && kept.resolved.is_none() => {
+                task = Some(touched);
+                task_at = Some(one.timestamp);
+            }
+            Some(_) => ended = Some(touched),
+            None => {}
         }
+        break;
     }
+    let looked = looked(paths);
+    let now = jiff::Timestamp::now();
+    let (seen, looked_at) = match looked {
+        Some(one) if one.saying_again(now) => (one.was, one.was_at),
+        Some(one) => (Some(one.seen), one.at),
+        None => (None, None),
+    };
     LeftOff {
-        seen: looked(paths),
+        seen,
+        looked_at,
         at,
         task,
+        task_at,
+        ended,
     }
 }
 
 pub(super) fn last_task<'a>(state: &'a State, left: &LeftOff) -> Option<&'a Task> {
     state.tasks.get(&left.task?)
+}
+
+pub(super) fn ended_task<'a>(state: &'a State, left: &LeftOff) -> Option<&'a Task> {
+    state.tasks.get(&left.ended?)
 }
 
 fn looked_at(paths: &Paths) -> std::path::PathBuf {
@@ -127,15 +176,50 @@ fn looked_at(paths: &Paths) -> std::path::PathBuf {
     paths.private().join(LOOKED).join(format!("{named}.json"))
 }
 
-fn looked(paths: &Paths) -> Option<Seen> {
-    serde_json::from_slice(&std::fs::read(looked_at(paths)).ok()?).ok()
+fn looked(paths: &Paths) -> Option<Looked> {
+    let raw = std::fs::read(looked_at(paths)).ok()?;
+    serde_json::from_slice::<Looked>(&raw).ok().or_else(|| {
+        serde_json::from_slice::<Seen>(&raw)
+            .ok()
+            .map(|seen| Looked {
+                seen,
+                at: None,
+                was: None,
+                was_at: None,
+                whole: false,
+            })
+    })
 }
 
-pub(super) fn looks_now(paths: &Paths, seen: &Seen) {
+pub(super) fn looks_now(paths: &Paths, seen: &Seen, whole: bool) {
+    let now = jiff::Timestamp::now();
+    let next = match looked(paths) {
+        Some(was) if was.saying_again(now) => Looked {
+            seen: seen.clone(),
+            at: was.at,
+            was: was.was,
+            was_at: was.was_at,
+            whole,
+        },
+        Some(was) => Looked {
+            seen: seen.clone(),
+            at: Some(now),
+            was: Some(was.seen),
+            was_at: was.at,
+            whole,
+        },
+        None => Looked {
+            seen: seen.clone(),
+            at: Some(now),
+            was: None,
+            was_at: None,
+            whole,
+        },
+    };
     let at = looked_at(paths);
     if let Some(folder) = at.parent()
         && std::fs::create_dir_all(folder).is_ok()
-        && let Ok(said) = serde_json::to_vec(seen)
+        && let Ok(said) = serde_json::to_vec(&next)
     {
         let _ = tisty_core::store::write_atomic(&at, &said);
     }
@@ -227,6 +311,13 @@ pub(super) struct Moved {
     pub(super) docs_all: usize,
     pub(super) by: BTreeSet<String>,
     pub(super) seen: Seen,
+    pub(super) upto: Option<jiff::Timestamp>,
+}
+
+impl Moved {
+    pub(super) fn cut(&self) -> bool {
+        self.tasks_all > self.tasks.len() || self.docs_all > self.docs.len()
+    }
 }
 
 pub(super) fn moved_since(
@@ -240,6 +331,7 @@ pub(super) fn moved_since(
     let mut shown: Vec<(Moving, BTreeSet<String>)> = Vec::new();
     let mut later: BTreeSet<Moving> = BTreeSet::new();
     let mut seen = asked.seen;
+    let mut upto = None;
     for one in log {
         let touched = match asked.since.passed(one) {
             true => {
@@ -273,6 +365,7 @@ pub(super) fn moved_since(
             (None, _) => {}
         }
         bump(&mut seen, one);
+        upto = Some(one.timestamp);
     }
     let all = |task: bool| {
         shown
@@ -313,6 +406,7 @@ pub(super) fn moved_since(
         docs_all,
         by,
         seen,
+        upto,
     }
 }
 

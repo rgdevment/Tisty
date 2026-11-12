@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
+  "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. Answers `matches` and `total` for tasks, `docs` and `docsTotal` for documents; a task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -46,7 +46,7 @@ expression: tool
         "type": "integer"
       },
       "list": {
-        "description": "In this list, as `lists` names it",
+        "description": "In this list, as `catch_up` names it",
         "type": "string"
       },
       "open_to_agents": {
@@ -90,5 +90,5 @@ expression: tool
     "type": "object"
   },
   "name": "find",
-  "title": "Search the list and the archive"
+  "title": "Search tasks and documents, archive included"
 }

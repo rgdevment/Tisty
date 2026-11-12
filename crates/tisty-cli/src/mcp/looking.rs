@@ -9,7 +9,8 @@ use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
 use super::resuming::{
-    Asked, MOVED_SHOWN, Since, last_task, left_off, looks_now, moved_since, seen_whole, whose,
+    Asked, MOVED_SHOWN, Since, ended_task, last_task, left_off, looks_now, moved_since, seen_whole,
+    whose,
 };
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
@@ -360,6 +361,15 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = strings(args, "fields")?;
+    if let Some(odd) = asked
+        .iter()
+        .find(|one| !READ_FIELDS.contains(&one.as_str()))
+    {
+        return Err(Refused::Tool(format!(
+            "`fields` has no {odd:?}: it takes {}. The page is `document`, the notes are `journal`.",
+            READ_FIELDS.join(", ")
+        )));
+    }
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
 
     let mut whole = match asked.is_empty() {
@@ -419,8 +429,18 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
+    let outlined = page
+        .as_ref()
+        .is_some_and(|(_, body, _)| body.chars().count() > crate::mcp::WHOLE_UP_TO);
     if let Some((file, body, _)) = &page {
-        whole["document"] = json!({ "file": file, "body": body });
+        whole["document"] = match outlined {
+            false => json!({ "file": file, "body": body }),
+            true => json!({
+                "file": file,
+                "whole": false,
+                "outline": tisty_core::docs::outlined(body),
+            }),
+        };
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
@@ -521,9 +541,23 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ));
         }
     }
-    if let Some((_, body, _)) = &page {
-        plainly.push_str("\n\nIts page:\n");
-        plainly.push_str(body.trim_end());
+    if let Some((file, body, _)) = &page {
+        match outlined {
+            false => {
+                plainly.push_str("\n\nIts page:\n");
+                plainly.push_str(body.trim_end());
+            }
+            true => plainly.push_str(&format!(
+                "\n\nIts page holds {} characters, so here are its sections rather than the whole \
+                 of it: `read_doc` {file:?} with a `section` brings one.\n{}",
+                body.chars().count(),
+                tisty_core::docs::outlined(body)
+                    .iter()
+                    .map(|one| serde_json::to_string(one).unwrap_or_default())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )),
+        }
     }
     if wants("parts") {
         for one in &parts {
@@ -547,7 +581,11 @@ part [{}] {} — {}",
                 .as_ref()
                 .map(|by| format!(", by {by}"))
                 .unwrap_or_default();
-            plainly.push_str(&format!("\n\n({}, note {}{by}) {kept}", one.at, one.id));
+            plainly.push_str(&format!(
+                "\n\n({}, note {}{by}) {kept}",
+                when(one.at),
+                one.id
+            ));
         }
         if hid {
             plainly.push_str(&format!("\n\n{UNPATHED}"));
@@ -582,9 +620,21 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let head = log.iter().map(|one| one.timestamp).max();
 
     let mut kept = serde_json::Map::new();
-    kept.insert("lists".into(), json!(named));
+    kept.insert(
+        "lists".into(),
+        json!(named.iter().take(AT_A_GLANCE).collect::<Vec<_>>()),
+    );
+    if named.len() > AT_A_GLANCE {
+        kept.insert("lists_more".into(), json!(named.len() - AT_A_GLANCE));
+    }
     if !folders.is_empty() {
-        kept.insert("folders".into(), json!(folders));
+        kept.insert(
+            "folders".into(),
+            json!(folders.iter().take(AT_A_GLANCE).collect::<Vec<_>>()),
+        );
+    }
+    if folders.len() > AT_A_GLANCE {
+        kept.insert("folders_more".into(), json!(folders.len() - AT_A_GLANCE));
     }
     if !tags.is_empty() {
         kept.insert(
@@ -623,15 +673,32 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     );
     let mut said = Vec::new();
     if let Some(task) = last_task(&state, &left) {
+        let on = left
+            .task_at
+            .map(|at| format!(", {}", when(at)))
+            .unwrap_or_default();
         said.push(format!(
-            "You last worked on {}: `read` it.",
+            "You last worked on {}{on}: `read` it.",
             named_task(&state, task)
         ));
         let mut last = json!({ "id": task.id.to_string(), "title": task.title });
         if let Some(list) = list_of(&state, task) {
             last["list"] = json!(list);
         }
+        if let Some(at) = left.task_at {
+            last["at"] = json!(when(at));
+        }
         kept.insert("last".into(), last);
+    } else if let Some(task) = ended_task(&state, &left) {
+        let how = match &task.resolved {
+            Some(said) if said.drop => "you said you are not doing it, and it waits for the person",
+            Some(_) => "you said it is done, and it waits for the person",
+            None => "it is closed",
+        };
+        said.push(format!(
+            "The task you were last on, {}, is not open to pick up: {how}.",
+            named_task(&state, task)
+        ));
     }
     let asked = match text(args, "since") {
         None => None,
@@ -646,6 +713,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .or_else(|| left.seen.clone().map(Since::Seen))
         .or(left.at.map(Since::At));
     let mut seen = seen_whole(&log);
+    let mut whole = true;
     if let Some(since) = &since {
         let moved = moved_since(
             &state,
@@ -665,24 +733,35 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 moved.by.iter().cloned().collect::<Vec<_>>().join(" and ")
             ),
         };
-        let from = match (asked, since.latest()) {
+        let from = match (asked, left.looked_at.or_else(|| since.latest())) {
             (Some(_), _) => "then".to_string(),
             (None, Some(at)) => format!("you were last here, {}", when(at)),
             (None, None) => "you were last here".to_string(),
         };
-        let cut = moved.tasks_all > moved.tasks.len() || moved.docs_all > moved.docs.len();
+        let cut = moved.cut();
+        whole = !cut;
         said.push(format!(
             "{} task(s) and {} document(s) moved since {from}{by}.{}",
             moved.tasks_all,
             moved.docs_all,
-            match cut {
-                true => format!(
-                    " Here are the first {MOVED_SHOWN} of each, in the order they moved; the \
+            match (cut, asked.is_some()) {
+                (false, _) => String::new(),
+                (true, false) => format!(
+                    " Here are the first that moved, at most {MOVED_SHOWN} of each kind; the \
                      next `catch_up` without `since` brings the rest."
                 ),
-                false => String::new(),
+                (true, true) => format!(
+                    " Here are the first that moved, at most {MOVED_SHOWN} of each kind; ask \
+                     again with this `cursor` for the rest."
+                ),
             }
         ));
+        if cut
+            && asked.is_some()
+            && let Some(upto) = moved.upto
+        {
+            kept.insert("cursor".into(), json!(upto.to_string()));
+        }
         if asked.is_none()
             && let Some(at) = since.latest()
         {
@@ -718,7 +797,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if since.is_none() {
         said.push("Next time, what moved since this call comes with it as well.".to_string());
     }
-    looks_now(paths, &seen);
+    if asked.is_none() {
+        looks_now(paths, &seen, whole);
+    }
     Ok(told(said.join(" "), Value::Object(kept)))
 }
 
@@ -885,6 +966,33 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;
 const TAGS_AT_A_GLANCE: usize = 40;
+const AT_A_GLANCE: usize = 30;
+const READ_FIELDS: [&str; 24] = [
+    "title",
+    "status",
+    "closed",
+    "notice",
+    "date",
+    "deadline",
+    "standing",
+    "reminders",
+    "tags",
+    "source",
+    "list",
+    "priority",
+    "by_agent",
+    "via",
+    "said_done",
+    "said_not_doing",
+    "open_to_agents",
+    "part_of",
+    "parts",
+    "description",
+    "steps",
+    "document",
+    "journal",
+    "kept",
+];
 const NOTES_SHOWN: usize = 10;
 
 /// The tombstone knows: what the person erased is said to be erased, not merely missing.
