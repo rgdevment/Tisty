@@ -8,7 +8,7 @@ const ABOVE = "idea-landing-above";
 const BELOW = "idea-landing-below";
 
 type Landing = { readonly block: HTMLElement; readonly above: boolean };
-type Moved = (note: [number, number], to: number, y: number) => void;
+type Moved = (note: [number, number], to: number) => void;
 
 const landsOf = (page: Document, note: HTMLElement) =>
   Array.from(page.querySelectorAll<HTMLElement>(LANDS)).filter((one) => one !== note);
@@ -37,11 +37,9 @@ const shown = (page: Document, landing: Landing | null) => {
   landing?.block.classList.add(landing.above ? ABOVE : BELOW);
 };
 
-const landed = (at: [number, number], landing: Landing | null, moved: Moved, y?: number) => {
+const landed = (at: [number, number], landing: Landing | null, moved: Moved) => {
   const there = landing && spanned(landing.block.dataset.at ?? null);
-  if (!landing || !there) return;
-  const edge = landing.block.getBoundingClientRect();
-  moved(at, landing.above ? there[0] : there[1], y ?? (landing.above ? edge.top : edge.bottom));
+  if (landing && there) moved(at, landing.above ? there[0] : there[1]);
 };
 
 export const stickable = (page: Document) => {
@@ -75,18 +73,15 @@ export const sticking = (page: Document, moving: () => Moved | undefined) => {
     const moved = moving();
     if (!note || !at || !moved) return;
     event.preventDefault();
-    const up = event.key === "ArrowUp";
-    landed(at, besideOf(page, note, up), moved, note.getBoundingClientRect().top);
+    landed(at, besideOf(page, note, event.key === "ArrowUp"), moved);
   });
 };
 
-export type Moving = { readonly text: string; readonly at: number };
-
-export const movedBlock = (text: string, [from, end]: [number, number], to: number): Moving => {
+export const movedBlock = (text: string, [from, end]: [number, number], to: number): string => {
   let cut = end;
   while (cut < text.length && (text[cut] === "\n" || text[cut] === "\r")) cut++;
   const home = to <= from ? /^[\r\n]*$/.test(text.slice(to, from)) : to <= cut;
-  if (home) return { text, at: from };
+  if (home) return text;
   const ending = text.includes("\r\n") ? "\r\n" : "\n";
   const block = text.slice(from, end).replace(/[\r\n]+$/, "");
   const rest = `${text.slice(0, from)}${text.slice(cut)}`;
@@ -94,6 +89,5 @@ export const movedBlock = (text: string, [from, end]: [number, number], to: numb
   const before = rest.slice(0, at).replace(/[\r\n]+$/, "");
   const after = rest.slice(at).replace(/^[\r\n]+/, "");
   const gap = `${ending}${ending}`;
-  const lead = `${before}${before ? gap : ""}`;
-  return { text: `${lead}${block}${after ? `${gap}${after}` : ending}`, at: lead.length };
+  return `${before}${before ? gap : ""}${block}${after ? `${gap}${after}` : ending}`;
 };

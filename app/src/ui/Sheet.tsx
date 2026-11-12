@@ -203,13 +203,15 @@ export default function Sheet(props: Readonly<Props>) {
   );
 
   // The first block in sight, found again in the new words, so a page drawn anew keeps it where it was.
-  const inSight = useCallback((before: string, next: string): Landing | null => {
+  const inSight = useCallback((before: string, next: string, moving?: number): Landing | null => {
     const page = shown.current?.document;
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const sheet = room.current;
     if (!page || !frame || !sheet || showing.current !== before) return null;
     const top = sheet.getBoundingClientRect().top - frame.top;
-    const blocks = Array.from(page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"));
+    const blocks = Array.from(
+      page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"),
+    ).filter((one) => moving === undefined || spanned(one.dataset.at ?? null)?.[0] !== moving);
     const block = firstInSight(blocks, top);
     const at = spanned(block?.dataset.at ?? null);
     if (!block || !at) return null;
@@ -219,15 +221,15 @@ export default function Sheet(props: Readonly<Props>) {
     return { bytes: bytesAt(next, start), y, turn: turnedNow.current };
   }, []);
 
+  // `moving` is the first byte of a block on its way elsewhere, which cannot hold the view in place.
   const whole = useCallback(
-    (next: string, anchor?: Omit<Landing, "turn">) => {
+    (next: string, moving?: number) => {
       const before = latest.current;
       const waiting = landing.current;
       // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
-      landing.current = anchor
-        ? { ...anchor, turn: turnedNow.current }
-        : (inSight(before, next) ??
-          (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) }));
+      landing.current =
+        inSight(before, next, moving) ??
+        (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
       written(next);
       setDrawn(next);
       settled(before, next);
@@ -741,12 +743,12 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
-  const restuck = (note: [number, number], to: number, y: number) => {
+  const restuck = (note: [number, number], to: number) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
-    const next = movedBlock(latest.current, note, to);
-    if (next.text === latest.current) return;
-    whole(next.text, { bytes: bytesAt(next.text, next.at), y });
+    const now = latest.current;
+    const next = movedBlock(now, note, to);
+    if (next !== now) whole(next, bytesAt(now, note[0]));
   };
 
   const parted = (at: [number, number]) => {

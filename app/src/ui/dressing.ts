@@ -41,8 +41,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
-  // `y` is where on the window's own screen the note was let go, so the view can keep it there.
-  readonly onStick?: (note: [number, number], to: number, y: number) => void;
+  readonly onStick?: (note: [number, number], to: number) => void;
   readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
@@ -498,13 +497,8 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const now = reach();
     const stick = now.onStick;
     if (!stick) return undefined;
-    const frame = page.defaultView?.frameElement?.getBoundingClientRect().top ?? 0;
-    return (note, to, y) =>
-      stick(
-        [charsAt(now.body, note[0]), charsAt(now.body, note[1])],
-        charsAt(now.body, to),
-        y + frame,
-      );
+    return (note, to) =>
+      stick([charsAt(now.body, note[0]), charsAt(now.body, note[1])], charsAt(now.body, to));
   });
   widening(page, () => {
     const now = reach();

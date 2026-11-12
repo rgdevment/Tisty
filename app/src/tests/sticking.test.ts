@@ -3,7 +3,6 @@ import { movedBlock, sticking } from "../ui/sticking";
 
 const NOTE = "> [!IDEA] 2026-11-12 · pink · right\n> Llamar al vet";
 const TEXT = `# Casa\n\nUno.\n\n${NOTE}\n\nDos.\n\nTres.\n`;
-const textOf = (...asked: Parameters<typeof movedBlock>) => movedBlock(...asked).text;
 const spanOf = (text: string, said: string): [number, number] => {
   const from = text.indexOf(said);
   return [from, from + said.length];
@@ -12,38 +11,29 @@ const spanOf = (text: string, said: string): [number, number] => {
 describe("a sticky note carried to another place in the text", () => {
   it("lands below a block further down, with one blank line on each side", () => {
     const [, end] = spanOf(TEXT, "Tres.");
-    expect(textOf(TEXT, spanOf(TEXT, NOTE), end)).toBe(
+    expect(movedBlock(TEXT, spanOf(TEXT, NOTE), end)).toBe(
       `# Casa\n\nUno.\n\nDos.\n\nTres.\n\n${NOTE}\n`,
     );
   });
 
-  it("says where in the new text the note now starts", () => {
-    const [start] = spanOf(TEXT, "Uno.");
-    const landed = movedBlock(TEXT, spanOf(TEXT, NOTE), start);
-    expect(landed.text.slice(landed.at).startsWith(NOTE)).toBe(true);
-    const [, end] = spanOf(TEXT, "Tres.");
-    const below = movedBlock(TEXT, spanOf(TEXT, NOTE), end);
-    expect(below.text.slice(below.at).startsWith(NOTE)).toBe(true);
-  });
-
   it("lands above a block further up and leaves no gap where it was", () => {
     const [start] = spanOf(TEXT, "Uno.");
-    expect(textOf(TEXT, spanOf(TEXT, NOTE), start)).toBe(
+    expect(movedBlock(TEXT, spanOf(TEXT, NOTE), start)).toBe(
       `# Casa\n\n${NOTE}\n\nUno.\n\nDos.\n\nTres.\n`,
     );
   });
 
   it("stays put when it lands on itself, and keeps a file's Windows line endings", () => {
     const span = spanOf(TEXT, NOTE);
-    expect(textOf(TEXT, span, span[0])).toBe(TEXT);
+    expect(movedBlock(TEXT, span, span[0])).toBe(TEXT);
     const roomy = TEXT.replace(`\n\n${NOTE}`, `\n\n\n${NOTE}`);
     const there = spanOf(roomy, NOTE);
-    expect(textOf(roomy, there, spanOf(roomy, "Dos.")[0])).toBe(roomy);
-    expect(textOf(roomy, there, spanOf(roomy, "Uno.")[1])).toBe(roomy);
+    expect(movedBlock(roomy, there, spanOf(roomy, "Dos.")[0])).toBe(roomy);
+    expect(movedBlock(roomy, there, spanOf(roomy, "Uno.")[1])).toBe(roomy);
     const windows = TEXT.replace(/\n/g, "\r\n");
     const note = NOTE.replace(/\n/g, "\r\n");
     const [start] = spanOf(windows, "Uno.");
-    expect(textOf(windows, spanOf(windows, note), start)).toBe(
+    expect(movedBlock(windows, spanOf(windows, note), start)).toBe(
       `# Casa\r\n\r\n${note}\r\n\r\nUno.\r\n\r\nDos.\r\n\r\nTres.\r\n`,
     );
   });
@@ -81,7 +71,7 @@ describe("carrying a sticky note on the page", () => {
     press(sheet, "pointermove", 125);
     expect(below.classList.contains("idea-landing-below")).toBe(true);
     press(sheet, "pointerup", 125);
-    expect(moved).toHaveBeenCalledWith([14, 60], 66, 140);
+    expect(moved).toHaveBeenCalledWith([14, 60], 66);
     expect(below.classList.contains("idea-landing-below")).toBe(false);
   });
 
@@ -116,7 +106,7 @@ describe("carrying a sticky note on the page", () => {
     note.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowDown", altKey: true, bubbles: true }),
     );
-    expect(moved).toHaveBeenLastCalledWith([14, 60], 66, 50);
+    expect(moved).toHaveBeenLastCalledWith([14, 60], 66);
   });
 
   it("does nothing on a page that cannot be written", () => {
