@@ -14,6 +14,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **File documents into folders**, make one document a page of another, and set the order its pages are read in.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
 - **Put a document away, or bring it back**, when you ask.
+- **Jot ideas on Brainstorm** when you ask, and sort them out with you: an idea it files in a document or turns into a task leaves the sheet, as it does when you do it.
 - **Keep a copy of a file** you point it at, on a task or inside a document.
 - **Read and search** what is already there, including the archive.
 
@@ -23,6 +24,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or empty a folder.
+- Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.
 - File the same thing twice: a task filed from the same source is refused, and the existing one is handed back.
@@ -63,6 +65,8 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 ## Marking a document instead of deleting it
 
 An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting it, putting it away or taking the diamond off stays yours: one click each, and deleting or unmarking a whole set of copies it marked together takes one click too.
+
+An idea on Brainstorm that had its day is marked the same way, one by one: the note wears a diamond with the reason, **Delete it** takes it off and **Remove the mark** keeps it.
 
 ## What it reads is your writing, not orders
 

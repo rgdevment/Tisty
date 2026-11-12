@@ -13,13 +13,16 @@ Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses 
 
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Este dibujo cuenta el resto:
+Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
+  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  I -->|Convertir en tarea| T
+  I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   P --> S{¿Es mucho para una vez?}
   S -->|Sí| K[Divídela en partes]
@@ -78,7 +81,7 @@ Si solo querías mirar, bórrala antes de presionar `Enter`. Todas las palabras 
 
 Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribirlo. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo. Pruébalo ahora, sin salir de esta guía.
 
-Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración.
+Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea: está más abajo, en **Las ideas**.
 
 ### Hoy, Próximo, Se repiten y Todas
 
@@ -147,7 +150,7 @@ Las rutinas, las tareas que se repiten, tienen una sola página para todas sus v
 - **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla.
 - **Descartar** la aparta sin hacerla, y también acaba en el Archivo.
 
-El Archivo se lee en tres capas: las **historias**, que dejaron algo escrito; las **rutinas**, que vuelven; y el **rastro**, lo que se cerró sin dejar casi nada. Cada capa está en [el archivo](https://www.tisty.app/es/ayuda/el-archivo/).
+Lo que guarda el Archivo y cómo encontrarlo después está más abajo, en **El Archivo**.
 
 > **Antes de borrar de verdad.** Borrar solo se permite con lo que ya está cerrado **y** quedó como rastro. Desaparece de este equipo y, en la siguiente sincronización, de los demás; no se puede deshacer.
 
@@ -155,9 +158,27 @@ Y si quieres saber qué sobra o qué falta en todo lo que guardas, Configuració
 
 ---
 
+## Las ideas
+
+Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja **Lluvia de ideas**. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta.
+
+### Anótala en cuanto llega
+
+En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter` la deja en la **Lluvia de ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
+
+### Ordénalas cuando llegue su momento
+
+Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. Arrastra una sobre otra para dejarla en ese lugar, y cuando llegue su momento, **Convertir en tarea** la guarda como tarea y **Anexar a un documento** la agrega al final del que elijas. La Biblioteca cuenta las que siguen esperando.
+
+![La Lluvia de ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
+
+Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a ordenarlas: lo cuenta **Tu agente de IA**, casi al final.
+
+---
+
 ## Los documentos
 
-### Un documento
+### Tuyo y en Markdown
 
 Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas, como `**negrita**`, que cualquier programa abre. No hace falta aprenderlas: la tecla `/` te las ofrece todas. Y lo que importa es el archivo: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
 
@@ -179,7 +200,7 @@ Para escribir:
 
 Y cuando un asunto ya pasó, archiva su carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe; desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
-### Un documento en varios idiomas
+### En varios idiomas
 
 Un manual para la gente con la que trabajas, en español y en inglés; un contrato en dos idiomas. Cada idioma es un documento propio, con su archivo, y Tisty los muestra como uno solo: una fila en el árbol, abierta en el idioma de la app.
 
@@ -189,7 +210,7 @@ Un manual para la gente con la que trabajas, en español y en inglés; un contra
 
 El selector está en el panel del título y te deja en la misma sección del otro idioma. **Pruébalo:** elige English en esta guía y llegas aquí mismo, en inglés; vuelve con Español. Mover, archivar o borrar actúa sobre todos los idiomas a la vez.
 
-### Un documento con páginas
+### Con páginas
 
 Un año de actas, un libro por capítulos, la vida de Rina contada año a año: eso no cabe en un solo papel, ni en una carpeta de papeles sueltos.
 
@@ -415,27 +436,54 @@ La primera vez, Compartir te pide crear tu identidad: la llave con que firmas lo
 
 ---
 
-## Cuando quieras más
+## El Archivo
 
-Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
+Una tarea terminada no se acaba: se archiva. Deja de ser algo por hacer y se vuelve el registro de cómo resolviste algo, con su página, sus pasos, sus archivos y sus partes, tal como quedaron. Se lee pero ya no se escribe, y vuelve si la reabres.
 
-### Un asistente puede escribir aquí
+![El Archivo con sus rutinas: cuántas vueltas se cumplieron, la racha y la hora a la que se suelen cerrar](archivo.png)
 
-Si usas un agente de IA como GitHub Copilot, Claude Code o Codex, puede entrar a Tisty por MCP, con un programa que corre en este equipo. Configuración → Asistentes encuentra los que tienes instalados y conecta uno con un clic. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
+Lo abre el icono de la caja, junto a las vistas de la barra lateral, y se lee en tres capas:
+
+- **Historias** — las tareas que dejaron algo escrito, con todo su trayecto.
+- **Rutinas** — las que se repiten, con sus vueltas, su racha y la hora a la que sueles hacerlas.
+- **Rastro** — lo que se cerró sin dejar casi nada, aparte y compacto, porque igual pasó.
+
+Tú decides en qué capa va cada una: en el detalle de una tarea cerrada, **Mover a rastro** o **Mover a historia**.
+
+**La entrada es el buscador.** Escribe una palabra que recuerdes en el buscador de arriba de la barra lateral (`Ctrl`/`⌘` + `K`) y aparece, aunque la hayas cerrado hace dos años; si la palabra está en la página de una tarea, aparece la tarea. **Pruébalo** cuando cierres tus primeras tareas: busca algo que escribiste en una de ellas.
+
+Tu agente de IA también busca aquí antes de empezar algo que ya resolviste. Cada capa, y cómo borrar de verdad, está en [el archivo](https://www.tisty.app/es/ayuda/el-archivo/).
+
+---
+
+## Tu agente de IA
+
+Si usas un agente de IA como GitHub Copilot, Claude Code o Codex, puede entrar a Tisty por MCP, con un programa que corre en este equipo, sin cuenta y sin pasar nada por la red. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
 
 Desde ahí, Tisty es su memoria entre sesiones. Empieza preguntando qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, marca los pasos de la tarea en la que está y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
 
-- **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, y marcar uno que ya cumplió su vida, con el porqué.
+- **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
 - **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
-- **No puede** cerrar ni borrar una tarea, borrar un documento ni cambiar una tarea que escribiste tú.
+- **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, ni cambiar una tarea que escribiste tú.
 
-Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes. Cómo conectar uno y qué deja pasar cada puerta está en [asistentes y MCP](https://www.tisty.app/es/ayuda/asistentes-y-mcp/) y en [qué puede hacer un asistente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/).
+Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
+
+Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
+
+![Paso a paso con tu agente de IA: la página de esta guía que lo cuenta](tisty:agent)
+
+---
+
+## Cuando quieras más
+
+Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 
 ### Atajos
 
 | Atajo | Qué hace |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea sin abrir la ventana |
+| `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la Lluvia de ideas |
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |

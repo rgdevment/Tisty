@@ -130,7 +130,7 @@ Since 1.32, Tisty can keep its copies on a server of your own — Nextcloud, own
 
 ## Encrypting your cloud
 
-![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what goes to your cloud, and off your computers nobody reads it, not your provider, not Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-08-data.png)
+![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what goes to your cloud, and off your computers nobody reads it, not your provider, not Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-09-data.png)
 
 Since 1.36, what Tisty keeps in your Google Drive, your OneDrive or your WebDAV server can be encrypted with a key that comes from a 24-word phrase only you know. Whoever sees those files, your provider included, can no longer read your tasks or documents. What is on your computers does not change, and a folder kept in step by another program is never encrypted.
 

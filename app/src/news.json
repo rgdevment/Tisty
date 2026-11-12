@@ -1493,6 +1493,10 @@
         "said": "anota una idea en cuanto llega con la captura rápida: Tab cambia entre tarea e idea, y las ideas tienen su propio atajo. Quedan como notas adhesivas de colores, de hasta 140 caracteres, en un documento fijo arriba de tu biblioteca, y las ordenas arrastrándolas."
       },
       {
+        "title": "Tu agente de IA ordena tus ideas",
+        "said": "pídele una lluvia de ideas y anota en la hoja las que te quedas; pídele que las ordene y te propone cuáles van juntas, cuáles se vuelven tarea y cuáles van a un documento. A las viejas solo las marca: tú las borras o les quitas la marca."
+      },
+      {
         "title": "Retoma justo donde quedó",
         "said": "al empezar, tu agente ve qué cambió desde su última sesión, quién lo cambió y en qué tarea estaba. Si esa tarea ya se cerró o la dio por hecha, te lo dice en vez de tomar otra."
       },
@@ -1517,6 +1521,10 @@
       {
         "title": "A brainstorm at hand",
         "said": "jot an idea down the moment it comes with the quick capture: Tab switches between task and idea, and ideas have a shortcut of their own. They wait as sticky notes in colours, up to 140 characters each, in a document pinned atop your library, and you reorder them by dragging."
+      },
+      {
+        "title": "Your AI agent sorts your ideas",
+        "said": "ask it for a brainstorm and it jots the ideas you keep on the sheet; ask it to sort them and it proposes which belong together, which become a task and which go into a document. Old ones it only marks: you delete them or take the mark off."
       },
       {
         "title": "It picks up right where it left off",

@@ -21,6 +21,10 @@ pub const ATTACHED: &[&str] = &[
     "languages.png",
     "diagramas.png",
     "diagrams.png",
+    "ideas.png",
+    "brainstorm.png",
+    "archivo.png",
+    "archive.png",
 ];
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
@@ -36,6 +40,10 @@ pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
         "tisty:page",
         include_str!("../../resources/guide/es/pagina.md"),
     ),
+    (
+        "tisty:agent",
+        include_str!("../../resources/guide/es/agentes.md"),
+    ),
 ];
 
 pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
@@ -50,6 +58,10 @@ pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
     (
         "tisty:page",
         include_str!("../../resources/guide/en/page.md"),
+    ),
+    (
+        "tisty:agent",
+        include_str!("../../resources/guide/en/agent.md"),
     ),
 ];
 

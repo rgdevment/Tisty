@@ -13,13 +13,16 @@ Read this guide at your own pace: each section stands on its own, and whatever y
 
 ## How does it work?
 
-It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. This drawing tells the rest:
+It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or read it again?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
+  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  I -->|Turn into a task| T
+  I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
   P --> S{Too much for one go?}
   S -->|Yes| K[Split it into parts]
@@ -78,7 +81,7 @@ If you only wanted a look, clear it before pressing `Enter`. All the words it un
 
 Something comes to mind in the middle of something else: press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write it. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing. Try it now, without leaving this guide.
 
-If another program already uses that shortcut, Tisty takes another one and tells you which in Settings.
+If another program already uses that shortcut, Tisty takes another one and tells you which in Settings. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea: it is further down, in **Ideas**.
 
 ### Today, Upcoming, Repeating and All
 
@@ -147,7 +150,7 @@ Routines, the tasks that repeat, have one page for all their rounds. What you wr
 - **Close with a summary** asks you for two lines on how it went before completing it.
 - **Drop** puts it aside without doing it, and it also ends up in the Archive.
 
-The Archive reads in three layers: the **stories**, which left something written; the **routines**, which come back; and the **trace**, what closed leaving next to nothing. Each layer is in [the archive](https://www.tisty.app/docs/archive/).
+What the Archive keeps, and how to find it again, is further down, in **The Archive**.
 
 > **Before erasing for good.** Erasing is only allowed for what is already closed **and** was left as a trace. It disappears from this computer and, at the next sync, from the others; it cannot be undone.
 
@@ -155,9 +158,27 @@ And if you want to know what is spare or missing in everything you keep, Setting
 
 ---
 
+## Ideas
+
+Between what you will do and what you will keep there is something looser. An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the **Brainstorm** sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
+
+### Jot it down the moment it comes
+
+In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Enter` drops it in **Brainstorm**, the document pinned at the top of the **Library**, dated and without choosing a folder. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
+
+### Sort them out when their moment comes
+
+The ideas wait there as sticky notes in colours, the newest first. Drag one onto another to put it in that place, and when its moment comes, **Turn into a task** files it as a task and **File in a document** adds it at the end of the one you pick. The Library counts the ones still waiting.
+
+![Brainstorm with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
+
+Your AI agent can also brainstorm with you and help you sort them out: **Your AI agent**, near the end, tells you how.
+
+---
+
 ## Documents
 
-### A document
+### Yours, in Markdown
 
 A document is yours and is kept as Markdown: plain text with a few marks, like `**bold**`, that any program opens. You do not need to learn them: the `/` key offers you all of them. And what matters is the file: if you delete Tisty tomorrow, your documents still open in any text editor.
 
@@ -179,7 +200,7 @@ To write:
 
 And when a matter is over, archive its folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written; unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
 
-### A document in several languages
+### In several languages
 
 A manual for the people you work with, in Spanish and English; a contract in two languages. Each language is a document of its own, with its own file, and Tisty shows them as one: one row in the tree, opened in the app's language.
 
@@ -189,7 +210,7 @@ A manual for the people you work with, in Spanish and English; a contract in two
 
 The switch sits in the title panel and takes you to the same section in the other language. **Try it:** pick Español in this guide and you land right here, in Spanish; come back with English. Moving, archiving or deleting acts on every language at once.
 
-### A document with pages
+### With pages
 
 A year of minutes, a book in chapters, Rina's life told year by year: that does not fit on one sheet, nor in a folder of loose sheets.
 
@@ -415,27 +436,54 @@ The first time, Share asks you to create your identity: the key you sign what yo
 
 ---
 
-## When you want more
+## The Archive
 
-None of this is needed to get started. It is here for when you need it.
+A finished task does not end: it is archived. It stops being something to do and becomes the record of how you solved something, with its page, its steps, its files and its parts, as they were left. It can be read but no longer written, and it comes back if you reopen it.
 
-### An assistant can write here
+![The Archive with its routines: how many rounds were kept, the run and the hour they usually close at](archive.png)
 
-If you use an AI agent such as GitHub Copilot, Claude Code or Codex, it can come into Tisty through MCP, with a program that runs on this computer. Settings → Assistants finds the ones you have installed and connects one with a click. What it writes is signed with its name: "by Claude Code", "by Codex".
+The box icon, beside the views in the sidebar, opens it, and it reads in three layers:
+
+- **Stories** — the tasks that left something written, with their whole path.
+- **Routines** — the ones that repeat, with their rounds, their run and the hour you usually do them at.
+- **Trace** — what closed leaving next to nothing, apart and compact, because it happened all the same.
+
+You decide which layer each one reads in: in the detail of a closed task, **Move to trace** or **Move to story**.
+
+**Search is the way in.** Type a word you remember in the search box at the top of the sidebar (`Ctrl`/`⌘` + `K`) and it comes up, even if you closed it two years ago; if the word is on a task's page, the task comes up. **Try it** once you close your first tasks: look for something you wrote in one of them.
+
+Your AI agent searches here too before starting on something you already solved. Each layer, and how to erase for good, is in [the archive](https://www.tisty.app/docs/archive/).
+
+---
+
+## Your AI agent
+
+If you use an AI agent such as GitHub Copilot, Claude Code or Codex, it can come into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
 
 From then on Tisty is its memory between sessions. It starts by asking what moved since last time, reads a document's outline and then only the section it needs, ticks the steps of the task it is on and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
 
-- **It can** propose tasks, write documents, add to or correct the ones it may write in, and mark one that has had its day, saying why.
+- **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
 - **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
-- **It cannot** close or delete a task, delete a document, or change a task you wrote.
+- **It cannot** close or delete a task, delete a document or an idea, or change a task you wrote.
 
-If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before. How to connect one and what each door lets through are in [assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/) and in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
+If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
+
+How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
+
+![Step by step with your AI agent: the page of this guide that tells it](tisty:agent)
+
+---
+
+## When you want more
+
+None of this is needed to get started. It is here for when you need it.
 
 ### Shortcuts
 
 | Shortcut | What it does |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture a task without opening the window |
+| `Tab` (in the quick capture) | Switch between a task and an idea for Brainstorm |
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` | Break the line without starting a paragraph |

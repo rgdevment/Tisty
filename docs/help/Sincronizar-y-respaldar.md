@@ -130,7 +130,7 @@ Desde la 1.32, Tisty puede guardar sus copias en un servidor tuyo (Nextcloud, ow
 
 ## Cifrar tu nube
 
-![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que va a tu nube, y fuera de tus equipos nadie lo lee, ni tu proveedor ni Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-08-datos.png)
+![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que va a tu nube, y fuera de tus equipos nadie lo lee, ni tu proveedor ni Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-09-datos.png)
 
 Desde la 1.36, lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor WebDAV se puede cifrar con una llave que sale de una frase de 24 palabras que solo tú conoces. Quien vea esos archivos, tu proveedor incluido, ya no puede leer tus tareas ni tus documentos. Lo que tienes en tus equipos no cambia, y una carpeta que otro programa mantiene al día nunca se cifra.
 

@@ -59,7 +59,7 @@
 
   <p>
     <img
-      src="assets/screens/web/es-01-memoria.png"
+      src="assets/screens/readme/es-01-archivo.webp"
       width="92%"
       alt="Tisty, la memoria de trabajo tuya y de tu agente de IA: el archivo
       guarda cada tarea terminada con sus pasos y su bitácora, y tu agente
@@ -217,6 +217,36 @@ pasa en cambio cuando la memoria vive en Tisty.
 
 Tisty guarda dos clases de cosas, y las mismas dos te sirven a ti y a tu agente.
 Lo que vas a hacer es una tarea. Lo que vas a volver a leer es un documento.
+Una idea, un pensamiento atrapado al vuelo antes de saber cuál de las dos es,
+espera en la Lluvia de ideas.
+
+### Documentos: lo que sabes, uno por tema
+
+- **Un documento vivo por tema** — abre con lo que rige hoy, después el tema, lo
+  que queda fuera de alcance, las decisiones fechadas con su porqué (la
+  reemplazada queda tachada, no borrada) y su historia.
+- **Se corrige en su lugar** — se reescribe el pasaje que cambió; no se apila
+  una segunda copia junto a la primera.
+- **Páginas para lo largo** — un runbook, un anexo, un libro por capítulos — con
+  carpetas, idiomas, tablas, diagramas, fórmulas y un PDF propio.
+
+![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/readme/es-02-diagramas.webp)
+
+### Ideas: una lluvia de ideas a mano
+
+- **Anotada en cuanto llega** — la captura rápida cambia entre tarea e idea con
+  `Tab`, y las ideas tienen su propio atajo: hasta 140 caracteres cada una, con
+  fecha, sin abrir la ventana.
+- **Notas adhesivas que siguen siendo Markdown** — esperan como notas de
+  colores en la Lluvia de ideas, un documento fijo arriba de la biblioteca, y
+  las reordenas arrastrándolas.
+- **Las ordenas después** — cada idea se convierte en tarea o va al documento
+  que le corresponde, y la biblioteca cuenta las que siguen esperando.
+- **También con tu agente de IA** — pídele una lluvia de ideas y anota las que
+  te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
+  anexa a su documento, y a las viejas solo las marca, para que tú las borres.
+
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
 
@@ -242,17 +272,7 @@ Lo que vas a hacer es una tarea. Lo que vas a volver a leer es un documento.
 - **El archivo** — una tarea cerrada se guarda entera, y la búsqueda responde
   «¿cómo resolvimos esto?» con la línea que lo dice.
 
-### Documentos: lo que sabes, uno por tema
-
-- **Un documento vivo por tema** — abre con lo que rige hoy, después el tema, lo
-  que queda fuera de alcance, las decisiones fechadas con su porqué (la
-  reemplazada queda tachada, no borrada) y su historia.
-- **Se corrige en su lugar** — se reescribe el pasaje que cambió; no se apila
-  una segunda copia junto a la primera.
-- **Páginas para lo largo** — un runbook, un anexo, un libro por capítulos — con
-  carpetas, idiomas, tablas, diagramas, fórmulas y un PDF propio.
-
-![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/web/es-03-documentos.png)
+![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y arriba cuántas faltan por clasificar](assets/screens/readme/es-04-prioridades.webp)
 
 ## Un día con tu agente
 
@@ -332,7 +352,7 @@ los días sin uso que elijas. Se lee en cualquier navegador y sin cuenta, o se
 edita en su propio Tisty. Tu memoria se queda en tu disco; Folio solo lleva una
 copia. Más en [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad).
 
-![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/web/es-07-folio.png)
+![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/readme/es-08-compartir.webp)
 
 ## Servidor MCP
 
@@ -406,10 +426,10 @@ conserves. Cada herramienta se describe en
   `find`, `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
-Además de las herramientas, ofrece cinco pedidos listos que tu asistente
+Además de las herramientas, ofrece siete pedidos listos que tu asistente
 muestra como comandos (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`), y tus documentos para mencionar con `@`, uno largo como su
-índice.
+`keep_decision`, `brainstorm`, `sort_ideas`), y tus documentos para
+mencionar con `@`, uno largo como su índice.
 
 ## Por qué lo hice
 
@@ -459,11 +479,20 @@ completa y se archiva, y un año después una búsqueda todavía trae cómo se
 resolvió, paso por paso. Por eso una tarea tiene página: también es un
 documento, uno que termina.
 
+**¿Y una idea?** Una idea es un pensamiento atrapado al vuelo, antes de saber si
+es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con
+fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va
+al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en
+la bitácora de una tarea.
+
 ```mermaid
 flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
+  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  I -->|Convertir en tarea| T
+  I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   P --> S{¿Es mucho para una vez?}
   S -->|Sí| K[Divídela en partes]
@@ -596,7 +625,7 @@ editor— y en Tisty lleva bastante más que texto:
 - **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
-![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/web/es-06-markdown.png)
+![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/readme/es-06-documentos.webp)
 
 La guía que Tisty escribe la primera vez que se abre trae una página con uno de
 cada cosa, para que lo veas todo antes de escribir una línea.
@@ -817,7 +846,7 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y una tarea que tu agente anota tal como la dices](assets/screens/web/es-04-dia.png)
+![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y al lado lo que viene](assets/screens/readme/es-07-dia.webp)
 
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00
@@ -852,8 +881,6 @@ Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!planificar`,
 Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
-
-![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](assets/screens/web/es-05-prioridades.png)
 
 **El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
 que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
@@ -909,7 +936,7 @@ se oculta.
 
 ## Tus datos y tu privacidad
 
-![Software por convicción, no por suscripción: Tisto, el castor de Tisty, junto a lo que Tisty es, amigo de tus agentes de IA, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/screens/web/es-09-cierre.png)
+![Software por convicción, no por suscripción: Tisto, el castor de Tisty, junto a lo que Tisty es, amigo de tus agentes de IA, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/screens/web/es-10-cierre.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -1033,7 +1060,7 @@ muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
 escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
 te lo dice.
 
-![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que Tisty deja en Google Drive, OneDrive o WebDAV, y fuera de tus equipos nadie lo lee](assets/screens/web/es-08-datos.png)
+![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que Tisty deja en Google Drive, OneDrive o WebDAV, y fuera de tus equipos nadie lo lee](assets/screens/web/es-09-datos.png)
 
 **Tu nube, cifrada, si quieres.** En Configuración › *Seguridad*, **Cifrar mi
 nube…** cifra lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor
@@ -1095,7 +1122,7 @@ aviso de Google Drive, de *Reconectar* a un Drive lleno o
 
 ## Un asistente, si usas uno
 
-![No más chats en blanco, abre la puerta MCP: Configuración › Asistentes dice que Tisty no lleva IA dentro y conecta los asistentes de este equipo, así tu agente pregunta ¿en qué íbamos? y abre la tarea en la que estaba](assets/screens/web/es-02-agente.png)
+![No más chats en blanco, abre la puerta MCP: Configuración › Asistentes dice que Tisty no lleva IA dentro y conecta los asistentes de este equipo, así tu agente pregunta ¿en qué íbamos? y abre la tarea en la que estaba](assets/screens/web/es-05-agente.png)
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas
