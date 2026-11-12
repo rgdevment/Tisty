@@ -129,11 +129,19 @@ export const straight = (a: { x: number; y: number }, b: { x: number; y: number 
 // The pill takes the colour of the ground so the line does not run through the words.
 const PILL_LINE = 14;
 
+export const pillSize = (text: string) => {
+  const lines = linesSaid(text).map((line) => line.trim());
+  return {
+    wide: Math.max(...lines.map((line) => line.length)) * 6.2 + 14,
+    tall: 18 + (lines.length - 1) * PILL_LINE,
+  };
+};
+
 export const pill = (x: number, y: number, text: string, palette: Palette, ringedWith?: string) => {
   const lines = linesSaid(text).map((line) => line.trim());
-  const wide = Math.max(...lines.map((line) => line.length)) * 6.2 + 14;
-  const more = (lines.length - 1) * PILL_LINE;
-  const rect = { x: x - wide / 2, y: y - 9 - more / 2, wide, tall: 18 + more };
+  const { wide, tall } = pillSize(text);
+  const more = tall - 18;
+  const rect = { x: x - wide / 2, y: y - 9 - more / 2, wide, tall };
   const words = lines.map((line, at) =>
     writing({
       x,

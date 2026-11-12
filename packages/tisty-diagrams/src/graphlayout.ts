@@ -58,6 +58,7 @@ export const layered = (
   edges: readonly (readonly [string, string])[],
   sizes: ReadonlyMap<string, Size>,
   direction: Direction,
+  room: ReadonlyMap<string, number> = new Map(),
 ): Laid => {
   const rank = ranksOf(ids, edges);
   const layers: string[][] = [];
@@ -70,8 +71,13 @@ export const layered = (
   const aside = (size: Size) => (across ? size.tall : size.wide);
   const sizeOf = (id: string) => sizes.get(id) ?? { wide: 120, tall: 40 };
   const deep = layers.map((layer) => Math.max(0, ...layer.map((id) => along(sizeOf(id)))));
+  const apart = (one: string, next: string) =>
+    Math.max(GAP, ((room.get(one) ?? 0) + (room.get(next) ?? 0)) / 2);
   const broad = layers.map((layer) =>
-    layer.reduce((sum, id) => sum + aside(sizeOf(id)), Math.max(0, layer.length - 1) * GAP),
+    layer.reduce(
+      (sum, id, at) => sum + aside(sizeOf(id)) + (at > 0 ? apart(layer[at - 1], id) : 0),
+      0,
+    ),
   );
   const widest = Math.max(0, ...broad);
   const order =
@@ -81,12 +87,12 @@ export const layered = (
   for (const index of order) {
     const layer = layers[index] ?? [];
     let side = MARGIN + (widest - broad[index]) / 2;
-    for (const id of layer) {
+    layer.forEach((id, place) => {
       const size = sizeOf(id);
       const middle = depth + (deep[index] - along(size)) / 2;
       at.set(id, across ? { x: middle, y: side, ...size } : { x: side, y: middle, ...size });
-      side += aside(size) + GAP;
-    }
+      side += aside(size) + (place + 1 < layer.length ? apart(id, layer[place + 1]) : 0);
+    });
     depth += deep[index] + GAP * 1.4;
   }
   const rects = [...at.values()];

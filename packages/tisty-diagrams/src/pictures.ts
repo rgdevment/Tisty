@@ -1,7 +1,7 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { LINE, linesOf, outlineOf } from "./flowoutlines";
-import { endWordAt, type Route, routeOf } from "./flowroutes";
+import { endWordAt, routesOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
@@ -131,18 +131,18 @@ const schemaPicture = (schema: Schema): Picture => {
 };
 
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
-const graph = (
-  scene: Scene,
-  palette: Palette,
-  box: (id: string, rect: Rect) => string,
-  route: (from: Rect, to: Rect) => Route = routeOf,
-) => {
+const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => string) => {
   const { at } = scene.laid;
-  const joined = scene.joints.flatMap((one) => {
+  const known = scene.joints.flatMap((one) => {
     const from = at.get(one.from);
     const to = at.get(one.to);
-    return from && to ? [{ one, way: route(from, to) }] : [];
+    return from && to ? [{ one, from, to }] : [];
   });
+  const routes = routesOf(
+    known.map(({ one, from, to }) => ({ from, to, label: one.label })),
+    [...at.values()],
+  );
+  const joined = known.map(({ one }, index) => ({ one, way: routes[index] }));
   return [
     ...scene.groups.flatMap((group) => [
       boxed(group.rect, { fill: palette.hover, stroke: palette.line, radius: 10, dashed: "5 4" }),
@@ -201,30 +201,25 @@ const flowPicture = (flow: Flow): Picture => {
   return {
     size: scene.laid.size,
     drawn: (palette) =>
-      graph(
-        scene,
-        palette,
-        (id, rect) => {
-          const one = byId.get(id);
-          const lines = linesOf(one?.text ?? id);
-          const shape = one?.shape ?? "process";
-          const drop = outlineOf(shape, rect.wide, rect.tall).drop;
-          const top = rect.y + rect.tall / 2 + drop - ((lines.length - 1) * LINE) / 2;
-          const look = looks.get(id);
-          const ink = look?.color ?? palette.ink;
-          const words = lines.map((line, at) =>
-            writing({
-              x: rect.x + rect.wide / 2,
-              y: top + at * LINE,
-              text: fitted(line, rect.wide - 24, 7.5),
-              size: 13,
-              fill: ink,
-            }),
-          );
-          return `${node(shape, rect, palette, look)}${words.join("")}`;
-        },
-        routeOf,
-      ),
+      graph(scene, palette, (id, rect) => {
+        const one = byId.get(id);
+        const lines = linesOf(one?.text ?? id);
+        const shape = one?.shape ?? "process";
+        const drop = outlineOf(shape, rect.wide, rect.tall).drop;
+        const top = rect.y + rect.tall / 2 + drop - ((lines.length - 1) * LINE) / 2;
+        const look = looks.get(id);
+        const ink = look?.color ?? palette.ink;
+        const words = lines.map((line, at) =>
+          writing({
+            x: rect.x + rect.wide / 2,
+            y: top + at * LINE,
+            text: fitted(line, rect.wide - 24, 7.5),
+            size: 13,
+            fill: ink,
+          }),
+        );
+        return `${node(shape, rect, palette, look)}${words.join("")}`;
+      }),
   };
 };
 

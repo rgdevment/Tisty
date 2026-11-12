@@ -5,8 +5,10 @@ import {
   type EdgeProps,
   type InternalNode,
   useInternalNode,
+  useStore,
 } from "@xyflow/react";
-import { endWordAt, routeOf } from "./flowroutes";
+import { useMemo } from "react";
+import { endWordAt, routeOf, routesOf } from "./flowroutes";
 import type { Rect } from "./graphlayout";
 import { linesSaid } from "./picture";
 import Renaming from "./Renaming";
@@ -47,8 +49,25 @@ export function Wire({
 }: EdgeProps<WireEdge>) {
   const from = useInternalNode(source);
   const to = useInternalNode(target);
+  const nodes = useStore((store) => store.nodes);
+  const edges = useStore((store) => store.edges);
+  const lookup = useStore((store) => store.nodeLookup);
+  // Every wire of the drawing is laid together, so the window places each word as the picture does.
+  const laid = useMemo(() => {
+    const shapes = nodes.flatMap((one) => {
+      const inner = lookup.get(one.id);
+      return inner && one.type !== "lane" ? [rectOf(inner)] : [];
+    });
+    const joints = edges.flatMap((one) => {
+      const a = lookup.get(one.source);
+      const b = lookup.get(one.target);
+      const said = (one.data as WireData | undefined)?.label;
+      return a && b ? [{ id: one.id, from: rectOf(a), to: rectOf(b), label: said }] : [];
+    });
+    return routesOf(joints, shapes)[joints.findIndex((one) => one.id === id)];
+  }, [nodes, edges, lookup, id]);
   if (!from || !to || !data) return null;
-  const route = routeOf(rectOf(from), rectOf(to));
+  const route = laid ?? routeOf(rectOf(from), rectOf(to));
   const ends = [
     { key: "start", said: data.startLabel, at: endWordAt(route.from, route.fromSide) },
     { key: "end", said: data.endLabel, at: endWordAt(route.to, route.toSide) },
