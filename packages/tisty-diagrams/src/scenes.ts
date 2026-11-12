@@ -1,6 +1,7 @@
 import type { ClassBox, Classes } from "./classes";
 import type { Flow } from "./flow";
 import { sizeOf } from "./flowoutlines";
+import { meetsInTheMiddle } from "./flowshapes";
 import type { Size } from "./framing";
 import { around, type Laid, layered, type Rect, type Room } from "./graphlayout";
 import { pillSize } from "./picture";
@@ -19,6 +20,8 @@ export interface Joint {
   // A class relation's cardinalities, by the ends they belong to.
   readonly startLabel?: string;
   readonly endLabel?: string;
+  readonly fromMiddle?: boolean;
+  readonly toMiddle?: boolean;
 }
 
 /** How an end of a line is drawn: an arrowhead, an open one, a hollow triangle or a diamond. */
@@ -166,8 +169,9 @@ export const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) =>
 };
 
 /** Each edge as it is drawn: dotted, thick, with or without a head. */
-export const jointsOf = (flow: Flow): Joint[] =>
-  flow.edges.map((one, index) => ({
+export const jointsOf = (flow: Flow): Joint[] => {
+  const shapeOf = new Map(flow.nodes.map((one) => [one.id, one.shape]));
+  return flow.edges.map((one, index) => ({
     key: String(index),
     from: one.from,
     to: one.to,
@@ -176,7 +180,10 @@ export const jointsOf = (flow: Flow): Joint[] =>
     thick: one.arrow.includes("="),
     start: null,
     end: /[>ox]$/.test(one.arrow) ? "arrow" : null,
+    fromMiddle: meetsInTheMiddle(shapeOf.get(one.from)),
+    toMiddle: meetsInTheMiddle(shapeOf.get(one.to)),
   }));
+};
 
 // What the window and the picture draw of groups: a lane at its size, or a frame around its shapes.
 const sceneWith = (

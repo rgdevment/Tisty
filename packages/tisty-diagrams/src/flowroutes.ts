@@ -20,6 +20,10 @@ export interface Joint {
   readonly label?: string;
   readonly startLabel?: string;
   readonly endLabel?: string;
+  readonly fromMiddle?: boolean;
+  readonly toMiddle?: boolean;
+  readonly fromKey?: string;
+  readonly toKey?: string;
 }
 
 /** Where words at an end of a line go: beside it, just off the shape, never over the line or the shape. */
@@ -56,6 +60,8 @@ export const sidesOf = (from: Rect, to: Rect): readonly [Position, Position] => 
 };
 
 type Point = { readonly x: number; readonly y: number };
+
+type Ends = { start?: Point; end?: Point };
 
 const TURN = 18;
 const ROOM = 6;
@@ -202,10 +208,11 @@ export const routeOf = (
   to: Rect,
   around: readonly Rect[] = [],
   within: Rect | null = null,
+  ends: Ends = {},
 ): Route => {
   const [leaving, entering] = sidesOf(from, to);
-  const start = sideMiddle(from, leaving);
-  const end = sideMiddle(to, entering);
+  const start = ends.start ?? sideMiddle(from, leaving);
+  const end = ends.end ?? sideMiddle(to, entering);
   const [path, labelX, labelY] = stepped(start, end, leaving, entering);
   const plain = {
     path,
@@ -256,21 +263,29 @@ export const endWordBox = (at: Point, side: Position, said: string): Rect => {
   return { x, y: word.y - END_WORD_TALL / 2, wide, tall: END_WORD_TALL };
 };
 
-const spotsAlong = (route: Route, size: { wide: number; tall: number }): Point[] => {
+const ROUGH = [0.5, 0.25, 0.75];
+const FINE = [0.1, 0.9, 0.4, 0.6];
+
+const spotsAlong = (
+  route: Route,
+  size: { wide: number; tall: number },
+  parts: readonly number[],
+): Point[] => {
   const runs = route.way.slice(1).map((one, at) => [route.way[at], one] as const);
-  const along = [...runs].reverse().flatMap(([a, b]) =>
-    [0.5, 0.25, 0.75].map((part) => ({
-      x: a.x + (b.x - a.x) * part,
-      y: a.y + (b.y - a.y) * part,
-    })),
-  );
+  const at = (a: Point, b: Point, part: number) => ({
+    x: a.x + (b.x - a.x) * part,
+    y: a.y + (b.y - a.y) * part,
+  });
+  const along = [...runs].reverse().flatMap(([a, b]) => parts.map((part) => at(a, b, part)));
   const beside = runs.flatMap(([a, b]) => {
-    const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const step = a.x === b.x ? { x: size.wide / 2 + 4, y: 0 } : { x: 0, y: size.tall / 2 + 4 };
-    return [
-      { x: middle.x + step.x, y: middle.y + step.y },
-      { x: middle.x - step.x, y: middle.y - step.y },
-    ];
+    return parts.flatMap((part) => {
+      const spot = at(a, b, part);
+      return [
+        { x: spot.x + step.x, y: spot.y + step.y },
+        { x: spot.x - step.x, y: spot.y - step.y },
+      ];
+    });
   });
   return [{ x: route.labelX, y: route.labelY }, ...along, ...beside];
 };
@@ -298,10 +313,137 @@ export const sharedRun = (run: Rect, runs: readonly Rect[]) =>
       : own.tall === 0 && own.y === run.y && own.x < run.x + run.wide && run.x < own.x + own.wide,
   );
 
+type Meeting = {
+  readonly at: number;
+  readonly end: "start" | "end";
+  readonly shape: string;
+  readonly rect: Rect;
+  readonly side: Position;
+  readonly toward: number;
+  readonly turn: number;
+  readonly middle: number;
+};
+
+const flatSide = (side: Position) => side === Position.Top || side === Position.Bottom;
+
+const SPREAD = 0.8;
+const SETTLING = 3;
+
+// Arrows meeting one side of a shape share it out by where they come from; of two from the same place, the one turning nearer the shape keeps outside, so neither crosses the other.
+const endsApart = (joints: readonly Joint[], first: readonly Route[]): Ends[] => {
+  const meetings = new Map<string, Meeting[]>();
+  const meet = (one: Meeting) => {
+    const key = `${one.shape} ${one.side}`;
+    meetings.set(key, [...(meetings.get(key) ?? []), one]);
+  };
+  const named = (rect: Rect, key: string | undefined) =>
+    key ?? `${rect.x} ${rect.y} ${rect.wide} ${rect.tall}`;
+  const along = (side: Position, point: Point) => (flatSide(side) ? point.x : point.y);
+  const across = (side: Position, point: Point) => (flatSide(side) ? point.y : point.x);
+  joints.forEach((joint, at) => {
+    const { way, fromSide, toSide, from, to } = first[at];
+    const bent = way.length >= 3;
+    if (!joint.fromMiddle)
+      meet({
+        at,
+        end: "start",
+        shape: named(joint.from, joint.fromKey),
+        rect: joint.from,
+        side: fromSide,
+        toward: along(fromSide, bent ? way[2] : to),
+        turn: bent ? Math.abs(across(fromSide, way[1]) - across(fromSide, from)) : 0,
+        middle: along(fromSide, sideMiddle(joint.from, fromSide)),
+      });
+    if (!joint.toMiddle)
+      meet({
+        at,
+        end: "end",
+        shape: named(joint.to, joint.toKey),
+        rect: joint.to,
+        side: toSide,
+        toward: along(toSide, bent ? way[way.length - 3] : from),
+        turn: bent ? Math.abs(across(toSide, way[way.length - 2]) - across(toSide, to)) : 0,
+        middle: along(toSide, sideMiddle(joint.to, toSide)),
+      });
+  });
+  const ends: Ends[] = joints.map(() => ({}));
+  for (const meeting of meetings.values()) {
+    if (meeting.length < 2) continue;
+    const ordered = [...meeting].sort(
+      (one, other) =>
+        one.toward - other.toward ||
+        (one.toward < one.middle ? one.turn - other.turn : other.turn - one.turn) ||
+        one.at - other.at,
+    );
+    ordered.forEach((one, place) => {
+      const middle = sideMiddle(one.rect, one.side);
+      const flat = flatSide(one.side);
+      const shift =
+        ((place + 1) / (ordered.length + 1) - 0.5) *
+        (flat ? one.rect.wide : one.rect.tall) *
+        SPREAD;
+      ends[one.at][one.end] = flat
+        ? { x: middle.x + shift, y: middle.y }
+        : { x: middle.x, y: middle.y + shift };
+    });
+  }
+  return ends;
+};
+
+export const crossEachOther = (one: Rect, other: Rect) => {
+  const [upright, flat] = one.wide === 0 ? [one, other] : [other, one];
+  if (upright.wide !== 0 || flat.tall !== 0) return false;
+  return (
+    upright.x > flat.x &&
+    upright.x < flat.x + flat.wide &&
+    flat.y > upright.y &&
+    flat.y < upright.y + upright.tall
+  );
+};
+
+const crossingsIn = (routes: readonly Route[]) => {
+  const lines = routes.map((route) => runsOf(route.way));
+  return lines.reduce(
+    (sum, runs, at) =>
+      sum +
+      lines
+        .slice(at + 1)
+        .reduce(
+          (more, theirs) =>
+            more +
+            runs.filter(
+              (run) => sharedRun(run, theirs) || theirs.some((one) => crossEachOther(run, one)),
+            ).length,
+          0,
+        ),
+    0,
+  );
+};
+
 /** Every arrow of a drawing, each word where it covers no shape, no end word, no other arrow's word or line and stays in the drawing, or as near as can be. */
 export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Route[] => {
   const within = drawnWithin(shapes);
-  const routes = joints.map((joint) => routeOf(joint.from, joint.to, shapes, within));
+  const first = joints.map((joint) => routeOf(joint.from, joint.to, shapes, within));
+  const laidWith = (ends: readonly Ends[]) =>
+    joints.map((joint, at) =>
+      ends[at].start || ends[at].end
+        ? routeOf(joint.from, joint.to, shapes, within, ends[at])
+        : first[at],
+    );
+  // A spread end can change which way an arrow runs, and so its order: another order is tried while it crosses or merges less.
+  let ends = endsApart(joints, first);
+  let routes = laidWith(ends);
+  let least = crossingsIn(routes);
+  for (let round = 1; round < SETTLING && least > 0; round++) {
+    const next = endsApart(joints, routes);
+    if (JSON.stringify(next) === JSON.stringify(ends)) break;
+    const tried = laidWith(next);
+    const crossing = crossingsIn(tried);
+    if (crossing >= least) break;
+    ends = next;
+    routes = tried;
+    least = crossing;
+  }
   const lines = routes.map((route) => runsOf(route.way));
   const taken: Rect[] = joints.flatMap((joint, at) => {
     const route = routes[at];
@@ -327,16 +469,19 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
       .filter((run) => !sharedRun(run, lines[at]));
     const crossing = (spot: Point) =>
       crossed.reduce((sum, run) => sum + covered(box(spot), run, 1), 0);
-    // A line under a word reads as cut, while a word past the margin only makes the picture grow.
+    // A word over another cannot be read, a line under a word reads as cut, a word past the margin only makes the picture grow.
     const cost = (spot: Point) =>
       shapes.reduce((sum, one) => sum + covered(box(spot), one, 2), 0) +
-      taken.reduce((sum, one) => sum + covered(box(spot), one, 4), 0) +
+      taken.reduce((sum, one) => sum + covered(box(spot), one, 4), 0) * 100 +
       crossing(spot) * 40 +
       outside(spot) / 4;
-    const spots = spotsAlong(route, size);
-    const spot =
+    const finest = (spots: readonly Point[]) =>
       spots.find((one) => cost(one) === 0) ??
       spots.slice(1).reduce((best, one) => (cost(one) < cost(best) ? one : best), spots[0]);
+    const rough = spotsAlong(route, size, ROUGH);
+    const spot =
+      rough.find((one) => cost(one) === 0) ??
+      finest([...rough, ...spotsAlong(route, size, FINE).slice(1)]);
     taken.push(box(spot));
     return { ...route, labelX: spot.x, labelY: spot.y };
   });

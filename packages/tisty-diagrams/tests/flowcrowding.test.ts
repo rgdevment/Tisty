@@ -2,7 +2,14 @@ import type { Edge, InternalNode } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { readClasses } from "../src/classes";
 import { readFlow } from "../src/flow";
-import { endWordBox, overlaps, routeOf, routesOf, sharedRun } from "../src/flowroutes";
+import {
+  crossEachOther,
+  endWordBox,
+  overlaps,
+  routeOf,
+  routesOf,
+  sharedRun,
+} from "../src/flowroutes";
 import type { Rect } from "../src/graphlayout";
 import { layered } from "../src/graphlayout";
 import { pillSize } from "../src/picture";
@@ -68,7 +75,7 @@ const classesOf = (source: string) => {
   return classScene(diagram);
 };
 
-const crowdingIn = (scene: Scene) => {
+const routedIn = (scene: Scene) => {
   const shapes = [...scene.laid.at.values()];
   const joints = scene.joints.map((one) => ({
     from: scene.laid.at.get(one.from) as Rect,
@@ -76,8 +83,14 @@ const crowdingIn = (scene: Scene) => {
     label: one.label,
     startLabel: one.startLabel,
     endLabel: one.endLabel,
+    fromMiddle: one.fromMiddle,
+    toMiddle: one.toMiddle,
   }));
-  const routes = routesOf(joints, shapes);
+  return { shapes, joints, routes: routesOf(joints, shapes) };
+};
+
+const crowdingIn = (scene: Scene) => {
+  const { shapes, joints, routes } = routedIn(scene);
   const crossed = routes.flatMap((route, at) => {
     const others = shapes.filter((one) => one !== joints[at].from && one !== joints[at].to);
     return runsOf(route.way).some((run) => others.some((one) => overlaps(run, one)))
@@ -124,15 +137,103 @@ const crowdingIn = (scene: Scene) => {
   return { crossed, covering };
 };
 
-const node = (id: string, x: number, y: number) =>
+const node = (id: string, x: number, y: number, shape = "process") =>
   ({
     id,
     type: "shape",
+    data: { shape },
     internals: { positionAbsolute: { x, y } },
     measured: { width: 100, height: 40 },
   }) as unknown as InternalNode;
 
+const endsInto = (scene: Scene, target: string) => {
+  const { routes } = routedIn(scene);
+  return routes
+    .filter((_, at) => scene.joints[at].to === target)
+    .map((one) => `${one.to.x} ${one.to.y}`);
+};
+
 describe("a crowded drawing", () => {
+  it("spreads arrows along a side across too, and keeps curved or slanted outlines at their middle", () => {
+    const across = flowOf(`flowchart LR
+  A[Uno] --> C[Tres]
+  B[Dos] --> C`);
+    const cylinder = flowOf(`flowchart TD
+  A[Uno] --> D[(Base)]
+  B[Dos] --> D`);
+    const slanted = flowOf(`flowchart TD
+  A[Uno] --> D[/Entrada/]
+  B[Dos] --> D`);
+
+    expect(new Set(endsInto(across, "C")).size).toBe(2);
+    expect(new Set(endsInto(cylinder, "D")).size).toBe(1);
+    expect(new Set(endsInto(slanted, "D")).size).toBe(1);
+  });
+
+  it("spreads a window's wires by each shape's kind, apart into a box and at a diamond's middle", () => {
+    const edges: Edge[] = [
+      { id: "one", source: "a", target: "c" },
+      { id: "two", source: "b", target: "c" },
+      { id: "three", source: "e", target: "d" },
+      { id: "four", source: "f", target: "d" },
+    ];
+    const lookup = new Map([
+      ["a", node("a", 0, 0)],
+      ["b", node("b", 200, 0)],
+      ["c", node("c", 100, 200)],
+      ["e", node("e", 600, 0)],
+      ["f", node("f", 800, 0)],
+      ["d", node("d", 700, 200, "decision")],
+    ]);
+
+    const routes = routesIn(edges, shapesSaid(lookup), lookup);
+    const at = (id: string) => JSON.stringify(routes.get(id)?.to);
+
+    expect(at("one")).not.toBe(at("two"));
+    expect(at("three")).toBe(at("four"));
+  });
+
+  it("brings arrows meeting one side of a shape in at points of their own, crossing none, and a diamond's at its middle", () => {
+    const scene = flowOf(GUIDE);
+    const { routes, joints } = routedIn(scene);
+    const into = new Map<string, number[]>();
+    routes.forEach((route, at) => {
+      if (joints[at].toMiddle) return;
+      const key = `${scene.joints[at].to} ${route.toSide}`;
+      into.set(key, [...(into.get(key) ?? []), route.to.x + route.to.y]);
+    });
+    const crossings = routes.flatMap((route, at) =>
+      routes.flatMap((other, next) =>
+        next <= at
+          ? []
+          : runsOf(route.way).some((run) =>
+                runsOf(other.way).some((theirs) => crossEachOther(run, theirs)),
+              )
+            ? [`${joints[at].label || at} / ${joints[next].label || next}`]
+            : [],
+      ),
+    );
+    const fromTheDiamond = routes.filter((_, at) => scene.joints[at].from === "B");
+
+    for (const [side, ends] of into) expect(new Set(ends).size, side).toBe(ends.length);
+    expect([...into.values()].some((ends) => ends.length > 1)).toBe(true);
+    const sharing = routes.flatMap((route, at) =>
+      routes.flatMap((other, next) => {
+        if (next <= at) return [];
+        const middle = (one: number, two: number, end: "from" | "to") =>
+          scene.joints[one][end] === scene.joints[two][end] &&
+          joints[one][end === "from" ? "fromMiddle" : "toMiddle"];
+        if (middle(at, next, "from") || middle(at, next, "to")) return [];
+        return runsOf(route.way).some((run) => sharedRun(run, runsOf(other.way)))
+          ? [`${joints[at].label || at} / ${joints[next].label || next}`]
+          : [];
+      }),
+    );
+    expect(crossings).toEqual([]);
+    expect(sharing).toEqual([]);
+    expect(new Set(fromTheDiamond.map((one) => `${one.from.x} ${one.from.y}`)).size).toBe(1);
+  });
+
   it("runs an arrow round a shape that stands in its way, and as before when none does", () => {
     const from = rect(100, 0);
     const to = rect(0, 240);
