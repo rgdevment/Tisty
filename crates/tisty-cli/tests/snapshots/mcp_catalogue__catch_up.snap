@@ -9,12 +9,12 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Where things stand: the lists, folders and tags in use, counts, the latest documents, and a `cursor`; sent back as `since`, it adds what moved since, by anyone. Ask it first and on coming back, instead of `lists`, `tags` and `docs`.",
+  "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since you were last here, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "since": {
-        "description": "A `cursor` from a previous `catch_up`",
+        "description": "A `cursor` from a previous `catch_up`, to count from there instead",
         "type": "string"
       }
     },

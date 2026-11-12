@@ -169,6 +169,7 @@ fn the_words_each_prompt_hands_the_agent() {
         ("plan_task", "work"),
         ("solved_before", "problem"),
         ("keep_decision", "subject"),
+        ("leave_off", "task"),
         ("pick_up", "task"),
     ] {
         let given = served.prompted(name, json!({ takes: "the passport" }));
@@ -204,6 +205,11 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     assert!(
         said.contains(&format!("\"Renew the passport\" in the inbox [{passport}]")),
         "{said}"
+    );
+    let leaving = served.prompted("leave_off", json!({}));
+    assert!(
+        leaving.contains(&format!("\"Renew the passport\" in the inbox [{passport}]")),
+        "{leaving}"
     );
 
     served.person().closes(person::task(&passport));

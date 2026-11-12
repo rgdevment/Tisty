@@ -26,7 +26,7 @@ expression: tool
         "type": "boolean"
       },
       "keep_compaction": {
-        "description": "The person told you in this conversation to keep the compaction awaiting their word",
+        "description": "Only on the person's word: `rules` «tidying»",
         "type": "boolean"
       },
       "replace": {

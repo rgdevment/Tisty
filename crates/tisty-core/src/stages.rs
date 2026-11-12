@@ -473,8 +473,12 @@ fn slot(body: &str, found: &[Stage]) -> Option<Slot> {
 
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
+    ticked_boxes(task, body).0
+}
+
+pub fn ticked_boxes(task: &Task, body: &str) -> (String, Vec<StepId>) {
     if task.steps.is_empty() {
-        return body.to_string();
+        return (body.to_string(), Vec::new());
     }
     let steps = ordered(task);
     let found = stages(body);
@@ -484,6 +488,7 @@ pub fn ticked(task: &Task, body: &str) -> String {
         false,
     );
     let mut out = body.to_string();
+    let mut boxed: Vec<StepId> = of.iter().flatten().map(|at| steps[*at].id).collect();
     for (stage, step) in found.iter().zip(&of).rev() {
         let Some(step) = step.map(|at| steps[at]) else {
             continue;
@@ -507,9 +512,10 @@ pub fn ticked(task: &Task, body: &str) -> String {
         // A line swallowed by what the text leaves open, a fence say, would be added again on every open.
         if stages(&grown).len() == found.len() + 1 {
             out = grown;
+            boxed.push(step.id);
         }
     }
-    out
+    (out, boxed)
 }
 
 fn with_line(out: &str, found: &[Stage], step: &Step) -> String {

@@ -4,11 +4,13 @@ use tisty_core::Paths;
 use tisty_core::State;
 use tisty_core::model::{Priority, Tag, Task, TaskId};
 use tisty_core::standing::Standing;
-use ulid::Ulid;
 
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
+use super::resuming::{
+    Asked, MOVED_SHOWN, Since, last_task, left_off, looks_now, moved_since, seen_whole, whose,
+};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -342,7 +344,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("reading needs a `task` id.".into()));
     };
-    let (state, _) = opened(paths)?;
+    let (state, store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
@@ -374,8 +376,31 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Value::Object(kept)
         }
     };
-    if wants("description") && task.description.is_some() {
-        whole["description"] = json!(task.description);
+    let owner = tisty_core::task_docs::owner(&state, task.id);
+    let page = wants("document")
+        .then(|| {
+            let kept = tisty_core::task_docs::of(&state, owner)?;
+            let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
+            let (body, boxed) =
+                tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
+            Some((kept.file.clone(), body, boxed))
+        })
+        .flatten();
+    let named = |key: &str| asked.iter().any(|one| one == key);
+    let description = task.description.as_deref().filter(|one| {
+        named("description")
+            || (wants("description")
+                && !page.as_ref().is_some_and(|(_, body, _)| {
+                    tisty_core::task_docs::holds_description(body, one)
+                }))
+    });
+    let steps_apart = task.steps.iter().any(|one| {
+        !page
+            .as_ref()
+            .is_some_and(|(_, _, boxed)| boxed.contains(&one.id))
+    });
+    if let Some(body) = description {
+        whole["description"] = json!(body);
     }
     if wants("steps") && !task.steps.is_empty() {
         whole["steps"] = json!(
@@ -394,20 +419,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
-    // The page is what the person reads and writes; its boxes and properties come as the log has them.
-    let owner = tisty_core::task_docs::owner(&state, task.id);
-    if wants("document")
-        && let Some(kept) = tisty_core::task_docs::of(&state, owner)
-        && let Ok(body) = tisty_core::docs::read(&paths.docs(), &kept.file)
-    {
-        let list = task
-            .list
-            .and_then(|at| state.lists.get(&at))
-            .map(|one| one.name.as_str());
-        whole["document"] = json!({
-            "file": kept.file,
-            "body": tisty_core::task_front::dressed(&body, task, list),
-        });
+    if let Some((file, body, _)) = &page {
+        whole["document"] = json!({ "file": file, "body": body });
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
@@ -421,18 +434,50 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
-    let notes: Vec<(&tisty_core::model::LogEntry, String)> = task
-        .journal()
-        .map(|one| (one, kept_here(&one.body)))
+    let journal: Vec<&tisty_core::model::LogEntry> = task.journal().collect();
+    let widened = match args.get("notes") {
+        None | Some(Value::Null) => None,
+        Some(said) => Some(said.as_u64().ok_or_else(|| {
+            Refused::Tool(format!(
+                "`notes` is how many of the latest journal notes to bring, or 0 for all of them, \
+                 not {said}."
+            ))
+        })?),
+    };
+    let earlier = match widened {
+        Some(0) => 0,
+        latest => journal
+            .len()
+            .saturating_sub(latest.map_or(NOTES_SHOWN, |one| one as usize)),
+    };
+    let notes: Vec<(&tisty_core::model::LogEntry, String, Option<String>)> = journal[earlier..]
+        .iter()
+        .map(|one| {
+            let by = one
+                .by
+                .as_ref()
+                .and_then(|by| whose(&state, by, one.via.as_deref(), store.device()));
+            (*one, kept_here(&one.body), by)
+        })
         .collect();
-    let hid = notes.iter().any(|(one, kept)| *kept != one.body);
+    let hid = notes.iter().any(|(one, kept, _)| *kept != one.body);
     if wants("journal") && !notes.is_empty() {
         whole["journal"] = json!(
             notes
                 .iter()
-                .map(|(one, kept)| json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept }))
+                .map(|(one, kept, by)| {
+                    let mut note =
+                        json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept });
+                    if let Some(by) = by {
+                        note["by"] = json!(by);
+                    }
+                    note
+                })
                 .collect::<Vec<_>>()
         );
+        if earlier > 0 {
+            whole["earlier"] = json!(earlier);
+        }
         if hid {
             whole["unpathed"] = json!(UNPATHED);
         }
@@ -446,7 +491,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
     }
 
-    let mut plainly = format!("{:?} {} [{}]", task.title, placed(&state, task), task.id);
+    let mut plainly = named_task(&state, task);
     if !task.is_open() {
         let notice = format!(
             "{} — {}: it reads as it ended, and nothing on it changes",
@@ -463,13 +508,11 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             whole["notice"] = json!(notice);
         }
     }
-    if let Some(body) = &task.description
-        && wants("description")
-    {
+    if let Some(body) = description {
         plainly.push_str("\n\n");
         plainly.push_str(body);
     }
-    if wants("steps") {
+    if wants("steps") && steps_apart {
         for one in &task.steps {
             plainly.push_str(&format!(
                 "\n[{}] {}",
@@ -477,6 +520,10 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 one.text
             ));
         }
+    }
+    if let Some((_, body, _)) = &page {
+        plainly.push_str("\n\nIts page:\n");
+        plainly.push_str(body.trim_end());
     }
     if wants("parts") {
         for one in &parts {
@@ -490,8 +537,17 @@ part [{}] {} — {}",
         }
     }
     if wants("journal") {
-        for (one, kept) in &notes {
-            plainly.push_str(&format!("\n\n({}, note {}) {kept}", one.at, one.id));
+        if earlier > 0 && !notes.is_empty() {
+            plainly.push_str(&format!(
+                "\n\n{earlier} earlier note(s) left out; `notes` 0 brings them all."
+            ));
+        }
+        for (one, kept, by) in &notes {
+            let by = by
+                .as_ref()
+                .map(|by| format!(", by {by}"))
+                .unwrap_or_default();
+            plainly.push_str(&format!("\n\n({}, note {}{by}) {kept}", one.at, one.id));
         }
         if hid {
             plainly.push_str(&format!("\n\n{UNPATHED}"));
@@ -520,24 +576,10 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     folders.sort();
 
-    let mut how: std::collections::BTreeMap<&str, usize> = Default::default();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.papers().flat_map(|one| &one.tags))
-    {
-        *how.entry(one.as_str()).or_default() += 1;
-    }
-    let mut tags: Vec<(&str, usize)> = how.into_iter().collect();
-    tags.sort_by(|(one, mine), (other, theirs)| theirs.cmp(mine).then(one.cmp(other)));
+    let tags = counted_tags(&state);
 
     let log = store.read_all().map_err(hitch)?;
-    let head = log
-        .iter()
-        .map(|one| one.timestamp)
-        .max()
-        .map(|one| one.to_string());
+    let head = log.iter().map(|one| one.timestamp).max();
 
     let mut kept = serde_json::Map::new();
     kept.insert("lists".into(), json!(named));
@@ -549,111 +591,161 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "tags".into(),
             json!(
                 tags.iter()
-                    .take(TAGS_SHOWN)
+                    .take(TAGS_AT_A_GLANCE)
                     .map(|(one, times)| json!({ "tag": one, "times": times }))
                     .collect::<Vec<_>>()
             ),
         );
     }
+    if tags.len() > TAGS_AT_A_GLANCE {
+        kept.insert("tags_more".into(), json!(tags.len() - TAGS_AT_A_GLANCE));
+    }
+    let open = state
+        .tasks
+        .values()
+        .filter(|one| one.is_open() && !one.folded())
+        .count();
+    let papers = state.papers().filter(|one| !state.held_away(one)).count();
     let pressing = pressing(&state, today);
-    let mut counts = json!({
-        "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
-        "docs": state
-            .papers()
-            .filter(|one| !state.held_away(one))
-            .count(),
-    });
+    let mut counts = json!({ "open": open, "docs": papers });
     for (how, many) in &pressing {
         counts[how] = json!(many);
     }
     kept.insert("counts".into(), counts);
-    if let Some(head) = &head {
-        kept.insert("cursor".into(), json!(head));
+    if let Some(head) = head {
+        kept.insert("cursor".into(), json!(head.to_string()));
     }
 
-    let since = text(args, "since");
-    let said = match &since {
-        None => {
-            let mut newest: Vec<&tisty_core::model::Kept> =
-                state.papers().filter(|one| !state.held_away(one)).collect();
-            newest.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
-            let newest: Vec<String> = newest
-                .iter()
-                .take(NEWEST_SHOWN)
-                .map(|one| one.file.clone())
-                .collect();
-            if !newest.is_empty() {
-                kept.insert("newest".into(), json!(newest));
-            }
-            format!(
-                "{} list(s), {} folder(s), {} tag(s), {} open task(s){}, {} document(s) not put \
-                 away, pages included. Send the `cursor` back next time and what moved since \
-                 comes with it as well.",
-                named.len(),
-                folders.len(),
-                tags.len(),
-                state
-                    .tasks
-                    .values()
-                    .filter(|one| one.is_open() && !one.folded())
-                    .count(),
-                pressed(&pressing),
-                state.papers().filter(|one| !state.held_away(one)).count()
-            )
+    let left = left_off(
+        paths,
+        &state,
+        log.iter().rev().filter(|one| one.device == *store.device()),
+    );
+    let mut said = Vec::new();
+    if let Some(task) = last_task(&state, &left) {
+        said.push(format!(
+            "You last worked on {}: `read` it.",
+            named_task(&state, task)
+        ));
+        let mut last = json!({ "id": task.id.to_string(), "title": task.title });
+        if let Some(list) = list_of(&state, task) {
+            last["list"] = json!(list);
         }
-        Some(since) => {
-            let since: jiff::Timestamp = since.parse().map_err(|_| {
-                Refused::Tool(format!(
-                    "`since` has to be a `cursor` a previous `catch_up` handed back, not {since:?}."
-                ))
-            })?;
-            let owners = tisty_core::task_docs::behind(&state);
-            let mut tasks: Vec<TaskId> = Vec::new();
-            let mut papers: Vec<String> = Vec::new();
-            // The log refuses two events at the very same instant, so what the cursor named is
-            // behind us and nothing is skipped by leaving it out.
-            for one in log.iter().filter(|one| one.timestamp > since) {
-                if let Some(task) = task_touched(&state, &owners, one) {
-                    if !tasks.contains(&task) {
-                        tasks.push(task);
-                    }
-                } else if let Some((named, id)) = what_it_touched(one)
-                    && named.starts_with("doc.")
-                    && !papers.contains(&id)
-                {
-                    papers.push(id);
-                }
-            }
-            let moved: Vec<Value> = tasks
-                .iter()
-                .filter_map(|id| state.tasks.get(id))
-                .filter(|one| !one.folded())
-                .map(|one| brief(one, &state, today))
-                .collect();
-            let written: Vec<Value> = papers
-                .iter()
-                .filter_map(|id| {
-                    let id = id.parse::<Ulid>().ok()?;
-                    let kept = state.docs.values().find(|one| one.id == id)?;
-                    kept.task_of.is_none().then_some(())?;
-                    Some(json!({ "doc": kept.file, "title": kept.title }))
-                })
-                .collect();
-            let said = format!(
-                "{} task(s) and {} document(s) moved since then.",
-                moved.len(),
-                written.len()
-            );
-            if !moved.is_empty() {
-                kept.insert("tasks".into(), json!(moved));
-            }
-            if !written.is_empty() {
-                kept.insert("docs".into(), json!(written));
-            }
-            said
-        }
+        kept.insert("last".into(), last);
+    }
+    let asked = match text(args, "since") {
+        None => None,
+        Some(since) => Some(since.parse::<jiff::Timestamp>().map_err(|_| {
+            Refused::Tool(format!(
+                "`since` has to be a `cursor` a previous `catch_up` handed back, not {since:?}."
+            ))
+        })?),
     };
-    Ok(told(said, Value::Object(kept)))
+    let since = asked
+        .map(Since::At)
+        .or_else(|| left.seen.clone().map(Since::Seen))
+        .or(left.at.map(Since::At));
+    let mut seen = seen_whole(&log);
+    if let Some(since) = &since {
+        let moved = moved_since(
+            &state,
+            &log,
+            Asked {
+                since,
+                mine_too: asked.is_some(),
+                seen: left.seen.clone().unwrap_or_default(),
+            },
+            store.device(),
+            today,
+        );
+        let by = match moved.by.is_empty() {
+            true => String::new(),
+            false => format!(
+                ", by {}",
+                moved.by.iter().cloned().collect::<Vec<_>>().join(" and ")
+            ),
+        };
+        let from = match (asked, since.latest()) {
+            (Some(_), _) => "then".to_string(),
+            (None, Some(at)) => format!("you were last here, {}", when(at)),
+            (None, None) => "you were last here".to_string(),
+        };
+        let cut = moved.tasks_all > moved.tasks.len() || moved.docs_all > moved.docs.len();
+        said.push(format!(
+            "{} task(s) and {} document(s) moved since {from}{by}.{}",
+            moved.tasks_all,
+            moved.docs_all,
+            match cut {
+                true => format!(
+                    " Here are the first {MOVED_SHOWN} of each, in the order they moved; the \
+                     next `catch_up` without `since` brings the rest."
+                ),
+                false => String::new(),
+            }
+        ));
+        if asked.is_none()
+            && let Some(at) = since.latest()
+        {
+            kept.insert("since".into(), json!(at.to_string()));
+        }
+        for (key, all, shown) in [
+            ("tasks", moved.tasks_all, moved.tasks),
+            ("docs", moved.docs_all, moved.docs),
+        ] {
+            if all > shown.len() {
+                kept.insert(format!("{key}_more"), json!(all - shown.len()));
+            }
+            if !shown.is_empty() {
+                kept.insert(key.into(), json!(shown));
+            }
+        }
+        seen = moved.seen;
+    }
+    if asked.is_none() {
+        let newest = newest_docs(&state);
+        if !newest.is_empty() {
+            kept.insert("newest".into(), json!(newest));
+        }
+        said.push(format!(
+            "{} list(s), {} folder(s), {} tag(s), {open} open task(s){}, {papers} document(s) \
+             not put away, pages included.",
+            named.len(),
+            folders.len(),
+            tags.len(),
+            pressed(&pressing),
+        ));
+    }
+    if since.is_none() {
+        said.push("Next time, what moved since this call comes with it as well.".to_string());
+    }
+    looks_now(paths, &seen);
+    Ok(told(said.join(" "), Value::Object(kept)))
+}
+
+fn counted_tags(state: &State) -> Vec<(&str, usize)> {
+    let mut how: std::collections::BTreeMap<&str, usize> = Default::default();
+    for one in state
+        .tasks
+        .values()
+        .flat_map(|task| &task.tags)
+        .chain(state.papers().flat_map(|one| &one.tags))
+    {
+        *how.entry(one.as_str()).or_default() += 1;
+    }
+    let mut tags: Vec<(&str, usize)> = how.into_iter().collect();
+    tags.sort_by(|(one, mine), (other, theirs)| theirs.cmp(mine).then(one.cmp(other)));
+    tags
+}
+
+fn newest_docs(state: &State) -> Vec<Value> {
+    let mut newest: Vec<&tisty_core::model::Kept> =
+        state.papers().filter(|one| !state.held_away(one)).collect();
+    newest.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
+    newest
+        .iter()
+        .take(NEWEST_SHOWN)
+        .map(|one| json!({ "doc": one.file, "title": one.title }))
+        .collect()
 }
 
 pub(super) fn lists(paths: &Paths) -> Result<Value, Refused> {
@@ -679,17 +771,7 @@ pub(super) const GUIDE: &str = "https://markdown.tisty.app/";
 
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
-    let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.papers().flat_map(|one| &one.tags))
-    {
-        *how.entry(one.as_str()).or_default() += 1;
-    }
-    let mut named: Vec<(&str, usize)> = how.into_iter().collect();
-    named.sort_by(|(one, mine), (other, theirs)| theirs.cmp(mine).then(one.cmp(other)));
+    let named = counted_tags(&state);
 
     let text = match named.len() {
         0 => "No tags here yet. Write the word the person would use, not one of your own.".into(),
@@ -802,6 +884,8 @@ const AROUND_AT_MOST: usize = 10;
 pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;
+const TAGS_AT_A_GLANCE: usize = 40;
+const NOTES_SHOWN: usize = 10;
 
 /// The tombstone knows: what the person erased is said to be erased, not merely missing.
 pub(super) fn gone(state: &State, said: &str) -> Refused {
@@ -836,32 +920,6 @@ pub(super) fn how_it_ended(task: &Task) -> String {
         said.push_str(", put away by the person where `read` does not reach");
     }
     said
-}
-
-/// Every op carries its own id under the same name, so reading it back as JSON keeps this from
-/// having to know each one — and from going quiet the day another is added.
-pub(super) fn task_touched(
-    state: &State,
-    owners: &std::collections::BTreeMap<String, TaskId>,
-    event: &tisty_core::event::Event,
-) -> Option<TaskId> {
-    let (named, id) = what_it_touched(event)?;
-    if named.starts_with("task.") {
-        return id.parse().ok();
-    }
-    if !named.starts_with("doc.") {
-        return None;
-    }
-    // Writing a task's document is that task moving, never a document of its own.
-    let kept = state.docs.get(&id.parse::<Ulid>().ok()?)?;
-    owners.get(&kept.file).copied()
-}
-
-fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)> {
-    let said = serde_json::to_value(&event.op).ok()?;
-    let named = said.get("op")?.as_str()?.to_string();
-    let id = said.get("id")?.as_str()?.to_string();
-    Some((named, id))
 }
 
 /// Attaching records where a file came from, and those paths are the person's disk. The agent
@@ -1004,15 +1062,7 @@ pub(super) fn brief(task: &Task, state: &State, today: jiff::civil::Date) -> Val
     put("source", json!(task.source));
     // Where it ended up and how the person ranked it: reading them is how an agent sees a
     // decision it cannot make itself.
-    put(
-        "list",
-        json!(
-            task.list
-                .as_ref()
-                .and_then(|id| state.lists.get(id))
-                .map(|one| &one.name)
-        ),
-    );
+    put("list", json!(list_of(state, task)));
     put(
         "priority",
         json!((task.priority != Priority::Unset).then_some(task.priority)),
@@ -1159,11 +1209,7 @@ impl Sifted {
             return false;
         }
         if let Some(want) = &self.list {
-            let named = task
-                .list
-                .as_ref()
-                .and_then(|id| state.lists.get(id))
-                .map(|one| one.name.to_lowercase());
+            let named = list_of(state, task).map(str::to_lowercase);
             if named.as_deref() != Some(want.as_str()) {
                 return false;
             }
@@ -1263,11 +1309,18 @@ fn pressed(pressing: &[(String, usize)]) -> String {
     format!(" ({})", told.join(", "))
 }
 
+pub(super) fn list_of<'a>(state: &'a State, task: &Task) -> Option<&'a str> {
+    task.list
+        .and_then(|at| state.lists.get(&at))
+        .map(|one| one.name.as_str())
+}
+
 pub(super) fn placed(state: &State, task: &Task) -> String {
-    task.list.and_then(|at| state.lists.get(&at)).map_or_else(
-        || "in the inbox".to_string(),
-        |one| format!("in {}", one.name),
-    )
+    list_of(state, task).map_or_else(|| "in the inbox".to_string(), |one| format!("in {one}"))
+}
+
+pub(super) fn named_task(state: &State, task: &Task) -> String {
+    format!("{:?} {} [{}]", task.title, placed(state, task), task.id)
 }
 
 #[cfg(test)]

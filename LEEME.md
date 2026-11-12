@@ -258,8 +258,10 @@ Lo que vas a hacer es una tarea. Lo que vas a volver a leer es un documento.
 
 Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
 
-1. **Pregunta qué cambió** desde la última sesión, en vez de releerlo todo.
-2. **Abre la tarea en la que está.** *Para estar lista* le dice cuándo termina,
+1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez
+   de releerlo todo.
+2. **Abre la tarea en la que estaba**, que Tisty le nombra. *Para estar lista*
+   le dice cuándo termina,
    y los pasos sin marcar, qué falta.
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de
    ahí.
@@ -396,8 +398,8 @@ cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
   `find`, `catch_up`, `lists`, `tags`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
-Además de las herramientas, ofrece cuatro pedidos listos que tu asistente
-muestra como comandos (`pick_up`, `plan_task`, `solved_before`,
+Además de las herramientas, ofrece cinco pedidos listos que tu asistente
+muestra como comandos (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
 `keep_decision`), y tus documentos para mencionar con `@`, uno largo como su
 índice.
 
