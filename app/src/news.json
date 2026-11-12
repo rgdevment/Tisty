@@ -1480,5 +1480,64 @@
         "said": "in assistants that show them, such as Claude Code or GitHub Copilot in VS Code, you get commands to pick up where you left off, plan a task, look up how something was solved or keep a decision, and you can mention your documents with @: long ones arrive by their outline, never whole."
       }
     ]
+  },
+  {
+    "version": "1.47.0",
+    "headline": {
+      "es": "Una lluvia de ideas a mano, y tu agente de IA retoma donde quedó sin perder nada",
+      "en": "A brainstorm at hand, and your AI agent picks up where it left off without losing a thing"
+    },
+    "es": [
+      {
+        "title": "Una lluvia de ideas a mano",
+        "said": "anota una idea en cuanto llega con la captura rápida: Tab cambia entre tarea e idea, y las ideas tienen su propio atajo. Quedan como notas adhesivas de colores, de hasta 140 caracteres, en un documento fijo arriba de tu biblioteca, y las ordenas arrastrándolas."
+      },
+      {
+        "title": "Retoma justo donde quedó",
+        "said": "al empezar, tu agente ve qué cambió desde su última sesión, quién lo cambió y en qué tarea estaba. Si esa tarea ya se cerró o la dio por hecha, te lo dice en vez de tomar otra."
+      },
+      {
+        "title": "Ordena sin perder nada",
+        "said": "cuando tu agente junta sus notas de una tarea en un resumen, puedes pedirle que las devuelva tal como estaban, aunque después hayas marcado pasos. Nunca escribe encima de lo que anotaste tú."
+      },
+      {
+        "title": "Tú decides qué se va",
+        "said": "un documento que ya cumplió su vida queda marcado con el motivo, y tú lo borras, lo archivas o le quitas la marca. Al juntar dos documentos repetidos, tu agente te dice qué traducciones y enlaces quedan por mover."
+      },
+      {
+        "title": "Retomar le cuesta menos",
+        "said": "una tarea larga le llega por partes, con su resumen y su última nota, y la bitácora se mide por tamaño. Las búsquedas dejan al final lo que marcó como viejo."
+      },
+      {
+        "title": "Instrucciones más claras",
+        "said": "tu agente tacha y fecha una decisión que cambia en vez de borrarla, y cuando algo no se puede hacer, Tisty le dice qué hacer en su lugar. Un documento que archivaste no se toca hasta que lo desarchives."
+      }
+    ],
+    "en": [
+      {
+        "title": "A brainstorm at hand",
+        "said": "jot an idea down the moment it comes with the quick capture: Tab switches between task and idea, and ideas have a shortcut of their own. They wait as sticky notes in colours, up to 140 characters each, in a document pinned atop your library, and you reorder them by dragging."
+      },
+      {
+        "title": "It picks up right where it left off",
+        "said": "when it starts, your agent sees what moved since its last session, who moved it and which task it was on. If that task was closed or it said it was done, it tells you instead of taking another."
+      },
+      {
+        "title": "It tidies without losing a thing",
+        "said": "when your agent folds its notes on a task into one digest, you can ask it to put them back as they were, even after you ticked steps. It never writes over what you noted."
+      },
+      {
+        "title": "You decide what goes",
+        "said": "a document that had its day is marked with the reason, and you delete it, archive it or take the mark off. When it joins two copies of a document, your agent tells you which translations and links are left to move."
+      },
+      {
+        "title": "Picking up costs less",
+        "said": "a long task reaches it in parts, with its digest and its latest note, and the journal is counted by size. Searches put last what was marked as old."
+      },
+      {
+        "title": "Clearer instructions",
+        "said": "your agent strikes through and dates a decision that changes instead of erasing it, and when something cannot be done, Tisty tells it what to do instead. A document you archived is left alone until you bring it back."
+      }
+    ]
   }
 ]
