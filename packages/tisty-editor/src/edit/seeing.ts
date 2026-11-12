@@ -71,8 +71,8 @@ type Callout = "note" | "tip" | "important" | "warning" | "caution" | "idea";
 
 const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution|idea)\])\s*$/i;
 const IDEA = /^(\s*>\s?)(\[!(idea)\])(.*)$/i;
-const IDEA_HUES = (CONTRACTS.style as { values: { callouts: { idea: { hues: string[] } } } })
-  .values.callouts.idea.hues;
+const IDEA_HUES = (CONTRACTS.style as { values: { callouts: { idea: { hues: string[] } } } }).values
+  .callouts.idea.hues;
 const STAMPED = /^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/;
 
 // Words naming no time, hue or side are the note's own first words and stay in sight.

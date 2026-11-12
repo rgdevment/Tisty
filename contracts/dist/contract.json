@@ -4812,7 +4812,7 @@
         "revocations": {
           "type": "list",
           "of": "revocation",
-          "says": "What the root of its signature and the root of its owner have revoked, as far as the server knows, and the roots of those who sent a version of it besides its owner, up to 16 of them, the first to edit first: a reader weighs the version's machines, each editor's, and beside an anchor the machine of its reviewed too."
+          "says": "What the root of its signature and the root of its owner have revoked, as far as the server knows, and what the roots of those who sent a version of it besides its owner have revoked, up to 16 revocations in all, at most 4 of each root before a fifth of any, the first to edit first and, within a root, the machine it first sent from first: a reader weighs the version's machines, each editor's, and beside an anchor the machine of its reviewed too."
         },
         "reviewed": {
           "type": "reviewed",
@@ -5276,7 +5276,7 @@
             "caution": "red"
           },
           "idea": {
-            "says": "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows the head line as words.",
+            "says": "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. A head line naming none of the three is the note's own first words. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows a head line that names one as words. Outside Tisty it leaves as a note, without its head line.",
             "hues": [
               "pink",
               "coral",
