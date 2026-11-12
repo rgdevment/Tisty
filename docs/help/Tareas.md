@@ -157,7 +157,7 @@ Las tareas que un asistente da por hechas esperan en **Por confirmar**: mira [[Q
 La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas por [[MCP|Asistentes-y-MCP]].
 
 - **Lo que anota es suyo para mantenerlo al día.** Describe la tarea, planifica los pasos, marca cada uno al terminarlo, anota en la bitácora lo que aprende y reparte un trabajo grande en partes.
-- **Lo que escribiste tú sigue siendo tuyo.** El agente solo agrega (una nota en la bitácora, un recordatorio, un archivo) y da su palabra de que un paso o la tarea entera están hechos, para que tú lo confirmes. Cerrar siempre es tuyo.
+- **Lo que la cierra sigue siendo tuyo.** En una tarea que escribiste tú, el agente trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo.
 - **La página le dice cuándo parar.** *Para estar lista* dice cuándo termina la tarea, y los pasos sin marcar dicen qué falta, así la próxima sesión empieza ahí.
 - **La bitácora evita que se repita.** Lo que se probó y se descartó queda con fecha, y la próxima sesión, u otro agente, lo lee antes de volver a intentarlo.
 - **Un ticket, una tarea.** Anotada con su origen (un ticket, un hilo), el mismo trabajo nunca se anota dos veces.

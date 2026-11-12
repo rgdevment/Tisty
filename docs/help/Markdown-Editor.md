@@ -41,7 +41,7 @@ With nothing selected, a format starts right where the caret is, and what you ty
 Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it down, ↑ ↓ to move, Enter to add it, Esc to close it.
 
 - Headings, lists, stages and quotes.
-- The five callouts: Note, Tip, Important, Warning and Caution.
+- The five callouts: Note, Tip, Important, Warning and Caution, and the Idea sticky note.
 - Bold, italic, underline, strikethrough, code, link and the highlight pen, with their shortcuts beside them.
 - An icon, looked up by what it draws.
 - A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block.
