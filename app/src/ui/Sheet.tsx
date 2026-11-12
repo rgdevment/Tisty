@@ -50,6 +50,7 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { carried, firstInSight } from "./sighted";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
@@ -203,10 +204,9 @@ export default function Sheet(props: Readonly<Props>) {
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const sheet = room.current;
     if (!page || !frame || !sheet || showing.current !== before) return null;
-    const top = sheet.getBoundingClientRect().top;
-    const block = Array.from(page.querySelectorAll<HTMLElement>(".page > [data-at]")).find(
-      (one) => one.getBoundingClientRect().bottom + frame.top > top,
-    );
+    const top = sheet.getBoundingClientRect().top - frame.top;
+    const blocks = Array.from(page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"));
+    const block = firstInSight(blocks, top);
     const at = spanned(block?.dataset.at ?? null);
     if (!block || !at) return null;
     const from = charsAt(before, at[0]);
@@ -216,9 +216,14 @@ export default function Sheet(props: Readonly<Props>) {
   }, []);
 
   const whole = useCallback(
-    (next: string, kept?: Omit<Landing, "turn">) => {
+    (next: string, anchor?: Omit<Landing, "turn">) => {
       const before = latest.current;
-      landing.current = kept ? { ...kept, turn: turnedNow.current } : inSight(before, next);
+      const waiting = landing.current;
+      // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
+      landing.current = anchor
+        ? { ...anchor, turn: turnedNow.current }
+        : (inSight(before, next) ??
+          (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) }));
       written(next);
       setDrawn(next);
       settled(before, next);

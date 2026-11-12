@@ -186,6 +186,7 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     for (const wide of [...below, "p:has(> img:only-child)"])
       expect(said(page, `.page > ${wide}`, "clear"), wide).toBe("both");
     expect(said(page, ".page", "display")).toBe("flow-root");
+    expect(said(page, "blockquote.callout > .sticky-pin:first-child + *", "margin-top")).toBe("0");
     for (const hue of idea.hues) {
       expect(said(page, `${note}[data-hue="${hue}"]`, "--idea-fill")).toBe(
         `var(--tisty-idea-${hue})`,
