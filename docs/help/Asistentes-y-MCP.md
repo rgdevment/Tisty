@@ -110,7 +110,7 @@ Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la
 
 Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías tú: por su título y dónde está, la lista o la carpeta. Nunca te muestra un identificador.
 
-**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. En una tarea que escribiste tú solo dice lo que hizo (que un paso o la tarea entera está hecha) como su palabra, que tú tomas o no.
+**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. En una tarea que escribiste tú solo dice lo que hizo (que un paso o la tarea entera está hecha) como su palabra, que tú tomas o no.
 
 Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]].
 
@@ -121,7 +121,7 @@ Desde la 1.46.0, la memoria y el contexto que Tisty guarda para tu agente están
 **Cinco pedidos listos.** Tisty le entrega a tu asistente cinco pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
 - **Retomar donde lo dejé** (`pick_up`): lo que se movió desde la última vez que pasó el agente y quién lo movió y, después, la tarea abierta en la que trabajó por última vez, con sus pasos, su página y sus últimas notas. No cambia nada.
-- **Dejar esto listo para retomarlo** (`leave_off`): marca los pasos terminados y anota lo que se hizo, lo que se descartó y por qué, y lo que sigue; si todo está hecho, lo dice con la prueba, y una decisión que dura más que la tarea va a su documento.
+- **Dejar esto listo para retomarlo** (`leave_off`): marca los pasos terminados y anota lo que se hizo, lo que se descartó y por qué, y lo que sigue; si todo está hecho, lo dice con la prueba, y una decisión que dura más que la tarea va a su documento, con fecha y la que reemplaza tachada; si ningún documento cubre el tema, queda en la nota y te lo dice.
 - **Planificar este trabajo como una tarea con pasos** (`plan_task`): una tarea con sus pasos, en la lista que le corresponde, una vez que nada abierto ni en el archivo lo cubre ya.
 - **¿Cómo lo resolvimos antes?** (`solved_before`): busca en el archivo de tareas terminadas y en tus documentos antes de probar nada nuevo.
 - **Guardar esta decisión en su documento** (`keep_decision`): la decisión que acabas de tomar va al único documento de su tema, en su lugar, y la que reemplaza queda tachada; si ningún documento lo cubre, te pregunta dónde va.
@@ -139,7 +139,7 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de ahí.
 4. **Lee el documento del módulo por su índice**, después solo la sección que necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre debates cerrados ni se desvía.
 5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima sesión, u otro agente, no repite el intento fallido.
-6. **Cuando la página de una tarea crece, compacta sus propias notas** en un resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera, y si le pides devolver las notas, vuelven como estaban, aunque después hayas marcado pasos.
+6. **Cuando la página de una tarea crece, compacta las notas de los asistentes** en un resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera, y si le pides devolver las notas, vuelven como estaban, aunque después hayas marcado pasos.
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
@@ -160,10 +160,11 @@ Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una
 | El agente… | Gasta, con Tisty | Ahorro |
 | --- | --- | --- |
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
+| Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
 | Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
 
-Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
+Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
 
 Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test impide que vuelva a crecer. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
 

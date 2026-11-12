@@ -265,8 +265,10 @@ What an agent connected to Tisty does with all that, on a real piece of work:
    not reopen settled debates or wander off.
 5. **It ticks each step when it is done and notes what it ruled out**, so the
    next session, or another agent, does not repeat the failed attempt.
-6. **When a task's page grows long, it compacts its own notes** into one dated
-   digest — state, decisions, what was ruled out. The journal stays whole.
+6. **When a task's page grows long, it compacts the assistants' notes on it**
+   into one dated digest — state, decisions, what was ruled out — keeping any
+   line you wrote. The journal stays whole, and asking it to put the notes back
+   brings them as they were, even after later ticks.
 7. **It ends by saying what it did and how it knows it holds.** You review it
    and close it.
 8. **After reading a long document, it leaves a summary** for the next agent
@@ -285,6 +287,7 @@ agent that rereads the whole file every session:
 | The agent… | Spends, with Tisty | Saving |
 | --- | --- | --- |
 | Picks up the work, with nothing new | about 1% | 99% less |
+| Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
 | Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
 
@@ -295,8 +298,9 @@ Where the saving comes from:
 - **No read brings more than about 12,000 characters.** Past that, a document
   asked for whole comes back as its outline.
 - **A task's page comes whole only while it is short**, about 4,000 characters.
-  Past that come its sections and the agent's latest note, and its journal is
-  counted by size, not by number of notes.
+  Past that come its sections, the digest that opens the agent's notes and its
+  latest note; its journal comes by size, the latest notes up to about 3,000
+  characters, and a note holds at most 4,000.
 - **The outline says what each section weighs** before anything is opened.
 - **Picking up again brings only what moved** since the last time.
 - **What is finished is archived**, and costs nothing until it is searched.
@@ -373,8 +377,8 @@ Things to ask once it is connected:
 ## Tools
 
 What `tisty mcp` offers an assistant, by what it works on. It never closes or
-deletes: `say_done` leaves a task for you to confirm, and `flag_doc` leaves the
-deleting to you. Each tool is described in
+deletes: `say_done` leaves a task for you to confirm, and `flag_doc` marks a
+document for you to delete, put away or keep. Each tool is described in
 [MCP tools](https://www.tisty.app/docs/mcp-tools/).
 
 - **Tasks** — file one with steps and a date, plan and tick its steps, set
@@ -1115,9 +1119,10 @@ a task is done, yours too — which marks it for you to confirm and closes nothi
 the end or under a heading — correct a passage of one, write one again whole,
 file documents into folders, make one document a page of another and say the
 order its pages are read in, which writes and moves the lines naming them in
-your document's text and nothing else, keep a copy of a file you point it at —
-on a task or inside a document, which takes the larger file of the two — and
-read what is already there. What it may not do: close a task or delete one, tick
+your document's text and nothing else, mark a document that had its day, for
+you to delete, put away or unmark, keep a copy of a file you point it at — on
+a task or inside a document, which takes the larger file of the two — and read
+what is already there. What it may not do: close a task or delete one, tick
 a step of yours or finish a task of yours — save on one you opened to agents
 before 1.31.2 — move a day you set, delete a document, rename or empty a
 folder, reach a task you folded away, take files from anywhere but Downloads,
@@ -1154,7 +1159,8 @@ is not there or is there twice, nothing is written at all. To write a whole body
 again it has to send back the print the document read at when it last looked: if
 you have written in it since, the write is refused and it has to read again, so
 what you typed while it was thinking cannot be lost. A document you archived it
-can still read, and it is told that you archived it.
+can still read, and it is told that you archived it; it cannot write in it
+until you bring it back, or ask it to.
 
 Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why the door, open on a new install, closes with

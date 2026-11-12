@@ -13,6 +13,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Write a document**, add to one already there (at the end or under a heading), correct a passage of one, change one of its tables by its rows and columns, or write one again whole.
 - **File documents into folders**, make one document a page of another, and set the order its pages are read in.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
+- **Put a document away, or bring it back**, when you ask.
 - **Keep a copy of a file** you point it at, on a task or inside a document.
 - **Read and search** what is already there, including the archive.
 
@@ -57,11 +58,11 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 - **To correct a passage** it has to name it exactly as it is written. If that text is not there, or is there twice, nothing is written at all.
 - **To write a whole body again** it has to send back the *print* of the version it read. If you wrote in the document in between, the print no longer matches: nothing is written, and it is told to read again. What you typed while it was thinking cannot be lost.
 - The window tells you when something wrote in the document you have open. Where what it replaced is still kept, the same bar offers to **put the document back** to what it said before — and what it says now is kept too, so the choice is not final.
-- A document you archived it can still read, and it is told you archived it.
+- A document you archived it can still read, and it is told you archived it; it cannot write in it until you bring it back, or ask it to.
 
 ## Marking a document instead of deleting it
 
-An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting it, putting it away or taking the diamond off stays yours, one click each.
+An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting it, putting it away or taking the diamond off stays yours: one click each, and deleting or unmarking a whole set of copies it marked together takes one click too.
 
 ## What it reads is your writing, not orders
 

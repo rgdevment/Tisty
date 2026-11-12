@@ -10,12 +10,12 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `rules` | The full rules for working here; with `topic` «tidying», how to put things back in order. Assistants ask for them first |
+| `rules` | The rules for working here, one guide at a time («tasks», «documents», «tidying»); alone, the basics and an index. Assistants ask for the one they need first |
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
-| `catch_up` | Where things stand, with the lists, folders and most used tags; what others moved since its last `catch_up`; and the open task it was on, or that the one it was on is closed |
-| `find` | Search tasks and documents, the archive included |
-| `read` | Read a task: its page, its steps and its latest notes, with who wrote each |
+| `catch_up` | Where things stand, with the lists, folders and most used tags; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it |
+| `find` | Search tasks and documents, the archive included; documents marked as having had their day come after the live ones, saying so |
+| `read` | Read a task: its page, its steps and its latest notes, with who wrote each. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings the latest notes up to about 3,000 characters, more when asked |
 
 `lists` and `tags` still answer an assistant that asks for them by name, but they are no longer offered: `catch_up` already brings both.
 
@@ -26,10 +26,10 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields |
 | `remind` | Set a task to ring at an hour |
 | `reschedule` | Move the day of a task it filed |
-| `describe` | Describe a task that has no description yet |
+| `describe` | Write the description of a task it may work on, replacing the old one |
 | `rename` | Rename a task an agent filed |
-| `note` | Add to a task's journal |
-| `reword_note` | Rewrite a note it wrote in a task's journal |
+| `note` | Add to a task's journal: up to 4,000 characters a note; longer goes on the task's page |
+| `reword_note` | Rewrite a note in a task's journal |
 | `plan` | Add steps to a task |
 | `reword_step` | Rewrite an open step |
 | `unplan` | Take open steps off a task — or, with `to`, hand them to the task they belong on |
@@ -48,15 +48,15 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below) |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
-| `append_doc` | Add to a document, at the end or under a heading; on a task's page, rewrite its own notes whole with `replace` |
+| `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo |
 | `edit_doc` | Change one passage of a document |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
-| `restore_doc` | Put a document back the way it was, from the copy kept beside the documents |
+| `restore_doc` | Put a document back the way it was, from the copy kept beside the documents; with a task, put back the notes a digest replaced |
 | `folder` | Make a folder |
 | `file_doc` | Put one or several documents in a folder |
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
 | `tongue_doc` | Join a document to the languages of another, or take it out of its own |
-| `archive_doc` | Put a document or one of its pages away, or bring it back |
+| `archive_doc` | Put a document or one of its pages away, or bring it back, only when you ask |
 | `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion |
 | `import_doc` | Bring a Markdown file on this machine in as a document |
 | `export_doc` | Take a document out to a folder on this machine |
