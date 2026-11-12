@@ -44,7 +44,9 @@ pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
 pub(super) fn not_a_document(state: &State, which: &str) -> Option<String> {
     named_task(state, which).map(|task| {
         format!(
-            "{which:?} is the task {:?}, not a document: `read` shows it and `note` writes on it.",
+            "{which:?} is the task {:?}, not a document: `read` shows it, `note` adds to its \
+             journal, and on a task open to agents `append_doc` with its id adds to its page, or \
+             with `replace` folds the assistants' notes there into one digest.",
             task.title
         )
     })

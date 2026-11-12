@@ -91,7 +91,8 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
             named_all(&state, &already)
         ),
     };
-    let said = match marked.is_empty() {
+    let (tongues, pointing) = left_behind(paths, &state, &marked);
+    let mut said = match marked.is_empty() {
         true => format!("Nothing new was marked.{skipped}"),
         false => format!(
             "Marked {} as {}. Untouched, it still reads the same: the person sees the mark when \
@@ -104,16 +105,63 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
             }
         ),
     };
-    Ok(told(
-        said,
-        json!({
-            "doc": said_docs(&marked, listed),
-            "flagged": !marked.is_empty(),
-            "reason": reason,
-            "instead": instead,
-            "skipped": already,
-        }),
-    ))
+    if !tongues.is_empty() {
+        said.push_str(&format!(
+            " Its other languages stay unmarked and would be left alone once it goes: {}. Mark \
+             them with the same reason, or carry what they say into the document that stays.",
+            named_all(&state, &tongues)
+        ));
+    }
+    if !pointing.is_empty() {
+        said.push_str(&format!(
+            " These still link to it and would point nowhere once it goes: {}. Change those \
+             links to the document that holds it now.",
+            named_all(&state, &pointing)
+        ));
+    }
+    let mut kept = json!({
+        "doc": said_docs(&marked, listed),
+        "flagged": !marked.is_empty(),
+        "reason": reason,
+        "instead": instead,
+        "skipped": already,
+    });
+    if !tongues.is_empty() {
+        kept["languages_left"] = json!(tongues);
+    }
+    if !pointing.is_empty() {
+        kept["pointed_at_by"] = json!(pointing);
+    }
+    Ok(told(said, kept))
+}
+
+// Deleting a document takes it alone: its other languages and the links to it stay behind.
+fn left_behind(
+    paths: &tisty_core::Paths,
+    state: &State,
+    marked: &[String],
+) -> (Vec<String>, Vec<String>) {
+    let roots: Vec<tisty_core::model::DocId> = state
+        .docs
+        .values()
+        .filter(|one| marked.contains(&one.file))
+        .map(|one| one.translation_of.unwrap_or(one.id))
+        .collect();
+    let tongues = state
+        .docs
+        .values()
+        .filter(|one| roots.contains(&one.translation_of.unwrap_or(one.id)))
+        .filter(|one| one.flagged.is_none() && !marked.contains(&one.file))
+        .map(|one| one.file.clone())
+        .collect();
+    let mut pointing: Vec<String> = marked
+        .iter()
+        .flat_map(|one| super::pointed_at(paths, state, one))
+        .filter(|one| !marked.contains(one))
+        .collect();
+    pointing.sort();
+    pointing.dedup();
+    (tongues, pointing)
 }
 
 fn instead_of(
@@ -168,7 +216,11 @@ fn instead_of(
     }
 }
 
-fn reason_said(state: &State, reason: Option<&str>, instead: Option<&str>) -> String {
+pub(in crate::mcp) fn reason_said(
+    state: &State,
+    reason: Option<&str>,
+    instead: Option<&str>,
+) -> String {
     let there = instead.map(|one| match one.parse::<TaskId>() {
         Ok(id) => state.tasks.get(&id).map_or_else(
             || one.to_string(),

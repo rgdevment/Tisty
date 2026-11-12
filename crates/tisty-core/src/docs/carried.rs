@@ -32,6 +32,45 @@ pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> 
     Ok(())
 }
 
+/// What a digest wrote over and what it left, so it can be undone while it still heads the notes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NotesBefore {
+    pub before: String,
+    pub after: String,
+    /// True once swapped back, so `after` holds the notes from before the digest, not the digest.
+    #[serde(default)]
+    pub undone: bool,
+}
+
+pub fn keep_notes_before(data: &Path, id: &str, slot: &NotesBefore) -> Result<()> {
+    let said = serde_json::to_vec(slot).map_err(|e| Error::Io(std::io::Error::other(e)))?;
+    kept_aside(&data.join("notes-before"), id, &said)
+}
+
+pub fn read_notes_before(data: &Path, id: &str) -> Option<NotesBefore> {
+    let at = resolve(&data.join("notes-before"), id).ok()?;
+    serde_json::from_slice(&std::fs::read(at).ok()?).ok()
+}
+
+/// The notes as an assistant last left them: what differs since was written by someone else.
+pub fn keep_notes_left(data: &Path, id: &str, words: &str) -> Result<()> {
+    kept_aside(&data.join("notes-left"), id, words.as_bytes())
+}
+
+pub fn read_notes_left(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&data.join("notes-left"), id).ok()?;
+    std::fs::read_to_string(at).ok()
+}
+
+fn kept_aside(at: &Path, id: &str, bytes: &[u8]) -> Result<()> {
+    std::fs::create_dir_all(at)?;
+    let _ = crate::paths::ours_alone(at);
+    let into = resolve(at, id)?;
+    write_atomic(&into, bytes)?;
+    let _ = crate::paths::ours_alone(&into);
+    Ok(())
+}
+
 /// What the document read at when what is kept beside it was set aside.
 pub fn before_left_at(data: &Path, id: &str) -> Option<String> {
     let at = resolve(&data.join("originals-at"), id).ok()?;

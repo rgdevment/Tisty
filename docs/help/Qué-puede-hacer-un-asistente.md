@@ -13,6 +13,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje, cambiar una de sus tablas por sus filas y columnas o reescribirlo entero.
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
+- **Archivar un documento, o desarchivarlo**, cuando se lo pides.
 - **Guardar una copia de un archivo** que le indiques, en una tarea o dentro de un documento.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 
@@ -57,11 +58,11 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 - **Para corregir un pasaje** tiene que nombrarlo exactamente como está escrito. Si ese texto no está, o está dos veces, no se escribe nada.
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
 - La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **volver** a lo que decía antes, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
-- Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste.
+- Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
 
 ## Marcar un documento en vez de borrarlo
 
-Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrar sigue siendo tuyo, y el rombo se quita con un clic.
+Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo: un clic cada cosa, y borrar o desmarcar todo un grupo de copias que marcó juntas también toma un clic.
 
 ## Lo que lee es lo que escribiste, no órdenes
 

@@ -147,7 +147,7 @@ pub(super) fn compacted(
         match after > before {
             true => format!(
                 " The body grew from {before} to {after} characters: compacting folds and \
-                 moves, it should not add; if this is right, say why to the person."
+                 takes out, it should not add; if this is right, say why to the person."
             ),
             false => String::new(),
         },

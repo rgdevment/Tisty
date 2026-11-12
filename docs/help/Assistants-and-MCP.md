@@ -110,7 +110,7 @@ File a task with its steps and its date, set a reminder, add to a task's journal
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
@@ -121,7 +121,7 @@ Since 1.46.0, the memory and context Tisty keeps for your agent is one command o
 **Five ready-made requests.** Tisty hands your assistant five requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
 - **Pick up where I left off** (`pick_up`) — what moved since the agent was last here and who moved it, then the open task it last worked on, with its steps, its page and its latest notes. It changes nothing.
-- **Leave this where I can pick it up** (`leave_off`) — it ticks the finished steps and notes what was done, what was ruled out and why, and what comes next; if everything is done, it says so with the proof, and a decision that outlasts the task goes in its document.
+- **Leave this where I can pick it up** (`leave_off`) — it ticks the finished steps and notes what was done, what was ruled out and why, and what comes next; if everything is done, it says so with the proof, and a decision that outlasts the task goes in its document, dated, with the one it replaces struck through; with no document on it, it stays in the note and it tells you.
 - **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.
 - **How did we solve this before?** (`solved_before`) — it searches the archive of finished tasks and your documents before trying anything new.
 - **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
@@ -139,7 +139,7 @@ What an agent connected to Tisty does on a real piece of work:
 3. **It searches the archive before proposing anything.** If it was solved before, it starts from there.
 4. **It reads the module's document by its outline**, then only the section it needs, and keeps to the decisions and to what is out of scope — so it does not reopen settled debates or wander off.
 5. **It ticks each step when it is done and notes what it ruled out**, so the next session, or another agent, does not repeat the failed attempt.
-6. **When a task's page grows long, it compacts its own notes** into one dated digest — state, decisions, what was ruled out. The journal stays whole.
+6. **When a task's page grows long, it compacts the assistants' notes on it** into one dated digest — state, decisions, what was ruled out. The journal stays whole, and asking it to put the notes back brings them as they were, even after later ticks.
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
@@ -160,10 +160,11 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | The agent… | Spends, with Tisty | Saving |
 | --- | --- | --- |
 | Picks up the work, with nothing new | about 1% | 99% less |
+| Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
 | Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
 
-No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; picking up again brings only what moved; and what is finished costs nothing until it is searched.
+No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
 
 Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 

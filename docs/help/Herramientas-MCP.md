@@ -10,14 +10,14 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `rules` | Las reglas completas para trabajar aquí; con `topic` «tidying», cómo poner las cosas en orden. Los asistentes las piden primero |
+| `rules` | Las reglas para trabajar aquí, una guía a la vez («tasks», «documents», «tidying»); sola, lo básico y un índice. Los asistentes piden la que necesitan primero |
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
-| `catch_up` | Cómo están las cosas, qué se movió desde la última vez que pasó y quién lo movió, y la tarea abierta en la que estaba |
-| `find` | Buscar en la lista y en el archivo |
-| `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una |
-| `lists` | Las listas que existen |
-| `tags` | Las etiquetas que ya están en uso |
+| `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste |
+| `find` | Buscar en tareas y documentos, el archivo incluido; los documentos marcados como que ya cumplieron su vida van después de los vigentes, y lo dicen |
+| `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae las últimas notas hasta unos 3000 caracteres, y más si las pide |
+
+`lists` y `tags` todavía le responden a un asistente que las pide por su nombre, pero ya no se ofrecen: `catch_up` ya trae las dos.
 
 ## Tareas
 
@@ -26,10 +26,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos |
 | `remind` | Hacer que una tarea suene a una hora |
 | `reschedule` | Mover el día de una tarea que anotó |
-| `describe` | Describir una tarea que todavía no tiene descripción |
+| `describe` | Escribir la descripción de una tarea en la que puede trabajar, reemplazando la anterior |
 | `rename` | Renombrar una tarea que anotó un agente |
-| `note` | Añadir a la bitácora de una tarea |
-| `reword_note` | Reescribir una nota de la bitácora |
+| `note` | Añadir a la bitácora de una tarea: hasta 4000 caracteres por nota; lo más largo va a la página de la tarea |
+| `reword_note` | Reescribir una nota de la bitácora de una tarea |
 | `plan` | Añadir pasos a una tarea |
 | `reword_step` | Reescribir un paso abierto |
 | `unplan` | Quitar pasos abiertos de una tarea o, con `to`, pasarlos a la tarea a la que pertenecen |
@@ -48,16 +48,16 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo) |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
-| `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, reescribir entera su sección de notas con `replace` |
+| `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer |
 | `edit_doc` | Cambiar un pasaje de un documento |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
-| `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos |
+| `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos; con una tarea, devuelve las notas que reemplazó un resumen |
 | `folder` | Crear una carpeta |
 | `file_doc` | Poner uno o varios documentos en una carpeta |
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
 | `tongue_doc` | Unir un documento a los idiomas de otro, o separarlo de los suyos |
-| `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo |
-| `flag_doc` | Marcar uno o varios documentos para que los borres, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Una marca, nunca un borrado |
+| `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo, solo cuando lo pides |
+| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado |
 | `import_doc` | Traer un archivo Markdown de este equipo como documento |
 | `export_doc` | Sacar un documento a una carpeta de este equipo |
 
@@ -79,7 +79,7 @@ No todo hace el viaje, y Tisty lo dice en cada respuesta, para que el asistente 
 - **Los diagramas** quedan como código Mermaid: GitHub, GitLab y Notion los dibujan; Confluence y Jira los muestran como código, salvo con una macro de Mermaid.
 - **Los enlaces a otros documentos y tareas** quedan como texto.
 - **Las páginas** van por separado: cada una se lee por su cuenta.
-- **Un documento archivado, o marcado como obsoleto,** lo dice primero, para que el asistente te pregunte antes de llevarlo a otro lado.
+- **Un documento archivado, o marcado como que ya cumplió su vida,** lo dice primero, para que el asistente te pregunte antes de llevarlo a otro lado.
 
 ## Ordenar lo que creció
 
@@ -90,4 +90,4 @@ Tú decides sobre cada compactación:
 - La ventana muestra **Compactado por … el …** en el documento, con **Deshacer** y **Conservar**. Deshacer deja el documento exactamente como estaba; también puedes pedirle al asistente que lo restaure.
 - Hasta que lo conserves o lo deshagas, el asistente no escribe nada más en ese documento, salvo una compactación más para corregir la suya.
 - Un documento que empezaste tú solo se compacta si lo pides en la conversación.
-- Las páginas y copias que marcó siguen donde están, con su motivo, hasta que las borres: una por una, o todas las de un grupo con un clic.
+- Las páginas y copias que marcó siguen donde están, con su motivo, hasta que las borres, las archives o les quites la marca. Borrar o quitar la marca se hace una por una, o para todas las de un grupo con un clic.

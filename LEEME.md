@@ -270,8 +270,10 @@ Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
    debates cerrados ni se desvía.
 5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima
    sesión, u otro agente, no repite el intento fallido.
-6. **Cuando la página de una tarea crece, compacta sus propias notas** en un
-   resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera.
+6. **Cuando la página de una tarea crece, compacta las notas de los asistentes**
+   en un resumen fechado: estado, decisiones, lo descartado, sin quitar una
+   línea tuya. La bitácora queda entera, y si le pides devolver las notas,
+   vuelven como estaban, aunque después hayas marcado pasos.
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y
    la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo
@@ -291,6 +293,7 @@ cada sesión:
 | El agente… | Gasta, con Tisty | Ahorro |
 | --- | --- | --- |
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
+| Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
 | Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
 
@@ -300,6 +303,10 @@ De dónde sale el ahorro:
   tamaño queda en temas y páginas, nunca como un muro de texto.
 - **Ninguna lectura trae más de unos 12 000 caracteres.** Pasado eso, un
   documento pedido entero vuelve como su índice.
+- **La página de una tarea llega entera solo mientras es corta**, unos 4000
+  caracteres. Pasado eso llegan sus secciones, el resumen que abre las notas
+  del agente y su última nota; su bitácora llega por tamaño, las últimas notas
+  hasta unos 3000 caracteres, y una nota tiene como máximo 4000.
 - **El índice dice cuánto pesa cada sección** antes de abrir nada.
 - **Retomar trae solo lo que cambió** desde la última vez.
 - **Lo terminado se archiva**, y no cuesta nada hasta que alguien lo busca.
@@ -380,14 +387,15 @@ Cosas que puedes pedirle una vez conectado:
 
 Lo que `tisty mcp` le ofrece a un asistente, según sobre qué trabaja. Nunca
 cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
-`flag_doc` te deja el borrado a ti. Cada herramienta se describe en
+`flag_doc` marca un documento para que tú lo borres, lo archives o lo
+conserves. Cada herramienta se describe en
 [Herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/).
 
 - **Tareas** — crear una con pasos y fecha, planificar y marcar sus pasos,
   decir cuándo suena, mover su día, decir que está lista: `propose`,
   `describe`, `plan`, `tick`, `untick`, `reword_step`, `unplan`, `rename`,
   `move`, `remind`, `reschedule`, `say_done`, `say_not_doing`, `read`
-- **El diario y los archivos de una tarea** — `note`, `reword_note`, `attach`
+- **La bitácora y los archivos de una tarea** — `note`, `reword_note`, `attach`
 - **Documentos** — escribir uno, agregarle, cambiar un pasaje o una tabla, leer
   solo la parte que necesita: `write_doc`, `append_doc`, `edit_doc`,
   `edit_table`, `read_doc`, `outline_doc`, `sum_up`, `restore_doc`,
@@ -395,7 +403,7 @@ cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
 - **Carpetas, páginas e idiomas** — `docs`, `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
 - **Encontrar cosas** — lo abierto y lo archivado, las listas y las etiquetas:
-  `find`, `catch_up`, `lists`, `tags`
+  `find`, `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
 Además de las herramientas, ofrece cinco pedidos listos que tu asistente
@@ -1140,8 +1148,10 @@ agregar a uno que ya está ahí —al final o bajo un título—, corregir un pa
 uno, escribir uno entero de nuevo, ordenar documentos en carpetas, volver un
 documento página de otro y decir en qué orden se leen sus páginas, lo que
 escribe y mueve en el texto de tu documento las líneas que las nombran y nada
-más, guardar una copia de un archivo que le señales —en una tarea o dentro de un
-documento, que admite el archivo más grande de los dos— y leer lo que ya está.
+más, marcar un documento que ya cumplió su vida, para que lo borres, lo archives
+o le quites la marca, guardar una copia de un archivo que le señales —en una
+tarea o dentro de un documento, que admite el archivo más grande de los dos— y
+leer lo que ya está.
 Lo que no puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar
 una tarea tuya —salvo en una que abriste a los agentes antes de la 1.31.2—,
 mover un día que pusiste tú, borrar un documento, renombrar ni
@@ -1179,7 +1189,8 @@ veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
 devolver la huella con la que leyó el documento la última vez: si escribiste en
 él desde entonces, la escritura se rechaza y tiene que volver a leer, así que lo
 que tecleaste mientras pensaba no se puede perder. Un documento que archivaste
-sí lo puede leer, y se le dice que lo archivaste.
+sí lo puede leer, y se le dice que lo archivaste; no puede escribir en él hasta
+que lo desarchives o se lo pidas.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
 justamente por lo que la puerta, abierta en una instalación nueva, se cierra con

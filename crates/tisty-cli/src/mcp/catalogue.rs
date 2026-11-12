@@ -22,7 +22,7 @@ what you ruled out too, then `say_done`.\n\
 Before you act, ask for the short guide it needs:\n\
 - Filing or working a task: `rules` «tasks» (steps, parts, dates, reminders, priority, saying \
 done, the archive).\n\
-- Writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
+- Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
 Markdown, one topic at a time.\n\
 - Tidying, consolidating or compacting: `rules` «tidying».\n\
 - Anything else: `rules` alone gives the basics and this index again.";
@@ -107,7 +107,7 @@ a task's page — and a new document is for a subject no document covers. Before
 the task or the document that already covers the subject and work there. When your writing \
 leaves something stale, superseded or doubled — a decision replaced, a page saying what another \
 says — put it in order in the same turn: the old decision struck through and dated, the \
-duplicate marked with `flag_doc`. Nothing is left for later.
+duplicate folded in and then marked with `flag_doc`. Nothing is left for later.
 
 ## What a task is made of
 
@@ -161,7 +161,7 @@ description how the last one ended.
 Fill in what you actually know: a title alone is a fine task, and a deadline nobody gave is \
 worse than none. Write in the language the person writes in. Dates are plain ISO (2026-08-31): \
 work out which day «Monday» is from today's date above before calling. Name the list it belongs in \
-— `lists` or `catch_up` say which, and you cannot make one; a task stays in the inbox only when \
+— `catch_up` says which, and you cannot make one; a task stays in the inbox only when \
 the person asks for that or no list fits, and then say which list you would have wanted. Tisty \
 tags what you propose #agent by itself.
 
@@ -216,11 +216,18 @@ what happened, what you ruled out, where you stopped; `append_doc` on the task i
 too long for a line: an analysis, a table, a draft — and is what you compact. The sections \
 are the person's: rename, add or remove one only when they ask you in this conversation.
 
-When a task's page grew long, compact your own part of it: `describe` says what the task is and \
-names its parts; `append_doc` with `replace` writes the assistant's notes again as one dated \
-digest — state, decisions, what was ruled out, references — never with a box, since a box is a \
-step: what is still to do becomes `plan` or a part. The journal is not compacted; it is the \
-dated history, and `reword_note` mends only what is wrong.
+When `read` says the assistant's notes on a task's page want compacting, past about 8,000 \
+characters, compact them when you leave off, never in the middle of a step: \
+`describe` says what the task is and names its parts; `append_doc` with `replace` writes the \
+assistant's notes again as one dated digest — state, decisions, what was ruled out, references, \
+at most 6,000 characters — never with a box, since a box is a step: what is still to do becomes \
+`plan` or a part. `replace` writes over every assistant's notes on the page, not only yours: \
+`read` them all first and carry what still holds from each, saying who found it; lines the person \
+wrote there are refused unless the digest carries them word for word. A long analysis worth \
+keeping goes in a document of its own. While the digest heads the notes, `restore_doc` with the \
+task's id swaps back what it replaced and keeps the notes added since. The journal is not \
+compacted; it is the dated \
+history, and `reword_note` mends only what is wrong.
 
 ## Picking up where you left off
 
@@ -248,7 +255,10 @@ budget of `chars`, about 12,000 characters at a time: a document longer than tha
 whole comes back as its outline, so ask for the parts. Change what is there before adding: `edit_doc` changes the passage that is \
 wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
 serves, `edit_table` changes a table by its rows and columns without touching its Markdown, and \
-`append_doc` adds only where the order of entries is the point. If anything was \
+`append_doc` adds only where the order of entries is the point. A whole `write_doc` that keeps \
+everything the document said, reordered or not, is a plain rewrite; one that takes out or folds \
+what was there is a compaction, sent with `compact`, and with `person_asked` on the person's \
+document when they asked for it, as `rules` «tidying» says. If anything was \
 written in between, the print no longer matches and nothing is written — read again rather than \
 retrying. When a write comes back saying something you did not expect, `restore_doc` puts the \
 document back.
@@ -300,8 +310,9 @@ the outline, and nobody writes one by hand.
 
 ## Compacting
 
-A document or a task's page that grew by sessions is yours to put back in order when you meet \
-it, rather than add one more page. The signs are in `outline_doc` and `docs`: pages named after \
+A task's page is compacted with `append_doc` and `replace`, as `rules` «tasks» says; what follows \
+is for documents. A document that grew by sessions is yours to put back in order when you meet \
+it, after the write you were asked for, rather than add one more page. The signs are in `outline_doc` and `docs`: pages named after \
 a session, a page of a few lines, a heading twice (`repeated`), a document titled like this one \
 (`alike`), links that lead nowhere (`dead`), the state contradicted by a later page. Compact on \
 two signs, or on one your own writing made this turn. A log or minutes kept by date look like \
@@ -315,22 +326,27 @@ theirs; otherwise go on, and end by telling them how to undo it: one click in th
 asking you to restore it.\n\
 2. Move what each leaving page holds worth keeping — decisions, findings, links — onto the open \
 task or document it belongs to (`append_doc`, `note`), and only then mark it `moved` there. A \
-page whose task is closed already lives in that task's journal: mark it `obsolete`. A page with \
-nothing worth keeping is `obsolete` or `superseded`. One `flag_doc` call per reason and \
+page whose task is closed: `read` the task and check that its page and notes say what the page \
+says; what they do not goes into the subject's document first, and only then is the page \
+`obsolete`. A page with nothing worth keeping is `obsolete` or `superseded`. One `flag_doc` call per reason and \
 destination.\n\
-3. Settle every document `alike` names: one an agent wrote is folded in and marked \
-`duplicate_of` the one that stays; one the person wrote is named to them once, with what you \
+3. Settle every document `alike` names. The one that stays is the person's; else the one more \
+documents point at; else the older — never one named after a ticket, a date or a round. One an \
+agent wrote is folded in — what only it says — and then marked `duplicate_of` the one that \
+stays, with its other languages, and the links that point at it changed to the one that stays; \
+one the person wrote is named to them once, with what you \
 would do, as a question of its own — a yes given to several questions at once does not cover \
 marking what they wrote. If they keep both, the history says so and you do not ask again. \
 `alike` is a hint: titles alike on unrelated subjects are left alone.\n\
-4. Then `write_doc` with `compact`, whole, in the shape above: today first, then the subject, \
+4. Then `write_doc` with `compact`, whole, in the shape `rules` «documents» gives: today first, then the subject, \
 the decisions, and a history saying what moved where, what was settled, and every link and file \
 you took out, by its address or the title of the document it leads to — one lost without a name \
 is refused; links to nothing and to documents you marked in this pass need no line. What holds \
 today is only what Tisty itself confirms — a task's state (open, closed, said done), not what an \
 old text says; a version, a date or a number you only read is kept as it was written, dated and \
 marked unconfirmed, and asked about, never dropped and never stated as fact. Compacting folds \
-and moves: a body that grows says why.\n\
+and takes out what moved elsewhere; reordering alone is a plain rewrite. A body that grows says \
+why.\n\
 5. Say what moved where, in titles and places. The old body is kept and the window offers the \
 person one click to undo. Until they keep or undo it, the document takes no other write of yours \
 except one more whole `compact` to correct your own, which still undoes to the original; what \
@@ -341,9 +357,12 @@ your next write carries `keep_compaction`.
 
 You never delete. «Delete this document» is answered with `flag_doc`: it marks the document with \
 the reason — a duplicate of which, moved where, replaced by what, wrong, obsolete, a scratch — \
-and the person deletes it in one click or takes the mark off; say plainly that it is marked and \
-waiting for them. Several copies of one thing are marked in one call, so one click settles them. \
-`archive_doc` puts a document away, or brings it back, only when the person asks for that. \
+and the person deletes it in one click, puts it away or takes the mark off; say plainly that it \
+is marked and waiting for them. Several copies of one thing are marked in one call, so one click \
+deletes them all or takes all their marks off. When the person asks to clean up, or your writing leaves a document stale, mark it \
+even when it may be worth keeping: keeping it is the person's choice. «Clean up» is not «put \
+away»: `archive_doc` puts a document away, or \
+brings it back, only when the person says archive, put away or bring back. \
 Nothing here closes, drops or erases a task: finishing one is `say_done`, and the closing stays \
 theirs.
 
@@ -357,7 +376,7 @@ opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, wr
 document where it belongs; `note` is a task's journal and never that. Plain Markdown is \
 enough: it is turned into the Tisty language on the way in, and the answer says what changed \
 under `turned`. A document is tagged by writing #word in its own text, for what it is about, \
-reusing what `tags` lists: six is already a lot, and past 64 the rest are dropped. `language` \
+reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest are dropped. `language` \
 lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
 
@@ -448,6 +467,8 @@ pub(super) fn rules(args: &Value) -> Value {
 #[derive(Clone, Copy)]
 pub(super) enum Effect {
     Reads,
+    // Changes nothing the person keeps, but the next call hears only what moved after this one.
+    Looks,
     Adds,
     // Steps written alike are reached one after another, so the same call again marks the next.
     Marks,
@@ -458,7 +479,7 @@ pub(super) enum Effect {
 
 impl Effect {
     fn annotations(self) -> Value {
-        let reads = matches!(self, Effect::Reads);
+        let reads = matches!(self, Effect::Reads | Effect::Looks);
         let overwrites = matches!(self, Effect::Replaces | Effect::Rewrites);
         let again = matches!(self, Effect::Reads | Effect::Sets | Effect::Replaces);
         json!({
@@ -499,7 +520,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tongue_doc", Effect::Sets),
     ("folder", Effect::Sets),
     ("read_doc", Effect::Reads),
-    ("catch_up", Effect::Reads),
+    ("catch_up", Effect::Looks),
     ("reschedule", Effect::Replaces),
     ("say_done", Effect::Sets),
     ("say_not_doing", Effect::Sets),
@@ -514,9 +535,13 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tags", Effect::Reads),
 ];
 
+/// Still answered when a client calls them by name, but `catch_up` already brings both.
+pub(super) const UNLISTED: [&str; 2] = ["lists", "tags"];
+
 pub(super) fn tools() -> Value {
     let mut all = super::tool_list::tools_without_hints();
     if let Value::Array(each) = &mut all {
+        each.retain(|one| !UNLISTED.contains(&one["name"].as_str().unwrap_or_default()));
         for one in each {
             let name = one["name"].as_str().unwrap_or_default();
             // A tool left out of EFFECTS is announced as the most careful kind rather than bare.

@@ -215,8 +215,22 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     served.person().closes(person::task(&passport));
 
     let said = served.prompted("pick_up", json!({}));
-    assert!(said.contains("\"Buy stamps\""), "{said}");
+    assert!(
+        !said.contains("Buy stamps"),
+        "the task it was on is closed, and an older one does not stand in for it: {said}"
+    );
     assert!(!said.contains("Renew the passport"), "{said}");
+    assert!(said.contains("the open task we were on"), "{said}");
+
+    served.call(
+        "note",
+        json!({ "task": stamps, "body": "Ten, at the corner shop." }),
+    );
+    let said = served.prompted("pick_up", json!({}));
+    assert!(
+        said.contains("\"Buy stamps\""),
+        "working on it again makes it the one: {said}"
+    );
 
     served.call("say_done", json!({ "task": stamps, "body": "Bought ten." }));
 

@@ -187,8 +187,11 @@ fn leaving_off(paths: &Paths, said: Option<&str>) -> String {
         "In Tisty, leave {which} where the next session can pick it up. `read` it first. `tick` \
          every step that is finished. `note` what was done, what was tried and ruled out and why, \
          and what comes next, in that order. If every step is done and the work holds, \
-         `say_done` with the proof. A decision that outlasts the task goes in its document, \
-         changed in place with `edit_doc`, and the note says where. Change nothing else, and \
+         `say_done` with the proof. A decision that outlasts the task goes in the document on \
+         its subject as `rules` «documents» says: dated, with its why, in the passage it belongs \
+         to; one it replaces is struck through with the day it fell, never erased. If no \
+         document covers the subject, keep the decision in the note and tell me, rather than \
+         starting one. The note says where. Change nothing else, and \
          tell me in a few lines what you left."
     )
 }
@@ -213,7 +216,7 @@ fn planning(_: &Paths, said: Option<&str>) -> String {
          already covers it, the archive included: an open one takes the new steps with `plan` \
          instead of a second task, and a closed one is read for how it went. Otherwise \
          `propose` one task with its steps in order — parts only for pieces finished on their \
-         own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I \
+         own — in the list it belongs in (`catch_up` names them; ask me when none fits), with a date only if I \
          gave one. Then tell me its title, its list and its steps."
     )
 }
@@ -242,7 +245,8 @@ fn keeping(_: &Paths, said: Option<&str>) -> String {
         "Keep the decision we just made in Tisty, in {about}. Ask `rules` «documents» first. \
          `find` that document, `outline_doc` it, and write the decision with `edit_doc` in the \
          passage it belongs to, dated and with its reason; a decision it replaces is struck \
-         through and dated, never left standing beside it. If no document covers the subject, \
+         through with the day it fell, never erased nor left unstruck, and the new one says \
+         which it replaces. If no document covers the subject, \
          ask me which folder it belongs in before `write_doc`. Tell me the document's title and \
          folder."
     )

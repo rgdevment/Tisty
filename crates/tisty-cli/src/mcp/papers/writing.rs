@@ -206,6 +206,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
+    if a_task_s
+        && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
+        && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
+        && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
+    {
+        return notes_put_back(paths, &which, &slot, &now, &body);
+    }
     let named = opened(paths).map_or_else(
         |_| format!("[{which}]"),
         |(state, _)| doc_named(&state, &which),
@@ -267,6 +274,17 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             &[("code", tisty_core::witness::Fact::Code(e.coded()))],
         );
     }
+    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+        && kept.compacted.is_none()
+        && let Some(mark) = compaction_put_back(&store, kept.id, &was)
+        && let Err(e) = store.append(mark)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a compaction came back but its mark could not be kept",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
     if more {
         if let Some(text) = said["content"][0]["text"].as_str() {
             said["content"][0]["text"] = json!(format!(
@@ -278,6 +296,88 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         said["structuredContent"]["over_more_than_one_write"] = json!(true);
     }
     Ok(said)
+}
+
+// Going back over an undone compaction brings it back to wait for the person, unless they kept it.
+fn compaction_put_back(store: &Store, id: tisty_core::model::DocId, body: &str) -> Option<Op> {
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let mut last = None;
+    let mut written_since = false;
+    let mut kept = false;
+    for one in store.read_all().ok()? {
+        match one.op {
+            Op::DocCompacted {
+                id: was,
+                print,
+                before,
+            } if was == id => {
+                last = Some((print, before));
+                written_since = false;
+                kept = false;
+            }
+            Op::DocSaid { id: was, d } if was == id => {
+                written_since |= last.as_ref().is_some_and(|(at, _)| d.print != *at);
+            }
+            Op::DocUncompacted { id: was } if was == id => kept |= !written_since,
+            _ => {}
+        }
+    }
+    let (at, before) = last.filter(|_| !kept)?;
+    (at.as_deref() == Some(print.as_str())).then_some(Op::DocCompacted {
+        id,
+        print: at,
+        before,
+    })
+}
+
+fn notes_put_back(
+    paths: &Paths,
+    which: &str,
+    slot: &tisty_core::docs::NotesBefore,
+    now: &str,
+    body: &str,
+) -> Result<Value, Refused> {
+    let (state, mut store) = opened(paths)?;
+    let task = tisty_core::task_docs::behind(&state)
+        .get(which)
+        .and_then(|id| state.tasks.get(id))
+        .map_or_else(|| format!("[{which}]"), |one| format!("{:?}", one.title));
+    let print = tisty_core::attach::printed(now.as_bytes());
+    let said = over_again(
+        paths,
+        &json!({ "print": print }),
+        &state,
+        &mut store,
+        which,
+        body,
+    )?;
+    let back = tisty_core::docs::NotesBefore {
+        before: slot.after.clone(),
+        after: slot.before.clone(),
+        undone: !slot.undone,
+    };
+    tisty_core::docs::keep_notes_before(paths.data(), which, &back).map_err(hitch)?;
+    let known = tisty_core::docs::read_notes_left(paths.data(), which);
+    if let Some(words) =
+        tisty_core::assistant_notes::left_by_assistants(now, body, known.as_deref())
+        && let Err(e) = tisty_core::docs::keep_notes_left(paths.data(), which, &words)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "the notes an assistant left could not be kept aside",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
+    let mut kept = said["structuredContent"].clone();
+    kept["notes_put_back"] = json!(true);
+    Ok(told(
+        format!(
+            "Swapped the assistant's notes on {task}'s page back to what the digest wrote over; \
+             the notes added after it, its steps, ticks and the person's words stay as they are. \
+             Calling this again swaps the digest back in."
+        ),
+        kept,
+    ))
 }
 
 pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -320,9 +420,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     let named = doc_named(&state, &which);
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{named} is put away, so nothing more goes into it. Write a new document instead."
-        )));
+        return Err(super::put_away(&state, kept, &named));
     }
     super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
@@ -423,9 +521,7 @@ pub(super) fn over_again(
     };
     let called = doc_named(state, which);
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{called} is put away, so nothing is written over it."
-        )));
+        return Err(super::put_away(state, kept, &called));
     }
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
@@ -645,10 +741,7 @@ pub(super) fn where_it_lands(
                 )));
             }
             if state.held_away(up) {
-                return Err(Refused::Tool(format!(
-                    "{named} is put away, and a page of it would be put away unread. Write a \
-                     document of its own instead."
-                )));
+                return Err(super::put_away(state, up, &named));
             }
             super::compacting::awaiting(state, up)?;
             if state.shut(up.id) {

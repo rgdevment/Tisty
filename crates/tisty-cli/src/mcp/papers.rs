@@ -20,6 +20,46 @@ use super::asked::text;
 
 pub(super) const FOLDERS_AT_MOST: usize = 64;
 
+// A put-away document is the person's to bring back, and a second one on its subject would drift.
+pub(super) fn put_away(state: &State, kept: &tisty_core::model::Kept, named: &str) -> Refused {
+    Refused::Tool(format!(
+        "{named} is put away, so nothing was written. If it should change, tell the person: {}. \
+         If its subject moved on, `find` the document that covers it now and write there.",
+        brought_back(state, kept)
+    ))
+}
+
+pub(super) fn not_a_page_while_away(
+    state: &State,
+    kept: &tisty_core::model::Kept,
+    named: &str,
+) -> Refused {
+    Refused::Tool(format!(
+        "{named} is put away, and as a page it would leave the archive with no way back, so \
+         nothing was moved. If it should become a page, tell the person: {}.",
+        brought_back(state, kept)
+    ))
+}
+
+fn brought_back(state: &State, kept: &tisty_core::model::Kept) -> String {
+    if state.closed_with_its_task(kept) {
+        return "it is the page of a closed task, which they reopen if the work came back".into();
+    }
+    match (state.held_by_another(kept), kept.archived) {
+        (true, true) => format!(
+            "they bring back {} and then this document, from the window",
+            super::holder(state, kept)
+        ),
+        (true, false) => format!(
+            "they bring back {}, from the window",
+            super::holder(state, kept)
+        ),
+        (false, _) => {
+            "they bring it back, or ask you to with `archive_doc` and `archived` false".into()
+        }
+    }
+}
+
 pub(super) fn still_arriving(state: &State, which: &str) -> Refused {
     Refused::Missing(format!(
         "{} is named in the log but its text is not on this machine yet. It may still be \

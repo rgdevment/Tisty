@@ -9,8 +9,10 @@ use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
 use super::resuming::{
-    Asked, MOVED_SHOWN, Since, last_task, left_off, looks_now, moved_since, seen_whole, whose,
+    Asked, MOVED_SHOWN, Since, ended_task, last_task, left_off, looks_now, moved_since, seen_whole,
+    whose,
 };
+use super::task_reading::{Page, widened, window};
 use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -150,7 +152,17 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         _ => Vec::new(),
     };
     let papers_all = papers.len();
-    let papers: Vec<Value> = papers.into_iter().take(most).collect();
+    let papers: Vec<Value> = papers
+        .into_iter()
+        .take(most)
+        .map(|mut one| {
+            let line = said(&one, "line").to_string();
+            let kept = kept_here(&line);
+            hid |= kept != line;
+            one["line"] = json!(kept);
+            one
+        })
+        .collect();
     let mut lines: Vec<String> = hits
         .iter()
         .zip(&wheres)
@@ -181,8 +193,16 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Some(up) => format!("a page of {}", super::doc_titled(&state, up)),
             None => "document".into(),
         };
+        let marked = match one["marked"].as_str() {
+            Some(how) => format!(", marked as {how}, waiting for the person"),
+            None => String::new(),
+        };
+        let line = match said(one, "line") {
+            "" => String::new(),
+            line => format!("\n  line: {line}"),
+        };
         format!(
-            "{:?} ({what}{put_away}) [{}]",
+            "{:?} ({what}{put_away}{marked}) [{}]{line}",
             said(one, "title"),
             said(one, "doc")
         )
@@ -360,6 +380,15 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = strings(args, "fields")?;
+    if let Some(odd) = asked
+        .iter()
+        .find(|one| !READ_FIELDS.contains(&one.as_str()))
+    {
+        return Err(Refused::Tool(format!(
+            "`fields` has no {odd:?}: it takes {}. The page is `document`, the notes are `journal`.",
+            READ_FIELDS.join(", ")
+        )));
+    }
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
 
     let mut whole = match asked.is_empty() {
@@ -383,22 +412,25 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
             let (body, boxed) =
                 tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
-            Some((kept.file.clone(), body, boxed))
+            let yours = task.is_open() && state.attended_by_agents(task);
+            let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
+                .filter(|slot| !slot.undone)
+                .map(|slot| slot.after);
+            Some(Page::new(kept.file.clone(), body, boxed, yours, digest))
         })
         .flatten();
     let named = |key: &str| asked.iter().any(|one| one == key);
+    let shown_page = page.as_ref().and_then(Page::whole);
     let description = task.description.as_deref().filter(|one| {
         named("description")
             || (wants("description")
-                && !page.as_ref().is_some_and(|(_, body, _)| {
-                    tisty_core::task_docs::holds_description(body, one)
-                }))
+                && !shown_page
+                    .is_some_and(|page| tisty_core::task_docs::holds_description(&page.body, one)))
     });
-    let steps_apart = task.steps.iter().any(|one| {
-        !page
-            .as_ref()
-            .is_some_and(|(_, _, boxed)| boxed.contains(&one.id))
-    });
+    let steps_apart = task
+        .steps
+        .iter()
+        .any(|one| !shown_page.is_some_and(|page| page.boxed.contains(&one.id)));
     if let Some(body) = description {
         whole["description"] = json!(body);
     }
@@ -419,8 +451,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
-    if let Some((file, body, _)) = &page {
-        whole["document"] = json!({ "file": file, "body": body });
+    if let Some(page) = &page {
+        whole["document"] = page.structured();
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
@@ -435,52 +467,13 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
     }
     let journal: Vec<&tisty_core::model::LogEntry> = task.journal().collect();
-    let widened = match args.get("notes") {
-        None | Some(Value::Null) => None,
-        Some(said) => Some(said.as_u64().ok_or_else(|| {
-            Refused::Tool(format!(
-                "`notes` is how many of the latest journal notes to bring, or 0 for all of them, \
-                 not {said}."
-            ))
-        })?),
-    };
-    let earlier = match widened {
-        Some(0) => 0,
-        latest => journal
-            .len()
-            .saturating_sub(latest.map_or(NOTES_SHOWN, |one| one as usize)),
-    };
-    let notes: Vec<(&tisty_core::model::LogEntry, String, Option<String>)> = journal[earlier..]
-        .iter()
-        .map(|one| {
-            let by = one
-                .by
-                .as_ref()
-                .and_then(|by| whose(&state, by, one.via.as_deref(), store.device()));
-            (*one, kept_here(&one.body), by)
-        })
-        .collect();
-    let hid = notes.iter().any(|(one, kept, _)| *kept != one.body);
-    if wants("journal") && !notes.is_empty() {
-        whole["journal"] = json!(
-            notes
-                .iter()
-                .map(|(one, kept, by)| {
-                    let mut note =
-                        json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept });
-                    if let Some(by) = by {
-                        note["by"] = json!(by);
-                    }
-                    note
-                })
-                .collect::<Vec<_>>()
-        );
-        if earlier > 0 {
-            whole["earlier"] = json!(earlier);
-        }
-        if hid {
-            whole["unpathed"] = json!(UNPATHED);
-        }
+    let notes = window(&journal, widened(args)?, kept_here, |one| {
+        one.by
+            .as_ref()
+            .and_then(|by| whose(&state, by, one.via.as_deref(), store.device()))
+    });
+    if wants("journal") {
+        notes.structured(&mut whole, UNPATHED);
     }
     if wants("kept") && !task.references().is_empty() {
         whole["kept"] = json!(
@@ -521,15 +514,13 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ));
         }
     }
-    if let Some((_, body, _)) = &page {
-        plainly.push_str("\n\nIts page:\n");
-        plainly.push_str(body.trim_end());
+    if let Some(page) = &page {
+        plainly.push_str(&page.told());
     }
     if wants("parts") {
         for one in &parts {
             plainly.push_str(&format!(
-                "
-part [{}] {} — {}",
+                "\npart [{}] {} — {}",
                 if one.is_open() { ' ' } else { 'x' },
                 one.id,
                 one.title
@@ -537,21 +528,7 @@ part [{}] {} — {}",
         }
     }
     if wants("journal") {
-        if earlier > 0 && !notes.is_empty() {
-            plainly.push_str(&format!(
-                "\n\n{earlier} earlier note(s) left out; `notes` 0 brings them all."
-            ));
-        }
-        for (one, kept, by) in &notes {
-            let by = by
-                .as_ref()
-                .map(|by| format!(", by {by}"))
-                .unwrap_or_default();
-            plainly.push_str(&format!("\n\n({}, note {}{by}) {kept}", one.at, one.id));
-        }
-        if hid {
-            plainly.push_str(&format!("\n\n{UNPATHED}"));
-        }
+        plainly.push_str(&notes.told(UNPATHED));
     }
     Ok(mirrored(plainly, whole))
 }
@@ -584,7 +561,13 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut kept = serde_json::Map::new();
     kept.insert("lists".into(), json!(named));
     if !folders.is_empty() {
-        kept.insert("folders".into(), json!(folders));
+        kept.insert(
+            "folders".into(),
+            json!(folders.iter().take(AT_A_GLANCE).collect::<Vec<_>>()),
+        );
+    }
+    if folders.len() > AT_A_GLANCE {
+        kept.insert("folders_more".into(), json!(folders.len() - AT_A_GLANCE));
     }
     if !tags.is_empty() {
         kept.insert(
@@ -623,15 +606,34 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     );
     let mut said = Vec::new();
     if let Some(task) = last_task(&state, &left) {
+        let on = left
+            .task_at
+            .map(|at| format!(", {}", when(at)))
+            .unwrap_or_default();
         said.push(format!(
-            "You last worked on {}: `read` it.",
+            "You last worked on {}{on}: `read` it.",
             named_task(&state, task)
         ));
         let mut last = json!({ "id": task.id.to_string(), "title": task.title });
         if let Some(list) = list_of(&state, task) {
             last["list"] = json!(list);
         }
+        if let Some(at) = left.task_at {
+            last["at"] = json!(when(at));
+        }
         kept.insert("last".into(), last);
+    } else if let Some(task) = ended_task(&state, &left) {
+        let how = match &task.resolved {
+            Some(said) if said.drop => "you said you are not doing it, and it waits for the person",
+            Some(_) => "you said it is done, and it waits for the person",
+            None if task.hidden => "the person put it out of sight",
+            None if task.is_dropped() => "the person dropped it",
+            None => "it is closed",
+        };
+        said.push(format!(
+            "The task you were last on, {}, is not open to pick up: {how}.",
+            named_task(&state, task)
+        ));
     }
     let asked = match text(args, "since") {
         None => None,
@@ -646,6 +648,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .or_else(|| left.seen.clone().map(Since::Seen))
         .or(left.at.map(Since::At));
     let mut seen = seen_whole(&log);
+    let mut whole = true;
     if let Some(since) = &since {
         let moved = moved_since(
             &state,
@@ -665,24 +668,35 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 moved.by.iter().cloned().collect::<Vec<_>>().join(" and ")
             ),
         };
-        let from = match (asked, since.latest()) {
+        let from = match (asked, left.looked_at.or_else(|| since.latest())) {
             (Some(_), _) => "then".to_string(),
             (None, Some(at)) => format!("you were last here, {}", when(at)),
             (None, None) => "you were last here".to_string(),
         };
-        let cut = moved.tasks_all > moved.tasks.len() || moved.docs_all > moved.docs.len();
+        let cut = moved.cut();
+        whole = !cut;
         said.push(format!(
             "{} task(s) and {} document(s) moved since {from}{by}.{}",
             moved.tasks_all,
             moved.docs_all,
-            match cut {
-                true => format!(
-                    " Here are the first {MOVED_SHOWN} of each, in the order they moved; the \
+            match (cut, asked.is_some()) {
+                (false, _) => String::new(),
+                (true, false) => format!(
+                    " Here are the first that moved, at most {MOVED_SHOWN} of each kind; the \
                      next `catch_up` without `since` brings the rest."
                 ),
-                false => String::new(),
+                (true, true) => format!(
+                    " Here are the first that moved, at most {MOVED_SHOWN} of each kind; ask \
+                     again with this `cursor` for the rest."
+                ),
             }
         ));
+        if cut
+            && asked.is_some()
+            && let Some(resume) = moved.resume
+        {
+            kept.insert("cursor".into(), json!(resume.to_string()));
+        }
         if asked.is_none()
             && let Some(at) = since.latest()
         {
@@ -714,11 +728,18 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             tags.len(),
             pressed(&pressing),
         ));
+        if folders.len() > AT_A_GLANCE {
+            said.push(format!(
+                "Here are the first {AT_A_GLANCE} folders; `docs` names every one."
+            ));
+        }
     }
     if since.is_none() {
         said.push("Next time, what moved since this call comes with it as well.".to_string());
     }
-    looks_now(paths, &seen);
+    if asked.is_none() {
+        looks_now(paths, &seen, whole);
+    }
     Ok(told(said.join(" "), Value::Object(kept)))
 }
 
@@ -885,7 +906,34 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;
 const TAGS_AT_A_GLANCE: usize = 40;
-const NOTES_SHOWN: usize = 10;
+const AT_A_GLANCE: usize = 30;
+const READ_FIELDS: [&str; 25] = [
+    "id",
+    "title",
+    "status",
+    "closed",
+    "notice",
+    "date",
+    "deadline",
+    "standing",
+    "reminders",
+    "tags",
+    "source",
+    "list",
+    "priority",
+    "by_agent",
+    "via",
+    "said_done",
+    "said_not_doing",
+    "open_to_agents",
+    "part_of",
+    "parts",
+    "description",
+    "steps",
+    "document",
+    "journal",
+    "kept",
+];
 
 /// The tombstone knows: what the person erased is said to be erased, not merely missing.
 pub(super) fn gone(state: &State, said: &str) -> Refused {
@@ -962,39 +1010,57 @@ fn papers_matching(
                 .is_some_and(|it| it == at || super::placing::beneath(state, it, at))
         })
     };
-    let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
+    let here: std::collections::HashMap<String, (bool, Option<String>, Option<String>)> = state
         .papers()
         .filter(|one| state.doc_kept_by(scope, one) && inside(one))
         .map(|one| {
+            let marked = one
+                .flagged
+                .as_ref()
+                .filter(|_| !state.held_away(one))
+                .map(|how| {
+                    super::papers::flagging::reason_said(
+                        state,
+                        how.reason.as_deref(),
+                        how.instead.as_deref(),
+                    )
+                });
             (
                 one.file.clone(),
                 (
                     state.held_away(one),
                     one.page_of.and_then(|up| named_doc(state, up)),
-                    one.flagged.is_some() && !state.held_away(one),
+                    marked,
                 ),
             )
         })
         .collect();
 
-    // A title that says it comes before a body that only mentions it, an example among them.
+    // A title that says it comes before a body that only mentions it, and what was marked old after both.
     let mut seen: Vec<&tisty_core::docs::Sighting> = seen
         .iter()
         .filter(|one| here.contains_key(&one.id))
         .collect();
-    seen.sort_by_key(|one| !one.line.is_empty());
+    seen.sort_by_key(|one| {
+        let marked = here.get(&one.id).is_some_and(|(_, _, how)| how.is_some());
+        (marked, !one.line.is_empty())
+    });
     seen.into_iter()
         .map(|one| {
-            let (archived, page_of, flagged) =
-                here.get(&one.id).cloned().unwrap_or((false, None, false));
-            json!({
+            let (archived, page_of, marked) =
+                here.get(&one.id).cloned().unwrap_or((false, None, None));
+            let mut hit = json!({
                 "doc": one.id,
                 "title": one.title,
                 "line": one.line,
                 "page_of": page_of,
                 "archived": archived,
-                "flagged": flagged,
-            })
+                "flagged": marked.is_some(),
+            });
+            if let Some(how) = marked {
+                hit["marked"] = json!(how);
+            }
+            hit
         })
         .collect()
 }
