@@ -1,14 +1,6 @@
-use crate::event::{Event, Op, TaskMove};
+use crate::event::Op;
 use crate::model::{Status, Task, TaskId};
 use crate::state::State;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MoveBarred {
-    NotFiled,
-    NotOpened,
-    WholeClosed(TaskId),
-    NextClosed(TaskId),
-}
 
 impl State {
     pub fn holds_parts(&self, id: TaskId) -> bool {
@@ -22,51 +14,25 @@ impl State {
     }
 
     /// Judged at replay, so two machines that crossed a move agree on where the part landed.
-    pub(crate) fn may_hold(&self, whole: TaskId, part: &Task, event: &Event) -> bool {
+    pub(crate) fn may_hold(&self, whole: TaskId, part: &Task, agent: bool) -> bool {
         let Some(holder) = self.tasks.get(&whole) else {
             return false;
         };
         whole != part.id
+            && (holder.is_open() || !agent)
             && holder.part_of.is_none()
             && !self.holds_parts(part.id)
             && !repeats(holder)
             && !repeats(part)
-            && (!self.assistants.contains(&event.device) || self.attended_by_agents(holder))
     }
 
-    pub(crate) fn agent_may_move(&self, task: &Task, d: &TaskMove) -> bool {
-        (d.list.is_some() || d.part_of.is_some()) && self.agent_move_barred(task, d).is_none()
-    }
-
-    /// A whole the person closed to agents keeps its parts, and a list is the filer's to choose.
-    pub fn agent_move_barred(&self, task: &Task, d: &TaskMove) -> Option<MoveBarred> {
-        if d.list.is_some() && !self.filed_by_agents(task) {
-            return Some(MoveBarred::NotFiled);
-        }
-        let next = d.part_of?;
-        if !self.attended_by_agents(task) {
-            return Some(MoveBarred::NotOpened);
-        }
-        let closed = |whole: Option<TaskId>| {
-            whole.filter(|whole| {
-                self.tasks
-                    .get(whole)
-                    .is_some_and(|whole| !self.attended_by_agents(whole))
-            })
-        };
-        if let Some(whole) = closed(task.part_of) {
-            return Some(MoveBarred::WholeClosed(whole));
-        }
-        closed(next).map(MoveBarred::NextClosed)
-    }
-
-    pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>, event: &Event) {
+    pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>, agent: bool) {
         let landed = match whole {
             None => true,
             Some(whole) => self
                 .tasks
                 .get(&id)
-                .is_some_and(|part| self.may_hold(whole, part, event)),
+                .is_some_and(|part| self.may_hold(whole, part, agent)),
         };
         if landed && let Some(task) = self.tasks.get_mut(&id) {
             task.part_of = whole;

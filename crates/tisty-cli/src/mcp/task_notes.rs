@@ -32,12 +32,6 @@ pub(super) fn noted_on_page(
              propose it anew."
         )));
     }
-    if !state.attended_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{title:?} is the person's own: its page takes your words only once they open it to \
-             agents. `note` keeps what you found in its History, signed."
-        )));
-    }
     let owner = tisty_core::task_docs::owner(state, id);
     if tisty_core::task_docs::of(state, owner).is_some_and(|kept| state.shut(kept.id)) {
         return Err(Refused::Tool(format!(

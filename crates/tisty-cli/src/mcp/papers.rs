@@ -9,6 +9,7 @@ pub(super) mod outward;
 pub(super) mod paging;
 pub(super) mod reading;
 pub(super) mod tabling;
+pub(super) mod task_pages;
 pub(super) mod tongues;
 pub(super) mod writing;
 
@@ -205,9 +206,9 @@ const WRITES_DOCUMENTS: [&str; 10] = [
     "attach",
 ];
 
-// A task's words keep the task's own door, which these tools do not ask about.
+// A task's page is written like a document, but it ends, moves and holds files as its task does.
 pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
-    if !WRITES_DOCUMENTS.contains(&name) {
+    if !WRITES_DOCUMENTS.contains(&name) || task_pages::page_named(name, args).is_some() {
         return Ok(());
     }
     let named = ["doc", "page_of"]
@@ -221,7 +222,7 @@ pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused
         .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
     match named {
         Some(file) => Err(Refused::Tool(format!(
-            "{file} is a task's document: its words are the task's, and they are not written through the document tools. Read it with `read_doc`; write on the task with `note`, or add to its page with `append_doc` named by the task's id on a task you may work on."
+            "{file} is a task's page: write it with `edit_doc`, `edit_table`, `write_doc` or `append_doc` by its own name. It is no document to put away, mark, file or hang as a page: the task ends with `say_done` or `say_not_doing`, moves with `move`, and keeps files with `attach` and the task's id."
         ))),
         None => Ok(()),
     }

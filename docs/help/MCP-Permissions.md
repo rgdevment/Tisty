@@ -10,6 +10,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Say a task is done**, or that it should not be done — any task, yours too. It marks it for you to confirm and closes nothing.
 - **Say a step of yours is done** — the step waits, unticked, until you take its word.
 - **Add to a task's journal.**
+- **Work any task the way it works a document**, yours too: describe it, rename it, move it to another list or under another task, plan, reword or take off its open steps, correct a note, and write its page with the same guards a document has.
 - **Write a document**, add to one already there (at the end or under a heading), correct a passage of one, change one of its tables by its rows and columns, or write one again whole.
 - **File documents into folders**, make one document a page of another, and set the order its pages are read in.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
@@ -49,7 +50,7 @@ An assistant can say any of your tasks is done, or a step of one, when it did th
 - **A task said done** gathers under **To confirm** like any other.
 - **Steps said done** show on the task's page, under «An assistant says these steps are done». **Tick them** takes its word; **Not yet** clears it. Closing the task ticks them too.
 
-On your own tasks it still cannot describe them, plan or change their steps, or move their day, title or list. Tasks you opened to agents before 1.31.2 keep what was filled in, and **No agents** still shuts one; new ones can no longer be opened.
+On your own tasks it writes as it does in a document: the description, the page, the open steps, the notes, the title and the list. Their day, their ticks and their closing stay yours, and a step you ticked is never its to reword or take off.
 
 ## A closed task is history
 

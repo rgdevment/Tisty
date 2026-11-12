@@ -1170,32 +1170,31 @@ ya estaba abierto para que vea el cambio.
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
 mismo, dar por hecha una tarea, también una tuya —que la marca para que la
-confirmes y no cierra nada—, agregar a la bitácora, escribir un documento,
-agregar a uno que ya está ahí —al final o bajo un título—, corregir un pasaje de
-uno, escribir uno entero de nuevo, ordenar documentos en carpetas, volver un
-documento página de otro y decir en qué orden se leen sus páginas, lo que
-escribe y mueve en el texto de tu documento las líneas que las nombran y nada
-más, marcar un documento que ya cumplió su vida, para que lo borres, lo archives
-o le quites la marca, guardar una copia de un archivo que le señales —en una
-tarea o dentro de un documento, que admite el archivo más grande de los dos— y
-leer lo que ya está.
-Lo que no puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar
-una tarea tuya —salvo en una que abriste a los agentes antes de la 1.31.2—,
-mover un día que pusiste tú, borrar un documento, renombrar ni
-vaciar una carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier
-sitio que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta
-temporal, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico para
-él: le llega con un aviso que lo dice, se lee como terminó, no admite bitácora,
-ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo vuelve, el
-asistente propone una nueva que dice cómo terminó la anterior.
+confirmes y no cierra nada—, agregar a la bitácora, trabajar cualquier tarea
+como trabaja un documento, escribir un documento, agregar a uno que ya está ahí
+—al final o bajo un título—, corregir un pasaje de uno, escribir uno entero de
+nuevo, ordenar documentos en carpetas, volver un documento página de otro y
+decir en qué orden se leen sus páginas, lo que escribe y mueve en el texto de tu
+documento las líneas que las nombran y nada más, marcar un documento que ya
+cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
+una copia de un archivo que le señales —en una tarea o dentro de un documento,
+que admite el archivo más grande de los dos— y leer lo que ya está. Lo que no
+puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
+tuya, mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
+carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
+no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal, ni
+anotar dos veces lo mismo. Una tarea que cerraste es histórico para él: le llega
+con un aviso que lo dice, se lee como terminó, no admite bitácora, ni un día
+nuevo, ni una alarma, ni un archivo, y si el mismo trabajo vuelve, el asistente
+propone una nueva que dice cómo terminó la anterior.
 
-Una tarea que escribiste tú sigue siendo tuya. Un asistente puede decir que está
-hecha, que no debería hacerse o que uno de sus pasos está hecho, y cada cosa
-espera a que la confirmes; no puede describirla, planear ni cambiar sus pasos,
-ni mover su día, su título o su lista. Una tarea que abriste a los agentes antes
-de la 1.31.2 sigue abierta a ellos: ahí un asistente todavía puede describirla,
-planear sus pasos y marcarlos, hasta que «Sin agentes», en su menú, la cierra,
-y lo que completó se queda. Ya no se puede abrir una nueva.
+En una tarea que escribiste tú se escribe como en un documento: un asistente
+puede describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear,
+reescribir o quitar sus pasos abiertos, corregir una nota y escribir su página.
+Lo que la resuelve sigue siendo tuyo: puede decir que está hecha, que no debería
+hacerse o que uno de sus pasos está hecho, y cada cosa espera a que la confirmes;
+su día lo mueves tú, y un paso que marcaste nunca es suyo para reescribirlo ni
+quitarlo.
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló: la fila dice «por un agente» y lo nombra al pasar el puntero, y el panel
 lateral, la página completa y la bitácora dicen «por Claude Code», «por Codex».

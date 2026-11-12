@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::store::write_atomic;
 use crate::{Error, Result};
 
-use super::{BODY_AT_MOST, base, resolve, settled};
+use super::{BODY_AT_MOST, alone, base, read, resolve, settled, written};
 
 /// The body a write replaced, kept with the print of the body that write left behind. Not every
 /// way of writing a document keeps one — the window's own save does not, nor does adding to the
@@ -217,6 +217,47 @@ fn moved_whole(from: &Path, into: &Path) -> bool {
         let _ = crate::paths::ours_alone(parent);
     }
     std::fs::rename(from, into).is_ok()
+}
+
+/// Over `was` only, carrying the restore point along when it stood against `was`.
+pub fn rewrite_if(
+    root: &Path,
+    data: &Path,
+    id: &str,
+    was: &str,
+    body: &str,
+) -> Result<Option<String>> {
+    alone(root, || {
+        if read(root, id)? != was {
+            return Ok(None);
+        }
+        written(root, id, body)?;
+        kept_still(data, id, was, body)?;
+        Ok(Some(settled(body)))
+    })
+}
+
+pub struct RestorePoint {
+    body: String,
+    print: String,
+}
+
+pub fn restore_point(data: &Path, id: &str) -> Option<RestorePoint> {
+    Some(RestorePoint {
+        body: read_before(data, id)?,
+        print: before_left_at(data, id)?,
+    })
+}
+
+pub fn set_restore_point(data: &Path, id: &str, point: &RestorePoint) -> Result<()> {
+    write_atomic(
+        &resolve(&data.join("originals"), id)?,
+        point.body.as_bytes(),
+    )?;
+    write_atomic(
+        &resolve(&data.join("originals-at"), id)?,
+        point.print.as_bytes(),
+    )
 }
 
 /// A line naming a page is not the person's writing, so it does not take their one step back with

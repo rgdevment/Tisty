@@ -74,13 +74,12 @@ describe("what the detail of a task is handed", () => {
     shown.onStillOpen();
     shown.onFold(true);
     shown.onReadAs("story");
-    shown.onOpenToAgents(true);
     shown.onHang(null);
     shown.onAddPart("parte");
     shown.onSettle("antes", "ahora");
     await flush();
 
-    expect(h.act).toHaveBeenCalledTimes(9);
+    expect(h.act).toHaveBeenCalledTimes(8);
     expect(sent()).toContain("task_of");
     expect(calls).toContainEqual({
       cmd: "task_doc_settled",

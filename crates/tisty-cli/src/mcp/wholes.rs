@@ -33,11 +33,6 @@ pub(super) fn whole_named(state: &State, args: &Value) -> Result<Option<TaskId>,
         Some("is itself a part, and a part holds no parts: one level only")
     } else if whole.repeat.is_some() || whole.after.is_some() {
         Some("comes back, and something that never ends holds no parts")
-    } else if !state.attended_by_agents(whole) {
-        Some(
-            "is the person's, kept closed to agents: a part goes only under a task you filed or \
-             one the person opened to you",
-        )
     } else {
         None
     };

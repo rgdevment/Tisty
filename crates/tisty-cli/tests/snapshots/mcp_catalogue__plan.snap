@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Add steps to a task you may work on, after those already there (`read` shows them).",
+  "description": "Add steps to an open task, after those already there (`read` shows them).",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

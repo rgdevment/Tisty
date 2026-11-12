@@ -10,6 +10,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
 - **Decir que un paso tuyo está listo**: el paso queda sin marcar hasta que tomes su palabra.
 - **Añadir a la bitácora** de una tarea.
+- **Trabajar cualquier tarea como trabaja un documento**, también las tuyas: describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear, reescribir o quitar sus pasos abiertos, corregir una nota y escribir su página con los mismos resguardos que un documento.
 - **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje, cambiar una de sus tablas por sus filas y columnas o reescribirlo entero.
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
@@ -49,7 +50,7 @@ Un asistente puede decir que una tarea tuya está hecha, o un paso de ella, cuan
 - **Una tarea que dice hecha** se reúne bajo **Por confirmar**, como cualquier otra.
 - **Los pasos que dice listos** aparecen en la página de la tarea, bajo «Un asistente dice que estos pasos están listos». **Marcarlos** toma su palabra; **Todavía no** la quita. Al cerrar la tarea también se marcan.
 
-En tus tareas sigue sin poder describirlas, planear o cambiar sus pasos, ni mover su día, su título o su lista. Las tareas que abriste a los agentes antes de la 1.31.2 conservan lo que se alcanzó a completar, y **Sin agentes** todavía las cierra; ya no se pueden abrir nuevas.
+En tus tareas escribe como en un documento: la descripción, la página, los pasos abiertos, las notas, el título y la lista. Su día, sus marcas y su cierre siguen siendo tuyos, y un paso que marcaste nunca es suyo para reescribirlo ni quitarlo.
 
 ## Una tarea cerrada es historia
 

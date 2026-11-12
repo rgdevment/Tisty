@@ -3,7 +3,7 @@ use crate::event::{Body, LogAdd, StepAdd, StepRef, TaskAdd, TaskMove, TaskPatch}
 use ulid::Ulid;
 
 fn at(seconds: i64) -> Timestamp {
-    Timestamp::from_second(1_770_000_000 + seconds).unwrap()
+    Timestamp::from_second(crate::state::ANY_TASK_FROM.as_second() + seconds).unwrap()
 }
 
 fn here() -> DeviceId {
@@ -306,7 +306,7 @@ fn opening_a_task_to_agents_is_a_chapter_and_shutting_it_another() {
 }
 
 #[test]
-fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
+fn an_assistants_plan_on_the_persons_task_is_a_chapter_and_its_close_is_not() {
     let id = Ulid::generate();
     let agent = DeviceId("dev_agent".into());
     let mut joined = event(
@@ -340,15 +340,6 @@ fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
         joined,
         born(id, "renew the certificate"),
         planned(10),
-        patched(
-            20,
-            id,
-            TaskPatch {
-                open_to_agents: Some(true),
-                ..Default::default()
-            },
-        ),
-        planned(25),
         closed,
     ];
 
@@ -360,10 +351,9 @@ fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
             &Chapter::Born {
                 title: "renew the certificate".into()
             },
-            &Chapter::Opened,
             &Chapter::Planned { text: "pay".into() },
         ],
-        "the step before the door opened never landed, nor did the close: {:?}",
+        "the step lands, the close never did: {:?}",
         chapters(&told)
     );
 }
@@ -994,5 +984,91 @@ fn a_second_step_of_the_same_name_taken_off_still_reads_as_taken_off() {
             .filter(|chapter| matches!(chapter, Chapter::Unplanned { .. }))
             .count(),
         1
+    );
+}
+
+#[test]
+fn an_assistant_moving_the_persons_task_to_a_list_is_a_chapter() {
+    let id = Ulid::generate();
+    let list = Ulid::generate();
+    let agent = DeviceId("dev_agent".into());
+    let mut joined = event(
+        1,
+        Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: None,
+        },
+    );
+    joined.device = agent.clone();
+    let mut filed = event(
+        10,
+        Op::TaskMove {
+            id,
+            d: crate::event::TaskMove {
+                list: Some(Some(list)),
+                ..Default::default()
+            },
+        },
+    );
+    filed.device = agent;
+    let log = vec![joined, born(id, "renew the certificate"), filed];
+
+    let told = story(&log, id);
+
+    assert_eq!(
+        chapters(&told),
+        vec![
+            &Chapter::Born {
+                title: "renew the certificate".into()
+            },
+            &Chapter::Filed {
+                from: None,
+                to: Some(list),
+            },
+        ]
+    );
+}
+
+#[test]
+fn an_assistants_words_on_a_closed_task_of_the_persons_are_no_chapter() {
+    let id = Ulid::generate();
+    let agent = DeviceId("dev_agent".into());
+    let mut joined = event(
+        1,
+        Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: None,
+        },
+    );
+    joined.device = agent.clone();
+    let mut described = event(
+        20,
+        Op::TaskDescribe {
+            id,
+            d: Body {
+                body: Some("rewritten later".into()),
+            },
+        },
+    );
+    described.device = agent;
+    let log = vec![
+        joined,
+        born(id, "renew the certificate"),
+        event(10, Op::TaskDone { id, filled: false }),
+        described,
+    ];
+
+    let told = story(&log, id);
+
+    assert_eq!(
+        chapters(&told),
+        vec![
+            &Chapter::Born {
+                title: "renew the certificate".into()
+            },
+            &Chapter::Closed,
+        ]
     );
 }

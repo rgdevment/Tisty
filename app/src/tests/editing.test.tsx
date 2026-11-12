@@ -53,7 +53,6 @@ function open(task: Task = written) {
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
-      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

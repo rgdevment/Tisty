@@ -269,16 +269,6 @@ impl Person {
         store.append_batch_tagged(ops, true, false).unwrap();
     }
 
-    pub fn opens_to_agents(&self, id: TaskId) {
-        self.patches(
-            id,
-            TaskPatch {
-                open_to_agents: Some(true),
-                ..TaskPatch::default()
-            },
-        );
-    }
-
     pub fn adds_part(&self, whole: TaskId, title: &str) -> TaskId {
         let part = self.captures(title);
         self.wrote(vec![Op::TaskMove {

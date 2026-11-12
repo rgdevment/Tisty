@@ -135,28 +135,47 @@ struct Standing {
     read_as: Option<Reading>,
     open_to_agents: bool,
     filed_by_agent: bool,
+    closed: bool,
     described: bool,
     steps: HashMap<StepId, String>,
     ticked_by_agent: HashMap<StepId, bool>,
 }
 
 /// The same door `State::apply` keeps for an assistant's hand.
-fn lets(op: &Op, standing: &Standing) -> bool {
-    let attended = standing.open_to_agents || standing.filed_by_agent;
-    match op {
+fn lets(event: &Event, standing: &Standing) -> bool {
+    let filed = standing.filed_by_agent;
+    let settles = filed || standing.open_to_agents;
+    let widened = event.timestamp >= crate::state::ANY_TASK_FROM;
+    let reaches = (!standing.closed || settles) && (widened || settles);
+    match &event.op {
         Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
-        Op::TaskUpdate { d, .. } => standing.filed_by_agent || crate::state::only_bells(d),
-        Op::TaskResolve { d, .. } => d.word || attended,
+        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
         Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
-        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => attended,
-        Op::StepUndone { d, .. } => {
-            attended && standing.ticked_by_agent.get(&d.step) == Some(&true)
+        Op::TaskUpdate { d, .. } => {
+            filed
+                || crate::state::only_bells(d)
+                || (widened && reaches && crate::state::only_title(d))
         }
-        Op::StepText { d, .. } => attended && mendable(standing, d.step),
-        Op::StepRemove { d, .. } => attended && mendable(standing, d.step),
-        Op::TaskLogEdit { d, .. } => attended && !d.body.trim().is_empty(),
-        Op::TaskPaged { .. } => attended,
+        Op::TaskResolve { d, .. } => d.word || settles,
+        Op::StepDone { .. } => settles,
+        Op::StepUndone { d, .. } => standing.ticked_by_agent.get(&d.step) == Some(&true),
+        Op::StepText { d, .. } => reaches && mendable(standing, d.step),
+        Op::StepRemove { d, .. } => reaches && mendable(standing, d.step),
+        Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
+        Op::TaskMove { d, .. } => {
+            reaches
+                && (d.list.is_some() || d.part_of.is_some())
+                && (widened || filed || d.list.is_none())
+        }
         _ => false,
+    }
+}
+
+fn closing(op: &Op) -> Option<bool> {
+    match op {
+        Op::TaskDone { .. } | Op::TaskDrop { .. } => Some(true),
+        Op::TaskReopen { .. } => Some(false),
+        _ => None,
     }
 }
 
@@ -200,7 +219,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         // The trail tells what landed: what `State::apply` lets go of an assistant's hand is
         // no chapter, or the trail would tell of steps and marks the task never took.
         let by_assistant = assistants.contains(&event.device);
-        if by_assistant && !lets(&event.op, &standing) {
+        if by_assistant && !lets(event, &standing) {
             continue;
         }
         // Writing in a section for a while is one chapter, not one per block left.
@@ -225,6 +244,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
             });
         };
 
+        standing.closed = closing(&event.op).unwrap_or(standing.closed);
         match &event.op {
             Op::TaskAdd { d, .. } => {
                 standing.filed_by_agent = by_assistant;

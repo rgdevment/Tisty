@@ -539,13 +539,14 @@ happens on its own:
   a file it can reach. That you chose to keep the door closed is kept in this
   computer's settings.
 - **What it may do is bounded.** File a task, add to the journal, say a task is
-  done, yours too — which marks it for you and closes nothing — write a
+  done, yours too — which marks it for you and closes nothing — work any task
+  the way it works a document, write a
   document, write one again whole, mark a document that had its day for you to
   delete, archive or keep, put one away or bring it back when you ask, jot
   ideas on your Brainstorm and mark the old ones the same way, keep a copy of a
   file you point it at, and read what is already there. It may not
-  close or delete anything, tick a step of yours or finish a task of yours —
-  save on one you opened to agents before 1.31.2 — reach a task you hid, or
+  close or delete anything, tick a step of yours or finish a task of yours,
+  move a day you set, reach a task you hid, or
   take files from outside the folders where a download lands.
   Bringing a markdown file in copies what that file's text points at, and only
   what sits in that file's own folder or below it, so what leaves your disk is

@@ -1071,7 +1071,6 @@ fn a_summary_keeps_the_door_to_agents_it_was_handed() {
 
     let light = summarised(&f.store_root, &f.cache_dir).unwrap();
     assert!(light.tasks[&f.task].open_to_agents);
-    assert!(light.attended_by_agents(&light.tasks[&f.task]));
 }
 
 #[test]

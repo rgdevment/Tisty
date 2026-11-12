@@ -66,7 +66,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool(
             "`find` needs a `query`, a `source` to check whether it was proposed already, a \
              `doc` to look inside, or one of `tag`, `list`, `by_agent`, `said_done`, \
-             `open_to_agents`, `part_of`, `from_source`, `from` and `to` to sift by."
+             `part_of`, `from_source`, `from` and `to` to sift by."
                 .into(),
         ));
     }
@@ -241,7 +241,6 @@ struct Sifted {
     list: Option<String>,
     by_agent: Option<bool>,
     said_done: Option<bool>,
-    open_to_agents: Option<bool>,
     part_of: Option<TaskId>,
     from_source: Option<String>,
     from: Option<jiff::civil::Date>,
@@ -413,7 +412,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
             let (body, boxed) =
                 tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
-            let yours = task.is_open() && state.attended_by_agents(task);
+            let yours = task.is_open();
             let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
                 .filter(|slot| !slot.undone)
                 .map(|slot| slot.after);
@@ -494,13 +493,6 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
         plainly.push_str(&format!(" ({notice})"));
         whole["notice"] = json!(notice);
-    } else if task.open_to_agents {
-        let notice =
-            "open to agents: yours to describe, plan, tick, mend and say done or not doing";
-        plainly.push_str(&format!(" ({notice})"));
-        if wants("notice") {
-            whole["notice"] = json!(notice);
-        }
     }
     if let Some(body) = description {
         plainly.push_str("\n\n");
@@ -916,7 +908,7 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 const TAGS_SHOWN: usize = 300;
 const TAGS_AT_A_GLANCE: usize = 40;
 const AT_A_GLANCE: usize = 30;
-const READ_FIELDS: [&str; 25] = [
+const READ_FIELDS: [&str; 24] = [
     "id",
     "title",
     "status",
@@ -934,7 +926,6 @@ const READ_FIELDS: [&str; 25] = [
     "via",
     "said_done",
     "said_not_doing",
-    "open_to_agents",
     "part_of",
     "parts",
     "description",
@@ -1174,7 +1165,6 @@ pub(super) fn brief(task: &Task, state: &State, today: jiff::civil::Date) -> Val
                 .map(|one| when(one.at))
         ),
     );
-    put("open_to_agents", json!(task.open_to_agents.then_some(true)));
     put(
         "part_of",
         json!(task.part_of.map(|whole| whole.to_string())),
@@ -1208,7 +1198,6 @@ impl Sifted {
             list: text(args, "list").map(|one| one.to_lowercase()),
             by_agent: args.get("by_agent").and_then(Value::as_bool),
             said_done: args.get("said_done").and_then(Value::as_bool),
-            open_to_agents: args.get("open_to_agents").and_then(Value::as_bool),
             part_of: match text(args, "part_of") {
                 None => None,
                 Some(said) => Some(said.parse::<TaskId>().map_err(|_| {
@@ -1228,7 +1217,6 @@ impl Sifted {
             && self.list.is_none()
             && self.by_agent.is_none()
             && self.said_done.is_none()
-            && self.open_to_agents.is_none()
             && self.part_of.is_none()
             && self.from_source.is_none()
             && self.from.is_none()
@@ -1251,11 +1239,6 @@ impl Sifted {
         match self.said_done {
             Some(true) => all.push("already said done".into()),
             Some(false) => all.push("not said done yet".into()),
-            None => {}
-        }
-        match self.open_to_agents {
-            Some(true) => all.push("opened to agents".into()),
-            Some(false) => all.push("kept to the person".into()),
             None => {}
         }
         if let Some(one) = &self.part_of {
@@ -1300,18 +1283,6 @@ impl Sifted {
         }
         if let Some(want) = self.said_done
             && (task.resolved.is_some() && task.is_open()) != want
-        {
-            return false;
-        }
-        // False is what the person kept to themselves: their own, unopened. What an agent filed
-        // is neither, and answers to `by_agent`.
-        if let Some(want) = self.open_to_agents
-            && (task.open_to_agents != want
-                || (!want
-                    && task
-                        .created_by
-                        .as_ref()
-                        .is_some_and(|who| state.assistants.contains(who))))
         {
             return false;
         }

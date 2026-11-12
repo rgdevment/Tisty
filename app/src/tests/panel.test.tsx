@@ -37,7 +37,6 @@ const show = () => {
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
-      onOpenToAgents={() => {}}
       onClose={closed}
     />,
   );

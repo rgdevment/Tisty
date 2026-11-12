@@ -479,9 +479,8 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
     };
     if !state.filed_by_agents(task) {
         return Err(Refused::Tool(format!(
-            "{:?} is the person's own, so its day is theirs to move — opened to agents or not. \
-             You can only move what an agent filed. Say what you have learnt with `note` and \
-             leave the day alone.",
+            "{:?} is the person's own, so its day is theirs to move: you can only move what an \
+             agent filed. Say what you have learnt with `note` and leave the day alone.",
             task.title
         )));
     }
@@ -565,7 +564,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     };
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "writing a description") {
         return Err(why);
     }
@@ -581,7 +580,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now) || now.resolved.is_some() || now.description != had
+                    !still_in_sight(now) || now.resolved.is_some() || now.description != had
                 })
             },
         )
@@ -610,7 +609,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     steps_fit(&steps)?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     if let Some(said) = &task.resolved {
         return Err(Refused::Tool(format!(
             "{:?} has already been said {}, and a step added now would stand under that mark \
@@ -637,7 +636,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let held = State::replay(events);
             held.tasks
                 .get(&id)
-                .is_none_or(|now| !still_filling(&held, now) || now.resolved.is_some())
+                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
         })
         .map_err(hitch)?;
     if written.is_none() {
@@ -656,7 +655,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "ticking", "each step you did")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
-    if !state.attended_by_agents(task) {
+    if !state.filed_by_agents(task) {
         return vouch(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "ticking") {
@@ -679,7 +678,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .append_batch_unless(ops, |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
+                    !still_in_sight(now)
                         || now.resolved.is_some()
                         || now
                             .steps
@@ -729,7 +728,10 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
-    if !state.attended_by_agents(task) {
+    let its_own_ticks = |step: &tisty_core::model::Step| step.done && step.by_agent;
+    let only_its_own_ticks = steps_named(task, &wanted, "unticked", its_own_ticks)
+        .is_ok_and(|chosen| chosen.iter().all(|step| its_own_ticks(step)));
+    if !state.filed_by_agents(task) && !only_its_own_ticks {
         return unsay(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "unticking") {
@@ -758,7 +760,7 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .append_batch_unless(ops, |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
+                    !still_in_sight(now)
                         || now.resolved.is_some()
                         || !ids.iter().all(|one| {
                             now.step(*one)
@@ -848,7 +850,7 @@ pub(super) fn too_long_a_note(
     }
     let owner = tisty_core::task_docs::owner(state, task.id);
     let locked = tisty_core::task_docs::of(state, owner).is_some_and(|page| state.shut(page.id));
-    let elsewhere = match state.attended_by_agents(task) && !locked {
+    let elsewhere = match !locked {
         true => "on the task's page with `append_doc` and the task's id",
         false => "in a document of its own with `write_doc`",
     };
@@ -957,7 +959,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(refusal);
     }
 
-    let attended = state.attended_by_agents(task);
+    let attended = state.filed_by_agents(task);
     let zone = jiff::tz::TimeZone::system();
     let entry = Ulid::generate();
     // Judged again under the lock: the mark must not land beside a step the person just
@@ -981,7 +983,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_in_sight(now)
-                        || held.attended_by_agents(now) != attended
+                        || held.filed_by_agents(now) != attended
                         || now.resolved.is_some()
                         || (!drop && now.steps.iter().any(|step| !step.done && !step.said))
                 })
@@ -1057,8 +1059,8 @@ pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     }
 }
 
-/// An open task, not folded away, named by its id; whose it is, the caller asks.
-fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
+/// An open task, not folded away, named by its id.
+pub(super) fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(state, said)));
     };
@@ -1128,30 +1130,6 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
             "left": left,
         }),
     ))
-}
-
-/// What an assistant may fill in: a task it filed, or one the person opened to agents.
-pub(super) fn filling<'a>(
-    state: &'a State,
-    store: &Store,
-    said: &str,
-) -> Result<(TaskId, &'a Task), Refused> {
-    let (id, task) = reaching(state, said)?;
-    if !state.attended_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own, and they have not opened it to you. You fill in what an \
-             agent filed; on the rest, say what you have learnt with `note`, and when you did the \
-             work, `tick` its steps or `say_done` as your word for the person to take.",
-            task.title
-        )));
-    }
-    let _ = store;
-    Ok((id, task))
-}
-
-/// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.
-pub(super) fn still_filling(held: &State, now: &Task) -> bool {
-    still_in_sight(now) && held.attended_by_agents(now)
 }
 
 pub(super) fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {

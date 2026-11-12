@@ -27,7 +27,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
                     "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
-                    "part_of": { "type": "string", "description": "Id of a task you may work on that this one is a part of" },
+                    "part_of": { "type": "string", "description": "Id of an open task this one is a part of" },
                     "description": { "type": "string", "description": "What you read, in the Tisty language" },
                     "date": { "type": "string", "description": "The day it is meant to be done, or with a deadline the day work starts (2026-08-31)" },
                     "deadline": { "type": "string", "description": "The day it truly runs out (2026-08-31); only then is it overdue" },
@@ -56,7 +56,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "describe",
             "title": "Describe a task",
-            "description": "Write the description of a task you may work on (one an agent filed or the person opened to agents). It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
+            "description": "Write the description of an open task. It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
             "inputSchema": on_a_task(
                 json!({ "body": { "type": "string", "description": "What the task is, in the Tisty language" } }),
                 &["body"],
@@ -65,7 +65,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "plan",
             "title": "Add steps to a task",
-            "description": "Add steps to a task you may work on, after those already there (`read` shows them).",
+            "description": "Add steps to an open task, after those already there (`read` shows them).",
             "inputSchema": on_a_task(
                 json!({ "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, each at most 100 characters" } }),
                 &["steps"],
@@ -85,8 +85,8 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "rename",
-            "title": "Rename a task an agent filed",
-            "description": "Retitle a task an agent filed, when the title no longer says what it is. The person's own tasks are refused: offer the title in a `note`. On a task you may work on, steps are `reword_step` and the page `describe`.",
+            "title": "Rename a task",
+            "description": "Retitle a task when the title no longer says what it is. Steps are `reword_step`, and the page `describe` or `edit_doc`.",
             "inputSchema": on_a_task(
                 json!({ "title": { "type": "string", "description": "The new title" } }),
                 &["title"],
@@ -95,7 +95,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reword_step",
             "title": "Rewrite an open step",
-            "description": "Rewrite an unticked step of a task you may work on. A ticked step is refused: `untick` it first if your tick was a mistake.",
+            "description": "Rewrite an unticked step of an open task. A ticked step is refused: `untick` it first if your tick was a mistake.",
             "inputSchema": on_a_task(
                 json!({
                     "step": { "type": "string", "description": "The step, by its text as `read` shows it" },
@@ -107,13 +107,13 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "unplan",
             "title": "Take open steps off a task",
-            "description": "Take unticked steps off a task you may work on. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
+            "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
             "inputSchema": on_a_task(
                 {
                     let mut fields = steps_by_text("to take off");
                     fields["to"] = json!({
                         "type": "string",
-                        "description": "Id of another open task you may work on, not said done, to hand them to"
+                        "description": "Id of another open task, not said done, to hand them to"
                     });
                     fields
                 },
@@ -123,11 +123,11 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "move",
             "title": "Hang a task under another, or move it to a list",
-            "description": "On a task you may work on: `part_of` hangs it under another such task, or null lets it stand alone; `list` moves a task an agent filed to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done or not doing takes no new part.",
+            "description": "`part_of` hangs a task under another, or null lets it stand alone; `list` moves it to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done or not doing takes no new part.",
             "inputSchema": on_a_task(
                 json!({
                     "part_of": { "type": ["string", "null"], "description": "Id of the task to hang it under, or null to let it go" },
-                    "list": { "type": "string", "description": "An existing list, by name, as `catch_up` names it, for a task an agent filed" }
+                    "list": { "type": "string", "description": "An existing list, by name, as `catch_up` names it" }
                 }),
                 &[],
             )
@@ -135,7 +135,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reword_note",
             "title": "Rewrite a note in a task's journal",
-            "description": "Rewrite a note in the journal of a task you may work on, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty.",
+            "description": "Rewrite a note in the journal of an open task, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty.",
             "inputSchema": on_a_task(
                 json!({
                     "note": { "type": "string", "description": "The note's id, from `read`" },
@@ -194,7 +194,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes, unless `replace` rewrites a task page's assistant notes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc`, on a task you may work on, adds under the assistant's notes on its page, dated and signed.",
+            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes, unless `replace` rewrites a task page's assistant notes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc` adds under the assistant's notes on its page, dated and signed.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -222,7 +222,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "edit_doc",
             "title": "Change a passage of a document",
-            "description": "Replace one passage of a document, named by its text in `old` or by place with `section` or `from` and `to`, which needs no reading of the rest. What it said is kept first for `restore_doc`, or the edit is refused. The answer's `grew` should be close to what you sent.",
+            "description": "Replace one passage of a document, named by its text in `old` or by place with `section` or `from` and `to`, which needs no reading of the rest. What it said is kept first for `restore_doc`, or the edit is refused. The answer's `grew` should be close to what you sent. A task's page too, by its own name: its boxes are the task's steps.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -522,7 +522,6 @@ pub(super) fn tools_without_hints() -> Value {
                     "folder": { "type": "string", "description": "Only documents in this folder or below, by name, path or id" },
                     "by_agent": { "type": "boolean", "description": "True: filed by an agent; false: by the person" },
                     "said_done": { "type": "boolean", "description": "True: an agent said done or not doing and the person has not decided; false: nobody did" },
-                    "open_to_agents": { "type": "boolean", "description": "True: the person's tasks opened to agents; false: kept to themselves" },
                     "part_of": { "type": "string", "description": "Only the parts of this task, by id" },
                     "from_source": { "type": "string", "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there" },
                     "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },

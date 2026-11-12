@@ -17,7 +17,7 @@ impl State {
         let mut task = crate::state::task_from(id, d);
         task.part_of = d
             .part_of
-            .filter(|whole| self.may_hold(*whole, &task, event));
+            .filter(|whole| self.may_hold(*whole, &task, self.assistants.contains(&event.device)));
         task.created_by = Some(event.device.clone());
         task.created_via = event.via.clone();
         task.retally();

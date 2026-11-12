@@ -35,7 +35,6 @@ const opened = () =>
       onErase={vi.fn()}
       onFold={vi.fn()}
       onReadAs={vi.fn()}
-      onOpenToAgents={vi.fn()}
       onClose={vi.fn()}
     />,
   );
