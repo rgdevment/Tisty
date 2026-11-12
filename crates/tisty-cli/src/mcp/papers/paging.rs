@@ -360,7 +360,7 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
                 )));
             }
             if state.held_away(kept) {
-                return Err(super::put_away(state, kept, which));
+                return Err(super::not_a_page_while_away(state, kept, which));
             }
         }
         match kept.page_of == up {

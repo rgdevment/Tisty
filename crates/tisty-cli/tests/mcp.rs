@@ -7928,6 +7928,81 @@ fn a_document_held_away_by_its_folder_is_brought_back_by_the_person_only() {
     );
 
     let said = text_of(&refused);
-    assert!(said.contains("they bring back what holds it"), "{said}");
+    assert!(
+        said.contains("they bring back the folder that holds it"),
+        "{said}"
+    );
     assert!(!said.contains("`archive_doc`"), "{said}");
+}
+
+fn says_who_brings_it_back(answer: &serde_json::Value, call: &str) {
+    assert_eq!(answer["result"]["isError"], true, "{call}: {answer}");
+    let said = text_of(answer);
+    assert!(said.contains("tell the person"), "{call}: {said}");
+    assert!(
+        said.contains("`archive_doc` and `archived` false"),
+        "{call}: {said}"
+    );
+    for wrong in [
+        "of its own instead",
+        "bring it back first",
+        "Bring it back with",
+    ] {
+        assert!(!said.contains(wrong), "{call}: {said}");
+    }
+}
+
+#[test]
+fn every_way_of_writing_into_a_put_away_document_says_who_brings_it_back() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let book = wrote_paper(&served, "# Runbook\n\nRestart the worker.");
+    let page = |title: &str| {
+        served.call(
+            "write_doc",
+            serde_json::json!({ "body": format!("# {title}\n\nA."), "page_of": &book }),
+        )["result"]["structuredContent"]["doc"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let (one, two) = (page("One"), page("Two"));
+    let loose = wrote_paper(&served, "---\nlang: es\n---\n# Guía\n\nUno.");
+    let english = wrote_paper(&served, "# Guide\n\nOne.");
+    served.put_away(&book);
+    served.put_away(&english);
+
+    says_who_brings_it_back(
+        &served.call(
+            "page_doc",
+            serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        ),
+        "order",
+    );
+    says_who_brings_it_back(
+        &served.call(
+            "write_doc",
+            serde_json::json!({ "body": "# Three\n\nC.", "page_of": &book }),
+        ),
+        "write_doc page_of",
+    );
+    says_who_brings_it_back(
+        &served.call(
+            "tongue_doc",
+            serde_json::json!({ "doc": &english, "of": &loose, "lang": "en" }),
+        ),
+        "tongue_doc",
+    );
+
+    let hung = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &english, "page_of": &loose }),
+    );
+    assert_eq!(hung["result"]["isError"], true, "{hung}");
+    let said = text_of(&hung);
+    assert!(
+        said.contains("as a page it would leave the archive"),
+        "{said}"
+    );
+    assert!(!said.contains("write there"), "{said}");
 }

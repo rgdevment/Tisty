@@ -190,8 +190,8 @@ fn leaving_off(paths: &Paths, said: Option<&str>) -> String {
          `say_done` with the proof. A decision that outlasts the task goes in the document on \
          its subject as `rules` «documents» says: dated, with its why, in the passage it belongs \
          to; one it replaces is struck through with the day it fell, never erased. If no \
-         document covers the subject, ask me which folder before `write_doc`. The note says \
-         where. Change nothing else, and \
+         document covers the subject, keep the decision in the note and tell me, rather than \
+         starting one. The note says where. Change nothing else, and \
          tell me in a few lines what you left."
     )
 }
