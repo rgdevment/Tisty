@@ -14,7 +14,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "list": {
-        "description": "An existing list, by name (`lists`), for a task an agent filed",
+        "description": "An existing list, by name, as `catch_up` names it, for a task an agent filed",
         "type": "string"
       },
       "part_of": {

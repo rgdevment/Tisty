@@ -1112,7 +1112,7 @@ fn gist_of(cache: Option<&tisty_core::cache::Cache>, which: &str, print: &str) -
 }
 
 /// Long enough that reading it whole is a decision, not an accident.
-const WHOLE_UP_TO: usize = 12_000;
+pub(super) const WHOLE_UP_TO: usize = 12_000;
 
 enum Part {
     Outline,

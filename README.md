@@ -386,7 +386,7 @@ deleting to you. Each tool is described in
 - **Folders, pages and languages** — `docs`, `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
 - **Finding things** — open and archived work, lists and tags: `find`,
-  `catch_up`, `lists`, `tags`
+  `catch_up`
 - **How to work here** — `rules`, `language`, `help`
 
 Beside the tools, it offers five ready-made requests your assistant shows as

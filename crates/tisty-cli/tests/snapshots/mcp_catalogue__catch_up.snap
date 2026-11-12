@@ -5,16 +5,16 @@ expression: tool
 {
   "annotations": {
     "destructiveHint": false,
-    "idempotentHint": true,
+    "idempotentHint": false,
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since you were last here, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
+  "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what others moved since your last `catch_up`, and `last`, the open task you were on. Ask it first.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "since": {
-        "description": "A `cursor` from a previous `catch_up`, to count from there instead",
+        "description": "A `cursor` from a previous `catch_up`, to count from there instead: it only reads, and brings your own changes too",
         "type": "string"
       }
     },

@@ -30,7 +30,7 @@ expression: tool
         "type": "string"
       },
       "list": {
-        "description": "An existing list, by name (`lists`). Left out, it lands in the inbox, which needs a reason",
+        "description": "An existing list, by name, as `catch_up` names it. Left out, it lands in the inbox, which needs a reason",
         "type": "string"
       },
       "part_of": {
@@ -73,7 +73,7 @@ expression: tool
         "type": "array"
       },
       "tags": {
-        "description": "Its subjects, one plain word each, reusing what `tags` lists; six is already a lot",
+        "description": "Its subjects, one plain word each, reusing the tags `catch_up` shows; six is already a lot",
         "items": {
           "type": "string"
         },

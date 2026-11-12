@@ -4,11 +4,11 @@ expression: said
 ---
 ## plan_task «the passport»
 
-Plan «the passport» (or all I typed after the command, if a client cut it at a space), with what we have said about it, as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
+Plan «the passport» (or all I typed after the command, if a client cut it at a space), with what we have said about it, as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`catch_up` names them; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
 
 ## plan_task
 
-Plan the work we have been talking about as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
+Plan the work we have been talking about as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task already covers it, the archive included: an open one takes the new steps with `plan` instead of a second task, and a closed one is read for how it went. Otherwise `propose` one task with its steps in order — parts only for pieces finished on their own — in the list it belongs in (`catch_up` names them; ask me when none fits), with a date only if I gave one. Then tell me its title, its list and its steps.
 
 ## solved_before «the passport»
 
