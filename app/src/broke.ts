@@ -17,3 +17,16 @@ export const broke = (kind: string, said?: string, stack?: string) => {
   seen.add(once);
   void noteBreak(kind, said ?? null, frames).catch(() => {});
 };
+
+// Chromium tells of a resize it settles on the next frame as an error, though nothing broke.
+const settlesNextFrame = (said: string) => said.includes("ResizeObserver loop");
+
+export const thrown = (event: ErrorEvent) => {
+  if (settlesNextFrame(event.message)) return;
+  const at = event.filename ? `at ${event.filename}:${event.lineno}:${event.colno}` : undefined;
+  broke(
+    event.error?.name ?? "Error",
+    event.error?.message ?? event.message,
+    event.error?.stack ?? at,
+  );
+};
