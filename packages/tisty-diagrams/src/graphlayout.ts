@@ -52,13 +52,18 @@ const ranksOf = (ids: readonly string[], edges: readonly (readonly [string, stri
   return rank;
 };
 
+export interface Room {
+  readonly aside: ReadonlyMap<string, number>;
+  readonly along: ReadonlyMap<string, number>;
+}
+
 /** Layers along the direction the diagram says, nodes side by side in the order they were written. */
 export const layered = (
   ids: readonly string[],
   edges: readonly (readonly [string, string])[],
   sizes: ReadonlyMap<string, Size>,
   direction: Direction,
-  room: ReadonlyMap<string, number> = new Map(),
+  room: Room = { aside: new Map(), along: new Map() },
 ): Laid => {
   const rank = ranksOf(ids, edges);
   const layers: string[][] = [];
@@ -72,7 +77,9 @@ export const layered = (
   const sizeOf = (id: string) => sizes.get(id) ?? { wide: 120, tall: 40 };
   const deep = layers.map((layer) => Math.max(0, ...layer.map((id) => along(sizeOf(id)))));
   const apart = (one: string, next: string) =>
-    Math.max(GAP, ((room.get(one) ?? 0) + (room.get(next) ?? 0)) / 2);
+    Math.max(GAP, ((room.aside.get(one) ?? 0) + (room.aside.get(next) ?? 0)) / 2);
+  const between = (low: number) =>
+    Math.max(GAP * 1.4, ...(layers[low] ?? []).map((id) => (room.along.get(id) ?? 0) + 48));
   const broad = layers.map((layer) =>
     layer.reduce(
       (sum, id, at) => sum + aside(sizeOf(id)) + (at > 0 ? apart(layer[at - 1], id) : 0),
@@ -84,7 +91,7 @@ export const layered = (
     direction === "BT" || direction === "RL" ? [...layers.keys()].reverse() : [...layers.keys()];
   const at = new Map<string, Rect>();
   let depth = MARGIN;
-  for (const index of order) {
+  order.forEach((index, step) => {
     const layer = layers[index] ?? [];
     let side = MARGIN + (widest - broad[index]) / 2;
     layer.forEach((id, place) => {
@@ -93,8 +100,9 @@ export const layered = (
       at.set(id, across ? { x: middle, y: side, ...size } : { x: side, y: middle, ...size });
       side += aside(size) + (place + 1 < layer.length ? apart(id, layer[place + 1]) : 0);
     });
-    depth += deep[index] + GAP * 1.4;
-  }
+    const next = order[step + 1];
+    depth += deep[index] + (next === undefined ? GAP * 1.4 : between(Math.min(index, next)));
+  });
   const rects = [...at.values()];
   const wide = Math.max(MARGIN * 2, ...rects.map((one) => one.x + one.wide + MARGIN));
   const tall = Math.max(MARGIN * 2, ...rects.map((one) => one.y + one.tall + MARGIN));

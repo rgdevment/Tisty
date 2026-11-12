@@ -18,6 +18,8 @@ export interface Joint {
   readonly from: Rect;
   readonly to: Rect;
   readonly label?: string;
+  readonly startLabel?: string;
+  readonly endLabel?: string;
 }
 
 /** Where words at an end of a line go: beside it, just off the shape, never over the line or the shape. */
@@ -108,6 +110,74 @@ const waysBetween = (start: Point, end: Point, leaving: Position): Point[][] => 
   ]);
 };
 
+const detoursBetween = (
+  start: Point,
+  end: Point,
+  leaving: Position,
+  shapes: readonly Rect[],
+): Point[][] => {
+  const flat = leaving === Position.Left || leaving === Position.Right;
+  const from = flat ? start.x : start.y;
+  const to = flat ? end.x : end.y;
+  const ahead = leaving === Position.Right || leaving === Position.Bottom ? 1 : -1;
+  if ((to - from) * ahead < TURN * 2) return [];
+  const at = (along: number, aside: number): Point =>
+    flat ? { x: along, y: aside } : { x: aside, y: along };
+  const aside = (one: Point) => (flat ? one.y : one.x);
+  const near = from + TURN * ahead;
+  const far = to - TURN * ahead;
+  const [low, high] = near < far ? [near, far] : [far, near];
+  const middle = (aside(start) + aside(end)) / 2;
+  return shapes
+    .filter((one) =>
+      flat ? one.x < high && one.x + one.wide > low : one.y < high && one.y + one.tall > low,
+    )
+    .flatMap((one) =>
+      flat ? [one.y - TURN, one.y + one.tall + TURN] : [one.x - TURN, one.x + one.wide + TURN],
+    )
+    .sort((one, other) => Math.abs(one - middle) - Math.abs(other - middle))
+    .map((lane) => [
+      start,
+      at(near, aside(start)),
+      at(near, lane),
+      at(far, lane),
+      at(far, aside(end)),
+      end,
+    ]);
+};
+
+const toward = (from: Point, to: Point, by: number): Point => {
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+  return {
+    x: from.x + ((to.x - from.x) / length) * by,
+    y: from.y + ((to.y - from.y) / length) * by,
+  };
+};
+
+const rounded = (way: readonly Point[]) => {
+  const corners = way.slice(1, -1).map((corner, at) => {
+    const [before, after] = [way[at], way[at + 2]];
+    const ease = Math.min(
+      6,
+      Math.hypot(corner.x - before.x, corner.y - before.y) / 2,
+      Math.hypot(after.x - corner.x, after.y - corner.y) / 2,
+    );
+    const into = toward(corner, before, ease);
+    const out = toward(corner, after, ease);
+    return `L${into.x} ${into.y}Q${corner.x} ${corner.y} ${out.x} ${out.y}`;
+  });
+  const last = way[way.length - 1];
+  return `M${way[0].x} ${way[0].y}${corners.join("")}L${last.x} ${last.y}`;
+};
+
+const lengthOf = (a: Point, b: Point) => Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+
+const longestRun = (way: readonly Point[]): readonly [Point, Point] =>
+  way
+    .slice(1)
+    .map((one, at) => [way[at], one] as const)
+    .reduce((best, run) => (lengthOf(run[0], run[1]) > lengthOf(best[0], best[1]) ? run : best));
+
 /** An arrow in right-angled runs between the nearest sides, round any shape in its way; the window and the picture both draw this one. */
 export const routeOf = (from: Rect, to: Rect, around: readonly Rect[] = []): Route => {
   const [leaving, entering] = sidesOf(from, to);
@@ -126,36 +196,89 @@ export const routeOf = (from: Rect, to: Rect, around: readonly Rect[] = []): Rou
   };
   const others = around.filter((one) => !same(one, from) && !same(one, to));
   const ways = waysBetween(start, end, leaving);
-  const way = ways.find((one) => free(one, others));
+  const way =
+    ways.find((one) => free(one, others)) ??
+    detoursBetween(start, end, leaving, others).find((one) => free(one, others));
   if (!way) return { ...plain, way: ways[0] ?? [] };
-  const turn = { x: (way[1].x + way[2].x) / 2, y: (way[1].y + way[2].y) / 2 };
-  const [drawn, x, y] =
-    way === ways[0] ? [path, labelX, labelY] : stepped(start, end, leaving, entering, turn);
-  return { ...plain, path: drawn, labelX: x, labelY: y, way };
+  if (way === ways[0]) return { ...plain, way };
+  if (way.length === 4) {
+    const turn = { x: (way[1].x + way[2].x) / 2, y: (way[1].y + way[2].y) / 2 };
+    const [drawn, x, y] = stepped(start, end, leaving, entering, turn);
+    return { ...plain, path: drawn, labelX: x, labelY: y, way };
+  }
+  const [a, b] = longestRun(way);
+  return {
+    ...plain,
+    path: rounded(way),
+    labelX: (a.x + b.x) / 2,
+    labelY: (a.y + b.y) / 2,
+    way,
+  };
 };
 
-const middlesOf = (way: readonly Point[]): Point[] =>
-  way.slice(1).map((one, at) => ({ x: (way[at].x + one.x) / 2, y: (way[at].y + one.y) / 2 }));
+const covered = (one: Rect, other: Rect, room: number) => {
+  const wide =
+    Math.min(one.x + one.wide, other.x + other.wide + room) - Math.max(one.x, other.x - room);
+  const tall =
+    Math.min(one.y + one.tall, other.y + other.tall + room) - Math.max(one.y, other.y - room);
+  return wide > 0 && tall > 0 ? wide * tall : 0;
+};
 
-/** Every arrow of a drawing, each word where it covers no shape and no other arrow's word. */
+const END_WORD_TALL = 14;
+
+export const endWordBox = (at: Point, side: Position, said: string): Rect => {
+  const word = endWordAt(at, side);
+  const wide = said.length * 6.2;
+  const x = word.anchor === "end" ? word.x - wide : word.x;
+  return { x, y: word.y - END_WORD_TALL / 2, wide, tall: END_WORD_TALL };
+};
+
+const spotsAlong = (route: Route, size: { wide: number; tall: number }): Point[] => {
+  const runs = route.way.slice(1).map((one, at) => [route.way[at], one] as const);
+  const along = [...runs].reverse().flatMap(([a, b]) =>
+    [0.5, 0.25, 0.75].map((part) => ({
+      x: a.x + (b.x - a.x) * part,
+      y: a.y + (b.y - a.y) * part,
+    })),
+  );
+  const beside = runs.flatMap(([a, b]) => {
+    const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const step = a.x === b.x ? { x: size.wide / 2 + 4, y: 0 } : { x: 0, y: size.tall / 2 + 4 };
+    return [
+      { x: middle.x + step.x, y: middle.y + step.y },
+      { x: middle.x - step.x, y: middle.y - step.y },
+    ];
+  });
+  return [{ x: route.labelX, y: route.labelY }, ...along, ...beside];
+};
+
+/** Every arrow of a drawing, each word where it covers no shape, no end word and no other arrow's word, or as little as can be. */
 export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Route[] => {
-  const taken: Rect[] = [];
-  return joints.map((joint) => {
-    const route = routeOf(joint.from, joint.to, shapes);
-    if (!joint.label) return route;
-    const size = pillSize(joint.label);
-    const box = (at: Point): Rect => ({
-      x: at.x - size.wide / 2,
-      y: at.y - size.tall / 2,
-      ...size,
+  const routes = joints.map((joint) => routeOf(joint.from, joint.to, shapes));
+  const taken: Rect[] = joints.flatMap((joint, at) => {
+    const route = routes[at];
+    return [
+      ...(joint.startLabel ? [endWordBox(route.from, route.fromSide, joint.startLabel)] : []),
+      ...(joint.endLabel ? [endWordBox(route.to, route.toSide, joint.endLabel)] : []),
+    ];
+  });
+  return routes.map((route, at) => {
+    const said = joints[at].label;
+    if (!said) return route;
+    const size = pillSize(said);
+    const box = (spot: Point): Rect => ({
+      x: spot.x - size.wide / 2,
+      y: spot.y - size.tall / 2,
+      wide: size.wide,
+      tall: size.tall,
     });
-    const spots = [{ x: route.labelX, y: route.labelY }, ...middlesOf(route.way).reverse()];
+    const cost = (spot: Point) =>
+      shapes.reduce((sum, one) => sum + covered(box(spot), one, 2), 0) +
+      taken.reduce((sum, one) => sum + covered(box(spot), one, 4), 0);
+    const spots = spotsAlong(route, size);
     const spot =
-      spots.find(
-        (at) =>
-          !shapes.some((one) => overlaps(box(at), one, 2)) &&
-          !taken.some((one) => overlaps(box(at), one, 4)),
-      ) ?? spots[0];
+      spots.find((one) => cost(one) === 0) ??
+      spots.reduce((best, one) => (cost(one) < cost(best) ? one : best));
     taken.push(box(spot));
     return { ...route, labelX: spot.x, labelY: spot.y };
   });

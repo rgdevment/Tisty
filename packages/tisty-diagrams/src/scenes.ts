@@ -2,7 +2,7 @@ import type { ClassBox, Classes } from "./classes";
 import type { Flow } from "./flow";
 import { sizeOf } from "./flowoutlines";
 import type { Size } from "./framing";
-import { around, type Laid, layered, type Rect } from "./graphlayout";
+import { around, type Laid, layered, type Rect, type Room } from "./graphlayout";
 import { pillSize } from "./picture";
 import type { Place } from "./places";
 
@@ -60,15 +60,18 @@ const placedOver = (
 const flowSizes = (flow: Flow) =>
   new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")]));
 
-// Shapes in a row stand far enough apart for the words on the arrows that reach them.
-const wordRoom = (flow: Flow) => {
+// Shapes stand far enough apart, in a row and between rows, for the words on the arrows between them.
+const wordRoom = (flow: Flow): Room => {
   const across = flow.direction === "LR" || flow.direction === "RL";
-  const room = new Map<string, number>();
+  const aside = new Map<string, number>();
+  const along = new Map<string, number>();
   for (const one of flow.edges.filter((edge) => edge.label)) {
     const size = pillSize(one.label);
-    room.set(one.to, Math.max(room.get(one.to) ?? 0, across ? size.tall : size.wide));
+    const [wide, deep] = across ? [size.tall, size.wide] : [size.wide, size.tall];
+    aside.set(one.to, Math.max(aside.get(one.to) ?? 0, wide));
+    along.set(one.from, Math.max(along.get(one.from) ?? 0, deep));
   }
-  return room;
+  return { aside, along };
 };
 
 const autoLaid = (flow: Flow): Laid =>

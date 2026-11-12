@@ -1,10 +1,13 @@
+import type { Edge, InternalNode } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
+import { readClasses } from "../src/classes";
 import { readFlow } from "../src/flow";
-import { overlaps, routeOf, routesOf } from "../src/flowroutes";
+import { endWordBox, overlaps, routeOf, routesOf } from "../src/flowroutes";
 import type { Rect } from "../src/graphlayout";
 import { layered } from "../src/graphlayout";
 import { pillSize } from "../src/picture";
-import { flowScene } from "../src/scenes";
+import { classScene, flowScene, type Scene } from "../src/scenes";
+import { routesIn, shapesSaid } from "../src/wiring";
 
 const GUIDE = `flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
@@ -16,6 +19,19 @@ const GUIDE = `flowchart TD
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   D --> G[Léelo, corrígelo y amplíalo<br/>durante años]`;
 
+const SKIPPED = `flowchart TD
+  A[Uno] --> B[Dos]
+  B --> C[Tres]
+  A -->|Saltar| C`;
+
+const ACROSS = `flowchart LR
+  A[Pide] -->|Enviar al cliente para revisar| B[Revisa]`;
+
+const OWNED = `classDiagram
+  class Animal
+  class Leg
+  Animal "1" *-- "many" Leg : tiene`;
+
 const rect = (x: number, y: number, wide = 100, tall = 40): Rect => ({ x, y, wide, tall });
 
 const runsOf = (way: readonly { x: number; y: number }[]) =>
@@ -26,18 +42,65 @@ const runsOf = (way: readonly { x: number; y: number }[]) =>
     tall: Math.abs(one.y - way[at].y),
   }));
 
-const guideDrawn = () => {
-  const flow = readFlow(GUIDE);
-  if (!flow) throw new Error("the guide's diagram does not read");
-  const scene = flowScene(flow);
+const flowOf = (source: string) => {
+  const flow = readFlow(source);
+  if (!flow) throw new Error(`does not read: ${source}`);
+  return flowScene(flow);
+};
+
+const classesOf = (source: string) => {
+  const diagram = readClasses(source);
+  if (!diagram) throw new Error(`does not read: ${source}`);
+  return classScene(diagram);
+};
+
+const crowdingIn = (scene: Scene) => {
   const shapes = [...scene.laid.at.values()];
   const joints = scene.joints.map((one) => ({
     from: scene.laid.at.get(one.from) as Rect,
     to: scene.laid.at.get(one.to) as Rect,
     label: one.label,
+    startLabel: one.startLabel,
+    endLabel: one.endLabel,
   }));
-  return { shapes, joints, routes: routesOf(joints, shapes) };
+  const routes = routesOf(joints, shapes);
+  const crossed = routes.flatMap((route, at) => {
+    const others = shapes.filter((one) => one !== joints[at].from && one !== joints[at].to);
+    return runsOf(route.way).some((run) => others.some((one) => overlaps(run, one)))
+      ? [joints[at].label || `${at}`]
+      : [];
+  });
+  const ends = routes.flatMap((route, at) => [
+    ...(joints[at].startLabel
+      ? [endWordBox(route.from, route.fromSide, joints[at].startLabel as string)]
+      : []),
+    ...(joints[at].endLabel
+      ? [endWordBox(route.to, route.toSide, joints[at].endLabel as string)]
+      : []),
+  ]);
+  const words = routes.flatMap((route, at) => {
+    const said = joints[at].label;
+    if (!said) return [];
+    const { wide, tall } = pillSize(said);
+    return [{ said, box: { x: route.labelX - wide / 2, y: route.labelY - tall / 2, wide, tall } }];
+  });
+  const covering = words.flatMap((one) => [
+    ...(shapes.some((shape) => overlaps(one.box, shape)) ? [`${one.said} / a shape`] : []),
+    ...(ends.some((end) => overlaps(one.box, end)) ? [`${one.said} / an end word`] : []),
+    ...words
+      .filter((other) => other !== one && overlaps(one.box, other.box))
+      .map((other) => `${one.said} / ${other.said}`),
+  ]);
+  return { crossed, covering };
 };
+
+const node = (id: string, x: number, y: number) =>
+  ({
+    id,
+    type: "shape",
+    internals: { positionAbsolute: { x, y } },
+    measured: { width: 100, height: 40 },
+  }) as unknown as InternalNode;
 
 describe("a crowded drawing", () => {
   it("runs an arrow round a shape that stands in its way, and as before when none does", () => {
@@ -52,58 +115,59 @@ describe("a crowded drawing", () => {
     expect(open.path).toBe(routeOf(from, to).path);
   });
 
-  it("sets shapes in a row far enough apart for the words on the arrows that reach them", () => {
+  it("sets shapes apart, in a row and between rows, for the words on the arrows between them", () => {
     const sizes = new Map(["a", "b", "c"].map((id) => [id, { wide: 100, tall: 40 }]));
     const edges = [
       ["a", "b"],
       ["a", "c"],
     ] as const;
-
-    const tight = layered(["a", "b", "c"], edges, sizes, "TB");
-    const roomy = layered(
-      ["a", "b", "c"],
-      edges,
-      sizes,
-      "TB",
-      new Map([
+    const words = {
+      aside: new Map([
         ["b", 200],
         ["c", 200],
       ]),
-    );
-    const gap = (laid: typeof tight) =>
-      (laid.at.get("c")?.x ?? 0) - ((laid.at.get("b")?.x ?? 0) + 100);
+      along: new Map([["a", 150]]),
+    };
 
-    expect(gap(tight)).toBe(56);
-    expect(gap(roomy)).toBe(200);
+    const tight = layered(["a", "b", "c"], edges, sizes, "TB");
+    const roomy = layered(["a", "b", "c"], edges, sizes, "TB", words);
+    const apart = (laid: typeof tight) =>
+      (laid.at.get("c")?.x ?? 0) - ((laid.at.get("b")?.x ?? 0) + 100);
+    const below = (laid: typeof tight) =>
+      (laid.at.get("b")?.y ?? 0) - ((laid.at.get("a")?.y ?? 0) + 40);
+
+    expect(apart(tight)).toBe(56);
+    expect(below(tight)).toBeCloseTo(78.4);
+    expect(apart(roomy)).toBe(200);
+    expect(below(roomy)).toBeCloseTo(198);
   });
 
-  it("draws the guide's first diagram with no arrow behind a shape and no word over another", () => {
-    const { shapes, joints, routes } = guideDrawn();
+  it.each([
+    ["the guide's first diagram", flowOf(GUIDE)],
+    ["an arrow that skips the shape in line with it", flowOf(SKIPPED)],
+    ["a long word on a left-to-right arrow", flowOf(ACROSS)],
+    ["a relation with words at its ends", classesOf(OWNED)],
+  ])("draws %s with no arrow behind a shape and no word over another", (_, scene) => {
+    expect(crowdingIn(scene)).toEqual({ crossed: [], covering: [] });
+  });
 
-    routes.forEach((route, at) => {
-      const others = shapes.filter((one) => one !== joints[at].from && one !== joints[at].to);
-      for (const run of runsOf(route.way))
-        expect(
-          others.some((one) => overlaps(run, one)),
-          joints[at].label,
-        ).toBe(false);
-    });
-    const words = routes.flatMap((route, at) => {
-      const said = joints[at].label;
-      if (!said) return [];
-      const { wide, tall } = pillSize(said);
-      return [
-        { said, box: { x: route.labelX - wide / 2, y: route.labelY - tall / 2, wide, tall } },
-      ];
-    });
-    for (const one of words) {
-      expect(
-        shapes.some((shape) => overlaps(one.box, shape)),
-        one.said,
-      ).toBe(false);
-      for (const other of words)
-        if (other !== one)
-          expect(overlaps(one.box, other.box), `${one.said} / ${other.said}`).toBe(false);
-    }
+  it("lays a window's wires once per change, and again when a shape moves", () => {
+    const edges: Edge[] = [{ id: "e", source: "a", target: "b", data: { label: "sigue" } }];
+    const still = new Map([
+      ["a", node("a", 0, 0)],
+      ["b", node("b", 0, 200)],
+    ]);
+    const moved = new Map([
+      ["a", node("a", 0, 0)],
+      ["b", node("b", 300, 200)],
+    ]);
+
+    const first = routesIn(edges, shapesSaid(still), still);
+    const again = routesIn(edges, shapesSaid(still), still);
+    const after = routesIn(edges, shapesSaid(moved), moved);
+
+    expect(again).toBe(first);
+    expect(after).not.toBe(first);
+    expect(after.get("e")?.to).toEqual({ x: 300, y: 220 });
   });
 });

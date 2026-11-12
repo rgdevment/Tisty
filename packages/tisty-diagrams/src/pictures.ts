@@ -1,7 +1,7 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { LINE, linesOf, outlineOf } from "./flowoutlines";
-import { endWordAt, routesOf } from "./flowroutes";
+import { endWordAt, type Route, routesOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
@@ -130,8 +130,11 @@ const schemaPicture = (schema: Schema): Picture => {
   };
 };
 
-// Groups behind, then lines, then their words, then the boxes over the ends of the lines.
-const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => string) => {
+const routed = new WeakMap<Scene, { one: Scene["joints"][number]; way: Route }[]>();
+
+const joinedIn = (scene: Scene) => {
+  const kept = routed.get(scene);
+  if (kept) return kept;
   const { at } = scene.laid;
   const known = scene.joints.flatMap((one) => {
     const from = at.get(one.from);
@@ -139,10 +142,24 @@ const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => 
     return from && to ? [{ one, from, to }] : [];
   });
   const routes = routesOf(
-    known.map(({ one, from, to }) => ({ from, to, label: one.label })),
+    known.map(({ one, from, to }) => ({
+      from,
+      to,
+      label: one.label,
+      startLabel: one.startLabel,
+      endLabel: one.endLabel,
+    })),
     [...at.values()],
   );
   const joined = known.map(({ one }, index) => ({ one, way: routes[index] }));
+  routed.set(scene, joined);
+  return joined;
+};
+
+// Groups behind, then lines, then their words, then the boxes over the ends of the lines.
+const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => string) => {
+  const { at } = scene.laid;
+  const joined = joinedIn(scene);
   return [
     ...scene.groups.flatMap((group) => [
       boxed(group.rect, { fill: palette.hover, stroke: palette.line, radius: 10, dashed: "5 4" }),
