@@ -159,6 +159,30 @@ describe("the sidebar gives its room to tasks or to the library, never losing th
     expect(localStorage.getItem("tisty.only")).toBe("[]");
   });
 
+  it("opens every open task from the views, the narrowing let go, and marks it while it is open", () => {
+    const onChoose = vi.fn();
+    localStorage.setItem("tisty.only", JSON.stringify(["L1"]));
+    bar({ named: "docs" }, vi.fn(), vi.fn(), onChoose, "", { all: 120 });
+    const all = screen.getByRole("button", { name: `${t("allTasks")} · 120` });
+    expect(all.querySelector("svg")).not.toBeNull();
+    expect(all.getAttribute("aria-current")).toBeNull();
+    fireEvent.click(all);
+    expect(onChoose).toHaveBeenCalledWith({ named: "tasks", slice: "all" });
+    expect(localStorage.getItem("tisty.only")).toBe("[]");
+  });
+
+  it("marks every open task as open only while no list narrows it", () => {
+    const { unmount } = bar({ named: "tasks", slice: "all" });
+    expect(screen.getByRole("button", { name: t("allTasks") }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    unmount();
+    bar({ named: "tasks", slice: "all", lists: ["L1"] });
+    expect(
+      screen.getByRole("button", { name: t("allTasks") }).getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
   it("says no more than +99, the whole number on hover", () => {
     bar({ named: "tasks" }, vi.fn(), vi.fn(), vi.fn(), "", { tasks: 1000, overdue: 100, L1: 99 });
     grow();
