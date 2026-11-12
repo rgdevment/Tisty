@@ -3,13 +3,14 @@ import {
   type Edge,
   EdgeLabelRenderer,
   type EdgeProps,
-  type InternalNode,
   useInternalNode,
+  useStore,
+  useStoreApi,
 } from "@xyflow/react";
 import { endWordAt, routeOf } from "./flowroutes";
-import type { Rect } from "./graphlayout";
 import { linesSaid } from "./picture";
 import Renaming from "./Renaming";
+import { rectOf, routesIn, shapesSaidOnce } from "./wiring";
 
 export type WireData = {
   readonly label: string;
@@ -28,13 +29,6 @@ export type WireData = {
 
 export type WireEdge = Edge<WireData, "wire">;
 
-const rectOf = (node: InternalNode): Rect => ({
-  x: node.internals.positionAbsolute.x,
-  y: node.internals.positionAbsolute.y,
-  wide: node.measured.width ?? node.width ?? 0,
-  tall: node.measured.height ?? node.height ?? 0,
-});
-
 /** An arrow that follows its shapes as they move, between the sides that face each other. */
 export function Wire({
   id,
@@ -47,8 +41,12 @@ export function Wire({
 }: EdgeProps<WireEdge>) {
   const from = useInternalNode(source);
   const to = useInternalNode(target);
+  const edges = useStore((store) => store.edges);
+  const said = useStore(shapesSaidOnce);
+  const store = useStoreApi();
   if (!from || !to || !data) return null;
-  const route = routeOf(rectOf(from), rectOf(to));
+  const route =
+    routesIn(edges, said, store.getState().nodeLookup).get(id) ?? routeOf(rectOf(from), rectOf(to));
   const ends = [
     { key: "start", said: data.startLabel, at: endWordAt(route.from, route.fromSide) },
     { key: "end", said: data.endLabel, at: endWordAt(route.to, route.toSide) },
