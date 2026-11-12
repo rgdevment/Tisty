@@ -74,3 +74,16 @@ fn an_archived_brainstorm_is_left_alone_and_a_new_one_takes_the_ideas() {
     assert_ne!(new.file, old.file);
     assert!(!body(&session, &old.file).contains("otra idea"));
 }
+
+#[test]
+fn an_idea_past_its_length_is_refused_and_nothing_is_written() {
+    let (_tmp, mut session) = session();
+    let long = "a".repeat(tisty_core::brainstorm::IDEA_AT_MOST + 1);
+
+    let refused = jotting(&mut session, &long, "Lluvia de ideas", at(7), 0).unwrap_err();
+
+    assert_eq!(refused.code, "ideaTooLong");
+    assert!(session.state.docs.is_empty());
+    let fits = "a".repeat(tisty_core::brainstorm::IDEA_AT_MOST);
+    assert!(jotting(&mut session, &fits, "Lluvia de ideas", at(7), 0).is_ok());
+}

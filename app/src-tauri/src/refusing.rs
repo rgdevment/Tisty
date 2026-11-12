@@ -189,6 +189,7 @@ impl Refusal {
 
 const REFUSALS: &[&str] = &[
     "untitled",
+    "ideaTooLong",
     "noSuchList",
     "ambiguousList",
     "badTag",

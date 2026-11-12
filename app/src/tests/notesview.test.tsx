@@ -98,4 +98,14 @@ describe("a brainstorm shown as notes", () => {
     expect(screen.getAllByRole("textbox")).toHaveLength(2);
     expect(onWrite).not.toHaveBeenCalled();
   });
+
+  it("holds an idea to 140 characters and counts down the last twenty", () => {
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={() => {}} />);
+    const [newest] = screen.getAllByRole("textbox");
+
+    expect(newest.getAttribute("maxlength")).toBe("140");
+    expect(screen.queryByText("5")).toBeNull();
+    fireEvent.change(newest, { target: { value: "a".repeat(135) } });
+    expect(screen.getByText("5")).toBeTruthy();
+  });
 });

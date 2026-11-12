@@ -7,6 +7,7 @@ import {
   bornHeading,
   colourOf,
   dropped,
+  IDEA_AT_MOST,
   type Note,
   ordered,
   rewritten,
@@ -14,6 +15,7 @@ import {
   shapeOf,
   shifted,
 } from "../notes";
+import { Left } from "./Field";
 
 interface Props {
   title: string;
@@ -232,6 +234,7 @@ function Sticky({
     if (focused) words.current?.focus();
   }, [focused]);
   const lines = note.text.split("\n").length;
+  const [used, setUsed] = useState(note.text.length);
   const nudge = shape.nudge * 6;
 
   return (
@@ -279,10 +282,17 @@ function Sticky({
           aria-label={t("notesWords")}
           aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
           defaultValue={note.text}
+          maxLength={IDEA_AT_MOST}
+          onChange={(e) => setUsed(e.currentTarget.value.length)}
           rows={Math.max(3, lines + 1)}
           onBlur={(e) => onText(e.currentTarget.value.trim())}
           className="sticky-words"
         />
+      )}
+      {!reading && (
+        <span className="sticky-left">
+          <Left most={IDEA_AT_MOST} used={used} />
+        </span>
       )}
       {!reading && (
         <button type="button" onClick={onDrop} className="sticky-drop" aria-label={t("notesDrop")}>

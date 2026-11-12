@@ -164,6 +164,13 @@
   user-select: text;
 }
 
+.sticky-left {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-family: var(--font-small);
+}
+
 .sticky-drop {
   position: absolute;
   top: 4px;

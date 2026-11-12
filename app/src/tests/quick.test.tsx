@@ -157,6 +157,16 @@ describe("capturing without the window", () => {
     expect(t("taskExamples").split("\n")).toContain(field.getAttribute("placeholder"));
   });
 
+  it("holds an idea to 140 characters, a task to none", async () => {
+    render(<Quick />);
+    const task = await screen.findByRole("textbox");
+    expect(task.getAttribute("maxlength")).toBeNull();
+
+    await userEvent.keyboard("{Tab}");
+
+    expect(screen.getByRole("textbox").getAttribute("maxlength")).toBe("140");
+  });
+
   it("drops a loose idea in the brainstorm instead of filing a task, after Tab", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { t } from "../locales";
+import { IDEA_AT_MOST } from "../notes";
 import { saidPlainly } from "../refusal";
 import Field from "./Field";
 
@@ -15,6 +16,7 @@ export default function IdeaField({ onJot, onError }: Props) {
       icon="✎"
       value={text}
       hint={t("jotIdea")}
+      most={IDEA_AT_MOST}
       onChange={setText}
       onSubmit={() =>
         onJot(text)

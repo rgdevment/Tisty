@@ -13,6 +13,8 @@ const FENCE = /^(```|~~~)/;
 const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?: · [a-z]+)?$/;
 const PAINTED = / · ([a-z]+)$/;
 
+export const IDEA_AT_MOST = 140;
+
 export const COLOURS = [
   "pink",
   "coral",

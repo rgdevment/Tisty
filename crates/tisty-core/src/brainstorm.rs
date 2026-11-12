@@ -10,6 +10,8 @@ pub fn opening(title: &str) -> String {
     )
 }
 
+pub const IDEA_AT_MOST: usize = 140;
+
 pub const COLOURS: [&str; 12] = [
     "pink", "coral", "orange", "yellow", "lime", "green", "teal", "cyan", "blue", "lavender",
     "violet", "magenta",

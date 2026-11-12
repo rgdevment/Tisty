@@ -42,6 +42,12 @@ pub fn jotting(
     if idea.trim().is_empty() {
         return Err(Refusal::of("untitled"));
     }
+    if idea.trim().chars().count() > tisty_core::brainstorm::IDEA_AT_MOST {
+        return Err(Refusal::about(
+            "ideaTooLong",
+            tisty_core::brainstorm::IDEA_AT_MOST.to_string(),
+        ));
+    }
     let root = session.paths.docs();
     let (file, made) = match tisty_core::brainstorm::find(&root, &session.state) {
         Some(one) => (one.file.clone(), false),
