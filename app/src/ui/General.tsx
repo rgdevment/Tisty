@@ -3,11 +3,9 @@ import {
   guide,
   keepClosing,
   keepLocale,
-  keepShortcut,
   keepTheme,
   type Settings,
   shortcut,
-  shortcutsOffered,
   type Theme,
   type Waking,
   wakeFor,
@@ -16,6 +14,7 @@ import { adopt, fill, t } from "../locales";
 import { QUIET, switched, tell as tellBeaver } from "./Beaver";
 import type { Run, Which, Word } from "./Card";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
+import ShortcutLine from "./ShortcutLine";
 import Signing, { type Signs } from "./Signing";
 
 interface Props {
@@ -56,11 +55,11 @@ export default function General({
   onDoc,
 }: Props) {
   const held = busy !== null;
-  const [offered, setOffered] = useState<string[]>([]);
   const chosenOff = kept?.quickKeys === "off";
+  const [ideaKeys, setIdeaKeys] = useState<string | null>(null);
   useEffect(() => {
-    shortcutsOffered()
-      .then((all) => setOffered(all ?? []))
+    shortcut("idea")
+      .then(setIdeaKeys)
       .catch(() => {});
   }, []);
   return (
@@ -202,42 +201,38 @@ export default function General({
           </Line>
         )}
 
-        <Line
+        <ShortcutLine
+          door="task"
+          which="quick"
           title={t("quick")}
           why={keys ? fill("quickOn", keys) : t(chosenOff ? "quickOff" : "quickNone")}
-          which="quick"
+          label={t("quickKeys")}
+          ready={Boolean(kept)}
+          keys={keys}
+          chosen={kept?.quickKeys}
+          held={held}
           said={said}
           trouble={trouble}
-        >
-          {kept && (
-            <select
-              aria-label={t("quickKeys")}
-              value={keys ?? (chosenOff ? "off" : "")}
-              disabled={held}
-              onChange={(e) => {
-                const wanted = e.target.value;
-                run(
-                  "quick",
-                  keepShortcut(wanted).finally(() => {
-                    shortcut()
-                      .then(setKeys)
-                      .catch(() => {});
-                  }),
-                  () => setKept({ ...kept, quickKeys: wanted }),
-                );
-              }}
-              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-            >
-              {offered.map((one) => (
-                <option key={one} value={one}>
-                  {one}
-                </option>
-              ))}
-              <option value="off">{t("quickKeysOff")}</option>
-              {!keys && !chosenOff && <option value="" disabled hidden />}
-            </select>
-          )}
-        </Line>
+          run={run}
+          onKeys={setKeys}
+          onChosen={(wanted) => kept && setKept({ ...kept, quickKeys: wanted })}
+        />
+        <ShortcutLine
+          door="idea"
+          which="jot"
+          title={t("quickIdea")}
+          why={ideaKeys ? fill("quickIdeaOn", ideaKeys) : t("quickIdeaOff")}
+          label={t("quickIdeaKeys")}
+          ready={Boolean(kept)}
+          keys={ideaKeys}
+          chosen={kept?.ideaKeys}
+          held={held}
+          said={said}
+          trouble={trouble}
+          run={run}
+          onKeys={setIdeaKeys}
+          onChosen={(wanted) => kept && setKept({ ...kept, ideaKeys: wanted })}
+        />
       </div>
 
       <Signing busy={busy} said={said} trouble={trouble} run={run} tell={tell} signs={signs} />

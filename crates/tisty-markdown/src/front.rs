@@ -120,14 +120,24 @@ pub struct Laid {
     pub landscape: bool,
 }
 
+fn said_in(all: &[Field], key: &str) -> Option<String> {
+    all.iter()
+        .find(|one| one.key.eq_ignore_ascii_case(key))
+        .and_then(|one| one.values.first())
+        .map(|one| one.to_lowercase())
+}
+
+pub fn noted(text: &str) -> bool {
+    said_in(&fields(text), "view").as_deref() == Some("notes")
+}
+
+pub fn brainstorm(text: &str) -> bool {
+    said_in(&fields(text), "brainstorm").as_deref() == Some("on")
+}
+
 pub fn laid(text: &str) -> Laid {
     let all = fields(text);
-    let said = |key: &str| {
-        all.iter()
-            .find(|one| one.key.eq_ignore_ascii_case(key))
-            .and_then(|one| one.values.first())
-            .map(|one| one.to_lowercase())
-    };
+    let said = |key: &str| said_in(&all, key);
     let sheets = said("sheets").as_deref() == Some("on");
     Laid {
         paper: said("paper").and_then(|asked| PAPERS.into_iter().find(|one| *one == asked)),

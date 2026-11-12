@@ -8,6 +8,7 @@ interface Props {
   value: string;
   hint: string;
   marks?: Mark[];
+  most?: number;
   onChange: (value: string) => void;
   onSubmit?: () => void;
 }
@@ -24,6 +25,7 @@ export default function Field({
   value,
   hint,
   marks,
+  most,
   onChange,
   onSubmit,
 }: Props) {
@@ -47,6 +49,7 @@ export default function Field({
           value={value}
           placeholder={hint}
           aria-label={hint}
+          maxLength={most}
           onChange={(e) => onChange(e.target.value)}
           onScroll={(e) => setShift(e.currentTarget.scrollLeft)}
           className={`relative w-full bg-transparent text-[13px] leading-5 outline-none placeholder:text-faint ${
@@ -54,7 +57,23 @@ export default function Field({
           }`}
         />
       </div>
+      {most !== undefined && <Left most={most} used={value.length} />}
     </form>
+  );
+}
+
+const SHOWN_FROM = 20;
+
+export function Left({ most, used }: { most: number; used: number }) {
+  const left = most - used;
+  if (left > SHOWN_FROM) return null;
+  return (
+    <span
+      aria-live="polite"
+      className={`shrink-0 text-[11.5px] ${left <= 0 ? "text-urgent" : "text-faint"}`}
+    >
+      {left}
+    </span>
   );
 }
 

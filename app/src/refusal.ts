@@ -20,6 +20,7 @@ const KNOWN = [
   "updateFailed",
   "updateUnanswered",
   "untitled",
+  "ideaTooLong",
   "noSuchList",
   "ambiguousList",
   "badTag",

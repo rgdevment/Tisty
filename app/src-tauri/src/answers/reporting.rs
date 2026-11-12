@@ -202,7 +202,7 @@ pub fn facts(
             .map(|at| at.shown().to_string()),
         backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
         quiet: session.config.muted().to_vec(),
-        shortcut: bound.0.lock().ok().and_then(|now| now.clone()),
+        shortcut: bound.held(crate::quick_keys::Door::Task),
         installed: report::installed(crate::update::route().route, crate::update::from_a_mount()),
         assistant: session.seated_agent().is_some(),
     })

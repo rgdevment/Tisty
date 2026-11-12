@@ -47,6 +47,15 @@ The first line of the document is its title — there is no name to fill in.
 
 `Ctrl`/`⌘` + `X` and `V` move a document between folders.
 
+## Brainstorm
+
+An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Brainstorm**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
+
+- **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, write in it by hand, archive it or export it like any other.
+- **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
+- **The file is still Markdown.** Each note is a section headed by the day and the minute it came, and its colour, chosen when it is made and kept wherever you move it, and **Show Markdown** shows the text, only to read: an idea is plain words, so tables and diagrams belong in a document of their own. Any document with `view: notes` in its [properties](https://markdown.tisty.app/properties) shows the same way.
+- **Sort them out later**: move what deserves it to the document of its subject, or turn it into a task, and take it off the sheet.
+
 ## Folders
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.

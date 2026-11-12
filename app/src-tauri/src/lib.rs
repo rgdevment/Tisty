@@ -907,6 +907,7 @@ pub(crate) fn opened(
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
     let session_keys = session.config.quick_keys.clone();
+    let idea_keys = session.config.idea_keys.clone();
     let came_back = back_from_an_update(&mut session);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
@@ -920,10 +921,10 @@ pub(crate) fn opened(
     tray::follow_bar(app.clone());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
-    app.manage(quick_keys::Bound(Mutex::new(quick_keys::listen_for(
-        app,
-        session_keys.as_deref(),
-    ))));
+    app.manage(quick_keys::Bound::new(
+        quick_keys::listen_for(app, quick_keys::Door::Task, session_keys.as_deref()),
+        quick_keys::listen_for(app, quick_keys::Door::Idea, idea_keys.as_deref()),
+    ));
 
     {
         let held = app.state::<Mutex<Session>>();
@@ -1298,6 +1299,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_write,
         answers::papers::doc_order,
         answers::papers::doc_new,
+        answers::brainstorming::jot,
+        answers::brainstorming::brainstorm_of,
         answers::papers::doc_page,
         answers::tongues::doc_translate,
         answers::tongues::doc_tongue,

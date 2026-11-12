@@ -60,7 +60,7 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "capture" => quicken(app),
+            "capture" => quicken(app, "task"),
             "show" => surface(app),
             "quit" => crate::desktop::parting(app),
             _ => {}
@@ -174,15 +174,15 @@ fn dark_bar() -> bool {
     true
 }
 
-pub fn quicken<R: Runtime>(app: &AppHandle<R>) {
+pub fn quicken<R: Runtime>(app: &AppHandle<R>, door: &str) {
     let Some(window) = app.get_webview_window("quick") else {
         return;
     };
-    if window.is_visible().unwrap_or(false) {
-        tuck(app);
-        return;
+    let again = window.is_visible().unwrap_or(false);
+    if !again {
+        bring(&window);
     }
-    bring(&window);
+    let _ = window.emit("door", serde_json::json!({ "door": door, "again": again }));
 }
 
 pub fn sow<R: Runtime>(app: &AppHandle<R>, priority: Option<String>) {

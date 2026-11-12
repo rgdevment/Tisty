@@ -20,6 +20,26 @@
   --tisty-docs-head: 30px;
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.16), 0 2px 8px rgb(0 0 0 / 0.08);
+  --tisty-note-0: #feb2b9;
+  --tisty-note-1: #fea284;
+  --tisty-note-2: #fbb974;
+  --tisty-note-3: #f3dd7b;
+  --tisty-note-4: #bce671;
+  --tisty-note-5: #90cd95;
+  --tisty-note-6: #6ed0c0;
+  --tisty-note-7: #87ddf1;
+  --tisty-note-8: #83bff6;
+  --tisty-note-9: #bdc3fe;
+  --tisty-note-10: #bc95e5;
+  --tisty-note-11: #f5a3db;
+  --tisty-brain: #c2336b;
+  --tisty-pin-0: #d4343a;
+  --tisty-pin-1: #2f6fe0;
+  --tisty-pin-2: #c98a00;
+  --tisty-pin-3: #16824c;
+  --tisty-pin-needle: #5c636b;
+  --tisty-note-ink: #2a2520;
+  --tisty-note-tape: rgb(70 62 48 / 0.22);
 }
 
 [data-theme="dark"] {
@@ -37,6 +57,26 @@
   --tisty-veil: rgb(0 0 0 / 0.55);
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.62), 0 2px 8px rgb(0 0 0 / 0.45);
+  --tisty-note-0: #ae4c61;
+  --tisty-note-1: #9e4331;
+  --tisty-note-2: #a25e24;
+  --tisty-note-3: #896a10;
+  --tisty-note-4: #5f7723;
+  --tisty-note-5: #206f3c;
+  --tisty-note-6: #19746b;
+  --tisty-note-7: #1c788e;
+  --tisty-note-8: #155d9f;
+  --tisty-note-9: #645fb3;
+  --tisty-note-10: #623586;
+  --tisty-note-11: #974180;
+  --tisty-brain: #f27aa8;
+  --tisty-pin-0: #ff6369;
+  --tisty-pin-1: #5ea2ff;
+  --tisty-pin-2: #ffc457;
+  --tisty-pin-3: #3dd68c;
+  --tisty-pin-needle: #c3c8ce;
+  --tisty-note-ink: #fbf5ea;
+  --tisty-note-tape: rgb(255 255 255 / 0.26);
 }
 
 @theme inline {
@@ -47,6 +87,7 @@
   --font-display:
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui,
     sans-serif;
+  --font-hand: "Ink Free", "Segoe Print", Noteworthy, "Bradley Hand", "Marker Felt", cursive;
 
   --color-bg: var(--tisty-bg);
   --color-rail: var(--tisty-rail);
@@ -1552,4 +1593,8 @@ label[for] {
 
 html[data-previewing] [data-chrome] {
   display: none;
+}
+
+.brainstorm-mark {
+  color: var(--tisty-brain);
 }

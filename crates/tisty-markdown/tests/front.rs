@@ -108,6 +108,17 @@ fn the_paper_and_the_sheets_are_read_as_the_window_reads_them() {
     assert_eq!(loose, front::Laid::default());
 }
 
+#[test]
+fn the_notes_view_and_the_brainstorm_are_asked_by_their_own_words_in_any_capitals() {
+    let both = "---\nview: Notes\nbrainstorm: ON\n---\n# Ideas";
+    assert!(front::noted(both));
+    assert!(front::brainstorm(both));
+    let neither = "---\nview: list\nbrainstorm: off\n---\n# Ideas";
+    assert!(!front::noted(neither));
+    assert!(!front::brainstorm(neither));
+    assert!(!front::brainstorm("# Ideas\n\nbrainstorm: on\n"));
+}
+
 fn limit(name: &str) -> usize {
     let contract: serde_json::Value =
         serde_json::from_str(tisty_contracts::CONTRACT).expect("the contract is JSON");

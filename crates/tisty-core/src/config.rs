@@ -414,6 +414,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quick_keys: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idea_keys: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags_read: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dressed: Option<bool>,
@@ -481,6 +483,7 @@ impl Config {
             knock_heard: None,
             door_chosen: None,
             quick_keys: None,
+            idea_keys: None,
             tags_read: None,
             dressed: None,
             took_quietly: None,
