@@ -11,7 +11,7 @@
   position: relative;
   width: 168px;
   min-height: 132px;
-  padding: 24px 14px 14px;
+  padding: 24px 14px 30px;
   border-radius: 6px;
   background: var(--tisty-note-0);
   color: var(--tisty-note-ink);
@@ -166,22 +166,35 @@
 
 .sticky-left {
   position: absolute;
-  right: 10px;
-  bottom: 6px;
+  left: 14px;
+  bottom: 8px;
   font-family: var(--font-small);
 }
 
-.sticky-drop {
+.sticky-tools {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 6px;
-  font-size: 13px;
+  display: flex;
+  gap: 2px;
   opacity: 0;
+  transition: opacity 0.15s;
+}
+.sticky-tools button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 13px;
   color: inherit;
 }
-.sticky-note:hover .sticky-drop,
-.sticky-drop:focus-visible {
-  opacity: 0.7;
+.sticky-tools button:hover {
+  background: var(--tisty-active);
+}
+.sticky-note:hover .sticky-tools,
+.sticky-tools:focus-within {
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: reduce) {

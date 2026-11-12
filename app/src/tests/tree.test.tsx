@@ -1206,6 +1206,32 @@ describe("the brainstorm", () => {
     expect(within(tree).getAllByText("Suelto")).toHaveLength(1);
   });
 
+  it("counts the ideas still waiting beside its name, and says nothing when there are none", () => {
+    const { rerender } = render(
+      <Tree
+        papers={papers}
+        pinned="a3f1-0003"
+        ideas={3}
+        unfolded
+        onOpen={() => {}}
+        onFile={() => {}}
+      />,
+    );
+
+    expect(screen.getByTitle("3 ideas waiting to be sorted out").textContent).toBe("3");
+    rerender(
+      <Tree
+        papers={papers}
+        pinned="a3f1-0003"
+        ideas={0}
+        unfolded
+        onOpen={() => {}}
+        onFile={() => {}}
+      />,
+    );
+    expect(screen.queryByTitle(/ideas waiting/)).toBeNull();
+  });
+
   it("is not pinned when it was put away", () => {
     render(
       <Tree papers={papers} pinned="a3f1-0005" unfolded onOpen={() => {}} onFile={() => {}} />,

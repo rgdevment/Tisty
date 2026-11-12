@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
-import { brainstormOf } from "../brainstorm";
+import { brainstormOf, type Pinned } from "../brainstorm";
 import type { Filed, Folded, Papers } from "../core";
 import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
@@ -155,7 +155,8 @@ function Wide({
           <div className={nothing ? "hidden" : undefined}>
             <Tree
               papers={left}
-              pinned={pinned}
+              pinned={pinned?.file ?? null}
+              ideas={pinned?.ideas}
               reveal={revealing}
               unfolded={Boolean(asked)}
               open={chosen.doc}
@@ -216,12 +217,12 @@ function Sift({
   );
 }
 
-function usePinned(papers: Papers): string | null {
-  const [pinned, setPinned] = useState<string | null>(null);
+function usePinned(papers: Papers): Pinned | null {
+  const [pinned, setPinned] = useState<Pinned | null>(null);
   useEffect(() => {
     let current = true;
     brainstormOf()
-      .then((file) => current && setPinned(file))
+      .then((found) => current && setPinned(found))
       .catch(() => current && setPinned(null));
     return () => {
       current = false;

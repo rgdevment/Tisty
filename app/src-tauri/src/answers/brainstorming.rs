@@ -26,20 +26,73 @@ pub fn jot(
     )
 }
 
-#[tauri::command(async)]
-pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<String> {
-    found(&mut held(&session))
+#[derive(Debug, serde::Serialize)]
+pub struct Pinned {
+    pub file: String,
+    pub ideas: usize,
 }
 
-fn found(session: &mut Session) -> Option<String> {
-    let file = tisty_core::brainstorm::find(
+#[tauri::command(async)]
+pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<Pinned> {
+    let mut session = held(&session);
+    let (file, body) = found(&mut session)?;
+    Some(Pinned {
+        ideas: tisty_core::brainstorm::ideas(&body),
+        file,
+    })
+}
+
+#[tauri::command(async)]
+pub fn idea_to_doc(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    idea: String,
+    from: String,
+) -> Answer<()> {
+    filing(
+        &mut held(&session),
+        &file,
+        &idea,
+        &from,
+        jiff::Zoned::now().date(),
+    )
+}
+
+pub fn filing(
+    session: &mut Session,
+    file: &str,
+    idea: &str,
+    from: &str,
+    on: jiff::civil::Date,
+) -> Answer<()> {
+    if idea.trim().is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    if !session.state.docs.values().any(|one| one.file == file) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
+    super::papers::writable(&session.state, file)?;
+    let whole = tisty_core::docs::append(
+        &session.paths.docs(),
+        file,
+        &tisty_core::brainstorm::filed(idea, from, on),
+    )
+    .map_err(super::papers::unwritten)?;
+    session.corpus.forget(file);
+    let hand = signing(&session.state);
+    session.retell(file, &whole, hand);
+    Ok(())
+}
+
+fn found(session: &mut Session) -> Option<(String, String)> {
+    let kept = tisty_core::brainstorm::find(
         &session.paths.docs(),
         &session.state,
         session.brainstorm.as_deref(),
     )
-    .map(|one| one.file.clone());
-    session.brainstorm.clone_from(&file);
-    file
+    .map(|(one, body)| (one.file.clone(), body));
+    session.brainstorm = kept.as_ref().map(|(file, _)| file.clone());
+    kept
 }
 
 pub fn jotting(
@@ -59,13 +112,15 @@ pub fn jotting(
         ));
     }
     let root = session.paths.docs();
-    let (file, made) = match found(session) {
-        Some(file) => (file, false),
-        None => (made_anew(session, title)?, true),
+    let (file, was, made) = match found(session) {
+        Some((file, body)) => (file, body, false),
+        None => {
+            let file = made_anew(session, title)?;
+            (file, tisty_core::brainstorm::opening(title), true)
+        }
     };
     super::papers::writable(&session.state, &file)?;
     session.brainstorm = Some(file.clone());
-    let was = tisty_core::docs::read(&root, &file).unwrap_or_default();
     let colour = tisty_core::brainstorm::coloured(&was, roll);
     let whole = tisty_core::docs::append(
         &root,
