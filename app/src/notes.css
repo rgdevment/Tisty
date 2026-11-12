@@ -43,6 +43,18 @@
 .sticky-note[data-hue="7"] {
   background: var(--tisty-note-7);
 }
+.sticky-note[data-hue="8"] {
+  background: var(--tisty-note-8);
+}
+.sticky-note[data-hue="9"] {
+  background: var(--tisty-note-9);
+}
+.sticky-note[data-hue="10"] {
+  background: var(--tisty-note-10);
+}
+.sticky-note[data-hue="11"] {
+  background: var(--tisty-note-11);
+}
 .sticky-note[data-wide="1"] {
   width: 184px;
 }

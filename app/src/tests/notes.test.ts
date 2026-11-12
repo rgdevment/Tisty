@@ -90,7 +90,7 @@ describe("a note's look", () => {
 
   it("spreads its colours and its tape or pin across many notes", () => {
     const many = Array.from({ length: 60 }, (_, nth) => shapeOf("2026-11-12 00:10", nth));
-    expect(new Set(many.map((one) => one.hue)).size).toBe(8);
+    expect(new Set(many.map((one) => one.hue)).size).toBe(12);
     expect(new Set(many.map((one) => one.hold)).size).toBe(4);
     for (const one of many) {
       expect(Math.abs(one.tilt)).toBeLessThanOrEqual(7);

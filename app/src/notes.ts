@@ -115,7 +115,7 @@ export function shapeOf(heading: string, nth = 0): Shape {
   const pick = (salt: number, range: number) => mixed(seed, salt) % range;
   return {
     tilt: pick(1, 15) - 7,
-    hue: pick(2, 8),
+    hue: pick(2, 12),
     wide: pick(3, 4),
     drop: pick(4, 6),
     nudge: pick(5, 7) - 3,
