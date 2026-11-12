@@ -9,16 +9,20 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Everything a task holds: description, steps, journal (note ids for `reword_note`), parts, files and its `document` page. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
+  "description": "Everything a task holds: steps, its `document` page with the description and your notes, the latest journal notes (ids for `reword_note`) and who wrote them, parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "fields": {
-        "description": "Only these, the id always: title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document",
+        "description": "Only these keys of the answer; the id always comes",
         "items": {
           "type": "string"
         },
         "type": "array"
+      },
+      "notes": {
+        "description": "How many of the latest journal notes, 10 by default; 0 for all",
+        "type": "integer"
       },
       "task": {
         "description": "The task id",

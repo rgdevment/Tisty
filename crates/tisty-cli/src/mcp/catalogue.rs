@@ -12,6 +12,8 @@ that is wrong in place instead of adding beside it; adding is for logs and minut
 has a place, a list for a task and a folder for a document; ask when none fits.\n\
 - Work on a ticket — progress, reviews, audits — lives on its task's page and parts; a document \
 holds what outlasts it. When the person asks for a document, write one.\n\
+- Across sessions: `catch_up` first, `read` the task you were on, `tick` and `note` as you go, \
+what you ruled out too, then `say_done`.\n\
 - File a task with its `source` when you have one: Tisty refuses a second one from it.\n\
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.\n\
 - A refused call says why and what would work: do that, never resend it unchanged.\n\
@@ -23,9 +25,7 @@ done, the archive).\n\
 - Writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
 Markdown, one topic at a time.\n\
 - Tidying, consolidating or compacting: `rules` «tidying».\n\
-- Anything else: `rules` alone gives the basics and this index again.\n\
-A person who asks how to write something is pointed to https://markdown.tisty.app (Spanish under \
-/es/).";
+- Anything else: `rules` alone gives the basics and this index again.";
 
 const TAUGHT: &str = "\
 ## What Tisty is, and your place in it
@@ -222,9 +222,21 @@ digest — state, decisions, what was ruled out, references — never with a box
 step: what is still to do becomes `plan` or a part. The journal is not compacted; it is the \
 dated history, and `reword_note` mends only what is wrong.
 
+## Picking up where you left off
+
+A session starts with `catch_up`, without `since`: it says what moved since you were last here \
+— your last `catch_up`, or your last change if you never asked — and who moved it, twenty of \
+each in the order they moved, the next `catch_up` bringing the rest; and it names in `last` the \
+open task you were on. `read` that task — its \
+steps, its page and its latest notes — before anything else, rather than starting over. Work \
+it as you go: `tick` each step the moment it is done, and `note` what you did, what you tried \
+and ruled out and why, and what comes next, so the next session starts where this one stopped. \
+When every step is done and the work holds, `say_done` with the proof; a decision that outlasts \
+the task goes in its document.
+
 ## Documents
 
-Start with `catch_up`, which says where things stand and what moved since you last asked; \
+Start with `catch_up`, which says where things stand and what moved since you were last here; \
 `docs` lists the documents and folders. Before opening a document see whether it carries a \
 `gist`, an earlier reader's summary: it helps you choose, never stands in for the text, and one \
 marked `stale` was written against an older version. After reading a long document, leave yours \
@@ -369,6 +381,7 @@ const TOPICS: &[(&str, &[&str])] = &[
             "Filing tasks",
             "The tasks you may work on",
             "A task's page",
+            "Picking up where you left off",
         ],
     ),
     (
@@ -387,7 +400,8 @@ const INDEX: &str = "\
 ## What else to ask for
 
 - `rules` «tasks»: what a task is made of, filing it, steps and parts, dates and reminders, \
-priority, saying done, its page, and the archive as knowledge to search.
+priority, saying done, its page, picking up across sessions, and the archive as knowledge to \
+search.
 - `rules` «documents»: one living document per subject, folders and pages, reading by parts, \
 updating before adding, marking what has had its day, and writing.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \

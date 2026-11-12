@@ -165,7 +165,15 @@ pub fn lines(task: &Task, list: Option<&str>) -> Vec<String> {
 }
 
 pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
-    let ticked = crate::stages::ticked(task, body);
+    dressed_boxes(body, task, list).0
+}
+
+pub fn dressed_boxes(
+    body: &str,
+    task: &Task,
+    list: Option<&str>,
+) -> (String, Vec<crate::model::StepId>) {
+    let (ticked, boxed) = crate::stages::ticked_boxes(task, body);
     let body = ticked.as_str();
     let (others, rest) = match tisty_markdown::front::span(body) {
         Some(at) => (theirs(&body[at.clone()]), &body[at.end..]),
@@ -173,7 +181,7 @@ pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
     };
     let mut block = lines(task, list);
     block.extend(others);
-    format!("---\n{}\n---\n{rest}", block.join("\n"))
+    (format!("---\n{}\n---\n{rest}", block.join("\n")), boxed)
 }
 
 fn theirs(block: &str) -> Vec<String> {

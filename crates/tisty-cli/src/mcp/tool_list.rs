@@ -422,10 +422,10 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
-            "description": "Where things stand: the lists, folders and tags in use, counts, the latest documents, and a `cursor`; sent back as `since`, it adds what moved since, by anyone. Ask it first and on coming back, instead of `lists`, `tags` and `docs`.",
+            "description": "Where things stand: lists, folders, top tags, counts, the latest documents and a `cursor`; then what moved since you were last here, by anyone, and `last`, the open task you were on. Ask it first, instead of `lists`, `tags` and `docs`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`" }
+                    "since": { "type": "string", "description": "A `cursor` from a previous `catch_up`, to count from there instead" }
                 }
             }))
         },
@@ -493,15 +493,16 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything a task holds: description, steps, journal (note ids for `reword_note`), parts, files and its `document` page. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
+            "description": "Everything a task holds: steps, its `document` page with the description and your notes, the latest journal notes (ids for `reword_note`) and who wrote them, parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these, the id always: title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document"
-                    }
+                        "description": "Only these keys of the answer; the id always comes"
+                    },
+                    "notes": { "type": "integer", "description": "How many of the latest journal notes, 10 by default; 0 for all" }
                 },
                 "required": ["task"]
             }))
@@ -541,7 +542,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "The rules for working here, by topic",
-            "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask «tasks» before filing or working a task, «documents» before writing one, «tidying» before compacting.",
+            "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
@@ -598,7 +599,7 @@ fn named_doc_field() -> Value {
 fn kept_compaction_field() -> Value {
     json!({
         "type": "boolean",
-        "description": "The person told you in this conversation to keep the compaction awaiting their word"
+        "description": "Only on the person's word: `rules` «tidying»"
     })
 }
 

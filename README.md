@@ -253,9 +253,10 @@ Something you will do is a task. Something you will come back to is a document.
 
 What an agent connected to Tisty does with all that, on a real piece of work:
 
-1. **It asks what moved** since the last session, instead of rereading
-   everything.
-2. **It opens the task it is on.** *Done when* says when it is finished, and
+1. **It asks what moved** since its last session, and who moved it, instead
+   of rereading everything.
+2. **It opens the task it was on**, which Tisty names for it. *Done when* says
+   when it is finished, and
    the unticked steps say what is left.
 3. **It searches the archive before proposing anything.** If it was solved
    before, it starts from there.
@@ -388,9 +389,10 @@ deleting to you. Each tool is described in
   `catch_up`, `lists`, `tags`
 - **How to work here** — `rules`, `language`, `help`
 
-Beside the tools, it offers four ready-made requests your assistant shows as
-commands (`pick_up`, `plan_task`, `solved_before`, `keep_decision`), and your
-documents to mention with `@`, a long one as its outline.
+Beside the tools, it offers five ready-made requests your assistant shows as
+commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
+`keep_decision`), and your documents to mention with `@`, a long one as its
+outline.
 
 ## Why I Built This
 

@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask «tasks» before filing or working a task, «documents» before writing one, «tidying» before compacting.",
+  "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

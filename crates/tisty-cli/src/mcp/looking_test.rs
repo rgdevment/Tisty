@@ -1,5 +1,6 @@
 use super::*;
 use tisty_core::model::{DateSpec, Status};
+use ulid::Ulid;
 
 // Written as text, a case a line, so adding one is a line and never a copy of a test.
 const TASKS: &str = "

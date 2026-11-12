@@ -8,6 +8,7 @@ Tisty is one person's tasks and documents, on this machine.
 - Never show an id: name a task or a document by its title and its list or folder.
 - Update, do not pile up: `find` first, it searches the archive too, then change the passage that is wrong in place instead of adding beside it; adding is for logs and minutes. Everything has a place, a list for a task and a folder for a document; ask when none fits.
 - Work on a ticket — progress, reviews, audits — lives on its task's page and parts; a document holds what outlasts it. When the person asks for a document, write one.
+- Across sessions: `catch_up` first, `read` the task you were on, `tick` and `note` as you go, what you ruled out too, then `say_done`.
 - File a task with its `source` when you have one: Tisty refuses a second one from it.
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.
 - A refused call says why and what would work: do that, never resend it unchanged.
@@ -18,4 +19,3 @@ Before you act, ask for the short guide it needs:
 - Writing or changing a document: `rules` «documents», and `language` for what Tisty adds to Markdown, one topic at a time.
 - Tidying, consolidating or compacting: `rules` «tidying».
 - Anything else: `rules` alone gives the basics and this index again.
-A person who asks how to write something is pointed to https://markdown.tisty.app (Spanish under /es/).
