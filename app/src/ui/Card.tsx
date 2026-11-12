@@ -8,6 +8,7 @@ export type Which =
   | "review"
   | "machines"
   | "quick"
+  | "jot"
   | "waking"
   | "settings"
   | "notices"
@@ -52,6 +53,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   review: "review",
   machines: "theMachines",
   quick: "quick",
+  jot: "quickIdea",
   waking: "wake",
   greet: "greetAgain",
   tongue: "tongue",

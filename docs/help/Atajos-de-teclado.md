@@ -6,6 +6,8 @@ Toda la ventana funciona con el teclado.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea desde cualquier parte, sin abrir la ventana |
 | `Enter` (en la captura rápida) | Guardar la tarea |
+| `Ctrl` + `Alt` + `I` (si lo eliges en Configuración) | Anotar una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) desde cualquier parte |
+| `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) |
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea en que estás; en un documento que estás escribiendo, un salto de página |
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` (escribiendo un bloque) | Saltar de línea sin empezar un párrafo |

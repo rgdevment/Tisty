@@ -1,0 +1,204 @@
+.notes-wall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px 6px;
+  padding-top: 28px;
+}
+
+.sticky-note {
+  position: relative;
+  width: 168px;
+  min-height: 132px;
+  padding: 24px 14px 30px;
+  border-radius: 6px;
+  background: var(--tisty-note-0);
+  color: var(--tisty-note-ink);
+  box-shadow: var(--tisty-lift);
+  cursor: grab;
+  user-select: none;
+  transition:
+    rotate 0.15s,
+    scale 0.15s;
+}
+.sticky-note[data-hue="1"] {
+  background: var(--tisty-note-1);
+}
+.sticky-note[data-hue="2"] {
+  background: var(--tisty-note-2);
+}
+.sticky-note[data-hue="3"] {
+  background: var(--tisty-note-3);
+}
+.sticky-note[data-hue="4"] {
+  background: var(--tisty-note-4);
+}
+.sticky-note[data-hue="5"] {
+  background: var(--tisty-note-5);
+}
+.sticky-note[data-hue="6"] {
+  background: var(--tisty-note-6);
+}
+.sticky-note[data-hue="7"] {
+  background: var(--tisty-note-7);
+}
+.sticky-note[data-hue="8"] {
+  background: var(--tisty-note-8);
+}
+.sticky-note[data-hue="9"] {
+  background: var(--tisty-note-9);
+}
+.sticky-note[data-hue="10"] {
+  background: var(--tisty-note-10);
+}
+.sticky-note[data-hue="11"] {
+  background: var(--tisty-note-11);
+}
+.sticky-note[data-wide="1"] {
+  width: 150px;
+}
+.sticky-note[data-wide="2"] {
+  width: 184px;
+}
+.sticky-note[data-wide="3"] {
+  width: 200px;
+}
+.sticky-note[data-wide="4"] {
+  width: 218px;
+}
+.sticky-note[data-wide="5"] {
+  width: 236px;
+}
+.sticky-note[data-wide="6"] {
+  width: 256px;
+}
+.sticky-note[data-lifted] {
+  z-index: 3;
+  pointer-events: none;
+  cursor: grabbing;
+  scale: 1.06;
+  box-shadow: var(--tisty-lift-tall);
+  transition: scale 0.15s;
+}
+.sticky-note[data-target] {
+  outline: 2px dashed var(--tisty-accent);
+  outline-offset: 6px;
+}
+.sticky-note:hover,
+.sticky-note:focus-within {
+  rotate: 0deg !important;
+  scale: 1.03;
+  z-index: 1;
+}
+
+.sticky-hold {
+  position: absolute;
+  top: -9px;
+  left: var(--along, 50%);
+  width: 64px;
+  height: 18px;
+  translate: -50% 0;
+  rotate: var(--angle, 0deg);
+  background: var(--tisty-note-tape);
+  border: 1px solid var(--tisty-line);
+}
+.sticky-note[data-hold="corner-left"] .sticky-hold {
+  top: 2px;
+  left: -14px;
+  translate: none;
+  rotate: calc(-40deg + var(--angle, 0deg) / 3);
+}
+.sticky-note[data-hold="corner-right"] .sticky-hold {
+  top: 2px;
+  left: auto;
+  right: -14px;
+  translate: none;
+  rotate: calc(40deg + var(--angle, 0deg) / 3);
+}
+.sticky-pin {
+  --pin: var(--tisty-pin-0);
+  position: absolute;
+  top: -16px;
+  left: var(--along, 50%);
+  width: 22px;
+  height: 40px;
+  translate: -50% 0;
+  rotate: calc(var(--angle, 0deg) * 1.5);
+  filter: drop-shadow(3px 4px 2px rgb(0 0 0 / 0.35));
+}
+.sticky-note[data-pin="1"] .sticky-pin {
+  --pin: var(--tisty-pin-1);
+}
+.sticky-note[data-pin="2"] .sticky-pin {
+  --pin: var(--tisty-pin-2);
+}
+.sticky-note[data-pin="3"] .sticky-pin {
+  --pin: var(--tisty-pin-3);
+}
+
+.sticky-when {
+  font-family: var(--font-small);
+  font-size: 11.5px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.sticky-words {
+  display: block;
+  width: 100%;
+  resize: none;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  field-sizing: content;
+  font-family: var(--font-hand);
+  font-size: 16px;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  outline: none;
+  min-height: 3em;
+  cursor: text;
+  user-select: text;
+}
+
+.sticky-left {
+  position: absolute;
+  left: 14px;
+  bottom: 8px;
+  font-family: var(--font-small);
+}
+
+.sticky-tools {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sticky-tools button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: inherit;
+}
+.sticky-tools button:hover {
+  background: var(--tisty-active);
+}
+.sticky-note:hover .sticky-tools,
+.sticky-tools:focus-within {
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticky-note {
+    transition: none;
+  }
+}

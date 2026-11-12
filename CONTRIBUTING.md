@@ -137,6 +137,11 @@ role it was given is wrong, not the scale. A sidebar may sit a role lower on
 the scale than the main canvas does: the same list is peripheral in one and the
 subject in the other.
 
+**One hand.** An idea on a document shown as notes is written in `--font-hand`,
+the handwriting each system already has (Ink Free or Segoe Print, Noteworthy or
+Bradley Hand), at `16`: it is not interface text, and the point is that it looks
+jotted down. Nothing else uses either.
+
 **Three corners.** `rounded-md` for controls, rows and chips; `rounded-[10px]`
 for cards, panels and windows; `rounded-full` for pills.
 

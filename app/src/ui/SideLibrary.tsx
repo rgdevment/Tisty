@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
+import { brainstormOf, type Pinned } from "../brainstorm";
 import type { Filed, Folded, Papers } from "../core";
 import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
@@ -91,6 +92,7 @@ function Wide({
 }: Props & { title: React.ReactNode; hidden: boolean }) {
   const [sifting, setSifting] = useState(false);
   const [query, setQuery] = useState("");
+  const pinned = usePinned(papers);
   const pane = useFades<HTMLDivElement>();
   const scrolled = useRef(0);
   useLayoutEffect(() => {
@@ -153,6 +155,8 @@ function Wide({
           <div className={nothing ? "hidden" : undefined}>
             <Tree
               papers={left}
+              pinned={pinned?.file ?? null}
+              ideas={pinned?.ideas}
               reveal={revealing}
               unfolded={Boolean(asked)}
               open={chosen.doc}
@@ -211,4 +215,18 @@ function Sift({
       </button>
     </form>
   );
+}
+
+function usePinned(papers: Papers): Pinned | null {
+  const [pinned, setPinned] = useState<Pinned | null>(null);
+  useEffect(() => {
+    let current = true;
+    brainstormOf()
+      .then((found) => current && setPinned(found))
+      .catch(() => current && setPinned(null));
+    return () => {
+      current = false;
+    };
+  }, [papers]);
+  return pinned;
 }

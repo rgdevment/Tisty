@@ -97,6 +97,8 @@ pub struct Settings {
     on_close: Option<tisty_core::config::Closing>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     quick_keys: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    idea_keys: Option<String>,
 }
 
 #[tauri::command]
@@ -115,6 +117,7 @@ fn as_settings(session: &Session) -> Settings {
         only_shared_above: session.config.only_shared_above(),
         on_close: session.config.on_close,
         quick_keys: session.config.quick_keys.clone(),
+        idea_keys: session.config.idea_keys.clone(),
     }
 }
 

@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod attaching;
+pub mod brainstorming;
 pub mod calendar;
 pub mod carrying;
 pub mod clouding;
