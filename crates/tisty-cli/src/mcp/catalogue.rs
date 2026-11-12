@@ -385,7 +385,7 @@ writes in the window: plain Markdown plus pens like `==words=={green}`, underlin
 icons `::dog orange::`, callouts, collapsible sections and cards to other documents. A note set \
 apart in a document — «a highlighted note», info, a tip, a warning — is a callout, a quote that \
 opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, written in the \
-document where it belongs; `note` is a task's journal and never that. Plain Markdown is \
+document where it belongs, and `[!IDEA]` is a sticky note; `note` is a task's journal and never that. Plain Markdown is \
 enough: it is turned into the Tisty language on the way in, and the answer says what changed \
 under `turned`. A document is tagged by writing #word in its own text, for what it is about, \
 reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest are dropped. `language` \
@@ -400,16 +400,17 @@ person to sort it out: it becomes a task, goes into the document on its subject,
 
 Brainstorm is the person's sheet of ideas: an ordinary document with `brainstorm: on` in its \
 properties, pinned at the top of the Library and shown as sticky notes, whatever title it carries \
-in their language. `catch_up` names it and says how many ideas wait. Each idea is a section headed \
-by the minute it came and its colour — `## 2026-11-12 09:40 · yellow` — with its words under it, \
-140 characters at most. An idea is named in a call by the sheet's id, `#` and its heading without \
-the hashes: `46zdmrtt-0109#2026-11-12 09:40 · yellow`. `read_doc` brings the sheet by parts, oldest \
-idea first, never as its outline; the window shows the newest first.
+in their language. `catch_up` names it and says how many ideas wait. Each idea is a sticky note, \
+a `> [!IDEA]` callout headed by the minute it came and its colour — `> [!IDEA] 2026-11-12 09:40 · \
+yellow` — with its words on the quoted lines under it, 140 characters at most. An idea is named in a \
+call by the sheet's id, `#` and that heading: `46zdmrtt-0109#2026-11-12 09:40 · yellow`. `read_doc` \
+brings the sheet by parts, oldest idea first, never as its outline; the window shows the newest first.
 
 To jot ideas — the person's own, or ones you think up with them on a subject they asked about — \
 `append_doc` on the sheet with one idea per paragraph, or one per item of a list. Tisty dates each \
 one now and gives it its colour. An idea past 140 characters is refused: a longer thought belongs \
-in a document. Never write a heading on the sheet, and never jot what the person did not ask for.
+in a document. Never write a heading or a `[!IDEA]` line on the sheet, and never jot what the \
+person did not ask for.
 
 Sorting is the person's to ask for and theirs to decide. Read the sheet, then say in a few lines \
 what you see: which ideas belong together and why, which already have a task or a document, which \
@@ -417,10 +418,10 @@ are old or done. Propose, then act on what they agree to:
 - An idea that is something to do becomes a task: `propose` it in its list with `source` set to \
 the idea's name, so it never makes two. Tisty takes it off the sheet, as the window's «Turn into a \
 task» does.
-- An idea that belongs in a document goes into the one on its subject — `find` it first — as a \
-note that quotes it, added with `append_doc`: `> [!NOTE]`, the sheet's title, ` · ` and today's \
-date on the first line, then the idea's lines, each opening with `> `. Tisty takes it off the \
-sheet, as the window's «File in a document» does.
+- An idea that belongs in a document goes into the one on its subject — `find` it first — as \
+the idea itself, added alone with `append_doc`: `> [!IDEA]`, the heading it has on the sheet and \
+` · right` on the first line, then its lines as the sheet has them, each opening with `> `. Tisty \
+takes it off the sheet, as the window's «File in a document» does.
 - A group of alike ideas, or one that grows into a plan, becomes a document or a passage of one, \
 in your words, where its subject lives. Then mark each idea it gathered `moved`, with `instead` \
 the document or task that holds it now.

@@ -23,18 +23,16 @@ brainstorm: on
 
 # Lluvia de ideas
 
-## 2026-11-10 18:40
+> [!IDEA] 2026-11-10 18:40
+> vecinos en el panel
 
-vecinos en el panel
-
-## 2026-11-11 09:12
-
-llamar al vet
-y pedir la cartilla
+> [!IDEA] 2026-11-11 09:12
+> llamar al vet
+> y pedir la cartilla
 `;
 
 describe("a document read as notes", () => {
-  it("keeps everything above the first section as its head, and each section is a note", () => {
+  it("keeps everything above the first idea as its head, and each idea is a note", () => {
     const board = boardOf(BRAINSTORM);
 
     expect(board.head).toBe("---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas");
@@ -44,11 +42,13 @@ describe("a document read as notes", () => {
     ]);
   });
 
-  it("does not take a heading inside a code fence for a new note", () => {
-    const board = boardOf("# Ideas\n\n## uno\n\n```md\n## no es nota\n```\n");
+  it("does not take an idea inside a code fence for a new note, nor another callout", () => {
+    const board = boardOf(
+      "# Ideas\n\n> [!IDEA] uno\n> ```md\n> > [!IDEA] no es nota\n> ```\n\n> [!NOTE] tampoco\n",
+    );
 
     expect(board.notes).toHaveLength(1);
-    expect(board.notes[0].text).toContain("## no es nota");
+    expect(board.notes[0].text).toContain("> [!IDEA] no es nota");
   });
 
   it("changes, drops and adds one note and leaves the rest of the file as it was", () => {
@@ -87,19 +87,21 @@ describe("a document read as notes", () => {
   });
 
   it("leaves every other note byte for byte, its line endings included", () => {
-    const windows = "# Ideas\r\n\r\n## uno\r\n\r\nprimera  \r\n\r\n\r\n## dos\r\n\r\nsegunda\r\n";
+    const windows =
+      "# Ideas\r\n\r\n> [!IDEA] uno\r\n> primera  \r\n\r\n\r\n> [!IDEA] dos\r\n> segunda\r\n";
 
-    const changed = rewritten(windows, 1, "segunda, mejor");
+    const changed = rewritten(windows, 1, "segunda, mejor\n\nen dos partes");
 
     expect(changed).toBe(
-      "# Ideas\r\n\r\n## uno\r\n\r\nprimera  \r\n\r\n\r\n## dos\r\n\r\nsegunda, mejor\r\n",
+      "# Ideas\r\n\r\n> [!IDEA] uno\r\n> primera  \r\n\r\n\r\n> [!IDEA] dos\r\n> segunda, mejor\r\n>\r\n> en dos partes\r\n",
     );
+    expect(boardOf(changed).notes[1].text).toBe("segunda, mejor\n\nen dos partes");
   });
 
   it("shows what the head says below its title, without its properties", () => {
-    expect(introOf("---\nview: notes\n---\n\n# Ideas\n\nLo que se me ocurre.\n\n## uno\n\nx")).toBe(
-      "Lo que se me ocurre.",
-    );
+    expect(
+      introOf("---\nview: notes\n---\n\n# Ideas\n\nLo que se me ocurre.\n\n> [!IDEA] uno\n> x"),
+    ).toBe("Lo que se me ocurre.");
     expect(introOf(BRAINSTORM)).toBe("");
   });
 
@@ -154,6 +156,7 @@ describe("a note's colour", () => {
     expect(colourOf(`2026-11-12 00:19 · ${COLOURS[3]}`)).toBe(3);
     expect(colourOf("2026-11-12 00:19 · plaid")).toBe(-1);
     expect(colourOf("2026-11-12 00:19")).toBe(-1);
+    expect(colourOf("2026-11-12 00:19 · Teal · right")).toBe(COLOURS.indexOf("teal"));
   });
 });
 
@@ -162,6 +165,24 @@ describe("a note's time", () => {
     expect(stampOf(new Date(2026, 10, 11, 9, 7))).toBe("2026-11-11 09:07");
     expect(saidWhen("2026-11-11 09:07", "es")).toMatch(/^11 nov\.? · 09:07$/);
     expect(saidWhen("2026-11-11 09:07 · blue", "es")).toMatch(/^11 nov\.? · 09:07$/);
+    expect(saidWhen("right · 2026-11-11 09:07 · blue", "es")).toMatch(/^11 nov\.? · 09:07$/);
     expect(saidWhen("una idea sin fecha", "es")).toBe("una idea sin fecha");
+    expect(saidWhen("2026-11-11 · blue · right", "es")).toMatch(/^11 nov\.?$/);
+    expect(saidWhen("blue · right", "es")).toBe("");
+  });
+
+  it("ends a fence left open in a note where the note ends, and reads indented marks", () => {
+    const open = "# Ideas\n\n> [!IDEA] uno\n> ```\n\n  > [!IDEA] dos\n  > segunda\n";
+
+    expect(boardOf(open).notes.map((one) => one.text)).toEqual(["```", "segunda"]);
+    expect(rewritten(open, 1, "segunda, mejor")).toContain("> [!IDEA] dos\n> segunda, mejor\n");
+  });
+
+  it("stays in the note above when its marker sits right under a quoted line", () => {
+    const joined = "# Ideas\n\n> [!IDEA] uno\n> primera\n> [!IDEA] dos\n> segunda\n";
+
+    expect(boardOf(joined).notes).toEqual([
+      { heading: "uno", text: "primera\n[!IDEA] dos\nsegunda" },
+    ]);
   });
 });

@@ -9,7 +9,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { isHue } from "tisty-sheet";
+import { ideaParts, isHue, saysAny } from "tisty-sheet";
 import { known, markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
 import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
@@ -65,10 +65,11 @@ const MARKS = new Set([
   "URL",
   "LinkTitle",
 ]);
-// Both patterns take only the five kinds, so what they catch is one of them.
-type Callout = "note" | "tip" | "important" | "warning" | "caution";
+// The patterns take only these kinds, so what they catch is one of them.
+type Callout = "note" | "tip" | "important" | "warning" | "caution" | "idea";
 
-const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution)\])\s*$/i;
+const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution|idea)\])\s*$/i;
+const IDEA = /^(\s*>\s*)(\[!(idea)\])(.*)$/i;
 const HIDDEN = new Set([...MARKS, "HeaderMark", "QuoteMark", "ListMark"]);
 
 // Whether showing every mark would change anything, wherever the caret happens to be.
@@ -197,7 +198,7 @@ class Folding extends WidgetType {
 // Any :::word opens a colon container, as the page reads it, so a nested one never steals its section's fence.
 const OPENS = /^:::[\p{L}\p{N}]/u;
 const DETAILS = /^:::details ?/;
-const CALLED = /^:::(note|tip|important|warning|caution)\s*$/i;
+const CALLED = /^:::(note|tip|important|warning|caution|idea)\s*$/i;
 
 type Fence = {
   readonly at: number;
@@ -337,13 +338,15 @@ const quoted = (
   out: Range<Decoration>[],
 ) => {
   const first = state.doc.lineAt(from);
-  const callout = CALLOUT.exec(first.text);
+  const callout = CALLOUT.exec(first.text) ?? IDEA.exec(first.text);
   if (!callout) return lined(state, from, to, "cm-quote", out);
   const kind = callout[3].toLowerCase() as Callout;
   lined(state, from, to, `cm-callout cm-callout-${kind}`, out);
   if (shown) return;
   const head = first.from + callout[1].length;
-  out.push(Decoration.replace({ widget: new Said(kind) }).range(head, head + callout[2].length));
+  const data = callout[4] !== undefined && saysAny(ideaParts(callout[4]));
+  const end = data ? first.to : head + callout[2].length;
+  out.push(Decoration.replace({ widget: new Said(kind) }).range(head, end));
 };
 
 export const ownPair = (state: EditorState, found: RegExpMatchArray, at: number): Pair | null => {

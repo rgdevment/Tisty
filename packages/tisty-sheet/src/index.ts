@@ -5,6 +5,18 @@ export { diagramShot, diagrams, drawing, sourceOf } from "./diagrams";
 export { type Head, heads } from "./heads";
 export { HUES, type Hue, isHue } from "./hues";
 export { iconed } from "./icons";
+export {
+  IDEA_HUES,
+  type IdeaHead,
+  ideaParts,
+  ideaStamp,
+  ideaWhen,
+  pinMarkup,
+  pinned,
+  type Shape,
+  saysAny,
+  shapeOf,
+} from "./ideas";
 export { type PartCarded, type PartCards, partCarded, recarded } from "./parts";
 export { type Read, type Reading, readAs, saidKinds } from "./reading";
 export { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";

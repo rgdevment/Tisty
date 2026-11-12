@@ -16,6 +16,7 @@
     "./tables.css": "./src/tables.css"
   },
   "dependencies": {
+    "@tisty/contracts": "file:../../contracts/dist/typescript",
     "tisty-diagrams": "file:../tisty-diagrams"
   },
   "peerDependencies": {
@@ -23,7 +24,6 @@
     "mermaid": "*"
   },
   "devDependencies": {
-    "@tisty/contracts": "file:../../contracts/dist/typescript",
     "jsdom": "*",
     "vitest": "*"
   }
