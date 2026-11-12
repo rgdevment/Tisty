@@ -128,6 +128,8 @@ const listed = (chosen: string | string[] | null): string[] => {
 
 const LANDING_MS = 3000;
 
+const NOTES_ROOM = { maxWidth: "85%" };
+
 export default function Docs({
   open: asked,
   known,
@@ -655,7 +657,9 @@ export default function Docs({
   const at = inOrder.findIndex((one) => one.file === own?.file);
   const next = at < 0 ? undefined : inOrder[at + 1];
 
-  const beside = Boolean(open) && (shown ?? fits);
+  const noted = Boolean(open) && notedIn(body);
+  const onNotes = noted && asText !== open?.file;
+  const beside = Boolean(open) && !onNotes && (shown ?? fits);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -670,8 +674,6 @@ export default function Docs({
   );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
   const sheetRoom = { maxWidth: `${across + 48}px` };
-  const noted = Boolean(open) && notedIn(body);
-  const onNotes = noted && asText !== open?.file;
 
   useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 
@@ -840,7 +842,7 @@ export default function Docs({
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      {open && !beside && (
+      {open && !beside && !onNotes && (
         <button
           type="button"
           onClick={() => setShown(true)}
@@ -856,7 +858,10 @@ export default function Docs({
         style={{ paddingRight: reserve }}
       >
         {open ? (
-          <div style={sheetRoom} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+          <div
+            style={onNotes ? NOTES_ROOM : sheetRoom}
+            className="relative mx-auto flex min-h-0 w-full flex-1 flex-col"
+          >
             <div
               data-bar-slot="desk"
               data-keeps-writing=""

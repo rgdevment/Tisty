@@ -93,7 +93,7 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
   }, [lifting]);
 
   return (
-    <section aria-label={title} className="mx-auto w-full max-w-[880px] px-8 pt-6 pb-16">
+    <section aria-label={title} className="w-full px-8 pt-6 pb-16">
       <div className="flex items-center gap-2">
         <h1 className="min-w-0 flex-1 truncate text-[21px] font-semibold">{title}</h1>
         {!reading && (
