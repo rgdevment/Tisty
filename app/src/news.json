@@ -1497,8 +1497,20 @@
         "said": "pídele una lluvia de ideas y anota en la hoja las que te quedas; pídele que las ordene y te propone cuáles van juntas, cuáles se vuelven tarea y cuáles van a un documento. A las viejas solo las marca: tú las borras o les quitas la marca."
       },
       {
+        "title": "Una idea en cualquier documento",
+        "said": "una idea que anexas a un documento llega como la misma nota adhesiva, con su fecha y su color, y cualquier documento puede llevar una."
+      },
+      {
         "title": "Retoma justo donde quedó",
         "said": "al empezar, tu agente ve qué cambió desde su última sesión, quién lo cambió y en qué tarea estaba. Si esa tarea ya se cerró o la dio por hecha, te lo dice en vez de tomar otra."
+      },
+      {
+        "title": "Te dice qué apremia",
+        "said": "al empezar, tu agente ve tus tareas vencidas primero, después las que vencen pronto, las de hoy y las atrasadas, así una tarea de cada mes le llega el día que toca."
+      },
+      {
+        "title": "Trabaja tus tareas como un documento",
+        "said": "puede describir cualquier tarea, también las tuyas, renombrarla, llevarla a otra lista, planear o reescribir sus pasos abiertos y escribir su página. Marcar tus pasos, cerrar la tarea y mover su día siguen siendo tuyos."
       },
       {
         "title": "Ordena sin perder nada",
@@ -1515,6 +1527,14 @@
       {
         "title": "Instrucciones más claras",
         "said": "tu agente tacha y fecha una decisión que cambia en vez de borrarla, y cuando algo no se puede hacer, Tisty le dice qué hacer en su lugar. Un documento que archivaste no se toca hasta que lo desarchives."
+      },
+      {
+        "title": "Diagramas más claros",
+        "said": "una flecha rodea la figura que tiene en el camino, las que llegan a una misma figura entran separadas sin cruzarse y las palabras de las flechas ya no se tapan."
+      },
+      {
+        "title": "Más a mano",
+        "said": "Enter toma lo que elegiste en el menú de /, y el primer ícono de las vistas, Todas las tareas, abre todo lo abierto de todas tus listas."
       }
     ],
     "en": [
@@ -1527,8 +1547,20 @@
         "said": "ask it for a brainstorm and it jots the ideas you keep on the sheet; ask it to sort them and it proposes which belong together, which become a task and which go into a document. Old ones it only marks: you delete them or take the mark off."
       },
       {
+        "title": "An idea in any document",
+        "said": "an idea you file in a document arrives as the same sticky note, with its date and its colour, and any document can carry one."
+      },
+      {
         "title": "It picks up right where it left off",
         "said": "when it starts, your agent sees what moved since its last session, who moved it and which task it was on. If that task was closed or it said it was done, it tells you instead of taking another."
+      },
+      {
+        "title": "It tells you what presses",
+        "said": "when it starts, your agent sees your overdue tasks first, then those due soon, for today and late, so a monthly chore reaches it on its day."
+      },
+      {
+        "title": "It works your tasks like a document",
+        "said": "it can describe any task, yours too, rename it, move it to another list, plan or reword its open steps and write its page. Ticking your steps, closing the task and moving its day stay yours."
       },
       {
         "title": "It tidies without losing a thing",
@@ -1545,6 +1577,14 @@
       {
         "title": "Clearer instructions",
         "said": "your agent strikes through and dates a decision that changes instead of erasing it, and when something cannot be done, Tisty tells it what to do instead. A document you archived is left alone until you bring it back."
+      },
+      {
+        "title": "Clearer diagrams",
+        "said": "an arrow goes round a shape in its way, arrows reaching one shape come in apart without crossing, and the words on arrows no longer cover each other."
+      },
+      {
+        "title": "More at hand",
+        "said": "Enter takes what you chose in the / menu, and the first icon among the views, All tasks, opens everything open across your lists."
       }
     ]
   }
