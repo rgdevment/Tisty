@@ -34,7 +34,13 @@ body {
   padding: 36px 40px 40vh;
 }
 .page > hr,
-.page > .sheet-turn {
+.page > .sheet-turn,
+.page > .table,
+.page > figure,
+.page > pre,
+.page > details,
+.page > .math,
+.page > p:has(> img:only-child) {
   clear: both;
 }
 .page > * {
