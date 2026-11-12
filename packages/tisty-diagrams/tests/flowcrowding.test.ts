@@ -68,7 +68,7 @@ const classesOf = (source: string) => {
   return classScene(diagram);
 };
 
-const crowdingIn = (scene: Scene) => {
+const routedIn = (scene: Scene) => {
   const shapes = [...scene.laid.at.values()];
   const joints = scene.joints.map((one) => ({
     from: scene.laid.at.get(one.from) as Rect,
@@ -76,8 +76,14 @@ const crowdingIn = (scene: Scene) => {
     label: one.label,
     startLabel: one.startLabel,
     endLabel: one.endLabel,
+    fromMiddle: one.fromMiddle,
+    toMiddle: one.toMiddle,
   }));
-  const routes = routesOf(joints, shapes);
+  return { shapes, joints, routes: routesOf(joints, shapes) };
+};
+
+const crowdingIn = (scene: Scene) => {
+  const { shapes, joints, routes } = routedIn(scene);
   const crossed = routes.flatMap((route, at) => {
     const others = shapes.filter((one) => one !== joints[at].from && one !== joints[at].to);
     return runsOf(route.way).some((run) => others.some((one) => overlaps(run, one)))
@@ -124,6 +130,17 @@ const crowdingIn = (scene: Scene) => {
   return { crossed, covering };
 };
 
+const crossEachOther = (one: Rect, other: Rect) => {
+  const [upright, flat] = one.wide === 0 ? [one, other] : [other, one];
+  if (upright.wide !== 0 || flat.tall !== 0) return false;
+  return (
+    upright.x > flat.x &&
+    upright.x < flat.x + flat.wide &&
+    flat.y > upright.y &&
+    flat.y < upright.y + upright.tall
+  );
+};
+
 const node = (id: string, x: number, y: number) =>
   ({
     id,
@@ -133,6 +150,34 @@ const node = (id: string, x: number, y: number) =>
   }) as unknown as InternalNode;
 
 describe("a crowded drawing", () => {
+  it("brings arrows meeting one side of a shape in at points of their own, crossing none, and a diamond's at its middle", () => {
+    const scene = flowOf(GUIDE);
+    const { routes, joints } = routedIn(scene);
+    const into = new Map<string, number[]>();
+    routes.forEach((route, at) => {
+      if (joints[at].toMiddle) return;
+      const key = `${scene.joints[at].to} ${route.toSide}`;
+      into.set(key, [...(into.get(key) ?? []), route.to.x + route.to.y]);
+    });
+    const crossings = routes.flatMap((route, at) =>
+      routes.flatMap((other, next) =>
+        next <= at
+          ? []
+          : runsOf(route.way).some((run) =>
+                runsOf(other.way).some((theirs) => crossEachOther(run, theirs)),
+              )
+            ? [`${joints[at].label || at} / ${joints[next].label || next}`]
+            : [],
+      ),
+    );
+    const fromTheDiamond = routes.filter((_, at) => scene.joints[at].from === "B");
+
+    for (const [side, ends] of into) expect(new Set(ends).size, side).toBe(ends.length);
+    expect([...into.values()].some((ends) => ends.length > 1)).toBe(true);
+    expect(crossings).toEqual([]);
+    expect(new Set(fromTheDiamond.map((one) => `${one.from.x} ${one.from.y}`)).size).toBe(1);
+  });
+
   it("runs an arrow round a shape that stands in its way, and as before when none does", () => {
     const from = rect(100, 0);
     const to = rect(0, 240);

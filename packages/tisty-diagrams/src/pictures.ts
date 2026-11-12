@@ -149,6 +149,8 @@ const joinedIn = (scene: Scene) => {
       label: one.label,
       startLabel: one.startLabel,
       endLabel: one.endLabel,
+      fromMiddle: one.fromMiddle,
+      toMiddle: one.toMiddle,
     })),
     [...at.values()],
   );

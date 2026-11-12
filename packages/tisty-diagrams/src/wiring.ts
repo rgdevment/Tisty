@@ -1,5 +1,6 @@
 import type { Edge, InternalNode } from "@xyflow/react";
 import { type Route, routesOf } from "./flowroutes";
+import { meetsInTheMiddle } from "./flowshapes";
 import type { Rect } from "./graphlayout";
 
 type Worded = {
@@ -18,11 +19,13 @@ export const rectOf = (node: InternalNode): Rect => ({
 const shapesIn = (lookup: ReadonlyMap<string, InternalNode>) =>
   [...lookup.values()].filter((one) => one.type !== "lane");
 
+const shapeOf = (node: InternalNode) => (node.data as { shape?: string } | undefined)?.shape;
+
 export const shapesSaid = (lookup: ReadonlyMap<string, InternalNode>) =>
   shapesIn(lookup)
     .map((one) => {
       const rect = rectOf(one);
-      return `${one.id} ${rect.x} ${rect.y} ${rect.wide} ${rect.tall}`;
+      return `${one.id} ${rect.x} ${rect.y} ${rect.wide} ${rect.tall} ${shapeOf(one) ?? ""}`;
     })
     .join(";");
 
@@ -64,6 +67,8 @@ export const routesIn = (
             label: words.label,
             startLabel: words.startLabel,
             endLabel: words.endLabel,
+            fromMiddle: meetsInTheMiddle(shapeOf(from)),
+            toMiddle: meetsInTheMiddle(shapeOf(to)),
           },
         ]
       : [];
