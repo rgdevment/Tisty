@@ -1,4 +1,4 @@
-use tisty_markdown::{IdeaHead, html, idea_head, printed, read};
+use tisty_markdown::{IdeaHead, html, idea_head, printed, read, to_standard};
 
 fn page(text: &str) -> String {
     html(&read(text))
@@ -47,6 +47,42 @@ fn the_head_takes_its_parts_in_any_order_and_leaves_what_it_does_not_know() {
         IdeaHead::default()
     );
     assert_eq!(idea_head("> [!IDEA]"), IdeaHead::default());
+}
+
+#[test]
+fn a_first_line_that_names_no_time_hue_or_side_is_the_notes_own_words() {
+    let drawn = page("> [!idea] Llamar al vet\n> el lunes\n");
+
+    assert!(drawn.contains("data-callout=\"idea\""));
+    assert!(drawn.contains("Llamar al vet"), "{drawn}");
+    assert!(drawn.contains("el lunes"));
+    assert!(!drawn.contains("data-hue"));
+}
+
+#[test]
+fn a_reader_outside_tisty_gets_a_note_without_the_head() {
+    let out = |text: &str| to_standard(text, &|_| None);
+
+    assert_eq!(
+        out("> [!IDEA] 2026-11-12 09:12 · blue · right\n> Probar con harina integral\n"),
+        "> [!NOTE]\n> Probar con harina integral\n"
+    );
+    assert_eq!(
+        out("> [!IDEA] Llamar al vet\n> el lunes\n"),
+        "> [!NOTE]\n> Llamar al vet\\\n> el lunes\n"
+    );
+    assert_eq!(
+        out(":::idea\n\nSin cabecera\n\n:::"),
+        "> [!NOTE]\n>\n> Sin cabecera\n>"
+    );
+}
+
+#[test]
+fn only_an_idea_carries_a_time_a_hue_or_a_side() {
+    let drawn = page("> [!NOTE] 2026-11-12 · blue\n> Una nota\n");
+
+    assert!(!drawn.contains("data-hue"), "{drawn}");
+    assert!(!drawn.contains("data-when"));
 }
 
 #[test]

@@ -423,9 +423,11 @@ fn unmark(quote: &mut Block, text: &str) {
     };
     let after = start + 2 + close + 1;
     let rest = &text[after..];
-    let cut = match quote.kind {
-        Kind::Callout(Callout::Idea) => after + rest.find('\n').unwrap_or(rest.len()),
-        _ => after + (rest.len() - rest.trim_start_matches([' ', '\t']).len()),
+    let line = &rest[..rest.find('\n').unwrap_or(rest.len())];
+    let headed = quote.kind == Kind::Callout(Callout::Idea) && crate::idea_parts(line).says_any();
+    let cut = match headed {
+        true => after + line.len(),
+        false => after + (rest.len() - rest.trim_start_matches([' ', '\t']).len()),
     };
     first.spans.retain(|one| one.at.end > cut);
     for one in &mut first.spans {

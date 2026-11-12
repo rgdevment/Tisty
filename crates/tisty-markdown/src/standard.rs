@@ -46,6 +46,7 @@ fn outward(
             ));
             edits.push((start + last..start + said.len(), "</details>".to_string()));
         }
+        Kind::Callout(Callout::Idea) => idea_out(said, start, edits),
         Kind::Callout(_) => headed(said, start, edits),
         // Tisty draws `mmd` too; GitHub and GitLab draw only a fence that says `mermaid`.
         Kind::Code {
@@ -162,7 +163,7 @@ fn quoted(said: &str, start: usize, kind: Callout, edits: &mut Edits) {
         Callout::Important => "IMPORTANT",
         Callout::Warning => "WARNING",
         Callout::Caution => "CAUTION",
-        Callout::Idea => "IDEA",
+        Callout::Idea => "NOTE",
     };
     edits.push((start..start + first, format!("> [!{name}]")));
     for (at, _) in said.match_indices('\n').filter(|(at, _)| *at < last) {
@@ -174,6 +175,23 @@ fn quoted(said: &str, start: usize, kind: Callout, edits: &mut Edits) {
         ));
     }
     edits.push((start + last..start + said.len(), String::new()));
+}
+
+// No other reader knows a sticky note, so it leaves as a note, and its date, hue and side stay behind.
+fn idea_out(said: &str, start: usize, edits: &mut Edits) {
+    let line = said.split('\n').next().unwrap_or_default();
+    let Some(open) = line.find("[!") else {
+        return;
+    };
+    let Some(shut) = line[open..].find(']').map(|at| open + at + 1) else {
+        return;
+    };
+    if crate::idea_parts(&line[shut..]).says_any() {
+        edits.push((start + open..start + line.len(), "[!NOTE]".into()));
+        return;
+    }
+    edits.push((start + open..start + shut, "[!NOTE]".into()));
+    headed(said, start, edits);
 }
 
 // GitHub reads a callout only when its marker stands alone, so the words after it go to the next line.

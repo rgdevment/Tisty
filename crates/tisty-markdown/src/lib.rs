@@ -309,20 +309,25 @@ pub struct IdeaHead<'a> {
     pub side: Option<&'static str>,
 }
 
+pub fn idea_words(line: &str) -> Option<&str> {
+    let rest = line.trim_start().strip_prefix('>')?.trim_start();
+    rest.get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map(|_| rest[7..].trim())
+}
+
 pub fn idea_head(source: &str) -> IdeaHead<'_> {
-    let mut head = IdeaHead::default();
-    let Some(words) = source
+    source
         .lines()
         .next()
-        .and_then(|line| line.trim_start().strip_prefix('>'))
-        .map(str::trim_start)
-        .and_then(|line| {
-            line.get(7..)
-                .filter(|_| line[..7].eq_ignore_ascii_case("[!idea]"))
-        })
-    else {
-        return head;
-    };
+        .and_then(idea_words)
+        .map(idea_parts)
+        .unwrap_or_default()
+}
+
+// Words that name none of the three are the note's own first words, never data to hide.
+pub fn idea_parts(words: &str) -> IdeaHead<'_> {
+    let mut head = IdeaHead::default();
     for part in words.split(" · ").map(str::trim) {
         let lower = part.to_ascii_lowercase();
         if let Some(hue) = IDEA_HUES.iter().find(|one| **one == lower) {
@@ -334,6 +339,25 @@ pub fn idea_head(source: &str) -> IdeaHead<'_> {
         }
     }
     head
+}
+
+impl<'a> IdeaHead<'a> {
+    pub fn says_any(&self) -> bool {
+        self.when.is_some() || self.hue.is_some() || self.side.is_some()
+    }
+
+    pub(crate) fn of(kind: Callout, source: &'a str) -> Self {
+        match kind {
+            Callout::Idea => idea_head(source),
+            _ => Self::default(),
+        }
+    }
+
+    pub(crate) fn said(&self) -> impl Iterator<Item = (&'static str, &'a str)> {
+        [("when", self.when), ("hue", self.hue), ("side", self.side)]
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|value| (key, value)))
+    }
 }
 
 fn stamped(said: &str) -> bool {

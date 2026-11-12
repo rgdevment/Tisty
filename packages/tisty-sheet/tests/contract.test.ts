@@ -17,6 +17,12 @@ type Style = {
       tint_percent: number;
       padding: string;
       border_width: string;
+      idea: {
+        hues: string[];
+        fill: { light: Record<string, string>; dark: Record<string, string> };
+        ink: { light: string; dark: string };
+        width: { least: string; most: string };
+      };
     };
     code_colors: Record<string, { color: string; italic?: boolean }>;
     icon: { size: string };
@@ -127,6 +133,21 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, "blockquote.callout", "background")).toContain(
       `${style.callouts.tint_percent}%`,
     );
+  });
+
+  it("the paper and ink of its sticky notes, in each theme, and how wide they get", () => {
+    const { idea } = style.callouts;
+    const note = 'blockquote[data-callout="idea"]';
+    const darkly = (one: string) => `html.dark ${one}`;
+    expect(said(page, note, "--idea-ink")).toBe(idea.ink.light);
+    expect(said(page, darkly(note), "--idea-ink")).toBe(idea.ink.dark);
+    expect(said(page, note, "min-width")).toBe(idea.width.least);
+    expect(said(page, note, "max-width")).toBe(idea.width.most);
+    for (const hue of idea.hues) {
+      const painted = `${note}[data-hue="${hue}"]`;
+      expect(said(page, painted, "--idea-fill")).toBe(idea.fill.light[hue]);
+      expect(said(page, darkly(painted), "--idea-fill")).toBe(idea.fill.dark[hue]);
+    }
   });
 
   it("the colours of its code", () => {

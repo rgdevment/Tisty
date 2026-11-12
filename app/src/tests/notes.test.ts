@@ -167,5 +167,15 @@ describe("a note's time", () => {
     expect(saidWhen("2026-11-11 09:07 · blue", "es")).toMatch(/^11 nov\.? · 09:07$/);
     expect(saidWhen("right · 2026-11-11 09:07 · blue", "es")).toMatch(/^11 nov\.? · 09:07$/);
     expect(saidWhen("una idea sin fecha", "es")).toBe("una idea sin fecha");
+    expect(saidWhen("2026-11-11 · blue · right", "es")).toMatch(/^11 nov\.?$/);
+    expect(saidWhen("blue · right", "es")).toBe("");
+  });
+
+  it("stays in the note above when its marker sits right under a quoted line", () => {
+    const joined = "# Ideas\n\n> [!IDEA] uno\n> primera\n> [!IDEA] dos\n> segunda\n";
+
+    expect(boardOf(joined).notes).toEqual([
+      { heading: "uno", text: "primera\n[!IDEA] dos\nsegunda" },
+    ]);
   });
 });

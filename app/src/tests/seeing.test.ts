@@ -143,6 +143,18 @@ describe("a block written as it reads", () => {
     expect(looked(state("> dicho", 0))).toContainEqual({ from: 0, to: 0, line: "cm-quote" });
   });
 
+  it("draws a sticky note with its name in place of its head, and keeps a title in sight", () => {
+    const stuck = state("> [!IDEA] 2026-11-12 09:12 · blue · right\n> Probar con harina", 60);
+    expect(
+      looked(stuck)
+        .filter((it) => it.line)
+        .map((it) => it.line),
+    ).toEqual(["cm-callout cm-callout-idea", "cm-callout cm-callout-idea"]);
+    expect(read(stuck)).toBe("\nProbar con harina");
+    const titled = state("> [!idea] Llamar al vet\n> el lunes", 30);
+    expect(read(titled)).toBe(" Llamar al vet\nel lunes");
+  });
+
   it("shows Tisty's pens and underline without their marks, and its icons as icons", () => {
     expect(read(state("el ==informe=={green} ya", 0))).toBe("el informe ya");
     expect(read(state("un ++subrayado++ aquí", 0))).toBe("un subrayado aquí");

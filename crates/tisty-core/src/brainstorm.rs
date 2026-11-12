@@ -34,11 +34,27 @@ fn stuck(head: &str, idea: &str) -> String {
 
 const OPENER: &str = "> [!IDEA]";
 
-fn head_of(line: &str) -> Option<&str> {
-    let rest = line.trim_start().strip_prefix('>')?.trim_start();
-    rest.get(..7)
-        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
-        .map(|_| rest[7..].trim())
+fn lines(body: &str) -> impl Iterator<Item = &str> {
+    body.split('\n')
+        .map(|line| line.strip_suffix('\r').unwrap_or(line))
+}
+
+// A marker right under a quoted line stays in that quote, as every Markdown reader joins them.
+#[derive(Default)]
+struct Openers {
+    fenced: bool,
+    quoting: bool,
+}
+
+impl Openers {
+    fn opens(&mut self, line: &str) -> bool {
+        let opens = !self.fenced && !self.quoting && tisty_markdown::idea_words(line).is_some();
+        if fences(line) {
+            self.fenced = !self.fenced;
+        }
+        self.quoting = line.trim_start().starts_with('>');
+        opens
+    }
 }
 
 fn unquoted(line: &str) -> &str {
@@ -52,10 +68,18 @@ fn fences(line: &str) -> bool {
 }
 
 pub fn coloured(body: &str, roll: u32) -> &'static str {
-    let last = cut(body)
-        .blocks
+    picked(last_hue(body), roll)
+}
+
+fn last_hue(body: &str) -> Option<&'static str> {
+    let mut openers = Openers::default();
+    lines(body)
+        .filter(|line| openers.opens(line))
         .last()
-        .and_then(|block| tisty_markdown::idea_head(block[0]).hue);
+        .and_then(|line| tisty_markdown::idea_head(line).hue)
+}
+
+fn picked(last: Option<&str>, roll: u32) -> &'static str {
     let many = COLOURS.len();
     let mut at = roll as usize % many;
     if last == Some(COLOURS[at]) {
@@ -65,16 +89,18 @@ pub fn coloured(body: &str, roll: u32) -> &'static str {
 }
 
 pub fn filed(idea: &str, heading: &str) -> String {
-    let side = tisty_markdown::idea_head(&format!("{OPENER} {heading}")).side;
-    let head = match side {
-        Some(_) => heading.trim().to_string(),
-        None => format!("{} · right", heading.trim()),
+    let heading = heading.trim();
+    let head = match tisty_markdown::idea_parts(heading).side {
+        _ if heading.is_empty() => "right".to_string(),
+        Some(_) => heading.to_string(),
+        None => format!("{heading} · right"),
     };
     stuck(&head, idea)
 }
 
 pub fn ideas(body: &str) -> usize {
-    cut(body).blocks.len()
+    let mut openers = Openers::default();
+    lines(body).filter(|line| openers.opens(line)).count()
 }
 
 struct Sheet<'a> {
@@ -89,15 +115,9 @@ fn cut(body: &str) -> Sheet<'_> {
         head: Vec::new(),
         blocks: Vec::new(),
     };
-    let mut fenced = false;
-    for line in body
-        .split('\n')
-        .map(|line| line.strip_suffix('\r').unwrap_or(line))
-    {
-        let opens = !fenced && head_of(line).is_some();
-        if fences(line) {
-            fenced = !fenced;
-        }
+    let mut openers = Openers::default();
+    for line in lines(body) {
+        let opens = openers.opens(line);
         match sheet.blocks.last_mut() {
             _ if opens => sheet.blocks.push(vec![line]),
             Some(block) => block.push(line),
@@ -110,7 +130,9 @@ fn cut(body: &str) -> Sheet<'_> {
 fn idea_of(block: &[&str]) -> Idea {
     let said: Vec<&str> = block[1..].iter().map(|line| unquoted(line)).collect();
     Idea {
-        heading: head_of(block[0]).unwrap_or_default().to_string(),
+        heading: tisty_markdown::idea_words(block[0])
+            .unwrap_or_default()
+            .to_string(),
         text: said.join("\n").trim().to_string(),
     }
 }
@@ -162,7 +184,7 @@ pub fn files_an_idea(note: &str) -> bool {
 }
 
 fn filed_on(line: &str) -> bool {
-    head_of(line).is_some() && tisty_markdown::idea_head(line.trim_start()).when.is_some()
+    tisty_markdown::idea_head(line).when.is_some()
 }
 
 pub fn quoted(note: &str) -> Option<String> {
@@ -183,14 +205,15 @@ pub fn jotted_all(
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
-    let mut sheet = was.to_string();
-    let mut added = Vec::new();
-    for idea in each {
-        let one = jotted(idea, at, coloured(&sheet, roll()));
-        sheet.push_str("\n\n");
-        sheet.push_str(&one);
-        added.push(one);
-    }
+    let mut last = last_hue(was);
+    let added: Vec<String> = each
+        .iter()
+        .map(|idea| {
+            let colour = picked(last, roll());
+            last = Some(colour);
+            jotted(idea, at, colour)
+        })
+        .collect();
     added.join("\n\n")
 }
 

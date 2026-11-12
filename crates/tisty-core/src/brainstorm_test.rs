@@ -57,9 +57,25 @@ fn a_filed_idea_keeps_its_minute_and_colour_and_sits_to_the_right() {
         filed("ya tiene lado", "2026-11-12 09:40 · left"),
         "> [!IDEA] 2026-11-12 09:40 · left\n> ya tiene lado"
     );
+    assert_eq!(
+        filed("sin cabecera", "  "),
+        "> [!IDEA] right\n> sin cabecera"
+    );
 }
 
-const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · yellow\n> pan con masa madre\n\n> [!IDEA] 2026-06-14 08:12 · pink\n> entradas del concierto\n> de julio\n> [!idea] 2026-11-11 22:17 · blue\n> ```md\n> > [!IDEA] no es idea\n> ```\n";
+const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · yellow\n> pan con masa madre\n\n> [!IDEA] 2026-06-14 08:12 · pink\n> entradas del concierto\n> de julio\n\n> [!idea] 2026-11-11 22:17 · blue\n> ```md\n> > [!IDEA] no es idea\n> ```\n";
+
+#[test]
+fn a_marker_right_under_a_quoted_line_stays_in_that_idea_as_markdown_reads_it() {
+    let joined = "# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · pink\n> uno\n> [!IDEA] 2026-11-12 09:41 · blue\n> dos\n";
+
+    assert_eq!(ideas(joined), 1);
+    assert_eq!(
+        ideas_on(joined)[0].text,
+        "uno\n[!IDEA] 2026-11-12 09:41 · blue\ndos"
+    );
+    assert_eq!(coloured(joined, 0), coloured("> [!IDEA] x · pink", 0));
+}
 
 #[test]
 fn each_idea_is_read_by_its_head_and_its_words() {

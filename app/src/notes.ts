@@ -1,3 +1,5 @@
+import { CONTRACTS } from "@tisty/contracts";
+
 export interface Note {
   heading: string;
   text: string;
@@ -10,24 +12,14 @@ export interface Board {
 
 const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
 const FENCE = /^[>\s]*(```|~~~)/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+const STAMP = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/;
+const SIDES = ["left", "right"];
 
 export const IDEA_AT_MOST = 140;
 
-export const COLOURS = [
-  "pink",
-  "coral",
-  "orange",
-  "yellow",
-  "lime",
-  "green",
-  "teal",
-  "cyan",
-  "blue",
-  "lavender",
-  "violet",
-  "magenta",
-];
+export const COLOURS: readonly string[] = (
+  CONTRACTS.style as { values: { callouts: { idea: { hues: string[] } } } }
+).values.callouts.idea.hues;
 
 const partsOf = (heading: string): string[] => heading.split(" · ").map((part) => part.trim());
 
@@ -47,9 +39,11 @@ function cut(body: string): Cut {
   const head: string[] = [];
   const blocks: string[][] = [];
   let fenced = false;
+  let quoting = false;
   for (const line of body.split(/\r?\n/)) {
-    const opens = !fenced && OPENER.test(line);
+    const opens = !fenced && !quoting && OPENER.test(line);
     if (FENCE.test(line)) fenced = !fenced;
+    quoting = line.trimStart().startsWith(">");
     if (opens) blocks.push([line]);
     else if (blocks.length) blocks[blocks.length - 1].push(line);
     else head.push(line);
@@ -159,11 +153,17 @@ export function saidWhen(heading: string, locale: string): string {
   const stamp = partsOf(heading)
     .map((part) => STAMP.exec(part))
     .find(Boolean);
-  if (!stamp) return heading;
-  const [, year, month, day, hour, minute] = stamp.map(Number);
-  const at = new Date(year, month - 1, day, hour, minute);
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(at);
-  return `${date} · ${two(hour)}:${two(minute)}`;
+  if (!stamp) {
+    const named = (part: string) => [...COLOURS, ...SIDES].includes(part.toLowerCase());
+    return partsOf(heading)
+      .filter((part) => part && !named(part))
+      .join(" · ");
+  }
+  const [year, month, day] = stamp.slice(1, 4).map(Number);
+  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(
+    new Date(year, month - 1, day),
+  );
+  return stamp[4] ? `${date} · ${stamp[4]}:${stamp[5]}` : date;
 }
 
 export interface Shape {

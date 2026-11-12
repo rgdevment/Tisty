@@ -31,13 +31,8 @@ fn node(block: &Block, text: &str) -> Option<Value> {
         Kind::Quote => json!({ "type": "blockquote", "content": inner(block) }),
         Kind::Callout(kind) => {
             let mut attrs = json!({ "kind": called(*kind) });
-            if *kind == Callout::Idea {
-                let head = crate::idea_head(&text[block.at.clone()]);
-                for (key, value) in [("when", head.when), ("hue", head.hue), ("side", head.side)] {
-                    if let Some(value) = value {
-                        attrs[key] = json!(value);
-                    }
-                }
+            for (key, value) in crate::IdeaHead::of(*kind, &text[block.at.clone()]).said() {
+                attrs[key] = json!(value);
             }
             json!({ "type": "callout", "attrs": attrs, "content": inner(block) })
         }
