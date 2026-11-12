@@ -33,13 +33,13 @@
   --tisty-note-10: var(--tisty-idea-violet);
   --tisty-note-11: var(--tisty-idea-magenta);
   --tisty-brain: #c2336b;
-  --tisty-pin-0: #d4343a;
-  --tisty-pin-1: #2f6fe0;
-  --tisty-pin-2: #c98a00;
-  --tisty-pin-3: #16824c;
+  --tisty-pin-0: var(--tisty-idea-pin-0);
+  --tisty-pin-1: var(--tisty-idea-pin-1);
+  --tisty-pin-2: var(--tisty-idea-pin-2);
+  --tisty-pin-3: var(--tisty-idea-pin-3);
   --tisty-pin-needle: #5c636b;
   --tisty-note-ink: var(--tisty-idea-ink);
-  --tisty-note-tape: rgb(70 62 48 / 0.22);
+  --tisty-note-tape: var(--tisty-idea-tape);
 }
 
 [data-theme="dark"] {
@@ -70,13 +70,13 @@
   --tisty-note-10: var(--tisty-idea-violet);
   --tisty-note-11: var(--tisty-idea-magenta);
   --tisty-brain: #f27aa8;
-  --tisty-pin-0: #ff6369;
-  --tisty-pin-1: #5ea2ff;
-  --tisty-pin-2: #ffc457;
-  --tisty-pin-3: #3dd68c;
+  --tisty-pin-0: var(--tisty-idea-pin-0);
+  --tisty-pin-1: var(--tisty-idea-pin-1);
+  --tisty-pin-2: var(--tisty-idea-pin-2);
+  --tisty-pin-3: var(--tisty-idea-pin-3);
   --tisty-pin-needle: #c3c8ce;
   --tisty-note-ink: var(--tisty-idea-ink);
-  --tisty-note-tape: rgb(255 255 255 / 0.26);
+  --tisty-note-tape: var(--tisty-idea-tape);
 }
 
 @theme inline {

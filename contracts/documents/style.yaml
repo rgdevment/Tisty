@@ -126,6 +126,10 @@ values:
       plain: "Without a hue, it wears the sheet's colour inside a dashed line of hair."
       side: "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it. A rule, the turn to a new sheet, a table, a figure of code or a diagram, a widget, a formula, a details block and a picture alone go below a floated note, never beside it, and the sheet holds the note whole."
       width: { least: "150px", most: "256px" }
+      pins:
+        light: ["#d4343a", "#2f6fe0", "#c98a00", "#16824c"]
+        dark: ["#ff6369", "#5ea2ff", "#ffc457", "#3dd68c"]
+      tape: { light: "rgb(70 62 48 / 0.22)", dark: "rgb(255 255 255 / 0.26)" }
       padding: "12px 14px 14px"
       margin: "14px 0"
       beside: { right: "4px 0 12px 20px", left: "4px 20px 12px 0", says: "The margin of a note floated to that side, in place of its own." }

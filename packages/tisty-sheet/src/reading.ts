@@ -4,6 +4,7 @@ import { colored } from "./coloring";
 import { diagrams } from "./diagrams";
 import { HUES } from "./hues";
 import { iconed } from "./icons";
+import { pinned } from "./ideas";
 import { type PartCarded, partCarded } from "./parts";
 import { sideways } from "./sideways";
 import { staged } from "./stages";
@@ -38,6 +39,7 @@ export const readAs = (page: Document, reading: Reading): Read => {
   saidKinds(page, (kind) => say(`said${kind}` as ReadWord));
   const icons = iconed(page);
   staged(page);
+  pinned(page);
   celled(page, {
     today: today(),
     locale: reading.locale,

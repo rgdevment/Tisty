@@ -335,7 +335,63 @@ blockquote[data-callout="idea"] {
   background: var(--tisty-sheet);
   box-shadow: 0 2px 6px var(--tisty-cast);
   font-family: "Ink Free", "Segoe Print", Noteworthy, "Bradley Hand", "Marker Felt", cursive;
-  transform: rotate(-1.2deg);
+  position: relative;
+  transform: rotate(var(--tilt, -1.2deg));
+}
+blockquote[data-callout="idea"][data-hold]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+blockquote[data-callout="idea"]:is([data-hold="tape"], [data-hold^="corner"])::after {
+  top: -9px;
+  left: var(--along, 50%);
+  width: 64px;
+  height: 18px;
+  translate: -50% 0;
+  rotate: var(--angle, 0deg);
+  background: var(--tisty-idea-tape);
+  border: 1px solid var(--tisty-line);
+}
+blockquote[data-callout="idea"][data-hold="corner-left"]::after {
+  top: 2px;
+  left: -14px;
+  width: 52px;
+  translate: none;
+  rotate: calc(-40deg + var(--angle, 0deg) / 3);
+}
+blockquote[data-callout="idea"][data-hold="corner-right"]::after {
+  top: 2px;
+  left: auto;
+  right: -14px;
+  width: 52px;
+  translate: none;
+  rotate: calc(40deg + var(--angle, 0deg) / 3);
+}
+blockquote[data-callout="idea"][data-hold="pin"]::after {
+  --pin: var(--tisty-idea-pin-0);
+  top: -8px;
+  left: var(--along, 50%);
+  width: 16px;
+  height: 16px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--pin), white 45%),
+    var(--pin) 45%,
+    color-mix(in srgb, var(--pin), black 45%)
+  );
+  box-shadow: 2px 3px 3px rgb(0 0 0 / 0.35);
+}
+blockquote[data-callout="idea"][data-pin="1"]::after {
+  --pin: var(--tisty-idea-pin-1);
+}
+blockquote[data-callout="idea"][data-pin="2"]::after {
+  --pin: var(--tisty-idea-pin-2);
+}
+blockquote[data-callout="idea"][data-pin="3"]::after {
+  --pin: var(--tisty-idea-pin-3);
 }
 blockquote[data-callout="idea"][data-hue] {
   --said: var(--tisty-idea-ink);
@@ -382,7 +438,6 @@ blockquote[data-callout="idea"][data-hue="magenta"] {
 blockquote[data-callout="idea"][data-side="right"] {
   float: right;
   margin: 4px 0 12px 20px;
-  transform: rotate(1.4deg);
 }
 html.ticking .page > blockquote[data-callout="idea"][data-at] {
   cursor: grab;
