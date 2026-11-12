@@ -198,22 +198,28 @@ export const retabled = (text: string, head: number, how: Retable): Done | null 
   return aligned(asked, how);
 };
 
+export type Widths = readonly (readonly [column: number, dashes: number])[];
+
 export const widened = (
   text: string,
   [from, end]: [number, number],
-  column: number,
-  dashes: number,
+  widths: Widths,
 ): string | null => {
   const lines = text.slice(from, end).split("\n");
   if (lines.length < 2 || !ruled(lines[1])) return null;
   const edges = edgesOf(lines[1]);
-  if (column >= edges.length - 1) return null;
-  const start = edges[column] + 1;
-  const cell = lines[1].slice(start, edges[column + 1]);
-  const made = cell.replace(/-+/, "-".repeat(dashes));
-  if (made === cell) return null;
-  const at = from + lines[0].length + 1 + start;
-  return `${text.slice(0, at)}${made}${text.slice(at + cell.length)}`;
+  if (widths.some(([column]) => column >= edges.length - 1)) return null;
+  // From the right, so the edges still to be used stand where they were read.
+  const made = [...widths]
+    .sort(([one], [other]) => other - one)
+    .reduce((rule, [column, dashes]) => {
+      const start = edges[column] + 1;
+      const cell = rule.slice(start, edges[column + 1]).replace(/-+/, "-".repeat(dashes));
+      return `${rule.slice(0, start)}${cell}${rule.slice(edges[column + 1])}`;
+    }, lines[1]);
+  if (made === lines[1]) return null;
+  const at = from + lines[0].length + 1;
+  return `${text.slice(0, at)}${made}${text.slice(at + lines[1].length)}`;
 };
 
 // A table shown inside a code block is code, and Tab there indents as it always did.

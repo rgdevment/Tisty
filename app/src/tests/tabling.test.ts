@@ -1,7 +1,16 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
-import { barred, hosted, retable, retabled, tableAt, tableKeys, widened } from "tisty-editor/edit";
+import {
+  barred,
+  hosted,
+  retable,
+  retabled,
+  tableAt,
+  tableKeys,
+  type Widths,
+  widened,
+} from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { t } from "../locales";
 import { HOST } from "../ui/hosting";
@@ -169,20 +178,52 @@ describe("a table written in the block", () => {
 
   it("writes a column's width as its dashes, keeping its colons and every other column", () => {
     const span: [number, number] = [text.indexOf("| Name"), text.indexOf("\n\nAfter")];
-    expect(rows(widened(text, span, 1, 8) ?? "")[1]).toBe("|------|:--------:|");
-    expect(rows(widened(text, span, 0, 4) ?? "")[1]).toBe("|----|:---:|");
-    expect(widened(text, span, 0, 6)).toBeNull();
-    expect(widened(text, span, 5, 6)).toBeNull();
-    expect(widened("just words\nand more", [0, 19], 0, 6)).toBeNull();
+    expect(rows(widened(text, span, [[1, 8]]) ?? "")[1]).toBe("|------|:--------:|");
+    expect(rows(widened(text, span, [[0, 4]]) ?? "")[1]).toBe("|----|:---:|");
+    expect(widened(text, span, [[0, 6]])).toBeNull();
+    expect(widened(text, span, [[5, 6]])).toBeNull();
+    expect(widened("just words\nand more", [0, 19], [[0, 6]])).toBeNull();
   });
+
+  it("writes two columns at once, the one on the left keeping its place", () => {
+    const span: [number, number] = [text.indexOf("| Name"), text.indexOf("\n\nAfter")];
+    const both = widened(text, span, [
+      [0, 12],
+      [1, 4],
+    ]);
+    expect(rows(both ?? "")[1]).toBe("|------------|:----:|");
+    expect(rows(both ?? "")[0]).toBe(rows(text)[0]);
+    expect(
+      widened(text, span, [
+        [0, 6],
+        [9, 4],
+      ]),
+    ).toBeNull();
+  });
+
+  const dragged = (page: Document, from: number, to: number) => {
+    const grip = page.querySelectorAll(".col-grip")[0];
+    grip.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: from, button: 0 }));
+    page.dispatchEvent(new MouseEvent("pointermove", { clientX: to }));
+    page.dispatchEvent(new MouseEvent("pointerup", { clientX: to }));
+  };
+
+  const drawn = (fit = "") => {
+    const page = document.implementation.createHTMLDocument("");
+    page.body.innerHTML = `<div class="page"><div class="table" data-at="7-80"${fit}><table><colgroup><col><col></colgroup><thead><tr><th>Name</th><th>Age</th></tr></thead></table></div></div>`;
+    gripped(page);
+    for (const [at, head] of page.querySelectorAll<HTMLElement>("th").entries())
+      Object.defineProperty(head, "offsetWidth", { get: () => [200, 300][at] });
+    return page;
+  };
 
   it("drags a head's edge into a width said back in dashes, ten pixels each", () => {
     const page = document.implementation.createHTMLDocument("");
     page.body.innerHTML =
       '<div class="page"><div class="table" data-at="7-80"><table><colgroup><col><col></colgroup><thead><tr><th>Name</th><th>Age</th></tr></thead></table></div></div>';
     gripped(page);
-    const asked: [number, number, number][] = [];
-    widening(page, () => (at, column, dashes) => asked.push([at[0], column, dashes]));
+    const asked: [number, Widths][] = [];
+    widening(page, () => (at, widths) => asked.push([at[0], widths]));
     const grip = page.querySelectorAll(".col-grip")[1];
     expect(page.querySelectorAll(".col-grip")).toHaveLength(2);
     grip.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 100, button: 0 }));
@@ -190,8 +231,42 @@ describe("a table written in the block", () => {
     page.dispatchEvent(new MouseEvent("pointermove", { clientX: 220 }));
     expect(page.querySelectorAll("col")[1].style.width).toBe("120px");
     page.dispatchEvent(new MouseEvent("pointerup", { clientX: 220 }));
-    expect(asked).toEqual([[7, 1, 12]]);
+    expect(asked).toEqual([[7, [[1, 12]]]]);
     expect(page.documentElement.classList.contains("widening")).toBe(false);
+  });
+
+  it("in a table pressed to its sheet, moves width between the two columns, in the rule's own scale", () => {
+    const page = drawn(' data-fit="0.5"');
+    const asked: Widths[] = [];
+    widening(page, () => (_, widths) => asked.push(widths));
+    dragged(page, 100, 150);
+    const [first, second] = page.querySelectorAll("col");
+    expect(first.style.width).toBe("250px");
+    expect(second.style.width).toBe("250px");
+    expect(asked).toEqual([
+      [
+        [0, 50],
+        [1, 50],
+      ],
+    ]);
+  });
+
+  it("never squeezes the column beside below its narrowest", () => {
+    const page = drawn(' data-fit="0.5"');
+    const asked: Widths[] = [];
+    widening(page, () => (_, widths) => asked.push(widths));
+    dragged(page, 100, 900);
+    expect(page.querySelectorAll("col")[1].style.width).toBe("40px");
+    expect(asked[0][1]).toEqual([1, 8]);
+  });
+
+  it("in a table that fits, widens only the column dragged", () => {
+    const page = drawn();
+    const asked: Widths[] = [];
+    widening(page, () => (_, widths) => asked.push(widths));
+    dragged(page, 100, 150);
+    expect(asked).toEqual([[[0, 25]]]);
+    expect(page.querySelectorAll("col")[1].style.width).toBe("");
   });
 });
 

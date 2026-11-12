@@ -69,5 +69,6 @@ export {
   tableAt,
   tableHere,
   tableKeys,
+  type Widths,
   widened,
 } from "./edit/tabling";

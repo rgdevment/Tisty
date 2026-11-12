@@ -44,6 +44,7 @@ export const follow = (to: string): Promise<void> => invoke("view_follow", { to 
 export const reveal = (path: string): Promise<void> =>
   import("@tauri-apps/plugin-opener").then(({ revealItemInDir }) => revealItemInDir(path));
 
-export const shown = (): Promise<void> => here.show();
+// Opened from another app, Tisty is not in front, and a window only shown would stay behind it.
+export const shown = (): Promise<void> => here.show().then(() => here.setFocus());
 export const themed = (dark: boolean): Promise<void> => here.setTheme(dark ? "dark" : "light");
 export const closed = (): Promise<void> => here.close();
