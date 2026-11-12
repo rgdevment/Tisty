@@ -8,6 +8,7 @@ const store = vi.hoisted(() => ({ broke: [] as unknown[][], label: "main" }));
 
 vi.mock("../broke", () => ({
   broke: (...said: unknown[]) => store.broke.push(said),
+  thrown: () => {},
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
