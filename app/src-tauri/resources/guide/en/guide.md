@@ -464,7 +464,7 @@ From then on Tisty is its memory between sessions. It starts by asking what move
 
 - **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
 - **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
-- **It cannot** close or delete a task, delete a document or an idea, or change a task you wrote.
+- **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
 

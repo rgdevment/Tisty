@@ -21,6 +21,7 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 ## Lo que puede hacer
 
 - Proponer tareas con sus pasos y su fecha, ponerles un recordatorio y anotar en su bitácora.
+- Trabajar cualquier tarea como un documento, también las tuyas: su descripción, su página, su título, su lista y sus pasos abiertos.
 - Escribir documentos, agregar a uno, corregir un pasaje o una tabla, y ordenarlos en carpetas y páginas.
 - Anotar ideas en la Lluvia de ideas cuando se lo pides, y ordenarlas contigo: una idea que convierte en tarea o anexa a un documento sale de la hoja, como cuando lo haces tú.
 - Marcar un documento o una idea que ya cumplió su vida, con el porqué: tú lo borras, lo archivas o le quitas la marca.

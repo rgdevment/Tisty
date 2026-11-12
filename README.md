@@ -238,6 +238,9 @@ waits in Brainstorm.
   dragging.
 - **Sorted out later** — each idea becomes a task or goes into the document it
   belongs to, and the Library counts the ones still waiting.
+- **An idea in any document** — the same sticky note, with its date and colour,
+  fits in any document from the `/` menu, and filing an idea carries it there
+  whole.
 - **With your AI agent too** — ask it to brainstorm with you and it jots the
   ideas you keep; ask it to sort them and it groups them, turns one into a task
   or files it in its document, and only marks the old ones, for you to delete.
@@ -254,10 +257,10 @@ waits in Brainstorm.
   and its own day.
 - **Shared work, clear ownership** — what your agent files is its own to keep
   true: it describes it, plans the steps, ticks each one when it is done and
-  notes what it learns. What you wrote stays yours: the agent only adds — a
-  journal entry, a reminder, a file — and gives its word that a step or the
-  whole task is done, for you to confirm. Closing is always yours, and every
-  entry says which agent wrote it.
+  notes what it learns. On what you wrote it works as in a document — the
+  description, the page, the open steps, the title and the list — but a step it
+  calls done waits for you to tick it, the day stays yours and closing is always
+  yours, and every entry says which agent wrote it.
 - **A journal** — dated notes that are never rewritten: what was tried, what
   was ruled out, and why.
 - **A page per task** — *Description*, *Done when*, *Steps*, *Notes* and *When

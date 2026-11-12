@@ -26,14 +26,14 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Lluvia de ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
 | `remind` | Hacer que una tarea suene a una hora |
 | `reschedule` | Mover el día de una tarea que anotó |
-| `describe` | Escribir la descripción de una tarea en la que puede trabajar, reemplazando la anterior |
-| `rename` | Renombrar una tarea que anotó un agente |
+| `describe` | Escribir la descripción de una tarea abierta, también las tuyas, reemplazando la anterior |
+| `rename` | Renombrar cualquier tarea abierta, también las tuyas |
 | `note` | Añadir a la bitácora de una tarea: hasta 4000 caracteres por nota; lo más largo va a la página de la tarea |
 | `reword_note` | Reescribir una nota de la bitácora de una tarea |
 | `plan` | Añadir pasos a una tarea |
 | `reword_step` | Reescribir un paso abierto |
 | `unplan` | Quitar pasos abiertos de una tarea o, con `to`, pasarlos a la tarea a la que pertenecen |
-| `move` | Colgar una tarea de otra como parte, soltar una parte o mover a otra lista una tarea que anotó |
+| `move` | Colgar una tarea de otra como parte, soltar una parte o mover una tarea a otra lista |
 | `tick` | Marcar los pasos que hizo; en una tarea tuya esperan a que los confirmes |
 | `untick` | Quitar una marca que puso por error |
 | `say_done` | Decir que una tarea está terminada, también las tuyas, para que lo confirmes |
@@ -49,7 +49,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer. En **Lluvia de ideas**, cada párrafo o elemento de una lista se vuelve una idea propia, con su fecha y su color, de hasta 140 caracteres; la idea misma, con su línea `> [!IDEA]` y sus palabras tal como están en la hoja, añadida a otro documento sale de la hoja, como cuando la anexas desde la ventana; una nota `[!IDEA]` que no nombra ninguna idea de ahí queda como nota adhesiva propia |
-| `edit_doc` | Cambiar un pasaje de un documento |
+| `edit_doc` | Cambiar un pasaje de un documento o de la página de una tarea |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
 | `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos; con una tarea, devuelve las notas que reemplazó un resumen |
 | `folder` | Crear una carpeta |

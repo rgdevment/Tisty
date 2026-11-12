@@ -110,7 +110,7 @@ File a task with its steps and its date, set a reminder, add to a task's journal
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
@@ -145,7 +145,7 @@ What an agent connected to Tisty does on a real piece of work:
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
-Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. What you wrote stays yours: the agent only adds — a journal entry, a reminder, a file — and gives its word that a step or the task is done, for you to confirm. Closing is always yours.
+Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours.
 
 ## Signed by name
 

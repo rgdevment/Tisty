@@ -21,6 +21,7 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 ## What it can do
 
 - Propose tasks with their steps and their date, set a reminder on them and note in their journal.
+- Work any task as it works a document, yours too: its description, its page, its title, its list and its open steps.
 - Write documents, add to one, correct a passage or a table, and file them into folders and pages.
 - Jot ideas on Brainstorm when you ask, and sort them out with you: an idea it turns into a task or files in a document leaves the sheet, as it does when you do it.
 - Mark a document or an idea that had its day, saying why: you delete it, put it away or take the mark off.
