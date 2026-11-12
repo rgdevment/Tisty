@@ -141,16 +141,13 @@ describe("capturing without the window", () => {
     expect(keys.parentElement).toBe(screen.getByRole("button", { name: "Task" }).parentElement);
   });
 
-  it("once in a hundred times winks instead of giving an example", async () => {
-    const roll = vi.spyOn(Math, "random").mockReturnValue(0.005);
-    try {
-      render(<Quick />);
-      const field = await screen.findByRole("textbox");
+  it("winks instead of giving an example when its turn in the hundred comes", async () => {
+    localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: 1 }));
+    render(<Quick />);
+    const field = await screen.findByRole("textbox");
 
-      expect(field.getAttribute("placeholder")).toBe(t("taskWink"));
-    } finally {
-      roll.mockRestore();
-    }
+    await waitFor(() => expect(field.getAttribute("placeholder")).toBe(t("taskWink")));
+    localStorage.clear();
   });
 
   it("invites a task with one of its examples, in the person's language", async () => {

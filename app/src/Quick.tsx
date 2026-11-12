@@ -1,6 +1,6 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { jot } from "./brainstorm";
 import { capture, type Priority, type Snapshot, shortcut, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
@@ -8,13 +8,11 @@ import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
 import IdeaField from "./ui/IdeaField";
+import { winksNow } from "./wink";
 
 const anyOf = (all: string[]): string => all[Math.floor(Math.random() * all.length)] ?? "";
 
-const WINKS_ONCE_IN = 100;
-
-const invited = (): string =>
-  Math.random() * WINKS_ONCE_IN < 1 ? t("taskWink") : anyOf(t("taskExamples").split("\n"));
+const invited = (): string => (winksNow() ? t("taskWink") : anyOf(t("taskExamples").split("\n")));
 
 export default function Quick() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -33,11 +31,7 @@ export default function Quick() {
       .then(setKeys)
       .catch(() => setKeys(null));
   }, [jotting, round]);
-  const locale = data?.locale;
-  const example = useMemo(
-    () => (round >= 0 && locale !== undefined ? invited() : t("addTask")),
-    [round, locale],
-  );
+  const [example, setExample] = useState(() => t("addTask"));
 
   useEffect(() => {
     const window = getCurrentWindow();
@@ -48,6 +42,7 @@ export default function Quick() {
         .then((fresh) => {
           adopt(fresh.locale);
           setData(fresh);
+          setExample(invited());
         })
         .catch((e) => setError(saidPlainly(e)));
 
