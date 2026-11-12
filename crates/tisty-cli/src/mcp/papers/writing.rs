@@ -354,6 +354,7 @@ fn notes_put_back(
     let back = tisty_core::docs::NotesBefore {
         before: slot.after.clone(),
         after: slot.before.clone(),
+        undone: !slot.undone,
     };
     tisty_core::docs::keep_notes_before(paths.data(), which, &back).map_err(hitch)?;
     let known = tisty_core::docs::read_notes_left(paths.data(), which);

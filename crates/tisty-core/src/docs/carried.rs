@@ -37,6 +37,9 @@ pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> 
 pub struct NotesBefore {
     pub before: String,
     pub after: String,
+    /// True once swapped back, so `after` holds the notes from before the digest, not the digest.
+    #[serde(default)]
+    pub undone: bool,
 }
 
 pub fn keep_notes_before(data: &Path, id: &str, slot: &NotesBefore) -> Result<()> {

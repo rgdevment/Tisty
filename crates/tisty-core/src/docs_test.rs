@@ -1303,6 +1303,28 @@ fn the_line_it_shows_is_cut_and_never_splits_a_character_in_half() {
 
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].line.chars().count(), SAID_AT_MOST);
+    assert!(found[0].line.ends_with("aguja"), "{}", found[0].line);
+    assert!(found[0].line.starts_with('…'), "{}", found[0].line);
+}
+
+#[test]
+fn a_long_line_is_cut_around_the_words_it_was_found_by() {
+    let room = root();
+    let before = "word ".repeat(60);
+    let after = " tail".repeat(60);
+    write(
+        room.path(),
+        "mac0-0010",
+        &format!("# Keys\n\n{before}Idempotency keys are kept 90 days{after}\n"),
+    )
+    .unwrap();
+
+    let found = Corpus::default().searching(room.path(), "idempotency", 40, |_| true);
+
+    let line = &found[0].line;
+    assert!(line.contains("Idempotency keys are kept 90 days"), "{line}");
+    assert!(line.starts_with('…') && line.ends_with('…'), "{line}");
+    assert_eq!(line.chars().count(), SAID_AT_MOST);
 }
 
 #[test]
@@ -3290,4 +3312,20 @@ fn lines_are_fenced_only_when_every_one_is_code_inside_one_block() {
     assert!(!fenced_between(body, 5, 4));
     assert!(!fenced_between(body, 0, 1));
     assert!(!fenced_between(body, 12, 99));
+}
+
+#[test]
+fn a_line_written_with_separate_accents_is_still_cut_around_the_match() {
+    let room = root();
+    let before = "cafe\u{301} ".repeat(80);
+    write(
+        room.path(),
+        "mac0-0011",
+        &format!("# Notas\n\n{before}aguja final{}\n", " cola".repeat(10)),
+    )
+    .unwrap();
+
+    let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
+
+    assert!(found[0].line.contains("aguja final"), "{}", found[0].line);
 }

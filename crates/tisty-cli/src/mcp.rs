@@ -17,6 +17,7 @@ mod resources;
 mod resuming;
 mod spoken;
 mod task_notes;
+mod task_reading;
 mod tool_list;
 mod unpathing;
 mod wholes;
@@ -1091,6 +1092,34 @@ fn shortened(said: Value) -> Value {
         kept.insert("more".into(), json!(true));
     }
     Value::Object(kept)
+}
+
+const A_GIST_IN_A_LINE: usize = 120;
+
+// A client that reads only the text would never see what an earlier reader left.
+fn gist_told(gist: &Value, summary_most: usize, notes_most: usize) -> String {
+    let stale = match gist["stale"] == json!(true) {
+        true => " (stale: written against an older version)",
+        false => "",
+    };
+    let cut = |said: &str, most: usize| match said.chars().count() > most {
+        true => format!("{}…", said.chars().take(most).collect::<String>()),
+        false => said.to_string(),
+    };
+    let mut told = Vec::new();
+    if let Some(summary) = gist["summary"].as_str() {
+        told.push(format!(
+            "An agent's summary: {}",
+            cut(summary, summary_most)
+        ));
+    }
+    if let Some(notes) = gist["notes"].as_str() {
+        told.push(format!("Its notes: {}", cut(notes, notes_most)));
+    }
+    match told.is_empty() {
+        true => String::new(),
+        false => format!("{}{stale}", told.join("\n")),
+    }
 }
 
 /// What was written about a document, and whether it still describes the text that is there.

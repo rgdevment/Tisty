@@ -963,8 +963,43 @@ fn bared(body: &str) -> String {
     body.lines().map(bare).collect::<Vec<_>>().join("\n")
 }
 
-fn cut(said: String) -> String {
-    said.chars().take(SAID_AT_MOST).collect()
+// A long line is cut around the words it was found by, or the match falls past the cut.
+fn cut(said: String, terms: &[String]) -> String {
+    let chars: Vec<char> = said.chars().collect();
+    if chars.len() <= SAID_AT_MOST {
+        return said;
+    }
+    // Folding can drop or add characters, so each folded one keeps the place it came from.
+    let mut flat = Vec::new();
+    let mut from = Vec::new();
+    for (at, one) in chars.iter().enumerate() {
+        for folded in crate::text::folded(&one.to_string()).chars() {
+            flat.push(folded);
+            from.push(at);
+        }
+    }
+    let found = terms
+        .iter()
+        .filter_map(|term| {
+            let term: Vec<char> = term.chars().collect();
+            flat.windows(term.len().max(1))
+                .position(|one| one == term.as_slice())
+        })
+        .min()
+        .and_then(|at| from.get(at).copied())
+        .unwrap_or(0);
+    let start = found
+        .saturating_sub(SAID_AT_MOST / 3)
+        .min(chars.len() - SAID_AT_MOST);
+    let end = start + SAID_AT_MOST;
+    let mut shown: Vec<char> = chars[start..end].to_vec();
+    if start > 0 {
+        shown[0] = '…';
+    }
+    if end < chars.len() {
+        shown[SAID_AT_MOST - 1] = '…';
+    }
+    shown.into_iter().collect()
 }
 
 fn shown_around(body: &str, terms: &[String]) -> Option<String> {
@@ -996,7 +1031,7 @@ fn shown_around(body: &str, terms: &[String]) -> Option<String> {
             break;
         }
     }
-    best.or(backup).map(|(_, said)| cut(said))
+    best.or(backup).map(|(_, said)| cut(said, terms))
 }
 
 pub const CORPUS_AT_MOST: usize = 64 * 1024 * 1024;
