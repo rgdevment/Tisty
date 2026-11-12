@@ -9,6 +9,7 @@ use super::super::jsonrpc::told;
 use super::super::spoken::{heard, said_in_tisty};
 use super::super::{
     Refused, UNSETTLED, by_how_much, grew, hitch, left_loose, loose_words, opened, retold,
+    written_name,
 };
 
 // Enough rows to find one by its first cell, without handing a long table over whole.
@@ -52,9 +53,9 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     shaped["print"] = json!(tisty_core::attach::printed(whole.as_bytes()));
     let reply = told(
         format!(
-            "Changed the table {} in {:?}, {}. What it was is kept beside the documents.{}{}{}",
+            "Changed the table {} in {}, {}. What it was is kept beside the documents.{}{}{}",
             nth + 1,
-            tisty_core::docs::titled(&whole),
+            written_name(&state, &which, &whole),
             by_how_much(&was, &whole),
             warned(&amiss),
             loose_words(&state, &loose),
@@ -67,11 +68,12 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
 
 fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
-    if state.docs.values().all(|one| one.file != which) {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(super::super::mistaken::no_document_called(
             &state, which,
         )));
-    }
+    };
+    super::reading::in_sight(&state, kept, which)?;
     let body = text_of(paths, &state, which)?;
     let tables = grid::shown(&body);
     let (nth, table) = chosen(&tables, args, which)?;

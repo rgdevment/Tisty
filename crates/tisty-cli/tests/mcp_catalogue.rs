@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 41_341;
+const DOOR_AT_MOST: usize = 40_930;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]

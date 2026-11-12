@@ -381,6 +381,56 @@ fn a_write_that_would_take_an_idea_off_the_sheet_is_refused() {
 }
 
 #[test]
+fn a_write_that_leaves_an_idea_without_its_words_is_refused() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let emptied = served.call(
+        "edit_doc",
+        json!({ "doc": sheet, "old": "> Comprar entradas del concierto de julio\n", "new": "" }),
+    );
+
+    assert!(refused(&emptied), "{emptied}");
+    assert!(
+        said(&emptied).contains("without their words"),
+        "{}",
+        said(&emptied)
+    );
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn many_ideas_jotted_at_once_are_each_named_apart_and_proposed_one_by_one() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let many: String = (1..=14).map(|n| format!("- Idea número {n}\n")).collect();
+
+    let jotted = served.call("append_doc", json!({ "doc": sheet, "body": many }));
+
+    assert!(!refused(&jotted), "{jotted}");
+    let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    assert_eq!(ideas.len(), 17);
+    for (at, one) in ideas.iter().enumerate() {
+        assert!(
+            ideas[at + 1..]
+                .iter()
+                .all(|other| other.heading != one.heading),
+            "{} heads two ideas",
+            one.heading
+        );
+    }
+    let made = served.call(
+        "propose",
+        json!({ "title": "La última idea", "source": format!("{sheet}#{}", ideas[16].heading) }),
+    );
+    assert!(made["structuredContent"]["from_idea"].is_string(), "{made}");
+    assert_eq!(
+        tisty_core::brainstorm::ideas_on(&served.body(&sheet)).len(),
+        16
+    );
+}
+
+#[test]
 fn sorting_ideas_names_the_sheet_and_changes_nothing_until_the_person_says() {
     let served = Served::new();
     let sheet = served.sheet();
@@ -706,4 +756,49 @@ fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
         "{made}"
     );
     assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn an_empty_sheet_is_still_named_and_a_new_one_is_not_sent_to_a_folder() {
+    let served = Served::new();
+    let made = served.call(
+        "write_doc",
+        json!({ "body": "---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n" }),
+    );
+    assert!(!refused(&made), "{made}");
+    assert!(!said(&made).contains("folder"), "{}", said(&made));
+
+    let caught = served.call("catch_up", json!({}));
+
+    let glance = &caught["structuredContent"]["brainstorm"];
+    assert_eq!(glance["ideas"], json!(0), "{caught}");
+    assert!(
+        said(&caught).contains("holds no idea now"),
+        "{}",
+        said(&caught)
+    );
+
+    let second = served.call(
+        "write_doc",
+        json!({ "body": "---\nview: notes\nbrainstorm: on\n---\n\n# Otra lluvia\n" }),
+    );
+    assert!(refused(&second), "{second}");
+    assert!(said(&second).contains("already"), "{}", said(&second));
+}
+
+#[test]
+fn a_document_is_never_turned_into_a_sheet_by_a_write() {
+    let served = Served::new();
+    let doc = served
+        .person()
+        .writes_doc("---\nview: notes\n---\n\n# Notas sueltas\n\nUna línea.\n");
+
+    let turned = served.call(
+        "edit_doc",
+        json!({ "doc": doc, "old": "view: notes", "new": "view: notes\nbrainstorm: on" }),
+    );
+
+    assert!(refused(&turned), "{turned}");
+    assert!(said(&turned).contains("made new"), "{}", said(&turned));
+    assert!(!served.body(&doc).contains("brainstorm"));
 }
