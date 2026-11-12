@@ -19,6 +19,10 @@ const known = [
   doc("a1-0001", "Rina", "es", ["a1-0001", 0]),
   doc("a1-0002", "Rina", "en", ["a1-0001", 1]),
   doc("a1-0003", "Recetas", "es"),
+  doc("a1-0004", "¿Qué es Tisty?", "es", ["a1-0004", 0]),
+  doc("a1-0005", "What is Tisty?", "en", ["a1-0004", 1]),
+  { ...doc("a1-0006", "Roger"), pageOf: "a1-0004" },
+  { ...doc("a1-0007", "Roger"), pageOf: "a1-0005" },
 ];
 
 describe("choosing the document an idea goes into", () => {
@@ -27,11 +31,18 @@ describe("choosing the document an idea goes into", () => {
     render(<FileIdea idea="una idea" known={known} own="" onPick={onPick} onClose={() => {}} />);
 
     const list = screen.getByRole("list");
-    expect(within(list).getByText("Español")).toBeTruthy();
-    expect(within(list).getByText("English")).toBeTruthy();
+    expect(within(list).getByRole("button", { name: /^Rina\s*Español$/ })).toBeTruthy();
     expect(within(list).getByRole("button", { name: /Recetas/ }).textContent).toBe("Recetas");
-    await userEvent.click(within(list).getByRole("button", { name: /English/ }));
+    await userEvent.click(within(list).getByRole("button", { name: /^Rina\s*English$/ }));
     expect(onPick).toHaveBeenCalledWith("a1-0002");
+  });
+
+  it("names the document a page hangs from, and that document's language", () => {
+    render(<FileIdea idea="una idea" known={known} own="" onPick={() => {}} onClose={() => {}} />);
+
+    const list = screen.getByRole("list");
+    expect(within(list).getByText("¿Qué es Tisty? · Español")).toBeTruthy();
+    expect(within(list).getByText("What is Tisty? · English")).toBeTruthy();
   });
 
   it("finds a version by the name of its language", async () => {
@@ -39,6 +50,11 @@ describe("choosing the document an idea goes into", () => {
 
     await userEvent.type(screen.getByRole("textbox"), "english");
 
-    expect(within(screen.getByRole("list")).getAllByRole("button")).toHaveLength(1);
+    const found = within(screen.getByRole("list")).getAllByRole("button");
+    expect(found.map((one) => one.textContent)).toEqual([
+      "RinaEnglish",
+      "RogerWhat is Tisty? · English",
+      "What is Tisty?English",
+    ]);
   });
 });
