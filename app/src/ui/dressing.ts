@@ -12,6 +12,7 @@ import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "
 import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
+import { sticking } from "./sticking";
 import { dragging, tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
@@ -40,6 +41,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onStick?: (note: [number, number], to: number) => void;
   readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
@@ -489,6 +491,13 @@ export const wired = (page: Document, reach: () => Reaching) => {
         { kind: "table", at, act: "row", row: from, column: -1, to, x: 0, y: 0 },
         reach(),
       );
+  });
+  sticking(page, () => {
+    const now = reach();
+    const stick = now.onStick;
+    if (!stick) return undefined;
+    return (note, to) =>
+      stick([charsAt(now.body, note[0]), charsAt(now.body, note[1])], charsAt(now.body, to));
   });
   widening(page, () => {
     const now = reach();

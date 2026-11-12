@@ -378,6 +378,20 @@ blockquote[data-callout="idea"][data-side="right"] {
   margin: 4px 0 12px 20px;
   transform: rotate(1.4deg);
 }
+html.ticking .page > blockquote[data-callout="idea"][data-at] {
+  cursor: grab;
+  touch-action: none;
+}
+.page > .idea-moving {
+  cursor: grabbing;
+  opacity: 0.55;
+}
+.page > .idea-landing-above {
+  box-shadow: 0 -4px 0 -1px var(--tisty-accent);
+}
+.page > .idea-landing-below {
+  box-shadow: 0 4px 0 -1px var(--tisty-accent);
+}
 blockquote[data-callout="idea"][data-side="left"] {
   float: left;
   margin: 4px 20px 12px 0;

@@ -50,6 +50,7 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
@@ -708,6 +709,13 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
+  const restuck = (note: [number, number], to: number) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const next = movedBlock(latest.current, note, to);
+    if (next !== latest.current) whole(next);
+  };
+
   const parted = (at: [number, number]) => {
     if (open.current) return left();
     if (reading || hanging.current || showing.current !== latest.current) return;
@@ -982,6 +990,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={reading ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
+          onStick={reading || fixed ? undefined : restuck}
           onPart={reading || fixed || !props.onPart ? undefined : parted}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
