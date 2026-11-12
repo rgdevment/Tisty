@@ -4,7 +4,7 @@ Tisty no recoge nada y no guarda nada tuyo en un servidor. La única excepción 
 
 Esta página es un resumen. La política completa, incluidas las partes que no tranquilizan, está en [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) (en inglés), y el razonamiento de seguridad en [SECURITY.md](https://github.com/rgdevment/Tisty/blob/main/SECURITY.md).
 
-![Software por convicción, no por suscripción: sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu equipo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-09-cierre.png)
+![Software por convicción, no por suscripción: sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu equipo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-10-cierre.png)
 
 ## Qué se guarda
 

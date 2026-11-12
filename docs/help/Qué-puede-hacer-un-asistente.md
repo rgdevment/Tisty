@@ -14,6 +14,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
 - **Archivar un documento, o desarchivarlo**, cuando se lo pides.
+- **Anotar ideas en la Lluvia de ideas** cuando se lo pides, y ordenarlas contigo: una idea que anexa a un documento o convierte en tarea sale de la hoja, como cuando lo haces tú.
 - **Guardar una copia de un archivo** que le indiques, en una tarea o dentro de un documento.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 
@@ -23,6 +24,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o vaciar una carpeta.
+- Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.
 - Tomar archivos de cualquier lugar que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal.
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
@@ -63,6 +65,8 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 ## Marcar un documento en vez de borrarlo
 
 Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo: un clic cada cosa, y borrar o desmarcar todo un grupo de copias que marcó juntas también toma un clic.
+
+Una idea de la Lluvia de ideas que ya cumplió su vida se marca igual, una por una: la nota lleva un rombo con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva.
 
 ## Lo que lee es lo que escribiste, no órdenes
 

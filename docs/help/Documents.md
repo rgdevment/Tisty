@@ -4,7 +4,7 @@ Documents live beside the tasks, for reference material that has no date and nev
 
 For writing in one, see [[The Markdown editor|Markdown-Editor]]; for everything it can hold — callouts, tables, diagrams, math, widgets, code — see the [Tisty Markdown guide](https://markdown.tisty.app).
 
-![What you know, one document per subject: corrected in place instead of piling up, with its outline beside it, so your AI agent reads the outline first and then only the section it needs](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-documents.png)
+![What you know, one document per subject: corrected in place instead of piling up, with its outline beside it, so your AI agent reads the outline first and then only the section it needs](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-06-documents.png)
 
 ## A task or a document?
 
@@ -25,6 +25,9 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
+  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  I -->|Turn into a task| T
+  I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
   P --> S{Too big for one go?}
   S -->|Yes| K[Split it into parts]
@@ -36,6 +39,8 @@ flowchart TD
 ```
 
 Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
+
+**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
 
 How a task's page, steps and parts work is in [[Tasks]]; what a closed one keeps, in [[The archive|Archive]].
 
@@ -50,6 +55,8 @@ The first line of the document is its title — there is no name to fill in.
 ## Brainstorm
 
 An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Brainstorm**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
+
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
 
 - **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, write in it by hand, archive it or export it like any other.
 - **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
@@ -159,7 +166,7 @@ More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
 
 ## Sharing
 
-![Share what you know, encrypted: encrypted on your computer before it leaves and signed by you, it opens in any browser with no account and is gone after the days without use you choose](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-folio.png)
+![Share what you know, encrypted: encrypted on your computer before it leaves and signed by you, it opens in any browser with no account and is gone after the days without use you choose](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-08-folio.png)
 
 When somebody else needs what you know — your PO, the QA joining the project, another team — you hand them the document. The panel beside a document has a **Shared** row with **Share…**. Sharing goes through Folio, a service apart from Tisty. Pressing **Share…** reads a small signed file to learn whether Folio has opened. While it has not, it says so, with a link to [tisty.cl](https://tisty.cl), and nothing of your document leaves this computer; the ways out above still hand a document to someone. If that file cannot be reached, it says so and offers to try again. Once Folio is open, you make your identity first if this computer has none yet — the key that signs what you share, backed up with your 24-word phrase — then accept its terms the first time, choose what the other person can do and how long it lasts, and get a link. A document in several languages lists them with a box each: the one you share always goes, you can leave out another of yours, and one written by someone else stays here. If Folio changes its terms, Share and Sync ask you to accept the new ones as soon as they can be checked; until then you keep sharing under the ones you accepted.
 

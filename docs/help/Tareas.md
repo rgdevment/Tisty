@@ -21,6 +21,9 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
+  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  I -->|Convertir en tarea| T
+  I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
   P --> S{¿Es mucho para una vez?}
   S -->|Sí| K[Divídela en partes]
@@ -33,13 +36,15 @@ flowchart TD
 
 Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
 
+**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
+
 Lo que guarda una tarea cerrada, y cómo la encuentra el buscador, está en [[El archivo|El-archivo]].
 
 ## Captura: escribe como hablas
 
 No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras escribes, y te muestra lo que entendió **antes** de guardar nada, como etiquetas que corriges con un clic.
 
-![Atrasada no es vencida: se atrasa lo que no hiciste el día que planeaste y vence solo lo que pasó su límite, con los contadores de vencidas, atrasadas, para hoy y por venir](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-dia.png)
+![Atrasada no es vencida: se atrasa lo que no hiciste el día que planeaste y vence solo lo que pasó su límite, con los contadores de vencidas, atrasadas, para hoy y por venir](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-07-dia.png)
 
 | Escribes | Entiende |
 | :-- | :-- |
@@ -78,7 +83,7 @@ La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y l
 
 Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
-![Urgente no siempre es importante: cada tarea en su cuadrante, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-05-prioridades.png)
+![Urgente no siempre es importante: cada tarea en su cuadrante, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-prioridades.png)
 
 | Cuadrante | Qué significa | Se escribe |
 | :-- | :-- | :-- |

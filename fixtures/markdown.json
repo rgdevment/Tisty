@@ -518,7 +518,7 @@
       "Link:https://www.tisty.app/docs/spread-and-reminders/",
       "Link:priorities.png",
       "Link:https://www.tisty.app/docs/tasks/",
-      "Link:https://www.tisty.app/docs/archive/",
+      "Link:brainstorm.png",
       "Link:https://www.tisty.app/docs/documents/",
       "Link:languages.png",
       "Link:tisty:page",
@@ -531,8 +531,9 @@
       "Link:https://www.tisty.app/docs/convert-to-and-from-markdown/",
       "Link:https://www.tisty.app/docs/sync-and-backup/",
       "Link:https://www.tisty.app/docs/privacy/",
-      "Link:https://www.tisty.app/docs/assistants-and-mcp/",
-      "Link:https://www.tisty.app/docs/mcp-permissions/",
+      "Link:archive.png",
+      "Link:https://www.tisty.app/docs/archive/",
+      "Link:tisty:agent",
       "Link:https://www.tisty.app/docs/keyboard-shortcuts/",
       "Link:https://www.tisty.app/docs/",
       "Link:https://www.tisty.app/docs/faq/",
@@ -551,6 +552,19 @@
     "tags": [],
     "refs": [
       "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-agent-en",
+    "file": "app/src-tauri/resources/guide/en/agent.md",
+    "falls_short": "drops the final newline",
+    "title": "Step by step with your AI agent",
+    "tags": [],
+    "refs": [
+      "Link:https://www.tisty.app/docs/assistants-and-mcp/",
+      "Link:https://www.tisty.app/docs/privacy/",
+      "Link:https://www.tisty.app/docs/mcp-permissions/",
+      "Link:https://www.tisty.app/docs/mcp-tools/"
     ]
   },
   {
@@ -598,7 +612,7 @@
       "Link:https://www.tisty.app/es/ayuda/reparto-y-recordatorios/",
       "Link:prioridades.png",
       "Link:https://www.tisty.app/es/ayuda/tareas/",
-      "Link:https://www.tisty.app/es/ayuda/el-archivo/",
+      "Link:ideas.png",
       "Link:https://www.tisty.app/es/ayuda/documentos/",
       "Link:idiomas.png",
       "Link:tisty:page",
@@ -611,8 +625,9 @@
       "Link:https://www.tisty.app/es/ayuda/convertir-a-y-desde-markdown/",
       "Link:https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/",
       "Link:https://www.tisty.app/es/ayuda/privacidad/",
-      "Link:https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
-      "Link:https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/",
+      "Link:archivo.png",
+      "Link:https://www.tisty.app/es/ayuda/el-archivo/",
+      "Link:tisty:agent",
       "Link:https://www.tisty.app/es/ayuda/atajos-de-teclado/",
       "Link:https://www.tisty.app/es/ayuda/",
       "Link:https://www.tisty.app/es/ayuda/preguntas-frecuentes/",
@@ -631,6 +646,19 @@
     "tags": [],
     "refs": [
       "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-agent-es",
+    "file": "app/src-tauri/resources/guide/es/agentes.md",
+    "falls_short": "drops the final newline",
+    "title": "Paso a paso con tu agente de IA",
+    "tags": [],
+    "refs": [
+      "Link:https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
+      "Link:https://www.tisty.app/es/ayuda/privacidad/",
+      "Link:https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/",
+      "Link:https://www.tisty.app/es/ayuda/herramientas-mcp/"
     ]
   },
   {
