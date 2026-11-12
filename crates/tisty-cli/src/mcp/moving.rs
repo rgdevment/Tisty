@@ -1,10 +1,10 @@
 use serde_json::{Value, json};
 use tisty_core::event::{Op, TaskMove};
 use tisty_core::model::{ListId, Task, TaskId};
-use tisty_core::{MoveBarred, Paths, State};
+use tisty_core::{Paths, State};
 
 use super::asked::text;
-use super::chores::{filling, still_filling};
+use super::chores::{reaching, still_in_sight};
 use super::jsonrpc::told;
 use super::{Refused, hitch, moved, opened};
 
@@ -41,9 +41,9 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     }
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     let list = match &listed {
-        Some(name) => Some(list_named(&state, task, name)?),
+        Some(name) => Some(list_named(&state, name)?),
         None => None,
     };
     let part_of = match whole {
@@ -84,22 +84,15 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             json!({ "id": id.to_string(), "title": task.title, "moved": false }),
         ));
     }
-    if let Some(why) = state.agent_move_barred(task, &d) {
-        return Err(barred(&state, task, &d, why));
-    }
     let written = store
         .append_batch_unless(vec![Op::TaskMove { id, d: d.clone() }], |events| {
             let held = State::replay(events);
             let next_gone = d.part_of.flatten().is_some_and(|up| {
                 held.tasks
                     .get(&up)
-                    .is_none_or(|now| !still_filling(&held, now) || now.resolved.is_some())
+                    .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
             });
-            next_gone
-                || held
-                    .tasks
-                    .get(&id)
-                    .is_none_or(|now| !still_filling(&held, now))
+            next_gone || held.tasks.get(&id).is_none_or(|now| !still_in_sight(now))
         })
         .map_err(hitch)?;
     if written.is_none() {
@@ -145,47 +138,7 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-fn barred(state: &State, task: &Task, d: &TaskMove, why: MoveBarred) -> Refused {
-    let title = |id: TaskId| state.tasks.get(&id).map_or("", |one| one.title.as_str());
-    Refused::Tool(match why {
-        MoveBarred::NotFiled => format!(
-            "{:?} is the person's own: its list is theirs, opened to agents or not. Say where \
-             you would put it with `note`.",
-            task.title
-        ),
-        MoveBarred::NotOpened => format!(
-            "{:?} is the person's, kept closed to agents, so where it hangs is theirs. Say where \
-             it belongs with `note`.",
-            task.title
-        ),
-        MoveBarred::WholeClosed(up) if d.part_of == Some(None) => format!(
-            "{:?} is a part of {:?}, which the person keeps closed to agents, so letting it \
-             go is theirs. Say why it stands apart with `note`.",
-            task.title,
-            title(up)
-        ),
-        MoveBarred::WholeClosed(up) => format!(
-            "{:?} is a part of {:?}, which the person keeps closed to agents, so moving it to \
-             another whole is theirs. Say where it belongs with `note`.",
-            task.title,
-            title(up)
-        ),
-        MoveBarred::NextClosed(up) => format!(
-            "{:?} is the person's, kept closed to agents: a part goes only under a task you \
-             filed or one the person opened to you. Nothing was moved.",
-            title(up)
-        ),
-    })
-}
-
-fn list_named(state: &State, task: &Task, name: &str) -> Result<ListId, Refused> {
-    if !state.filed_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own: its list is theirs, opened to agents or not. Say where \
-             you would put it with `note`.",
-            task.title
-        )));
-    }
+fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
     let all = state.find_list(name);
     match all.as_slice() {
         [one] if one.archived => Err(Refused::Tool(format!(
@@ -233,12 +186,6 @@ fn hung_under(state: &State, task: &Task, up: TaskId) -> Result<TaskId, Refused>
         ))
     } else if repeats(whole) || repeats(task) {
         Some("comes back, or the task does, and something that never ends holds no parts".into())
-    } else if !state.attended_by_agents(whole) {
-        Some(
-            "is the person's, kept closed to agents: a part goes only under a task you filed or \
-             one the person opened to you"
-                .into(),
-        )
     } else if whole.resolved.is_some() {
         Some(
             "has been said done or not to be done, and the person has not decided yet: a new \

@@ -49,10 +49,6 @@ expression: tool
         "description": "In this list, as `catch_up` names it",
         "type": "string"
       },
-      "open_to_agents": {
-        "description": "True: the person's tasks opened to agents; false: kept to themselves",
-        "type": "boolean"
-      },
       "part_of": {
         "description": "Only the parts of this task, by id",
         "type": "string"

@@ -7,8 +7,8 @@ use tisty_core::{Config, Op, Tag, Task};
 use crate::{
     Answer, Asking, Change, DoorDue, Filter, Logs, Refusal, Scope, Session, Snapshot, View, ahead,
     asking, coming, dated_field, erasing, finding, held, herald, knocking, language, offering,
-    opening_to_agents, recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally,
-    today, weighed, wiring, zone,
+    recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally, today, weighed,
+    wiring, zone,
 };
 
 #[tauri::command(async)]
@@ -715,16 +715,6 @@ pub fn door_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 pub fn erase(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     erasing(&mut held(&session), id)
-}
-
-#[tauri::command]
-pub fn open_to_agents(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    open: bool,
-) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    opening_to_agents(&mut held(&session), id, open)
 }
 
 #[tauri::command]

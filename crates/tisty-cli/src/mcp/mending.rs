@@ -7,7 +7,7 @@ use tisty_core::model::{StepId, Task, TaskId};
 
 use super::asked::text;
 use super::chores::{
-    already_said_done, filling, steps_asked, steps_fit, steps_named, still_filling,
+    already_said_done, reaching, steps_asked, steps_fit, steps_named, still_in_sight,
 };
 use super::jsonrpc::told;
 use super::{Refused, hitch, moved, opened};
@@ -20,14 +20,7 @@ pub(super) fn rename(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool("renaming needs the new `title`.".into()));
     };
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
-    if !state.filed_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own: opening it to agents lets you mend its description, its \
-             open steps and its journal, never its title. Say what you would call it with `note`.",
-            task.title
-        )));
-    }
+    let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "renaming it") {
         return Err(why);
     }
@@ -51,7 +44,7 @@ pub(super) fn rename(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 let held = State::replay(events);
                 held.tasks
                     .get(&id)
-                    .is_none_or(|now| unsteady(&held, now) || now.title != had)
+                    .is_none_or(|now| unsteady(now) || now.title != had)
             },
         )
         .map_err(hitch)?;
@@ -75,7 +68,7 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     };
     steps_fit(std::slice::from_ref(&words))?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "rewording a step") {
         return Err(why);
     }
@@ -100,8 +93,7 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    unsteady(&held, now)
-                        || now.step(step).is_none_or(|one| one.done || one.text != was)
+                    unsteady(now) || now.step(step).is_none_or(|one| one.done || one.text != was)
                 })
             },
         )
@@ -121,14 +113,14 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
 pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unplanning", "each step to take off")?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "taking a step off") {
         return Err(why);
     }
     let chosen = open_steps(task, &wanted, "taken off")?;
     let ids: Vec<StepId> = chosen.iter().map(|(step, _)| *step).collect();
     let to = match text(args, "to") {
-        Some(other) => Some(handed_to(&state, &store, id, &other)?),
+        Some(other) => Some(handed_to(&state, id, &other)?),
         None => None,
     };
     let mut ops: Vec<Op> = ids
@@ -155,7 +147,7 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let written = store
         .append_batch_unless(ops, |events| {
             let held = State::replay(events);
-            let gone = |one: TaskId| held.tasks.get(&one).is_none_or(|now| unsteady(&held, now));
+            let gone = |one: TaskId| held.tasks.get(&one).is_none_or(unsteady);
             gone(id)
                 || to.is_some_and(|(there, _)| gone(there))
                 || held.tasks.get(&id).is_some_and(|now| {
@@ -207,11 +199,10 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 fn handed_to<'a>(
     state: &'a State,
-    store: &tisty_core::Store,
     from: TaskId,
     said: &str,
 ) -> Result<(TaskId, &'a Task), Refused> {
-    let (there, other) = filling(state, store, said)?;
+    let (there, other) = reaching(state, said)?;
     if there == from {
         return Err(Refused::Tool(
             "`to` names the same task the steps are on; nothing was moved.".into(),
@@ -235,7 +226,7 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
         ));
     };
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "rewording a note") {
         return Err(why);
     }
@@ -266,7 +257,7 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    unsteady(&held, now)
+                    unsteady(now)
                         || now
                             .journal()
                             .find(|one| one.id == entry)
@@ -284,8 +275,8 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
     ))
 }
 
-fn unsteady(held: &State, now: &Task) -> bool {
-    !still_filling(held, now) || now.resolved.is_some()
+fn unsteady(now: &Task) -> bool {
+    !still_in_sight(now) || now.resolved.is_some()
 }
 
 fn open_steps(

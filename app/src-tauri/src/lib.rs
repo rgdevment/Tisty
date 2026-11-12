@@ -473,36 +473,6 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
     Ok(())
 }
 
-/// Only an open task the person wrote takes the permission: a closed one is history to an
-/// assistant, and what an agent filed is the agents' already.
-fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) -> Answer<Task> {
-    session.reload()?;
-    let task = session
-        .state
-        .tasks
-        .get(&id)
-        .ok_or_else(|| Refusal::of("notATaskId"))?;
-    if !task.is_open() {
-        return Err(Refusal::of("onlyOpenOpens"));
-    }
-    if session.state.filed_by_agents(task) {
-        return Err(Refusal::of("alreadyTheirs"));
-    }
-    session.commit(Op::TaskUpdate {
-        id,
-        d: TaskPatch {
-            open_to_agents: Some(open),
-            ..Default::default()
-        },
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
 fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> Answer<Task> {
     session.reload()?;
     let task = session
@@ -1126,7 +1096,6 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::settings::keep_theme,
         answers::tasks::erase,
         answers::papers::read_as,
-        answers::tasks::open_to_agents,
         answers::settings::guide,
         answers::tasks::capture,
         answers::tasks::read,

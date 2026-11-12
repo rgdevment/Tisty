@@ -271,13 +271,11 @@ impl State {
             );
             return;
         }
-        // The door an assistant's hand meets, judged at replay so every machine agrees: a note or
-        // a bell anywhere, a patch on what it filed, a fill-in where it filed or was let in, and
-        // nothing else — whatever the server that wrote it believed.
+        // Judged at replay so every machine agrees, whatever the server that wrote it believed.
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
             && let Some(task) = self.tasks.get(&id)
-            && !self.lets_agents(task, &event.op)
+            && !self.lets_agents(task, event)
         {
             crate::witness::warn(
                 crate::witness::channel::STORE,
@@ -350,7 +348,8 @@ impl State {
             Op::TaskMove { id, d } => {
                 self.with_task(*id, |t| move_task(t, d));
                 if let Some(whole) = d.part_of {
-                    self.task_parted(*id, whole, event);
+                    let agent = self.assistants.contains(&event.device);
+                    self.task_parted(*id, whole, agent);
                 }
             }
 
@@ -539,31 +538,31 @@ impl State {
         }
     }
 
-    fn lets_agents(&self, task: &Task, op: &Op) -> bool {
-        match op {
-            Op::TaskLog { .. } => true,
-            Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
-            // A word on any task is only a word: the person decides, so it needs no door.
-            Op::TaskResolve { d, .. } => d.word || self.attended_by_agents(task),
-            Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
-            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => {
-                self.attended_by_agents(task)
+    fn lets_agents(&self, task: &Task, event: &Event) -> bool {
+        let settled = self.settled_by_agents(task);
+        let widened = event.timestamp >= ANY_TASK_FROM;
+        let reaches = (task.is_open() || settled) && (widened || settled);
+        let filed = self.filed_by_agents(task);
+        match &event.op {
+            Op::TaskLog { .. } | Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
+            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
+            Op::TaskUpdate { d, .. } => {
+                filed || only_bells(d) || (widened && reaches && only_title(d))
             }
-            Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
-            Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
-            Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
-            Op::TaskLogEdit { d, .. } => self.attended_by_agents(task) && !d.body.trim().is_empty(),
-            Op::TaskMove { d, .. } => self.agent_may_move(task, d),
+            // A word on any task is only a word: the person decides, so it needs no door.
+            Op::TaskResolve { d, .. } => d.word || self.settled_by_agents(task),
+            Op::StepDone { .. } => self.settled_by_agents(task),
+            Op::StepUndone { d, .. } => ticked_by_agent(task, d.step),
+            Op::StepText { d, .. } => reaches && mendable(task, d.step),
+            Op::StepRemove { d, .. } => reaches && mendable(task, d.step),
+            Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
+            Op::TaskMove { d, .. } => {
+                reaches
+                    && (d.list.is_some() || d.part_of.is_some())
+                    && (widened || filed || d.list.is_none())
+            }
             _ => false,
         }
-    }
-
-    fn untickable_by_agents(&self, task: &Task, step: StepId) -> bool {
-        self.attended_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
-    }
-
-    fn mendable_by_agents(&self, task: &Task, step: StepId) -> bool {
-        self.attended_by_agents(task) && task.step(step).is_some_and(|one| !one.done)
     }
 
     fn step_marked(&mut self, event: &Event, task: TaskId, step: StepId, done: bool) {
@@ -872,9 +871,8 @@ impl State {
             .collect()
     }
 
-    /// A task an assistant may fill in: one an assistant filed, or one the person opened to
-    /// them. `assistants` only ever grows, so a task the retired agent filed stays attended.
-    pub fn attended_by_agents(&self, task: &Task) -> bool {
+    // A task opened before 1.31.2 keeps the ticks and closings its log already holds.
+    pub(crate) fn settled_by_agents(&self, task: &Task) -> bool {
         task.open_to_agents || self.filed_by_agents(task)
     }
 
@@ -1249,6 +1247,26 @@ pub(crate) fn only_bells(d: &TaskPatch) -> bool {
                 reminders: d.reminders.clone(),
                 ..Default::default()
             }
+}
+
+// Older writes keep the door they were judged by, so replaying an old log changes nothing.
+pub(crate) const ANY_TASK_FROM: jiff::Timestamp = jiff::Timestamp::constant(1_794_441_600, 0);
+
+pub(crate) fn only_title(d: &TaskPatch) -> bool {
+    d.title.is_some()
+        && *d
+            == TaskPatch {
+                title: d.title.clone(),
+                ..Default::default()
+            }
+}
+
+fn ticked_by_agent(task: &Task, step: StepId) -> bool {
+    task.step(step).is_some_and(|one| one.by_agent)
+}
+
+fn mendable(task: &Task, step: StepId) -> bool {
+    task.step(step).is_some_and(|one| !one.done)
 }
 
 fn patch(task: &mut Task, d: &TaskPatch, person: bool) {

@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Take unticked steps off a task you may work on. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
+  "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -29,7 +29,7 @@ expression: tool
         "type": "string"
       },
       "to": {
-        "description": "Id of another open task you may work on, not said done, to hand them to",
+        "description": "Id of another open task, not said done, to hand them to",
         "type": "string"
       }
     },

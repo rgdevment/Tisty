@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Rewrite an unticked step of a task you may work on. A ticked step is refused: `untick` it first if your tick was a mistake.",
+  "description": "Rewrite an unticked step of an open task. A ticked step is refused: `untick` it first if your tick was a mistake.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

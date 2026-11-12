@@ -3,7 +3,7 @@ use crate::event::{DeviceId, Event, LogAdd, Resolve, StepAdd, StepRef, TaskPatch
 use ulid::Ulid;
 
 fn at(ms: i64) -> jiff::Timestamp {
-    jiff::Timestamp::from_millisecond(ms).unwrap()
+    jiff::Timestamp::from_millisecond(crate::state::ANY_TASK_FROM.as_millisecond() + ms).unwrap()
 }
 
 fn ev(ms: i64, who: &str, op: Op) -> Event {
@@ -101,54 +101,7 @@ fn filled_in(state: &mut State, ms: i64, id: TaskId) -> StepId {
 }
 
 #[test]
-fn only_the_person_opens_a_task_and_shuts_it_again() {
-    let mut state = with_an_agent();
-    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
-
-    state.apply(&ev(3, "dev_agent", opened(id, true)));
-    assert!(
-        !state.tasks[&id].open_to_agents,
-        "an assistant cannot let itself in"
-    );
-    assert!(!state.attended_by_agents(&state.tasks[&id]));
-
-    state.apply(&ev(4, "dev_laptop", opened(id, true)));
-    assert!(state.tasks[&id].open_to_agents);
-    assert!(state.attended_by_agents(&state.tasks[&id]));
-
-    state.apply(&ev(5, "dev_agent", opened(id, false)));
-    assert!(
-        state.tasks[&id].open_to_agents,
-        "nor shut the door behind itself"
-    );
-
-    state.apply(&ev(6, "dev_laptop", opened(id, false)));
-    assert!(!state.tasks[&id].open_to_agents);
-}
-
-#[test]
-fn a_fill_in_on_a_task_the_person_kept_is_let_go_at_replay() {
-    let mut state = with_an_agent();
-    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
-
-    filled_in(&mut state, 10, id);
-
-    let task = &state.tasks[&id];
-    assert_eq!(task.description, None);
-    assert!(task.steps.is_empty());
-    assert!(
-        task.resolved.is_none(),
-        "a mark written before words existed replays as it always did"
-    );
-    assert_eq!(
-        task.log.len(),
-        1,
-        "the journal line stays: a note is not a fill-in"
-    );
-}
-
-#[test]
-fn a_fill_in_lands_once_the_person_opened_the_task() {
+fn an_opening_from_before_keeps_the_ticks_and_the_mark_its_log_holds() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
     state.apply(&ev(3, "dev_laptop", opened(id, true)));
@@ -156,49 +109,49 @@ fn a_fill_in_lands_once_the_person_opened_the_task() {
     let step = filled_in(&mut state, 10, id);
 
     let task = &state.tasks[&id];
-    assert_eq!(task.description.as_deref(), Some("the yearly one"));
-    assert!(task.steps.iter().any(|s| s.id == step && s.done));
+    assert!(
+        task.steps
+            .iter()
+            .any(|s| s.id == step && s.done && s.by_agent)
+    );
     assert!(task.resolved.is_some());
-    assert_eq!(
-        task.status,
-        Status::Open,
-        "saying it is done is still not closing it"
+
+    state.apply(&ev(
+        20,
+        "dev_agent",
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    assert!(
+        !state.tasks[&id].step(step).unwrap().done,
+        "an assistant takes back a tick it gave"
     );
 }
 
 #[test]
-fn shutting_the_task_keeps_what_was_filled_in_and_refuses_what_comes_after() {
+fn an_assistant_writes_on_the_persons_task_but_its_ticks_and_closing_stay_theirs() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
-    state.apply(&ev(3, "dev_laptop", opened(id, true)));
-    filled_in(&mut state, 10, id);
-    state.apply(&ev(20, "dev_laptop", opened(id, false)));
 
-    let step = Ulid::generate();
-    state.apply(&ev(
-        21,
-        "dev_agent",
-        Op::StepAdd {
-            id,
-            d: StepAdd {
-                step,
-                text: "one more".into(),
-                order: "a1".into(),
-            },
-        },
-    ));
+    let step = filled_in(&mut state, 10, id);
 
     let task = &state.tasks[&id];
     assert_eq!(task.description.as_deref(), Some("the yearly one"));
-    assert_eq!(task.steps.len(), 1, "the later step never lands");
-    assert!(task.resolved.is_some(), "shutting is not unsaying");
+    assert!(
+        task.steps.iter().any(|s| s.id == step && !s.done),
+        "planned, never ticked"
+    );
+    assert!(task.resolved.is_none(), "only a word says it is done");
+    assert_eq!(task.log.len(), 1);
 }
 
 #[test]
-fn what_an_assistant_filed_needs_no_opening_and_stays_its_own_past_the_badge() {
+fn what_an_assistant_filed_stays_its_own_to_tick_and_settle_past_the_badge() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_agent", "pasar biome sobre el front");
-    assert!(state.attended_by_agents(&state.tasks[&id]));
+    assert!(state.filed_by_agents(&state.tasks[&id]));
 
     state.apply(&ev(
         3,
@@ -210,7 +163,8 @@ fn what_an_assistant_filed_needs_no_opening_and_stays_its_own_past_the_badge() {
     filled_in(&mut state, 10, id);
 
     let task = &state.tasks[&id];
-    assert!(state.attended_by_agents(task));
+    assert!(state.filed_by_agents(task));
+    assert!(task.steps.iter().all(|s| s.done));
     assert_eq!(task.description.as_deref(), Some("the yearly one"));
     assert!(task.resolved.is_some());
 }
@@ -228,7 +182,7 @@ fn a_task_the_person_wrote_is_theirs_however_much_an_assistant_wrote_on_it() {
         },
     ));
 
-    assert!(!state.attended_by_agents(&state.tasks[&id]));
+    assert!(!state.filed_by_agents(&state.tasks[&id]));
     assert_eq!(
         state.tasks[&id].created_by,
         Some(DeviceId("dev_laptop".into()))
@@ -236,20 +190,17 @@ fn a_task_the_person_wrote_is_theirs_however_much_an_assistant_wrote_on_it() {
 }
 
 #[test]
-fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
+fn an_assistant_patch_on_the_persons_task_lands_only_as_a_bell_or_a_title() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let patched = |ms, d| ev(ms, "dev_agent", Op::TaskUpdate { id, d });
 
-    state.apply(&ev(
+    state.apply(&patched(
         3,
-        "dev_agent",
-        Op::TaskUpdate {
-            id,
-            d: TaskPatch {
-                open_to_agents: Some(true),
-                title: Some("renew the TLS certificate".into()),
-                ..Default::default()
-            },
+        TaskPatch {
+            open_to_agents: Some(true),
+            title: Some("renew the TLS certificate".into()),
+            ..Default::default()
         },
     ));
     let task = &state.tasks[&id];
@@ -257,15 +208,11 @@ fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
     assert_eq!(task.title, "renew the certificate", "nothing of it lands");
 
     let bell = crate::model::DateSpec::fixed("2026-10-01T09:00".parse().unwrap(), "UTC");
-    state.apply(&ev(
+    state.apply(&patched(
         4,
-        "dev_agent",
-        Op::TaskUpdate {
-            id,
-            d: TaskPatch {
-                reminders: Some(vec![bell.clone()]),
-                ..Default::default()
-            },
+        TaskPatch {
+            reminders: Some(vec![bell.clone()]),
+            ..Default::default()
         },
     ));
     assert_eq!(
@@ -274,33 +221,32 @@ fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
         "a bell only ever adds"
     );
 
-    state.apply(&ev(
+    state.apply(&patched(
         5,
-        "dev_agent",
-        Op::TaskUpdate {
-            id,
-            d: TaskPatch {
-                reminders: Some(vec![bell]),
-                title: Some("renew the TLS certificate".into()),
-                ..Default::default()
-            },
+        TaskPatch {
+            date: Some(Some(bell.clone())),
+            ..Default::default()
         },
     ));
-    assert_eq!(
-        state.tasks[&id].title, "renew the certificate",
-        "a bell smuggling a title in is let go with it"
-    );
+    assert_eq!(state.tasks[&id].date, None, "the day stays the person's");
+
+    state.apply(&patched(
+        6,
+        TaskPatch {
+            title: Some("renew the TLS certificate".into()),
+            ..Default::default()
+        },
+    ));
+    assert_eq!(state.tasks[&id].title, "renew the TLS certificate");
 }
 
-/// Everything else an assistant could write on the person's task — a close, a drop, a hide,
-/// a move, a mark taken off, a tick the person gave taken back — is let go, on an opened task too.
 #[test]
 fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
     let mut state = with_an_agent();
     let mine = written(&mut state, 2, "dev_laptop", "renew the certificate");
-    state.apply(&ev(3, "dev_laptop", opened(mine, true)));
     let step = filled_in(&mut state, 10, mine);
     let theirs = written(&mut state, 20, "dev_agent", "pasar biome sobre el front");
+    filled_in(&mut state, 21, theirs);
 
     for id in [mine, theirs] {
         state.apply(&ev(30, "dev_agent", Op::TaskDone { id, filled: false }));
@@ -311,7 +257,7 @@ fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
         assert!(!state.tasks[&id].hidden, "no hide");
         state.apply(&ev(33, "dev_agent", Op::TaskUnresolve { id }));
     }
-    assert!(state.tasks[&mine].resolved.is_some(), "no unsaying");
+    assert!(state.tasks[&theirs].resolved.is_some(), "no unsaying");
     state.apply(&ev(
         34,
         "dev_laptop",
@@ -331,21 +277,6 @@ fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
     assert!(
         state.tasks[&mine].steps[0].done,
         "no taking back a tick the person gave"
-    );
-    state.apply(&ev(
-        35,
-        "dev_agent",
-        Op::TaskUpdate {
-            id: mine,
-            d: TaskPatch {
-                title: Some("renamed".into()),
-                ..Default::default()
-            },
-        },
-    ));
-    assert_eq!(
-        state.tasks[&mine].title, "renew the certificate",
-        "opened is not filed: the title stays the person's"
     );
     state.apply(&ev(
         36,
@@ -396,10 +327,9 @@ fn note_edited(id: TaskId, entry: crate::model::LogId, body: &str) -> Op {
 }
 
 #[test]
-fn an_opened_task_lets_an_assistant_mend_its_open_steps_and_its_journal() {
+fn an_assistant_mends_the_open_steps_and_the_journal_of_the_persons_task() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
-    state.apply(&ev(3, "dev_laptop", opened(id, true)));
     let pay = step_written(&mut state, 4, "dev_laptop", id, "pay");
     let keep = step_written(&mut state, 5, "dev_laptop", id, "keep the receipt");
     let entry = Ulid::generate();
@@ -434,10 +364,9 @@ fn an_opened_task_lets_an_assistant_mend_its_open_steps_and_its_journal() {
 }
 
 #[test]
-fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_mend() {
+fn a_closed_step_and_an_emptied_note_are_never_the_assistants_to_mend() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
-    state.apply(&ev(3, "dev_laptop", opened(id, true)));
     let pay = step_written(&mut state, 4, "dev_laptop", id, "pay");
     state.apply(&ev(
         5,
@@ -456,8 +385,6 @@ fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_men
             d: LogAdd::new(entry, "asked for the quote"),
         },
     ));
-    let kept = written(&mut state, 7, "dev_laptop", "call the bank");
-    let call = step_written(&mut state, 8, "dev_laptop", kept, "call");
 
     state.apply(&ev(10, "dev_agent", reworded(id, pay, "paid twice")));
     state.apply(&ev(
@@ -469,7 +396,6 @@ fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_men
         },
     ));
     state.apply(&ev(12, "dev_agent", note_edited(id, entry, " ")));
-    state.apply(&ev(13, "dev_agent", reworded(kept, call, "call twice")));
 
     let task = &state.tasks[&id];
     assert_eq!(task.step(pay).unwrap().text, "pay", "a closed step stays");
@@ -477,7 +403,6 @@ fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_men
         task.log[0].body, "asked for the quote",
         "emptying is erasing"
     );
-    assert_eq!(state.tasks[&kept].step(call).unwrap().text, "call");
 }
 
 fn stepped(state: &mut State, ms: i64, id: TaskId) -> StepId {
@@ -635,4 +560,55 @@ fn taking_back_a_tick_a_reword_or_a_no_gives_the_assistant_its_word_back() {
         let one = state.tasks[&id].step(step).unwrap();
         assert!(one.said && !one.done, "{n}: the word is back");
     }
+}
+
+#[test]
+fn a_closed_task_of_the_persons_takes_no_words_from_an_assistant() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
+
+    state.apply(&ev(
+        4,
+        "dev_agent",
+        Op::TaskDescribe {
+            id,
+            d: crate::event::Body {
+                body: Some("rewritten later".into()),
+            },
+        },
+    ));
+    state.apply(&ev(
+        5,
+        "dev_agent",
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                title: Some("renamed later".into()),
+                ..Default::default()
+            },
+        },
+    ));
+
+    let task = &state.tasks[&id];
+    assert_eq!(task.description, None, "history reads as it ended");
+    assert_eq!(task.title, "renew the certificate");
+}
+
+#[test]
+fn a_write_from_before_any_task_was_open_stays_let_go() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, -30, "dev_laptop", "renew the certificate");
+    let describe = |body: &str| Op::TaskDescribe {
+        id,
+        d: crate::event::Body {
+            body: Some(body.into()),
+        },
+    };
+
+    state.apply(&ev(-10, "dev_agent", describe("written by an older build")));
+    assert_eq!(state.tasks[&id].description, None, "the old door judged it");
+
+    state.apply(&ev(10, "dev_agent", describe("written now")));
+    assert_eq!(state.tasks[&id].description.as_deref(), Some("written now"));
 }

@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Write the description of a task you may work on (one an agent filed or the person opened to agents). It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
+  "description": "Write the description of an open task. It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

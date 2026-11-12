@@ -1142,30 +1142,28 @@ open so it sees the change.
 What it may do is deliberately small: file a task with its steps and its date,
 set an hour for it to ring at, move the day of a task it filed itself, say that
 a task is done, yours too — which marks it for you to confirm and closes nothing
-— add to the journal, write a document, add to one that is already there — at
-the end or under a heading — correct a passage of one, write one again whole,
-file documents into folders, make one document a page of another and say the
-order its pages are read in, which writes and moves the lines naming them in
-your document's text and nothing else, mark a document that had its day, for
-you to delete, put away or unmark, keep a copy of a file you point it at — on
-a task or inside a document, which takes the larger file of the two — and read
-what is already there. What it may not do: close a task or delete one, tick
-a step of yours or finish a task of yours — save on one you opened to agents
-before 1.31.2 — move a day you set, delete a document, rename or empty a
-folder, reach a task you folded away, take files from anywhere but Downloads,
-Documents, Pictures, the desktop and the temporary folder, or file the same
-thing twice. A task you closed is history to it: it
-comes with a notice saying so, reads as it ended, takes no note, no new day, no
-bell and no file, and if the same work comes back the assistant proposes a new
-one that says how the last one ended.
+— add to the journal, work any task the way it works a document, write a
+document, add to one that is already there — at the end or under a heading —
+correct a passage of one, write one again whole, file documents into folders,
+make one document a page of another and say the order its pages are read in,
+which writes and moves the lines naming them in your document's text and nothing
+else, mark a document that had its day, for you to delete, put away or unmark,
+keep a copy of a file you point it at — on a task or inside a document, which
+takes the larger file of the two — and read what is already there. What it may
+not do: close a task or delete one, tick a step of yours or finish a task of
+yours, move a day you set, delete a document, rename or empty a folder, reach a
+task you folded away, take files from anywhere but Downloads, Documents,
+Pictures, the desktop and the temporary folder, or file the same thing twice. A
+task you closed is history to it: it comes with a notice saying so, reads as it
+ended, takes no note, no new day, no bell and no file, and if the same work
+comes back the assistant proposes a new one that says how the last one ended.
 
-A task you wrote stays yours. An assistant may say it is done, or that it should
-not be done, or that a step of it is done, and each waits for you to confirm it;
-it cannot describe it, plan or change its steps, or move its day, its title or
-its list. A task you opened to agents before 1.31.2 stays open to them: there
-an assistant may still describe it, plan its steps and tick them, until «No
-agents» in its menu shuts it, and what was filled in stays. A task can no
-longer be opened to them. What an
+A task you wrote is written on the way a document is: an assistant may describe
+it, rename it, move it to another list or under another task, plan, reword or
+take off its open steps, correct a note and write its page. What settles it
+stays yours: it may say it is done, or that it should not be done, or that a
+step of it is done, and each waits for you to confirm it; its day is yours to
+move, and a step you ticked is never its to reword or take off. What an
 assistant writes is signed with the name of the program it spoke through: a row
 says «by an agent» and names it on hover, while the side panel, the full page
 and the journal say «by Claude Code», «by Codex». Settings › Assistants counts

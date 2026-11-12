@@ -249,6 +249,20 @@ fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused>
 }
 
 fn called(paths: &Paths, name: &str, args: Value, taken: Option<&Takes>) -> Result<Value, Refused> {
+    match papers::task_pages::page_written(name, &args) {
+        Some(file) => {
+            papers::task_pages::on_its_page(paths, &file, || answered(paths, name, args, taken))
+        }
+        None => answered(paths, name, args, taken),
+    }
+}
+
+fn answered(
+    paths: &Paths,
+    name: &str,
+    args: Value,
+    taken: Option<&Takes>,
+) -> Result<Value, Refused> {
     match name {
         "propose" => spoken(&args, "description", |args| propose(paths, taken, args)),
         "remind" => remind(paths, &args),
