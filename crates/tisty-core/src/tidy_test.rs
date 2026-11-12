@@ -180,6 +180,7 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
                 edited_by: None,
                 flagged: None,
                 ideas_flagged: Vec::new(),
+                brainstorm: false,
                 compacted: None,
                 folder_was: None,
                 task_of: None,

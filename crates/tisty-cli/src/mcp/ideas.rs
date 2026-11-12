@@ -6,12 +6,45 @@ use tisty_core::{Op, Paths, State, Store};
 
 use super::asked::text;
 use super::jsonrpc::{speaking_through, told};
-use super::{Refused, doc_named, hitch, opened, retold};
+use super::{Refused, UNSETTLED, doc_named, hitch, opened, retold};
 
 const IDEAS_AT_ONCE: usize = 50;
 
 pub(super) fn sheet<'a>(paths: &Paths, state: &'a State) -> Option<(&'a Kept, String)> {
-    brainstorm::find(&paths.docs(), state, None)
+    brainstorm::said_sheet(&paths.docs(), state)
+}
+
+pub(super) fn sheet_named<'a>(
+    paths: &Paths,
+    state: &'a State,
+    file: &str,
+) -> Option<(&'a Kept, String)> {
+    let kept = state.docs.values().find(|one| one.file == file)?;
+    brainstorm::sheet_of(&paths.docs(), kept)
+}
+
+pub(super) fn holds_ideas(state: &State, file: &str) -> bool {
+    state
+        .docs
+        .values()
+        .any(|one| one.file == file && one.brainstorm)
+}
+
+pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
+    Refused::Tool(format!(
+        "{} is Brainstorm, a sheet of ideas the window keeps pinned on its own: it holds no pages \
+         and is no page. Hang the page under the document of its subject.",
+        doc_named(state, file)
+    ))
+}
+
+pub(super) fn nothing_but_ideas(state: &State, file: &str) -> Refused {
+    Refused::Tool(format!(
+        "{} is Brainstorm, and everything on it is an idea of a few words: a file added at its \
+         end would be glued onto the last idea. Attach it to the document or the task its \
+         subject belongs to. Nothing was copied.",
+        doc_named(state, file)
+    ))
 }
 
 pub(super) fn is_sheet(body: &str) -> bool {
@@ -103,7 +136,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
             .map(str::trim)
             .filter(|one| !one.is_empty())
             .collect();
-        if lines.iter().any(|line| line.starts_with('#')) {
+        if lines.iter().any(|line| headed(line)) {
             return Err(Refused::Tool(
                 "a heading on Brainstorm is the minute an idea came, and Tisty writes it. Send the \
                  ideas alone: one per paragraph, or one per item of a list. Nothing was written."
@@ -156,6 +189,15 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
     Ok(each)
 }
 
+fn headed(line: &str) -> bool {
+    let hashes = line.chars().take_while(|one| *one == '#').count();
+    (1..=6).contains(&hashes)
+        && line[hashes..]
+            .chars()
+            .next()
+            .is_none_or(char::is_whitespace)
+}
+
 fn listed(line: &str) -> Option<&str> {
     let rest = line
         .strip_prefix("- ")
@@ -189,13 +231,14 @@ pub(super) fn jotted_on(
     let added = brainstorm::jotted_all(&before, &each, at, brainstorm::roll);
     let whole = tisty_core::docs::append(&paths.docs(), &kept.file, &added).map_err(hitch)?;
     // The ideas are already on the sheet: refusing here would have a dutiful retry add them twice.
-    let _ = retold(state, store, &kept.file, &whole);
+    let settled = retold(state, store, &kept.file, &whole).is_ok();
     Ok(told(
         format!(
             "Jotted {} idea(s) on {named}, dated {}, each on a note of its own colour. Nothing \
-             that was there changed.",
+             that was there changed.{}",
             each.len(),
-            at.strftime("%Y-%m-%d %H:%M")
+            at.strftime("%Y-%m-%d %H:%M"),
+            if settled { "" } else { UNSETTLED }
         ),
         json!({
             "doc": kept.file,
@@ -252,10 +295,7 @@ pub(super) fn made_a_task(
     source: &str,
 ) -> Option<String> {
     let (doc, heading) = named_idea(source)?;
-    let (kept, body) = sheet(paths, state)?;
-    if kept.file != doc {
-        return None;
-    }
+    let (kept, body) = sheet_named(paths, state, doc)?;
     let named = doc_named(state, &kept.file);
     let found: Vec<Idea> = brainstorm::ideas_on(&body)
         .into_iter()
@@ -344,11 +384,15 @@ pub(super) fn flag_ideas(
     reason: Option<String>,
 ) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
-    let Some((kept, sheet_body)) = sheet(paths, &state) else {
+    let first = many
+        .iter()
+        .find_map(|one| named_idea(one))
+        .map_or_else(String::new, |(doc, _)| doc.to_string());
+    let Some((kept, sheet_body)) = sheet_named(paths, &state, &first) else {
         return Err(Refused::Tool(format!(
-            "there is no Brainstorm here, so {:?} names no idea. A document is marked by its id \
-             alone. Nothing was marked.",
-            many[0]
+            "{first:?} is not Brainstorm, so `{first}#` and a heading names no idea. Ideas are \
+             named by the sheet's id: `catch_up` gives it. A document is marked by its id alone. \
+             Nothing was marked."
         )));
     };
     let named = doc_named(&state, &kept.file);
@@ -510,4 +554,19 @@ fn reason_said(
         (Some("duplicate_of"), Some(one)) => format!("a duplicate of the idea «{}»", one.text),
         _ => super::papers::flagging::reason_said(state, reason, instead),
     }
+}
+
+pub(super) fn filed_too(mut answer: Value, filed: Option<String>) -> Value {
+    let Some(filed) = filed else {
+        return answer;
+    };
+    for at in ["/content/0/text", "/structuredContent/said"] {
+        if let Some(Value::String(said)) = answer.pointer_mut(at) {
+            said.push_str(&filed);
+        }
+    }
+    if let Some(Value::Object(kept)) = answer.pointer_mut("/structuredContent") {
+        kept.insert("idea_filed".into(), json!(true));
+    }
+    answer
 }

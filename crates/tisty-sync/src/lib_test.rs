@@ -3805,6 +3805,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
             id,
             d: tisty_core::event::Said {
                 key: None,
+                brainstorm: false,
                 lang: None,
                 title: "Cómo funciona esto".into(),
                 bytes: Some(42),
@@ -4113,6 +4114,7 @@ fn a_history_handed_on_reaches_the_folder_byte_for_byte() {
             id,
             d: tisty_core::event::Said {
                 key: None,
+                brainstorm: false,
                 lang: None,
                 title: "Lo que trajo alguien".into(),
                 bytes: Some(13),

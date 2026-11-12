@@ -37,6 +37,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         edited_by: None,
         flagged: None,
         ideas_flagged: Vec::new(),
+        brainstorm: false,
         compacted: None,
         folder_was: None,
         task_of: None,

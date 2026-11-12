@@ -376,6 +376,7 @@ impl State {
             if let Some(key) = &d.key {
                 kept.key = key.clone();
             }
+            kept.brainstorm |= d.brainstorm;
             kept.wrote = Some(event.timestamp);
             kept.wrote_by = Some(event.device.clone());
             // A note with no hand on it says nothing about whose it was, which is not
@@ -477,6 +478,7 @@ impl State {
                 ),
                 flagged: None,
                 ideas_flagged: Vec::new(),
+                brainstorm: d.said.as_ref().is_some_and(|one| one.brainstorm),
                 compacted: None,
                 folder_was: None,
                 task_of: d.task_of,

@@ -2,9 +2,8 @@ import type { Filed, IdeaMarked, Marked, Task } from "../core";
 import { stamped } from "../format";
 import { fill, t, type Word } from "../locales";
 import type { Note } from "../notes";
-import { pointedWord } from "../tidying";
 import { clientNamed } from "../who";
-import { useTarget } from "./Tidied";
+import { Reason, reasoned } from "./Tidied";
 
 const MILD = "rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover";
 const RISKY = `${MILD} text-urgent`;
@@ -42,9 +41,11 @@ interface BarProps {
   onUnmarkAll: () => void;
 }
 
-export function IdeaMarkBar({ marks, reading, onDropAll, onUnmarkAll }: BarProps) {
+export function IdeaMarkBar({ marks, reading, onDropAll, onUnmarkAll }: Readonly<BarProps>) {
   const many = String(marks.length);
-  const latest = marks.map((one) => one.mark.at).sort()[marks.length - 1];
+  const latest = marks.map((one) => one.mark.at).sort((one, other) => one.localeCompare(other))[
+    marks.length - 1
+  ];
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
       <span className="font-medium text-hue-teal">
@@ -73,41 +74,20 @@ interface Reached {
   onTask?: (task: Task) => void;
 }
 
-function Reason({ mark, notes, known, onDoc, onTask }: { mark: Marked } & Reached) {
-  const instead = mark.instead ?? null;
-  const cut = instead?.indexOf("#") ?? -1;
-  const idea =
-    cut >= 0 ? notes.find((one) => one.heading === instead?.slice(cut + 1).trim()) : null;
-  const target = useTarget(cut >= 0 ? null : instead, known);
-  const pointed = pointedWord(mark.reason);
-  if (!pointed) {
-    const plain = mark.reason ? PLAIN[mark.reason] : undefined;
-    return plain ? t(plain) : markedBy(mark);
-  }
-  const [before, after = ""] = t(pointed).split("{name}");
-  const there =
-    cut >= 0 ? (
-      (idea?.text ?? t("flagNoLonger"))
-    ) : target === null ? (
-      "…"
-    ) : target === "gone" ? (
-      t("flagNoLonger")
-    ) : (
-      <button
-        type="button"
-        onClick={() => ("doc" in target ? onDoc?.(target.doc.file) : onTask?.(target.task))}
-        className="underline underline-offset-2"
-      >
-        {"doc" in target ? target.doc.title || t("untitledDoc") : target.task.title}
-      </button>
-    );
-  return (
-    <>
-      {before}
-      {there}
-      {after}
-    </>
-  );
+const plainOfIdea = (reason?: string | null): Word | undefined =>
+  reason ? PLAIN[reason] : undefined;
+
+// A mark that points at another idea names it by its words, which only the sheet knows.
+const ideaNamed = (mark: Marked, notes: Note[]): string | null | undefined => {
+  const cut = mark.instead?.indexOf("#") ?? -1;
+  if (cut < 0) return undefined;
+  const heading = mark.instead?.slice(cut + 1).trim();
+  return notes.find((one) => one.heading === heading)?.text ?? null;
+};
+
+function IdeaReason({ mark, notes, ...reached }: Readonly<{ mark: Marked } & Reached>) {
+  if (!reasoned(mark, plainOfIdea)) return markedBy(mark);
+  return <Reason mark={mark} plainOf={plainOfIdea} named={ideaNamed(mark, notes)} {...reached} />;
 }
 
 interface StripProps extends Reached {
@@ -117,12 +97,18 @@ interface StripProps extends Reached {
   onUnmark: () => void;
 }
 
-export function IdeaMarkStrip({ mark, reading, onDrop, onUnmark, ...reached }: StripProps) {
+export function IdeaMarkStrip({
+  mark,
+  reading,
+  onDrop,
+  onUnmark,
+  ...reached
+}: Readonly<StripProps>) {
   return (
     <div className="sticky-mark">
       <p className="sticky-mark-why">
         <span aria-hidden="true">◆ </span>
-        <Reason mark={mark.mark} {...reached} />
+        <IdeaReason mark={mark.mark} {...reached} />
       </p>
       {mark.mark.said && <p className="sticky-mark-said">{mark.mark.said}</p>}
       {!reading && (

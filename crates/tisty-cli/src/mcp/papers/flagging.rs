@@ -34,13 +34,11 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
         return super::super::ideas::flag_ideas(paths, args, &many, listed, body, reason);
     }
     let (state, mut store) = opened(paths)?;
-    if let Some((sheet, _)) = super::super::ideas::sheet(paths, &state)
-        && many.contains(&sheet.file)
+    if let Some(sheet) = many
+        .iter()
+        .find(|one| super::super::ideas::sheet_named(paths, &state, one).is_some())
     {
-        return Err(super::super::ideas::whole_sheet_refused(
-            &state,
-            &sheet.file,
-        ));
+        return Err(super::super::ideas::whole_sheet_refused(&state, sheet));
     }
     let instead = instead_of(&state, args, reason.as_deref(), &many)?;
 

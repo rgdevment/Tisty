@@ -124,3 +124,16 @@ fn ideas_jotted_together_never_repeat_the_colour_just_before() {
         assert_ne!(pair[0], pair[1]);
     }
 }
+
+#[test]
+fn a_sheet_says_so_in_its_note_and_no_other_document_does() {
+    let sheet = crate::event::Said::of(SHEET);
+    let plain = crate::event::Said::of("# Recetas\n\nPan.\n");
+    assert!(sheet.brainstorm);
+    assert!(!plain.brainstorm);
+    assert!(
+        !serde_json::to_string(&plain)
+            .unwrap()
+            .contains("brainstorm")
+    );
+}

@@ -99,6 +99,15 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                      belongs to."
                 )));
             }
+            if up.brainstorm {
+                return Err(super::super::ideas::no_pages_on_a_sheet(&state, &said));
+            }
+            if let Some(sheet) = many
+                .iter()
+                .find(|one| super::super::ideas::holds_ideas(&state, one))
+            {
+                return Err(super::super::ideas::no_pages_on_a_sheet(&state, sheet));
+            }
             if state.held_away(up) {
                 return Err(Refused::Tool(format!(
                     "{} is put away, and a page of it is put away with it. Leave {} where it is.",

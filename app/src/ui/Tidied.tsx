@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useState } from "react";
-import { docUnflag, type Filed, type Task, taskOf } from "../core";
+import { docUnflag, type Filed, type Marked, type Task, taskOf } from "../core";
 import { stamped } from "../format";
-import { fill, t } from "../locales";
+import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import {
@@ -21,7 +21,7 @@ const RISKY = `${MILD} text-urgent`;
 
 type Target = { doc: Filed } | { task: Task } | "gone" | null;
 
-export const useTarget = (instead: string | null | undefined, known: Filed[]): Target => {
+const useTarget = (instead: string | null | undefined, known: Filed[]): Target => {
   const doc = instead
     ? known.find((one) => (one.file === instead || one.id === instead) && !one.gone)
     : undefined;
@@ -49,33 +49,53 @@ interface Reached {
   onTask?: (task: Task) => void;
 }
 
-function Reason({ own, known, onDoc, onTask }: { own: Filed; known: Filed[] } & Reached) {
-  const mark = own.flagged;
-  const target = useTarget(mark?.instead, known);
-  const pointed = pointedWord(mark?.reason);
+interface ReasonProps extends Reached {
+  mark: Marked;
+  known: Filed[];
+  plainOf?: (reason?: string | null) => Word | undefined;
+  named?: string | null;
+}
+
+export const reasoned = (mark: Marked, plainOf = plainWord): boolean =>
+  Boolean(pointedWord(mark.reason) || plainOf(mark.reason));
+
+function Pointed({ target, onDoc, onTask }: Readonly<{ target: Target } & Reached>) {
+  if (target === null) return "…";
+  if (target === "gone") return t("flagNoLonger");
+  return (
+    <button
+      type="button"
+      onClick={() => ("doc" in target ? onDoc?.(target.doc.file) : onTask?.(target.task))}
+      className="underline underline-offset-2 hover:text-ink"
+    >
+      {"doc" in target ? target.doc.title || t("untitledDoc") : target.task.title}
+    </button>
+  );
+}
+
+export function Reason({
+  mark,
+  known,
+  onDoc,
+  onTask,
+  plainOf = plainWord,
+  named,
+}: Readonly<ReasonProps>) {
+  const target = useTarget(named === undefined ? mark.instead : null, known);
+  const pointed = pointedWord(mark.reason);
   if (!pointed) {
-    const plain = plainWord(mark?.reason);
+    const plain = plainOf(mark.reason);
     return plain ? t(plain) : null;
   }
   const [before, after = ""] = t(pointed).split("{name}");
-  const there =
-    target === null ? (
-      "…"
-    ) : target === "gone" ? (
-      t("flagNoLonger")
-    ) : (
-      <button
-        type="button"
-        onClick={() => ("doc" in target ? onDoc?.(target.doc.file) : onTask?.(target.task))}
-        className="underline underline-offset-2 hover:text-ink"
-      >
-        {"doc" in target ? target.doc.title || t("untitledDoc") : target.task.title}
-      </button>
-    );
   return (
     <>
       {before}
-      {there}
+      {named === undefined ? (
+        <Pointed target={target} onDoc={onDoc} onTask={onTask} />
+      ) : (
+        (named ?? t("flagNoLonger"))
+      )}
       {after}
     </>
   );
@@ -108,7 +128,7 @@ export function MarkBar({
   if (!mark) return null;
   const named = clientNamed(mark.via);
   const who = named ? fill("docFlaggedBy", named) : t("docFlagged");
-  const reasoned = Boolean(pointedWord(mark.reason) || plainWord(mark.reason));
+  const said = reasoned(mark);
   const set = alike(known, own);
   const many = String(set.length);
   const unmarkAll = async () => {
@@ -121,9 +141,9 @@ export function MarkBar({
     <div style={style} className={BAR}>
       <span className="font-medium text-hue-teal">
         <span aria-hidden="true">◆ </span>
-        {reasoned ? <Reason own={own} known={known} onDoc={onDoc} onTask={onTask} /> : who}
+        {said ? <Reason mark={mark} known={known} onDoc={onDoc} onTask={onTask} /> : who}
       </span>
-      {reasoned && <span className="text-soft">{who}</span>}
+      {said && <span className="text-soft">{who}</span>}
       <span className="text-faint">{stamped(mark.at)}</span>
       <button type="button" onClick={onAway} className={MILD}>
         {t("putAway")}

@@ -397,3 +397,157 @@ fn sorting_ideas_names_the_sheet_and_changes_nothing_until_the_person_says() {
     assert!(text.contains("Change nothing until I say which"), "{text}");
     assert_eq!(served.body(&sheet), SHEET);
 }
+
+#[test]
+fn a_sheet_written_on_windows_still_keeps_every_idea() {
+    let served = Served::new();
+    let sheet = served.person().writes_doc(&SHEET.replace('\n', "\r\n"));
+
+    let cut = served.call(
+        "edit_doc",
+        json!({
+            "doc": sheet,
+            "old": "## 2026-06-14 08:12 · pink\n\nComprar entradas del concierto de julio\n\n",
+            "new": "",
+        }),
+    );
+
+    assert!(refused(&cut), "{cut}");
+    assert_eq!(served.body(&sheet), SHEET.replace('\n', "\r\n"));
+}
+
+#[test]
+fn nothing_but_ideas_is_added_to_the_sheet_and_it_never_holds_a_page() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let loose = served.home.path().join("plano.png");
+    std::fs::write(&loose, b"\x89PNG\r\n\x1a\nthe drawing").unwrap();
+    let other = served
+        .person()
+        .writes_doc("# Casa\n\nArreglos pendientes.\n");
+
+    let attached = served.call(
+        "attach",
+        json!({ "doc": sheet, "path": loose.to_string_lossy() }),
+    );
+    let hung = served.call("page_doc", json!({ "doc": other, "page_of": sheet }));
+    let hanging = served.call("page_doc", json!({ "doc": sheet, "page_of": other }));
+    let written = served.call(
+        "write_doc",
+        json!({ "body": "# Un anexo\n\nAlgo largo.\n", "page_of": sheet }),
+    );
+
+    for one in [&attached, &hung, &hanging, &written] {
+        assert!(refused(one), "{one}");
+        assert!(said(one).contains("Brainstorm"), "{}", said(one));
+    }
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn going_back_over_the_persons_new_ideas_is_refused() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let reworded = served.call(
+        "edit_doc",
+        json!({ "doc": sheet, "old": "Probar pan con masa madre", "new": "Probar pan de masa madre" }),
+    );
+    let now = served.body(&sheet);
+    served.person().saves_doc(
+        &sheet,
+        &format!("{now}\n## 2026-11-12 11:00 · blue\n\nLlamar al vet\n"),
+    );
+
+    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+
+    assert!(!refused(&reworded), "{reworded}");
+    assert!(refused(&back), "{back}");
+    assert!(served.body(&sheet).contains("Llamar al vet"));
+}
+
+#[test]
+fn an_idea_may_open_with_a_tag() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let jotted = served.call(
+        "append_doc",
+        json!({ "doc": sheet, "body": "#casa pintar la reja" }),
+    );
+
+    assert!(!refused(&jotted), "{jotted}");
+    let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    assert_eq!(ideas.last().unwrap().text, "#casa pintar la reja");
+}
+
+#[test]
+fn a_second_sheet_is_guarded_and_its_ideas_are_marked_like_the_first() {
+    let served = Served::new();
+    served.sheet();
+    let second = served.person().writes_doc(
+        "---\nbrainstorm: on\n---\n\n# Ideas del trabajo\n\n## 2026-11-10 10:00 · lime\n\nRevisar la factura\n",
+    );
+
+    let whole = served.call(
+        "flag_doc",
+        json!({ "doc": second, "reason": "scratch", "body": "viejo" }),
+    );
+    let one = served.call(
+        "flag_doc",
+        json!({
+            "doc": format!("{second}#2026-11-10 10:00 · lime"),
+            "reason": "obsolete",
+            "body": "Ya se pagó.",
+        }),
+    );
+
+    assert!(refused(&whole), "{whole}");
+    assert!(!refused(&one), "{one}");
+    assert_eq!(served.marks(&second).len(), 1);
+}
+
+#[test]
+fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let task = served.call("propose", json!({ "title": "Arreglar la casa" }))["structuredContent"]
+        ["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let filed = served.call(
+        "append_doc",
+        json!({
+            "doc": task,
+            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto para arreglar el techo",
+        }),
+    );
+
+    assert!(!refused(&filed), "{filed}");
+    assert_eq!(
+        filed["structuredContent"]["idea_filed"],
+        json!(true),
+        "{filed}"
+    );
+    let left = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    assert!(left.iter().all(|one| one.heading != ROOF));
+}
+
+#[test]
+fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let made = served.call(
+        "propose",
+        json!({ "title": "Contestar a la vecina", "source": "sereno#1" }),
+    );
+
+    assert!(!refused(&made), "{made}");
+    assert!(
+        made["structuredContent"].get("from_idea").is_none(),
+        "{made}"
+    );
+    assert_eq!(served.body(&sheet), SHEET);
+}

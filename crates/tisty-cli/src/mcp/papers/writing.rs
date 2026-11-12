@@ -399,7 +399,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             .get("replace")
             .and_then(Value::as_bool)
             .unwrap_or(false);
-        return super::super::task_notes::noted_on_page(
+        let noted = super::super::task_notes::noted_on_page(
             paths,
             &state,
             &mut store,
@@ -407,7 +407,9 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             &body,
             under.as_deref(),
             replace,
-        );
+        )?;
+        let filed = super::super::ideas::filed_off(paths, &state, &mut store, &said, &which);
+        return Ok(super::super::ideas::filed_too(noted, filed));
     }
     if args.get("replace").and_then(Value::as_bool) == Some(true) {
         return Err(Refused::Tool(
@@ -748,6 +750,9 @@ pub(super) fn where_it_lands(
                     "{named} is a page itself, and a page holds no pages. Name the document it \
                      belongs to."
                 )));
+            }
+            if up.brainstorm {
+                return Err(super::super::ideas::no_pages_on_a_sheet(state, &said));
             }
             if state.held_away(up) {
                 return Err(super::put_away(state, up, &named));

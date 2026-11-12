@@ -208,6 +208,23 @@ pub fn find<'a>(root: &Path, state: &'a State, last: Option<&str>) -> Option<(&'
         .or_else(|| open.into_iter().find_map(holding))
 }
 
+pub fn said_sheet<'a>(root: &Path, state: &'a State) -> Option<(&'a Kept, String)> {
+    let mut told: Vec<&Kept> = state
+        .docs
+        .values()
+        .filter(|one| one.brainstorm && one.page_of.is_none() && !state.held_away(one))
+        .collect();
+    told.sort_by_key(|one| one.id);
+    told.into_iter().find_map(|one| sheet_of(root, one))
+}
+
+pub fn sheet_of<'a>(root: &Path, kept: &'a Kept) -> Option<(&'a Kept, String)> {
+    crate::docs::read(root, &kept.file)
+        .ok()
+        .filter(|body| tisty_markdown::front::brainstorm(body))
+        .map(|body| (kept, body))
+}
+
 #[cfg(test)]
 #[path = "brainstorm_test.rs"]
 mod tests;

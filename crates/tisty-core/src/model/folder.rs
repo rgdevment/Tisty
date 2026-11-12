@@ -145,6 +145,8 @@ pub struct Kept {
     pub flagged: Option<Flagged>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ideas_flagged: Vec<FlaggedIdea>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub brainstorm: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted: Option<Compacted>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

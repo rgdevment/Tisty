@@ -993,6 +993,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         print: None,
                         lang: None,
                         key: None,
+                        brainstorm: false,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {

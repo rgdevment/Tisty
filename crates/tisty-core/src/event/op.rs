@@ -1047,6 +1047,9 @@ pub struct Said {
     /// The `translationKey:` a body brought in names, by which its other languages find it.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub key: Option<Option<String>>,
+    // Said only when true, so no other document's note grows; a sheet that stops being one is read to tell.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub brainstorm: bool,
 }
 
 impl Said {
@@ -1063,6 +1066,7 @@ impl Said {
             by: None,
             lang: Some(tisty_markdown::front::lang(body)),
             key: Some(crate::tongues::key_of(body)),
+            brainstorm: tisty_markdown::front::brainstorm(body),
         }
     }
 
@@ -1078,6 +1082,7 @@ impl Said {
             || self.lang.as_ref().is_some_and(|one| *one != kept.lang)
             || self.key.as_ref().is_some_and(|one| *one != kept.key)
             || (self.print.is_some() && self.print != kept.print)
+            || (self.brainstorm && !kept.brainstorm)
     }
 }
 

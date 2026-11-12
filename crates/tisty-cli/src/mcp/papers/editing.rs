@@ -127,8 +127,9 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
              passage again and send the edit anew."
         )));
     }
-    if before.matches(old.as_str()).count() == 1 {
-        let after = before.replacen(old.as_str(), new, 1);
+    let (as_old, as_new) = tisty_core::docs::as_written(&before, old, new);
+    if before.matches(as_old.as_str()).count() == 1 {
+        let after = before.replacen(as_old.as_str(), &as_new, 1);
         super::writing::still_speaks(&before, &after)?;
         super::super::ideas::keeps_every_idea(&state, &which, &before, &after)?;
     }
