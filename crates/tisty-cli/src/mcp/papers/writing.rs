@@ -495,7 +495,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             tisty_core::docs::titled(&whole),
             by_how_much(&before, &whole),
             twice_words(&state, &twice) + &anew,
-            filed.as_deref().unwrap_or_default(),
+            filed.as_ref().map_or("", |one| one.said.as_str()),
             if settled { "" } else { UNSETTLED },
             wrapped(&body)
         ),
@@ -508,7 +508,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 "lines": whole.lines().count(),
                 "grew": grew(&before, &whole),
                 "print": tisty_core::attach::printed(whole.as_bytes()),
-                "idea_filed": filed.is_some(),
+                "idea_filed": filed.as_ref().is_some_and(|one| one.off),
             }),
             args,
             &before,

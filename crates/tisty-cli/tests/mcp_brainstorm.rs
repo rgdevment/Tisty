@@ -535,6 +535,113 @@ fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
 }
 
 #[test]
+fn a_filing_note_that_quotes_no_idea_says_the_sheet_still_holds_it() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let house = served
+        .person()
+        .writes_doc("# Casa\n\nArreglos pendientes.\n");
+
+    let reworded = served.call(
+        "append_doc",
+        json!({
+            "doc": house,
+            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto del techo",
+        }),
+    );
+    let with_more = served.call(
+        "append_doc",
+        json!({
+            "doc": house,
+            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar pan con masa madre\n\nEl sábado.",
+        }),
+    );
+
+    for one in [&reworded, &with_more] {
+        assert!(!refused(one), "{one}");
+        assert_eq!(
+            one["structuredContent"]["idea_filed"],
+            json!(false),
+            "{one}"
+        );
+        assert!(said(one).contains("still holds it"), "{one}");
+    }
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn a_filing_note_split_over_other_lines_still_takes_its_idea_off() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let house = served
+        .person()
+        .writes_doc("# Casa\n\nArreglos pendientes.\n");
+
+    let filed = served.call(
+        "append_doc",
+        json!({
+            "doc": house,
+            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto\n> para arreglar el techo",
+        }),
+    );
+
+    assert_eq!(
+        filed["structuredContent"]["idea_filed"],
+        json!(true),
+        "{filed}"
+    );
+    let left = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    assert!(left.iter().all(|one| one.heading != ROOF));
+}
+
+#[test]
+fn a_task_from_a_heading_no_idea_carries_says_the_idea_still_waits() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let made = served.call(
+        "propose",
+        json!({
+            "title": "Pedir presupuesto para el techo",
+            "source": format!("{sheet}#2026-09-03 18:06 · teal"),
+        }),
+    );
+
+    assert!(!refused(&made), "{made}");
+    assert!(
+        made["structuredContent"].get("from_idea").is_none(),
+        "{made}"
+    );
+    assert!(said(&made).contains("still waits there"), "{made}");
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn brainstorm_goes_in_no_folder_no_languages_and_is_put_away_only_by_the_person() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    served.call("folder", json!({ "name": "Casa" }));
+    let notes = served
+        .person()
+        .writes_doc("---\nlang: es\n---\n\n# Notas\n\nAlgo.\n");
+
+    let away = served.call("archive_doc", json!({ "doc": sheet }));
+    let filed = served.call("file_doc", json!({ "doc": sheet, "folder": "Casa" }));
+    let joined = served.call(
+        "tongue_doc",
+        json!({ "doc": sheet, "of": notes, "lang": "en" }),
+    );
+
+    for one in [&away, &filed, &joined] {
+        assert!(refused(one), "{one}");
+        assert!(said(one).contains("is Brainstorm"), "{one}");
+    }
+    let state = served.person().state();
+    let kept = state.docs.values().find(|one| one.file == sheet).unwrap();
+    assert!(!kept.archived && kept.folder.is_none());
+}
+
+#[test]
 fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
     let served = Served::new();
     let sheet = served.sheet();

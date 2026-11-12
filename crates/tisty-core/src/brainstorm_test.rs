@@ -103,6 +103,10 @@ fn a_filed_note_gives_back_the_idea_it_quotes() {
         quoted("> [!NOTE] Ideas · 2026-11-12\nfuera de la cita"),
         None
     );
+    assert!(files_an_idea(
+        "> [!NOTE] Ideas · 2026-11-12\nfuera de la cita"
+    ));
+    assert!(!files_an_idea("> [!NOTE] Recuerda revisar el techo"));
 }
 
 #[test]

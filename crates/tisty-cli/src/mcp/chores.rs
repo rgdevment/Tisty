@@ -279,8 +279,10 @@ pub(super) fn proposed(
         parts_said.push_str(&super::placing::loose_task(&state, &title));
     }
     if let Some(moved) = from_idea {
-        parts_said.push_str(&moved);
-        kept.insert("from_idea".into(), json!(moved.trim()));
+        parts_said.push_str(&moved.said);
+        if moved.off {
+            kept.insert("from_idea".into(), json!(moved.said.trim()));
+        }
     }
     Ok(told(
         match planned {

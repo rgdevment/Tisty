@@ -147,13 +147,21 @@ pub fn marked<'a>(kept: &'a Kept, body: &str) -> Vec<&'a FlaggedIdea> {
         .collect()
 }
 
+pub fn files_an_idea(note: &str) -> bool {
+    note.trim().lines().next().is_some_and(filed_on)
+}
+
+fn filed_on(line: &str) -> bool {
+    line.strip_prefix("> [!NOTE] ")
+        .and_then(|rest| rest.rsplit_once(" · "))
+        .is_some_and(|(_, on)| jiff::civil::Date::strptime("%Y-%m-%d", on.trim()).is_ok())
+}
+
 pub fn quoted(note: &str) -> Option<String> {
     let mut lines = note.trim().lines();
-    let (_, on) = lines
-        .next()?
-        .strip_prefix("> [!NOTE] ")?
-        .rsplit_once(" · ")?;
-    jiff::civil::Date::strptime("%Y-%m-%d", on.trim()).ok()?;
+    if !filed_on(lines.next()?) {
+        return None;
+    }
     let said: Option<Vec<&str>> = lines
         .map(|line| {
             line.strip_prefix('>')

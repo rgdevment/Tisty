@@ -57,7 +57,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
 | `tongue_doc` | Join a document to the languages of another, or take it out of its own |
 | `archive_doc` | Put a document or one of its pages away, or bring it back, only when you ask |
-| `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion. It marks the ideas on **Brainstorm** one by one the same way, with a ◆ on each note, and never the whole sheet; nothing else it does takes an idea off |
+| `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion. It marks the ideas on **Brainstorm** one by one the same way, with a ◆ on each note, and never the whole sheet: the mark takes no idea off, and Brainstorm itself is never put away, filed in a folder or joined to another document's languages by an assistant |
 | `import_doc` | Bring a Markdown file on this machine in as a document |
 | `export_doc` | Take a document out to a folder on this machine |
 

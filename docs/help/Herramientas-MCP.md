@@ -57,7 +57,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
 | `tongue_doc` | Unir un documento a los idiomas de otro, o separarlo de los suyos |
 | `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo, solo cuando lo pides |
-| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado. Marca igual las ideas de **Lluvia de ideas**, una por una, con un ◆ en cada nota, y nunca la hoja entera; nada más de lo que hace saca una idea |
+| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado. Marca igual las ideas de **Lluvia de ideas**, una por una, con un ◆ en cada nota, y nunca la hoja entera: la marca no saca ninguna idea, y un asistente nunca archiva la Lluvia de ideas, ni la pone en una carpeta, ni la une a los idiomas de otro documento |
 | `import_doc` | Traer un archivo Markdown de este equipo como documento |
 | `export_doc` | Sacar un documento a una carpeta de este equipo |
 

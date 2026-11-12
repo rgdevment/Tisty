@@ -38,6 +38,15 @@ pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
     ))
 }
 
+pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
+    Refused::Tool(format!(
+        "{} is Brainstorm, pinned at the top of the Library on its own: it goes in no folder and \
+         joins no other document's languages, and only the person puts it away, from the window, \
+         since every idea on it would go with it. Nothing was changed.",
+        doc_named(state, file)
+    ))
+}
+
 pub(super) fn nothing_but_ideas(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Brainstorm, and everything on it is an idea of a few words: a file added at its \
@@ -264,6 +273,22 @@ fn taken_off(
     Some(())
 }
 
+pub(super) struct Filed {
+    pub(super) said: String,
+    pub(super) off: bool,
+}
+
+fn still_waits(named: &str, idea: &Idea, into: &str) -> Filed {
+    Filed {
+        said: format!(
+            " «{}» could not be taken off {named} just now, so it still waits there: mark it \
+             `moved` with `flag_doc`, `instead` {into}.",
+            idea.text
+        ),
+        off: false,
+    }
+}
+
 // Filing moves the idea, as the window's «File in a document» does, so the sheet holds only what waits.
 pub(super) fn filed_off(
     paths: &Paths,
@@ -271,20 +296,38 @@ pub(super) fn filed_off(
     store: &mut Store,
     said: &str,
     into: &str,
-) -> Option<String> {
-    let quoted = brainstorm::quoted(said)?;
+) -> Option<Filed> {
+    if !brainstorm::files_an_idea(said) {
+        return None;
+    }
     let (kept, body) = sheet(paths, state)?;
     if kept.file == into {
         return None;
     }
-    let idea = brainstorm::ideas_on(&body)
-        .into_iter()
-        .find(|one| one.text == quoted)?;
-    taken_off(paths, state, store, kept, &idea)?;
-    Some(format!(
-        " The idea it quotes left {}, as filing it from the window does.",
-        doc_named(state, &kept.file)
-    ))
+    let named = doc_named(state, &kept.file);
+    let idea = brainstorm::quoted(said).and_then(|quoted| {
+        brainstorm::ideas_on(&body)
+            .into_iter()
+            .find(|one| one.text.split_whitespace().eq(quoted.split_whitespace()))
+    });
+    let Some(idea) = idea else {
+        return Some(Filed {
+            said: format!(
+                " No idea on {named} reads what this note quotes, so the sheet still holds it: a \
+                 filing note goes alone, with the idea's words as the sheet has them. If this one \
+                 files an idea, mark that idea `moved` with `flag_doc`, `instead` \"{into}\", \
+                 rather than adding the note again."
+            ),
+            off: false,
+        });
+    };
+    Some(match taken_off(paths, state, store, kept, &idea) {
+        Some(()) => Filed {
+            said: format!(" The idea it quotes left {named}, as filing it from the window does."),
+            off: true,
+        },
+        None => still_waits(&named, &idea, &format!("\"{into}\"")),
+    })
 }
 
 // The idea becomes the task, as the window's «Turn into a task» makes it, so it waits nowhere twice.
@@ -293,7 +336,7 @@ pub(super) fn made_a_task(
     state: &State,
     store: &mut Store,
     source: &str,
-) -> Option<String> {
+) -> Option<Filed> {
     let (doc, heading) = named_idea(source)?;
     let (kept, body) = sheet_named(paths, state, doc)?;
     let named = doc_named(state, &kept.file);
@@ -301,17 +344,33 @@ pub(super) fn made_a_task(
         .into_iter()
         .filter(|one| one.heading == heading)
         .collect();
-    match found.as_slice() {
-        [idea] => taken_off(paths, state, store, kept, idea).map(|()| {
-            format!(" The idea it came from left {named}, as turning it into a task from the window does.")
-        }),
-        [] => None,
-        _ => Some(format!(
-            " {} ideas on {named} carry that heading, so none was taken off: mark the one this \
-             task came from with `flag_doc`, `moved` to it.",
-            found.len()
-        )),
-    }
+    Some(match found.as_slice() {
+        [idea] => match taken_off(paths, state, store, kept, idea) {
+            Some(()) => Filed {
+                said: format!(
+                    " The idea it came from left {named}, as turning it into a task from the \
+                     window does."
+                ),
+                off: true,
+            },
+            None => still_waits(&named, idea, "this task"),
+        },
+        [] => Filed {
+            said: format!(
+                " No idea on {named} is headed {heading:?}, so the one this task came from still \
+                 waits there: mark it `moved` with `flag_doc`, `instead` this task."
+            ),
+            off: false,
+        },
+        _ => Filed {
+            said: format!(
+                " {} ideas on {named} carry that heading, so none was taken off: mark the one \
+                 this task came from with `flag_doc`, `moved` to it.",
+                found.len()
+            ),
+            off: false,
+        },
+    })
 }
 
 pub(super) fn keeps_every_idea(
@@ -556,17 +615,17 @@ fn reason_said(
     }
 }
 
-pub(super) fn filed_too(mut answer: Value, filed: Option<String>) -> Value {
+pub(super) fn filed_too(mut answer: Value, filed: Option<Filed>) -> Value {
     let Some(filed) = filed else {
         return answer;
     };
     for at in ["/content/0/text", "/structuredContent/said"] {
         if let Some(Value::String(said)) = answer.pointer_mut(at) {
-            said.push_str(&filed);
+            said.push_str(&filed.said);
         }
     }
     if let Some(Value::Object(kept)) = answer.pointer_mut("/structuredContent") {
-        kept.insert("idea_filed".into(), json!(true));
+        kept.insert("idea_filed".into(), json!(filed.off));
     }
     answer
 }

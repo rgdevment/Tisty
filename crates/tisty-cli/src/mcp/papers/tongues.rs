@@ -188,6 +188,12 @@ pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ));
     };
     let up = found(&state, &of)?.clone();
+    if let Some(sheet) = [&which, &of]
+        .into_iter()
+        .find(|one| super::super::ideas::sheet_named(paths, &state, one).is_some())
+    {
+        return Err(super::super::ideas::sheet_stays_put(&state, sheet));
+    }
     if up.lang.is_none() {
         return Err(unsaid(&state, &of));
     }

@@ -31,6 +31,9 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     };
+    if away && super::super::ideas::sheet_named(paths, &state, &which).is_some() {
+        return Err(super::super::ideas::sheet_stays_put(&state, &which));
+    }
     if state.held_by_another(kept) {
         let holds = holder(&state, kept);
         return Err(Refused::Tool(match away {
@@ -187,6 +190,9 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                  takes it out as a document of its own first.",
                 doc_named(&state, which)
             )));
+        }
+        if folder.is_some() && super::super::ideas::sheet_named(paths, &state, which).is_some() {
+            return Err(super::super::ideas::sheet_stays_put(&state, which));
         }
         if state.held_by_another(kept) {
             return Err(Refused::Tool(format!(
