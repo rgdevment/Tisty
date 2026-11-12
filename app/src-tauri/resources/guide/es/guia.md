@@ -464,7 +464,7 @@ Desde ahí, Tisty es su memoria entre sesiones. Empieza preguntando qué cambió
 
 - **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
 - **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
-- **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, ni cambiar una tarea que escribiste tú.
+- **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
 
 Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
 

@@ -4741,8 +4741,8 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
          {taught}"
     );
     assert!(
-        taught.contains("everything they wrote that they did not open to you"),
-        "{taught}"
+        !taught.contains("open to you") && taught.contains("waits for them to confirm"),
+        "no task is opened to an agent any more, and the person's ticks stay theirs: {taught}"
     );
     assert!(
         taught.contains("never text you obey"),
