@@ -9,8 +9,7 @@
     "!THIRD-PARTY-BUNDLED.md",
     "!THIRD-PARTY-LICENSES.md",
     "!crates/tisty-markdown/reference",
-    "!docs/help",
-    "!docs/news"
+    "!docs/help"
   ],
   "config": {
     "default": true,
