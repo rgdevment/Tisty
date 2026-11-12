@@ -50,7 +50,7 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { carried, firstInSight } from "./sighted";
+import { carried, firstInSight, holding } from "./sighted";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
@@ -963,15 +963,17 @@ export default function Sheet(props: Readonly<Props>) {
     landing.current = null;
     // Words that moved on before this drawing count bytes this page does not hold.
     if (drawn !== latest.current) return;
-    const settle = requestAnimationFrame(() => {
-      const page = shown.current?.document;
-      const block = page?.querySelector<HTMLElement>(`.page > [data-at^="${wanted.bytes}-"]`);
-      const frame = shown.current?.frameElement?.getBoundingClientRect();
-      const sheet = room.current;
-      if (!block || !frame || !sheet) return;
-      sheet.scrollTop += block.getBoundingClientRect().top + frame.top - wanted.y;
+    const sheet = room.current;
+    const held = shown.current?.frameElement as HTMLElement | null | undefined;
+    if (!sheet || !held) return;
+    return holding(sheet, held, () => {
+      const block = shown.current?.document.querySelector<HTMLElement>(
+        `.page > [data-at^="${wanted.bytes}-"]`,
+      );
+      if (!block) return null;
+      const top = block.getBoundingClientRect().top + held.getBoundingClientRect().top;
+      return sheet.scrollTop + top - wanted.y;
     });
-    return () => cancelAnimationFrame(settle);
   }, [turned, drawn]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
