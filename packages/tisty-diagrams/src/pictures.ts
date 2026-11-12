@@ -1,7 +1,7 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { LINE, linesOf, outlineOf } from "./flowoutlines";
-import { endWordAt, type Route, routeOf } from "./flowroutes";
+import { endWordAt, endWordBox, type Route, routesOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
@@ -16,6 +16,7 @@ import {
   type Palette,
   type Picture,
   pill,
+  pillSize,
   straight,
   stroke,
   writing,
@@ -69,7 +70,7 @@ const mindPicture = (mind: Mind): Picture => {
 const schemaPicture = (schema: Schema): Picture => {
   const scene = schemaScene(schema);
   const byName = new Map(schema.tables.map((one) => [one.name, one]));
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
       graph(scene, palette, (name, box) => {
@@ -127,22 +128,86 @@ const schemaPicture = (schema: Schema): Picture => {
           boxed(box, { fill: "none", stroke: palette.line, radius: 8 }),
         ].join("");
       }),
+  });
+};
+
+const routed = new WeakMap<Scene, { one: Scene["joints"][number]; way: Route }[]>();
+
+const joinedIn = (scene: Scene) => {
+  const kept = routed.get(scene);
+  if (kept) return kept;
+  const { at } = scene.laid;
+  const known = scene.joints.flatMap((one) => {
+    const from = at.get(one.from);
+    const to = at.get(one.to);
+    return from && to ? [{ one, from, to }] : [];
+  });
+  const routes = routesOf(
+    known.map(({ one, from, to }) => ({
+      from,
+      to,
+      label: one.label,
+      startLabel: one.startLabel,
+      endLabel: one.endLabel,
+    })),
+    [...at.values()],
+  );
+  const joined = known.map(({ one }, index) => ({ one, way: routes[index] }));
+  routed.set(scene, joined);
+  return joined;
+};
+
+const PICTURE_ROOM = 8;
+
+const labelBox = (way: Route, said: string): Rect => {
+  const { wide, tall } = pillSize(said);
+  return { x: way.labelX - wide / 2, y: way.labelY - tall / 2, wide, tall };
+};
+
+export const pictureBounds = (scene: Scene): Rect => {
+  const boxes = [
+    ...scene.laid.at.values(),
+    ...scene.groups.map((group) => group.rect),
+    ...joinedIn(scene).flatMap(({ one, way }) => [
+      ...way.way.map((point) => ({ ...point, wide: 0, tall: 0 })),
+      ...(one.label ? [labelBox(way, one.label)] : []),
+      ...(one.startLabel ? [endWordBox(way.from, way.fromSide, one.startLabel)] : []),
+      ...(one.endLabel ? [endWordBox(way.to, way.toSide, one.endLabel)] : []),
+    ]),
+  ];
+  const left = Math.min(0, ...boxes.map((one) => one.x - PICTURE_ROOM));
+  const top = Math.min(0, ...boxes.map((one) => one.y - PICTURE_ROOM));
+  const right = Math.max(
+    scene.laid.size.wide,
+    ...boxes.map((one) => one.x + one.wide + PICTURE_ROOM),
+  );
+  const bottom = Math.max(
+    scene.laid.size.tall,
+    ...boxes.map((one) => one.y + one.tall + PICTURE_ROOM),
+  );
+  return { x: left, y: top, wide: right - left, tall: bottom - top };
+};
+
+// An arrow stepping aside or a long word may reach past the shapes' margin: the picture grows rather than cut it.
+const framedPicture = (scene: Scene, picture: Picture): Picture => {
+  const bounds = pictureBounds(scene);
+  const same =
+    !bounds.x &&
+    !bounds.y &&
+    bounds.wide === picture.size.wide &&
+    bounds.tall === picture.size.tall;
+  if (same) return picture;
+  return {
+    size: { wide: bounds.wide, tall: bounds.tall },
+    drawn: (palette) =>
+      `<g transform="translate(${-bounds.x},${-bounds.y})">${picture.drawn(palette)}</g>`,
   };
 };
 
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
-const graph = (
-  scene: Scene,
-  palette: Palette,
-  box: (id: string, rect: Rect) => string,
-  route: (from: Rect, to: Rect) => Route = routeOf,
-) => {
+const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => string) => {
   const { at } = scene.laid;
-  const joined = scene.joints.flatMap((one) => {
-    const from = at.get(one.from);
-    const to = at.get(one.to);
-    return from && to ? [{ one, way: route(from, to) }] : [];
-  });
+  const joined = joinedIn(scene);
   return [
     ...scene.groups.flatMap((group) => [
       boxed(group.rect, { fill: palette.hover, stroke: palette.line, radius: 10, dashed: "5 4" }),
@@ -198,40 +263,35 @@ const flowPicture = (flow: Flow): Picture => {
   const scene = flowScene(flow);
   const byId = new Map(flow.nodes.map((one) => [one.id, one]));
   const looks = looksOf(flow);
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
-      graph(
-        scene,
-        palette,
-        (id, rect) => {
-          const one = byId.get(id);
-          const lines = linesOf(one?.text ?? id);
-          const shape = one?.shape ?? "process";
-          const drop = outlineOf(shape, rect.wide, rect.tall).drop;
-          const top = rect.y + rect.tall / 2 + drop - ((lines.length - 1) * LINE) / 2;
-          const look = looks.get(id);
-          const ink = look?.color ?? palette.ink;
-          const words = lines.map((line, at) =>
-            writing({
-              x: rect.x + rect.wide / 2,
-              y: top + at * LINE,
-              text: fitted(line, rect.wide - 24, 7.5),
-              size: 13,
-              fill: ink,
-            }),
-          );
-          return `${node(shape, rect, palette, look)}${words.join("")}`;
-        },
-        routeOf,
-      ),
-  };
+      graph(scene, palette, (id, rect) => {
+        const one = byId.get(id);
+        const lines = linesOf(one?.text ?? id);
+        const shape = one?.shape ?? "process";
+        const drop = outlineOf(shape, rect.wide, rect.tall).drop;
+        const top = rect.y + rect.tall / 2 + drop - ((lines.length - 1) * LINE) / 2;
+        const look = looks.get(id);
+        const ink = look?.color ?? palette.ink;
+        const words = lines.map((line, at) =>
+          writing({
+            x: rect.x + rect.wide / 2,
+            y: top + at * LINE,
+            text: fitted(line, rect.wide - 24, 7.5),
+            size: 13,
+            fill: ink,
+          }),
+        );
+        return `${node(shape, rect, palette, look)}${words.join("")}`;
+      }),
+  });
 };
 
 const classPicture = (diagram: Classes): Picture => {
   const scene = classScene(diagram);
   const byName = new Map(diagram.classes.map((one) => [one.name, one]));
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
       graph(scene, palette, (name, rect) => {
@@ -279,7 +339,7 @@ const classPicture = (diagram: Classes): Picture => {
           boxed(rect, { fill: "none", stroke: palette.line, radius: 6 }),
         ].join("");
       }),
-  };
+  });
 };
 
 // Null for the kinds the window leaves to Mermaid, whose own drawing is the one people see.

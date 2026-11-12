@@ -2,7 +2,8 @@ import type { ClassBox, Classes } from "./classes";
 import type { Flow } from "./flow";
 import { sizeOf } from "./flowoutlines";
 import type { Size } from "./framing";
-import { around, type Laid, layered, type Rect } from "./graphlayout";
+import { around, type Laid, layered, type Rect, type Room } from "./graphlayout";
+import { pillSize } from "./picture";
 import type { Place } from "./places";
 
 // The board and the picture draw from these, so what is exported is what the window shows.
@@ -59,12 +60,27 @@ const placedOver = (
 const flowSizes = (flow: Flow) =>
   new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")]));
 
+// Shapes stand far enough apart, in a row and between rows, for the words on the arrows between them.
+const wordRoom = (flow: Flow): Room => {
+  const across = flow.direction === "LR" || flow.direction === "RL";
+  const aside = new Map<string, number>();
+  const along = flow.edges.map((one) => {
+    if (!one.label) return 0;
+    const size = pillSize(one.label);
+    const [wide, deep] = across ? [size.tall, size.wide] : [size.wide, size.tall];
+    aside.set(one.to, Math.max(aside.get(one.to) ?? 0, wide));
+    return deep;
+  });
+  return { aside, along };
+};
+
 const autoLaid = (flow: Flow): Laid =>
   layered(
     flow.nodes.map((one) => one.id),
     flow.edges.map((one) => [one.from, one.to] as const),
     flowSizes(flow),
     flow.direction,
+    wordRoom(flow),
   );
 
 /** Each node where it was placed, or laid out when it never was, in the window's own coordinates. */
