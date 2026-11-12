@@ -585,17 +585,26 @@ pub fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answ
 }
 
 #[tauri::command]
-pub fn note_break(kind: String, said: Option<String>, frames: String) {
+pub fn note_break(kind: String, said: Option<String>, frames: String, stopped: bool) {
     let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
-    witness::error(
-        channel::WINDOW,
-        "the window broke and stopped drawing",
-        &[
-            ("kind", Fact::Why(cut(kind, 40))),
-            ("said", Fact::Why(cut(said.unwrap_or_default(), 200))),
-            ("frames", Fact::Why(cut(frames, 400))),
-        ],
-    );
+    let facts = [
+        ("kind", Fact::Why(cut(kind, 40))),
+        ("said", Fact::Why(cut(said.unwrap_or_default(), 200))),
+        ("frames", Fact::Why(cut(frames, 400))),
+    ];
+    if stopped {
+        witness::error(
+            channel::WINDOW,
+            "the window broke and stopped drawing",
+            &facts,
+        );
+    } else {
+        witness::warn(
+            channel::WINDOW,
+            "the window met an error and kept drawing",
+            &facts,
+        );
+    }
 }
 
 #[tauri::command]
