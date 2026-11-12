@@ -27,7 +27,7 @@ const en = {
   noTagsYet: "No tags yet",
   addTask: "Add a task",
   taskExamples:
-    "Walk Roger every day at 8\nBuy school supplies before next Tuesday\nTake the pill every day at 9\nTake Rina to the vet on Tuesday at 10\nPay the electricity bill by Friday\nCall mum on Sunday\nBuy bread and milk today\nRenew the ID card on December 15\nWater the plants every Monday\nSend the report tomorrow #work\nService the car every 6 months\nSofía's birthday on January 3 at 8pm\nTeam meeting on Monday at 11\nBook the dentist this week\nChange the water filter every 3 months\nBuy a present for dad by November 30\nPrepare the presentation for Thursday\nTake the bins out every Tuesday\nReturn the library books by November 20\nPay the rent every month",
+    "Walk Roger every day at 8\nBuy school supplies for Lucas by Tuesday\nYisset's graduation on Saturday\nMotorbike ride with Jaime on Sunday\nAnniversary dinner with Marisol on June 3 #family\nCall the bank tomorrow at 9 !do\nTidy the garage @Home on Sunday\nBuy trainers for Jaime on Saturday #clothes\nDriving lessons with Yisset every Saturday at 10\nTake the car to the garage by Friday @Errands\nWater the plants every Monday #home\nPay Lucas's school fee every month #school\nPrepare the client meeting on Thursday !decide #work\nPick Lucas up from school every day at 4pm\nTake Rina to the vet on Tuesday at 10\nTake the pill every day at 9\nRenew the ID card on December 15\nService the car every 6 months\nPay the rent every month\nBuy bread and milk today",
   brainstorm: "Brainstorm",
   jotIdea: "Jot down a loose idea",
   modeTask: "Task",
@@ -3145,7 +3145,7 @@ const es: Catalog = {
   noTagsYet: "Ninguna etiqueta todavía",
   addTask: "Añadir una tarea",
   taskExamples:
-    "Sacar a pasear a Roger todos los días a las 8\nComprar materiales del colegio antes del próximo martes\nTomar la pastilla todos los días a las 9\nLlevar a Rina a la veterinaria el martes a las 10\nPagar la luz antes del viernes\nLlamar a mamá el domingo\nComprar pan y leche hoy\nRenovar el carnet el 15 de diciembre\nRegar las plantas cada lunes\nEnviar el informe mañana #trabajo\nRevisar el auto cada 6 meses\nCumpleaños de Sofía el 3 de enero a las 20\nReunión con el equipo el lunes a las 11\nPedir hora al dentista esta semana\nCambiar el filtro del agua cada 3 meses\nComprar regalo para papá antes del 30 de noviembre\nPreparar la presentación para el jueves\nSacar la basura cada martes\nDevolver los libros a la biblioteca antes del 20 de noviembre\nPagar el arriendo cada mes",
+    "Sacar a pasear a Roger todos los días a las 8\nComprar materiales del colegio para Lucas antes del martes\nTitulación de Yisset el sábado\nSalir a pasear en moto con Jaime el domingo\nCena romántica con Marisol por el aniversario el 3 de junio #familia\nLlamar al banco mañana a las 9 !hacer\nOrdenar el garaje @Casa el domingo\nComprar zapatillas para Jaime el sábado #ropa\nClases de manejo con Yisset cada sábado a las 10\nLlevar el auto al taller antes del viernes @Pendientes\nRegar las plantas cada lunes #casa\nPagar la cuota del colegio de Lucas cada mes #colegio\nPreparar la reunión con el cliente el jueves !importante #trabajo\nRecoger a Lucas del colegio todos los días a las 16\nLlevar a Rina a la veterinaria el martes a las 10\nTomar la pastilla todos los días a las 9\nRenovar el carnet el 15 de diciembre\nRevisar el auto cada 6 meses\nPagar el arriendo cada mes\nComprar pan y leche hoy",
   brainstorm: "Lluvia de ideas",
   jotIdea: "Anota una idea suelta",
   modeTask: "Tarea",
