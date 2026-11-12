@@ -64,13 +64,13 @@ const flowSizes = (flow: Flow) =>
 const wordRoom = (flow: Flow): Room => {
   const across = flow.direction === "LR" || flow.direction === "RL";
   const aside = new Map<string, number>();
-  const along = new Map<string, number>();
-  for (const one of flow.edges.filter((edge) => edge.label)) {
+  const along = flow.edges.map((one) => {
+    if (!one.label) return 0;
     const size = pillSize(one.label);
     const [wide, deep] = across ? [size.tall, size.wide] : [size.wide, size.tall];
     aside.set(one.to, Math.max(aside.get(one.to) ?? 0, wide));
-    along.set(one.from, Math.max(along.get(one.from) ?? 0, deep));
-  }
+    return deep;
+  });
   return { aside, along };
 };
 

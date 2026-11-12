@@ -15,7 +15,7 @@ export interface Laid {
 }
 
 const GAP = 56;
-const MARGIN = 40;
+export const MARGIN = 40;
 
 // Each node's layer is the longest way to it from a node nothing points at; a loop is cut where it closes.
 const ranksOf = (ids: readonly string[], edges: readonly (readonly [string, string])[]) => {
@@ -54,7 +54,7 @@ const ranksOf = (ids: readonly string[], edges: readonly (readonly [string, stri
 
 export interface Room {
   readonly aside: ReadonlyMap<string, number>;
-  readonly along: ReadonlyMap<string, number>;
+  readonly along: readonly number[];
 }
 
 /** Layers along the direction the diagram says, nodes side by side in the order they were written. */
@@ -63,7 +63,7 @@ export const layered = (
   edges: readonly (readonly [string, string])[],
   sizes: ReadonlyMap<string, Size>,
   direction: Direction,
-  room: Room = { aside: new Map(), along: new Map() },
+  room: Room = { aside: new Map(), along: [] },
 ): Laid => {
   const rank = ranksOf(ids, edges);
   const layers: string[][] = [];
@@ -78,8 +78,15 @@ export const layered = (
   const deep = layers.map((layer) => Math.max(0, ...layer.map((id) => along(sizeOf(id)))));
   const apart = (one: string, next: string) =>
     Math.max(GAP, ((room.aside.get(one) ?? 0) + (room.aside.get(next) ?? 0)) / 2);
+  const crossing = (low: number, [from, to]: readonly [string, string]) => {
+    const [a, b] = [rank.get(from) ?? 0, rank.get(to) ?? 0];
+    return Math.min(a, b) <= low && low < Math.max(a, b);
+  };
   const between = (low: number) =>
-    Math.max(GAP * 1.4, ...(layers[low] ?? []).map((id) => (room.along.get(id) ?? 0) + 48));
+    Math.max(
+      GAP * 1.4,
+      ...edges.map((edge, at) => (crossing(low, edge) && room.along[at] ? room.along[at] + 48 : 0)),
+    );
   const broad = layers.map((layer) =>
     layer.reduce(
       (sum, id, at) => sum + aside(sizeOf(id)) + (at > 0 ? apart(layer[at - 1], id) : 0),

@@ -26,6 +26,18 @@ export const shapesSaid = (lookup: ReadonlyMap<string, InternalNode>) =>
     })
     .join(";");
 
+const saidIn = new WeakMap<object, string>();
+
+export const shapesSaidOnce = (state: {
+  readonly nodeLookup: ReadonlyMap<string, InternalNode>;
+}) => {
+  const known = saidIn.get(state);
+  if (known !== undefined) return known;
+  const said = shapesSaid(state.nodeLookup);
+  saidIn.set(state, said);
+  return said;
+};
+
 const laid = new WeakMap<
   readonly Edge[],
   { readonly said: string; readonly routes: ReadonlyMap<string, Route> }

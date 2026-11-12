@@ -10,7 +10,7 @@ import {
 import { endWordAt, routeOf } from "./flowroutes";
 import { linesSaid } from "./picture";
 import Renaming from "./Renaming";
-import { rectOf, routesIn, shapesSaid } from "./wiring";
+import { rectOf, routesIn, shapesSaidOnce } from "./wiring";
 
 export type WireData = {
   readonly label: string;
@@ -42,7 +42,7 @@ export function Wire({
   const from = useInternalNode(source);
   const to = useInternalNode(target);
   const edges = useStore((store) => store.edges);
-  const said = useStore((store) => shapesSaid(store.nodeLookup));
+  const said = useStore(shapesSaidOnce);
   const store = useStoreApi();
   if (!from || !to || !data) return null;
   const route =

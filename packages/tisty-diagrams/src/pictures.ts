@@ -1,7 +1,7 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { LINE, linesOf, outlineOf } from "./flowoutlines";
-import { endWordAt, type Route, routesOf } from "./flowroutes";
+import { endWordAt, endWordBox, type Route, routesOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
@@ -16,6 +16,7 @@ import {
   type Palette,
   type Picture,
   pill,
+  pillSize,
   straight,
   stroke,
   writing,
@@ -69,7 +70,7 @@ const mindPicture = (mind: Mind): Picture => {
 const schemaPicture = (schema: Schema): Picture => {
   const scene = schemaScene(schema);
   const byName = new Map(schema.tables.map((one) => [one.name, one]));
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
       graph(scene, palette, (name, box) => {
@@ -127,7 +128,7 @@ const schemaPicture = (schema: Schema): Picture => {
           boxed(box, { fill: "none", stroke: palette.line, radius: 8 }),
         ].join("");
       }),
-  };
+  });
 };
 
 const routed = new WeakMap<Scene, { one: Scene["joints"][number]; way: Route }[]>();
@@ -154,6 +155,53 @@ const joinedIn = (scene: Scene) => {
   const joined = known.map(({ one }, index) => ({ one, way: routes[index] }));
   routed.set(scene, joined);
   return joined;
+};
+
+const PICTURE_ROOM = 8;
+
+const labelBox = (way: Route, said: string): Rect => {
+  const { wide, tall } = pillSize(said);
+  return { x: way.labelX - wide / 2, y: way.labelY - tall / 2, wide, tall };
+};
+
+export const pictureBounds = (scene: Scene): Rect => {
+  const boxes = [
+    ...scene.laid.at.values(),
+    ...scene.groups.map((group) => group.rect),
+    ...joinedIn(scene).flatMap(({ one, way }) => [
+      ...way.way.map((point) => ({ ...point, wide: 0, tall: 0 })),
+      ...(one.label ? [labelBox(way, one.label)] : []),
+      ...(one.startLabel ? [endWordBox(way.from, way.fromSide, one.startLabel)] : []),
+      ...(one.endLabel ? [endWordBox(way.to, way.toSide, one.endLabel)] : []),
+    ]),
+  ];
+  const left = Math.min(0, ...boxes.map((one) => one.x - PICTURE_ROOM));
+  const top = Math.min(0, ...boxes.map((one) => one.y - PICTURE_ROOM));
+  const right = Math.max(
+    scene.laid.size.wide,
+    ...boxes.map((one) => one.x + one.wide + PICTURE_ROOM),
+  );
+  const bottom = Math.max(
+    scene.laid.size.tall,
+    ...boxes.map((one) => one.y + one.tall + PICTURE_ROOM),
+  );
+  return { x: left, y: top, wide: right - left, tall: bottom - top };
+};
+
+// An arrow stepping aside or a long word may reach past the shapes' margin: the picture grows rather than cut it.
+const framedPicture = (scene: Scene, picture: Picture): Picture => {
+  const bounds = pictureBounds(scene);
+  const same =
+    !bounds.x &&
+    !bounds.y &&
+    bounds.wide === picture.size.wide &&
+    bounds.tall === picture.size.tall;
+  if (same) return picture;
+  return {
+    size: { wide: bounds.wide, tall: bounds.tall },
+    drawn: (palette) =>
+      `<g transform="translate(${-bounds.x},${-bounds.y})">${picture.drawn(palette)}</g>`,
+  };
 };
 
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
@@ -215,7 +263,7 @@ const flowPicture = (flow: Flow): Picture => {
   const scene = flowScene(flow);
   const byId = new Map(flow.nodes.map((one) => [one.id, one]));
   const looks = looksOf(flow);
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
       graph(scene, palette, (id, rect) => {
@@ -237,13 +285,13 @@ const flowPicture = (flow: Flow): Picture => {
         );
         return `${node(shape, rect, palette, look)}${words.join("")}`;
       }),
-  };
+  });
 };
 
 const classPicture = (diagram: Classes): Picture => {
   const scene = classScene(diagram);
   const byName = new Map(diagram.classes.map((one) => [one.name, one]));
-  return {
+  return framedPicture(scene, {
     size: scene.laid.size,
     drawn: (palette) =>
       graph(scene, palette, (name, rect) => {
@@ -291,7 +339,7 @@ const classPicture = (diagram: Classes): Picture => {
           boxed(rect, { fill: "none", stroke: palette.line, radius: 6 }),
         ].join("");
       }),
-  };
+  });
 };
 
 // Null for the kinds the window leaves to Mermaid, whose own drawing is the one people see.

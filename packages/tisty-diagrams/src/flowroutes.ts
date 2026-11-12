@@ -1,5 +1,5 @@
 import { getSmoothStepPath, Position } from "@xyflow/system";
-import type { Rect } from "./graphlayout";
+import { MARGIN, type Rect } from "./graphlayout";
 import { pillSize } from "./picture";
 
 export interface Route {
@@ -41,13 +41,17 @@ export const sideMiddle = (rect: Rect, side: Position) => {
   return { x: rect.x + rect.wide, y: rect.y + rect.tall / 2 };
 };
 
-/** The sides an arrow leaves and enters by: the ones facing each other across the wider gap. */
+/** The sides an arrow leaves and enters by: the ones facing each other across the wider gap, when that gap leaves room for a turn. */
 export const sidesOf = (from: Rect, to: Rect): readonly [Position, Position] => {
   const dx = to.x + to.wide / 2 - (from.x + from.wide / 2);
   const dy = to.y + to.tall / 2 - (from.y + from.tall / 2);
   if (dx === 0 && dy === 0) return [Position.Right, Position.Top];
-  if (Math.abs(dx) >= Math.abs(dy))
-    return dx >= 0 ? [Position.Right, Position.Left] : [Position.Left, Position.Right];
+  const across = dx >= 0 ? to.x - (from.x + from.wide) : from.x - (to.x + to.wide);
+  const down = dy >= 0 ? to.y - (from.y + from.tall) : from.y - (to.y + to.tall);
+  const roomy = (gap: number) => gap >= TURN * 2;
+  const flat =
+    Math.abs(dx) >= Math.abs(dy) ? roomy(across) || !roomy(down) : roomy(across) && !roomy(down);
+  if (flat) return dx >= 0 ? [Position.Right, Position.Left] : [Position.Left, Position.Right];
   return dy >= 0 ? [Position.Bottom, Position.Top] : [Position.Top, Position.Bottom];
 };
 
@@ -92,20 +96,33 @@ const free = (way: readonly Point[], shapes: readonly Rect[]) =>
       at === 0 || !shapes.some((shape) => overlaps(runOf(way[at - 1], one), shape, ROOM)),
   );
 
-// Turning halfway is how it always ran; just past its shape or just before the other is how it goes round one in between.
-const waysBetween = (start: Point, end: Point, leaving: Position): Point[][] => {
+const axisOf = (start: Point, end: Point, leaving: Position) => {
   const flat = leaving === Position.Left || leaving === Position.Right;
   const from = flat ? start.x : start.y;
   const to = flat ? end.x : end.y;
   const ahead = leaving === Position.Right || leaving === Position.Bottom ? 1 : -1;
-  if ((to - from) * ahead < TURN * 2) return [];
-  const at = (along: number, aside: number): Point =>
-    flat ? { x: along, y: aside } : { x: aside, y: along };
-  const aside = (one: Point) => (flat ? one.y : one.x);
-  return [(from + to) / 2, from + TURN * ahead, to - TURN * ahead].map((turn) => [
+  if ((to - from) * ahead < TURN * 2) return null;
+  return {
+    flat,
+    near: from + TURN * ahead,
+    far: to - TURN * ahead,
+    middle: (from + to) / 2,
+    at: (along: number, aside: number): Point =>
+      flat ? { x: along, y: aside } : { x: aside, y: along },
+    aside: (one: Point) => (flat ? one.y : one.x),
+    alongOf: (one: Rect) => (flat ? [one.x, one.x + one.wide] : [one.y, one.y + one.tall]),
+    asideOf: (one: Rect) => (flat ? [one.y, one.y + one.tall] : [one.x, one.x + one.wide]),
+  };
+};
+
+// Turning halfway is how it always ran; just past its shape or just before the other is how it goes round one in between.
+const waysBetween = (start: Point, end: Point, leaving: Position): Point[][] => {
+  const axis = axisOf(start, end, leaving);
+  if (!axis) return [];
+  return [axis.middle, axis.near, axis.far].map((turn) => [
     start,
-    at(turn, aside(start)),
-    at(turn, aside(end)),
+    axis.at(turn, axis.aside(start)),
+    axis.at(turn, axis.aside(end)),
     end,
   ]);
 };
@@ -115,26 +132,24 @@ const detoursBetween = (
   end: Point,
   leaving: Position,
   shapes: readonly Rect[],
+  within: Rect | null,
 ): Point[][] => {
-  const flat = leaving === Position.Left || leaving === Position.Right;
-  const from = flat ? start.x : start.y;
-  const to = flat ? end.x : end.y;
-  const ahead = leaving === Position.Right || leaving === Position.Bottom ? 1 : -1;
-  if ((to - from) * ahead < TURN * 2) return [];
-  const at = (along: number, aside: number): Point =>
-    flat ? { x: along, y: aside } : { x: aside, y: along };
-  const aside = (one: Point) => (flat ? one.y : one.x);
-  const near = from + TURN * ahead;
-  const far = to - TURN * ahead;
+  const axis = axisOf(start, end, leaving);
+  if (!axis) return [];
+  const { near, far, at, aside } = axis;
   const [low, high] = near < far ? [near, far] : [far, near];
   const middle = (aside(start) + aside(end)) / 2;
+  const [first, last] = within ? axis.asideOf(within) : [-Infinity, Infinity];
   return shapes
-    .filter((one) =>
-      flat ? one.x < high && one.x + one.wide > low : one.y < high && one.y + one.tall > low,
-    )
-    .flatMap((one) =>
-      flat ? [one.y - TURN, one.y + one.tall + TURN] : [one.x - TURN, one.x + one.wide + TURN],
-    )
+    .filter((one) => {
+      const [from, to] = axis.alongOf(one);
+      return from < high && to > low;
+    })
+    .flatMap((one) => {
+      const [from, to] = axis.asideOf(one);
+      return [from - TURN, to + TURN];
+    })
+    .filter((lane) => lane - ROOM >= first && lane + ROOM <= last)
     .sort((one, other) => Math.abs(one - middle) - Math.abs(other - middle))
     .map((lane) => [
       start,
@@ -179,7 +194,12 @@ const longestRun = (way: readonly Point[]): readonly [Point, Point] =>
     .reduce((best, run) => (lengthOf(run[0], run[1]) > lengthOf(best[0], best[1]) ? run : best));
 
 /** An arrow in right-angled runs between the nearest sides, round any shape in its way; the window and the picture both draw this one. */
-export const routeOf = (from: Rect, to: Rect, around: readonly Rect[] = []): Route => {
+export const routeOf = (
+  from: Rect,
+  to: Rect,
+  around: readonly Rect[] = [],
+  within: Rect | null = null,
+): Route => {
   const [leaving, entering] = sidesOf(from, to);
   const start = sideMiddle(from, leaving);
   const end = sideMiddle(to, entering);
@@ -198,7 +218,7 @@ export const routeOf = (from: Rect, to: Rect, around: readonly Rect[] = []): Rou
   const ways = waysBetween(start, end, leaving);
   const way =
     ways.find((one) => free(one, others)) ??
-    detoursBetween(start, end, leaving, others).find((one) => free(one, others));
+    detoursBetween(start, end, leaving, others, within).find((one) => free(one, others));
   if (!way) return { ...plain, way: ways[0] ?? [] };
   if (way === ways[0]) return { ...plain, way };
   if (way.length === 4) {
@@ -252,9 +272,34 @@ const spotsAlong = (route: Route, size: { wide: number; tall: number }): Point[]
   return [{ x: route.labelX, y: route.labelY }, ...along, ...beside];
 };
 
-/** Every arrow of a drawing, each word where it covers no shape, no end word and no other arrow's word, or as little as can be. */
+/** The room a drawing keeps round its shapes, which its arrows and their words stay inside. */
+export const drawnWithin = (shapes: readonly Rect[]): Rect | null => {
+  if (!shapes.length) return null;
+  const left = Math.min(...shapes.map((one) => one.x)) - MARGIN;
+  const top = Math.min(...shapes.map((one) => one.y)) - MARGIN;
+  const right = Math.max(...shapes.map((one) => one.x + one.wide)) + MARGIN;
+  const bottom = Math.max(...shapes.map((one) => one.y + one.tall)) + MARGIN;
+  return { x: left, y: top, wide: right - left, tall: bottom - top };
+};
+
+const runsOf = (way: readonly Point[]) =>
+  way
+    .slice(1)
+    .map((one, at) => runOf(way[at], one))
+    .filter((run) => run.wide || run.tall);
+
+export const sharedRun = (run: Rect, runs: readonly Rect[]) =>
+  runs.some((own) =>
+    run.wide === 0
+      ? own.wide === 0 && own.x === run.x && own.y < run.y + run.tall && run.y < own.y + own.tall
+      : own.tall === 0 && own.y === run.y && own.x < run.x + run.wide && run.x < own.x + own.wide,
+  );
+
+/** Every arrow of a drawing, each word where it covers no shape, no end word, no other arrow's word or line and stays in the drawing, or as near as can be. */
 export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Route[] => {
-  const routes = joints.map((joint) => routeOf(joint.from, joint.to, shapes));
+  const within = drawnWithin(shapes);
+  const routes = joints.map((joint) => routeOf(joint.from, joint.to, shapes, within));
+  const lines = routes.map((route) => runsOf(route.way));
   const taken: Rect[] = joints.flatMap((joint, at) => {
     const route = routes[at];
     return [
@@ -272,9 +317,19 @@ export const routesOf = (joints: readonly Joint[], shapes: readonly Rect[]): Rou
       wide: size.wide,
       tall: size.tall,
     });
+    const outside = (spot: Point) =>
+      within ? size.wide * size.tall - covered(box(spot), within, 0) : 0;
+    const crossed = lines
+      .flatMap((runs, other) => (other === at ? [] : runs))
+      .filter((run) => !sharedRun(run, lines[at]));
+    const crossing = (spot: Point) =>
+      crossed.reduce((sum, run) => sum + covered(box(spot), run, 1), 0);
+    // A line under a word reads as cut, while a word past the margin only makes the picture grow.
     const cost = (spot: Point) =>
       shapes.reduce((sum, one) => sum + covered(box(spot), one, 2), 0) +
-      taken.reduce((sum, one) => sum + covered(box(spot), one, 4), 0);
+      taken.reduce((sum, one) => sum + covered(box(spot), one, 4), 0) +
+      crossing(spot) * 40 +
+      outside(spot) / 4;
     const spots = spotsAlong(route, size);
     const spot =
       spots.find((one) => cost(one) === 0) ??
