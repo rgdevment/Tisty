@@ -6,7 +6,7 @@ Tisty 1.47 adds a place for the ideas that are not tasks yet, and teaches your A
 
 Some thoughts are not tasks. They are ideas you want to keep without deciding anything about them yet. Open the quick capture, press Tab to switch from task to idea and type it: it waits as a sticky note of up to 140 characters on the Brainstorm sheet, pinned atop your library. Ideas have a shortcut of their own, keep their colour, and you reorder them by dragging.
 
-![The Brainstorm sheet: ideas as coloured sticky notes, pinned atop the library](../../../assets/screens/readme/en-03-brainstorm.webp)
+![The Brainstorm sheet: ideas as coloured sticky notes, pinned atop the library](brainstorm.webp)
 
 When an idea grows up, you file it in a document or turn it into a task, and the library counts the ones still waiting for you.
 

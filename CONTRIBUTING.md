@@ -221,10 +221,10 @@ article tisty.app publishes as its news, in `docs/news/<version>/` as `en.md`
 and `es.md`: `scripts/article.sh` refuses one that is missing, says fewer than
 150 words, has fewer than two `##` sections or does not read in its own
 language, or whose two languages do not line up in sections and pictures, and
-it suggests a screen when the article shows none. A picture is a path relative
-to the article, so it stays as that version shipped it. Nothing slower goes in
-any of them: the suite, the build and the markdown lint are minutes, and they
-belong to CI.
+it suggests a screen when the article shows none. A picture is a copy that
+lives in the article's folder, named alone, so moving or recapturing a screen
+in `assets/` never changes the news. Nothing slower goes in any of them: the
+suite, the build and the markdown lint are minutes, and they belong to CI.
 
 One of those rules keeps a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is

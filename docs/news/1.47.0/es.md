@@ -6,7 +6,7 @@ Tisty 1.47 suma un lugar para las ideas que todavía no son tareas, y le enseña
 
 Hay ocurrencias que no son tareas. Son ideas que quieres guardar sin decidir nada todavía. Abre la captura rápida, pulsa Tab para pasar de tarea a idea y escríbela: queda como una nota adhesiva de hasta 140 caracteres en la Lluvia de ideas, fija arriba de tu biblioteca. Las ideas tienen su propio atajo, conservan su color y las ordenas arrastrándolas.
 
-![La Lluvia de ideas: ideas como notas adhesivas de colores, fijas arriba de la biblioteca](../../../assets/screens/readme/es-03-ideas.webp)
+![La Lluvia de ideas: ideas como notas adhesivas de colores, fijas arriba de la biblioteca](lluvia-de-ideas.webp)
 
 Cuando una idea madura, la anexas a un documento o la conviertes en tarea, y la biblioteca cuenta las que siguen esperándote.
 

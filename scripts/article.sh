@@ -81,12 +81,9 @@ def look(tongue):
         said.append(("fail", f"{path} does not read as {NAMES[tongue]}: each language has its own file, written in that language"))
     pictures = PICTURE.findall(text)
     for alt, source in pictures:
-        if re.match(r"^[a-z]+:", source):
-            said.append(("fail", f"{path} shows {source} from outside: point at the picture by a path relative to the article, so it stays as this version shipped it"))
-            continue
-        target = os.path.normpath(os.path.join(folder, source))
-        if target.startswith(".."):
-            said.append(("fail", f"{path} points at {source}, outside the repository"))
+        target = os.path.join(folder, source)
+        if re.search(r"[/\\:]", source):
+            said.append(("fail", f"{path} shows {source} from elsewhere: copy the picture into {folder} and name it alone, so moving or recapturing a screen never changes the news"))
         elif not os.path.isfile(target):
             said.append(("fail", f"{path} shows {source}, and there is no such file"))
         elif not target.lower().endswith(PICTURES):
