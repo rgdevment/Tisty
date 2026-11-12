@@ -27,6 +27,7 @@ export {
   type IdeaHead,
   iconed,
   ideaParts,
+  ideaStamp,
   isHue,
   PAGE_CSS,
   type PartCarded,

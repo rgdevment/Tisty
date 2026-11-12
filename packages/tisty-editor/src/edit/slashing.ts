@@ -8,6 +8,7 @@ import {
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
+import { IDEA_HUES, ideaStamp } from "tisty-sheet";
 import { markup } from "tisty-sheet/glyphs";
 import { matched } from "../finding";
 import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
@@ -59,7 +60,6 @@ export type Slashed = {
 };
 
 const fenced = (lang: string): Put => ({ block: `\`\`\`${lang}\n\n\`\`\``, at: lang.length + 4 });
-
 const CALLOUTS = [
   ["note", "info"],
   ["tip", "star"],
@@ -86,6 +86,18 @@ export const SLASHED: readonly Slashed[] = [
       put: { block: head, at: head.length },
     };
   }),
+  {
+    key: "callout-idea",
+    label: "saididea",
+    hint: "[!IDEA]",
+    icon: "sticky",
+    // Its time and colour are the moment it is stuck, so they are made each time it is asked for.
+    get put(): Put {
+      const hue = IDEA_HUES[Math.floor(Math.random() * IDEA_HUES.length)];
+      const head = `> [!IDEA] ${[ideaStamp(new Date()), hue, "right"].join(" · ")}\n> `;
+      return { block: head, at: head.length };
+    },
+  },
   { key: "bold", label: "bold", hint: "**", icon: "bold", put: { wrap: "**" }, keys: "B" },
   { key: "italic", label: "italic", hint: "*", icon: "italic", put: { wrap: "*" }, keys: "I" },
   {

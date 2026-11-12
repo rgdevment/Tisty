@@ -24,3 +24,8 @@ export const ideaParts = (words: string): IdeaHead => {
 };
 
 export const saysAny = (head: IdeaHead): boolean => Boolean(head.when || head.hue || head.side);
+
+const two = (n: number) => String(n).padStart(2, "0");
+
+export const ideaStamp = (at: Date): string =>
+  `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;

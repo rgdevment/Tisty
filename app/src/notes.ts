@@ -1,4 +1,4 @@
-import { IDEA_HUES, ideaParts, saysAny } from "tisty-editor/read";
+import { IDEA_HUES, ideaParts, ideaStamp, saysAny } from "tisty-editor/read";
 
 export interface Note {
   heading: string;
@@ -144,10 +144,7 @@ export const added = (body: string, heading: string): string => {
   return sewn(sheet);
 };
 
-const two = (n: number) => String(n).padStart(2, "0");
-
-export const stampOf = (at: Date): string =>
-  `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
+export const stampOf = ideaStamp;
 
 export function saidWhen(heading: string, locale: string): string {
   const stamp = STAMP.exec(ideaParts(heading).when ?? "");

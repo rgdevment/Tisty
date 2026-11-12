@@ -132,6 +132,12 @@ describe("the / menu in a block", () => {
     expect(said.text.slice(0, said.at)).toBe("```mermaid\n");
   });
 
+  it("sticks a note dated now, in a colour of its own, to the right", () => {
+    const stuck = typed("/", "callout-idea").text;
+    expect(stuck).toMatch(/^> \[!IDEA\] \d{4}-\d{2}-\d{2} \d{2}:\d{2} · [a-z]+ · right\n> $/);
+    expect(asked("/ide")?.options.some((each) => each.label.includes("Idea"))).toBe(true);
+  });
+
   it("writes a callout in Tisty's own words", () => {
     expect(typed("/", "callout-tip").text).toBe("> [!TIP]\n> ");
   });

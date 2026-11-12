@@ -27,10 +27,15 @@ body {
   overflow-wrap: break-word;
 }
 .page {
+  display: flow-root;
   box-sizing: border-box;
   max-width: var(--wide, 820px);
   margin: 0 auto;
   padding: 36px 40px 40vh;
+}
+.page > hr,
+.page > .sheet-turn {
+  clear: both;
 }
 .page > * {
   content-visibility: auto;
