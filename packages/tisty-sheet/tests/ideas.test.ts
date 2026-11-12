@@ -22,18 +22,18 @@ describe("a sticky note held on the sheet", () => {
   });
 
   it("leans only a little, and leaves any other quote alone", () => {
-    const notes = drawn(
-      Array.from(
-        { length: 40 },
-        (_, n) =>
-          `<blockquote class="callout" data-callout="idea" data-when="2026-11-${String((n % 28) + 1).padStart(2, "0")} 10:${String(n).padStart(2, "0")}">x</blockquote>`,
-      ).join("") + '<blockquote class="callout" data-callout="note">y</blockquote>',
-    );
+    const two = (n: number) => String(n).padStart(2, "0");
+    const stuck = Array.from(
+      { length: 40 },
+      (_, n) =>
+        `<blockquote class="callout" data-callout="idea" data-when="2026-11-${two((n % 28) + 1)} 10:${two(n)}">x</blockquote>`,
+    ).join("");
+    const notes = drawn(`${stuck}<blockquote class="callout" data-callout="note">y</blockquote>`);
     const note = notes.pop();
-    for (const one of notes)
-      expect(Math.abs(Number.parseFloat(one.style.getPropertyValue("--tilt")))).toBeLessThanOrEqual(
-        1.75,
-      );
+    const leans = notes.map((one) =>
+      Math.abs(Number.parseFloat(one.style.getPropertyValue("--tilt"))),
+    );
+    expect(Math.max(...leans)).toBeLessThanOrEqual(1.75);
     expect(new Set(notes.map((one) => one.dataset.hold)).size).toBe(4);
     expect(note?.dataset.hold).toBeUndefined();
   });
