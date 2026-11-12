@@ -20,6 +20,11 @@ const VIEWS: { key: Named; icon: string }[] = [
   { key: "archive", icon: "archive" },
 ];
 
+const viewTab = (on: boolean) =>
+  `grid h-7 place-items-center rounded-md transition-colors duration-150 ${
+    on ? "bg-sheet text-accent ring-1 ring-hair" : "text-faint hover:text-ink"
+  }`;
+
 interface Props {
   counts: Record<string, number>;
   lists: List[];
@@ -50,6 +55,8 @@ export default function SideTasks({
   const wide = leaning === "tasks";
   const plain = !chosen.list && !chosen.tags?.length;
   const on = (key: Named) => plain && chosen.named === key;
+  const everything = on("tasks") && chosen.slice === "all" && !chosen.lists?.length;
+  const allSaid = counts.all ? `${t("allTasks")} · ${counts.all}` : t("allTasks");
 
   return (
     <div className={`flex flex-col px-2.5 pb-1 ${wide ? "min-h-0 flex-1" : "shrink-0"}`}>
@@ -94,8 +101,21 @@ export default function SideTasks({
       </div>
       <nav
         aria-label={t("tasksViews")}
-        className="mt-2 grid grid-cols-6 rounded-[10px] bg-hover p-0.5"
+        className="mt-2 grid grid-cols-7 rounded-[10px] bg-hover p-0.5"
       >
+        <button
+          type="button"
+          onClick={() => {
+            keepOnly([]);
+            onChoose({ named: "tasks", slice: "all" });
+          }}
+          aria-label={allSaid}
+          aria-current={everything ? "page" : undefined}
+          title={allSaid}
+          className={viewTab(everything)}
+        >
+          <Glyph name="inbox" />
+        </button>
         {VIEWS.map(({ key, icon }) => {
           const said =
             key === "lists"
@@ -111,9 +131,7 @@ export default function SideTasks({
               aria-label={said}
               aria-current={on(key) ? "page" : undefined}
               title={said}
-              className={`grid h-7 place-items-center rounded-md transition-colors duration-150 ${
-                on(key) ? "bg-sheet text-accent ring-1 ring-hair" : "text-faint hover:text-ink"
-              }`}
+              className={viewTab(on(key))}
             >
               <Glyph name={icon} />
             </button>
