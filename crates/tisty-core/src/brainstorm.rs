@@ -16,10 +16,7 @@ pub const IDEA_AT_MOST: usize = 140;
 pub const COLOURS: [&str; 12] = tisty_markdown::IDEA_HUES;
 
 pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
-    stuck(
-        &format!("{} · {colour}", at.strftime("%Y-%m-%d %H:%M")),
-        idea,
-    )
+    stuck(&format!("{} · {colour}", minute_of(at)), idea)
 }
 
 fn stuck(head: &str, idea: &str) -> String {
@@ -79,8 +76,45 @@ fn fences(line: &str) -> bool {
     bare.starts_with("```") || bare.starts_with("~~~")
 }
 
-pub fn coloured(body: &str, roll: u32) -> &'static str {
-    picked(last_hue(body), roll)
+type Taken = std::collections::HashSet<(String, &'static str)>;
+
+pub fn jotted_next(was: &str, idea: &str, at: jiff::civil::DateTime, roll: u32) -> String {
+    jotted_all(was, &[idea.to_string()], at, || roll)
+}
+
+fn minute_of(when: jiff::civil::DateTime) -> String {
+    when.strftime("%Y-%m-%d %H:%M").to_string()
+}
+
+fn taken_on(was: &str) -> Taken {
+    ideas_on(was)
+        .iter()
+        .filter_map(|one| {
+            let head = tisty_markdown::idea_parts(&one.heading);
+            Some((head.when?.to_string(), head.hue?))
+        })
+        .collect()
+}
+
+// A note is named by its minute and colour, so no two on one sheet may share both.
+fn free_slot(
+    taken: &Taken,
+    last: Option<&str>,
+    at: jiff::civil::DateTime,
+    roll: u32,
+) -> (jiff::civil::DateTime, &'static str) {
+    let mut when = at;
+    loop {
+        let minute = minute_of(when);
+        let free: Vec<&'static str> = COLOURS
+            .into_iter()
+            .filter(|hue| !taken.contains(&(minute.clone(), *hue)))
+            .collect();
+        if !free.is_empty() {
+            return (when, picked(&free, last, roll));
+        }
+        when = when.saturating_add(jiff::Span::new().minutes(1));
+    }
 }
 
 fn last_hue(body: &str) -> Option<&'static str> {
@@ -91,13 +125,13 @@ fn last_hue(body: &str) -> Option<&'static str> {
         .and_then(|line| tisty_markdown::idea_head(line).hue)
 }
 
-fn picked(last: Option<&str>, roll: u32) -> &'static str {
-    let many = COLOURS.len();
+fn picked(from: &[&'static str], last: Option<&str>, roll: u32) -> &'static str {
+    let many = from.len();
     let mut at = roll as usize % many;
-    if last == Some(COLOURS[at]) {
+    if many > 1 && last == Some(from[at]) {
         at = (at + 1 + (roll as usize / many) % (many - 1)) % many;
     }
-    COLOURS[at]
+    from[at]
 }
 
 pub fn filed(idea: &str, heading: &str) -> String {
@@ -217,13 +251,15 @@ pub fn jotted_all(
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
+    let mut taken = taken_on(was);
     let mut last = last_hue(was);
     let added: Vec<String> = each
         .iter()
         .map(|idea| {
-            let colour = picked(last, roll());
+            let (when, colour) = free_slot(&taken, last, at, roll());
+            taken.insert((minute_of(when), colour));
             last = Some(colour);
-            jotted(idea, at, colour)
+            jotted(idea, when, colour)
         })
         .collect();
     added.join("\n\n")

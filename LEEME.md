@@ -242,6 +242,9 @@ espera en la Lluvia de ideas.
   las reordenas arrastrándolas.
 - **Las ordenas después** — cada idea se convierte en tarea o va al documento
   que le corresponde, y la biblioteca cuenta las que siguen esperando.
+- **Una idea en cualquier documento** — la misma nota adhesiva, con su fecha y
+  su color, cabe en cualquier documento desde el menú `/`, y anexar una idea la
+  lleva entera.
 - **También con tu agente de IA** — pídele una lluvia de ideas y anota las que
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
@@ -259,10 +262,11 @@ espera en la Lluvia de ideas.
   pasos y su día.
 - **Trabajo compartido, dueños claros** — lo que anota tu agente es suyo para
   mantenerlo al día: lo describe, planifica los pasos, marca cada uno al
-  terminarlo y anota lo que aprende. Lo que escribiste tú sigue siendo tuyo: el
-  agente solo agrega — una nota en la bitácora, un recordatorio, un archivo — y
-  da su palabra de que un paso o la tarea entera están hechos, para que tú lo
-  confirmes. Cerrar siempre es tuyo, y cada entrada dice qué agente la escribió.
+  terminarlo y anota lo que aprende. En lo que escribiste tú trabaja como en un
+  documento — la descripción, la página, los pasos abiertos, el título y la
+  lista —, pero un paso que da por listo espera a que lo marques, el día sigue
+  siendo tuyo y cerrar siempre es tuyo, y cada entrada dice qué agente la
+  escribió.
 - **Una bitácora** — notas con fecha que nunca se reescriben: lo que se probó,
   lo que se descartó y por qué.
 - **Una página por tarea** — *Descripción*, *Para estar lista*, *Pasos*,
@@ -395,7 +399,7 @@ Tisty dos veces, y reinicia el asistente después. Más en
 Cosas que puedes pedirle una vez conectado:
 
 - "Agrega una tarea para renovar el pasaporte antes de marzo, con sus pasos."
-- "¿Qué tengo pendiente esta semana y qué está atrasado?"
+- "¿Qué tengo pendiente esta semana y qué está vencido?"
 - "¿Cómo arreglé los timeouts al guardar el año pasado? Busca en el archivo."
 - "Escribe un documento con mis notas de la llamada de hoy y archívalo en
   Clientes."

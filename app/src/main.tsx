@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { broke } from "./broke";
+import { rejected, thrown } from "./broke";
 import { drawsHeicHere } from "./core";
 import { locale } from "./locales";
 import { drawsHeic } from "./previews";
@@ -26,12 +26,8 @@ document.documentElement.lang = locale();
   dark.addEventListener("change", paint);
 }
 
-window.addEventListener("error", (e) =>
-  broke(e.error?.name ?? "Error", e.error?.message, e.error?.stack),
-);
-window.addEventListener("unhandledrejection", (e) =>
-  broke(e.reason?.name ?? "Rejection", e.reason?.message, e.reason?.stack),
-);
+window.addEventListener("error", thrown);
+window.addEventListener("unhandledrejection", rejected);
 
 const label = getCurrentWindow().label;
 const quick = label === "quick";

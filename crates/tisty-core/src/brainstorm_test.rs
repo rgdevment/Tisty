@@ -23,16 +23,45 @@ fn an_idea_is_a_sticky_note_headed_by_the_minute_it_came_and_its_colour() {
 
 #[test]
 fn a_new_idea_never_takes_the_colour_of_the_one_before_it() {
+    let at = jiff::civil::date(2026, 11, 12).at(0, 19, 0, 0);
     let mut body = opening("Ideas");
     let mut before: Option<&str> = None;
-    for roll in [0, 0, 12, 24, 5, 17, 29, 41] {
-        let colour = coloured(&body, roll);
-        assert!(COLOURS.contains(&colour));
-        assert_ne!(Some(colour), before, "{colour} repeated");
-        body.push_str(&format!(
-            "\n\n> [!IDEA] 2026-11-12 00:19 · {colour}\n> idea"
-        ));
-        before = Some(colour);
+    for (minute, roll) in [0, 0, 12, 24, 5, 17, 29, 41].into_iter().enumerate() {
+        let at = at
+            .checked_add(jiff::Span::new().minutes(minute as i64))
+            .unwrap();
+        let note = jotted_next(&body, "idea", at, roll);
+        let colour = tisty_markdown::idea_head(&note).hue;
+        assert!(colour.is_some());
+        assert_ne!(colour, before, "{colour:?} repeated");
+        body.push_str(&format!("\n\n{note}"));
+        before = colour;
+    }
+}
+
+#[test]
+fn no_two_ideas_on_a_sheet_share_their_minute_and_colour() {
+    let at = jiff::civil::date(2026, 11, 12).at(16, 18, 0, 0);
+    let each: Vec<String> = (1..=14).map(|n| format!("idea {n}")).collect();
+    for roll in [0, 7, 12, 25] {
+        let mut sheet = format!("{SHEET}\n> [!IDEA] 2026-11-12 16:18 · green\n> ya estaba\n");
+        let added = jotted_all(&sheet, &each, at, || roll);
+        sheet.push_str(&format!("\n{added}\n"));
+        let heads: Vec<String> = ideas_on(&sheet)
+            .into_iter()
+            .map(|one| one.heading)
+            .collect();
+        assert_eq!(heads.len(), 18);
+        for (at, one) in heads.iter().enumerate() {
+            assert!(
+                !heads[at + 1..].contains(one),
+                "{one} twice with roll {roll}"
+            );
+        }
+        let next_minute = heads
+            .iter()
+            .filter(|one| one.starts_with("2026-11-12 16:19 · "));
+        assert_eq!(next_minute.count(), 3);
     }
 }
 
@@ -93,7 +122,7 @@ fn a_marker_right_under_a_quoted_line_stays_in_that_idea_as_markdown_reads_it() 
         ideas_on(joined)[0].text,
         "uno\n[!IDEA] 2026-11-12 09:41 · blue\ndos"
     );
-    assert_eq!(coloured(joined, 0), coloured("> [!IDEA] x · pink", 0));
+    assert_eq!(last_hue(joined), Some("pink"));
 }
 
 #[test]

@@ -41,7 +41,7 @@ Sin nada seleccionado, el formato empieza justo donde está el cursor, y lo que 
 Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo para filtrar, ↑ ↓ para moverte, Enter para agregarlo, Esc para cerrarlo.
 
 - Títulos, listas, etapas y citas.
-- Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado.
+- Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado, y la nota adhesiva de Idea.
 - Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador, con sus atajos al lado.
 - Un icono, buscado por lo que dibuja.
 - Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código.

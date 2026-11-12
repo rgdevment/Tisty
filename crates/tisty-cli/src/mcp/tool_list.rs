@@ -74,7 +74,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's tasks not open to you, it reports the step done for them to confirm. Refused once the task is said done: `note` instead. The answer says how many are `left` and the `next` one. The whole task is `say_done`; a wrong tick, `untick`.",
+            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The answer says how many are `left` and the `next` one. The whole task is `say_done`; a wrong tick, `untick`.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
