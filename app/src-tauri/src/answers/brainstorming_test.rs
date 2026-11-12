@@ -87,3 +87,22 @@ fn an_idea_past_its_length_is_refused_and_nothing_is_written() {
     let fits = "a".repeat(tisty_core::brainstorm::IDEA_AT_MOST);
     assert!(jotting(&mut session, &fits, "Lluvia de ideas", at(7), 0).is_ok());
 }
+
+#[test]
+fn a_locked_brainstorm_refuses_the_idea_rather_than_making_a_second() {
+    let (_tmp, mut session) = session();
+    let first = jotting(&mut session, "una idea", "Lluvia de ideas", at(7), 0).unwrap();
+    let id = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == first.file)
+        .unwrap()
+        .id;
+    session.commit(Op::DocLock { id }).unwrap();
+
+    let refused = jotting(&mut session, "otra idea", "Lluvia de ideas", at(9), 0).unwrap_err();
+
+    assert_eq!(refused.code, "documentLocked");
+    assert_eq!(session.state.docs.len(), 1, "no second brainstorm");
+}

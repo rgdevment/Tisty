@@ -49,7 +49,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 ## Lluvia de ideas
 
-Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Alt` + `I` (o `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Lluvia de ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos, el de la tarea y el de la idea. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
+Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Lluvia de ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
 
 - **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, escribir en él a mano, archivarlo o exportarlo como cualquier otro.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.

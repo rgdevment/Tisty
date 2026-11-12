@@ -221,11 +221,7 @@ export default function General({
           door="idea"
           which="jot"
           title={t("quickIdea")}
-          why={
-            ideaKeys
-              ? fill("quickIdeaOn", ideaKeys)
-              : t(kept?.ideaKeys === "off" ? "quickIdeaOff" : "quickNone")
-          }
+          why={ideaKeys ? fill("quickIdeaOn", ideaKeys) : t("quickIdeaOff")}
           label={t("quickIdeaKeys")}
           ready={Boolean(kept)}
           keys={ideaKeys}

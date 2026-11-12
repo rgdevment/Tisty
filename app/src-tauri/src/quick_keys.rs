@@ -23,6 +23,11 @@ impl Door {
         }
     }
 
+    // Ctrl+Alt is AltGr on many layouts, so the idea's keys are taken only once someone picks them.
+    fn taken_unasked(self) -> bool {
+        self == Door::Task
+    }
+
     // The two lists never share a combination, so one door can never take the other's keys.
     fn offered(self) -> Vec<(&'static str, Shortcut)> {
         let control_shift = Some(Modifiers::CONTROL | Modifiers::SHIFT);
@@ -94,7 +99,7 @@ pub(crate) fn listen_for<R: tauri::Runtime>(
     door: Door,
     chosen: Option<&str>,
 ) -> Option<String> {
-    if chosen == Some(OFF) {
+    if chosen == Some(OFF) || (chosen.is_none() && !door.taken_unasked()) {
         return None;
     }
     if let Some(said) = chosen

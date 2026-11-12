@@ -8,6 +8,7 @@ import {
   colourOf,
   dropped,
   IDEA_AT_MOST,
+  introOf,
   type Note,
   ordered,
   rewritten,
@@ -22,6 +23,7 @@ interface Props {
   body: string;
   reading: boolean;
   onWrite: (body: string) => void;
+  onEditor?: () => void;
 }
 
 interface Lifted {
@@ -48,9 +50,10 @@ function nearest(x: number, y: number, from: number): number | null {
   return best?.at ?? null;
 }
 
-export default function Notes({ title, body, reading, onWrite }: Props) {
+export default function Notes({ title, body, reading, onWrite, onEditor }: Props) {
   const [raw, setRaw] = useState(false);
   const { notes } = boardOf(body);
+  const intro = introOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
   const [lifted, setLifted] = useState<Lifted | null>(null);
   const newestFirst = notes
@@ -77,20 +80,9 @@ export default function Notes({ title, body, reading, onWrite }: Props) {
   settle.current = moved;
   const lifting = lifted !== null;
   const wall = useRef<HTMLUListElement>(null);
-  useSlides(wall, lifting);
+  useSlides(wall, newestFirst.map(({ note, nth }) => `${note.heading}#${nth}`).join("|"));
   useEffect(() => {
     if (!lifting) return;
-    const follow = (e: PointerEvent) => {
-      const was = held.current;
-      if (!was) return;
-      const under = nearest(e.clientX, e.clientY, was.from);
-      setLifted({
-        ...was,
-        dx: e.clientX - was.x,
-        dy: e.clientY - was.y,
-        over: under,
-      });
-    };
     const drop = () => {
       const was = held.current;
       setLifted(null);
@@ -98,13 +90,31 @@ export default function Notes({ title, body, reading, onWrite }: Props) {
         settle.current(was.from, was.over);
       }
     };
+    const cancel = () => setLifted(null);
+    const follow = (e: PointerEvent) => {
+      const was = held.current;
+      if (!was) return;
+      // A button let go outside the window sends no pointerup; it comes back with none held.
+      if (e.buttons === 0) {
+        drop();
+        return;
+      }
+      setLifted({
+        ...was,
+        dx: e.clientX - was.x,
+        dy: e.clientY - was.y,
+        over: nearest(e.clientX, e.clientY, was.from),
+      });
+    };
     globalThis.addEventListener("pointermove", follow);
     globalThis.addEventListener("pointerup", drop);
-    globalThis.addEventListener("pointercancel", drop);
+    globalThis.addEventListener("pointercancel", cancel);
+    globalThis.addEventListener("blur", cancel);
     return () => {
       globalThis.removeEventListener("pointermove", follow);
       globalThis.removeEventListener("pointerup", drop);
-      globalThis.removeEventListener("pointercancel", drop);
+      globalThis.removeEventListener("pointercancel", cancel);
+      globalThis.removeEventListener("blur", cancel);
     };
   }, [lifting]);
 
@@ -126,13 +136,14 @@ export default function Notes({ title, body, reading, onWrite }: Props) {
         )}
         <button
           type="button"
-          onClick={() => setRaw((was) => !was)}
+          onClick={() => (onEditor ? onEditor() : setRaw((was) => !was))}
           aria-pressed={raw}
           className="rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover"
         >
           {t(raw ? "notesAsNotes" : "notesAsText")}
         </button>
       </div>
+      {!raw && intro && <p className="mt-3 text-[12.5px] whitespace-pre-wrap text-soft">{intro}</p>}
       {raw ? (
         <pre className="mt-6 overflow-x-auto rounded-[10px] border border-line bg-bg p-5 font-mono text-[12.5px] whitespace-pre-wrap text-ink">
           {body}
@@ -171,10 +182,11 @@ export default function Notes({ title, body, reading, onWrite }: Props) {
 
 const SLIDES_FOR = 220;
 
-// Each note glides from where it stood to where the new order puts it, the dropped one from where it was let go.
-function useSlides(wall: React.RefObject<HTMLUListElement | null>, lifting: boolean) {
+// Measured only when the order changes: measuring on every render forces a layout per pointer move.
+function useSlides(wall: React.RefObject<HTMLUListElement | null>, order: string) {
   const were = useRef(new Map<string, DOMRect>());
   useLayoutEffect(() => {
+    if (!order) return;
     const still = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
     const now = new Map<string, DOMRect>();
     for (const one of wall.current?.querySelectorAll<HTMLElement>("[data-key]") ?? []) {
@@ -182,7 +194,7 @@ function useSlides(wall: React.RefObject<HTMLUListElement | null>, lifting: bool
       const was = were.current.get(one.dataset.key ?? "");
       const dx = was ? was.left - box.left : 0;
       const dy = was ? was.top - box.top : 0;
-      if (!lifting && !still && (dx || dy)) {
+      if (!still && (dx || dy)) {
         one.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
           duration: SLIDES_FOR,
           easing: "ease-out",
@@ -191,7 +203,7 @@ function useSlides(wall: React.RefObject<HTMLUListElement | null>, lifting: bool
       now.set(one.dataset.key ?? "", box);
     }
     were.current = now;
-  });
+  }, [order, wall]);
 }
 
 interface StickyProps {

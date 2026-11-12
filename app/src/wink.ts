@@ -26,7 +26,6 @@ function kept(): Due {
   }
 }
 
-// Once in every run of a hundred openings, at a place drawn anew for each run.
 export function winksNow(): boolean {
   const due = kept();
   const seen = due.seen + 1;

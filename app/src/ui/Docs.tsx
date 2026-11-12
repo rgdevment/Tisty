@@ -30,7 +30,7 @@ import {
   viewDoc,
 } from "../core";
 import { viewDiagram } from "../drawing";
-import { notedIn, withLandscape, withPaper, withSheets } from "../front";
+import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
@@ -154,6 +154,7 @@ export default function Docs({
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
+  const [inEditor, setInEditor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [packed, setPacked] = useState(0);
@@ -657,7 +658,8 @@ export default function Docs({
   const next = at < 0 ? undefined : inOrder[at + 1];
 
   const noted = Boolean(open) && notedIn(body);
-  const onNotes = noted;
+  const brainstorm = noted && brainstormIn(body);
+  const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const beside = Boolean(open) && !onNotes && (shown ?? fits);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
@@ -866,6 +868,17 @@ export default function Docs({
               data-keeps-writing=""
               className="absolute top-2 left-full z-10 ml-3"
             />
+            {noted && !onNotes && (
+              <div className="flex justify-end pb-1">
+                <button
+                  type="button"
+                  onClick={() => setInEditor(null)}
+                  className="rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
+                >
+                  {t("notesAsNotes")}
+                </button>
+              </div>
+            )}
             {onNotes ? (
               <div className="scroller min-h-0 flex-1 overflow-y-auto">
                 <Notes
@@ -873,6 +886,7 @@ export default function Docs({
                   body={body}
                   reading={bolted}
                   onWrite={wrote}
+                  onEditor={brainstorm ? undefined : () => setInEditor(open.file)}
                 />
               </div>
             ) : (

@@ -35,51 +35,85 @@ export const colourOf = (heading: string): number => {
   return said ? COLOURS.indexOf(said[1]) : -1;
 };
 
-export function boardOf(body: string): Board {
-  const lines = body.replace(/\r\n/g, "\n").split("\n");
-  const head: string[] = [];
-  const notes: { heading: string; lines: string[] }[] = [];
-  let fenced = false;
-  for (const line of lines) {
-    const section = fenced ? null : SECTION.exec(line);
-    if (FENCE.test(line)) fenced = !fenced;
-    if (section) {
-      notes.push({ heading: section[1].trim(), lines: [] });
-    } else if (notes.length) {
-      notes[notes.length - 1].lines.push(line);
-    } else {
-      head.push(line);
-    }
-  }
-  return {
-    head: head.join("\n").trimEnd(),
-    notes: notes.map((one) => ({ heading: one.heading, text: one.lines.join("\n").trim() })),
-  };
+interface Cut {
+  ending: string;
+  head: string[];
+  blocks: string[][];
 }
 
-export function bodyOf(board: Board): string {
-  const sections = board.notes.map((one) =>
-    one.text ? `## ${one.heading}\n\n${one.text}` : `## ${one.heading}`,
+function cut(body: string): Cut {
+  const ending = body.includes("\r\n") ? "\r\n" : "\n";
+  const head: string[] = [];
+  const blocks: string[][] = [];
+  let fenced = false;
+  for (const line of body.split(/\r?\n/)) {
+    const opens = !fenced && SECTION.test(line);
+    if (FENCE.test(line)) fenced = !fenced;
+    if (opens) blocks.push([line]);
+    else if (blocks.length) blocks[blocks.length - 1].push(line);
+    else head.push(line);
+  }
+  return { ending, head, blocks };
+}
+
+const noteOf = (block: string[]): Note => ({
+  heading: (SECTION.exec(block[0])?.[1] ?? "").trim(),
+  text: block.slice(1).join("\n").trim(),
+});
+
+const blockOf = (heading: string, text: string): string[] => [
+  `## ${heading}`,
+  "",
+  ...(text ? [...text.split("\n"), ""] : []),
+];
+
+// Untouched notes go back byte for byte, so one edit never rewrites the whole file in sync.
+function sewn({ ending, head, blocks }: Cut): string {
+  const spaced = blocks.map((block, at) =>
+    at < blocks.length - 1 && block[block.length - 1] !== "" ? [...block, ""] : block,
   );
-  return `${[board.head, ...sections].filter((one) => one !== "").join("\n\n")}\n`;
+  const lines = [...head, ...spaced.flat()];
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  return `${lines.join(ending)}${ending}`;
+}
+
+export function boardOf(body: string): Board {
+  const { head, blocks } = cut(body);
+  return { head: head.join("\n").trimEnd(), notes: blocks.map(noteOf) };
+}
+
+export function introOf(body: string): string {
+  const { head } = cut(body);
+  let at = 0;
+  if (head[0]?.trim() === "---") {
+    const closes = head.findIndex(
+      (line, i) => i > 0 && (line.trim() === "---" || line.trim() === "..."),
+    );
+    at = closes < 0 ? 0 : closes + 1;
+  }
+  const rest = head.slice(at);
+  const title = rest.findIndex((line) => line.startsWith("# "));
+  return (title < 0 ? rest : rest.slice(title + 1)).join("\n").trim();
 }
 
 export const rewritten = (body: string, at: number, text: string): string => {
-  const board = boardOf(body);
-  board.notes = board.notes.map((one, index) => (index === at ? { ...one, text } : one));
-  return bodyOf(board);
+  const sheet = cut(body);
+  sheet.blocks = sheet.blocks.map((block, index) =>
+    index === at ? blockOf(noteOf(block).heading, text) : block,
+  );
+  return sewn(sheet);
 };
 
 export const dropped = (body: string, at: number): string => {
-  const board = boardOf(body);
-  board.notes = board.notes.filter((_, index) => index !== at);
-  return bodyOf(board);
+  const sheet = cut(body);
+  sheet.blocks = sheet.blocks.filter((_, index) => index !== at);
+  return sewn(sheet);
 };
 
 export const ordered = (body: string, order: number[]): string => {
-  const board = boardOf(body);
-  board.notes = order.map((at) => board.notes[at]).filter((one) => one !== undefined);
-  return bodyOf(board);
+  const sheet = cut(body);
+  sheet.blocks = order.map((at) => sheet.blocks[at]).filter((one) => one !== undefined);
+  return sewn(sheet);
 };
 
 export function shifted(order: number[], from: number, to: number): number[] {
@@ -89,7 +123,6 @@ export function shifted(order: number[], from: number, to: number): number[] {
   return next;
 }
 
-// Chosen once, when the idea is born, and never the colour of the idea just before it.
 export function bornHeading(body: string, at: Date, roll = Math.random()): string {
   const { notes } = boardOf(body);
   const last = notes.length ? colourOf(notes[notes.length - 1].heading) : -1;
@@ -100,9 +133,9 @@ export function bornHeading(body: string, at: Date, roll = Math.random()): strin
 }
 
 export const added = (body: string, heading: string): string => {
-  const board = boardOf(body);
-  board.notes.push({ heading, text: "" });
-  return bodyOf(board);
+  const sheet = cut(body);
+  sheet.blocks.push(blockOf(heading, ""));
+  return sewn(sheet);
 };
 
 const two = (n: number) => String(n).padStart(2, "0");

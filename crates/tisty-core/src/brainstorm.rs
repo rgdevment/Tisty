@@ -25,7 +25,6 @@ pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
     )
 }
 
-// Chosen once, when the idea is born, and never the colour of the idea just before it.
 pub fn coloured(body: &str, roll: u32) -> &'static str {
     let last = body
         .lines()
@@ -49,17 +48,23 @@ pub fn roll() -> u32 {
 }
 
 // The oldest wins, so two machines that each made one before they met keep dropping ideas in the same.
-pub fn find<'a>(root: &Path, state: &'a State) -> Option<&'a Kept> {
+pub fn find<'a>(root: &Path, state: &'a State, last: Option<&str>) -> Option<&'a Kept> {
     let mut open: Vec<&Kept> = state
         .docs
         .values()
-        .filter(|one| one.page_of.is_none() && !state.held_away(one) && !state.written_shut(one.id))
+        .filter(|one| one.page_of.is_none() && !state.held_away(one))
         .collect();
     open.sort_by_key(|one| one.id);
-    open.into_iter().find(|one| {
+    let holds = |one: &&Kept| {
         crate::docs::read(root, &one.file)
             .is_ok_and(|body| tisty_markdown::front::brainstorm(&body))
-    })
+    };
+    let remembered = open
+        .iter()
+        .find(|one| last.is_some_and(|file| one.file == file))
+        .copied()
+        .filter(|one| holds(one));
+    remembered.or_else(|| open.into_iter().find(holds))
 }
 
 #[cfg(test)]

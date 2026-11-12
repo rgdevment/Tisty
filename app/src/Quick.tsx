@@ -37,12 +37,12 @@ export default function Quick() {
     const window = getCurrentWindow();
     const away = () => void window.hide();
 
-    const look = () =>
+    const look = (opened = false) =>
       snapshot({ most: 0 })
         .then((fresh) => {
           adopt(fresh.locale);
           setData(fresh);
-          setExample(invited());
+          if (opened) setExample(invited());
         })
         .catch((e) => setError(saidPlainly(e)));
 
@@ -56,7 +56,7 @@ export default function Quick() {
       setKept(undefined);
       setError(null);
       setRound((n) => n + 1);
-      void look();
+      void look(true);
     });
 
     void look();

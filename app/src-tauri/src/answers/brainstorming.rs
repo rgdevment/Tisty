@@ -11,7 +11,7 @@ pub struct Jotted {
     pub made: bool,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn jot(
     session: tauri::State<'_, Mutex<Session>>,
     idea: String,
@@ -26,10 +26,20 @@ pub fn jot(
     )
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<String> {
-    let session = held(&session);
-    tisty_core::brainstorm::find(&session.paths.docs(), &session.state).map(|one| one.file.clone())
+    found(&mut held(&session))
+}
+
+fn found(session: &mut Session) -> Option<String> {
+    let file = tisty_core::brainstorm::find(
+        &session.paths.docs(),
+        &session.state,
+        session.brainstorm.as_deref(),
+    )
+    .map(|one| one.file.clone());
+    session.brainstorm.clone_from(&file);
+    file
 }
 
 pub fn jotting(
@@ -49,10 +59,12 @@ pub fn jotting(
         ));
     }
     let root = session.paths.docs();
-    let (file, made) = match tisty_core::brainstorm::find(&root, &session.state) {
-        Some(one) => (one.file.clone(), false),
+    let (file, made) = match found(session) {
+        Some(file) => (file, false),
         None => (made_anew(session, title)?, true),
     };
+    super::papers::writable(&session.state, &file)?;
+    session.brainstorm = Some(file.clone());
     let was = tisty_core::docs::read(&root, &file).unwrap_or_default();
     let colour = tisty_core::brainstorm::coloured(&was, roll);
     let whole = tisty_core::docs::append(

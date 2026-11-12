@@ -6,6 +6,7 @@ import {
   COLOURS,
   colourOf,
   dropped,
+  introOf,
   ordered,
   rewritten,
   saidWhen,
@@ -72,6 +73,23 @@ describe("a document read as notes", () => {
   it("moves one place to another and leaves the rest in their order", () => {
     expect(shifted([0, 1, 2, 3], 3, 0)).toEqual([3, 0, 1, 2]);
     expect(shifted([0, 1, 2, 3], 0, 2)).toEqual([1, 2, 0, 3]);
+  });
+
+  it("leaves every other note byte for byte, its line endings included", () => {
+    const windows = "# Ideas\r\n\r\n## uno\r\n\r\nprimera  \r\n\r\n\r\n## dos\r\n\r\nsegunda\r\n";
+
+    const changed = rewritten(windows, 1, "segunda, mejor");
+
+    expect(changed).toBe(
+      "# Ideas\r\n\r\n## uno\r\n\r\nprimera  \r\n\r\n\r\n## dos\r\n\r\nsegunda, mejor\r\n",
+    );
+  });
+
+  it("shows what the head says below its title, without its properties", () => {
+    expect(introOf("---\nview: notes\n---\n\n# Ideas\n\nLo que se me ocurre.\n\n## uno\n\nx")).toBe(
+      "Lo que se me ocurre.",
+    );
+    expect(introOf(BRAINSTORM)).toBe("");
   });
 
   it("reads a CRLF file the same as an LF one", () => {

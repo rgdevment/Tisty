@@ -6,7 +6,7 @@ The whole window works from the keyboard.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capture a task from anywhere, without opening the window |
 | `Enter` (in the quick capture) | File the task |
-| `Ctrl` + `Alt` + `I` | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
+| `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
 | `Tab` (in the quick capture) | Switch between a task and an idea for [Brainstorm](Documents#brainstorm) |
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document you are writing, a page break |
 | `/` | Insert something inside a document |

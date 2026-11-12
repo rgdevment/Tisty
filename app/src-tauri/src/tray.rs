@@ -174,7 +174,6 @@ fn dark_bar() -> bool {
     true
 }
 
-// Shown, the window itself decides: the same door again closes it, the other one switches it.
 pub fn quicken<R: Runtime>(app: &AppHandle<R>, door: &str) {
     let Some(window) = app.get_webview_window("quick") else {
         return;

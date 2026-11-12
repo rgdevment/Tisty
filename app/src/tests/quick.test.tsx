@@ -144,17 +144,36 @@ describe("capturing without the window", () => {
   it("winks instead of giving an example when its turn in the hundred comes", async () => {
     localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: 1 }));
     render(<Quick />);
-    const field = await screen.findByRole("textbox");
+    await screen.findByRole("textbox");
 
-    await waitFor(() => expect(field.getAttribute("placeholder")).toBe(t("taskWink")));
+    act(() => win.focus?.({ payload: true }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox").getAttribute("placeholder")).toBe(t("taskWink")),
+    );
     localStorage.clear();
   });
 
-  it("invites a task with one of its examples, in the person's language", async () => {
+  it("spends no turn of the hundred while it is only made, hidden, at start", async () => {
+    localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: 1 }));
     render(<Quick />);
-    const field = await screen.findByRole("textbox");
+    await screen.findByRole("textbox");
 
-    expect(t("taskExamples").split("\n")).toContain(field.getAttribute("placeholder"));
+    expect(JSON.parse(localStorage.getItem("tisty.wink") ?? "{}").seen).toBe(0);
+    localStorage.clear();
+  });
+
+  it("invites a task with one of its examples each time it opens", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    act(() => win.focus?.({ payload: true }));
+
+    await waitFor(() =>
+      expect(t("taskExamples").split("\n")).toContain(
+        screen.getByRole("textbox").getAttribute("placeholder"),
+      ),
+    );
   });
 
   it("holds an idea to 140 characters, a task to none", async () => {
