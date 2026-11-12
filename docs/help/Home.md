@@ -31,9 +31,17 @@ How an agent works with all of it, and what it saves, is in [A day with your age
 
 **Something you will do is a task. Something you will come back to is a document.** A task ends, often soon, and then stays in the archive as knowledge with a date: months later a search tells you how you solved it. A document — a manual, a recipe, the notes on a client or a machine, a year of minutes — is read again, corrected and added to for years.
 
+An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
+
 A task is also a document, one with an end: that is why it has a page of its own, where a spike gathers what you read, tried and ruled out, the recording of the meeting and the vendor's PDF, before it is split into parts and done. [[The whole idea, with an example|Tasks#a-task-or-a-document]].
 
 ![Tisty, the working memory for you and your AI agent: what you solved stays in the archive with its steps and its journal, and your agent brings it back when the same work returns](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-01-memory.png)
+
+![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-02-diagrams.png)
+
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
+
+![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-priorities.png)
 
 ## Start here
 
@@ -61,6 +69,7 @@ Tisty has no AI inside, and none is coming. But it speaks [MCP](https://modelcon
 Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, formulas, widgets, code and pages, all kept as plain `.md` files any other editor reads. How each one is written is in the Tisty Markdown guide; the pages here are about the app.
 
 - [[Documents]] — folders, tags, several languages, attachments, import and export, and reading a Markdown file from outside.
+- [Brainstorm](Documents#brainstorm) — ideas of the moment as sticky notes, sorted out later into a task or a document.
 - [[The editor|Markdown-Editor]] — writing where you read, the bar, the `/` menu, tables and shortcuts.
 - [[Pages and PDF|Pages-and-PDF]] — a document in chapters, page breaks, and Tisty's own PDF.
 - [[Diagrams]] — the diagram window: a mind map, a schema, a freeform diagram or a class diagram drawn by hand, and exported as an image.

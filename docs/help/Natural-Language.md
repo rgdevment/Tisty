@@ -6,7 +6,7 @@ It is **rules running on your machine**: no model, no request, no cloud. It read
 
 The examples below come from the parser's own test cases, which define exactly how far it goes. They assume today is **Wednesday 5 August 2026, 09:00**.
 
-![Late is not overdue: today's tasks with the overdue ones first, and the date typed the way you say it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-day.png)
+![Late is not overdue: today's tasks with the overdue ones first, and the date typed the way you say it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-day.png)
 
 ## Days
 

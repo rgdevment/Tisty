@@ -1278,7 +1278,7 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
             "en",
         ),
     ] {
-        assert_eq!(leaves.len(), 3, "the {tongue} guide lost a page");
+        assert_eq!(leaves.len(), 4, "the {tongue} guide lost a page");
         for (marker, leaf) in leaves {
             assert!(
                 told.contains(&format!("]({marker})")),

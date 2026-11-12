@@ -8,7 +8,7 @@ But if you already use an assistant, you are probably telling it things worth ke
 
 **Your agents' work, in the open.** Through Tisty, an agent plans in documents and works in tasks: it writes the plan, what it found and what it decided as Markdown, breaks the work into tasks with steps and ticks them off as it goes. Nothing stays buried in a chat: every stage lands in Tisty, on your computer, where you can follow it as it happens and audit it later. When it says a task is done, you are the one who closes it.
 
-![No more blank chats, open the MCP door: your agent files tasks, writes dated journal entries, documents what it learns and picks up where it left off, while the context stays on your disk](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-02-agent.png)
+![No more blank chats, open the MCP door: your agent files tasks, writes dated journal entries, documents what it learns and picks up where it left off, while the context stays on your disk](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-05-agent.png)
 
 ## How the door works
 
@@ -106,11 +106,11 @@ You do not have to remember this step. When an assistant tries to work with Tist
 
 ## What it can do, in short
 
-File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, search and read what is there — and say a task it filed is done, **for you to confirm**.
+File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task it filed is done, **for you to confirm**.
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
@@ -118,13 +118,15 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
-**Five ready-made requests.** Tisty hands your assistant five requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
+**Seven ready-made requests.** Tisty hands your assistant seven requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
 - **Pick up where I left off** (`pick_up`) — what moved since the agent was last here and who moved it, then the open task it last worked on, with its steps, its page and its latest notes. It changes nothing.
 - **Leave this where I can pick it up** (`leave_off`) — it ticks the finished steps and notes what was done, what was ruled out and why, and what comes next; if everything is done, it says so with the proof, and a decision that outlasts the task goes in its document, dated, with the one it replaces struck through; with no document on it, it stays in the note and it tells you.
 - **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.
 - **How did we solve this before?** (`solved_before`) — it searches the archive of finished tasks and your documents before trying anything new.
 - **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
+- **Brainstorm ideas with me** (`brainstorm`) — it offers short ideas on a subject, numbered, says which are already on Brainstorm or already a task or a document, and jots on Brainstorm only the ones you keep.
+- **Sort out my Brainstorm** (`sort_ideas`) — it reads the ideas waiting and tells you which belong together, which would be a task and in which list, which go into which document and which are old. It changes nothing until you say, and then does only that.
 
 Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or nothing, and then it works from what you have been talking about.
 

@@ -31,9 +31,17 @@ Cómo trabaja un agente con todo esto, y cuánto ahorra, está en [Un día con t
 
 **Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento.** Una tarea termina, muchas veces pronto, y después se queda en el archivo como conocimiento con fecha: meses más tarde una búsqueda te cuenta cómo lo resolviste. Un documento —un manual, una receta, las notas de un cliente o de una máquina, las actas de un año— se vuelve a leer, se corrige y se amplía durante años.
 
+Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
+
 Una tarea también es un documento, uno que termina: por eso tiene una página propia, donde un spike reúne lo que leíste, probaste y descartaste, la grabación de la reunión y el PDF del proveedor, antes de dividirse en partes y completarse. [[La idea completa, con un ejemplo|Tareas#tarea-o-documento]].
 
 ![Tisty, la memoria de trabajo tuya y de tu agente de IA: lo que resolviste se queda en el archivo con sus pasos y su bitácora, y tu agente lo trae de vuelta cuando el mismo trabajo regresa](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-01-memoria.png)
+
+![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-02-diagramas.png)
+
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
+
+![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-prioridades.png)
 
 ## Para empezar
 
@@ -61,6 +69,7 @@ Tisty no tiene IA dentro, y no la va a tener. Pero habla [MCP](https://modelcont
 Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diagramas, fórmulas, widgets, código y páginas, todo guardado como archivos `.md` normales que cualquier otro editor lee. Cómo se escribe cada cosa está en la guía de Markdown de Tisty; las páginas de aquí tratan de la app.
 
 - [[Documentos]]: carpetas, etiquetas, varios idiomas, adjuntos, importar y exportar, y leer un archivo Markdown de afuera.
+- [Lluvia de ideas](Documentos#lluvia-de-ideas): las ideas del momento como notas adhesivas, que después pasas a una tarea o a un documento.
 - [[El editor|Editor-Markdown]]: escribir donde lees, la barra, el menú `/`, las tablas y los atajos.
 - [[Páginas y PDF|Páginas-y-PDF]]: un documento por capítulos, saltos de página y el PDF propio de Tisty.
 - [[Diagramas]]: la ventana de diagramas: un mapa mental, un esquema, un diagrama libre o un diagrama de clases dibujados a mano, y exportados como imagen.

@@ -8,7 +8,7 @@ Pero si ya usas un asistente, seguramente le cuentas cosas que vale la pena guar
 
 **El trabajo de tus agentes, a la vista.** Con Tisty, un agente planifica en documentos y trabaja en tareas: escribe en Markdown el plan, lo que encontró y lo que decidió, divide el trabajo en tareas con pasos y los va marcando a medida que avanza. Nada queda enterrado en un chat: cada etapa queda en Tisty, en tu equipo, donde puedes seguirla mientras ocurre y auditarla después. Cuando dice que una tarea está lista, eres tú quien la cierra.
 
-![No más chats en blanco, abre la puerta MCP: tu agente crea tareas, anota bitácoras con fecha y hora, documenta lo que aprende y retoma donde quedó, mientras el contexto se queda en tu disco](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-02-agente.png)
+![No más chats en blanco, abre la puerta MCP: tu agente crea tareas, anota bitácoras con fecha y hora, documenta lo que aprende y retoma donde quedó, mientras el contexto se queda en tu disco](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-05-agente.png)
 
 ## Cómo funciona la puerta
 
@@ -106,11 +106,11 @@ No tienes que acordarte de este paso. Cuando un asistente intenta trabajar con T
 
 ## Qué puede hacer, en corto
 
-Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, buscar y leer lo que hay, y decir que una tarea que anotó está hecha, **para que tú lo confirmes**.
+Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, anotar ideas en la Lluvia de ideas y ordenarlas contigo, buscar y leer lo que hay, y decir que una tarea que anotó está hecha, **para que tú lo confirmes**.
 
 Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías tú: por su título y dónde está, la lista o la carpeta. Nunca te muestra un identificador.
 
-**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. En una tarea que escribiste tú solo dice lo que hizo (que un paso o la tarea entera está hecha) como su palabra, que tú tomas o no.
+**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de la Lluvia de ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. En una tarea que escribiste tú solo dice lo que hizo (que un paso o la tarea entera está hecha) como su palabra, que tú tomas o no.
 
 Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]].
 
@@ -118,13 +118,15 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 Desde la 1.46.0, la memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
 
-**Cinco pedidos listos.** Tisty le entrega a tu asistente cinco pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
+**Siete pedidos listos.** Tisty le entrega a tu asistente siete pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
 - **Retomar donde lo dejé** (`pick_up`): lo que se movió desde la última vez que pasó el agente y quién lo movió y, después, la tarea abierta en la que trabajó por última vez, con sus pasos, su página y sus últimas notas. No cambia nada.
 - **Dejar esto listo para retomarlo** (`leave_off`): marca los pasos terminados y anota lo que se hizo, lo que se descartó y por qué, y lo que sigue; si todo está hecho, lo dice con la prueba, y una decisión que dura más que la tarea va a su documento, con fecha y la que reemplaza tachada; si ningún documento cubre el tema, queda en la nota y te lo dice.
 - **Planificar este trabajo como una tarea con pasos** (`plan_task`): una tarea con sus pasos, en la lista que le corresponde, una vez que nada abierto ni en el archivo lo cubre ya.
 - **¿Cómo lo resolvimos antes?** (`solved_before`): busca en el archivo de tareas terminadas y en tus documentos antes de probar nada nuevo.
 - **Guardar esta decisión en su documento** (`keep_decision`): la decisión que acabas de tomar va al único documento de su tema, en su lugar, y la que reemplaza queda tachada; si ningún documento lo cubre, te pregunta dónde va.
+- **Hacer una lluvia de ideas conmigo** (`brainstorm`): propone ideas cortas sobre un tema, numeradas, dice cuáles ya están en la Lluvia de ideas o ya son una tarea o un documento, y anota en la Lluvia de ideas solo las que te quedas.
+- **Ordenar mi Lluvia de ideas** (`sort_ideas`): lee las ideas que esperan y te dice cuáles van juntas, cuáles serían una tarea y en qué lista, cuáles van a qué documento y cuáles están viejas. No cambia nada hasta que lo digas, y entonces hace solo eso.
 
 Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o nada, y entonces trabaja con lo que se ha hablado en la conversación.
 
