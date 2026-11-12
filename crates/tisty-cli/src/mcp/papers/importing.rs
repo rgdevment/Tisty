@@ -377,16 +377,22 @@ pub(super) fn as_an_assistant(
     }
 }
 
-fn beyond_its_title(op: &tisty_core::Op) -> bool {
-    match op {
-        tisty_core::Op::TaskUpdate { d, .. } => {
-            *d != tisty_core::event::TaskPatch {
-                title: d.title.clone(),
-                ..Default::default()
-            }
-        }
-        _ => false,
-    }
+fn beyond_its_title(op: &tisty_core::Op) -> Vec<&'static str> {
+    let tisty_core::Op::TaskUpdate { d, .. } = op else {
+        return Vec::new();
+    };
+    [
+        ("day", d.date.is_some()),
+        ("deadline", d.deadline.is_some()),
+        ("priority", d.priority.is_some()),
+        ("tags", d.tags.is_some()),
+        ("reminders", d.reminders.is_some()),
+        ("repeat", d.repeat.is_some()),
+        ("reading", d.read_as.is_some()),
+    ]
+    .into_iter()
+    .filter_map(|(name, sent)| sent.then_some(name))
+    .collect()
 }
 
 // A task's page coming back hands the task its properties and its words, and is no document of its own.
@@ -407,7 +413,10 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             "that page names no task here any more.".into(),
         ));
     };
-    let held_back = !state.filed_by_agents(task) && taken.ops.iter().any(beyond_its_title);
+    let held_back: Vec<&str> = match state.filed_by_agents(task) {
+        true => Vec::new(),
+        false => taken.ops.iter().flat_map(beyond_its_title).collect(),
+    };
     let mut ops: Vec<tisty_core::Op> = taken
         .ops
         .into_iter()
@@ -470,11 +479,12 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
         true => " Its page changed while this came in, so the page's words were left as they are.",
         false => "",
     };
-    let properties = match held_back {
-        true => {
-            " Its day, priority, tags and repeat stay the person's: of its properties only the title came in."
-        }
-        false => "",
+    let properties = match held_back.is_empty() {
+        true => String::new(),
+        false => format!(
+            " Its {} stay the person's, so they did not come in.",
+            held_back.join(", ")
+        ),
     };
     Ok(told(
         format!(

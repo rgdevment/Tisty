@@ -135,6 +135,7 @@ struct Standing {
     read_as: Option<Reading>,
     open_to_agents: bool,
     filed_by_agent: bool,
+    closed: bool,
     described: bool,
     steps: HashMap<StepId, String>,
     ticked_by_agent: HashMap<StepId, bool>,
@@ -144,21 +145,30 @@ struct Standing {
 fn lets(op: &Op, standing: &Standing) -> bool {
     let filed = standing.filed_by_agent;
     let settles = filed || standing.open_to_agents;
+    let reaches = !standing.closed || settles;
     match op {
         Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
-        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => true,
+        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
         Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
         Op::TaskUpdate { d, .. } => {
-            filed || crate::state::only_bells(d) || crate::state::only_title(d)
+            filed || crate::state::only_bells(d) || (reaches && crate::state::only_title(d))
         }
         Op::TaskResolve { d, .. } => d.word || settles,
         Op::StepDone { .. } => settles,
         Op::StepUndone { d, .. } => standing.ticked_by_agent.get(&d.step) == Some(&true),
-        Op::StepText { d, .. } => mendable(standing, d.step),
-        Op::StepRemove { d, .. } => mendable(standing, d.step),
-        Op::TaskLogEdit { d, .. } => !d.body.trim().is_empty(),
-        Op::TaskMove { d, .. } => d.list.is_some() || d.part_of.is_some(),
+        Op::StepText { d, .. } => reaches && mendable(standing, d.step),
+        Op::StepRemove { d, .. } => reaches && mendable(standing, d.step),
+        Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
+        Op::TaskMove { d, .. } => reaches && (d.list.is_some() || d.part_of.is_some()),
         _ => false,
+    }
+}
+
+fn closing(op: &Op) -> Option<bool> {
+    match op {
+        Op::TaskDone { .. } | Op::TaskDrop { .. } => Some(true),
+        Op::TaskReopen { .. } => Some(false),
+        _ => None,
     }
 }
 
@@ -227,6 +237,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
             });
         };
 
+        standing.closed = closing(&event.op).unwrap_or(standing.closed);
         match &event.op {
             Op::TaskAdd { d, .. } => {
                 standing.filed_by_agent = by_assistant;

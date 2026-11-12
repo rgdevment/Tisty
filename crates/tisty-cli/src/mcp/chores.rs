@@ -728,8 +728,10 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
-    let ticked_by_an_agent = task.steps.iter().any(|step| step.done && step.by_agent);
-    if !state.filed_by_agents(task) && !ticked_by_an_agent {
+    let its_own_ticks = |step: &tisty_core::model::Step| step.done && step.by_agent;
+    let only_its_own_ticks = steps_named(task, &wanted, "unticked", its_own_ticks)
+        .is_ok_and(|chosen| chosen.iter().all(|step| its_own_ticks(step)));
+    if !state.filed_by_agents(task) && !only_its_own_ticks {
         return unsay(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "unticking") {

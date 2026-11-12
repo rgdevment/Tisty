@@ -330,6 +330,28 @@ pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<
     })
 }
 
+/// Over `was` only: a correction keeps the restore point the write before it left, now leading here.
+pub fn rewrite_if(
+    root: &Path,
+    data: &Path,
+    id: &str,
+    was: &str,
+    body: &str,
+) -> Result<Option<String>> {
+    alone(root, || {
+        if read(root, id)? != was {
+            return Ok(None);
+        }
+        written(root, id, body)?;
+        let pointed_here = before_left_at(data, id)
+            .is_some_and(|print| print == crate::attach::printed(settled(was).as_bytes()));
+        if let Some(original) = read_before(data, id).filter(|_| pointed_here) {
+            kept_before(data, id, &original, body)?;
+        }
+        Ok(Some(settled(body)))
+    })
+}
+
 /// Work out the new body under the same lock that writes it, so nothing slips in between.
 pub fn amend(
     root: &Path,

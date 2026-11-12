@@ -538,20 +538,21 @@ impl State {
     }
 
     fn lets_agents(&self, task: &Task, op: &Op) -> bool {
+        let reaches = task.is_open() || self.settled_by_agents(task);
         match op {
-            Op::TaskLog { .. } | Op::TaskDescribe { .. } | Op::StepAdd { .. } => true,
-            Op::TaskPaged { .. } | Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
+            Op::TaskLog { .. } | Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
+            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => reaches,
             Op::TaskUpdate { d, .. } => {
-                self.filed_by_agents(task) || only_bells(d) || only_title(d)
+                self.filed_by_agents(task) || only_bells(d) || (reaches && only_title(d))
             }
             // A word on any task is only a word: the person decides, so it needs no door.
             Op::TaskResolve { d, .. } => d.word || self.settled_by_agents(task),
             Op::StepDone { .. } => self.settled_by_agents(task),
             Op::StepUndone { d, .. } => ticked_by_agent(task, d.step),
-            Op::StepText { d, .. } => mendable(task, d.step),
-            Op::StepRemove { d, .. } => mendable(task, d.step),
-            Op::TaskLogEdit { d, .. } => !d.body.trim().is_empty(),
-            Op::TaskMove { d, .. } => d.list.is_some() || d.part_of.is_some(),
+            Op::StepText { d, .. } => reaches && mendable(task, d.step),
+            Op::StepRemove { d, .. } => reaches && mendable(task, d.step),
+            Op::TaskLogEdit { d, .. } => reaches && !d.body.trim().is_empty(),
+            Op::TaskMove { d, .. } => reaches && (d.list.is_some() || d.part_of.is_some()),
             _ => false,
         }
     }

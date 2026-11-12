@@ -561,3 +561,36 @@ fn taking_back_a_tick_a_reword_or_a_no_gives_the_assistant_its_word_back() {
         assert!(one.said && !one.done, "{n}: the word is back");
     }
 }
+
+#[test]
+fn a_closed_task_of_the_persons_takes_no_words_from_an_assistant() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
+
+    state.apply(&ev(
+        4,
+        "dev_agent",
+        Op::TaskDescribe {
+            id,
+            d: crate::event::Body {
+                body: Some("rewritten later".into()),
+            },
+        },
+    ));
+    state.apply(&ev(
+        5,
+        "dev_agent",
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                title: Some("renamed later".into()),
+                ..Default::default()
+            },
+        },
+    ));
+
+    let task = &state.tasks[&id];
+    assert_eq!(task.description, None, "history reads as it ended");
+    assert_eq!(task.title, "renew the certificate");
+}

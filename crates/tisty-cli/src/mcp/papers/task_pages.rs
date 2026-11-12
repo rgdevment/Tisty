@@ -94,10 +94,7 @@ fn settled(
         .iter()
         .filter(|op| !matches!(op, Op::TaskPaged { .. }))
         .count();
-    if steps == 0 {
-        if !ops.is_empty() {
-            store.append_batch(ops).map_err(hitch)?;
-        }
+    if ops.is_empty() {
         return Ok(String::new());
     }
     let asked = ops.clone();
@@ -112,6 +109,9 @@ fn settled(
     if written.is_none() {
         put_back(paths, &state, &mut store, file, after, before)?;
         return Err(moved(task));
+    }
+    if steps == 0 {
+        return Ok(String::new());
     }
     let (state, mut store) = opened(paths)?;
     if let Some(task) = state.tasks.get(&id) {
@@ -137,10 +137,8 @@ fn put_back(
     if left == body {
         return Ok(());
     }
-    let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), file, |now| {
-        (now == left).then(|| body.to_string())
-    })
-    .map_err(hitch)?;
+    let whole = tisty_core::docs::rewrite_if(&paths.docs(), paths.data(), file, left, body)
+        .map_err(hitch)?;
     match whole {
         Some(whole) => retold(state, store, file, &whole),
         None => Ok(()),

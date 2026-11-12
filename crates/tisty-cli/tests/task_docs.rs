@@ -405,3 +405,37 @@ fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since
     let said = late["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("already been said done"), "{said}");
 }
+
+#[test]
+fn putting_the_persons_page_back_undoes_the_assistants_edit() {
+    let served = Served::new();
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let task = found["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let body = || {
+        let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+        read["result"]["structuredContent"]["body"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    };
+    let before = body();
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": file,
+            "old": "Mis palabras.",
+            "new": "Mis palabras.\n\n- [x] llamar"
+        }),
+    );
+    assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let restored = served.call("restore_doc", serde_json::json!({ "doc": file }));
+    assert_ne!(restored["result"]["isError"], true, "{restored}");
+
+    assert_eq!(body(), before);
+}
