@@ -59,7 +59,7 @@
 
   <p>
     <img
-      src="assets/screens/web/es-01-memoria.png"
+      src="assets/screens/readme/es-01-archivo.webp"
       width="92%"
       alt="Tisty, la memoria de trabajo tuya y de tu agente de IA: el archivo
       guarda cada tarea terminada con sus pasos y su bitácora, y tu agente
@@ -230,7 +230,7 @@ espera en la Lluvia de ideas.
 - **Páginas para lo largo** — un runbook, un anexo, un libro por capítulos — con
   carpetas, idiomas, tablas, diagramas, fórmulas y un PDF propio.
 
-![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/web/es-02-diagramas.png)
+![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/readme/es-02-diagramas.webp)
 
 ### Ideas: una lluvia de ideas a mano
 
@@ -246,7 +246,7 @@ espera en la Lluvia de ideas.
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/web/es-03-ideas.png)
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
 
@@ -272,7 +272,7 @@ espera en la Lluvia de ideas.
 - **El archivo** — una tarea cerrada se guarda entera, y la búsqueda responde
   «¿cómo resolvimos esto?» con la línea que lo dice.
 
-![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](assets/screens/web/es-04-prioridades.png)
+![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y arriba cuántas faltan por clasificar](assets/screens/readme/es-04-prioridades.webp)
 
 ## Un día con tu agente
 
@@ -352,7 +352,7 @@ los días sin uso que elijas. Se lee en cualquier navegador y sin cuenta, o se
 edita en su propio Tisty. Tu memoria se queda en tu disco; Folio solo lleva una
 copia. Más en [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad).
 
-![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/web/es-08-folio.png)
+![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/readme/es-08-compartir.webp)
 
 ## Servidor MCP
 
@@ -625,7 +625,7 @@ editor— y en Tisty lleva bastante más que texto:
 - **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
-![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/web/es-06-documentos.png)
+![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/readme/es-06-documentos.webp)
 
 La guía que Tisty escribe la primera vez que se abre trae una página con uno de
 cada cosa, para que lo veas todo antes de escribir una línea.
@@ -846,7 +846,7 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y una tarea que tu agente anota tal como la dices](assets/screens/web/es-07-dia.png)
+![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y al lado lo que viene](assets/screens/readme/es-07-dia.webp)
 
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00

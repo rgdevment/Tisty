@@ -74,8 +74,11 @@ documents, day, Folio, data, close.
 | Folder | Size | Where it goes |
 | --- | --- | --- |
 | `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
-| `web/` | 1280×720, lighter | The READMEs and the help |
+| `web/` | 1280×720, lighter | The help |
+| `readme/` | 1336 wide, WebP | The READMEs: real captures of the app, rounded, edged and shadowed |
 
 The help links to `web/` on `main`, so renaming a screen means updating the
 help in the same change, and tisty.app reads its picture from `store/` through
-`scripts/apps.mjs` in its own repository.
+`scripts/apps.mjs` in its own repository. The READMEs show the app itself, not
+the Store's presentation: `readme/` holds real captures in the same order, a
+few tens of kilobytes each.

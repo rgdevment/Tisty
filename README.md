@@ -58,7 +58,7 @@
 
   <p>
     <img
-      src="assets/screens/web/en-01-memory.png"
+      src="assets/screens/readme/en-01-archive.webp"
       width="92%"
       alt="Tisty, the working memory for you and your AI agent: the archive
       keeps every finished task with its steps and its journal, and your
@@ -226,7 +226,7 @@ waits in Brainstorm.
 - **Pages for what is long** — a runbook, an annex, a book in chapters — with
   folders, languages, tables, diagrams, formulas and a PDF of its own.
 
-![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/web/en-02-diagrams.png)
+![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/readme/en-02-diagrams.webp)
 
 ### Ideas: a brainstorm at hand
 
@@ -242,7 +242,7 @@ waits in Brainstorm.
   ideas you keep; ask it to sort them and it groups them, turns one into a task
   or files it in its document, and only marks the old ones, for you to delete.
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/web/en-03-brainstorm.png)
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/readme/en-03-brainstorm.webp)
 
 ### Tasks: what to do, who does it, how it was solved
 
@@ -267,7 +267,7 @@ waits in Brainstorm.
 - **The archive** — a closed task is kept whole, and a search answers «how did
   we solve this?» with the line that says it.
 
-![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](assets/screens/web/en-04-priorities.png)
+![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and above them how many are left to sort](assets/screens/readme/en-04-priorities.webp)
 
 ## A Day With Your Agent
 
@@ -345,7 +345,7 @@ after the days without use you choose. They read it in any browser with no
 account, or edit it in their own Tisty. Your memory stays on your disk; Folio
 only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
 
-![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/web/en-08-folio.png)
+![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/readme/en-08-share.webp)
 
 ## MCP Server
 
@@ -611,7 +611,7 @@ Tisty it holds a good deal more than text:
 - **A PDF of its own**, A4, Letter or Folio, with its pictures inside,
   shown to you before you export it.
 
-![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/web/en-06-documents.png)
+![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/readme/en-06-documents.webp)
 
 The guide Tisty writes the first time it opens carries a page with one of each,
 so you can see all of it before you write a line.
@@ -826,7 +826,7 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and a task your agent notes the way you say it](assets/screens/web/en-07-day.png)
+![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and what comes next beside them](assets/screens/readme/en-07-day.webp)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
