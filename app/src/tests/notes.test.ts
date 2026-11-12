@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   added,
   boardOf,
+  bornHeading,
+  COLOURS,
+  colourOf,
   dropped,
   ordered,
   rewritten,
@@ -99,10 +102,37 @@ describe("a note's look", () => {
   });
 });
 
+describe("a note's colour", () => {
+  it("is chosen when the idea is born and written in its heading", () => {
+    const heading = bornHeading("# Ideas", new Date(2026, 10, 12, 0, 19), 0.7);
+
+    expect(heading).toMatch(/^2026-11-12 00:19 · [a-z]+$/);
+    expect(colourOf(heading)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("is never the colour of the idea just before it", () => {
+    let body = "# Ideas";
+    for (const roll of [0, 0, 0.01, 0.5, 0.5, 0.99, 0.99]) {
+      const heading = bornHeading(body, new Date(2026, 10, 12, 0, 19), roll);
+      const notes = boardOf(body).notes;
+      if (notes.length)
+        expect(colourOf(heading)).not.toBe(colourOf(notes[notes.length - 1].heading));
+      body = added(body, heading);
+    }
+  });
+
+  it("is read back by name, and an unknown one counts as none", () => {
+    expect(colourOf(`2026-11-12 00:19 · ${COLOURS[3]}`)).toBe(3);
+    expect(colourOf("2026-11-12 00:19 · plaid")).toBe(-1);
+    expect(colourOf("2026-11-12 00:19")).toBe(-1);
+  });
+});
+
 describe("a note's time", () => {
   it("is written as the core writes it and shown in the person's words", () => {
     expect(stampOf(new Date(2026, 10, 11, 9, 7))).toBe("2026-11-11 09:07");
     expect(saidWhen("2026-11-11 09:07", "es")).toMatch(/^11 nov\.? · 09:07$/);
+    expect(saidWhen("2026-11-11 09:07 · blue", "es")).toMatch(/^11 nov\.? · 09:07$/);
     expect(saidWhen("una idea sin fecha", "es")).toBe("una idea sin fecha");
   });
 });

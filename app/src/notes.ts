@@ -10,7 +10,28 @@ export interface Board {
 
 const SECTION = /^## (.*)$/;
 const FENCE = /^(```|~~~)/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?: · [a-z]+)?$/;
+const PAINTED = / · ([a-z]+)$/;
+
+export const COLOURS = [
+  "pink",
+  "coral",
+  "orange",
+  "yellow",
+  "lime",
+  "green",
+  "teal",
+  "cyan",
+  "blue",
+  "lavender",
+  "violet",
+  "magenta",
+];
+
+export const colourOf = (heading: string): number => {
+  const said = PAINTED.exec(heading);
+  return said ? COLOURS.indexOf(said[1]) : -1;
+};
 
 export function boardOf(body: string): Board {
   const lines = body.replace(/\r\n/g, "\n").split("\n");
@@ -64,6 +85,16 @@ export function shifted(order: number[], from: number, to: number): number[] {
   const [moving] = next.splice(from, 1);
   next.splice(to, 0, moving);
   return next;
+}
+
+// Chosen once, when the idea is born, and never the colour of the idea just before it.
+export function bornHeading(body: string, at: Date, roll = Math.random()): string {
+  const { notes } = boardOf(body);
+  const last = notes.length ? colourOf(notes[notes.length - 1].heading) : -1;
+  const many = COLOURS.length;
+  let picked = Math.floor(roll * many) % many;
+  if (picked === last) picked = (picked + 1 + (Math.floor(roll * 1000) % (many - 1))) % many;
+  return `${stampOf(at)} · ${COLOURS[picked]}`;
 }
 
 export const added = (body: string, heading: string): string => {

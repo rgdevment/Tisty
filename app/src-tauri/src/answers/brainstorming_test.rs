@@ -20,8 +20,8 @@ fn body(session: &Session, file: &str) -> String {
 fn the_first_idea_makes_the_brainstorm_and_every_later_one_lands_in_it() {
     let (_tmp, mut session) = session();
 
-    let first = jotting(&mut session, "llamar al vet", "Lluvia de ideas", at(7)).unwrap();
-    let second = jotting(&mut session, "probar el alias", "Lluvia de ideas", at(9)).unwrap();
+    let first = jotting(&mut session, "llamar al vet", "Lluvia de ideas", at(7), 0).unwrap();
+    let second = jotting(&mut session, "probar el alias", "Lluvia de ideas", at(9), 0).unwrap();
 
     assert!(first.made);
     assert!(!second.made);
@@ -32,8 +32,11 @@ fn the_first_idea_makes_the_brainstorm_and_every_later_one_lands_in_it() {
         "one brainstorm, never one per idea"
     );
     let written = body(&session, &first.file);
-    assert!(written.contains("## 2026-11-11 09:07\n\nllamar al vet"));
-    assert!(written.contains("## 2026-11-11 09:09\n\nprobar el alias"));
+    assert!(written.contains("## 2026-11-11 09:07 · pink\n\nllamar al vet"));
+    assert!(
+        written.contains("## 2026-11-11 09:09 · coral\n\nprobar el alias"),
+        "the same roll twice still gives the next idea a colour of its own"
+    );
     assert!(
         written.find("09:07") < written.find("09:09"),
         "ideas keep the order they came in"
@@ -46,7 +49,7 @@ fn the_first_idea_makes_the_brainstorm_and_every_later_one_lands_in_it() {
 fn an_idea_with_no_words_is_refused_and_makes_nothing() {
     let (_tmp, mut session) = session();
 
-    let refused = jotting(&mut session, "  \n ", "Lluvia de ideas", at(7)).unwrap_err();
+    let refused = jotting(&mut session, "  \n ", "Lluvia de ideas", at(7), 0).unwrap_err();
 
     assert_eq!(refused.code, "untitled");
     assert!(session.state.docs.is_empty());
@@ -55,7 +58,7 @@ fn an_idea_with_no_words_is_refused_and_makes_nothing() {
 #[test]
 fn an_archived_brainstorm_is_left_alone_and_a_new_one_takes_the_ideas() {
     let (_tmp, mut session) = session();
-    let old = jotting(&mut session, "una idea", "Lluvia de ideas", at(7)).unwrap();
+    let old = jotting(&mut session, "una idea", "Lluvia de ideas", at(7), 0).unwrap();
     let id = session
         .state
         .docs
@@ -65,7 +68,7 @@ fn an_archived_brainstorm_is_left_alone_and_a_new_one_takes_the_ideas() {
         .id;
     session.commit(Op::DocArchive { id }).unwrap();
 
-    let new = jotting(&mut session, "otra idea", "Lluvia de ideas", at(9)).unwrap();
+    let new = jotting(&mut session, "otra idea", "Lluvia de ideas", at(9), 0).unwrap();
 
     assert!(new.made);
     assert_ne!(new.file, old.file);

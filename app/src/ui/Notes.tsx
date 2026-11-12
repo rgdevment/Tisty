@@ -4,15 +4,15 @@ import "../notes.css";
 import {
   added,
   boardOf,
+  bornHeading,
+  colourOf,
   dropped,
-  HUES,
   type Note,
   ordered,
   rewritten,
   saidWhen,
   shapeOf,
   shifted,
-  stampOf,
 } from "../notes";
 
 interface Props {
@@ -51,15 +51,13 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
   const { notes } = boardOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
   const [lifted, setLifted] = useState<Lifted | null>(null);
-  const newestFirst = apart(
-    notes
-      .map((note, at) => ({
-        note,
-        at,
-        nth: notes.slice(0, at).filter((one) => one.heading === note.heading).length,
-      }))
-      .reverse(),
-  );
+  const newestFirst = notes
+    .map((note, at) => {
+      const nth = notes.slice(0, at).filter((one) => one.heading === note.heading).length;
+      const kept = colourOf(note.heading);
+      return { note, at, nth, hue: kept >= 0 ? kept : shapeOf(note.heading, nth).hue };
+    })
+    .reverse();
 
   const moved = (from: number, to: number) => {
     if (from === to || to < 0 || to >= newestFirst.length) return;
@@ -117,7 +115,7 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
             type="button"
             onClick={() => {
               setFresh(notes.length);
-              onWrite(added(body, stampOf(new Date())));
+              onWrite(added(body, bornHeading(body, new Date())));
             }}
             className="rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
           >
@@ -162,17 +160,6 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
       )}
     </section>
   );
-}
-
-// Two neighbours never share a colour, so a run of notes from one minute still reads as many.
-function apart<T extends { note: Note; nth: number }>(laid: T[]): (T & { hue: number })[] {
-  let before = -1;
-  return laid.map((one) => {
-    const drawn = shapeOf(one.note.heading, one.nth).hue;
-    const hue = drawn === before ? (drawn + 5) % HUES : drawn;
-    before = hue;
-    return { ...one, hue };
-  });
 }
 
 const SLIDES_FOR = 220;

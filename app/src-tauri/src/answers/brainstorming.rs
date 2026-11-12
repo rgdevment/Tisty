@@ -22,6 +22,7 @@ pub fn jot(
         &idea,
         &title,
         jiff::Zoned::now().datetime(),
+        tisty_core::brainstorm::roll(),
     )
 }
 
@@ -36,6 +37,7 @@ pub fn jotting(
     idea: &str,
     title: &str,
     at: jiff::civil::DateTime,
+    roll: u32,
 ) -> Answer<Jotted> {
     if idea.trim().is_empty() {
         return Err(Refusal::of("untitled"));
@@ -45,8 +47,14 @@ pub fn jotting(
         Some(one) => (one.file.clone(), false),
         None => (made_anew(session, title)?, true),
     };
-    let whole = tisty_core::docs::append(&root, &file, &tisty_core::brainstorm::jotted(idea, at))
-        .map_err(super::papers::unwritten)?;
+    let was = tisty_core::docs::read(&root, &file).unwrap_or_default();
+    let colour = tisty_core::brainstorm::coloured(&was, roll);
+    let whole = tisty_core::docs::append(
+        &root,
+        &file,
+        &tisty_core::brainstorm::jotted(idea, at, colour),
+    )
+    .map_err(super::papers::unwritten)?;
     session.corpus.forget(&file);
     let hand = signing(&session.state);
     session.retell(&file, &whole, hand);

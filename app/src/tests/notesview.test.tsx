@@ -70,22 +70,20 @@ describe("a brainstorm shown as notes", () => {
     expect(written.indexOf("segunda")).toBeLessThan(written.indexOf("primera"));
   });
 
-  it("never gives two neighbouring ideas the same colour", () => {
-    const many = Array.from({ length: 24 }, (_, at) => `## 2026-11-12 00:19\n\nidea ${at}`);
-    render(
-      <Notes
-        title="Ideas"
-        body={`# Ideas\n\n${many.join("\n\n")}\n`}
-        reading
-        onWrite={() => {}}
-        onText={() => {}}
-      />,
-    );
+  it("paints each idea with the colour written in its heading, wherever it moves", () => {
+    const painted = [
+      "# Ideas",
+      "## 2026-11-12 00:19 · blue",
+      "una",
+      "## 2026-11-12 00:19 · coral",
+      "otra",
+    ].join("\n\n");
+    render(<Notes title="Ideas" body={painted} reading onWrite={() => {}} onText={() => {}} />);
 
     const hues = within(screen.getByRole("list"))
       .getAllByRole("listitem")
       .map((one) => one.dataset.hue);
-    expect(hues.every((hue, at) => at === 0 || hue !== hues[at - 1])).toBe(true);
-    expect(new Set(hues).size).toBeGreaterThan(6);
+    expect(hues).toEqual(["1", "8"]);
+    expect(screen.queryByText(/blue|coral/)).toBeNull();
   });
 });
