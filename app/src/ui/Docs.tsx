@@ -128,7 +128,7 @@ const listed = (chosen: string | string[] | null): string[] => {
 
 const LANDING_MS = 3000;
 
-const NOTES_ROOM = { maxWidth: "85%" };
+const NOTES_ROOM = { maxWidth: "90%" };
 
 export default function Docs({
   open: asked,
