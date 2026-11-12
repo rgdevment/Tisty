@@ -1,15 +1,17 @@
 {
   "author": "rgdevment",
   "files": {
+    "en/agent.md": "7ecc0f3bc5b043745606c0ee3becb75f15eb89936993fcfc3840740c20ef765b",
+    "en/archive.png": "7656ed5f420d15af3a133ea82c17215fc89dcd447baefae354b72e4c4dcc4ed0",
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "en/brainstorm.png": "4d44d3b608c75c6584cd12e53d4a46c2e736b3ceffc0760cd3630c4723762952",
     "en/capture.png": "230006bf09f9f2dd20d168c50c540866a45eed4d723ed2633bc78db94e340b9d",
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
-    "en/diagrams.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
-    "en/guide.md": "060ae77a47fd58bcec5852fcb91f0c5a0d698daba7cf2fc06ce2f8199b7fc083",
-    "en/languages.png": "5aada4eef5d3d6b567619043adbdbbb901211e364753ee7a08ccb64abd5c6812",
+    "en/diagrams.png": "cd987fbda9c2a512ee2db98ff174754f0811074b52fd49f9d40305ee9070ba6b",
+    "en/guide.md": "de1f6609d33737645c412921319163b154ac93e1b166ecc80cf52f256b785b32",
+    "en/languages.png": "fdee3e20366d705de2ec6f3781cebf9508111808b2269ca16902f0407d7d484c",
     "en/page.md": "864b067c1331a669d9bf2c7d27f95719593aeda3cd964206b7b56cbaf078909f",
-    "en/priorities.png": "ba5db54be0e48ddd5ecc84b4caea07622da38bb7023b3ad1cf308b822b66c439",
+    "en/priorities.png": "6750282458067540a182c7aad4d288d6b082ab0fd975b4c8c170bdec34406a59",
     "en/rina.jpg": "acce9605109bd0e6e43bbe7b3cafb6765fa6cc95269b3759f4fd8d4ad47ffc7a",
     "en/roger.jpg": "6e00cc22cadb538b5d89c080eb12f2f8d50fd9de22169d1eb6bcb99128bac35f",
     "en/sample.md": "faee1c7113402f5fd4adf676fccfdae239a04594cd55152754e3f92585a1b806",
@@ -17,19 +19,21 @@
     "en/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565",
     "en/walks.csv": "a3ed6dec159496854234fbd70110fcde8831f637b0dff3a0b7de2504dda4195d",
     "en/walks.html": "7746e355057ffe4a703e184c14fbe4da15262031ba9f5927c103f10369e64eaf",
+    "es/agentes.md": "c4c66d934bbc6767735e092bf2364ebce5e2a1b6958dabb407ef975b8516d0e4",
+    "es/archivo.png": "572f7f34064b7a76de63983026ae1696f11b875ed64ade93a28479c49bfa7059",
     "es/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "es/captura.png": "7913eb165ed6590c797821f1f5664737f9cef62ed2caa707b71bb8f403857a76",
     "es/cartilla.pdf": "284c3eef816388b2062d7aa44c587529a978fa6d4a99ad8c268cd2b7e2b82682",
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
-    "es/diagramas.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
-    "es/guia.md": "32dad98eef6360db9251f035325ab8ff0893fe54d5d0df578b205712d070683c",
+    "es/diagramas.png": "25b8ba7bbcaaf119b5b570a49a7c95e1c59dd8a399f7c943191dc7944cf96826",
+    "es/guia.md": "dd75ea95be3ac0f9044b7f6bf4c169bbe0dfc4bebba19186bdfd3ee432680ecd",
     "es/ideas.png": "613d2a80bec55aa6db78f3429611b00864635a3bae36aa7aebd4a558f85bc69d",
-    "es/idiomas.png": "5aada4eef5d3d6b567619043adbdbbb901211e364753ee7a08ccb64abd5c6812",
+    "es/idiomas.png": "5ef67e72c4e4d90eae156e250a62afa94dcca6a48344e7754dcc3646129ced63",
     "es/muestra.md": "5f151d49ae2d2e830f7a8adc82d7aeffe49932e9e6a3462095f1e5c51c576e88",
     "es/pagina.md": "a5d5aea1284ed3a2b6fed7759e1114e1042102577756a559a698992b468cf2c5",
     "es/paseos.csv": "f997f09d292d415f3c74e9ed8f2ef21fa2b4e945cd7f9e2541afd2ecb002e2c4",
     "es/paseos.html": "2d78e2bf0fe8444537fdcad2a80d216fbb5ad7341116eeb2f4e91f38e12c69f0",
-    "es/prioridades.png": "6f4d6ec1f640aa12950ad5e872e3b97b756b254693043a9ed628334038760abf",
+    "es/prioridades.png": "54dc7799ef9987b6083346e4efc2ab5f7fc7f7762f375069336c73b280783f02",
     "es/rina.jpg": "acce9605109bd0e6e43bbe7b3cafb6765fa6cc95269b3759f4fd8d4ad47ffc7a",
     "es/roger.jpg": "6e00cc22cadb538b5d89c080eb12f2f8d50fd9de22169d1eb6bcb99128bac35f",
     "es/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565"
@@ -41,6 +45,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "aiz1KzTS5XBhhbLb4875-MkNeZ7M7O1QD_vYK3ycOmoTNX07FJiaImT9yjkDaJOQvmGlMqOc_f87WOcvTm2QBw"
+    "sig": "nHjqKG36dcdfd1KLf6gMuKSB6btgAWVngjSag1QN5rEL4kjZ-JbUSlu28ba6K2RN2JpUK9OtGcyNcUhbNXo-AQ"
   }
 }
