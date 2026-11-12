@@ -2801,6 +2801,51 @@ fn reading_a_task_by_a_field_it_does_not_have_names_the_ones_it_does() {
 }
 
 #[test]
+fn every_key_a_whole_read_hands_back_can_be_asked_for_alone() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "renew the passport",
+            "description": "Before the trip.",
+            "deadline": "2026-12-20",
+            "tags": ["travel"],
+            "steps": ["book the appointment"],
+            "source": "mail:42",
+            "priority": "do",
+        }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "Office opens at 9." }),
+    );
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": "Forms listed." }),
+    );
+
+    let whole = served.call("read", serde_json::json!({ "task": &id }));
+    let keys: Vec<String> = whole["result"]["structuredContent"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
+    assert!(keys.len() > 10, "{whole}");
+    for key in keys {
+        let one = served.call("read", serde_json::json!({ "task": &id, "fields": [&key] }));
+        assert!(
+            one["result"]["isError"].is_null(),
+            "{key:?} comes in a whole read but is refused alone: {one}"
+        );
+    }
+}
+
+#[test]
 fn a_task_page_longer_than_one_read_comes_as_its_sections() {
     let served = Served::new();
     served.person().lets_the_agent_in();
@@ -7299,4 +7344,24 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         "asking what moved and opening the task costs {:.2}%",
         share(quiet + opened)
     );
+}
+
+#[test]
+fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "renew the passport" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().hides(id.parse().unwrap());
+
+    let back = served.call("catch_up", serde_json::json!({}));
+    let kept = &back["result"]["structuredContent"];
+    let said = back["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(kept["last"].is_null(), "{kept}");
+    assert!(said.contains("the person put it out of sight"), "{said}");
 }

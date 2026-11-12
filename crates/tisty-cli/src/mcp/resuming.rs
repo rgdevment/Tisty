@@ -126,8 +126,8 @@ pub(super) fn left_off<E: std::borrow::Borrow<Event>>(
         let Some(touched) = touched_task(state, &owners, &named, &id) else {
             continue;
         };
-        match state.tasks.get(&touched).filter(|kept| !kept.folded()) {
-            Some(kept) if kept.is_open() && kept.resolved.is_none() => {
+        match state.tasks.get(&touched) {
+            Some(kept) if kept.is_open() && !kept.folded() && kept.resolved.is_none() => {
                 task = Some(touched);
                 task_at = Some(one.timestamp);
             }
@@ -311,7 +311,7 @@ pub(super) struct Moved {
     pub(super) docs_all: usize,
     pub(super) by: BTreeSet<String>,
     pub(super) seen: Seen,
-    pub(super) upto: Option<jiff::Timestamp>,
+    pub(super) resume: Option<jiff::Timestamp>,
 }
 
 impl Moved {
@@ -331,7 +331,7 @@ pub(super) fn moved_since(
     let mut shown: Vec<(Moving, BTreeSet<String>)> = Vec::new();
     let mut later: BTreeSet<Moving> = BTreeSet::new();
     let mut seen = asked.seen;
-    let mut upto = None;
+    let mut resume = None;
     for one in log {
         let touched = match asked.since.passed(one) {
             true => {
@@ -358,6 +358,11 @@ pub(super) fn moved_since(
                     .count();
                 if alike >= MOVED_SHOWN {
                     later.insert(item);
+                    // Events stamped alike are told apart by seq, which a cursor cannot carry.
+                    resume = one
+                        .timestamp
+                        .checked_sub(jiff::SignedDuration::from_nanos(1))
+                        .ok();
                     continue;
                 }
                 shown.push((item, who.into_iter().collect()));
@@ -365,7 +370,6 @@ pub(super) fn moved_since(
             (None, _) => {}
         }
         bump(&mut seen, one);
-        upto = Some(one.timestamp);
     }
     let all = |task: bool| {
         shown
@@ -406,7 +410,7 @@ pub(super) fn moved_since(
         docs_all,
         by,
         seen,
-        upto,
+        resume,
     }
 }
 
@@ -433,3 +437,7 @@ fn what_it_touched(event: &Event) -> Option<(String, String)> {
     let id = said.get("id")?.as_str()?.to_string();
     Some((named, id))
 }
+
+#[cfg(test)]
+#[path = "resuming_test.rs"]
+mod tests;

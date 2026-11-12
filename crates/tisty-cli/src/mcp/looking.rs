@@ -487,7 +487,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .iter()
                 .map(|(one, kept, by)| {
                     let mut note =
-                        json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept });
+                        json!({ "id": one.id.to_string(), "at": when(one.at), "body": kept });
                     if let Some(by) = by {
                         note["by"] = json!(by);
                     }
@@ -620,13 +620,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let head = log.iter().map(|one| one.timestamp).max();
 
     let mut kept = serde_json::Map::new();
-    kept.insert(
-        "lists".into(),
-        json!(named.iter().take(AT_A_GLANCE).collect::<Vec<_>>()),
-    );
-    if named.len() > AT_A_GLANCE {
-        kept.insert("lists_more".into(), json!(named.len() - AT_A_GLANCE));
-    }
+    kept.insert("lists".into(), json!(named));
     if !folders.is_empty() {
         kept.insert(
             "folders".into(),
@@ -693,6 +687,8 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         let how = match &task.resolved {
             Some(said) if said.drop => "you said you are not doing it, and it waits for the person",
             Some(_) => "you said it is done, and it waits for the person",
+            None if task.hidden => "the person put it out of sight",
+            None if task.is_dropped() => "the person dropped it",
             None => "it is closed",
         };
         said.push(format!(
@@ -758,9 +754,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
         if cut
             && asked.is_some()
-            && let Some(upto) = moved.upto
+            && let Some(resume) = moved.resume
         {
-            kept.insert("cursor".into(), json!(upto.to_string()));
+            kept.insert("cursor".into(), json!(resume.to_string()));
         }
         if asked.is_none()
             && let Some(at) = since.latest()
@@ -793,6 +789,11 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             tags.len(),
             pressed(&pressing),
         ));
+        if folders.len() > AT_A_GLANCE {
+            said.push(format!(
+                "Here are the first {AT_A_GLANCE} folders; `docs` names every one."
+            ));
+        }
     }
     if since.is_none() {
         said.push("Next time, what moved since this call comes with it as well.".to_string());
@@ -967,7 +968,8 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 const TAGS_SHOWN: usize = 300;
 const TAGS_AT_A_GLANCE: usize = 40;
 const AT_A_GLANCE: usize = 30;
-const READ_FIELDS: [&str; 24] = [
+const READ_FIELDS: [&str; 25] = [
+    "id",
     "title",
     "status",
     "closed",
