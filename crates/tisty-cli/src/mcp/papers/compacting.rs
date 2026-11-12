@@ -286,10 +286,9 @@ pub(super) fn page_to_restore(paths: &Paths, which: &str) -> Result<(String, boo
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Ok((which.to_string(), false));
     };
-    if !task.is_open() || !state.attended_by_agents(task) {
+    if !task.is_open() {
         return Err(Refused::Tool(format!(
-            "{:?} is not a task you may work on, open and opened to agents, so its page is not \
-             yours to put back.",
+            "{:?} is closed, so its page is not yours to put back.",
             task.title
         )));
     }

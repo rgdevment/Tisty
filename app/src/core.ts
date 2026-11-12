@@ -77,7 +77,6 @@ export interface Task {
   source?: string;
   closed_in?: string;
   read_as?: Reading;
-  open_to_agents?: boolean;
   created_via?: string;
 }
 
@@ -376,8 +375,6 @@ export const wholesOffered = (id: string): Promise<Offered[]> => invoke("wholes_
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
   invoke("read_as", { id, how });
-export const openToAgents = (id: string, open: boolean): Promise<Task> =>
-  invoke("open_to_agents", { id, open });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const stepsSaid = (id: string, keep: boolean, steps: string[]): Promise<Task> =>
   invoke("steps_said", { id, steps, keep });

@@ -271,9 +271,7 @@ impl State {
             );
             return;
         }
-        // The door an assistant's hand meets, judged at replay so every machine agrees: a note or
-        // a bell anywhere, a patch on what it filed, a fill-in where it filed or was let in, and
-        // nothing else — whatever the server that wrote it believed.
+        // Judged at replay so every machine agrees, whatever the server that wrote it believed.
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
             && let Some(task) = self.tasks.get(&id)
@@ -350,7 +348,7 @@ impl State {
             Op::TaskMove { id, d } => {
                 self.with_task(*id, |t| move_task(t, d));
                 if let Some(whole) = d.part_of {
-                    self.task_parted(*id, whole, event);
+                    self.task_parted(*id, whole);
                 }
             }
 
@@ -541,29 +539,25 @@ impl State {
 
     fn lets_agents(&self, task: &Task, op: &Op) -> bool {
         match op {
-            Op::TaskLog { .. } => true,
-            Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
-            // A word on any task is only a word: the person decides, so it needs no door.
-            Op::TaskResolve { d, .. } => d.word || self.attended_by_agents(task),
-            Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
-            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => {
-                self.attended_by_agents(task)
+            Op::TaskLog { .. } | Op::TaskDescribe { .. } | Op::StepAdd { .. } => true,
+            Op::TaskPaged { .. } | Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
+            Op::TaskUpdate { d, .. } => {
+                self.filed_by_agents(task) || only_bells(d) || only_title(d)
             }
+            // A word on any task is only a word: the person decides, so it needs no door.
+            Op::TaskResolve { d, .. } => d.word || self.filed_by_agents(task),
+            Op::StepDone { .. } => self.filed_by_agents(task),
             Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
-            Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
-            Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
-            Op::TaskLogEdit { d, .. } => self.attended_by_agents(task) && !d.body.trim().is_empty(),
-            Op::TaskMove { d, .. } => self.agent_may_move(task, d),
+            Op::StepText { d, .. } => mendable(task, d.step),
+            Op::StepRemove { d, .. } => mendable(task, d.step),
+            Op::TaskLogEdit { d, .. } => !d.body.trim().is_empty(),
+            Op::TaskMove { d, .. } => d.list.is_some() || d.part_of.is_some(),
             _ => false,
         }
     }
 
     fn untickable_by_agents(&self, task: &Task, step: StepId) -> bool {
-        self.attended_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
-    }
-
-    fn mendable_by_agents(&self, task: &Task, step: StepId) -> bool {
-        self.attended_by_agents(task) && task.step(step).is_some_and(|one| !one.done)
+        self.filed_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
     }
 
     fn step_marked(&mut self, event: &Event, task: TaskId, step: StepId, done: bool) {
@@ -870,12 +864,6 @@ impl State {
             .filter(|task| task.list == list)
             .map(|task| task.order.as_str())
             .collect()
-    }
-
-    /// A task an assistant may fill in: one an assistant filed, or one the person opened to
-    /// them. `assistants` only ever grows, so a task the retired agent filed stays attended.
-    pub fn attended_by_agents(&self, task: &Task) -> bool {
-        task.open_to_agents || self.filed_by_agents(task)
     }
 
     pub fn filed_by_agents(&self, task: &Task) -> bool {
@@ -1249,6 +1237,19 @@ pub(crate) fn only_bells(d: &TaskPatch) -> bool {
                 reminders: d.reminders.clone(),
                 ..Default::default()
             }
+}
+
+pub(crate) fn only_title(d: &TaskPatch) -> bool {
+    d.title.is_some()
+        && *d
+            == TaskPatch {
+                title: d.title.clone(),
+                ..Default::default()
+            }
+}
+
+fn mendable(task: &Task, step: StepId) -> bool {
+    task.step(step).is_some_and(|one| !one.done)
 }
 
 fn patch(task: &mut Task, d: &TaskPatch, person: bool) {

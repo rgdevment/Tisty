@@ -50,7 +50,6 @@ interface Props {
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
-  onOpenToAgents: (open: boolean) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -94,7 +93,6 @@ export default function Detail({
   onErase,
   onFold,
   onReadAs,
-  onOpenToAgents,
   onClose,
   onError,
   onDoc,
@@ -176,7 +174,6 @@ export default function Detail({
           task.read_as ?? "",
           task.completed_at ?? "",
           task.hidden ? "hidden" : "",
-          task.open_to_agents ? "open" : "",
           task.volume?.journal ?? 0,
           task.steps?.length ?? task.volume?.steps ?? 0,
           task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
@@ -228,12 +225,6 @@ export default function Detail({
         </p>
       )}
       {task.status === "open" && onStepsSaid && <Vouched task={task} onAnswer={onStepsSaid} />}
-      {task.status === "open" && task.open_to_agents && (
-        <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hair bg-hover px-2.5 py-1.5 text-[12.5px] text-soft">
-          <span aria-hidden="true">⊚</span>
-          {t("openToAgents")}
-        </p>
-      )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
       <TaskWords
@@ -282,7 +273,6 @@ export default function Detail({
       onErase={onErase}
       onFold={onFold}
       onReadAs={onReadAs}
-      onOpenToAgents={onOpenToAgents}
       shaping={shaping}
       onShape={held ? undefined : setShaping}
       left={left}
@@ -353,7 +343,6 @@ function Settled({
   onErase,
   onFold,
   onReadAs,
-  onOpenToAgents,
   shaping,
   onShape,
   left,
@@ -369,7 +358,6 @@ function Settled({
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
-  onOpenToAgents: (open: boolean) => void;
   shaping: boolean;
   onShape?: (shaping: boolean) => void;
 }) {
@@ -400,19 +388,6 @@ function Settled({
           : task.resolved
             ? [discard]
             : []),
-        // Opening a task to assistants is gone; one opened before can still be shut.
-        ...(agentNamed(task.created_by) || !task.open_to_agents
-          ? []
-          : [
-              {
-                key: "agents",
-                label: t("keepToMyself"),
-                icon: "⊚",
-                hint: t("keepToMyselfWhy"),
-                apart: task.resolved !== undefined,
-                onPick: () => onOpenToAgents(false),
-              },
-            ]),
       ]
     : [
         ...(reading === "routine"
@@ -725,7 +700,6 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         {task.read_as &&
           readingOf(task) !== "routine" &&
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
-        {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
         <Signature by={task.created_by} via={task.created_via} signing={signing} lead=" · " />
         {task.resolved && (
           <span className="text-hue-teal">

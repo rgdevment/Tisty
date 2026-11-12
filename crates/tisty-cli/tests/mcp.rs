@@ -5737,33 +5737,8 @@ fn the_persons_directory(served: &Served) -> std::path::PathBuf {
         .expect("the person's own directory")
 }
 
-fn opened_to_agents(served: &Served, id: &str, open: bool) {
-    opened_to_agents_stamped(served, id, open, jiff::Timestamp::now());
-}
-
-fn opened_to_agents_stamped(served: &Served, id: &str, open: bool, stamp: jiff::Timestamp) {
-    let dir = the_persons_directory(served);
-    let by = dir.file_name().unwrap().to_string_lossy().into_owned();
-    let at = dir.join("active.tisty");
-    let mut held = std::fs::read_to_string(&at).unwrap();
-    let last = held
-        .lines()
-        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
-        .filter_map(|one| one["ts"].as_str()?.parse::<jiff::Timestamp>().ok())
-        .max()
-        .unwrap_or(jiff::Timestamp::UNIX_EPOCH);
-    // After everything written, so the replay — ordered by stamp — reads it where it was.
-    let ts = stamp.max(last + jiff::SignedDuration::from_millis(1));
-    let n = held.lines().count() as u64;
-    held.push_str(&format!(
-        "{{\"v\":{},\"ts\":\"{ts}\",\"by\":\"{by}\",\"n\":{n},\"op\":\"task.update\",\"id\":\"{id}\",\"d\":{{\"open_to_agents\":{open}}}}}\n",
-        tisty_core::event::SCHEMA_VERSION
-    ));
-    std::fs::write(&at, held).unwrap();
-}
-
 #[test]
-fn a_task_the_person_wrote_takes_no_fill_in_until_they_open_it() {
+fn the_persons_task_is_written_on_like_a_document_and_its_ticks_wait_for_them() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("renew the certificate");
@@ -5773,103 +5748,50 @@ fn a_task_the_person_wrote_takes_no_fill_in_until_they_open_it() {
         .unwrap()
         .to_string();
 
-    for (tool, args) in [
-        (
-            "describe",
-            serde_json::json!({ "task": &id, "body": "the yearly one" }),
-        ),
-        (
-            "plan",
-            serde_json::json!({ "task": &id, "steps": ["pay", "download"] }),
-        ),
-    ] {
-        let tried = served.call(tool, args);
-        assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
-        assert!(
-            tried["result"]["content"][0]["text"]
-                .as_str()
-                .unwrap()
-                .contains("not opened it to you"),
-            "{tool}: {tried}"
-        );
-    }
-    let read = served.call("read", serde_json::json!({ "task": &id }));
-    assert!(
-        read["result"]["structuredContent"]["open_to_agents"].is_null(),
-        "{read}"
-    );
-
-    opened_to_agents(&served, &id, true);
-
-    let read = served.call("read", serde_json::json!({ "task": &id }));
-    assert_eq!(
-        read["result"]["structuredContent"]["open_to_agents"], true,
-        "{read}"
-    );
-    assert!(
-        read["result"]["structuredContent"]["notice"]
-            .as_str()
-            .is_some_and(|said| said.contains("yours to describe")),
-        "a client reading the fields alone still learns what it may do: {read}"
-    );
-    let sifted = served.call("find", serde_json::json!({ "open_to_agents": true }));
-    assert!(sifted.to_string().contains(&id), "{sifted}");
-
     let described = served.call(
         "describe",
         serde_json::json!({ "task": &id, "body": "the yearly one, at the registry" }),
     );
     assert!(described["result"]["isError"].is_null(), "{described}");
-    let again = served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "the yearly one, at the new registry" }),
-    );
-    assert!(again["result"]["isError"].is_null(), "{again}");
-
     let planned = served.call(
         "plan",
-        serde_json::json!({ "task": &id, "steps": ["pagar la inscripción", "download the file"] }),
+        serde_json::json!({ "task": &id, "steps": ["pay the fee", "download the file"] }),
     );
     assert_eq!(
         planned["result"]["structuredContent"]["added"], 2,
         "{planned}"
     );
+    let renamed = served.call(
+        "rename",
+        serde_json::json!({ "task": &id, "title": "renew the TLS certificate" }),
+    );
+    assert!(renamed["result"]["isError"].is_null(), "{renamed}");
+
     let ticked = served.call(
         "tick",
-        serde_json::json!({ "task": &id, "step": "PAGAR LA INSCRIPCIÓN" }),
+        serde_json::json!({ "task": &id, "steps": ["PAY THE FEE", "download the file"] }),
     );
+    assert_eq!(ticked["result"]["structuredContent"]["said"], 2, "{ticked}");
     assert_eq!(
-        ticked["result"]["structuredContent"]["ticked"], 1,
+        ticked["result"]["structuredContent"]["ticked"], 0,
         "{ticked}"
     );
-    assert_eq!(ticked["result"]["structuredContent"]["left"], 1, "{ticked}");
-    let twice = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "step": "pagar la inscripción" }),
-    );
-    assert_eq!(twice["result"]["structuredContent"]["ticked"], 0, "{twice}");
-    assert_eq!(
-        twice["result"]["structuredContent"]["already"], 1,
-        "{twice}"
-    );
-    let none = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "step": "sign it" }),
-    );
-    assert_eq!(none["result"]["isError"], true, "{none}");
 
     let read = served.call("read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
-    assert_eq!(kept["steps"][0]["done"], true, "{read}");
-    assert_eq!(kept["steps"][1]["done"], false, "{read}");
+    assert_eq!(kept["title"], "renew the TLS certificate", "{read}");
+    assert_eq!(
+        kept["steps"][0]["done"], false,
+        "a tick waits for the person: {read}"
+    );
+    assert!(kept["open_to_agents"].is_null(), "{read}");
     assert!(
         kept["document"]["body"]
             .as_str()
             .unwrap()
             .contains("registry"),
-        "the description is on its page, and not repeated beside it: {read}"
+        "{read}"
     );
-    assert!(kept["description"].is_null(), "{read}");
 
     let moved = served.call(
         "reschedule",
@@ -5880,101 +5802,15 @@ fn a_task_the_person_wrote_takes_no_fill_in_until_they_open_it() {
         "the day stays the person's: {moved}"
     );
 
-    let early = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
-    );
-    assert_eq!(
-        early["result"]["isError"], true,
-        "a step is unticked: {early}"
-    );
-    assert!(
-        early["result"]["content"][0]["text"]
-            .as_str()
-            .unwrap()
-            .contains("\"download the file\""),
-        "{early}"
-    );
-    let rest = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["download the file"] }),
-    );
-    assert_eq!(rest["result"]["structuredContent"]["left"], 0, "{rest}");
     let done = served.call(
         "say_done",
         serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
     );
     assert_eq!(done["result"]["structuredContent"]["open"], true, "{done}");
-    let stacked = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "again" }),
-    );
     assert!(
-        stacked["result"]["content"][0]["text"]
-            .as_str()
-            .unwrap()
-            .starts_with("you already said"),
-        "{stacked}"
-    );
-    assert!(
-        served.person().open().contains("renew the certificate"),
+        served.person().open().contains("renew the TLS certificate"),
         "still open"
     );
-
-    opened_to_agents(&served, &id, false);
-    let shut = served.call(
-        "plan",
-        serde_json::json!({ "task": &id, "steps": ["one more"] }),
-    );
-    assert_eq!(
-        shut["result"]["isError"], true,
-        "kept to the person again: {shut}"
-    );
-}
-
-/// The person's laptop runs an hour ahead: the opening it synced over is stamped in this
-/// machine's future. A fill-in stamped «now» would sort before it and be let go everywhere.
-#[test]
-fn a_fill_in_lands_after_an_opening_stamped_by_a_clock_ahead() {
-    let served = Served::new();
-    served.person().lets_the_agent_in();
-    served.person().captures("renew the certificate");
-    let id = served.call("find", serde_json::json!({ "query": "certificate" }))["result"]
-        ["structuredContent"]["matches"][0]["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    opened_to_agents_stamped(
-        &served,
-        &id,
-        true,
-        jiff::Timestamp::now() + jiff::SignedDuration::from_secs(3600),
-    );
-
-    let described = served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "the yearly one" }),
-    );
-    assert!(described["result"]["isError"].is_null(), "{described}");
-    let planned = served.call("plan", serde_json::json!({ "task": &id, "steps": ["pay"] }));
-    assert!(planned["result"]["isError"].is_null(), "{planned}");
-    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
-    served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "paid" }),
-    );
-
-    let read = served.call("read", serde_json::json!({ "task": &id }));
-    let kept = &read["result"]["structuredContent"];
-    assert!(
-        kept["document"]["body"]
-            .as_str()
-            .unwrap()
-            .contains("the yearly one"),
-        "{read}"
-    );
-    assert_eq!(kept["steps"][0]["done"], true, "{read}");
-    assert!(kept["said_done"].is_string(), "{read}");
 }
 
 #[test]
@@ -6824,7 +6660,7 @@ fn one_bad_part_and_nothing_at_all_is_written() {
 }
 
 #[test]
-fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
+fn a_part_goes_under_any_open_task() {
     let served = Served::new();
     let persons = served.person().captures("the persons own").to_string();
     served.person().lets_the_agent_in();
@@ -6834,8 +6670,8 @@ fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
         "propose",
         serde_json::json!({ "title": "pack", "part_of": persons }),
     );
-    assert_eq!(under_persons["result"]["isError"], true, "{under_persons}");
-    assert!(!served.person().open().contains("pack"));
+    assert_ne!(under_persons["result"]["isError"], true, "{under_persons}");
+    assert!(served.person().open().contains("pack"));
 
     let under_its_own = served.call(
         "propose",
@@ -7056,7 +6892,7 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
 }
 
 #[test]
-fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
+fn the_persons_task_is_mended_but_its_ticked_steps_and_its_notes_stay_whole() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = persons_task(&served, "renew the certificate");
@@ -7065,17 +6901,12 @@ fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
     person.adds_step(person::task(&id), "keep the receipt");
     person.ticks(person::task(&id), 1);
     person.notes(person::task(&id), "asked for the quote");
-    opened_to_agents(&served, &id, true);
     let note = read_back(&served, &id)["journal"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     for (tool, args) in [
-        (
-            "rename",
-            serde_json::json!({ "task": &id, "title": "renamed" }),
-        ),
         (
             "reword_step",
             serde_json::json!({ "task": &id, "step": "pay", "text": "paid twice" }),
@@ -7093,10 +6924,13 @@ fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
         assert_eq!(refused["result"]["isError"], true, "{tool}: {refused}");
     }
     let read = read_back(&served, &id);
-    assert_eq!(read["title"], "renew the certificate");
     assert_eq!(step_texts(&read), ["pay", "keep the receipt"]);
 
     for (tool, args) in [
+        (
+            "rename",
+            serde_json::json!({ "task": &id, "title": "renamed" }),
+        ),
         (
             "reword_step",
             serde_json::json!({ "task": &id, "step": "keep the receipt", "text": "keep the PDF" }),
@@ -7110,6 +6944,7 @@ fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
         assert!(done["result"]["isError"].is_null(), "{tool}: {done}");
     }
     let read = read_back(&served, &id);
+    assert_eq!(read["title"], "renamed");
     assert_eq!(step_texts(&read), ["pay", "keep the PDF"]);
     assert_eq!(read["journal"][0]["body"], "asked for the yearly quote");
 
@@ -7122,27 +6957,10 @@ fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
 }
 
 #[test]
-fn a_task_the_person_kept_is_not_mended_at_all() {
-    let served = Served::new();
-    served.person().lets_the_agent_in();
-    let id = persons_task(&served, "call the bank");
-    served.person().adds_step(person::task(&id), "call");
-
-    let refused = served.call(
-        "reword_step",
-        serde_json::json!({ "task": &id, "step": "call", "text": "call twice" }),
-    );
-
-    assert_eq!(refused["result"]["isError"], true, "{refused}");
-    assert_eq!(step_texts(&read_back(&served, &id)), ["call"]);
-}
-
-#[test]
-fn a_part_is_mended_by_its_own_door_and_not_by_the_whole_around_it() {
+fn a_part_and_its_whole_are_both_mended() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let whole = persons_task(&served, "move house");
-    opened_to_agents(&served, &whole, true);
     let said = served.call(
         "propose",
         serde_json::json!({ "title": "pack the books", "part_of": &whole, "steps": ["buy boxes"] }),
@@ -7162,17 +6980,20 @@ fn a_part_is_mended_by_its_own_door_and_not_by_the_whole_around_it() {
         serde_json::json!({ "task": &part, "step": "buy boxes", "text": "buy twenty boxes" }),
     );
     assert!(reworded["result"]["isError"].is_null(), "{reworded}");
-    let refused = served.call(
+    let whole_renamed = served.call(
         "rename",
         serde_json::json!({ "task": &whole, "title": "move" }),
     );
-    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    assert!(
+        whole_renamed["result"]["isError"].is_null(),
+        "{whole_renamed}"
+    );
 
     let read = read_back(&served, &part);
     assert_eq!(read["title"], "pack the books and the records");
     assert_eq!(read["part_of"], whole.as_str());
     assert_eq!(step_texts(&read), ["buy twenty boxes"]);
-    assert_eq!(read_back(&served, &whole)["title"], "move house");
+    assert_eq!(read_back(&served, &whole)["title"], "move");
 }
 
 #[test]

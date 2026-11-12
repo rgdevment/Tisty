@@ -94,8 +94,6 @@ const en = {
   onlyClosedConverts: "Only a closed task is read as a story or a trace",
   routineReadsAsRoutine: "A routine reads as a routine, turn by turn",
   notAReading: "That is not a way to read a task",
-  onlyOpenOpens: "Only an open task is let to an agent. A closed one is history to them",
-  alreadyTheirs: "An agent filed this one: it is already theirs to fill in",
   notAClosing: "That is not a way to close",
   notATheme: "That is not a look the window has",
   eraseIt: "Erase",
@@ -217,11 +215,6 @@ const en = {
     "Keep it as a story: it leaves the trace, and a story is only ever hidden. The trail keeps the move",
   keptAsStory: "kept as a story",
   readAsTraceNow: "read as a trace",
-  keepToMyself: "No agents",
-  keepToMyselfWhy: "Take the permission back. What the agent filled in stays",
-  openToAgents:
-    "Open to agents: one may describe it, plan, reword and tick its open steps, correct its notes and say it is done",
-  wasOpenToAgents: "was open to agents",
   eraseWritten: "It carries {name} journal entries, and they go with it.",
   traceHidden: "The trace is hidden: {name} under «hidden», and search still reaches them.",
   trailKeptStory: "Kept as a story",
@@ -2751,10 +2744,10 @@ const en = {
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
   agentsCan:
-    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed, and rename it · Work a task you open to agents: describe it, plan and tick its steps, say it is done or not worth doing — closing it stays yours · Write documents, add to them, correct them, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Search your lists, your archive and your documents",
+    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Tick a step of yours or say a task is done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Search your lists, your archive and your documents",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
-    "Complete, reopen, drop or delete a task · Delete a document or a folder · Undo or redo · Change a task you wrote, unless you open it to agents — and even then not its day, title, list or closing · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
+    "Complete, reopen, drop or delete a task · Delete a document or a folder · Undo or redo · Move the day of a task you wrote, tick its steps or close it · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
   agentsUndo:
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
@@ -3239,9 +3232,6 @@ const es: Catalog = {
   onlyClosedConverts: "Solo una tarea cerrada se lee como historia o como rastro",
   routineReadsAsRoutine: "Una rutina se lee como rutina, vuelta a vuelta",
   notAReading: "Esa no es una forma de leer una tarea",
-  onlyOpenOpens:
-    "Solo una tarea abierta se le deja a un agente. Una cerrada es historia para ellos",
-  alreadyTheirs: "Esta la archivó un agente: ya es suya para completarla",
   notAClosing: "Esa no es una forma de cerrar",
   notATheme: "La ventana no tiene ese aspecto",
   eraseIt: "Borrar",
@@ -3363,11 +3353,6 @@ const es: Catalog = {
     "Guardarla como historia: sale del rastro, y una historia solo se oculta. El trayecto guarda el movimiento",
   keptAsStory: "guardada como historia",
   readAsTraceNow: "leída como rastro",
-  keepToMyself: "Sin agentes",
-  keepToMyselfWhy: "Retira el permiso. Lo que el agente completó se queda",
-  openToAgents:
-    "Abierta a los agentes: uno puede describirla, planear, reescribir y marcar sus pasos abiertos, corregir sus notas y darla por hecha",
-  wasOpenToAgents: "estuvo abierta a los agentes",
   eraseWritten: "Lleva {name} entradas de bitácora, y se van con ella.",
   traceHidden: "El rastro está oculto: {name} bajo «ocultas», y la búsqueda sigue alcanzándolos.",
   trailKeptStory: "Guardada como historia",
@@ -5916,10 +5901,10 @@ const es: Catalog = {
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día y el nombre de lo que anotó él · Trabajar una tarea que abras a los agentes: describirla, planear y marcar sus pasos, decir que está hecha o que no vale la pena; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Buscar en tus listas, tu archivo y tus documentos",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Marcar un paso tuyo o decir que una tarea está hecha o que no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Buscar en tus listas, tu archivo y tus documentos",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
-    "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento o una carpeta · Deshacer ni rehacer · Cambiar una tarea que escribiste tú, salvo que la abras a los agentes, y ni aun así su día, su título, su lista ni su cierre · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
+    "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento o una carpeta · Deshacer ni rehacer · Mover el día de una tarea que escribiste tú, marcar sus pasos ni cerrarla · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",

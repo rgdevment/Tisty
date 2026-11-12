@@ -34,7 +34,7 @@ expression: tool
         "type": "string"
       },
       "part_of": {
-        "description": "Id of a task you may work on that this one is a part of",
+        "description": "Id of an open task this one is a part of",
         "type": "string"
       },
       "parts": {

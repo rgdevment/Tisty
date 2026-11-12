@@ -103,11 +103,10 @@ fn a_task_an_agent_filed_hangs_under_another_and_is_let_go_again() {
 }
 
 #[test]
-fn a_task_the_person_opened_hangs_under_one_an_agent_filed() {
+fn the_persons_task_hangs_under_one_an_agent_filed() {
     let served = Served::new();
     let whole = served.filed("Release 2.0");
     let persons = served.person().captures("pack the boxes");
-    served.person().opens_to_agents(persons);
 
     went(&served.call(
         "move",
@@ -143,7 +142,7 @@ fn hanging_is_refused_where_the_window_refuses_it_and_where_the_person_has_not_d
 }
 
 #[test]
-fn a_closed_task_and_one_kept_from_agents_take_no_part() {
+fn a_closed_task_takes_no_part_and_the_persons_open_one_does() {
     let served = Served::new();
     let part = served.filed("Write the notes");
     let closed = served.filed("Old release");
@@ -152,48 +151,47 @@ fn a_closed_task_and_one_kept_from_agents_take_no_part() {
 
     let shut = refused(&served.call("move", json!({ "task": &part, "part_of": &closed })));
     assert!(shut.contains("closed"), "{shut}");
-    let kept = refused(&served.call(
+    went(&served.call(
         "move",
         json!({ "task": &part, "part_of": persons.to_string() }),
     ));
-    assert!(kept.contains("closed to agents"), "{kept}");
+    assert_eq!(served.task(&part)["part_of"], persons.to_string());
 }
 
 #[test]
-fn a_part_stays_under_a_whole_kept_closed_to_agents() {
+fn a_part_of_the_persons_whole_moves_and_is_let_go() {
     let served = Served::new();
     let elsewhere = served.filed("Release 2.0");
     let persons = served.person().captures("move house");
     let part = served.person().adds_part(persons, "book the van");
-    served.person().opens_to_agents(part);
 
-    let moved = refused(&served.call(
+    went(&served.call(
         "move",
         json!({ "task": part.to_string(), "part_of": &elsewhere }),
     ));
-    assert!(moved.contains("closed to agents"), "{moved}");
-    let let_go =
-        refused(&served.call("move", json!({ "task": part.to_string(), "part_of": null })));
-    assert!(let_go.contains("closed to agents"), "{let_go}");
-    assert_eq!(served.person().state().tasks[&part].part_of, Some(persons));
+    assert_eq!(
+        served.task(&part.to_string())["part_of"],
+        elsewhere.as_str()
+    );
+    went(&served.call("move", json!({ "task": part.to_string(), "part_of": null })));
+    assert_eq!(served.person().state().tasks[&part].part_of, None);
 }
 
 #[test]
-fn a_list_is_chosen_only_for_what_an_agent_filed() {
+fn a_list_is_chosen_for_any_task() {
     let served = Served::new();
     served.person().adds_list("Work");
     let mine = served.filed("Write the notes");
     let persons = served.person().captures("pack the boxes");
-    served.person().opens_to_agents(persons);
 
     went(&served.call("move", json!({ "task": &mine, "list": "Work" })));
-    assert_eq!(served.task(&mine)["list"], "Work");
-
-    let theirs = refused(&served.call(
+    went(&served.call(
         "move",
         json!({ "task": persons.to_string(), "list": "Work" }),
     ));
-    assert!(theirs.contains("its list is theirs"), "{theirs}");
+
+    assert_eq!(served.task(&mine)["list"], "Work");
+    assert_eq!(served.task(&persons.to_string())["list"], "Work");
 }
 
 #[test]
@@ -259,18 +257,26 @@ fn a_ticked_step_among_those_handed_on_moves_none() {
 }
 
 #[test]
-fn steps_go_only_to_a_task_this_hand_may_fill() {
+fn steps_go_to_the_persons_task_too() {
     let served = Served::new();
     let from = served.call("propose", json!({ "title": "Release", "steps": ["ship"] }));
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let persons = served.person().captures("the person's plan");
 
-    let theirs = refused(&served.call(
+    went(&served.call(
         "unplan",
         json!({ "task": &from, "step": "ship", "to": persons.to_string() }),
     ));
-    assert!(theirs.contains("have not opened it"), "{theirs}");
-    assert_eq!(served.task(&from)["steps"][0]["text"], "ship");
+
+    assert_eq!(
+        served.task(&persons.to_string())["steps"][0]["text"],
+        "ship"
+    );
+    assert!(
+        served.task(&from)["steps"]
+            .as_array()
+            .is_none_or(Vec::is_empty)
+    );
 }
 
 #[test]

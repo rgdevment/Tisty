@@ -306,7 +306,7 @@ fn opening_a_task_to_agents_is_a_chapter_and_shutting_it_another() {
 }
 
 #[test]
-fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
+fn an_assistants_plan_on_the_persons_task_is_a_chapter_and_its_close_is_not() {
     let id = Ulid::generate();
     let agent = DeviceId("dev_agent".into());
     let mut joined = event(
@@ -340,15 +340,6 @@ fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
         joined,
         born(id, "renew the certificate"),
         planned(10),
-        patched(
-            20,
-            id,
-            TaskPatch {
-                open_to_agents: Some(true),
-                ..Default::default()
-            },
-        ),
-        planned(25),
         closed,
     ];
 
@@ -360,10 +351,9 @@ fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
             &Chapter::Born {
                 title: "renew the certificate".into()
             },
-            &Chapter::Opened,
             &Chapter::Planned { text: "pay".into() },
         ],
-        "the step before the door opened never landed, nor did the close: {:?}",
+        "the step lands, the close never did: {:?}",
         chapters(&told)
     );
 }

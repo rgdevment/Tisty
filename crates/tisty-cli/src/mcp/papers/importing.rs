@@ -7,7 +7,7 @@ use tisty_core::Paths;
 use tisty_core::model::{Step, Task, TaskId};
 
 use super::super::asked::{body_at_most, short_and_plain, text};
-use super::super::chores::{already_said_done, filling, still_filling};
+use super::super::chores::{already_said_done, reaching, still_in_sight};
 use super::super::jsonrpc::told;
 use super::super::{Refused, hitch, moved, opened, retold};
 
@@ -63,7 +63,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
     })?;
     short_and_plain(&json!({ "body": made.body }))?;
     let (state, mut store) = opened(paths)?;
-    let home = task_named(&state, &store, &made.body)?;
+    let home = task_named(&state, &made.body)?;
     let first = match home {
         Some(id) => {
             coming_home(paths, &state, id, &made.body)?;
@@ -271,19 +271,14 @@ fn zone() -> String {
         .to_string()
 }
 
-// A page naming a task this assistant may fill is that task's; one it may not is refused whole.
-fn task_named(
-    state: &tisty_core::State,
-    store: &tisty_core::Store,
-    body: &str,
-) -> Result<Option<TaskId>, Refused> {
+fn task_named(state: &tisty_core::State, body: &str) -> Result<Option<TaskId>, Refused> {
     let Some(id) = tisty_core::task_front::read(body, &zone()).task else {
         return Ok(None);
     };
     if !state.tasks.contains_key(&id) {
         return Ok(None);
     }
-    filling(state, store, &id.to_string()).map(|(id, _)| Some(id))
+    reaching(state, &id.to_string()).map(|(id, _)| Some(id))
 }
 
 fn page_of(paths: &Paths, state: &tisty_core::State, id: TaskId) -> Option<(String, String)> {
@@ -331,7 +326,7 @@ fn coming_home(
 }
 
 // A page brings in only what tick, untick, unplan and reword_step would let an assistant do.
-fn broken_rule(task: &Task, ops: &[tisty_core::Op]) -> Option<String> {
+pub(super) fn broken_rule(task: &Task, ops: &[tisty_core::Op]) -> Option<String> {
     ops.iter().find_map(|op| {
         let (step, wrong): (_, fn(&Step) -> Option<&'static str>) = match op {
             tisty_core::Op::StepRemove { d, .. } => (d.step, |one| {
@@ -357,6 +352,31 @@ fn broken_rule(task: &Task, ops: &[tisty_core::Op]) -> Option<String> {
     })
 }
 
+// A box the page shows ticked on the person's task is the assistant's word, and their day stays theirs.
+pub(super) fn as_an_assistant(
+    state: &tisty_core::State,
+    task: &Task,
+    op: tisty_core::Op,
+) -> Option<tisty_core::Op> {
+    if state.filed_by_agents(task) {
+        return Some(op);
+    }
+    match op {
+        tisty_core::Op::StepDone { id, d } => Some(tisty_core::Op::StepSaid { id, d }),
+        tisty_core::Op::TaskUpdate { id, d } => {
+            let title = d.title.filter(|one| *one != task.title)?;
+            Some(tisty_core::Op::TaskUpdate {
+                id,
+                d: tisty_core::event::TaskPatch {
+                    title: Some(title),
+                    ..Default::default()
+                },
+            })
+        }
+        other => Some(other),
+    }
+}
+
 // A task's page coming back hands the task its properties and its words, and is no document of its own.
 fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
@@ -375,17 +395,10 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             "that page names no task here any more.".into(),
         ));
     };
-    // A page an assistant brings back moves no day or list but on a task an agent filed.
-    let ours = state.filed_by_agents(task);
     let mut ops: Vec<tisty_core::Op> = taken
         .ops
         .into_iter()
-        .filter(|op| {
-            ours || !matches!(
-                op,
-                tisty_core::Op::TaskUpdate { .. } | tisty_core::Op::TaskMove { .. }
-            )
-        })
+        .filter_map(|op| as_an_assistant(&state, task, op))
         .collect();
     let mut file = kept.map(|(file, _)| file);
     if file.is_none() {
@@ -409,7 +422,7 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             .append_batch_unless(ops, |events| {
                 let held = tisty_core::State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
+                    !still_in_sight(now)
                         || now.resolved.is_some()
                         || broken_rule(now, &asked).is_some()
                 })

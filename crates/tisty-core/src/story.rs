@@ -142,20 +142,20 @@ struct Standing {
 
 /// The same door `State::apply` keeps for an assistant's hand.
 fn lets(op: &Op, standing: &Standing) -> bool {
-    let attended = standing.open_to_agents || standing.filed_by_agent;
+    let filed = standing.filed_by_agent;
     match op {
         Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
-        Op::TaskUpdate { d, .. } => standing.filed_by_agent || crate::state::only_bells(d),
-        Op::TaskResolve { d, .. } => d.word || attended,
+        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::TaskPaged { .. } => true,
         Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
-        Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => attended,
-        Op::StepUndone { d, .. } => {
-            attended && standing.ticked_by_agent.get(&d.step) == Some(&true)
+        Op::TaskUpdate { d, .. } => {
+            filed || crate::state::only_bells(d) || crate::state::only_title(d)
         }
-        Op::StepText { d, .. } => attended && mendable(standing, d.step),
-        Op::StepRemove { d, .. } => attended && mendable(standing, d.step),
-        Op::TaskLogEdit { d, .. } => attended && !d.body.trim().is_empty(),
-        Op::TaskPaged { .. } => attended,
+        Op::TaskResolve { d, .. } => d.word || filed,
+        Op::StepDone { .. } => filed,
+        Op::StepUndone { d, .. } => filed && standing.ticked_by_agent.get(&d.step) == Some(&true),
+        Op::StepText { d, .. } => mendable(standing, d.step),
+        Op::StepRemove { d, .. } => mendable(standing, d.step),
+        Op::TaskLogEdit { d, .. } => !d.body.trim().is_empty(),
         _ => false,
     }
 }

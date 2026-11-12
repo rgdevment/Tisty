@@ -41,7 +41,6 @@ const detail = (one: Task, expanded = true) =>
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
-      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

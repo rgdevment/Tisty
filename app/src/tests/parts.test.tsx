@@ -71,7 +71,6 @@ const opened = (shown: Task, more: Partial<Parameters<typeof Detail>[0]> = {}) =
       onErase={vi.fn()}
       onFold={vi.fn()}
       onReadAs={vi.fn()}
-      onOpenToAgents={vi.fn()}
       onClose={vi.fn()}
       {...more}
     />,

@@ -1,5 +1,5 @@
-use super::{Session, erasing, opening_to_agents, reading_as};
-use tisty_core::{DeviceId, Op, Paths, Reading, TaskId};
+use super::{Session, erasing, reading_as};
+use tisty_core::{Op, Paths, Reading, TaskId};
 
 struct Desk {
     _tmp: tempfile::TempDir,
@@ -116,60 +116,4 @@ fn a_bare_root_a_turn_hangs_from_is_never_erased() {
     assert_eq!(code(erasing(&mut session, root)), "routineStays");
     assert_eq!(code(erasing(&mut session, errand)), "ok");
     assert!(session.state.tasks.contains_key(&root));
-}
-
-#[test]
-fn opening_to_agents_is_for_an_open_task_the_person_wrote() {
-    let desk = desk();
-    let mut session = Session::at(desk.paths.clone()).unwrap();
-    let mine = ulid::Ulid::generate();
-    session
-        .commit(Op::TaskAdd {
-            id: mine,
-            d: tisty_core::event::TaskAdd::new("renew the certificate", "a0"),
-        })
-        .unwrap();
-    let errand = closed(&mut session, "buy bread");
-    let theirs = ulid::Ulid::generate();
-    let agent = DeviceId("dev_agent".into());
-    let mut wrote = tisty_core::Store::open(desk.paths.store(), agent.clone()).unwrap();
-    wrote
-        .append(Op::DeviceJoin {
-            d: agent,
-            k: Some(tisty_core::event::DeviceKind::Agent),
-            p: None,
-        })
-        .unwrap();
-    wrote
-        .append(Op::TaskAdd {
-            id: theirs,
-            d: tisty_core::event::TaskAdd::new("pasar biome", "a1"),
-        })
-        .unwrap();
-
-    assert_eq!(
-        code(opening_to_agents(&mut session, errand, true)),
-        "onlyOpenOpens"
-    );
-    assert_eq!(
-        code(opening_to_agents(&mut session, theirs, true)),
-        "alreadyTheirs"
-    );
-    assert_eq!(
-        code(opening_to_agents(
-            &mut session,
-            ulid::Ulid::generate(),
-            true
-        )),
-        "notATaskId"
-    );
-    let told = opening_to_agents(&mut session, mine, true).unwrap();
-    assert!(told.open_to_agents);
-    assert!(
-        session
-            .state
-            .attended_by_agents(&session.state.tasks[&mine])
-    );
-    let told = opening_to_agents(&mut session, mine, false).unwrap();
-    assert!(!told.open_to_agents);
 }

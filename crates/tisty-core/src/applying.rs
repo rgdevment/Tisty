@@ -15,9 +15,7 @@ pub struct Named {
 impl State {
     pub(crate) fn task_added(&mut self, event: &Event, id: TaskId, d: &crate::event::TaskAdd) {
         let mut task = crate::state::task_from(id, d);
-        task.part_of = d
-            .part_of
-            .filter(|whole| self.may_hold(*whole, &task, event));
+        task.part_of = d.part_of.filter(|whole| self.may_hold(*whole, &task));
         task.created_by = Some(event.device.clone());
         task.created_via = event.via.clone();
         task.retally();

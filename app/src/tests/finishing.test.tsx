@@ -37,7 +37,6 @@ const open = (one: Task) => {
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
-      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );
@@ -62,7 +61,6 @@ describe("finishing a task from a narrow card", () => {
         onErase={() => {}}
         onFold={() => {}}
         onReadAs={() => {}}
-        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
@@ -120,7 +118,6 @@ describe("what an agent says is done", () => {
         onErase={() => {}}
         onFold={() => {}}
         onReadAs={() => {}}
-        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
@@ -217,7 +214,6 @@ describe("erasing what is already archived", () => {
         onErase={onErase}
         onFold={() => {}}
         onReadAs={() => {}}
-        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
@@ -311,7 +307,6 @@ describe("erasing what is already archived", () => {
         onErase={() => {}}
         onFold={folds}
         onReadAs={readAs}
-        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
@@ -344,7 +339,6 @@ describe("what an agent says should not be done", () => {
         onErase={() => {}}
         onFold={() => {}}
         onReadAs={() => {}}
-        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );

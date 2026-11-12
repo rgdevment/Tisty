@@ -47,8 +47,6 @@ const KNOWN = [
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",
-  "onlyOpenOpens",
-  "alreadyTheirs",
   "notAListId",
   "pastEnd",
   "manyLists",
