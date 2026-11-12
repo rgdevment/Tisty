@@ -18,8 +18,8 @@ import {
   saidWhen,
   shapeOf,
   shifted,
+  without,
 } from "../notes";
-import { saidPlainly } from "../refusal";
 import { Left } from "./Field";
 import FileIdea from "./FileIdea";
 import Glyph from "./Glyph";
@@ -32,7 +32,7 @@ interface Props {
   onEditor?: () => void;
   known?: Filed[];
   own?: string;
-  onError?: (message: string) => void;
+  onError?: (problem: unknown) => void;
   onDoc?: (file: string) => void;
   onTask?: (task: Task) => void;
 }
@@ -75,11 +75,11 @@ export default function Notes({
 }: Props) {
   const [sent, send] = useSent();
   const [raw, setRaw] = useState(false);
-  const [filing, setFiling] = useState<{ at: number; idea: string } | null>(null);
+  const [filing, setFiling] = useState<Note | null>(null);
   const latest = useRef(body);
   latest.current = body;
-  const settled = (at: number) => () => onWrite(dropped(latest.current, at));
-  const failed = (problem: unknown) => onError(saidPlainly(problem));
+  const settled = (idea: Note) => () => onWrite(without(latest.current, idea));
+  const failed = (problem: unknown) => onError(problem);
   const { notes } = boardOf(body);
   const intro = introOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
@@ -211,11 +211,11 @@ export default function Notes({
                 else if (text !== note.text) onWrite(rewritten(body, at, text));
               }}
               onDrop={() => onWrite(dropped(body, at))}
-              onFile={() => setFiling({ at, idea: note.text })}
+              onFile={() => setFiling(note)}
               onTask={() =>
                 void capture(note.text)
                   .then((task) => {
-                    settled(at)();
+                    settled(note)();
                     void emit("captured");
                     send(fill("ideaMadeTask", task.title), t("ideaSeeTask"), () => onTask?.(task));
                   })
@@ -227,16 +227,16 @@ export default function Notes({
       )}
       {filing && (
         <FileIdea
-          idea={filing.idea}
+          idea={filing.text}
           known={known}
           own={own}
           onClose={() => setFiling(null)}
           onPick={(file) => {
             setFiling(null);
             const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
-            void ideaToDoc(file, filing.idea, title)
+            void ideaToDoc(file, filing.text, title)
               .then(() => {
-                settled(filing.at)();
+                settled(filing)();
                 send(fill("ideaFiledIn", there), t("ideaOpenDoc"), () => onDoc?.(file));
               })
               .catch(failed);

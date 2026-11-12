@@ -114,6 +114,10 @@ export default function Stage() {
       onDrop={dropDoc}
       onDropAll={(all) => void dropDocs(all)}
       onTask={(one) => {
+        if (one.list) setChosen({ named: "lists", list: one.list });
+        opening(one);
+      }}
+      onSeeTask={(one) => {
         setChosen(one.list ? { named: "lists", list: one.list } : { named: "tasks", slice: "all" });
         opening(one);
       }}

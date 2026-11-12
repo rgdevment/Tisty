@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Filed } from "../core";
+import { folded } from "../folding";
 import { t } from "../locales";
 import Modal from "./Modal";
 
@@ -13,15 +14,17 @@ interface Props {
 
 const MOST = 12;
 
-const plain = (said: string): string => said.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-
 export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const asked = plain(query.trim());
+  const asked = folded(query.trim());
   const open = known
     .filter((one) => one.file !== own && !one.away && !one.locked && !one.gone)
-    .filter((one) => !asked || plain(one.title || t("untitledDoc")).includes(asked))
-    .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+    .filter((one) => !asked || folded(one.title || t("untitledDoc")).includes(asked))
+    .sort(
+      (a, b) =>
+        (b.wrote ?? "").localeCompare(a.wrote ?? "") ||
+        (a.title || "").localeCompare(b.title || ""),
+    )
     .slice(0, MOST);
 
   return (
@@ -32,7 +35,7 @@ export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && open[0]) onPick(open[0].file);
+          if (e.key === "Enter" && asked && open[0]) onPick(open[0].file);
         }}
         placeholder={t("ideaFileFind")}
         aria-label={t("ideaFileFind")}

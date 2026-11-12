@@ -112,6 +112,7 @@ interface Props {
   onDrop?: (doc: Filed) => void;
   onDropAll?: (docs: Filed[]) => void;
   onTask?: (task: Task) => void;
+  onSeeTask?: (task: Task) => void;
   onBack?: (doc: Filed) => void;
   onAsideShut?: (shut: boolean) => void;
   fresh?: number;
@@ -146,6 +147,7 @@ export default function Docs({
   onDrop,
   onDropAll,
   onTask,
+  onSeeTask,
   onBack,
   onAsideShut,
   fresh = 0,
@@ -891,7 +893,7 @@ export default function Docs({
                   own={open.file}
                   onError={onError}
                   onDoc={onDoc}
-                  onTask={onTask}
+                  onTask={onSeeTask ?? onTask}
                 />
               </div>
             ) : (

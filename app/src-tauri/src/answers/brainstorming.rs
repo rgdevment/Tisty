@@ -35,8 +35,7 @@ pub struct Pinned {
 #[tauri::command(async)]
 pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<Pinned> {
     let mut session = held(&session);
-    let file = found(&mut session)?;
-    let body = tisty_core::docs::read(&session.paths.docs(), &file).unwrap_or_default();
+    let (file, body) = found(&mut session)?;
     Some(Pinned {
         ideas: tisty_core::brainstorm::ideas(&body),
         file,
@@ -85,15 +84,15 @@ pub fn filing(
     Ok(())
 }
 
-fn found(session: &mut Session) -> Option<String> {
-    let file = tisty_core::brainstorm::find(
+fn found(session: &mut Session) -> Option<(String, String)> {
+    let kept = tisty_core::brainstorm::find(
         &session.paths.docs(),
         &session.state,
         session.brainstorm.as_deref(),
     )
-    .map(|one| one.file.clone());
-    session.brainstorm.clone_from(&file);
-    file
+    .map(|(one, body)| (one.file.clone(), body));
+    session.brainstorm = kept.as_ref().map(|(file, _)| file.clone());
+    kept
 }
 
 pub fn jotting(
@@ -113,13 +112,15 @@ pub fn jotting(
         ));
     }
     let root = session.paths.docs();
-    let (file, made) = match found(session) {
-        Some(file) => (file, false),
-        None => (made_anew(session, title)?, true),
+    let (file, was, made) = match found(session) {
+        Some((file, body)) => (file, body, false),
+        None => {
+            let file = made_anew(session, title)?;
+            (file, tisty_core::brainstorm::opening(title), true)
+        }
     };
     super::papers::writable(&session.state, &file)?;
     session.brainstorm = Some(file.clone());
-    let was = tisty_core::docs::read(&root, &file).unwrap_or_default();
     let colour = tisty_core::brainstorm::coloured(&was, roll);
     let whole = tisty_core::docs::append(
         &root,

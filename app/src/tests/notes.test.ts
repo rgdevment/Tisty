@@ -13,6 +13,7 @@ import {
   shapeOf,
   shifted,
   stampOf,
+  without,
 } from "../notes";
 
 const BRAINSTORM = `---
@@ -73,6 +74,16 @@ describe("a document read as notes", () => {
   it("moves one place to another and leaves the rest in their order", () => {
     expect(shifted([0, 1, 2, 3], 3, 0)).toEqual([3, 0, 1, 2]);
     expect(shifted([0, 1, 2, 3], 0, 2)).toEqual([1, 2, 0, 3]);
+  });
+
+  it("takes an idea off by what it says, wherever the sheet has moved it", () => {
+    const [first] = boardOf(BRAINSTORM).notes;
+    const shuffled = ordered(BRAINSTORM, [1, 0]);
+
+    const left = boardOf(without(shuffled, first)).notes;
+
+    expect(left.map((one) => one.text)).toEqual(["llamar al vet\ny pedir la cartilla"]);
+    expect(without(BRAINSTORM, { heading: "nunca", text: "estuvo" })).toBe(BRAINSTORM);
   });
 
   it("leaves every other note byte for byte, its line endings included", () => {

@@ -9,6 +9,9 @@ const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args: Record<string,
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
+    if (cmd === "idea_to_doc" && args?.file === "a3f1-0007") {
+      return Promise.reject({ code: "documentLocked" });
+    }
     return Promise.resolve(cmd === "capture" ? { id: "01T", title: String(args?.text) } : null);
   },
 }));
@@ -207,5 +210,53 @@ describe("a brainstorm shown as notes", () => {
 
     expect(within(screen.getByRole("dialog")).getByText("No document by that name")).toBeTruthy();
     expect(onWrite).not.toHaveBeenCalled();
+  });
+
+  it("hands a refusal up as it came, for the window to word once, and keeps the idea", async () => {
+    const onWrite = vi.fn();
+    const onError = vi.fn();
+    render(
+      <Notes
+        title="Ideas"
+        body={BODY}
+        reading={false}
+        onWrite={onWrite}
+        known={[{ ...papers[0], file: "a3f1-0007", title: "Cerrado" }]}
+        own="a3f1-0009"
+        onError={onError}
+      />,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "File in a document" })[0]);
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Cerrado" }),
+    );
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "documentLocked" }));
+    expect(onWrite).not.toHaveBeenCalled();
+  });
+
+  it("files nothing on Enter until something is typed, and shows the latest written first", async () => {
+    const onWrite = vi.fn();
+    const dated: Filed[] = [
+      { ...papers[0], file: "a1", title: "Antiguo", wrote: "2026-01-01T00:00:00Z" },
+      { ...papers[0], file: "a2", title: "Reciente", wrote: "2026-11-11T00:00:00Z" },
+    ];
+    render(
+      <Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} known={dated} own="x" />,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "File in a document" })[0]);
+    const dialog = screen.getByRole("dialog");
+    const titles = within(dialog)
+      .getAllByRole("button")
+      .map((one) => one.textContent)
+      .filter((text) => text === "Antiguo" || text === "Reciente");
+    expect(titles).toEqual(["Reciente", "Antiguo"]);
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(ipc.calls.some((one) => one.cmd === "idea_to_doc")).toBe(false);
+    expect(screen.getByRole("dialog")).toBeTruthy();
   });
 });
