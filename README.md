@@ -418,8 +418,8 @@ document for you to delete, put away or keep. Each tool is described in
 
 Beside the tools, it offers seven ready-made requests your assistant shows as
 commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`, `brainstorm`, `sort_ideas`), and your documents to mention with `@`, a long one as its
-outline.
+`keep_decision`, `brainstorm`, `sort_ideas`), and your documents to mention
+with `@`, a long one as its outline.
 
 ## Why I Built This
 
