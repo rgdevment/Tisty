@@ -57,7 +57,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
 | `tongue_doc` | Unir un documento a los idiomas de otro, o separarlo de los suyos |
 | `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo |
-| `flag_doc` | Marcar uno o varios documentos para que los borres, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Una marca, nunca un borrado |
+| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado |
 | `import_doc` | Traer un archivo Markdown de este equipo como documento |
 | `export_doc` | Sacar un documento a una carpeta de este equipo |
 
@@ -90,4 +90,4 @@ Tú decides sobre cada compactación:
 - La ventana muestra **Compactado por … el …** en el documento, con **Deshacer** y **Conservar**. Deshacer deja el documento exactamente como estaba; también puedes pedirle al asistente que lo restaure.
 - Hasta que lo conserves o lo deshagas, el asistente no escribe nada más en ese documento, salvo una compactación más para corregir la suya.
 - Un documento que empezaste tú solo se compacta si lo pides en la conversación.
-- Las páginas y copias que marcó siguen donde están, con su motivo, hasta que las borres: una por una, o todas las de un grupo con un clic.
+- Las páginas y copias que marcó siguen donde están, con su motivo, hasta que las borres, las archives o les quites la marca. Borrar o quitar la marca se hace una por una, o para todas las de un grupo con un clic.

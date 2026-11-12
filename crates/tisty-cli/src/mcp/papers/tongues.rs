@@ -54,10 +54,7 @@ fn found<'a>(state: &'a State, which: &str) -> Result<&'a Kept, Refused> {
         )));
     }
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{} is put away; bring it back first.",
-            doc_named(state, which)
-        )));
+        return Err(super::put_away(state, kept, &doc_named(state, which)));
     }
     Ok(kept)
 }

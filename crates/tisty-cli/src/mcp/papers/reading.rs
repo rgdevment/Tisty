@@ -615,11 +615,7 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
         )));
     }
     if state.held_away(up) {
-        return Err(Refused::Tool(format!(
-            "{} is put away, so it is not written in any more. Bring it back with \
-             `archive_doc` first if its order truly has to change.",
-            doc_named(&state, &said)
-        )));
+        return Err(super::put_away(&state, up, &doc_named(&state, &said)));
     }
     let over = up.id;
     ordered(paths, &state, &mut store, over, &order)?;

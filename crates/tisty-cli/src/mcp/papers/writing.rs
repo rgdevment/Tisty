@@ -420,9 +420,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     let named = doc_named(&state, &which);
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{named} is put away, so nothing more goes into it. Write a new document instead."
-        )));
+        return Err(super::put_away(&state, kept, &named));
     }
     super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
@@ -523,9 +521,7 @@ pub(super) fn over_again(
     };
     let called = doc_named(state, which);
     if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{called} is put away, so nothing is written over it."
-        )));
+        return Err(super::put_away(state, kept, &called));
     }
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
@@ -745,10 +741,7 @@ pub(super) fn where_it_lands(
                 )));
             }
             if state.held_away(up) {
-                return Err(Refused::Tool(format!(
-                    "{named} is put away, and a page of it would be put away unread. Write a \
-                     document of its own instead."
-                )));
+                return Err(super::put_away(state, up, &named));
             }
             super::compacting::awaiting(state, up)?;
             if state.shut(up.id) {

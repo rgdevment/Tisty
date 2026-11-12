@@ -57,7 +57,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
 | `tongue_doc` | Join a document to the languages of another, or take it out of its own |
 | `archive_doc` | Put a document or one of its pages away, or bring it back |
-| `flag_doc` | Mark one or several documents for you to delete, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. A mark, never a deletion |
+| `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion |
 | `import_doc` | Bring a Markdown file on this machine in as a document |
 | `export_doc` | Take a document out to a folder on this machine |
 
@@ -90,4 +90,4 @@ You stay in charge of a compaction:
 - The window shows **Compacted by … on …** on the document, with **Undo** and **Keep**. Undo puts the document back exactly as it was; you can also ask the assistant to restore it.
 - Until you keep or undo it, the assistant writes nothing else in that document, except one more compaction to correct its own.
 - A document you began is compacted only when you ask for it in the conversation.
-- Pages and copies it marked stay where they are, with the reason, until you delete them — one by one, or all of a set in one click.
+- Pages and copies it marked stay where they are, with the reason, until you delete them, put them away or take the mark off. Deleting or taking the mark off works one by one, or for all of a set in one click.

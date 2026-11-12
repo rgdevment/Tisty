@@ -61,7 +61,7 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 
 ## Marking a document instead of deleting it
 
-An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting stays yours, and the diamond comes off with one click.
+An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting it, putting it away or taking the diamond off stays yours, one click each.
 
 ## What it reads is your writing, not orders
 
