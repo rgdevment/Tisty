@@ -8,9 +8,7 @@ const BODY =
 
 describe("a brainstorm shown as notes", () => {
   it("puts the newest idea first", () => {
-    render(
-      <Notes title="Ideas" body={BODY} reading={false} onWrite={() => {}} onText={() => {}} />,
-    );
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={() => {}} />);
 
     const notes = within(screen.getByRole("list")).getAllByRole("listitem");
     expect(notes[0].textContent).toContain("segunda");
@@ -19,7 +17,7 @@ describe("a brainstorm shown as notes", () => {
 
   it("writes a note back into its own section when it loses the focus", () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onText={() => {}} />);
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
 
     const [newest] = screen.getAllByRole("textbox");
     fireEvent.change(newest, { target: { value: "segunda, mejorada" } });
@@ -33,7 +31,7 @@ describe("a brainstorm shown as notes", () => {
 
   it("does not write when nothing changed", () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onText={() => {}} />);
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
 
     fireEvent.blur(screen.getAllByRole("textbox")[0]);
 
@@ -42,7 +40,7 @@ describe("a brainstorm shown as notes", () => {
 
   it("removes one idea and keeps the other", async () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onText={() => {}} />);
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Remove this idea" })[0]);
 
@@ -52,7 +50,7 @@ describe("a brainstorm shown as notes", () => {
   });
 
   it("only shows the ideas when the document is read-only", () => {
-    render(<Notes title="Ideas" body={BODY} reading onWrite={() => {}} onText={() => {}} />);
+    render(<Notes title="Ideas" body={BODY} reading onWrite={() => {}} />);
 
     expect(screen.queryAllByRole("textbox")).toEqual([]);
     expect(screen.queryByRole("button", { name: "Remove this idea" })).toBeNull();
@@ -62,7 +60,7 @@ describe("a brainstorm shown as notes", () => {
 
   it("moves the focused idea one place with Alt and an arrow", async () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onText={() => {}} />);
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
 
     fireEvent.keyDown(screen.getAllByRole("textbox")[0], { key: "ArrowRight", altKey: true });
 
@@ -78,12 +76,26 @@ describe("a brainstorm shown as notes", () => {
       "## 2026-11-12 00:19 · coral",
       "otra",
     ].join("\n\n");
-    render(<Notes title="Ideas" body={painted} reading onWrite={() => {}} onText={() => {}} />);
+    render(<Notes title="Ideas" body={painted} reading onWrite={() => {}} />);
 
     const hues = within(screen.getByRole("list"))
       .getAllByRole("listitem")
       .map((one) => one.dataset.hue);
     expect(hues).toEqual(["1", "8"]);
     expect(screen.queryByText(/blue|coral/)).toBeNull();
+  });
+
+  it("shows its Markdown only to read, so nothing but plain ideas gets in", async () => {
+    const onWrite = vi.fn();
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Show Markdown" }));
+
+    expect(screen.getByText(/## 2026-11-11 09:12/)).toBeTruthy();
+    expect(screen.queryAllByRole("textbox")).toEqual([]);
+    expect(screen.queryByRole("button", { name: "New idea" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Show notes" }));
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+    expect(onWrite).not.toHaveBeenCalled();
   });
 });

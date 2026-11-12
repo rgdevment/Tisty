@@ -53,7 +53,7 @@ An idea that comes in the middle of something else has nowhere to go yet. Press 
 
 - **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, write in it by hand, archive it or export it like any other.
 - **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
-- **The file is still Markdown.** Each note is a section headed by the day and the minute it came, and its colour, chosen when it is made and kept wherever you move it, and **Show Markdown** shows the text. Any document with `view: notes` in its [properties](https://markdown.tisty.app/properties) shows the same way.
+- **The file is still Markdown.** Each note is a section headed by the day and the minute it came, and its colour, chosen when it is made and kept wherever you move it, and **Show Markdown** shows the text, only to read: an idea is plain words, so tables and diagrams belong in a document of their own. Any document with `view: notes` in its [properties](https://markdown.tisty.app/properties) shows the same way.
 - **Sort them out later**: move what deserves it to the document of its subject, or turn it into a task, and take it off the sheet.
 
 ## Folders

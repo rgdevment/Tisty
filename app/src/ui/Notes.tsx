@@ -20,7 +20,6 @@ interface Props {
   body: string;
   reading: boolean;
   onWrite: (body: string) => void;
-  onText: () => void;
 }
 
 interface Lifted {
@@ -47,7 +46,8 @@ function nearest(x: number, y: number, from: number): number | null {
   return best?.at ?? null;
 }
 
-export default function Notes({ title, body, reading, onWrite, onText }: Props) {
+export default function Notes({ title, body, reading, onWrite }: Props) {
+  const [raw, setRaw] = useState(false);
   const { notes } = boardOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
   const [lifted, setLifted] = useState<Lifted | null>(null);
@@ -110,7 +110,7 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
     <section aria-label={title} className="w-full px-8 pt-6 pb-16">
       <div className="flex items-center gap-2">
         <h1 className="min-w-0 flex-1 truncate text-[21px] font-semibold">{title}</h1>
-        {!reading && (
+        {!reading && !raw && (
           <button
             type="button"
             onClick={() => {
@@ -124,13 +124,18 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
         )}
         <button
           type="button"
-          onClick={onText}
+          onClick={() => setRaw((was) => !was)}
+          aria-pressed={raw}
           className="rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover"
         >
-          {t("notesAsText")}
+          {t(raw ? "notesAsNotes" : "notesAsText")}
         </button>
       </div>
-      {notes.length === 0 ? (
+      {raw ? (
+        <pre className="mt-6 overflow-x-auto rounded-[10px] border border-line bg-bg p-5 font-mono text-[12.5px] whitespace-pre-wrap text-ink">
+          {body}
+        </pre>
+      ) : notes.length === 0 ? (
         <p className="pt-6 text-[12.5px] text-faint">{t("notesNone")}</p>
       ) : (
         <ul ref={wall} className="notes-wall">
