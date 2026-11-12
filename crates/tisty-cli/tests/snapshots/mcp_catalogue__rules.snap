@@ -19,6 +19,7 @@ expression: tool
           "tasks",
           "documents",
           "tidying",
+          "ideas",
           "all"
         ],
         "type": "string"

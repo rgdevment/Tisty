@@ -197,6 +197,55 @@
   opacity: 0.8;
 }
 
+.sticky-note[data-marked] {
+  outline: 1.5px dashed var(--tisty-hue-teal);
+  outline-offset: 3px;
+}
+.sticky-corner {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tisty-bg) 72%, transparent);
+  font-size: 11px;
+  color: var(--tisty-hue-teal);
+}
+.sticky-mark {
+  margin-top: 8px;
+  padding: 6px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tisty-bg) 72%, transparent);
+  color: var(--tisty-ink);
+  font-family: var(--font-small);
+  font-size: 11.5px;
+  line-height: 1.35;
+  cursor: auto;
+  user-select: text;
+}
+.sticky-mark-why {
+  font-weight: 600;
+  color: var(--tisty-hue-teal);
+}
+.sticky-mark-said {
+  margin-top: 2px;
+  color: var(--tisty-soft);
+}
+.sticky-mark-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.sticky-mark-tools button {
+  padding: 1px 7px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 8px;
+}
+.sticky-mark-tools button:hover {
+  background: var(--tisty-active);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sticky-note {
     transition: none;

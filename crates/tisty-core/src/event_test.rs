@@ -413,6 +413,21 @@ fn the_operations_of_the_cloud_and_of_sharing_come_back_whole_through_the_line()
             s: "store_one".into(),
             k: None,
         },
+        Op::IdeaFlag {
+            id: id(),
+            idea: crate::event::Idea {
+                heading: "2026-11-12 09:40 · yellow".into(),
+                text: "pan con masa madre".into(),
+            },
+            d: crate::event::Flag::new("ya es una tarea").because(Some("moved".into()), None),
+        },
+        Op::IdeaUnflag {
+            id: id(),
+            idea: crate::event::Idea {
+                heading: "2026-11-12 09:40 · yellow".into(),
+                text: "pan con masa madre".into(),
+            },
+        },
         Op::ShareKey { p: key.shown() },
         Op::ShareCertified {
             c: seed.root().certify(&key.public(), at(100)),

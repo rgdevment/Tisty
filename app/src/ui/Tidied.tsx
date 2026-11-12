@@ -21,7 +21,7 @@ const RISKY = `${MILD} text-urgent`;
 
 type Target = { doc: Filed } | { task: Task } | "gone" | null;
 
-const useTarget = (instead: string | null | undefined, known: Filed[]): Target => {
+export const useTarget = (instead: string | null | undefined, known: Filed[]): Target => {
   const doc = instead
     ? known.find((one) => (one.file === instead || one.id === instead) && !one.gone)
     : undefined;

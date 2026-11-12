@@ -55,3 +55,72 @@ fn a_filed_idea_is_a_note_that_says_where_and_when_it_came_from() {
         "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar con harina integral\n> Y menos sal"
     );
 }
+
+const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n## 2026-11-12 09:40 · yellow\n\npan con masa madre\n\n## 2026-06-14 08:12 · pink\nentradas del concierto\nde julio\n## 2026-11-11 22:17 · blue\n\n```md\n## no es idea\n```\n";
+
+#[test]
+fn each_idea_is_read_by_its_heading_and_its_words() {
+    let on = ideas_on(SHEET);
+    assert_eq!(on.len(), 3);
+    assert_eq!(on[1].heading, "2026-06-14 08:12 · pink");
+    assert_eq!(on[1].text, "entradas del concierto\nde julio");
+    assert_eq!(on[2].text, "```md\n## no es idea\n```");
+}
+
+#[test]
+fn taking_an_idea_off_leaves_every_other_byte_where_it_was() {
+    let gone = &ideas_on(SHEET)[1];
+    assert_eq!(
+        without(SHEET, gone).unwrap(),
+        "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n## 2026-11-12 09:40 · yellow\n\npan con masa madre\n\n## 2026-11-11 22:17 · blue\n\n```md\n## no es idea\n```\n"
+    );
+    let windows = SHEET.replace('\n', "\r\n");
+    assert_eq!(
+        without(&windows, gone).unwrap(),
+        without(SHEET, gone).unwrap().replace('\n', "\r\n")
+    );
+    let reworded = Idea {
+        heading: gone.heading.clone(),
+        text: "otra cosa".into(),
+    };
+    assert_eq!(
+        without(SHEET, &reworded),
+        None,
+        "an idea changed since was taken off"
+    );
+}
+
+#[test]
+fn a_filed_note_gives_back_the_idea_it_quotes() {
+    let on = jiff::civil::date(2026, 11, 12);
+    let note = filed("entradas del concierto\nde julio", "Lluvia de ideas", on);
+    assert_eq!(
+        quoted(&note).as_deref(),
+        Some("entradas del concierto\nde julio")
+    );
+    assert_eq!(quoted("> [!NOTE] Lluvia de ideas\n> sin fecha"), None);
+    assert_eq!(
+        quoted("> [!NOTE] Ideas · 2026-11-12\nfuera de la cita"),
+        None
+    );
+}
+
+#[test]
+fn ideas_jotted_together_never_repeat_the_colour_just_before() {
+    let at = jiff::civil::date(2026, 11, 12).at(10, 5, 0, 0);
+    let each: Vec<String> = ["una", "dos", "tres", "cuatro"].map(String::from).to_vec();
+    let added = jotted_all(SHEET, &each, at, || 0);
+    let headings: Vec<&str> = added
+        .lines()
+        .filter(|line| line.starts_with("## "))
+        .collect();
+    assert_eq!(headings.len(), 4);
+    assert!(
+        headings
+            .iter()
+            .all(|one| one.starts_with("## 2026-11-12 10:05 · "))
+    );
+    for pair in headings.windows(2) {
+        assert_ne!(pair[0], pair[1]);
+    }
+}

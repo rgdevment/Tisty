@@ -351,6 +351,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::DocSaid { .. }
         | Op::DocFlag { .. }
         | Op::DocUnflag { .. }
+        | Op::IdeaFlag { .. }
+        | Op::IdeaUnflag { .. }
         | Op::DocCompacted { .. }
         | Op::DocUncompacted { .. } => None,
 

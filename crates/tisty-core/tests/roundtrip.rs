@@ -414,6 +414,7 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             locked: false,
             tags: Vec::new(),
             flagged: None,
+            ideas_flagged: Vec::new(),
             compacted: None,
             folder_was: None,
             task_of: None,

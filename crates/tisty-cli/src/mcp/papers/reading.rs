@@ -510,6 +510,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         }
         None => String::new(),
     };
+    let warned = match super::super::ideas::is_sheet(&body) {
+        true => format!(
+            "{warned}{}\n\n",
+            super::super::ideas::about_sheet(kept, &body, &mut kept_of)
+        ),
+        false => warned,
+    };
 
     match part_asked(&body, args)? {
         Part::Outline => {
@@ -537,11 +544,21 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             kept_of.insert("body".into(), json!(part));
             kept_of.insert("from".into(), json!(from));
             kept_of.insert("to".into(), json!(to));
+            let mut more = String::new();
             if let Some(next) = next {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
+                if kept_of.contains_key("brainstorm") {
+                    more = format!(
+                        "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
+                         {next} and this `print`.)"
+                    );
+                }
             }
-            Ok(mirrored(format!("{warned}{part}"), Value::Object(kept_of)))
+            Ok(mirrored(
+                format!("{warned}{part}{more}"),
+                Value::Object(kept_of),
+            ))
         }
     }
 }

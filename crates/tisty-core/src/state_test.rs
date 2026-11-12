@@ -3938,6 +3938,69 @@ fn what_an_assistant_marked_carries_the_hand_that_said_it() {
 }
 
 #[test]
+fn an_idea_marked_on_a_sheet_leaves_the_sheet_itself_unmarked() {
+    let mut state = State::default();
+    let sheet = doc(&mut state, "a3f1-0001", None);
+    let idea = |text: &str| crate::event::Idea {
+        heading: "2026-06-14 08:12 · pink".into(),
+        text: text.into(),
+    };
+
+    let mut said = ev(
+        2,
+        "dev_agent",
+        Op::IdeaFlag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+            d: crate::event::Flag::new("el concierto ya fue")
+                .because(Some("obsolete".into()), None),
+        },
+    );
+    said.via = Some("claude-code".into());
+    state.apply(&said);
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::IdeaFlag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+            d: crate::event::Flag::new("fue el 20 de julio").because(Some("obsolete".into()), None),
+        },
+    ));
+
+    let kept = &state.docs[&sheet];
+    assert!(kept.flagged.is_none(), "the whole sheet was marked");
+    assert_eq!(kept.ideas_flagged.len(), 1, "marking twice kept two marks");
+    assert_eq!(kept.ideas_flagged[0].mark.body, "fue el 20 de julio");
+
+    state.apply(&ev(
+        4,
+        "dev_laptop",
+        Op::IdeaUnflag {
+            id: sheet,
+            idea: idea("otra idea con la misma hora"),
+        },
+    ));
+    assert_eq!(
+        state.docs[&sheet].ideas_flagged.len(),
+        1,
+        "another idea lost its mark"
+    );
+    state.apply(&ev(
+        5,
+        "dev_laptop",
+        Op::IdeaUnflag {
+            id: sheet,
+            idea: idea("entradas del concierto de julio"),
+        },
+    ));
+    assert!(
+        state.docs[&sheet].ideas_flagged.is_empty(),
+        "the person took it off"
+    );
+}
+
+#[test]
 fn a_document_in_the_archive_remembers_the_folder_that_was_deleted_under_it() {
     let mut state = State::default();
     let work = folder(&mut state, "work", None);

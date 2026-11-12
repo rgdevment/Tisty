@@ -10,10 +10,10 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `rules` | The rules for working here, one guide at a time («tasks», «documents», «tidying»); alone, the basics and an index. Assistants ask for the one they need first |
+| `rules` | The rules for working here, one guide at a time («tasks», «documents», «tidying», «ideas»); alone, the basics and an index. Assistants ask for the one they need first |
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
-| `catch_up` | Where things stand, with the lists, folders and most used tags; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it |
+| `catch_up` | Where things stand, with the lists, folders and most used tags; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. When **Brainstorm** has ideas, it says how many wait and how many it marked |
 | `find` | Search tasks and documents, the archive included; documents marked as having had their day come after the live ones, saying so |
 | `read` | Read a task: its page, its steps and its latest notes, with who wrote each. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings the latest notes up to about 3,000 characters, more when asked |
 
@@ -23,7 +23,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields |
+| `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields. A task made from an idea on **Brainstorm** names the idea as its source, and the idea leaves the sheet, as it does when you turn it into a task |
 | `remind` | Set a task to ring at an hour |
 | `reschedule` | Move the day of a task it filed |
 | `describe` | Write the description of a task it may work on, replacing the old one |
@@ -45,10 +45,10 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | :-- | :-- |
 | `docs` | The documents and the folders, with what each one is about |
 | `outline_doc` | What is in a document: its headings and parts, and the signs it wants tidying — documents titled alike, headings repeated across pages, links that lead nowhere |
-| `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below) |
+| `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below). **Brainstorm** comes in parts, idea by idea, never as a list of times |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
-| `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo |
+| `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. On **Brainstorm**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; a note that quotes an idea, added to another document, takes the idea off the sheet, as filing it from the window does |
 | `edit_doc` | Change one passage of a document |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
 | `restore_doc` | Put a document back the way it was, from the copy kept beside the documents; with a task, put back the notes a digest replaced |
@@ -57,7 +57,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
 | `tongue_doc` | Join a document to the languages of another, or take it out of its own |
 | `archive_doc` | Put a document or one of its pages away, or bring it back, only when you ask |
-| `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion |
+| `flag_doc` | Mark one or several documents that had their day, with the reason — a copy of another, moved, replaced, wrong, obsolete, a scratch — and what stays instead. You delete them, put them away or take the mark off: a mark, never a deletion. It marks the ideas on **Brainstorm** one by one the same way, with a ◆ on each note, and never the whole sheet; nothing else it does takes an idea off |
 | `import_doc` | Bring a Markdown file on this machine in as a document |
 | `export_doc` | Take a document out to a folder on this machine |
 

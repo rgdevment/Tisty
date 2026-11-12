@@ -97,6 +97,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.tongue",
     "sharing.kept",
     "sharing.forgotten",
+    "doc.idea.flag",
+    "doc.idea.unflag",
 ];
 
 pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
@@ -259,6 +261,11 @@ pub enum Op {
     DocFlag { id: DocId, d: Flag },
     #[serde(rename = "doc.unflag")]
     DocUnflag { id: DocId },
+    /// Its own operation, so a build that knows only `doc.flag` skips it instead of marking the whole sheet.
+    #[serde(rename = "doc.idea.flag")]
+    IdeaFlag { id: DocId, idea: Idea, d: Flag },
+    #[serde(rename = "doc.idea.unflag")]
+    IdeaUnflag { id: DocId, idea: Idea },
     #[serde(rename = "doc.compacted")]
     DocCompacted {
         id: DocId,
@@ -434,6 +441,8 @@ impl Op {
                 | Op::DocSaid { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
+                | Op::IdeaFlag { .. }
+                | Op::IdeaUnflag { .. }
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::Signed { .. }
@@ -477,6 +486,8 @@ impl Op {
                 | Op::CloudSealed { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
+                | Op::IdeaFlag { .. }
+                | Op::IdeaUnflag { .. }
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::DocTongue { .. }
@@ -532,6 +543,8 @@ impl Op {
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocFlag { d, .. } => Op::DocFlag { id, d },
             Op::DocUnflag { .. } => Op::DocUnflag { id },
+            Op::IdeaFlag { idea, d, .. } => Op::IdeaFlag { id, idea, d },
+            Op::IdeaUnflag { idea, .. } => Op::IdeaUnflag { id, idea },
             Op::DocCompacted { print, before, .. } => Op::DocCompacted { id, print, before },
             Op::DocUncompacted { .. } => Op::DocUncompacted { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
@@ -683,6 +696,8 @@ impl Op {
             | Op::DocUnarchive { id }
             | Op::DocFlag { id, .. }
             | Op::DocUnflag { id }
+            | Op::IdeaFlag { id, .. }
+            | Op::IdeaUnflag { id, .. }
             | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocLock { id }
@@ -894,6 +909,13 @@ impl Resolve {
         self.via = via;
         self
     }
+}
+
+/// An idea named by what it says, not where it sits: the sheet may be reordered after the mark.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct Idea {
+    pub heading: String,
+    pub text: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

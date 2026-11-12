@@ -171,6 +171,8 @@ fn the_words_each_prompt_hands_the_agent() {
         ("keep_decision", "subject"),
         ("leave_off", "task"),
         ("pick_up", "task"),
+        ("brainstorm", "subject"),
+        ("sort_ideas", "subject"),
     ] {
         let given = served.prompted(name, json!({ takes: "the passport" }));
         said.push_str(&format!("## {name} «the passport»\n\n{given}\n\n"));

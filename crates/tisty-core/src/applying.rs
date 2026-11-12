@@ -388,15 +388,25 @@ impl State {
     }
 
     pub(crate) fn doc_flagged(&mut self, event: &Event, id: &DocId, d: &crate::event::Flag) {
-        let said = crate::model::Flagged {
-            at: d.at.unwrap_or(event.timestamp),
-            by: d.by.clone().unwrap_or_else(|| event.device.clone()),
-            body: d.body.clone(),
-            via: d.via.clone().or_else(|| event.via.clone()),
-            reason: d.reason.clone(),
-            instead: d.instead.clone(),
-        };
+        let said = flagged_by(event, d);
         self.doc_marked(id, |doc| doc.flagged = Some(said));
+    }
+
+    pub(crate) fn idea_flagged(
+        &mut self,
+        event: &Event,
+        id: &DocId,
+        idea: &crate::event::Idea,
+        d: &crate::event::Flag,
+    ) {
+        let said = crate::model::FlaggedIdea {
+            idea: idea.clone(),
+            mark: flagged_by(event, d),
+        };
+        self.doc_marked(id, |doc| {
+            doc.ideas_flagged.retain(|one| one.idea != said.idea);
+            doc.ideas_flagged.push(said);
+        });
     }
 
     pub(crate) fn doc_marked(&mut self, id: &DocId, mark: impl FnOnce(&mut Kept)) {
@@ -466,6 +476,7 @@ impl State {
                         .unwrap_or_default(),
                 ),
                 flagged: None,
+                ideas_flagged: Vec::new(),
                 compacted: None,
                 folder_was: None,
                 task_of: d.task_of,
@@ -600,5 +611,16 @@ pub(crate) fn looked(
         *color = said
             .clone()
             .filter(|key| crate::model::hue::kept(key).is_some());
+    }
+}
+
+fn flagged_by(event: &Event, d: &crate::event::Flag) -> crate::model::Flagged {
+    crate::model::Flagged {
+        at: d.at.unwrap_or(event.timestamp),
+        by: d.by.clone().unwrap_or_else(|| event.device.clone()),
+        body: d.body.clone(),
+        via: d.via.clone().or_else(|| event.via.clone()),
+        reason: d.reason.clone(),
+        instead: d.instead.clone(),
     }
 }

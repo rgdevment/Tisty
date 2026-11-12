@@ -888,6 +888,8 @@ pub struct Filed {
     page_of: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     flagged: Option<Marked>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    ideas_flagged: Vec<IdeaMarked>,
     #[serde(skip_serializing_if = "Option::is_none")]
     compacted: Option<Compaction>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -920,6 +922,26 @@ pub struct Marked {
     reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     instead: Option<String>,
+}
+
+impl Marked {
+    fn of(mark: &tisty_core::model::Flagged) -> Self {
+        Self {
+            at: mark.at.to_string(),
+            said: mark.body.clone(),
+            via: mark.via.clone(),
+            reason: mark.reason.clone(),
+            instead: mark.instead.clone(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IdeaMarked {
+    heading: String,
+    text: String,
+    mark: Marked,
 }
 
 #[tauri::command(async)]
@@ -1027,13 +1049,16 @@ fn gathered(session: &Session) -> Vec<Filed> {
                 .is_some_and(tisty_core::event::Remembered::edited_through_a_link),
             page_of: kept.page_of.map(|up| up.to_string()),
             tags: kept.tags.iter().map(|one| one.to_string()).collect(),
-            flagged: kept.flagged.as_ref().map(|mark| Marked {
-                at: mark.at.to_string(),
-                said: mark.body.clone(),
-                via: mark.via.clone(),
-                reason: mark.reason.clone(),
-                instead: mark.instead.clone(),
-            }),
+            flagged: kept.flagged.as_ref().map(Marked::of),
+            ideas_flagged: kept
+                .ideas_flagged
+                .iter()
+                .map(|one| IdeaMarked {
+                    heading: one.idea.heading.clone(),
+                    text: one.idea.text.clone(),
+                    mark: Marked::of(&one.mark),
+                })
+                .collect(),
             compacted: kept.compacted.as_ref().map(|done| Compaction {
                 at: done.at.to_string(),
                 via: done.via.clone(),

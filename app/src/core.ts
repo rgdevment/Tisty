@@ -1188,6 +1188,12 @@ export interface Marked {
   instead?: string | null;
 }
 
+export interface IdeaMarked {
+  heading: string;
+  text: string;
+  mark: Marked;
+}
+
 export interface Compaction {
   at: string;
   via?: string | null;
@@ -1212,6 +1218,7 @@ export interface Filed {
   editing?: boolean;
   tags?: string[];
   flagged?: Marked | null;
+  ideasFlagged?: IdeaMarked[];
   compacted?: Compaction | null;
   folderWas?: string[] | null;
   lang?: string | null;
