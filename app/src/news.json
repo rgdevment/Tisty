@@ -1484,10 +1484,14 @@
   {
     "version": "1.47.0",
     "headline": {
-      "es": "Tu agente de IA retoma donde quedó y ordena sin perder nada",
-      "en": "Your AI agent picks up where it left off, and tidies without losing a thing"
+      "es": "Una lluvia de ideas a mano, y tu agente de IA retoma donde quedó sin perder nada",
+      "en": "A brainstorm at hand, and your AI agent picks up where it left off without losing a thing"
     },
     "es": [
+      {
+        "title": "Una lluvia de ideas a mano",
+        "said": "anota una idea en cuanto llega con la captura rápida: Tab cambia entre tarea e idea, y las ideas tienen su propio atajo. Quedan como notas adhesivas de colores, de hasta 140 caracteres, en un documento fijo arriba de tu biblioteca, y las ordenas arrastrándolas."
+      },
       {
         "title": "Retoma justo donde quedó",
         "said": "al empezar, tu agente ve qué cambió desde su última sesión, quién lo cambió y en qué tarea estaba. Si esa tarea ya se cerró o la dio por hecha, te lo dice en vez de tomar otra."
@@ -1510,6 +1514,10 @@
       }
     ],
     "en": [
+      {
+        "title": "A brainstorm at hand",
+        "said": "jot an idea down the moment it comes with the quick capture: Tab switches between task and idea, and ideas have a shortcut of their own. They wait as sticky notes in colours, up to 140 characters each, in a document pinned atop your library, and you reorder them by dragging."
+      },
       {
         "title": "It picks up right where it left off",
         "said": "when it starts, your agent sees what moved since its last session, who moved it and which task it was on. If that task was closed or it said it was done, it tells you instead of taking another."
