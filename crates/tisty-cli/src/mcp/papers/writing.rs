@@ -206,6 +206,9 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
+    if a_task_s && let Some(saved) = tisty_core::docs::read_notes_before(paths.data(), &which) {
+        return notes_put_back(paths, &which, &saved);
+    }
     let named = opened(paths).map_or_else(
         |_| format!("[{which}]"),
         |(state, _)| doc_named(&state, &which),
@@ -267,6 +270,17 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             &[("code", tisty_core::witness::Fact::Code(e.coded()))],
         );
     }
+    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+        && kept.compacted.is_none()
+        && let Some(mark) = compaction_put_back(&store, kept.id, &was)
+        && let Err(e) = store.append(mark)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a compaction came back but its mark could not be kept",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
     if more {
         if let Some(text) = said["content"][0]["text"].as_str() {
             said["content"][0]["text"] = json!(format!(
@@ -278,6 +292,72 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         said["structuredContent"]["over_more_than_one_write"] = json!(true);
     }
     Ok(said)
+}
+
+// Going back over an undone compaction brings the compaction back, so it waits for the person again.
+fn compaction_put_back(store: &Store, id: tisty_core::model::DocId, body: &str) -> Option<Op> {
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let last = store
+        .read_all()
+        .ok()?
+        .into_iter()
+        .rev()
+        .find_map(|one| match one.op {
+            Op::DocCompacted {
+                id: was,
+                print,
+                before,
+            } if was == id => Some((print, before)),
+            _ => None,
+        })?;
+    (last.0.as_deref() == Some(print.as_str())).then_some(Op::DocCompacted {
+        id,
+        print: last.0,
+        before: last.1,
+    })
+}
+
+fn notes_put_back(paths: &Paths, which: &str, saved: &str) -> Result<Value, Refused> {
+    let (state, mut store) = opened(paths)?;
+    let task = tisty_core::task_docs::behind(&state)
+        .get(which)
+        .and_then(|id| state.tasks.get(id))
+        .map_or_else(|| format!("[{which}]"), |one| format!("{:?}", one.title));
+    let now = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
+    let (Some(current), Some(body)) = (
+        tisty_core::assistant_notes::section(&now).map(str::to_string),
+        tisty_core::assistant_notes::put_back(&now, saved),
+    ) else {
+        return Err(Refused::Tool(format!(
+            "{task}'s page has no assistant's notes now, so there is nowhere to put them back."
+        )));
+    };
+    if tisty_core::docs::unchanged(&now, &body) {
+        return Err(Refused::Tool(format!(
+            "{task}'s assistant's notes already say what is kept, so there is nothing to put back."
+        )));
+    }
+    let print = tisty_core::attach::printed(now.as_bytes());
+    let said = over_again(
+        paths,
+        &json!({ "print": print }),
+        &state,
+        &mut store,
+        which,
+        &body,
+    )?;
+    tisty_core::docs::keep_notes_before(paths.data(), which, &current).map_err(hitch)?;
+    let mut kept = said["structuredContent"].clone();
+    kept["notes_put_back"] = json!(true);
+    Ok(told(
+        format!(
+            "Put back the assistant's notes on {task}'s page as they were before the digest; its \
+             steps, ticks and the person's words since are as they were, and notes added after \
+             the digest went aside with it. Calling this again puts the digest and those notes \
+             back."
+        ),
+        kept,
+    ))
 }
 
 pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {

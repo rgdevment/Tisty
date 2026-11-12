@@ -1,4 +1,4 @@
-use super::{noted, outside, rewritten};
+use super::{noted, outside, put_back, rewritten, section, signed};
 
 #[test]
 fn the_first_note_opens_the_assistant_s_own_section_at_the_end() {
@@ -80,4 +80,34 @@ fn what_lies_outside_the_notes_is_the_page_without_them() {
         outside(&rewritten(body, "Otra.", true)),
         "writing the notes again changes nothing outside them"
     );
+}
+
+#[test]
+fn the_notes_are_read_and_put_back_without_touching_the_rest_of_the_page() {
+    let body = "## Notas\n\nLo mío.\n\n## Notas del asistente\n\nUna.\n\n## Al cerrarla\n\nBien.\n";
+
+    let words = section(body).unwrap();
+    assert!(words.contains("Una."), "{words:?}");
+    assert!(
+        !words.contains("Lo mío.") && !words.contains("Bien."),
+        "{words:?}"
+    );
+    let digest = rewritten(body, "Resumen.", true);
+    assert_eq!(put_back(&digest, words).as_deref(), Some(body));
+    assert_eq!(section("## Notas\n\nLo mío.\n"), None);
+    assert_eq!(put_back("## Notas\n\nLo mío.\n", "Una."), None);
+}
+
+#[test]
+fn each_dated_entry_names_who_signed_it_and_words_before_the_first_are_unsigned() {
+    let words = "\n**2026-11-10 09:30** · Claude\nUna.\n\n**2026-11-11 18:02** · Codex\nDos.\n";
+    assert_eq!(
+        signed(words),
+        (vec!["Claude".to_string(), "Codex".to_string()], false)
+    );
+
+    let theirs = "\nMis palabras.\n\n**2026-11-10 09:30** · Claude\nUna.\n";
+    assert_eq!(signed(theirs), (vec!["Claude".to_string()], true));
+
+    assert_eq!(signed("**hoy** · Claude\nUna.\n"), (Vec::new(), true));
 }

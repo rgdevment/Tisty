@@ -927,3 +927,179 @@ fn the_new_tool_and_its_fields_are_listed() {
     let said = unknown["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("part_of") && said.contains("list"), "{said}");
 }
+
+fn digested(served: &Served) -> String {
+    let task = said(&served.call(
+        "propose",
+        json!({ "title": "Login work", "steps": ["read the old flow", "write the new one"] }),
+    ))["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": &task, "body": "Digest: A and B ruled out.", "replace": true }),
+    ));
+    task
+}
+
+fn page_of(served: &Served, task: &str) -> String {
+    served.task(task)["document"]["body"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn a_digest_says_how_much_it_folded_and_whose_notes_they_were() {
+    let served = Served::new();
+    let task = served.filed("Login work");
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+
+    let done = served.call(
+        "append_doc",
+        json!({ "doc": &task, "body": "Digest: A and B ruled out.", "replace": true }),
+    );
+
+    went(&done);
+    let told = said(&done);
+    assert_eq!(told["folded"], 2, "{told}");
+    assert!(told["before"].as_u64().unwrap() > 0, "{told}");
+    assert!(told["after"].as_u64().unwrap() > 0, "{told}");
+    assert_eq!(told["by"].as_array().unwrap().len(), 1, "{told}");
+    let text = done["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("folding 2 dated entries"), "{text}");
+    assert!(text.contains("`restore_doc`"), "{text}");
+}
+
+#[test]
+fn a_digest_is_undone_even_after_later_ticks_and_notes() {
+    let served = Served::new();
+    let task = digested(&served);
+    went(&served.call(
+        "tick",
+        json!({ "task": &task, "step": "read the old flow" }),
+    ));
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Then C." })));
+
+    let back = served.call("restore_doc", json!({ "doc": &task }));
+
+    went(&back);
+    assert_eq!(said(&back)["notes_put_back"], true, "{back}");
+    let page = page_of(&served, &task);
+    assert!(
+        page.contains("Tried A.") && page.contains("Tried B."),
+        "{page}"
+    );
+    assert!(!page.contains("Digest"), "{page}");
+    let read = served.task(&task);
+    let ticked = read["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|one| one["done"] == true);
+    assert!(ticked, "the tick stays: {read}");
+}
+
+#[test]
+fn putting_the_notes_back_twice_brings_the_digest_back() {
+    let served = Served::new();
+    let task = digested(&served);
+    went(&served.call("restore_doc", json!({ "doc": &task })));
+
+    went(&served.call("restore_doc", json!({ "doc": &task })));
+
+    let page = page_of(&served, &task);
+    assert!(page.contains("Digest"), "{page}");
+    assert!(!page.contains("Tried A."), "{page}");
+}
+
+#[test]
+fn a_digest_never_writes_over_notes_no_assistant_signed() {
+    let served = Served::new();
+    let task = served.filed("Login work");
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    let page = served.task(&task)["document"].clone();
+    let file = page["file"].as_str().unwrap();
+    let body = page["body"].as_str().unwrap().replacen(
+        "## Assistant notes\n\n",
+        "## Assistant notes\n\nMy own words.\n\n",
+        1,
+    );
+    served.person().saves_doc(file, &body);
+
+    let over = refused(&served.call(
+        "append_doc",
+        json!({ "doc": &task, "body": "Digest.", "replace": true }),
+    ));
+
+    assert!(over.contains("no assistant signed"), "{over}");
+    assert!(page_of(&served, &task).contains("My own words."));
+}
+
+#[test]
+fn a_digest_longer_than_the_notes_should_ever_be_is_refused() {
+    let served = Served::new();
+    let task = served.filed("Login work");
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+
+    let long = refused(&served.call(
+        "append_doc",
+        json!({ "doc": &task, "body": "x".repeat(6_001), "replace": true }),
+    ));
+
+    assert!(long.contains("at most 6000 characters"), "{long}");
+    assert!(page_of(&served, &task).contains("Tried A."));
+}
+
+#[test]
+fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_person() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+    went(&served.call("restore_doc", json!({ "doc": &doc })));
+
+    went(&served.call("restore_doc", json!({ "doc": &doc })));
+
+    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(
+        read["body"].as_str().unwrap().contains("One. Two."),
+        "{read}"
+    );
+    assert!(read["compacted"]["at"].is_string(), "{read}");
+}
+
+#[test]
+fn marking_a_document_names_its_other_languages_and_what_links_to_it() {
+    let served = Served::new();
+    let es = served.paper("---\nlang: es\n---\n# Inicio de sesión\n\nUno.\n");
+    let en = said(&served.call(
+        "write_doc",
+        json!({ "body": "# Login\n\nOne.", "translation_of": &es, "lang": "en" }),
+    ))["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let stays = served.paper("# Sign-in\n\nOne, and more.\n");
+    let pointing = served.paper(&format!("# Index\n\n[login](tisty:doc/{es})\n"));
+
+    let marked = served.call(
+        "flag_doc",
+        json!({ "doc": &es, "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
+    );
+
+    went(&marked);
+    let told = said(&marked);
+    assert_eq!(told["languages_left"], json!([en]), "{told}");
+    assert_eq!(told["pointed_at_by"], json!([pointing]), "{told}");
+    let text = marked["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("Its other languages stay unmarked"), "{text}");
+    assert!(text.contains("still link to it"), "{text}");
+}

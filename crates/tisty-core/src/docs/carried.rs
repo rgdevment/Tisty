@@ -32,6 +32,22 @@ pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> 
     Ok(())
 }
 
+/// Only a digest writes here, so the ticks and notes after it cannot push the old notes away.
+pub fn keep_notes_before(data: &Path, id: &str, words: &str) -> Result<()> {
+    let at = data.join("notes-before");
+    std::fs::create_dir_all(&at)?;
+    let _ = crate::paths::ours_alone(&at);
+    let into = resolve(&at, id)?;
+    write_atomic(&into, words.as_bytes())?;
+    let _ = crate::paths::ours_alone(&into);
+    Ok(())
+}
+
+pub fn read_notes_before(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&data.join("notes-before"), id).ok()?;
+    std::fs::read_to_string(at).ok()
+}
+
 /// What the document read at when what is kept beside it was set aside.
 pub fn before_left_at(data: &Path, id: &str) -> Option<String> {
     let at = resolve(&data.join("originals-at"), id).ok()?;

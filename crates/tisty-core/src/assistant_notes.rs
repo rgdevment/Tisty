@@ -33,6 +33,38 @@ pub fn rewritten(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
+pub fn section(body: &str) -> Option<&str> {
+    crate::closing::held(body, &ASSISTANT_NOTES).map(|(_, words)| &body[words])
+}
+
+pub fn put_back(body: &str, words: &str) -> Option<String> {
+    let (_, now) = crate::closing::held(body, &ASSISTANT_NOTES)?;
+    Some(format!("{}{words}{}", &body[..now.start], &body[now.end..]))
+}
+
+pub fn signed(words: &str) -> (Vec<String>, bool) {
+    let mut who = Vec::new();
+    let mut before = false;
+    for line in words.lines() {
+        match signature(line) {
+            Some(by) => who.push(by.to_string()),
+            None if who.is_empty() && !line.trim().is_empty() => before = true,
+            None => {}
+        }
+    }
+    (who, before)
+}
+
+fn signature(line: &str) -> Option<&str> {
+    let rest = line.trim().strip_prefix("**")?;
+    let (day, by) = rest.split_once("** · ")?;
+    let stamped = day.len() == 16
+        && day.as_bytes()[4] == b'-'
+        && day.as_bytes()[10] == b' '
+        && day.as_bytes()[13] == b':';
+    (stamped && !by.trim().is_empty()).then_some(by.trim())
+}
+
 pub fn outside(body: &str) -> String {
     match crate::closing::held(body, &ASSISTANT_NOTES) {
         Some((head, words)) => format!("{}{}", &body[..head.start], &body[words.end..]),

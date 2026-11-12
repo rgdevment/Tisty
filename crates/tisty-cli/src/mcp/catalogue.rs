@@ -107,7 +107,7 @@ a task's page — and a new document is for a subject no document covers. Before
 the task or the document that already covers the subject and work there. When your writing \
 leaves something stale, superseded or doubled — a decision replaced, a page saying what another \
 says — put it in order in the same turn: the old decision struck through and dated, the \
-duplicate marked with `flag_doc`. Nothing is left for later.
+duplicate folded in and then marked with `flag_doc`. Nothing is left for later.
 
 ## What a task is made of
 
@@ -216,11 +216,16 @@ what happened, what you ruled out, where you stopped; `append_doc` on the task i
 too long for a line: an analysis, a table, a draft — and is what you compact. The sections \
 are the person's: rename, add or remove one only when they ask you in this conversation.
 
-When a task's page grew long, compact your own part of it: `describe` says what the task is and \
-names its parts; `append_doc` with `replace` writes the assistant's notes again as one dated \
-digest — state, decisions, what was ruled out, references — never with a box, since a box is a \
-step: what is still to do becomes `plan` or a part. The journal is not compacted; it is the \
-dated history, and `reword_note` mends only what is wrong.
+When the assistant's notes on a task's page pass about 8,000 characters, or `read` hands the \
+page back as its sections, compact them when you leave off, never in the middle of a step: \
+`describe` says what the task is and names its parts; `append_doc` with `replace` writes the \
+assistant's notes again as one dated digest — state, decisions, what was ruled out, references, \
+at most 6,000 characters — never with a box, since a box is a step: what is still to do becomes \
+`plan` or a part. `replace` writes over every assistant's notes on the page, not only yours: \
+`read` them all first and carry what still holds from each, saying who found it. A long analysis \
+worth keeping goes in a document of its own. `restore_doc` with the task's id puts the notes back \
+as they were, even after later ticks and notes. The journal is not compacted; it is the dated \
+history, and `reword_note` mends only what is wrong.
 
 ## Picking up where you left off
 
@@ -300,8 +305,9 @@ the outline, and nobody writes one by hand.
 
 ## Compacting
 
-A document or a task's page that grew by sessions is yours to put back in order when you meet \
-it, rather than add one more page. The signs are in `outline_doc` and `docs`: pages named after \
+A task's page is compacted with `append_doc` and `replace`, as `rules` «tasks» says; what follows \
+is for documents. A document that grew by sessions is yours to put back in order when you meet \
+it, after the write you were asked for, rather than add one more page. The signs are in `outline_doc` and `docs`: pages named after \
 a session, a page of a few lines, a heading twice (`repeated`), a document titled like this one \
 (`alike`), links that lead nowhere (`dead`), the state contradicted by a later page. Compact on \
 two signs, or on one your own writing made this turn. A log or minutes kept by date look like \
@@ -315,15 +321,19 @@ theirs; otherwise go on, and end by telling them how to undo it: one click in th
 asking you to restore it.\n\
 2. Move what each leaving page holds worth keeping — decisions, findings, links — onto the open \
 task or document it belongs to (`append_doc`, `note`), and only then mark it `moved` there. A \
-page whose task is closed already lives in that task's journal: mark it `obsolete`. A page with \
-nothing worth keeping is `obsolete` or `superseded`. One `flag_doc` call per reason and \
+page whose task is closed: `read` the task and check that its page and notes say what the page \
+says; what they do not goes into the subject's document first, and only then is the page \
+`obsolete`. A page with nothing worth keeping is `obsolete` or `superseded`. One `flag_doc` call per reason and \
 destination.\n\
-3. Settle every document `alike` names: one an agent wrote is folded in and marked \
-`duplicate_of` the one that stays; one the person wrote is named to them once, with what you \
+3. Settle every document `alike` names. The one that stays is the person's; else the one more \
+documents point at; else the older — never one named after a ticket, a date or a round. One an \
+agent wrote is folded in — what only it says — and then marked `duplicate_of` the one that \
+stays, with its other languages, and the links that point at it changed to the one that stays; \
+one the person wrote is named to them once, with what you \
 would do, as a question of its own — a yes given to several questions at once does not cover \
 marking what they wrote. If they keep both, the history says so and you do not ask again. \
 `alike` is a hint: titles alike on unrelated subjects are left alone.\n\
-4. Then `write_doc` with `compact`, whole, in the shape above: today first, then the subject, \
+4. Then `write_doc` with `compact`, whole, in the shape `rules` «documents» gives: today first, then the subject, \
 the decisions, and a history saying what moved where, what was settled, and every link and file \
 you took out, by its address or the title of the document it leads to — one lost without a name \
 is refused; links to nothing and to documents you marked in this pass need no line. What holds \
