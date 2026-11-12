@@ -54,7 +54,7 @@ Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctr
 - **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, escribir en él a mano, archivarlo o exportarlo como cualquier otro.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.
 - **El archivo sigue siendo Markdown.** Cada nota es una sección con el día y el minuto en que llegó, y su color, que se elige al crearla y no cambia aunque la muevas, y **Ver Markdown** muestra el texto, solo para leer: una idea es texto suelto, y las tablas y los diagramas van en un documento propio. Cualquier documento con `view: notes` en sus [propiedades](https://markdown.tisty.app/es/propiedades) se ve igual.
-- **Ordénalas después**: lleva lo que valga la pena al documento de su tema, o conviértelo en tarea, y quítalo de la hoja.
+- **Ordénalas después**: en cada nota, **Anexar a un documento** la agrega al final del documento que elijas, y **Convertir en tarea** la guarda como tarea, leída como cualquier captura rápida, con sus fechas, listas y etiquetas. En los dos casos la idea sale de la hoja. La Biblioteca muestra junto a la Lluvia de ideas cuántas esperan todavía.
 
 ## Carpetas
 

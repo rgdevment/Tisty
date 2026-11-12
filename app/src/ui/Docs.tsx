@@ -887,6 +887,9 @@ export default function Docs({
                   reading={bolted}
                   onWrite={wrote}
                   onEditor={brainstorm ? undefined : () => setInEditor(open.file)}
+                  known={known}
+                  own={open.file}
+                  onError={onError}
                 />
               </div>
             ) : (

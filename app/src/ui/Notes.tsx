@@ -1,4 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { ideaToDoc } from "../brainstorm";
+import { capture, type Filed } from "../core";
 import { locale, t } from "../locales";
 import "../notes.css";
 import {
@@ -16,7 +18,10 @@ import {
   shapeOf,
   shifted,
 } from "../notes";
+import { saidPlainly } from "../refusal";
 import { Left } from "./Field";
+import FileIdea from "./FileIdea";
+import Glyph from "./Glyph";
 
 interface Props {
   title: string;
@@ -24,6 +29,9 @@ interface Props {
   reading: boolean;
   onWrite: (body: string) => void;
   onEditor?: () => void;
+  known?: Filed[];
+  own?: string;
+  onError?: (message: string) => void;
 }
 
 interface Lifted {
@@ -50,8 +58,22 @@ function nearest(x: number, y: number, from: number): number | null {
   return best?.at ?? null;
 }
 
-export default function Notes({ title, body, reading, onWrite, onEditor }: Props) {
+export default function Notes({
+  title,
+  body,
+  reading,
+  onWrite,
+  onEditor,
+  known = [],
+  own = "",
+  onError = () => {},
+}: Props) {
   const [raw, setRaw] = useState(false);
+  const [filing, setFiling] = useState<{ at: number; idea: string } | null>(null);
+  const latest = useRef(body);
+  latest.current = body;
+  const settled = (at: number) => () => onWrite(dropped(latest.current, at));
+  const failed = (problem: unknown) => onError(saidPlainly(problem));
   const { notes } = boardOf(body);
   const intro = introOf(body);
   const [fresh, setFresh] = useState<number | null>(null);
@@ -172,9 +194,23 @@ export default function Notes({ title, body, reading, onWrite, onEditor }: Props
                 else if (text !== note.text) onWrite(rewritten(body, at, text));
               }}
               onDrop={() => onWrite(dropped(body, at))}
+              onFile={() => setFiling({ at, idea: note.text })}
+              onTask={() => void capture(note.text).then(settled(at)).catch(failed)}
             />
           ))}
         </ul>
+      )}
+      {filing && (
+        <FileIdea
+          idea={filing.idea}
+          known={known}
+          own={own}
+          onClose={() => setFiling(null)}
+          onPick={(file) => {
+            setFiling(null);
+            void ideaToDoc(file, filing.idea).then(settled(filing.at)).catch(failed);
+          }}
+        />
       )}
     </section>
   );
@@ -220,6 +256,8 @@ interface StickyProps {
   onMove: (by: number) => void;
   onText: (text: string) => void;
   onDrop: () => void;
+  onFile: () => void;
+  onTask: () => void;
 }
 
 const EARLIER = new Set(["ArrowUp", "ArrowLeft"]);
@@ -239,6 +277,8 @@ function Sticky({
   onMove,
   onText,
   onDrop,
+  onFile,
+  onTask,
 }: StickyProps) {
   const shape = shapeOf(note.heading, nth);
   const words = useRef<HTMLTextAreaElement>(null);
@@ -307,9 +347,21 @@ function Sticky({
         </span>
       )}
       {!reading && (
-        <button type="button" onClick={onDrop} className="sticky-drop" aria-label={t("notesDrop")}>
-          ×
-        </button>
+        <span className="sticky-tools">
+          {note.text && (
+            <button type="button" onClick={onFile} aria-label={t("ideaFile")} title={t("ideaFile")}>
+              <Glyph name="folder-in" className="h-[13px] w-[13px]" />
+            </button>
+          )}
+          {note.text && (
+            <button type="button" onClick={onTask} aria-label={t("ideaTask")} title={t("ideaTask")}>
+              <Glyph name="check-mark" className="h-[13px] w-[13px]" />
+            </button>
+          )}
+          <button type="button" onClick={onDrop} aria-label={t("notesDrop")} title={t("notesDrop")}>
+            ×
+          </button>
+        </span>
       )}
     </li>
   );

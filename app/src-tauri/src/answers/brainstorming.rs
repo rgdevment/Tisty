@@ -26,9 +26,46 @@ pub fn jot(
     )
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct Pinned {
+    pub file: String,
+    pub ideas: usize,
+}
+
 #[tauri::command(async)]
-pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<String> {
-    found(&mut held(&session))
+pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<Pinned> {
+    let mut session = held(&session);
+    let file = found(&mut session)?;
+    let body = tisty_core::docs::read(&session.paths.docs(), &file).unwrap_or_default();
+    Some(Pinned {
+        ideas: tisty_core::brainstorm::ideas(&body),
+        file,
+    })
+}
+
+#[tauri::command(async)]
+pub fn idea_to_doc(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    idea: String,
+) -> Answer<()> {
+    filing(&mut held(&session), &file, &idea)
+}
+
+pub fn filing(session: &mut Session, file: &str, idea: &str) -> Answer<()> {
+    if idea.trim().is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    if !session.state.docs.values().any(|one| one.file == file) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
+    super::papers::writable(&session.state, file)?;
+    let whole = tisty_core::docs::append(&session.paths.docs(), file, idea.trim())
+        .map_err(super::papers::unwritten)?;
+    session.corpus.forget(file);
+    let hand = signing(&session.state);
+    session.retell(file, &whole, hand);
+    Ok(())
 }
 
 fn found(session: &mut Session) -> Option<String> {

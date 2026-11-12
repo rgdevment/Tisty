@@ -34,3 +34,11 @@ fn a_new_idea_never_takes_the_colour_of_the_one_before_it() {
         body.push_str(&format!("\n\n## 2026-11-12 00:19 · {colour}\n\nidea"));
     }
 }
+
+#[test]
+fn every_section_outside_a_fence_counts_as_one_idea_waiting() {
+    let mut body = opening("Ideas");
+    assert_eq!(ideas(&body), 0);
+    body.push_str("\n## 2026-11-12 00:19 · blue\n\nuna\n\n## 2026-11-12 00:20 · pink\n\n```md\n## no es idea\n```\n");
+    assert_eq!(ideas(&body), 2);
+}

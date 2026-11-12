@@ -40,6 +40,19 @@ pub fn coloured(body: &str, roll: u32) -> &'static str {
     COLOURS[at]
 }
 
+pub fn ideas(body: &str) -> usize {
+    let mut fenced = false;
+    body.lines()
+        .filter(|line| {
+            if line.starts_with("```") || line.starts_with("~~~") {
+                fenced = !fenced;
+                return false;
+            }
+            !fenced && line.starts_with("## ")
+        })
+        .count()
+}
+
 pub fn roll() -> u32 {
     use rand_core::TryRngCore;
     rand_core::OsRng

@@ -1,7 +1,27 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Filed } from "../core";
 import Notes from "../ui/Notes";
+
+const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args: Record<string, unknown> }[] }));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
+    ipc.calls.push({ cmd, args: args ?? {} });
+    return Promise.resolve(cmd === "capture" ? { id: "01T", title: String(args?.text) } : null);
+  },
+}));
+
+beforeEach(() => {
+  ipc.calls = [];
+});
+
+const papers: Filed[] = [
+  { id: "01A", file: "a3f1-0001", title: "Recetas", folder: null, archived: false, away: false },
+  { id: "01B", file: "a3f1-0002", title: "Viejo", folder: null, archived: true, away: true },
+  { id: "01C", file: "a3f1-0009", title: "Ideas", folder: null, archived: false, away: false },
+];
 
 const BODY =
   "---\nview: notes\n---\n\n# Ideas\n\n## 2026-11-10 18:40\n\nprimera\n\n## 2026-11-11 09:12\n\nsegunda\n";
@@ -107,5 +127,67 @@ describe("a brainstorm shown as notes", () => {
     expect(screen.queryByText("5")).toBeNull();
     fireEvent.change(newest, { target: { value: "a".repeat(135) } });
     expect(screen.getByText("5")).toBeTruthy();
+  });
+
+  it("turns an idea into a task, read as any capture, and takes it off the sheet", async () => {
+    const onWrite = vi.fn();
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Turn into a task" })[0]);
+
+    await waitFor(() => expect(onWrite).toHaveBeenCalledTimes(1));
+    expect(ipc.calls.find((one) => one.cmd === "capture")?.args.text).toBe("segunda");
+    const written: string = onWrite.mock.calls[0][0];
+    expect(written).not.toContain("segunda");
+    expect(written).toContain("primera");
+  });
+
+  it("files an idea in a document it picks, never itself nor one put away", async () => {
+    const onWrite = vi.fn();
+    render(
+      <Notes
+        title="Ideas"
+        body={BODY}
+        reading={false}
+        onWrite={onWrite}
+        known={papers}
+        own="a3f1-0009"
+      />,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "File in a document" })[1]);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: "Ideas" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Viejo" })).toBeNull();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Recetas" }));
+
+    await waitFor(() => expect(onWrite).toHaveBeenCalledTimes(1));
+    expect(ipc.calls.find((one) => one.cmd === "idea_to_doc")?.args).toEqual({
+      file: "a3f1-0001",
+      idea: "primera",
+    });
+    expect(onWrite.mock.calls[0][0]).not.toContain("primera");
+  });
+
+  it("keeps the idea on the sheet when it could not be filed", async () => {
+    const onWrite = vi.fn();
+    const onError = vi.fn();
+    ipc.calls = [];
+    render(
+      <Notes
+        title="Ideas"
+        body={BODY}
+        reading={false}
+        onWrite={onWrite}
+        known={[]}
+        own="a3f1-0009"
+        onError={onError}
+      />,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "File in a document" })[0]);
+
+    expect(within(screen.getByRole("dialog")).getByText("No document by that name")).toBeTruthy();
+    expect(onWrite).not.toHaveBeenCalled();
   });
 });

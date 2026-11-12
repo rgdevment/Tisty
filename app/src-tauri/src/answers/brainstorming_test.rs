@@ -106,3 +106,54 @@ fn a_locked_brainstorm_refuses_the_idea_rather_than_making_a_second() {
     assert_eq!(refused.code, "documentLocked");
     assert_eq!(session.state.docs.len(), 1, "no second brainstorm");
 }
+
+#[test]
+fn an_idea_filed_in_a_document_lands_at_its_end_and_leaves_the_rest_as_it_was() {
+    let (_tmp, mut session) = session();
+    let brainstorm = jotting(&mut session, "una idea", "Lluvia de ideas", at(7), 0).unwrap();
+    let made = tisty_core::docs::create(
+        &session.paths.docs(),
+        &session.config.device_id,
+        "# Recetas\n\nPan amasado.\n",
+    )
+    .unwrap();
+    session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: None,
+                file: made.id.clone(),
+                order: made.id.clone(),
+                folder: None,
+                page_of: None,
+                task_of: None,
+                edited: None,
+            },
+        })
+        .unwrap();
+
+    filing(&mut session, &made.id, "  Probar con harina integral  ").unwrap();
+
+    assert_eq!(
+        body(&session, &made.id),
+        "# Recetas\n\nPan amasado.\n\nProbar con harina integral\n"
+    );
+    assert!(
+        body(&session, &brainstorm.file).contains("una idea"),
+        "the brainstorm is left to the window"
+    );
+}
+
+#[test]
+fn an_idea_is_not_filed_in_a_document_that_is_not_there() {
+    let (_tmp, mut session) = session();
+
+    let refused = filing(&mut session, "nadie-0001", "una idea").unwrap_err();
+
+    assert_eq!(refused.code, "noSuchDoc");
+}
