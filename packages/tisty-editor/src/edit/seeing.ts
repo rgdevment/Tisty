@@ -9,8 +9,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { CONTRACTS } from "@tisty/contracts";
-import { isHue } from "tisty-sheet";
+import { ideaParts, isHue, saysAny } from "tisty-sheet";
 import { known, markup } from "tisty-sheet/glyphs";
 import { frontLines } from "../front";
 import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
@@ -70,20 +69,7 @@ const MARKS = new Set([
 type Callout = "note" | "tip" | "important" | "warning" | "caution" | "idea";
 
 const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution|idea)\])\s*$/i;
-const IDEA = /^(\s*>\s?)(\[!(idea)\])(.*)$/i;
-const IDEA_HUES = (CONTRACTS.style as { values: { callouts: { idea: { hues: string[] } } } }).values
-  .callouts.idea.hues;
-const STAMPED = /^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/;
-
-// Words naming no time, hue or side are the note's own first words and stay in sight.
-const ideaHead = (words: string): boolean =>
-  words
-    .split(" · ")
-    .map((part) => part.trim().toLowerCase())
-    .some(
-      (part) =>
-        IDEA_HUES.includes(part) || part === "left" || part === "right" || STAMPED.test(part),
-    );
+const IDEA = /^(\s*>\s*)(\[!(idea)\])(.*)$/i;
 const HIDDEN = new Set([...MARKS, "HeaderMark", "QuoteMark", "ListMark"]);
 
 // Whether showing every mark would change anything, wherever the caret happens to be.
@@ -358,7 +344,7 @@ const quoted = (
   lined(state, from, to, `cm-callout cm-callout-${kind}`, out);
   if (shown) return;
   const head = first.from + callout[1].length;
-  const data = callout[4] !== undefined && ideaHead(callout[4]);
+  const data = callout[4] !== undefined && saysAny(ideaParts(callout[4]));
   const end = data ? first.to : head + callout[2].length;
   out.push(Decoration.replace({ widget: new Said(kind) }).range(head, end));
 };

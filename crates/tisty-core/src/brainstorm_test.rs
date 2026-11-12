@@ -66,6 +66,25 @@ fn a_filed_idea_keeps_its_minute_and_colour_and_sits_to_the_right() {
 const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · yellow\n> pan con masa madre\n\n> [!IDEA] 2026-06-14 08:12 · pink\n> entradas del concierto\n> de julio\n\n> [!idea] 2026-11-11 22:17 · blue\n> ```md\n> > [!IDEA] no es idea\n> ```\n";
 
 #[test]
+fn a_fence_left_open_inside_an_idea_ends_with_it() {
+    let open = "# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · pink\n> ```\n\n> [!IDEA] 2026-11-12 09:41 · blue\n> dos\n";
+
+    assert_eq!(ideas(open), 2);
+    assert_eq!(ideas_on(open)[1].text, "dos");
+}
+
+#[test]
+fn an_idea_written_with_its_marks_indented_reads_as_its_words() {
+    let indented = "# Ideas\n\n  > [!IDEA] 2026-11-12 09:40 · pink\n  > comprar pan\n";
+
+    assert_eq!(ideas_on(indented)[0].text, "comprar pan");
+    assert_eq!(
+        quoted("  > [!IDEA] 2026-11-12 · pink\n  > comprar pan").as_deref(),
+        Some("comprar pan")
+    );
+}
+
+#[test]
 fn a_marker_right_under_a_quoted_line_stays_in_that_idea_as_markdown_reads_it() {
     let joined = "# Ideas\n\n> [!IDEA] 2026-11-12 09:40 · pink\n> uno\n> [!IDEA] 2026-11-12 09:41 · blue\n> dos\n";
 

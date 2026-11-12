@@ -43,22 +43,34 @@ fn lines(body: &str) -> impl Iterator<Item = &str> {
 #[derive(Default)]
 struct Openers {
     fenced: bool,
+    fenced_in_quote: bool,
     quoting: bool,
 }
 
 impl Openers {
     fn opens(&mut self, line: &str) -> bool {
+        let quoted = is_quoted(line);
+        // Markdown ends a fence opened inside a quote where the quote ends, closed or not.
+        if self.fenced && self.fenced_in_quote && !quoted {
+            self.fenced = false;
+        }
         let opens = !self.fenced && !self.quoting && tisty_markdown::idea_words(line).is_some();
         if fences(line) {
+            self.fenced_in_quote = !self.fenced && quoted;
             self.fenced = !self.fenced;
         }
-        self.quoting = line.trim_start().starts_with('>');
+        self.quoting = quoted;
         opens
     }
 }
 
+fn is_quoted(line: &str) -> bool {
+    line.trim_start().starts_with('>')
+}
+
 fn unquoted(line: &str) -> &str {
-    line.strip_prefix('>')
+    line.trim_start()
+        .strip_prefix('>')
         .map_or(line, |rest| rest.strip_prefix(' ').unwrap_or(rest))
 }
 
@@ -193,7 +205,7 @@ pub fn quoted(note: &str) -> Option<String> {
         return None;
     }
     let said: Option<Vec<&str>> = lines
-        .map(|line| line.starts_with('>').then(|| unquoted(line)))
+        .map(|line| is_quoted(line).then(|| unquoted(line)))
         .collect();
     let text = said?.join("\n").trim().to_string();
     (!text.is_empty()).then_some(text)

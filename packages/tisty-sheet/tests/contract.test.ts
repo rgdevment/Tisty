@@ -22,6 +22,9 @@ type Style = {
         fill: { light: Record<string, string>; dark: Record<string, string> };
         ink: { light: string; dark: string };
         width: { least: string; most: string };
+        padding: string;
+        margin: string;
+        beside: { right: string; left: string };
       };
     };
     code_colors: Record<string, { color: string; italic?: boolean }>;
@@ -56,9 +59,17 @@ const said = (css: string, selector: string, property: string): string | undefin
     .map((one) => new RegExp(`(?:^|[;\\s])${property}:\\s*([^;]+);`).exec(one.body)?.[1])
     .find(Boolean);
 
-const colorsOf = (css: string) =>
+const tokensOf = (css: string) =>
   Object.fromEntries(
     [...css.matchAll(/--tisty-([a-z-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value]),
+  );
+const colorsOf = (css: string) =>
+  Object.fromEntries(Object.entries(tokensOf(css)).filter(([name]) => !name.startsWith("idea-")));
+const ideasOf = (css: string) =>
+  Object.fromEntries(
+    Object.entries(tokensOf(css))
+      .filter(([name]) => name.startsWith("idea-"))
+      .map(([name, value]) => [name.slice("idea-".length), value]),
   );
 
 describe("what the contract says a sheet looks like is what Tisty's own sheet wears", () => {
@@ -66,6 +77,9 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     const [light, dark] = tokens.split('[data-theme="dark"]');
     expect(colorsOf(light)).toEqual(style.colors.light);
     expect(colorsOf(dark)).toEqual(style.colors.dark);
+    const { fill, ink } = style.callouts.idea;
+    expect(ideasOf(light)).toEqual({ ...fill.light, ink: ink.light });
+    expect(ideasOf(dark)).toEqual({ ...fill.dark, ink: ink.dark });
   });
 
   it("its letters", () => {
@@ -135,18 +149,22 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     );
   });
 
-  it("the paper and ink of its sticky notes, in each theme, and how wide they get", () => {
+  it("its sticky notes: their paper and ink, how wide they get and the room around them", () => {
     const { idea } = style.callouts;
     const note = 'blockquote[data-callout="idea"]';
-    const darkly = (one: string) => `html.dark ${one}`;
-    expect(said(page, note, "--idea-ink")).toBe(idea.ink.light);
-    expect(said(page, darkly(note), "--idea-ink")).toBe(idea.ink.dark);
+    expect(said(page, `${note}[data-hue]`, "color")).toBe("var(--tisty-idea-ink)");
     expect(said(page, note, "min-width")).toBe(idea.width.least);
     expect(said(page, note, "max-width")).toBe(idea.width.most);
+    expect(said(page, note, "padding")).toBe(idea.padding);
+    expect(said(page, note, "margin")).toBe(idea.margin);
+    for (const side of ["right", "left"] as const) {
+      expect(said(page, `${note}[data-side="${side}"]`, "margin")).toBe(idea.beside[side]);
+      expect(said(page, `${note}[data-side="${side}"]`, "float")).toBe(side);
+    }
     for (const hue of idea.hues) {
-      const painted = `${note}[data-hue="${hue}"]`;
-      expect(said(page, painted, "--idea-fill")).toBe(idea.fill.light[hue]);
-      expect(said(page, darkly(painted), "--idea-fill")).toBe(idea.fill.dark[hue]);
+      expect(said(page, `${note}[data-hue="${hue}"]`, "--idea-fill")).toBe(
+        `var(--tisty-idea-${hue})`,
+      );
     }
   });
 

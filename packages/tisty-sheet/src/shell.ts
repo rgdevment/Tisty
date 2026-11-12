@@ -1,4 +1,5 @@
 import { HUES } from "./hues";
+import { IDEA_HUES } from "./ideas";
 import sheet from "./page.css?raw";
 import tables from "./tables.css?raw";
 
@@ -22,6 +23,8 @@ export const TOKENS = [
   "mark-doc-lit",
   ...HUES.map((one) => `hue-${one}`),
   ...PENS.map((one) => `pen-${one}`),
+  ...IDEA_HUES.map((one) => `idea-${one}`),
+  "idea-ink",
 ].map((one) => `--tisty-${one}`);
 
 const worn = (): string => {

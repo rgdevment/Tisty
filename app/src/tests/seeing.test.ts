@@ -153,6 +153,8 @@ describe("a block written as it reads", () => {
     expect(read(stuck)).toBe("\nProbar con harina");
     const titled = state("> [!idea] Llamar al vet\n> el lunes", 30);
     expect(read(titled)).toBe(" Llamar al vet\nel lunes");
+    const spaced = state(">  [!IDEA] 2026-11-12 · pink\n> Pegada");
+    expect(read(spaced)).toBe(" \nPegada");
   });
 
   it("shows Tisty's pens and underline without their marks, and its icons as icons", () => {

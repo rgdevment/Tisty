@@ -313,7 +313,6 @@ blockquote[data-callout="caution"] {
 }
 blockquote[data-callout="idea"] {
   --said: var(--tisty-soft);
-  --idea-ink: #2a2520;
   box-sizing: border-box;
   width: fit-content;
   min-width: 150px;
@@ -327,99 +326,47 @@ blockquote[data-callout="idea"] {
   font-family: "Ink Free", "Segoe Print", Noteworthy, "Bradley Hand", "Marker Felt", cursive;
   transform: rotate(-1.2deg);
 }
-html.dark blockquote[data-callout="idea"],
-[data-theme="dark"] blockquote[data-callout="idea"] {
-  --idea-ink: #fbf5ea;
-}
 blockquote[data-callout="idea"][data-hue] {
-  --said: var(--idea-ink);
+  --said: var(--tisty-idea-ink);
   border: 0;
   background: var(--idea-fill);
-  color: var(--idea-ink);
+  color: var(--tisty-idea-ink);
 }
 blockquote[data-callout="idea"][data-hue="pink"] {
-  --idea-fill: #feb2b9;
+  --idea-fill: var(--tisty-idea-pink);
 }
 blockquote[data-callout="idea"][data-hue="coral"] {
-  --idea-fill: #fea284;
+  --idea-fill: var(--tisty-idea-coral);
 }
 blockquote[data-callout="idea"][data-hue="orange"] {
-  --idea-fill: #fbb974;
+  --idea-fill: var(--tisty-idea-orange);
 }
 blockquote[data-callout="idea"][data-hue="yellow"] {
-  --idea-fill: #f3dd7b;
+  --idea-fill: var(--tisty-idea-yellow);
 }
 blockquote[data-callout="idea"][data-hue="lime"] {
-  --idea-fill: #bce671;
+  --idea-fill: var(--tisty-idea-lime);
 }
 blockquote[data-callout="idea"][data-hue="green"] {
-  --idea-fill: #90cd95;
+  --idea-fill: var(--tisty-idea-green);
 }
 blockquote[data-callout="idea"][data-hue="teal"] {
-  --idea-fill: #6ed0c0;
+  --idea-fill: var(--tisty-idea-teal);
 }
 blockquote[data-callout="idea"][data-hue="cyan"] {
-  --idea-fill: #87ddf1;
+  --idea-fill: var(--tisty-idea-cyan);
 }
 blockquote[data-callout="idea"][data-hue="blue"] {
-  --idea-fill: #83bff6;
+  --idea-fill: var(--tisty-idea-blue);
 }
 blockquote[data-callout="idea"][data-hue="lavender"] {
-  --idea-fill: #bdc3fe;
+  --idea-fill: var(--tisty-idea-lavender);
 }
 blockquote[data-callout="idea"][data-hue="violet"] {
-  --idea-fill: #bc95e5;
+  --idea-fill: var(--tisty-idea-violet);
 }
 blockquote[data-callout="idea"][data-hue="magenta"] {
-  --idea-fill: #f5a3db;
-}
-html.dark blockquote[data-callout="idea"][data-hue="pink"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="pink"] {
-  --idea-fill: #ae4c61;
-}
-html.dark blockquote[data-callout="idea"][data-hue="coral"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="coral"] {
-  --idea-fill: #9e4331;
-}
-html.dark blockquote[data-callout="idea"][data-hue="orange"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="orange"] {
-  --idea-fill: #a25e24;
-}
-html.dark blockquote[data-callout="idea"][data-hue="yellow"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="yellow"] {
-  --idea-fill: #896a10;
-}
-html.dark blockquote[data-callout="idea"][data-hue="lime"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="lime"] {
-  --idea-fill: #5f7723;
-}
-html.dark blockquote[data-callout="idea"][data-hue="green"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="green"] {
-  --idea-fill: #206f3c;
-}
-html.dark blockquote[data-callout="idea"][data-hue="teal"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="teal"] {
-  --idea-fill: #19746b;
-}
-html.dark blockquote[data-callout="idea"][data-hue="cyan"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="cyan"] {
-  --idea-fill: #1c788e;
-}
-html.dark blockquote[data-callout="idea"][data-hue="blue"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="blue"] {
-  --idea-fill: #155d9f;
-}
-html.dark blockquote[data-callout="idea"][data-hue="lavender"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="lavender"] {
-  --idea-fill: #645fb3;
-}
-html.dark blockquote[data-callout="idea"][data-hue="violet"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="violet"] {
-  --idea-fill: #623586;
-}
-html.dark blockquote[data-callout="idea"][data-hue="magenta"],
-[data-theme="dark"] blockquote[data-callout="idea"][data-hue="magenta"] {
-  --idea-fill: #974180;
+  --idea-fill: var(--tisty-idea-magenta);
 }
 blockquote[data-callout="idea"][data-side="right"] {
   float: right;

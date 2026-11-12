@@ -325,7 +325,6 @@ pub fn idea_head(source: &str) -> IdeaHead<'_> {
         .unwrap_or_default()
 }
 
-// Words that name none of the three are the note's own first words, never data to hide.
 pub fn idea_parts(words: &str) -> IdeaHead<'_> {
     let mut head = IdeaHead::default();
     for part in words.split(" · ").map(str::trim) {

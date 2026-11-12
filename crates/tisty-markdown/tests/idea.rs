@@ -72,6 +72,10 @@ fn a_reader_outside_tisty_gets_a_note_without_the_head() {
         "> [!NOTE]\n> Llamar al vet\\\n> el lunes\n"
     );
     assert_eq!(
+        out("> [!IDEA] 2026-11-12 · blue\r\n> Probar\r\n"),
+        "> [!NOTE]\r\n> Probar\r\n"
+    );
+    assert_eq!(
         out(":::idea\n\nSin cabecera\n\n:::"),
         "> [!NOTE]\n>\n> Sin cabecera\n>"
     );
@@ -83,6 +87,15 @@ fn only_an_idea_carries_a_time_a_hue_or_a_side() {
 
     assert!(!drawn.contains("data-hue"), "{drawn}");
     assert!(!drawn.contains("data-when"));
+}
+
+#[test]
+fn the_hues_an_idea_knows_are_the_ones_the_contract_lists() {
+    let contract: serde_json::Value =
+        serde_json::from_str(include_str!("../../../contracts/dist/contract.json")).unwrap();
+    let listed = &contract["contracts"]["style"]["values"]["callouts"]["idea"]["hues"];
+
+    assert_eq!(*listed, serde_json::json!(tisty_markdown::IDEA_HUES));
 }
 
 #[test]

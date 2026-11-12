@@ -180,6 +180,7 @@ fn quoted(said: &str, start: usize, kind: Callout, edits: &mut Edits) {
 // No other reader knows a sticky note, so it leaves as a note, and its date, hue and side stay behind.
 fn idea_out(said: &str, start: usize, edits: &mut Edits) {
     let line = said.split('\n').next().unwrap_or_default();
+    let line = line.strip_suffix('\r').unwrap_or(line);
     let Some(open) = line.find("[!") else {
         return;
     };

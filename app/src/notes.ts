@@ -1,4 +1,4 @@
-import { CONTRACTS } from "@tisty/contracts";
+import { IDEA_HUES, ideaParts, saysAny } from "tisty-editor/read";
 
 export interface Note {
   heading: string;
@@ -12,21 +12,14 @@ export interface Board {
 
 const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
 const FENCE = /^[>\s]*(```|~~~)/;
+const QUOTED = /^\s*>/;
 const STAMP = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/;
-const SIDES = ["left", "right"];
 
 export const IDEA_AT_MOST = 140;
 
-export const COLOURS: readonly string[] = (
-  CONTRACTS.style as { values: { callouts: { idea: { hues: string[] } } } }
-).values.callouts.idea.hues;
+export const COLOURS = IDEA_HUES;
 
-const partsOf = (heading: string): string[] => heading.split(" · ").map((part) => part.trim());
-
-export const colourOf = (heading: string): number => {
-  const hue = partsOf(heading).find((part) => COLOURS.includes(part.toLowerCase()));
-  return hue ? COLOURS.indexOf(hue.toLowerCase()) : -1;
-};
+export const colourOf = (heading: string): number => COLOURS.indexOf(ideaParts(heading).hue ?? "");
 
 interface Cut {
   ending: string;
@@ -39,11 +32,18 @@ function cut(body: string): Cut {
   const head: string[] = [];
   const blocks: string[][] = [];
   let fenced = false;
+  let fencedInQuote = false;
   let quoting = false;
   for (const line of body.split(/\r?\n/)) {
+    const quoted = QUOTED.test(line);
+    // Markdown ends a fence opened inside a quote where the quote ends, closed or not.
+    if (fenced && fencedInQuote && !quoted) fenced = false;
     const opens = !fenced && !quoting && OPENER.test(line);
-    if (FENCE.test(line)) fenced = !fenced;
-    quoting = line.trimStart().startsWith(">");
+    if (FENCE.test(line)) {
+      fencedInQuote = !fenced && quoted;
+      fenced = !fenced;
+    }
+    quoting = quoted;
     if (opens) blocks.push([line]);
     else if (blocks.length) blocks[blocks.length - 1].push(line);
     else head.push(line);
@@ -51,7 +51,7 @@ function cut(body: string): Cut {
   return { ending, head, blocks };
 }
 
-const unquoted = (line: string): string => (line.startsWith(">") ? line.replace(/^> ?/, "") : line);
+const unquoted = (line: string): string => line.replace(/^\s*> ?/, "");
 
 const noteOf = (block: string[]): Note => ({
   heading: (OPENER.exec(block[0])?.[1] ?? "").trim(),
@@ -150,13 +150,12 @@ export const stampOf = (at: Date): string =>
   `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
 
 export function saidWhen(heading: string, locale: string): string {
-  const stamp = partsOf(heading)
-    .map((part) => STAMP.exec(part))
-    .find(Boolean);
+  const stamp = STAMP.exec(ideaParts(heading).when ?? "");
   if (!stamp) {
-    const named = (part: string) => [...COLOURS, ...SIDES].includes(part.toLowerCase());
-    return partsOf(heading)
-      .filter((part) => part && !named(part))
+    return heading
+      .split(" · ")
+      .map((part) => part.trim())
+      .filter((part) => part && !saysAny(ideaParts(part)))
       .join(" · ");
   }
   const [year, month, day] = stamp.slice(1, 4).map(Number);

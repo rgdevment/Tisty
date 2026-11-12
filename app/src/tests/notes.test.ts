@@ -171,6 +171,13 @@ describe("a note's time", () => {
     expect(saidWhen("blue · right", "es")).toBe("");
   });
 
+  it("ends a fence left open in a note where the note ends, and reads indented marks", () => {
+    const open = "# Ideas\n\n> [!IDEA] uno\n> ```\n\n  > [!IDEA] dos\n  > segunda\n";
+
+    expect(boardOf(open).notes.map((one) => one.text)).toEqual(["```", "segunda"]);
+    expect(rewritten(open, 1, "segunda, mejor")).toContain("> [!IDEA] dos\n> segunda, mejor\n");
+  });
+
   it("stays in the note above when its marker sits right under a quoted line", () => {
     const joined = "# Ideas\n\n> [!IDEA] uno\n> primera\n> [!IDEA] dos\n> segunda\n";
 

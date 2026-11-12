@@ -126,6 +126,9 @@ values:
       plain: "Without a hue, it wears the sheet's colour inside a dashed line of hair."
       side: "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it."
       width: { least: "150px", most: "256px" }
+      padding: "12px 14px 14px"
+      margin: "14px 0"
+      beside: { right: "4px 0 12px 20px", left: "4px 20px 12px 0", says: "The margin of a note floated to that side, in place of its own." }
     label: { size: "11.5px", weight: 600, spacing: "0.04em", capitals: true, margin_bottom: "2px", says: "The word of its kind, which the reader writes above its words in the reader's own language, in its hue." }
   pens:
     named: { yellow: pen-yellow, green: pen-green, blue: pen-blue, pink: pen-pink }
