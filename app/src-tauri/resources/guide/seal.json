@@ -2,7 +2,7 @@
   "author": "rgdevment",
   "files": {
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
-    "en/brainstorm.png": "37f2143ccad1a144b627416f60751445d304bb191df01fad699ec7fb32ce233c",
+    "en/brainstorm.png": "4d44d3b608c75c6584cd12e53d4a46c2e736b3ceffc0760cd3630c4723762952",
     "en/capture.png": "230006bf09f9f2dd20d168c50c540866a45eed4d723ed2633bc78db94e340b9d",
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
     "en/diagrams.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
@@ -23,7 +23,7 @@
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "7f95d2e04e18e38a788cc6144c3d5c8b6317750e8a930ecac50ce323e9b84919",
     "es/guia.md": "32dad98eef6360db9251f035325ab8ff0893fe54d5d0df578b205712d070683c",
-    "es/ideas.png": "d361f820cf77500da4aea630151226effcefdf3625b2fa4219502bd77b393507",
+    "es/ideas.png": "613d2a80bec55aa6db78f3429611b00864635a3bae36aa7aebd4a558f85bc69d",
     "es/idiomas.png": "5aada4eef5d3d6b567619043adbdbbb901211e364753ee7a08ccb64abd5c6812",
     "es/muestra.md": "5f151d49ae2d2e830f7a8adc82d7aeffe49932e9e6a3462095f1e5c51c576e88",
     "es/pagina.md": "a5d5aea1284ed3a2b6fed7759e1114e1042102577756a559a698992b468cf2c5",
@@ -41,6 +41,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "YF992214b_dQewxpibMePIMElju7i-0zEMvCKkjoZEbINxjTtXqwrvBZ0sWAUkb4kiN4t978RWMSDjzw5ZkSDw"
+    "sig": "aiz1KzTS5XBhhbLb4875-MkNeZ7M7O1QD_vYK3ycOmoTNX07FJiaImT9yjkDaJOQvmGlMqOc_f87WOcvTm2QBw"
   }
 }
