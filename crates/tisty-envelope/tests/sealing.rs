@@ -554,6 +554,29 @@ fn it_writes_the_same_certificate_and_revocation_as_the_samples() {
     assert_eq!(revocation.at.to_string(), samples["revocation"]["at"]);
 }
 
+#[test]
+fn a_document_with_ideas_is_shared_with_their_date_hue_and_side() {
+    let body = "# Casa\n\n> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Pintar la reja\n\n> [!IDEA]\n> Sin cabeza\n";
+    let html = tisty_envelope::travelling::ready(
+        &tisty_markdown::html(&tisty_markdown::read(body)),
+        &tisty_envelope::travelling::Places::default(),
+    );
+    assert_eq!(check_html(&html), Vec::<String>::new());
+
+    let (key, certificate) = signer();
+    let mut writer = Writer::new(&key, &certificate);
+    let said = document(json!({ "id": "ideas", "html": html, "body": body }));
+    let sealed = writer
+        .sealed(said, vec![], vec![], &sealing("ideas", None))
+        .unwrap();
+    let held = document_of(&opened(&sealed.main, ("ideas", "main"), None).unwrap());
+    let shared = held["html"].as_str().unwrap();
+    assert!(
+        shared.contains(r#"data-when="2026-11-12 09:40" data-hue="yellow" data-side="right""#),
+        "{shared}"
+    );
+}
+
 fn refused(value: Value, sealing: &Sealing) -> Refused {
     let (key, certificate) = signer();
     let mut writer = Writer::new(&key, &certificate);
