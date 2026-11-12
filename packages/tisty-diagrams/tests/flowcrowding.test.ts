@@ -141,15 +141,62 @@ const crossEachOther = (one: Rect, other: Rect) => {
   );
 };
 
-const node = (id: string, x: number, y: number) =>
+const node = (id: string, x: number, y: number, shape = "process") =>
   ({
     id,
     type: "shape",
+    data: { shape },
     internals: { positionAbsolute: { x, y } },
     measured: { width: 100, height: 40 },
   }) as unknown as InternalNode;
 
+const endsInto = (scene: Scene, target: string) => {
+  const { routes } = routedIn(scene);
+  return routes
+    .filter((_, at) => scene.joints[at].to === target)
+    .map((one) => `${one.to.x} ${one.to.y}`);
+};
+
 describe("a crowded drawing", () => {
+  it("spreads arrows along a side across too, and keeps curved or slanted outlines at their middle", () => {
+    const across = flowOf(`flowchart LR
+  A[Uno] --> C[Tres]
+  B[Dos] --> C`);
+    const cylinder = flowOf(`flowchart TD
+  A[Uno] --> D[(Base)]
+  B[Dos] --> D`);
+    const slanted = flowOf(`flowchart TD
+  A[Uno] --> D[/Entrada/]
+  B[Dos] --> D`);
+
+    expect(new Set(endsInto(across, "C")).size).toBe(2);
+    expect(new Set(endsInto(cylinder, "D")).size).toBe(1);
+    expect(new Set(endsInto(slanted, "D")).size).toBe(1);
+  });
+
+  it("spreads a window's wires by each shape's kind, apart into a box and at a diamond's middle", () => {
+    const edges: Edge[] = [
+      { id: "one", source: "a", target: "c" },
+      { id: "two", source: "b", target: "c" },
+      { id: "three", source: "e", target: "d" },
+      { id: "four", source: "f", target: "d" },
+    ];
+    const lookup = new Map([
+      ["a", node("a", 0, 0)],
+      ["b", node("b", 200, 0)],
+      ["c", node("c", 100, 200)],
+      ["e", node("e", 600, 0)],
+      ["f", node("f", 800, 0)],
+      ["d", node("d", 700, 200, "decision")],
+    ]);
+
+    const routes = routesIn(edges, shapesSaid(lookup), lookup);
+    const at = (id: string) => JSON.stringify(routes.get(id)?.to);
+
+    expect(at("one")).not.toBe(at("two"));
+    expect(at("three")).toBe(at("four"));
+  });
+
   it("brings arrows meeting one side of a shape in at points of their own, crossing none, and a diamond's at its middle", () => {
     const scene = flowOf(GUIDE);
     const { routes, joints } = routedIn(scene);
@@ -174,7 +221,20 @@ describe("a crowded drawing", () => {
 
     for (const [side, ends] of into) expect(new Set(ends).size, side).toBe(ends.length);
     expect([...into.values()].some((ends) => ends.length > 1)).toBe(true);
+    const sharing = routes.flatMap((route, at) =>
+      routes.flatMap((other, next) => {
+        if (next <= at) return [];
+        const middle = (one: number, two: number, end: "from" | "to") =>
+          scene.joints[one][end] === scene.joints[two][end] &&
+          joints[one][end === "from" ? "fromMiddle" : "toMiddle"];
+        if (middle(at, next, "from") || middle(at, next, "to")) return [];
+        return runsOf(route.way).some((run) => sharedRun(run, runsOf(other.way)))
+          ? [`${joints[at].label || at} / ${joints[next].label || next}`]
+          : [];
+      }),
+    );
     expect(crossings).toEqual([]);
+    expect(sharing).toEqual([]);
     expect(new Set(fromTheDiamond.map((one) => `${one.from.x} ${one.from.y}`)).size).toBe(1);
   });
 

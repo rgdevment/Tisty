@@ -69,6 +69,8 @@ export const routesIn = (
             endLabel: words.endLabel,
             fromMiddle: meetsInTheMiddle(shapeOf(from)),
             toMiddle: meetsInTheMiddle(shapeOf(to)),
+            fromKey: one.source,
+            toKey: one.target,
           },
         ]
       : [];
