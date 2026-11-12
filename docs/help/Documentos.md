@@ -4,7 +4,7 @@ Los documentos viven junto a las tareas, para el material de consulta que no tie
 
 Cómo se escribe en uno está en [[El editor Markdown|Editor-Markdown]]; todo lo que puede llevar (avisos, tablas, diagramas, fórmulas, widgets, código) está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/).
 
-![Lo que sabes, en un documento por tema: se corrige en su lugar en vez de apilarse, con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-documentos.png)
+![Lo que sabes, en un documento por tema: se corrige en su lugar en vez de apilarse, con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-06-documentos.png)
 
 ## ¿Tarea o documento?
 
@@ -37,6 +37,8 @@ flowchart TD
 
 Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
 
+**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
+
 Cómo funcionan la página, los pasos y las partes de una tarea está en [[Tareas]]; lo que guarda una cerrada, en [[El archivo|El-archivo]].
 
 ## Crear uno
@@ -50,6 +52,8 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 ## Lluvia de ideas
 
 Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Lluvia de ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
+
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
 
 - **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, escribir en él a mano, archivarlo o exportarlo como cualquier otro.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.
@@ -158,7 +162,7 @@ Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 ## Compartir
 
-![Comparte lo que sabes, cifrado: se cifra en tu equipo antes de salir y va firmado por ti, se abre en cualquier navegador sin cuenta y se va solo tras los días sin uso que elijas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-07-folio.png)
+![Comparte lo que sabes, cifrado: se cifra en tu equipo antes de salir y va firmado por ti, se abre en cualquier navegador sin cuenta y se va solo tras los días sin uso que elijas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-08-folio.png)
 
 Cuando otra persona necesita lo que sabes (tu PO, el QA que llega al proyecto, otro equipo), le entregas el documento. El panel junto a un documento tiene una fila **Compartido** con **Compartir…**. Compartir pasa por Folio, un servicio aparte de Tisty. Al pulsar **Compartir…**, Tisty lee un archivo firmado pequeño para saber si Folio ya abrió. Mientras no abra, te lo dice, con un enlace a [tisty.cl](https://tisty.cl), y nada de tu documento sale de este equipo; las salidas de arriba siguen sirviendo para entregárselo a alguien. Si ese archivo no se puede alcanzar, lo dice y ofrece reintentar. Cuando Folio esté abierto, primero creas tu identidad si este computador todavía no la tiene (la llave que firma lo que compartes, respaldada con tu frase de 24 palabras), luego aceptas sus términos la primera vez, eliges qué puede hacer la otra persona y cuánto dura, y recibes un link. Un documento en varios idiomas los muestra con una casilla cada uno: el que compartes siempre va, puedes dejar fuera otro tuyo, y uno escrito por otra persona se queda aquí. Si Folio cambia sus términos, Compartir y Sincronizar te piden aceptar los nuevos apenas se puedan verificar; mientras tanto sigues compartiendo con los que aceptaste.
 

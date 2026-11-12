@@ -213,6 +213,33 @@ and what happens instead when the memory lives in Tisty.
 
 Tisty keeps two kinds of things, and the same two serve you and your agent.
 Something you will do is a task. Something you will come back to is a document.
+An idea, a thought caught on the fly before you know which of the two it is,
+waits in Brainstorm.
+
+### Documents: what you know, one per subject
+
+- **One living document per subject** — it opens with what holds today, then
+  the subject, what is out of scope, the decisions dated with their why (a
+  replaced one is struck through, not erased) and its history.
+- **Corrected in place** — the passage that changed is rewritten; no second
+  copy is piled beside the first.
+- **Pages for what is long** — a runbook, an annex, a book in chapters — with
+  folders, languages, tables, diagrams, formulas and a PDF of its own.
+
+![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/web/en-02-diagrams.png)
+
+### Ideas: a brainstorm at hand
+
+- **Caught the moment it comes** — the quick capture switches between a task
+  and an idea with `Tab`, and ideas have a shortcut of their own: up to 140
+  characters each, dated, without opening the window.
+- **Sticky notes that stay Markdown** — they wait as coloured notes in
+  Brainstorm, a document pinned atop the Library, and you reorder them by
+  dragging.
+- **Sorted out later** — each idea becomes a task or goes into the document it
+  belongs to, and the Library counts the ones still waiting.
+
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/web/en-03-brainstorm.png)
 
 ### Tasks: what to do, who does it, how it was solved
 
@@ -237,17 +264,7 @@ Something you will do is a task. Something you will come back to is a document.
 - **The archive** — a closed task is kept whole, and a search answers «how did
   we solve this?» with the line that says it.
 
-### Documents: what you know, one per subject
-
-- **One living document per subject** — it opens with what holds today, then
-  the subject, what is out of scope, the decisions dated with their why (a
-  replaced one is struck through, not erased) and its history.
-- **Corrected in place** — the passage that changed is rewritten; no second
-  copy is piled beside the first.
-- **Pages for what is long** — a runbook, an annex, a book in chapters — with
-  folders, languages, tables, diagrams, formulas and a PDF of its own.
-
-![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/web/en-03-documents.png)
+![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](assets/screens/web/en-04-priorities.png)
 
 ## A Day With Your Agent
 
@@ -325,7 +342,7 @@ after the days without use you choose. They read it in any browser with no
 account, or edit it in their own Tisty. Your memory stays on your disk; Folio
 only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
 
-![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/web/en-07-folio.png)
+![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/web/en-08-folio.png)
 
 ## MCP Server
 
@@ -447,6 +464,12 @@ task whose page gathers what you found out — notes, recordings, code analysis 
 split into parts that each get done, then completed and archived — and a year
 later a search still brings back how it was solved, every step of it. That is
 why a task has a page: it is also a document, one with an end.
+
+**And an idea?** An idea is a thought caught on the fly, before you know whether
+it is something to do or something to keep: a few words, 140 at most, dated, on
+the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes
+into the document on its subject, or is set aside. A note is something else: the
+dated line in a task's journal.
 
 ```mermaid
 flowchart TD
@@ -582,7 +605,7 @@ Tisty it holds a good deal more than text:
 - **A PDF of its own**, A4, Letter or Folio, with its pictures inside,
   shown to you before you export it.
 
-![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/web/en-06-markdown.png)
+![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/web/en-06-documents.png)
 
 The guide Tisty writes the first time it opens carries a page with one of each,
 so you can see all of it before you write a line.
@@ -797,7 +820,7 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and a task your agent notes the way you say it](assets/screens/web/en-04-day.png)
+![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and a task your agent notes the way you say it](assets/screens/web/en-07-day.png)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -832,8 +855,6 @@ Drag a task into its quadrant, or type it: `!do`, `!schedule`, `!delegate`.
 quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
-
-![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](assets/screens/web/en-05-priorities.png)
 
 **The spread deals your days, one row at a time.** Priorities sort what matters;
 the spread decides when. It runs as a river of days you scroll through rather
@@ -886,7 +907,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![Software out of conviction, not subscription: Tisto, Tisty's beaver, beside what Tisty is, a friend to your AI agents with no account, no subscription and no telemetry, and your files stay on your computer](assets/screens/web/en-09-close.png)
+![Software out of conviction, not subscription: Tisto, Tisty's beaver, beside what Tisty is, a friend to your AI agents with no account, no subscription and no telemetry, and your files stay on your computer](assets/screens/web/en-10-close.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -1006,7 +1027,7 @@ the code it signs with, you compare it with the one that machine shows for
 itself, and confirm it. Until then nothing it writes comes in; from then on,
 whatever does not answer to that key is turned away, and Tisty says so.
 
-![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what Tisty leaves in Google Drive, OneDrive or WebDAV, and off your computers nobody reads it](assets/screens/web/en-08-data.png)
+![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what Tisty leaves in Google Drive, OneDrive or WebDAV, and off your computers nobody reads it](assets/screens/web/en-09-data.png)
 
 **Your cloud, encrypted, if you want it.** In Settings › *Security*, **Encrypt
 my cloud…** encrypts what Tisty keeps in your Google Drive, your OneDrive or
@@ -1067,7 +1088,7 @@ Drive means, from *Reconnect* to a full Drive or
 
 ## An Assistant, If You Use One
 
-![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-02-agent.png)
+![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-05-agent.png)
 
 **Tisty is not AI and has none inside.** The natural language that turns "call
 the bank at 3" into a task is rules running on your machine: no model, no

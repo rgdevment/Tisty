@@ -80,6 +80,14 @@ Something comes to mind in the middle of something else: press `Ctrl` + `Shift` 
 
 If another program already uses that shortcut, Tisty takes another one and tells you which in Settings.
 
+### Ideas, in a brainstorm
+
+An idea that is not a task yet has a place too. In that same small window, `Tab` switches from **Task** to **Idea**: type it, up to 140 characters, and `Enter` drops it in **Brainstorm**, the document pinned at the top of the **Library**, dated and without choosing a folder. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
+
+The ideas wait there as sticky notes in colours, the newest first. Drag one onto another to put it in that place, and when its moment comes, **Turn into a task** files it as a task and **File in a document** adds it at the end of the one you pick. The Library counts the ones still waiting.
+
+![Brainstorm with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
+
 ### Today, Upcoming, Repeating and All
 
 Your task list can be seen four ways:

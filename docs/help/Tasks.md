@@ -33,13 +33,15 @@ flowchart TD
 
 Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
 
+**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
+
 What a closed task keeps, and how search finds it, is in [[The archive|Archive]].
 
 ## Capture: write it the way you would say it
 
 There is no form to fill in. Type the whole sentence in the bar at the top, and Tisty pulls the day, the list and the priority out of it as you go — and shows you what it understood **before** anything is saved, as chips you can correct with one click.
 
-![Late is not overdue: a task is late when its planned day slips by and overdue only when its deadline passes, with the counts of overdue, late, for today and ahead](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-day.png)
+![Late is not overdue: a task is late when its planned day slips by and overdue only when its deadline passes, with the counts of overdue, late, for today and ahead](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-day.png)
 
 | You write | It understands |
 | :-- | :-- |
@@ -78,7 +80,7 @@ The window has three columns at most: what you are looking at, the list, and the
 
 Two questions, four boxes: whether it is pressing, and whether it matters.
 
-![Urgent is not always important: each task in its quadrant, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-05-priorities.png)
+![Urgent is not always important: each task in its quadrant, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-priorities.png)
 
 | Quadrant | Meaning | Type |
 | :-- | :-- | :-- |

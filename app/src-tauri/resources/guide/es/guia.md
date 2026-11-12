@@ -80,6 +80,14 @@ Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` des
 
 Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración.
 
+### Ideas, en una lluvia de ideas
+
+Una idea que todavía no es tarea también tiene su lugar. En esa misma ventanita, `Tab` cambia de **Tarea** a **Idea**: escríbela, hasta 140 caracteres, y `Enter` la deja en la **Lluvia de ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
+
+Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. Arrastra una sobre otra para dejarla en ese lugar, y cuando llegue su momento, **Convertir en tarea** la guarda como tarea y **Anexar a un documento** la agrega al final del que elijas. La Biblioteca cuenta las que siguen esperando.
+
+![La Lluvia de ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
+
 ### Hoy, Próximo, Se repiten y Todas
 
 Tu lista de tareas se mira de cuatro maneras:

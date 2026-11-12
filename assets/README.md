@@ -67,7 +67,9 @@ the tasks bar, so Tisto looks at what is being written.
 `screens/` holds the screens that present Tisty, one per subject and language,
 named `<language>-<order>-<subject>.png`: `en-` in English and `es-` in Spanish,
 with the same order in both. They present what Tisty is, not what a version
-brings.
+brings. The order is the one the Store shows, and the READMEs and the help
+follow it for the first ones: memory, diagrams, brainstorm, priorities, agent,
+documents, day, Folio, data, close.
 
 | Folder | Size | Where it goes |
 | --- | --- | --- |

@@ -8,7 +8,7 @@ But if you already use an assistant, you are probably telling it things worth ke
 
 **Your agents' work, in the open.** Through Tisty, an agent plans in documents and works in tasks: it writes the plan, what it found and what it decided as Markdown, breaks the work into tasks with steps and ticks them off as it goes. Nothing stays buried in a chat: every stage lands in Tisty, on your computer, where you can follow it as it happens and audit it later. When it says a task is done, you are the one who closes it.
 
-![No more blank chats, open the MCP door: your agent files tasks, writes dated journal entries, documents what it learns and picks up where it left off, while the context stays on your disk](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-02-agent.png)
+![No more blank chats, open the MCP door: your agent files tasks, writes dated journal entries, documents what it learns and picks up where it left off, while the context stays on your disk](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-05-agent.png)
 
 ## How the door works
 

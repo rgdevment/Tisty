@@ -8,7 +8,7 @@ Pero si ya usas un asistente, seguramente le cuentas cosas que vale la pena guar
 
 **El trabajo de tus agentes, a la vista.** Con Tisty, un agente planifica en documentos y trabaja en tareas: escribe en Markdown el plan, lo que encontró y lo que decidió, divide el trabajo en tareas con pasos y los va marcando a medida que avanza. Nada queda enterrado en un chat: cada etapa queda en Tisty, en tu equipo, donde puedes seguirla mientras ocurre y auditarla después. Cuando dice que una tarea está lista, eres tú quien la cierra.
 
-![No más chats en blanco, abre la puerta MCP: tu agente crea tareas, anota bitácoras con fecha y hora, documenta lo que aprende y retoma donde quedó, mientras el contexto se queda en tu disco](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-02-agente.png)
+![No más chats en blanco, abre la puerta MCP: tu agente crea tareas, anota bitácoras con fecha y hora, documenta lo que aprende y retoma donde quedó, mientras el contexto se queda en tu disco](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-05-agente.png)
 
 ## Cómo funciona la puerta
 

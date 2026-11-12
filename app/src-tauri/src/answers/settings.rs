@@ -21,6 +21,8 @@ pub const ATTACHED: &[&str] = &[
     "languages.png",
     "diagramas.png",
     "diagrams.png",
+    "ideas.png",
+    "brainstorm.png",
 ];
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[

@@ -2,7 +2,7 @@
 
 Un documento en Tisty es texto tuyo, guardado como un archivo `.md` normal, que escribes aquí y puedes leer con cualquier otro programa. Si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto, en GitHub o en otra app de notas.
 
-![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-06-markdown.png)
+![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-02-diagramas.png)
 
 ## Escribir donde lees
 
