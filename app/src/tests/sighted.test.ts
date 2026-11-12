@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { carried, firstInSight, holding } from "../ui/sighted";
+import { settles } from "../ui/seeking";
+import { carried, firstInSight } from "../ui/sighted";
 
 const scroller = () => {
   const room = document.createElement("div");
@@ -17,33 +18,47 @@ const scroller = () => {
 
 const nextFrame = () => new Promise((done) => requestAnimationFrame(() => done(null)));
 
-describe("holding a moved note in view", () => {
-  it("reaches the place, reaches it again when the page shrank, and lets go when the person scrolls", async () => {
-    const { room, shape } = scroller();
-    let want = 900;
-    const stop = holding(room, document.createElement("div"), () => want);
-    await nextFrame();
-    expect(room.scrollTop).toBe(900);
-    shape.tall = 1200;
-    room.scrollTop = 900;
-    want = 650;
-    room.dispatchEvent(new Event("scroll"));
-    expect(room.scrollTop).toBe(650);
-    room.scrollTop = 100;
-    room.dispatchEvent(new Event("scroll"));
-    want = 400;
-    room.dispatchEvent(new Event("scroll"));
-    expect(room.scrollTop).toBe(100);
-    stop();
-  });
-});
-
 const blocks = (sizes: [number, number][]) =>
   sizes.map(([top, height]) => {
     const one = document.createElement("p");
     one.getBoundingClientRect = () => ({ top, bottom: top + height, height }) as DOMRect;
     return one;
   });
+
+describe("holding a moved note in view", () => {
+  it("reaches the place on every frame, whatever the page does, until the person takes the view", async () => {
+    const { room, shape } = scroller();
+    const inside = document.implementation.createHTMLDocument();
+    let want = 900;
+    let ended = false;
+    settles({
+      at: () => room,
+      want: () => want,
+      done: () => {
+        ended = true;
+      },
+      put: () => {},
+      keeps: { waits: 4000, inside: () => inside },
+    });
+    await nextFrame();
+    expect(room.scrollTop).toBe(900);
+    want = 700;
+    await nextFrame();
+    expect(room.scrollTop).toBe(700);
+    shape.tall = 1100;
+    want = 650;
+    room.scrollTop = 600;
+    room.dispatchEvent(new Event("scroll"));
+    await nextFrame();
+    expect(room.scrollTop).toBe(600);
+    expect(ended).toBe(false);
+    inside.dispatchEvent(new Event("wheel"));
+    expect(ended).toBe(true);
+    want = 100;
+    await nextFrame();
+    expect(room.scrollTop).toBe(600);
+  });
+});
 
 describe("the block that keeps a page in place", () => {
   it("is the first one reaching below the top of the view, found by halves", () => {

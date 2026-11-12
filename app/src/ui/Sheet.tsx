@@ -50,7 +50,7 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { carried, firstInSight, holding } from "./sighted";
+import { carried, firstInSight } from "./sighted";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
@@ -110,6 +110,9 @@ type Arrival = Crossing & { at: number };
 
 // A block named by its first byte in the new words, and where on the window's screen it should stand.
 type Landing = { bytes: number; y: number; turn: number };
+
+// Pictures, diagrams and the sheets they push down can arrive this long after a page is drawn.
+const HELD_FOR = 4000;
 
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
@@ -183,6 +186,7 @@ export default function Sheet(props: Readonly<Props>) {
   } | null>(null);
   const askedOn = useRef("");
   const landing = useRef<Landing | null>(null);
+  const holdingNow = useRef(() => {});
   const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
@@ -966,15 +970,24 @@ export default function Sheet(props: Readonly<Props>) {
     const sheet = room.current;
     const held = shown.current?.frameElement as HTMLElement | null | undefined;
     if (!sheet || !held) return;
-    return holding(sheet, held, () => {
-      const block = shown.current?.document.querySelector<HTMLElement>(
-        `.page > [data-at^="${wanted.bytes}-"]`,
-      );
-      if (!block) return null;
-      const top = block.getBoundingClientRect().top + held.getBoundingClientRect().top;
-      return sheet.scrollTop + top - wanted.y;
+    holdingNow.current();
+    holdingNow.current = settles({
+      at: () => room.current,
+      want: () => {
+        const block = shown.current?.document.querySelector<HTMLElement>(
+          `.page > [data-at^="${wanted.bytes}-"]`,
+        );
+        if (!block) return null;
+        const top = block.getBoundingClientRect().top + held.getBoundingClientRect().top;
+        return sheet.scrollTop + top - wanted.y;
+      },
+      done: () => {},
+      put: () => {},
+      keeps: { waits: HELD_FOR, inside: () => shown.current?.document ?? null },
     });
   }, [turned, drawn]);
+
+  useEffect(() => () => holdingNow.current(), []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {
