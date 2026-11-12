@@ -482,7 +482,10 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
             let late = window.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(2));
-                let _ = late.show();
+                if !late.is_visible().unwrap_or(false) {
+                    let _ = late.show();
+                    let _ = late.set_focus();
+                }
             });
             crate::tray::docked(app, true);
             let gone = app.clone();
