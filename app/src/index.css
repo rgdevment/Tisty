@@ -20,6 +20,13 @@
   --tisty-docs-head: 30px;
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.16), 0 2px 8px rgb(0 0 0 / 0.08);
+  --tisty-note-0: #fde9a6;
+  --tisty-note-1: #fbd3df;
+  --tisty-note-2: #cdeedd;
+  --tisty-note-3: #d3e6fb;
+  --tisty-note-4: #fbdcc4;
+  --tisty-note-ink: #3a3020;
+  --tisty-note-tape: rgb(255 255 255 / 0.55);
 }
 
 [data-theme="dark"] {
@@ -37,6 +44,13 @@
   --tisty-veil: rgb(0 0 0 / 0.55);
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.62), 0 2px 8px rgb(0 0 0 / 0.45);
+  --tisty-note-0: #5c4f22;
+  --tisty-note-1: #5c2f3d;
+  --tisty-note-2: #24493b;
+  --tisty-note-3: #263b55;
+  --tisty-note-4: #5c3d26;
+  --tisty-note-ink: #f6ecd6;
+  --tisty-note-tape: rgb(255 255 255 / 0.18);
 }
 
 @theme inline {
@@ -47,6 +61,7 @@
   --font-display:
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui,
     sans-serif;
+  --font-hand: "Ink Free", "Segoe Print", Noteworthy, "Bradley Hand", "Marker Felt", cursive;
 
   --color-bg: var(--tisty-bg);
   --color-rail: var(--tisty-rail);

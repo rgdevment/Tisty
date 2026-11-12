@@ -1,11 +1,13 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState } from "react";
+import { jot } from "./brainstorm";
 import { capture, type Priority, type Snapshot, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
+import IdeaField from "./ui/IdeaField";
 
 export default function Quick() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -13,6 +15,7 @@ export default function Quick() {
   const [kept, setKept] = useState<string>();
   const [round, setRound] = useState(0);
   const [where, setWhere] = useState<Priority>("unset");
+  const [jotting, setJotting] = useState(false);
   const going = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function Quick() {
 
     const sown = listen<Priority | null>("sow", ({ payload }) => {
       setWhere(payload ?? "unset");
+      setJotting(false);
       setKept(undefined);
       setError(null);
       setRound((n) => n + 1);
@@ -51,6 +55,11 @@ export default function Quick() {
 
     const leaving = (e: KeyboardEvent) => {
       if (e.key === "Escape") away();
+      if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setJotting((was) => !was);
+        setError(null);
+      }
     };
     globalThis.addEventListener("keydown", leaving);
 
@@ -72,12 +81,30 @@ export default function Quick() {
     );
   }
 
+  const done = (said: string) => {
+    setKept(said);
+    going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
+  };
+
   return (
     <Frame>
+      {!kept && <Modes jotting={jotting} onSwitch={setJotting} />}
       {kept ? (
         <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
+      ) : jotting ? (
+        <IdeaField
+          key={round}
+          onJot={(idea) => {
+            setError(null);
+            return jot(idea, t("brainstorm")).then(() => {
+              void emit("jotted");
+              done(idea.trim());
+            });
+          }}
+          onError={setError}
+        />
       ) : (
         <CaptureField
           key={round}
@@ -88,9 +115,8 @@ export default function Quick() {
             setError(null);
             const asked = where === "unset" ? edits : { ...edits, priority: where };
             return capture(written, {}, asked).then((task) => {
-              setKept(task.title);
               void emit("captured");
-              going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
+              done(task.title);
               return task;
             });
           }}
@@ -99,6 +125,28 @@ export default function Quick() {
       )}
       {error && <p className="pt-1 text-[11.5px] text-urgent">{error}</p>}
     </Frame>
+  );
+}
+
+function Modes({
+  jotting,
+  onSwitch,
+}: Readonly<{ jotting: boolean; onSwitch: (jotting: boolean) => void }>) {
+  return (
+    <div className="mb-2 flex items-center gap-1 px-1 text-[11.5px]">
+      {[false, true].map((idea) => (
+        <button
+          key={String(idea)}
+          type="button"
+          aria-pressed={idea === jotting}
+          title={t("modeSwitch")}
+          onClick={() => onSwitch(idea)}
+          className={`rounded-md px-2 py-px ${idea === jotting ? "bg-accent-soft text-accent" : "text-faint hover:text-soft"}`}
+        >
+          {t(idea ? "modeIdea" : "modeTask")}
+        </button>
+      ))}
+    </div>
   );
 }
 

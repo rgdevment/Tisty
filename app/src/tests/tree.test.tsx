@@ -1193,3 +1193,25 @@ describe("putting folders and documents in the order you want", () => {
     document.elementFromPoint = was;
   });
 });
+
+describe("the brainstorm", () => {
+  it("sits above every folder and is not repeated among the loose documents", () => {
+    render(
+      <Tree papers={papers} pinned="a3f1-0003" unfolded onOpen={() => {}} onFile={() => {}} />,
+    );
+
+    const tree = screen.getByRole("list", { name: "Documents" });
+    const rows = within(tree).getAllByRole("listitem");
+    expect(within(rows[0]).getByText("Suelto")).toBeTruthy();
+    expect(within(tree).getAllByText("Suelto")).toHaveLength(1);
+  });
+
+  it("is not pinned when it was put away", () => {
+    render(
+      <Tree papers={papers} pinned="a3f1-0005" unfolded onOpen={() => {}} onFile={() => {}} />,
+    );
+
+    const tree = screen.getByRole("list", { name: "Documents" });
+    expect(within(tree).queryByText("Viejo")).toBeNull();
+  });
+});

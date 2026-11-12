@@ -30,7 +30,7 @@ import {
   viewDoc,
 } from "../core";
 import { viewDiagram } from "../drawing";
-import { withLandscape, withPaper, withSheets } from "../front";
+import { notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
@@ -46,6 +46,7 @@ import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
+import Notes from "./Notes";
 import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
@@ -151,6 +152,7 @@ export default function Docs({
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
+  const [asText, setAsText] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [packed, setPacked] = useState(0);
@@ -668,6 +670,8 @@ export default function Docs({
   );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
   const sheetRoom = { maxWidth: `${across + 48}px` };
+  const noted = Boolean(open) && notedIn(body);
+  const onNotes = noted && asText !== open?.file;
 
   useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 
@@ -858,110 +862,132 @@ export default function Docs({
               data-keeps-writing=""
               className="absolute top-2 left-full z-10 ml-3"
             />
-            {Sheet && (
-              <Sheet
-                sheet={sheetOf}
-                onPage={(page) => {
-                  drawn.current = page;
-                }}
-                file={open.file}
-                place={place}
-                wholeable
-                wholeAsked={wholeAsked}
-                allAsked={allAsked}
-                lately={stirred ? lately : null}
-                looking={looking}
-                onOwn={(file) => {
-                  const page = known.find((one) => one.file === file);
-                  if (page)
-                    docPage(page.id)
-                      .then(() => onKept({ id: page.id, title: page.title }))
-                      .catch((e) => onError(saidPlainly(e)));
-                }}
-                onFail={(e) => onError(saidPlainly(e))}
-                onNote={onNote}
-                card={cards}
-                blurb={blurb}
-                again={again}
-                value={body}
-                seek={seek}
-                anchor={anchor}
-                onSeen={(at) => {
-                  if (own?.file) stood.current.set(own.file, at);
-                }}
-                reading={bolted}
-                label={called || t("untitledDoc")}
-                onDoc={onDoc}
-                onTag={onTag}
-                above={
-                  above ? (
-                    <Ribbon
-                      of={above}
-                      sisters={sisters}
-                      told={aboveTold}
-                      here={open.file}
-                      onOpen={(doc) => onDoc?.(doc.file)}
-                    >
-                      {!beside && spoken}
-                    </Ribbon>
-                  ) : spoken && !beside ? (
-                    <nav aria-label={t("tonguesOf")} className="ribbon">
-                      {spoken}
-                    </nav>
-                  ) : (
-                    own?.tongueApart && (
-                      <p role="note" className="ribbon">
-                        {t("tongueApart")}
-                      </p>
-                    )
-                  )
-                }
-                below={
-                  above
-                    ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
-                    : pages.length > 0 && (
-                        <Contents
-                          pages={pages}
-                          told={told}
-                          onOpen={(page) => onDoc?.(page.file)}
-                          onPut={
-                            bolted
-                              ? undefined
-                              : (page) => {
-                                  if (putting.current?.(page) === false) {
-                                    onError(t("leafNeedsTitle"));
-                                  }
-                                }
-                          }
-                          onMove={
-                            bolted
-                              ? undefined
-                              : (page, before) => {
-                                  const how = ordering.current?.(page.file, before);
-                                  const named = page.title || t("untitledDoc");
-                                  if (how === "held") onError(fill("leafStaysPut", named));
-                                  if (how === "unseen") onError(fill("leafInText", named));
-                                  if (how === "titled") onError(fill("leafWouldName", named));
-                                  return how;
-                                }
-                          }
-                        />
+            {noted && !onNotes && (
+              <button
+                type="button"
+                onClick={() => setAsText(null)}
+                className="absolute top-2 right-2 z-10 rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
+              >
+                {t("notesAsNotes")}
+              </button>
+            )}
+            {onNotes ? (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <Notes
+                  title={called || t("untitledDoc")}
+                  body={body}
+                  reading={bolted}
+                  onWrite={wrote}
+                  onText={() => setAsText(open.file)}
+                />
+              </div>
+            ) : (
+              Sheet && (
+                <Sheet
+                  sheet={sheetOf}
+                  onPage={(page) => {
+                    drawn.current = page;
+                  }}
+                  file={open.file}
+                  place={place}
+                  wholeable
+                  wholeAsked={wholeAsked}
+                  allAsked={allAsked}
+                  lately={stirred ? lately : null}
+                  looking={looking}
+                  onOwn={(file) => {
+                    const page = known.find((one) => one.file === file);
+                    if (page)
+                      docPage(page.id)
+                        .then(() => onKept({ id: page.id, title: page.title }))
+                        .catch((e) => onError(saidPlainly(e)));
+                  }}
+                  onFail={(e) => onError(saidPlainly(e))}
+                  onNote={onNote}
+                  card={cards}
+                  blurb={blurb}
+                  again={again}
+                  value={body}
+                  seek={seek}
+                  anchor={anchor}
+                  onSeen={(at) => {
+                    if (own?.file) stood.current.set(own.file, at);
+                  }}
+                  reading={bolted}
+                  label={called || t("untitledDoc")}
+                  onDoc={onDoc}
+                  onTag={onTag}
+                  above={
+                    above ? (
+                      <Ribbon
+                        of={above}
+                        sisters={sisters}
+                        told={aboveTold}
+                        here={open.file}
+                        onOpen={(doc) => onDoc?.(doc.file)}
+                      >
+                        {!beside && spoken}
+                      </Ribbon>
+                    ) : spoken && !beside ? (
+                      <nav aria-label={t("tonguesOf")} className="ribbon">
+                        {spoken}
+                      </nav>
+                    ) : (
+                      own?.tongueApart && (
+                        <p role="note" className="ribbon">
+                          {t("tongueApart")}
+                        </p>
                       )
-                }
-                onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
-                onWrite={wrote}
-                onOutline={setHeads}
-                onInsert={(put) => {
-                  const named = put && !bolted ? (page: Filed) => put(page.file, page.title) : null;
-                  putting.current = named;
-                  paged.current?.(named);
-                }}
-                onOrder={(move) => {
-                  ordering.current = move;
-                }}
-                asking={slashAsks}
-                kept={!saving && !waiting}
-              />
+                    )
+                  }
+                  below={
+                    above
+                      ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
+                      : pages.length > 0 && (
+                          <Contents
+                            pages={pages}
+                            told={told}
+                            onOpen={(page) => onDoc?.(page.file)}
+                            onPut={
+                              bolted
+                                ? undefined
+                                : (page) => {
+                                    if (putting.current?.(page) === false) {
+                                      onError(t("leafNeedsTitle"));
+                                    }
+                                  }
+                            }
+                            onMove={
+                              bolted
+                                ? undefined
+                                : (page, before) => {
+                                    const how = ordering.current?.(page.file, before);
+                                    const named = page.title || t("untitledDoc");
+                                    if (how === "held") onError(fill("leafStaysPut", named));
+                                    if (how === "unseen") onError(fill("leafInText", named));
+                                    if (how === "titled") onError(fill("leafWouldName", named));
+                                    return how;
+                                  }
+                            }
+                          />
+                        )
+                  }
+                  onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
+                  onWrite={wrote}
+                  onOutline={setHeads}
+                  onInsert={(put) => {
+                    const named =
+                      put && !bolted ? (page: Filed) => put(page.file, page.title) : null;
+                    putting.current = named;
+                    paged.current?.(named);
+                  }}
+                  onOrder={(move) => {
+                    ordering.current = move;
+                  }}
+                  asking={slashAsks}
+                  kept={!saving && !waiting}
+                />
+              )
             )}
           </div>
         ) : coming ? (

@@ -33,6 +33,8 @@ vi.mock("@tauri-apps/api/core", () => ({
           spans: [],
           offers: [],
         });
+      case "jot":
+        return Promise.resolve({ file: "mac0-0001", made: true });
       case "shortcut":
         return Promise.resolve("Ctrl+Shift+Space");
       case "capture":
@@ -131,5 +133,30 @@ describe("capturing without the window", () => {
 
     expect(screen.queryByText(/Esc/)).toBeNull();
     expect(screen.queryByText(/Ctrl\+Shift\+Space/)).toBeNull();
+  });
+
+  it("drops a loose idea in the brainstorm instead of filing a task, after Tab", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    await userEvent.keyboard("{Tab}");
+    await userEvent.type(screen.getByRole("textbox"), "call the vet{Enter}");
+
+    await waitFor(() => expect(sent("jot").length).toBe(1));
+    expect(sent("jot")[0].args).toEqual({ idea: "call the vet", title: "Brainstorm" });
+    expect(sent("capture")).toEqual([]);
+    expect(win.emitted).toContain("jotted");
+    expect(await screen.findByText(/call the vet/)).toBeTruthy();
+  });
+
+  it("goes back to a task when Tab is pressed again", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    await userEvent.keyboard("{Tab}{Tab}");
+    await userEvent.type(screen.getByRole("textbox"), "buy milk{Enter}");
+
+    await waitFor(() => expect(sent("capture").length).toBe(1));
+    expect(sent("jot")).toEqual([]);
   });
 });

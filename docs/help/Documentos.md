@@ -47,6 +47,15 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 `Ctrl`/`⌘` + `X` y `V` mueven un documento entre carpetas.
 
+## Lluvia de ideas
+
+Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space`, después `Tab` para cambiar de **Tarea** a **Idea**, escríbela y pulsa `Enter`: cae en **Lluvia de ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta.
+
+- **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, escribir en él a mano, archivarlo o exportarlo como cualquier otro.
+- **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita.
+- **El archivo sigue siendo Markdown.** Cada nota es una sección con el día y el minuto en que llegó, y **Ver Markdown** muestra el texto. Cualquier documento con `view: notes` en sus [propiedades](https://markdown.tisty.app/es/propiedades) se ve igual.
+- **Ordénalas después**: lleva lo que valga la pena al documento de su tema, o conviértelo en tarea, y quítalo de la hoja.
+
 ## Carpetas
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.
