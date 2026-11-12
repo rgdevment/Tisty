@@ -134,19 +134,8 @@ fn named_idea(which: &str) -> Option<(&str, &str)> {
 }
 
 fn bare_heading(heading: &str) -> &str {
-    let heading = heading.trim().trim_start_matches('>').trim_start();
-    heading
-        .get(..7)
-        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
-        .map_or(heading, |_| heading[7..].trim())
-}
-
-fn opens_an_idea(line: &str) -> bool {
-    line.trim_start()
-        .strip_prefix('>')
-        .map(str::trim_start)
-        .and_then(|rest| rest.get(..7))
-        .is_some_and(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+    let heading = heading.trim();
+    tisty_markdown::idea_words(heading).unwrap_or(heading)
 }
 
 pub(super) fn names_an_idea(which: &str) -> bool {
@@ -161,7 +150,10 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
             .map(str::trim)
             .filter(|one| !one.is_empty())
             .collect();
-        if lines.iter().any(|line| headed(line) || opens_an_idea(line)) {
+        if lines
+            .iter()
+            .any(|line| headed(line) || tisty_markdown::idea_words(line).is_some())
+        {
             return Err(Refused::Tool(
                 "each idea's `> [!IDEA]` line, with the minute it came and its colour, is Tisty's \
                  to write, and a heading has no place on Brainstorm. Send the ideas alone: one per \
@@ -331,8 +323,7 @@ pub(super) fn filed_off(
     };
     let head = tisty_markdown::idea_head(said.trim_start());
     let headed_alike = |one: &Idea| {
-        let line = format!("> [!IDEA] {}", one.heading);
-        let theirs = tisty_markdown::idea_head(&line);
+        let theirs = tisty_markdown::idea_parts(&one.heading);
         theirs.when == head.when && (head.hue.is_none() || theirs.hue == head.hue)
     };
     let found = on
