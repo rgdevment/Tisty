@@ -30,16 +30,50 @@ pub fn jot(
 pub struct Pinned {
     pub file: String,
     pub ideas: usize,
+    pub marked: usize,
 }
 
 #[tauri::command(async)]
 pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<Pinned> {
     let mut session = held(&session);
     let (file, body) = found(&mut session)?;
+    let marked = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .map_or(0, |kept| tisty_core::brainstorm::marked(kept, &body).len());
     Some(Pinned {
         ideas: tisty_core::brainstorm::ideas(&body),
+        marked,
         file,
     })
+}
+
+#[tauri::command(async)]
+pub fn idea_unflag(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    heading: String,
+    text: String,
+) -> Answer<()> {
+    unflagging(
+        &mut held(&session),
+        &file,
+        tisty_core::event::Idea { heading, text },
+    )
+}
+
+pub fn unflagging(session: &mut Session, file: &str, idea: tisty_core::event::Idea) -> Answer<()> {
+    let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
+        return Err(Refusal::of("noSuchDoc"));
+    };
+    if !kept.ideas_flagged.iter().any(|one| one.idea == idea) {
+        return Ok(());
+    }
+    let id = kept.id;
+    session.commit(Op::IdeaUnflag { id, idea })?;
+    Ok(())
 }
 
 #[tauri::command(async)]

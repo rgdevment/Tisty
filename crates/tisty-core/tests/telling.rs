@@ -257,6 +257,7 @@ fn a_note_of_what_a_document_said_is_one_no_build_may_walk_past() {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::Said {
             key: None,
+            brainstorm: false,
             lang: None,
             title: "Lo que dice".into(),
             bytes: Some(0),
@@ -356,6 +357,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             order: "a0".into(),
             said: Some(tisty_core::event::Said {
                 key: None,
+                brainstorm: false,
                 lang: None,
                 title: "Como nacio".into(),
                 bytes: None,
@@ -382,6 +384,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
         id,
         d: tisty_core::event::Said {
             key: None,
+            brainstorm: false,
             lang: None,
             title: "Como se llama ahora".into(),
             bytes: Some(40),
@@ -446,6 +449,7 @@ fn the_note_goes_out_unmarked_so_an_older_build_stops_rather_than_guesses() {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::Said {
             key: None,
+            brainstorm: false,
             lang: None,
             title: "Algo".into(),
             bytes: None,
@@ -586,6 +590,7 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::Said {
                 key: None,
+                brainstorm: false,
                 lang: None,
                 title: "Lo que dice".into(),
                 bytes: Some(0),

@@ -37,3 +37,19 @@ In Tisty, leave the task we have been on where the next session can pick it up. 
 ## pick_up «the passport»
 
 Pick up where I left off in Tisty. Call `catch_up` first, with no `since`: it brings what moved since you were last here and who moved it. Then `find` the open task about «the passport» (or all I typed after the command, if a client cut it at a space) — ask me if several fit — and `read` it with its steps, its page and its latest notes. Tell me in a few lines what moved, where the task stands, what was done last and what comes next, naming tasks by title and list, never by id. Change nothing yet.
+
+## brainstorm «the passport»
+
+Brainstorm with me in Tisty about «the passport» (or all I typed after the command, if a client cut it at a space). Ask `rules` «ideas» first. Offer ideas a few words long, 140 characters at most, numbered so I can pick, and say which ones are already on Brainstorm (`catch_up` names it) or already a task or a document (`find`). Jot nothing until I say which to keep; then `append_doc` the ones I keep on Brainstorm, one per item of a list, and tell me how many went on.
+
+## brainstorm
+
+Brainstorm with me in Tisty about what we have been talking about. Ask `rules` «ideas» first. Offer ideas a few words long, 140 characters at most, numbered so I can pick, and say which ones are already on Brainstorm (`catch_up` names it) or already a task or a document (`find`). Jot nothing until I say which to keep; then `append_doc` the ones I keep on Brainstorm, one per item of a list, and tell me how many went on.
+
+## sort_ideas «the passport»
+
+Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read_doc` Brainstorm (`catch_up` names it), and look at the ideas about «the passport» (or all I typed after the command, if a client cut it at a space) on it. Tell me in a few lines, by their words and never by id, which belong together and why, which would become a task and in which list, which belong in a document and which one (`find` it), and which are done, old or repeated. Change nothing until I say which. Then do only what I agreed to, as `rules` «ideas» says: `propose` with the idea as `source`, a note quoting it with `append_doc`, or a mark with `flag_doc`. Tell me at the end what went where and what waits for me.
+
+## sort_ideas
+
+Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read_doc` Brainstorm (`catch_up` names it), and look at every idea on it. Tell me in a few lines, by their words and never by id, which belong together and why, which would become a task and in which list, which belong in a document and which one (`find` it), and which are done, old or repeated. Change nothing until I say which. Then do only what I agreed to, as `rules` «ideas» says: `propose` with the idea as `source`, a note quoting it with `append_doc`, or a mark with `flag_doc`. Tell me at the end what went where and what waits for me.

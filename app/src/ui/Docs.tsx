@@ -894,6 +894,7 @@ export default function Docs({
                   onError={onError}
                   onDoc={onDoc}
                   onTask={onSeeTask ?? onTask}
+                  onMarks={() => onKept({ id: open.id, title: called })}
                 />
               </div>
             ) : (

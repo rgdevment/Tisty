@@ -10,10 +10,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `rules` | Las reglas para trabajar aquí, una guía a la vez («tasks», «documents», «tidying»); sola, lo básico y un índice. Los asistentes piden la que necesitan primero |
+| `rules` | Las reglas para trabajar aquí, una guía a la vez («tasks», «documents», «tidying», «ideas»); sola, lo básico y un índice. Los asistentes piden la que necesitan primero |
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
-| `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste |
+| `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Cuando hay ideas en **Lluvia de ideas**, dice cuántas esperan y cuántas marcó |
 | `find` | Buscar en tareas y documentos, el archivo incluido; los documentos marcados como que ya cumplieron su vida van después de los vigentes, y lo dicen |
 | `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae las últimas notas hasta unos 3000 caracteres, y más si las pide |
 
@@ -23,7 +23,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos |
+| `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Lluvia de ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
 | `remind` | Hacer que una tarea suene a una hora |
 | `reschedule` | Mover el día de una tarea que anotó |
 | `describe` | Escribir la descripción de una tarea en la que puede trabajar, reemplazando la anterior |
@@ -45,10 +45,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | :-- | :-- |
 | `docs` | Los documentos y las carpetas, con de qué va cada uno |
 | `outline_doc` | Qué hay en un documento: sus títulos y partes, y las señales de que pide orden: documentos con título parecido, títulos repetidos entre páginas y enlaces que no llevan a nada |
-| `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo) |
+| `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo). **Lluvia de ideas** llega por partes, idea por idea, nunca como una lista de horas |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
-| `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer |
+| `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer. En **Lluvia de ideas**, cada párrafo o elemento de una lista se vuelve una idea propia, con su fecha y su color, de hasta 140 caracteres; una nota que cita una idea, añadida a otro documento, saca la idea de la hoja, como cuando la anexas desde la ventana |
 | `edit_doc` | Cambiar un pasaje de un documento |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
 | `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos; con una tarea, devuelve las notas que reemplazó un resumen |
@@ -57,7 +57,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
 | `tongue_doc` | Unir un documento a los idiomas de otro, o separarlo de los suyos |
 | `archive_doc` | Archivar un documento o una de sus páginas, o desarchivarlo, solo cuando lo pides |
-| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado |
+| `flag_doc` | Marcar uno o varios documentos que ya cumplieron su vida, con el motivo (una copia de otro, movido, reemplazado, erróneo, obsoleto, un borrador) y lo que queda en su lugar. Tú los borras, los archivas o les quitas la marca: una marca, nunca un borrado. Marca igual las ideas de **Lluvia de ideas**, una por una, con un ◆ en cada nota, y nunca la hoja entera: la marca no saca ninguna idea, y un asistente nunca archiva la Lluvia de ideas, ni la pone en una carpeta, ni la une a los idiomas de otro documento |
 | `import_doc` | Traer un archivo Markdown de este equipo como documento |
 | `export_doc` | Sacar un documento a una carpeta de este equipo |
 

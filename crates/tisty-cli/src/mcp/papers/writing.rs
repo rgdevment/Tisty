@@ -389,7 +389,8 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let Some(body) = super::super::asked::body(args, "body") else {
         return Err(Refused::Tool("adding needs a `body` to add.".into()));
     };
-    let body = tisty_core::speaking::turned(&body);
+    let said = body;
+    let body = tisty_core::speaking::turned(&said);
     let (state, mut store) = opened(paths)?;
     if let Some(task) = super::super::task_notes::task_named(&state, &which) {
         keeps(&body)?;
@@ -398,7 +399,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             .get("replace")
             .and_then(Value::as_bool)
             .unwrap_or(false);
-        return super::super::task_notes::noted_on_page(
+        let noted = super::super::task_notes::noted_on_page(
             paths,
             &state,
             &mut store,
@@ -406,7 +407,9 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             &body,
             under.as_deref(),
             replace,
-        );
+        )?;
+        let filed = super::super::ideas::filed_off(paths, &state, &mut store, &said, &which);
+        return Ok(super::super::ideas::filed_too(noted, filed));
     }
     if args.get("replace").and_then(Value::as_bool) == Some(true) {
         return Err(Refused::Tool(
@@ -429,9 +432,12 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
+    let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    if super::super::ideas::is_sheet(&before) {
+        return super::super::ideas::jotted_on(paths, &state, &mut store, kept, &said, args);
+    }
     keeps(&body)?;
 
-    let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let body = match warned(paths, &body).and_then(|notice| warned_into(&before, &body, &notice)) {
         Some(made) => made,
         None => body,
@@ -477,10 +483,11 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let settled = retold(&state, &mut store, &which, &whole).is_ok();
     let anew = super::named_anew(paths, &state, &mut store, &which, &whole);
     let twice = named_twice(&state, &which, &whole);
+    let filed = super::super::ideas::filed_off(paths, &state, &mut store, &said, &which);
 
     Ok(told(
         format!(
-            "Added {} {:?}, {}. Nothing that was there changed.{}{}{}",
+            "Added {} {:?}, {}. Nothing that was there changed.{}{}{}{}",
             match &under {
                 Some(under) => format!("under {under:?} in"),
                 None => "to the end of".into(),
@@ -488,6 +495,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             tisty_core::docs::titled(&whole),
             by_how_much(&before, &whole),
             twice_words(&state, &twice) + &anew,
+            filed.as_ref().map_or("", |one| one.said.as_str()),
             if settled { "" } else { UNSETTLED },
             wrapped(&body)
         ),
@@ -500,6 +508,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 "lines": whole.lines().count(),
                 "grew": grew(&before, &whole),
                 "print": tisty_core::attach::printed(whole.as_bytes()),
+                "idea_filed": filed.as_ref().is_some_and(|one| one.off),
             }),
             args,
             &before,
@@ -584,6 +593,8 @@ pub(super) fn over_again(
         }
     };
     let kept_back: Vec<String> = loose.iter().map(|one| one.file.clone()).collect();
+    let was = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
+    super::super::ideas::keeps_every_idea(state, which, &was, body)?;
 
     let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, body, &print)
         .map_err(hitch)?;
@@ -739,6 +750,9 @@ pub(super) fn where_it_lands(
                     "{named} is a page itself, and a page holds no pages. Name the document it \
                      belongs to."
                 )));
+            }
+            if up.brainstorm {
+                return Err(super::super::ideas::no_pages_on_a_sheet(state, &said));
             }
             if state.held_away(up) {
                 return Err(super::put_away(state, up, &named));
@@ -907,6 +921,7 @@ pub(super) fn in_its_place(
     let whole = format!("{head}{tail}{rest}");
 
     still_speaks(&body, &whole)?;
+    super::super::ideas::keeps_every_idea(state, which, &body, &whole)?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
         .map_err(hitch)?

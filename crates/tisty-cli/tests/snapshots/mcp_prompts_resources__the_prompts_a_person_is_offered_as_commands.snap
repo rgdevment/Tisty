@@ -59,6 +59,28 @@ expression: "said[\"result\"]"
       "description": "Write the decision just made into the one document on its subject, in place.",
       "name": "keep_decision",
       "title": "Keep this decision in its document"
+    },
+    {
+      "arguments": [
+        {
+          "description": "What the ideas are about; left out, what we have been talking about",
+          "name": "subject"
+        }
+      ],
+      "description": "Think up short ideas on a subject together, and jot on Brainstorm the ones I keep.",
+      "name": "brainstorm",
+      "title": "Brainstorm ideas with me"
+    },
+    {
+      "arguments": [
+        {
+          "description": "A word for the ideas to sort; left out, all of them",
+          "name": "subject"
+        }
+      ],
+      "description": "Group the ideas waiting on Brainstorm and propose which become tasks, which go into documents and which are marked as old.",
+      "name": "sort_ideas",
+      "title": "Sort out my Brainstorm"
     }
   ],
   "resultType": "complete",

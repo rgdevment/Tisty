@@ -54,6 +54,12 @@ pub struct Flagged {
     pub instead: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlaggedIdea {
+    pub idea: crate::event::Idea,
+    pub mark: Flagged,
+}
+
 pub const FLAG_REASONS: [&str; 6] = [
     "duplicate_of",
     "moved",
@@ -137,6 +143,10 @@ pub struct Kept {
     pub tags: Vec<crate::model::Tag>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flagged: Option<Flagged>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ideas_flagged: Vec<FlaggedIdea>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub brainstorm: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted: Option<Compacted>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

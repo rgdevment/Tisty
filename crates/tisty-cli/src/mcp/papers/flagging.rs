@@ -27,7 +27,19 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
         }
         None => None,
     };
+    if many
+        .iter()
+        .any(|one| super::super::ideas::names_an_idea(one))
+    {
+        return super::super::ideas::flag_ideas(paths, args, &many, listed, body, reason);
+    }
     let (state, mut store) = opened(paths)?;
+    if let Some(sheet) = many
+        .iter()
+        .find(|one| super::super::ideas::sheet_named(paths, &state, one).is_some())
+    {
+        return Err(super::super::ideas::whole_sheet_refused(&state, sheet));
+    }
     let instead = instead_of(&state, args, reason.as_deref(), &many)?;
 
     let mut marking: Vec<(&Kept, &str)> = Vec::new();
@@ -164,7 +176,7 @@ fn left_behind(
     (tongues, pointing)
 }
 
-fn instead_of(
+pub(in crate::mcp) fn instead_of(
     state: &State,
     args: &Value,
     reason: Option<&str>,
