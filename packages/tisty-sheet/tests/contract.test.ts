@@ -161,6 +161,9 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
       expect(said(page, `${note}[data-side="${side}"]`, "margin")).toBe(idea.beside[side]);
       expect(said(page, `${note}[data-side="${side}"]`, "float")).toBe(side);
     }
+    for (const turn of [".page > hr", ".page > .sheet-turn"])
+      expect(said(page, turn, "clear")).toBe("both");
+    expect(said(page, ".page", "display")).toBe("flow-root");
     for (const hue of idea.hues) {
       expect(said(page, `${note}[data-hue="${hue}"]`, "--idea-fill")).toBe(
         `var(--tisty-idea-${hue})`,

@@ -19,8 +19,7 @@ const topOf = (one: HTMLElement, sheet: HTMLElement) =>
 
 const bottomOf = (one: HTMLElement, sheet: HTMLElement) => topOf(one, sheet) + one.offsetHeight;
 
-const floating = (one: HTMLElement) =>
-  one.ownerDocument.defaultView?.getComputedStyle(one).float !== "none";
+const floating = (one: HTMLElement) => one.matches('blockquote[data-callout="idea"][data-side]');
 
 // The band between two sheets starts at the foot of the one above, its bottom margin included.
 export const sheeted = (page: Document, { tall, y, said }: Sheet) => {

@@ -12,7 +12,7 @@ import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "
 import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
-import { sticking } from "./sticking";
+import { stickable, sticking } from "./sticking";
 import { dragging, tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
@@ -244,6 +244,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
+  if (reach?.onStick) stickable(page);
   if (reach?.onWiden) gripped(page);
   const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);

@@ -5326,7 +5326,7 @@
               "dark": "#fbf5ea"
             },
             "plain": "Without a hue, it wears the sheet's colour inside a dashed line of hair.",
-            "side": "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it.",
+            "side": "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it. A rule, or the turn to a new sheet, goes below a floated note, never beside it, and the sheet holds the note whole.",
             "width": {
               "least": "150px",
               "most": "256px"

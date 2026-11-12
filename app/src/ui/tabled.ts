@@ -1,5 +1,6 @@
 import { asking, BOXES, type TableAct, tablesIn } from "tisty-editor/read";
 import { fill, t } from "../locales";
+import { carrying } from "./carrying";
 
 export type Sorting = { readonly column: number; readonly down: boolean; readonly order: number[] };
 
@@ -256,39 +257,24 @@ export const dragging = (
     const box = grip?.closest<HTMLElement>(BOXES);
     if (!grip || !box || event.button !== 0) return;
     const from = Number(grip.dataset.row);
-    const startY = event.clientY;
     let to = from;
-    let far = false;
-    const over = (next: PointerEvent) => {
-      far ||= Math.abs(next.clientY - startY) > 4;
-      if (!far) return;
-      const under = rowsOf(box).find((one) => {
-        const edge = one.getBoundingClientRect();
-        return !one.hidden && next.clientY >= edge.top && next.clientY < edge.bottom;
-      });
-      if (under) to = Number(under.dataset.row);
-      box.classList.add("row-moving");
-      marked(box, from, to);
-    };
-    const ended = () => {
-      page.removeEventListener("pointermove", over);
-      page.removeEventListener("pointerup", up);
-      page.removeEventListener("pointercancel", ended);
-      box.classList.remove("row-moving");
-      marked(box, -1, -1);
-    };
-    const up = () => {
-      ended();
-      if (!far) return;
-      // The click that ends a drag is not a click on the grip, and no later click is lost to it.
-      const swallowed = (one: Event) => one.stopPropagation();
-      page.addEventListener("click", swallowed, { capture: true, once: true });
-      setTimeout(() => page.removeEventListener("click", swallowed, { capture: true }), 0);
-      if (to !== from) moved(box, from, to);
-    };
-    page.addEventListener("pointermove", over);
-    page.addEventListener("pointerup", up);
-    // A drag the system takes away moves nothing and leaves no mark behind.
-    page.addEventListener("pointercancel", ended);
+    carrying(page, grip, event, 4, {
+      over: (next) => {
+        const under = rowsOf(box).find((one) => {
+          const edge = one.getBoundingClientRect();
+          return !one.hidden && next.clientY >= edge.top && next.clientY < edge.bottom;
+        });
+        if (under) to = Number(under.dataset.row);
+        box.classList.add("row-moving");
+        marked(box, from, to);
+      },
+      ended: () => {
+        box.classList.remove("row-moving");
+        marked(box, -1, -1);
+      },
+      dropped: () => {
+        if (to !== from) moved(box, from, to);
+      },
+    });
   });
 };

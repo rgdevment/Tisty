@@ -124,7 +124,7 @@ values:
         dark: { pink: "#ae4c61", coral: "#9e4331", orange: "#a25e24", yellow: "#896a10", lime: "#5f7723", green: "#206f3c", teal: "#19746b", cyan: "#1c788e", blue: "#155d9f", lavender: "#645fb3", violet: "#623586", magenta: "#974180" }
       ink: { light: "#2a2520", dark: "#fbf5ea" }
       plain: "Without a hue, it wears the sheet's colour inside a dashed line of hair."
-      side: "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it."
+      side: "Right or left floats it beside the blocks that follow, the words flowing round it; without a side it stands in the flow, between the blocks around it. A rule, or the turn to a new sheet, goes below a floated note, never beside it, and the sheet holds the note whole."
       width: { least: "150px", most: "256px" }
       padding: "12px 14px 14px"
       margin: "14px 0"

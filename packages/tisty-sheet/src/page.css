@@ -382,6 +382,11 @@ html.ticking .page > blockquote[data-callout="idea"][data-at] {
   cursor: grab;
   touch-action: none;
 }
+html.carrying,
+html.carrying * {
+  -webkit-user-select: none;
+  user-select: none;
+}
 .page > .idea-moving {
   cursor: grabbing;
   opacity: 0.55;

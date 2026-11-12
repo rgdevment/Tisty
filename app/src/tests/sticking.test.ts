@@ -26,6 +26,10 @@ describe("a sticky note carried to another place in the text", () => {
   it("stays put when it lands on itself, and keeps a file's Windows line endings", () => {
     const span = spanOf(TEXT, NOTE);
     expect(movedBlock(TEXT, span, span[0])).toBe(TEXT);
+    const roomy = TEXT.replace(`\n\n${NOTE}`, `\n\n\n${NOTE}`);
+    const there = spanOf(roomy, NOTE);
+    expect(movedBlock(roomy, there, spanOf(roomy, "Dos.")[0])).toBe(roomy);
+    expect(movedBlock(roomy, there, spanOf(roomy, "Uno.")[1])).toBe(roomy);
     const windows = TEXT.replace(/\n/g, "\r\n");
     const note = NOTE.replace(/\n/g, "\r\n");
     const [start] = spanOf(windows, "Uno.");
@@ -69,6 +73,40 @@ describe("carrying a sticky note on the page", () => {
     press(sheet, "pointerup", 125);
     expect(moved).toHaveBeenCalledWith([14, 60], 66);
     expect(below.classList.contains("idea-landing-below")).toBe(false);
+  });
+
+  it("lets go of a carry whose pointer was taken away, so a later press moves nothing", () => {
+    const { sheet, blocks } = page();
+    const [, note] = blocks;
+    const moved = vi.fn();
+    sticking(sheet, () => moved);
+    press(note, "pointerdown", 60);
+    press(sheet, "pointermove", 125);
+    note.dispatchEvent(new Event("lostpointercapture"));
+    expect(sheet.documentElement.classList.contains("carrying")).toBe(false);
+    press(sheet, "pointermove", 5);
+    press(sheet, "pointerup", 5);
+    expect(moved).not.toHaveBeenCalled();
+  });
+
+  it("never lands beside a floated note, and moves a note past its neighbour with Alt and an arrow", () => {
+    const { sheet, blocks } = page();
+    const [plain, note, below] = blocks;
+    const first = sheet.createElement("blockquote");
+    Object.assign(first.dataset, { at: plain.dataset.at, callout: "idea", side: "right" });
+    first.getBoundingClientRect = plain.getBoundingClientRect;
+    plain.replaceWith(first);
+    const moved = vi.fn();
+    sticking(sheet, () => moved);
+    press(note, "pointerdown", 60);
+    press(sheet, "pointermove", 5);
+    expect(first.classList.contains("idea-landing-above")).toBe(false);
+    expect(below.classList.contains("idea-landing-above")).toBe(true);
+    press(sheet, "pointerup", 5);
+    note.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", altKey: true, bubbles: true }),
+    );
+    expect(moved).toHaveBeenLastCalledWith([14, 60], 66);
   });
 
   it("does nothing on a page that cannot be written", () => {

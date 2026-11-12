@@ -43,7 +43,11 @@ describe("sheets laid on the page", () => {
       ["p", 70, 20],
       ["blockquote", 90, 100],
     ]);
-    for (const at of [1, 4]) (sheet.children[at] as HTMLElement).style.float = "right";
+    for (const at of [1, 4]) {
+      const note = sheet.children[at] as HTMLElement;
+      note.dataset.callout = "idea";
+      note.dataset.side = "right";
+    }
     sheeted(document, { wide: 794, tall: 200, x: 10, y: 10 });
     expect((sheet.children[2] as HTMLElement).style.getPropertyValue("--fill")).toBe("139px");
     expect(sheet.style.getPropertyValue("--last")).toBe("53px");
