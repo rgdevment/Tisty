@@ -11,7 +11,7 @@
   position: relative;
   width: 168px;
   min-height: 132px;
-  padding: 24px 14px 14px;
+  padding: 24px 14px 30px;
   border-radius: 6px;
   background: var(--tisty-note-0);
   color: var(--tisty-note-ink);
@@ -166,14 +166,14 @@
 
 .sticky-left {
   position: absolute;
-  right: 10px;
-  bottom: 6px;
+  left: 14px;
+  bottom: 8px;
   font-family: var(--font-small);
 }
 
 .sticky-tools {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
   right: 6px;
   display: flex;
   gap: 2px;

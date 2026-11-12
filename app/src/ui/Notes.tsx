@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ideaToDoc } from "../brainstorm";
-import { capture, type Filed } from "../core";
-import { locale, t } from "../locales";
+import { capture, type Filed, type Task } from "../core";
+import { fill, locale, t } from "../locales";
 import "../notes.css";
 import {
   added,
@@ -32,6 +32,8 @@ interface Props {
   known?: Filed[];
   own?: string;
   onError?: (message: string) => void;
+  onDoc?: (file: string) => void;
+  onTask?: (task: Task) => void;
 }
 
 interface Lifted {
@@ -67,7 +69,10 @@ export default function Notes({
   known = [],
   own = "",
   onError = () => {},
+  onDoc,
+  onTask,
 }: Props) {
+  const [sent, send] = useSent();
   const [raw, setRaw] = useState(false);
   const [filing, setFiling] = useState<{ at: number; idea: string } | null>(null);
   const latest = useRef(body);
@@ -165,6 +170,17 @@ export default function Notes({
           {t(raw ? "notesAsNotes" : "notesAsText")}
         </button>
       </div>
+      {sent && (
+        <p
+          role="status"
+          className="mt-3 flex items-center gap-3 rounded-md bg-accent-soft px-3 py-1.5 text-[12.5px] text-accent"
+        >
+          <span className="min-w-0 flex-1 truncate">{sent.text}</span>
+          <button type="button" onClick={sent.open} className="shrink-0 font-semibold underline">
+            {sent.action}
+          </button>
+        </p>
+      )}
       {!raw && intro && <p className="mt-3 text-[12.5px] whitespace-pre-wrap text-soft">{intro}</p>}
       {raw ? (
         <pre className="mt-6 overflow-x-auto rounded-[10px] border border-line bg-bg p-5 font-mono text-[12.5px] whitespace-pre-wrap text-ink">
@@ -195,7 +211,14 @@ export default function Notes({
               }}
               onDrop={() => onWrite(dropped(body, at))}
               onFile={() => setFiling({ at, idea: note.text })}
-              onTask={() => void capture(note.text).then(settled(at)).catch(failed)}
+              onTask={() =>
+                void capture(note.text)
+                  .then((task) => {
+                    settled(at)();
+                    send(fill("ideaMadeTask", task.title), t("ideaSeeTask"), () => onTask?.(task));
+                  })
+                  .catch(failed)
+              }
             />
           ))}
         </ul>
@@ -208,12 +231,38 @@ export default function Notes({
           onClose={() => setFiling(null)}
           onPick={(file) => {
             setFiling(null);
-            void ideaToDoc(file, filing.idea).then(settled(filing.at)).catch(failed);
+            const title = known.find((one) => one.file === file)?.title || t("untitledDoc");
+            void ideaToDoc(file, filing.idea)
+              .then(() => {
+                settled(filing.at)();
+                send(fill("ideaFiledIn", title), t("ideaOpenDoc"), () => onDoc?.(file));
+              })
+              .catch(failed);
           }}
         />
       )}
     </section>
   );
+}
+
+const SENT_FOR = 8_000;
+
+interface Sent {
+  text: string;
+  action: string;
+  open: () => void;
+}
+
+function useSent(): [Sent | null, (text: string, action: string, open: () => void) => void] {
+  const [sent, setSent] = useState<Sent | null>(null);
+  const fading = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(fading.current), []);
+  const send = (text: string, action: string, open: () => void) => {
+    clearTimeout(fading.current);
+    setSent({ text, action, open });
+    fading.current = setTimeout(() => setSent(null), SENT_FOR);
+  };
+  return [sent, send];
 }
 
 const SLIDES_FOR = 220;

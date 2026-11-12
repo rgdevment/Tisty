@@ -890,6 +890,8 @@ export default function Docs({
                   known={known}
                   own={open.file}
                   onError={onError}
+                  onDoc={onDoc}
+                  onTask={onTask}
                 />
               </div>
             ) : (

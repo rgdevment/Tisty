@@ -131,7 +131,8 @@ describe("a brainstorm shown as notes", () => {
 
   it("turns an idea into a task, read as any capture, and takes it off the sheet", async () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
+    const onTask = vi.fn();
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onTask={onTask} />);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Turn into a task" })[0]);
 
@@ -140,10 +141,14 @@ describe("a brainstorm shown as notes", () => {
     const written: string = onWrite.mock.calls[0][0];
     expect(written).not.toContain("segunda");
     expect(written).toContain("primera");
+    expect(screen.getByRole("status").textContent).toContain("Now a task: «segunda»");
+    await userEvent.click(screen.getByRole("button", { name: "See the task" }));
+    expect(onTask).toHaveBeenCalledWith(expect.objectContaining({ title: "segunda" }));
   });
 
   it("files an idea in a document it picks, never itself nor one put away", async () => {
     const onWrite = vi.fn();
+    const onDoc = vi.fn();
     render(
       <Notes
         title="Ideas"
@@ -152,6 +157,7 @@ describe("a brainstorm shown as notes", () => {
         onWrite={onWrite}
         known={papers}
         own="a3f1-0009"
+        onDoc={onDoc}
       />,
     );
 
@@ -167,6 +173,9 @@ describe("a brainstorm shown as notes", () => {
       idea: "primera",
     });
     expect(onWrite.mock.calls[0][0]).not.toContain("primera");
+    expect(screen.getByRole("status").textContent).toContain("Filed at the end of «Recetas»");
+    await userEvent.click(screen.getByRole("button", { name: "Open it" }));
+    expect(onDoc).toHaveBeenCalledWith("a3f1-0001");
   });
 
   it("keeps the idea on the sheet when it could not be filed", async () => {
