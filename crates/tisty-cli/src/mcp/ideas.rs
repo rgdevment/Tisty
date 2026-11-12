@@ -93,8 +93,8 @@ pub(super) fn about_sheet(
 ) -> String {
     let marked = brainstorm::marked(kept, body);
     let mut said = format!(
-        "This is Brainstorm: {} idea(s), oldest first, each under the minute it came and its \
-         colour. An idea is named `{}#` and its heading, without the hashes. `rules` «ideas» \
+        "This is Brainstorm: {} idea(s), oldest first, each a `> [!IDEA]` note headed by the \
+         minute it came and its colour. An idea is named `{}#` and that heading. `rules` «ideas» \
          says how to sort them.",
         brainstorm::ideas(body),
         kept.file
@@ -130,7 +130,23 @@ pub(super) fn about_sheet(
 fn named_idea(which: &str) -> Option<(&str, &str)> {
     which
         .split_once('#')
-        .map(|(doc, heading)| (doc.trim(), heading.trim().trim_start_matches("## ").trim()))
+        .map(|(doc, heading)| (doc.trim(), bare_heading(heading)))
+}
+
+fn bare_heading(heading: &str) -> &str {
+    let heading = heading.trim().trim_start_matches('>').trim_start();
+    heading
+        .get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map_or(heading, |_| heading[7..].trim())
+}
+
+fn opens_an_idea(line: &str) -> bool {
+    line.trim_start()
+        .strip_prefix('>')
+        .map(str::trim_start)
+        .and_then(|rest| rest.get(..7))
+        .is_some_and(|marker| marker.eq_ignore_ascii_case("[!idea]"))
 }
 
 pub(super) fn names_an_idea(which: &str) -> bool {
@@ -145,10 +161,11 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
             .map(str::trim)
             .filter(|one| !one.is_empty())
             .collect();
-        if lines.iter().any(|line| headed(line)) {
+        if lines.iter().any(|line| headed(line) || opens_an_idea(line)) {
             return Err(Refused::Tool(
-                "a heading on Brainstorm is the minute an idea came, and Tisty writes it. Send the \
-                 ideas alone: one per paragraph, or one per item of a list. Nothing was written."
+                "each idea's `> [!IDEA]` line, with the minute it came and its colour, is Tisty's \
+                 to write, and a heading has no place on Brainstorm. Send the ideas alone: one per \
+                 paragraph, or one per item of a list. Nothing was written."
                     .into(),
             ));
         }
@@ -305,18 +322,33 @@ pub(super) fn filed_off(
         return None;
     }
     let named = doc_named(state, &kept.file);
-    let idea = brainstorm::quoted(said).and_then(|quoted| {
-        brainstorm::ideas_on(&body)
-            .into_iter()
-            .find(|one| one.text.split_whitespace().eq(quoted.split_whitespace()))
-    });
-    let Some(idea) = idea else {
+    let on = brainstorm::ideas_on(&body);
+    let quoted = brainstorm::quoted(said);
+    let same_words = |one: &Idea| {
+        quoted
+            .as_deref()
+            .is_some_and(|words| one.text.split_whitespace().eq(words.split_whitespace()))
+    };
+    let head = tisty_markdown::idea_head(said.trim_start());
+    let headed_alike = |one: &Idea| {
+        let line = format!("> [!IDEA] {}", one.heading);
+        let theirs = tisty_markdown::idea_head(&line);
+        theirs.when == head.when && (head.hue.is_none() || theirs.hue == head.hue)
+    };
+    let found = on
+        .iter()
+        .find(|one| headed_alike(one) && same_words(one))
+        .or_else(|| on.iter().find(|one| same_words(one)));
+    // A note headed like no idea on the sheet is a sticky note of its own, not a filing.
+    let Some(idea) = found.cloned() else {
+        let named_one = on.iter().find(|one| headed_alike(one))?;
         return Some(Filed {
             said: format!(
-                " No idea on {named} reads what this note quotes, so the sheet still holds it: a \
-                 filing note goes alone, with the idea's words as the sheet has them. If this one \
-                 files an idea, mark that idea `moved` with `flag_doc`, `instead` \"{into}\", \
-                 rather than adding the note again."
+                " This note is headed as «{}» on {named}, but its words are not that idea's, so \
+                 the sheet still holds it: a filed idea goes alone, its words as the sheet has \
+                 them. If this note files it, mark that idea `moved` with `flag_doc`, `instead` \
+                 \"{into}\", rather than adding the note again.",
+                named_one.text
             ),
             off: false,
         });
@@ -555,7 +587,7 @@ fn idea_on(on: &[Idea], sheet: &str, named: &str, which: &str) -> Result<Idea, R
         [one] => Ok((*one).clone()),
         [] => Err(Refused::Tool(format!(
             "no idea on {named} is headed {heading:?}. `read_doc` it: an idea's heading is the \
-             line above its words, without the hashes. Nothing was marked."
+             words after `[!IDEA]` on its first line. Nothing was marked."
         ))),
         _ => Err(Refused::Tool(format!(
             "{} ideas on {named} are headed {heading:?}, so a mark would be a guess. Ask the \

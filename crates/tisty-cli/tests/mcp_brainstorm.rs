@@ -84,7 +84,7 @@ fn refused(result: &Value) -> bool {
     result["isError"] == json!(true)
 }
 
-const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n\n## 2026-06-14 08:12 · pink\n\nComprar entradas del concierto de julio\n\n## 2026-09-03 18:05 · teal\n\nPedir presupuesto para arreglar el techo\n\n## 2026-11-12 09:40 · yellow\n\nProbar pan con masa madre\n";
+const SHEET: &str = "---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n\n> [!IDEA] 2026-06-14 08:12 · pink\n> Comprar entradas del concierto de julio\n\n> [!IDEA] 2026-09-03 18:05 · teal\n> Pedir presupuesto para arreglar el techo\n\n> [!IDEA] 2026-11-12 09:40 · yellow\n> Probar pan con masa madre\n";
 
 const CONCERT: &str = "2026-06-14 08:12 · pink";
 const ROOF: &str = "2026-09-03 18:05 · teal";
@@ -146,7 +146,7 @@ fn an_idea_past_the_window_s_limit_or_a_heading_writes_nothing() {
     );
     let headed = served.call(
         "append_doc",
-        json!({ "doc": sheet, "body": "## 2026-11-12 10:00 · blue\n\nidea" }),
+        json!({ "doc": sheet, "body": "> [!IDEA] 2026-11-12 10:00 · blue\n> idea" }),
     );
     let placed = served.call(
         "append_doc",
@@ -166,7 +166,7 @@ fn a_long_sheet_is_read_in_parts_and_never_as_its_outline_of_minutes() {
     let mut body = SHEET.to_string();
     for at in 0..200 {
         body.push_str(&format!(
-            "\n## 2026-10-{:02} 10:{:02} · blue\n\nUna idea bastante larga para llenar la hoja, la número {at}\n",
+            "\n> [!IDEA] 2026-10-{:02} 10:{:02} · blue\n> Una idea bastante larga para llenar la hoja, la número {at}\n",
             1 + at % 28,
             at % 60
         ));
@@ -202,7 +202,7 @@ fn filing_an_idea_in_a_document_takes_it_off_the_sheet_as_the_window_does() {
         "append_doc",
         json!({
             "doc": house,
-            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto para arreglar el techo",
+            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
         }),
     );
 
@@ -356,14 +356,14 @@ fn a_write_that_would_take_an_idea_off_the_sheet_is_refused() {
         "edit_doc",
         json!({
             "doc": sheet,
-            "old": "## 2026-06-14 08:12 · pink\n\nComprar entradas del concierto de julio\n\n",
+            "old": "> [!IDEA] 2026-06-14 08:12 · pink\n> Comprar entradas del concierto de julio\n\n",
             "new": "",
         }),
     );
     let print = tisty_core::attach::printed(SHEET.as_bytes());
     let rewritten = served.call(
         "write_doc",
-        json!({ "doc": sheet, "print": print, "body": SHEET.replace("## 2026-11-12 09:40 · yellow\n\nProbar pan con masa madre\n", "") }),
+        json!({ "doc": sheet, "print": print, "body": SHEET.replace("> [!IDEA] 2026-11-12 09:40 · yellow\n> Probar pan con masa madre\n", "") }),
     );
     let reworded = served.call(
         "edit_doc",
@@ -407,7 +407,7 @@ fn a_sheet_written_on_windows_still_keeps_every_idea() {
         "edit_doc",
         json!({
             "doc": sheet,
-            "old": "## 2026-06-14 08:12 · pink\n\nComprar entradas del concierto de julio\n\n",
+            "old": "> [!IDEA] 2026-06-14 08:12 · pink\n> Comprar entradas del concierto de julio\n\n",
             "new": "",
         }),
     );
@@ -455,7 +455,7 @@ fn going_back_over_the_persons_new_ideas_is_refused() {
     let now = served.body(&sheet);
     served.person().saves_doc(
         &sheet,
-        &format!("{now}\n## 2026-11-12 11:00 · blue\n\nLlamar al vet\n"),
+        &format!("{now}\n> [!IDEA] 2026-11-12 11:00 · blue\n> Llamar al vet\n"),
     );
 
     let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
@@ -485,7 +485,7 @@ fn a_second_sheet_is_guarded_and_its_ideas_are_marked_like_the_first() {
     let served = Served::new();
     served.sheet();
     let second = served.person().writes_doc(
-        "---\nbrainstorm: on\n---\n\n# Ideas del trabajo\n\n## 2026-11-10 10:00 · lime\n\nRevisar la factura\n",
+        "---\nbrainstorm: on\n---\n\n# Ideas del trabajo\n\n> [!IDEA] 2026-11-10 10:00 · lime\n> Revisar la factura\n",
     );
 
     let whole = served.call(
@@ -520,7 +520,7 @@ fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
         "append_doc",
         json!({
             "doc": task,
-            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto para arreglar el techo",
+            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
         }),
     );
 
@@ -535,6 +535,55 @@ fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
 }
 
 #[test]
+fn a_dated_sticky_note_that_names_no_idea_is_added_as_it_is() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let house = served
+        .person()
+        .writes_doc("# Casa\n\nArreglos pendientes.\n");
+
+    let stuck = served.call(
+        "append_doc",
+        json!({
+            "doc": house,
+            "body": "> [!IDEA] 2026-11-20 · green\n> Pintar la reja antes del invierno",
+        }),
+    );
+
+    assert!(!refused(&stuck), "{stuck}");
+    assert_eq!(
+        stuck["structuredContent"]["idea_filed"],
+        json!(false),
+        "{stuck}"
+    );
+    assert!(!said(&stuck).contains("still holds"), "{stuck}");
+    assert!(
+        served
+            .body(&house)
+            .contains("> Pintar la reja antes del invierno")
+    );
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn an_idea_named_with_its_callout_marker_is_still_found() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let marked = served.call(
+        "flag_doc",
+        json!({
+            "doc": format!("{sheet}#> [!IDEA] {CONCERT}"),
+            "reason": "obsolete",
+            "body": "El concierto ya pasó.",
+        }),
+    );
+
+    assert!(!refused(&marked), "{marked}");
+    assert_eq!(served.marks(&sheet).len(), 1);
+}
+
+#[test]
 fn a_filing_note_that_quotes_no_idea_says_the_sheet_still_holds_it() {
     let served = Served::new();
     let sheet = served.sheet();
@@ -546,14 +595,14 @@ fn a_filing_note_that_quotes_no_idea_says_the_sheet_still_holds_it() {
         "append_doc",
         json!({
             "doc": house,
-            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto del techo",
+            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto del techo",
         }),
     );
     let with_more = served.call(
         "append_doc",
         json!({
             "doc": house,
-            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar pan con masa madre\n\nEl sábado.",
+            "body": "> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar pan con masa madre\n\nEl sábado.",
         }),
     );
 
@@ -581,7 +630,7 @@ fn a_filing_note_split_over_other_lines_still_takes_its_idea_off() {
         "append_doc",
         json!({
             "doc": house,
-            "body": "> [!NOTE] Lluvia de ideas · 2026-11-12\n> Pedir presupuesto\n> para arreglar el techo",
+            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto\n> para arreglar el techo",
         }),
     );
 
