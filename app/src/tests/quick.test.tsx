@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Quick from "../Quick";
@@ -11,6 +11,7 @@ const win = vi.hoisted(() => ({
   hidden: 0,
   focus: null as ((state: { payload: boolean }) => void) | null,
   emitted: [] as string[],
+  heard: {} as Record<string, (event: { payload: unknown }) => void>,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -73,7 +74,10 @@ vi.mock("@tauri-apps/api/event", () => ({
     win.emitted.push(name);
     return Promise.resolve();
   },
-  listen: () => Promise.resolve(() => {}),
+  listen: (name: string, fn: (event: { payload: unknown }) => void) => {
+    win.heard[name] = fn;
+    return Promise.resolve(() => {});
+  },
 }));
 
 beforeEach(() => {
@@ -158,5 +162,30 @@ describe("capturing without the window", () => {
 
     await waitFor(() => expect(sent("capture").length).toBe(1));
     expect(sent("jot")).toEqual([]);
+  });
+
+  it("opens ready for an idea from the idea shortcut, and the same shortcut again closes it", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    act(() => win.heard.door?.({ payload: { door: "idea", again: false } }));
+    expect(await screen.findByRole("button", { name: "Idea", pressed: true })).toBeTruthy();
+    win.hidden = 0;
+
+    act(() => win.heard.door?.({ payload: { door: "idea", again: true } }));
+    await waitFor(() => expect(win.hidden).toBeGreaterThan(0));
+  });
+
+  it("switches to a task, without closing, when the task shortcut comes while an idea is open", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+    act(() => win.heard.door?.({ payload: { door: "idea", again: false } }));
+    await screen.findByRole("button", { name: "Idea", pressed: true });
+    win.hidden = 0;
+
+    act(() => win.heard.door?.({ payload: { door: "task", again: true } }));
+
+    expect(await screen.findByRole("button", { name: "Task", pressed: true })).toBeTruthy();
+    expect(win.hidden).toBe(0);
   });
 });

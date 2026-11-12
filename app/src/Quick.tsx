@@ -16,6 +16,8 @@ export default function Quick() {
   const [round, setRound] = useState(0);
   const [where, setWhere] = useState<Priority>("unset");
   const [jotting, setJotting] = useState(false);
+  const jottingNow = useRef(false);
+  jottingNow.current = jotting;
   const going = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -53,6 +55,19 @@ export default function Quick() {
       setRound((n) => n + 1);
     });
 
+    const opened = listen<{ door: string; again: boolean }>("door", ({ payload }) => {
+      const idea = payload.door === "idea";
+      if (payload.again && jottingNow.current === idea) {
+        away();
+        return;
+      }
+      setJotting(idea);
+      setWhere("unset");
+      setKept(undefined);
+      setError(null);
+      setRound((n) => n + 1);
+    });
+
     const leaving = (e: KeyboardEvent) => {
       if (e.key === "Escape") away();
       if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -66,6 +81,7 @@ export default function Quick() {
     return () => {
       void stop.then((off) => off());
       void sown.then((off) => off());
+      void opened.then((off) => off());
       globalThis.removeEventListener("keydown", leaving);
       if (going.current) clearTimeout(going.current);
     };

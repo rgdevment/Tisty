@@ -53,6 +53,19 @@ export const dropped = (body: string, at: number): string => {
   return bodyOf(board);
 };
 
+export const ordered = (body: string, order: number[]): string => {
+  const board = boardOf(body);
+  board.notes = order.map((at) => board.notes[at]).filter((one) => one !== undefined);
+  return bodyOf(board);
+};
+
+export function shifted(order: number[], from: number, to: number): number[] {
+  const next = [...order];
+  const [moving] = next.splice(from, 1);
+  next.splice(to, 0, moving);
+  return next;
+}
+
 export const added = (body: string, heading: string): string => {
   const board = boardOf(body);
   board.notes.push({ heading, text: "" });
@@ -73,25 +86,42 @@ export function saidWhen(heading: string, locale: string): string {
   return `${date} · ${two(hour)}:${two(minute)}`;
 }
 
-// Drawn from the words, so a note keeps its tilt and colour every time it is shown.
-export function shapeOf(note: Note): {
+export interface Shape {
   tilt: number;
   hue: number;
   wide: number;
   drop: number;
-  pinned: boolean;
-} {
-  let seed = 0;
-  for (const letter of `${note.heading}\u0000${note.text}`) {
-    seed = (seed * 31 + (letter.codePointAt(0) ?? 0)) % 1_000_003;
+  nudge: number;
+  hold: "pin" | "tape" | "corner-left" | "corner-right";
+  angle: number;
+  along: number;
+  pin: number;
+}
+
+const HOLDS: Shape["hold"][] = ["pin", "tape", "corner-left", "corner-right"];
+
+const mixed = (seed: number, salt: number): number => {
+  let h = Math.imul(seed ^ Math.imul(salt + 1, 0x9e3779b9), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+};
+
+// Drawn from when it came, not from its words, so editing a note never repaints it.
+export function shapeOf(heading: string, nth = 0): Shape {
+  let seed = 0x811c9dc5;
+  for (const letter of `${heading}#${nth}`) {
+    seed = Math.imul(seed ^ (letter.codePointAt(0) ?? 0), 0x01000193);
   }
-  const pick = (salt: number, range: number) =>
-    ((seed * (salt * 2 + 1) + salt * 7919) >>> 0) % range;
+  const pick = (salt: number, range: number) => mixed(seed, salt) % range;
   return {
-    tilt: pick(1, 9) - 4,
-    hue: pick(2, 5),
+    tilt: pick(1, 15) - 7,
+    hue: pick(2, 8),
     wide: pick(3, 4),
-    drop: pick(4, 4),
-    pinned: pick(5, 3) === 0,
+    drop: pick(4, 6),
+    nudge: pick(5, 7) - 3,
+    hold: HOLDS[pick(6, HOLDS.length)],
+    angle: pick(7, 31) - 15,
+    along: pick(8, 61) + 20,
+    pin: pick(9, 4),
   };
 }

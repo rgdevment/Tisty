@@ -25,6 +25,14 @@
   --tisty-note-2: #cdeedd;
   --tisty-note-3: #d3e6fb;
   --tisty-note-4: #fbdcc4;
+  --tisty-note-5: #e3d7fb;
+  --tisty-note-6: #e2f3b5;
+  --tisty-note-7: #c4eef2;
+  --tisty-brain: #d6457f;
+  --tisty-pin-0: #e5484d;
+  --tisty-pin-1: #3e8ef7;
+  --tisty-pin-2: #f2b33d;
+  --tisty-pin-3: #30a46c;
   --tisty-note-ink: #3a3020;
   --tisty-note-tape: rgb(255 255 255 / 0.55);
 }
@@ -49,6 +57,14 @@
   --tisty-note-2: #24493b;
   --tisty-note-3: #263b55;
   --tisty-note-4: #5c3d26;
+  --tisty-note-5: #3f3360;
+  --tisty-note-6: #3f4d1f;
+  --tisty-note-7: #1f4a50;
+  --tisty-brain: #f27aa8;
+  --tisty-pin-0: #ff6369;
+  --tisty-pin-1: #5ea2ff;
+  --tisty-pin-2: #ffc457;
+  --tisty-pin-3: #3dd68c;
   --tisty-note-ink: #f6ecd6;
   --tisty-note-tape: rgb(255 255 255 / 0.18);
 }
@@ -1567,4 +1583,8 @@ label[for] {
 
 html[data-previewing] [data-chrome] {
   display: none;
+}
+
+.brainstorm-mark {
+  color: var(--tisty-brain);
 }

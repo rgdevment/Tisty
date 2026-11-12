@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { added, boardOf, dropped, rewritten, saidWhen, shapeOf, stampOf } from "../notes";
+import {
+  added,
+  boardOf,
+  dropped,
+  ordered,
+  rewritten,
+  saidWhen,
+  shapeOf,
+  shifted,
+  stampOf,
+} from "../notes";
 
 const BRAINSTORM = `---
 view: notes
@@ -49,28 +59,42 @@ describe("a document read as notes", () => {
     expect(boardOf(more).notes[2]).toEqual({ heading: "2026-11-11 10:00", text: "" });
   });
 
+  it("puts the notes in a new order and keeps every word of each", () => {
+    const flipped = ordered(BRAINSTORM, [1, 0]);
+
+    expect(boardOf(flipped).notes).toEqual([...boardOf(BRAINSTORM).notes].reverse());
+    expect(boardOf(flipped).head).toBe(boardOf(BRAINSTORM).head);
+  });
+
+  it("moves one place to another and leaves the rest in their order", () => {
+    expect(shifted([0, 1, 2, 3], 3, 0)).toEqual([3, 0, 1, 2]);
+    expect(shifted([0, 1, 2, 3], 0, 2)).toEqual([1, 2, 0, 3]);
+  });
+
   it("reads a CRLF file the same as an LF one", () => {
     expect(boardOf(BRAINSTORM.replace(/\n/g, "\r\n"))).toEqual(boardOf(BRAINSTORM));
   });
 });
 
 describe("a note's look", () => {
-  it("is the same every time for the same words, and changes with them", () => {
-    const one = { heading: "2026-11-11 09:12", text: "llamar al vet" };
-
-    expect(shapeOf(one)).toEqual(shapeOf({ ...one }));
-    const shapes = new Set(
-      ["a", "b", "c", "d", "e", "f"].map((text) => JSON.stringify(shapeOf({ ...one, text }))),
-    );
-    expect(shapes.size).toBeGreaterThan(1);
+  it("is the same every time for the same note, and editing its words never repaints it", () => {
+    expect(shapeOf("2026-11-11 09:12", 0)).toEqual(shapeOf("2026-11-11 09:12", 0));
   });
 
-  it("stays within a gentle tilt and the five colours", () => {
-    for (const text of ["uno", "dos", "tres", "cuatro", "cinco", "seis", "siete"]) {
-      const shape = shapeOf({ heading: "x", text });
-      expect(Math.abs(shape.tilt)).toBeLessThanOrEqual(4);
-      expect(shape.hue).toBeGreaterThanOrEqual(0);
-      expect(shape.hue).toBeLessThan(5);
+  it("differs between notes that came in the same minute", () => {
+    const shapes = [0, 1, 2, 3, 4, 5].map((nth) =>
+      JSON.stringify(shapeOf("2026-11-12 00:10", nth)),
+    );
+    expect(new Set(shapes).size).toBe(shapes.length);
+  });
+
+  it("spreads its colours and its tape or pin across many notes", () => {
+    const many = Array.from({ length: 60 }, (_, nth) => shapeOf("2026-11-12 00:10", nth));
+    expect(new Set(many.map((one) => one.hue)).size).toBe(8);
+    expect(new Set(many.map((one) => one.hold)).size).toBe(4);
+    for (const one of many) {
+      expect(Math.abs(one.tilt)).toBeLessThanOrEqual(7);
+      expect(Math.abs(one.nudge)).toBeLessThanOrEqual(3);
     }
   });
 });

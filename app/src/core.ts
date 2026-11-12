@@ -745,6 +745,7 @@ export interface Settings {
   onlySharedAbove: number;
   onClose?: "hide" | "quit";
   quickKeys?: string;
+  ideaKeys?: string;
 }
 
 export interface Logs {
@@ -1079,10 +1080,13 @@ export interface Settling {
 
 export const settleIn = (): Promise<Settling> => invoke("settle_in");
 
-export const shortcut = (): Promise<string | null> => invoke("shortcut");
-export const shortcutsOffered = (): Promise<string[]> => invoke("shortcuts_offered");
-export const keepShortcut = (keys: string): Promise<string | null> =>
-  invoke("keep_shortcut", { keys });
+export type Door = "task" | "idea";
+export const shortcut = (door: Door = "task"): Promise<string | null> =>
+  invoke("shortcut", { door });
+export const shortcutsOffered = (door: Door = "task"): Promise<string[]> =>
+  invoke("shortcuts_offered", { door });
+export const keepShortcut = (keys: string, door: Door = "task"): Promise<string | null> =>
+  invoke("keep_shortcut", { keys, door });
 
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });

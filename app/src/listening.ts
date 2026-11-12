@@ -145,7 +145,10 @@ export function useListening({
       setOffering(null);
     });
     const caught = listen("captured", () => latest.current());
-    const jotted = listen("jotted", () => lookPapers());
+    const jotted = listen("jotted", () => {
+      lookPapers();
+      setCarried((was) => was + 1);
+    });
     // The snapshot carries no documents, so a paper written from outside would go unseen till relaunch.
     const stirred = listen("stirred", () => {
       latest.current();

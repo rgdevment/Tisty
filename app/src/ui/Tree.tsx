@@ -505,8 +505,14 @@ export default function Tree({
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
-        name={page ? (doc.archived ? "archive" : "alignleft") : "page"}
-        className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
+        name={page ? (doc.archived ? "archive" : "alignleft") : doc === pin ? "brain" : "page"}
+        className={
+          page
+            ? "h-[11px] w-[11px] opacity-70"
+            : doc === pin
+              ? "brainstorm-mark h-[14px] w-[14px]"
+              : "h-[13px] w-[13px]"
+        }
       />
     );
     return (

@@ -59,4 +59,14 @@ describe("a brainstorm shown as notes", () => {
     expect(screen.queryByRole("button", { name: "New idea" })).toBeNull();
     expect(screen.getByText("primera")).toBeTruthy();
   });
+
+  it("moves the focused idea one place with Alt and an arrow", async () => {
+    const onWrite = vi.fn();
+    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} onText={() => {}} />);
+
+    fireEvent.keyDown(screen.getAllByRole("textbox")[0], { key: "ArrowRight", altKey: true });
+
+    const written: string = onWrite.mock.calls[0][0];
+    expect(written.indexOf("segunda")).toBeLessThan(written.indexOf("primera"));
+  });
 });

@@ -1483,6 +1483,11 @@ const en = {
   quickOff: "No shortcut. Tisty still captures from its own window.",
   quickKeys: "Shortcut for quick capture",
   quickKeysOff: "No shortcut",
+  quickIdea: "Quick idea",
+  quickIdeaOn:
+    "{name} opens the same field ready for an idea. It lands in Brainstorm, dated, and Tisty stays where it was.",
+  quickIdeaOff: "No shortcut. Tab in the quick capture still switches to an idea.",
+  quickIdeaKeys: "Shortcut for a quick idea",
   keysTaken: "Another application already uses {name}. Pick another one.",
   keysUnknown: "That shortcut is not one Tisty offers.",
   wake: "Start with the computer",
@@ -4613,6 +4618,11 @@ const es: Catalog = {
   quickOff: "Sin atajo. Tisty sigue capturando desde su propia ventana.",
   quickKeys: "Atajo de la captura rápida",
   quickKeysOff: "Sin atajo",
+  quickIdea: "Idea rápida",
+  quickIdeaOn:
+    "{name} abre el mismo campo listo para una idea. Cae en Lluvia de ideas, con su fecha, y Tisty se queda donde estaba.",
+  quickIdeaOff: "Sin atajo. En la captura rápida, Tab sigue cambiando a idea.",
+  quickIdeaKeys: "Atajo de la idea rápida",
   keysTaken: "Otra aplicación ya usa {name}. Elige otro.",
   keysUnknown: "Ese atajo no es uno de los que ofrece Tisty.",
   wake: "Iniciar con el equipo",

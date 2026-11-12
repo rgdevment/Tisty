@@ -863,16 +863,18 @@ export default function Docs({
               className="absolute top-2 left-full z-10 ml-3"
             />
             {noted && !onNotes && (
-              <button
-                type="button"
-                onClick={() => setAsText(null)}
-                className="absolute top-2 right-2 z-10 rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
-              >
-                {t("notesAsNotes")}
-              </button>
+              <div className="flex justify-end pb-1">
+                <button
+                  type="button"
+                  onClick={() => setAsText(null)}
+                  className="rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
+                >
+                  {t("notesAsNotes")}
+                </button>
+              </div>
             )}
             {onNotes ? (
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="scroller min-h-0 flex-1 overflow-y-auto">
                 <Notes
                   title={called || t("untitledDoc")}
                   body={body}

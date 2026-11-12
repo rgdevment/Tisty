@@ -16,6 +16,8 @@
   background: var(--tisty-note-0);
   color: var(--tisty-note-ink);
   box-shadow: var(--tisty-lift);
+  cursor: grab;
+  user-select: none;
   transition:
     rotate 0.15s,
     scale 0.15s;
@@ -32,6 +34,15 @@
 .sticky-note[data-hue="4"] {
   background: var(--tisty-note-4);
 }
+.sticky-note[data-hue="5"] {
+  background: var(--tisty-note-5);
+}
+.sticky-note[data-hue="6"] {
+  background: var(--tisty-note-6);
+}
+.sticky-note[data-hue="7"] {
+  background: var(--tisty-note-7);
+}
 .sticky-note[data-wide="1"] {
   width: 184px;
 }
@@ -40,6 +51,17 @@
 }
 .sticky-note[data-wide="3"] {
   width: 216px;
+}
+.sticky-note[data-lifted] {
+  z-index: 3;
+  cursor: grabbing;
+  scale: 1.06;
+  box-shadow: var(--tisty-lift-tall);
+  transition: scale 0.15s;
+}
+.sticky-note[data-target] {
+  outline: 2px dashed var(--tisty-accent);
+  outline-offset: 6px;
 }
 .sticky-note:hover,
 .sticky-note:focus-within {
@@ -51,22 +73,65 @@
 .sticky-hold {
   position: absolute;
   top: -9px;
-  left: 50%;
-  width: 60px;
+  left: var(--along, 50%);
+  width: 64px;
   height: 18px;
-  margin-left: -30px;
-  rotate: -3deg;
+  translate: -50% 0;
+  rotate: var(--angle, 0deg);
   background: var(--tisty-note-tape);
   border: 1px solid var(--tisty-line);
 }
-.sticky-note[data-pinned] .sticky-hold {
-  top: 8px;
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
+.sticky-note[data-hold="corner-left"] .sticky-hold {
+  top: 2px;
+  left: -14px;
+  translate: none;
+  rotate: calc(-40deg + var(--angle, 0deg) / 3);
+}
+.sticky-note[data-hold="corner-right"] .sticky-hold {
+  top: 2px;
+  left: auto;
+  right: -14px;
+  translate: none;
+  rotate: calc(40deg + var(--angle, 0deg) / 3);
+}
+.sticky-note[data-hold="pin"] .sticky-hold {
+  --pin: var(--tisty-pin-0);
+  top: 6px;
+  width: 16px;
+  height: 16px;
   border: none;
   border-radius: 9999px;
-  background: var(--tisty-urgent);
+  rotate: none;
+  background:
+    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.85) 0 2px, transparent 3.5px),
+    radial-gradient(
+      circle at 50% 45%,
+      var(--pin) 0 55%,
+      color-mix(in srgb, var(--pin), black 35%) 100%
+    );
+  box-shadow:
+    3px 5px 4px rgb(0 0 0 / 0.35),
+    inset -1px -2px 2px rgb(0 0 0 / 0.25);
+}
+.sticky-note[data-hold="pin"] .sticky-hold::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 13px;
+  width: 2px;
+  height: 7px;
+  rotate: -25deg;
+  border-radius: 1px;
+  background: rgb(0 0 0 / 0.25);
+}
+.sticky-note[data-pin="1"] .sticky-hold {
+  --pin: var(--tisty-pin-1);
+}
+.sticky-note[data-pin="2"] .sticky-hold {
+  --pin: var(--tisty-pin-2);
+}
+.sticky-note[data-pin="3"] .sticky-hold {
+  --pin: var(--tisty-pin-3);
 }
 
 .sticky-when {
@@ -92,6 +157,8 @@
   overflow-wrap: anywhere;
   outline: none;
   min-height: 3em;
+  cursor: text;
+  user-select: text;
 }
 
 .sticky-drop {
