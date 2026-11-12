@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Filed } from "../core";
 import { folded } from "../folding";
 import { t } from "../locales";
+import { tongueName } from "../tongues";
 import Modal from "./Modal";
 
 interface Props {
@@ -14,12 +15,16 @@ interface Props {
 
 const MOST = 12;
 
+const spoken = (one: Filed): string => (one.tongue && one.lang ? tongueName(one.lang) : "");
+
 export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
   const asked = folded(query.trim());
   const open = known
     .filter((one) => one.file !== own && !one.away && !one.locked && !one.gone)
-    .filter((one) => !asked || folded(one.title || t("untitledDoc")).includes(asked))
+    .filter(
+      (one) => !asked || folded(`${one.title || t("untitledDoc")} ${spoken(one)}`).includes(asked),
+    )
     .sort(
       (a, b) =>
         (b.wrote ?? "").localeCompare(a.wrote ?? "") ||
@@ -50,9 +55,14 @@ export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => onPick(one.file)}
-                className="w-full truncate rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
+                className="flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
               >
-                {one.title || t("untitledDoc")}
+                <span className="min-w-0 truncate">{one.title || t("untitledDoc")}</span>
+                {spoken(one) && (
+                  <span lang={one.lang ?? undefined} className="shrink-0 text-[12px] text-faint">
+                    {spoken(one)}
+                  </span>
+                )}
               </button>
             </li>
           ))
