@@ -216,8 +216,8 @@ what happened, what you ruled out, where you stopped; `append_doc` on the task i
 too long for a line: an analysis, a table, a draft — and is what you compact. The sections \
 are the person's: rename, add or remove one only when they ask you in this conversation.
 
-When the assistant's notes on a task's page pass about 8,000 characters, or `read` hands the \
-page back as its sections, compact them when you leave off, never in the middle of a step: \
+When `read` says the assistant's notes on a task's page want compacting, past about 8,000 \
+characters, compact them when you leave off, never in the middle of a step: \
 `describe` says what the task is and names its parts; `append_doc` with `replace` writes the \
 assistant's notes again as one dated digest — state, decisions, what was ruled out, references, \
 at most 6,000 characters — never with a box, since a box is a step: what is still to do becomes \

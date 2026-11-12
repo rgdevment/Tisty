@@ -216,7 +216,11 @@ fn instead_of(
     }
 }
 
-fn reason_said(state: &State, reason: Option<&str>, instead: Option<&str>) -> String {
+pub(in crate::mcp) fn reason_said(
+    state: &State,
+    reason: Option<&str>,
+    instead: Option<&str>,
+) -> String {
     let there = instead.map(|one| match one.parse::<TaskId>() {
         Ok(id) => state.tasks.get(&id).map_or_else(
             || one.to_string(),

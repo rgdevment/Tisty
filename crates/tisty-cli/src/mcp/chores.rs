@@ -803,6 +803,9 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
+    if let Some(why) = too_long_a_note(&state, task, &body) {
+        return Err(why);
+    }
 
     let zone = jiff::tz::TimeZone::system();
     store
@@ -815,6 +818,27 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         format!("Noted on {:?}.", task.title),
         json!({ "id": id.to_string(), "title": task.title }),
     ))
+}
+
+const NOTE_AT_MOST: usize = 4_000;
+
+// Every pickup reads the latest notes, so a note that runs long is paid for again and again.
+pub(super) fn too_long_a_note(state: &State, task: &Task, body: &str) -> Option<Refused> {
+    let length = body.chars().count();
+    if length <= NOTE_AT_MOST {
+        return None;
+    }
+    let instead = match state.attended_by_agents(task) {
+        true => {
+            "An analysis, a table or a draft goes on the task's page with `append_doc` and the \
+             task's id; then note one line saying it is there."
+        }
+        false => "Keep it in a document of its own with `write_doc`, and note one line naming it.",
+    };
+    Some(Refused::Tool(format!(
+        "a journal note says what happened in a line or a paragraph, at most {NOTE_AT_MOST} \
+         characters, and this one has {length}. Nothing was noted. {instead}"
+    )))
 }
 
 pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {

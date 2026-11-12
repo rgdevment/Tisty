@@ -7365,3 +7365,256 @@ fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
     assert!(kept["last"].is_null(), "{kept}");
     assert!(said.contains("the person put it out of sight"), "{said}");
 }
+
+fn agents_task(served: &Served, title: &str) -> String {
+    served.call(
+        "propose",
+        serde_json::json!({
+            "title": title,
+            "description": "Move the payments to the v2 API.",
+            "steps": ["switch the client"],
+        }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+fn text_of(answer: &serde_json::Value) -> String {
+    answer["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string()
+}
+
+#[test]
+fn a_task_page_past_a_pickup_s_worth_comes_as_sections_with_its_description_steps_and_latest_note()
+{
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    for week in 1..=3 {
+        let analysis =
+            format!("Week {week}: the webhook retries with the old signature. ").repeat(30);
+        served.call(
+            "append_doc",
+            serde_json::json!({ "doc": &id, "body": analysis }),
+        );
+    }
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    let said = text_of(&read);
+    assert_eq!(kept["document"]["whole"], false, "{kept}");
+    assert!(
+        kept["document"]["latest_note"]
+            .as_str()
+            .unwrap()
+            .contains("Week 3"),
+        "{kept}"
+    );
+    assert!(said.contains("Move the payments to the v2 API."), "{said}");
+    assert!(said.contains("[ ] switch the client"), "{said}");
+    assert!(
+        said.contains("The latest of the assistant's notes"),
+        "{said}"
+    );
+    assert!(!said.contains("Week 1"), "{said}");
+
+    let file = kept["document"]["file"].as_str().unwrap();
+    let notes = kept["document"]["outline"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["title"] == "Assistant notes")
+        .unwrap()["at"]
+        .clone();
+    let section = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": file, "section": notes }),
+    );
+    assert!(text_of(&section).contains("Week 1"), "{section}");
+}
+
+#[test]
+fn notes_past_what_a_page_should_hold_ask_to_be_compacted() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    for week in 1..=5 {
+        let analysis =
+            format!("Week {week}: the webhook retries with the old signature. ").repeat(35);
+        served.call(
+            "append_doc",
+            serde_json::json!({ "doc": &id, "body": analysis }),
+        );
+    }
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let said = text_of(&read);
+    assert!(said.contains("compact them when you leave off"), "{said}");
+    assert!(
+        read["result"]["structuredContent"]["document"]["notes_to_compact"]
+            .as_u64()
+            .unwrap()
+            > 8_000,
+        "{read}"
+    );
+}
+
+#[test]
+fn the_journal_window_is_counted_in_characters_and_long_notes_are_cut() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    for n in 1..=5 {
+        let note = format!("Day {n}: ").to_string() + &"retried the webhook. ".repeat(70);
+        served.call("note", serde_json::json!({ "task": &id, "body": note }));
+    }
+
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &id, "fields": ["journal"] }),
+    );
+    let kept = &read["result"]["structuredContent"];
+    let journal = kept["journal"].as_array().unwrap();
+    assert_eq!(journal.len(), 3, "{kept}");
+    assert_eq!(kept["earlier"], 2, "{kept}");
+    assert!(journal.iter().all(|one| one["cut"] == true), "{kept}");
+    assert!(text_of(&read).contains("`notes` with a count brings them whole"));
+
+    let asked = served.call(
+        "read",
+        serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 5 }),
+    );
+    let journal = asked["result"]["structuredContent"]["journal"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(journal.len(), 5, "{asked}");
+    assert!(journal.iter().all(|one| one["cut"].is_null()), "{asked}");
+}
+
+#[test]
+fn a_note_too_long_for_the_journal_is_refused_and_pointed_at_the_page() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+
+    let long = served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "x".repeat(4_001) }),
+    );
+
+    assert_eq!(long["result"]["isError"], true, "{long}");
+    let said = text_of(&long);
+    assert!(said.contains("at most 4000 characters"), "{said}");
+    assert!(said.contains("`append_doc`"), "{said}");
+}
+
+#[test]
+fn a_marked_document_comes_after_the_live_ones_in_find_saying_how_it_was_marked() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let old = wrote_paper(&served, "# Keys\n\nIdempotency keys are kept 30 days.");
+    let new = wrote_paper(&served, "# Retries\n\nIdempotency keys are kept 90 days.");
+    served.call(
+        "flag_doc",
+        serde_json::json!({
+            "doc": &old,
+            "reason": "duplicate_of",
+            "instead": &new,
+            "body": "Retries holds the current rule.",
+        }),
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "idempotency" }));
+    let docs = found["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(docs[0]["doc"], new.as_str(), "{found}");
+    assert_eq!(docs[1]["doc"], old.as_str(), "{found}");
+    let said = text_of(&found);
+    assert!(
+        said.contains("line: Idempotency keys are kept 90 days."),
+        "{said}"
+    );
+    assert!(said.contains("marked as a duplicate of"), "{said}");
+}
+
+#[test]
+fn the_list_and_the_outline_say_in_words_what_an_earlier_reader_left() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\n## El riego\n\nQueda para mayo.");
+    served.call(
+        "sum_up",
+        serde_json::json!({
+            "doc": &doc,
+            "summary": "Lo acordado sobre el riego.",
+            "notes": "El riego esta en la seccion 1.",
+        }),
+    );
+
+    let listed = text_of(&served.call("docs", serde_json::json!({})));
+    assert!(
+        listed.contains("An agent's summary: Lo acordado sobre el riego."),
+        "{listed}"
+    );
+    assert!(!listed.contains("Its notes"), "{listed}");
+    let outline = text_of(&served.call("outline_doc", serde_json::json!({ "doc": &doc })));
+    assert!(
+        outline.contains("An agent's summary: Lo acordado"),
+        "{outline}"
+    );
+    assert!(
+        outline.contains("Its notes: El riego esta en la seccion 1."),
+        "{outline}"
+    );
+
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Y el porton, para abril." }),
+    );
+    let listed = text_of(&served.call("docs", serde_json::json!({})));
+    assert!(
+        listed.contains("stale: written against an older version"),
+        "{listed}"
+    );
+}
+
+#[test]
+fn a_page_marked_old_is_no_sign_its_document_wants_compacting() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let book = wrote_paper(&served, "# Login\n\n## Tokens\n\nA.\n");
+    let page = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Review 1\n\n## Tokens\n\nB.\n", "page_of": &book }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let before = served.call("outline_doc", serde_json::json!({ "doc": &book }));
+    assert!(
+        before["result"]["structuredContent"]["repeated"].is_array(),
+        "{before}"
+    );
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &page, "reason": "obsolete", "body": "Folded into Login." }),
+    );
+
+    let after = served.call("outline_doc", serde_json::json!({ "doc": &book }));
+    let kept = &after["result"]["structuredContent"];
+    assert!(kept["repeated"].is_null(), "{kept}");
+    assert!(kept["pages"][0]["loose"].is_null(), "{kept}");
+    let said = text_of(&after);
+    assert!(said.contains("waiting for the person to delete"), "{said}");
+    assert!(
+        !said.contains("Headings written in more than one page"),
+        "{said}"
+    );
+}

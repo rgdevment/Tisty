@@ -87,6 +87,18 @@ pub fn foreign(words: &str, left: Option<&str>) -> Vec<String> {
     theirs
 }
 
+pub fn latest(words: &str) -> Option<&str> {
+    let mut start = None;
+    let mut offset = 0;
+    for line in words.split_inclusive('\n') {
+        if signature(line).is_some() {
+            start = Some(offset);
+        }
+        offset += line.len();
+    }
+    start.map(|at| words[at..].trim())
+}
+
 // What the person wrote before this write stays theirs, so a later digest still finds it.
 pub fn left_by_assistants(was: &str, now: &str, left: Option<&str>) -> Option<String> {
     let theirs = section(was)

@@ -144,3 +144,14 @@ fn what_an_assistant_leaves_keeps_the_person_s_lines_out() {
         vec!["Lo mío.".to_string()]
     );
 }
+
+#[test]
+fn the_latest_entry_runs_from_its_signature_to_the_end() {
+    let words =
+        "\n**2026-11-10 09:30** · Claude\nUna.\n\n**2026-11-11 18:02** · Codex\nDos.\nY tres.\n";
+    assert_eq!(
+        super::latest(words),
+        Some("**2026-11-11 18:02** · Codex\nDos.\nY tres.")
+    );
+    assert_eq!(super::latest("Sin firma.\n"), None);
+}

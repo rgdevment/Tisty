@@ -300,6 +300,9 @@ De dónde sale el ahorro:
   tamaño queda en temas y páginas, nunca como un muro de texto.
 - **Ninguna lectura trae más de unos 12 000 caracteres.** Pasado eso, un
   documento pedido entero vuelve como su índice.
+- **La página de una tarea llega entera solo mientras es corta**, unos 4000
+  caracteres. Pasado eso llegan sus secciones y la última nota del agente, y su
+  bitácora se mide por tamaño, no por cantidad de notas.
 - **El índice dice cuánto pesa cada sección** antes de abrir nada.
 - **Retomar trae solo lo que cambió** desde la última vez.
 - **Lo terminado se archiva**, y no cuesta nada hasta que alguien lo busca.
