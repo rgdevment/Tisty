@@ -820,7 +820,7 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-const NOTE_AT_MOST: usize = 4_000;
+pub(super) const NOTE_AT_MOST: usize = 4_000;
 
 // Every pickup reads the latest notes, so a note that runs long is paid for again and again.
 pub(super) fn too_long_a_note(state: &State, task: &Task, body: &str) -> Option<Refused> {

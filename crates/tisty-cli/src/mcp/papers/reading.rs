@@ -8,9 +8,9 @@ use super::super::asked::text;
 use super::super::jsonrpc::{mirrored, told};
 use super::super::mistaken::{no_document_by_that_id, no_document_called};
 use super::super::{
-    NEWEST_SHOWN, Part, Refused, Spot, card_alone, card_moved, carried_off, doc_named, gist_of,
-    gist_told, hitch, line_of, named_all, named_doc, opened, part_asked, retold, said, shortened,
-    trail, up_named, when,
+    A_GIST_IN_A_LINE, A_SUMMARY_IN_A_LIST, NEWEST_SHOWN, Part, Refused, Spot, card_alone,
+    card_moved, carried_off, doc_named, gist_of, gist_told, hitch, line_of, named_all, named_doc,
+    opened, part_asked, retold, said, shortened, trail, up_named, when,
 };
 
 // A task the person put out of sight keeps its words out of sight too, as `read` does.
@@ -171,10 +171,10 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             if one.archived {
                 row.insert("apart".into(), json!(true));
             }
-            if one.flagged.is_some() && !state.held_away(one) {
+            let marked = one.flagged.is_some() && !state.held_away(one);
+            if marked {
                 row.insert("flagged".into(), json!(true));
             }
-            let marked = one.flagged.is_some() && !state.held_away(one);
             if !told_of.contains(&one.file) && !marked {
                 row.insert("loose".into(), json!(true));
             }
@@ -277,7 +277,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
     if let Some(told) = kept_of
         .get("gist")
-        .map(gist_told)
+        .map(|one| gist_told(one, usize::MAX, A_SUMMARY_IN_A_LIST))
         .filter(|one| !one.is_empty())
     {
         shown.push_str(&format!("\n\n{told}"));
@@ -380,7 +380,10 @@ fn pages_told(rows: &[Value]) -> String {
             true => " — loose: no line names it, so the window gives it no place",
             false => "",
         };
-        let gist = match row.get("gist").map(gist_told) {
+        let gist = match row
+            .get("gist")
+            .map(|one| gist_told(one, A_GIST_IN_A_LINE, A_GIST_IN_A_LINE))
+        {
             Some(told) if !told.is_empty() => format!("\n  · {told}"),
             _ => String::new(),
         };

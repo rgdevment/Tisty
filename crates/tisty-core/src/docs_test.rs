@@ -3313,3 +3313,19 @@ fn lines_are_fenced_only_when_every_one_is_code_inside_one_block() {
     assert!(!fenced_between(body, 0, 1));
     assert!(!fenced_between(body, 12, 99));
 }
+
+#[test]
+fn a_line_written_with_separate_accents_is_still_cut_around_the_match() {
+    let room = root();
+    let before = "cafe\u{301} ".repeat(80);
+    write(
+        room.path(),
+        "mac0-0011",
+        &format!("# Notas\n\n{before}aguja final{}\n", " cola".repeat(10)),
+    )
+    .unwrap();
+
+    let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
+
+    assert!(found[0].line.contains("aguja final"), "{}", found[0].line);
+}

@@ -10,7 +10,8 @@ const NOTE_CLIPPED_AT: usize = 1_000;
 // A task's page is read at every pickup, so it comes whole only while it is short.
 const PAGE_WHOLE_UP_TO: usize = 4_000;
 const NOTES_TO_COMPACT: usize = 8_000;
-const LATEST_NOTE_AT_MOST: usize = 3_000;
+// A digest is the latest note right after it is written, and it must arrive whole.
+const LATEST_NOTE_AT_MOST: usize = super::task_notes::DIGEST_AT_MOST + 200;
 
 pub(super) struct Page {
     pub(super) file: String,
@@ -19,10 +20,11 @@ pub(super) struct Page {
     outlined: bool,
     latest: Option<(String, bool)>,
     notes_held: usize,
+    yours: bool,
 }
 
 impl Page {
-    pub(super) fn new(file: String, body: String, boxed: Vec<StepId>) -> Self {
+    pub(super) fn new(file: String, body: String, boxed: Vec<StepId>, yours: bool) -> Self {
         let outlined = body.chars().count() > PAGE_WHOLE_UP_TO;
         let notes = tisty_core::assistant_notes::section(&body);
         let notes_held = notes.map_or(0, |words| words.trim().chars().count());
@@ -37,7 +39,12 @@ impl Page {
             outlined,
             latest,
             notes_held,
+            yours,
         }
+    }
+
+    fn wants_compacting(&self) -> bool {
+        self.yours && self.notes_held > NOTES_TO_COMPACT
     }
 
     /// The page as the answer shows it whole, so what it holds need not be said again beside it.
@@ -57,7 +64,7 @@ impl Page {
         if let Some((said, _)) = &self.latest {
             kept["latest_note"] = json!(said);
         }
-        if self.notes_held > NOTES_TO_COMPACT {
+        if self.wants_compacting() {
             kept["notes_to_compact"] = json!(self.notes_held);
         }
         kept
@@ -87,7 +94,7 @@ impl Page {
                 ));
             }
         }
-        if self.notes_held > NOTES_TO_COMPACT {
+        if self.wants_compacting() {
             told.push_str(&format!(
                 "\n\nThe assistant's notes on it hold {} characters: compact them when you leave \
                  off, as `rules` «tasks» says.",

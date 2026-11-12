@@ -152,7 +152,17 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         _ => Vec::new(),
     };
     let papers_all = papers.len();
-    let papers: Vec<Value> = papers.into_iter().take(most).collect();
+    let papers: Vec<Value> = papers
+        .into_iter()
+        .take(most)
+        .map(|mut one| {
+            let line = said(&one, "line").to_string();
+            let kept = kept_here(&line);
+            hid |= kept != line;
+            one["line"] = json!(kept);
+            one
+        })
+        .collect();
     let mut lines: Vec<String> = hits
         .iter()
         .zip(&wheres)
@@ -402,7 +412,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
             let (body, boxed) =
                 tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
-            Some(Page::new(kept.file.clone(), body, boxed))
+            let yours = task.is_open() && state.attended_by_agents(task);
+            Some(Page::new(kept.file.clone(), body, boxed, yours))
         })
         .flatten();
     let named = |key: &str| asked.iter().any(|one| one == key);

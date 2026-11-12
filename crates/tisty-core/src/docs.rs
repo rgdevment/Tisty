@@ -969,7 +969,15 @@ fn cut(said: String, terms: &[String]) -> String {
     if chars.len() <= SAID_AT_MOST {
         return said;
     }
-    let flat: Vec<char> = crate::text::folded(&said).chars().collect();
+    // Folding can drop or add characters, so each folded one keeps the place it came from.
+    let mut flat = Vec::new();
+    let mut from = Vec::new();
+    for (at, one) in chars.iter().enumerate() {
+        for folded in crate::text::folded(&one.to_string()).chars() {
+            flat.push(folded);
+            from.push(at);
+        }
+    }
     let found = terms
         .iter()
         .filter_map(|term| {
@@ -978,6 +986,7 @@ fn cut(said: String, terms: &[String]) -> String {
                 .position(|one| one == term.as_slice())
         })
         .min()
+        .and_then(|at| from.get(at).copied())
         .unwrap_or(0);
     let start = found
         .saturating_sub(SAID_AT_MOST / 3)

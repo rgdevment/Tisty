@@ -7618,3 +7618,70 @@ fn a_page_marked_old_is_no_sign_its_document_wants_compacting() {
         "{said}"
     );
 }
+
+#[test]
+fn a_task_the_agent_cannot_write_is_never_asked_to_have_its_notes_compacted() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    for week in 1..=5 {
+        let analysis =
+            format!("Week {week}: the webhook retries with the old signature. ").repeat(35);
+        served.call(
+            "append_doc",
+            serde_json::json!({ "doc": &id, "body": analysis }),
+        );
+    }
+    served.person().closes(id.parse().unwrap());
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let said = text_of(&read);
+    assert!(!said.contains("compact them"), "{said}");
+    assert!(
+        read["result"]["structuredContent"]["document"]["notes_to_compact"].is_null(),
+        "{read}"
+    );
+}
+
+#[test]
+fn a_digest_comes_whole_as_the_latest_note() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    let digest = format!(
+        "{}Ruled out: the old signature.",
+        "State: the client is switched. ".repeat(170)
+    );
+    assert!(digest.chars().count() > 5_000);
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &id, "body": digest, "replace": true }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let latest = read["result"]["structuredContent"]["document"]["latest_note"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    assert!(latest.ends_with("Ruled out: the old signature."), "{read}");
+}
+
+#[test]
+fn a_document_line_find_quotes_keeps_the_person_s_disk_out() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    wrote_paper(
+        &served,
+        "# Contract\n\nSigned copy saved to C:/Users/someone/Desktop/Signed/contract.pdf today.",
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "signed copy" }));
+    let said = text_of(&found);
+    assert!(said.contains("[path]"), "{said}");
+    assert!(!said.contains("Desktop"), "{said}");
+    let line = found["result"]["structuredContent"]["docs"][0]["line"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    assert!(!line.contains("Desktop"), "{line}");
+}

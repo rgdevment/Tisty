@@ -5,8 +5,8 @@ use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::mistaken::not_a_document;
 use super::super::{
-    LISTED_AT_MOST, Refused, folder_found, gist_of, gist_told, named_doc, opened, placing, said,
-    scoped, shortened, trail,
+    A_GIST_IN_A_LINE, LISTED_AT_MOST, Refused, folder_found, gist_of, gist_told, named_doc, opened,
+    placing, said, scoped, shortened, trail,
 };
 
 pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -201,7 +201,10 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
             } else {
                 ""
             };
-            let gist = match one.get("gist").map(gist_told) {
+            let gist = match one
+                .get("gist")
+                .map(|one| gist_told(one, A_GIST_IN_A_LINE, A_GIST_IN_A_LINE))
+            {
                 Some(told) if !told.is_empty() => format!("\n  · {told}"),
                 _ => String::new(),
             };
