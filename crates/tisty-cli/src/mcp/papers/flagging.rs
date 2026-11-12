@@ -141,16 +141,16 @@ fn left_behind(
     state: &State,
     marked: &[String],
 ) -> (Vec<String>, Vec<String>) {
-    let ids: Vec<tisty_core::model::DocId> = state
+    let roots: Vec<tisty_core::model::DocId> = state
         .docs
         .values()
         .filter(|one| marked.contains(&one.file))
-        .map(|one| one.id)
+        .map(|one| one.translation_of.unwrap_or(one.id))
         .collect();
     let tongues = state
         .docs
         .values()
-        .filter(|one| one.translation_of.is_some_and(|of| ids.contains(&of)))
+        .filter(|one| roots.contains(&one.translation_of.unwrap_or(one.id)))
         .filter(|one| one.flagged.is_none() && !marked.contains(&one.file))
         .map(|one| one.file.clone())
         .collect();

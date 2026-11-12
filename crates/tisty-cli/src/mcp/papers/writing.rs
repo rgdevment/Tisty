@@ -206,8 +206,12 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
-    if a_task_s && let Some(saved) = tisty_core::docs::read_notes_before(paths.data(), &which) {
-        return notes_put_back(paths, &which, &saved);
+    if a_task_s
+        && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
+        && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
+        && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
+    {
+        return notes_put_back(paths, &which, &slot, &now, &body);
     }
     let named = opened(paths).map_or_else(
         |_| format!("[{which}]"),
@@ -294,49 +298,50 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     Ok(said)
 }
 
-// Going back over an undone compaction brings the compaction back, so it waits for the person again.
+// Going back over an undone compaction brings it back to wait for the person, unless they kept it.
 fn compaction_put_back(store: &Store, id: tisty_core::model::DocId, body: &str) -> Option<Op> {
     let print = tisty_core::attach::printed(body.as_bytes());
-    let last = store
-        .read_all()
-        .ok()?
-        .into_iter()
-        .rev()
-        .find_map(|one| match one.op {
+    let mut last = None;
+    let mut written_since = false;
+    let mut kept = false;
+    for one in store.read_all().ok()? {
+        match one.op {
             Op::DocCompacted {
                 id: was,
                 print,
                 before,
-            } if was == id => Some((print, before)),
-            _ => None,
-        })?;
-    (last.0.as_deref() == Some(print.as_str())).then_some(Op::DocCompacted {
+            } if was == id => {
+                last = Some((print, before));
+                written_since = false;
+                kept = false;
+            }
+            Op::DocSaid { id: was, d } if was == id => {
+                written_since |= last.as_ref().is_some_and(|(at, _)| d.print != *at);
+            }
+            Op::DocUncompacted { id: was } if was == id => kept |= !written_since,
+            _ => {}
+        }
+    }
+    let (at, before) = last.filter(|_| !kept)?;
+    (at.as_deref() == Some(print.as_str())).then_some(Op::DocCompacted {
         id,
-        print: last.0,
-        before: last.1,
+        print: at,
+        before,
     })
 }
 
-fn notes_put_back(paths: &Paths, which: &str, saved: &str) -> Result<Value, Refused> {
+fn notes_put_back(
+    paths: &Paths,
+    which: &str,
+    slot: &tisty_core::docs::NotesBefore,
+    now: &str,
+    body: &str,
+) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
     let task = tisty_core::task_docs::behind(&state)
         .get(which)
         .and_then(|id| state.tasks.get(id))
         .map_or_else(|| format!("[{which}]"), |one| format!("{:?}", one.title));
-    let now = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
-    let (Some(current), Some(body)) = (
-        tisty_core::assistant_notes::section(&now).map(str::to_string),
-        tisty_core::assistant_notes::put_back(&now, saved),
-    ) else {
-        return Err(Refused::Tool(format!(
-            "{task}'s page has no assistant's notes now, so there is nowhere to put them back."
-        )));
-    };
-    if tisty_core::docs::unchanged(&now, &body) {
-        return Err(Refused::Tool(format!(
-            "{task}'s assistant's notes already say what is kept, so there is nothing to put back."
-        )));
-    }
     let print = tisty_core::attach::printed(now.as_bytes());
     let said = over_again(
         paths,
@@ -344,17 +349,31 @@ fn notes_put_back(paths: &Paths, which: &str, saved: &str) -> Result<Value, Refu
         &state,
         &mut store,
         which,
-        &body,
+        body,
     )?;
-    tisty_core::docs::keep_notes_before(paths.data(), which, &current).map_err(hitch)?;
+    let back = tisty_core::docs::NotesBefore {
+        before: slot.after.clone(),
+        after: slot.before.clone(),
+    };
+    tisty_core::docs::keep_notes_before(paths.data(), which, &back).map_err(hitch)?;
+    let known = tisty_core::docs::read_notes_left(paths.data(), which);
+    if let Some(words) =
+        tisty_core::assistant_notes::left_by_assistants(now, body, known.as_deref())
+        && let Err(e) = tisty_core::docs::keep_notes_left(paths.data(), which, &words)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "the notes an assistant left could not be kept aside",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
     let mut kept = said["structuredContent"].clone();
     kept["notes_put_back"] = json!(true);
     Ok(told(
         format!(
-            "Put back the assistant's notes on {task}'s page as they were before the digest; its \
-             steps, ticks and the person's words since are as they were, and notes added after \
-             the digest went aside with it. Calling this again puts the digest and those notes \
-             back."
+            "Swapped the assistant's notes on {task}'s page back to what the digest wrote over; \
+             the notes added after it, its steps, ticks and the person's words stay as they are. \
+             Calling this again swaps the digest back in."
         ),
         kept,
     ))

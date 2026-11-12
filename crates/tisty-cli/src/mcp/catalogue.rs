@@ -222,9 +222,11 @@ page back as its sections, compact them when you leave off, never in the middle 
 assistant's notes again as one dated digest — state, decisions, what was ruled out, references, \
 at most 6,000 characters — never with a box, since a box is a step: what is still to do becomes \
 `plan` or a part. `replace` writes over every assistant's notes on the page, not only yours: \
-`read` them all first and carry what still holds from each, saying who found it. A long analysis \
-worth keeping goes in a document of its own. `restore_doc` with the task's id puts the notes back \
-as they were, even after later ticks and notes. The journal is not compacted; it is the dated \
+`read` them all first and carry what still holds from each, saying who found it; lines the person \
+wrote there are refused unless the digest carries them word for word. A long analysis worth \
+keeping goes in a document of its own. While the digest heads the notes, `restore_doc` with the \
+task's id swaps back what it replaced and keeps the notes added since. The journal is not \
+compacted; it is the dated \
 history, and `reword_note` mends only what is wrong.
 
 ## Picking up where you left off

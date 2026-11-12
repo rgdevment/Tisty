@@ -995,6 +995,10 @@ fn a_digest_is_undone_even_after_later_ticks_and_notes() {
         "{page}"
     );
     assert!(!page.contains("Digest"), "{page}");
+    assert!(
+        page.contains("Then C."),
+        "a note after the digest stays: {page}"
+    );
     let read = served.task(&task);
     let ticked = read["steps"]
         .as_array()
@@ -1036,8 +1040,41 @@ fn a_digest_never_writes_over_notes_no_assistant_signed() {
         json!({ "doc": &task, "body": "Digest.", "replace": true }),
     ));
 
-    assert!(over.contains("no assistant signed"), "{over}");
+    assert!(over.contains("no assistant wrote"), "{over}");
+    assert!(over.contains("«My own words.»"), "{over}");
     assert!(page_of(&served, &task).contains("My own words."));
+}
+
+#[test]
+fn a_line_the_person_added_under_an_assistant_s_note_is_found_and_passes_once_carried() {
+    let served = Served::new();
+    let task = served.filed("Login work");
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    let page = served.task(&task)["document"].clone();
+    let file = page["file"].as_str().unwrap();
+    let body = page["body"].as_str().unwrap().replacen(
+        "Tried A.",
+        "Tried A.\nThe client wants v1 kept.",
+        1,
+    );
+    served.person().saves_doc(file, &body);
+    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+
+    let over = refused(&served.call(
+        "append_doc",
+        json!({ "doc": &task, "body": "Digest: A ruled out.", "replace": true }),
+    ));
+    assert!(over.contains("«The client wants v1 kept.»"), "{over}");
+
+    went(&served.call(
+        "append_doc",
+        json!({
+            "doc": &task,
+            "body": "Digest: A ruled out.\nThe client wants v1 kept.",
+            "replace": true,
+        }),
+    ));
+    assert!(page_of(&served, &task).contains("The client wants v1 kept."));
 }
 
 #[test]
@@ -1074,6 +1111,55 @@ fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_perso
         "{read}"
     );
     assert!(read["compacted"]["at"].is_string(), "{read}");
+}
+
+#[test]
+fn a_compaction_the_person_kept_is_not_marked_again_when_undone_twice() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+    went(&served.call(
+        "edit_doc",
+        json!({ "doc": &doc, "old": "One. Two.", "new": "One, two.", "keep_compaction": true }),
+    ));
+
+    went(&served.call("restore_doc", json!({ "doc": &doc })));
+
+    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(
+        read["body"].as_str().unwrap().contains("One. Two."),
+        "{read}"
+    );
+    assert!(
+        read["compacted"].is_null(),
+        "the person kept it already: {read}"
+    );
+}
+
+#[test]
+fn marking_a_translation_names_the_original_it_leaves_behind() {
+    let served = Served::new();
+    let es = served.paper("---\nlang: es\n---\n# Inicio de sesión\n\nUno.\n");
+    let en = said(&served.call(
+        "write_doc",
+        json!({ "body": "# Login\n\nOne.", "translation_of": &es, "lang": "en" }),
+    ))["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let stays = served.paper("# Sign-in\n\nOne, and more.\n");
+
+    let marked = served.call(
+        "flag_doc",
+        json!({ "doc": &en, "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
+    );
+
+    went(&marked);
+    assert_eq!(said(&marked)["languages_left"], json!([es]), "{marked}");
 }
 
 #[test]

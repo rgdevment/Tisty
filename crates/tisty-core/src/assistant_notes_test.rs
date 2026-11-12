@@ -1,4 +1,4 @@
-use super::{noted, outside, put_back, rewritten, section, signed};
+use super::{foreign, noted, outside, rewritten, section, signed, swapped};
 
 #[test]
 fn the_first_note_opens_the_assistant_s_own_section_at_the_end() {
@@ -83,31 +83,64 @@ fn what_lies_outside_the_notes_is_the_page_without_them() {
 }
 
 #[test]
-fn the_notes_are_read_and_put_back_without_touching_the_rest_of_the_page() {
+fn a_digest_swaps_back_and_what_came_after_it_stays() {
     let body = "## Notas\n\nLo mío.\n\n## Notas del asistente\n\nUna.\n\n## Al cerrarla\n\nBien.\n";
-
-    let words = section(body).unwrap();
-    assert!(words.contains("Una."), "{words:?}");
-    assert!(
-        !words.contains("Lo mío.") && !words.contains("Bien."),
-        "{words:?}"
-    );
+    let before = section(body).unwrap();
     let digest = rewritten(body, "Resumen.", true);
-    assert_eq!(put_back(&digest, words).as_deref(), Some(body));
-    assert_eq!(section("## Notas\n\nLo mío.\n"), None);
-    assert_eq!(put_back("## Notas\n\nLo mío.\n", "Una."), None);
+    let after = section(&digest).unwrap().to_string();
+    let later = noted(&digest, "Dos.", true);
+
+    let back = swapped(&later, &after, before).unwrap();
+
+    assert_eq!(
+        back,
+        "## Notas\n\nLo mío.\n\n## Notas del asistente\n\nUna.\n\nDos.\n\n## Al cerrarla\n\nBien.\n"
+    );
+    let again = swapped(&back, before, &after).unwrap();
+    assert_eq!(section(&again), section(&later));
+    assert_eq!(
+        swapped(&later, "Otro resumen.", before),
+        None,
+        "the digest no longer heads them"
+    );
+    assert_eq!(swapped("## Notas\n\nLo mío.\n", &after, before), None);
 }
 
 #[test]
-fn each_dated_entry_names_who_signed_it_and_words_before_the_first_are_unsigned() {
+fn each_dated_entry_names_who_signed_it() {
     let words = "\n**2026-11-10 09:30** · Claude\nUna.\n\n**2026-11-11 18:02** · Codex\nDos.\n";
     assert_eq!(
         signed(words),
-        (vec!["Claude".to_string(), "Codex".to_string()], false)
+        vec!["Claude".to_string(), "Codex".to_string()]
     );
+    assert!(signed("**hoy** · Claude\nUna.\n").is_empty());
+}
 
-    let theirs = "\nMis palabras.\n\n**2026-11-10 09:30** · Claude\nUna.\n";
-    assert_eq!(signed(theirs), (vec!["Claude".to_string()], true));
+#[test]
+fn words_no_assistant_wrote_are_found_wherever_they_sit() {
+    let left = "\n**2026-11-10 09:30** · Claude\nUna.\n";
+    let theirs = "\nMis palabras.\n\n**2026-11-10 09:30** · Claude\nUna.\nY esto también.\n\n**2026-11-11 18:02** · Codex\nDos.\n";
 
-    assert_eq!(signed("**hoy** · Claude\nUna.\n"), (Vec::new(), true));
+    assert_eq!(
+        foreign(theirs, Some(left)),
+        vec!["Mis palabras.".to_string(), "Y esto también.".to_string()],
+        "an entry signed since is an assistant's; a line under an old one is not"
+    );
+    assert_eq!(foreign(theirs, None), vec!["Mis palabras.".to_string()]);
+    assert!(foreign(left, Some(left)).is_empty());
+}
+
+#[test]
+fn what_an_assistant_leaves_keeps_the_person_s_lines_out() {
+    let left = "\n**2026-11-10 09:30** · Claude\nUna.\n";
+    let was = "## Notas del asistente\n\n**2026-11-10 09:30** · Claude\nUna.\nLo mío.\n";
+    let now = noted(was, "**2026-11-11 10:00** · Claude\nDos.", true);
+
+    let kept = super::left_by_assistants(was, &now, Some(left)).unwrap();
+
+    assert!(!kept.contains("Lo mío."), "{kept:?}");
+    assert_eq!(
+        foreign(section(&now).unwrap(), Some(&kept)),
+        vec!["Lo mío.".to_string()]
+    );
 }
