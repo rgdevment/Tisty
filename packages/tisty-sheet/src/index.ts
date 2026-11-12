@@ -10,6 +10,8 @@ export {
   type IdeaHead,
   ideaParts,
   ideaStamp,
+  ideaWhen,
+  pinMarkup,
   pinned,
   type Shape,
   saysAny,

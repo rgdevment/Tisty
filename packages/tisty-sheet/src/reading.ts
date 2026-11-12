@@ -39,7 +39,7 @@ export const readAs = (page: Document, reading: Reading): Read => {
   saidKinds(page, (kind) => say(`said${kind}` as ReadWord));
   const icons = iconed(page);
   staged(page);
-  pinned(page);
+  pinned(page, reading.locale);
   celled(page, {
     today: today(),
     locale: reading.locale,

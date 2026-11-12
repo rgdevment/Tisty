@@ -37,7 +37,7 @@
   --tisty-pin-1: var(--tisty-idea-pin-1);
   --tisty-pin-2: var(--tisty-idea-pin-2);
   --tisty-pin-3: var(--tisty-idea-pin-3);
-  --tisty-pin-needle: #5c636b;
+  --tisty-pin-needle: var(--tisty-idea-needle);
   --tisty-note-ink: var(--tisty-idea-ink);
   --tisty-note-tape: var(--tisty-idea-tape);
 }
@@ -74,7 +74,7 @@
   --tisty-pin-1: var(--tisty-idea-pin-1);
   --tisty-pin-2: var(--tisty-idea-pin-2);
   --tisty-pin-3: var(--tisty-idea-pin-3);
-  --tisty-pin-needle: #c3c8ce;
+  --tisty-pin-needle: var(--tisty-idea-needle);
   --tisty-note-ink: var(--tisty-idea-ink);
   --tisty-note-tape: var(--tisty-idea-tape);
 }

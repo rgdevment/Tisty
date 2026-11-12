@@ -27,6 +27,7 @@ export const TOKENS = [
   "idea-ink",
   ...[0, 1, 2, 3].map((one) => `idea-pin-${one}`),
   "idea-tape",
+  "idea-needle",
 ].map((one) => `--tisty-${one}`);
 
 const worn = (): string => {

@@ -28,7 +28,7 @@ import {
   wrapped,
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
-import { charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
+import { bytesAt, charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -178,6 +178,7 @@ export default function Sheet(props: Readonly<Props>) {
     label?: string;
   } | null>(null);
   const askedOn = useRef("");
+  const landing = useRef<{ bytes: number; y: number; turn: number } | null>(null);
   const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
@@ -709,11 +710,13 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
-  const restuck = (note: [number, number], to: number) => {
+  const restuck = (note: [number, number], to: number, y: number) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
     const next = movedBlock(latest.current, note, to);
-    if (next !== latest.current) whole(next);
+    if (next.text === latest.current) return;
+    landing.current = { bytes: bytesAt(next.text, next.at), y, turn: turnedNow.current };
+    whole(next.text);
   };
 
   const parted = (at: [number, number]) => {
@@ -926,6 +929,22 @@ export default function Sheet(props: Readonly<Props>) {
       one.classList.toggle("lately", Boolean(lately && at && touches(at, lately)));
     }
   }, [lately, turned, drawn]);
+
+  // A page drawn anew lays its sheets and its height again, so a moved note is put back where it was let go.
+  useEffect(() => {
+    const wanted = landing.current;
+    if (!wanted || drawn !== latest.current || turned === wanted.turn) return;
+    landing.current = null;
+    const settle = requestAnimationFrame(() => {
+      const page = shown.current?.document;
+      const note = page?.querySelector<HTMLElement>(`.page > [data-at^="${wanted.bytes}-"]`);
+      const frame = shown.current?.frameElement?.getBoundingClientRect();
+      const sheet = room.current;
+      if (!note || !frame || !sheet) return;
+      sheet.scrollTop += note.getBoundingClientRect().top + frame.top - wanted.y;
+    });
+    return () => cancelAnimationFrame(settle);
+  }, [turned, drawn]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {

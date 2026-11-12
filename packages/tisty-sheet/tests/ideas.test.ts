@@ -4,7 +4,7 @@ import { pinned } from "../src/ideas";
 const drawn = (html: string) => {
   const page = document.implementation.createHTMLDocument();
   page.body.innerHTML = `<article class="page">${html}</article>`;
-  pinned(page);
+  pinned(page, "es");
   return Array.from(page.querySelectorAll<HTMLElement>("blockquote"));
 };
 
@@ -19,6 +19,23 @@ describe("a sticky note held on the sheet", () => {
     expect(again.dataset.hold).toBe(once.dataset.hold);
     expect(again.dataset.pin).toBe(once.dataset.pin);
     expect(again.style.getPropertyValue("--tilt")).toBe(once.style.getPropertyValue("--tilt"));
+  });
+
+  it("says its date and time above its words, and wears the board's own pin when pinned", () => {
+    const notes = drawn(
+      Array.from(
+        { length: 12 },
+        (_, n) =>
+          `<blockquote class="callout" data-callout="idea" data-when="2026-11-12 09:${String(n).padStart(2, "0")}">x</blockquote>`,
+      ).join(""),
+    );
+    expect(notes[0].dataset.said).toMatch(/^12 nov\.? · 09:00$/);
+    const pinnedOnes = notes.filter((one) => one.dataset.hold === "pin");
+    expect(pinnedOnes.length).toBeGreaterThan(0);
+    for (const one of pinnedOnes)
+      expect(one.querySelectorAll(":scope > svg.sticky-pin")).toHaveLength(1);
+    for (const one of notes.filter((note) => note.dataset.hold !== "pin"))
+      expect(one.querySelector("svg")).toBeNull();
   });
 
   it("leans only a little, and leaves any other quote alone", () => {

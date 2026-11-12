@@ -22,6 +22,9 @@ type Style = {
         fill: { light: Record<string, string>; dark: Record<string, string> };
         ink: { light: string; dark: string };
         pins: { light: string[]; dark: string[] };
+        needle: { light: string; dark: string };
+        size: string;
+        line_height: number;
         tape: { light: string; dark: string };
         width: { least: string; most: string };
         padding: string;
@@ -79,7 +82,7 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     const [light, dark] = tokens.split('[data-theme="dark"]');
     expect(colorsOf(light)).toEqual(style.colors.light);
     expect(colorsOf(dark)).toEqual(style.colors.dark);
-    const { fill, ink, pins, tape } = style.callouts.idea;
+    const { fill, ink, pins, tape, needle } = style.callouts.idea;
     const held = (theme: "light" | "dark") =>
       Object.fromEntries(pins[theme].map((one, n) => [`pin-${n}`, one]));
     expect(ideasOf(light)).toEqual({
@@ -87,12 +90,14 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
       ink: ink.light,
       ...held("light"),
       tape: tape.light,
+      needle: needle.light,
     });
     expect(ideasOf(dark)).toEqual({
       ...fill.dark,
       ink: ink.dark,
       ...held("dark"),
       tape: tape.dark,
+      needle: needle.dark,
     });
   });
 
@@ -170,6 +175,8 @@ describe("what the contract says a sheet looks like is what Tisty's own sheet we
     expect(said(page, note, "min-width")).toBe(idea.width.least);
     expect(said(page, note, "max-width")).toBe(idea.width.most);
     expect(said(page, note, "padding")).toBe(idea.padding);
+    expect(said(page, note, "font-size")).toBe(idea.size);
+    expect(Number(said(page, note, "line-height"))).toBe(idea.line_height);
     expect(said(page, note, "margin")).toBe(idea.margin);
     for (const side of ["right", "left"] as const) {
       expect(said(page, `${note}[data-side="${side}"]`, "margin")).toBe(idea.beside[side]);

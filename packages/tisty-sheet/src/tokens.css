@@ -48,6 +48,7 @@
   --tisty-idea-pin-2: #c98a00;
   --tisty-idea-pin-3: #16824c;
   --tisty-idea-tape: rgb(70 62 48 / 0.22);
+  --tisty-idea-needle: #5c636b;
 }
 
 [data-theme="dark"] {
@@ -99,4 +100,5 @@
   --tisty-idea-pin-2: #ffc457;
   --tisty-idea-pin-3: #3dd68c;
   --tisty-idea-tape: rgb(255 255 255 / 0.26);
+  --tisty-idea-needle: #c3c8ce;
 }

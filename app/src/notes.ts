@@ -1,4 +1,4 @@
-import { IDEA_HUES, ideaParts, ideaStamp, saysAny } from "tisty-editor/read";
+import { IDEA_HUES, ideaParts, ideaStamp } from "tisty-editor/read";
 
 export interface Note {
   heading: string;
@@ -13,7 +13,6 @@ export interface Board {
 const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
 const FENCE = /^[>\s]*(```|~~~)/;
 const QUOTED = /^\s*>/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/;
 
 export const IDEA_AT_MOST = 140;
 
@@ -146,22 +145,6 @@ export const added = (body: string, heading: string): string => {
 
 export const stampOf = ideaStamp;
 
-export function saidWhen(heading: string, locale: string): string {
-  const stamp = STAMP.exec(ideaParts(heading).when ?? "");
-  if (!stamp) {
-    return heading
-      .split(" · ")
-      .map((part) => part.trim())
-      .filter((part) => part && !saysAny(ideaParts(part)))
-      .join(" · ");
-  }
-  const [year, month, day] = stamp.slice(1, 4).map(Number);
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(
-    new Date(year, month - 1, day),
-  );
-  return stamp[4] ? `${date} · ${stamp[4]}:${stamp[5]}` : date;
-}
-
-export { type Shape, shapeOf } from "tisty-editor/read";
+export { ideaWhen as saidWhen, type Shape, shapeOf } from "tisty-editor/read";
 
 export const HUES = 12;

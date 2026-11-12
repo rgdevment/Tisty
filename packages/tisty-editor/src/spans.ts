@@ -2,6 +2,9 @@
 export const charsAt = (body: string, bytes: number): number =>
   new TextDecoder().decode(new TextEncoder().encode(body).subarray(0, bytes)).length;
 
+export const bytesAt = (body: string, chars: number): number =>
+  new TextEncoder().encode(body.slice(0, chars)).length;
+
 export const spanned = (said: string | null): [number, number] | null => {
   const found = /^(\d+)-(\d+)$/.exec(said ?? "");
   return found ? [Number(found[1]), Number(found[2])] : null;
