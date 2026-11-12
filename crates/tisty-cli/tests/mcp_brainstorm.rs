@@ -785,3 +785,20 @@ fn an_empty_sheet_is_still_named_and_a_new_one_is_not_sent_to_a_folder() {
     assert!(refused(&second), "{second}");
     assert!(said(&second).contains("already"), "{}", said(&second));
 }
+
+#[test]
+fn a_document_is_never_turned_into_a_sheet_by_a_write() {
+    let served = Served::new();
+    let doc = served
+        .person()
+        .writes_doc("---\nview: notes\n---\n\n# Notas sueltas\n\nUna línea.\n");
+
+    let turned = served.call(
+        "edit_doc",
+        json!({ "doc": doc, "old": "view: notes", "new": "view: notes\nbrainstorm: on" }),
+    );
+
+    assert!(refused(&turned), "{turned}");
+    assert!(said(&turned).contains("made new"), "{}", said(&turned));
+    assert!(!served.body(&doc).contains("brainstorm"));
+}

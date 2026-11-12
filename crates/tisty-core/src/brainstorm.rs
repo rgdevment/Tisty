@@ -16,10 +16,7 @@ pub const IDEA_AT_MOST: usize = 140;
 pub const COLOURS: [&str; 12] = tisty_markdown::IDEA_HUES;
 
 pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
-    stuck(
-        &format!("{} · {colour}", at.strftime("%Y-%m-%d %H:%M")),
-        idea,
-    )
+    stuck(&format!("{} · {colour}", minute_of(at)), idea)
 }
 
 fn stuck(head: &str, idea: &str) -> String {
@@ -79,32 +76,45 @@ fn fences(line: &str) -> bool {
     bare.starts_with("```") || bare.starts_with("~~~")
 }
 
-// A note is named by its minute and colour, so no two on one sheet may share both.
+type Taken = std::collections::HashSet<(String, &'static str)>;
+
 pub fn jotted_next(was: &str, idea: &str, at: jiff::civil::DateTime, roll: u32) -> String {
-    let taken: Vec<String> = ideas_on(was).into_iter().map(|one| one.heading).collect();
-    let last = last_hue(was);
-    let mut when = at;
-    loop {
-        let minute = when.strftime("%Y-%m-%d %H:%M").to_string();
-        let free: Vec<&'static str> = COLOURS
-            .into_iter()
-            .filter(|hue| !headed_alike(&taken, &minute, hue))
-            .collect();
-        if !free.is_empty() {
-            return jotted(idea, when, picked(&free, last, roll));
-        }
-        match when.checked_add(jiff::Span::new().minutes(1)) {
-            Ok(next) => when = next,
-            Err(_) => return jotted(idea, when, picked(&COLOURS, last, roll)),
-        }
-    }
+    jotted_all(was, &[idea.to_string()], at, || roll)
 }
 
-fn headed_alike(taken: &[String], minute: &str, hue: &str) -> bool {
-    taken.iter().any(|heading| {
-        let head = tisty_markdown::idea_parts(heading);
-        head.when == Some(minute) && head.hue == Some(hue)
-    })
+fn minute_of(when: jiff::civil::DateTime) -> String {
+    when.strftime("%Y-%m-%d %H:%M").to_string()
+}
+
+fn taken_on(was: &str) -> Taken {
+    ideas_on(was)
+        .iter()
+        .filter_map(|one| {
+            let head = tisty_markdown::idea_parts(&one.heading);
+            Some((head.when?.to_string(), head.hue?))
+        })
+        .collect()
+}
+
+// A note is named by its minute and colour, so no two on one sheet may share both.
+fn free_slot(
+    taken: &Taken,
+    last: Option<&str>,
+    at: jiff::civil::DateTime,
+    roll: u32,
+) -> (jiff::civil::DateTime, &'static str) {
+    let mut when = at;
+    loop {
+        let minute = minute_of(when);
+        let free: Vec<&'static str> = COLOURS
+            .into_iter()
+            .filter(|hue| !taken.contains(&(minute.clone(), *hue)))
+            .collect();
+        if !free.is_empty() {
+            return (when, picked(&free, last, roll));
+        }
+        when = when.saturating_add(jiff::Span::new().minutes(1));
+    }
 }
 
 fn last_hue(body: &str) -> Option<&'static str> {
@@ -241,14 +251,17 @@ pub fn jotted_all(
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
-    let mut sheet = was.to_string();
-    let mut added: Vec<String> = Vec::new();
-    for idea in each {
-        let note = jotted_next(&sheet, idea, at, roll());
-        sheet.push_str("\n\n");
-        sheet.push_str(&note);
-        added.push(note);
-    }
+    let mut taken = taken_on(was);
+    let mut last = last_hue(was);
+    let added: Vec<String> = each
+        .iter()
+        .map(|idea| {
+            let (when, colour) = free_slot(&taken, last, at, roll());
+            taken.insert((minute_of(when), colour));
+            last = Some(colour);
+            jotted(idea, when, colour)
+        })
+        .collect();
     added.join("\n\n")
 }
 

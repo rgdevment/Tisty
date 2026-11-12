@@ -1034,6 +1034,9 @@ fn named_all(state: &State, files: &[String]) -> String {
 
 // The id stays in brackets, for the next call, and an untitled document is still called something.
 fn doc_named(state: &State, which: &str) -> String {
+    if let Some(task) = page_task(state, which) {
+        return format!("the page of {:?} [{which}]", task.title);
+    }
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return format!("[{which}]");
     };
@@ -1074,6 +1077,7 @@ fn for_the_person(state: &State, which: &str, title: &str) -> String {
 
 // A task's page opens on a section, not a title, so it goes by its task.
 fn page_task<'a>(state: &'a State, which: &str) -> Option<&'a tisty_core::model::Task> {
+    tisty_core::task_docs::task_of_file(which)?;
     tisty_core::task_docs::behind(state)
         .get(which)
         .and_then(|id| state.tasks.get(id))

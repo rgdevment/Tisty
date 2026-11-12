@@ -44,11 +44,11 @@ pub(in crate::mcp) fn on_its_page(
     let Some(id) = tisty_core::task_docs::behind(&state).get(file).copied() else {
         return write();
     };
-    if let Some(task) = state.tasks.get(&id).filter(|one| !one.is_open()) {
-        return Err(history(task));
-    }
     if let Some(kept) = state.docs.values().find(|one| one.file == file) {
         in_sight(&state, kept, file)?;
+    }
+    if let Some(task) = state.tasks.get(&id).filter(|one| !one.is_open()) {
+        return Err(history(task));
     }
     let root = paths.docs();
     let before = tisty_core::docs::read(&root, file).map_err(hitch)?;

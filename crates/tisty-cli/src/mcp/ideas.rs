@@ -41,8 +41,8 @@ pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
 pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Result<(), Refused> {
     if let Some((kept, _)) = sheet(paths, state) {
         return Err(Refused::Tool(format!(
-            "the person's Brainstorm is already {}: jot ideas on it with `append_doc`. Nothing \
-             was written.",
+            "the person's Brainstorm is already {}, and there is only ever one: add these ideas \
+             to it with `append_doc`. Nothing was written.",
             doc_named(state, &kept.file)
         )));
     }
@@ -424,7 +424,15 @@ pub(super) fn keeps_every_idea(
     after: &str,
 ) -> Result<(), Refused> {
     if !is_sheet(before) {
-        return Ok(());
+        return match is_sheet(after) {
+            true => Err(Refused::Tool(format!(
+                "`brainstorm: on` would turn {} into a Brainstorm sheet, and a sheet is only ever \
+                 made new with `write_doc`, as `rules` «ideas» says. Leave that line out. Nothing \
+                 was written.",
+                doc_named(state, which)
+            ))),
+            false => Ok(()),
+        };
     }
     let named = doc_named(state, which);
     if !is_sheet(after) {

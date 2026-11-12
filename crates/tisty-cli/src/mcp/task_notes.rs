@@ -25,17 +25,16 @@ pub(super) fn noted_on_page(
     let Some(task) = state.tasks.get(&id) else {
         return Err(Refused::Tool("that task is not here any more.".into()));
     };
+    if task.hidden {
+        return Err(Refused::Tool(format!(
+            "no task here has the id {id}. Look it up again with `find`."
+        )));
+    }
     let title = task.title.clone();
     if !task.is_open() {
         return Err(Refused::Tool(format!(
             "{title:?} is closed, and its page is put away with it. If the work came back, \
              propose it anew."
-        )));
-    }
-    if task.folded() {
-        return Err(Refused::Tool(format!(
-            "{title:?} was put out of sight by the person, so its page is not yours to write. Say \
-             what you have learnt with `note` instead."
         )));
     }
     let owner = tisty_core::task_docs::owner(state, id);

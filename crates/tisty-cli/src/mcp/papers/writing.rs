@@ -346,9 +346,7 @@ fn notes_put_back(
     body: &str,
 ) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
-    let task = tisty_core::task_docs::behind(&state)
-        .get(which)
-        .and_then(|id| state.tasks.get(id))
+    let task = super::super::page_task(&state, which)
         .map_or_else(|| format!("[{which}]"), |one| format!("{:?}", one.title));
     let print = tisty_core::attach::printed(now.as_bytes());
     let said = over_again(

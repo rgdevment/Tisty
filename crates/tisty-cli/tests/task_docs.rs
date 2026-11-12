@@ -567,9 +567,20 @@ fn the_page_of_a_task_the_person_hid_is_not_written_by_its_name() {
         serde_json::json!({ "doc": task, "body": "Algo más." }),
     );
 
-    assert_eq!(edited["result"]["isError"], true, "{edited}");
-    assert_eq!(added["result"]["isError"], true, "{added}");
-    assert_eq!(by_id["result"]["isError"], true, "{by_id}");
+    served.person().closes(person::task(&task));
+    let closed = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Otras." }),
+    );
+
+    for refused in [&edited, &added, &by_id, &closed] {
+        assert_eq!(refused["result"]["isError"], true, "{refused}");
+        let said = refused["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(
+            !said.contains("algo mio"),
+            "a hidden task was named: {said}"
+        );
+    }
     assert_eq!(on_disk(&served, &file), before);
 }
 
@@ -605,6 +616,50 @@ fn a_written_page_is_named_by_its_task_never_by_its_first_section() {
         "{told}"
     );
     assert_eq!(added["result"]["structuredContent"]["title"], "algo mio");
+
+    let print = page_of(&served, &file)["print"].clone();
+    let whole = format!(
+        "{}\n## Description\n\n| Cosa | Hecha |\n| --- | --- |\n| pan | no |\n",
+        tisty_core::task_docs::seed(person::task(&task))
+    );
+    let written = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": file, "print": print, "body": whole }),
+    );
+    let tabled = served.call(
+        "edit_table",
+        serde_json::json!({ "doc": file, "do": "add", "values": { "Cosa": "sal" } }),
+    );
+    let restored = served.call("restore_doc", serde_json::json!({ "doc": file }));
+    for (said, starts) in [
+        (&written, "Wrote the page of \"algo mio\" again"),
+        (&tabled, "Changed the table 1 in the page of \"algo mio\""),
+        (&restored, ""),
+    ] {
+        assert_ne!(said["result"]["isError"], true, "{said}");
+        let told = said["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(told.starts_with(starts), "{told}");
+        assert!(!told.contains("\"Description\""), "{told}");
+    }
+}
+
+#[test]
+fn a_locked_page_is_refused_by_its_task_s_name() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "## Description\n\nMis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    served.person().locks_doc(&file);
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Otras." }),
+    );
+
+    assert_eq!(edited["result"]["isError"], true, "{edited}");
+    let said = edited["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("the page of \"algo mio\""), "{said}");
+    assert!(!said.contains("\"Description\""), "{said}");
 }
 
 #[test]
