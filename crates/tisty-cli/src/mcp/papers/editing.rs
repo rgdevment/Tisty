@@ -11,6 +11,7 @@ use super::super::spoken::spoken;
 use super::super::{
     Refused, UNSETTLED, by_how_much, doc_named, for_the_person, grew, hitch, left_loose,
     loose_words, named_twice, nearest, opened, raw, retold, twice_words, with_echo, wrapped,
+    written_name, written_title,
 };
 
 /// The document opened for an edit, refused when it is put away, waits on a compaction or is locked.
@@ -185,9 +186,9 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
             let anew = super::named_anew(paths, &state, &mut store, &which, &whole);
             Ok(told(
                 format!(
-                    "Changed that passage in {:?}, {}. What it was is kept beside the \
+                    "Changed that passage in {}, {}. What it was is kept beside the \
                      documents.{}{}{}{}",
-                    tisty_core::docs::titled(&whole),
+                    written_name(&state, &which, &whole),
                     by_how_much(&was, &whole),
                     loose_words(&state, &loose),
                     twice_words(&state, &twice) + &anew,
@@ -196,9 +197,9 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
                 ),
                 with_echo(
                     json!({
-                        "for_the_person": for_the_person(&state, &which, &tisty_core::docs::titled(&whole)),
+                        "for_the_person": for_the_person(&state, &which, &written_title(&state, &which, &whole)),
                         "doc": which,
-                        "title": tisty_core::docs::titled(&whole),
+                        "title": written_title(&state, &which, &whole),
                         "chars": whole.chars().count(),
                         "lines": whole.lines().count(),
                         "grew": grew(&was, &whole),

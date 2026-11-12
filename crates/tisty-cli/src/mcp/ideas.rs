@@ -38,6 +38,24 @@ pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
     ))
 }
 
+pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Result<(), Refused> {
+    if let Some((kept, _)) = sheet(paths, state) {
+        return Err(Refused::Tool(format!(
+            "the person's Brainstorm is already {}, and there is only ever one: add these ideas \
+             to it with `append_doc`. Nothing was written.",
+            doc_named(state, &kept.file)
+        )));
+    }
+    if placed {
+        return Err(Refused::Tool(
+            "Brainstorm is pinned at the top of the Library on its own: send it without `folder` \
+             or `page_of`. Nothing was written."
+                .into(),
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Brainstorm, pinned at the top of the Library on its own: it goes in no folder and \
@@ -63,20 +81,23 @@ pub(super) fn is_sheet(body: &str) -> bool {
 pub(super) fn glance(paths: &Paths, state: &State) -> Option<(String, Value)> {
     let (kept, body) = sheet(paths, state)?;
     let waiting = brainstorm::ideas(&body);
-    if waiting == 0 {
-        return None;
-    }
     let marked = brainstorm::marked(kept, &body).len();
     let marks = match marked {
         0 => String::new(),
         n => format!(", {n} of them marked and waiting for the person"),
     };
+    let named = doc_named(state, &kept.file);
     Some((
-        format!(
-            "Brainstorm, {}, holds {waiting} idea(s) not yet sorted{marks}: `rules` «ideas» says \
-             how to work them.",
-            doc_named(state, &kept.file)
-        ),
+        match waiting {
+            0 => format!(
+                "Brainstorm, {named}, holds no idea now: new ones are jotted on it, as `rules` \
+                 «ideas» says."
+            ),
+            _ => format!(
+                "Brainstorm, {named}, holds {waiting} idea(s) not yet sorted{marks}: `rules` \
+                 «ideas» says how to work them."
+            ),
+        },
         json!({
             "doc": kept.file,
             "title": tisty_core::docs::titled(&body),
@@ -252,8 +273,8 @@ pub(super) fn jotted_on(
     let settled = retold(state, store, &kept.file, &whole).is_ok();
     Ok(told(
         format!(
-            "Jotted {} idea(s) on {named}, dated {}, each on a note of its own colour. Nothing \
-             that was there changed.{}",
+            "Jotted {} idea(s) on {named}, dated from {} on, each headed by a minute and colour \
+             no other idea there shares. Nothing that was there changed.{}",
             each.len(),
             at.strftime("%Y-%m-%d %H:%M"),
             if settled { "" } else { UNSETTLED }
@@ -403,7 +424,15 @@ pub(super) fn keeps_every_idea(
     after: &str,
 ) -> Result<(), Refused> {
     if !is_sheet(before) {
-        return Ok(());
+        return match is_sheet(after) {
+            true => Err(Refused::Tool(format!(
+                "`brainstorm: on` would turn {} into a Brainstorm sheet, and a sheet is only ever \
+                 made new with `write_doc`, as `rules` «ideas» says. Leave that line out. Nothing \
+                 was written.",
+                doc_named(state, which)
+            ))),
+            false => Ok(()),
+        };
     }
     let named = doc_named(state, which);
     if !is_sheet(after) {
@@ -415,7 +444,13 @@ pub(super) fn keeps_every_idea(
     let mut left: Vec<Idea> = brainstorm::ideas_on(after);
     let mut lost: Vec<Idea> = Vec::new();
     for one in brainstorm::ideas_on(before) {
-        match left.iter().position(|kept| kept.heading == one.heading) {
+        let kept_whole = left.iter().position(|kept| *kept == one);
+        let reworded = || {
+            left.iter().position(|kept| {
+                kept.heading == one.heading && (one.text.is_empty() || !kept.text.is_empty())
+            })
+        };
+        match kept_whole.or_else(reworded) {
             Some(at) => {
                 left.remove(at);
             }
@@ -424,10 +459,10 @@ pub(super) fn keeps_every_idea(
     }
     if let Some(gone) = lost.first() {
         return Err(Refused::Tool(format!(
-            "{named} is the person's Brainstorm, and this write would take {} idea(s) off it, \
-             «{}» first. Taking an idea off is theirs: mark it with `flag_doc`, `doc` \
-             \"{which}#{}\", or file it in a document or a task, which takes it off as the \
-             window does. Nothing was written.",
+            "{named} is the person's Brainstorm, and this write would take {} idea(s) off it or \
+             leave them without their words, «{}» first. Taking an idea off is theirs: mark it \
+             with `flag_doc`, `doc` \"{which}#{}\", or file it in a document or a task, which \
+             takes it off as the window does. Nothing was written.",
             lost.len(),
             gone.text,
             gone.heading

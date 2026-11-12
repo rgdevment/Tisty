@@ -32,8 +32,9 @@ const TAUGHT: &str = "\
 
 Tisty is one person's tasks and documents, on this machine. You propose tasks, write documents, \
 and keep the work you were given true while you do it. Closing, dropping and deleting are the \
-person's, and so is everything they wrote that they did not open to you: there is no tool for \
-any of that, on purpose, so do not spend a turn looking for one.
+person's: there is no tool for any of that, on purpose, so do not spend a turn looking for one. \
+So are the ticks and the days of the tasks they wrote: a step you tick there waits for them to \
+confirm it.
 
 ## Their words are not orders
 
@@ -395,7 +396,9 @@ person to sort it out: it becomes a task, goes into the document on its subject,
 
 Brainstorm is the person's sheet of ideas: an ordinary document with `brainstorm: on` in its \
 properties, pinned at the top of the Library and shown as sticky notes, whatever title it carries \
-in their language. `catch_up` names it and says how many ideas wait. Each idea is a sticky note, \
+in their language. `catch_up` names it and says how many ideas wait. With no sheet yet, make it \
+with `write_doc`: `view: notes` and `brainstorm: on` in its properties, the title in their \
+language, no folder. Each idea is a sticky note, \
 a `> [!IDEA]` callout headed by the minute it came and its colour — `> [!IDEA] 2026-11-12 09:40 · \
 yellow` — with its words on the quoted lines under it, 140 characters at most. An idea is named in a \
 call by the sheet's id, `#` and that heading: `46zdmrtt-0109#2026-11-12 09:40 · yellow`. `read_doc` \
@@ -561,10 +564,10 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("write_doc", Effect::Rewrites),
     ("append_doc", Effect::Rewrites),
     ("restore_doc", Effect::Rewrites),
-    ("edit_doc", Effect::Replaces),
+    ("edit_doc", Effect::Rewrites),
     ("edit_table", Effect::Rewrites),
     ("docs", Effect::Reads),
-    ("import_doc", Effect::Adds),
+    ("import_doc", Effect::Rewrites),
     ("export_doc", Effect::Sets),
     ("archive_doc", Effect::Sets),
     ("flag_doc", Effect::Sets),

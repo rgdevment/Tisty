@@ -10,7 +10,8 @@ use super::super::mistaken::no_document_called;
 use super::super::{
     Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, doc_named, doc_titled, folder_named,
     for_the_person, grew, hitch, left_loose, loose_words, named_doc, named_twice, opened, retold,
-    room_for_a_notice, trail, twice_words, up_named, with_echo, wrapped, wrote,
+    room_for_a_notice, trail, twice_words, up_named, with_echo, wrapped, written_name,
+    written_title, wrote,
 };
 
 // What the answer carries is what a reading back would bring, so it says so and saves the call.
@@ -68,6 +69,10 @@ pub(super) fn written_doc(
     }
 
     let (folder, page_of) = where_it_lands(&state, args)?;
+    if super::super::ideas::is_sheet(&body) {
+        let placed = folder.is_some() || page_of.is_some();
+        super::super::ideas::sheet_may_start(paths, &state, placed)?;
+    }
     if imported.is_none() {
         super::compacting::subject_free(&state, args, &body)?;
     }
@@ -171,7 +176,10 @@ pub(super) fn written_doc(
                 (None, None) => format!(
                     "Wrote the document {:?}.{} [{}]",
                     made.title,
-                    super::super::placing::loose_doc(&state, &made.title, &body),
+                    match super::super::ideas::is_sheet(&body) {
+                        true => String::new(),
+                        false => super::super::placing::loose_doc(&state, &made.title, &body),
+                    },
                     made.id
                 ),
             }
@@ -338,9 +346,7 @@ fn notes_put_back(
     body: &str,
 ) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
-    let task = tisty_core::task_docs::behind(&state)
-        .get(which)
-        .and_then(|id| state.tasks.get(id))
+    let task = super::super::page_task(&state, which)
         .map_or_else(|| format!("[{which}]"), |one| format!("{:?}", one.title));
     let print = tisty_core::attach::printed(now.as_bytes());
     let said = over_again(
@@ -357,17 +363,7 @@ fn notes_put_back(
         undone: !slot.undone,
     };
     tisty_core::docs::keep_notes_before(paths.data(), which, &back).map_err(hitch)?;
-    let known = tisty_core::docs::read_notes_left(paths.data(), which);
-    if let Some(words) =
-        tisty_core::assistant_notes::left_by_assistants(now, body, known.as_deref())
-        && let Err(e) = tisty_core::docs::keep_notes_left(paths.data(), which, &words)
-    {
-        tisty_core::witness::warn(
-            tisty_core::witness::channel::DOOR,
-            "the notes an assistant left could not be kept aside",
-            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
-        );
-    }
+    super::super::task_notes::left_as_assistants(paths, which, now, body);
     let mut kept = said["structuredContent"].clone();
     kept["notes_put_back"] = json!(true);
     Ok(told(
@@ -487,12 +483,12 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
 
     Ok(told(
         format!(
-            "Added {} {:?}, {}. Nothing that was there changed.{}{}{}{}",
+            "Added {} {}, {}. Nothing that was there changed.{}{}{}{}",
             match &under {
                 Some(under) => format!("under {under:?} in"),
                 None => "to the end of".into(),
             },
-            tisty_core::docs::titled(&whole),
+            written_name(&state, &which, &whole),
             by_how_much(&before, &whole),
             twice_words(&state, &twice) + &anew,
             filed.as_ref().map_or("", |one| one.said.as_str()),
@@ -501,9 +497,9 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ),
         with_echo(
             json!({
-                "for_the_person": for_the_person(&state, &which, &tisty_core::docs::titled(&whole)),
+                "for_the_person": for_the_person(&state, &which, &written_title(&state, &which, &whole)),
                 "doc": which,
-                "title": tisty_core::docs::titled(&whole),
+                "title": written_title(&state, &which, &whole),
                 "chars": whole.chars().count(),
                 "lines": whole.lines().count(),
                 "grew": grew(&before, &whole),
@@ -627,8 +623,8 @@ print: {}",
             let twice = named_twice(state, which, &whole);
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. {}{}{}{}{}",
-                    tisty_core::docs::titled(&whole),
+                    "Wrote {} again, whole. {}{}{}{}{}",
+                    written_name(state, which, &whole),
                     "What it said before is kept beside the documents.",
                     twice_words(state, &twice) + &anew,
                     match kept_back.is_empty() {
@@ -648,9 +644,9 @@ print: {}",
                     if settled { "" } else { UNSETTLED }
                 ),
                 json!({
-                "for_the_person": for_the_person(state, which, &tisty_core::docs::titled(&whole)),
+                "for_the_person": for_the_person(state, which, &written_title(state, which, &whole)),
                 "doc": which,
-                "title": tisty_core::docs::titled(&whole),
+                "title": written_title(state, which, &whole),
                 "chars": whole.chars().count(),
                 "lines": whole.lines().count(),
                 "print": tisty_core::attach::printed(whole.as_bytes()),
@@ -938,18 +934,18 @@ pub(super) fn in_its_place(
             let anew = super::named_anew(paths, state, store, which, &whole);
             Ok(told(
                 format!(
-                    "Changed lines {from} to {to} of {:?}. What it was is kept beside the \
+                    "Changed lines {from} to {to} of {}. What it was is kept beside the \
                      documents.{}{}{}",
-                    tisty_core::docs::titled(&whole),
+                    written_name(state, which, &whole),
                     loose_words(state, &loose),
                     twice_words(state, &twice) + &anew,
                     if settled { "" } else { UNSETTLED }
                 ),
                 with_echo(
                     json!({
-                        "for_the_person": for_the_person(state, which, &tisty_core::docs::titled(&whole)),
+                        "for_the_person": for_the_person(state, which, &written_title(state, which, &whole)),
                         "doc": which,
-                        "title": tisty_core::docs::titled(&whole),
+                        "title": written_title(state, which, &whole),
                         "chars": whole.chars().count(),
                         "lines": whole.lines().count(),
                         "grew": grew(&body, &whole),
