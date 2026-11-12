@@ -34,7 +34,7 @@ import { GRAMMAR, pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { revealing, visual } from "./seeing";
-import { type Asking, BOX, putBlock, putTable, slashing } from "./slashing";
+import { type Asking, BOX, pickOnEnter, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
@@ -365,6 +365,8 @@ export const edited = (
                 return true;
               },
             },
+            // The / menu or the steps in sight take Enter before a paragraph, a list or a label can.
+            { key: "Enter", run: pickOnEnter },
             // A template's label or hint is one line, so Enter ends it instead of starting words below.
             {
               key: "Enter",
@@ -414,7 +416,7 @@ export const edited = (
         pendingFormat,
         syntaxHighlighting(inked),
         marked,
-        slashing(owner.say, asking),
+        slashing(owner.say, asking, oneLine),
         EditorView.domEventHandlers({
           paste: (event, view) => pasting(event, view, asking),
         }),

@@ -72,7 +72,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 - **Today** — what the day asks for, most urgent first: **Overdue** (its deadline passed, in red), **Due soon** (three days or less before its deadline), **Late** (the day you planned passed, in amber), **For today**, and **Underway** (started and still before its deadline), folded so a long project does not fill the list every day. Each row says when it runs out — «due in 3 days», «due tomorrow» — or, when it is late, since when.
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
-- **All** — everything open, unfiltered.
+- **All** — everything open, unfiltered. The first icon in the sidebar's row of views, **All tasks**, opens it over every list.
 - **Overdue** and **Late** — only what is overdue, or only what is late, each opened from its count among the day's four at the top of the sidebar; while you are on one, it shows beside Today. The other two counts, **for today** and **ahead**, open Today and Upcoming. A count always opens over every list, even when you had narrowed the view to a few. Past 99, a count says **+99**, and the whole number waits on hover.
 
 There is no prize for emptying the list.

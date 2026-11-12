@@ -311,7 +311,9 @@ describe("what the numbers on screen refer to", () => {
 
     expect(screen.getByRole("button", { name: /^today/i }).textContent).toContain("2");
     expect(screen.getByRole("button", { name: /upcoming/i }).textContent).toContain("5");
-    expect(screen.getByRole("button", { name: /^all/i }).textContent).toContain("8");
+    expect(screen.getByRole("button", { name: /^all/i, pressed: false }).textContent).toContain(
+      "8",
+    );
     expect(screen.getByRole("heading", { level: 1 }).parentElement?.textContent).toBe("Tasks");
   });
 
