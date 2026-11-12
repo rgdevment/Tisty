@@ -48,11 +48,24 @@ pub fn idea_to_doc(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
     idea: String,
+    from: String,
 ) -> Answer<()> {
-    filing(&mut held(&session), &file, &idea)
+    filing(
+        &mut held(&session),
+        &file,
+        &idea,
+        &from,
+        jiff::Zoned::now().date(),
+    )
 }
 
-pub fn filing(session: &mut Session, file: &str, idea: &str) -> Answer<()> {
+pub fn filing(
+    session: &mut Session,
+    file: &str,
+    idea: &str,
+    from: &str,
+    on: jiff::civil::Date,
+) -> Answer<()> {
     if idea.trim().is_empty() {
         return Err(Refusal::of("untitled"));
     }
@@ -60,8 +73,12 @@ pub fn filing(session: &mut Session, file: &str, idea: &str) -> Answer<()> {
         return Err(Refusal::of("noSuchDoc"));
     }
     super::papers::writable(&session.state, file)?;
-    let whole = tisty_core::docs::append(&session.paths.docs(), file, idea.trim())
-        .map_err(super::papers::unwritten)?;
+    let whole = tisty_core::docs::append(
+        &session.paths.docs(),
+        file,
+        &tisty_core::brainstorm::filed(idea, from, on),
+    )
+    .map_err(super::papers::unwritten)?;
     session.corpus.forget(file);
     let hand = signing(&session.state);
     session.retell(file, &whole, hand);

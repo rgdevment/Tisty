@@ -1,3 +1,4 @@
+import { emit } from "@tauri-apps/api/event";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ideaToDoc } from "../brainstorm";
 import { capture, type Filed, type Task } from "../core";
@@ -215,6 +216,7 @@ export default function Notes({
                 void capture(note.text)
                   .then((task) => {
                     settled(at)();
+                    void emit("captured");
                     send(fill("ideaMadeTask", task.title), t("ideaSeeTask"), () => onTask?.(task));
                   })
                   .catch(failed)
@@ -231,11 +233,11 @@ export default function Notes({
           onClose={() => setFiling(null)}
           onPick={(file) => {
             setFiling(null);
-            const title = known.find((one) => one.file === file)?.title || t("untitledDoc");
-            void ideaToDoc(file, filing.idea)
+            const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
+            void ideaToDoc(file, filing.idea, title)
               .then(() => {
                 settled(filing.at)();
-                send(fill("ideaFiledIn", title), t("ideaOpenDoc"), () => onDoc?.(file));
+                send(fill("ideaFiledIn", there), t("ideaOpenDoc"), () => onDoc?.(file));
               })
               .catch(failed);
           }}

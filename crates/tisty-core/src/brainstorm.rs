@@ -40,6 +40,20 @@ pub fn coloured(body: &str, roll: u32) -> &'static str {
     COLOURS[at]
 }
 
+pub fn filed(idea: &str, from: &str, on: jiff::civil::Date) -> String {
+    let quoted: Vec<String> = idea
+        .trim()
+        .lines()
+        .map(|line| format!("> {line}").trim_end().to_string())
+        .collect();
+    format!(
+        "> [!NOTE] {} · {}\n{}",
+        from.trim(),
+        on.strftime("%Y-%m-%d"),
+        quoted.join("\n")
+    )
+}
+
 pub fn ideas(body: &str) -> usize {
     let mut fenced = false;
     body.lines()

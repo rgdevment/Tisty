@@ -13,6 +13,13 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+vi.mock("@tauri-apps/api/event", () => ({
+  emit: (name: string) => {
+    ipc.calls.push({ cmd: `emit:${name}`, args: {} });
+    return Promise.resolve();
+  },
+}));
+
 beforeEach(() => {
   ipc.calls = [];
 });
@@ -138,6 +145,7 @@ describe("a brainstorm shown as notes", () => {
 
     await waitFor(() => expect(onWrite).toHaveBeenCalledTimes(1));
     expect(ipc.calls.find((one) => one.cmd === "capture")?.args.text).toBe("segunda");
+    expect(ipc.calls.some((one) => one.cmd === "emit:captured")).toBe(true);
     const written: string = onWrite.mock.calls[0][0];
     expect(written).not.toContain("segunda");
     expect(written).toContain("primera");
@@ -171,6 +179,7 @@ describe("a brainstorm shown as notes", () => {
     expect(ipc.calls.find((one) => one.cmd === "idea_to_doc")?.args).toEqual({
       file: "a3f1-0001",
       idea: "primera",
+      from: "Ideas",
     });
     expect(onWrite.mock.calls[0][0]).not.toContain("primera");
     expect(screen.getByRole("status").textContent).toContain("Filed at the end of «Recetas»");

@@ -137,11 +137,19 @@ fn an_idea_filed_in_a_document_lands_at_its_end_and_leaves_the_rest_as_it_was() 
         })
         .unwrap();
 
-    filing(&mut session, &made.id, "  Probar con harina integral  ").unwrap();
+    let on = jiff::civil::date(2026, 11, 12);
+    filing(
+        &mut session,
+        &made.id,
+        "  Probar con harina integral  ",
+        "Lluvia de ideas",
+        on,
+    )
+    .unwrap();
 
     assert_eq!(
         body(&session, &made.id),
-        "# Recetas\n\nPan amasado.\n\nProbar con harina integral\n"
+        "# Recetas\n\nPan amasado.\n\n> [!NOTE] Lluvia de ideas · 2026-11-12\n> Probar con harina integral\n"
     );
     assert!(
         body(&session, &brainstorm.file).contains("una idea"),
@@ -153,7 +161,8 @@ fn an_idea_filed_in_a_document_lands_at_its_end_and_leaves_the_rest_as_it_was() 
 fn an_idea_is_not_filed_in_a_document_that_is_not_there() {
     let (_tmp, mut session) = session();
 
-    let refused = filing(&mut session, "nadie-0001", "una idea").unwrap_err();
+    let on = jiff::civil::date(2026, 11, 12);
+    let refused = filing(&mut session, "nadie-0001", "una idea", "Ideas", on).unwrap_err();
 
     assert_eq!(refused.code, "noSuchDoc");
 }
