@@ -1050,6 +1050,13 @@ fn doc_named(state: &State, which: &str) -> String {
 
 /// The words to tell the person what was written: its title and where it sits, never its id.
 fn for_the_person(state: &State, which: &str, title: &str) -> String {
+    if let Some(task) = page_task(state, which) {
+        return format!(
+            "the page of the task {:?}, {}",
+            task.title,
+            looking::placed(state, task)
+        );
+    }
     let kept = state.docs.values().find(|one| one.file == which);
     let called = match title.trim() {
         "" => "an untitled document".to_string(),
@@ -1062,6 +1069,27 @@ fn for_the_person(state: &State, which: &str, title: &str) -> String {
         (Some(up), _) => format!("{called}, a page of {}", doc_titled(state, &up)),
         (None, Some(at)) => format!("{called}, in the folder {}", trail(state, at)),
         (None, None) => format!("{called}, outside any folder"),
+    }
+}
+
+// A task's page opens on a section, not a title, so it goes by its task.
+fn page_task<'a>(state: &'a State, which: &str) -> Option<&'a tisty_core::model::Task> {
+    tisty_core::task_docs::behind(state)
+        .get(which)
+        .and_then(|id| state.tasks.get(id))
+}
+
+fn written_title(state: &State, which: &str, whole: &str) -> String {
+    page_task(state, which).map_or_else(
+        || tisty_core::docs::titled(whole),
+        |task| task.title.clone(),
+    )
+}
+
+fn written_name(state: &State, which: &str, whole: &str) -> String {
+    match page_task(state, which) {
+        Some(task) => format!("the page of {:?}", task.title),
+        None => format!("{:?}", tisty_core::docs::titled(whole)),
     }
 }
 

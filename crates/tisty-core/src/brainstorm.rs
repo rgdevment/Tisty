@@ -79,8 +79,32 @@ fn fences(line: &str) -> bool {
     bare.starts_with("```") || bare.starts_with("~~~")
 }
 
-pub fn coloured(body: &str, roll: u32) -> &'static str {
-    picked(last_hue(body), roll)
+// A note is named by its minute and colour, so no two on one sheet may share both.
+pub fn jotted_next(was: &str, idea: &str, at: jiff::civil::DateTime, roll: u32) -> String {
+    let taken: Vec<String> = ideas_on(was).into_iter().map(|one| one.heading).collect();
+    let last = last_hue(was);
+    let mut when = at;
+    loop {
+        let minute = when.strftime("%Y-%m-%d %H:%M").to_string();
+        let free: Vec<&'static str> = COLOURS
+            .into_iter()
+            .filter(|hue| !headed_alike(&taken, &minute, hue))
+            .collect();
+        if !free.is_empty() {
+            return jotted(idea, when, picked(&free, last, roll));
+        }
+        match when.checked_add(jiff::Span::new().minutes(1)) {
+            Ok(next) => when = next,
+            Err(_) => return jotted(idea, when, picked(&COLOURS, last, roll)),
+        }
+    }
+}
+
+fn headed_alike(taken: &[String], minute: &str, hue: &str) -> bool {
+    taken.iter().any(|heading| {
+        let head = tisty_markdown::idea_parts(heading);
+        head.when == Some(minute) && head.hue == Some(hue)
+    })
 }
 
 fn last_hue(body: &str) -> Option<&'static str> {
@@ -91,13 +115,13 @@ fn last_hue(body: &str) -> Option<&'static str> {
         .and_then(|line| tisty_markdown::idea_head(line).hue)
 }
 
-fn picked(last: Option<&str>, roll: u32) -> &'static str {
-    let many = COLOURS.len();
+fn picked(from: &[&'static str], last: Option<&str>, roll: u32) -> &'static str {
+    let many = from.len();
     let mut at = roll as usize % many;
-    if last == Some(COLOURS[at]) {
+    if many > 1 && last == Some(from[at]) {
         at = (at + 1 + (roll as usize / many) % (many - 1)) % many;
     }
-    COLOURS[at]
+    from[at]
 }
 
 pub fn filed(idea: &str, heading: &str) -> String {
@@ -217,15 +241,14 @@ pub fn jotted_all(
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
-    let mut last = last_hue(was);
-    let added: Vec<String> = each
-        .iter()
-        .map(|idea| {
-            let colour = picked(last, roll());
-            last = Some(colour);
-            jotted(idea, at, colour)
-        })
-        .collect();
+    let mut sheet = was.to_string();
+    let mut added: Vec<String> = Vec::new();
+    for idea in each {
+        let note = jotted_next(&sheet, idea, at, roll());
+        sheet.push_str("\n\n");
+        sheet.push_str(&note);
+        added.push(note);
+    }
     added.join("\n\n")
 }
 

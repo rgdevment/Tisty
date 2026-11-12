@@ -14,7 +14,11 @@ use super::super::{
 };
 
 // A task the person put out of sight keeps its words out of sight too, as `read` does.
-fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
+pub(in crate::mcp) fn in_sight(
+    state: &State,
+    kept: &tisty_core::model::Kept,
+    which: &str,
+) -> Result<(), Refused> {
     match state.doc_in_sight(kept) {
         true => Ok(()),
         false => Err(Refused::Missing(no_document_called(state, which))),

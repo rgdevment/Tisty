@@ -539,3 +539,111 @@ fn a_tick_on_a_copy_of_the_persons_page_is_not_the_assistants_word() {
     assert_eq!(step["done"], false, "{read}");
     assert!(step["said_done"].is_null(), "{read}");
 }
+
+fn on_disk(served: &Served, file: &str) -> String {
+    tisty_core::docs::read(&served.home.path().join("data").join("docs"), file).unwrap()
+}
+
+#[test]
+fn the_page_of_a_task_the_person_hid_is_not_written_by_its_name() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let before = on_disk(&served, &file);
+    served.person().hides(person::task(&task));
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "- [ ] pagar" }),
+    );
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": file, "body": "Algo más." }),
+    );
+
+    let by_id = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "Algo más." }),
+    );
+
+    assert_eq!(edited["result"]["isError"], true, "{edited}");
+    assert_eq!(added["result"]["isError"], true, "{added}");
+    assert_eq!(by_id["result"]["isError"], true, "{by_id}");
+    assert_eq!(on_disk(&served, &file), before);
+}
+
+#[test]
+fn a_written_page_is_named_by_its_task_never_by_its_first_section() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "## Description\n\nMis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Mis palabras, cambiadas." }),
+    );
+
+    let said = &edited["result"]["structuredContent"];
+    assert_eq!(said["title"], "algo mio", "{edited}");
+    assert_eq!(
+        said["for_the_person"], "the page of the task \"algo mio\", in the inbox",
+        "{edited}"
+    );
+    let told = edited["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(told.contains("in the page of \"algo mio\""), "{told}");
+    assert!(!told.contains("\"Description\""), "{told}");
+
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": file, "body": "Algo más.", "under": "Description" }),
+    );
+    let told = added["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("under \"Description\" in the page of \"algo mio\""),
+        "{told}"
+    );
+    assert_eq!(added["result"]["structuredContent"]["title"], "algo mio");
+}
+
+#[test]
+fn a_property_written_into_a_page_s_front_matter_is_put_back_and_says_where_it_goes() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let before = on_disk(&served, &file);
+    let line = format!("task: {task}");
+
+    let dated = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": line, "new": format!("{line}\nscheduled: 2026-12-01") }),
+    );
+
+    assert_eq!(dated["result"]["isError"], true, "{dated}");
+    let said = dated["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("which tool changes each"), "{said}");
+    assert_eq!(on_disk(&served, &file), before);
+}
+
+#[test]
+fn notes_written_on_a_page_by_its_name_are_kept_as_the_assistant_s() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(
+        &task,
+        "Mis palabras.\n\n## Assistant notes\n\nUna línea mía.",
+    );
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let added = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Una línea mía.", "new": "Una línea mía.\n\nFound the receipt." }),
+    );
+
+    assert_ne!(added["result"]["isError"], true, "{added}");
+    let left = tisty_core::docs::read_notes_left(&served.home.path().join("data"), &file).unwrap();
+    assert!(left.contains("Found the receipt."), "{left}");
+    assert!(!left.contains("Una línea mía."), "{left}");
+}
