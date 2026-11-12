@@ -33,6 +33,7 @@
   --tisty-pin-1: #3e8ef7;
   --tisty-pin-2: #f2b33d;
   --tisty-pin-3: #30a46c;
+  --tisty-pin-needle: #9aa1a9;
   --tisty-note-ink: #3a3020;
   --tisty-note-tape: rgb(255 255 255 / 0.55);
 }
@@ -65,6 +66,7 @@
   --tisty-pin-1: #5ea2ff;
   --tisty-pin-2: #ffc457;
   --tisty-pin-3: #3dd68c;
+  --tisty-pin-needle: #c3c8ce;
   --tisty-note-ink: #f6ecd6;
   --tisty-note-tape: rgb(255 255 255 / 0.18);
 }

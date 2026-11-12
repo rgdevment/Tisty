@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { locale, t } from "../locales";
 import "../notes.css";
 import {
@@ -32,6 +32,19 @@ interface Lifted {
 }
 
 const LIFTS_PAST = 6;
+const REACH = 260;
+
+function nearest(x: number, y: number, from: number): number | null {
+  let best: { at: number; far: number } | null = null;
+  for (const one of document.querySelectorAll<HTMLElement>("[data-shown]")) {
+    const at = Number(one.dataset.shown);
+    if (at === from) continue;
+    const box = one.getBoundingClientRect();
+    const far = Math.hypot(box.left + box.width / 2 - x, box.top + box.height / 2 - y);
+    if (far <= REACH && (!best || far < best.far)) best = { at, far };
+  }
+  return best?.at ?? null;
+}
 
 export default function Notes({ title, body, reading, onWrite, onText }: Props) {
   const { notes } = boardOf(body);
@@ -60,19 +73,19 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
   const settle = useRef(moved);
   settle.current = moved;
   const lifting = lifted !== null;
+  const wall = useRef<HTMLUListElement>(null);
+  useSlides(wall, lifting);
   useEffect(() => {
     if (!lifting) return;
     const follow = (e: PointerEvent) => {
       const was = held.current;
       if (!was) return;
-      const under = document
-        .elementFromPoint(e.clientX, e.clientY)
-        ?.closest<HTMLElement>("[data-shown]");
+      const under = nearest(e.clientX, e.clientY, was.from);
       setLifted({
         ...was,
         dx: e.clientX - was.x,
         dy: e.clientY - was.y,
-        over: under ? Number(under.dataset.shown) : null,
+        over: under,
       });
     };
     const drop = () => {
@@ -119,10 +132,11 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
       {notes.length === 0 ? (
         <p className="pt-6 text-[12.5px] text-faint">{t("notesNone")}</p>
       ) : (
-        <ul className="notes-wall">
+        <ul ref={wall} className="notes-wall">
           {newestFirst.map(({ note, at, nth }, shown) => (
             <Sticky
               key={`${note.heading}#${nth}#${note.text}`}
+              stamp={`${note.heading}#${nth}#${note.text}`}
               note={note}
               nth={nth}
               shown={shown}
@@ -146,7 +160,33 @@ export default function Notes({ title, body, reading, onWrite, onText }: Props) 
   );
 }
 
+const SLIDES_FOR = 220;
+
+// Each note glides from where it stood to where the new order puts it, the dropped one from where it was let go.
+function useSlides(wall: React.RefObject<HTMLUListElement | null>, lifting: boolean) {
+  const were = useRef(new Map<string, DOMRect>());
+  useLayoutEffect(() => {
+    const still = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
+    const now = new Map<string, DOMRect>();
+    for (const one of wall.current?.querySelectorAll<HTMLElement>("[data-key]") ?? []) {
+      const box = one.getBoundingClientRect();
+      const was = were.current.get(one.dataset.key ?? "");
+      const dx = was ? was.left - box.left : 0;
+      const dy = was ? was.top - box.top : 0;
+      if (!lifting && !still && (dx || dy)) {
+        one.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
+          duration: SLIDES_FOR,
+          easing: "ease-out",
+        });
+      }
+      now.set(one.dataset.key ?? "", box);
+    }
+    were.current = now;
+  });
+}
+
 interface StickyProps {
+  stamp: string;
   note: Note;
   nth: number;
   shown: number;
@@ -164,6 +204,7 @@ const EARLIER = new Set(["ArrowUp", "ArrowLeft"]);
 const LATER = new Set(["ArrowDown", "ArrowRight"]);
 
 function Sticky({
+  stamp,
   note,
   nth,
   shown,
@@ -187,6 +228,7 @@ function Sticky({
   return (
     <li
       data-shown={shown}
+      data-key={stamp}
       className="sticky-note"
       data-hue={shape.hue}
       data-wide={shape.wide}
@@ -217,7 +259,7 @@ function Sticky({
         } as React.CSSProperties
       }
     >
-      <span aria-hidden="true" className="sticky-hold" />
+      {shape.hold === "pin" ? <Pin /> : <span aria-hidden="true" className="sticky-hold" />}
       <p className="sticky-when">{saidWhen(note.heading, locale())}</p>
       {reading ? (
         <p className="sticky-words">{note.text}</p>
@@ -238,5 +280,41 @@ function Sticky({
         </button>
       )}
     </li>
+  );
+}
+
+function Pin() {
+  const id = useId();
+  const cap = `${id}-cap`;
+  const neck = `${id}-neck`;
+  const shade = (mix: string) => ({ stopColor: `color-mix(in srgb, var(--pin), ${mix})` });
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 44" className="sticky-pin">
+      <defs>
+        <radialGradient id={cap} cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" style={shade("white 45%")} />
+          <stop offset="0.45" style={{ stopColor: "var(--pin)" }} />
+          <stop offset="1" style={shade("black 45%")} />
+        </radialGradient>
+        <linearGradient id={neck} x1="0" x2="1">
+          <stop offset="0" style={shade("black 35%")} />
+          <stop offset="0.35" style={shade("white 25%")} />
+          <stop offset="1" style={shade("black 45%")} />
+        </linearGradient>
+      </defs>
+      <line
+        x1="12"
+        y1="30"
+        x2="14.5"
+        y2="43"
+        style={{ stroke: "var(--tisty-pin-needle)" }}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <ellipse cx="12" cy="28.5" rx="9" ry="3.6" fill={`url(#${cap})`} />
+      <path d="M8 9 L16 9 L14.2 27 L9.8 27 Z" fill={`url(#${neck})`} />
+      <ellipse cx="12" cy="8" rx="8" ry="6.5" fill={`url(#${cap})`} />
+      <ellipse cx="9.5" cy="5.5" rx="2.6" ry="1.6" fill="white" opacity="0.6" />
+    </svg>
   );
 }

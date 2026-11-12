@@ -54,6 +54,7 @@
 }
 .sticky-note[data-lifted] {
   z-index: 3;
+  pointer-events: none;
   cursor: grabbing;
   scale: 1.06;
   box-shadow: var(--tisty-lift-tall);
@@ -94,43 +95,24 @@
   translate: none;
   rotate: calc(40deg + var(--angle, 0deg) / 3);
 }
-.sticky-note[data-hold="pin"] .sticky-hold {
+.sticky-pin {
   --pin: var(--tisty-pin-0);
-  top: 6px;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 9999px;
-  rotate: none;
-  background:
-    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.85) 0 2px, transparent 3.5px),
-    radial-gradient(
-      circle at 50% 45%,
-      var(--pin) 0 55%,
-      color-mix(in srgb, var(--pin), black 35%) 100%
-    );
-  box-shadow:
-    3px 5px 4px rgb(0 0 0 / 0.35),
-    inset -1px -2px 2px rgb(0 0 0 / 0.25);
-}
-.sticky-note[data-hold="pin"] .sticky-hold::after {
-  content: "";
   position: absolute;
-  left: 9px;
-  top: 13px;
-  width: 2px;
-  height: 7px;
-  rotate: -25deg;
-  border-radius: 1px;
-  background: rgb(0 0 0 / 0.25);
+  top: -16px;
+  left: var(--along, 50%);
+  width: 22px;
+  height: 40px;
+  translate: -50% 0;
+  rotate: calc(var(--angle, 0deg) * 1.5);
+  filter: drop-shadow(3px 4px 2px rgb(0 0 0 / 0.35));
 }
-.sticky-note[data-pin="1"] .sticky-hold {
+.sticky-note[data-pin="1"] .sticky-pin {
   --pin: var(--tisty-pin-1);
 }
-.sticky-note[data-pin="2"] .sticky-hold {
+.sticky-note[data-pin="2"] .sticky-pin {
   --pin: var(--tisty-pin-2);
 }
-.sticky-note[data-pin="3"] .sticky-hold {
+.sticky-note[data-pin="3"] .sticky-pin {
   --pin: var(--tisty-pin-3);
 }
 
