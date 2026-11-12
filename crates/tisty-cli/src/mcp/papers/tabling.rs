@@ -67,8 +67,8 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
 fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     if state.docs.values().all(|one| one.file != which) {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
+        return Err(Refused::Tool(super::super::mistaken::no_document_called(
+            &state, which,
         )));
     }
     let body = text_of(paths, &state, which)?;

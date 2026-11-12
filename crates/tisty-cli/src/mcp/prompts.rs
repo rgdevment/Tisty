@@ -213,7 +213,7 @@ fn planning(_: &Paths, said: Option<&str>) -> String {
          already covers it, the archive included: an open one takes the new steps with `plan` \
          instead of a second task, and a closed one is read for how it went. Otherwise \
          `propose` one task with its steps in order — parts only for pieces finished on their \
-         own — in the list it belongs in (`lists`; ask me when none fits), with a date only if I \
+         own — in the list it belongs in (`catch_up` names them; ask me when none fits), with a date only if I \
          gave one. Then tell me its title, its list and its steps."
     )
 }

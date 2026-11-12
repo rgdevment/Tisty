@@ -39,9 +39,7 @@ expression: names
   "outline_doc",
   "read",
   "find",
-  "lists",
   "rules",
   "language",
-  "help",
-  "tags"
+  "help"
 ]

@@ -395,7 +395,7 @@ cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
 - **Carpetas, páginas e idiomas** — `docs`, `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
 - **Encontrar cosas** — lo abierto y lo archivado, las listas y las etiquetas:
-  `find`, `catch_up`, `lists`, `tags`
+  `find`, `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
 Además de las herramientas, ofrece cinco pedidos listos que tu asistente
