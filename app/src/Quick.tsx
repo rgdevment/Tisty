@@ -11,6 +11,11 @@ import IdeaField from "./ui/IdeaField";
 
 const anyOf = (all: string[]): string => all[Math.floor(Math.random() * all.length)] ?? "";
 
+const WINKS_ONCE_IN = 100;
+
+const invited = (): string =>
+  Math.random() * WINKS_ONCE_IN < 1 ? t("taskWink") : anyOf(t("taskExamples").split("\n"));
+
 export default function Quick() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +35,7 @@ export default function Quick() {
   }, [jotting, round]);
   const locale = data?.locale;
   const example = useMemo(
-    () =>
-      round >= 0 && locale !== undefined ? anyOf(t("taskExamples").split("\n")) : t("addTask"),
+    () => (round >= 0 && locale !== undefined ? invited() : t("addTask")),
     [round, locale],
   );
 

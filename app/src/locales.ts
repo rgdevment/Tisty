@@ -26,6 +26,7 @@ const en = {
   nothingOpen: "Nothing here",
   noTagsYet: "No tags yet",
   addTask: "Add a task",
+  taskWink: "Like or donate to tisty.app",
   taskExamples:
     "Walk Roger every day at 8\nBuy school supplies for Lucas by Tuesday\nYisset's graduation on Saturday\nMotorbike ride with Jaime on Sunday\nAnniversary dinner with Marisol on June 3 #family\nCall the bank tomorrow at 9 !do\nTidy the garage @Home on Sunday\nBuy trainers for Jaime on Saturday #clothes\nDriving lessons with Yisset every Saturday at 10\nTake the car to the garage by Friday @Errands\nWater the plants every Monday #home\nPay Lucas's school fee every month #school\nPrepare the client meeting on Thursday !decide #work\nPick Lucas up from school every day at 4pm\nTake Rina to the vet on Tuesday at 10\nTake the pill every day at 9\nRenew the ID card on December 15\nService the car every 6 months\nPay the rent every month\nBuy bread and milk today\nPay the credit card by Friday !do @Money\nBuy Yisset's present by November 30 #family\nHelp Jaime move on Saturday at 10 @Family\nBook the dentist for Lucas this week #health\nChange the water filter every 3 months @Home\nTeam meeting every Monday at 11 #work\nSend the report tomorrow at 9 !decide #work @Office\nTake the bins out every Tuesday #home\nGo to the gym every Wednesday at 7 #health\nBook the holidays with Marisol by December 15 !decide #family",
   brainstorm: "Brainstorm",
@@ -3144,6 +3145,7 @@ const es: Catalog = {
   nothingOpen: "Nada por aquí",
   noTagsYet: "Ninguna etiqueta todavía",
   addTask: "Añadir una tarea",
+  taskWink: "Dar me gusta o donar a tisty.app",
   taskExamples:
     "Sacar a pasear a Roger todos los días a las 8\nComprar materiales del colegio para Lucas antes del martes\nTitulación de Yisset el sábado\nSalir a pasear en moto con Jaime el domingo\nCena romántica con Marisol por el aniversario el 3 de junio #familia\nLlamar al banco mañana a las 9 !hacer\nOrdenar el garaje @Casa el domingo\nComprar zapatillas para Jaime el sábado #ropa\nClases de manejo con Yisset cada sábado a las 10\nLlevar el auto al taller antes del viernes @Pendientes\nRegar las plantas cada lunes #casa\nPagar la cuota del colegio de Lucas cada mes #colegio\nPreparar la reunión con el cliente el jueves !importante #trabajo\nRecoger a Lucas del colegio todos los días a las 16\nLlevar a Rina a la veterinaria el martes a las 10\nTomar la pastilla todos los días a las 9\nRenovar el carnet el 15 de diciembre\nRevisar el auto cada 6 meses\nPagar el arriendo cada mes\nComprar pan y leche hoy\nPagar la tarjeta antes del viernes !hacer @Finanzas\nComprar el regalo de Yisset antes del 30 de noviembre #familia\nAyudar a Jaime con la mudanza el sábado a las 10 @Familia\nPedir hora al dentista para Lucas esta semana #salud\nCambiar el filtro del agua cada 3 meses @Casa\nReunión con el equipo cada lunes a las 11 #trabajo\nEnviar el informe mañana a las 9 !importante #trabajo @Oficina\nSacar la basura cada martes #casa\nIr al gimnasio cada miércoles a las 7 #salud\nReservar las vacaciones con Marisol antes del 15 de diciembre !importante #familia",
   brainstorm: "Lluvia de ideas",
