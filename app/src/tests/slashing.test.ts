@@ -1,4 +1,9 @@
-import { CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
+import {
+  CompletionContext,
+  type CompletionResult,
+  completionStatus,
+  currentCompletions,
+} from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
@@ -355,5 +360,54 @@ describe("a step named by its number", () => {
       ["1", "[[#1]]"],
       ["2", "[[#2]]"],
     ]);
+  });
+});
+
+describe("one list for the menu, the tags and the steps", () => {
+  const writing = () =>
+    new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        extensions: [
+          hosted.of(HOST),
+          markdown(),
+          slashing(HOST.say, () => ({
+            kinds: [],
+            ask: () => {},
+            tags: ["casa"],
+            steps: () => ["uno", "dos"],
+          })),
+        ],
+      }),
+    });
+  const typing = (editor: EditorView, text: string) => {
+    const at = editor.state.doc.length;
+    editor.dispatch({
+      changes: { from: at, insert: text },
+      selection: { anchor: at + text.length },
+      userEvent: "input.type",
+    });
+  };
+  const shown = (editor: EditorView) => currentCompletions(editor.state).map((one) => one.label);
+
+  it("offers whichever is asked for where the caret is", async () => {
+    const editor = writing();
+    typing(editor, "ver /quo");
+    await vi.waitFor(() => expect(shown(editor)).toEqual([HOST.say("quote")]));
+    typing(editor, " #ca");
+    await vi.waitFor(() => expect(shown(editor)).toEqual(["#ca", "#casa"]));
+    typing(editor, " [[#");
+    await vi.waitFor(() => expect(shown(editor)).toEqual(["1", "2"]));
+    editor.destroy();
+  });
+
+  it("narrows at once with each letter, so the list is never left thinking", async () => {
+    const editor = writing();
+    typing(editor, "/");
+    await vi.waitFor(() => expect(completionStatus(editor.state)).toBe("active"));
+    typing(editor, "quo");
+    expect(completionStatus(editor.state)).toBe("active");
+    expect(shown(editor)).toEqual([HOST.say("quote")]);
+    editor.destroy();
   });
 });

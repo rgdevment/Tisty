@@ -136,7 +136,7 @@ Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o
 
 Lo que hace un agente conectado a Tisty en un trabajo real:
 
-1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez de releerlo todo.
+1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez de releerlo todo. La misma respuesta le nombra las tareas que apremian, las vencidas primero, así que una que vuelve cada mes le llega el día que toca.
 2. **Abre la tarea en la que estaba**, que Tisty le nombra. *Para estar lista*, en su página, le dice cuándo termina, y los pasos sin marcar, qué falta.
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de ahí.
 4. **Lee el documento del módulo por su índice**, después solo la sección que necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre debates cerrados ni se desvía.
