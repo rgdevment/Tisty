@@ -139,7 +139,7 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de ahí.
 4. **Lee el documento del módulo por su índice**, después solo la sección que necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre debates cerrados ni se desvía.
 5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima sesión, u otro agente, no repite el intento fallido.
-6. **Cuando la página de una tarea crece, compacta sus propias notas** en un resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera.
+6. **Cuando la página de una tarea crece, compacta sus propias notas** en un resumen fechado: estado, decisiones, lo descartado. La bitácora queda entera, y si le pides devolver las notas, vuelven como estaban, aunque después hayas marcado pasos.
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 

@@ -139,7 +139,7 @@ What an agent connected to Tisty does on a real piece of work:
 3. **It searches the archive before proposing anything.** If it was solved before, it starts from there.
 4. **It reads the module's document by its outline**, then only the section it needs, and keeps to the decisions and to what is out of scope — so it does not reopen settled debates or wander off.
 5. **It ticks each step when it is done and notes what it ruled out**, so the next session, or another agent, does not repeat the failed attempt.
-6. **When a task's page grows long, it compacts its own notes** into one dated digest — state, decisions, what was ruled out. The journal stays whole.
+6. **When a task's page grows long, it compacts its own notes** into one dated digest — state, decisions, what was ruled out. The journal stays whole, and asking it to put the notes back brings them as they were, even after later ticks.
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
