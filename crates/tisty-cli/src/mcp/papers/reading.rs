@@ -395,7 +395,7 @@ fn pages_told(rows: &[Value]) -> String {
     }
     if !waiting.is_empty() {
         shown.push_str(&format!(
-            "\n  Marked old by an agent and waiting for the person to delete: {}.",
+            "\n  Marked old by an agent and waiting for the person to delete, put away or unmark: {}.",
             waiting.join("; ")
         ));
     }
