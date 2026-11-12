@@ -16,20 +16,46 @@ pub const IDEA_AT_MOST: usize = 140;
 pub const COLOURS: [&str; 12] = tisty_markdown::IDEA_HUES;
 
 pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
-    format!(
-        "## {} · {colour}\n\n{}",
-        at.strftime("%Y-%m-%d %H:%M"),
-        idea.trim()
+    stuck(
+        &format!("{} · {colour}", at.strftime("%Y-%m-%d %H:%M")),
+        idea,
     )
 }
 
+fn stuck(head: &str, idea: &str) -> String {
+    let mut lines = vec![format!("{OPENER} {}", head.trim())];
+    lines.extend(
+        idea.trim()
+            .lines()
+            .map(|line| format!("> {line}").trim_end().to_string()),
+    );
+    lines.join("\n")
+}
+
+const OPENER: &str = "> [!IDEA]";
+
+fn head_of(line: &str) -> Option<&str> {
+    let rest = line.trim_start().strip_prefix('>')?.trim_start();
+    rest.get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map(|_| rest[7..].trim())
+}
+
+fn unquoted(line: &str) -> &str {
+    line.strip_prefix('>')
+        .map_or(line, |rest| rest.strip_prefix(' ').unwrap_or(rest))
+}
+
+fn fences(line: &str) -> bool {
+    let bare = line.trim_start_matches(['>', ' ', '\t']);
+    bare.starts_with("```") || bare.starts_with("~~~")
+}
+
 pub fn coloured(body: &str, roll: u32) -> &'static str {
-    let last = body
-        .lines()
-        .rev()
-        .find(|line| line.starts_with("## "))
-        .and_then(|line| line.rsplit_once(" · "))
-        .map(|(_, colour)| colour.trim());
+    let last = cut(body)
+        .blocks
+        .last()
+        .and_then(|block| tisty_markdown::idea_head(block[0]).hue);
     let many = COLOURS.len();
     let mut at = roll as usize % many;
     if last == Some(COLOURS[at]) {
@@ -38,31 +64,17 @@ pub fn coloured(body: &str, roll: u32) -> &'static str {
     COLOURS[at]
 }
 
-pub fn filed(idea: &str, from: &str, on: jiff::civil::Date) -> String {
-    let quoted: Vec<String> = idea
-        .trim()
-        .lines()
-        .map(|line| format!("> {line}").trim_end().to_string())
-        .collect();
-    format!(
-        "> [!NOTE] {} · {}\n{}",
-        from.trim(),
-        on.strftime("%Y-%m-%d"),
-        quoted.join("\n")
-    )
+pub fn filed(idea: &str, heading: &str) -> String {
+    let side = tisty_markdown::idea_head(&format!("{OPENER} {heading}")).side;
+    let head = match side {
+        Some(_) => heading.trim().to_string(),
+        None => format!("{} · right", heading.trim()),
+    };
+    stuck(&head, idea)
 }
 
 pub fn ideas(body: &str) -> usize {
-    let mut fenced = false;
-    body.lines()
-        .filter(|line| {
-            if line.starts_with("```") || line.starts_with("~~~") {
-                fenced = !fenced;
-                return false;
-            }
-            !fenced && line.starts_with("## ")
-        })
-        .count()
+    cut(body).blocks.len()
 }
 
 struct Sheet<'a> {
@@ -82,8 +94,8 @@ fn cut(body: &str) -> Sheet<'_> {
         .split('\n')
         .map(|line| line.strip_suffix('\r').unwrap_or(line))
     {
-        let opens = !fenced && line.starts_with("## ");
-        if line.starts_with("```") || line.starts_with("~~~") {
+        let opens = !fenced && head_of(line).is_some();
+        if fences(line) {
             fenced = !fenced;
         }
         match sheet.blocks.last_mut() {
@@ -96,9 +108,10 @@ fn cut(body: &str) -> Sheet<'_> {
 }
 
 fn idea_of(block: &[&str]) -> Idea {
+    let said: Vec<&str> = block[1..].iter().map(|line| unquoted(line)).collect();
     Idea {
-        heading: block[0].trim_start_matches("## ").trim().to_string(),
-        text: block[1..].join("\n").trim().to_string(),
+        heading: head_of(block[0]).unwrap_or_default().to_string(),
+        text: said.join("\n").trim().to_string(),
     }
 }
 
@@ -149,9 +162,7 @@ pub fn files_an_idea(note: &str) -> bool {
 }
 
 fn filed_on(line: &str) -> bool {
-    line.strip_prefix("> [!NOTE] ")
-        .and_then(|rest| rest.rsplit_once(" · "))
-        .is_some_and(|(_, on)| jiff::civil::Date::strptime("%Y-%m-%d", on.trim()).is_ok())
+    head_of(line).is_some() && tisty_markdown::idea_head(line.trim_start()).when.is_some()
 }
 
 pub fn quoted(note: &str) -> Option<String> {
@@ -160,10 +171,7 @@ pub fn quoted(note: &str) -> Option<String> {
         return None;
     }
     let said: Option<Vec<&str>> = lines
-        .map(|line| {
-            line.strip_prefix('>')
-                .map(|rest| rest.strip_prefix(' ').unwrap_or(rest))
-        })
+        .map(|line| line.starts_with('>').then(|| unquoted(line)))
         .collect();
     let text = said?.join("\n").trim().to_string();
     (!text.is_empty()).then_some(text)

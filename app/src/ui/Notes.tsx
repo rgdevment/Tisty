@@ -279,7 +279,7 @@ export default function Notes({
           onPick={(file) => {
             setFiling(null);
             const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
-            void ideaToDoc(file, filing.text, title)
+            void ideaToDoc(file, filing.text, filing.heading)
               .then(() => {
                 settled(filing)();
                 send(fill("ideaFiledIn", there), t("ideaOpenDoc"), () => onDoc?.(file));

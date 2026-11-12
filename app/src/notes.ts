@@ -8,10 +8,9 @@ export interface Board {
   notes: Note[];
 }
 
-const SECTION = /^## (.*)$/;
-const FENCE = /^(```|~~~)/;
-const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?: · [a-z]+)?$/;
-const PAINTED = / · ([a-z]+)$/;
+const OPENER = /^\s*>\s*\[!idea\](.*)$/i;
+const FENCE = /^[>\s]*(```|~~~)/;
+const STAMP = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
 
 export const IDEA_AT_MOST = 140;
 
@@ -30,9 +29,11 @@ export const COLOURS = [
   "magenta",
 ];
 
+const partsOf = (heading: string): string[] => heading.split(" · ").map((part) => part.trim());
+
 export const colourOf = (heading: string): number => {
-  const said = PAINTED.exec(heading);
-  return said ? COLOURS.indexOf(said[1]) : -1;
+  const hue = partsOf(heading).find((part) => COLOURS.includes(part.toLowerCase()));
+  return hue ? COLOURS.indexOf(hue.toLowerCase()) : -1;
 };
 
 interface Cut {
@@ -47,7 +48,7 @@ function cut(body: string): Cut {
   const blocks: string[][] = [];
   let fenced = false;
   for (const line of body.split(/\r?\n/)) {
-    const opens = !fenced && SECTION.test(line);
+    const opens = !fenced && OPENER.test(line);
     if (FENCE.test(line)) fenced = !fenced;
     if (opens) blocks.push([line]);
     else if (blocks.length) blocks[blocks.length - 1].push(line);
@@ -56,15 +57,17 @@ function cut(body: string): Cut {
   return { ending, head, blocks };
 }
 
+const unquoted = (line: string): string => (line.startsWith(">") ? line.replace(/^> ?/, "") : line);
+
 const noteOf = (block: string[]): Note => ({
-  heading: (SECTION.exec(block[0])?.[1] ?? "").trim(),
-  text: block.slice(1).join("\n").trim(),
+  heading: (OPENER.exec(block[0])?.[1] ?? "").trim(),
+  text: block.slice(1).map(unquoted).join("\n").trim(),
 });
 
 const blockOf = (heading: string, text: string): string[] => [
-  `## ${heading}`,
+  `> [!IDEA] ${heading}`,
+  ...(text ? text.split("\n").map((line) => (line ? `> ${line}` : ">")) : []),
   "",
-  ...(text ? [...text.split("\n"), ""] : []),
 ];
 
 // Untouched notes go back byte for byte, so one edit never rewrites the whole file in sync.
@@ -153,7 +156,9 @@ export const stampOf = (at: Date): string =>
   `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
 
 export function saidWhen(heading: string, locale: string): string {
-  const stamp = STAMP.exec(heading);
+  const stamp = partsOf(heading)
+    .map((part) => STAMP.exec(part))
+    .find(Boolean);
   if (!stamp) return heading;
   const [, year, month, day, hour, minute] = stamp.map(Number);
   const at = new Date(year, month - 1, day, hour, minute);

@@ -265,6 +265,7 @@ A sixth kind, `[!IDEA]`, is a note stuck on the sheet. Its first line, past the 
 - The parts go in any order, split by ` · `, and none is required. The colour is one of `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` or `magenta`; without one, the note keeps the sheet's colour inside a dashed line.
 - `right` or `left` sets it beside the paragraphs that follow, the words flowing round it; without a side it stands between the blocks around it.
 - Pictures and anything else a callout holds fit inside, as long as every line carries its `>`.
+- Brainstorm writes each of its ideas this way, and filing one in a document keeps it whole, set to the right.
 - Obsidian shows it as a callout of kind idea, and GitHub as a quote.
 
 ## Collapsible sections

@@ -265,6 +265,7 @@ Un sexto tipo, `[!IDEA]`, es una nota pegada en la hoja. Su primera línea, desp
 - Las partes van en cualquier orden, separadas por ` · `, y ninguna es obligatoria. El color es uno de `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` o `magenta`; sin color, la nota lleva el color de la hoja dentro de una línea punteada.
 - `right` o `left` la deja al costado de los párrafos que siguen, con el texto rodeándola; sin lado, va entre los bloques que la rodean.
 - Dentro caben imágenes y todo lo que cabe en un aviso, siempre que cada línea lleve su `>`.
+- La Lluvia de ideas escribe así cada una de sus ideas, y anexar una a un documento la lleva entera, a la derecha.
 - Obsidian la muestra como un aviso de tipo idea, y GitHub como una cita.
 
 ## Secciones plegables
