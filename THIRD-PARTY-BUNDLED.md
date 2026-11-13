@@ -182,7 +182,7 @@ written once with the crates that carry it.
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
 | `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
 | `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
-| `ammonia` | 4.2.4 | MIT OR Apache-2.0 |
+| `ammonia` | 4.2.5 | MIT OR Apache-2.0 |
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
 | `apple-native-keyring-store` | 1.0.2 | MIT OR Apache-2.0 |
 | `arboard` | 3.7.0 | MIT OR Apache-2.0 |
