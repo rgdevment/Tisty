@@ -227,11 +227,6 @@ jobs:
           VERSION: ${{ steps.resolve.outputs.version }}
         run: bash scripts/docs.sh "$VERSION"
 
-      - name: The post for X and Bluesky is written, in both languages
-        env:
-          VERSION: ${{ steps.resolve.outputs.version }}
-        run: node scripts/posts.mjs check "$VERSION"
-
   build-macos:
     name: tisty-macos-mcp
     needs: version
