@@ -2868,6 +2868,14 @@ fn an_edit_can_hand_back_what_it_reads_like_now_instead_of_being_read_again() {
         around["body"].as_str().unwrap().contains("Trece."),
         "the change is in what came back: {said}"
     );
+    assert!(
+        around["body"]
+            .as_str()
+            .unwrap()
+            .lines()
+            .all(|line| !line.starts_with(' ')),
+        "an echoed line is never indented into code: {said}"
+    );
     assert!(around["from"].as_u64().unwrap() >= 1, "{said}");
 
     let said = served.call(
@@ -3106,7 +3114,7 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     )["result"]["structuredContent"]["lines"][0]["around"]
         .clone();
     assert_eq!(
-        around, "- uno\n- dos\n- tres",
+        around, "- uno\n(line 4)\n- tres",
         "the line before and the line after, no more"
     );
     let reach = |lines: u64| {
@@ -3119,7 +3127,7 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     assert!(reach(0).is_null(), "none asked for, none given");
     assert_eq!(
         reach(2),
-        "\n- uno\n- dos\n- tres\n",
+        "\n- uno\n(line 4)\n- tres\n",
         "two on each side when asked"
     );
 
@@ -4620,10 +4628,10 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
         said[0]["result"]["instructions"]
             .as_str()
             .unwrap_or_default(),
-        rules["result"]["structuredContent"]["rules"]
+        rules["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or_default(),
-        tidying["result"]["structuredContent"]["rules"]
+        tidying["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or_default()
     );

@@ -14,6 +14,8 @@ has a place, a list for a task and a folder for a document; ask when none fits.\
 holds what outlasts it. When the person asks for a document, write one.\n\
 - Across sessions: `catch_up` first, `read` the task you were on, `tick` and `note` as you go, \
 what you ruled out too, then `say_done`.\n\
+- Write for the person's eyes, new or edited: descriptions, notes and documents visual, readable \
+and in order in Tisty's Markdown, never a wall of plain text.\n\
 - File a task with its `source` when you have one: Tisty refuses a second one from it.\n\
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.\n\
 - A refused call says why and what would work: do that, never resend it unchanged.\n\
@@ -55,6 +57,25 @@ in the document \"Release plan\", in the folder Work». A new task or document c
 `for_the_person`, the words to tell them; a short answer also carries `said`, a line for you. \
 Anywhere in an answer, what sits in square brackets is an id, kept for your calls. Show an id \
 only when the person asks for it by name.
+
+## Write it to be read
+
+Whatever you write or edit — a task's description, a journal note, a task's page, a document — \
+the person reads in the window, so make it visual, readable and in order, never a wall of plain \
+text:
+- A heading for each part when there is more than one, and short paragraphs, one line each. A \
+task's page keeps the sections it has, so write under them; Brainstorm takes ideas alone, \
+a few words each.
+- A list for findings, options or what is left, numbered when the order matters; a table to \
+compare.
+- **Bold** for the one thing to see first; `code` for commands, paths and names; a link where it \
+leads.
+- A callout for what must stand out — `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` — and a pen or an \
+icon where it helps the eye, sparingly.
+- A box `- [ ]` only for a step: on a task's page it becomes one.
+
+When you edit, leave the passage at least as ordered as you found it. `language` gives Tisty's \
+marks one topic at a time.
 
 ## A task, a document or an idea
 
@@ -162,7 +183,8 @@ recognise the same thing twice. Tisty refuses a second filing from the same sour
 back the task that already exists, so you cannot duplicate by mistake; however the source is \
 written, «sereno#1», «sereno: #1» and «Sereno #1» are one. Without a source, `find` by text \
 first. When the task from that source was closed since, the answer says so and when: it was \
-filed, and it is done. When the person erased it, it stays erased. Only if the person asks you \
+filed, and it is done. When the person erased it, it stays erased; when they put it out of \
+sight, the answer says only that and names nothing. Only if the person asks you \
 in this conversation for it to be done again, propose it once more with `again`, saying in the \
 description how the last one ended.
 
@@ -447,6 +469,7 @@ const TOPICS: &[(&str, &[&str])] = &[
     (
         "tasks",
         &[
+            "Write it to be read",
             "What a task is made of",
             "Its two dates",
             "The archive is history to consult",
@@ -463,6 +486,7 @@ const TOPICS: &[(&str, &[&str])] = &[
             "One living document per subject",
             "Removing and putting away",
             "Writing",
+            "Write it to be read",
         ],
     ),
     ("tidying", &["Compacting"]),
@@ -473,8 +497,8 @@ const INDEX: &str = "\
 ## What else to ask for
 
 - `rules` «tasks»: what a task is made of, filing it, steps and parts, dates and reminders, \
-priority, saying done, its page, picking up across sessions, and the archive as knowledge to \
-search.
+priority, saying done, its page, picking up across sessions, the archive as knowledge to \
+search, and writing it to be read.
 - `rules` «documents»: one living document per subject, folders and pages, reading by parts, \
 updating before adding, marking what has had its day, and writing.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
@@ -511,12 +535,14 @@ fn topical(title: &str) -> Option<&'static str> {
 pub(super) fn rules(args: &Value) -> Value {
     let said = match args["topic"].as_str() {
         Some("all") => joined(|_| true),
-        Some(topic @ ("tasks" | "documents" | "tidying" | "ideas")) => {
-            joined(|title| topical(title) == Some(topic))
-        }
+        Some(topic @ ("tasks" | "documents" | "tidying" | "ideas")) => joined(|title| {
+            TOPICS
+                .iter()
+                .any(|(one, titles)| *one == topic && titles.contains(&title))
+        }),
         _ => format!("{}\n\n{INDEX}", joined(|title| topical(title).is_none())),
     };
-    super::jsonrpc::mirrored(said.clone(), json!({ "rules": said }))
+    super::jsonrpc::said_alone(said)
 }
 
 /// What a call does to what the person keeps, which hosts read to decide what to ask about first.
@@ -555,8 +581,8 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tick", Effect::Marks),
     ("untick", Effect::Marks),
     ("rename", Effect::Replaces),
-    ("reword_step", Effect::Replaces),
-    ("unplan", Effect::Replaces),
+    ("reword_step", Effect::Rewrites),
+    ("unplan", Effect::Rewrites),
     ("move", Effect::Sets),
     ("reword_note", Effect::Replaces),
     ("note", Effect::Adds),
@@ -580,7 +606,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("reschedule", Effect::Replaces),
     ("say_done", Effect::Sets),
     ("say_not_doing", Effect::Sets),
-    ("sum_up", Effect::Sets),
+    ("sum_up", Effect::Replaces),
     ("outline_doc", Effect::Reads),
     ("read", Effect::Reads),
     ("find", Effect::Reads),

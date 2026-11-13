@@ -111,12 +111,19 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             task.title,
             state.tasks.get(&up).map_or("", |one| one.title.as_str())
         )),
-        Some(None) => said.push(format!(
-            "Let {:?} go from {:?}: it stands on its own, in {}.",
-            task.title,
-            held_by.map_or("", |one| one.title.as_str()),
-            list_name(d.list.unwrap_or(task.list))
-        )),
+        Some(None) => {
+            let seen = held_by.filter(|one| !one.hidden);
+            let inherited = list.is_none() && d.list.is_some();
+            let landed = match (seen, inherited) {
+                (None, true) => "in the list its whole stood in".to_string(),
+                _ => format!("in {}", list_name(d.list.unwrap_or(task.list))),
+            };
+            said.push(format!(
+                "Let {:?} go from {}: it stands on its own, {landed}.",
+                task.title,
+                seen.map_or_else(|| "its whole".to_string(), |one| format!("{:?}", one.title)),
+            ))
+        }
         None => {}
     }
     if let Some(list) = list {

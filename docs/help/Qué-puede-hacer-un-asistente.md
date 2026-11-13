@@ -6,7 +6,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 - **Anotar una tarea** con sus pasos, su fecha y la lista a la que pertenece.
 - **Ponerle una hora** para que suene.
-- **Mover el día** de una tarea que anotó él, cuando lo que averigua lo cambia.
+- **Mover el día** de una tarea que anotó un agente, cuando lo que averigua lo cambia.
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
 - **Decir que un paso tuyo está listo**: el paso queda sin marcar hasta que tomes su palabra.
 - **Añadir a la bitácora** de una tarea.

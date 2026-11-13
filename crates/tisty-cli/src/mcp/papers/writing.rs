@@ -221,10 +221,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
-    let named = opened(paths).map_or_else(
-        |_| format!("[{which}]"),
-        |(state, _)| doc_named(&state, &which),
-    );
+    let (state, _) = opened(paths)?;
+    if !a_task_s && super::super::mistaken::named_document(&state, &which).is_none() {
+        return Err(Refused::Missing(
+            super::super::mistaken::no_document_called(&state, &which),
+        ));
+    }
+    let named = doc_named(&state, &which);
     let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
         return Err(Refused::Tool(format!(
             "nothing is kept beside {named} to go back to. Only a write that replaced a body \
@@ -261,6 +264,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
 
     let (state, mut store) = opened(paths)?;
+    super::super::ideas::brings_back_no_idea(&state, &which, &now, &was)?;
     let mut said = over_again(
         paths,
         &json!({ "print": print }),
@@ -496,16 +500,21 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             wrapped(&body)
         ),
         with_echo(
-            json!({
-                "for_the_person": for_the_person(&state, &which, &written_title(&state, &which, &whole)),
-                "doc": which,
-                "title": written_title(&state, &which, &whole),
-                "chars": whole.chars().count(),
-                "lines": whole.lines().count(),
-                "grew": grew(&before, &whole),
-                "print": tisty_core::attach::printed(whole.as_bytes()),
-                "idea_filed": filed.as_ref().is_some_and(|one| one.off),
-            }),
+            {
+                let mut kept = json!({
+                    "for_the_person": for_the_person(&state, &which, &written_title(&state, &which, &whole)),
+                    "doc": which,
+                    "title": written_title(&state, &which, &whole),
+                    "chars": whole.chars().count(),
+                    "lines": whole.lines().count(),
+                    "grew": grew(&before, &whole),
+                    "print": tisty_core::attach::printed(whole.as_bytes()),
+                });
+                if let Some(one) = &filed {
+                    kept["idea_filed"] = json!(one.off);
+                }
+                kept
+            },
             args,
             &before,
             &whole,

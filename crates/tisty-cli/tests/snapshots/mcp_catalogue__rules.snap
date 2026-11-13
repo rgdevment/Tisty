@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
+  "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask the one the instructions name before a first write of its kind.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

@@ -77,10 +77,14 @@ pub(super) fn reachable_or(
 ) -> Result<std::path::PathBuf, Refused> {
     tisty_core::agent::may_reach(asked, paths).map_err(|_| {
         Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may {doing}. Those are: {}.",
+            "{said:?} is not somewhere an assistant may {doing}. Those are the person's {} \
+             folders, and the temporary folder.",
             tisty_core::agent::reachable()
                 .iter()
-                .map(|one| one.display().to_string())
+                .skip(1)
+                .filter_map(|one| one
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned()))
                 .collect::<Vec<_>>()
                 .join(", ")
         ))
@@ -93,7 +97,7 @@ pub(super) fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<Strin
     let named: Vec<String> = state
         .docs
         .values()
-        .filter(|one| one.file != which)
+        .filter(|one| one.file != which && state.doc_in_sight(one))
         .map(|one| one.file.clone())
         .collect();
     // Only a body with a link or a picture in it can be pointing anywhere, and the cards say

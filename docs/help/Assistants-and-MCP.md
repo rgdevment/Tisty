@@ -106,7 +106,7 @@ You do not have to remember this step. When an assistant tries to work with Tist
 
 ## What it can do, in short
 
-File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task it filed is done, **for you to confirm**.
+File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task is done, yours too, **for you to confirm**.
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
@@ -164,9 +164,9 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | Picks up the work, with nothing new | about 1% | 99% less |
 | Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
-| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
+| Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
-No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
+No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters unless the agent asks for a document whole to carry elsewhere, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
 
 Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 

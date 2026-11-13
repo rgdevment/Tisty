@@ -30,7 +30,7 @@ expression: tool
             "type": "array"
           }
         ],
-        "description": "The id of the document to mark, not its title, or a list of ids marked alike"
+        "description": "The id of the document to mark, not its title, or `sheet#heading` for an idea; a list is marked alike"
       },
       "instead": {
         "description": "Id of the document or task that holds it now; needed with duplicate_of, moved and superseded",

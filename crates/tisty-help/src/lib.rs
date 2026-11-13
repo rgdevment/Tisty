@@ -16,7 +16,9 @@ pub fn pages(spanish: bool) -> &'static [Page] {
 }
 
 pub fn found(spanish: bool, slug: &str) -> Option<&'static Page> {
-    pages(spanish).iter().find(|one| one.slug() == slug)
+    pages(spanish)
+        .iter()
+        .find(|one| one.slug().eq_ignore_ascii_case(slug.trim()))
 }
 
 impl Page {

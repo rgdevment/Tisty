@@ -256,13 +256,14 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
         text.contains("- pens:") && text.len() < 3000,
         "left alone it is the index, not the whole guide: {text}"
     );
-    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
+    assert!(
+        english["result"].get("structuredContent").is_none(),
+        "{english}"
+    );
     assert!(text.contains("https://markdown.tisty.app/"));
 
     let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
-    let pens = pens["result"]["structuredContent"]["language"]
-        .as_str()
-        .unwrap_or("");
+    let pens = pens["result"]["content"][0]["text"].as_str().unwrap_or("");
     assert!(
         pens.starts_with("## ") && pens.contains("=={green}"),
         "{pens}"
@@ -270,17 +271,19 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
 
     let whole = served.call("language", serde_json::json!({ "topic": "all" }));
     assert!(
-        whole["result"]["structuredContent"]["language"]
+        whole["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or("")
             .starts_with("# ")
     );
 
     let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
-    assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
-    assert_eq!(
-        spanish["result"]["structuredContent"]["guide"],
-        "https://markdown.tisty.app/es/"
+    assert!(
+        spanish["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .contains("https://markdown.tisty.app/es/"),
+        "{spanish}"
     );
     assert_ne!(
         spanish["result"]["content"][0]["text"],
@@ -4722,12 +4725,8 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let taught = format!(
         "{head}\n{}\n{}",
-        rules["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap(),
-        tidying["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap()
+        rules["result"]["content"][0]["text"].as_str().unwrap(),
+        tidying["result"]["content"][0]["text"].as_str().unwrap()
     );
     let taught = taught.as_str();
 
@@ -7198,6 +7197,11 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         "one subject, the outline and one section, costs {:.2}%",
         share(outline + part)
     );
+    assert!(
+        share(outline + part) <= 4.0,
+        "the readme says one subject costs about 3%, and here it costs {:.2}%",
+        share(outline + part)
+    );
 
     let opened = weight(served.call("read", serde_json::json!({ "task": &id })));
     assert!(
@@ -7208,7 +7212,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
 }
 
 #[test]
-fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
+fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_up() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
@@ -7225,6 +7229,7 @@ fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["last"].is_null(), "{kept}");
     assert!(said.contains("the person put it out of sight"), "{said}");
+    assert!(!back.to_string().contains("renew the passport"), "{back}");
 }
 
 fn agents_task(served: &Served, title: &str) -> String {

@@ -10,10 +10,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `rules` | Las reglas para trabajar aquí, una guía a la vez («tasks», «documents», «tidying», «ideas»); sola, lo básico y un índice. Los asistentes piden la que necesitan primero |
+| `rules` | Las reglas para trabajar aquí, una guía a la vez («tasks», «documents», «tidying», «ideas» o «all»); sola, lo básico y un índice. Los asistentes piden la que necesitan primero |
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
-| `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; las tareas abiertas que apremian, por título y lista, para que te las cuente y las lea con `read`: las vencidas, después las por vencer, las de hoy y las atrasadas, cinco como máximo y el resto contado, sin las que un asistente ya dijo que están hechas, que te esperan a ti; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Cuando hay ideas en **Lluvia de ideas**, dice cuántas esperan y cuántas marcó |
+| `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; las tareas abiertas que apremian, por título y lista, para que te las cuente y las lea con `read`: las vencidas, después las por vencer, las de hoy y las atrasadas, cinco como máximo y el resto contado, sin las que un asistente ya dijo que están hechas o que no deben hacerse, que te esperan a ti, ni las que ocultaste; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Nombra la **Lluvia de ideas** y dice cuántas ideas esperan y cuántas están marcadas |
 | `find` | Buscar en tareas y documentos, el archivo incluido; los documentos marcados como que ya cumplieron su vida van después de los vigentes, y lo dicen |
 | `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae las últimas notas hasta unos 3000 caracteres, y más si las pide |
 
@@ -25,7 +25,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | :-- | :-- |
 | `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Lluvia de ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
 | `remind` | Hacer que una tarea suene a una hora |
-| `reschedule` | Mover el día de una tarea que anotó |
+| `reschedule` | Mover el día de una tarea que anotó un agente |
 | `describe` | Escribir la descripción de una tarea abierta, también las tuyas, reemplazando la anterior |
 | `rename` | Renombrar cualquier tarea abierta, también las tuyas |
 | `note` | Añadir a la bitácora de una tarea: hasta 4000 caracteres por nota; lo más largo va a la página de la tarea |

@@ -104,8 +104,18 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     let page = super::worded::worded(paths, &mut store, id, |body, _| {
         tisty_core::stages::reworded(body, task, step, &words)
     });
+    let unsaid = match task.step(step).is_some_and(|one| one.said) {
+        true => {
+            " Your word that it was done went with the old words: `tick` it again if the new \
+                  ones are done too."
+        }
+        false => "",
+    };
     Ok(told(
-        format!("Reworded {was:?} to {words:?} on {:?}.{page}", task.title),
+        format!(
+            "Reworded {was:?} to {words:?} on {:?}.{unsaid}{page}",
+            task.title
+        ),
         json!({ "id": id.to_string(), "title": task.title, "reworded": 1 }),
     ))
 }
