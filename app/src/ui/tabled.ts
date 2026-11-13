@@ -29,30 +29,32 @@ const headed = (head: Element): string => head.textContent?.replace("⋯", "").t
 
 // The page arrives inert; the window adds what lets each table be written in place.
 export const tabled = (page: Document) => {
-  for (const box of tablesIn(page)) {
-    if (box.classList.contains("dressed")) continue;
-    box.classList.add("dressed");
-    const bar = page.createElement("div");
-    bar.className = "table-bar";
-    bar.hidden = true;
-    box.prepend(bar);
-    headsOf(box).forEach((head, column) => {
-      head.setAttribute("aria-sort", "none");
-      const name = headed(head) || String(column + 1);
-      head.append(asking(page, "column", fill("tableColumnMenu", name), "⋯", { column }));
-    });
-    rowsOf(box).forEach((row, at) => {
-      row.dataset.row = String(at);
-      const first = row.cells[0];
-      if (!first) return;
-      const grip = asking(page, "row", fill("tableRowMenu", String(at + 1)), "", { row: at });
-      grip.classList.add("row-grip");
-      first.prepend(grip);
-    });
-    const adding = asking(page, "rowAdd", t("tableRowAdd"), `+ ${t("tableRowAdd")}`);
-    adding.classList.add("row-add");
-    box.append(adding);
-  }
+  for (const box of tablesIn(page)) dressedTable(page, box);
+};
+
+export const dressedTable = (page: Document, box: Element) => {
+  if (box.classList.contains("dressed")) return;
+  box.classList.add("dressed");
+  const bar = page.createElement("div");
+  bar.className = "table-bar";
+  bar.hidden = true;
+  box.prepend(bar);
+  headsOf(box).forEach((head, column) => {
+    head.setAttribute("aria-sort", "none");
+    const name = headed(head) || String(column + 1);
+    head.append(asking(page, "column", fill("tableColumnMenu", name), "⋯", { column }));
+  });
+  rowsOf(box).forEach((row, at) => {
+    row.dataset.row = String(at);
+    const first = row.cells[0];
+    if (!first) return;
+    const grip = asking(page, "row", fill("tableRowMenu", String(at + 1)), "", { row: at });
+    grip.classList.add("row-grip");
+    first.prepend(grip);
+  });
+  const adding = asking(page, "rowAdd", t("tableRowAdd"), `+ ${t("tableRowAdd")}`);
+  adding.classList.add("row-add");
+  box.append(adding);
 };
 
 // A click inside a dressed table: a cell to write, a head to sort by, or nothing of the table's.

@@ -69,9 +69,11 @@ export const docked = (
     const scroller = scrollerOf(frame);
     const clip = scroller?.getBoundingClientRect().top ?? 0;
     const seen = Math.max(0, clip - (frame?.getBoundingClientRect().top ?? 0));
-    const top = (box.top + view.scrollY) / zoom;
+    const tabs = sheet.querySelector<HTMLElement>(".cm-panels-top");
+    const below = tabs ? tabs.getBoundingClientRect().bottom - box.top + STUCK : 0;
+    const top = (box.top + view.scrollY) / zoom + below;
     const bottom = (box.bottom + view.scrollY) / zoom - bar.offsetHeight;
-    const stuck = (seen + view.scrollY) / zoom + STUCK;
+    const stuck = (seen + view.scrollY) / zoom + STUCK + (tabs?.offsetHeight ?? 0);
     const look = view.getComputedStyle(sheet);
     const slot = side ? slotIn(frame?.ownerDocument, 40) : null;
     if (slot) {
@@ -99,9 +101,15 @@ export const docked = (
     const line = aim?.();
     const margin = (Number.parseFloat(look.paddingLeft) || 0) - bar.offsetWidth - RAIL;
     // Folded it waits in the margin beside the line, where it covers none of the words above.
-    if (bar.classList.contains("folded") && line != null && margin >= 0) {
+    const rightMargin = (Number.parseFloat(look.paddingRight) || 0) - bar.offsetWidth;
+    const folded = bar.classList.contains("folded") && line != null;
+    if (folded && (margin >= 0 || rightMargin >= 0)) {
       bar.style.top = `${Math.min(bottom, Math.max(top, stuck, (line + view.scrollY) / zoom + 2))}px`;
-      bar.style.left = `${(box.left + view.scrollX) / zoom + margin}px`;
+      const beside =
+        margin >= 0
+          ? box.left / zoom + margin
+          : box.right / zoom - rightMargin / 2 - bar.offsetWidth;
+      bar.style.left = `${beside + view.scrollX / zoom}px`;
       return;
     }
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;

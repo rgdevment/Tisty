@@ -311,6 +311,7 @@ export const barred = (
   onWhole?: () => void,
   tabling?: () => void,
   asking?: () => Asking | undefined,
+  live = false,
 ): Barred => {
   const page = view.dom.ownerDocument;
   const say = view.state.facet(hosted).say;
@@ -421,18 +422,25 @@ export const barred = (
   tableIt?.append(drawnIn(page, "table"));
 
   // In a block the bar waits folded and opens with a selection; the whole document keeps it as it was left.
-  let keptOpen = whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
+  let keptOpen = live ? false : whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
   let chosen = false;
   let shutOver = false;
-  const opened = () => keptOpen || (!whole && (chosen || tabled) && !shutOver);
+  const opened = () => keptOpen || (!whole && !live && (chosen || tabled) && !shutOver);
   const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => {
     const was = opened();
     keptOpen = !was;
     shutOver = was && (chosen || tabled);
     if (whole) remember(FOLDED, !keptOpen);
-    else remember(KEPT_OPEN, keptOpen);
+    else if (!live) remember(KEPT_OPEN, keptOpen);
     folding();
   });
+  // Writing again is a press in the words, and the bar opened for a moment folds out of their way.
+  if (live)
+    view.contentDOM.addEventListener("mousedown", () => {
+      if (!keptOpen) return;
+      keptOpen = false;
+      folding();
+    });
   const folding = () => {
     const now = !opened();
     bar.classList.toggle("folded", now);
@@ -484,10 +492,11 @@ export const barred = (
       some = marked(state);
     }
     marks.setAttribute("aria-pressed", String(on));
-    marks.hidden = !on && !some;
+    marks.hidden = live || (!on && !some);
     marksKey.hidden = marks.hidden;
   };
 
+  if (live) bar.classList.add("live");
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
   if (tableIt) bar.append(tableIt);

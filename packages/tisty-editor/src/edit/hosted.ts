@@ -19,6 +19,7 @@ export type Hosted = {
   readonly tableEditNear: (body: string, at: number, ...edits: TableEdit[]) => Promise<string>;
   readonly fromHtml: (html: string) => Promise<string>;
   readonly fromText: (text: string) => Promise<string | null>;
+  readonly drawBlock?: (source: string, into: HTMLElement, measured: () => void) => void;
 };
 
 const NOBODY: Hosted = {
@@ -115,6 +116,8 @@ export type EditWord =
   | "tags"
   | "underlined"
   | "untitled"
+  | "viewMarkdown"
+  | "viewPreview"
   | "wholeLeave"
   | "widgetIt"
   | `said${"note" | "tip" | "important" | "warning" | "caution" | "idea"}`;

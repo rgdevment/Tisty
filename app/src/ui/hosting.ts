@@ -17,3 +17,8 @@ export const HOST: Hosted = {
 type Rest<T> = T extends (host: Hosted, ...rest: infer R) => unknown ? R : never;
 
 export const edited = (...rest: Rest<typeof editing>) => editing(HOST, ...rest);
+
+export const editedLive = (
+  drawBlock: NonNullable<Hosted["drawBlock"]>,
+  ...rest: Rest<typeof editing>
+) => editing({ ...HOST, drawBlock }, ...rest);

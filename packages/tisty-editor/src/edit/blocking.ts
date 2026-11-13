@@ -25,15 +25,17 @@ import { tags } from "@lezer/highlight";
 import { HUES, isHue } from "tisty-sheet";
 import { known } from "tisty-sheet/glyphs";
 import { barred, blockKeys, flipped, paragraphKeys } from "./barring";
+import { chooseOrLet } from "./blocks";
 import { type Crossing, crossingKeys } from "./crossing";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { type Hosted, hosted } from "./hosted";
 import { latelyMarked } from "./lately";
+import { lively, livelyKeys } from "./living";
 import { GRAMMAR, pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
-import { revealing, visual } from "./seeing";
+import { marksShown, revealing, showMarks, visual } from "./seeing";
 import { type Asking, BOX, pickOnEnter, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
@@ -288,9 +290,16 @@ export const tightened = (state: EditorState, keepsGaps = false): string => {
   return kept.map((line) => line.text).join(state.lineBreak);
 };
 
+const besideChosen = (view: EditorView, bar: HTMLElement): number | null => {
+  const { from, empty } = view.state.selection.main;
+  const at = empty ? null : view.coordsAtPos(from);
+  return at ? Math.min(at.left + bar.offsetWidth, view.dom.getBoundingClientRect().right) : null;
+};
+
 /** Where the bar rests: over the words chosen, over the block being written, or at the top of a task's page. */
-export const aimed = (view: EditorView, untitled: boolean): number | null => {
+export const aimed = (view: EditorView, untitled: boolean, caret = false): number | null => {
   const chosen = view.state.selection.main;
+  if (caret && chosen.empty) return view.coordsAtPos(chosen.head)?.top ?? null;
   // Inside a table the bar stays above it, so walking its cells never lays it over the rows.
   if (!chosen.empty && !tableHere(view.state)) return view.coordsAtPos(chosen.from)?.top ?? null;
   return untitled ? null : view.dom.getBoundingClientRect().top;
@@ -304,13 +313,14 @@ export const edited = (
   onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
   oneLine = false,
-  whole = false,
+  whole: boolean | "live" = false,
   onWhole?: (all: boolean) => void,
   onCross?: (one: Crossing) => void,
 ): Editing => {
+  const live = whole === "live";
   const page = block.ownerDocument;
   const host = page.createElement("div");
-  host.className = whole ? "editing whole" : "editing";
+  host.className = live ? "editing whole live" : whole ? "editing whole" : "editing";
   // The block is written where it is read, so it keeps the room and the look the page gave it.
   const look = page.defaultView?.getComputedStyle(block);
   if (look) host.style.margin = look.margin;
@@ -329,13 +339,16 @@ export const edited = (
   let gone = false;
   let follow = (_: EditorView) => {};
   let undock = () => {};
+  let asleep = (_: boolean) => {};
   let replace = () => {};
   const leave = () => {
     if (gone) return;
     gone = true;
     if (oneLine) held(view, said);
     settle(view);
-    const tight = tightened(view.state, whole || view.state.doc.eq(opening));
+    const tight = live
+      ? view.state.sliceDoc()
+      : tightened(view.state, Boolean(whole) || view.state.doc.eq(opening));
     if (tight !== view.state.sliceDoc()) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: tight } });
     }
@@ -361,6 +374,7 @@ export const edited = (
               key: "Escape",
               run: (one) => {
                 if (completionStatus(one.state) === "active") return closeCompletion(one);
+                if (live) return chooseOrLet(one);
                 leave();
                 return true;
               },
@@ -396,7 +410,8 @@ export const edited = (
             ...blockKeys,
             ...gridKeys,
             ...tableKeys,
-            ...(whole || stepping ? [] : paragraphKeys),
+            ...(live ? livelyKeys : []),
+            ...((whole && !live) || stepping ? [] : paragraphKeys),
             ...(onCross && !whole && !stepping ? crossingKeys(host, onCross) : []),
             { key: "Mod-Shift-z", run: redo },
           ]),
@@ -411,7 +426,8 @@ export const edited = (
         hosted.of(owner),
         gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,
-        whole ? revealing.of(true) : pairsKept,
+        whole && !live ? revealing.of(true) : pairsKept,
+        live ? lively : [],
         latelyMarked,
         pendingFormat,
         syntaxHighlighting(inked),
@@ -429,6 +445,7 @@ export const edited = (
           const theirs = update.transactions.every((one) => one.isUserEvent("outside"));
           if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
+          if (live && update.focusChanged) asleep(!update.view.hasFocus);
           // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
           if (update.selectionSet || update.docChanged)
             page.defaultView?.requestAnimationFrame(() => {
@@ -441,22 +458,27 @@ export const edited = (
   const opening = view.state.doc;
   const bar = barred(
     view,
-    whole,
-    onWhole && (() => onWhole(false)),
+    whole === true,
+    live ? undefined : onWhole && (() => onWhole(false)),
     () => putTable(view, asking?.()),
     asking,
+    live,
   );
   if (stepping) bar.bar.style.display = "none";
   follow = bar.follow;
+  asleep = (yes) => bar.bar.classList.toggle("asleep", yes);
+  asleep(live && !view.hasFocus);
   const dock = docked(
     bar.bar,
     bar.hint,
-    () => aimed(view, page.documentElement.classList.contains("untitled")),
+    () => aimed(view, page.documentElement.classList.contains("untitled"), live),
     host,
-    whole,
+    whole === true,
+    live ? () => besideChosen(view, bar.bar) : undefined,
   );
   undock = dock.stop;
   replace = dock.place;
-  view.focus();
+  if (live && view.state.field(marksShown)) view.dispatch({ effects: showMarks.of(false) });
+  if (!live) view.focus();
   return { view, leave, kept: bar.kept };
 };

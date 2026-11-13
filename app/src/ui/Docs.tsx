@@ -130,6 +130,7 @@ const listed = (chosen: string | string[] | null): string[] => {
 const LANDING_MS = 3000;
 
 const NOTES_ROOM = { maxWidth: "95%" };
+const FREE_ROOM = {};
 
 export default function Docs({
   open: asked,
@@ -676,7 +677,7 @@ export default function Docs({
     [leaf, sheets, landscape],
   );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
-  const sheetRoom = { maxWidth: `${across + 48}px` };
+  const sheetRoom = sheets ? { maxWidth: `${across + 48}px` } : FREE_ROOM;
 
   useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 

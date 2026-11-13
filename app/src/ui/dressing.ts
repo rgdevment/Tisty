@@ -93,6 +93,16 @@ export const pictures = (
   return held;
 };
 
+export const picturesWithin = (root: ParentNode, live: () => boolean) => {
+  for (const img of root.querySelectorAll<HTMLImageElement>("img[data-kept], img[src]")) {
+    const at = img.getAttribute("src") || img.dataset.kept || "";
+    if (/^(https?|data|asset|blob|file|tauri):/i.test(at) || !pictured(at)) continue;
+    img.dataset.kept = at;
+    img.removeAttribute("src");
+    fetched(img, at, live);
+  }
+};
+
 // A picture that cannot be brought says why where it would be, instead of leaving a hole.
 const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
   serve(at)

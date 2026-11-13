@@ -10,6 +10,7 @@ export interface Choice {
   apart?: boolean;
   off?: boolean;
   hint?: string;
+  keys?: string;
   code?: string;
   on?: boolean;
   into?: { label: string; choices: Choice[] };
@@ -48,7 +49,8 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
     if (!own) return;
     const box = own.getBoundingClientRect();
     const room = window.innerHeight - EDGE * 2;
-    const tall = Math.min(own.scrollHeight, Math.round(window.innerHeight * TALLEST));
+    const edges = own.offsetHeight - own.clientHeight;
+    const tall = Math.min(own.scrollHeight + edges, Math.round(window.innerHeight * TALLEST));
     const below = at.y + tall <= window.innerHeight - EDGE;
     const above = at.y - tall >= EDGE;
     const y = (up || !below) && above ? at.y - tall : at.y;
@@ -182,6 +184,11 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
               </span>
             )}
             <span className="truncate">{one.label}</span>
+            {one.keys && (
+              <span aria-hidden className="ml-auto pl-4 text-[11.5px] text-faint">
+                {one.keys}
+              </span>
+            )}
             {one.on && (
               <span aria-hidden className="ml-auto pl-3 text-[11.5px] text-faint">
                 ✓

@@ -58,9 +58,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => path,
 }));
 
-vi.mock("../ui/hosting", async (original) => ({
-  ...(await original<typeof import("../ui/hosting")>()),
-  edited: (
+vi.mock("../ui/hosting", async (original) => {
+  const standIn = (
     block: HTMLElement,
     said: string,
     change: (text: string) => void,
@@ -83,6 +82,7 @@ vi.mock("../ui/hosting", async (original) => ({
             },
           },
           doc: said,
+          field: () => false,
           lineBreak: "\n",
           replaceSelection: (insert: string) => ({ changes: { from: 0, to: 0, insert } }),
         },
@@ -102,8 +102,13 @@ vi.mock("../ui/hosting", async (original) => ({
       },
       kept: (yes: boolean) => ipc.kept.push(yes),
     };
-  },
-}));
+  };
+  return {
+    ...(await original<typeof import("../ui/hosting")>()),
+    edited: standIn,
+    editedLive: (_drawn: unknown, ...rest: Parameters<typeof standIn>) => standIn(...rest),
+  };
+});
 
 const BODY = "# Compras\n\nleche\n\npan\n";
 const DRAWN =
@@ -475,20 +480,17 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(1);
   });
 
-  it("opens the whole document in one editor when asked, and gives the blocks back as it is left", async () => {
+  it("opens a document whole in one editor by itself, and its key shows the marks instead of leaving", async () => {
     const sheet = (n: number) => (
       <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
     const view = render(sheet(0));
     const page = await loaded(await shown(view.container));
-    view.rerender(sheet(1));
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
     expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
-    view.rerender(sheet(2));
-    expect(ipc.left).toBe(1);
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
-    // The stand-in editor stays where it was put; only the whole editor's placeholder must be gone.
-    expect(page.querySelectorAll(".page > div:not([data-at], .editing)")).toHaveLength(0);
+    view.rerender(sheet(1));
+    expect(ipc.left).toBe(0);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
   });
 
   it("never opens a task's page whole, from a key or from the menu", async () => {
@@ -504,17 +506,6 @@ describe("the sheet in the main window", () => {
     expect(offered()).not.toContain("Edit the whole document");
   });
 
-  it("offers a document's whole in the menu beside its block", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    await waitFor(() => expect(offered()).toContain("Edit the whole document"));
-    chosen("Edit the whole document");
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-  });
-
   it("chooses every word of the page as read when select-all is handed to it", async () => {
     const sheet = (n: number) => (
       <Sheet value={BODY} label="Compras" onWrite={() => {}} allAsked={n} />
@@ -527,26 +518,25 @@ describe("the sheet in the main window", () => {
   });
 
   it("takes words written from outside into the whole document without leaving it", async () => {
-    const sheet = (value: string, n: number) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    const sheet = (value: string) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable />
     );
-    const view = render(sheet(BODY, 0));
+    const view = render(sheet(BODY));
     await loaded(await shown(view.container));
-    view.rerender(sheet(BODY, 1));
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-    view.rerender(sheet(`${BODY}\nfruta\n`, 1));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet(`${BODY}\nfruta\n`));
     expect(ipc.left).toBe(0);
     expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
   });
 
   it("takes words from outside into the whole document with Windows line ends too", async () => {
-    const sheet = (value: string, n: number) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    const sheet = (value: string) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable />
     );
-    const view = render(sheet(BODY, 0));
+    const view = render(sheet(BODY));
     await loaded(await shown(view.container));
-    view.rerender(sheet(BODY, 1));
-    view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet("# Compras\r\n\r\nleche\r\n"));
     expect(ipc.left).toBe(0);
     expect(ipc.cut.length).toBeGreaterThan(0);
   });

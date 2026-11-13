@@ -351,7 +351,7 @@ describe("where the document rests", () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
-    expect(sheetOf()?.style.maxWidth).toBe("842px");
+    expect(sheetOf()?.style.maxWidth).toBe("");
   });
 });
 

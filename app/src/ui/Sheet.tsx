@@ -40,7 +40,9 @@ import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { useKeptHeight } from "./heights";
-import { edited } from "./hosting";
+import { edited, editedLive } from "./hosting";
+import { blockDrawer } from "./liveBlocks";
+import { livelyChoices } from "./livelyMenu";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -120,6 +122,8 @@ export default function Sheet(props: Readonly<Props>) {
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
+  const lively = !props.inline && Boolean(props.wholeable);
+  const widthOf = lively && !props.sheet ? "w-[85%] max-w-[1100px]" : "w-full";
   const diagram = (at: number, nth: number, source: string) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
@@ -146,13 +150,15 @@ export default function Sheet(props: Readonly<Props>) {
     });
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);
+  const livelyOpen = useRef(false);
   // Follows the open block through words written around it from outside; false when they reach it.
   const follows = useRef<((was: string, now: string) => boolean) | null>(null);
   // The blocks the whole-document editor covers, shown again as it is left.
   const veiled = useRef<(() => void) | null>(null);
   // Asked while the page was still being drawn again, so it opens once the new one is shown.
   const pending = useRef<
-    ({ turn: number } & ({ caret: number; all: boolean } | { arrival: Arrival })) | null
+    | ({ turn: number } & ({ caret: number; all: boolean; lively: boolean } | { arrival: Arrival }))
+    | null
   >(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
   const caretNow = useRef<(() => number) | null>(null);
@@ -167,12 +173,19 @@ export default function Sheet(props: Readonly<Props>) {
   };
   const showing = useRef(value);
   showing.current = drawn;
+  // The whole-document editor scrolls inside its frame, so that is where the place read is kept.
+  const framed = () => (shown.current?.frameElement ? shown.current : null);
+  const scroller = (): HTMLElement | null => {
+    const inner = lively ? framed() : null;
+    return inner ? (inner.document.scrollingElement as HTMLElement | null) : room.current;
+  };
   const latest = useRef(value);
   const echoes = useRef<string[]>([]);
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
+  const [leaves, setLeaves] = useState(false);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
   turnedNow.current = turned;
@@ -266,7 +279,7 @@ export default function Sheet(props: Readonly<Props>) {
   useEffect(() => {
     const outside = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (!open.current || target?.closest?.("[data-keeps-writing]")) return;
+      if (!open.current || livelyOpen.current || target?.closest?.("[data-keeps-writing]")) return;
       // The scrollbar beside the page belongs to what holds it, and dragging it is still reading along.
       if (target === room.current) return;
       left();
@@ -318,7 +331,7 @@ export default function Sheet(props: Readonly<Props>) {
     seed = "",
     read = "",
     asked?: Pick<Formatting, "said" | "open" | "close">,
-    whole?: { caret: number; all?: boolean },
+    whole?: { caret: number; all?: boolean; lively?: boolean },
     entering?: Arrival,
   ) => {
     if (open.current) return left();
@@ -358,12 +371,17 @@ export default function Sheet(props: Readonly<Props>) {
       mine = next;
       return next;
     };
-    open.current = edited(
+    const writer = whole?.lively
+      ? (...rest: Parameters<typeof edited>) =>
+          editedLive(blockDrawer(element.ownerDocument, latest.current), ...rest)
+      : edited;
+    open.current = writer(
       element,
       piece || seed,
       (text) => written(spliced(text)),
       (_, renamed) => {
         open.current = null;
+        livelyOpen.current = false;
         follows.current = null;
         veiled.current?.();
         veiled.current = null;
@@ -408,7 +426,7 @@ export default function Sheet(props: Readonly<Props>) {
         };
       },
       Boolean(said.current.inline && said.current.shaping),
-      Boolean(whole),
+      whole?.lively ? "live" : Boolean(whole),
       fixed || !said.current.wholeable
         ? undefined
         : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(undefined, all))),
@@ -463,6 +481,7 @@ export default function Sheet(props: Readonly<Props>) {
         writing?.state.lineBreak === "\r\n" ? writing.state.doc.lineAt(head).number - 1 : 0;
       return from + head + ends;
     };
+    livelyOpen.current = Boolean(whole?.lively);
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
     const caret = whole
@@ -481,15 +500,27 @@ export default function Sheet(props: Readonly<Props>) {
         : entering
           ? EditorSelection.create([EditorSelection.cursor(Math.min(caret, length), 1)])
           : { anchor: Math.min(caret, length) },
-      scrollIntoView: true,
+      scrollIntoView: !whole?.lively,
     });
     if (asked) formatted(editing, read, asked);
   };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` reads only refs, so each drawing alone decides.
+  useEffect(() => {
+    if (!lively || !ready || reading || fixed || open.current || !framed()) return;
+    if (drawn !== latest.current || showing.current !== latest.current) return;
+    wholly(0, false, true);
+  }, [lively, ready, turned, drawn, reading]);
 
   const { wholeAsked, allAsked } = props;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the count alone decides.
   useEffect(() => {
     if (!wholeAsked) return;
+    const writing = open.current?.view;
+    if (livelyOpen.current && writing) {
+      flipped(writing);
+      return;
+    }
     if (veiled.current) left();
     else wholly();
   }, [wholeAsked]);
@@ -520,18 +551,18 @@ export default function Sheet(props: Readonly<Props>) {
     if (!waiting || drawn !== latest.current || turned === waiting.turn) return;
     pending.current = null;
     if ("arrival" in waiting) arrive(waiting.arrival);
-    else wholly(waiting.caret, waiting.all);
+    else wholly(waiting.caret, waiting.all, waiting.lively);
   }, [turned, drawn]);
 
   // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
-  const wholly = (asked?: number, all = false) => {
+  const wholly = (asked?: number, all = false, lively = false) => {
     if (reading || fixed || !said.current.wholeable) return;
     const caret = asked ?? (open.current ? caretNow.current?.() : undefined) ?? 0;
     if (open.current) left();
     const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
     // A block just left draws the page again, and an editor laid in the old one would go with it.
     if (!sheet || showing.current !== latest.current) {
-      pending.current = { caret, all, turn: turnedNow.current };
+      pending.current = { caret, all, lively, turn: turnedNow.current };
       return;
     }
     const fresh = sheet.ownerDocument.createElement("div");
@@ -541,7 +572,7 @@ export default function Sheet(props: Readonly<Props>) {
       sheet.classList.remove("whole");
       fresh.remove();
     };
-    block([0, latest.current.length], fresh, "", "", undefined, { caret, all });
+    block([0, latest.current.length], fresh, "", "", undefined, { caret, all, lively });
     if (open.current) return;
     veiled.current();
     veiled.current = null;
@@ -601,6 +632,7 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   const writingChoices = (editing: Editing["view"]): Choice[] => {
+    if (livelyOpen.current) return livelyChoices(editing);
     const { from, to } = editing.state.selection.main;
     const chosen = editing.state.sliceDoc(from, to);
     const back = () => editing.focus();
@@ -909,46 +941,70 @@ export default function Sheet(props: Readonly<Props>) {
     if (props.shaping !== undefined) left();
   }, [props.shaping, left]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `scroller` reads only refs and the props of this render, so readiness alone decides.
   useEffect(() => {
     const want = wanted.current;
     const mark = marked.current;
-    if (!ready || !room.current) return;
+    const rolled = scroller();
+    if (!ready || !rolled) return;
+    const inside = rolled !== room.current;
     if (!want && !mark) {
       if (putting.current < 0) return;
-      room.current.scrollTop = 0;
+      rolled.scrollTop = 0;
       putting.current = -1;
       return;
     }
     const spot = () => {
-      const sheet = room.current;
+      const sheet = scroller();
       if (!sheet) return null;
       const page = shown.current?.document;
       const found = mark ? page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
       const box = found?.getBoundingClientRect();
       if (!box || (!box.height && !box.top)) return want ?? null;
       const frame = shown.current?.frameElement as HTMLElement | null | undefined;
-      const above = box.top + (frame?.getBoundingClientRect().top ?? 0);
-      return Math.max(
-        0,
-        Math.round(above - sheet.getBoundingClientRect().top + sheet.scrollTop - ASIDE_MARGIN),
-      );
+      const above = inside ? box.top : box.top + (frame?.getBoundingClientRect().top ?? 0);
+      const top = inside ? 0 : sheet.getBoundingClientRect().top;
+      return Math.max(0, Math.round(above - top + sheet.scrollTop - ASIDE_MARGIN));
     };
     putting.current = 0;
     return settles({
-      at: () => room.current,
+      at: scroller,
       want: spot,
       done: () => {
         putting.current = -1;
-        const sheet = room.current;
+        const sheet = scroller();
         if (!sheet || sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       },
       put: (down) => {
         putting.current = down;
       },
-      watch: () => room.current?.querySelector<HTMLElement>("iframe, .page") ?? null,
+      watch: () =>
+        (inside
+          ? shown.current?.document.querySelector<HTMLElement>(".page")
+          : room.current?.querySelector<HTMLElement>("iframe, .page")) ?? null,
     });
   }, [ready]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each drawing may bring the frame anew.
+  useEffect(() => {
+    framed()?.document.documentElement.classList.toggle("lively", lively);
+  }, [lively, ready, turned]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new drawing may bring a new frame to listen to.
+  useEffect(() => {
+    const inner = lively ? framed() : null;
+    if (!inner) return;
+    const rolled = () => {
+      const sheet = inner.document.scrollingElement;
+      if (!sheet) return;
+      setStuck(sheet.scrollTop > 8);
+      if (putting.current >= 0 || sheet.scrollHeight <= sheet.clientHeight) return;
+      said.current.onSeen?.(sheet.scrollTop);
+    };
+    inner.addEventListener("scroll", rolled, { passive: true });
+    return () => inner.removeEventListener("scroll", rolled);
+  }, [lively, ready, turned]);
 
   const { lately, looking } = props;
   // `turned` is each new drawing of the page, which comes without the marks.
@@ -1027,7 +1083,10 @@ export default function Sheet(props: Readonly<Props>) {
         said.current.onSeen?.(sheet.scrollTop);
       }}
       className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}`}
-      style={props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)}
+      style={{
+        ...(props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)),
+        ...(lively && framed() ? { overflow: "hidden" } : {}),
+      }}
     >
       {above}
       <div
@@ -1037,7 +1096,7 @@ export default function Sheet(props: Readonly<Props>) {
           // Until it is drawn the page holds the room it last took, so nothing under it jumps.
           ...(!ready && { minHeight: kept.height ?? 240 }),
         }}
-        className="tisty-sheet relative mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
+        className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         <Page
@@ -1045,7 +1104,7 @@ export default function Sheet(props: Readonly<Props>) {
           sheet={props.sheet}
           body={drawn}
           label={label}
-          tall
+          tall={!lively}
           untitled={props.inline}
           shaping={props.shaping}
           onDoc={(file) => said.current.onDoc?.(file)}
@@ -1092,8 +1151,25 @@ export default function Sheet(props: Readonly<Props>) {
           }}
         />
       </div>
-      {below}
-      {!below && !props.inline && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+      {below && lively && framed() ? (
+        <div className={`mx-auto shrink-0 ${widthOf}`}>
+          <button
+            type="button"
+            aria-expanded={leaves}
+            onClick={() => setLeaves((was) => !was)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-[12.5px] text-faint hover:text-ink"
+          >
+            <span aria-hidden>{leaves ? "▾" : "▸"}</span>
+            <span>{t("theseLeaves")}</span>
+          </button>
+          {leaves && <div className="max-h-[45vh] overflow-y-auto">{below}</div>}
+        </div>
+      ) : (
+        below
+      )}
+      {!below && !props.inline && !lively && (
+        <div aria-hidden="true" className="h-[40vh] shrink-0" />
+      )}
       {menu && (
         <Menu
           at={{ x: menu.x, y: menu.y }}
