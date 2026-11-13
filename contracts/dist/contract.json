@@ -1,5 +1,5 @@
 {
-  "version": "1.10.0",
+  "version": "1.11.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -29,8 +29,28 @@
           "tip",
           "important",
           "warning",
-          "caution"
+          "caution",
+          "idea"
         ],
+        "idea_hues": [
+          "pink",
+          "coral",
+          "orange",
+          "yellow",
+          "lime",
+          "green",
+          "teal",
+          "cyan",
+          "blue",
+          "lavender",
+          "violet",
+          "magenta"
+        ],
+        "idea_sides": [
+          "left",
+          "right"
+        ],
+        "idea_when": "The date, or the date and time, its head line says, as YYYY-MM-DD or YYYY-MM-DD HH:MM.",
         "hues": [
           "red",
           "orange",
@@ -246,6 +266,76 @@
           ]
         }
       },
+      "html_rules": [
+        {
+          "tag": "blockquote",
+          "attribute": "data-callout",
+          "only": [
+            "note",
+            "tip",
+            "important",
+            "warning",
+            "caution",
+            "idea"
+          ],
+          "says": "A callout is one of the kinds the text names."
+        },
+        {
+          "tag": "blockquote",
+          "attribute": "data-hue",
+          "only": [
+            "pink",
+            "coral",
+            "orange",
+            "yellow",
+            "lime",
+            "green",
+            "teal",
+            "cyan",
+            "blue",
+            "lavender",
+            "violet",
+            "magenta"
+          ],
+          "says": "An idea wears one of the hues of a sticky note."
+        },
+        {
+          "tag": "blockquote",
+          "attribute": "data-side",
+          "only": [
+            "left",
+            "right"
+          ],
+          "says": "An idea floats to the left or to the right, or stands in the flow."
+        }
+      ],
+      "html_cases": [
+        {
+          "says": "An idea with its date and time, its hue and its side.",
+          "html": "<blockquote class=\"callout\" data-callout=\"idea\" data-when=\"2026-11-12 09:40\" data-hue=\"yellow\" data-side=\"right\"><p>Pintar la reja</p></blockquote>",
+          "holds": true
+        },
+        {
+          "says": "An idea with nothing in its head line.",
+          "html": "<blockquote class=\"callout\" data-callout=\"idea\"><p>Sin cabeza</p></blockquote>",
+          "holds": true
+        },
+        {
+          "says": "A hue no sticky note wears.",
+          "html": "<blockquote class=\"callout\" data-callout=\"idea\" data-hue=\"red\"><p>a</p></blockquote>",
+          "holds": false
+        },
+        {
+          "says": "A side that is neither left nor right.",
+          "html": "<blockquote class=\"callout\" data-callout=\"idea\" data-side=\"up\"><p>a</p></blockquote>",
+          "holds": false
+        },
+        {
+          "says": "A kind of callout the text does not name.",
+          "html": "<blockquote class=\"callout\" data-callout=\"rumour\"><p>a</p></blockquote>",
+          "holds": false
+        }
+      ],
       "draws": [
         {
           "tag": "h1",
@@ -356,7 +446,10 @@
           "tag": "blockquote",
           "attributes": [
             "class",
-            "data-callout"
+            "data-callout",
+            "data-when",
+            "data-hue",
+            "data-side"
           ],
           "classes": [
             "callout"
@@ -5276,7 +5369,7 @@
             "caution": "red"
           },
           "idea": {
-            "says": "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. A head line naming none of the three is the note's own first words. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows a head line that names one as words. Above its words it writes its date and time in the reader's own words, where other callouts write their kind; a note without a time writes the word of its kind. Outside Tisty it leaves as a note, without its head line.",
+            "says": "A callout of kind idea is a note stuck on the sheet. Its head line, past the marker, holds its date and time, its hue and its side, split by \" · \", in any order; none is required, and a word it does not know is left aside. A head line naming none of the three is the note's own first words. The reader draws its words in a handwriting face, a little tilted, held by tape or a pin, the same way every time for the same date and time, and never shows a head line that names one as words. Above its words it writes its date and time in the reader's own words, where other callouts write their kind; a note without a time writes the word of its kind. Tisty writes what the head line names on the blockquote, as data-when, data-hue and data-side. Outside Tisty it leaves as a note, without its head line.",
             "hues": [
               "pink",
               "coral",
@@ -5779,7 +5872,10 @@
     "blockquote": {
       "attributes": [
         "class",
-        "data-callout"
+        "data-callout",
+        "data-hue",
+        "data-side",
+        "data-when"
       ],
       "classes": [
         "callout"
@@ -7500,6 +7596,47 @@
     }
   ],
   "html_rules": [
+    {
+      "tag": "blockquote",
+      "attribute": "data-callout",
+      "only": [
+        "note",
+        "tip",
+        "important",
+        "warning",
+        "caution",
+        "idea"
+      ],
+      "says": "A callout is one of the kinds the text names."
+    },
+    {
+      "tag": "blockquote",
+      "attribute": "data-hue",
+      "only": [
+        "pink",
+        "coral",
+        "orange",
+        "yellow",
+        "lime",
+        "green",
+        "teal",
+        "cyan",
+        "blue",
+        "lavender",
+        "violet",
+        "magenta"
+      ],
+      "says": "An idea wears one of the hues of a sticky note."
+    },
+    {
+      "tag": "blockquote",
+      "attribute": "data-side",
+      "only": [
+        "left",
+        "right"
+      ],
+      "says": "An idea floats to the left or to the right, or stands in the flow."
+    },
     {
       "tag": "svg",
       "attribute": "data-theme",
