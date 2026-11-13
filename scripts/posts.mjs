@@ -8,14 +8,15 @@ const POSTS = "docs/posts.json";
 const TONGUES = ["es", "en"];
 const OPENING = { es: "¿Sabías que", en: "Did you know" };
 const X_MOST = 280;
-const X_LINK = 23;
 const BLUESKY_MOST = 300;
 const BLUESKY_PICTURE_MOST = 976_560;
 const BLUESKY_LOOKED_BACK = 50;
+const RERUN_WITHIN_MS = 7 * 24 * 60 * 60 * 1000;
 const SHOWS_MOST = 1000;
 const LINK = /https?:\/\/[^\s]+[^\s.,;:!?)»"']/g;
-// X links a bare domain too, and weighs it like any other link.
-const X_LINKED = /https?:\/\/[^\s]+[^\s.,;:!?)»"']|(?<![\w@/.-])(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*[^\s.,;:!?)»"'])?/gi;
+const LAST_LINK = /\s*https?:\/\/\S+$/;
+// X turns a bare domain into a link it charges for, so the text may only name one with its scheme, at the end.
+const BARE_DOMAIN = /(?<![\w@/.:-])(?:[a-z0-9-]+\.)+(?:app|com|org|net|io|dev|ai|co|cl)\b/gi;
 const X_LIGHT = [
   [0, 4351],
   [8192, 8205],
@@ -51,19 +52,9 @@ const xWeight = (grapheme) =>
       }, 0);
 
 // A post with a link costs X's API about thirteen times more, and tisty.app is already on the profile.
-export const forX = (text) =>
-  text
-    .replace(X_LINKED, "")
-    .replace(/[ 	]+([.,;:!?])/g, "$1")
-    .replace(/[ 	]{2,}/g, " ")
-    .trim();
+export const forX = (text) => text.replace(LAST_LINK, "");
 
-// X counts as twitter-text does: a link is 23, an emoji 2, and so is any character past its light ranges.
-export function xLength(text) {
-  const links = text.match(X_LINKED) ?? [];
-  const rest = text.replace(X_LINKED, "");
-  return links.length * X_LINK + graphemesOf(rest).reduce((sum, one) => sum + xWeight(one), 0);
-}
+export const xLength = (text) => graphemesOf(text).reduce((sum, one) => sum + xWeight(one), 0);
 
 const typeOf = (path) => PICTURE_TYPES[path.slice(path.lastIndexOf(".")).toLowerCase()];
 
@@ -82,8 +73,12 @@ function saidWrong(said, tongue, root) {
   if (!said?.text) return ["no text"];
   const onX = xLength(forX(said.text));
   const onBluesky = blueskyLength(said.text);
+  const linked = forX(said.text).match(LINK) ?? [];
+  const bare = said.text.replace(LINK, "").match(BARE_DOMAIN) ?? [];
   return [
     !said.text.startsWith(OPENING[tongue]) && `it opens with «${OPENING[tongue]}»`,
+    linked.length > 0 && `${linked.join(", ")} goes at the end, the one place X leaves a link out`,
+    bare.length > 0 && `${bare.join(", ")} needs its https:// and the end of the text, or X makes it a paid link`,
     onX > X_MOST && `${onX} characters on X, which takes ${X_MOST}`,
     onBluesky > BLUESKY_MOST && `${onBluesky} characters on Bluesky, which takes ${BLUESKY_MOST}`,
     (!said.shows || said.shows.length > SHOWS_MOST) && `«shows» says what the picture shows, in ${SHOWS_MOST} characters at most`,
@@ -213,16 +208,19 @@ async function openBluesky(keys) {
   );
   const signedIn = { Authorization: `Bearer ${session.accessJwt}` };
   const linkOf = (uri) => `https://bsky.app/profile/${session.did}/post/${uri.split("/").pop()}`;
-  const recent = await answered(
-    await fetch(
-      `${host}/com.atproto.repo.listRecords?repo=${encodeURIComponent(session.did)}` +
-        `&collection=app.bsky.feed.post&limit=${BLUESKY_LOOKED_BACK}`,
-      { headers: signedIn },
-    ),
-    "Bluesky showed no earlier posts",
-  );
+  let recent;
+  const lately = async () => {
+    recent ??= answered(
+      await fetch(`${host}/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(session.did)}&limit=${BLUESKY_LOOKED_BACK}`, {
+        headers: signedIn,
+      }),
+      "Bluesky showed no earlier posts",
+    );
+    const since = Date.now() - RERUN_WITHIN_MS;
+    return ((await recent).feed ?? []).map((one) => one.post).filter((one) => Date.parse(one?.record?.createdAt) >= since);
+  };
   return async ({ said, tongue, picture, type }) => {
-    const earlier = recent.records?.find((one) => one.value?.text === said.text);
+    const earlier = (await lately()).find((one) => one.record.text === said.text);
     if (earlier) return `already posted, ${linkOf(earlier.uri)}`;
     const blob = await answered(
       await fetch(`${host}/com.atproto.repo.uploadBlob`, {

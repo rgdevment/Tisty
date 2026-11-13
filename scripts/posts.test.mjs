@@ -37,7 +37,6 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-// Answers like X and Bluesky do, and keeps every call so a test can read what went out.
 function networksThatAnswer({ xDuplicate = false, earlier = [] } = {}) {
   const calls = [];
   globalThis.fetch = async (url, init = {}) => {
@@ -51,7 +50,7 @@ function networksThatAnswer({ xDuplicate = false, earlier = [] } = {}) {
         : json(201, { data: { id: "1001" } });
     }
     if (url.endsWith("createSession")) return json(200, { accessJwt: "jwt", did: "did:plc:tisty" });
-    if (url.includes("listRecords")) return json(200, { records: earlier });
+    if (url.includes("getAuthorFeed")) return json(200, { feed: earlier.map((post) => ({ post })) });
     if (url.endsWith("uploadBlob")) return json(200, { blob: { $type: "blob", ref: "b" } });
     if (url.endsWith("createRecord")) return json(200, { uri: "at://did:plc:tisty/app.bsky.feed.post/3abc" });
     return json(404, {});
@@ -85,15 +84,18 @@ test("a picture outside the repo or of another kind is refused", () => {
   assert.match(judged([entry({ en: gif })], "9.9.0").join(), /\.webp, \.png or \.jpg/);
 });
 
-test("X weighs a link, with or without its scheme, as 23", () => {
-  assert.equal(xLength(`Did you know https://tisty.app/${"a".repeat(100)}`), "Did you know ".length + 23);
-  assert.equal(xLength("see tisty.app now"), "see ".length + 23 + " now".length);
+test("X gets the text without the link at its end, and nothing else is taken out", () => {
+  assert.equal(forX("¿Sabías que Tisty guarda lo que terminas? https://tisty.app"), "¿Sabías que Tisty guarda lo que terminas?");
+  assert.equal(forX("Did you know Node.js and NOTES.md stay? https://tisty.app"), "Did you know Node.js and NOTES.md stay?");
+  assert.equal(xLength(forX("Did you know? https://tisty.app")), "Did you know?".length);
 });
 
-test("X gets the text without its links, so each post costs the plain rate", () => {
-  assert.equal(forX("¿Sabías que Tisty guarda lo que terminas? https://tisty.app"), "¿Sabías que Tisty guarda lo que terminas?");
-  assert.equal(forX("Mira tisty.app, y pruébalo."), "Mira, y pruébalo.");
-  assert.equal(forX("Did you know https://tisty.app is free?"), "Did you know is free?");
+test("a link anywhere but the end, or a domain without its scheme, is refused", () => {
+  const middle = said("Did you know https://tisty.app is free?");
+  assert.match(judged([entry({ en: middle })], "9.9.0").join(), /https:\/\/tisty\.app goes at the end/);
+  const bare = said("Did you know tisty.app is free?");
+  assert.match(judged([entry({ en: bare })], "9.9.0").join(), /tisty\.app needs its https:\/\//);
+  assert.deepEqual(judged([entry({ en: said("Did you know NOTES.md and Node.js stay? https://tisty.app") })], "9.9.0"), []);
 });
 
 test("X weighs an emoji, an ellipsis and a CJK character as 2, and accents as 1", () => {
@@ -197,8 +199,13 @@ test("X refusing a post it already holds counts as posted", async () => {
   assert.equal(lines.filter((one) => one.includes("already posted")).length, 2);
 });
 
-test("Bluesky signs in once, posts both languages, and skips one it already holds", async () => {
-  const earlier = [{ uri: "at://did:plc:tisty/app.bsky.feed.post/old", value: { text: entry().es.text } }];
+test("Bluesky signs in once, skips a post made days ago, and posts again a tip told months ago", async () => {
+  const lately = new Date().toISOString();
+  const months = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const earlier = [
+    { uri: "at://did:plc:tisty/app.bsky.feed.post/old", record: { text: entry().es.text, createdAt: lately } },
+    { uri: "at://did:plc:tisty/app.bsky.feed.post/older", record: { text: entry().en.text, createdAt: months } },
+  ];
   const calls = networksThatAnswer({ earlier });
   const { lines, say } = listening();
   const env = { ...KEYS, X_API_KEY: "" };
