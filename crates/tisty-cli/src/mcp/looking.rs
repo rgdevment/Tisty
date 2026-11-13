@@ -14,7 +14,7 @@ use super::resuming::{
     whose,
 };
 use super::task_reading::{Page, widened, window};
-use super::unpathing::{fenced_in, unpathed_body};
+use super::unpathing::{PATH_MARK, fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
 };
@@ -143,12 +143,9 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     (kind, line, kept, tisty_core::view::unnamed(task, &terms))
                 }
             };
-            hid |= kept != line;
-            // A path is taken out before the cut, or a cut through it would leave half of it readable.
-            Some((
-                kind,
-                tisty_core::docs::cut_around(kept, &by, LINE_FOUND_AT_MOST),
-            ))
+            let (shown, unpathed) = quoted(&line, kept, &by);
+            hid |= unpathed;
+            Some((kind, shown))
         })
         .collect();
     let found: Vec<Value> = hits
@@ -180,9 +177,9 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let shown = match with_lines {
                 true => {
                     let line = said(&one, "line").to_string();
-                    let kept = kept_here(&line);
-                    hid |= kept != line;
-                    tisty_core::docs::cut_around(kept, &terms, LINE_FOUND_AT_MOST)
+                    let (shown, unpathed) = quoted(&line, kept_here(&line), &terms);
+                    hid |= unpathed;
+                    shown
                 }
                 false => String::new(),
             };
@@ -327,47 +324,47 @@ pub(super) fn inside_a_doc(
         .get("around")
         .and_then(Value::as_u64)
         .map_or(AROUND_A_HIT, |asked| (asked as usize).min(AROUND_AT_MOST));
-    let shown: Vec<usize> = at.iter().copied().take(most).collect();
-    let found: Vec<Value> = neighbourhoods(&shown, reach, lines.len())
-        .into_iter()
-        .map(|(n, around)| {
-            let mut hit = serde_json::Map::new();
-            hit.insert("line".into(), json!(n + 1));
-            hit.insert(
-                "text".into(),
-                json!(tisty_core::docs::cut_around(
-                    lines[n].to_string(),
-                    &terms,
-                    HIT_AT_MOST
-                )),
-            );
-            if around
-                .clone()
-                .any(|at| at != n && !lines[at].trim().is_empty())
-            {
-                let around: Vec<String> = around
-                    .map(|at| match at == n {
-                        true => format!("(line {})", n + 1),
-                        false => tisty_core::view::clipped(lines[at]),
-                    })
-                    .collect();
-                hit.insert("around".into(), json!(around.join("\n")));
-            }
-            if let Some(section) = section_of(n + 1) {
-                hit.insert("section".into(), section);
-            }
-            Value::Object(hit)
-        })
-        .collect();
-    let mut room = 0usize;
-    let found: Vec<Value> = found
-        .into_iter()
-        .take_while(|one| {
-            let first = room == 0;
-            room += said(one, "text").chars().count() + said(one, "around").chars().count();
-            first || room <= super::WHOLE_UP_TO
-        })
-        .collect();
+    let hit_shown = |(n, around): (usize, std::ops::RangeInclusive<usize>)| {
+        let mut hit = serde_json::Map::new();
+        hit.insert("line".into(), json!(n + 1));
+        hit.insert(
+            "text".into(),
+            json!(tisty_core::docs::cut_around(
+                lines[n].to_string(),
+                &terms,
+                HIT_AT_MOST
+            )),
+        );
+        if around
+            .clone()
+            .any(|at| at != n && !lines[at].trim().is_empty())
+        {
+            let around: Vec<String> = around
+                .map(|at| match at == n {
+                    true => format!("(line {})", n + 1),
+                    false => tisty_core::view::clipped(lines[at]),
+                })
+                .collect();
+            hit.insert("around".into(), json!(around.join("\n")));
+        }
+        if let Some(section) = section_of(n + 1) {
+            hit.insert("section".into(), section);
+        }
+        Value::Object(hit)
+    };
+    let mut shown: Vec<usize> = at.iter().copied().take(most).collect();
+    // A hit left out for room no longer cuts short what the one before it shows after itself.
+    let found = loop {
+        let found: Vec<Value> = neighbourhoods(&shown, reach, lines.len())
+            .into_iter()
+            .map(&hit_shown)
+            .collect();
+        let fit = fitting(&found);
+        if fit == found.len() {
+            break found;
+        }
+        shown.truncate(fit);
+    };
 
     let said = match all {
         0 => format!("Nothing in {named} says {query:?}."),
@@ -964,6 +961,30 @@ const FOUND_BY_DEFAULT: u64 = 10;
 const FOUND_AT_MOST: u64 = 100;
 const LINE_FOUND_AT_MOST: usize = 120;
 
+// Paths go before the cut, so none is left half shown; a word that was only in one is sought at its mark.
+fn quoted(line: &str, kept: String, by: &[String]) -> (String, bool) {
+    let unpathed = kept != line;
+    let flat = tisty_core::text::folded(&kept);
+    let shown = match by.iter().any(|term| flat.contains(term.as_str())) {
+        true => tisty_core::docs::cut_around(kept, by, LINE_FOUND_AT_MOST),
+        false => tisty_core::docs::cut_around(kept, &[PATH_MARK.to_string()], LINE_FOUND_AT_MOST),
+    };
+    let marked = unpathed && shown.contains(PATH_MARK);
+    (shown, marked)
+}
+
+fn fitting(found: &[Value]) -> usize {
+    let mut room = 0usize;
+    found
+        .iter()
+        .take_while(|one| {
+            let first = room == 0;
+            room += said(one, "text").chars().count() + said(one, "around").chars().count();
+            first || room <= super::WHOLE_UP_TO
+        })
+        .count()
+}
+
 fn most_asked(args: &Value) -> usize {
     args.get("limit")
         .and_then(Value::as_u64)
@@ -971,7 +992,7 @@ fn most_asked(args: &Value) -> usize {
         .clamp(1, FOUND_AT_MOST) as usize
 }
 
-/// Each hit with the lines shown around it: one that two hits share goes with the earlier of them.
+// A line two hits share is shown once, with the earlier: twice was most of what a search inside a document cost.
 fn neighbourhoods(
     hits: &[usize],
     reach: usize,

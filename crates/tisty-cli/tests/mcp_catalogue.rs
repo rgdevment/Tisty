@@ -110,6 +110,22 @@ fn the_document_rules_an_agent_is_handed() {
 }
 
 #[test]
+fn the_guides_weigh_what_the_rules_tool_says_they_do() {
+    for topic in ["tasks", "documents", "tidying", "ideas"] {
+        let size = rules(Some(topic)).chars().count();
+        assert!(
+            (3_000..=10_500).contains(&size),
+            "«{topic}» is {size} characters, and `rules` says 3,000 to 10,000: say the new size there"
+        );
+    }
+    let all = rules(Some("all")).chars().count();
+    assert!(
+        all <= 31_500,
+        "`all` is {all} characters, and `rules` says 30,000: say the new size there"
+    );
+}
+
+#[test]
 fn the_names_of_the_tools_an_agent_is_offered() {
     let said = ask(&[request("tools/list", &json!({}))]);
     let names: Vec<&str> = said[0]["result"]["tools"]

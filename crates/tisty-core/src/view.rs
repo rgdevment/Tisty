@@ -145,7 +145,6 @@ pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
         .then_some(Hit::Mentioned)
 }
 
-/// The words of a search that neither the title nor a tag already says.
 pub fn unnamed(task: &Task, terms: &[String]) -> Vec<String> {
     let named: Vec<String> = std::iter::once(crate::text::folded(&task.title))
         .chain(

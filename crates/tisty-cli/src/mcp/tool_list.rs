@@ -326,7 +326,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "flag_doc",
             "title": "Mark a document that had its day",
-            "description": "Mark a document as no longer needed, for the person to delete; also when asked to «delete this document», which you cannot. The person sees the mark and your reason; the document is unchanged and stays marked until they delete it, put it away or unmark it. To put away one still valid, `archive_doc`; to correct one, `edit_doc`. Copies go in one call. One already marked is refused, or skipped in a set.",
+            "description": "Mark a document as no longer needed, saying the `reason`, for the person to delete; also when asked to «delete this document», which you cannot. The person sees the mark and why; the document is unchanged until they delete it, put it away or unmark it. One the person asks to put away is `archive_doc`; one to correct, `edit_doc`. Copies go in one call. One already marked is refused, or skipped in a set.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": {
@@ -528,7 +528,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "to": { "type": "string", "description": "Date or deadline on or before this day" },
                     "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
                     "limit": { "type": "integer", "description": "At most 100, 10 by default" },
-                    "lines": { "type": "boolean", "description": "False: titles alone, without the `line` that matched" },
+                    "lines": { "type": "boolean", "description": "False: titles alone, without their `line`" },
                     "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: raise `limit`" }
                 }
             }))
@@ -542,7 +542,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "Read the rules for working here, by topic",
-            "description": "Read the rules an agent works by here, one guide per `topic`, each a few thousand characters; without `topic`, the basics and an index. Read the guide the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
+            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 10,000 characters each, 30,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {

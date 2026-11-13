@@ -46,7 +46,7 @@ expression: tool
         "type": "integer"
       },
       "lines": {
-        "description": "False: titles alone, without the `line` that matched",
+        "description": "False: titles alone, without their `line`",
         "type": "boolean"
       },
       "list": {

@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Mark a document as no longer needed, for the person to delete; also when asked to «delete this document», which you cannot. The person sees the mark and your reason; the document is unchanged and stays marked until they delete it, put it away or unmark it. To put away one still valid, `archive_doc`; to correct one, `edit_doc`. Copies go in one call. One already marked is refused, or skipped in a set.",
+  "description": "Mark a document as no longer needed, saying the `reason`, for the person to delete; also when asked to «delete this document», which you cannot. The person sees the mark and why; the document is unchanged until they delete it, put it away or unmark it. One the person asks to put away is `archive_doc`; one to correct, `edit_doc`. Copies go in one call. One already marked is refused, or skipped in a set.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

@@ -7675,6 +7675,61 @@ fn a_document_line_find_quotes_keeps_the_person_s_disk_out() {
     assert!(!line.contains("Desktop"), "{line}");
 }
 
+#[test]
+fn a_long_document_line_loses_its_path_before_it_is_cut() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    wrote_paper(
+        &served,
+        &format!(
+            "# Contract
+
+Signed copy saved to C:/Users/someone/Desktop/Signed/contract.pdf and then the team agreed on how long each idempotency key is kept{}",
+            " after".repeat(40)
+        ),
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "idempotency" }));
+    let line = found["result"]["structuredContent"]["docs"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+
+    assert!(line.contains("idempotency key"), "{found}");
+    assert_eq!(line.chars().count(), 120, "{line}");
+    assert!(
+        !line.contains(".pdf") && !line.contains("Desktop"),
+        "{line}"
+    );
+    assert!(
+        !text_of(&found).contains("A path on this machine"),
+        "no path is shown, so none is explained: {found}"
+    );
+}
+
+#[test]
+fn a_word_found_only_in_a_path_is_quoted_where_the_path_was() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    let noted = format!(
+        "{}copied from C:/Users/someone/Desktop/invoices/march.pdf",
+        "before ".repeat(40)
+    );
+    served.call("note", serde_json::json!({ "task": &id, "body": noted }));
+
+    let found = served.call("find", serde_json::json!({ "query": "invoices" }));
+    let line = found["result"]["structuredContent"]["matches"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+
+    assert!(line.ends_with("copied from [path]"), "{found}");
+    assert!(!line.contains("invoices"), "{line}");
+    assert!(
+        text_of(&found).contains("A path on this machine"),
+        "{found}"
+    );
+}
+
 fn page_file_of(served: &Served, id: &str) -> String {
     served.call(
         "append_doc",

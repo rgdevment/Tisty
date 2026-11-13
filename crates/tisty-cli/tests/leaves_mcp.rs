@@ -3149,6 +3149,39 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         "and the second starts after what the first already showed: {near}"
     );
 
+    let long: String = (0..20)
+        .map(|n| format!("- riego-{n} {}\n- vecino {n}\n", "x".repeat(890)))
+        .collect();
+    let heavy = served.wrote(&format!("# Patio\n\n{long}"), None);
+    let kept = served.call(
+        "find",
+        serde_json::json!({ "doc": &heavy, "query": "riego", "around": 2, "limit": 100 }),
+    )["result"]["structuredContent"]["lines"]
+        .as_array()
+        .unwrap()
+        .clone();
+    let weight: usize = kept
+        .iter()
+        .map(|one| {
+            let of = |key: &str| one[key].as_str().unwrap_or_default().chars().count();
+            of("text") + of("around")
+        })
+        .sum();
+    assert!(
+        kept.len() < 20 && weight <= 12_000,
+        "{} hits, {weight}",
+        kept.len()
+    );
+    let next = format!("riego-{} ", kept.len());
+    assert!(
+        kept[kept.len() - 1]["around"]
+            .as_str()
+            .unwrap()
+            .contains(&next),
+        "the last hit shown still reaches the line after it, though that hit was left out: {}",
+        kept[kept.len() - 1]
+    );
+
     assert_eq!(
         inside("\"macos va\"")["total"],
         1,

@@ -46,13 +46,14 @@ pub fn search(
     let sighted = session
         .corpus
         .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id));
+    let terms = tisty_core::text::terms(&query);
     let papers = answers::tongues::once_each(&session.state, sighted, |one| &one.id)
         .into_iter()
         .map(|one| Paper {
             archived: listed.get(&one.id).copied().unwrap_or(false),
             id: one.id,
             title: one.title,
-            line: one.line,
+            line: tisty_core::docs::cut_around(one.line, &terms, tisty_core::docs::SAID_AT_MOST),
         })
         .collect();
     let wholes = answers::parts::wholes(&session.state);
