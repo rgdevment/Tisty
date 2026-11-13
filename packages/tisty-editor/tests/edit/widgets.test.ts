@@ -309,20 +309,6 @@ describe("a table written in place", () => {
 });
 
 describe("the views of the whole-document editor", () => {
-  it("opens on the preview and turns to plain Markdown from its tab", () => {
-    const { host } = hostOf();
-    const view = viewOf(DOC, host);
-    const tabs = Array.from(view.dom.querySelectorAll<HTMLElement>(".cm-view-tab"));
-    expect(tabs.map((one) => one.textContent)).toEqual(["viewPreview", "viewMarkdown"]);
-    expect(tabs[0].getAttribute("aria-pressed")).toBe("true");
-    tabs[1].click();
-    expect(view.state.field(marksShown)).toBe(true);
-    expect(view.dom.classList.contains("cm-plain")).toBe(true);
-    expect(view.dom.querySelector(".cm-rich")).toBeNull();
-    tabs[0].click();
-    expect(view.state.field(marksShown)).toBe(false);
-  });
-
   it("turns the view for this document only, leaving the next editor as it starts", () => {
     localStorage.setItem("tisty.marksShown", "0");
     const { host } = hostOf();

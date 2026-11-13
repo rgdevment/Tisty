@@ -1,0 +1,216 @@
+import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+
+type Edit = { readonly from: number; readonly to: number; readonly insert: string };
+type Kept = { readonly node: Node; readonly offset: number; readonly at: number };
+
+export type Hands = {
+  readonly text: () => string;
+  readonly write: (next: string) => void;
+  readonly translated: (html: string | null, plain: string) => Promise<string>;
+};
+
+export type PageWriting = { readonly drawn: () => void; readonly stop: () => void };
+
+const WRITABLE =
+  ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote)";
+const PAIRS: Record<string, string> = {
+  formatBold: "**",
+  formatItalic: "*",
+  formatStrikeThrough: "~~",
+  formatUnderline: "++",
+};
+const QUOTED = /^(\s*(?:>\s?)*)/;
+const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
+
+const lineOf = (text: string, at: number) => {
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const end = text.indexOf("\n", at);
+  return text.slice(start, end < 0 ? text.length : end);
+};
+
+// A new paragraph keeps what the line it leaves stands in: the quote, the list and its kind of item.
+const parted = (text: string, at: number, inCode: boolean): string => {
+  if (inCode) return "\n";
+  const line = lineOf(text, at);
+  const item = LISTED.exec(line);
+  if (item) {
+    const [, quote, , number, close, gap, box] = item;
+    const mark = number ? `${Number(number) + 1}${close}` : item[2];
+    return `\n${quote}${mark}${gap}${box ? "[ ] " : ""}`;
+  }
+  const quote = QUOTED.exec(line)?.[1] ?? "";
+  return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
+};
+
+const applied = (text: string, one: Edit) =>
+  `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
+
+export const writtenOn = (page: Document, hands: Hands): PageWriting => {
+  let kept: Kept | null = null;
+  let composing: { from: number; to: number } | null = null;
+  const undone: { text: string; at: number }[] = [];
+  const redone: { text: string; at: number }[] = [];
+
+  // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
+  const waited = (kind: string): { from: number; to: number } | null => {
+    if (!kept || kept.offset >= 0) return null;
+    const { at } = kept;
+    if (kind.startsWith("deleteContentBackward") || kind.startsWith("deleteWordBackward"))
+      return { from: Math.max(0, at - 1), to: at };
+    if (kind.startsWith("delete")) return { from: at, to: Math.min(hands.text().length, at + 1) };
+    return { from: at, to: at };
+  };
+
+  const ghostly = (node: Node) =>
+    Boolean(
+      (node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement)?.closest(
+        GHOST,
+      ),
+    );
+
+  // Out of a paragraph not yet written, going back leaves it and joins the block before.
+  const unbegun = (kind: string, range: AbstractRange): { from: number; to: number } | null => {
+    if (!kept || !range.collapsed || !ghostly(range.startContainer)) return null;
+    const { at } = kept;
+    if (!kind.startsWith("delete") || kind.includes("Forward")) return { from: at, to: at };
+    const text = hands.text();
+    let from = at;
+    while (from > 0 && /\s/.test(text[from - 1] ?? "")) from--;
+    return { from, to: at };
+  };
+
+  const spanOfRange = (range: AbstractRange): { from: number; to: number } | null => {
+    const text = hands.text();
+    const same = kept && range.collapsed && range.startContainer === kept.node;
+    if (same && kept && range.startOffset === kept.offset) return { from: kept.at, to: kept.at };
+    const from = sourceAt(text, range.startContainer, range.startOffset);
+    const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset);
+    if (from === null || to === null) return null;
+    return { from: Math.min(from, to), to: Math.max(from, to) };
+  };
+
+  const chosen = (): AbstractRange | null => {
+    const held = page.getSelection();
+    return held?.rangeCount ? held.getRangeAt(0) : null;
+  };
+
+  const put = (one: Edit, caret = one.from + one.insert.length) => {
+    const text = hands.text();
+    const next = applied(text, one);
+    if (next === text) return;
+    undone.push({ text, at: one.from });
+    redone.length = 0;
+    kept = { node: page.body, offset: -1, at: caret };
+    hands.write(next);
+  };
+
+  const turned = (from: typeof undone, to: typeof undone) => {
+    const back = from.pop();
+    if (!back) return;
+    to.push({ text: hands.text(), at: back.at });
+    kept = { node: page.body, offset: -1, at: back.at };
+    hands.write(back.text);
+  };
+
+  const inCode = (node: Node) =>
+    Boolean(
+      (node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement)?.closest(
+        "code",
+      ),
+    );
+
+  const pasted = (one: { from: number; to: number }, data: DataTransfer | null) => {
+    const html = data?.getData("text/html") || null;
+    const plain = data?.getData("text/plain") ?? "";
+    hands
+      .translated(html, plain)
+      .then((said) => put({ ...one, insert: said }))
+      .catch(() => put({ ...one, insert: plain }));
+  };
+
+  const asked = (event: InputEvent) => {
+    if (event.isComposing || event.inputType === "insertCompositionText") return;
+    event.preventDefault();
+    const kind = event.inputType;
+    if (kind === "historyUndo") return turned(undone, redone);
+    if (kind === "historyRedo") return turned(redone, undone);
+    const [target] = event.getTargetRanges?.() ?? [];
+    const range = target ?? chosen();
+    const whole = range && !range.collapsed;
+    const one = (!whole && waited(kind)) || (range && (unbegun(kind, range) ?? spanOfRange(range)));
+    if (!range || !one) return;
+    const text = hands.text();
+    if (kind === "insertText" || kind === "insertReplacementText")
+      return put({ ...one, insert: event.data ?? event.dataTransfer?.getData("text/plain") ?? "" });
+    if (kind === "insertParagraph")
+      return put({ ...one, insert: parted(text, one.from, inCode(range.startContainer)) });
+    if (kind === "insertLineBreak") return put({ ...one, insert: "\n" });
+    if (kind === "insertFromPaste") return pasted(one, event.dataTransfer);
+    if (kind.startsWith("delete")) return put({ ...one, insert: "" }, one.from);
+    const pair = PAIRS[kind];
+    if (pair && one.from < one.to) {
+      const inner = text.slice(one.from, one.to);
+      put({ ...one, insert: `${pair}${inner}${pair}` }, one.to + pair.length * 2);
+    }
+  };
+
+  const started = () => {
+    const range = chosen();
+    composing = range && spanOfRange(range);
+  };
+  const ended = (event: CompositionEvent) => {
+    const one = composing;
+    composing = null;
+    if (one) put({ ...one, insert: event.data ?? "" });
+  };
+
+  // The sheet is written on whole, but a table, a drawing or a rule is changed by its own hands.
+  const opened = () => {
+    const sheet = page.querySelector<HTMLElement>(".page");
+    if (!sheet) return;
+    sheet.setAttribute("contenteditable", "true");
+    sheet.spellcheck = true;
+    for (const one of sheet.children) {
+      if (!one.matches(WRITABLE)) one.setAttribute("contenteditable", "false");
+    }
+  };
+
+  const drawn = () => {
+    opened();
+    if (!kept) return;
+    const ghost = spotOf(page, hands.text(), kept.at) ? null : ghostAt(page, hands.text(), kept.at);
+    const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
+    if (!spot) return;
+    const held = page.getSelection();
+    held?.collapse(spot[0], spot[1]);
+    kept = { node: spot[0], offset: spot[1], at: kept.at };
+  };
+
+  const moved = (event: Event) => {
+    if (
+      event instanceof KeyboardEvent &&
+      !event.key.startsWith("Arrow") &&
+      !/^(Home|End|Page)/.test(event.key)
+    )
+      return;
+    kept = null;
+  };
+
+  page.addEventListener("beforeinput", asked);
+  page.addEventListener("compositionstart", started);
+  page.addEventListener("compositionend", ended);
+  page.addEventListener("mousedown", moved);
+  page.addEventListener("keydown", moved);
+  opened();
+  return {
+    drawn,
+    stop: () => {
+      page.removeEventListener("mousedown", moved);
+      page.removeEventListener("keydown", moved);
+      page.removeEventListener("beforeinput", asked);
+      page.removeEventListener("compositionstart", started);
+      page.removeEventListener("compositionend", ended);
+      page.querySelector<HTMLElement>(".page")?.removeAttribute("contenteditable");
+    },
+  };
+};

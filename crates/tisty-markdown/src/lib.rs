@@ -45,7 +45,7 @@ pub use inline::filed;
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
 pub use outside::{file_as_tisty, read_file};
-pub use page::{html, pieces};
+pub use page::{html, html_placed, pieces};
 pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]

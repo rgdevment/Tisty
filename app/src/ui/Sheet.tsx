@@ -31,7 +31,7 @@ import {
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
 import { bytesAt, charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
-import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
+import { copied, copyAttached, docPlaced, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
@@ -43,13 +43,14 @@ import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { under } from "./dressing";
 import { useKeptHeight } from "./heights";
-import { edited, editedLive } from "./hosting";
+import { edited, editedLive, HOST } from "./hosting";
 import { blockDrawer } from "./liveBlocks";
 import { livelyChoices } from "./livelyMenu";
-import { LivelyBelow, useFrameScroll } from "./liveSheet";
+import { LivelyBelow, useFrameScroll, ViewSwitch } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
+import { type Hands, type PageWriting, writtenOn } from "./pageWriting";
 import { shotsWithin, type Went } from "./paging";
 import { closed, joined, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
@@ -197,6 +198,10 @@ export default function Sheet(props: Readonly<Props>) {
   const putting = useRef(-1);
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
+  const [markdown, setMarkdown] = useState(false);
+  // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
+  const onPage = lively && !markdown && !reading && !fixed;
+  const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
   turnedNow.current = turned;
@@ -525,18 +530,36 @@ export default function Sheet(props: Readonly<Props>) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` reads only refs, so each drawing alone decides.
   useEffect(() => {
-    if (!lively || !ready || reading || fixed || open.current || !framed()) return;
+    if (!lively || !markdown || !ready || reading || fixed || open.current || !framed()) return;
     if (drawn !== latest.current || showing.current !== latest.current) return;
     wholly(0, false, true);
-  }, [lively, ready, turned, drawn, reading]);
+    const view = (open.current as Editing | null)?.view;
+    if (view) viewTurned(view, true);
+  }, [lively, markdown, ready, turned, drawn, reading]);
+
+  const [viewedFile, setViewedFile] = useState(file);
+  if (viewedFile !== file) {
+    setViewedFile(file);
+    setMarkdown(false);
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pageWritten` reads only refs, so the view alone decides.
+  useEffect(() => {
+    if (!markdown && livelyOpen.current) left();
+    if (onPage) {
+      pageWritten(shown.current?.document ?? null);
+      return;
+    }
+    pageWriter.current?.hands.stop();
+    pageWriter.current = null;
+  }, [markdown, onPage, left]);
 
   const { wholeAsked, allAsked } = props;
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the count alone decides.
   useEffect(() => {
     if (!wholeAsked) return;
-    const writing = open.current?.view;
-    if (livelyOpen.current && writing) {
-      viewTurned(writing);
+    if (lively) {
+      setMarkdown((was) => !was);
       return;
     }
     if (veiled.current) left();
@@ -881,6 +904,26 @@ export default function Sheet(props: Readonly<Props>) {
 
   const openKept = (reference: string) =>
     opened(reference).catch((error_) => said.current.onFail?.(error_));
+  const pageHands: Hands = {
+    text: () => latest.current,
+    write: (next) => {
+      written(next);
+      setDrawn(next);
+    },
+    translated: (html, plain) =>
+      html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
+  };
+  // The page is drawn anew after every key, so its listeners stay and only the caret is laid again.
+  const pageWritten = (page: Document | null) => {
+    if (pageWriter.current && pageWriter.current.page !== page) {
+      pageWriter.current.hands.stop();
+      pageWriter.current = null;
+    }
+    if (!page || !said.current.wholeable || !onPage) return;
+    pageWriter.current ??= { page, hands: writtenOn(page, pageHands) };
+    pageWriter.current.hands.drawn();
+  };
+
   const pictures = usePictures({
     save: (kept) => void keepCopy(kept),
     open: (kept) => void openKept(kept),
@@ -1107,6 +1150,9 @@ export default function Sheet(props: Readonly<Props>) {
         className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
+        {lively && !reading && !fixed && ready && (
+          <ViewSwitch markdown={markdown} onTurn={setMarkdown} />
+        )}
         <Page
           bar={BAR}
           sheet={props.sheet}
@@ -1118,7 +1164,8 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
-          onBlock={reading ? undefined : block}
+          draw={lively && !reading && !fixed ? docPlaced : undefined}
+          onBlock={reading || onPage ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
           onStick={reading || fixed ? undefined : restuck}
@@ -1153,6 +1200,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page) => {
             shown.current = page;
+            pageWritten(page?.document ?? null);
             said.current.onPage?.(page);
             if (page) setReady(true);
             setTurned((many) => many + 1);

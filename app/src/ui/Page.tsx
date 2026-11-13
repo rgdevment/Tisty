@@ -59,6 +59,7 @@ export default function Page(props: Readonly<Props>) {
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
+  const { draw } = props;
   useEffect(() => {
     let live = true;
     const drawn = (html: string) => {
@@ -71,13 +72,13 @@ export default function Page(props: Readonly<Props>) {
           .then((said) => said ?? [])
           .catch(() => [])
       : Promise.resolve([]);
-    (reach.current.draw ?? docDrawn)(body)
+    (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
       .then(drawn);
     return () => {
       live = false;
     };
-  }, [body, again]);
+  }, [body, again, draw]);
 
   useEffect(() => () => reach.current.onShown?.(null), []);
 

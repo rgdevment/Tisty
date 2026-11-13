@@ -459,3 +459,59 @@ fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
     // In proportion all of them take a few seconds even with coverage; asking every piece of every other one took many minutes.
     assert!(started.elapsed() < std::time::Duration::from_secs(60));
 }
+
+fn placed(html: &str, text: &str) -> Vec<String> {
+    html.split("data-src=\"")
+        .skip(1)
+        .filter_map(|rest| {
+            let (from, to) = rest.split_once('"')?.0.split_once('-')?;
+            text.get(from.parse::<usize>().ok()?..to.parse::<usize>().ok()?)
+                .map(str::to_string)
+        })
+        .collect()
+}
+
+#[test]
+fn a_page_to_write_on_names_the_bytes_of_each_piece_of_words() {
+    let text =
+        "# Hi **you**\n\nA [link](https://x.y) and &copy; café\n\n- one\n\n```js\nlet a;\n```";
+    let drawn = html_placed(&read(text));
+    let pieces = placed(&drawn, text);
+    for one in ["Hi ", "you", "A ", "link", "&copy;", "one", "let a;\n"] {
+        assert!(
+            pieces.iter().any(|piece| piece == one),
+            "{one} in {pieces:?}"
+        );
+    }
+    assert!(pieces.iter().any(|piece| piece.ends_with("café")));
+    assert!(
+        pieces
+            .iter()
+            .all(|piece| !piece.contains("**") && !piece.contains("]("))
+    );
+    assert!(drawn.contains("contenteditable=\"false\">&copy;"));
+}
+
+#[test]
+fn the_page_to_read_carries_no_bytes() {
+    assert!(!html(&read("# Hi **you**\n\n```js\nlet a;\n```")).contains("data-src"));
+}
+
+#[test]
+fn a_page_to_write_on_looks_as_the_page_to_read() {
+    let text = "# Hi **you**\n\nA [link](https://x.y) #tag\n\n> quoted";
+    let bare = |html: String| {
+        let mut out = String::new();
+        let mut inside = false;
+        for c in html.chars() {
+            match c {
+                '<' => inside = true,
+                '>' => inside = false,
+                _ if !inside => out.push(c),
+                _ => {}
+            }
+        }
+        out
+    };
+    assert_eq!(bare(html_placed(&read(text))), bare(html(&read(text))));
+}

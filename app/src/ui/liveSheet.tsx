@@ -61,3 +61,27 @@ export function LivelyBelow({ children, folds, width }: Below) {
     </div>
   );
 }
+
+type Turning = { readonly markdown: boolean; readonly onTurn: (markdown: boolean) => void };
+
+export function ViewSwitch({ markdown, onTurn }: Turning) {
+  const tab = (plainly: boolean, word: "viewPreview" | "viewMarkdown") => (
+    <button
+      type="button"
+      aria-pressed={markdown === plainly}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => onTurn(plainly)}
+      className={`rounded-full px-3 py-1 font-medium text-[12.5px] transition-colors ${
+        markdown === plainly ? "bg-sheet text-ink shadow-sm" : "text-faint hover:text-ink"
+      }`}
+    >
+      {t(word)}
+    </button>
+  );
+  return (
+    <div className="absolute top-3 right-4 z-10 flex gap-0.5 rounded-full border border-hair bg-hover p-0.5">
+      {tab(false, "viewPreview")}
+      {tab(true, "viewMarkdown")}
+    </div>
+  );
+}

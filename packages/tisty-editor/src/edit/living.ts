@@ -1,7 +1,6 @@
-import { EditorView, type KeyBinding, type Panel, showPanel } from "@codemirror/view";
+import { EditorView, type KeyBinding } from "@codemirror/view";
 import { blocking, livingKeys } from "./blocks";
 import { gripping } from "./handle";
-import { type EditWord, hosted } from "./hosted";
 import { marksShown, showMarks, wordsOnly } from "./seeing";
 import { drawing, drawnKeys } from "./widgets";
 
@@ -12,38 +11,6 @@ const plain = EditorView.editorAttributes.compute([marksShown], (state) => ({
 // Seeing the Markdown is a look at this document, never a setting the next editor starts with.
 export const viewTurned = (view: EditorView, plainly = !view.state.field(marksShown)) => {
   if (view.state.field(marksShown) !== plainly) view.dispatch({ effects: showMarks.of(plainly) });
-};
-
-const viewTabs = (view: EditorView): Panel => {
-  const page = view.dom.ownerDocument;
-  const say = view.state.facet(hosted).say;
-  const dom = page.createElement("div");
-  dom.className = "cm-views";
-  const pair = page.createElement("div");
-  pair.className = "cm-views-pair";
-  pair.setAttribute("role", "group");
-  dom.append(pair);
-  const tab = (word: EditWord, plainly: boolean) => {
-    const one = page.createElement("button");
-    one.type = "button";
-    one.className = "cm-view-tab";
-    one.textContent = say(word);
-    one.addEventListener("mousedown", (event) => event.preventDefault());
-    one.addEventListener("click", () => {
-      viewTurned(view, plainly);
-      view.focus();
-    });
-    return one;
-  };
-  const preview = tab("viewPreview", false);
-  const markdown = tab("viewMarkdown", true);
-  pair.append(preview, markdown);
-  const pressed = (on: boolean) => {
-    preview.setAttribute("aria-pressed", String(!on));
-    markdown.setAttribute("aria-pressed", String(on));
-  };
-  pressed(view.state.field(marksShown));
-  return { dom, top: true, update: (update) => pressed(update.state.field(marksShown)) };
 };
 
 const living = EditorView.baseTheme({
@@ -264,15 +231,6 @@ const living = EditorView.baseTheme({
   },
 });
 
-export const lively = [
-  marksShown,
-  blocking,
-  drawing,
-  gripping,
-  living,
-  plain,
-  wordsOnly.of(true),
-  showPanel.of(viewTabs),
-];
+export const lively = [marksShown, blocking, drawing, gripping, living, plain, wordsOnly.of(true)];
 
 export const livelyKeys: KeyBinding[] = [...drawnKeys, ...livingKeys];

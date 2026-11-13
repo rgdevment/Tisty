@@ -51,7 +51,8 @@ vi.mock("tisty-editor/edit", async (original) => ({
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
-    if (cmd === "doc_drawn") return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
+    if (cmd === "doc_drawn" || cmd === "doc_placed")
+      return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
     if (cmd === "mends_in") return Promise.resolve(ipc.mends);
     return Promise.resolve(null);
   },
@@ -480,17 +481,21 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(1);
   });
 
-  it("opens a document whole in one editor by itself, and its key shows the marks instead of leaving", async () => {
+  it("opens a document as the core's own page to write on, and its key turns it to its Markdown", async () => {
     const sheet = (n: number) => (
       <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
     const view = render(sheet(0));
     const page = await loaded(await shown(view.container));
-    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    expect(ipc.opened).toHaveLength(0);
     view.rerender(sheet(1));
-    expect(ipc.left).toBe(0);
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet(2));
+    await waitFor(() => expect(ipc.left).toBe(1));
+    expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true");
   });
 
   it("never opens a task's page whole, from a key or from the menu", async () => {
@@ -517,9 +522,9 @@ describe("the sheet in the main window", () => {
     expect(ipc.opened).toHaveLength(0);
   });
 
-  it("takes words written from outside into the whole document without leaving it", async () => {
+  it("takes words written from outside into the Markdown view without leaving it", async () => {
     const sheet = (value: string) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable />
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={1} />
     );
     const view = render(sheet(BODY));
     await loaded(await shown(view.container));
@@ -529,9 +534,9 @@ describe("the sheet in the main window", () => {
     expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
   });
 
-  it("takes words from outside into the whole document with Windows line ends too", async () => {
+  it("takes words from outside into the Markdown view with Windows line ends too", async () => {
     const sheet = (value: string) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable />
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={1} />
     );
     const view = render(sheet(BODY));
     await loaded(await shown(view.container));
@@ -573,19 +578,16 @@ describe("the sheet in the main window", () => {
     expect(ipc.typed).toEqual(["x"]);
   });
 
-  it("opens the whole document where the block being written stood, not at its start", async () => {
-    ipc.picked = { from: 2, to: 2, head: 2 } as typeof ipc.picked;
-    const sheet = (n: number) => (
-      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
-    );
-    const view = render(sheet(0));
+  it("never opens a block's own editor on a document written on as its page", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
     const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
     page
       .querySelector('p[data-at="11-17"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    view.rerender(sheet(1));
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n", BODY]);
-    expect(ipc.opened[1].caret).toBe(13);
+    expect(ipc.opened).toHaveLength(0);
   });
 
   it("keeps the block being written open when words from outside land elsewhere", async () => {
@@ -935,8 +937,7 @@ describe("the whole-document sheet", () => {
       />,
     );
     const page = await loaded(await shown(view.container));
-    await waitFor(() => expect(ipc.opened).toHaveLength(1));
-    expect(page.documentElement.classList.contains("lively")).toBe(true);
+    await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
     expect(view.queryByText("under the sheet")).toBeNull();
     view.getByRole("button", { name: "Pages" }).click();
     await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
@@ -953,8 +954,8 @@ describe("the whole-document sheet", () => {
         below={<p>next page</p>}
       />,
     );
-    await loaded(await shown(view.container));
-    await waitFor(() => expect(ipc.opened).toHaveLength(1));
+    const page = await loaded(await shown(view.container));
+    await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
     expect(view.getByText("next page")).toBeTruthy();
     expect(view.queryByRole("button", { name: "Pages" })).toBeNull();
   });

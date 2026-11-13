@@ -1280,6 +1280,8 @@ export const docFile = (id: string, folder?: string, before?: string): Promise<v
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
 export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
+export const docPlaced = (body: string): Promise<string> =>
+  invoke<ArrayBuffer>("doc_placed", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 
