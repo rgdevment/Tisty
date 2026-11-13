@@ -1,7 +1,7 @@
 use super::*;
 
 fn said(args: Value) -> String {
-    help(&args)["structuredContent"]["help"]
+    help(&args)["content"][0]["text"]
         .as_str()
         .unwrap_or_default()
         .to_string()

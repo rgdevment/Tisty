@@ -323,10 +323,11 @@ cada sesión:
 
 De dónde sale el ahorro:
 
-- **Ningún documento pasa de 64 000 caracteres**, así que una bitácora de ese
-  tamaño queda en temas y páginas, nunca como un muro de texto.
-- **Ninguna lectura trae más de unos 12 000 caracteres.** Pasado eso, un
-  documento pedido entero vuelve como su índice.
+- **Ninguna escritura lleva más de 64 000 caracteres**, así que una bitácora
+  larga queda en temas y páginas, nunca como un muro de texto.
+- **Ninguna lectura trae más de unos 12 000 caracteres**, salvo que el agente
+  pida un documento entero para llevarlo a otra parte. Pasado eso, un documento
+  pedido entero vuelve como su índice.
 - **La página de una tarea llega entera solo mientras es corta**, unos 4000
   caracteres. Pasado eso llegan sus secciones, el resumen que abre las notas
   del agente y su última nota; su bitácora llega por tamaño, las últimas notas
@@ -561,7 +562,7 @@ siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
 apuntar a él, y la búsqueda encuentra a los dos.
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
-importante, las dos o ninguna — *hacer*, *decidir*, *delegar*, *dejar*. Eso
+importante, las dos o ninguna — *hacer*, *planificar*, *delegar*, *prescindible*. Eso
 nombra la decisión en vez de esconderla tras un número, y es la diferencia entre
 una lista que ordena y una lista que te ayuda a elegir. Alrededor: listas para
 dónde va el trabajo, etiquetas para lo que lo cruza, pasos para las partes, y una
@@ -1182,7 +1183,8 @@ decir en qué orden se leen sus páginas, lo que escribe y mueve en el texto de 
 documento las líneas que las nombran y nada más, marcar un documento que ya
 cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
 una copia de un archivo que le señales —en una tarea o dentro de un documento,
-que admite el archivo más grande de los dos— y leer lo que ya está. Lo que no
+igual—, anotar ideas en tu Lluvia de ideas y ordenarlas contigo, y leer lo que
+ya está. Lo que no
 puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
 tuya, mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
 carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que

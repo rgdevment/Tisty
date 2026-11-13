@@ -601,9 +601,9 @@ fn a_dated_sticky_note_that_names_no_idea_is_added_as_it_is() {
     );
 
     assert!(!refused(&stuck), "{stuck}");
-    assert_eq!(
+    assert_ne!(
         stuck["structuredContent"]["idea_filed"],
-        json!(false),
+        json!(true),
         "{stuck}"
     );
     assert!(!said(&stuck).contains("still holds"), "{stuck}");
@@ -924,7 +924,7 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_made_a_task() {
     let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
 
     assert!(refused(&back), "{back}");
-    assert!(said(&back).contains("became a task"), "{}", said(&back));
+    assert!(said(&back).contains("left for a task"), "{}", said(&back));
 }
 
 #[test]
@@ -987,4 +987,65 @@ fn several_filings_say_which_one_the_person_put_out_of_sight() {
         said(&batch)
     );
     assert!(!batch.to_string().contains("Regalo sorpresa"), "{batch}");
+}
+
+#[test]
+fn ideas_keep_their_words_whatever_marks_they_came_with() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    served.call(
+        "append_doc",
+        json!({ "doc": sheet, "body": "1984. Releerlo este año\n\n- [x] Llamar al vet\n- > Un pensamiento" }),
+    );
+
+    let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    let texts: Vec<&str> = ideas[3..].iter().map(|one| one.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        ["1984. Releerlo este año", "Llamar al vet", "Un pensamiento"]
+    );
+}
+
+#[test]
+fn an_idea_is_never_a_duplicate_of_itself_however_it_is_named() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let marked = served.call(
+        "flag_doc",
+        json!({
+            "doc": format!("{sheet}#{CONCERT}"),
+            "reason": "duplicate_of",
+            "instead": format!("{sheet}#[!IDEA] {CONCERT}"),
+            "body": "x"
+        }),
+    );
+
+    assert!(refused(&marked), "{marked}");
+}
+
+#[test]
+fn going_back_on_the_sheet_never_brings_back_an_idea_filed_in_a_document() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let garden = served.person().writes_doc("# Jardín\n\nPlantas.\n");
+    served.call(
+        "append_doc",
+        json!({ "doc": garden, "body": format!("> [!IDEA] {ROOF} · right\n> Pedir presupuesto para arreglar el techo") }),
+    );
+
+    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+
+    assert!(refused(&back), "{back}");
+}
+
+#[test]
+fn rules_travel_once() {
+    let served = Served::new();
+
+    let rules = served.call("rules", json!({ "topic": "tasks" }));
+
+    assert!(rules["structuredContent"].get("rules").is_none(), "{rules}");
+    assert!(said(&rules).contains("## Write it to be read"));
 }

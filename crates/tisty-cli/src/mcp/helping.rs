@@ -43,9 +43,8 @@ pub(super) fn help(args: &Value) -> Value {
         },
     };
     mirrored(
-        said.clone(),
+        said,
         json!({
-            "help": said,
             "topic": asked.unwrap_or("index"),
             "lang": if spanish { "es" } else { "en" },
         }),

@@ -24,7 +24,7 @@ pub(super) fn tools_without_hints() -> Value {
             "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Brainstorm. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one; left out for one" },
+                    "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one, at most 32; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
                     "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
                     "part_of": { "type": "string", "description": "Id of an open task this one is a part of" },
@@ -164,7 +164,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "task": { "type": "string", "description": "The task id, to keep it with a task" },
                     "doc": { "type": "string", "description": "The document's id, to add it there" },
-                    "path": { "type": "string", "description": "A path to a file on this machine" },
+                    "path": { "type": "string", "description": "A file under Downloads, Documents, Pictures, Desktop or the temporary folder" },
                     "label": { "type": "string", "description": "What to call it; defaults to the file's name" }
                 },
                 "required": ["path"]
@@ -541,7 +541,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "The rules for working here, by topic",
-            "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
+            "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask the one the instructions name before a first write of its kind.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {

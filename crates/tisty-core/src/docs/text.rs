@@ -258,7 +258,9 @@ pub(super) fn standing_out(body: &str) -> Vec<String> {
 
     let mut times: std::collections::HashMap<String, usize> = Default::default();
     for word in crate::text::terms(body) {
-        if word.chars().count() < A_WORD_AT_LEAST {
+        // Markdown's own marks, as a card's `![doc`, are no word the text is about.
+        let spoken = word.chars().all(|c| c.is_alphanumeric() || c == '-');
+        if word.chars().count() < A_WORD_AT_LEAST || !spoken {
             continue;
         }
         *times.entry(word).or_default() += 1;

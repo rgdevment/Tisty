@@ -199,7 +199,7 @@ pub(in crate::mcp) fn instead_of(
                 .into(),
         ));
     }
-    let doc = state.docs.values().find(|one| one.file == instead);
+    let doc = super::super::mistaken::named_document(state, &instead);
     let task = instead
         .parse::<TaskId>()
         .ok()
@@ -243,7 +243,10 @@ pub(in crate::mcp) fn reason_said(
                 || one.to_string(),
                 |task| format!("the task {:?}", task.title),
             ),
-        Err(_) => doc_named(state, one),
+        Err(_) => match super::super::mistaken::named_document(state, one) {
+            Some(_) => doc_named(state, one),
+            None => one.to_string(),
+        },
     });
     let there = there.unwrap_or_default();
     match reason {

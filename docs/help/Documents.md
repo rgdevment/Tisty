@@ -159,7 +159,7 @@ Documents are where the AI agent you connect through [[MCP|Assistants-and-MCP]] 
 - **One living document per subject.** It opens with what holds today, then the subject, what is out of scope, the decisions dated with their why — a replaced one struck through, not erased — and its history. The agent keeps to the decisions instead of reopening them.
 - **Corrected in place.** The agent rewrites the passage that changed instead of piling a second copy beside the first, and it cannot write over a version you changed after it read.
 - **Outline first, then one section.** The agent reads a document's headings and what each section weighs, then asks for only the part it needs. A document asked for whole past about 12,000 characters comes back as its outline.
-- **Pages for what is long.** No document holds more than 64,000 characters, so a long log is kept as subjects in pages rather than one wall of text.
+- **Pages for what is long.** No single write carries more than 64,000 characters, so a long log is kept as subjects in pages rather than one wall of text.
 - **A summary for the next one.** After reading a long document the agent can leave a summary that the next agent chooses by; when the document changes, it is marked stale.
 
 More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).

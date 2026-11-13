@@ -260,9 +260,7 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     assert!(text.contains("https://markdown.tisty.app/"));
 
     let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
-    let pens = pens["result"]["structuredContent"]["language"]
-        .as_str()
-        .unwrap_or("");
+    let pens = pens["result"]["content"][0]["text"].as_str().unwrap_or("");
     assert!(
         pens.starts_with("## ") && pens.contains("=={green}"),
         "{pens}"
@@ -270,7 +268,7 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
 
     let whole = served.call("language", serde_json::json!({ "topic": "all" }));
     assert!(
-        whole["result"]["structuredContent"]["language"]
+        whole["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or("")
             .starts_with("# ")
@@ -4722,12 +4720,8 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let taught = format!(
         "{head}\n{}\n{}",
-        rules["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap(),
-        tidying["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap()
+        rules["result"]["content"][0]["text"].as_str().unwrap(),
+        tidying["result"]["content"][0]["text"].as_str().unwrap()
     );
     let taught = taught.as_str();
 

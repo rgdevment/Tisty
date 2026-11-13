@@ -340,8 +340,7 @@ pub fn amend(
     amended(root, Some(data), id, make)
 }
 
-// A body nothing came before, as a page just made, keeps no step back to undo it into.
-pub fn amend_fresh(
+pub fn amend_unkept(
     root: &Path,
     id: &str,
     make: impl FnOnce(&str) -> Option<String>,

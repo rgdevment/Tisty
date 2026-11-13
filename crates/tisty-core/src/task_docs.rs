@@ -297,34 +297,54 @@ pub fn wrote(
     task: TaskId,
     edit: impl FnOnce(&str, &crate::model::Task) -> Option<String>,
 ) -> crate::Result<()> {
+    written_on(paths, store, task, true, edit)
+}
+
+// A note added beside the page keeps no step back, so going back never takes it off unseen.
+pub fn noted_beside(
+    paths: &crate::Paths,
+    store: &mut crate::Store,
+    task: TaskId,
+    edit: impl FnOnce(&str, &crate::model::Task) -> Option<String>,
+) -> crate::Result<()> {
+    written_on(paths, store, task, false, edit)
+}
+
+fn written_on(
+    paths: &crate::Paths,
+    store: &mut crate::Store,
+    task: TaskId,
+    keep: bool,
+    edit: impl FnOnce(&str, &crate::model::Task) -> Option<String>,
+) -> crate::Result<()> {
     let mut state = State::replay(&store.read_all()?);
     let Some(first) = state.tasks.get(&task).cloned() else {
         return Ok(());
     };
     let by = state.signed.alias.clone();
     let owner = owner(&state, task);
-    let (file, fresh) = match of(&state, owner) {
-        Some(kept) => (kept.file.clone(), false),
+    let file = match of(&state, owner) {
+        Some(kept) => kept.file.clone(),
         None => {
             let config = crate::Config::load_or_init(paths)?;
             let body = opened(&state, task, template(&first, config.locale.as_deref()));
-            let (op, created) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let (op, _) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
             let file = match &op {
                 Op::DocAdd { d, .. } => d.file.clone(),
                 _ => return Ok(()),
             };
             store.append(op)?;
             state = State::replay(&store.read_all()?);
-            (file, created)
+            file
         }
     };
     let Some(now) = state.tasks.get(&task) else {
         return Ok(());
     };
     let edited = |was: &str| edit(was, now).filter(|said| said != was);
-    let whole = match fresh {
-        true => crate::docs::amend_fresh(&paths.docs(), &file, edited)?,
-        false => crate::docs::amend(&paths.docs(), paths.data(), &file, edited)?,
+    let whole = match keep {
+        true => crate::docs::amend(&paths.docs(), paths.data(), &file, edited)?,
+        false => crate::docs::amend_unkept(&paths.docs(), &file, edited)?,
     };
     let Some(whole) = whole else {
         return Ok(());

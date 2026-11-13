@@ -71,10 +71,13 @@ pub(super) fn propose(
     for one in many {
         match one_of_many(paths, taken, one) {
             Ok(said) => {
-                let kept = said
+                let mut kept = said
                     .get("structuredContent")
                     .cloned()
                     .unwrap_or(Value::Null);
+                if let Some(one) = kept.as_object_mut() {
+                    one.remove("said");
+                }
                 match kept.get("proposed") == Some(&json!(true)) {
                     true => written += 1,
                     false => already += 1,
@@ -122,9 +125,17 @@ pub(super) fn propose(
                             }
                             None => String::new(),
                         };
-                        let hidden = match one.get("hidden").is_some() {
-                            true => ", already filed and put out of sight by the person",
-                            false => "",
+                        let hidden = match (one.get("hidden"), one.get("closed"), &one["proposed"])
+                        {
+                            (Some(_), _, _) => {
+                                ", already filed and put out of sight by the person".to_string()
+                            }
+                            (None, Some(day), _) => format!(
+                                ", already filed and closed on {}",
+                                day.as_str().unwrap_or_default()
+                            ),
+                            (None, None, Value::Bool(false)) => ", already there".to_string(),
+                            _ => String::new(),
                         };
                         format!("{:?}{id}{hidden}{idea}{parts}", said(one, "title"))
                     }

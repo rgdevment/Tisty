@@ -159,7 +159,7 @@ Los documentos son donde el agente de IA que conectas por [[MCP|Asistentes-y-MCP
 - **Un documento vivo por tema.** Abre con lo que rige hoy, después el tema, lo que queda fuera de alcance, las decisiones fechadas con su porqué (la reemplazada queda tachada, no borrada) y su historia. El agente respeta las decisiones en vez de reabrirlas.
 - **Se corrige en su lugar.** El agente reescribe el pasaje que cambió en vez de apilar una segunda copia junto a la primera, y no puede escribir encima de una versión que cambiaste después de que la leyó.
 - **Primero el índice, después una sección.** El agente lee los títulos de un documento y cuánto pesa cada sección, y pide solo la parte que necesita. Un documento pedido entero que pasa de unos 12 000 caracteres vuelve como su índice.
-- **Páginas para lo largo.** Ningún documento pasa de 64 000 caracteres, así que una bitácora larga queda en temas y páginas, no como un muro de texto.
+- **Páginas para lo largo.** Ninguna escritura lleva más de 64 000 caracteres, así que una bitácora larga queda en temas y páginas, no como un muro de texto.
 - **Un resumen para el siguiente.** Después de leer un documento largo, el agente puede dejar un resumen con el que elige el próximo agente; si el documento cambia, queda marcado como desactualizado.
 
 Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).

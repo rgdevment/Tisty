@@ -988,3 +988,103 @@ fn a_closed_task_s_page_says_it_went_with_its_task() {
 
     assert!(text_of(&read).contains("closed task"), "{read}");
 }
+
+#[test]
+fn a_hidden_task_s_page_and_tags_never_reach_another_answer() {
+    let served = Served::new();
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "secret zebra plan", "tags": ["zebratag"] }),
+    );
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let doc = served.person().writes_doc("# Planes\n\nAlgo.\n");
+    served.written_for(&task, &format!("Ver [Planes](tisty:doc/{doc})."));
+    let page = format!("t_{}-0001", task.to_ascii_lowercase());
+    served.person().hides(person::task(&task));
+
+    let outlined = served.call("outline_doc", serde_json::json!({ "doc": doc }));
+    let flagged = served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": doc, "reason": "moved", "instead": page, "body": "x" }),
+    );
+    let caught = served.call("catch_up", serde_json::json!({}));
+
+    for answer in [&outlined, &flagged, &caught] {
+        assert!(!answer.to_string().contains("secret zebra"), "{answer}");
+        assert!(!answer.to_string().contains("zebratag"), "{answer}");
+    }
+    assert_eq!(flagged["result"]["isError"], true, "{flagged}");
+}
+
+#[test]
+fn the_page_read_hands_back_is_written_back_as_it_came() {
+    let served = Served::new();
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "Rina's booster", "date": "2026-12-09", "tags": ["vet"] }),
+    );
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let body = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap()
+        .replace("Mis palabras.", "Mis palabras, cambiadas.");
+    let print = page_of(&served, &file)["print"].clone();
+
+    let written = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": file, "print": print, "body": body }),
+    );
+
+    assert_ne!(written["result"]["isError"], true, "{written}");
+    assert!(on_disk(&served, &file).contains("cambiadas"));
+}
+
+#[test]
+fn a_closed_task_s_refusal_asks_for_its_title_and_day_never_its_id() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.person().closes(person::task(&task));
+
+    let noted = served.call("note", serde_json::json!({ "task": task, "body": "algo" }));
+
+    let said = text_of(&noted);
+    assert!(said.contains("the day it ended"), "{said}");
+    assert!(!said.contains(&format!("its id {task}")), "{said}");
+}
+
+#[test]
+fn a_long_log_s_outline_keeps_its_days_and_a_long_line_its_cap() {
+    let served = Served::new();
+    let days: String = (1..=300)
+        .map(|n| format!("## Día {n}\n\nNada más.\n\n"))
+        .collect();
+    let log = served.person().writes_doc(&format!("# Bitácora\n\n{days}"));
+    let wide = served
+        .person()
+        .writes_doc(&format!("# Ancho\n\n{}\n", "palabra ".repeat(20_000)));
+
+    let outlined = served.call("outline_doc", serde_json::json!({ "doc": log }));
+    let line = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),
+    );
+
+    let held = outlined["result"]["structuredContent"]["outline"]
+        .as_array()
+        .unwrap()
+        .len();
+    assert!(held > 100 && held <= 120, "{held}");
+    let part = line["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap();
+    assert!(part.chars().count() <= 12_001, "{}", part.chars().count());
+}

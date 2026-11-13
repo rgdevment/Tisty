@@ -56,7 +56,7 @@ pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Res
     Ok(())
 }
 
-pub(super) fn brings_back_no_task(
+pub(super) fn brings_back_no_idea(
     state: &State,
     which: &str,
     now: &str,
@@ -65,15 +65,17 @@ pub(super) fn brings_back_no_task(
     if !is_sheet(back) {
         return Ok(());
     }
-    let used = brainstorm::proposed_from(state, which);
-    let here = brainstorm::ideas_on(now);
+    let here: Vec<String> = brainstorm::ideas_on(now)
+        .into_iter()
+        .map(|one| one.heading)
+        .collect();
     let again = brainstorm::ideas_on(back)
         .into_iter()
-        .find(|one| used.contains(&one.heading) && !here.contains(one));
+        .find(|one| !here.contains(&one.heading));
     match again {
         Some(idea) => Err(Refused::Tool(format!(
-            "going back would put «{}» on {} again, and it became a task since. Nothing was \
-             changed: edit the passage that is wrong instead.",
+            "going back would put «{}» on {} again, after it left for a task, a document or the \
+             person's own hand. Nothing was changed: edit the passage that is wrong instead.",
             idea.text,
             doc_named(state, which)
         ))),
@@ -200,8 +202,11 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
                 .collect()
         })
         .collect();
-    let a_list =
-        |lines: &[&str]| !lines.is_empty() && lines.iter().all(|one| listed(one).is_some());
+    // A number and a dot open a list only with items to count, unlike «1984. Read it again».
+    let a_list = |lines: &[&str]| {
+        lines.iter().all(|one| listed(one).is_some())
+            && (lines.len() > 1 || lines.first().is_some_and(|one| bulleted(one)))
+    };
     for (at, lines) in paragraphs.iter().enumerate() {
         if lines
             .iter()
@@ -231,6 +236,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
             each.push(lines.join("\n"));
         }
     }
+    let mut each: Vec<String> = each.into_iter().map(unquoted).collect();
     each.retain(|one| !one.is_empty());
     if each.is_empty() {
         return Err(Refused::Tool(
@@ -284,7 +290,23 @@ fn listed(line: &str) -> Option<&str> {
             let (number, rest) = line.split_once(". ")?;
             number.chars().all(|c| c.is_ascii_digit()).then_some(rest)
         })?;
-    Some(rest.trim_start_matches("[ ] ").trim())
+    let rest = ["[ ] ", "[x] ", "[X] "]
+        .iter()
+        .find_map(|box_| rest.strip_prefix(box_))
+        .unwrap_or(rest);
+    Some(rest.trim())
+}
+
+fn bulleted(line: &str) -> bool {
+    ["- ", "* ", "+ "].iter().any(|mark| line.starts_with(mark))
+}
+
+// An idea is sent as words: a quote's marks would quote it twice on its note.
+fn unquoted(idea: String) -> String {
+    idea.lines()
+        .map(|line| line.trim_start_matches('>').trim_start())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub(super) fn jotted_on(
@@ -696,14 +718,15 @@ fn instead_of(
         };
     };
     if names_an_idea(&instead) {
-        if many.contains(&instead) {
+        let bare = |one: &str| named_idea(one).map(|(doc, heading)| format!("{doc}#{heading}"));
+        if many.iter().any(|one| bare(one) == bare(&instead)) {
             return Err(Refused::Tool(
                 "`instead` names one of the ideas being marked; it has to be the one that stays."
                     .into(),
             ));
         }
         idea_on(on, &kept.file, named, &instead)?;
-        return Ok(Some(instead));
+        return Ok(Some(bare(&instead).unwrap_or(instead)));
     }
     super::papers::flagging::instead_of(state, args, reason, many).map(|_| Some(instead))
 }

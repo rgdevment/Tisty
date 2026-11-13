@@ -2,6 +2,17 @@
 source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: "rules(Some(\"documents\"))"
 ---
+## Write it to be read
+
+Whatever you write or edit — a task's description, a journal note, a task's page, a document — the person reads in the window, so make it visual, readable and in order, never a wall of plain text:
+- A heading for each part when there is more than one, and short paragraphs, one line each.
+- A list for findings, options or what is left, numbered when the order matters; a table to compare.
+- **Bold** for the one thing to see first; `code` for commands, paths and names; a link where it leads.
+- A callout for what must stand out — `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` — and a pen or an icon where it helps the eye, sparingly.
+- A box `- [ ]` only for a step: on a task's page it becomes one.
+
+When you edit, leave the passage at least as ordered as you found it. `language` gives Tisty's marks one topic at a time.
+
 ## Documents
 
 Start with `catch_up`, which says where things stand and what moved since you were last here; `docs` lists the documents and folders. Before opening a document see whether it carries a `gist`, an earlier reader's summary: it helps you choose, never stands in for the text, and one marked `stale` was written against an older version. After reading a long document, leave yours with `sum_up`.

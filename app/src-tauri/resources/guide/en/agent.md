@@ -25,7 +25,7 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 - Write documents, add to one, correct a passage or a table, and file them into folders and pages.
 - Jot ideas on Brainstorm when you ask, and sort them out with you: an idea it turns into a task or files in a document leaves the sheet, as it does when you do it.
 - Mark a document or an idea that had its day, saying why: you delete it, put it away or take the mark off.
-- Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**.
+- Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
 - Search and read what is there, the Archive included.
 
 ## What it cannot do

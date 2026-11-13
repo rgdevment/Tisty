@@ -31,10 +31,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
     }
     let under = match text(args, "page_of") {
         Some(said) => Some(
-            state
-                .docs
-                .values()
-                .find(|one| one.file == said)
+            super::super::mistaken::named_document(&state, &said)
                 .map(|one| one.id)
                 .ok_or_else(|| {
                     Refused::Tool(not_a_document(&state, &said).unwrap_or_else(|| {

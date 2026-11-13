@@ -249,8 +249,8 @@ waits in Brainstorm.
 
 ### Tasks: what to do, who does it, how it was solved
 
-- **Priority, by its name** — the Eisenhower matrix: *do*, *decide*,
-  *delegate*, *drop*. A date and a deadline are kept apart, so a planned day
+- **Priority, by its name** — the Eisenhower matrix: *do*, *schedule*,
+  *delegate*, *minor*. A date and a deadline are kept apart, so a planned day
   that slipped is late and only a deadline that passed is overdue. Lists, tags,
   and a reminder for what cannot wait.
 - **Steps and parts** — a big job splits into parts, each with its own steps
@@ -316,10 +316,11 @@ agent that rereads the whole file every session:
 
 Where the saving comes from:
 
-- **No document holds more than 64,000 characters**, so a log that size is kept
+- **No single write carries more than 64,000 characters**, so a long log is kept
   as subjects in pages, never as one wall of text.
-- **No read brings more than about 12,000 characters.** Past that, a document
-  asked for whole comes back as its outline.
+- **No read brings more than about 12,000 characters** unless the agent asks for
+  a document whole to carry elsewhere. Past that, a document asked for whole
+  comes back as its outline.
 - **A task's page comes whole only while it is short**, about 4,000 characters.
   Past that come its sections, the digest that opens the agent's notes and its
   latest note; its journal comes by size, the latest notes up to about 3,000
@@ -548,7 +549,7 @@ and makes its own PDF — and it stays Markdown that GitHub, any editor or `cat`
 read the same. A task can point at it, and search finds both.
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
-both or neither — *do*, *decide*, *delegate*, *drop*. That names the decision
+both or neither — *do*, *schedule*, *delegate*, *minor*. That names the decision
 instead of hiding it behind a number, and it is the difference between a list
 that sorts and a list that helps you choose. Around it: lists for where work
 belongs, tags for what cuts across, steps for the parts, and a journal for what
@@ -1151,8 +1152,9 @@ correct a passage of one, write one again whole, file documents into folders,
 make one document a page of another and say the order its pages are read in,
 which writes and moves the lines naming them in your document's text and nothing
 else, mark a document that had its day, for you to delete, put away or unmark,
-keep a copy of a file you point it at — on a task or inside a document, which
-takes the larger file of the two — and read what is already there. What it may
+keep a copy of a file you point it at — on a task or inside a document alike —
+jot ideas on your Brainstorm and sort them with you, and read what is already
+there. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
 yours, move a day you set, delete a document, rename or empty a folder, reach a
 task you folded away, take files from anywhere but Downloads, Documents,

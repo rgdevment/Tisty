@@ -565,12 +565,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             if let Some(next) = next {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
-                if kept_of.contains_key("brainstorm") {
-                    more = format!(
+                more = match kept_of.contains_key("brainstorm") {
+                    true => format!(
                         "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
                          {next} and this `print`.)"
-                    );
-                }
+                    ),
+                    false => format!("\n\n(More from line {next}: `read_doc` with `from` {next}.)"),
+                };
             }
             Ok(mirrored(
                 format!("{warned}{part}{more}"),
@@ -798,21 +799,29 @@ const OUTLINE_AT_MOST: usize = 120;
 
 // A dated log grows a heading a day, and an outline of every one costs more than the log.
 fn outline_held(all: &[Heading]) -> (Vec<&Heading>, usize) {
-    let deepest = (1..=6)
+    let upto =
+        |level: usize| -> Vec<&Heading> { all.iter().filter(|one| one.level <= level).collect() };
+    let top = all.iter().map(|one| one.level).min().unwrap_or(1);
+    let deepest = (top..=6)
         .rev()
-        .find(|level| all.iter().filter(|one| one.level <= *level).count() <= OUTLINE_AT_MOST);
-    let held: Vec<&Heading> = match deepest {
-        Some(level) => all.iter().filter(|one| one.level <= level).collect(),
-        None => {
-            let top = all.iter().map(|one| one.level).min().unwrap_or(1);
-            let upper: Vec<&Heading> = all.iter().filter(|one| one.level == top).collect();
-            let half = OUTLINE_AT_MOST / 2;
-            let tail = &upper[upper.len() - half..];
-            upper[..half].iter().chain(tail).copied().collect()
-        }
+        .find(|level| upto(*level).len() <= OUTLINE_AT_MOST);
+    let held = match deepest {
+        Some(6) => upto(6),
+        Some(level) if upto(level).len() * 2 >= OUTLINE_AT_MOST => upto(level),
+        Some(level) => ends_of(upto(level + 1)),
+        None => ends_of(upto(top)),
     };
     let left = all.len() - held.len();
     (held, left)
+}
+
+fn ends_of(many: Vec<&Heading>) -> Vec<&Heading> {
+    if many.len() <= OUTLINE_AT_MOST {
+        return many;
+    }
+    let half = OUTLINE_AT_MOST / 2;
+    let tail = &many[many.len() - half..];
+    many[..half].iter().chain(tail).copied().collect()
 }
 
 fn outline_into<'a>(

@@ -86,7 +86,6 @@ pub(super) fn language(args: &Value) -> Value {
     mirrored(
         format!("{said}\n\nThe guide for people, with every example drawn: {drawn}\n"),
         json!({
-            "language": said,
             "topic": asked.unwrap_or("index"),
             "lang": if spanish { "es" } else { "en" },
             "guide": drawn,

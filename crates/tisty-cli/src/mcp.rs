@@ -581,8 +581,8 @@ fn history(task: &Task) -> Refused {
     Refused::Tool(format!(
         "{:?} {how} is history now: it reads as it ended, and nothing on it changes — not its \
          day, not its journal, not a mark saying it is done. And {look} propose a new task whose \
-         description says so, naming this one by its title and its id {}, with a source of its \
-         own.",
+         description says so, naming this one by its title and the day it ended, with a source \
+         of its own. [{}]",
         task.title, task.id
     ))
 }
@@ -660,6 +660,8 @@ fn first_apart(was: &str, whole: &str) -> usize {
 }
 
 /// What the document reads like around a change, so seeing it does not cost a whole `read_doc`.
+const ECHO_LINE_AT_MOST: usize = 1_000;
+
 fn echoed(args: &Value, was: &str, whole: &str) -> Option<Value> {
     if !args.get("echo").and_then(Value::as_bool).unwrap_or(false) {
         return None;
@@ -668,10 +670,18 @@ fn echoed(args: &Value, was: &str, whole: &str) -> Option<Value> {
     let last = whole.lines().count().max(1);
     let from = at.saturating_sub(AROUND).max(1);
     let to = (at + AROUND).min(last);
+    let body: Vec<String> = tisty_core::docs::lines_between(whole, from, to)
+        .lines()
+        .map(|line| match line.char_indices().nth(ECHO_LINE_AT_MOST) {
+            Some((at, _)) => format!("{}…", &line[..at]),
+            None => line.to_string(),
+        })
+        .collect();
     Some(json!({
         "from": from,
         "to": to,
-        "body": tisty_core::docs::lines_between(whole, from, to),
+        "body": body.join("
+    "),
     }))
 }
 
@@ -1078,6 +1088,11 @@ fn for_the_person(state: &State, which: &str, title: &str) -> String {
 // A task's page opens on a section, not a title, so it goes by its task.
 fn page_task<'a>(state: &'a State, which: &str) -> Option<&'a tisty_core::model::Task> {
     tisty_core::task_docs::task_of_file(which)?;
+    state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .filter(|one| state.doc_in_sight(one))?;
     tisty_core::task_docs::behind(state)
         .get(which)
         .and_then(|id| state.tasks.get(id))
@@ -1221,8 +1236,27 @@ fn as_far_as(body: &str, start: usize, most: usize, last: usize) -> usize {
     (at - 1).max(start).min(last)
 }
 
+// A paragraph is one line, so one alone may outgrow the room a part has.
+fn held_part(body: &str, from: usize, fits: usize, to: usize, room: usize) -> Part {
+    let part = tisty_core::docs::lines_between(body, from, fits);
+    let part = match part.char_indices().nth(room) {
+        Some((at, _)) => format!("{}…", &part[..at]),
+        None => part,
+    };
+    Part::Held {
+        body: part,
+        from,
+        to: fits,
+        next: (fits < to).then_some(fits + 1),
+    }
+}
+
 fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
     let last = body.lines().count().max(1);
+    let room = args
+        .get("chars")
+        .and_then(Value::as_u64)
+        .map_or(WHOLE_UP_TO, |asked| (asked as usize).min(WHOLE_UP_TO));
     let held = |from: usize, to: usize| Part::Held {
         body: tisty_core::docs::lines_between(body, from, to),
         from,
@@ -1236,17 +1270,12 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 "this document has no section {at}. `outline_doc` numbers them from 0."
             )));
         };
-        let fits = as_far_as(body, from, WHOLE_UP_TO, last).min(to);
+        let fits = as_far_as(body, from, room, last).min(to);
         let fits = match fits < to {
             true => idea_whole(body, from, fits),
             false => fits,
         };
-        return Ok(Part::Held {
-            body: tisty_core::docs::lines_between(body, from, fits),
-            from,
-            to: fits,
-            next: (fits < to).then_some(fits + 1),
-        });
+        return Ok(held_part(body, from, fits, to, room));
     }
 
     let from = args
@@ -1267,17 +1296,12 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         }
         // Naming a run wide enough to cover the document was the way round the budget every other
         // way of reading one is held to.
-        let fits = as_far_as(body, from, WHOLE_UP_TO, last).min(to);
+        let fits = as_far_as(body, from, room, last).min(to);
         let fits = match fits < to {
             true => idea_whole(body, from, fits),
             false => fits,
         };
-        return Ok(Part::Held {
-            body: tisty_core::docs::lines_between(body, from, fits),
-            from,
-            to: fits,
-            next: (fits < to).then_some(fits + 1),
-        });
+        return Ok(held_part(body, from, fits, to, room));
     }
 
     if let Some(most) = args
@@ -1311,17 +1335,9 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 }
             }
         }
-        let to = idea_whole(
-            body,
-            start,
-            as_far_as(body, start, most.min(WHOLE_UP_TO), last),
-        );
-        return Ok(Part::Held {
-            body: tisty_core::docs::lines_between(body, start, to),
-            from: start,
-            to,
-            next: (to < last).then_some(to + 1),
-        });
+        let room = most.min(WHOLE_UP_TO);
+        let to = idea_whole(body, start, as_far_as(body, start, room, last));
+        return Ok(held_part(body, start, to, last, room));
     }
 
     match (body.chars().count() > WHOLE_UP_TO, ideas::is_sheet(body)) {
@@ -1329,12 +1345,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         // A sheet's headings are only the minutes its ideas came, so its outline would say nothing.
         (true, true) => {
             let to = idea_whole(body, 1, as_far_as(body, 1, WHOLE_UP_TO, last));
-            Ok(Part::Held {
-                body: tisty_core::docs::lines_between(body, 1, to),
-                from: 1,
-                to,
-                next: (to < last).then_some(to + 1),
-            })
+            Ok(held_part(body, 1, to, last, WHOLE_UP_TO))
         }
         (true, false) => Ok(Part::Outline),
     }

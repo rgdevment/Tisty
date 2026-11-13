@@ -107,7 +107,8 @@ fn settled(paths: &Paths, id: TaskId, page: &PageWrite) -> Result<String, Refuse
             "the lines between `---` at the top of {:?}'s page belong to Tisty, and this write \
              changed them, so the page was put back as it was. A task's day, list, priority and \
              reminders never change from its page: `rules` «tasks» says which tool changes each, \
-             and which are the person's alone. Write again keeping those lines as they are.",
+             and which are the person's alone. Write again keeping those lines as `read_doc` gives \
+             them: `read` adds the day, list and tags there only to show them.",
             task.title
         )));
     }

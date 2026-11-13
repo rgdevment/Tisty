@@ -80,7 +80,7 @@ expression: tool
         "type": "array"
       },
       "tasks": {
-        "description": "Several tasks, each shaped like a single one; left out for one",
+        "description": "Several tasks, each shaped like a single one, at most 32; left out for one",
         "items": {
           "type": "object"
         },
