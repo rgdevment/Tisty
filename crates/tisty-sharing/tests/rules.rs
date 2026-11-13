@@ -2160,3 +2160,18 @@ fn the_owner_s_word_on_a_language_is_a_change_in_the_anchor() {
 
     assert_eq!(again.going.len(), 1);
 }
+
+#[test]
+fn brainstorm_stays_here_while_a_document_with_an_idea_is_shared() {
+    let (_tmp, mut home) = home();
+    let board = home.wrote(
+        "---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n\n> [!IDEA] 2026-11-12 09:40 · yellow\n> Pintar la reja\n",
+        None,
+    );
+    let garden = home.wrote(
+        "# Huerto\n\n> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Regar de noche\n",
+        None,
+    );
+    assert!(matches!(refused(&home, board), Some(Unshared::Brainstorm)));
+    assert!(refused(&home, garden).is_none());
+}
