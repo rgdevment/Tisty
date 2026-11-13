@@ -116,7 +116,7 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 ## Ready-made requests and @-mentions
 
-Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
+The memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
 **Seven ready-made requests.** Tisty hands your assistant seven requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 

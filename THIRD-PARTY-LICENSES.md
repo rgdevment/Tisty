@@ -667,7 +667,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Text 12
 
-Carried by `ammonia` 4.2.4, `crc32fast` 1.5.2, `ctor` 1.0.13, `dpi` 0.1.2, `fallible-iterator` 0.3.0, `fallible-streaming-iterator` 0.1.9, `foreign-types` 0.5.0, `foreign-types-shared` 0.3.1, `json-patch` 4.2.0, `kstring` 2.0.5, `notify-rust` 4.18.2, `quick-error` 2.0.1, `tao` 0.37.1, `winapi` 0.3.9.
+Carried by `ammonia` 4.2.5, `crc32fast` 1.5.2, `ctor` 1.0.13, `dpi` 0.1.2, `fallible-iterator` 0.3.0, `fallible-streaming-iterator` 0.1.9, `foreign-types` 0.5.0, `foreign-types-shared` 0.3.1, `json-patch` 4.2.0, `kstring` 2.0.5, `notify-rust` 4.18.2, `quick-error` 2.0.1, `tao` 0.37.1, `winapi` 0.3.9.
 
 ```text
 Apache License
@@ -875,7 +875,7 @@ Apache License
 
 ## Text 13
 
-Carried by `ammonia` 4.2.4.
+Carried by `ammonia` 4.2.5.
 
 ```text
 Copyright (c) 2015-2022 The ammonia Developers

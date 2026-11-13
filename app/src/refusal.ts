@@ -201,6 +201,7 @@ const KNOWN = [
   "tongueTaken",
   "notOneOwnDoc",
   "onlyADocumentShared",
+  "brainstormStaysHere",
   "noIdentityToSign",
   "cannotSeal",
   "cannotFinish",

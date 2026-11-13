@@ -254,7 +254,7 @@ A callout is a quote whose first line names its kind in brackets. Five kinds, ea
 
 ### Sticky notes
 
-A sixth kind, `[!IDEA]`, is a note stuck on the sheet. Its first line, past the marker, says when it was written, its colour and the side it sits on:
+A sixth kind, `[!IDEA]`, is a note stuck on the sheet. Its first line, past the marker, says when it was written (`2026-11-12`, or `2026-11-12 09:12` with the time), its colour and the side it sits on:
 
 ```markdown
 > [!IDEA] 2026-11-12 09:12 · blue · right

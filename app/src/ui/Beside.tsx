@@ -3,6 +3,7 @@ import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from 
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
+import { brainstormIn } from "../front";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
@@ -142,7 +143,11 @@ export default function Beside(props: Props) {
   }, [paper, kept]);
 
   const details = useFacts({ ...props, body, heads }, facts);
-  const shared = useSharedRow(props.doc, props.onError, props.onKeep);
+  const shared = useSharedRow(
+    brainstormIn(body) ? undefined : props.doc,
+    props.onError,
+    props.onKeep,
+  );
   const ways: Choice[] = [
     ...waysOut(false, props.making),
     { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: props.onCopy },

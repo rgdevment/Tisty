@@ -254,7 +254,7 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 
 ### Notas adhesivas
 
-Un sexto tipo, `[!IDEA]`, es una nota pegada en la hoja. Su primera línea, después de la marca, dice cuándo se escribió, su color y el lado en que va:
+Un sexto tipo, `[!IDEA]`, es una nota pegada en la hoja. Su primera línea, después de la marca, dice cuándo se escribió (`2026-11-12`, o `2026-11-12 09:12` con la hora), su color y el lado en que va:
 
 ```markdown
 > [!IDEA] 2026-11-12 09:12 · blue · right
