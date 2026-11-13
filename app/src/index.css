@@ -487,6 +487,13 @@ label[for] {
   max-width: var(--sheet-wide, none);
   margin-inline: auto;
 }
+/* The whole-document editor's sheet leaves room around it, and what frames it above keeps its width. */
+.lively-room > .ribbon,
+.lively-room > .leaves,
+.lively-room > .onward {
+  width: 85%;
+  max-width: 1100px;
+}
 /* On sheets the paper's own margin opens the page, so the bar stands apart instead of seeming part of it. */
 .on-sheets > .ribbon {
   margin-bottom: 14px;

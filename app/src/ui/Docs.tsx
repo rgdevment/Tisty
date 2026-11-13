@@ -963,6 +963,7 @@ export default function Docs({
                       )
                     )
                   }
+                  belowFolds={!above}
                   below={
                     above
                       ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />

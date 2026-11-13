@@ -73,6 +73,7 @@ type Props = {
   readonly anchor?: string;
   readonly above?: ReactNode;
   readonly below?: ReactNode;
+  readonly belowFolds?: boolean;
   readonly onSeen?: (at: number) => void;
   readonly onWrite: (text: string) => void;
   readonly onSettle?: (before: string, now: string, renamed?: readonly [string, string][]) => void;
@@ -1089,7 +1090,7 @@ export default function Sheet(props: Readonly<Props>) {
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}${lively && !props.sheet ? " lively-room" : ""}`}
       style={{
         ...(props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)),
         ...(lively && framed() ? { overflow: "hidden" } : {}),
@@ -1159,7 +1160,7 @@ export default function Sheet(props: Readonly<Props>) {
         />
       </div>
       {below && lively && framed() ? (
-        <LivelyBelow folds={!above} width={widthOf}>
+        <LivelyBelow folds={Boolean(props.belowFolds)} width={widthOf}>
           {below}
         </LivelyBelow>
       ) : (

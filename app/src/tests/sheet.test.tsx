@@ -922,13 +922,15 @@ describe("a block laid at a point of the text", () => {
 });
 
 describe("the whole-document sheet", () => {
-  it("folds what goes under it into one line that opens on a press", async () => {
+  it("folds the pages under it into one line that opens on a press, whatever stands above", async () => {
     const view = render(
       <Sheet
         value={BODY}
         label="Compras"
         onWrite={() => {}}
         wholeable
+        above={<p>the languages</p>}
+        belowFolds
         below={<p>under the sheet</p>}
       />,
     );
