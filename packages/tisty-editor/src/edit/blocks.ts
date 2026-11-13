@@ -4,7 +4,7 @@ import {
   type Range,
   StateEffect,
   StateField,
-  type Text,
+  Text,
   type TransactionSpec,
 } from "@codemirror/state";
 import { Decoration, EditorView, type KeyBinding } from "@codemirror/view";
@@ -16,6 +16,16 @@ export type Block = { readonly from: number; readonly to: number; readonly level
 type Span = { readonly from: number; readonly to: number };
 
 const HEADING = /^(?:ATX|Setext)Heading(\d)$/;
+// Two line breaks as the document counts them, one place each whatever the file's line ends.
+const BLANK = Text.of(["", "", ""]);
+const LOOK_AROUND = 256;
+
+const breaksAfter = (state: EditorState, at: number): number =>
+  /^\n+/.exec(state.doc.sliceString(at, Math.min(state.doc.length, at + LOOK_AROUND)))?.[0]
+    .length ?? 0;
+
+const breaksBefore = (state: EditorState, at: number): number =>
+  /\n+$/.exec(state.doc.sliceString(Math.max(0, at - LOOK_AROUND), at))?.[0].length ?? 0;
 const PARSE_FOR_MS = 150;
 
 const lineEnd = (doc: Text, at: number): number => {
@@ -105,10 +115,11 @@ const sibling = (item: SyntaxNode, way: -1 | 1): SyntaxNode | null => {
 
 const swapped = (state: EditorState, unit: Span, other: Span, way: -1 | 1): TransactionSpec => {
   const [first, second] = way < 0 ? [other, unit] : [unit, other];
-  const gap = state.sliceDoc(first.to, second.from);
-  const unitText = state.sliceDoc(unit.from, unit.to);
-  const otherText = state.sliceDoc(other.from, other.to);
-  const insert = way < 0 ? unitText + gap + otherText : otherText + gap + unitText;
+  const gap = state.doc.slice(first.to, second.from);
+  const unitText = state.doc.slice(unit.from, unit.to);
+  const otherText = state.doc.slice(other.from, other.to);
+  const insert =
+    way < 0 ? unitText.append(gap).append(otherText) : otherText.append(gap).append(unitText);
   const start = way < 0 ? first.from : first.from + otherText.length + gap.length;
   const { anchor, head } = state.selection.main;
   const kept = (at: number) => start + Math.min(Math.max(at - unit.from, 0), unitText.length);
@@ -154,8 +165,9 @@ export const unitOf = (state: EditorState, all = blocksOf(state, true)): Span | 
 export const unitAt = (
   state: EditorState,
   at: number,
+  whole = true,
 ): (Span & { readonly next: number }) | null => {
-  const all = blocksOf(state, true);
+  const all = blocksOf(state, whole);
   if (!all.length) return null;
   const first = indexAt(all, at);
   const end = sectionEnd(all, first);
@@ -187,18 +199,16 @@ export const moved = (state: EditorState, way: -1 | 1): TransactionSpec | null =
 export const movedTo = (state: EditorState, unit: Span, target: number): TransactionSpec | null => {
   if (target >= unit.from && target <= unit.to) return null;
   const doc = state.doc;
-  const text = state.sliceDoc(unit.from, unit.to);
-  const gap = state.lineBreak + state.lineBreak;
+  const text = doc.slice(unit.from, unit.to);
   let cutFrom = unit.from;
   let cutTo = unit.to;
-  const rest = state.sliceDoc(unit.to);
-  const after = /^(\r?\n)+/.exec(rest)?.[0].length ?? 0;
+  const after = breaksAfter(state, unit.to);
   if (after && unit.to + after < doc.length) cutTo = unit.to + after;
-  else cutFrom = unit.from - (/(\r?\n)+$/.exec(state.sliceDoc(0, unit.from))?.[0].length ?? 0);
+  else cutFrom = unit.from - breaksBefore(state, unit.from);
   const atEnd = target >= doc.length;
-  const insert = atEnd ? gap + text : text + gap;
+  const insert = atEnd ? BLANK.append(text) : text.append(BLANK);
   const at = atEnd ? doc.length : target;
-  const start = atEnd ? at + gap.length : at;
+  const start = atEnd ? at + BLANK.length : at;
   const shift = start < cutFrom ? 0 : -(cutTo - cutFrom);
   return {
     changes: [
@@ -273,8 +283,8 @@ const dropped = (view: EditorView): boolean => {
   const { state } = view;
   if (!state.field(chosen)) return false;
   const { from, to } = state.selection.main;
-  const after = /^(\r?\n)+/.exec(state.sliceDoc(to))?.[0].length ?? 0;
-  const before = /(\r?\n)+$/.exec(state.sliceDoc(0, from))?.[0].length ?? 0;
+  const after = breaksAfter(state, to);
+  const before = breaksBefore(state, from);
   const [cutFrom, cutTo] =
     after && to + after < state.doc.length ? [from, to + after] : [from - before, to];
   view.dispatch({
@@ -291,11 +301,10 @@ export const doubled = (view: EditorView): boolean => {
   const { state } = view;
   const span = state.field(chosen) ? state.selection.main : unitOf(state);
   if (!span) return false;
-  const text = state.sliceDoc(span.from, span.to);
-  const gap = state.lineBreak + state.lineBreak;
-  const start = span.to + gap.length;
+  const text = state.doc.slice(span.from, span.to);
+  const start = span.to + BLANK.length;
   view.dispatch({
-    changes: { from: span.to, insert: gap + text },
+    changes: { from: span.to, insert: BLANK.append(text) },
     selection: { anchor: start, head: start + text.length },
     effects: choose.of(true),
     scrollIntoView: true,

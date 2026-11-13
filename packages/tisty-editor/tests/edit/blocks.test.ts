@@ -78,6 +78,52 @@ describe("a block dragged elsewhere", () => {
   });
 });
 
+describe("a document written with Windows line ends", () => {
+  const crlfView = (doc: string, at = 0) => {
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    return new EditorView({
+      parent,
+      state: EditorState.create({
+        doc,
+        selection: { anchor: at },
+        extensions: [GRAMMAR, blocking, EditorState.lineSeparator.of("\r\n")],
+      }),
+    });
+  };
+
+  it("drops a chosen block with its gap and nothing of the next one", () => {
+    const view = crlfView("one\r\n\r\ntwo\r\n\r\nthree", 6);
+    chooseOrLet(view);
+    expect(pressed(view, "Delete")).toBe(true);
+    expect(view.state.sliceDoc()).toBe("one\r\n\r\nthree");
+    view.destroy();
+  });
+
+  it("moves and doubles a block keeping the caret on it", () => {
+    const view = crlfView("one\r\n\r\ntwo", 0);
+    expect(pressed(view, "Alt-ArrowDown")).toBe(true);
+    expect(view.state.sliceDoc()).toBe("two\r\n\r\none");
+    expect(view.state.doc.lineAt(view.state.selection.main.head).text).toBe("one");
+    chooseOrLet(view);
+    expect(pressed(view, "Mod-d")).toBe(true);
+    expect(view.state.sliceDoc()).toBe("two\r\n\r\none\r\n\r\none");
+    const { from, to } = view.state.selection.main;
+    expect(view.state.sliceDoc(from, to)).toBe("one");
+    view.destroy();
+  });
+
+  it("lands a dragged block where it is let go", () => {
+    const state = EditorState.create({
+      doc: "one\r\n\r\ntwo\r\n\r\nthree",
+      extensions: [GRAMMAR, blocking, EditorState.lineSeparator.of("\r\n")],
+    });
+    const unit = unitAt(state, 0);
+    const spec = unit && movedTo(state, unit, state.doc.length);
+    expect(spec && state.update(spec).state.sliceDoc()).toBe("two\r\n\r\nthree\r\n\r\none");
+  });
+});
+
 describe("a block chosen with Escape", () => {
   it("is taken whole, grows by blocks and goes with its gap", () => {
     const view = viewOf("one\n\ntwo\n\nthree", 1);

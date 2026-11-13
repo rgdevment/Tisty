@@ -36,38 +36,47 @@ const dressed = (into: HTMLElement, measured: () => void) => {
   void diagrams(into, darkNow(), live).then(measured);
 };
 
-const drawnApart = (page: Document, source: string, into: HTMLElement, measured: () => void) => {
-  into.textContent = source;
-  into.classList.add("cm-rich-waiting");
-  docDrawn(source)
-    .then((html) => {
-      if (!into.isConnected) return;
-      const held = page.createElement("template");
-      held.innerHTML = html;
-      const blocks = Array.from(held.content.children).filter((one) => !one.matches(".front"));
-      into.replaceChildren(...blocks.map(loose));
-      into.classList.remove("cm-rich-waiting");
-      measured();
-      dressed(into, measured);
-    })
-    .catch(() => {});
+const keyOf = (source: string) => source.replace(/\r\n/g, "\n").trim();
+
+const placed = (into: HTMLElement, html: string, measured: () => void) => {
+  const held = into.ownerDocument.createElement("template");
+  held.innerHTML = html;
+  const blocks = Array.from(held.content.children).filter((one) => !one.matches(".front"));
+  into.replaceChildren(...blocks.map(loose));
+  into.classList.remove("cm-rich-waiting");
+  measured();
+  dressed(into, measured);
 };
 
 export const blockDrawer = (page: Document, body: string): NonNullable<Hosted["drawBlock"]> => {
-  let drawn: Map<string, Element> | null = null;
+  let onPage: Map<string, Element> | null = null;
+  // A block drawn once by the core is kept, so scrolling it back into view asks for nothing.
+  const fresh = new Map<string, string>();
   const known = () => {
-    if (drawn) return drawn;
-    drawn = new Map();
+    if (onPage) return onPage;
+    onPage = new Map();
     for (const one of page.querySelectorAll<HTMLElement>(".page > [data-at]")) {
       const at = spanned(one.dataset.at ?? null);
-      if (at) drawn.set(body.slice(charsAt(body, at[0]), charsAt(body, at[1])).trim(), one);
+      if (at) onPage.set(keyOf(body.slice(charsAt(body, at[0]), charsAt(body, at[1]))), one);
     }
-    return drawn;
+    return onPage;
   };
   return (source, into, measured) => {
-    const found = known().get(source.trim());
-    if (!found) return drawnApart(page, source, into, measured);
-    into.replaceChildren(loose(found.cloneNode(true)));
-    dressed(into, measured);
+    const key = keyOf(source);
+    const found = known().get(key);
+    if (found) {
+      into.replaceChildren(loose(found.cloneNode(true)));
+      return dressed(into, measured);
+    }
+    const kept = fresh.get(key);
+    if (kept !== undefined) return placed(into, kept, measured);
+    into.textContent = source;
+    into.classList.add("cm-rich-waiting");
+    docDrawn(source)
+      .then((html) => {
+        fresh.set(key, html);
+        if (into.isConnected) placed(into, html, measured);
+      })
+      .catch(() => {});
   };
 };

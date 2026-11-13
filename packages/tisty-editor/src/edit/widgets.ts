@@ -13,7 +13,7 @@ import {
   type KeyBinding,
   WidgetType,
 } from "@codemirror/view";
-import type { TreeCursor } from "@lezer/common";
+import type { Tree, TreeCursor } from "@lezer/common";
 import { frontLines } from "../front";
 import { cellEdited, cellPressed, rowAdded } from "./celling";
 import { hosted } from "./hosted";
@@ -48,15 +48,21 @@ const isRich = (state: EditorState, cursor: TreeCursor): boolean => {
   return cursor.name === "Paragraph" && pictured(state, cursor);
 };
 
+const richKnown = new WeakMap<Tree, Rich[]>();
+
 const richIn = (state: EditorState): Rich[] => {
+  const tree = syntaxTree(state);
+  const kept = richKnown.get(tree);
+  if (kept) return kept;
   const found: Rich[] = [];
-  const cursor = syntaxTree(state).topNode.cursor();
+  richKnown.set(tree, found);
+  const cursor = tree.topNode.cursor();
   if (!cursor.firstChild()) return found;
   do {
     if (!isRich(state, cursor)) continue;
     const from = state.doc.lineAt(cursor.from).from;
     const end =
-      cursor.to > 0 && state.sliceDoc(cursor.to - 1, cursor.to) === "\n"
+      cursor.to > 0 && state.doc.sliceString(cursor.to - 1, cursor.to) === "\n"
         ? cursor.to - 1
         : cursor.to;
     found.push({ from, to: state.doc.lineAt(end).to });
@@ -161,7 +167,7 @@ const drawnAll = (state: EditorState): DecorationSet => {
     out.push(Decoration.replace({ widget: new Unseen(), block: true }).range(0, front));
   for (const one of richIn(state)) {
     if (open !== null && open >= one.from && open <= one.to) continue;
-    const source = state.sliceDoc(one.from, one.to);
+    const source = state.doc.sliceString(one.from, one.to);
     const chosen = chosenFrom <= one.from && chosenTo >= one.to && chosenFrom !== chosenTo;
     const widget = new Drawn(source, chosen);
     out.push(Decoration.replace({ widget, block: true }).range(one.from, one.to));
@@ -169,15 +175,32 @@ const drawnAll = (state: EditorState): DecorationSet => {
   return Decoration.set(out);
 };
 
-const changed = (tr: Transaction) =>
+const reshaped = (tr: Transaction) =>
   tr.docChanged ||
-  tr.selection !== undefined ||
   syntaxTree(tr.state) !== syntaxTree(tr.startState) ||
-  tr.effects.length > 0;
+  tr.effects.length > 0 ||
+  tr.state.field(revealed) !== tr.startState.field(revealed);
+
+// A caret walking the words changes nothing drawn, unless it takes a block whole or lets one go.
+const chosenTurned = (was: DecorationSet, tr: Transaction): boolean => {
+  const { from: start, to: end } = tr.state.selection.main;
+  let turned = false;
+  was.between(0, tr.state.doc.length, (from, to, one) => {
+    const widget = one.spec.widget;
+    if (!(widget instanceof Drawn)) return;
+    const now = start <= from && end >= to && start !== end;
+    if (now !== widget.chosen) turned = true;
+  });
+  return turned;
+};
 
 const drawnBlocks = StateField.define<DecorationSet>({
   create: drawnAll,
-  update: (was, tr) => (changed(tr) ? drawnAll(tr.state) : was),
+  update: (was, tr) => {
+    if (reshaped(tr)) return drawnAll(tr.state);
+    if (tr.selection && chosenTurned(was, tr)) return drawnAll(tr.state);
+    return was;
+  },
   provide: (field) => [
     EditorView.decorations.from(field),
     EditorView.atomicRanges.of((view) => view.state.field(field)),
@@ -190,7 +213,7 @@ const takenFirst =
   (view: EditorView): boolean => {
     const { state } = view;
     const { main } = state.selection;
-    if (!main.empty) return false;
+    if (!main.empty || state.field(marksShown, false)) return false;
     const line = state.doc.lineAt(main.head);
     if (way < 0 ? main.head !== line.from : main.head !== line.to) return false;
     let at = line.number + way;

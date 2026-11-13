@@ -70,6 +70,22 @@ describe("a block drawn for the whole-document editor", () => {
     expect(measured).toHaveBeenCalled();
   });
 
+  it("asks the core once for a block it drew before, however often it comes back", async () => {
+    drawn.html = "<p>kept</p>";
+    const page = pageWith("");
+    const draw = blockDrawer(page, "");
+    const first = page.createElement("div");
+    page.body.append(first);
+    draw("kept", first, () => {});
+    await settled();
+    const again = page.createElement("div");
+    page.body.append(again);
+    draw("kept", again, () => {});
+    expect(drawn.asked).toEqual(["kept"]);
+    expect(again.textContent).toBe("kept");
+    expect(again.classList.contains("cm-rich-waiting")).toBe(false);
+  });
+
   it("brings its pictures as the page does", async () => {
     drawn.html = '<p><img src="rina.png" alt="Rina"></p>';
     const page = pageWith("");

@@ -2,7 +2,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Hosted, hosted, type TableEdit } from "../../src/edit/hosted";
-import { lively, livelyKeys } from "../../src/edit/living";
+import { lively, livelyKeys, viewTurned } from "../../src/edit/living";
 import { GRAMMAR } from "../../src/edit/pairing";
 import { marksShown, showMarks } from "../../src/edit/seeing";
 
@@ -224,6 +224,23 @@ describe("a table written in place", () => {
     expect(view.dom.querySelector(".cm-table-menu")).toBeNull();
   });
 
+  it("closes a table's menu on Escape without choosing the block under the caret", async () => {
+    const { host } = hostOf();
+    const view = viewOf(DOC, host, DOC.indexOf("para"));
+    const more = view.dom.querySelector('.cm-rich [data-act="column"]');
+    if (more) press(more);
+    await new Promise((done) => setTimeout(done, 1));
+    const leaving = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    view.contentDOM.dispatchEvent(leaving);
+    expect(view.dom.querySelector(".cm-table-menu")).toBeNull();
+    expect(leaving.defaultPrevented).toBe(true);
+    expect(view.dom.querySelector(".cm-chosen")).toBeNull();
+  });
+
   it("offers a row's menu, and a press elsewhere closes it", async () => {
     const { host } = hostOf();
     const view = viewOf(DOC, host);
@@ -257,12 +274,29 @@ describe("the views of the whole-document editor", () => {
     const tabs = Array.from(view.dom.querySelectorAll<HTMLElement>(".cm-view-tab"));
     expect(tabs.map((one) => one.textContent)).toEqual(["viewPreview", "viewMarkdown"]);
     expect(tabs[0].getAttribute("aria-pressed")).toBe("true");
-    press(tabs[1]);
+    tabs[1].click();
     expect(view.state.field(marksShown)).toBe(true);
     expect(view.dom.classList.contains("cm-plain")).toBe(true);
     expect(view.dom.querySelector(".cm-rich")).toBeNull();
-    press(tabs[0]);
+    tabs[0].click();
     expect(view.state.field(marksShown)).toBe(false);
+  });
+
+  it("turns the view for this document only, leaving the next editor as it starts", () => {
+    localStorage.setItem("tisty.marksShown", "0");
+    const { host } = hostOf();
+    const view = viewOf(DOC, host);
+    viewTurned(view);
+    expect(view.state.field(marksShown)).toBe(true);
+    expect(localStorage.getItem("tisty.marksShown")).toBe("0");
+  });
+
+  it("deletes a letter next to a table in the Markdown view, never taking the table", () => {
+    const { host } = hostOf();
+    const view = viewOf(DOC, host, DOC.indexOf("para"));
+    view.dispatch({ effects: showMarks.of(true) });
+    const took = livelyKeys.filter((one) => one.key === "Backspace").some((one) => one.run?.(view));
+    expect(took).toBe(false);
   });
 
   it("keeps the properties at the top out of the preview, and shows them in Markdown", () => {

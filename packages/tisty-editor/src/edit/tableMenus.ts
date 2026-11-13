@@ -33,7 +33,10 @@ const shown = (view: EditorView, anchor: HTMLElement, items: Item[], from: numbe
     if (!menu.contains(event.target as Node)) close();
   };
   const keyed = (event: KeyboardEvent) => {
-    if (event.key === "Escape") close();
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    close();
   };
   for (const one of items) {
     if (one === "apart") {

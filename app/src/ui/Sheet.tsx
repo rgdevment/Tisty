@@ -23,6 +23,7 @@ import {
   pressed,
   putBlock,
   stagesIn,
+  viewTurned,
   WRITTEN,
   widened,
   wrapped,
@@ -518,7 +519,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (!wholeAsked) return;
     const writing = open.current?.view;
     if (livelyOpen.current && writing) {
-      flipped(writing);
+      viewTurned(writing);
       return;
     }
     if (veiled.current) left();

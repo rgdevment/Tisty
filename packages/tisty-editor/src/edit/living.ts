@@ -9,6 +9,11 @@ const plain = EditorView.editorAttributes.compute([marksShown], (state) => ({
   class: state.field(marksShown) ? "cm-plain" : "",
 }));
 
+// Seeing the Markdown is a look at this document, never a setting the next editor starts with.
+export const viewTurned = (view: EditorView, plainly = !view.state.field(marksShown)) => {
+  if (view.state.field(marksShown) !== plainly) view.dispatch({ effects: showMarks.of(plainly) });
+};
+
 const viewTabs = (view: EditorView): Panel => {
   const page = view.dom.ownerDocument;
   const say = view.state.facet(hosted).say;
@@ -19,10 +24,9 @@ const viewTabs = (view: EditorView): Panel => {
     one.type = "button";
     one.className = "cm-view-tab";
     one.textContent = say(word);
-    one.addEventListener("mousedown", (event) => {
-      event.preventDefault();
-      if (view.state.field(marksShown) !== plainly)
-        view.dispatch({ effects: showMarks.of(plainly) });
+    one.addEventListener("mousedown", (event) => event.preventDefault());
+    one.addEventListener("click", () => {
+      viewTurned(view, plainly);
       view.focus();
     });
     return one;

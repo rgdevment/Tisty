@@ -57,6 +57,7 @@ vi.mock("../ui/printing", () => ({
   },
   factsCard: () => Promise.resolve(undefined),
   seenIn: () => ({ turns: [], opened: [] }),
+  seenNow: () => Promise.resolve({ turns: [], opened: [] }),
 }));
 
 vi.mock("../ui/Sheet", () => ({

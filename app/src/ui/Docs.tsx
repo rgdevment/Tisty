@@ -11,6 +11,7 @@ import {
   docBack,
   docBackable,
   docCompactedLast,
+  docDrawn,
   docExport,
   docKeepCompacted,
   docLock,
@@ -50,7 +51,7 @@ import Notes from "./Notes";
 import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
-import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
+import { pdfOf, STAMPING, type Stamp, type Stamping, seenNow, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
@@ -700,7 +701,12 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    const seen = seenIn(drawn.current?.document, writtenAcrossOf(leaf, landscape));
+    const seen = await seenNow(
+      drawn.current?.document,
+      body,
+      docDrawn,
+      writtenAcrossOf(leaf, landscape),
+    );
     return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
   };
 

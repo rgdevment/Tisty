@@ -42,7 +42,7 @@ class Grip {
   hovered(event: MouseEvent) {
     if (event.buttons) return;
     const at = this.placeAt(event.clientY);
-    const unit = at === null ? null : unitAt(this.view.state, at);
+    const unit = at === null ? null : unitAt(this.view.state, at, false);
     const top = unit && this.top(unit.from);
     if (!unit || top === null) return this.hide();
     this.over = unit;
@@ -57,7 +57,7 @@ class Grip {
 
   private target(y: number): number | null {
     const at = this.placeAt(y);
-    const under = at === null ? null : unitAt(this.view.state, at);
+    const under = at === null ? null : unitAt(this.view.state, at, false);
     if (!under) return null;
     const top = this.view.coordsAtPos(under.from, 1)?.top ?? y;
     const bottom = this.view.coordsAtPos(under.to, -1)?.bottom ?? y;
