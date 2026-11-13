@@ -74,7 +74,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
+            "description": "Tick steps you did yourself, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
@@ -200,7 +200,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "keep_compaction": kept_compaction_field(),
                     "doc": { "type": "string", "description": "A document's id, not its title, or a task's to add to its page" },
                     "body": { "type": "string", "description": "Markdown to add, after a blank line" },
-                    "under": { "type": "string", "description": "A heading, as it reads: adds at the end of what it holds. Left out, at the end of the document" },
+                    "under": { "type": "string", "description": "A heading, as it reads: adds at the end of what it holds" },
                     "echo": echo_field(),
                     "replace": { "type": "boolean", "description": "Only with a task's id: rewrite the assistant's notes on its page whole, as one dated digest; a box in it is no step" }
                 },
@@ -250,7 +250,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "do": {
                         "type": "string",
                         "enum": ["show", "set", "add", "remove", "sort", "type", "rename", "add_column", "remove_column"],
-                        "description": "Defaults to show: the columns with their types and the rows, changing nothing"
+                        "description": "Defaults to show: the columns with their types and the rows"
                     },
                     "row": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "description": "For set and remove: its first cell's words, or its number from 1" },
                     "column": { "anyOf": [{ "type": "integer" }, { "type": "string" }], "description": "For set, sort, type, rename and remove_column: its title, or its number from 1" },
@@ -317,7 +317,7 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
-                    "archived": { "type": "boolean", "description": "True, the default, puts it away; false brings it back" },
+                    "archived": { "type": "boolean", "description": "True, the default, puts it away" },
                     "folder": { "type": "string", "description": "A folder to file it in on the way, by name, path or id" }
                 },
                 "required": ["doc"]
@@ -326,7 +326,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "flag_doc",
             "title": "Mark a document that had its day",
-            "description": "Mark what had its day, or «delete this document»: the person deletes it, puts it away or unmarks it. Give the `reason`, `instead` where its content lives now, and `body`. Copies go in one call: one click deletes or unmarks them all. A document already marked is refused, or skipped in a set.",
+            "description": "Mark a document as no longer needed, saying the `reason`, for the person to delete; also when asked to «delete this document», which you cannot. The person sees the mark and why; the document is unchanged until they delete it, put it away or unmark it. One the person asks to put away is `archive_doc`; one to correct, `edit_doc`. Copies go in one call. One already marked is refused, or skipped in a set.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": {
@@ -366,7 +366,7 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": many_docs_field("to hang or take out"),
-                    "page_of": { "type": "string", "description": "Id of the document it becomes a page of. Left out, it becomes a document of its own" },
+                    "page_of": { "type": "string", "description": "Id of the document it becomes a page of" },
                     "after": { "type": "string", "description": "Id of another page of that document, whose line this one's goes right after. Needs `page_of` and one `doc`, and that page needs a line" },
                     "before": { "type": "string", "description": "The same, right before" },
                     "order": { "type": "array", "items": { "type": "string" }, "description": "Its pages' ids, two or more, each once, in reading order: their lines trade places, nothing else moves. With `page_of` alone; each needs a line" },
@@ -515,7 +515,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
                     "source": { "type": "string", "description": "Whether this exact source was filed already; not with `query`" },
-                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section" },
+                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers and section" },
                     "around": { "type": "integer", "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default" },
                     "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
                     "list": { "type": "string", "description": "In this list, as `catch_up` names it" },
@@ -526,9 +526,10 @@ pub(super) fn tools_without_hints() -> Value {
                     "from_source": { "type": "string", "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there" },
                     "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },
                     "to": { "type": "string", "description": "Date or deadline on or before this day" },
-                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either: open and archived together" },
-                    "limit": { "type": "integer", "description": "At most 100, 20 by default" },
-                    "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: `docsTotal` counts them" }
+                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
+                    "limit": { "type": "integer", "description": "At most 100, 10 by default" },
+                    "lines": { "type": "boolean", "description": "False: titles alone, without their `line`" },
+                    "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: raise `limit`" }
                 }
             }))
         },
@@ -540,14 +541,14 @@ pub(super) fn tools_without_hints() -> Value {
         }),
         json!({
             "name": "rules",
-            "title": "The rules for working here, by topic",
-            "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask the one the instructions name before a first write of its kind.",
+            "title": "Read the rules for working here, by topic",
+            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,000 characters each, 31,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
                         "type": "string",
                         "enum": ["tasks", "documents", "tidying", "ideas", "all"],
-                        "description": "The guide; left out, the basics and the index"
+                        "description": "The guide"
                     }
                 }
             }))
@@ -625,7 +626,7 @@ fn steps_by_text(doing: &str) -> Value {
         "steps": {
             "type": "array",
             "items": { "type": "string" },
-            "description": format!("The steps {doing}, by their text as `read` shows it; case and accents do not matter")
+            "description": format!("The steps {doing}, by their text as `read` shows it")
         },
         "step": { "type": "string", "description": "One step, by its text" }
     })
