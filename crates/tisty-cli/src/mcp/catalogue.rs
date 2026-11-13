@@ -168,7 +168,9 @@ way: a task started last week and due next month is underway, not overdue.
 
 `find` searches the open tasks and the archive together unless you narrow `scope`, and a task \
 found by what its page, steps or notes say comes with the `line` that says it, so a past \
-decision often reads without opening the task. `read` brings a closed task whole, with `closed` \
+decision often reads without opening the task. It shows ten tasks and ten documents: `limit` \
+brings more, and `lines` false brings titles alone, enough to see whether something was already \
+filed. `read` brings a closed task whole, with `closed` \
 set to when it ended, and `find` with `part_of` brings its parts. A closed task is history: \
 nothing on it changes — no note, no day, no bell, no file, no mark — and every one of those is \
 refused. When the same work comes back, that is a new task: `read` how the closed one ended and \

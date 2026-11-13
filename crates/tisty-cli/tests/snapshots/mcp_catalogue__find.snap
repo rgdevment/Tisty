@@ -26,7 +26,7 @@ expression: tool
         "type": "boolean"
       },
       "doc": {
-        "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section",
+        "description": "Search inside this document: lines with every word, their numbers and section",
         "type": "string"
       },
       "folder": {
@@ -42,8 +42,12 @@ expression: tool
         "type": "string"
       },
       "limit": {
-        "description": "At most 100, 20 by default",
+        "description": "At most 100, 10 by default",
         "type": "integer"
+      },
+      "lines": {
+        "description": "False: titles alone, without the `line` that matched",
+        "type": "boolean"
       },
       "list": {
         "description": "In this list, as `catch_up` names it",
@@ -62,7 +66,7 @@ expression: tool
         "type": "boolean"
       },
       "scope": {
-        "description": "Defaults to either: open and archived together",
+        "description": "Defaults to either",
         "enum": [
           "open",
           "archive",

@@ -3131,6 +3131,24 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         "two on each side when asked"
     );
 
+    let close = served.wrote(
+        "# Lista\n\n- uno\n- dos riego\n- tres\n- cuatro riego\n- cinco\n",
+        None,
+    );
+    let near = served.call(
+        "find",
+        serde_json::json!({ "doc": &close, "query": "riego", "around": 2 }),
+    )["result"]["structuredContent"]["lines"]
+        .clone();
+    assert_eq!(
+        near[0]["around"], "\n- uno\n(line 4)\n- tres",
+        "the first hit stops short of the second: {near}"
+    );
+    assert_eq!(
+        near[1]["around"], "(line 6)\n- cinco",
+        "and the second starts after what the first already showed: {near}"
+    );
+
     assert_eq!(
         inside("\"macos va\"")["total"],
         1,

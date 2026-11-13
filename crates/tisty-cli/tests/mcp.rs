@@ -4286,6 +4286,86 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
 }
 
 #[test]
+fn find_shows_ten_tasks_unless_more_are_asked_for() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    for n in 0..12 {
+        served.call(
+            "propose",
+            serde_json::json!({ "title": format!("regar el patio {n}") }),
+        );
+    }
+
+    let found = served.call("find", serde_json::json!({ "query": "patio" }));
+    let held = &found["result"]["structuredContent"];
+    assert_eq!(held["total"], 12, "{found}");
+    assert_eq!(held["matches"].as_array().unwrap().len(), 10, "{found}");
+
+    let all = served.call("find", serde_json::json!({ "query": "patio", "limit": 12 }));
+    assert_eq!(
+        all["result"]["structuredContent"]["matches"]
+            .as_array()
+            .unwrap()
+            .len(),
+        12,
+        "{all}"
+    );
+}
+
+fn noted_far_into_a_long_line(served: &Served) -> String {
+    let id = agents_task(served, "move payments to v2");
+    let long = format!(
+        "{}the idempotency key is kept 90 days{}",
+        "before ".repeat(40),
+        " after".repeat(40)
+    );
+    served.call("note", serde_json::json!({ "task": &id, "body": long }));
+    id
+}
+
+#[test]
+fn the_line_find_quotes_is_cut_short_around_the_word_it_was_found_by() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    noted_far_into_a_long_line(&served);
+
+    let found = served.call("find", serde_json::json!({ "query": "idempotency" }));
+    let hit = &found["result"]["structuredContent"]["matches"][0];
+    let line = hit["line"].as_str().unwrap_or_default();
+
+    assert_eq!(hit["in"], "journal", "{found}");
+    assert_eq!(line.chars().count(), 120, "{line}");
+    assert!(line.contains("idempotency key"), "{line}");
+    assert!(line.starts_with('…') && line.ends_with('…'), "{line}");
+    assert!(text_of(&found).contains(line), "{found}");
+}
+
+#[test]
+fn find_asked_for_titles_alone_leaves_every_line_out() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    noted_far_into_a_long_line(&served);
+    wrote_paper(&served, "# Retries\n\nIdempotency keys are kept 90 days.");
+
+    let found = served.call(
+        "find",
+        serde_json::json!({ "query": "idempotency", "lines": false }),
+    );
+    let held = &found["result"]["structuredContent"];
+
+    assert_eq!(
+        held["matches"][0]["title"], "move payments to v2",
+        "{found}"
+    );
+    assert!(held["matches"][0]["line"].is_null(), "{found}");
+    assert!(held["matches"][0]["in"].is_null(), "{found}");
+    assert_eq!(held["docs"][0]["title"], "Retries", "{found}");
+    assert_eq!(held["docs"][0]["line"], "", "{found}");
+    let said = text_of(&found);
+    assert!(!said.contains("kept 90 days"), "{said}");
+}
+
+#[test]
 fn adding_to_a_document_keeps_every_byte_that_was_there() {
     let served = Served::new();
     served.person().lets_the_agent_in();

@@ -515,7 +515,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
                     "source": { "type": "string", "description": "Whether this exact source was filed already; not with `query`" },
-                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers, neighbours cut at 200 characters, and section" },
+                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers and section" },
                     "around": { "type": "integer", "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default" },
                     "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
                     "list": { "type": "string", "description": "In this list, as `catch_up` names it" },
@@ -526,8 +526,9 @@ pub(super) fn tools_without_hints() -> Value {
                     "from_source": { "type": "string", "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there" },
                     "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },
                     "to": { "type": "string", "description": "Date or deadline on or before this day" },
-                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either: open and archived together" },
-                    "limit": { "type": "integer", "description": "At most 100, 20 by default" },
+                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
+                    "limit": { "type": "integer", "description": "At most 100, 10 by default" },
+                    "lines": { "type": "boolean", "description": "False: titles alone, without the `line` that matched" },
                     "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: `docsTotal` counts them" }
                 }
             }))
@@ -547,7 +548,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "topic": {
                         "type": "string",
                         "enum": ["tasks", "documents", "tidying", "ideas", "all"],
-                        "description": "The guide; left out, the basics and the index"
+                        "description": "The guide"
                     }
                 }
             }))
@@ -625,7 +626,7 @@ fn steps_by_text(doing: &str) -> Value {
         "steps": {
             "type": "array",
             "items": { "type": "string" },
-            "description": format!("The steps {doing}, by their text as `read` shows it; case and accents do not matter")
+            "description": format!("The steps {doing}, by their text as `read` shows it")
         },
         "step": { "type": "string", "description": "One step, by its text" }
     })

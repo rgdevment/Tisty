@@ -14,7 +14,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "topic": {
-        "description": "The guide; left out, the basics and the index",
+        "description": "The guide",
         "enum": [
           "tasks",
           "documents",

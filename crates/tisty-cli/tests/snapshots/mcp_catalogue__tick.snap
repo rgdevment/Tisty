@@ -18,7 +18,7 @@ expression: tool
         "type": "string"
       },
       "steps": {
-        "description": "The steps you did, by their text as `read` shows it; case and accents do not matter",
+        "description": "The steps you did, by their text as `read` shows it",
         "items": {
           "type": "string"
         },

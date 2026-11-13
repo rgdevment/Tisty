@@ -145,12 +145,8 @@ pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
         .then_some(Hit::Mentioned)
 }
 
-/// The line a body match lands on, the journal newest first; none when the name matched.
-pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String)> {
-    let terms = crate::text::terms(query);
-    if matches_query(task, &terms)? != Hit::Mentioned {
-        return None;
-    }
+/// The words of a search that neither the title nor a tag already says.
+pub fn unnamed(task: &Task, terms: &[String]) -> Vec<String> {
     let named: Vec<String> = std::iter::once(crate::text::folded(&task.title))
         .chain(
             task.tags
@@ -158,10 +154,20 @@ pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String
                 .map(|tag| crate::text::folded(tag.as_str())),
         )
         .collect();
-    let unnamed: Vec<&String> = terms
+    terms
         .iter()
         .filter(|term| !named.iter().any(|one| one.contains(term.as_str())))
-        .collect();
+        .cloned()
+        .collect()
+}
+
+/// The line a body match lands on, whole, the journal newest first; none when the name matched.
+pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String)> {
+    let terms = crate::text::terms(query);
+    if matches_query(task, &terms)? != Hit::Mentioned {
+        return None;
+    }
+    let unnamed = unnamed(task, &terms);
     let saying = |text: &str| {
         text.lines()
             .map(str::trim)
@@ -169,7 +175,7 @@ pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String
                 let folded = crate::text::folded(line);
                 unnamed.iter().any(|term| folded.contains(term.as_str()))
             })
-            .map(clipped)
+            .map(str::to_string)
     };
     let mut newest: Vec<&crate::model::LogEntry> = task.log.iter().rev().collect();
     newest.sort_by_key(|entry| std::cmp::Reverse(entry.at));
