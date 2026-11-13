@@ -336,7 +336,7 @@ pub(super) fn inside_a_doc(
             if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
                 let around: Vec<String> = (first..=last)
                     .map(|at| match at == *n {
-                        true => format!("[line {}]", n + 1),
+                        true => format!("(line {})", n + 1),
                         false => tisty_core::view::clipped(lines[at]),
                     })
                     .collect();
@@ -1372,16 +1372,18 @@ impl Sifted {
     }
 }
 
-/// A closed task's dates no longer press, so it is never handed a standing that would read as urgent.
 // A reader of the text alone still learns what presses, not only what `structuredContent` says.
 fn standing_said(task: &Task, today: jiff::civil::Date) -> String {
     let status = standing(task);
-    match standing_of(task, today).and_then(|how| json!(how).as_str().map(str::to_string)) {
+    match standing_of(task, today)
+        .and_then(|how| json!(how).as_str().map(|one| one.replace('_', " ")))
+    {
         Some(how) => format!("{status}, {how}"),
         None => status,
     }
 }
 
+/// A closed task's dates no longer press, so it is never handed a standing that would read as urgent.
 pub(super) fn standing_of(task: &Task, today: jiff::civil::Date) -> Option<Standing> {
     let how = tisty_core::standing::standing(task, today);
     (task.is_open() && how != Standing::Undated).then_some(how)

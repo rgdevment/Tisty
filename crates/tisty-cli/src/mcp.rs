@@ -659,9 +659,9 @@ fn first_apart(was: &str, whole: &str) -> usize {
         + 1
 }
 
-/// What the document reads like around a change, so seeing it does not cost a whole `read_doc`.
 const ECHO_LINE_AT_MOST: usize = 1_000;
 
+/// What the document reads like around a change, so seeing it does not cost a whole `read_doc`.
 fn echoed(args: &Value, was: &str, whole: &str) -> Option<Value> {
     if !args.get("echo").and_then(Value::as_bool).unwrap_or(false) {
         return None;
@@ -680,8 +680,7 @@ fn echoed(args: &Value, was: &str, whole: &str) -> Option<Value> {
     Some(json!({
         "from": from,
         "to": to,
-        "body": body.join("
-    "),
+        "body": body.join("\n"),
     }))
 }
 
@@ -1218,6 +1217,7 @@ enum Part {
         from: usize,
         to: usize,
         next: Option<usize>,
+        cut: bool,
     },
 }
 
@@ -1237,18 +1237,28 @@ fn as_far_as(body: &str, start: usize, most: usize, last: usize) -> usize {
 }
 
 // A paragraph is one line, so one alone may outgrow the room a part has.
-fn held_part(body: &str, from: usize, fits: usize, to: usize, room: usize) -> Part {
+fn held_part(body: &str, from: usize, fits: usize, to: usize) -> Part {
     let part = tisty_core::docs::lines_between(body, from, fits);
-    let part = match part.char_indices().nth(room) {
-        Some((at, _)) => format!("{}…", &part[..at]),
-        None => part,
+    let (part, cut) = match part.char_indices().nth(WHOLE_UP_TO) {
+        Some((at, _)) => (format!("{}…", &part[..at]), true),
+        None => (part, false),
     };
     Part::Held {
         body: part,
         from,
         to: fits,
         next: (fits < to).then_some(fits + 1),
+        cut,
     }
+}
+
+fn bounded_part(body: &str, from: usize, to: usize, room: usize, last: usize) -> Part {
+    let fits = as_far_as(body, from, room, last).min(to);
+    let fits = match fits < to {
+        true => idea_whole(body, from, fits),
+        false => fits,
+    };
+    held_part(body, from, fits, to)
 }
 
 fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
@@ -1262,6 +1272,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         from,
         to,
         next: None,
+        cut: false,
     };
 
     if let Some(at) = args.get("section").and_then(Value::as_u64) {
@@ -1270,12 +1281,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 "this document has no section {at}. `outline_doc` numbers them from 0."
             )));
         };
-        let fits = as_far_as(body, from, room, last).min(to);
-        let fits = match fits < to {
-            true => idea_whole(body, from, fits),
-            false => fits,
-        };
-        return Ok(held_part(body, from, fits, to, room));
+        return Ok(bounded_part(body, from, to, room, last));
     }
 
     let from = args
@@ -1296,19 +1302,10 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         }
         // Naming a run wide enough to cover the document was the way round the budget every other
         // way of reading one is held to.
-        let fits = as_far_as(body, from, room, last).min(to);
-        let fits = match fits < to {
-            true => idea_whole(body, from, fits),
-            false => fits,
-        };
-        return Ok(held_part(body, from, fits, to, room));
+        return Ok(bounded_part(body, from, to, room, last));
     }
 
-    if let Some(most) = args
-        .get("chars")
-        .and_then(Value::as_u64)
-        .map(|one| one as usize)
-    {
+    if args.get("chars").and_then(Value::as_u64).is_some() {
         let start = args
             .get("cursor")
             .and_then(Value::as_u64)
@@ -1335,9 +1332,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 }
             }
         }
-        let room = most.min(WHOLE_UP_TO);
-        let to = idea_whole(body, start, as_far_as(body, start, room, last));
-        return Ok(held_part(body, start, to, last, room));
+        return Ok(bounded_part(body, start, last, room, last));
     }
 
     match (body.chars().count() > WHOLE_UP_TO, ideas::is_sheet(body)) {
@@ -1345,7 +1340,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         // A sheet's headings are only the minutes its ideas came, so its outline would say nothing.
         (true, true) => {
             let to = idea_whole(body, 1, as_far_as(body, 1, WHOLE_UP_TO, last));
-            Ok(held_part(body, 1, to, last, WHOLE_UP_TO))
+            Ok(held_part(body, 1, to, last))
         }
         (true, false) => Ok(Part::Outline),
     }

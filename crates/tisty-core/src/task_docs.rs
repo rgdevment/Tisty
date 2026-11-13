@@ -323,26 +323,27 @@ fn written_on(
     };
     let by = state.signed.alias.clone();
     let owner = owner(&state, task);
-    let file = match of(&state, owner) {
-        Some(kept) => kept.file.clone(),
+    let (file, made) = match of(&state, owner) {
+        Some(kept) => (kept.file.clone(), false),
         None => {
             let config = crate::Config::load_or_init(paths)?;
             let body = opened(&state, task, template(&first, config.locale.as_deref()));
-            let (op, _) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let (op, created) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
             let file = match &op {
                 Op::DocAdd { d, .. } => d.file.clone(),
                 _ => return Ok(()),
             };
             store.append(op)?;
             state = State::replay(&store.read_all()?);
-            file
+            (file, created)
         }
     };
     let Some(now) = state.tasks.get(&task) else {
         return Ok(());
     };
     let edited = |was: &str| edit(was, now).filter(|said| said != was);
-    let whole = match keep {
+    // A page made just now has only its template to go back to, which would take the write off.
+    let whole = match keep && !made {
         true => crate::docs::amend(&paths.docs(), paths.data(), &file, edited)?,
         false => crate::docs::amend_unkept(&paths.docs(), &file, edited)?,
     };

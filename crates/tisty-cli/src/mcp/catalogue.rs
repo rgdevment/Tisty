@@ -63,7 +63,9 @@ only when the person asks for it by name.
 Whatever you write or edit — a task's description, a journal note, a task's page, a document — \
 the person reads in the window, so make it visual, readable and in order, never a wall of plain \
 text:
-- A heading for each part when there is more than one, and short paragraphs, one line each.
+- A heading for each part when there is more than one, and short paragraphs, one line each. A \
+task's page keeps the sections it has, so write under them; Brainstorm takes ideas alone, \
+a few words each.
 - A list for findings, options or what is left, numbered when the order matters; a table to \
 compare.
 - **Bold** for the one thing to see first; `code` for commands, paths and names; a link where it \
@@ -540,8 +542,7 @@ pub(super) fn rules(args: &Value) -> Value {
         }),
         _ => format!("{}\n\n{INDEX}", joined(|title| topical(title).is_none())),
     };
-    let topic = args["topic"].as_str().unwrap_or("basics");
-    super::jsonrpc::mirrored(said, json!({ "topic": topic }))
+    super::jsonrpc::said_alone(said)
 }
 
 /// What a call does to what the person keeps, which hosts read to decide what to ask about first.

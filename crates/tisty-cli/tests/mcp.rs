@@ -256,7 +256,10 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
         text.contains("- pens:") && text.len() < 3000,
         "left alone it is the index, not the whole guide: {text}"
     );
-    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
+    assert!(
+        english["result"].get("structuredContent").is_none(),
+        "{english}"
+    );
     assert!(text.contains("https://markdown.tisty.app/"));
 
     let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
@@ -275,10 +278,12 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     );
 
     let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
-    assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
-    assert_eq!(
-        spanish["result"]["structuredContent"]["guide"],
-        "https://markdown.tisty.app/es/"
+    assert!(
+        spanish["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .contains("https://markdown.tisty.app/es/"),
+        "{spanish}"
     );
     assert_ne!(
         spanish["result"]["content"][0]["text"],

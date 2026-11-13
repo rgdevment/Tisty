@@ -123,6 +123,14 @@ pub(super) fn fault(id: Value, code: i32, message: &str) -> String {
     json!({ "jsonrpc": "2.0", "id": id, "error": { "code": code, "message": message } }).to_string()
 }
 
+// A guide is all text: with nothing structured beside it, every client hands the model the text.
+pub(super) fn said_alone(text: String) -> Value {
+    json!({
+        "resultType": "complete",
+        "content": [{ "type": "text", "text": text }],
+    })
+}
+
 pub(super) fn wrong(why: &str) -> Value {
     json!({
         "resultType": "complete",

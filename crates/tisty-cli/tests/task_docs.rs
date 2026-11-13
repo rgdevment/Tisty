@@ -1088,3 +1088,43 @@ fn a_long_log_s_outline_keeps_its_days_and_a_long_line_its_cap() {
         .unwrap();
     assert!(part.chars().count() <= 12_001, "{}", part.chars().count());
 }
+
+#[test]
+fn an_outline_keeps_every_chapter_and_a_cut_line_says_so() {
+    let served = Served::new();
+    let chapters: String = (1..=10)
+        .map(|chapter| {
+            let days: String = (1..=30)
+                .map(|day| format!("### Día {chapter}-{day}\n\nNada.\n\n"))
+                .collect();
+            format!("## Capítulo {chapter}\n\n{days}")
+        })
+        .collect();
+    let book = served
+        .person()
+        .writes_doc(&format!("# Libro\n\n{chapters}"));
+    let wide = served
+        .person()
+        .writes_doc(&format!("# Ancho\n\n{}\n", "palabra ".repeat(20_000)));
+
+    let outlined = served.call("outline_doc", serde_json::json!({ "doc": book }));
+    let line = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),
+    );
+
+    let titles: Vec<String> = outlined["result"]["structuredContent"]["outline"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|one| one["title"].as_str().map(str::to_string))
+        .collect();
+    for chapter in 1..=10 {
+        assert!(
+            titles.contains(&format!("Capítulo {chapter}")),
+            "chapter {chapter} left out: {titles:?}"
+        );
+    }
+    assert_eq!(line["result"]["structuredContent"]["cut"], true, "{line}");
+    assert!(text_of(&line).contains("runs past"), "{line}");
+}

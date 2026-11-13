@@ -75,8 +75,11 @@ pub(super) fn propose(
                     .get("structuredContent")
                     .cloned()
                     .unwrap_or(Value::Null);
-                if let Some(one) = kept.as_object_mut() {
-                    one.remove("said");
+                if let Some(fields) = kept.as_object_mut() {
+                    fields.remove("said");
+                    if fields.get("title").is_none_or(Value::is_null) {
+                        fields.insert("title".into(), json!(text(one, "title")));
+                    }
                 }
                 match kept.get("proposed") == Some(&json!(true)) {
                     true => written += 1,
@@ -125,17 +128,21 @@ pub(super) fn propose(
                             }
                             None => String::new(),
                         };
-                        let hidden = match (one.get("hidden"), one.get("closed"), &one["proposed"])
-                        {
-                            (Some(_), _, _) => {
-                                ", already filed and put out of sight by the person".to_string()
-                            }
-                            (None, Some(day), _) => format!(
+                        let hidden = if one.get("hidden").is_some() {
+                            ", already filed and put out of sight by the person".to_string()
+                        } else if one.get("erased").is_some() {
+                            ", already filed and erased by the person".to_string()
+                        } else if one.get("collided").is_some() {
+                            ", not written: a part's source was filed meanwhile".to_string()
+                        } else if let Some(day) = one.get("closed") {
+                            format!(
                                 ", already filed and closed on {}",
                                 day.as_str().unwrap_or_default()
-                            ),
-                            (None, None, Value::Bool(false)) => ", already there".to_string(),
-                            _ => String::new(),
+                            )
+                        } else if one["proposed"] == json!(false) {
+                            ", already there".to_string()
+                        } else {
+                            String::new()
                         };
                         format!("{:?}{id}{hidden}{idea}{parts}", said(one, "title"))
                     }

@@ -226,7 +226,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
         let items = |from: usize| lines[from..].iter().filter_map(|line| listed(line));
         if a_list(lines) {
             each.extend(items(0).map(str::to_string));
-        } else if intro && a_list(&lines[1..]) {
+        } else if intro && lines.len() > 1 && lines[1..].iter().all(|line| listed(line).is_some()) {
             each.extend(items(1).map(str::to_string));
         } else if !(intro
             && lines.len() == 1
@@ -236,7 +236,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
             each.push(lines.join("\n"));
         }
     }
-    let mut each: Vec<String> = each.into_iter().map(unquoted).collect();
+    let mut each: Vec<String> = each.into_iter().map(quotes_dropped).collect();
     each.retain(|one| !one.is_empty());
     if each.is_empty() {
         return Err(Refused::Tool(
@@ -281,11 +281,12 @@ fn headed(line: &str) -> bool {
             .is_none_or(char::is_whitespace)
 }
 
+const BULLETS: [&str; 3] = ["- ", "* ", "+ "];
+
 fn listed(line: &str) -> Option<&str> {
-    let rest = line
-        .strip_prefix("- ")
-        .or_else(|| line.strip_prefix("* "))
-        .or_else(|| line.strip_prefix("+ "))
+    let rest = BULLETS
+        .iter()
+        .find_map(|mark| line.strip_prefix(mark))
         .or_else(|| {
             let (number, rest) = line.split_once(". ")?;
             number.chars().all(|c| c.is_ascii_digit()).then_some(rest)
@@ -298,11 +299,11 @@ fn listed(line: &str) -> Option<&str> {
 }
 
 fn bulleted(line: &str) -> bool {
-    ["- ", "* ", "+ "].iter().any(|mark| line.starts_with(mark))
+    BULLETS.iter().any(|mark| line.starts_with(mark))
 }
 
 // An idea is sent as words: a quote's marks would quote it twice on its note.
-fn unquoted(idea: String) -> String {
+fn quotes_dropped(idea: String) -> String {
     idea.lines()
         .map(|line| line.trim_start_matches('>').trim_start())
         .collect::<Vec<_>>()

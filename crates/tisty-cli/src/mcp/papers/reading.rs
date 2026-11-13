@@ -557,15 +557,24 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             from,
             to,
             next,
+            cut,
         } => {
             kept_of.insert("body".into(), json!(part));
             kept_of.insert("from".into(), json!(from));
             kept_of.insert("to".into(), json!(to));
             let mut more = String::new();
+            if cut {
+                kept_of.insert("cut".into(), json!(true));
+                kept_of.insert("whole".into(), json!(false));
+                more = format!(
+                    "\n\n(Line {to} runs past what one read holds, so it ends cut where the … \
+                     stands: change it with `edit_doc` by the words you see.)"
+                );
+            }
             if let Some(next) = next {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
-                more = match kept_of.contains_key("brainstorm") {
+                more += &match kept_of.contains_key("brainstorm") {
                     true => format!(
                         "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
                          {next} and this `print`.)"
@@ -807,21 +816,27 @@ fn outline_held(all: &[Heading]) -> (Vec<&Heading>, usize) {
         .find(|level| upto(*level).len() <= OUTLINE_AT_MOST);
     let held = match deepest {
         Some(6) => upto(6),
-        Some(level) if upto(level).len() * 2 >= OUTLINE_AT_MOST => upto(level),
-        Some(level) => ends_of(upto(level + 1)),
-        None => ends_of(upto(top)),
+        Some(level) => {
+            // Every chapter stays, and the room left shows the first and last of the level under them.
+            let mut held = upto(level);
+            let under: Vec<&Heading> = all.iter().filter(|one| one.level == level + 1).collect();
+            held.extend(ends_of(under, OUTLINE_AT_MOST - held.len()));
+            held.sort_by_key(|one| one.line);
+            held
+        }
+        None => ends_of(upto(top), OUTLINE_AT_MOST),
     };
     let left = all.len() - held.len();
     (held, left)
 }
 
-fn ends_of(many: Vec<&Heading>) -> Vec<&Heading> {
-    if many.len() <= OUTLINE_AT_MOST {
+fn ends_of(many: Vec<&Heading>, room: usize) -> Vec<&Heading> {
+    if many.len() <= room {
         return many;
     }
-    let half = OUTLINE_AT_MOST / 2;
-    let tail = &many[many.len() - half..];
-    many[..half].iter().chain(tail).copied().collect()
+    let head = room / 2;
+    let tail = &many[many.len() - (room - head)..];
+    many[..head].iter().chain(tail).copied().collect()
 }
 
 fn outline_into<'a>(

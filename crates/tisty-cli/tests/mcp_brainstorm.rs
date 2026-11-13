@@ -1023,6 +1023,11 @@ fn an_idea_is_never_a_duplicate_of_itself_however_it_is_named() {
     );
 
     assert!(refused(&marked), "{marked}");
+    assert!(
+        said(&marked).contains("the one that stays"),
+        "{}",
+        said(&marked)
+    );
 }
 
 #[test]
@@ -1038,6 +1043,11 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_filed_in_a_document() {
     let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
 
     assert!(refused(&back), "{back}");
+    assert!(
+        said(&back).contains("left for a task, a document"),
+        "{}",
+        said(&back)
+    );
 }
 
 #[test]
@@ -1046,6 +1056,6 @@ fn rules_travel_once() {
 
     let rules = served.call("rules", json!({ "topic": "tasks" }));
 
-    assert!(rules["structuredContent"].get("rules").is_none(), "{rules}");
+    assert!(rules.get("structuredContent").is_none(), "{rules}");
     assert!(said(&rules).contains("## Write it to be read"));
 }

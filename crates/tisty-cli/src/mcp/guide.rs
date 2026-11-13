@@ -1,6 +1,6 @@
-use serde_json::{Value, json};
+use serde_json::Value;
 
-use super::jsonrpc::mirrored;
+use super::jsonrpc::said_alone;
 use super::looking::GUIDE;
 
 // The reference's sections in reading order, named the same in both languages so one topic reads either.
@@ -83,14 +83,9 @@ pub(super) fn language(args: &Value) -> Value {
         },
         None => indexed(&found),
     };
-    mirrored(
-        format!("{said}\n\nThe guide for people, with every example drawn: {drawn}\n"),
-        json!({
-            "topic": asked.unwrap_or("index"),
-            "lang": if spanish { "es" } else { "en" },
-            "guide": drawn,
-        }),
-    )
+    said_alone(format!(
+        "{said}\n\nThe guide for people, with every example drawn: {drawn}\n"
+    ))
 }
 
 fn indexed(found: &[(String, String)]) -> String {
