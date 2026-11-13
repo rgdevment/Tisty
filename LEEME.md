@@ -562,11 +562,11 @@ siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
 apuntar a él, y la búsqueda encuentra a los dos.
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
-importante, las dos o ninguna — *hacer*, *planificar*, *delegar*, *prescindible*. Eso
-nombra la decisión en vez de esconderla tras un número, y es la diferencia entre
-una lista que ordena y una lista que te ayuda a elegir. Alrededor: listas para
-dónde va el trabajo, etiquetas para lo que lo cruza, pasos para las partes, y una
-bitácora para lo que aprendes por el camino.
+importante, las dos o ninguna — *hacer*, *planificar*, *delegar*,
+*prescindible*. Eso nombra la decisión en vez de esconderla tras un número, y es
+la diferencia entre una lista que ordena y una lista que te ayuda a elegir.
+Alrededor: listas para dónde va el trabajo, etiquetas para lo que lo cruza,
+pasos para las partes, y una bitácora para lo que aprendes por el camino.
 
 **Terminar es donde empieza.** Casi todos los gestores tratan una tarea cumplida
 como basura que esconder. Aquí pasa a un archivo que se lee en tres capas: las
