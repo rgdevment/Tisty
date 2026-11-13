@@ -1237,6 +1237,10 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
             )));
         };
         let fits = as_far_as(body, from, WHOLE_UP_TO, last).min(to);
+        let fits = match fits < to {
+            true => idea_whole(body, from, fits),
+            false => fits,
+        };
         return Ok(Part::Held {
             body: tisty_core::docs::lines_between(body, from, fits),
             from,
@@ -1264,6 +1268,10 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         // Naming a run wide enough to cover the document was the way round the budget every other
         // way of reading one is held to.
         let fits = as_far_as(body, from, WHOLE_UP_TO, last).min(to);
+        let fits = match fits < to {
+            true => idea_whole(body, from, fits),
+            false => fits,
+        };
         return Ok(Part::Held {
             body: tisty_core::docs::lines_between(body, from, fits),
             from,
@@ -1303,7 +1311,11 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 }
             }
         }
-        let to = as_far_as(body, start, most.min(WHOLE_UP_TO), last);
+        let to = idea_whole(
+            body,
+            start,
+            as_far_as(body, start, most.min(WHOLE_UP_TO), last),
+        );
         return Ok(Part::Held {
             body: tisty_core::docs::lines_between(body, start, to),
             from: start,
@@ -1316,7 +1328,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         (false, _) => Ok(held(1, last)),
         // A sheet's headings are only the minutes its ideas came, so its outline would say nothing.
         (true, true) => {
-            let to = as_far_as(body, 1, WHOLE_UP_TO, last);
+            let to = idea_whole(body, 1, as_far_as(body, 1, WHOLE_UP_TO, last));
             Ok(Part::Held {
                 body: tisty_core::docs::lines_between(body, 1, to),
                 from: 1,
@@ -1326,6 +1338,19 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         }
         (true, false) => Ok(Part::Outline),
     }
+}
+
+// On a sheet a part ends between two notes, never between a note's heading and its words.
+fn idea_whole(body: &str, from: usize, to: usize) -> usize {
+    if !ideas::is_sheet(body) {
+        return to;
+    }
+    let lines: Vec<&str> = body.lines().collect();
+    let mut end = to;
+    while end > from && lines.get(end).is_some_and(|next| !next.trim().is_empty()) {
+        end -= 1;
+    }
+    if end > from { end } else { to }
 }
 
 /// «sereno#1», «sereno: #1» and «Sereno #1» name the same message, and a second filing of one

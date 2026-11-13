@@ -25,7 +25,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | :-- | :-- |
 | `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields. A task made from an idea on **Brainstorm** names the idea as its source, and the idea leaves the sheet, as it does when you turn it into a task |
 | `remind` | Set a task to ring at an hour |
-| `reschedule` | Move the day of a task it filed |
+| `reschedule` | Move the day of a task an agent filed |
 | `describe` | Write the description of an open task, yours too, replacing the old one |
 | `rename` | Rename any open task, yours too |
 | `note` | Add to a task's journal: up to 4,000 characters a note; longer goes on the task's page |

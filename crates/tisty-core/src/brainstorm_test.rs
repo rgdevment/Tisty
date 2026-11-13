@@ -228,3 +228,16 @@ fn a_heading_an_idea_left_behind_as_a_source_is_never_taken_again() {
         "{added}"
     );
 }
+
+#[test]
+fn an_idea_is_named_by_its_heading_with_or_without_its_marks() {
+    let heading = "2026-11-12 09:40 · yellow";
+    for said in [
+        heading.to_string(),
+        format!("[!IDEA] {heading}"),
+        format!("> [!idea] {heading}"),
+        format!("  {heading} "),
+    ] {
+        assert_eq!(heading_named(&said), heading, "{said}");
+    }
+}

@@ -261,6 +261,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
 
     let (state, mut store) = opened(paths)?;
+    super::super::ideas::brings_back_no_task(&state, &which, &now, &was)?;
     let mut said = over_again(
         paths,
         &json!({ "print": print }),

@@ -6,7 +6,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 
 - **File a task** with its steps, its date and the list it belongs in.
 - **Set an hour** for a task to ring at.
-- **Move the day** of a task it filed itself, when what it learns moves it.
+- **Move the day** of a task an agent filed, when what it learns moves it.
 - **Say a task is done**, or that it should not be done — any task, yours too. It marks it for you to confirm and closes nothing.
 - **Say a step of yours is done** — the step waits, unticked, until you take its word.
 - **Add to a task's journal.**

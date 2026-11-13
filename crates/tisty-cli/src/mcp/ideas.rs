@@ -56,6 +56,31 @@ pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Res
     Ok(())
 }
 
+pub(super) fn brings_back_no_task(
+    state: &State,
+    which: &str,
+    now: &str,
+    back: &str,
+) -> Result<(), Refused> {
+    if !is_sheet(back) {
+        return Ok(());
+    }
+    let used = brainstorm::proposed_from(state, which);
+    let here = brainstorm::ideas_on(now);
+    let again = brainstorm::ideas_on(back)
+        .into_iter()
+        .find(|one| used.contains(&one.heading) && !here.contains(one));
+    match again {
+        Some(idea) => Err(Refused::Tool(format!(
+            "going back would put «{}» on {} again, and it became a task since. Nothing was \
+             changed: edit the passage that is wrong instead.",
+            idea.text,
+            doc_named(state, which)
+        ))),
+        None => Ok(()),
+    }
+}
+
 pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Brainstorm, pinned at the top of the Library on its own: it goes in no folder and \
@@ -155,8 +180,7 @@ fn named_idea(which: &str) -> Option<(&str, &str)> {
 }
 
 fn bare_heading(heading: &str) -> &str {
-    let heading = heading.trim();
-    tisty_markdown::idea_words(heading).unwrap_or(heading)
+    brainstorm::heading_named(heading)
 }
 
 pub(super) fn names_an_idea(which: &str) -> bool {
@@ -165,12 +189,20 @@ pub(super) fn names_an_idea(which: &str) -> bool {
 
 fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
     let mut each = Vec::new();
-    for paragraph in said.replace('\r', "").split("\n\n") {
-        let lines: Vec<&str> = paragraph
-            .lines()
-            .map(str::trim)
-            .filter(|one| !one.is_empty())
-            .collect();
+    let said = said.replace('\r', "");
+    let paragraphs: Vec<Vec<&str>> = said
+        .split("\n\n")
+        .map(|paragraph| {
+            paragraph
+                .lines()
+                .map(str::trim)
+                .filter(|one| !one.is_empty())
+                .collect()
+        })
+        .collect();
+    let a_list =
+        |lines: &[&str]| !lines.is_empty() && lines.iter().all(|one| listed(one).is_some());
+    for (at, lines) in paragraphs.iter().enumerate() {
         if lines
             .iter()
             .any(|line| headed(line) || tisty_markdown::idea_words(line).is_some())
@@ -182,15 +214,21 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
                     .into(),
             ));
         }
-        match lines.iter().all(|line| listed(line).is_some()) {
-            true => each.extend(
-                lines
-                    .iter()
-                    .filter_map(|line| listed(line))
-                    .map(str::to_string),
-            ),
-            false if !lines.is_empty() => each.push(lines.join("\n")),
-            false => {}
+        // A line that opens a list with a colon only says what the ideas under it are.
+        let intro = lines
+            .first()
+            .is_some_and(|line| line.ends_with(':') && listed(line).is_none());
+        let items = |from: usize| lines[from..].iter().filter_map(|line| listed(line));
+        if a_list(lines) {
+            each.extend(items(0).map(str::to_string));
+        } else if intro && a_list(&lines[1..]) {
+            each.extend(items(1).map(str::to_string));
+        } else if !(intro
+            && lines.len() == 1
+            && paragraphs.get(at + 1).is_some_and(|next| a_list(next)))
+            && !lines.is_empty()
+        {
+            each.push(lines.join("\n"));
         }
     }
     each.retain(|one| !one.is_empty());

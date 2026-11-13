@@ -164,7 +164,7 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | Picks up the work, with nothing new | about 1% | 99% less |
 | Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
-| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
+| Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
 No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
 

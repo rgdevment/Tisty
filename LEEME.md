@@ -205,7 +205,7 @@ pasa en cambio cuando la memoria vive en Tisty.
 | El problema | Con Tisty |
 | --- | --- |
 | **Desarrollo:** en cada sesión nueva le vuelves a explicar el proyecto a tu agente | Pregunta qué cambió desde la última vez, abre la tarea *Migrar pagos a v2* con sus pasos marcados y lee lo que anotó ayer: *el webhook falla con firmas viejas; reintentar, descartado*. Sigue desde ahí. |
-| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 94 % menos que el archivo entero. |
+| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 97 % menos que el archivo entero. |
 | **Cualquiera:** resolviste esto hace ocho meses y no recuerdas cómo | Buscar *timeouts al guardar* trae la tarea archivada tal como quedó: sus pasos, su bitácora y la línea que dice que la causa era un índice que faltaba. |
 | **PM:** un mes después alguien pregunta «¿por qué decidimos esto?» | Un documento vivo por tema, *Decisiones de checkout*, con cada decisión fechada y su porqué. El agente lo encuentra y lo cita en vez de reabrir el debate. |
 | **QA:** la misma pantalla vuelve a fallar y nadie recuerda los casos de la vez anterior | La tarea de regresión archivada guarda los casos como pasos, con lo que se vio en cada uno. |
@@ -319,7 +319,7 @@ cada sesión:
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
 | Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 3 %, 12 % en el peor caso | 88–97 % menos |
 
 De dónde sale el ahorro:
 
@@ -1172,8 +1172,8 @@ Quitarles la voz saca esa carpeta del PATH otra vez. Reinicia un asistente que
 ya estaba abierto para que vea el cambio.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
-fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
-mismo, dar por hecha una tarea, también una tuya —que la marca para que la
+fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó un
+agente, dar por hecha una tarea, también una tuya —que la marca para que la
 confirmes y no cierra nada—, agregar a la bitácora, trabajar cualquier tarea
 como trabaja un documento, escribir un documento, agregar a uno que ya está ahí
 —al final o bajo un título—, corregir un pasaje de uno, escribir uno entero de

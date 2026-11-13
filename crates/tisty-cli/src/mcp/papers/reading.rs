@@ -778,6 +778,9 @@ pub(super) fn beside_ready(
 }
 
 fn away_words(state: &State, kept: &tisty_core::model::Kept) -> String {
+    if state.closed_with_its_task(kept) {
+        return "This is the page of a closed task, put away with it".to_string();
+    }
     match (
         kept.archived,
         kept.page_of.and_then(|up| up_named(state, up)),

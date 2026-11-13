@@ -201,7 +201,7 @@ and what happens instead when the memory lives in Tisty.
 | The problem | With Tisty |
 | --- | --- |
 | **Developer:** every new session you explain the project to your agent again | It asks what moved since last time, opens the task *Move payments to v2* with its ticked steps, and reads what it noted yesterday: *the webhook fails on old signatures; retrying ruled out*. It carries on from there. |
-| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 94% less than the whole file. |
+| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 97% less than the whole file. |
 | **Anyone:** you solved this eight months ago and cannot remember how | A search for *timeouts on save* brings back the archived task as it was left: its steps, its journal, and the line saying the cause was a missing index. |
 | **PM:** a month later somebody asks «why did we decide this?» | One living document per subject, *Checkout decisions*, each decision dated with its why. The agent finds it and quotes it instead of reopening the debate. |
 | **QA:** the same screen breaks again and nobody remembers last time's cases | The archived regression task keeps its cases as steps, with what was seen in each. |
@@ -312,7 +312,7 @@ agent that rereads the whole file every session:
 | Picks up the work, with nothing new | about 1% | 99% less |
 | Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
-| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
+| Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
 Where the saving comes from:
 
@@ -1143,7 +1143,7 @@ takes that folder off the PATH again. Restart an assistant that was already
 open so it sees the change.
 
 What it may do is deliberately small: file a task with its steps and its date,
-set an hour for it to ring at, move the day of a task it filed itself, say that
+set an hour for it to ring at, move the day of a task an agent filed, say that
 a task is done, yours too — which marks it for you to confirm and closes nothing
 — add to the journal, work any task the way it works a document, write a
 document, add to one that is already there — at the end or under a heading —

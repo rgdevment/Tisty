@@ -7198,6 +7198,11 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         "one subject, the outline and one section, costs {:.2}%",
         share(outline + part)
     );
+    assert!(
+        share(outline + part) <= 4.0,
+        "the readme says one subject costs about 3%, and here it costs {:.2}%",
+        share(outline + part)
+    );
 
     let opened = weight(served.call("read", serde_json::json!({ "task": &id })));
     assert!(

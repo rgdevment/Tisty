@@ -99,14 +99,21 @@ pub fn proposed_from(state: &State, file: &str) -> Vec<String> {
         .keys()
         .filter_map(|source| {
             let (doc, heading) = source.split_once('#')?;
-            let heading = heading.trim();
-            (doc.trim() == file).then(|| {
-                tisty_markdown::idea_words(heading)
-                    .unwrap_or(heading)
-                    .to_string()
-            })
+            (doc.trim() == file).then(|| heading_named(heading).to_string())
         })
         .collect()
+}
+
+// An idea is named by its heading, with or without the callout's marks in front of it.
+pub fn heading_named(heading: &str) -> &str {
+    let heading = heading.trim();
+    let marked = heading
+        .get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map(|_| heading[7..].trim());
+    tisty_markdown::idea_words(heading)
+        .or(marked)
+        .unwrap_or(heading)
 }
 
 fn taken_on(was: &str, used: &[String]) -> Taken {

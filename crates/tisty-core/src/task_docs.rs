@@ -303,27 +303,29 @@ pub fn wrote(
     };
     let by = state.signed.alias.clone();
     let owner = owner(&state, task);
-    let file = match of(&state, owner) {
-        Some(kept) => kept.file.clone(),
+    let (file, fresh) = match of(&state, owner) {
+        Some(kept) => (kept.file.clone(), false),
         None => {
             let config = crate::Config::load_or_init(paths)?;
             let body = opened(&state, task, template(&first, config.locale.as_deref()));
-            let (op, _) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let (op, created) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
             let file = match &op {
                 Op::DocAdd { d, .. } => d.file.clone(),
                 _ => return Ok(()),
             };
             store.append(op)?;
             state = State::replay(&store.read_all()?);
-            file
+            (file, created)
         }
     };
     let Some(now) = state.tasks.get(&task) else {
         return Ok(());
     };
-    let whole = crate::docs::amend(&paths.docs(), paths.data(), &file, |was| {
-        edit(was, now).filter(|said| said != was)
-    })?;
+    let edited = |was: &str| edit(was, now).filter(|said| said != was);
+    let whole = match fresh {
+        true => crate::docs::amend_fresh(&paths.docs(), &file, edited)?,
+        false => crate::docs::amend(&paths.docs(), paths.data(), &file, edited)?,
+    };
     let Some(whole) = whole else {
         return Ok(());
     };

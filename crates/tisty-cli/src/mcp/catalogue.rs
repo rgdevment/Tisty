@@ -581,7 +581,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("reschedule", Effect::Replaces),
     ("say_done", Effect::Sets),
     ("say_not_doing", Effect::Sets),
-    ("sum_up", Effect::Sets),
+    ("sum_up", Effect::Replaces),
     ("outline_doc", Effect::Reads),
     ("read", Effect::Reads),
     ("find", Effect::Reads),

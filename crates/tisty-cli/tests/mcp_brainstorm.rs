@@ -841,6 +841,11 @@ fn an_idea_turned_into_a_part_leaves_the_sheet_too() {
         json!(1),
         "{made}"
     );
+    assert!(
+        said(&made).contains("For its part \"Presupuesto del techo\""),
+        "{}",
+        said(&made)
+    );
     let left = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
     assert!(left.iter().all(|one| one.heading != ROOF));
 }
@@ -867,4 +872,119 @@ fn a_new_idea_never_takes_the_heading_of_one_already_made_a_task() {
         .map(|one| one.heading)
         .collect();
     assert!(!heads.contains(&first.heading), "{heads:?}");
+}
+
+#[test]
+fn a_line_that_introduces_a_list_is_no_idea() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let jotted = served.call(
+        "append_doc",
+        json!({ "doc": sheet, "body": "Ideas para el finde:\n- Ir al cerro\n- Hacer pan\n\nOtra más:\n\n- Llamar a Ana" }),
+    );
+
+    assert!(!refused(&jotted), "{jotted}");
+    let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    let texts: Vec<&str> = ideas[3..].iter().map(|one| one.text.as_str()).collect();
+    assert_eq!(texts, ["Ir al cerro", "Hacer pan", "Llamar a Ana"]);
+}
+
+#[test]
+fn a_long_sheet_is_read_one_whole_idea_at_a_time() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    for round in 0..4 {
+        let many: String = (1..=50)
+            .map(|n| format!("- Idea {round}-{n} con algunas palabras más para que pese algo\n"))
+            .collect();
+        served.call("append_doc", json!({ "doc": sheet, "body": many }));
+    }
+
+    let read = served.call("read_doc", json!({ "doc": sheet }));
+
+    let next = read["structuredContent"]["next"].as_u64().unwrap() as usize;
+    let body = served.body(&sheet);
+    let after = body.lines().nth(next - 1).unwrap_or_default();
+    assert!(
+        after.trim().is_empty(),
+        "the part stops inside an idea, before {after:?}"
+    );
+}
+
+#[test]
+fn going_back_on_the_sheet_never_brings_back_an_idea_made_a_task() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    served.call(
+        "propose",
+        json!({ "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }),
+    );
+
+    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+
+    assert!(refused(&back), "{back}");
+    assert!(said(&back).contains("became a task"), "{}", said(&back));
+}
+
+#[test]
+fn an_idea_named_with_its_marker_is_marked_all_the_same() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let marked = served.call(
+        "flag_doc",
+        json!({ "doc": format!("{sheet}#[!IDEA] {CONCERT}"), "reason": "obsolete", "body": "Ya pasó." }),
+    );
+
+    assert!(!refused(&marked), "{marked}");
+    assert_eq!(served.marks(&sheet).len(), 1);
+}
+
+#[test]
+fn an_idea_that_ends_in_a_colon_is_still_an_idea() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let jotted = served.call(
+        "append_doc",
+        json!({ "doc": sheet, "body": "Nombres para el perro:\n\n- Revisar el auto:\n  frenos y aceite\n- Llamar al taller" }),
+    );
+
+    assert!(!refused(&jotted), "{jotted}");
+    let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    let texts: Vec<&str> = ideas[3..].iter().map(|one| one.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        [
+            "Nombres para el perro:",
+            "- Revisar el auto:\nfrenos y aceite\n- Llamar al taller"
+        ]
+    );
+}
+
+#[test]
+fn several_filings_say_which_one_the_person_put_out_of_sight() {
+    let served = Served::new();
+    let filed = served.call(
+        "propose",
+        json!({ "title": "Regalo sorpresa", "source": "mail:7" }),
+    );
+    let id = filed["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().hides(id.parse().unwrap());
+
+    let batch = served.call(
+        "propose",
+        json!({ "tasks": [{ "title": "Otra vez", "source": "mail:7" }, { "title": "Nueva" }] }),
+    );
+
+    assert!(
+        said(&batch).contains("put out of sight"),
+        "{}",
+        said(&batch)
+    );
+    assert!(!batch.to_string().contains("Regalo sorpresa"), "{batch}");
 }

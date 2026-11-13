@@ -337,12 +337,32 @@ pub fn amend(
     id: &str,
     make: impl FnOnce(&str) -> Option<String>,
 ) -> Result<Option<String>> {
+    amended(root, Some(data), id, make)
+}
+
+// A body nothing came before, as a page just made, keeps no step back to undo it into.
+pub fn amend_fresh(
+    root: &Path,
+    id: &str,
+    make: impl FnOnce(&str) -> Option<String>,
+) -> Result<Option<String>> {
+    amended(root, None, id, make)
+}
+
+fn amended(
+    root: &Path,
+    data: Option<&Path>,
+    id: &str,
+    make: impl FnOnce(&str) -> Option<String>,
+) -> Result<Option<String>> {
     alone(root, || {
         let was = read(root, id)?;
         let Some(whole) = make(&was) else {
             return Ok(None);
         };
-        kept_before(data, id, &was, &whole)?;
+        if let Some(data) = data {
+            kept_before(data, id, &was, &whole)?;
+        }
         written(root, id, &whole)?;
         Ok(Some(settled(&whole)))
     })

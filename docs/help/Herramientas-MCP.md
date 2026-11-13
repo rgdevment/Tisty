@@ -25,7 +25,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | :-- | :-- |
 | `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Lluvia de ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
 | `remind` | Hacer que una tarea suene a una hora |
-| `reschedule` | Mover el día de una tarea que anotó |
+| `reschedule` | Mover el día de una tarea que anotó un agente |
 | `describe` | Escribir la descripción de una tarea abierta, también las tuyas, reemplazando la anterior |
 | `rename` | Renombrar cualquier tarea abierta, también las tuyas |
 | `note` | Añadir a la bitácora de una tarea: hasta 4000 caracteres por nota; lo más largo va a la página de la tarea |

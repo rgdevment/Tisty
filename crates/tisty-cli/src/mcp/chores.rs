@@ -116,7 +116,17 @@ pub(super) fn propose(
                             true => ", and the idea it came from left Brainstorm",
                             false => "",
                         };
-                        format!("{:?}{id}{idea}", said(one, "title"))
+                        let parts = match one.get("parts_from_ideas").and_then(Value::as_u64) {
+                            Some(n) => {
+                                format!(", and {n} idea(s) its parts came from left Brainstorm")
+                            }
+                            None => String::new(),
+                        };
+                        let hidden = match one.get("hidden").is_some() {
+                            true => ", already filed and put out of sight by the person",
+                            false => "",
+                        };
+                        format!("{:?}{id}{hidden}{idea}{parts}", said(one, "title"))
                     }
                 })
                 .collect::<Vec<_>>()
@@ -207,6 +217,10 @@ pub(super) fn proposed(
         .map(|one| json!({ "id": one.id.to_string(), "title": one.title }))
         .collect();
     let sourced: Vec<String> = parts.iter().filter_map(|one| one.source.clone()).collect();
+    let part_sources: Vec<(String, String)> = parts
+        .iter()
+        .filter_map(|one| Some((one.title.clone(), one.source.clone()?)))
+        .collect();
     let parts_from = sourced.clone();
     let mut ops = mine.ops;
     for one in parts {
@@ -272,9 +286,13 @@ pub(super) fn proposed(
     let from_idea = source
         .as_deref()
         .and_then(|one| super::ideas::made_a_task(paths, &state, &mut store, one));
-    let parts_from_ideas: Vec<super::ideas::Filed> = parts_from
+    let parts_from_ideas: Vec<(String, super::ideas::Filed)> = part_sources
         .iter()
-        .filter_map(|one| super::ideas::made_a_task(paths, &state, &mut store, one))
+        .filter_map(|(part, source)| {
+            let fresh = opened(paths).ok().map(|(now, _)| now);
+            let now = fresh.as_ref().unwrap_or(&state);
+            super::ideas::made_a_task(paths, now, &mut store, source).map(|one| (part.clone(), one))
+        })
         .collect();
     let landed = text(args, "list");
     let where_at = match &landed {
@@ -314,10 +332,10 @@ pub(super) fn proposed(
             kept.insert("from_idea".into(), json!(moved.said.trim()));
         }
     }
-    for moved in &parts_from_ideas {
-        parts_said.push_str(&moved.said);
+    for (part, moved) in &parts_from_ideas {
+        parts_said.push_str(&format!(" For its part {part:?}:{}", moved.said));
     }
-    let parts_off = parts_from_ideas.iter().filter(|one| one.off).count();
+    let parts_off = parts_from_ideas.iter().filter(|(_, one)| one.off).count();
     if parts_off > 0 {
         kept.insert("parts_from_ideas".into(), json!(parts_off));
     }
@@ -529,6 +547,15 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
             (None, false) => held.clone(),
         };
     in_order(on.as_ref(), owed.as_ref())?;
+    let day_of = |one: &Option<DateSpec>| one.as_ref().map(|it| (it.at, it.has_time));
+    if day_of(&standing(&on, "date", &task.date)) == day_of(&task.date)
+        && day_of(&standing(&owed, "deadline", &task.deadline)) == day_of(&task.deadline)
+    {
+        return Ok(told(
+            format!("{:?} already has those days; nothing changed.", task.title),
+            json!({ "id": id.to_string(), "title": task.title, "moved": false }),
+        ));
+    }
 
     let was = (
         task.date.as_ref().map(|one| one.date().to_string()),
@@ -582,6 +609,7 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
             "date": standing(&on, "date", &task.date).map(|one| one.date().to_string()),
             "deadline": standing(&owed, "deadline", &task.deadline)
                 .map(|one| one.date().to_string()),
+            "moved": true,
         }),
     ))
 }

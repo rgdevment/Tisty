@@ -780,6 +780,7 @@ fn no_tool_names_or_writes_a_task_the_person_hid() {
     let moved = served.call("move", serde_json::json!({ "task": part, "part_of": null }));
     assert_ne!(moved["result"]["isError"], true, "{moved}");
     assert!(!moved.to_string().contains("secret surprise"), "{moved}");
+    assert!(text_of(&moved).contains("go from its whole"), "{moved}");
     for answer in [&found, &moved] {
         assert!(!answer.to_string().contains("secret surprise"), "{answer}");
     }
@@ -917,4 +918,73 @@ fn no_read_of_a_long_document_runs_past_its_caps() {
         hit.contains("aguja") && hit.chars().count() <= 1_000,
         "{found}"
     );
+}
+
+#[test]
+fn the_small_answers_about_a_task_say_what_truly_happened() {
+    let served = Served::new();
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "Rina's booster", "date": "2026-12-01", "steps": ["Call the vet"] }),
+    );
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let same = served.call(
+        "reschedule",
+        serde_json::json!({ "task": task, "date": "2026-12-01" }),
+    );
+    assert_eq!(
+        same["result"]["structuredContent"]["moved"], false,
+        "{same}"
+    );
+    assert!(text_of(&same).contains("nothing changed"), "{same}");
+
+    let persons = persons_task(&served);
+    served.person().adds_step(person::task(&persons), "pagar");
+    served.call(
+        "tick",
+        serde_json::json!({ "task": persons, "steps": ["pagar"] }),
+    );
+    let reworded = served.call(
+        "reword_step",
+        serde_json::json!({ "task": persons, "step": "pagar", "text": "pagar la cuenta" }),
+    );
+    assert!(text_of(&reworded).contains("`tick` it again"), "{reworded}");
+}
+
+#[test]
+fn a_fresh_page_keeps_no_step_back_that_would_take_the_note_off() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "Found the receipt." }),
+    );
+    assert_ne!(added["result"]["isError"], true, "{added}");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let restored = served.call("restore_doc", serde_json::json!({ "doc": file }));
+
+    assert_eq!(restored["result"]["isError"], true, "{restored}");
+    assert!(
+        text_of(&restored).contains("nothing is kept beside"),
+        "{restored}"
+    );
+    assert!(on_disk(&served, &file).contains("Found the receipt."));
+}
+
+#[test]
+fn a_closed_task_s_page_says_it_went_with_its_task() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    served.person().closes(person::task(&task));
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+
+    assert!(text_of(&read).contains("closed task"), "{read}");
 }

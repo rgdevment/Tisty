@@ -164,7 +164,7 @@ Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
 | Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 3 %, 12 % en el peor caso | 88–97 % menos |
 
 Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
 

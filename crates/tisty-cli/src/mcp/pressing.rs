@@ -109,8 +109,9 @@ pub(super) fn name_pressing(
             kept.insert("pressing_more".into(), json!(more));
             let near = today.saturating_add(jiff::Span::new().days(DUE_SOON_DAYS));
             format!(
-                " {more} more: `find` with `scope` «open» and `to` {near} brings them, each with \
-                 its `standing`."
+                " {more} more: `find` with `scope` «open», `said_done` false and `to` {near} \
+                 brings them among the near ones; the pressing carry a `standing` of \
+                 `overdue`, `due_soon`, `today` or `late`."
             )
         }
     };

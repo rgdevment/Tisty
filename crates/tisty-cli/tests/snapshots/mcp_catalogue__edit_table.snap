@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Read or change one table of a document by rows and columns, never its Markdown; without `do` it only shows the table. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
+  "description": "Read or change one table of a document by rows and columns, never its Markdown; without `do` it only shows the table. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

@@ -53,7 +53,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     shaped["print"] = json!(tisty_core::attach::printed(whole.as_bytes()));
     let reply = told(
         format!(
-            "Changed the table {} in {}, {}. What it was is kept beside the documents.{}{}{}",
+            "Changed the table {} in {}, {}. What it was is kept beside the documents: `restore_doc` undoes it.{}{}{}",
             nth + 1,
             written_name(&state, &which, &whole),
             by_how_much(&was, &whole),
