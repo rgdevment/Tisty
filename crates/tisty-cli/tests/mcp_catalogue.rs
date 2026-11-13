@@ -114,14 +114,14 @@ fn the_guides_weigh_what_the_rules_tool_says_they_do() {
     for topic in ["tasks", "documents", "tidying", "ideas"] {
         let size = rules(Some(topic)).chars().count();
         assert!(
-            (3_000..=10_500).contains(&size),
-            "«{topic}» is {size} characters, and `rules` says 3,000 to 10,000: say the new size there"
+            (3_000..=11_000).contains(&size),
+            "«{topic}» is {size} characters, and `rules` says 3,000 to 11,000: say the new size there"
         );
     }
     let all = rules(Some("all")).chars().count();
     assert!(
-        all <= 31_500,
-        "`all` is {all} characters, and `rules` says 30,000: say the new size there"
+        all <= 31_000,
+        "`all` is {all} characters, and `rules` says 31,000: say the new size there"
     );
 }
 

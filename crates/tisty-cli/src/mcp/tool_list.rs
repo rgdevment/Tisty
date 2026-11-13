@@ -542,7 +542,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "Read the rules for working here, by topic",
-            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 10,000 characters each, 30,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
+            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,000 characters each, 31,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {

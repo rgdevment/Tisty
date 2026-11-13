@@ -3174,11 +3174,11 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     );
     let next = format!("riego-{} ", kept.len());
     assert!(
-        kept[kept.len() - 1]["around"]
+        !kept[kept.len() - 1]["around"]
             .as_str()
             .unwrap()
             .contains(&next),
-        "the last hit shown still reaches the line after it, though that hit was left out: {}",
+        "a hit left out for room is not shown again as the neighbour of the last one: {}",
         kept[kept.len() - 1]
     );
 
