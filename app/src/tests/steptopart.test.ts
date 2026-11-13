@@ -1,5 +1,5 @@
 import { stepLine, steppedTitle } from "tisty-editor/read";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("a step offered as a part", () => {
   it("is read back the way the core reads its words", () => {
@@ -7,6 +7,12 @@ describe("a step offered as a part", () => {
     expect(steppedTitle("- [ ] Pack the books\\\\")).toBe("Pack the books");
     expect(steppedTitle("- [x] Pack the books")).toBeNull();
     expect(steppedTitle("- [ ] ")).toBeNull();
+  });
+
+  it("is read at once however many blanks pad it before a break it cannot cross", () => {
+    const began = vi.getRealSystemTime();
+    expect(steppedTitle(`- [ ] ${" ".repeat(100_000)}x\u2028y`)).toBeNull();
+    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
   });
 
   it("is only a whole line of its own, whatever ends it", () => {

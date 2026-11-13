@@ -347,6 +347,13 @@ describe("a step named by its number", () => {
     expect(stagesIn(text)).toEqual(["uno", "dos"]);
   });
 
+  it("counts a box with nothing written after it, and reads a padded line at once", () => {
+    expect(stagesIn("- [ ]  \n- [x] dos")).toEqual(["", "dos"]);
+    const began = vi.getRealSystemTime();
+    expect(stagesIn(`* [ ] ${" ".repeat(100_000)}x\u2028y`)).toEqual([]);
+    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
+  });
+
   it("offers the page's steps after [[#, each by its number", () => {
     const state = EditorState.create({ doc: "see [[#", extensions: [hosted.of(HOST), markdown()] });
     const said = stepping(() => ({
