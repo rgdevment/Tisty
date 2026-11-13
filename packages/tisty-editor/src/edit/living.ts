@@ -146,7 +146,9 @@ const living = EditorView.baseTheme({
     background: "transparent",
   },
   ".cm-rich": {
-    margin: "6px 0",
+    display: "flow-root",
+    margin: "0",
+    padding: "6px 0",
     borderRadius: "6px",
     cursor: "default",
     outline: "2px solid transparent",
