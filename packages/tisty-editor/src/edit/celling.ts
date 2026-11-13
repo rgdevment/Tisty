@@ -11,10 +11,15 @@ const cellsOf = (line: string): string[] =>
 
 const rowsOf = (source: string): string[] => source.split("\n").filter((one) => one.trim());
 
+// A head keeps its type in braces, which the core keeps on its own, so only the name is written.
+const TYPED = /\s*\{[^{}]*\}\s*$/;
+
 const rawOf = (source: string, row: number, column: number): string | null => {
   const lines = rowsOf(source);
   const line = row < 0 ? lines[0] : lines[row + 2];
-  return line === undefined ? null : (cellsOf(line)[column] ?? null);
+  const cell = line === undefined ? undefined : cellsOf(line)[column];
+  if (cell === undefined) return null;
+  return row < 0 ? cell.replace(TYPED, "") : cell;
 };
 
 export const applied = (view: EditorView, next: string) => {
@@ -58,7 +63,6 @@ const typeOf = (cell: HTMLTableCellElement): string =>
   cell.closest("table")?.querySelectorAll<HTMLElement>("thead th")[cell.cellIndex]?.dataset.type ??
   "";
 
-// The system's own calendar picks the day, and the cell keeps the day as the core reads it.
 const dayPicked = (
   view: EditorView,
   cell: HTMLTableCellElement,
@@ -95,7 +99,7 @@ const dayPicked = (
     view.focus();
   };
   input.addEventListener("change", () => finish(input.value));
-  input.addEventListener("blur", () => finish(null));
+  input.addEventListener("blur", () => finish(input.value || null));
   input.addEventListener("keydown", (event) => {
     if (event.key === "Escape") finish(null);
     else if (event.key === "Enter") finish(input.value);

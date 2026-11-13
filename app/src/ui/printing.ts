@@ -81,7 +81,6 @@ const narrowest = (table: HTMLElement): number => {
   return needs;
 };
 
-// A document is read through its page; a page drawn apart is read as it is.
 const blocksOf = (page: Document | Element | null | undefined, kind: string): HTMLElement[] => {
   if (!page) return [];
   const scope = page.nodeType === 1 ? ":scope" : ".page";

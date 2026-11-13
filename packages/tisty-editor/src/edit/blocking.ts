@@ -166,7 +166,11 @@ export type Editing = {
   readonly view: EditorView;
   readonly leave: () => void;
   readonly kept: (yes: boolean) => void;
+  readonly flush?: () => void;
 };
+
+// The whole document is copied once it rests, not on every key, which in a long one is what weighed.
+const HANDED_AFTER_MS = 150;
 
 const inked = HighlightStyle.define([
   { tag: tags.heading, fontWeight: "640" },
@@ -341,17 +345,28 @@ export const edited = (
   let undock = () => {};
   let asleep = (_: boolean) => {};
   let replace = () => {};
+  let due: ReturnType<typeof setTimeout> | undefined;
+  const flush = () => {
+    if (due === undefined) return;
+    clearTimeout(due);
+    due = undefined;
+    onChange(view.state.sliceDoc());
+  };
   const leave = () => {
     if (gone) return;
     gone = true;
     if (oneLine) held(view, said);
     settle(view);
-    const tight = live
-      ? view.state.sliceDoc()
-      : tightened(view.state, Boolean(whole) || view.state.doc.eq(opening));
+    const untouched = view.state.doc.eq(opening);
+    // A document only looked at is left as it came; one written in is tidied as a block always was.
+    const tight =
+      live && untouched
+        ? view.state.sliceDoc()
+        : tightened(view.state, Boolean(whole) || untouched);
     if (tight !== view.state.sliceDoc()) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: tight } });
     }
+    flush();
     const text = view.state.sliceDoc();
     const renamed = renamedIn(view.state);
     view.destroy();
@@ -443,7 +458,10 @@ export const edited = (
         EditorView.updateListener.of((update) => {
           // Words taken in from outside are already the sheet's; only the person's are handed back.
           const theirs = update.transactions.every((one) => one.isUserEvent("outside"));
-          if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
+          if (update.docChanged && !theirs && live) {
+            clearTimeout(due);
+            due = setTimeout(flush, HANDED_AFTER_MS);
+          } else if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
           if (live && update.focusChanged) asleep(!update.view.hasFocus);
           // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
@@ -480,5 +498,5 @@ export const edited = (
   replace = dock.place;
   if (live && view.state.field(marksShown)) view.dispatch({ effects: showMarks.of(false) });
   if (!live) view.focus();
-  return { view, leave, kept: bar.kept };
+  return { view, leave, kept: bar.kept, flush };
 };

@@ -181,6 +181,8 @@ export const columnWidened = (
   let wide = was;
   page.documentElement.classList.add("widening");
   const moved = (next: MouseEvent) => {
+    // Let go outside the page, the press ends unheard; the next move without a button ends it here.
+    if (next.buttons === 0) return ended();
     wide = Math.max(FEWEST_DASHES * STEP_PX, Math.round(was + next.clientX - start));
     if (col) col.style.width = `${wide}px`;
     else head.style.width = `${wide}px`;

@@ -44,6 +44,7 @@ import { useKeptHeight } from "./heights";
 import { edited, editedLive } from "./hosting";
 import { blockDrawer } from "./liveBlocks";
 import { livelyChoices } from "./livelyMenu";
+import { LivelyBelow, useFrameScroll } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -186,7 +187,6 @@ export default function Sheet(props: Readonly<Props>) {
   const putting = useRef(-1);
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
-  const [leaves, setLeaves] = useState(false);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
   turnedNow.current = turned;
@@ -308,6 +308,7 @@ export default function Sheet(props: Readonly<Props>) {
   }, [file, value, left]);
 
   useEffect(() => {
+    open.current?.flush?.();
     if (value === latest.current) {
       echoes.current = [];
       return;
@@ -987,25 +988,15 @@ export default function Sheet(props: Readonly<Props>) {
     });
   }, [ready]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each drawing may bring the frame anew.
-  useEffect(() => {
-    framed()?.document.documentElement.classList.toggle("lively", lively);
-  }, [lively, ready, turned]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new drawing may bring a new frame to listen to.
-  useEffect(() => {
-    const inner = lively ? framed() : null;
-    if (!inner) return;
-    const rolled = () => {
-      const sheet = inner.document.scrollingElement;
-      if (!sheet) return;
-      setStuck(sheet.scrollTop > 8);
-      if (putting.current >= 0 || sheet.scrollHeight <= sheet.clientHeight) return;
-      said.current.onSeen?.(sheet.scrollTop);
-    };
-    inner.addEventListener("scroll", rolled, { passive: true });
-    return () => inner.removeEventListener("scroll", rolled);
-  }, [lively, ready, turned]);
+  useFrameScroll({
+    lively,
+    frame: framed,
+    putting,
+    onStuck: setStuck,
+    onSeen: (at) => said.current.onSeen?.(at),
+    ready,
+    turned,
+  });
 
   const { lately, looking } = props;
   // `turned` is each new drawing of the page, which comes without the marks.
@@ -1153,18 +1144,9 @@ export default function Sheet(props: Readonly<Props>) {
         />
       </div>
       {below && lively && framed() ? (
-        <div className={`mx-auto shrink-0 ${widthOf}`}>
-          <button
-            type="button"
-            aria-expanded={leaves}
-            onClick={() => setLeaves((was) => !was)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-[12.5px] text-faint hover:text-ink"
-          >
-            <span aria-hidden>{leaves ? "▾" : "▸"}</span>
-            <span>{t("theseLeaves")}</span>
-          </button>
-          {leaves && <div className="max-h-[45vh] overflow-y-auto">{below}</div>}
-        </div>
+        <LivelyBelow folds={!above} width={widthOf}>
+          {below}
+        </LivelyBelow>
       ) : (
         below
       )}

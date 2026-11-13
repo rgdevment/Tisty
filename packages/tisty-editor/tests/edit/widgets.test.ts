@@ -261,9 +261,48 @@ describe("a table written in place", () => {
     const view = viewOf(DOC, host);
     const grip = view.dom.querySelector(".cm-rich .col-grip");
     if (grip) press(grip, { clientX: 0 });
-    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 120 }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 120, buttons: 1 }));
     document.dispatchEvent(new MouseEvent("mouseup"));
     expect(view.state.doc.toString()).toContain("| ------------ | --- |");
+  });
+
+  it("ends a widening let go outside the page at the next move with no button", () => {
+    const { host } = hostOf();
+    const view = viewOf(DOC, host);
+    const grip = view.dom.querySelector(".cm-rich .col-grip");
+    if (grip) press(grip, { clientX: 0 });
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 120, buttons: 1 }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 300, buttons: 0 }));
+    document.dispatchEvent(new MouseEvent("mousemove", { clientX: 500, buttons: 1 }));
+    expect(view.state.doc.toString()).toContain("| ------------ | --- |");
+    expect(document.documentElement.classList.contains("widening")).toBe(false);
+  });
+
+  it("renames a typed column by its name alone, the core keeping its type", async () => {
+    const { host, edits } = hostOf();
+    const view = viewOf("| a {date} | b |\n| --- | --- |\n| 1 | 2 |", host);
+    const head = view.dom.querySelector<HTMLTableCellElement>(".cm-rich th");
+    if (!head) throw new Error("no head");
+    press(head);
+    expect(head.textContent).toBe("a");
+    head.textContent = "day";
+    head.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settled();
+    expect(edits).toEqual([{ kind: "rename", column: 0, said: "day" }]);
+  });
+
+  it("keeps a day typed in the calendar when its field is left", async () => {
+    const { host, edits } = hostOf(["date", "text"]);
+    const view = viewOf(DOC, host);
+    const cell = view.dom.querySelector<HTMLTableCellElement>(".cm-rich td");
+    if (!cell) throw new Error("no cell");
+    press(cell);
+    const input = cell.querySelector<HTMLInputElement>("input[type=date]");
+    if (!input) throw new Error("no calendar");
+    input.value = "2026-12-01";
+    input.dispatchEvent(new Event("blur"));
+    await settled();
+    expect(edits).toEqual([{ kind: "cell", row: 0, column: 0, said: "2026-12-01" }]);
   });
 });
 
@@ -297,6 +336,17 @@ describe("the views of the whole-document editor", () => {
     view.dispatch({ effects: showMarks.of(true) });
     const took = livelyKeys.filter((one) => one.key === "Backspace").some((one) => one.run?.(view));
     expect(took).toBe(false);
+  });
+
+  it("never lets the caret stand before the hidden properties", () => {
+    const { host } = hostOf();
+    const doc = "---\nlang: es\n---\n\n# T";
+    const view = viewOf(doc, host);
+    view.dispatch({ selection: { anchor: 0 } });
+    expect(view.state.selection.main.head).toBe(doc.indexOf("\n\n# T") + 1);
+    view.dispatch({ effects: showMarks.of(true) });
+    view.dispatch({ selection: { anchor: 0 } });
+    expect(view.state.selection.main.head).toBe(0);
   });
 
   it("keeps the properties at the top out of the preview, and shows them in Markdown", () => {

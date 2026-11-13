@@ -939,4 +939,21 @@ describe("the whole-document sheet", () => {
     view.getByRole("button", { name: "Pages" }).click();
     await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
   });
+
+  it("shows the link to the next page as it is, folding nothing on a page", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        above={<p>the book</p>}
+        below={<p>next page</p>}
+      />,
+    );
+    await loaded(await shown(view.container));
+    await waitFor(() => expect(ipc.opened).toHaveLength(1));
+    expect(view.getByText("next page")).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Pages" })).toBeNull();
+  });
 });

@@ -36,6 +36,8 @@ const dressed = (into: HTMLElement, measured: () => void) => {
   void diagrams(into, darkNow(), live).then(measured);
 };
 
+const FRESH_AT_MOST = 32;
+
 const keyOf = (source: string) => source.replace(/\r\n/g, "\n").trim();
 
 const placed = (into: HTMLElement, html: string, measured: () => void) => {
@@ -75,6 +77,7 @@ export const blockDrawer = (page: Document, body: string): NonNullable<Hosted["d
     docDrawn(source)
       .then((html) => {
         fresh.set(key, html);
+        if (fresh.size > FRESH_AT_MOST) fresh.delete(fresh.keys().next().value as string);
         if (into.isConnected) placed(into, html, measured);
       })
       .catch(() => {});

@@ -1,6 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
 import {
-  type EditorState,
+  EditorSelection,
+  EditorState,
   type Range,
   StateEffect,
   StateField,
@@ -181,7 +182,7 @@ const reshaped = (tr: Transaction) =>
   tr.effects.length > 0 ||
   tr.state.field(revealed) !== tr.startState.field(revealed);
 
-// A caret walking the words changes nothing drawn, unless it takes a block whole or lets one go.
+// Rebuilding every drawn block on each caret move is what made long documents slow to walk through.
 const chosenTurned = (was: DecorationSet, tr: Transaction): boolean => {
   const { from: start, to: end } = tr.state.selection.main;
   let turned = false;
@@ -233,4 +234,21 @@ export const drawnKeys: KeyBinding[] = [
   { key: "Delete", run: takenFirst(1) },
 ];
 
-export const drawing = [revealed, drawnBlocks];
+// Words written before the hidden properties would end them, so the caret always lands after them.
+const afterProperties = EditorState.transactionFilter.of((tr) => {
+  if (!tr.selection || tr.state.field(marksShown, false)) return tr;
+  const front = propertiesEnd(tr.state);
+  if (front === null) return tr;
+  const past = Math.min(tr.state.doc.length, front + 1);
+  const held = tr.state.selection.ranges.some((one) => one.from <= front);
+  if (!held) return tr;
+  const kept = EditorSelection.create(
+    tr.state.selection.ranges.map((one) =>
+      EditorSelection.range(Math.max(one.anchor, past), Math.max(one.head, past)),
+    ),
+    tr.state.selection.mainIndex,
+  );
+  return [tr, { selection: kept, sequential: true }];
+});
+
+export const drawing = [revealed, drawnBlocks, afterProperties];
