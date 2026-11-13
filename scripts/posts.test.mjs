@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
-import { blueskyLength, check, judged, linkFacets, oauthSignature, readPosts, send, webpSize, xLength } from "./posts.mjs";
+import { blueskyLength, check, forX, judged, linkFacets, oauthSignature, readPosts, send, webpSize, xLength } from "./posts.mjs";
 
 const picture = "assets/screens/readme/en-01-archive.webp";
 const said = (text) => ({ text, picture, shows: "The Archive" });
@@ -90,6 +90,12 @@ test("X weighs a link, with or without its scheme, as 23", () => {
   assert.equal(xLength("see tisty.app now"), "see ".length + 23 + " now".length);
 });
 
+test("X gets the text without its links, so each post costs the plain rate", () => {
+  assert.equal(forX("¿Sabías que Tisty guarda lo que terminas? https://tisty.app"), "¿Sabías que Tisty guarda lo que terminas?");
+  assert.equal(forX("Mira tisty.app, y pruébalo."), "Mira, y pruébalo.");
+  assert.equal(forX("Did you know https://tisty.app is free?"), "Did you know is free?");
+});
+
 test("X weighs an emoji, an ellipsis and a CJK character as 2, and accents as 1", () => {
   assert.equal(xLength("¿Sabías?"), 8);
   assert.equal(xLength("👍🏽"), 2);
@@ -174,7 +180,7 @@ test("both languages go to X with their picture and alt text, signed", async () 
   const posted = calls.filter((one) => one.url.endsWith("/2/tweets")).map((one) => JSON.parse(one.init.body));
   assert.deepEqual(
     posted.map((one) => one.text),
-    [entry().es.text, entry().en.text],
+    ["¿Sabías que Tisty guarda lo que terminas?", "Did you know Tisty keeps what you finish?"],
   );
   assert.deepEqual(posted[0].media, { media_ids: ["77"] });
   const alt = JSON.parse(calls.find((one) => one.url.endsWith("/2/media/metadata")).init.body);

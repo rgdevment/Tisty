@@ -50,6 +50,14 @@ const xWeight = (grapheme) =>
         return sum + (X_LIGHT.some(([from, to]) => at >= from && at <= to) ? 1 : 2);
       }, 0);
 
+// A post with a link costs X's API about thirteen times more, and tisty.app is already on the profile.
+export const forX = (text) =>
+  text
+    .replace(X_LINKED, "")
+    .replace(/[ 	]+([.,;:!?])/g, "$1")
+    .replace(/[ 	]{2,}/g, " ")
+    .trim();
+
 // X counts as twitter-text does: a link is 23, an emoji 2, and so is any character past its light ranges.
 export function xLength(text) {
   const links = text.match(X_LINKED) ?? [];
@@ -72,7 +80,7 @@ function pictureWrong(picture, root) {
 
 function saidWrong(said, tongue, root) {
   if (!said?.text) return ["no text"];
-  const onX = xLength(said.text);
+  const onX = xLength(forX(said.text));
   const onBluesky = blueskyLength(said.text);
   return [
     !said.text.startsWith(OPENING[tongue]) && `it opens with «${OPENING[tongue]}»`,
@@ -184,7 +192,7 @@ async function openX(keys) {
     const id = media.data.id;
     await call("https://api.x.com/2/media/metadata", { id, metadata: { alt_text: { text: said.shows } } }, "X took no alt text");
     try {
-      const post = await call("https://api.x.com/2/tweets", { text: said.text, media: { media_ids: [id] } }, "X took no post");
+      const post = await call("https://api.x.com/2/tweets", { text: forX(said.text), media: { media_ids: [id] } }, "X took no post");
       return `https://x.com/i/status/${post.data.id}`;
     } catch (why) {
       if (alreadyOnX(why)) return "already posted";
