@@ -1,7 +1,7 @@
 {
   "author": "rgdevment",
   "files": {
-    "en/agent.md": "e613fc9aab5a00330d77c46ead3add1ef327fcb2e2299c884dfb53e4f4cbe4c3",
+    "en/agent.md": "088bae29f6f96ece8da11cb6e37f79624c32f3d79ec6abfaba880f02eef1f10d",
     "en/archive.png": "7656ed5f420d15af3a133ea82c17215fc89dcd447baefae354b72e4c4dcc4ed0",
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "en/brainstorm.png": "4d44d3b608c75c6584cd12e53d4a46c2e736b3ceffc0760cd3630c4723762952",
@@ -19,7 +19,7 @@
     "en/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565",
     "en/walks.csv": "a3ed6dec159496854234fbd70110fcde8831f637b0dff3a0b7de2504dda4195d",
     "en/walks.html": "7746e355057ffe4a703e184c14fbe4da15262031ba9f5927c103f10369e64eaf",
-    "es/agentes.md": "82993ade77c9943eb19e7784d3605e9fd5220d190d53642e51724b81e5a92958",
+    "es/agentes.md": "54072297e269ca4a1912b4a450afe6751096204613bf86d27e4796661a6d135a",
     "es/archivo.png": "572f7f34064b7a76de63983026ae1696f11b875ed64ade93a28479c49bfa7059",
     "es/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "es/captura.png": "7913eb165ed6590c797821f1f5664737f9cef62ed2caa707b71bb8f403857a76",
@@ -45,6 +45,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "WotcwxlR1JnUe9x4N70MjhtAq04k16eLxLAg77RZWM5aJ-NxRngjAyaKZFiFgwmxR_2_m5X_ovAFTNmy9HqTBg"
+    "sig": "iSWDzvKYnQBlqXdEMjeruDbVBfHruTFEn8Hb77Fwjv-fcKTSrO6MH95SMBoFfRv94dGQfD3dxAzI2eI6Op_5DQ"
   }
 }

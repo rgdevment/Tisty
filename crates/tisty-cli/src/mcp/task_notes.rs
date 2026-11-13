@@ -10,7 +10,7 @@ pub(super) fn task_named(state: &State, which: &str) -> Option<TaskId> {
     which
         .parse::<TaskId>()
         .ok()
-        .filter(|id| state.tasks.contains_key(id))
+        .filter(|id| state.tasks.get(id).is_some_and(|one| !one.hidden))
 }
 
 pub(super) fn noted_on_page(
@@ -25,11 +25,6 @@ pub(super) fn noted_on_page(
     let Some(task) = state.tasks.get(&id) else {
         return Err(Refused::Tool("that task is not here any more.".into()));
     };
-    if task.hidden {
-        return Err(Refused::Tool(format!(
-            "no task here has the id {id}. Look it up again with `find`."
-        )));
-    }
     let title = task.title.clone();
     if !task.is_open() {
         return Err(Refused::Tool(format!(
@@ -70,7 +65,7 @@ pub(super) fn noted_on_page(
         .as_deref()
         .and_then(|file| tisty_core::docs::read_notes_left(paths.data(), file));
     let mut left = None;
-    let written = tisty_core::task_docs::wrote(paths, store, id, |was, _| {
+    let written = tisty_core::task_docs::noted_beside(paths, store, id, |was, _| {
         let now = match replace {
             true => tisty_core::assistant_notes::rewritten(was, &note, spanish),
             false => tisty_core::assistant_notes::noted(was, &note, spanish),

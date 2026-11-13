@@ -27,7 +27,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     let (state, mut store, named) = writable(paths, args, &which)?;
     let body = text_of(paths, &state, &which)?;
     let tables = grid::shown(&body);
-    let (nth, table) = chosen(&tables, args, &which)?;
+    let (nth, table) = chosen(&tables, args, &named)?;
     let mut changed = Vec::new();
     let (edits, touched) = edits_for(asked, table, args, &mut changed)?;
     let next = grid::edits(&body, table.at.clone(), &edits).map_err(refused)?;
@@ -53,7 +53,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     shaped["print"] = json!(tisty_core::attach::printed(whole.as_bytes()));
     let reply = told(
         format!(
-            "Changed the table {} in {}, {}. What it was is kept beside the documents.{}{}{}",
+            "Changed the table {} in {}, {}. What it was is kept beside the documents: `restore_doc` undoes it.{}{}{}",
             nth + 1,
             written_name(&state, &which, &whole),
             by_how_much(&was, &whole),
@@ -76,7 +76,8 @@ fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
     super::reading::in_sight(&state, kept, which)?;
     let body = text_of(paths, &state, which)?;
     let tables = grid::shown(&body);
-    let (nth, table) = chosen(&tables, args, which)?;
+    let named = super::super::doc_named(&state, which);
+    let (nth, table) = chosen(&tables, args, &named)?;
     Ok(told(described(nth, table), shape(which, nth, table, &[])))
 }
 
@@ -103,7 +104,7 @@ fn spoken(said: &str, changed: &mut Vec<&'static str>) -> String {
 fn chosen<'a>(
     tables: &'a [Shown],
     args: &Value,
-    which: &str,
+    named: &str,
 ) -> Result<(usize, &'a Shown), Refused> {
     let listed = || {
         tables
@@ -138,7 +139,7 @@ fn chosen<'a>(
                 many => {
                     return Err(Refused::Tool(format!(
                         "{} tables sit under {said:?}; name the one you mean by its number. \
-                         {which:?} holds: {}.",
+                         {named} holds: {}.",
                         many.len(),
                         listed()
                     )));
@@ -150,11 +151,11 @@ fn chosen<'a>(
     match found.and_then(|at| tables.get(at).map(|one| (at, one))) {
         Some(one) => Ok(one),
         None if tables.is_empty() => Err(Refused::Tool(format!(
-            "{which:?} holds no table. Write one with `edit_doc`; `language` with the topic \
+            "{named} holds no table. Write one with `edit_doc`; `language` with the topic \
              `tables` says how."
         ))),
         None => Err(Refused::Tool(format!(
-            "name the table with `table`, by its number or the heading over it. {which:?} holds: {}.",
+            "name the table with `table`, by its number or the heading over it. {named} holds: {}.",
             listed()
         ))),
     }

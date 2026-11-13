@@ -39,6 +39,18 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 json!({ "found": { "id": id.to_string(), "erased": true } }),
             ));
         }
+        if let Some(task) = filed
+            .and_then(|id| state.tasks.get(&id))
+            .filter(|one| one.hidden)
+        {
+            return Ok(told(
+                format!(
+                    "Already proposed from that source, and the person put it out of sight. {}",
+                    super::chores::out_of_sight_again(task)
+                ),
+                json!({ "found": { "hidden": true } }),
+            ));
+        }
         let held = filed.and_then(|id| state.tasks.get(&id));
         return Ok(told(
             match held {
@@ -172,14 +184,14 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "{:?} {} ({}) [{}]\n  {kind}: {line}",
                 task.title,
                 placed(&state, task),
-                standing(task),
+                standing_said(task, today),
                 task.id
             ),
             None => format!(
                 "{:?} {} ({}) [{}]",
                 task.title,
                 placed(&state, task),
-                standing(task),
+                standing_said(task, today),
                 task.id
             ),
         })
@@ -313,10 +325,20 @@ pub(super) fn inside_a_doc(
             let last = (n + reach).min(lines.len().saturating_sub(1));
             let mut hit = serde_json::Map::new();
             hit.insert("line".into(), json!(n + 1));
-            hit.insert("text".into(), json!(lines[*n]));
+            hit.insert(
+                "text".into(),
+                json!(tisty_core::docs::cut_around(
+                    lines[*n].to_string(),
+                    &terms,
+                    HIT_AT_MOST
+                )),
+            );
             if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
                 let around: Vec<String> = (first..=last)
-                    .map(|at| tisty_core::view::clipped(lines[at]))
+                    .map(|at| match at == *n {
+                        true => format!("(line {})", n + 1),
+                        false => tisty_core::view::clipped(lines[at]),
+                    })
                     .collect();
                 hit.insert("around".into(), json!(around.join("\n")));
             }
@@ -326,26 +348,45 @@ pub(super) fn inside_a_doc(
             Value::Object(hit)
         })
         .collect();
+    let mut room = 0usize;
+    let found: Vec<Value> = found
+        .into_iter()
+        .take_while(|one| {
+            let first = room == 0;
+            room += said(one, "text").chars().count() + said(one, "around").chars().count();
+            first || room <= super::WHOLE_UP_TO
+        })
+        .collect();
 
     let said = match all {
         0 => format!("Nothing in {named} says {query:?}."),
         _ => format!(
-            "{all} line(s) of {named} say {query:?}; showing {}.\n{}",
+            "{all} line(s) of {named} say {query:?}; showing {}.\n{}{}",
             found.len(),
             found
                 .iter()
-                .map(|one| match one["section"].is_object() {
-                    true => format!(
-                        "line {} (section {}, {}) — {}",
-                        one["line"],
-                        one["section"]["at"],
-                        said(&one["section"], "title"),
-                        said(one, "text")
-                    ),
-                    false => format!("line {} — {}", one["line"], said(one, "text")),
+                .map(|one| {
+                    let head = match one["section"].is_object() {
+                        true => format!(
+                            "line {} (section {}, {}) — {}",
+                            one["line"],
+                            one["section"]["at"],
+                            said(&one["section"], "title"),
+                            said(one, "text")
+                        ),
+                        false => format!("line {} — {}", one["line"], said(one, "text")),
+                    };
+                    match said(one, "around") {
+                        "" => head,
+                        around => format!("{head}\n  around it:\n{}", indented(around)),
+                    }
                 })
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n"),
+            match all > found.len() {
+                true => "\nThe rest: narrow the words, or read on with `read_doc` `from` a line.",
+                false => "",
+            }
         ),
     };
     Ok(mirrored(
@@ -410,8 +451,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .then(|| {
             let kept = tisty_core::task_docs::of(&state, owner)?;
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
-            let (body, boxed) =
-                tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
+            // The page comes back as it is stored, so it can be written back as it came.
+            let (body, boxed) = tisty_core::stages::ticked_boxes(task, &body);
             let yours = task.is_open();
             let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
                 .filter(|slot| !slot.undone)
@@ -624,9 +665,12 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             None if task.is_dropped() => "the person dropped it",
             None => "it is closed",
         };
+        let named = match task.hidden {
+            true => String::new(),
+            false => format!(", {},", named_task(&state, task)),
+        };
         said.push(format!(
-            "The task you were last on, {}, is not open to pick up: {how}.",
-            named_task(&state, task)
+            "The task you were last on{named} is not open to pick up: {how}."
         ));
     }
     let asked = match text(args, "since") {
@@ -749,6 +793,7 @@ fn counted_tags(state: &State) -> Vec<(&str, usize)> {
     for one in state
         .tasks
         .values()
+        .filter(|task| !task.hidden)
         .flat_map(|task| &task.tags)
         .chain(state.papers().flat_map(|one| &one.tags))
     {
@@ -888,13 +933,13 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Kept what {:?} is about, against the text as it reads now. It stays on this \
+            "Kept what {} is about, against the text as it reads now. It stays on this \
              machine, and the next reader is told if the document has moved since.",
-            card.title
+            super::named_as(&state, &which, &card.title)
         ),
         json!({
             "doc": which,
-            "title": card.title,
+            "title": super::title_of(&state, &which, card.title.clone()),
             "print": card.print,
             "kept": true,
         }),
@@ -903,6 +948,15 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 const AROUND_A_HIT: usize = 1;
 const AROUND_AT_MOST: usize = 10;
+const HIT_AT_MOST: usize = 1_000;
+
+fn indented(lines: &str) -> String {
+    lines
+        .lines()
+        .map(|line| format!("    {line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;
@@ -1315,6 +1369,17 @@ impl Sifted {
             }
         }
         true
+    }
+}
+
+// A reader of the text alone still learns what presses, not only what `structuredContent` says.
+fn standing_said(task: &Task, today: jiff::civil::Date) -> String {
+    let status = standing(task);
+    match standing_of(task, today)
+        .and_then(|how| json!(how).as_str().map(|one| one.replace('_', " ")))
+    {
+        Some(how) => format!("{status}, {how}"),
+        None => status,
     }
 }
 

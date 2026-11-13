@@ -56,6 +56,33 @@ pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Res
     Ok(())
 }
 
+pub(super) fn brings_back_no_idea(
+    state: &State,
+    which: &str,
+    now: &str,
+    back: &str,
+) -> Result<(), Refused> {
+    if !is_sheet(back) {
+        return Ok(());
+    }
+    let here: Vec<String> = brainstorm::ideas_on(now)
+        .into_iter()
+        .map(|one| one.heading)
+        .collect();
+    let again = brainstorm::ideas_on(back)
+        .into_iter()
+        .find(|one| !here.contains(&one.heading));
+    match again {
+        Some(idea) => Err(Refused::Tool(format!(
+            "going back would put «{}» on {} again, after it left for a task, a document or the \
+             person's own hand. Nothing was changed: edit the passage that is wrong instead.",
+            idea.text,
+            doc_named(state, which)
+        ))),
+        None => Ok(()),
+    }
+}
+
 pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Brainstorm, pinned at the top of the Library on its own: it goes in no folder and \
@@ -155,8 +182,7 @@ fn named_idea(which: &str) -> Option<(&str, &str)> {
 }
 
 fn bare_heading(heading: &str) -> &str {
-    let heading = heading.trim();
-    tisty_markdown::idea_words(heading).unwrap_or(heading)
+    brainstorm::heading_named(heading)
 }
 
 pub(super) fn names_an_idea(which: &str) -> bool {
@@ -165,12 +191,23 @@ pub(super) fn names_an_idea(which: &str) -> bool {
 
 fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
     let mut each = Vec::new();
-    for paragraph in said.replace('\r', "").split("\n\n") {
-        let lines: Vec<&str> = paragraph
-            .lines()
-            .map(str::trim)
-            .filter(|one| !one.is_empty())
-            .collect();
+    let said = said.replace('\r', "");
+    let paragraphs: Vec<Vec<&str>> = said
+        .split("\n\n")
+        .map(|paragraph| {
+            paragraph
+                .lines()
+                .map(str::trim)
+                .filter(|one| !one.is_empty())
+                .collect()
+        })
+        .collect();
+    // A number and a dot open a list only with items to count, unlike «1984. Read it again».
+    let a_list = |lines: &[&str]| {
+        lines.iter().all(|one| listed(one).is_some())
+            && (lines.len() > 1 || lines.first().is_some_and(|one| bulleted(one)))
+    };
+    for (at, lines) in paragraphs.iter().enumerate() {
         if lines
             .iter()
             .any(|line| headed(line) || tisty_markdown::idea_words(line).is_some())
@@ -182,17 +219,24 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
                     .into(),
             ));
         }
-        match lines.iter().all(|line| listed(line).is_some()) {
-            true => each.extend(
-                lines
-                    .iter()
-                    .filter_map(|line| listed(line))
-                    .map(str::to_string),
-            ),
-            false if !lines.is_empty() => each.push(lines.join("\n")),
-            false => {}
+        // A line that opens a list with a colon only says what the ideas under it are.
+        let intro = lines
+            .first()
+            .is_some_and(|line| line.ends_with(':') && listed(line).is_none());
+        let items = |from: usize| lines[from..].iter().filter_map(|line| listed(line));
+        if a_list(lines) {
+            each.extend(items(0).map(str::to_string));
+        } else if intro && lines.len() > 1 && lines[1..].iter().all(|line| listed(line).is_some()) {
+            each.extend(items(1).map(str::to_string));
+        } else if !(intro
+            && lines.len() == 1
+            && paragraphs.get(at + 1).is_some_and(|next| a_list(next)))
+            && !lines.is_empty()
+        {
+            each.push(lines.join("\n"));
         }
     }
+    let mut each: Vec<String> = each.into_iter().map(quotes_dropped).collect();
     each.retain(|one| !one.is_empty());
     if each.is_empty() {
         return Err(Refused::Tool(
@@ -237,16 +281,33 @@ fn headed(line: &str) -> bool {
             .is_none_or(char::is_whitespace)
 }
 
+const BULLETS: [&str; 3] = ["- ", "* ", "+ "];
+
 fn listed(line: &str) -> Option<&str> {
-    let rest = line
-        .strip_prefix("- ")
-        .or_else(|| line.strip_prefix("* "))
-        .or_else(|| line.strip_prefix("+ "))
+    let rest = BULLETS
+        .iter()
+        .find_map(|mark| line.strip_prefix(mark))
         .or_else(|| {
             let (number, rest) = line.split_once(". ")?;
             number.chars().all(|c| c.is_ascii_digit()).then_some(rest)
         })?;
-    Some(rest.trim_start_matches("[ ] ").trim())
+    let rest = ["[ ] ", "[x] ", "[X] "]
+        .iter()
+        .find_map(|box_| rest.strip_prefix(box_))
+        .unwrap_or(rest);
+    Some(rest.trim())
+}
+
+fn bulleted(line: &str) -> bool {
+    BULLETS.iter().any(|mark| line.starts_with(mark))
+}
+
+// An idea is sent as words: a quote's marks would quote it twice on its note.
+fn quotes_dropped(idea: String) -> String {
+    idea.lines()
+        .map(|line| line.trim_start_matches('>').trim_start())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub(super) fn jotted_on(
@@ -267,7 +328,8 @@ pub(super) fn jotted_on(
     let each = ideas_in(said)?;
     let before = tisty_core::docs::read(&paths.docs(), &kept.file).map_err(hitch)?;
     let at = jiff::Zoned::now().datetime();
-    let added = brainstorm::jotted_all(&before, &each, at, brainstorm::roll);
+    let used = brainstorm::proposed_from(state, &kept.file);
+    let added = brainstorm::jotted_all(&before, &used, &each, at, brainstorm::roll);
     let whole = tisty_core::docs::append(&paths.docs(), &kept.file, &added).map_err(hitch)?;
     // The ideas are already on the sheet: refusing here would have a dutiful retry add them twice.
     let settled = retold(state, store, &kept.file, &whole).is_ok();
@@ -441,6 +503,12 @@ pub(super) fn keeps_every_idea(
              makes it so. Keep that line. Nothing was written."
         )));
     }
+    let marks: Vec<&Idea> = state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .map(|kept| kept.ideas_flagged.iter().map(|one| &one.idea).collect())
+        .unwrap_or_default();
     let mut left: Vec<Idea> = brainstorm::ideas_on(after);
     let mut lost: Vec<Idea> = Vec::new();
     for one in brainstorm::ideas_on(before) {
@@ -450,6 +518,13 @@ pub(super) fn keeps_every_idea(
                 kept.heading == one.heading && (one.text.is_empty() || !kept.text.is_empty())
             })
         };
+        if kept_whole.is_none() && marks.contains(&&one) {
+            return Err(Refused::Tool(format!(
+                "«{}» on {named} carries a mark waiting for the person, and its words stay as \
+                 they are until they take it. Nothing was written.",
+                one.text
+            )));
+        }
         match kept_whole.or_else(reworded) {
             Some(at) => {
                 left.remove(at);
@@ -644,14 +719,15 @@ fn instead_of(
         };
     };
     if names_an_idea(&instead) {
-        if many.contains(&instead) {
+        let bare = |one: &str| named_idea(one).map(|(doc, heading)| format!("{doc}#{heading}"));
+        if many.iter().any(|one| bare(one) == bare(&instead)) {
             return Err(Refused::Tool(
                 "`instead` names one of the ideas being marked; it has to be the one that stays."
                     .into(),
             ));
         }
         idea_on(on, &kept.file, named, &instead)?;
-        return Ok(Some(instead));
+        return Ok(Some(bare(&instead).unwrap_or(instead)));
     }
     super::papers::flagging::instead_of(state, args, reason, many).map(|_| Some(instead))
 }

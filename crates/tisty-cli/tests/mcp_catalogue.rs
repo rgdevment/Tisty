@@ -44,7 +44,7 @@ fn rules(topic: Option<&str>) -> String {
         "tools/call",
         &json!({ "name": "rules", "arguments": arguments }),
     )]);
-    said[0]["result"]["structuredContent"]["rules"]
+    said[0]["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
         .to_string()
@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 40_930;
+const DOOR_AT_MOST: usize = 41_200;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]

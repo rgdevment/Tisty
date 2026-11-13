@@ -43,10 +43,19 @@ pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
 
 pub(super) fn not_a_document(state: &State, which: &str) -> Option<String> {
     named_task(state, which).map(|task| {
+        let owner = tisty_core::task_docs::owner(state, task.id);
+        let page = match tisty_core::task_docs::of(state, owner) {
+            Some(kept) if task.is_open() && !state.shut(kept.id) => format!(
+                " Its page is `{}`: the document tools read and write it by that name.",
+                kept.file
+            ),
+            Some(kept) => format!(" Its page is `{}`, to read by that name.", kept.file),
+            None => String::new(),
+        };
         format!(
             "{which:?} is the task {:?}, not a document: `read` shows it, `note` adds to its \
              journal, and `append_doc` with its id adds to its page, or with `replace` folds the \
-             assistants' notes there into one digest.",
+             assistants' notes there into one digest.{page}",
             task.title
         )
     })

@@ -143,10 +143,11 @@ pub fn jotting(
     };
     super::papers::writable(&session.state, &file)?;
     session.brainstorm = Some(file.clone());
+    let used = tisty_core::brainstorm::proposed_from(&session.state, &file);
     let whole = tisty_core::docs::append(
         &root,
         &file,
-        &tisty_core::brainstorm::jotted_next(&was, idea, at, roll),
+        &tisty_core::brainstorm::jotted_next(&was, &used, idea, at, roll),
     )
     .map_err(super::papers::unwritten)?;
     session.corpus.forget(&file);

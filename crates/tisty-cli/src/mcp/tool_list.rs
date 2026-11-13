@@ -21,10 +21,10 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. Tisty tags it #agent.",
+            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Brainstorm. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one; left out for one" },
+                    "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one, at most 32; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
                     "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
                     "part_of": { "type": "string", "description": "Id of an open task this one is a part of" },
@@ -65,7 +65,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "plan",
             "title": "Add steps to a task",
-            "description": "Add steps to an open task, after those already there (`read` shows them).",
+            "description": "Add steps to an open task, after those already there (`read` shows them). One done on its own is a part: `propose` with `part_of`.",
             "inputSchema": on_a_task(
                 json!({ "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, each at most 100 characters" } }),
                 &["steps"],
@@ -74,7 +74,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The answer says how many are `left` and the `next` one. The whole task is `say_done`; a wrong tick, `untick`.",
+            "description": "Tick steps you did yourself, by their text, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
@@ -135,7 +135,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reword_note",
             "title": "Rewrite a note in a task's journal",
-            "description": "Rewrite a note in the journal of an open task, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty.",
+            "description": "Rewrite a note in the journal of an open task, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty. To add one, `note`.",
             "inputSchema": on_a_task(
                 json!({
                     "note": { "type": "string", "description": "The note's id, from `read`" },
@@ -164,7 +164,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "task": { "type": "string", "description": "The task id, to keep it with a task" },
                     "doc": { "type": "string", "description": "The document's id, to add it there" },
-                    "path": { "type": "string", "description": "A path to a file on this machine" },
+                    "path": { "type": "string", "description": "A file under Downloads, Documents, Pictures, Desktop or the temporary folder" },
                     "label": { "type": "string", "description": "What to call it; defaults to the file's name" }
                 },
                 "required": ["path"]
@@ -241,7 +241,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "edit_table",
             "title": "Change a table in a document",
-            "description": "Read or change one table of a document by rows and columns, never its Markdown; without `do` it only shows the table. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named. Undone like `edit_doc`.",
+            "description": "Read or change one table of a document by rows and columns, never its Markdown; without `do` it only shows the table. A row is named by its first cell, a column by its title, as `show` gives them. Values are written as the column's type reads them (1234.5, 2026-10-28, true); one that does not fit is kept and named.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -301,7 +301,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "export_doc",
             "title": "Export a document to a folder",
-            "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes.",
+            "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes. For another tool, `read_doc` with `as`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -334,7 +334,7 @@ pub(super) fn tools_without_hints() -> Value {
                             { "type": "string" },
                             { "type": "array", "items": { "type": "string" }, "minItems": 1 }
                         ],
-                        "description": "The id of the document to mark, not its title, or a list of ids marked alike"
+                        "description": "The id of the document to mark, not its title, or `sheet#heading` for an idea; a list is marked alike"
                     },
                     "reason": {
                         "type": "string",
@@ -404,7 +404,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `pages_loose` names pages no line places.",
+            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -510,7 +510,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "find",
             "title": "Search tasks and documents, archive included",
-            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. Answers `matches` and `total` for tasks, `docs` and `docsTotal` for documents; a task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
+            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
@@ -541,7 +541,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "The rules for working here, by topic",
-            "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
+            "description": "The rules for working here, one guide at a time; alone, the basics and an index. Ask the one the instructions name before a first write of its kind.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {
