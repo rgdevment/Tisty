@@ -112,9 +112,11 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             state.tasks.get(&up).map_or("", |one| one.title.as_str())
         )),
         Some(None) => said.push(format!(
-            "Let {:?} go from {:?}: it stands on its own, in {}.",
+            "Let {:?} go from {}: it stands on its own, in {}.",
             task.title,
-            held_by.map_or("", |one| one.title.as_str()),
+            held_by
+                .filter(|one| !one.hidden)
+                .map_or_else(|| "its whole".to_string(), |one| format!("{:?}", one.title)),
             list_name(d.list.unwrap_or(task.list))
         )),
         None => {}

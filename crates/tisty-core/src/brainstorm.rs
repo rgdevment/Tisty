@@ -78,19 +78,43 @@ fn fences(line: &str) -> bool {
 
 type Taken = std::collections::HashSet<(String, &'static str)>;
 
-pub fn jotted_next(was: &str, idea: &str, at: jiff::civil::DateTime, roll: u32) -> String {
-    jotted_all(was, &[idea.to_string()], at, || roll)
+pub fn jotted_next(
+    was: &str,
+    used: &[String],
+    idea: &str,
+    at: jiff::civil::DateTime,
+    roll: u32,
+) -> String {
+    jotted_all(was, used, &[idea.to_string()], at, || roll)
 }
 
 fn minute_of(when: jiff::civil::DateTime) -> String {
     when.strftime("%Y-%m-%d %H:%M").to_string()
 }
 
-fn taken_on(was: &str) -> Taken {
-    ideas_on(was)
-        .iter()
-        .filter_map(|one| {
-            let head = tisty_markdown::idea_parts(&one.heading);
+// An idea gone into a task still names its source, so a new one never takes its heading.
+pub fn proposed_from(state: &State, file: &str) -> Vec<String> {
+    state
+        .sourced
+        .keys()
+        .filter_map(|source| {
+            let (doc, heading) = source.split_once('#')?;
+            let heading = heading.trim();
+            (doc.trim() == file).then(|| {
+                tisty_markdown::idea_words(heading)
+                    .unwrap_or(heading)
+                    .to_string()
+            })
+        })
+        .collect()
+}
+
+fn taken_on(was: &str, used: &[String]) -> Taken {
+    let on_the_sheet = ideas_on(was).into_iter().map(|one| one.heading);
+    on_the_sheet
+        .chain(used.iter().cloned())
+        .filter_map(|heading| {
+            let head = tisty_markdown::idea_parts(&heading);
             Some((head.when?.to_string(), head.hue?))
         })
         .collect()
@@ -247,11 +271,12 @@ pub fn quoted(note: &str) -> Option<String> {
 
 pub fn jotted_all(
     was: &str,
+    used: &[String],
     each: &[String],
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
-    let mut taken = taken_on(was);
+    let mut taken = taken_on(was, used);
     let mut last = last_hue(was);
     let added: Vec<String> = each
         .iter()

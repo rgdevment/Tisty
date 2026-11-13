@@ -35,6 +35,7 @@ pub(super) fn asked(args: &Value) -> Result<bool, Refused> {
 /// The document in standard Markdown, with what does not make the journey said out loud.
 pub(super) fn carried(
     body: &str,
+    named: &str,
     standing: Option<String>,
     pages: &[String],
     mut kept_of: Map<String, Value>,
@@ -73,11 +74,6 @@ pub(super) fn carried(
     let head = match warned.is_empty() {
         true => String::new(),
         false => format!("{}\n\n", warned.join(" ")),
-    };
-    let title = tisty_core::docs::titled(body);
-    let named = match title.is_empty() {
-        true => "This document".to_string(),
-        false => title,
     };
     Ok(told(
         format!("{named} as markdown, to carry outside Tisty. {head}{turned}"),

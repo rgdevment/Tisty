@@ -106,7 +106,7 @@ You do not have to remember this step. When an assistant tries to work with Tist
 
 ## What it can do, in short
 
-File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task it filed is done, **for you to confirm**.
+File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task is done, yours too, **for you to confirm**.
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 

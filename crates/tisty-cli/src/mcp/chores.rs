@@ -107,7 +107,17 @@ pub(super) fn propose(
             done.iter()
                 .map(|one| match one.get("refused").and_then(Value::as_str) {
                     Some(why) => format!("{} — {why}", said(one, "title")),
-                    None => format!("{:?} [{}]", said(one, "title"), said(one, "id")),
+                    None => {
+                        let id = one
+                            .get("id")
+                            .and_then(Value::as_str)
+                            .map_or_else(String::new, |id| format!(" [{id}]"));
+                        let idea = match one.get("from_idea").is_some() {
+                            true => ", and the idea it came from left Brainstorm",
+                            false => "",
+                        };
+                        format!("{:?}{id}{idea}", said(one, "title"))
+                    }
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -148,7 +158,21 @@ pub(super) fn proposed(
     }
     if let Some(source) = text(args, "source")
         && let Some(held) = already(&state, &source)
-        && let Some(task) = state.tasks.get(&held)
+        && let Some(task) = state.tasks.get(&held).filter(|one| one.hidden)
+        && (task.is_open() || !again)
+    {
+        return Ok(told(
+            format!(
+                "Already proposed from that source, and the person put it out of sight. Nothing \
+                 was written. {}",
+                out_of_sight_again(task)
+            ),
+            json!({ "id": null, "title": title, "proposed": false, "hidden": true }),
+        ));
+    }
+    if let Some(source) = text(args, "source")
+        && let Some(held) = already(&state, &source)
+        && let Some(task) = state.tasks.get(&held).filter(|one| !one.hidden)
         && !(again && !task.is_open())
     {
         let (said, kept) = match task.completed_at.filter(|_| !task.is_open()) {
@@ -210,7 +234,9 @@ pub(super) fn proposed(
         let blocking = source
             .as_deref()
             .and_then(|one| standing(&held, one, again));
-        let task = blocking.and_then(|id| held.tasks.get(&id));
+        let task = blocking
+            .and_then(|id| held.tasks.get(&id))
+            .filter(|one| !one.hidden);
         if blocking.is_none()
             && let Some((from, part)) = parts_from.iter().find_map(|one| {
                 standing(&held, one, again)
@@ -246,6 +272,10 @@ pub(super) fn proposed(
     let from_idea = source
         .as_deref()
         .and_then(|one| super::ideas::made_a_task(paths, &state, &mut store, one));
+    let parts_from_ideas: Vec<super::ideas::Filed> = parts_from
+        .iter()
+        .filter_map(|one| super::ideas::made_a_task(paths, &state, &mut store, one))
+        .collect();
     let landed = text(args, "list");
     let where_at = match &landed {
         Some(name) => format!("in {name}"),
@@ -283,6 +313,13 @@ pub(super) fn proposed(
         if moved.off {
             kept.insert("from_idea".into(), json!(moved.said.trim()));
         }
+    }
+    for moved in &parts_from_ideas {
+        parts_said.push_str(&moved.said);
+    }
+    let parts_off = parts_from_ideas.iter().filter(|one| one.off).count();
+    if parts_off > 0 {
+        kept.insert("parts_from_ideas".into(), json!(parts_off));
     }
     Ok(told(
         match planned {
@@ -471,12 +508,7 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
         ));
     }
     let (state, mut store) = opened(paths)?;
-    let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(not_a_task_id(&state, &said)));
-    };
-    let Some(task) = state.tasks.get(&id) else {
-        return Err(gone(&state, &said));
-    };
+    let (id, task) = seen_task(&state, &said)?;
     if !state.filed_by_agents(task) {
         return Err(Refused::Tool(format!(
             "{:?} is the person's own, so its day is theirs to move: you can only move what an \
@@ -805,12 +837,7 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool("a note needs a `task` id.".into()));
     };
     let (state, mut store) = opened(paths)?;
-    let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(not_a_task_id(&state, &said)));
-    };
-    let Some(task) = state.tasks.get(&id) else {
-        return Err(gone(&state, &said));
-    };
+    let (id, task) = seen_task(&state, &said)?;
     if !task.is_open() {
         return Err(history(task));
     }
@@ -897,22 +924,10 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         )));
     };
     let (state, mut store) = opened(paths)?;
-    let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(not_a_task_id(&state, &said)));
-    };
-    let Some(task) = state.tasks.get(&id) else {
-        return Err(gone(&state, &said));
-    };
+    let (id, task) = seen_task(&state, &said)?;
     let me = store.device().clone();
     if !task.is_open() {
         return Err(history(task));
-    }
-    if task.folded() {
-        return Err(Refused::Tool(format!(
-            "{:?} was put out of sight by the person, so it is not yours to speak for. Say what \
-             you have learnt with `note` instead.",
-            task.title
-        )));
     }
     if let Some(already) = &task.resolved {
         let who = match already.by == me && already.via == speaking_through() {
@@ -1071,6 +1086,24 @@ pub(super) fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a 
         return Err(history(task));
     }
     Ok((id, task))
+}
+
+pub(super) fn out_of_sight_again(task: &Task) -> &'static str {
+    match task.is_open() {
+        true => "It waits for them: leave it unless they bring it up.",
+        false => "Only if they want it back, propose it once more with `again` set.",
+    }
+}
+
+// A task the person put out of sight is no task to an agent: neither its title nor its words.
+pub(super) fn seen_task<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(not_a_task_id(state, said)));
+    };
+    match state.tasks.get(&id).filter(|one| !one.hidden) {
+        Some(task) => Ok((id, task)),
+        None => Err(gone(state, said)),
+    }
 }
 
 pub(super) fn still_in_sight(now: &Task) -> bool {

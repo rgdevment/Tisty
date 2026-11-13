@@ -25,10 +25,15 @@ pub(super) fn not_alone(args: &Value) -> Result<(), Refused> {
     }
 }
 
+// A task's page is whoever's the task is, though an agent's note may have made its file first.
 pub(in crate::mcp) fn agents_wrote(state: &State, kept: &Kept) -> bool {
-    kept.made_by
-        .as_ref()
-        .is_some_and(|who| state.assistants.contains(who))
+    match kept.task_of.and_then(|task| state.tasks.get(&task)) {
+        Some(task) => state.filed_by_agents(task),
+        None => kept
+            .made_by
+            .as_ref()
+            .is_some_and(|who| state.assistants.contains(who)),
+    }
 }
 
 /// A second document on a subject that has one is how a store fills with copies of itself.
@@ -102,7 +107,8 @@ pub(super) fn compacted(
             doc_named(state, which)
         )));
     }
-    let (id, loose) = (kept.id, kept.folder.is_none() && kept.page_of.is_none());
+    let loose = kept.task_of.is_none() && kept.folder.is_none() && kept.page_of.is_none();
+    let id = kept.id;
     let was = match &first {
         Some(one) => one.body.clone(),
         None => tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?,

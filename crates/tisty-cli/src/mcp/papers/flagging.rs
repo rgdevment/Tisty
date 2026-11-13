@@ -203,7 +203,8 @@ pub(in crate::mcp) fn instead_of(
     let task = instead
         .parse::<TaskId>()
         .ok()
-        .and_then(|id| state.tasks.get(&id));
+        .and_then(|id| state.tasks.get(&id))
+        .filter(|one| !one.hidden);
     // What a mark points at has to be able to hold what moved, or deleting the mark loses it.
     if doc.is_some_and(|one| one.flagged.is_some() || state.held_away(one)) {
         return Err(Refused::Tool(
@@ -234,10 +235,14 @@ pub(in crate::mcp) fn reason_said(
     instead: Option<&str>,
 ) -> String {
     let there = instead.map(|one| match one.parse::<TaskId>() {
-        Ok(id) => state.tasks.get(&id).map_or_else(
-            || one.to_string(),
-            |task| format!("the task {:?}", task.title),
-        ),
+        Ok(id) => state
+            .tasks
+            .get(&id)
+            .filter(|task| !task.hidden)
+            .map_or_else(
+                || one.to_string(),
+                |task| format!("the task {:?}", task.title),
+            ),
         Err(_) => doc_named(state, one),
     });
     let there = there.unwrap_or_default();

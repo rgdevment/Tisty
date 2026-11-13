@@ -39,6 +39,18 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 json!({ "found": { "id": id.to_string(), "erased": true } }),
             ));
         }
+        if let Some(task) = filed
+            .and_then(|id| state.tasks.get(&id))
+            .filter(|one| one.hidden)
+        {
+            return Ok(told(
+                format!(
+                    "Already proposed from that source, and the person put it out of sight. {}",
+                    super::chores::out_of_sight_again(task)
+                ),
+                json!({ "found": { "hidden": true } }),
+            ));
+        }
         let held = filed.and_then(|id| state.tasks.get(&id));
         return Ok(told(
             match held {
@@ -313,7 +325,14 @@ pub(super) fn inside_a_doc(
             let last = (n + reach).min(lines.len().saturating_sub(1));
             let mut hit = serde_json::Map::new();
             hit.insert("line".into(), json!(n + 1));
-            hit.insert("text".into(), json!(lines[*n]));
+            hit.insert(
+                "text".into(),
+                json!(tisty_core::docs::cut_around(
+                    lines[*n].to_string(),
+                    &terms,
+                    HIT_AT_MOST
+                )),
+            );
             if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
                 let around: Vec<String> = (first..=last)
                     .map(|at| tisty_core::view::clipped(lines[at]))
@@ -624,9 +643,12 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             None if task.is_dropped() => "the person dropped it",
             None => "it is closed",
         };
+        let named = match task.hidden {
+            true => String::new(),
+            false => format!(", {},", named_task(&state, task)),
+        };
         said.push(format!(
-            "The task you were last on, {}, is not open to pick up: {how}.",
-            named_task(&state, task)
+            "The task you were last on{named} is not open to pick up: {how}."
         ));
     }
     let asked = match text(args, "since") {
@@ -888,13 +910,13 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Kept what {:?} is about, against the text as it reads now. It stays on this \
+            "Kept what {} is about, against the text as it reads now. It stays on this \
              machine, and the next reader is told if the document has moved since.",
-            card.title
+            super::named_as(&state, &which, &card.title)
         ),
         json!({
             "doc": which,
-            "title": card.title,
+            "title": super::title_of(&state, &which, card.title.clone()),
             "print": card.print,
             "kept": true,
         }),
@@ -903,6 +925,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 const AROUND_A_HIT: usize = 1;
 const AROUND_AT_MOST: usize = 10;
+const HIT_AT_MOST: usize = 1_000;
 pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;

@@ -162,7 +162,8 @@ recognise the same thing twice. Tisty refuses a second filing from the same sour
 back the task that already exists, so you cannot duplicate by mistake; however the source is \
 written, «sereno#1», «sereno: #1» and «Sereno #1» are one. Without a source, `find` by text \
 first. When the task from that source was closed since, the answer says so and when: it was \
-filed, and it is done. When the person erased it, it stays erased. Only if the person asks you \
+filed, and it is done. When the person erased it, it stays erased; when they put it out of \
+sight, the answer says only that and names nothing. Only if the person asks you \
 in this conversation for it to be done again, propose it once more with `again`, saying in the \
 description how the last one ended.
 
@@ -555,8 +556,8 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tick", Effect::Marks),
     ("untick", Effect::Marks),
     ("rename", Effect::Replaces),
-    ("reword_step", Effect::Replaces),
-    ("unplan", Effect::Replaces),
+    ("reword_step", Effect::Rewrites),
+    ("unplan", Effect::Rewrites),
     ("move", Effect::Sets),
     ("reword_note", Effect::Replaces),
     ("note", Effect::Adds),

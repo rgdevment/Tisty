@@ -106,7 +106,7 @@ No tienes que acordarte de este paso. Cuando un asistente intenta trabajar con T
 
 ## Qué puede hacer, en corto
 
-Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, anotar ideas en la Lluvia de ideas y ordenarlas contigo, buscar y leer lo que hay, y decir que una tarea que anotó está hecha, **para que tú lo confirmes**.
+Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, anotar ideas en la Lluvia de ideas y ordenarlas contigo, buscar y leer lo que hay, y decir que una tarea está hecha, también una tuya, **para que tú lo confirmes**.
 
 Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías tú: por su título y dónde está, la lista o la carpeta. Nunca te muestra un identificador.
 

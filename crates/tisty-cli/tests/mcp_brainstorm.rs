@@ -802,3 +802,69 @@ fn a_document_is_never_turned_into_a_sheet_by_a_write() {
     assert!(said(&turned).contains("made new"), "{}", said(&turned));
     assert!(!served.body(&doc).contains("brainstorm"));
 }
+
+#[test]
+fn a_marked_idea_keeps_its_words_until_the_person_takes_the_mark() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    served.call(
+        "flag_doc",
+        json!({ "doc": format!("{sheet}#{CONCERT}"), "reason": "obsolete", "body": "Ya pasó." }),
+    );
+
+    let reworded = served.call(
+        "edit_doc",
+        json!({ "doc": sheet, "old": "Comprar entradas del concierto de julio", "new": "Comprar entradas" }),
+    );
+
+    assert!(refused(&reworded), "{reworded}");
+    assert!(said(&reworded).contains("mark"), "{}", said(&reworded));
+    assert_eq!(served.body(&sheet), SHEET);
+}
+
+#[test]
+fn an_idea_turned_into_a_part_leaves_the_sheet_too() {
+    let served = Served::new();
+    let sheet = served.sheet();
+
+    let made = served.call(
+        "propose",
+        json!({
+            "title": "Arreglar la casa",
+            "parts": [{ "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }]
+        }),
+    );
+
+    assert!(!refused(&made), "{made}");
+    assert_eq!(
+        made["structuredContent"]["parts_from_ideas"],
+        json!(1),
+        "{made}"
+    );
+    let left = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
+    assert!(left.iter().all(|one| one.heading != ROOF));
+}
+
+#[test]
+fn a_new_idea_never_takes_the_heading_of_one_already_made_a_task() {
+    let served = Served::new();
+    let sheet = served.sheet();
+    let jotted = served.call("append_doc", json!({ "doc": sheet, "body": "Primera" }));
+    assert!(!refused(&jotted), "{jotted}");
+    let first = tisty_core::brainstorm::ideas_on(&served.body(&sheet))
+        .pop()
+        .unwrap();
+    served.call(
+        "propose",
+        json!({ "title": "Primera", "source": format!("{sheet}#{}", first.heading) }),
+    );
+
+    let many: String = (1..=12).map(|n| format!("- Otra {n}\n")).collect();
+    served.call("append_doc", json!({ "doc": sheet, "body": many }));
+
+    let heads: Vec<String> = tisty_core::brainstorm::ideas_on(&served.body(&sheet))
+        .into_iter()
+        .map(|one| one.heading)
+        .collect();
+    assert!(!heads.contains(&first.heading), "{heads:?}");
+}

@@ -7208,7 +7208,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
 }
 
 #[test]
-fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
+fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_up() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
@@ -7225,6 +7225,7 @@ fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["last"].is_null(), "{kept}");
     assert!(said.contains("the person put it out of sight"), "{said}");
+    assert!(!back.to_string().contains("renew the passport"), "{back}");
 }
 
 fn agents_task(served: &Served, title: &str) -> String {

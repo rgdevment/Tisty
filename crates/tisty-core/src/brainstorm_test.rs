@@ -30,7 +30,7 @@ fn a_new_idea_never_takes_the_colour_of_the_one_before_it() {
         let at = at
             .checked_add(jiff::Span::new().minutes(minute as i64))
             .unwrap();
-        let note = jotted_next(&body, "idea", at, roll);
+        let note = jotted_next(&body, &[], "idea", at, roll);
         let colour = tisty_markdown::idea_head(&note).hue;
         assert!(colour.is_some());
         assert_ne!(colour, before, "{colour:?} repeated");
@@ -45,7 +45,7 @@ fn no_two_ideas_on_a_sheet_share_their_minute_and_colour() {
     let each: Vec<String> = (1..=14).map(|n| format!("idea {n}")).collect();
     for roll in [0, 7, 12, 25] {
         let mut sheet = format!("{SHEET}\n> [!IDEA] 2026-11-12 16:18 · green\n> ya estaba\n");
-        let added = jotted_all(&sheet, &each, at, || roll);
+        let added = jotted_all(&sheet, &[], &each, at, || roll);
         sheet.push_str(&format!("\n{added}\n"));
         let heads: Vec<String> = ideas_on(&sheet)
             .into_iter()
@@ -184,7 +184,7 @@ fn a_filed_note_gives_back_the_idea_it_quotes() {
 fn ideas_jotted_together_never_repeat_the_colour_just_before() {
     let at = jiff::civil::date(2026, 11, 12).at(10, 5, 0, 0);
     let each: Vec<String> = ["una", "dos", "tres", "cuatro"].map(String::from).to_vec();
-    let added = jotted_all(SHEET, &each, at, || 0);
+    let added = jotted_all(SHEET, &[], &each, at, || 0);
     let heads: Vec<&str> = added
         .lines()
         .filter(|line| line.starts_with("> [!IDEA] "))
@@ -210,5 +210,21 @@ fn a_sheet_says_so_in_its_note_and_no_other_document_does() {
         !serde_json::to_string(&plain)
             .unwrap()
             .contains("brainstorm")
+    );
+}
+
+#[test]
+fn a_heading_an_idea_left_behind_as_a_source_is_never_taken_again() {
+    let at = jiff::civil::date(2026, 11, 12).at(16, 18, 0, 0);
+    let used: Vec<String> = COLOURS
+        .iter()
+        .map(|hue| format!("2026-11-12 16:18 · {hue}"))
+        .collect();
+
+    let added = jotted_all(SHEET, &used, &["nueva".to_string()], at, || 0);
+
+    assert!(
+        added.starts_with("> [!IDEA] 2026-11-12 16:19 · "),
+        "{added}"
     );
 }

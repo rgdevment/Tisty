@@ -65,6 +65,12 @@ pub(in crate::mcp) fn on_its_page(
         let settled = settled(paths, id, &page)?;
         told_also(&mut said, &settled);
         noted_as_assistants(paths, &page);
+        let now = tisty_core::docs::read(&root, file).map_err(hitch)?;
+        if now != page.after
+            && let Some(print) = said.pointer_mut("/structuredContent/print")
+        {
+            *print = Value::String(tisty_core::attach::printed(now.as_bytes()));
+        }
     }
     Ok(said)
 }

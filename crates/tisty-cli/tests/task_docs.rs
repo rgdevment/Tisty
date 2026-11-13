@@ -702,3 +702,219 @@ fn notes_written_on_a_page_by_its_name_are_kept_as_the_assistant_s() {
     assert!(left.contains("Found the receipt."), "{left}");
     assert!(!left.contains("Una línea mía."), "{left}");
 }
+
+fn text_of(said: &serde_json::Value) -> String {
+    said["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string()
+}
+
+#[test]
+fn no_tool_names_or_writes_a_task_the_person_hid() {
+    let served = Served::new();
+    let filed = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "secret surprise for Ana",
+            "source": "mail:42",
+            "date": "2026-12-01",
+            "parts": [{ "title": "book the restaurant" }]
+        }),
+    );
+    let said = &filed["result"]["structuredContent"];
+    let task = said["id"].as_str().unwrap().to_string();
+    let part = said["parts"][0]["id"].as_str().unwrap().to_string();
+    let doc = served.person().writes_doc("# Planes\n\nAlgo.\n");
+    served.person().hides(person::task(&task));
+
+    let refused = [
+        (
+            "note",
+            serde_json::json!({ "task": task, "body": "found it" }),
+        ),
+        (
+            "reschedule",
+            serde_json::json!({ "task": task, "date": "2026-12-02" }),
+        ),
+        (
+            "say_done",
+            serde_json::json!({ "task": task, "body": "done" }),
+        ),
+        (
+            "say_not_doing",
+            serde_json::json!({ "task": task, "body": "no" }),
+        ),
+        (
+            "flag_doc",
+            serde_json::json!({ "doc": doc, "reason": "moved", "instead": task, "body": "x" }),
+        ),
+    ];
+    for (name, args) in refused {
+        let answer = served.call(name, args);
+        assert_eq!(answer["result"]["isError"], true, "{name}: {answer}");
+        assert!(
+            !answer.to_string().contains("secret surprise"),
+            "{name}: {answer}"
+        );
+    }
+    let found = served.call("find", serde_json::json!({ "source": "mail:42" }));
+    assert_eq!(
+        found["result"]["structuredContent"]["found"]["hidden"], true,
+        "{found}"
+    );
+    for again in [false, true] {
+        let proposed = served.call(
+            "propose",
+            serde_json::json!({ "title": "otra", "source": "mail:42", "again": again }),
+        );
+        assert_eq!(
+            proposed["result"]["structuredContent"]["proposed"], false,
+            "{proposed}"
+        );
+        assert!(
+            !proposed.to_string().contains("secret surprise"),
+            "{proposed}"
+        );
+    }
+    let moved = served.call("move", serde_json::json!({ "task": part, "part_of": null }));
+    assert_ne!(moved["result"]["isError"], true, "{moved}");
+    assert!(!moved.to_string().contains("secret surprise"), "{moved}");
+    for answer in [&found, &moved] {
+        assert!(!answer.to_string().contains("secret surprise"), "{answer}");
+    }
+    let state = served.person().state();
+    assert!(state.tasks[&person::task(&part)].part_of.is_none());
+    let hidden = &state.tasks[&person::task(&task)];
+    assert!(hidden.log.is_empty(), "a note reached a hidden task");
+    assert_eq!(
+        hidden.date.as_ref().map(|day| day.date().to_string()),
+        Some("2026-12-01".to_string()),
+        "its day moved"
+    );
+}
+
+#[test]
+fn a_person_s_task_page_an_agent_made_is_still_theirs_to_compact() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "Found the receipt." }),
+    );
+    assert_ne!(added["result"]["isError"], true, "{added}");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let page = page_of(&served, &file);
+    let body = format!(
+        "{}\nShorter.\n",
+        tisty_core::task_docs::seed(person::task(&task))
+    );
+
+    let compacted = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": file, "print": page["print"], "body": body, "compact": true }),
+    );
+
+    assert_eq!(compacted["result"]["isError"], true, "{compacted}");
+    assert!(text_of(&compacted).contains("person_asked"), "{compacted}");
+    let asked = served.call(
+        "write_doc",
+        serde_json::json!({
+            "doc": file, "print": page["print"], "body": body, "compact": true, "person_asked": true
+        }),
+    );
+    assert_ne!(asked["result"]["isError"], true, "{asked}");
+    assert!(!text_of(&asked).contains("folder"), "{asked}");
+}
+
+#[test]
+fn a_box_ticked_on_the_persons_page_answers_with_the_print_it_reads_at() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "Mis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "Mis palabras.", "new": "Mis palabras.\n\n- [x] llamar" }),
+    );
+
+    assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let now = on_disk(&served, &file);
+    assert_eq!(
+        edited["result"]["structuredContent"]["print"],
+        tisty_core::attach::printed(now.as_bytes()),
+        "{now}"
+    );
+}
+
+#[test]
+fn every_read_of_a_page_names_it_by_its_task() {
+    let served = Served::new();
+    let task = persons_task(&served);
+    served.written_for(&task, "## Description\n\nMis palabras.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let outlined = served.call("outline_doc", serde_json::json!({ "doc": file }));
+    let summed = served.call(
+        "sum_up",
+        serde_json::json!({ "doc": file, "summary": "Palabras de la persona." }),
+    );
+    let tabled = served.call("edit_table", serde_json::json!({ "doc": file }));
+    let by_id = served.call("read_doc", serde_json::json!({ "doc": task }));
+
+    assert_eq!(read["result"]["structuredContent"]["title"], "algo mio");
+    assert_eq!(outlined["result"]["structuredContent"]["title"], "algo mio");
+    assert!(
+        text_of(&summed).contains("the page of \"algo mio\""),
+        "{summed}"
+    );
+    assert!(
+        text_of(&tabled).contains("the page of \"algo mio\""),
+        "{tabled}"
+    );
+    assert!(text_of(&by_id).contains(&file), "{by_id}");
+}
+
+#[test]
+fn no_read_of_a_long_document_runs_past_its_caps() {
+    let served = Served::new();
+    let log: String = (1..=300)
+        .map(|n| format!("## Entrada {n}\n\nPasó algo el día {n}.\n\n"))
+        .collect();
+    let long = format!(
+        "# Bitácora\n\n{log}{} aguja {}\n",
+        "palabra ".repeat(3_000),
+        "palabra ".repeat(3_000)
+    );
+    let doc = served.person().writes_doc(&long);
+
+    let outlined = served.call("outline_doc", serde_json::json!({ "doc": doc }));
+    let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    let chars = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "chars": 200_000 }),
+    );
+    let found = served.call("find", serde_json::json!({ "doc": doc, "query": "aguja" }));
+
+    for answer in [&outlined, &whole] {
+        let said = &answer["result"]["structuredContent"];
+        assert!(said["outline"].as_array().unwrap().len() <= 120, "{answer}");
+        assert!(said["outline_left"].as_u64().unwrap() > 0, "{answer}");
+    }
+    let part = chars["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap();
+    assert!(
+        part.chars().count() < long.chars().count() / 2,
+        "chars ran on"
+    );
+    let hit = found["result"]["structuredContent"]["lines"][0]["text"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        hit.contains("aguja") && hit.chars().count() <= 1_000,
+        "{found}"
+    );
+}

@@ -267,7 +267,8 @@ pub(super) fn jotted_on(
     let each = ideas_in(said)?;
     let before = tisty_core::docs::read(&paths.docs(), &kept.file).map_err(hitch)?;
     let at = jiff::Zoned::now().datetime();
-    let added = brainstorm::jotted_all(&before, &each, at, brainstorm::roll);
+    let used = brainstorm::proposed_from(state, &kept.file);
+    let added = brainstorm::jotted_all(&before, &used, &each, at, brainstorm::roll);
     let whole = tisty_core::docs::append(&paths.docs(), &kept.file, &added).map_err(hitch)?;
     // The ideas are already on the sheet: refusing here would have a dutiful retry add them twice.
     let settled = retold(state, store, &kept.file, &whole).is_ok();
@@ -441,6 +442,12 @@ pub(super) fn keeps_every_idea(
              makes it so. Keep that line. Nothing was written."
         )));
     }
+    let marks: Vec<&Idea> = state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .map(|kept| kept.ideas_flagged.iter().map(|one| &one.idea).collect())
+        .unwrap_or_default();
     let mut left: Vec<Idea> = brainstorm::ideas_on(after);
     let mut lost: Vec<Idea> = Vec::new();
     for one in brainstorm::ideas_on(before) {
@@ -450,6 +457,13 @@ pub(super) fn keeps_every_idea(
                 kept.heading == one.heading && (one.text.is_empty() || !kept.text.is_empty())
             })
         };
+        if kept_whole.is_none() && marks.contains(&&one) {
+            return Err(Refused::Tool(format!(
+                "«{}» on {named} carries a mark waiting for the person, and its words stay as \
+                 they are until they take it. Nothing was written.",
+                one.text
+            )));
+        }
         match kept_whole.or_else(reworded) {
             Some(at) => {
                 left.remove(at);

@@ -1083,18 +1083,23 @@ fn page_task<'a>(state: &'a State, which: &str) -> Option<&'a tisty_core::model:
         .and_then(|id| state.tasks.get(id))
 }
 
+fn title_of(state: &State, which: &str, title: String) -> String {
+    page_task(state, which).map_or(title, |task| task.title.clone())
+}
+
+fn named_as(state: &State, which: &str, title: &str) -> String {
+    match page_task(state, which) {
+        Some(task) => format!("the page of {:?}", task.title),
+        None => format!("{title:?}"),
+    }
+}
+
 fn written_title(state: &State, which: &str, whole: &str) -> String {
-    page_task(state, which).map_or_else(
-        || tisty_core::docs::titled(whole),
-        |task| task.title.clone(),
-    )
+    title_of(state, which, tisty_core::docs::titled(whole))
 }
 
 fn written_name(state: &State, which: &str, whole: &str) -> String {
-    match page_task(state, which) {
-        Some(task) => format!("the page of {:?}", task.title),
-        None => format!("{:?}", tisty_core::docs::titled(whole)),
-    }
+    named_as(state, which, &tisty_core::docs::titled(whole))
 }
 
 fn doc_titled(state: &State, which: &str) -> String {
@@ -1298,7 +1303,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 }
             }
         }
-        let to = as_far_as(body, start, most, last);
+        let to = as_far_as(body, start, most.min(WHOLE_UP_TO), last);
         return Ok(Part::Held {
             body: tisty_core::docs::lines_between(body, start, to),
             from: start,
