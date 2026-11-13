@@ -4,7 +4,10 @@ checked_by: [writer, reader]
 says: Words and what marks them. HTML written inside the words is taken only as far as passthrough says.
 values:
   pens: [yellow, red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
-  callouts: [note, tip, important, warning, caution]
+  callouts: [note, tip, important, warning, caution, idea]
+  idea_hues: [pink, coral, orange, yellow, lime, green, teal, cyan, blue, lavender, violet, magenta]
+  idea_sides: [left, right]
+  idea_when: "The date, or the date and time, its head line says, as YYYY-MM-DD or YYYY-MM-DD HH:MM."
   hues: [red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray]
   unknown_values: "A pen or a hue it does not know wears the default, and a reader never builds a style or an address from the value."
   url_schemes: [http, https, mailto, tisty]
@@ -46,6 +49,26 @@ values:
     th: [align, char, charoff, colspan, headers, rowspan, scope]
     thead: [align, char, charoff]
     tr: [align, char, charoff]
+html_rules:
+  - { tag: blockquote, attribute: data-callout, only: [note, tip, important, warning, caution, idea], says: "A callout is one of the kinds the text names." }
+  - { tag: blockquote, attribute: data-hue, only: [pink, coral, orange, yellow, lime, green, teal, cyan, blue, lavender, violet, magenta], says: "An idea wears one of the hues of a sticky note." }
+  - { tag: blockquote, attribute: data-side, only: [left, right], says: "An idea floats to the left or to the right, or stands in the flow." }
+html_cases:
+  - says: "An idea with its date and time, its hue and its side."
+    html: '<blockquote class="callout" data-callout="idea" data-when="2026-11-12 09:40" data-hue="yellow" data-side="right"><p>Pintar la reja</p></blockquote>'
+    holds: true
+  - says: "An idea with nothing in its head line."
+    html: '<blockquote class="callout" data-callout="idea"><p>Sin cabeza</p></blockquote>'
+    holds: true
+  - says: "A hue no sticky note wears."
+    html: '<blockquote class="callout" data-callout="idea" data-hue="red"><p>a</p></blockquote>'
+    holds: false
+  - says: "A side that is neither left nor right."
+    html: '<blockquote class="callout" data-callout="idea" data-side="up"><p>a</p></blockquote>'
+    holds: false
+  - says: "A kind of callout the text does not name."
+    html: '<blockquote class="callout" data-callout="rumour"><p>a</p></blockquote>'
+    holds: false
 draws:
   - { tag: h1, attributes: [id] }
   - { tag: h2, attributes: [id] }
@@ -63,7 +86,7 @@ draws:
   - { tag: a, attributes: [href, class], classes: [card] }
   - { tag: mark, attributes: [data-pen] }
   - { tag: span, attributes: [class, data-tag, data-ico, data-hue, data-done, title], classes: [tag, ico, check, fn-label, front-sep, refdef-label, refdef-to] }
-  - { tag: blockquote, attributes: [class, data-callout], classes: [callout] }
+  - { tag: blockquote, attributes: [class, data-callout, data-when, data-hue, data-side], classes: [callout] }
   - { tag: ul }
   - { tag: ol, attributes: [start] }
   - { tag: li, attributes: [class], classes: [task] }
