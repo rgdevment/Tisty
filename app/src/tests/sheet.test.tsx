@@ -920,3 +920,23 @@ describe("a block laid at a point of the text", () => {
     expect(laid("a\r\n\r\nb", 3, "x")).toBe("a\r\n\r\nx\r\n\r\nb");
   });
 });
+
+describe("the whole-document sheet", () => {
+  it("folds what goes under it into one line that opens on a press", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        below={<p>under the sheet</p>}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() => expect(ipc.opened).toHaveLength(1));
+    expect(page.documentElement.classList.contains("lively")).toBe(true);
+    expect(view.queryByText("under the sheet")).toBeNull();
+    view.getByRole("button", { name: "Pages" }).click();
+    await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
+  });
+});

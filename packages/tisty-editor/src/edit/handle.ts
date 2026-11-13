@@ -21,7 +21,13 @@ class Grip {
     this.drop.hidden = true;
     view.dom.append(this.grip, this.drop);
     this.grip.addEventListener("mousedown", (event) => this.pressed(event));
+    view.dom.addEventListener("mousemove", this.moved);
+    view.dom.addEventListener("mouseleave", this.left);
   }
+
+  // The grip sits in the margin, outside the words, so the whole editor is listened to and not only its text.
+  private readonly moved = (event: MouseEvent) => this.hovered(event);
+  private readonly left = () => this.hide();
 
   private top(at: number): number | null {
     const box = this.view.coordsAtPos(at, 1);
@@ -98,18 +104,11 @@ class Grip {
   }
 
   destroy() {
+    this.view.dom.removeEventListener("mousemove", this.moved);
+    this.view.dom.removeEventListener("mouseleave", this.left);
     this.grip.remove();
     this.drop.remove();
   }
 }
 
-export const gripping = ViewPlugin.fromClass(Grip, {
-  eventHandlers: {
-    mousemove(event) {
-      this.hovered(event);
-    },
-    mouseleave() {
-      this.hide();
-    },
-  },
-});
+export const gripping = ViewPlugin.fromClass(Grip);

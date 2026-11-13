@@ -188,6 +188,14 @@ const living = EditorView.baseTheme({
   },
 });
 
-export const lively = [blocking, drawing, gripping, living, plain, showPanel.of(viewTabs)];
+export const lively = [
+  marksShown,
+  blocking,
+  drawing,
+  gripping,
+  living,
+  plain,
+  showPanel.of(viewTabs),
+];
 
 export const livelyKeys: KeyBinding[] = [...drawnKeys, ...livingKeys];
