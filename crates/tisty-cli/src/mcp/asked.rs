@@ -258,6 +258,13 @@ pub(super) fn strings(args: &Value, key: &str) -> Result<Vec<String>, Refused> {
     Ok(listed(args, key))
 }
 
+pub(super) fn how_many(args: &Value, by_default: u64, at_most: u64) -> usize {
+    args.get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(by_default)
+        .clamp(1, at_most) as usize
+}
+
 pub(super) fn text(args: &Value, key: &str) -> Option<String> {
     args.get(key)
         .and_then(Value::as_str)

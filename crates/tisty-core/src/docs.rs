@@ -1019,7 +1019,7 @@ pub fn cut_around(said: String, terms: &[String], most: usize) -> String {
     shown.into_iter().collect()
 }
 
-fn shown_around(body: &str, terms: &[String]) -> Option<String> {
+fn line_saying(body: &str, terms: &[String]) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     let mut backup: Option<(usize, String)> = None;
     let mut fence = Fencing::default();
@@ -1048,8 +1048,7 @@ fn shown_around(body: &str, terms: &[String]) -> Option<String> {
             break;
         }
     }
-    best.or(backup)
-        .map(|(_, said)| cut_around(said, terms, SAID_AT_MOST))
+    best.or(backup).map(|(_, said)| said)
 }
 
 pub const CORPUS_AT_MOST: usize = 64 * 1024 * 1024;
@@ -1163,7 +1162,7 @@ impl Corpus {
             let Ok(body) = read(root, &doc.id) else {
                 continue;
             };
-            if let Some(line) = shown_around(&body, &terms) {
+            if let Some(line) = line_saying(&body, &terms) {
                 found.push(Sighting {
                     id: doc.id,
                     title,

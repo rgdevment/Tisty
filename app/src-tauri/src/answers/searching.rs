@@ -13,8 +13,11 @@ pub fn search(
 ) -> Answer<Found> {
     let mut session = held(&session);
     session.reload()?;
+    Ok(sought(&mut session, &query, scope.as_deref()))
+}
 
-    let scope = match scope.as_deref() {
+fn sought(session: &mut Session, query: &str, scope: Option<&str>) -> Found {
+    let scope = match scope {
         Some("open") => Scope::Open,
         Some("archived") => Scope::Archived,
         _ => Scope::Either,
@@ -29,8 +32,8 @@ pub fn search(
     let root = session.paths.docs();
     let worded = session
         .corpus
-        .searching(&root, &query, usize::MAX, |id| behind.contains_key(id));
-    let (mut found, _) = session.state.searching(&query, scope, usize::MAX);
+        .searching(&root, query, usize::MAX, |id| behind.contains_key(id));
+    let (mut found, _) = session.state.searching(query, scope, usize::MAX);
     let mut seen: std::collections::HashSet<_> = found.iter().map(|one| one.id).collect();
     for task in worded
         .iter()
@@ -45,25 +48,26 @@ pub fn search(
     let tasks: Vec<Task> = found.into_iter().take(MOST).cloned().collect();
     let sighted = session
         .corpus
-        .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id));
+        .searching(&root, query, PAPERS_MOST, |id| listed.contains_key(id));
+    let terms = tisty_core::text::terms(query);
     let papers = answers::tongues::once_each(&session.state, sighted, |one| &one.id)
         .into_iter()
         .map(|one| Paper {
             archived: listed.get(&one.id).copied().unwrap_or(false),
             id: one.id,
             title: one.title,
-            line: one.line,
+            line: tisty_core::docs::cut_around(one.line, &terms, tisty_core::docs::SAID_AT_MOST),
         })
         .collect();
     let wholes = answers::parts::wholes(&session.state);
-    Ok(Found {
+    Found {
         standings: summing::standings(&session.state, today(), &tasks),
         paces: summing::paces(&wholes, today(), &tasks),
         tasks,
         total,
         papers,
         wholes,
-    })
+    }
 }
 
 const MOST: usize = 200;
@@ -86,3 +90,7 @@ pub struct Found {
     standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
     paces: std::collections::BTreeMap<String, tisty_core::pace::Paced>,
 }
+
+#[cfg(test)]
+#[path = "searching_test.rs"]
+mod tests;

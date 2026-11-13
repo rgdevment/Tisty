@@ -168,7 +168,9 @@ way: a task started last week and due next month is underway, not overdue.
 
 `find` searches the open tasks and the archive together unless you narrow `scope`, and a task \
 found by what its page, steps or notes say comes with the `line` that says it, so a past \
-decision often reads without opening the task. `read` brings a closed task whole, with `closed` \
+decision often reads without opening the task. It shows ten tasks and ten documents: `limit` \
+brings more, and `lines` false brings titles alone, enough to see whether something was already \
+filed. `read` brings a closed task whole, with `closed` \
 set to when it ended, and `find` with `part_of` brings its parts. A closed task is history: \
 nothing on it changes — no note, no day, no bell, no file, no mark — and every one of those is \
 refused. When the same work comes back, that is a new task: `read` how the closed one ended and \
@@ -280,7 +282,7 @@ with `sum_up`.
 Read a long document by parts: `outline_doc` gives its headings, lines, sizes, pages and \
 `print` for a few hundred tokens, and `read_doc` then takes a `section`, a run of lines, or a \
 budget of `chars`, about 12,000 characters at a time: a document longer than that asked for \
-whole comes back as its outline, so ask for the parts. Change what is there before adding: `edit_doc` changes the passage that is \
+whole comes back as its outline, so ask for the parts. To see where it says something, `find` with `doc` gives the lines that say it and those around each; a line two of them share comes once, with the earlier. Change what is there before adding: `edit_doc` changes the passage that is \
 wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
 serves, `edit_table` changes a table by its rows and columns without touching its Markdown, and \
 `append_doc` adds only where the order of entries is the point. A whole `write_doc` that keeps \

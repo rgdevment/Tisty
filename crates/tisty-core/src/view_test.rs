@@ -360,12 +360,30 @@ fn a_name_match_needs_no_line() {
 #[test]
 fn a_long_line_is_clipped_on_a_character_not_a_byte() {
     let long = format!("decisión {}", "ñ".repeat(400));
+
+    let line = clipped(&long);
+
+    assert_eq!(line.chars().count(), 201);
+    assert!(line.ends_with('…'));
+}
+
+#[test]
+fn a_long_line_comes_whole_so_its_reader_cuts_it_where_the_word_is() {
+    let long = format!("{} decisión", "ñ".repeat(400));
     let t = journalled("migrate", &[&long]);
 
     let (_, line) = mentioned_where(&t, "decision").unwrap();
 
-    assert_eq!(line.chars().count(), 201);
-    assert!(line.ends_with('…'));
+    assert_eq!(line, long);
+}
+
+#[test]
+fn the_words_a_title_or_a_tag_says_are_not_the_ones_left_to_look_for() {
+    let mut t = journalled("migrate the reader", &["we chose postgres"]);
+    t.tags = vec![crate::model::Tag::new("agent").unwrap()];
+    let asked = crate::text::terms("reader agent postgres");
+
+    assert_eq!(unnamed(&t, &asked), vec!["postgres".to_string()]);
 }
 
 #[test]

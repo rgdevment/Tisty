@@ -1302,9 +1302,14 @@ fn the_line_it_shows_is_cut_and_never_splits_a_character_in_half() {
     let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
 
     assert_eq!(found.len(), 1);
-    assert_eq!(found[0].line.chars().count(), SAID_AT_MOST);
-    assert!(found[0].line.ends_with("aguja"), "{}", found[0].line);
-    assert!(found[0].line.starts_with('…'), "{}", found[0].line);
+    let line = cut_around(
+        found[0].line.clone(),
+        &crate::text::terms("aguja"),
+        SAID_AT_MOST,
+    );
+    assert_eq!(line.chars().count(), SAID_AT_MOST);
+    assert!(line.ends_with("aguja"), "{line}");
+    assert!(line.starts_with('…'), "{line}");
 }
 
 #[test]
@@ -1321,7 +1326,11 @@ fn a_long_line_is_cut_around_the_words_it_was_found_by() {
 
     let found = Corpus::default().searching(room.path(), "idempotency", 40, |_| true);
 
-    let line = &found[0].line;
+    let line = cut_around(
+        found[0].line.clone(),
+        &crate::text::terms("idempotency"),
+        SAID_AT_MOST,
+    );
     assert!(line.contains("Idempotency keys are kept 90 days"), "{line}");
     assert!(line.starts_with('…') && line.ends_with('…'), "{line}");
     assert_eq!(line.chars().count(), SAID_AT_MOST);
@@ -3187,14 +3196,14 @@ fn a_task_document_is_found_by_its_words_and_never_by_the_line_naming_its_task()
     let terms = |said: &str| vec![crate::text::folded(said)];
     let body = "---\ntask: \"01M563T6T541A3Q2PP5YQW5XK1\"\n---\nRemember the task deadline\nTask: 01ARZ3NDEKTSV4RRFFQ69G5FAV\n";
     assert_eq!(
-        super::shown_around(body, &terms("task")).as_deref(),
+        super::line_saying(body, &terms("task")).as_deref(),
         Some("Remember the task deadline")
     );
     assert_eq!(
-        super::shown_around(body, &terms("01arz3ndek")).as_deref(),
+        super::line_saying(body, &terms("01arz3ndek")).as_deref(),
         Some("Task: 01ARZ3NDEKTSV4RRFFQ69G5FAV")
     );
-    assert_eq!(super::shown_around(body, &terms("01m563t6t5")), None);
+    assert_eq!(super::line_saying(body, &terms("01m563t6t5")), None);
 }
 
 #[test]

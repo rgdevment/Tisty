@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use super::text::{Heading, outlined, pointed_at, standing_out, titled};
-use super::{Sighting, all, bared, read, resolve, shown_around, stamped};
+use super::{Sighting, all, bared, line_saying, read, resolve, stamped};
 
 /// What can be worked out from a body without anybody writing it down, and so can never be
 /// stale: every field here is read back out of the text each time the file changes.
@@ -82,7 +82,7 @@ pub fn sighted(
             {
                 String::new()
             }
-            _ => match shown_around(&body, &terms) {
+            _ => match line_saying(&body, &terms) {
                 Some(line) => line,
                 None => continue,
             },
