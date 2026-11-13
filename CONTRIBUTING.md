@@ -220,11 +220,11 @@ the window tells that release's news again. It also asks `scripts/posts.mjs`
 whether `docs/posts.json` holds that version's post: one thing Tisty does, as a
 «¿Sabías que…?» and a «Did you know…?» with a real capture, which the release
 sends to X and Bluesky once it is published (X gets it without its link, which
-would cost its API about thirteen times more). Every stable release has its own,
-patches included; a candidate posts nothing. In CI a missing or wrong post only
-turns that last job red: the release itself goes out. Nothing slower goes in any of
-them: the suite, the build and the markdown lint are minutes, and they belong
-to CI.
+would cost its API about thirteen times more). Every stable release has its
+own, patches included; a candidate posts nothing. In CI a missing or wrong post
+only turns that last job red: the release itself goes out. Nothing slower goes
+in any of them: the suite, the build and the markdown lint are minutes, and
+they belong to CI.
 
 One of those rules keeps a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is
