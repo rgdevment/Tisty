@@ -52,7 +52,7 @@ expression: tool
         "type": "array"
       },
       "page_of": {
-        "description": "Id of the document it becomes a page of. Left out, it becomes a document of its own",
+        "description": "Id of the document it becomes a page of",
         "type": "string"
       }
     },

@@ -14,7 +14,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "after": {
-        "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: `docsTotal` counts them",
+        "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: raise `limit`",
         "type": "integer"
       },
       "around": {
