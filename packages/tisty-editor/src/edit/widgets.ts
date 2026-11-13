@@ -3,7 +3,6 @@ import {
   EditorSelection,
   EditorState,
   type Range,
-  StateEffect,
   StateField,
   type Transaction,
 } from "@codemirror/state";
@@ -14,84 +13,46 @@ import {
   type KeyBinding,
   WidgetType,
 } from "@codemirror/view";
-import type { Tree, TreeCursor } from "@lezer/common";
+import type { Tree } from "@lezer/common";
 import { frontLines } from "../front";
-import { cellEdited, cellPressed, rowAdded } from "./celling";
+import { blocksDrawn, type Code, type Rich } from "./drawnKinds";
+import { drawnPressed } from "./drawnPress";
 import { hosted } from "./hosted";
 import { fencePairs, marksShown } from "./seeing";
-import { columnAsked, columnWidened, rowAsked } from "./tableMenus";
-
-type Rich = { readonly from: number; readonly to: number };
 
 const LINE_PX = 26;
+const TURN_PX = 50;
 const FRONT_AT_MOST = 8 * 1024;
-
-const pictured = (state: EditorState, cursor: TreeCursor): boolean => {
-  const node = cursor.node;
-  let pictures = 0;
-  for (let child = node.firstChild; child; child = child.nextSibling) {
-    if (child.name !== "Image") return false;
-    pictures++;
-  }
-  const rest = state.sliceDoc(node.from, node.to).replace(/!\[[^\]]*\]\([^)]*\)/g, "");
-  return pictures > 0 && !rest.trim();
-};
-
-const IDEA = /^\s*>\s*\[!idea\]/i;
-
-const isRich = (state: EditorState, cursor: TreeCursor): boolean => {
-  if (cursor.name === "Table" || cursor.name === "HTMLBlock" || cursor.name === "FencedCode")
-    return true;
-  if (cursor.name === "Blockquote") return IDEA.test(state.doc.lineAt(cursor.from).text);
-  return cursor.name === "Paragraph" && pictured(state, cursor);
-};
 
 const foldsIn = (state: EditorState): Rich[] =>
   fencePairs(state)
     .filter(({ open }) => state.doc.sliceString(open.from, open.to).startsWith(":::details"))
-    .map(({ open, shut }) => ({ from: state.doc.lineAt(open.from).from, to: shut.to }));
+    .map(({ open, shut }) => ({
+      from: state.doc.lineAt(open.from).from,
+      to: shut.to,
+      kind: "drawn" as const,
+    }));
 
-const richKnown = new WeakMap<Tree, Rich[]>();
+type Shown = { readonly rich: Rich[]; readonly code: Code[] };
 
-const richIn = (state: EditorState): Rich[] => {
+const shownKnown = new WeakMap<Tree, Shown>();
+
+export const shownIn = (state: EditorState): Shown => {
   const tree = syntaxTree(state);
-  const kept = richKnown.get(tree);
+  const kept = shownKnown.get(tree);
   if (kept) return kept;
-  const found: Rich[] = [];
-  richKnown.set(tree, found);
   const folds = foldsIn(state);
   const folded = (at: number) => folds.some((one) => one.from <= at && at <= one.to);
-  const cursor = tree.topNode.cursor();
-  if (cursor.firstChild()) {
-    do {
-      if (folded(cursor.from) || !isRich(state, cursor)) continue;
-      const from = state.doc.lineAt(cursor.from).from;
-      const end =
-        cursor.to > 0 && state.doc.sliceString(cursor.to - 1, cursor.to) === "\n"
-          ? cursor.to - 1
-          : cursor.to;
-      found.push({ from, to: state.doc.lineAt(end).to });
-    } while (cursor.nextSibling());
-  }
-  found.push(...folds);
-  found.sort((a, b) => a.from - b.from);
-  return found;
+  const { rich, code } = blocksDrawn(state);
+  const shown = {
+    rich: [...rich.filter((one) => !folded(one.from)), ...folds].sort((a, b) => a.from - b.from),
+    code: code.filter((one) => !folded(one.open.from)),
+  };
+  shownKnown.set(tree, shown);
+  return shown;
 };
 
-const reveal = StateEffect.define<number | null>();
-
-const revealed = StateField.define<number | null>({
-  create: () => null,
-  update: (was, tr) => {
-    for (const one of tr.effects) if (one.is(reveal)) return one.value;
-    if (was === null) return null;
-    const at = tr.changes.mapPos(was);
-    const line = tr.state.doc.lineAt(at);
-    const block = richIn(tr.state).find((one) => one.from <= line.from && line.from <= one.to);
-    const head = tr.state.selection.main.head;
-    return block && head >= block.from && head <= block.to ? at : null;
-  },
-});
+const leaving = new WeakMap<HTMLElement, () => void>();
 
 class Drawn extends WidgetType {
   constructor(
@@ -120,31 +81,13 @@ class Drawn extends WidgetType {
     if (!draw) box.textContent = this.source;
     if (gone) leaving.set(box, gone);
     box.addEventListener("toggle", () => view.requestMeasure(), true);
-    const span = () => {
-      const from = view.posAtDOM(box);
-      return { from, to: view.state.doc.lineAt(from + this.source.length).to };
-    };
     box.addEventListener("mousedown", (event) => {
       if (event.button !== 0) return;
-      const target = event.target as Element;
-      if (target.closest?.("summary")) return;
-      const cell = target.closest?.<HTMLTableCellElement>("td, th");
-      if (cell?.isContentEditable) return;
-      event.preventDefault();
-      const { from, to } = span();
-      const grip = target.closest?.<HTMLElement>(".col-grip");
-      if (grip) return columnWidened(view, grip, event, { from, to });
-      const asked = target.closest?.<HTMLElement>("[data-act]");
-      if (asked?.dataset.act === "rowAdd") return rowAdded(view, this.source, from);
-      if (asked?.dataset.act === "column") return columnAsked(view, asked, from);
-      if (asked?.dataset.act === "row") return rowAsked(view, asked, from);
-      if (asked?.dataset.act === "toggle" || asked?.dataset.act === "star")
-        return cellPressed(view, asked, from);
-      if (cell && box.contains(cell) && cellEdited(view, cell, this.source, from)) return;
+      const from = view.posAtDOM(box);
+      const span = { from, to: view.state.doc.lineAt(from + this.source.length).to };
+      if (drawnPressed(view, box, this.source, span, event)) return;
       view.focus();
-      if (event.detail >= 2 && !box.querySelector("table"))
-        view.dispatch({ effects: reveal.of(from), selection: { anchor: from } });
-      else view.dispatch({ selection: { anchor: from, head: to } });
+      view.dispatch({ selection: { anchor: span.from, head: span.to } });
     });
     return box;
   }
@@ -156,7 +99,40 @@ class Drawn extends WidgetType {
   }
 }
 
-const leaving = new WeakMap<HTMLElement, () => void>();
+class Turn extends WidgetType {
+  constructor(readonly chosen: boolean) {
+    super();
+  }
+  eq(other: WidgetType) {
+    return other instanceof Turn && other.chosen === this.chosen;
+  }
+  get estimatedHeight() {
+    return TURN_PX;
+  }
+  toDOM(view: EditorView) {
+    const page = view.dom.ownerDocument;
+    const box = page.createElement("div");
+    box.className = this.chosen ? "cm-turn cm-rich-chosen" : "cm-turn";
+    const cut = page.createElement("div");
+    cut.className = "cm-turn-cut";
+    const said = view.state.facet(hosted).say("leafBreak");
+    cut.textContent = said;
+    box.title = said;
+    box.append(cut);
+    box.setAttribute("role", "separator");
+    box.addEventListener("mousedown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      const from = view.posAtDOM(box);
+      view.focus();
+      view.dispatch({ selection: { anchor: from, head: view.state.doc.lineAt(from).to } });
+    });
+    return box;
+  }
+  ignoreEvent() {
+    return true;
+  }
+}
 
 class Unseen extends WidgetType {
   eq(other: WidgetType) {
@@ -167,45 +143,105 @@ class Unseen extends WidgetType {
   }
 }
 
+class Fence extends WidgetType {
+  constructor(
+    readonly said: string,
+    readonly opening: boolean,
+  ) {
+    super();
+  }
+  eq(other: WidgetType) {
+    return other instanceof Fence && other.said === this.said && other.opening === this.opening;
+  }
+  toDOM(view: EditorView) {
+    const page = view.dom.ownerDocument;
+    const box = page.createElement("div");
+    box.className = this.opening ? "cm-code-head" : "cm-code-foot";
+    const inner = page.createElement("div");
+    inner.textContent = this.said;
+    box.append(inner);
+    return box;
+  }
+  ignoreEvent() {
+    return false;
+  }
+}
+
+const TITLE = /title="((?:[^"\\]|\\.)*)"/;
+
+const saidOf = (said: string): string => {
+  const title = TITLE.exec(said)?.[1]?.replace(/\\"/g, '"');
+  const language = said.split(/\s+/)[0] ?? "";
+  return title
+    ? `${title}${language && !language.startsWith("title=") ? ` · ${language}` : ""}`
+    : language;
+};
+
 // The properties at the top live in the side panel; the Markdown view still shows them as written.
 const propertiesEnd = (state: EditorState): number | null => {
   const held = frontLines(state.sliceDoc(0, Math.min(state.doc.length, FRONT_AT_MOST)));
   return held ? state.doc.line(held.length).to : null;
 };
 
+const codeLine = Decoration.line({ class: "cm-code" });
+
+const codeMarks = (state: EditorState, one: Code, out: Range<Decoration>[]) => {
+  const first = state.doc.lineAt(one.open.from).number;
+  const last = one.shut ? state.doc.lineAt(one.shut.from).number : state.doc.lines + 1;
+  if (last - first < 2) return;
+  out.push(
+    Decoration.replace({ widget: new Fence(saidOf(one.said), true), block: true }).range(
+      one.open.from,
+      one.open.to,
+    ),
+  );
+  for (let at = first + 1; at < last; at++) out.push(codeLine.range(state.doc.line(at).from));
+  if (one.shut)
+    out.push(
+      Decoration.replace({ widget: new Fence("", false), block: true }).range(
+        one.shut.from,
+        one.shut.to,
+      ),
+    );
+};
+
+const isChosen = (state: EditorState, one: { from: number; to: number }) => {
+  const { from, to } = state.selection.main;
+  return from <= one.from && to >= one.to && from !== to;
+};
+
+const widgetOf = (state: EditorState, one: Rich): WidgetType => {
+  if (one.kind === "unseen") return new Unseen();
+  if (one.kind === "turn") return new Turn(isChosen(state, one));
+  return new Drawn(state.doc.sliceString(one.from, one.to), isChosen(state, one));
+};
+
 const drawnAll = (state: EditorState): DecorationSet => {
   if (state.field(marksShown, false)) return Decoration.none;
-  const open = state.field(revealed);
-  const { from: chosenFrom, to: chosenTo } = state.selection.main;
   const out: Range<Decoration>[] = [];
   const front = propertiesEnd(state);
   if (front !== null)
     out.push(Decoration.replace({ widget: new Unseen(), block: true }).range(0, front));
-  for (const one of richIn(state)) {
-    if (open !== null && open >= one.from && open <= one.to) continue;
-    const source = state.doc.sliceString(one.from, one.to);
-    const chosen = chosenFrom <= one.from && chosenTo >= one.to && chosenFrom !== chosenTo;
-    const widget = new Drawn(source, chosen);
-    out.push(Decoration.replace({ widget, block: true }).range(one.from, one.to));
-  }
-  return Decoration.set(out);
+  const { rich, code } = shownIn(state);
+  for (const one of rich)
+    if (front === null || one.from > front)
+      out.push(
+        Decoration.replace({ widget: widgetOf(state, one), block: true }).range(one.from, one.to),
+      );
+  for (const one of code) if (front === null || one.open.from > front) codeMarks(state, one, out);
+  return Decoration.set(out, true);
 };
 
 const reshaped = (tr: Transaction) =>
-  tr.docChanged ||
-  syntaxTree(tr.state) !== syntaxTree(tr.startState) ||
-  tr.effects.length > 0 ||
-  tr.state.field(revealed) !== tr.startState.field(revealed);
+  tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState) || tr.effects.length > 0;
 
 // Rebuilding every drawn block on each caret move is what made long documents slow to walk through.
 const chosenTurned = (was: DecorationSet, tr: Transaction): boolean => {
-  const { from: start, to: end } = tr.state.selection.main;
   let turned = false;
   was.between(0, tr.state.doc.length, (from, to, one) => {
     const widget = one.spec.widget;
-    if (!(widget instanceof Drawn)) return;
-    const now = start <= from && end >= to && start !== end;
-    if (now !== widget.chosen) turned = true;
+    if (!(widget instanceof Drawn || widget instanceof Turn)) return;
+    if (isChosen(tr.state, { from, to }) !== widget.chosen) turned = true;
   });
   return turned;
 };
@@ -236,26 +272,15 @@ const takenFirst =
     while (at >= 1 && at <= state.doc.lines && !state.doc.line(at).text.trim()) at += way;
     if (at < 1 || at > state.doc.lines) return false;
     const edge = state.doc.line(at);
-    const near = richIn(state).find((one) =>
-      way < 0 ? one.to === edge.to : one.from === edge.from,
+    const near = shownIn(state).rich.find(
+      (one) => one.kind !== "unseen" && (way < 0 ? one.to === edge.to : one.from === edge.from),
     );
     if (!near) return false;
     view.dispatch({ selection: { anchor: near.from, head: near.to } });
     return true;
   };
 
-// A block taken whole opens to its Markdown with Enter, as a double press does; a table is written in its cells.
-const opened = (view: EditorView): boolean => {
-  const { from, to } = view.state.selection.main;
-  if (from === to || view.state.field(marksShown, false)) return false;
-  const block = richIn(view.state).find((one) => one.from === from && one.to === to);
-  if (!block || view.state.doc.sliceString(from, from + 1) === "|") return false;
-  view.dispatch({ effects: reveal.of(from), selection: { anchor: from } });
-  return true;
-};
-
 export const drawnKeys: KeyBinding[] = [
-  { key: "Enter", run: opened },
   { key: "Backspace", run: takenFirst(-1) },
   { key: "Delete", run: takenFirst(1) },
 ];
@@ -277,4 +302,4 @@ const afterProperties = EditorState.transactionFilter.of((tr) => {
   return [tr, { selection: kept, sequential: true }];
 });
 
-export const drawing = [revealed, drawnBlocks, afterProperties];
+export const drawing = [drawnBlocks, afterProperties];

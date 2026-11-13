@@ -48,10 +48,10 @@ const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away, .ta
 
 const SHOTS = ".page img[src], .page figure.diagram.drawn";
 
-const shotsIn = (page: Document): Element[] =>
-  Array.from(page.querySelectorAll(SHOTS)).filter(
-    (one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`),
-  );
+const lookable = (all: Iterable<Element>): Element[] =>
+  Array.from(all).filter((one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`));
+
+const shotsIn = (page: Document): Element[] => lookable(page.querySelectorAll(SHOTS));
 
 export const shotAt = (page: Document, target: Element | null): number | null => {
   const shot = target?.closest(SHOTS);
@@ -78,12 +78,19 @@ export const pictureChoices = (shots: Shot[], nth: number | null, ways: PictureW
   ];
 };
 
-export const shotsOf = (page: Document): Shot[] =>
-  shotsIn(page).map((one) => {
-    if (one.tagName !== "IMG") return { src: diagramShot(one) ?? "", kept: null, alt: "" };
-    const img = one as HTMLImageElement;
-    return { src: img.currentSrc || img.src, kept: img.dataset.kept ?? null, alt: img.alt };
-  });
+const shotOf = (one: Element): Shot => {
+  if (one.tagName !== "IMG") return { src: diagramShot(one) ?? "", kept: null, alt: "" };
+  const img = one as HTMLImageElement;
+  return { src: img.currentSrc || img.src, kept: img.dataset.kept ?? null, alt: img.alt };
+};
+
+export const shotsOf = (page: Document): Shot[] => shotsIn(page).map(shotOf);
+
+// The whole-document editor draws its own blocks, so its pictures are looked for within it.
+export const shotsWithin = (root: Element, target: Element): { shots: Shot[]; nth: number } => {
+  const found = lookable(root.querySelectorAll("img[src], figure.diagram.drawn"));
+  return { shots: found.map(shotOf), nth: found.indexOf(target) };
+};
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {

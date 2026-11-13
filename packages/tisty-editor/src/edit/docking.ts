@@ -101,16 +101,10 @@ export const docked = (
     }
     const line = aim?.();
     const margin = (Number.parseFloat(look.paddingLeft) || 0) - bar.offsetWidth - RAIL;
-    // Folded it waits in the margin beside the line, where it covers none of the words above.
-    const rightMargin = (Number.parseFloat(look.paddingRight) || 0) - bar.offsetWidth;
-    const folded = bar.classList.contains("folded") && line != null;
-    if (folded && (margin >= 0 || rightMargin >= 0)) {
+    // Folded it waits on the sheet's left edge beside the line, however narrow the sheet is.
+    if (bar.classList.contains("folded") && line != null) {
       bar.style.top = `${Math.min(bottom, Math.max(top, stuck, (line + view.scrollY) / zoom + 2))}px`;
-      const beside =
-        margin >= 0
-          ? box.left / zoom + margin
-          : box.right / zoom - rightMargin / 2 - bar.offsetWidth;
-      bar.style.left = `${beside + view.scrollX / zoom}px`;
+      bar.style.left = `${(box.left + view.scrollX) / zoom + Math.max(0, margin)}px`;
       return;
     }
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;

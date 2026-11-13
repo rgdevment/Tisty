@@ -13,6 +13,7 @@ import {
   BAR_CSS,
   type Crossing,
   caretAt,
+  type DrawnAsked,
   type Editing,
   enteredAt,
   FORMATS,
@@ -40,6 +41,7 @@ import { named } from "../previews";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
+import { under } from "./dressing";
 import { useKeptHeight } from "./heights";
 import { edited, editedLive } from "./hosting";
 import { blockDrawer } from "./liveBlocks";
@@ -48,7 +50,7 @@ import { LivelyBelow, useFrameScroll } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import type { Went } from "./paging";
+import { shotsWithin, type Went } from "./paging";
 import { closed, joined, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
@@ -150,6 +152,13 @@ export default function Sheet(props: Readonly<Props>) {
         failed: (e) => said.current.onFail?.(e),
       }),
     });
+  const drawnAsked = (base: number) => (asked: DrawnAsked) => {
+    if (asked.kind === "diagram")
+      return diagram(bytesAt(latest.current, base + asked.from), asked.nth, asked.code);
+    if (asked.kind === "export") return diagramOut(asked.nth, asked.code, under(asked.by));
+    const { shots, nth } = shotsWithin(asked.box.closest(".cm-content") ?? asked.box, asked.target);
+    if (nth >= 0) pictures.view(shots, nth);
+  };
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);
   const livelyOpen = useRef(false);
@@ -375,7 +384,13 @@ export default function Sheet(props: Readonly<Props>) {
     };
     const writer = whole?.lively
       ? (...rest: Parameters<typeof edited>) =>
-          editedLive(blockDrawer(element.ownerDocument, latest.current), ...rest)
+          editedLive(
+            {
+              drawBlock: blockDrawer(element.ownerDocument, latest.current),
+              drawnAsked: drawnAsked(from),
+            },
+            ...rest,
+          )
       : edited;
     open.current = writer(
       element,

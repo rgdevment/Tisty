@@ -2,7 +2,7 @@ import { EditorView, type KeyBinding, type Panel, showPanel } from "@codemirror/
 import { blocking, livingKeys } from "./blocks";
 import { gripping } from "./handle";
 import { type EditWord, hosted } from "./hosted";
-import { marksShown, showMarks } from "./seeing";
+import { marksShown, showMarks, wordsOnly } from "./seeing";
 import { drawing, drawnKeys } from "./widgets";
 
 const plain = EditorView.editorAttributes.compute([marksShown], (state) => ({
@@ -88,6 +88,56 @@ const living = EditorView.baseTheme({
       "0 1px 2px var(--tisty-cast), 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 8%, transparent)",
   },
   ".cm-rich summary": { pointerEvents: "auto", cursor: "pointer" },
+  ".cm-rich img, .cm-rich figure.diagram": { pointerEvents: "auto", cursor: "zoom-in" },
+  ".cm-rich .diagram-bar button": { cursor: "pointer" },
+  '.cm-rich blockquote[data-callout="idea"]': { pointerEvents: "auto", cursor: "text" },
+  ".cm-idea-words": { outline: "none", whiteSpace: "pre-wrap", minHeight: "1.5em" },
+  ".cm-turn": { padding: "14px 0", cursor: "default", userSelect: "none" },
+  ".cm-turn-cut": {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "2px 0",
+    borderRadius: "6px",
+    fontSize: "11px",
+    fontWeight: "600",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    color: "var(--tisty-faint)",
+  },
+  ".cm-turn-cut::before, .cm-turn-cut::after": {
+    content: '""',
+    flex: "1",
+    borderTop: "2px dashed var(--tisty-hair)",
+  },
+  ".cm-turn.cm-rich-chosen .cm-turn-cut": { outline: "2px solid var(--tisty-accent)" },
+  ".cm-code-head": { paddingTop: "12px", userSelect: "none" },
+  ".cm-code-foot": { paddingBottom: "12px", userSelect: "none" },
+  ".cm-code, .cm-code-head > div, .cm-code-foot > div": {
+    background: "var(--tisty-hover)",
+    borderLeft: "1px solid var(--tisty-hair)",
+    borderRight: "1px solid var(--tisty-hair)",
+  },
+  ".cm-line.cm-code": {
+    padding: "0 14px",
+    fontFamily: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, monospace",
+    fontSize: "0.88em",
+    lineHeight: "1.55",
+  },
+  ".cm-code-head > div": {
+    padding: "6px 14px",
+    minHeight: "8px",
+    borderTop: "1px solid var(--tisty-hair)",
+    borderRadius: "10px 10px 0 0",
+    fontSize: "12px",
+    lineHeight: "1.4",
+    color: "var(--tisty-soft)",
+  },
+  ".cm-code-foot > div": {
+    height: "10px",
+    borderBottom: "1px solid var(--tisty-hair)",
+    borderRadius: "0 0 10px 10px",
+  },
   ".cm-rich td, .cm-rich th, .cm-rich [data-act], .cm-rich .col-grip": {
     pointerEvents: "auto",
     cursor: "text",
@@ -221,6 +271,7 @@ export const lively = [
   gripping,
   living,
   plain,
+  wordsOnly.of(true),
   showPanel.of(viewTabs),
 ];
 

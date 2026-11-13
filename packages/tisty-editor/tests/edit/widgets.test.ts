@@ -95,14 +95,16 @@ describe("a drawn block in the whole-document editor", () => {
     expect(view.state.sliceDoc(from, to)).toBe(TABLE);
   });
 
-  it("opens a picture's Markdown on a double press, and draws it again once the caret leaves", () => {
+  it("looks at a picture on a press and never opens its Markdown, even on a double press", () => {
     const { host } = hostOf();
-    const view = viewOf("![x](a.png)\n\nafter", host);
-    const box = view.dom.querySelector<HTMLElement>(".cm-rich");
-    if (box) press(box, { detail: 2 });
-    expect(view.dom.querySelector(".cm-rich")).toBeNull();
-    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    const drawnAsked = vi.fn();
+    const view = viewOf("![x](a.png)\n\nafter", { ...host, drawnAsked });
+    const picture = view.dom.querySelector<HTMLElement>(".cm-rich img");
+    if (picture) press(picture, { detail: 2 });
     expect(view.dom.querySelector(".cm-rich")).not.toBeNull();
+    expect(drawnAsked).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "zoom", target: picture }),
+    );
   });
 
   it("never opens a table's Markdown on a double press", () => {

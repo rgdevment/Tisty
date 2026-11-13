@@ -36,7 +36,7 @@ describe("a bar laid over the page", () => {
 });
 
 describe("a folded bar beside the line being written", () => {
-  it("waits in the right margin when the left one has no room, and never over the tabs", () => {
+  it("keeps to the left edge even when the margin has no room, and never over the tabs", () => {
     const sheet = document.createElement("article");
     sheet.className = "page";
     sheet.style.paddingLeft = "10px";
@@ -54,7 +54,7 @@ describe("a folded bar beside the line being written", () => {
     Object.defineProperty(bar, "offsetWidth", { value: 24 });
     Object.defineProperty(bar, "offsetHeight", { value: 24 });
     const dock = docked(bar, document.createElement("span"), () => 0);
-    expect(bar.style.left).toBe("668px");
+    expect(bar.style.left).toBe("100px");
     expect(Number.parseFloat(bar.style.top)).toBeGreaterThanOrEqual(30);
     dock.stop();
     sheet.remove();

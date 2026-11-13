@@ -1,6 +1,6 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { movable } from "../../src/edit/barMoving";
 import { barred } from "../../src/edit/barring";
 import type { Hosted } from "../../src/edit/hosted";
@@ -44,32 +44,156 @@ const sources = (view: EditorView) =>
   Array.from(view.dom.querySelectorAll<HTMLElement>(".cm-rich"), (one) => one.dataset.source);
 
 describe("the blocks the whole-document editor draws as the page does", () => {
-  it("draws ideas, code and live widgets, and leaves plain words to be written", () => {
+  it("draws ideas and live widgets, and leaves code and plain words to be written", () => {
     const doc =
-      "> [!IDEA] one\n> words\n\n```js\nlet a = 1;\n```\n\n```widget\n<p>hi</p>\n```\n\nplain";
+      '> [!IDEA] one\n> words\n\n```js title="a.js"\nlet a = 1;\n```\n\n```widget\n<p>hi</p>\n```\n\nplain';
     const view = viewOf(
       doc,
       hostWith(() => undefined),
     );
-    expect(sources(view)).toEqual([
-      "> [!IDEA] one\n> words",
-      "```js\nlet a = 1;\n```",
-      "```widget\n<p>hi</p>\n```",
-    ]);
+    expect(sources(view)).toEqual(["> [!IDEA] one\n> words", "```widget\n<p>hi</p>\n```"]);
+    const code = Array.from(
+      view.dom.querySelectorAll(".cm-line.cm-code"),
+      (one) => one.textContent,
+    );
+    expect(code).toEqual(["let a = 1;"]);
+    expect(view.dom.querySelector(".cm-code-head")?.textContent).toBe("a.js · js");
+    expect(view.dom.querySelector(".cm-code-foot")).not.toBeNull();
   });
 
-  it("opens a drawn block to its Markdown with Enter once it is taken whole", () => {
-    const doc = "```js\nlet a = 1;\n```\n\nafter";
+  it("shows a page break as a turn of the sheet and hides a comment", () => {
+    const view = viewOf(
+      "one\n\n---\n\n<!-- note -->\n\ntwo",
+      hostWith(() => undefined),
+    );
+    expect(view.dom.querySelector(".cm-turn .cm-turn-cut")).not.toBeNull();
+    expect(view.dom.querySelector(".cm-turn")?.getAttribute("title")).toBe("leafBreak");
+    expect(view.dom.textContent).not.toContain("note");
+    expect(view.dom.textContent).not.toContain("---");
+  });
+
+  it("takes a page break whole on a press", () => {
+    const view = viewOf(
+      "one\n\n---\n\ntwo",
+      hostWith(() => undefined),
+    );
+    const turn = view.dom.querySelector(".cm-turn");
+    turn?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    const { from, to } = view.state.selection.main;
+    expect(view.state.sliceDoc(from, to)).toBe("---");
+  });
+
+  it("never opens a drawn block's Markdown with Enter", () => {
+    const doc = "![x](a.png)\n\nafter";
     const view = viewOf(
       doc,
       hostWith(() => undefined),
     );
     view.dispatch({ selection: { anchor: 0, head: doc.indexOf("\n\nafter") } });
     const enter = livelyKeys.filter((one) => one.key === "Enter");
-    expect(enter.some((one) => one.run?.(view))).toBe(true);
-    expect(view.dom.querySelector(".cm-rich")).toBeNull();
+    expect(enter.some((one) => one.run?.(view))).toBe(false);
+    expect(view.dom.querySelector(".cm-rich")).not.toBeNull();
+  });
+});
+
+const DIAGRAMS = "```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\npie\n```\n\nafter";
+
+const diagramDrawn: Hosted["drawBlock"] = (source, into) => {
+  into.innerHTML = source.includes("pie")
+    ? '<figure class="diagram drawn"><svg></svg><div class="diagram-bar"><button data-asked="diagramExport"></button><button data-asked="diagram"></button></div></figure>'
+    : '<figure class="diagram drawn"><svg></svg></figure>';
+  return undefined;
+};
+
+const pressOn = (target: Element | null | undefined, detail = 1) =>
+  target?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, detail }));
+
+describe("a drawn diagram in the whole-document editor", () => {
+  it("opens its window on a double press, named by its place among the diagrams", () => {
+    const drawnAsked = vi.fn();
+    const view = viewOf(DIAGRAMS, { ...hostWith(diagramDrawn), drawnAsked });
+    const second = view.dom.querySelectorAll("figure.diagram")[1];
+    pressOn(second, 2);
+    expect(drawnAsked).toHaveBeenCalledWith({
+      kind: "diagram",
+      code: "pie\n",
+      from: DIAGRAMS.indexOf("```mmd"),
+      nth: 1,
+    });
+    expect(view.dom.querySelectorAll(".cm-rich")).toHaveLength(2);
   });
 
+  it("looks at it large on a single press, once no second press follows", () => {
+    vi.useFakeTimers();
+    const drawnAsked = vi.fn();
+    const view = viewOf(DIAGRAMS, { ...hostWith(diagramDrawn), drawnAsked });
+    const first = view.dom.querySelector("figure.diagram");
+    pressOn(first);
+    expect(drawnAsked).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(400);
+    vi.useRealTimers();
+    expect(drawnAsked).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "zoom", target: first }),
+    );
+  });
+
+  it("opens its window and its export from the buttons on its bar", () => {
+    const drawnAsked = vi.fn();
+    const view = viewOf(DIAGRAMS, { ...hostWith(diagramDrawn), drawnAsked });
+    const out = view.dom.querySelector('[data-asked="diagramExport"]');
+    pressOn(view.dom.querySelector('.diagram-bar [data-asked="diagram"]'));
+    pressOn(out);
+    expect(drawnAsked).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ kind: "diagram", nth: 1 }),
+    );
+    expect(drawnAsked).toHaveBeenNthCalledWith(2, {
+      kind: "export",
+      code: "pie\n",
+      nth: 1,
+      by: out,
+    });
+  });
+});
+
+describe("a sticky note in the whole-document editor", () => {
+  const NOTE = "> [!IDEA] 2026-11-12 · blue\n> one\n> two\n\nafter";
+  beforeEach(() => {
+    Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+    Range.prototype.getBoundingClientRect = () => new DOMRect();
+  });
+
+  const noteDrawn: Hosted["drawBlock"] = (_, into) => {
+    into.innerHTML =
+      '<blockquote data-callout="idea"><span class="sticky-pin"></span><p>one two</p></blockquote>';
+    return undefined;
+  };
+
+  it("is written in place and keeps its first line", () => {
+    const view = viewOf(NOTE, hostWith(noteDrawn));
+    pressOn(view.dom.querySelector("blockquote p"));
+    const words = view.dom.querySelector<HTMLElement>(".cm-idea-words");
+    expect(words?.textContent).toBe("one\ntwo");
+    expect(view.dom.querySelector(".sticky-pin")).not.toBeNull();
+    if (words) words.textContent = "three\n\nfour";
+    words?.dispatchEvent(new FocusEvent("blur"));
+    expect(view.state.doc.toString()).toBe(
+      "> [!IDEA] 2026-11-12 · blue\n> three\n>\n> four\n\nafter",
+    );
+  });
+
+  it("is left as it was on Escape", () => {
+    const view = viewOf(NOTE, hostWith(noteDrawn));
+    pressOn(view.dom.querySelector("blockquote p"));
+    const words = view.dom.querySelector<HTMLElement>(".cm-idea-words");
+    if (words) words.textContent = "gone";
+    words?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(view.state.doc.toString()).toBe(NOTE);
+    expect(view.dom.querySelector(".cm-idea-words")).toBeNull();
+  });
+});
+
+describe("the blocks the whole-document editor lends", () => {
   it("hands back what a drawn block lent once it leaves the screen", () => {
     const given = vi.fn();
     const view = viewOf(
@@ -118,5 +242,17 @@ describe("the bar of the whole-document editor", () => {
     expect(bar.dataset.moved).toBe("");
     expect(pressed).not.toHaveBeenCalled();
     stop();
+  });
+});
+
+describe("the preview of the whole document", () => {
+  it("never shows a link's address, even with the caret inside it", () => {
+    const doc = "see [the vet](https://vet.example) today";
+    const view = viewOf(
+      doc,
+      hostWith(() => undefined),
+      doc.indexOf("vet]"),
+    );
+    expect(view.contentDOM.textContent).toBe("see the vet today");
   });
 });

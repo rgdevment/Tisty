@@ -283,23 +283,32 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   return { lent, kept: [...held, ...read.kept] };
 };
 
-export const diagramBars = (page: Document, ways = { open: true, out: false, words: false }) => {
-  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
-    if (figure.querySelector(":scope > .diagram-bar")) continue;
-    const bar = page.createElement("div");
-    bar.className = "diagram-bar";
-    // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
-    const button = (asked: string, said: string) => {
-      const one = asking(page, asked, "");
-      one.setAttribute("aria-label", said);
-      one.title = said;
-      bar.append(one);
-    };
-    if (ways.out) button("diagramExport", t("diagramExport"));
-    if (ways.words) button("diagramMarkdown", t("diagramMarkdown"));
-    if (ways.open) button("diagram", t("diagramOpen"));
-    figure.append(bar);
-  }
+type BarWays = { readonly open: boolean; readonly out: boolean; readonly words: boolean };
+
+export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
+  if (figure.querySelector(":scope > .diagram-bar")) return;
+  const page = figure.ownerDocument;
+  const bar = page.createElement("div");
+  bar.className = "diagram-bar";
+  // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
+  const button = (asked: string, said: string) => {
+    const one = asking(page, asked, "");
+    one.setAttribute("aria-label", said);
+    one.title = said;
+    bar.append(one);
+  };
+  if (ways.out) button("diagramExport", t("diagramExport"));
+  if (ways.words) button("diagramMarkdown", t("diagramMarkdown"));
+  if (ways.open) button("diagram", t("diagramOpen"));
+  figure.append(bar);
+};
+
+export const diagramBars = (
+  page: Document,
+  ways: BarWays = { open: true, out: false, words: false },
+) => {
+  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"))
+    diagramBar(figure, ways);
 };
 
 const figureAt = (page: Document, at: [number, number]) => {
@@ -310,11 +319,13 @@ const figureAt = (page: Document, at: [number, number]) => {
 };
 
 // The page sits in a frame; a menu of the window opens where the bar shows on the window's screen.
-const underBar = (page: Document, figure: HTMLElement) => {
-  const box = (figure.querySelector(".diagram-bar") ?? figure).getBoundingClientRect();
-  const frame = page.defaultView?.frameElement?.getBoundingClientRect();
+export const under = (one: Element) => {
+  const box = one.getBoundingClientRect();
+  const frame = one.ownerDocument.defaultView?.frameElement?.getBoundingClientRect();
   return { x: box.left + (frame?.left ?? 0), y: box.bottom + 4 + (frame?.top ?? 0) };
 };
+
+const underBar = (figure: HTMLElement) => under(figure.querySelector(".diagram-bar") ?? figure);
 
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
@@ -325,8 +336,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "diagramExport") {
     const found = figureAt(page, asked.at);
-    if (found)
-      reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(page, found.figure));
+    if (found) reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(found.figure));
   }
   if (asked.kind === "diagramMarkdown") {
     const found = figureAt(page, asked.at);

@@ -24,7 +24,18 @@ export type Hosted = {
     into: HTMLElement,
     measured: () => void,
   ) => (() => void) | undefined;
+  readonly drawnAsked?: (asked: DrawnAsked) => void;
 };
+
+export type DrawnAsked =
+  | { readonly kind: "diagram"; readonly code: string; readonly from: number; readonly nth: number }
+  | {
+      readonly kind: "export";
+      readonly code: string;
+      readonly nth: number;
+      readonly by: HTMLElement;
+    }
+  | { readonly kind: "zoom"; readonly box: HTMLElement; readonly target: Element };
 
 const NOBODY: Hosted = {
   say: (word) => word,

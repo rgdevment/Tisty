@@ -3,25 +3,33 @@ import { charsAt, spanned } from "tisty-editor/read";
 import { celledBox, diagrams, HUES, today } from "tisty-sheet";
 import { docDrawn } from "../core";
 import { locale } from "../locales";
-import { picturesWithin } from "./dressing";
+import { diagramBar, picturesWithin } from "./dressing";
 import { SAY } from "./saying";
 import { dressedTable } from "./tabled";
 import { darkNow } from "./theming";
 import { gripsOn } from "./widening";
 import { lend } from "./widgeting";
 
-// A copy keeps no page bytes, or the page's own handlers would act on a block that moved.
+// A copy keeps no page bytes, or the page's handlers would act on a moved block; the frame's nodes fail instanceof.
 const loose = (node: Node): Node => {
-  if (node instanceof Element) {
-    node.removeAttribute("data-at");
-    for (const one of node.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
-  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return node;
+  const element = node as Element;
+  element.removeAttribute("data-at");
+  for (const one of element.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   return node;
+};
+
+// The bar's Markdown button is gone here: the Markdown view is the one way to the words.
+const barred = (into: HTMLElement) => {
+  for (const one of into.querySelectorAll('[data-asked="diagramMarkdown"]')) one.remove();
+  for (const figure of into.querySelectorAll<HTMLElement>("figure.diagram"))
+    diagramBar(figure, { open: true, out: true, words: false });
 };
 
 const dressed = (into: HTMLElement, measured: () => void) => {
   const live = () => into.isConnected;
   picturesWithin(into, live);
+  barred(into);
   for (const box of into.querySelectorAll(".table")) {
     dressedTable(into.ownerDocument, box);
     celledBox(into.ownerDocument, box, {
