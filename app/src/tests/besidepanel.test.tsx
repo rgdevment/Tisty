@@ -177,3 +177,39 @@ describe("a page's column", () => {
     expect(onPage).toHaveBeenCalledWith(up);
   });
 });
+
+describe("sharing from the column", () => {
+  const column = (body: string) =>
+    render(
+      <Beside
+        title="Lluvia de ideas"
+        paper="dev_a-0002"
+        doc="01JBRAINSTORM0000000000000"
+        body={body}
+        tags={[]}
+        kept={0}
+        heads={[]}
+        pages={[]}
+        leaf="a4"
+        onLeaf={() => {}}
+        making={false}
+        onCopy={() => {}}
+        onTakeOut={() => {}}
+        onShut={() => {}}
+        onApart={() => {}}
+      />,
+    );
+
+  it("offers a document with an idea to Folio", async () => {
+    column("# Huerto\n\n> [!IDEA] 2026-11-12 · yellow\n> Regar de noche\n");
+    await act(async () => {});
+    expect(row("shared")).not.toBeNull();
+  });
+
+  it("never offers Brainstorm itself to Folio", async () => {
+    column("---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n");
+    await act(async () => {});
+    expect(row("shared")).toBeNull();
+    expect(screen.queryByText(t("shareIt"))).toBeNull();
+  });
+});
