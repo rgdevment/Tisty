@@ -320,14 +320,31 @@ export function check(version, { root = ROOT, say = console.log, inActions = Boo
   return wrong.length === 0 ? 0 : 1;
 }
 
+export function preview(version, { root = ROOT, say = console.log } = {}) {
+  const entry = readPosts(root).find((one) => one.version === version);
+  if (!entry) {
+    say(`x  nothing in ${POSTS} for ${version}`);
+    return 1;
+  }
+  for (const tongue of TONGUES) {
+    const said = entry[tongue];
+    say(`\n${tongue} · picture ${said.picture}\n  alt: ${said.shows}`);
+    say(`  X, ${xLength(forX(said.text))}/${X_MOST}:\n    ${forX(said.text)}`);
+    say(`  Bluesky, ${blueskyLength(said.text)}/${BLUESKY_MOST}:\n    ${said.text}`);
+  }
+  return check(version, { root, say });
+}
+
+const COMMANDS = { check, preview, send };
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [what, version] = process.argv.slice(2);
-  if (!version || !["check", "send"].includes(what)) {
-    console.log("usage: node scripts/posts.mjs check|send <version, without the v>");
+  if (!version || !COMMANDS[what]) {
+    console.log("usage: node scripts/posts.mjs check|preview|send <version, without the v>");
     process.exit(2);
   }
   try {
-    process.exit(what === "check" ? check(version) : await send(version));
+    process.exit(await COMMANDS[what](version));
   } catch (why) {
     console.log(`::error::${why.message}`);
     process.exit(1);

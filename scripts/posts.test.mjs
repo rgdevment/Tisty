@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
-import { blueskyLength, check, forX, judged, linkFacets, oauthSignature, readPosts, send, webpSize, xLength } from "./posts.mjs";
+import { blueskyLength, check, forX, judged, linkFacets, oauthSignature, preview, readPosts, send, webpSize, xLength } from "./posts.mjs";
 
 const picture = "assets/screens/readme/en-01-archive.webp";
 const said = (text) => ({ text, picture, shows: "The Archive" });
@@ -238,4 +238,14 @@ test("a network that fails leaves the other one to post", async () => {
   assert.equal(await send("9.9.0", { env: KEYS, root: home([entry()]), say }), 1);
   assert.equal(calls.filter((one) => one.url.endsWith("createRecord")).length, 2);
   assert.ok(lines.some((one) => /::error::X es: X took no picture: 503/.test(one)));
+});
+
+test("a preview shows what each network gets, and posts nothing", () => {
+  const calls = networksThatAnswer();
+  const { lines, say } = listening();
+  assert.equal(preview("9.9.0", { root: home([entry()]), say }), 0);
+  const shown = lines.join("\n");
+  assert.match(shown, /X, \d+\/280:\n {4}¿Sabías que Tisty guarda lo que terminas\?\n/);
+  assert.match(shown, /Bluesky, \d+\/300:\n {4}¿Sabías que Tisty guarda lo que terminas\? https:\/\/tisty\.app/);
+  assert.equal(calls.length, 0);
 });
