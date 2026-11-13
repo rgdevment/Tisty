@@ -1,4 +1,5 @@
 import dressed from "./bar.css?raw";
+import { MOVED } from "./barMoving";
 
 const REST = 2;
 const LEFT = 6;
@@ -63,7 +64,7 @@ export const docked = (
     under.after(hint);
   } else (sheet ?? page.body).append(hint);
   const place = () => {
-    if (!sheet || !view) return;
+    if (!sheet || !view || bar.dataset[MOVED] !== undefined) return;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     const box = sheet.getBoundingClientRect();
     const scroller = scrollerOf(frame);

@@ -24,6 +24,7 @@ import {
 import { tags } from "@lezer/highlight";
 import { HUES, isHue } from "tisty-sheet";
 import { known } from "tisty-sheet/glyphs";
+import { movable } from "./barMoving";
 import { barred, blockKeys, flipped, paragraphKeys } from "./barring";
 import { chooseOrLet } from "./blocks";
 import { type Crossing, crossingKeys } from "./crossing";
@@ -295,9 +296,13 @@ export const tightened = (state: EditorState, keepsGaps = false): string => {
 };
 
 const besideChosen = (view: EditorView, bar: HTMLElement): number | null => {
-  const { from, empty } = view.state.selection.main;
-  const at = empty ? null : view.coordsAtPos(from);
-  return at ? Math.min(at.left + bar.offsetWidth, view.dom.getBoundingClientRect().right) : null;
+  const { from, to, empty } = view.state.selection.main;
+  const start = empty ? null : view.coordsAtPos(from);
+  const end = empty ? null : view.coordsAtPos(to, -1);
+  if (!start || !end) return null;
+  const middle = start.top === end.top ? (start.left + end.right) / 2 : start.left;
+  const right = middle + bar.offsetWidth / 2;
+  return Math.min(right, view.dom.getBoundingClientRect().right);
 };
 
 /** Where the bar rests: over the words chosen, over the block being written, or at the top of a task's page. */
@@ -494,8 +499,13 @@ export const edited = (
     whole === true,
     live ? () => besideChosen(view, bar.bar) : undefined,
   );
-  undock = dock.stop;
+  const unmovable = live ? movable(bar.bar) : () => {};
+  undock = () => {
+    unmovable();
+    dock.stop();
+  };
   replace = dock.place;
+  if (live) bar.hint.style.display = "none";
   if (live && view.state.field(marksShown)) view.dispatch({ effects: showMarks.of(false) });
   if (!live) view.focus();
   return { view, leave, kept: bar.kept, flush };

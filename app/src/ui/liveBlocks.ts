@@ -8,6 +8,7 @@ import { SAY } from "./saying";
 import { dressedTable } from "./tabled";
 import { darkNow } from "./theming";
 import { gripsOn } from "./widening";
+import { lend } from "./widgeting";
 
 // A copy keeps no page bytes, or the page's own handlers would act on a block that moved.
 const loose = (node: Node): Node => {
@@ -37,6 +38,21 @@ const dressed = (into: HTMLElement, measured: () => void) => {
 };
 
 const FRESH_AT_MOST = 32;
+const WIDGET = /^(`{3,}|~{3,})widget[^\n]*\n([\s\S]*?)\n\1\s*$/;
+
+// A live widget runs in its own frame, lent for as long as its block is on screen and handed back after.
+const lentWidget = (into: HTMLElement, source: string, measured: () => void) => {
+  const code = WIDGET.exec(source.replace(/\r\n/g, "\n").trim())?.[2];
+  if (code === undefined) return undefined;
+  const drawn = into.ownerDocument.createElement("figure");
+  drawn.className = "widget";
+  const held = into.ownerDocument.createElement("div");
+  drawn.append(held);
+  into.replaceChildren(drawn);
+  const lent = lend(held, code, () => measured());
+  measured();
+  return lent.drop;
+};
 
 const keyOf = (source: string) => source.replace(/\r\n/g, "\n").trim();
 
@@ -64,14 +80,20 @@ export const blockDrawer = (page: Document, body: string): NonNullable<Hosted["d
     return onPage;
   };
   return (source, into, measured) => {
+    const widget = lentWidget(into, source, measured);
+    if (widget) return widget;
     const key = keyOf(source);
     const found = known().get(key);
     if (found) {
       into.replaceChildren(loose(found.cloneNode(true)));
-      return dressed(into, measured);
+      dressed(into, measured);
+      return undefined;
     }
     const kept = fresh.get(key);
-    if (kept !== undefined) return placed(into, kept, measured);
+    if (kept !== undefined) {
+      placed(into, kept, measured);
+      return undefined;
+    }
     into.textContent = source;
     into.classList.add("cm-rich-waiting");
     docDrawn(source)
@@ -81,5 +103,6 @@ export const blockDrawer = (page: Document, body: string): NonNullable<Hosted["d
         if (into.isConnected) placed(into, html, measured);
       })
       .catch(() => {});
+    return undefined;
   };
 };

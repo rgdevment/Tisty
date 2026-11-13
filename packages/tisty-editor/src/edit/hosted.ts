@@ -19,7 +19,11 @@ export type Hosted = {
   readonly tableEditNear: (body: string, at: number, ...edits: TableEdit[]) => Promise<string>;
   readonly fromHtml: (html: string) => Promise<string>;
   readonly fromText: (text: string) => Promise<string | null>;
-  readonly drawBlock?: (source: string, into: HTMLElement, measured: () => void) => void;
+  readonly drawBlock?: (
+    source: string,
+    into: HTMLElement,
+    measured: () => void,
+  ) => (() => void) | undefined;
 };
 
 const NOBODY: Hosted = {

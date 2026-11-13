@@ -261,6 +261,19 @@
   color: var(--tisty-ink);
   opacity: 1;
 }
+.cm-bar.live .cm-bar-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 28px;
+  color: var(--tisty-faint);
+  cursor: grab;
+  user-select: none;
+}
+.cm-bar.live .cm-bar-fold {
+  cursor: grab;
+}
 .cm-bar.live.asleep {
   visibility: hidden;
 }

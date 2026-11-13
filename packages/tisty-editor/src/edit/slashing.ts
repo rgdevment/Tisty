@@ -369,10 +369,14 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
 };
 
 /** A table put at the caret just as the `/` menu puts one, from the bar's own button. */
+// A block put in from the bar goes after the line the caret stands in, never splitting its words.
+export const lineEndOf = (view: EditorView): number =>
+  view.state.doc.lineAt(view.state.selection.main.head).to;
+
 export const putTable = (view: EditorView, asking?: Asking) => {
   const table = SLASHED.find((one) => one.key === "table");
-  const { head } = view.state.selection.main;
-  if (table) put(view, table, head, head, asking);
+  const at = lineEndOf(view);
+  if (table) put(view, table, at, at, asking);
 };
 
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);

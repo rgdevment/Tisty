@@ -18,12 +18,11 @@ import type { Tree, TreeCursor } from "@lezer/common";
 import { frontLines } from "../front";
 import { cellEdited, cellPressed, rowAdded } from "./celling";
 import { hosted } from "./hosted";
-import { marksShown } from "./seeing";
+import { fencePairs, marksShown } from "./seeing";
 import { columnAsked, columnWidened, rowAsked } from "./tableMenus";
 
 type Rich = { readonly from: number; readonly to: number };
 
-const DRAWN_FENCES = new Set(["mermaid"]);
 const LINE_PX = 26;
 const FRONT_AT_MOST = 8 * 1024;
 
@@ -38,16 +37,19 @@ const pictured = (state: EditorState, cursor: TreeCursor): boolean => {
   return pictures > 0 && !rest.trim();
 };
 
-const drawnFence = (state: EditorState, cursor: TreeCursor): boolean => {
-  const info = cursor.node.getChild("CodeInfo");
-  return Boolean(info && DRAWN_FENCES.has(state.sliceDoc(info.from, info.to).trim().toLowerCase()));
-};
+const IDEA = /^\s*>\s*\[!idea\]/i;
 
 const isRich = (state: EditorState, cursor: TreeCursor): boolean => {
-  if (cursor.name === "Table" || cursor.name === "HTMLBlock") return true;
-  if (cursor.name === "FencedCode") return drawnFence(state, cursor);
+  if (cursor.name === "Table" || cursor.name === "HTMLBlock" || cursor.name === "FencedCode")
+    return true;
+  if (cursor.name === "Blockquote") return IDEA.test(state.doc.lineAt(cursor.from).text);
   return cursor.name === "Paragraph" && pictured(state, cursor);
 };
+
+const foldsIn = (state: EditorState): Rich[] =>
+  fencePairs(state)
+    .filter(({ open }) => state.doc.sliceString(open.from, open.to).startsWith(":::details"))
+    .map(({ open, shut }) => ({ from: state.doc.lineAt(open.from).from, to: shut.to }));
 
 const richKnown = new WeakMap<Tree, Rich[]>();
 
@@ -57,17 +59,22 @@ const richIn = (state: EditorState): Rich[] => {
   if (kept) return kept;
   const found: Rich[] = [];
   richKnown.set(tree, found);
+  const folds = foldsIn(state);
+  const folded = (at: number) => folds.some((one) => one.from <= at && at <= one.to);
   const cursor = tree.topNode.cursor();
-  if (!cursor.firstChild()) return found;
-  do {
-    if (!isRich(state, cursor)) continue;
-    const from = state.doc.lineAt(cursor.from).from;
-    const end =
-      cursor.to > 0 && state.doc.sliceString(cursor.to - 1, cursor.to) === "\n"
-        ? cursor.to - 1
-        : cursor.to;
-    found.push({ from, to: state.doc.lineAt(end).to });
-  } while (cursor.nextSibling());
+  if (cursor.firstChild()) {
+    do {
+      if (folded(cursor.from) || !isRich(state, cursor)) continue;
+      const from = state.doc.lineAt(cursor.from).from;
+      const end =
+        cursor.to > 0 && state.doc.sliceString(cursor.to - 1, cursor.to) === "\n"
+          ? cursor.to - 1
+          : cursor.to;
+      found.push({ from, to: state.doc.lineAt(end).to });
+    } while (cursor.nextSibling());
+  }
+  found.push(...folds);
+  found.sort((a, b) => a.from - b.from);
   return found;
 };
 
@@ -109,8 +116,10 @@ class Drawn extends WidgetType {
     box.className = this.chosen ? "cm-rich cm-rich-chosen" : "cm-rich";
     box.dataset.source = this.source;
     const draw = view.state.facet(hosted).drawBlock;
-    if (draw) draw(this.source, box, () => view.requestMeasure());
-    else box.textContent = this.source;
+    const gone = draw ? draw(this.source, box, () => view.requestMeasure()) : undefined;
+    if (!draw) box.textContent = this.source;
+    if (gone) leaving.set(box, gone);
+    box.addEventListener("toggle", () => view.requestMeasure(), true);
     const span = () => {
       const from = view.posAtDOM(box);
       return { from, to: view.state.doc.lineAt(from + this.source.length).to };
@@ -118,6 +127,7 @@ class Drawn extends WidgetType {
     box.addEventListener("mousedown", (event) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
+      if (target.closest?.("summary")) return;
       const cell = target.closest?.<HTMLTableCellElement>("td, th");
       if (cell?.isContentEditable) return;
       event.preventDefault();
@@ -138,10 +148,15 @@ class Drawn extends WidgetType {
     });
     return box;
   }
+  destroy(dom: HTMLElement) {
+    leaving.get(dom)?.();
+  }
   ignoreEvent() {
     return true;
   }
 }
+
+const leaving = new WeakMap<HTMLElement, () => void>();
 
 class Unseen extends WidgetType {
   eq(other: WidgetType) {
@@ -229,7 +244,18 @@ const takenFirst =
     return true;
   };
 
+// A block taken whole opens to its Markdown with Enter, as a double press does; a table is written in its cells.
+const opened = (view: EditorView): boolean => {
+  const { from, to } = view.state.selection.main;
+  if (from === to || view.state.field(marksShown, false)) return false;
+  const block = richIn(view.state).find((one) => one.from === from && one.to === to);
+  if (!block || view.state.doc.sliceString(from, from + 1) === "|") return false;
+  view.dispatch({ effects: reveal.of(from), selection: { anchor: from } });
+  return true;
+};
+
 export const drawnKeys: KeyBinding[] = [
+  { key: "Enter", run: opened },
   { key: "Backspace", run: takenFirst(-1) },
   { key: "Delete", run: takenFirst(1) },
 ];

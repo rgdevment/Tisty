@@ -19,6 +19,10 @@ const viewTabs = (view: EditorView): Panel => {
   const say = view.state.facet(hosted).say;
   const dom = page.createElement("div");
   dom.className = "cm-views";
+  const pair = page.createElement("div");
+  pair.className = "cm-views-pair";
+  pair.setAttribute("role", "group");
+  dom.append(pair);
   const tab = (word: EditWord, plainly: boolean) => {
     const one = page.createElement("button");
     one.type = "button";
@@ -33,7 +37,7 @@ const viewTabs = (view: EditorView): Panel => {
   };
   const preview = tab("viewPreview", false);
   const markdown = tab("viewMarkdown", true);
-  dom.append(preview, markdown);
+  pair.append(preview, markdown);
   const pressed = (on: boolean) => {
     preview.setAttribute("aria-pressed", String(!on));
     markdown.setAttribute("aria-pressed", String(on));
@@ -44,28 +48,46 @@ const viewTabs = (view: EditorView): Panel => {
 
 const living = EditorView.baseTheme({
   ".cm-panels.cm-panels-top": {
-    background: "var(--tisty-sheet)",
-    borderBottom: "1px solid var(--tisty-hair)",
-    marginBottom: "18px",
-  },
-  ".cm-views": { display: "flex", gap: "2px", paddingTop: "6px" },
-  ".cm-view-tab": {
-    padding: "6px 12px",
+    background: "transparent",
     border: "none",
-    borderBottom: "2px solid transparent",
+    pointerEvents: "none",
+  },
+  ".cm-views": {
+    display: "flex",
+    justifyContent: "flex-end",
+    padding: "4px 0 10px",
+  },
+  ".cm-views-pair": {
+    display: "inline-flex",
+    gap: "2px",
+    padding: "3px",
+    borderRadius: "10px",
+    background: "color-mix(in srgb, var(--tisty-ink) 6%, var(--tisty-sheet))",
+    boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 6%, transparent)",
+    pointerEvents: "auto",
+  },
+  ".cm-view-tab": {
+    padding: "4px 12px",
+    border: "none",
+    borderRadius: "7px",
     background: "none",
     color: "var(--tisty-faint)",
     font: "inherit",
-    fontSize: "12.5px",
-    fontWeight: "560",
+    fontSize: "12px",
+    fontWeight: "550",
+    letterSpacing: "0.01em",
     cursor: "pointer",
-    marginBottom: "-1px",
+    transition: "background-color 120ms ease, color 120ms ease",
   },
   ".cm-view-tab:hover": { color: "var(--tisty-ink)" },
+  ".cm-view-tab:focus-visible": { outline: "2px solid var(--tisty-accent)", outlineOffset: "1px" },
   ".cm-view-tab[aria-pressed=true]": {
     color: "var(--tisty-ink)",
-    borderBottomColor: "var(--tisty-accent)",
+    background: "var(--tisty-sheet)",
+    boxShadow:
+      "0 1px 2px var(--tisty-cast), 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 8%, transparent)",
   },
+  ".cm-rich summary": { pointerEvents: "auto", cursor: "pointer" },
   ".cm-rich td, .cm-rich th, .cm-rich [data-act], .cm-rich .col-grip": {
     pointerEvents: "auto",
     cursor: "text",
