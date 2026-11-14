@@ -15,6 +15,13 @@ const tied = (before: string): boolean => {
   return at >= 0 && TIES.test(chars[at]);
 };
 
+// A backslash keeps the hash a plain character, unless that backslash is itself escaped.
+const escaped = (before: string): boolean => {
+  let at = before.length;
+  while (at > 0 && before[at - 1] === "\\") at -= 1;
+  return (before.length - at) % 2 === 1;
+};
+
 // Where a mark is an accent or a vowel a reader can do without, over a letter that stands without it.
 const ACCENTS = /([\u0021-\u06FF\u0750-\u077F\u08A0-\u08FF\u1E00-\u1FFF])\p{M}+/gu;
 // It only asks for another drawing of what comes before it, so two tags would look the same and be two.
@@ -52,7 +59,8 @@ export const often = (body: string): Map<string, number> => {
     const said = line.replace(/`[^`]*`/g, (one) => " ".repeat(one.length));
     AT.lastIndex = 0;
     for (let hit = AT.exec(said); hit; hit = AT.exec(said)) {
-      if (tied(said.slice(0, hit.index))) continue;
+      const before = said.slice(0, hit.index);
+      if (escaped(before) || tied(before)) continue;
       const tag = named(hit[1]);
       if (worthReading(tag)) many.set(tag, (many.get(tag) ?? 0) + 1);
     }

@@ -220,6 +220,15 @@
     "refs": []
   },
   {
+    "name": "tags-escaped",
+    "text": "\\#hola no es etiqueta y #hoy sí.",
+    "title": "\\#hola no es etiqueta y #hoy sí.",
+    "tags": [
+      "hoy"
+    ],
+    "refs": []
+  },
+  {
     "name": "bullet-list",
     "text": "- uno\n- dos\n- tres",
     "title": "- uno",
@@ -274,6 +283,16 @@
     "title": "- uno",
     "tags": [],
     "refs": []
+  },
+  {
+    "name": "list-then-definitions",
+    "text": "- uno\n- dos [a][p] y [b][v].\n\n[p]: https://example.com/p\n[v]: https://example.com/v \"T\"\n\nFin.",
+    "title": "- uno",
+    "tags": [],
+    "refs": [
+      "Link:https://example.com/p",
+      "Link:https://example.com/v"
+    ]
   },
   {
     "name": "quote",

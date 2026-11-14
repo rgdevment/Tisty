@@ -417,6 +417,45 @@ fn a_link_definition_stands_on_the_page_where_it_was_written() {
 }
 
 #[test]
+fn every_link_definition_after_a_list_stands_on_the_page() {
+    let said = "- uno\n- dos [a][p] y [b][v].\n\n[p]: https://example.com/p\n[v]: https://example.com/v \"T\"\n\nFin.\n";
+    let doc = read(said);
+    let written: Vec<&str> = doc
+        .blocks()
+        .iter()
+        .map(|one| &said[one.at.clone()])
+        .collect();
+    assert_eq!(
+        written,
+        [
+            "- uno\n- dos [a][p] y [b][v].\n\n",
+            "[p]: https://example.com/p",
+            "[v]: https://example.com/v \"T\"",
+            "Fin.\n"
+        ]
+    );
+    assert_eq!(html(&doc).matches("class=\"refdef\"").count(), 2);
+
+    let defined = |said: &str| {
+        read(said)
+            .blocks()
+            .iter()
+            .filter(|one| matches!(one.kind, Kind::Definition { .. }))
+            .count()
+    };
+    assert_eq!(
+        defined("- uno\n  - dos\n\n[p]: https://a.y\n[v]: https://b.y\n[w]: https://c.y\n"),
+        3,
+        "a nested list stretches no further than a flat one"
+    );
+    assert_eq!(
+        defined("- uno\n\n  [dos]: https://x.y\n  [tres]: https://x.z\n\nFin\n"),
+        0,
+        "two held inside an item are still that list's to edit"
+    );
+}
+
+#[test]
 fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
     let many = |piece: &dyn Fn(usize) -> String| (0..20_000).map(piece).collect::<String>();
     let cases = [

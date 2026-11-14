@@ -57,7 +57,9 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
             .chars()
             .rev()
             .find(|one| !unicode_normalization::char::is_combining_mark(*one));
-        if before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one)) {
+        if escaped(&line[..at])
+            || before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one))
+        {
             at += 1;
             continue;
         }
@@ -74,6 +76,11 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
         at += 1 + word.len();
     }
     found
+}
+
+// A backslash keeps the hash a plain character, unless that backslash is itself escaped.
+fn escaped(before: &str) -> bool {
+    before.bytes().rev().take_while(|one| *one == b'\\').count() % 2 == 1
 }
 
 // A joiner is how many scripts write inside a word, so it goes on only where the word does.

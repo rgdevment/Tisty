@@ -45,6 +45,10 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
                         done.kind = Kind::Callout(said);
                         unmark(&mut done, text);
                     }
+                    // The tokenizer stretches a list over the link definitions written after it, all but the last.
+                    if let (Kind::List { .. }, Some(last)) = (&done.kind, done.inner.last()) {
+                        done.at.end = last.at.end;
+                    }
                     shelve(&mut open, &mut blocks, done);
                 }
             }
