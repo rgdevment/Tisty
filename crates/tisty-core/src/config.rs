@@ -330,6 +330,29 @@ impl std::str::FromStr for Theme {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Calendar {
+    Google,
+    Outlook,
+    OutlookWork,
+    Apple,
+}
+
+impl std::str::FromStr for Calendar {
+    type Err = ();
+
+    fn from_str(said: &str) -> std::result::Result<Self, ()> {
+        match said {
+            "google" => Ok(Self::Google),
+            "outlook" => Ok(Self::Outlook),
+            "outlook-work" => Ok(Self::OutlookWork),
+            "apple" => Ok(Self::Apple),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Where a large attachment lives once there is a shared folder to keep it in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -412,6 +435,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub urgent: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar: Option<Calendar>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub knock_heard: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub door_chosen: Option<bool>,
@@ -486,6 +511,7 @@ impl Config {
             asked_to_wire: None,
             asked_to_wake: None,
             urgent: None,
+            calendar: None,
             knock_heard: None,
             door_chosen: None,
             quick_keys: None,

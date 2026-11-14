@@ -41,6 +41,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 | **Un paquete `.tistyx` que le das a alguien** | Esa persona, y a quien se lo pase |
 | **Un `.tistyx` cerrado con seis dígitos** | Quien tenga el archivo y el número |
 | **Un asistente que dejas entrar** | El servicio con que hable ese asistente |
+| **Una tarea que guardas en tu calendario** | Google, Microsoft o Apple, según el calendario que elegiste y sus términos |
 
 ## Las peticiones de red que hace Tisty
 
@@ -53,6 +54,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 - **La ayuda** dentro de Tisty (el `?` al pie de la barra lateral) viene con tu versión y no pide nada. Su guía **Markdown de Tisty** (también `F1` mientras escribes) la lee desde [markdown.tisty.app](https://markdown.tisty.app/es/), así que siempre es la última; sin conexión, muestra la copia que trae tu versión. Sus imágenes se descargan desde GitHub solo cuando pulsas **Descargar** sobre la ayuda.
 - **Mostrarlas**, en la línea sobre un archivo Markdown abierto desde afuera, le pide a cada dirección que nombra el archivo su imagen, una petición por imagen. No se trae nada hasta que lo pulsas, vuelve a preguntar cada vez que abres el archivo y rechaza una dirección de este equipo o de tu propia red. Es solo del visor: un documento de tu almacén no dibuja imágenes de internet.
 - **Hacer clic en un enlace** abre tu navegador.
+- **Guardar en mi calendario**, en una tarea, abre en tu navegador la página de Google Calendar u Outlook con el título, el día y el enlace de la tarea en la dirección, y el evento queda en tu calendario solo si pulsas **Guardar** ahí. Tisty no hace esa petición: la hace tu navegador, y la dirección queda en su historial. Con el Calendario de Apple, Tisty deja un archivo `.ics` en su caché y lo abre la app Calendario. La descripción y las notas de la tarea nunca van.
 - **Compartir**, en un documento, lee un archivo firmado pequeño en GitHub para saber si [Folio](https://github.com/rgdevment/Folio-by-Tisty) está abierto. Lo que confirmes después va a Folio, cifrado en este equipo, igual que Sincronizar, Pausar, Dejar de compartir y abrir un link compartido. No se pide nada hasta que lo pulsas.
 - **Google Drive**, **OneDrive** o **tu servidor WebDAV**, una vez que lo conectas desde la ventana, es adonde Tisty manda tus copias y de donde las trae. Los asistentes nunca tocan la red.
 - **Revisar un servidor WebDAV**: solo cuando lo conectas, Tisty entra con lo que escribiste y mira su propia carpeta ahí, nada más. Solo se acepta `https://`, salvo hacia este mismo equipo, y la contraseña nunca viaja a otra dirección.

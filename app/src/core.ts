@@ -742,6 +742,7 @@ export interface Settings {
   shares: boolean;
   onlySharedAbove: number;
   onClose?: "hide" | "quit";
+  calendar?: "google" | "outlook" | "outlook-work" | "apple";
   quickKeys?: string;
   ideaKeys?: string;
 }
