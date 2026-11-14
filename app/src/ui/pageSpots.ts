@@ -132,6 +132,9 @@ export const ghostAt = (page: Document, body: string, chars: number): HTMLElemen
     const at = spanned(one.getAttribute("data-at"));
     if (at && at[1] <= byte) after = one;
   }
+  // A page with nothing written yet shows where its title goes, and that is where its first line begins.
+  const title = after ? null : sheet.querySelector<HTMLElement>(":scope > h1[data-title]");
+  if (title) return title;
   const ghost = page.createElement("p");
   ghost.dataset.ghost = "";
   ghost.append(page.createElement("br"));

@@ -129,7 +129,10 @@ export const roomy = (page: Document) => {
 };
 
 // A block is moved by the grip that stands beside it on the sheet's left edge; a press on the grip asks what to do with it.
-export const gripped = (page: Document, hands: Gripping): (() => void) => {
+export const gripped = (
+  page: Document,
+  hands: Gripping,
+): { readonly stop: () => void; readonly rest: () => void } => {
   const grip = page.createElement("button");
   grip.type = "button";
   grip.className = "page-grip";
@@ -214,12 +217,21 @@ export const gripped = (page: Document, hands: Gripping): (() => void) => {
     page.addEventListener("mousemove", dragged);
     page.addEventListener("mouseup", letGo);
   });
+  // The sheet fills its frame, so leaving it fires no move outside the sheet; leaving the frame does.
+  const rest = () => {
+    if (!held) grip.hidden = true;
+  };
   page.addEventListener("mousemove", hovered);
-  return () => {
-    page.removeEventListener("mousemove", hovered);
-    page.removeEventListener("mousemove", dragged);
-    page.removeEventListener("mouseup", letGo);
-    grip.remove();
-    line.remove();
+  page.documentElement.addEventListener("mouseleave", rest);
+  return {
+    rest,
+    stop: () => {
+      page.removeEventListener("mousemove", hovered);
+      page.removeEventListener("mousemove", dragged);
+      page.removeEventListener("mouseup", letGo);
+      page.documentElement.removeEventListener("mouseleave", rest);
+      grip.remove();
+      line.remove();
+    },
   };
 };

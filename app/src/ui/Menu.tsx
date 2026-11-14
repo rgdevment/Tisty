@@ -132,7 +132,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="scroller arrive fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail p-1 shadow-lg"
+      className="scroller arrive fixed z-[70] max-h-[80vh] min-w-[210px] [scrollbar-gutter:stable] rounded-[10px] border border-hair bg-rail p-1 shadow-lg"
     >
       {sifting && (
         <input

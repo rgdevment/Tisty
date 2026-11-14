@@ -73,10 +73,22 @@ describe("a block moved on the page written in place", () => {
 });
 
 describe("the grip beside a block", () => {
+  it("puts its grip away when the pointer leaves the frame", () => {
+    const sheet = sheetOf();
+    (sheet as HTMLElement).style.paddingLeft = "40px";
+    const { stop } = gripped(document, { asked: () => {}, moved: () => {} });
+    sheet.firstElementChild?.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    const grip = document.querySelector(".page-grip") as HTMLElement;
+    expect(grip.hidden).toBe(false);
+    document.documentElement.dispatchEvent(new MouseEvent("mouseleave"));
+    expect(grip.hidden).toBe(true);
+    stop();
+  });
+
   it("stays away from a sheet whose margin has no room for it", () => {
     const sheet = sheetOf();
     (sheet as HTMLElement).style.paddingLeft = "12px";
-    const stop = gripped(document, { asked: () => {}, moved: () => {} });
+    const { stop } = gripped(document, { asked: () => {}, moved: () => {} });
     sheet.firstElementChild?.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
     expect((document.querySelector(".page-grip") as HTMLElement).hidden).toBe(true);
     stop();
@@ -87,7 +99,7 @@ describe("the grip beside a block", () => {
     (sheet as HTMLElement).style.paddingLeft = "40px";
     const asked: Element[] = [];
     const moved: [Element, Element | null][] = [];
-    const stop = gripped(document, {
+    const { stop } = gripped(document, {
       asked: (top) => asked.push(top),
       moved: (top, target) => moved.push([top, target]),
     });

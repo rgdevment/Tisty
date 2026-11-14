@@ -214,6 +214,7 @@ th[aria-sort="descending"]::before {
   padding: 4px 8px;
   border: 2px solid var(--tisty-accent);
   border-radius: 3px;
+  outline: none;
   background: var(--tisty-sheet);
   color: var(--tisty-ink);
   font: inherit;

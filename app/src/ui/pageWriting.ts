@@ -727,6 +727,24 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
     kept = { ...kept, node: spot[0], offset: spot[1] };
+    inSight(holder);
+  };
+
+  // A caret laid by a script never scrolls, so the line being written is brought back when it slips out of sight.
+  const inSight = (holder: Node) => {
+    const view = page.defaultView;
+    const held = page.getSelection();
+    if (!view || !page.hasFocus() || !held?.rangeCount) return;
+    const range = held.getRangeAt(0);
+    const line = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : holder.parentElement;
+    let box =
+      typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
+    if (!box?.height && line) box = line.getBoundingClientRect();
+    if (!box) return;
+    const room = 48;
+    if (box.bottom > view.innerHeight - room)
+      view.scrollBy({ top: box.bottom - view.innerHeight + room });
+    else if (box.top < room / 2) view.scrollBy({ top: box.top - room / 2 });
   };
 
   // A menu of the window hands the focus back to the frame, not to the words, so the sheet takes it again.
@@ -746,6 +764,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     opened();
     caretLaid();
     offerTags();
+    gripping.rest();
+    besideLine();
   };
 
   // Colours, icons and cards land after a block is drawn and take the place of its words, the caret with them.
@@ -924,7 +944,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const sheet = page.querySelector<HTMLElement>(".page");
     const field = page.activeElement?.closest?.(FIELDS);
-    if (!range || !sheet?.contains(range.startContainer) || field || !roomy(page)) {
+    const node = range?.startContainer;
+    const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    const tabled = element?.closest(".page > .table");
+    if (!range || !sheet?.contains(range.startContainer) || field || tabled || !roomy(page)) {
       plus.hidden = true;
       return;
     }
@@ -951,8 +974,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const besideLine = () => {
     placedBeside();
     const view = page.defaultView;
-    view?.cancelAnimationFrame(measuring);
-    measuring = view?.requestAnimationFrame(placedBeside) ?? 0;
+    if (!view) return;
+    view.cancelAnimationFrame(measuring);
+    measuring = view.requestAnimationFrame(() => {
+      placedBeside();
+      measuring = view.requestAnimationFrame(placedBeside);
+    });
   };
 
   // The caret goes with the words it stood in, as far into them as it was.
@@ -1083,7 +1110,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .catch(() => {});
   };
 
-  const ungrip = gripped(page, { moved: movedOnto, asked: (top, at) => hands.acts(at, top) });
+  const gripping = gripped(page, { moved: movedOnto, asked: (top, at) => hands.acts(at, top) });
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
@@ -1145,7 +1172,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("paste", pastedFiles);
       tags.stop();
       plus.remove();
-      ungrip();
+      gripping.stop();
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("click", quoted);
       page.removeEventListener("keydown", moved);

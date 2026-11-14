@@ -79,4 +79,11 @@ describe("the places of a page written in place", () => {
     const first = ghostAt(document, BODY, 0);
     expect(sheet.firstElementChild).toBe(first);
   });
+
+  it("begins the first line of an empty page where its title waits", () => {
+    document.body.innerHTML = '<article class="page"><h1 data-title="Título"></h1></article>';
+    const title = document.querySelector("h1");
+    expect(ghostAt(document, "", 0)).toBe(title);
+    expect(document.querySelectorAll(".page > *")).toHaveLength(1);
+  });
 });
