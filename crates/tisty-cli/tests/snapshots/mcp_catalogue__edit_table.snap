@@ -25,7 +25,7 @@ expression: tool
         "description": "For set, sort, type, rename and remove_column: its title, or its number from 1"
       },
       "do": {
-        "description": "Defaults to show: the columns with their types and the rows, changing nothing",
+        "description": "Defaults to show: the columns with their types and the rows",
         "enum": [
           "show",
           "set",

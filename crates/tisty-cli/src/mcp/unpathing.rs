@@ -2,6 +2,8 @@ use crate::i18n::Lang;
 
 const STOPS: &str = "`\"')]>,;»";
 
+pub(super) const PATH_MARK: &str = "[path]";
+
 /// Spaces a folder name may hold ("OneDrive - Personal") before it reads as prose.
 const MOST_SPACES: usize = 2;
 
@@ -50,7 +52,7 @@ fn fenced_lines(body: &str) -> impl Iterator<Item = (&str, bool)> {
 
 pub(super) fn unpathed(line: &str) -> String {
     if let Some(said) = provenance(line) {
-        return format!("{said}[path]");
+        return format!("{said}{PATH_MARK}");
     }
     let mut out = String::with_capacity(line.len());
     let mut rest = line;
@@ -84,7 +86,7 @@ fn unpathed_prose(line: &str) -> String {
     let mut rest = line;
     while let Some(at) = absolute(rest) {
         out.push_str(&rest[..at]);
-        out.push_str("[path]");
+        out.push_str(PATH_MARK);
         let path = &rest[at..];
         rest = &path[path_end(path, rest[..at].chars().next_back())..];
     }
