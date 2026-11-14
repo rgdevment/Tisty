@@ -24,7 +24,7 @@ import {
   widened,
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
-import { bytesAt, charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
+import { bytesAt, charsAt, heads, spanned, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -446,7 +446,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (drawn !== latest.current) return;
     // A page drawn anew wipes whatever was laid in it, so the view waits for the drawing to land.
     if (alreadyShown.current !== latest.current && shownBody.current !== latest.current) return;
-    const at = markdownAt.current;
+    const at = markdownAt.current ?? pageWriter.current?.hands.caretAt() ?? null;
     markdownAt.current = null;
     wholly(at ?? 0);
     if (at !== null) requestAnimationFrame(() => cameTo(open.current?.view));
@@ -461,9 +461,11 @@ export default function Sheet(props: Readonly<Props>) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pageWritten` reads only refs, so the view alone decides.
   useEffect(() => {
+    const back = !markdown && open.current ? (caretNow.current?.() ?? null) : null;
     if (!markdown) left();
     if (onPage) {
       pageWritten(shown.current?.document ?? null);
+      if (back !== null) pageWriter.current?.hands.placeAt(back);
       return;
     }
     pageWriter.current?.hands.stop();
@@ -830,6 +832,8 @@ export default function Sheet(props: Readonly<Props>) {
       alreadyShown.current = now;
       setDrawn(now);
       setTurned((many) => many + 1);
+      const page = shown.current?.document;
+      if (page) said.current.onOutline?.(heads(page));
     },
     redraw: (now) => {
       alreadyShown.current = null;

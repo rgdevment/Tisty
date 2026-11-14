@@ -796,6 +796,17 @@ describe("what a person found writing on the page", () => {
     expect(last(said)).toContain("**Uno** **dos** tres");
   });
 
+  it("makes words partly bold wholly bold, with no marks left inside them", () => {
+    const said = writer();
+    const range = document.createRange();
+    range.setStart(piece("Uno "), 0);
+    range.setEnd(piece(" tres"), 5);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    key("b", { ctrlKey: true });
+    expect(last(said)).toContain("**Uno dos tres**");
+  });
+
   it("keeps a format typed with nothing chosen going across spaces until it is pressed again", () => {
     const said = writer();
     caretIn("Hola", 4);

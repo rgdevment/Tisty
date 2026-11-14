@@ -56,6 +56,8 @@ export type PageWriting = {
   readonly stop: () => void;
   readonly format: (open: string, close: string) => void;
   readonly formattable: () => boolean;
+  readonly caretAt: () => number | null;
+  readonly placeAt: (at: number) => void;
   readonly rewrite: (next: string) => void;
   readonly chosen: () => string | null;
   readonly cut: () => void;
@@ -276,6 +278,14 @@ const leftBehind = (text: string, at: number): { from: number; to: number } | nu
   const before = above.lastIndexOf("\n") + 1;
   const bare = EMPTY_QUOTE.test(line) && EMPTY_QUOTE.test(above.slice(before).replace(/\r$/, ""));
   return { from: bare ? before : start, to: start + line.length };
+};
+
+// Words partly in a format take it whole, so the marks inside them go before the new pair goes around.
+const bareOf = (inner: string, open: string) => {
+  if (open === "*") return inner.replace(/(?<!\*)\*(?!\*)/g, "");
+  if (open === "_") return inner.replace(/(?<!_)_(?!_)/g, "");
+  if (open.startsWith("==")) return inner.replace(/==(?:\{[a-z]+\})?/g, "");
+  return inner.split(open).join("");
 };
 
 const applied = (text: string, one: Edit) =>
@@ -583,7 +593,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         text.slice(one.to, one.to + close.length) === close;
     return around
       ? { from: one.from - open.length, to: one.to + close.length, insert: inner }
-      : { ...one, insert: `${open}${inner}${close}` };
+      : { ...one, insert: `${open}${bareOf(inner, open)}${close}` };
   };
 
   const linked = (one: { from: number; to: number }) => {
@@ -1089,6 +1099,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     drawn,
     format,
     formattable: () => !unformattable(page),
+    caretAt: () => caretSpan()?.from ?? null,
+    placeAt: (at: number) => {
+      kept = { node: page.body, offset: -1, at: Math.min(at, hands.text().length) };
+      page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
+      caretLaid();
+      const node = kept?.node;
+      const holder = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+      holder?.scrollIntoView?.({ block: "nearest" });
+    },
     rewrite,
     chosen: () => {
       const one = chosenNow();
