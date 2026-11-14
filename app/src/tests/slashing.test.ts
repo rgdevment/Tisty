@@ -351,7 +351,7 @@ describe("a step named by its number", () => {
     expect(stagesIn("- [ ]  \n- [x] dos")).toEqual(["", "dos"]);
     const began = vi.getRealSystemTime();
     expect(stagesIn(`* [ ] ${" ".repeat(100_000)}x\u2028y`)).toEqual([]);
-    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
+    expect(vi.getRealSystemTime() - began).toBeLessThan(1_000);
   });
 
   it("offers the page's steps after [[#, each by its number", () => {

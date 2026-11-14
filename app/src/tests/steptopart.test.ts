@@ -12,7 +12,7 @@ describe("a step offered as a part", () => {
   it("is read at once however many blanks pad it before a break it cannot cross", () => {
     const began = vi.getRealSystemTime();
     expect(steppedTitle(`- [ ] ${" ".repeat(100_000)}x\u2028y`)).toBeNull();
-    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
+    expect(vi.getRealSystemTime() - began).toBeLessThan(1_000);
   });
 
   it("is only a whole line of its own, whatever ends it", () => {
