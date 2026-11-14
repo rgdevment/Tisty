@@ -790,6 +790,24 @@ a.card:hover,
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.card-edit {
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--tisty-faint);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+.doc-card:hover .card-edit,
+.card-edit:focus-visible {
+  opacity: 1;
+}
+.card-edit:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
 .card-go {
   font-size: 1.4em;
   line-height: 1;
@@ -1710,14 +1728,16 @@ figure.widget:hover .card-more,
   color: inherit;
   text-decoration: none;
 }
+/* The sheet fills its frame edge to edge; the window lays its own thumb over the edge instead of a scrollbar's column. */
 html.lively:not(.tall) {
   background: var(--tisty-sheet);
+  scrollbar-width: none;
 }
 html.lively:not(.tall) body {
   padding: 0;
 }
 html.lively:not(.tall) .page {
-  padding: 50px 40px 40vh;
+  padding: 50px 40px 64px;
   border-radius: 0;
   box-shadow: none;
 }

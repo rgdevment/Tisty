@@ -37,6 +37,7 @@ import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
 import { exportChoices, fileName } from "./drawing/exporting";
+import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
 import { ALT, livelyChoices } from "./livelyMenu";
@@ -1078,6 +1079,7 @@ export default function Sheet(props: Readonly<Props>) {
         {writable && !fixed && ready && !props.view?.beside && (
           <ViewSwitch markdown={markdown} onTurn={setMarkdown} />
         )}
+        {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
         <Page
           bar={BAR}
           sheet={props.sheet}

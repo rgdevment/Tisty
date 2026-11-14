@@ -29,6 +29,17 @@ beforeEach(() => {
 });
 
 describe("a web link alone in its paragraph", () => {
+  it("is drawn as a card on a page written in place, its words in a piece of their own", () => {
+    const doc = page(
+      '<p data-at="0-40"><a href="https://github.com/rgdevment/Tisty"><span data-src="1-16">Tisty en GitHub</span></a></p>' +
+        '<p data-at="42-60"><a href="https://x.cl"><strong>x</strong></a></p>',
+    );
+    webCarded(doc, say, () => true);
+    const cards = doc.querySelectorAll("a.doc-card.is-web");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.querySelector(".card-name")?.textContent).toBe("Tisty en GitHub");
+  });
+
   it("is drawn as a card with its host, and a link inside a sentence stays a link", async () => {
     const doc = page(
       '<p data-at="0-20"><a href="https://www.tisty.app/docs">Tisty</a></p><p>ver <a href="https://x.cl">x</a> hoy</p>',
