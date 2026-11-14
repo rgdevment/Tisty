@@ -53,7 +53,6 @@ const loaded = async (frame: HTMLIFrameElement) => {
 const drawn = async (more: Partial<Parameters<typeof Page>[0]> = {}) => {
   const heard = {
     docs: [] as string[],
-    blocks: [] as [number, number][],
     heads: [] as Head[],
     shown: [] as (Window | null)[],
   };
@@ -64,7 +63,6 @@ const drawn = async (more: Partial<Parameters<typeof Page>[0]> = {}) => {
       wide={900}
       zoom={1}
       onDoc={(file) => heard.docs.push(file)}
-      onBlock={(at) => heard.blocks.push(at)}
       onOutline={(found) => {
         heard.heads = found;
       }}
@@ -80,6 +78,9 @@ const drawn = async (more: Partial<Parameters<typeof Page>[0]> = {}) => {
   return { heard, view, frame };
 };
 
+const TICKED =
+  '<ul data-at="0-11"><li class="task" data-at="0-11"><span class="check" data-done="false"></span>Nuevo</li></ul>';
+
 beforeEach(() => {
   ipc.drawn = DRAWN;
   ipc.dropped = 0;
@@ -87,7 +88,7 @@ beforeEach(() => {
 });
 
 describe("a drawn page in the viewer", () => {
-  it("shows the page, its outline, and answers a click on a card or a block", async () => {
+  it("shows the page, its outline, and answers a click on a card", async () => {
     const { heard, frame } = await drawn();
     const page = await loaded(frame);
     expect(frame.title).toBe("Notas");
@@ -96,10 +97,6 @@ describe("a drawn page in the viewer", () => {
     expect(heard.shown[heard.shown.length - 1]).toBe(frame.contentWindow);
     page.querySelector("a.card")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(heard.docs).toEqual(["ab12-0001"]);
-    page
-      .querySelector('p[data-at="11-19"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(heard.blocks).toEqual([[10, 17]]);
     expect(page.documentElement.style.getPropertyValue("--wide")).toBe("900px");
   });
 
@@ -148,22 +145,20 @@ describe("a drawn page in the viewer", () => {
     expect(frame.classList.contains("invisible")).toBe(false);
   });
 
-  it("opens no block on words a newer drawing has replaced, and opens the new ones by their own bytes", async () => {
-    const blocks: [number, number][] = [];
-    const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
+  it("ticks nothing on words a newer drawing has replaced, and ticks the new ones by their own bytes", async () => {
+    const ticks: [number, number][] = [];
+    const { frame, view } = await drawn({ onTick: (at) => ticks.push(at) });
     const page = await loaded(frame);
     const old = page.querySelector('p[data-at="11-19"]');
-    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    ipc.drawn = TICKED;
     view.rerender(
-      <Page body="Nuevo" label="Notas" onDoc={() => {}} onBlock={(at) => blocks.push(at)} />,
+      <Page body="- [ ] Nuevo" label="Notas" onDoc={() => {}} onTick={(at) => ticks.push(at)} />,
     );
-    await waitFor(() => expect(page.querySelector('p[data-at="0-5"]')).not.toBeNull());
+    await waitFor(() => expect(page.querySelector(".check")).not.toBeNull());
     old?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(blocks).toEqual([]);
-    page
-      .querySelector('p[data-at="0-5"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(blocks).toEqual([[0, 5]]);
+    expect(ticks).toEqual([]);
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ticks).toEqual([[0, 11]]);
   });
 
   it("lets go of the widgets and pictures of the words it replaces", async () => {
@@ -207,22 +202,20 @@ describe("a drawn page in the viewer", () => {
   });
 
   it("puts the latest words back when the frame loads its first ones again", async () => {
-    const blocks: [number, number][] = [];
-    const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
+    const ticks: [number, number][] = [];
+    const { frame, view } = await drawn({ onTick: (at) => ticks.push(at) });
     await loaded(frame);
-    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    ipc.drawn = TICKED;
     view.rerender(
-      <Page body="Nuevo" label="Notas" onDoc={() => {}} onBlock={(at) => blocks.push(at)} />,
+      <Page body="- [ ] Nuevo" label="Notas" onDoc={() => {}} onTick={(at) => ticks.push(at)} />,
     );
     await waitFor(() =>
       expect(frame.contentDocument?.querySelector(".page")?.textContent).toContain("Nuevo"),
     );
     const again = await loaded(frame);
     expect(again.querySelector(".page")?.textContent).toBe("Nuevo");
-    again
-      .querySelector('p[data-at="0-5"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(blocks).toContainEqual([0, 5]);
+    again.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ticks).toContainEqual([0, 11]);
   });
 
   it("takes the window's language when its words change, though the document was built before", async () => {

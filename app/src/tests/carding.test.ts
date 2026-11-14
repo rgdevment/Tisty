@@ -80,7 +80,7 @@ describe("a card drawn on the page", () => {
       {
         card: cardsOf(known, "libro", ["cap1", "cap2"]),
         blurb: () => Promise.resolve("Hola."),
-        onBlock: () => {},
+        onSource: () => {},
       },
       () => true,
     );

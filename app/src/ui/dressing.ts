@@ -10,7 +10,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
-import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
+import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
 import { stickable, sticking } from "./sticking";
@@ -26,12 +26,6 @@ export type Reaching = Carding & {
   readonly part?: (id: string) => PartCarded;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (
-    at: [number, number],
-    block: HTMLElement,
-    seed?: string,
-    read?: string,
-  ) => void;
   // The page written in place: writing starts here (chars), with what the new line opens with; nothing is written until a key.
   readonly onBegin?: (at: number, seed: string, near: Element) => void;
   readonly onHintWords?: (at: [number, number], hint: HTMLElement) => void;
@@ -55,7 +49,6 @@ export type Reaching = Carding & {
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
-  readonly onChoose?: (asked: Chosen) => void;
   readonly onTable?: (asked: TableWent) => void;
 };
 
@@ -159,7 +152,7 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     name.className = "widget-name";
     name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
     bar.append(name);
-    if (reach?.onBlock || reach?.onSource) bar.append(asking(page, "code", t("codeShow")));
+    if (reach?.onSource) bar.append(asking(page, "code", t("codeShow")));
     if (reach?.onApart) bar.append(asking(page, "apart", t("viewApart")));
     const held = page.createElement("div");
     drawn.append(bar, held);
@@ -255,7 +248,7 @@ const titled = (page: Document) => {
 };
 
 export const worn = (page: Document, live: () => boolean, reach?: Reaching): Worn => {
-  const writes = Boolean(reach?.onBlock || reach?.onBegin);
+  const writes = Boolean(reach?.onBegin);
   if (writes) titled(page);
   if (reach && writes && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
@@ -265,11 +258,11 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (reach?.onWiden) gripped(page);
   const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);
-  if (reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock)
+  if (reach?.onDiagram || reach?.onDiagramExport || reach?.onSource)
     diagramBars(page, {
       open: Boolean(reach.onDiagram),
       out: Boolean(reach.onDiagramExport),
-      words: Boolean(reach.onBlock),
+      words: Boolean(reach.onSource),
     });
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
@@ -334,7 +327,7 @@ const under = (one: Element) => {
 
 const underBar = (figure: HTMLElement) => under(figure.querySelector(".diagram-bar") ?? figure);
 
-export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
+export const answered = (page: Document, asked: Went, reach: Reaching) => {
   if (!asked) return;
   if (asked.kind === "table") reach.onTable?.(asked);
   if (asked.kind === "diagram") {
@@ -347,11 +340,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "diagramMarkdown") {
     const found = figureAt(page, asked.at);
-    const at: [number, number] = [
-      charsAt(reach.body, asked.at[0]),
-      charsAt(reach.body, asked.at[1]),
-    ];
-    if (found) reach.onBlock?.(at, found.figure);
+    if (found) reach.onSource?.(charsAt(reach.body, asked.at[0]));
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
@@ -371,16 +360,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "tick")
     reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
-  if (asked.kind === "block") {
-    const block = page.querySelector<HTMLElement>(
-      `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,
-    );
-    const at: [number, number] = [
-      charsAt(reach.body, asked.at[0]),
-      charsAt(reach.body, asked.at[1]),
-    ];
-    if (block) reach.onBlock?.(at, block, "", read);
-  }
   if (asked.kind === "hint") {
     const named = `${asked.at[0]}-${asked.at[1]}`;
     const held = page.querySelector<HTMLElement>(
@@ -390,7 +369,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     );
     const end = charsAt(reach.body, asked.at[1]);
     if (held && reach.onBegin) reach.onBegin(end, asked.seed, held);
-    else if (held) reach.onBlock?.([end, end], held, asked.seed);
   }
   if (asked.kind === "cut")
     reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
@@ -400,15 +378,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const near = add?.matches(".add-step") ? add : last;
     if (near) reach.onBegin(charsAt(reach.body, asked.at[1]), "", near);
   }
-  if (asked.kind === "section" && reach.onBlock) {
-    const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
-    const fresh = page.createElement("p");
-    const add = last?.nextElementSibling;
-    (add?.matches(".add-step") ? add : last)?.after(fresh);
-    const end = charsAt(reach.body, asked.at[1]);
-    reach.onBlock([end, end], fresh);
-    if (fresh.isConnected) fresh.remove();
-  }
   if (asked.kind === "title" && reach.onBegin) {
     const slot = page.querySelector(".page > h1[data-title]");
     if (slot) reach.onBegin(0, "# ", slot);
@@ -417,23 +386,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const last = page.querySelector(".page > [data-at]:last-of-type");
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
-  if (asked.kind === "block" && !reach.onBlock && reach.onHintWords) {
+  if (asked.kind === "block" && reach.onHintWords) {
     const hint = page.querySelector<HTMLElement>(
       `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
     );
     if (hint) reach.onHintWords(asked.at, hint);
-  }
-  if (asked.kind === "title" && reach.onBlock) {
-    const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
-    if (slot) reach.onBlock([0, 0], slot, "# ");
-  }
-  if (asked.kind === "end" && reach.onBlock) {
-    const sheet = page.querySelector(".page");
-    if (!sheet) return;
-    const fresh = page.createElement("p");
-    sheet.append(fresh);
-    reach.onBlock([reach.body.length, reach.body.length], fresh);
-    if (fresh.isConnected) fresh.remove();
   }
   if (asked.kind === "more")
     reach.onMore?.({
@@ -441,16 +398,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
       at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
     });
   if (asked.kind === "code" && reach.onSource) reach.onSource(charsAt(reach.body, asked.at[0]));
-  if (asked.kind === "code" && !reach.onSource) {
-    const block = page.querySelector<HTMLElement>(
-      `.page > [data-at="${asked.block[0]}-${asked.block[1]}"]`,
-    );
-    const at: [number, number] = [
-      charsAt(reach.body, asked.block[0]),
-      charsAt(reach.body, asked.block[1]),
-    ];
-    if (block) reach.onBlock?.(at, block, "", read);
-  }
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
@@ -466,16 +413,6 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock, .add-section)");
   const last = blocks[blocks.length - 1];
   return !last || event.clientY > last.getBoundingClientRect().bottom;
-};
-
-const readTo = (page: Document, event: MouseEvent): string => {
-  const block = (event.target as Element | null)?.closest?.(".page > [data-at]");
-  const caret = page.caretRangeFromPoint?.(event.clientX, event.clientY);
-  if (!block || !caret || !block.contains(caret.startContainer)) return "";
-  const range = page.createRange();
-  range.setStart(block, 0);
-  range.setEnd(caret.startContainer, caret.startOffset);
-  return range.toString();
 };
 
 // Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
@@ -531,7 +468,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
         }, DOUBLE_MS);
       return;
     }
-    answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
+    answered(page, asked, reach());
   });
   // Its own event, since a double press on a label selects a word and the click then reads as a selection.
   page.addEventListener("dblclick", (event) => {
@@ -571,11 +508,10 @@ export const wired = (page: Document, reach: () => Reaching) => {
       charsAt(now.body, at[0]),
       charsAt(now.body, at[1]),
     ];
-    const { bar, onFormat, onMenu, onChoose } = now;
+    const { bar, onFormat, onMenu } = now;
     return {
       bar,
       onFormat: onFormat && ((asked) => onFormat({ ...asked, at: chars(asked.at) })),
-      onChoose: onChoose && ((asked) => onChoose({ ...asked, at: chars(asked.at) })),
       onMenu:
         onMenu &&
         ((asked) =>

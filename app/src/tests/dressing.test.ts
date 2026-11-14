@@ -71,14 +71,12 @@ const reaching = () => {
     docs: [] as string[],
     opened: [] as string[],
     tags: [] as string[],
-    blocks: [] as [number, number][],
   };
   const reach: Reaching = {
     body: "# Título\n\nÁrbol.\n",
     onDoc: (file) => heard.docs.push(file),
     onOpen: (reference) => heard.opened.push(reference),
     onTag: (name) => heard.tags.push(name),
-    onBlock: (at) => heard.blocks.push(at),
   };
   return { heard, reach };
 };
@@ -240,7 +238,7 @@ describe("dressing a drawn page", () => {
     const reach = {
       body: "",
       onDoc: () => {},
-      onBlock: () => {},
+      onSource: () => {},
       onApart: (source: string) => apart.push(source),
     };
     const own = page(code);
@@ -271,20 +269,8 @@ describe("dressing a drawn page", () => {
     };
     widgets(written, reach);
     expect(written.querySelector('.widget-bar [data-asked="code"]')).not.toBeNull();
-    answered(written, { kind: "code", at: [4, 40], block: [0, 40] }, reach);
+    answered(written, { kind: "code", at: [4, 40] }, reach);
     expect(sources).toEqual([4]);
-    const blocks: [number, number][] = [];
-    const read = page(code);
-    answered(
-      read,
-      { kind: "code", at: [4, 40], block: [4, 40] },
-      {
-        body: "",
-        onDoc: () => {},
-        onBlock: (at) => blocks.push(at),
-      },
-    );
-    expect(blocks).toEqual([[0, 0]]);
   });
 
   it("dresses the whole page in one go", () => {
@@ -299,22 +285,19 @@ describe("dressing a drawn page", () => {
 });
 
 describe("what a click on a drawn page does", () => {
-  it("opens documents, the web, attachments, tags and blocks where each belongs", () => {
+  it("opens documents, the web, attachments and tags where each belongs", () => {
     const drawn = page('<h2 id="here">Here</h2><p data-at="11-19">Árbol.</p>');
     const { heard, reach } = reaching();
     answered(drawn, { kind: "doc", id: "ab12-0001" }, reach);
     answered(drawn, { kind: "web", href: "https://x.y" }, reach);
     answered(drawn, { kind: "attachment", reference: "attachments/a.pdf" }, reach);
     answered(drawn, { kind: "tag", name: "work" }, reach);
-    answered(drawn, { kind: "block", at: [11, 19] }, reach);
     answered(drawn, { kind: "here", id: "here" }, reach);
-    answered(drawn, { kind: "block", at: [0, 3] }, reach);
     answered(drawn, null, reach);
     expect(heard.docs).toEqual(["ab12-0001"]);
     expect(calls.links).toEqual(["https://x.y"]);
     expect(heard.opened).toEqual(["attachments/a.pdf"]);
     expect(heard.tags).toEqual(["work"]);
-    expect(heard.blocks).toEqual([[10, 17]]);
   });
 
   it("counts a block by characters, whatever the accents before it", () => {
@@ -410,12 +393,12 @@ describe("a drawn page wired to the window", () => {
 });
 
 const writer = (body = "") => {
-  const asked: { at: [number, number]; seed?: string; read?: string }[] = [];
+  const asked: { at: [number, number]; seed: string }[] = [];
   let away = 0;
   const reach: Reaching = {
     body,
     onDoc: () => {},
-    onBlock: (at, _, seed, read) => asked.push({ at, seed, read }),
+    onBegin: (at, seed) => asked.push({ at: [at, at], seed }),
     onAway: () => {
       away += 1;
     },
@@ -501,22 +484,6 @@ describe("a sheet with nothing written yet", () => {
     expect(drawn.querySelector(".cm-content")?.contains(caret?.anchorNode ?? null)).toBe(true);
     expect(caret?.toString()).toBe("");
     document.body.innerHTML = "";
-  });
-
-  it("hands the block the words read before the click, so the caret lands there", () => {
-    const drawn = page('<p data-at="0-11">Leche y pan</p>');
-    const text = drawn.querySelector("p")?.firstChild as Text;
-    Object.assign(drawn, {
-      caretRangeFromPoint: () => {
-        const range = drawn.createRange();
-        range.setStart(text, 7);
-        return range;
-      },
-    });
-    const { asked, reach } = writer("Leche y pan");
-    wired(drawn, () => reach);
-    press(drawn.querySelector("p"), 0);
-    expect(asked[0]).toEqual({ at: [0, 11], seed: "", read: "Leche y" });
   });
 });
 

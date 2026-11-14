@@ -21,23 +21,12 @@ export type Menued = {
   readonly picture: number | null;
 };
 
-// What a key pressed over chosen words does to them once the block opens: null keeps them chosen.
-export type Chosen = Omit<Formatting, "open" | "close"> & { readonly typed: string | null };
-
 export type Bar = { readonly buttons: typeof formatButtons; readonly css: string };
 
 export type Quick = {
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
-  readonly onChoose?: (asked: Chosen) => void;
-};
-
-const typedOver = (event: KeyboardEvent): string | null | undefined => {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return undefined;
-  if (event.key === "Enter") return null;
-  if (event.key === "Backspace" || event.key === "Delete") return "";
-  return [...event.key].length === 1 ? event.key : undefined;
 };
 
 const blockOf = (node: Node | null): HTMLElement | null => {
@@ -123,17 +112,6 @@ export const quickly = (page: Document, reach: () => Quick) => {
   page.addEventListener("mouseup", (event) => {
     if (bar?.contains(event.target as Node)) return;
     setTimeout(show);
-  });
-  // Words chosen on the page are written over as they would be in any editor, the block opening around them.
-  page.addEventListener("keydown", (event) => {
-    const choose = reach().onChoose;
-    const typed = typedOver(event);
-    if (!choose || typed === undefined || page.querySelector(".editing")) return;
-    const asked = picked(page);
-    if (!asked) return;
-    event.preventDefault();
-    hide();
-    choose({ ...asked, typed });
   });
   page.addEventListener("keyup", () => {
     if (!page.getSelection()?.isCollapsed) show();

@@ -66,11 +66,7 @@ describe("a click on a drawn page", () => {
   it("opens a widget's code or the widget apart from its bar, and nothing from the widget itself", () => {
     const widget =
       '<figure class="widget" data-at="4-40"><div class="widget-bar"><span class="widget-name">Rina</span><button data-asked="code">c</button><button data-asked="apart">a</button></div><div><iframe></iframe></div></figure>';
-    expect(clicked(widget, "button[data-asked=code]")).toEqual({
-      kind: "code",
-      at: [4, 40],
-      block: [4, 40],
-    });
+    expect(clicked(widget, "button[data-asked=code]")).toEqual({ kind: "code", at: [4, 40] });
     expect(clicked(widget, "button[data-asked=apart]")).toEqual({ kind: "apart", at: [4, 40] });
     const bare = widget.replace(' data-at="4-40"', "");
     const two = page(`<ul data-at="4-90"><li>${bare}</li><li>${bare}</li></ul>`);
@@ -87,7 +83,7 @@ describe("a click on a drawn page", () => {
     const card =
       '<p data-at="4-30"><span class="doc-card" data-doc="ab12-0003"><span class="card-name">C</span><button data-asked="code">e</button></span></p>';
     expect(clicked(card, ".card-name")).toEqual({ kind: "doc", id: "ab12-0003" });
-    expect(clicked(card, "button")).toEqual({ kind: "code", at: [4, 30], block: [4, 30] });
+    expect(clicked(card, "button")).toEqual({ kind: "code", at: [4, 30] });
   });
 
   it("asks nothing while words are being picked", () => {

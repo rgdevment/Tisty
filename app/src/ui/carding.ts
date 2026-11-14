@@ -51,7 +51,7 @@ export const blurbing = () => {
 export type Carding = {
   readonly card?: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
-  readonly onBlock?: unknown;
+  readonly onSource?: unknown;
   readonly onMore?: unknown;
 };
 
@@ -72,7 +72,7 @@ export const cardsFor = (page: Document, reach: Carding): Omit<Cards, "say"> | u
   if (!reach.card) return undefined;
   const controls = (file: string): Node[] => {
     const made: Node[] = [];
-    if (reach.onBlock) {
+    if (reach.onSource) {
       const edit = page.createElement("button");
       edit.type = "button";
       edit.className = "card-edit";

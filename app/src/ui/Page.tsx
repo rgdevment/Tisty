@@ -128,7 +128,6 @@ export default function Page(props: Readonly<Props>) {
             ...reach.current,
             body: drawing.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
-            onBlock: current("onBlock"),
             onBegin: current("onBegin"),
             onHintWords: current("onHintWords"),
             onSource: current("onSource"),
@@ -138,7 +137,6 @@ export default function Page(props: Readonly<Props>) {
             onCut: current("onCut"),
             onWiden: current("onWiden"),
             onFormat: current("onFormat"),
-            onChoose: current("onChoose"),
             onMenu: current("onMenu"),
             onMore: current("onMore"),
             onDiagram: current("onDiagram"),
