@@ -831,3 +831,66 @@ describe("what a person found writing on the page", () => {
     expect(last(said).startsWith("# Hola**uno dos** tres\n")).toBe(true);
   });
 });
+
+describe("what a second look found writing on the page", () => {
+  const key = (name: string, more: KeyboardEventInit = {}) =>
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...more }),
+      );
+  const last = (said: string[]) => said[said.length - 1] ?? "";
+
+  it("puts the caret after what a redo brings back", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    asked("insertText", "x");
+    key("z", { ctrlKey: true });
+    key("y", { ctrlKey: true });
+    asked("insertText", "y");
+    expect(last(said).startsWith("# Holaxy\n")).toBe(true);
+  });
+
+  it("turns a box typed at a line's start into a step", () => {
+    const said = writer("Antes\n\n");
+    pageOf('<p data-at="0-5"><span data-src="0-5">Antes</span></p>');
+    writing?.drawn();
+    caretIn("Antes", 5);
+    asked("insertParagraph");
+    asked("insertText", "[");
+    asked("insertText", " ");
+    asked("insertText", "]");
+    asked("insertText", " ");
+    expect(last(said)).toMatch(/^Antes\n\n- \[ \] \n/);
+  });
+
+  it("holds a second Enter on a line left blank, so no hidden blank lines pile up", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    asked("insertParagraph");
+    const once = last(said);
+    asked("insertParagraph");
+    expect(last(said)).toBe(once);
+  });
+
+  it("keeps the caret where it was when a change comes from beside the page", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    writing?.rewrite(BODY.replace("- segundo", "- [x] segundo"));
+    asked("insertText", "!");
+    expect(last(said).startsWith("# Hola!\n")).toBe(true);
+  });
+
+  it("leaves the caret at the end of the words when Delete takes the break after them", () => {
+    const body = "Uno\n\n---\n\nDos\n";
+    const said = writer(body);
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><hr data-at="5-8"><p data-at="10-13"><span data-src="10-13">Dos</span></p>',
+    );
+    writing?.drawn();
+    caretIn("Uno", 3);
+    asked("deleteContentForward");
+    asked("insertText", "!");
+    expect(last(said)).toBe("Uno!\n\nDos\n");
+  });
+});

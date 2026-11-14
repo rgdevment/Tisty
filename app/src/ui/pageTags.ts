@@ -63,9 +63,26 @@ export const tagList = (page: Document, pick: (match: TagMatch, tag: string) => 
     if (was) pick(was, tag);
   };
 
-  const placed = () => {
+  // A caret right after a drawn tag measures nothing, so the tag before it stands in for it.
+  const caretBox = (): { left: number; bottom: number } | null => {
     const held = page.getSelection();
-    const box = held?.rangeCount ? held.getRangeAt(0).getBoundingClientRect() : null;
+    if (!held?.rangeCount) return null;
+    const range = held.getRangeAt(0);
+    const box =
+      typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
+    if (box && (box.height || box.left || box.bottom)) return box;
+    const node = held.anchorNode;
+    const before =
+      node?.nodeType === Node.ELEMENT_NODE
+        ? node.childNodes[held.anchorOffset - 1]
+        : node?.previousSibling;
+    const near = before?.nodeType === Node.ELEMENT_NODE ? (before as Element) : node?.parentElement;
+    const rect = near?.getBoundingClientRect();
+    return rect ? { left: before ? rect.right : rect.left, bottom: rect.bottom } : null;
+  };
+
+  const placed = () => {
+    const box = caretBox();
     const view = page.defaultView;
     if (!box || !view) return hide();
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;

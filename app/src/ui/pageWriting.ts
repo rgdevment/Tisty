@@ -342,8 +342,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .reverse()
       .join("");
   let typing = false;
-  const undone: { text: string; at: number }[] = [];
-  const redone: { text: string; at: number }[] = [];
+  const undone: { text: string; at: number; after?: number }[] = [];
+  const redone: { text: string; at: number; after?: number }[] = [];
 
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
   const waited = (kind: string): { from: number; to: number } | null => {
@@ -461,7 +461,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const next = applied(text, one);
     if (next === text) return;
     const stood = kept && kept.offset < 0 ? kept.at : (caretSpan()?.from ?? one.from);
-    undone.push({ text, at: Math.min(stood, text.length) });
+    undone.push({ text, at: Math.min(stood, text.length), after: caret });
     redone.length = 0;
     kept = { node: page.body, offset: -1, at: caret };
     hands.write(next);
@@ -469,12 +469,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     laidOut(text, next, one);
   };
 
-  const turned = (from: typeof undone, to: typeof undone) => {
+  const turned = (from: typeof undone, to: typeof undone, forward = false) => {
     const back = from.pop();
     if (!back) return;
     pending = null;
-    to.push({ text: hands.text(), at: back.at });
-    kept = { node: page.body, offset: -1, at: back.at };
+    to.push({ text: hands.text(), at: back.at, after: back.after });
+    kept = { node: page.body, offset: -1, at: forward ? (back.after ?? back.at) : back.at };
     hands.write(back.text);
     whole = true;
     hands.redraw(back.text);
@@ -539,9 +539,13 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     typing = kind === "insertText" || kind.startsWith("delete");
     if (kind !== "insertText" && !kind.startsWith("format")) pending = null;
     if (kind === "historyUndo") return turned(undone, redone);
-    if (kind === "historyRedo") return turned(redone, undone);
+    if (kind === "historyRedo") return turned(redone, undone, true);
     const broken = pastBreak(kind);
-    if (broken) return put({ ...broken, insert: "" }, broken.from);
+    if (broken) {
+      const stays =
+        kind === "deleteContentForward" ? (caretSpan()?.from ?? broken.from) : broken.from;
+      return put({ ...broken, insert: "" }, Math.min(stays, broken.from));
+    }
     const [target] = event.getTargetRanges?.() ?? [];
     const range = target ?? chosen();
     const picked = chosen();
@@ -566,6 +570,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       return hands.blocks(caretPoint(), true);
     if (kind === "insertText" && one.from === one.to) {
       if (pending?.at === one.from) return pendingKey(one.from, typed);
+      const opened = text.slice(text.lastIndexOf("\n", one.from - 1) + 1, one.from);
+      if (typed === " " && /^\s*(?:>\s?)*\[ ?\]$/.test(opened)) {
+        const box = `${opened.replace(/\[ ?\]$/, "")}- [ ] `;
+        return put({ from: one.from - opened.length, to: one.from, insert: box });
+      }
       const carry = carried?.caret === one.from ? carried : null;
       carried = null;
       if (carry && !typed.trim()) {
@@ -588,6 +597,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     carried = null;
     if (kind === "insertText" || kind === "insertReplacementText")
       return put({ ...one, insert: typed });
+    const blankLine =
+      text[one.from - 1] === "\n" &&
+      /\r?\n$/.test(text.slice(0, one.from - 1)) &&
+      (one.from >= text.length || /[\r\n]/.test(text[one.from] ?? ""));
+    if (kind === "insertParagraph" && one.from === one.to && blankLine) return;
     if (kind === "insertParagraph" && one.from === one.to && !inCode(range.startContainer)) {
       const left = leftBehind(text, one.from);
       if (left) {
@@ -1045,9 +1059,16 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const text = hands.text();
     if (next === text) return;
     const one = changeOf(text, next);
+    const held = chosen();
+    const sheet = page.querySelector(".page");
+    const was = held?.collapsed && sheet?.contains(held.startContainer) ? caretSpan()?.from : null;
     undone.push({ text, at: one.from });
     redone.length = 0;
-    kept = null;
+    const by = one.insert.length - (one.to - one.from);
+    kept =
+      was === null || was === undefined
+        ? null
+        : { node: page.body, offset: -1, at: was <= one.from ? was : Math.max(one.from, was + by) };
     pending = null;
     hands.write(next);
     laidOut(text, next, one);
@@ -1124,7 +1145,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       event.preventDefault();
       pending = null;
       carried = null;
-      return named === "z" ? turned(undone, redone) : turned(redone, undone);
+      return named === "z" ? turned(undone, redone) : turned(redone, undone, true);
     }
     const pair = KEYED[named];
     if (pair) {
@@ -1174,6 +1195,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const gripping = gripped(page, { moved: movedOnto, asked: (top, at) => hands.acts(at, top) });
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
+  const ticking = (event: MouseEvent) => {
+    if ((event.target as Element | null)?.closest?.(".page .check, .page input[type=checkbox]"))
+      event.preventDefault();
+  };
+
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
     if (key !== null && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key)) return;
@@ -1190,6 +1216,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("compositionend", ended);
   page.addEventListener("mousedown", moved);
   page.addEventListener("click", quoted);
+  page.addEventListener("mousedown", ticking);
   page.addEventListener("keydown", moved);
   page.addEventListener("selectionchange", noted);
   page.addEventListener("keydown", keyed);
@@ -1237,6 +1264,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       gripping.stop();
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("click", quoted);
+      page.removeEventListener("mousedown", ticking);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);
       page.removeEventListener("compositionstart", started);

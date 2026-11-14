@@ -58,7 +58,7 @@ export const placed = (
   if ("inline" in how)
     return { edit: { from: at, to: at, insert: how.inline }, caret: at + how.at };
   if ("line" in how) {
-    const start = first ?? lineStart(text, at);
+    const start = blank(text, at) ? lineStart(text, at) : (first ?? lineStart(text, at));
     const lead = LEAD.exec(text.slice(start))?.[0] ?? "";
     const quoted = first !== null && how.line.startsWith(">");
     const body = quoted ? text.slice(start + lead.length, Math.max(start, end)) : "";
