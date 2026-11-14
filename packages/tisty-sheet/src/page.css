@@ -1741,6 +1741,9 @@ html.lively:not(.tall) .page {
   border-radius: 0;
   box-shadow: none;
 }
+html.lively:not(.tall) .page > :is(hr, .sheet-turn) {
+  margin-inline: -56px;
+}
 html.lively:not(.sheeted) .page {
   max-width: none;
 }
