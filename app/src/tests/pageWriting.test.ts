@@ -51,6 +51,10 @@ const writer = () => {
       text = next;
       said.push(next);
     },
+    shown: () => {},
+    redraw: () => {},
+    near: () => Promise.reject(new Error("no core here")),
+    dressed: () => {},
     translated: (_, plain) => Promise.resolve(plain),
   });
   return said;

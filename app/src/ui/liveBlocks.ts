@@ -26,23 +26,41 @@ const barred = (into: HTMLElement) => {
     diagramBar(figure, { open: true, out: true, words: false });
 };
 
+const tableDressed = (page: Document, box: Element) => {
+  dressedTable(page, box);
+  celledBox(page, box, {
+    today: today(),
+    locale: locale(),
+    hues: HUES,
+    live: true,
+    say: SAY,
+  });
+  gripsOn(page, box.querySelectorAll<HTMLElement>("thead th"));
+};
+
 const dressed = (into: HTMLElement, measured: () => void) => {
   const live = () => into.isConnected;
   picturesWithin(into, live);
   barred(into);
-  for (const box of into.querySelectorAll(".table")) {
-    dressedTable(into.ownerDocument, box);
-    celledBox(into.ownerDocument, box, {
-      today: today(),
-      locale: locale(),
-      hues: HUES,
-      live: true,
-      say: SAY,
-    });
-    gripsOn(into.ownerDocument, box.querySelectorAll<HTMLElement>("thead th"));
-  }
+  for (const box of into.querySelectorAll(".table")) tableDressed(into.ownerDocument, box);
   for (const img of into.querySelectorAll("img")) img.addEventListener("load", measured);
   void diagrams(into, darkNow(), live).then(measured);
+};
+
+const within = (laid: readonly Element[], selector: string) =>
+  laid.flatMap((one) => [
+    ...(one.matches(selector) ? [one] : []),
+    ...one.querySelectorAll(selector),
+  ]);
+
+// Blocks drawn again while the page is written on are dressed alone; a diagram already drawn is left as it is.
+export const dressedLaid = (sheet: Element, laid: readonly Element[]) => {
+  const live = () => sheet.isConnected;
+  for (const one of laid) picturesWithin(one, live);
+  for (const figure of within(laid, "figure.diagram"))
+    diagramBar(figure as HTMLElement, { open: true, out: true, words: false });
+  for (const box of within(laid, ".table")) tableDressed(sheet.ownerDocument, box);
+  void diagrams(sheet, darkNow(), live);
 };
 
 const FRESH_AT_MOST = 32;

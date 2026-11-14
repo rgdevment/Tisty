@@ -515,3 +515,24 @@ fn a_page_to_write_on_looks_as_the_page_to_read() {
     };
     assert_eq!(bare(html_placed(&read(text))), bare(html(&read(text))));
 }
+
+#[test]
+fn an_edit_draws_again_only_the_blocks_around_it() {
+    let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
+    let at = text.find("words").unwrap_or(0);
+    let near = placed_near(&read(text), at, at + 5);
+    assert_eq!(near.spans.len(), 5);
+    assert_eq!(near.drawn, 0..3);
+    assert!(near.html.contains("Two words.") && near.html.contains("Three."));
+    assert!(!near.html.contains("Four."));
+    assert!(near.html.contains("data-src"));
+}
+
+#[test]
+fn an_edit_past_the_last_block_draws_the_last_one() {
+    let text = "One.\n\nTwo.\n\n";
+    let near = placed_near(&read(text), text.len(), text.len());
+    assert_eq!(near.drawn, 1..2);
+    assert!(near.html.contains("Two."));
+    assert_eq!(placed_near(&read(""), 0, 0).drawn, 0..0);
+}

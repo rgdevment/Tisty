@@ -1,3 +1,6 @@
+import { bytesAt } from "tisty-editor/read";
+import type { PlacedNear } from "../placing";
+import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 
 type Edit = { readonly from: number; readonly to: number; readonly insert: string };
@@ -6,8 +9,16 @@ type Kept = { readonly node: Node; readonly offset: number; readonly at: number 
 export type Hands = {
   readonly text: () => string;
   readonly write: (next: string) => void;
+  readonly shown: (now: string) => void;
+  readonly redraw: (now: string) => void;
+  readonly near: (body: string, from: number, to: number) => Promise<PlacedNear>;
+  readonly dressed: (sheet: Element, laid: readonly Element[]) => void;
   readonly translated: (html: string | null, plain: string) => Promise<string>;
 };
+
+const BYTES = new TextEncoder();
+// What the rest of the window reads of the page catches up once the keys rest, not on each one.
+const RESTED_MS = 250;
 
 export type PageWriting = { readonly drawn: () => void; readonly stop: () => void };
 
@@ -94,6 +105,43 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     return held?.rangeCount ? held.getRangeAt(0) : null;
   };
 
+  let laying: Promise<void> = Promise.resolve();
+  let whole = false;
+  let resting: ReturnType<typeof setTimeout> | undefined;
+  let unsaid: string | null = null;
+  const told = () => {
+    clearTimeout(resting);
+    if (unsaid !== null) hands.shown(unsaid);
+    unsaid = null;
+  };
+  const rested = (now: string) => {
+    clearTimeout(resting);
+    unsaid = now;
+    resting = setTimeout(told, RESTED_MS);
+  };
+
+  // Each change is laid in turn: the core draws again the blocks around it and only those change on the page.
+  const laidOut = (was: string, now: string, one: Edit) => {
+    const from = bytesAt(now, one.from);
+    const added = BYTES.encode(one.insert).length;
+    const by = added - BYTES.encode(was.slice(one.from, one.to)).length;
+    laying = laying.then(async () => {
+      unsaid = null;
+      clearTimeout(resting);
+      if (whole) return hands.redraw(hands.text());
+      const near = await hands.near(now, from, from + added).catch(() => null);
+      const sheet = page.querySelector(".page");
+      const laid = sheet && near && patched(sheet, near, by);
+      if (!sheet || !laid) {
+        whole = true;
+        return hands.redraw(hands.text());
+      }
+      hands.dressed(sheet, laid);
+      rested(now);
+      if (hands.text() === now) drawn();
+    });
+  };
+
   const put = (one: Edit, caret = one.from + one.insert.length) => {
     const text = hands.text();
     const next = applied(text, one);
@@ -102,6 +150,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     redone.length = 0;
     kept = { node: page.body, offset: -1, at: caret };
     hands.write(next);
+    laidOut(text, next, one);
   };
 
   const turned = (from: typeof undone, to: typeof undone) => {
@@ -110,6 +159,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     to.push({ text: hands.text(), at: back.at });
     kept = { node: page.body, offset: -1, at: back.at };
     hands.write(back.text);
+    whole = true;
+    hands.redraw(back.text);
   };
 
   const inCode = (node: Node) =>
@@ -176,6 +227,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   const drawn = () => {
+    whole = false;
     opened();
     if (!kept) return;
     const ghost = spotOf(page, hands.text(), kept.at) ? null : ghostAt(page, hands.text(), kept.at);
@@ -205,6 +257,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   return {
     drawn,
     stop: () => {
+      told();
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);

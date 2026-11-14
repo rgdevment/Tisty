@@ -20,6 +20,7 @@ type Props = Reaching & {
   readonly again?: string;
   readonly cards?: string;
   readonly draw?: (body: string) => Promise<string>;
+  readonly already?: string | null;
   readonly onMend?: (one: Mend, body: string) => void;
 };
 
@@ -62,6 +63,11 @@ export default function Page(props: Readonly<Props>) {
   const { draw } = props;
   useEffect(() => {
     let live = true;
+    // The page written on in place already shows these words, so only what the handlers read moves on.
+    if (reach.current.already === body && turns.current > 0) {
+      setDrawing((was) => was && { ...was, body });
+      return;
+    }
     const drawn = (html: string) => {
       if (!live) return;
       turns.current += 1;

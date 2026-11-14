@@ -32,6 +32,48 @@ fn page_of(doc: &Doc, placed: bool) -> String {
     out
 }
 
+/// What an edit changed on the page being written: where every top-level block now stands, and the
+/// blocks from `drawn.start` to `drawn.end` drawn again, one more on each side of the edit.
+pub struct Near {
+    pub spans: Vec<[usize; 2]>,
+    pub drawn: std::ops::Range<usize>,
+    pub html: String,
+}
+
+pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
+    let blocks = doc.blocks();
+    let spans: Vec<[usize; 2]> = blocks
+        .iter()
+        .map(|one| [one.at.start, one.at.end])
+        .collect();
+    let touched = |one: &[usize; 2]| one[1] >= from && one[0] <= to;
+    let start = spans
+        .iter()
+        .position(touched)
+        .unwrap_or_else(|| spans.partition_point(|one| one[1] < from))
+        .saturating_sub(1);
+    let end = spans
+        .iter()
+        .rposition(touched)
+        .map_or(start + 1, |at| at + 2)
+        .max(start + 1)
+        .min(spans.len());
+    let drawing = Drawing {
+        anchors: anchors(doc),
+        aligned: false,
+        placed: true,
+    };
+    let mut html = String::new();
+    for block in blocks.get(start..end).unwrap_or_default() {
+        draw(block, doc.text(), &drawing, &mut html);
+    }
+    Near {
+        spans,
+        drawn: start.min(end)..end,
+        html,
+    }
+}
+
 // Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
 pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
     let drawing = Drawing {

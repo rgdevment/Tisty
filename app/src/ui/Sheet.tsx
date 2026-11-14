@@ -31,12 +31,13 @@ import {
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
 import { bytesAt, charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
-import { copied, copyAttached, docPlaced, type Mend, opened, viewWidget } from "../core";
+import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
+import { docPlaced, docPlacedNear } from "../placing";
 import { named } from "../previews";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
@@ -44,7 +45,7 @@ import { exportChoices, fileName } from "./drawing/exporting";
 import { under } from "./dressing";
 import { useKeptHeight } from "./heights";
 import { edited, editedLive, HOST } from "./hosting";
-import { blockDrawer } from "./liveBlocks";
+import { blockDrawer, dressedLaid } from "./liveBlocks";
 import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, useFrameScroll, ViewSwitch } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
@@ -202,6 +203,7 @@ export default function Sheet(props: Readonly<Props>) {
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
   const onPage = lively && !markdown && !reading && !fixed;
   const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
+  const alreadyShown = useRef<string | null>(null);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
   turnedNow.current = turned;
@@ -906,10 +908,17 @@ export default function Sheet(props: Readonly<Props>) {
     opened(reference).catch((error_) => said.current.onFail?.(error_));
   const pageHands: Hands = {
     text: () => latest.current,
-    write: (next) => {
-      written(next);
-      setDrawn(next);
+    write: written,
+    shown: (now) => {
+      alreadyShown.current = now;
+      setDrawn(now);
     },
+    redraw: (now) => {
+      alreadyShown.current = null;
+      setDrawn(now);
+    },
+    near: docPlacedNear,
+    dressed: dressedLaid,
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };
@@ -1165,6 +1174,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           draw={lively && !reading && !fixed ? docPlaced : undefined}
+          already={alreadyShown.current}
           onBlock={reading || onPage ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
