@@ -859,11 +859,14 @@ jobs:
         run: |
           app=$(ls -d "target/$TARGET/release/bundle/macos"/*.app | head -1)
           test -f "$app/Contents/embedded.provisionprofile" || { echo "::error::no profile inside $app"; exit 1; }
-          codesign -d --entitlements - --xml "$app" | grep -q "usernotifications.time-sensitive" ||
-            { echo "::error::$app was signed without time-sensitive notifications"; exit 1; }
+          granted=$(codesign -d --entitlements - --xml "$app" 2>/dev/null)
+          case "$granted" in
+            *usernotifications.time-sensitive*) ;;
+            *) echo "::error::$app was signed without time-sensitive notifications"; exit 1 ;;
+          esac
           here=$(uname -m); [ "$here" = arm64 ] && here=aarch64
           if [ "$here" = "$ARCH" ]; then
-            "$app/Contents/MacOS/tisty" --version
+            perl -e 'alarm 30; exec @ARGV' "$app/Contents/MacOS/tisty" --version
           fi
 
       - name: Notarize
