@@ -481,7 +481,7 @@ const en = {
   noticeUrgentScreen:
     "Turn on «A notification from the system» first: without it no reminder reaches the system.",
   noticeUrgentWindows:
-    "The first important reminder brings a notice from Windows asking whether Tisty may send important notifications: allow it. You can change it later under Settings → System → Notifications → Tisty.",
+    "Under Settings → System → Notifications → Tisty, allow important notifications. Windows may also ask you in a notice the first time: allow it there too.",
   noticeUrgentMac:
     "Under System Settings → Notifications → Tisty, keep time-sensitive notifications on; then, in Focus, allow time-sensitive notifications in each focus you use.",
   noticeUrgentOpen: "Open the system settings",
@@ -3645,7 +3645,7 @@ const es: Catalog = {
   noticeUrgentScreen:
     "Primero enciende «Una notificación del sistema»: sin ella ningún recordatorio llega al sistema.",
   noticeUrgentWindows:
-    "Con el primer recordatorio importante, Windows te pregunta en un aviso si Tisty puede enviar notificaciones importantes: permítelo. Después lo cambias en Configuración → Sistema → Notificaciones → Tisty.",
+    "En Configuración → Sistema → Notificaciones → Tisty, permite las notificaciones importantes. Windows también puede preguntártelo en un aviso la primera vez: permítelo ahí también.",
   noticeUrgentMac:
     "En Ajustes del Sistema → Notificaciones → Tisty, deja encendidas las notificaciones urgentes; después, en Concentración, permite las urgentes en cada modo que uses.",
   noticeUrgentOpen: "Abrir la configuración del sistema",
