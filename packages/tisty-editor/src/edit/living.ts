@@ -1,167 +1,12 @@
 import { EditorView, type KeyBinding } from "@codemirror/view";
 import { blocking, livingKeys } from "./blocks";
 import { gripping } from "./handle";
-import { marksShown, showMarks, wordsOnly } from "./seeing";
-import { drawing, drawnKeys } from "./widgets";
+import { marksShown, writtenPlain } from "./seeing";
 
-const plain = EditorView.editorAttributes.compute([marksShown], (state) => ({
-  class: state.field(marksShown) ? "cm-plain" : "",
-}));
-
-// Seeing the Markdown is a look at this document, never a setting the next editor starts with.
-export const viewTurned = (view: EditorView, plainly = !view.state.field(marksShown)) => {
-  if (view.state.field(marksShown) !== plainly) view.dispatch({ effects: showMarks.of(plainly) });
-};
+// The page the core draws is the one preview; this editor is the Markdown, written as plain words.
+const plain = EditorView.editorAttributes.of({ class: "cm-plain" });
 
 const living = EditorView.baseTheme({
-  ".cm-panels.cm-panels-top": {
-    background: "transparent",
-    border: "none",
-    pointerEvents: "none",
-  },
-  ".cm-views": {
-    display: "flex",
-    justifyContent: "flex-end",
-    padding: "4px 0 10px",
-  },
-  ".cm-views-pair": {
-    display: "inline-flex",
-    gap: "2px",
-    padding: "3px",
-    borderRadius: "10px",
-    background: "color-mix(in srgb, var(--tisty-ink) 6%, var(--tisty-sheet))",
-    boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 6%, transparent)",
-    pointerEvents: "auto",
-  },
-  ".cm-view-tab": {
-    padding: "4px 12px",
-    border: "none",
-    borderRadius: "7px",
-    background: "none",
-    color: "var(--tisty-faint)",
-    font: "inherit",
-    fontSize: "12px",
-    fontWeight: "550",
-    letterSpacing: "0.01em",
-    cursor: "pointer",
-    transition: "background-color 120ms ease, color 120ms ease",
-  },
-  ".cm-view-tab:hover": { color: "var(--tisty-ink)" },
-  ".cm-view-tab:focus-visible": { outline: "2px solid var(--tisty-accent)", outlineOffset: "1px" },
-  ".cm-view-tab[aria-pressed=true]": {
-    color: "var(--tisty-ink)",
-    background: "var(--tisty-sheet)",
-    boxShadow:
-      "0 1px 2px var(--tisty-cast), 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 8%, transparent)",
-  },
-  ".cm-rich summary": { pointerEvents: "auto", cursor: "pointer" },
-  ".cm-rich img, .cm-rich figure.diagram": { pointerEvents: "auto", cursor: "zoom-in" },
-  ".cm-rich .diagram-bar button": { cursor: "pointer" },
-  '.cm-rich blockquote[data-callout="idea"]': { pointerEvents: "auto", cursor: "text" },
-  ".cm-idea-words": { outline: "none", whiteSpace: "pre-wrap", minHeight: "1.5em" },
-  ".cm-turn": { padding: "14px 0", cursor: "default", userSelect: "none" },
-  ".cm-turn-cut": {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "2px 0",
-    borderRadius: "6px",
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    color: "var(--tisty-faint)",
-  },
-  ".cm-turn-cut::before, .cm-turn-cut::after": {
-    content: '""',
-    flex: "1",
-    borderTop: "2px dashed var(--tisty-hair)",
-  },
-  ".cm-turn.cm-rich-chosen .cm-turn-cut": { outline: "2px solid var(--tisty-accent)" },
-  ".cm-code-head": { paddingTop: "12px", userSelect: "none" },
-  ".cm-code-foot": { paddingBottom: "12px", userSelect: "none" },
-  ".cm-code, .cm-code-head > div, .cm-code-foot > div": {
-    background: "var(--tisty-hover)",
-    borderLeft: "1px solid var(--tisty-hair)",
-    borderRight: "1px solid var(--tisty-hair)",
-  },
-  ".cm-line.cm-code": {
-    padding: "0 14px",
-    fontFamily: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, monospace",
-    fontSize: "0.88em",
-    lineHeight: "1.55",
-  },
-  ".cm-code-head > div": {
-    padding: "6px 14px",
-    minHeight: "8px",
-    borderTop: "1px solid var(--tisty-hair)",
-    borderRadius: "10px 10px 0 0",
-    fontSize: "12px",
-    lineHeight: "1.4",
-    color: "var(--tisty-soft)",
-  },
-  ".cm-code-foot > div": {
-    height: "10px",
-    borderBottom: "1px solid var(--tisty-hair)",
-    borderRadius: "0 0 10px 10px",
-  },
-  ".cm-rich td, .cm-rich th, .cm-rich [data-act], .cm-rich .col-grip": {
-    pointerEvents: "auto",
-    cursor: "text",
-  },
-  ".cm-rich [data-act]": { cursor: "pointer" },
-  ".cm-rich .col-grip": { cursor: "col-resize" },
-  ".cm-table-menu": {
-    position: "absolute",
-    zIndex: "6",
-    display: "flex",
-    flexDirection: "column",
-    minWidth: "200px",
-    padding: "4px",
-    borderRadius: "10px",
-    border: "1px solid var(--tisty-hair)",
-    background: "var(--tisty-rail)",
-    boxShadow: "0 12px 32px -10px var(--tisty-cast), 0 2px 6px var(--tisty-cast)",
-    fontSize: "12.5px",
-  },
-  ".cm-table-menu button": {
-    padding: "6px 10px",
-    border: "none",
-    borderRadius: "6px",
-    background: "none",
-    color: "var(--tisty-ink)",
-    font: "inherit",
-    textAlign: "left",
-    cursor: "pointer",
-    whiteSpace: "pre",
-  },
-  ".cm-table-menu button:hover": { background: "var(--tisty-hover)" },
-  ".cm-table-menu button.danger": { color: "var(--tisty-hue-red)" },
-  ".cm-table-menu-apart": { height: "1px", margin: "4px 2px", background: "var(--tisty-hair)" },
-  ".cm-table-menu-heading": {
-    padding: "6px 10px 2px",
-    fontSize: "11px",
-    fontWeight: "600",
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    color: "var(--tisty-faint)",
-  },
-  ".cm-cell-day": {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "2px 4px",
-    border: "1px solid var(--tisty-accent)",
-    borderRadius: "6px",
-    background: "var(--tisty-sheet)",
-    color: "var(--tisty-ink)",
-    font: "inherit",
-    colorScheme: "light dark",
-  },
-  ".cm-cell-editing": {
-    outline: "2px solid var(--tisty-accent)",
-    outlineOffset: "-2px",
-    background: "color-mix(in srgb, var(--tisty-accent) 8%, transparent)",
-  },
   "&.cm-plain .cm-content": {
     fontFamily: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, monospace",
     fontSize: "0.9em",
@@ -188,21 +33,6 @@ const living = EditorView.baseTheme({
   ".cm-chosen .cm-selectionBackground, &.cm-focused .cm-chosen ::selection": {
     background: "transparent",
   },
-  ".cm-rich": {
-    display: "flow-root",
-    margin: "0",
-    padding: "6px 0",
-    borderRadius: "6px",
-    cursor: "default",
-    outline: "2px solid transparent",
-    transition: "outline-color 120ms ease",
-  },
-  ".cm-rich:hover": { outlineColor: "var(--tisty-hair)" },
-  ".cm-rich.cm-rich-chosen": {
-    outlineColor: "var(--tisty-accent)",
-    background: "color-mix(in srgb, var(--tisty-accent) 8%, transparent)",
-  },
-  ".cm-rich > *": { pointerEvents: "none" },
   ".cm-grip": {
     position: "absolute",
     left: "-30px",
@@ -231,6 +61,6 @@ const living = EditorView.baseTheme({
   },
 });
 
-export const lively = [marksShown, blocking, drawing, gripping, living, plain, wordsOnly.of(true)];
+export const lively = [writtenPlain.of(true), marksShown, blocking, gripping, living, plain];
 
-export const livelyKeys: KeyBinding[] = [...drawnKeys, ...livingKeys];
+export const livelyKeys: KeyBinding[] = livingKeys;

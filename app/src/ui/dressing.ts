@@ -319,7 +319,7 @@ const figureAt = (page: Document, at: [number, number]) => {
 };
 
 // The page sits in a frame; a menu of the window opens where the bar shows on the window's screen.
-export const under = (one: Element) => {
+const under = (one: Element) => {
   const box = one.getBoundingClientRect();
   const frame = one.ownerDocument.defaultView?.frameElement?.getBoundingClientRect();
   return { x: box.left + (frame?.left ?? 0), y: box.bottom + 4 + (frame?.top ?? 0) };

@@ -19,23 +19,7 @@ export type Hosted = {
   readonly tableEditNear: (body: string, at: number, ...edits: TableEdit[]) => Promise<string>;
   readonly fromHtml: (html: string) => Promise<string>;
   readonly fromText: (text: string) => Promise<string | null>;
-  readonly drawBlock?: (
-    source: string,
-    into: HTMLElement,
-    measured: () => void,
-  ) => (() => void) | undefined;
-  readonly drawnAsked?: (asked: DrawnAsked) => void;
 };
-
-export type DrawnAsked =
-  | { readonly kind: "diagram"; readonly code: string; readonly from: number; readonly nth: number }
-  | {
-      readonly kind: "export";
-      readonly code: string;
-      readonly nth: number;
-      readonly by: HTMLElement;
-    }
-  | { readonly kind: "zoom"; readonly box: HTMLElement; readonly target: Element };
 
 const NOBODY: Hosted = {
   say: (word) => word,
@@ -131,8 +115,6 @@ export type EditWord =
   | "tags"
   | "underlined"
   | "untitled"
-  | "viewMarkdown"
-  | "viewPreview"
   | "wholeLeave"
   | "widgetIt"
   | `said${"note" | "tip" | "important" | "warning" | "caution" | "idea"}`;

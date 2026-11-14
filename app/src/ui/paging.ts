@@ -86,12 +86,6 @@ const shotOf = (one: Element): Shot => {
 
 export const shotsOf = (page: Document): Shot[] => shotsIn(page).map(shotOf);
 
-// The whole-document editor draws its own blocks, so its pictures are looked for within it.
-export const shotsWithin = (root: Element, target: Element): { shots: Shot[]; nth: number } => {
-  const found = lookable(root.querySelectorAll("img[src], figure.diagram.drawn"));
-  return { shots: found.map(shotOf), nth: found.indexOf(target) };
-};
-
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {
   let last = spanned(label.getAttribute("data-at"));

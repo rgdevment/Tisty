@@ -35,8 +35,11 @@ export const keepShown = (on: boolean) => {
   } catch {}
 };
 
+// The Markdown view is the words as written, whatever the marks were last left as elsewhere.
+export const writtenPlain = Facet.define<boolean, boolean>({ combine: (all) => all.some(Boolean) });
+
 export const marksShown = StateField.define<boolean>({
-  create: shownBefore,
+  create: (state) => state.facet(writtenPlain) || shownBefore(),
   update: (was, done) => {
     for (const one of done.effects) if (one.is(showMarks)) return one.value;
     return was;
@@ -45,9 +48,6 @@ export const marksShown = StateField.define<boolean>({
 
 // The whole document is Markdown being written, so there a format opens under the selection.
 export const revealing = Facet.define<boolean, boolean>({ combine: (all) => all.some(Boolean) });
-
-// The preview of the whole document shows words only: a link's address is changed from its bar.
-export const wordsOnly = Facet.define<boolean, boolean>({ combine: (all) => all.some(Boolean) });
 
 export type Span = { readonly from: number; readonly to: number };
 export type Pair = { readonly open: Span; readonly shut: Span };
@@ -313,8 +313,8 @@ const touched = (state: EditorState, from: number, to: number) =>
 // Nested formats open together, so `***k***` never shows half its marks.
 const opened = (state: EditorState, node: SyntaxNode) => {
   for (let one: SyntaxNode | null = node; one && INLINE.has(one.name); one = one.parent) {
-    const reached = one.name === "Link" ? !state.facet(wordsOnly) : state.facet(revealing);
-    if (reached && touched(state, one.from, one.to)) return true;
+    if ((one.name === "Link" || state.facet(revealing)) && touched(state, one.from, one.to))
+      return true;
   }
   return false;
 };

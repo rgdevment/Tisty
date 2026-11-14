@@ -36,7 +36,7 @@ import { lively, livelyKeys } from "./living";
 import { GRAMMAR, pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
-import { marksShown, revealing, showMarks, visual } from "./seeing";
+import { revealing, visual } from "./seeing";
 import { type Asking, BOX, pickOnEnter, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
@@ -506,7 +506,6 @@ export const edited = (
   };
   replace = dock.place;
   if (live) bar.hint.style.display = "none";
-  if (live && view.state.field(marksShown)) view.dispatch({ effects: showMarks.of(false) });
   if (!live) view.focus();
   return { view, leave, kept: bar.kept, flush };
 };
