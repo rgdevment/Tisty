@@ -13,6 +13,7 @@ The whole window works from the keyboard.
 | `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
 | `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down |
+| `Tab` · `Shift` + `Tab` (writing a list) | Put an item under the one above or take it out |
 | `Ctrl`/`⌘` + `E` (in a document) | Switch between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide, without a connection |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |

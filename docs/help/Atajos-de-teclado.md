@@ -13,6 +13,7 @@ Toda la ventana funciona con el teclado.
 | `Shift` + `Enter` (escribiendo un documento) | Saltar de línea sin empezar un párrafo |
 | `Ctrl`/`⌘` + `/` (escribiendo un documento) | Abrir el menú de bloques donde está el cursor |
 | `Alt` + ↑ ↓ (escribiendo un documento) | Subir o bajar el bloque o el elemento donde está el cursor |
+| `Tab` · `Shift` + `Tab` (escribiendo una lista) | Meter un elemento bajo el de arriba o sacarlo |
 | `Ctrl`/`⌘` + `E` (en un documento) | Cambiar entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |

@@ -11,12 +11,13 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **Click wherever you like and type.** The caret lands where you clicked, and the page is drawn again as you write, the same as it reads, prints and is shared. What you write is saved as you go.
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading. The Markdown is still underneath, and the **Markdown** view shows it as it is.
 - **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called.
-- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line.
+- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another.
+- **`Tab` puts a list item under the one above, and `Shift` + `Tab` takes it back out.** In code, `Tab` indents with two spaces.
 - **Tick a box with a click**, a sticky note's too. A sticky note is written inside and dragged by its paper, its tape or its pin.
 - **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A diagram brings its own bar when the pointer is over it: **Export**, **Edit as Markdown**, which opens its text in the Markdown view, and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. A widget brings **Show code**.
 - **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with.
 - **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was.
-- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes.
+- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes, only in the document in front of you. What you wrote in the Markdown view is undone in one go when you come back.
 
 ## The format bar
 
@@ -83,6 +84,7 @@ In the Markdown view:
 | `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `/` | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in up or down |
+| `Tab` · `Shift` + `Tab` | Put a list item in or take it out |
 | `Ctrl`/`⌘` + `E` | Switch between Rich text and Markdown |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Strikethrough · code · link |
 | `Ctrl`/`⌘` + `Enter` | Page break |
@@ -93,7 +95,7 @@ The writing sits on a lit page. When the window is wide enough, a column opens b
 
 A table is written on the page itself:
 
-- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was. Its title is written the same way. The cell shows its words without marks, and a bar over the table puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
+- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was; Enter on the last row leaves the table for a new line under it. Its title is written the same way. The cell shows its words without marks, and a bar over the table puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
 - **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column can sum itself up at the foot: sum, average, minimum or maximum for numbers, minimum and maximum for dates, and count for any. **Edit as Markdown** opens the table as text.
 - **Drag a row or a column** by its handle to put it somewhere else, and **New row** under the table adds one at the end.
 - **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.
