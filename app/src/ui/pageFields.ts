@@ -1,10 +1,16 @@
-// A link's address is not on the page it leads from, so it is asked for in a field of its own under the words.
-export const addressAsked = (page: Document, near: DOMRect, said: string): Promise<string | null> =>
+// What the page does not show, as a link's address or a section's hint, is asked for in a field of its own under it.
+export const fieldAsked = (
+  page: Document,
+  near: DOMRect,
+  said: string,
+  { value = "", kind = "text" }: { readonly value?: string; readonly kind?: "text" | "url" } = {},
+): Promise<string | null> =>
   new Promise((done) => {
     const view = page.defaultView;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     const field = page.createElement("input");
-    field.type = "url";
+    field.type = kind;
+    field.value = value;
     field.className = "page-address";
     field.placeholder = said;
     field.setAttribute("aria-label", said);
@@ -27,4 +33,5 @@ export const addressAsked = (page: Document, near: DOMRect, said: string): Promi
     });
     field.addEventListener("blur", () => finish(null));
     field.focus();
+    field.select();
   });

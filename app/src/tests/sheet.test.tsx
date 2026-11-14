@@ -960,3 +960,57 @@ describe("the whole-document sheet", () => {
     expect(view.queryByRole("button", { name: "Pages" })).toBeNull();
   });
 });
+
+const PLACED =
+  '<h1 data-at="0-10"><span data-src="2-9">Compras</span></h1>' +
+  '<p data-at="11-17"><span data-src="11-16">leche</span></p>' +
+  '<p data-at="18-22"><span data-src="18-21">pan</span></p>';
+
+describe("the menus of a document written on as its page", () => {
+  const opened = async () => {
+    ipc.drawn = PLACED;
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} wholeable />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    const measured = page.defaultView?.Range.prototype as unknown as {
+      getBoundingClientRect?: () => unknown;
+    };
+    measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, bottom: 0, width: 0, height: 0 });
+    const words = page.querySelector('[data-src="11-16"]') as HTMLElement;
+    const range = page.createRange();
+    range.setStart(words.firstChild as Node, 0);
+    range.setEnd(words.firstChild as Node, 3);
+    page.getSelection()?.removeAllRanges();
+    page.getSelection()?.addRange(range);
+    return { page, words, writes };
+  };
+
+  it("cuts and copies the Markdown of the words chosen, and formats them", async () => {
+    const { words, writes } = await opened();
+    words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await waitFor(() => expect(offered()).toContain("Copy"));
+    expect(offered()).toEqual(expect.arrayContaining(["Cut", "Copy", "Bold", "Italic"]));
+    chosen("Copy");
+    await waitFor(() => expect(ipc.copied).toContain("lec"));
+    words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await waitFor(() => expect(offered()).toContain("Bold"));
+    chosen("Bold");
+    await waitFor(() => expect(writes[writes.length - 1]).toBe("# Compras\n\n**lec**he\n\npan\n"));
+  });
+
+  it("offers the blocks with Ctrl and a slash, searched by name", async () => {
+    const { page, writes } = await opened();
+    page
+      .querySelector(".page")
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "/", ctrlKey: true, bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Table"));
+    expect(document.querySelector('input[placeholder="Find a block"]')).not.toBeNull();
+    expect(offered()).not.toContain("Bold");
+    expect(writes).toHaveLength(0);
+  });
+});

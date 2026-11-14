@@ -194,7 +194,7 @@ export default function Sheet(props: Readonly<Props>) {
   const [markdown, setMarkdown] = useState(false);
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
   // A document and a task's page are both written on as the core draws them.
-  const writable = !reading && !fixed && (lively || Boolean(props.inline));
+  const writable = !reading && (lively || Boolean(props.inline));
   const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
   const alreadyShown = useRef<string | null>(null);
@@ -1243,7 +1243,7 @@ export default function Sheet(props: Readonly<Props>) {
         className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
-        {writable && ready && (
+        {writable && !fixed && ready && (
           <ViewSwitch markdown={markdown} onTurn={setMarkdown} inRow={!lively} />
         )}
         <Page
@@ -1263,6 +1263,14 @@ export default function Sheet(props: Readonly<Props>) {
             dresser.current = dress;
           }}
           onBlock={reading || onPage ? undefined : block}
+          onBegin={
+            onPage ? (at, seed, near) => pageWriter.current?.hands.begin(at, seed, near) : undefined
+          }
+          onHintWords={
+            onPage && fixed
+              ? (at, hint) => pageWriter.current?.hands.hintWords(at, hint)
+              : undefined
+          }
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
           onStick={reading || fixed ? undefined : restuck}

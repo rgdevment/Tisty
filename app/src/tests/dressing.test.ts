@@ -654,3 +654,68 @@ describe("a step's dates", () => {
     expect(second.hasAttribute("title")).toBe(false);
   });
 });
+
+describe("a task's page written in place", () => {
+  const body = "## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n\nCall at nine.\n";
+  const at = (said: string) => {
+    const from = body.indexOf(said);
+    return `${from}-${from + said.length}`;
+  };
+  const drawn = () => {
+    const one = page(
+      `<h2 data-at="${at("## Steps")}">Steps</h2>` +
+        `<div data-at="${at("<!-- - [ ] The first step -->")}"></div>` +
+        `<h2 data-at="${at("## Notes")}">Notes</h2>` +
+        `<p data-at="${at("Call at nine.")}">Call at nine.</p>`,
+    );
+    one.documentElement.classList.add("untitled");
+    return one;
+  };
+  const begun = () => {
+    const asked: { at: number; seed: string }[] = [];
+    const reach: Reaching = {
+      body,
+      onDoc: () => {},
+      onBegin: (at, seed) => asked.push({ at, seed }),
+    };
+    return { asked, reach };
+  };
+
+  it("shows its hints and begins a step under one, with no block editor", () => {
+    const one = drawn();
+    const { asked, reach } = begun();
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+    const end = body.indexOf("-->") + 3;
+    expect(asked).toEqual([{ at: end, seed: "- [ ] " }]);
+  });
+
+  it("begins at the end of a section when its label is pressed", () => {
+    const one = drawn();
+    const { asked, reach } = begun();
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelectorAll("h2")[1] ?? null, 0);
+    expect(asked).toEqual([
+      { at: body.indexOf("Call at nine.") + "Call at nine.".length, seed: "" },
+    ]);
+  });
+
+  it("mends a hint, not a block, while its sections are asked for", () => {
+    const one = drawn();
+    one.documentElement.classList.add("shaping");
+    const hints: [number, number][] = [];
+    const reach: Reaching = {
+      body,
+      onDoc: () => {},
+      onBegin: () => {},
+      onHintWords: (at) => hints.push(at),
+    };
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+    const from = body.indexOf("<!--");
+    expect(hints).toEqual([[from, body.indexOf("-->") + 3]]);
+  });
+});

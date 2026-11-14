@@ -75,7 +75,7 @@ const innermost = (page: Document, byte: number): Element | null => {
   let size = Number.POSITIVE_INFINITY;
   for (const one of page.querySelectorAll(`.page ${BLOCK}`)) {
     const at = spanned(one.getAttribute("data-at"));
-    if (at && at[0] <= byte && byte <= at[1] && at[1] - at[0] < size) {
+    if (at && at[0] <= byte && byte <= at[1] && at[1] - at[0] <= size) {
       found = one;
       size = at[1] - at[0];
     }

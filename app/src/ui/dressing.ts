@@ -32,6 +32,9 @@ export type Reaching = Carding & {
     seed?: string,
     read?: string,
   ) => void;
+  // The page written in place: writing starts here (chars), with what the new line opens with; nothing is written until a key.
+  readonly onBegin?: (at: number, seed: string, near: Element) => void;
+  readonly onHintWords?: (at: [number, number], hint: HTMLElement) => void;
   readonly onApart?: (source: string) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
@@ -250,8 +253,9 @@ const titled = (page: Document) => {
 };
 
 export const worn = (page: Document, live: () => boolean, reach?: Reaching): Worn => {
-  if (reach?.onBlock) titled(page);
-  if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
+  const writes = Boolean(reach?.onBlock || reach?.onBegin);
+  if (writes) titled(page);
+  if (reach && writes && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
@@ -383,10 +387,17 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
         : `.page > .${asked.from}[data-after="${named}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
-    if (held) reach.onBlock?.([end, end], held, asked.seed);
+    if (held && reach.onBegin) reach.onBegin(end, asked.seed, held);
+    else if (held) reach.onBlock?.([end, end], held, asked.seed);
   }
   if (asked.kind === "cut")
     reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
+  if (asked.kind === "section" && reach.onBegin) {
+    const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const add = last?.nextElementSibling;
+    const near = add?.matches(".add-step") ? add : last;
+    if (near) reach.onBegin(charsAt(reach.body, asked.at[1]), "", near);
+  }
   if (asked.kind === "section" && reach.onBlock) {
     const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const fresh = page.createElement("p");
@@ -395,6 +406,20 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const end = charsAt(reach.body, asked.at[1]);
     reach.onBlock([end, end], fresh);
     if (fresh.isConnected) fresh.remove();
+  }
+  if (asked.kind === "title" && reach.onBegin) {
+    const slot = page.querySelector(".page > h1[data-title]");
+    if (slot) reach.onBegin(0, "# ", slot);
+  }
+  if (asked.kind === "end" && reach.onBegin) {
+    const last = page.querySelector(".page > [data-at]:last-of-type");
+    reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
+  }
+  if (asked.kind === "block" && !reach.onBlock && reach.onHintWords) {
+    const hint = page.querySelector<HTMLElement>(
+      `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    if (hint) reach.onHintWords(asked.at, hint);
   }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");

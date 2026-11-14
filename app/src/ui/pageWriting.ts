@@ -3,7 +3,7 @@ import { bytesAt, charsAt, spanned } from "tisty-editor/read";
 import { t } from "../locales";
 import type { PlacedNear } from "../placing";
 import { blank, blockPlaced, placed } from "./pageBlocks";
-import { addressAsked } from "./pageLinking";
+import { fieldAsked } from "./pageFields";
 import {
   type Act,
   acted,
@@ -19,7 +19,14 @@ import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 
 type Edit = { readonly from: number; readonly to: number; readonly insert: string };
-type Kept = { readonly node: Node; readonly offset: number; readonly at: number };
+/** `lead` and `tail` wrap the first key of a line begun from a hint or a button, written only once a key comes. */
+type Kept = {
+  readonly node: Node;
+  readonly offset: number;
+  readonly at: number;
+  readonly lead?: string;
+  readonly tail?: string;
+};
 
 export type Hands = {
   readonly text: () => string;
@@ -49,6 +56,8 @@ export type PageWriting = {
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
   readonly typed: (said: string) => void;
   readonly unitActed: (top: Element, act: Act) => void;
+  readonly begin: (at: number, seed: string, near: Element) => void;
+  readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
 };
 
 const WRITABLE =
@@ -92,6 +101,24 @@ const changeOf = (was: string, now: string): Edit => {
   return { from: start, to: was.length - end, insert: now.slice(start, now.length - end) };
 };
 
+// Blank lines a begun line needs before it: one to stay in the list above, two to stand apart.
+const LIST_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
+
+const opening = (text: string, at: number, seed: string) => {
+  const before = text.slice(0, at);
+  if (!before.trim()) return "";
+  const lines = before.replace(/\s+$/, "").split("\n");
+  const joins = LIST_ITEM.test(seed) && LIST_ITEM.test(lines[lines.length - 1] ?? "");
+  const have = /\n*$/.exec(before)?.[0].length ?? 0;
+  return "\n".repeat(Math.max(0, (joins ? 1 : 2) - have));
+};
+
+const closing = (text: string, at: number) => {
+  const after = text.slice(at);
+  if (!after.trim()) return "";
+  return "\n".repeat(Math.max(0, 2 - (/^\n*/.exec(after)?.[0].length ?? 0)));
+};
+
 const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
 
@@ -122,6 +149,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const unbegun = (kind: string, range: AbstractRange): { from: number; to: number } | null => {
     if (!kept || !range.collapsed || !ghostly(range.startContainer)) return null;
     const { at } = kept;
+    if (kept.lead !== undefined && kind.startsWith("delete")) {
+      for (const one of page.querySelectorAll(GHOST)) one.remove();
+      kept = null;
+      return null;
+    }
     if (!kind.startsWith("delete") || kind.includes("Forward")) return { from: at, to: at };
     const text = hands.text();
     let from = at;
@@ -161,6 +193,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   // Each change is laid in turn: the core draws again the blocks around it and only those change on the page.
   const laidOut = (was: string, now: string, one: Edit) => {
+    // A task's page is small and dressed with its hints and buttons, which only a whole drawing lays again.
+    if (page.documentElement.classList.contains("untitled")) whole = true;
     const from = bytesAt(now, one.from);
     const added = BYTES.encode(one.insert).length;
     const by = added - BYTES.encode(was.slice(one.from, one.to)).length;
@@ -236,6 +270,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!range || !one) return;
     const text = hands.text();
     const typed = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
+    const begun = kept?.lead !== undefined && ghostly(range.startContainer) ? kept : null;
+    if (begun && kind !== "insertText" && kind !== "insertReplacementText") return;
+    if (begun) return firstKey(begun, typed);
     if (kind === "insertText" && typed === "/" && one.from === one.to && blank(text, one.from))
       return hands.blocks(caretPoint(), true);
     if (kind === "insertText" || kind === "insertReplacementText")
@@ -281,7 +318,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const box = held?.rangeCount ? held.getRangeAt(0).getBoundingClientRect() : null;
     const near = box ?? page.querySelector(".page")?.getBoundingClientRect();
     if (!near) return;
-    void addressAsked(page, near, t("linkAddress")).then((to) => {
+    void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((to) => {
       if (!to) return;
       const inner = hands.text().slice(one.from, one.to);
       put({ ...one, insert: `[${inner}](${to})` });
@@ -305,28 +342,39 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!onSheet(event)) return;
     const one = composing;
     composing = null;
+    if (kept?.lead !== undefined && one?.from === kept.at) return firstKey(kept, event.data ?? "");
     if (one) put({ ...one, insert: event.data ?? "" });
   };
 
   // The sheet is written on whole, but a table, a drawing or a rule is changed by its own hands.
+  // A task's labels are filled under, not renamed, until its sections are asked for; then only they are written.
   const opened = () => {
     const sheet = page.querySelector<HTMLElement>(".page");
     if (!sheet) return;
     sheet.setAttribute("contenteditable", "true");
     sheet.spellcheck = true;
+    const look = page.documentElement.classList;
+    const task = look.contains("untitled");
+    const shaping = task && look.contains("shaping");
     for (const one of sheet.children) {
-      if (!one.matches(WRITABLE)) one.setAttribute("contenteditable", "false");
+      const label = /^H[1-6]$/.test(one.tagName);
+      const free = shaping ? label : one.matches(WRITABLE) && !(task && label);
+      if (free) one.removeAttribute("contenteditable");
+      else one.setAttribute("contenteditable", "false");
     }
+    for (const one of sheet.querySelectorAll(".drop-section"))
+      one.setAttribute("contenteditable", "false");
   };
 
   const caretLaid = () => {
     if (!kept) return;
-    const ghost = spotOf(page, hands.text(), kept.at) ? null : ghostAt(page, hands.text(), kept.at);
+    const unwritten = kept.lead !== undefined || !spotOf(page, hands.text(), kept.at);
+    const ghost = unwritten ? ghostAt(page, hands.text(), kept.at) : null;
     const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
     if (!spot) return;
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
-    kept = { node: spot[0], offset: spot[1], at: kept.at };
+    kept = { ...kept, node: spot[0], offset: spot[1] };
   };
 
   const drawn = () => {
@@ -339,10 +387,50 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const Watching = page.defaultView?.MutationObserver;
   const watching =
     Watching &&
-    new Watching(() => {
+    new Watching((records) => {
+      if (records.some((one) => one.type === "attributes")) opened();
       if (kept && kept.offset >= 0 && !kept.node.isConnected) caretLaid();
     });
   watching?.observe(page.body, { childList: true, subtree: true });
+  watching?.observe(page.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+  // A line begun from a hint, a label or a button takes what it opens with and its blank lines with its first key.
+  const firstKey = (begun: Kept, typed: string) => {
+    const lead = begun.lead ?? "";
+    put(
+      { from: begun.at, to: begun.at, insert: `${lead}${typed}${begun.tail ?? ""}` },
+      begun.at + lead.length + typed.length,
+    );
+  };
+
+  const begin = (at: number, seed: string, near: Element) => {
+    const text = hands.text();
+    for (const one of page.querySelectorAll(GHOST)) if (one !== near) one.remove();
+    const titled = near.matches(".page > h1[data-title]");
+    const ghost = titled ? (near as HTMLElement) : page.createElement("p");
+    ghost.dataset.ghost = "";
+    if (!titled) {
+      ghost.append(page.createElement("br"));
+      near.after(ghost);
+    }
+    const lead = `${opening(text, at, seed)}${seed}`;
+    kept = { node: ghost, offset: 0, at, lead, tail: closing(text, at) };
+    page.querySelector<HTMLElement>(".page")?.focus();
+    page.getSelection()?.collapse(ghost, 0);
+  };
+
+  // A section's hint is a comment the page does not show as words, so it is mended in a field of its own.
+  const hintWords = (at: [number, number], hint: HTMLElement) => {
+    const text = hands.text();
+    const from = charsAt(text, at[0]);
+    const to = charsAt(text, at[1]);
+    const box = /^<!--\s*(-\s*\[ \]\s*)/.exec(text.slice(from, to))?.[1] ?? "";
+    const near = hint.getBoundingClientRect();
+    const value = hint.dataset.hint ?? "";
+    void fieldAsked(page, near, t("sectionHint"), { value }).then((said) => {
+      if (said !== null) put({ from, to, insert: `<!-- ${box}${said} -->` });
+    });
+  };
 
   // Where the menu of blocks opens: under the caret, on the window's own screen.
   const caretPoint = (): Point => {
@@ -422,7 +510,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const held = page.getSelection();
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const sheet = page.querySelector<HTMLElement>(".page");
-    if (!range || !sheet || !sheet.contains(range.startContainer) || !roomy(page)) {
+    if (!range || !sheet?.contains(range.startContainer) || !roomy(page)) {
       plus.hidden = true;
       return;
     }
@@ -515,6 +603,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     },
     slashed,
     unitActed,
+    begin,
+    hintWords,
     typed: (said) => {
       const span = caretSpan();
       if (span) put({ ...span, insert: said });

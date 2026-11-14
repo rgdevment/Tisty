@@ -253,3 +253,150 @@ describe("blocks moved with the keys on the page written in place", () => {
     expect(said[said.length - 1]?.endsWith("- segundo\n- primero\n")).toBe(true);
   });
 });
+
+describe("a line begun on a task's page written in place", () => {
+  it("writes nothing until a key, then joins a step to the list above", () => {
+    const said = writer();
+    const list = document.querySelector("ul") as Element;
+    writing?.begin(BODY.length - 1, "- [ ] ", list);
+    expect(said).toHaveLength(0);
+    expect(document.querySelector("[data-ghost]")).not.toBeNull();
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe(
+      "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
+    );
+  });
+
+  it("stands a line apart from the block above, and leaves it unwritten on a press back", () => {
+    const said = writer();
+    const label = document.querySelector("h1") as Element;
+    writing?.begin(6, "", label);
+    asked("deleteContentBackward");
+    expect(said).toHaveLength(0);
+    expect(document.querySelector("[data-ghost]")).toBeNull();
+    writing?.begin(6, "", label);
+    asked("insertText", "y");
+    expect(said[said.length - 1]?.startsWith("# Hola\n\ny\n\nUno")).toBe(true);
+  });
+
+  it("mends a section's hint in a field, keeping the box it asks for", async () => {
+    const body = "## Pasos\n<!-- - [ ] El primer paso -->\n";
+    const said = writer(body);
+    pageOf(
+      '<h2 data-at="0-8">Pasos</h2><div class="hint step-hint" data-at="9-38" data-hint="El primer paso"></div>',
+    );
+    writing?.hintWords([9, 38], document.querySelector(".hint") as HTMLElement);
+    const field = document.querySelector<HTMLInputElement>(".page-address");
+    expect(field?.value).toBe("El primer paso");
+    if (field) field.value = "Lo primero";
+    field?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await Promise.resolve();
+    expect(said[said.length - 1]).toBe("## Pasos\n<!-- - [ ] Lo primero -->\n");
+  });
+
+  it("fills a task under its labels, and writes only its labels while its sections are asked for", () => {
+    writer();
+    document.documentElement.classList.add("untitled");
+    writing?.drawn();
+    expect(document.querySelector("h1")?.getAttribute("contenteditable")).toBe("false");
+    expect(document.querySelector("p")?.hasAttribute("contenteditable")).toBe(false);
+    document.documentElement.classList.add("shaping");
+    writing?.drawn();
+    expect(document.querySelector("h1")?.hasAttribute("contenteditable")).toBe(false);
+    expect(document.querySelector("p")?.getAttribute("contenteditable")).toBe("false");
+    document.documentElement.classList.remove("untitled", "shaping");
+  });
+});
+
+describe("more of writing on the page the core draws", () => {
+  const chooseIn = (said: string, from: number, to: number) => {
+    const range = document.createRange();
+    range.setStart(piece(said), from);
+    range.setEnd(piece(said), to);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+  };
+
+  const pasted = (html: string | null, plain: string) => {
+    const event = new InputEvent("beforeinput", {
+      inputType: "insertFromPaste",
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "dataTransfer", {
+      value: { getData: (kind: string) => (kind === "text/html" ? (html ?? "") : plain) },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+  };
+
+  it("pastes what the translator makes of a web page, never its HTML", async () => {
+    const said: string[] = [];
+    let text = BODY;
+    writing = writtenOn(pageOf(), {
+      text: () => text,
+      write: (next) => {
+        text = next;
+        said.push(next);
+      },
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (html, plain) => Promise.resolve(html ? "**pegado**" : plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    caretIn("Hola", 4);
+    pasted("<b>pegado</b>", "pegado");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(said[said.length - 1]?.startsWith("# Hola**pegado**\n")).toBe(true);
+  });
+
+  it("writes over the words chosen, and breaks a line with Shift and Enter", () => {
+    const said = writer();
+    chooseIn("Hola", 0, 4);
+    asked("insertText", "Chao");
+    expect(said[said.length - 1]?.startsWith("# Chao\n")).toBe(true);
+    caretIn(" tres", 5);
+    asked("insertLineBreak");
+    expect(said[said.length - 1]).toContain("**dos** tres\n\n");
+  });
+
+  it("links the words chosen to the address written in its field", async () => {
+    const said = writer();
+    chooseIn("primero", 0, 7);
+    document.dispatchEvent(new Event("selectionchange"));
+    writing?.format("[", "]()");
+    const field = document.querySelector<HTMLInputElement>(".page-address");
+    if (field) field.value = "https://tisty.app";
+    field?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await Promise.resolve();
+    expect(said[said.length - 1]).toContain("- [primero](https://tisty.app)");
+  });
+
+  it("offers the blocks with Ctrl and a slash, and puts a mark or a word where the caret stands", () => {
+    const said = writer();
+    caretIn("dos", 1);
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "/", ctrlKey: true, bubbles: true }));
+    expect(menus).toEqual([false]);
+    writing?.slashed(block("quote"));
+    expect(said[said.length - 1]).toContain("> Uno **dos** tres");
+    pageOf(moved(PLACED, 7, 2));
+    writing?.drawn();
+    caretIn("segundo", 7);
+    writing?.slashed(block("step"));
+    expect(said[said.length - 1]).toContain("- segundo[[#");
+  });
+
+  it("asks the window for an icon and writes it where the caret stands", () => {
+    const said = writer();
+    answers.push("::dog::");
+    caretIn("Hola", 4);
+    writing?.slashed(block("icon"));
+    expect(said[said.length - 1]?.startsWith("# Hola::dog::\n")).toBe(true);
+  });
+});

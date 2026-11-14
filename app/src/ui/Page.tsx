@@ -79,7 +79,7 @@ export default function Page(props: Readonly<Props>) {
           .then((said) => said ?? [])
           .catch(() => [])
       : Promise.resolve([]);
-    (draw ?? docDrawn)(body)
+    void (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
       .then(drawn);
     return () => {
@@ -129,6 +129,8 @@ export default function Page(props: Readonly<Props>) {
             body: drawing.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBlock: current("onBlock"),
+            onBegin: current("onBegin"),
+            onHintWords: current("onHintWords"),
             onTick: current("onTick"),
             onStick: current("onStick"),
             onPart: current("onPart"),
