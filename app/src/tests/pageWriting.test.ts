@@ -1,3 +1,4 @@
+import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
 import { sourceAt, spotOf } from "../ui/pageSpots";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
@@ -42,9 +43,13 @@ const asked = (inputType: string, data: string | null = null) =>
       new InputEvent("beforeinput", { inputType, data, bubbles: true, cancelable: true }),
     );
 
-const writer = () => {
+const menus: boolean[] = [];
+const answers: string[] = [];
+
+const writer = (body = BODY) => {
   const said: string[] = [];
-  let text = BODY;
+  let text = body;
+  menus.length = 0;
   writing = writtenOn(pageOf(), {
     text: () => text,
     write: (next) => {
@@ -56,9 +61,16 @@ const writer = () => {
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
     translated: (_, plain) => Promise.resolve(plain),
+    ask: (_kind, _at, put) => {
+      const answer = answers.shift();
+      if (answer !== undefined) put(answer);
+    },
+    blocks: (_at, slash) => menus.push(slash),
   });
   return said;
 };
+
+const block = (key: string) => SLASHED.find((one) => one.key === key) as Slashed;
 
 describe("the places of the page the core draws to be written on", () => {
   it("finds the Markdown under a point in the words, past the marks the page hides", () => {
@@ -187,5 +199,43 @@ describe("writing on the page the core draws", () => {
     expect(document.querySelector(".table")?.getAttribute("contenteditable")).toBe("false");
     expect(document.querySelector("hr")?.getAttribute("contenteditable")).toBe("false");
     expect(document.querySelector("p")?.hasAttribute("contenteditable")).toBe(false);
+  });
+});
+
+describe("the blocks put on the page written in place", () => {
+  it("offers the blocks at a slash on a line just begun, and writes it anywhere else", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    asked("insertParagraph");
+    pageOf(moved(PLACED, 7, 2));
+    writing?.drawn();
+    asked("insertText", "/");
+    expect(menus).toEqual([true]);
+    caretIn("dos", 1);
+    asked("insertText", "/");
+    expect(said[said.length - 1]).toContain("**d/os**");
+  });
+
+  it("turns the line the caret stands in into a title, its list mark gone", () => {
+    const said = writer();
+    caretIn("primero", 3);
+    writing?.slashed(block("h2"));
+    expect(said[said.length - 1]).toContain("## primero\n- segundo");
+  });
+
+  it("puts a table after the block the caret stands in, a blank line apart", () => {
+    const said = writer();
+    caretIn("dos", 1);
+    writing?.slashed(block("table"));
+    expect(said[said.length - 1]).toContain("Uno **dos** tres\n\n|  |  |\n| --- | --- |");
+  });
+
+  it("puts what the window answers for a diagram as a block of its own", () => {
+    const said = writer();
+    answers.push("```mermaid\nflowchart LR\n```");
+    caretIn("Hola", 4);
+    writing?.slashed(block("diagram"));
+    const now = said[said.length - 1] ?? "";
+    expect(now.startsWith("# Hola\n\n```mermaid\nflowchart LR\n```\n\nUno")).toBe(true);
   });
 });

@@ -23,6 +23,7 @@ import {
   markLately,
   pressed,
   putBlock,
+  SLASHED,
   stagesIn,
   viewTurned,
   WRITTEN,
@@ -214,6 +215,8 @@ export default function Sheet(props: Readonly<Props>) {
     y: number;
     choices: Choice[];
     label?: string;
+    find?: string;
+    unpicked?: () => void;
   } | null>(null);
   const askedOn = useRef("");
   const landing = useRef<Landing | null>(null);
@@ -658,6 +661,45 @@ export default function Sheet(props: Readonly<Props>) {
     if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
   };
 
+  // The blocks the `/` menu offers, put where the caret stands on the page; a slash left unanswered is written.
+  const blockMenu = (at: { x: number; y: number }, slash: boolean) => {
+    const writer = pageWriter.current?.hands;
+    if (!writer) return;
+    const kinds = said.current.asking?.kinds ?? [];
+    const steps = stagesIn(latest.current).length > 0;
+    let picked = false;
+    const back = () => shown.current?.focus();
+    const choices: Choice[] = SLASHED.filter(
+      (one) =>
+        !("wrap" in one.put) &&
+        (!("ask" in one.put) || kinds.includes(one.put.ask)) &&
+        (one.key !== "step" || steps),
+    ).map((one) => ({
+      key: one.key,
+      label: t(one.label),
+      hint: one.hint,
+      onPick: () => {
+        picked = true;
+        back();
+        // A table is written from its cells, so the page is drawn whole and its first head opens.
+        const table = one.key === "table";
+        const laid = writer.slashed(one, table);
+        if (table && laid)
+          tables.freshAt(bytesAt(latest.current, laid.from + laid.insert.indexOf("|")));
+      },
+    }));
+    let closed = false;
+    // The menu closes before it hands over what was picked, so the slash waits for that to land.
+    const unpicked = () =>
+      setTimeout(() => {
+        if (picked || closed) return;
+        closed = true;
+        back();
+        if (slash) writer.typed("/");
+      });
+    setMenu({ ...at, label: t("blocksOf"), choices, find: t("blockFind"), unpicked });
+  };
+
   const pageFormat = (asked: Formatting) =>
     pageWriter.current?.hands.format(asked.open, asked.close);
 
@@ -956,6 +998,8 @@ export default function Sheet(props: Readonly<Props>) {
     },
     near: docPlacedNear,
     dressed: dressedLaid,
+    ask: (kind, at, put, first) => said.current.asking?.ask(kind, at, put, first),
+    blocks: (at, slash) => blockMenu(at, slash),
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };
@@ -1269,8 +1313,12 @@ export default function Sheet(props: Readonly<Props>) {
           at={{ x: menu.x, y: menu.y }}
           label={menu.label ?? t("formatting")}
           choices={menu.choices}
+          find={menu.find}
           keeps
-          onClose={() => setMenu(null)}
+          onClose={() => {
+            menu.unpicked?.();
+            setMenu(null);
+          }}
         />
       )}
       {pictures.viewer}

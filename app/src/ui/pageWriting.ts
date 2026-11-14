@@ -1,6 +1,8 @@
-import { bytesAt } from "tisty-editor/read";
+import type { Asking, Slashed } from "tisty-editor/edit";
+import { bytesAt, charsAt, spanned } from "tisty-editor/read";
 import { t } from "../locales";
 import type { PlacedNear } from "../placing";
+import { blank, blockPlaced, placed } from "./pageBlocks";
 import { addressAsked } from "./pageLinking";
 import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
@@ -16,7 +18,11 @@ export type Hands = {
   readonly near: (body: string, from: number, to: number) => Promise<PlacedNear>;
   readonly dressed: (sheet: Element, laid: readonly Element[]) => void;
   readonly translated: (html: string | null, plain: string) => Promise<string>;
+  readonly ask: Asking["ask"];
+  readonly blocks: (at: { x: number; y: number }, slash: boolean) => void;
 };
+
+type Point = { readonly x: number; readonly y: number };
 
 const BYTES = new TextEncoder();
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
@@ -28,6 +34,8 @@ export type PageWriting = {
   readonly format: (open: string, close: string) => void;
   readonly chosen: () => string | null;
   readonly cut: () => void;
+  readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
+  readonly typed: (said: string) => void;
 };
 
 const WRITABLE =
@@ -150,7 +158,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     });
   };
 
-  const put = (one: Edit, caret = one.from + one.insert.length) => {
+  const put = (one: Edit, caret = one.from + one.insert.length, drawnWhole = false) => {
     const text = hands.text();
     const next = applied(text, one);
     if (next === text) return;
@@ -158,6 +166,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     redone.length = 0;
     kept = { node: page.body, offset: -1, at: caret };
     hands.write(next);
+    if (drawnWhole) whole = true;
     laidOut(text, next, one);
   };
 
@@ -203,8 +212,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const one = (!whole && waited(kind)) || (range && (unbegun(kind, range) ?? spanOfRange(range)));
     if (!range || !one) return;
     const text = hands.text();
+    const typed = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
+    if (kind === "insertText" && typed === "/" && one.from === one.to && blank(text, one.from))
+      return hands.blocks(caretPoint(), true);
     if (kind === "insertText" || kind === "insertReplacementText")
-      return put({ ...one, insert: event.data ?? event.dataTransfer?.getData("text/plain") ?? "" });
+      return put({ ...one, insert: typed });
     if (kind === "insertParagraph")
       return put({ ...one, insert: parted(text, one.from, inCode(range.startContainer)) });
     if (kind === "insertLineBreak") return put({ ...one, insert: "\n" });
@@ -216,6 +228,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   let lastChosen: { from: number; to: number } | null = null;
   const noted = () => {
+    besideLine();
     const range = chosen();
     const sheet = page.querySelector(".page");
     if (range && !range.collapsed && sheet?.contains(range.startContainer))
@@ -295,6 +308,109 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     kept = { node: spot[0], offset: spot[1], at: kept.at };
   };
 
+  // Where the menu of blocks opens: under the caret, on the window's own screen.
+  const caretPoint = (): Point => {
+    const held = page.getSelection();
+    const range = held?.rangeCount ? held.getRangeAt(0) : null;
+    const ghost = page.querySelector(GHOST);
+    let box = range?.getBoundingClientRect();
+    if ((!box || (box.width === 0 && box.height === 0)) && ghost)
+      box = ghost.getBoundingClientRect();
+    const frame = page.defaultView?.frameElement?.getBoundingClientRect();
+    return {
+      x: (frame?.left ?? 0) + (box?.left ?? 0),
+      y: (frame?.top ?? 0) + (box?.bottom ?? 0) + 4,
+    };
+  };
+
+  const caretSpan = () => {
+    const range = chosen();
+    if (!range) return kept && kept.offset < 0 ? { from: kept.at, to: kept.at } : null;
+    return unbegun("insertText", range) ?? spanOfRange(range);
+  };
+
+  const blockEnd = (at: number) => {
+    const held = page.getSelection();
+    const node = held?.anchorNode ?? null;
+    const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    const top = element?.closest(".page > [data-at]");
+    const span = spanned(top?.getAttribute("data-at") ?? null);
+    return span ? charsAt(hands.text(), span[1]) : at;
+  };
+
+  const slashed = (one: Slashed, drawnWhole = false): Edit | null => {
+    const span = caretSpan();
+    if (!span) return null;
+    const text = hands.text();
+    const end = Math.max(span.to, blockEnd(span.to));
+    const how = placed(text, span.from, end, one);
+    if ("wrap" in how) {
+      format(how.wrap, how.close);
+      return null;
+    }
+    if ("edit" in how) {
+      put(how.edit, how.caret, drawnWhole);
+      return how.edit;
+    }
+    const first = !text.slice(0, span.from).trim();
+    hands.ask(
+      how.ask,
+      caretPoint(),
+      (said) => {
+        const now = hands.text();
+        const at = Math.min(span.from, now.length);
+        const laid = how.block
+          ? blockPlaced(now, at, Math.min(end, now.length), said, said.length)
+          : { edit: { from: at, to: at, insert: said }, caret: at + said.length };
+        put(laid.edit, laid.caret);
+        return true;
+      },
+      first,
+    );
+    return null;
+  };
+
+  // The blocks wait on the sheet's left edge, beside the line being written, as the folded bar did.
+  const plus = page.createElement("button");
+  plus.type = "button";
+  plus.className = "page-plus";
+  plus.textContent = "+";
+  plus.title = t("blocksOf");
+  plus.setAttribute("aria-label", t("blocksOf"));
+  plus.hidden = true;
+  plus.addEventListener("mousedown", (event) => event.preventDefault());
+  plus.addEventListener("click", () => hands.blocks(caretPoint(), false));
+  page.body.append(plus);
+
+  const besideLine = () => {
+    const held = page.getSelection();
+    const range = held?.rangeCount ? held.getRangeAt(0) : null;
+    const sheet = page.querySelector<HTMLElement>(".page");
+    if (!range || !sheet || !sheet.contains(range.startContainer)) {
+      plus.hidden = true;
+      return;
+    }
+    const ghost = page.querySelector(GHOST);
+    let box = range.getBoundingClientRect();
+    if (box.width === 0 && box.height === 0) {
+      const node = range.startContainer;
+      const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+      box = (ghost ?? element)?.getBoundingClientRect() ?? box;
+    }
+    const view = page.defaultView;
+    const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
+    const edge = sheet.getBoundingClientRect().left;
+    plus.hidden = false;
+    plus.style.top = `${(box.top + (view?.scrollY ?? 0)) / zoom}px`;
+    plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 8}px`;
+  };
+
+  const keyed = (event: KeyboardEvent) => {
+    if (!onSheet(event) || event.key !== "/" || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    hands.blocks(caretPoint(), false);
+  };
+
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
@@ -308,6 +424,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("mousedown", moved);
   page.addEventListener("keydown", moved);
   page.addEventListener("selectionchange", noted);
+  page.addEventListener("keydown", keyed);
   opened();
   return {
     drawn,
@@ -316,6 +433,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       const one = chosenNow();
       return one ? hands.text().slice(one.from, one.to) : null;
     },
+    slashed,
+    typed: (said) => {
+      const span = caretSpan();
+      if (span) put({ ...span, insert: said });
+    },
     cut: () => {
       const one = chosenNow();
       if (one) put({ ...one, insert: "" }, one.from);
@@ -323,6 +445,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     stop: () => {
       told();
       page.removeEventListener("selectionchange", noted);
+      page.removeEventListener("keydown", keyed);
+      plus.remove();
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);

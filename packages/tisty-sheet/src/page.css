@@ -1732,3 +1732,31 @@ html.lively:not(.sheeted) .page {
   box-shadow: 0 8px 24px -10px var(--tisty-cast);
   outline: none;
 }
+.page-plus {
+  position: absolute;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 6px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+.page-plus:hover {
+  border-color: var(--tisty-accent);
+  color: var(--tisty-ink);
+}
+@media print {
+  .page-plus,
+  .page-address {
+    display: none;
+  }
+}

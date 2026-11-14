@@ -68,12 +68,17 @@ const fenced = (lang: string): Put => ({ block: `\`\`\`${lang}\n\n\`\`\``, at: l
 
 const IDEA_ABOVE = /^\s*>\s*\[!idea\](.*)$/gim;
 
-const stuckAt = (state: EditorState, from: number): Placed => {
-  const above = [...state.sliceDoc(0, from).matchAll(IDEA_ABOVE)];
+// A new note takes a colour other than the one just above it, so two in a row are told apart.
+export const ideaOpened = (before: string): string => {
+  const above = [...before.matchAll(IDEA_ABOVE)];
   const last = ideaParts(above[above.length - 1]?.[1] ?? "").hue;
   const hues = IDEA_HUES.filter((one) => one !== last);
   const hue = hues[Math.floor(Math.random() * hues.length)];
-  const head = `> [!IDEA] ${[ideaStamp(new Date()), hue, "right"].join(" · ")}\n> `;
+  return `> [!IDEA] ${[ideaStamp(new Date()), hue, "right"].join(" · ")}\n> `;
+};
+
+const stuckAt = (state: EditorState, from: number): Placed => {
+  const head = ideaOpened(state.sliceDoc(0, from));
   return { block: head, at: head.length };
 };
 const CALLOUTS = [
