@@ -8,8 +8,8 @@ use super::when::{When, civil, own_zone, when};
 use crate::model::{Cadence, DateSpec, Priority, Repeat, Unit};
 
 pub const SOURCE: &str = "ics:";
-const TIMED_BEFORE: i64 = 30;
-const EVE_AT: Time = Time::constant(18, 0, 0, 0);
+pub(crate) const TIMED_BEFORE: i64 = 30;
+pub(crate) const EVE_AT: Time = Time::constant(18, 0, 0, 0);
 const TRIES: i64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]

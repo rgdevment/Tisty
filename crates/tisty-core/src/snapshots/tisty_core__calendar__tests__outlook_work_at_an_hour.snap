@@ -1,0 +1,5 @@
+---
+source: crates/tisty-core/src/calendar_test.rs
+expression: outlook_work(&saved(&odd_title()))
+---
+https://outlook.cloud.microsoft/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=Vet%20%26%20%C2%ABbooster%C2%BB%20%232%20%2B%2050%25%20off%2C%20Rina%3B%20ok%3F%20%F0%9F%90%B6%5C&startdt=2026-11-20T13%3A00%3A00Z&enddt=2026-11-20T13%3A30%3A00Z&allday=false&body=tisty%3A%2F%2Ftask%3Fid%3D01KA7B3VJ9RZ0Q8M5N2X4Y6W1T

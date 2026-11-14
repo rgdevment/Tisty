@@ -252,7 +252,6 @@ pub fn asked_to_edit(said: &str, private: &str) -> Option<url::Url> {
     (web.scheme() == "https" && ours).then_some(web)
 }
 
-#[cfg(any(windows, test))]
 pub fn task_link(id: &str) -> String {
     format!("tisty://task?id={id}")
 }
