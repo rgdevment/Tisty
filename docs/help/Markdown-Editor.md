@@ -25,9 +25,11 @@ Select a few words and a small bar comes up above them:
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
 
-A format wraps the words selected; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it. Inside code the bar does not come up.
+A format wraps the words selected; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; with no words selected, the address stands for its words. Inside code the bar does not come up.
 
-`Ctrl`/`⌘` + `B`, `I` and `U` put on or take off bold, italic and underline without the bar. Right-click on selected words **cuts** or **copies** them as Tisty Markdown, ready to paste into another document, and offers the same formats.
+With nothing selected, a format pressed with its shortcut or from the `/` menu starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
+
+`Ctrl`/`⌘` + `B`, `I` and `U` put on bold, italic and underline; `Ctrl`/`⌘` + `Shift` + `X`, strikethrough; `Ctrl`/`⌘` + `Shift` + `C`, code, and `Ctrl`/`⌘` + `K`, a link. Right-click on selected words **cuts** or **copies** them as Tisty Markdown, ready to paste into another document, and offers the same formats.
 
 ## The `/` menu
 
@@ -35,6 +37,7 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 
 - Headings, lists, stages and quotes.
 - The five callouts: Note, Tip, Important, Warning and Caution, and the Idea sticky note.
+- Bold, italic, underline, strikethrough, code, link and the highlight pen.
 - An icon, looked up by what it draws.
 - A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block. What is written as text, such as a formula or a widget, opens the Markdown view with the caret inside.
 - A table, which opens on its first title.
@@ -59,15 +62,14 @@ The **⋯** on the ribbon at the top of the document switches between them, and 
 
 In the Markdown view:
 
-- **The `/` menu and a small bar** offer what the page does.
-- **Tags are offered after `#`.** The tags you already use come up as you type, so one tag is never spelled two ways. What you typed stays first, so Enter keeps a new tag as it is.
+- **The `/` menu, a small bar, the shortcuts and the tags** work as they do on the page.
 - **An empty item ends a list.** Enter on an empty bullet, number or box leaves the list with a blank line.
 - **Backspace right after a line's mark** (a heading's `#`, a bullet, a quote's `>`) turns the line back into words.
-- **More shortcuts:** `Ctrl`/`⌘` + `Shift` + `X` strikes through, `Ctrl`/`⌘` + `Shift` + `C` marks code, `Ctrl`/`⌘` + `K` adds a link and `Ctrl`/`⌘` + `Enter` writes a page break.
 
 ## While you type
 
-- **Attach a file** by dragging it onto the page or picking **Attach a file** in the `/` menu; in the Markdown view it can be pasted too, a screenshot on the clipboard included. It lands after the block you drop it on, or where the caret is, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
+- **Tags are offered after `#`.** The tags you already use come up under the caret, so one tag is never spelled two ways. ↑ ↓ picks one and Tab or Enter writes it; Esc puts the list away, and Enter with none picked still starts a paragraph.
+- **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or where the caret is, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
 - **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
 - **Tab and Shift + Tab walk a table's cells**, and Tab past the last one starts a new row.
 - **Drag the edge of a table's column** on the page to make it wider or narrower. The width is written as the dashes of its rule, ten pixels each.
@@ -82,8 +84,8 @@ In the Markdown view:
 | `Ctrl`/`⌘` + `/` | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in up or down |
 | `Ctrl`/`⌘` + `E` | Switch between Rich text and Markdown |
-| `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` (in Markdown) | Strikethrough · code · link |
-| `Ctrl`/`⌘` + `Enter` (in Markdown) | Page break |
+| `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Strikethrough · code · link |
+| `Ctrl`/`⌘` + `Enter` | Page break |
 
 The writing sits on a lit page. When the window is wide enough, a column opens beside it with what the document is, its tags, its outline and the way to its PDF.
 

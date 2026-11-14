@@ -25,9 +25,11 @@ Elige unas palabras y aparece encima una barra pequeña:
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
 
-Un formato envuelve las palabras elegidas; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela. Dentro del código la barra no aparece.
+Un formato envuelve las palabras elegidas; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; sin palabras elegidas, la dirección queda como sus palabras. Dentro del código la barra no aparece.
 
-`Ctrl`/`⌘` + `B`, `I` y `U` ponen o quitan la negrita, la cursiva y el subrayado sin abrir la barra. El botón derecho sobre palabras elegidas las **corta** o las **copia** como Markdown de Tisty, listas para pegar en otro documento, y ofrece los mismos formatos.
+Sin nada elegido, un formato pulsado con su atajo o desde el menú `/` empieza con la próxima tecla, y lo que escribes ya sale en negrita o en cursiva. Vuelve a pulsarlo para salir de él; un espacio al final de las palabras también queda fuera.
+
+`Ctrl`/`⌘` + `B`, `I` y `U` ponen la negrita, la cursiva y el subrayado; `Ctrl`/`⌘` + `Shift` + `X`, el tachado; `Ctrl`/`⌘` + `Shift` + `C`, el código, y `Ctrl`/`⌘` + `K`, un enlace. El botón derecho sobre palabras elegidas las **corta** o las **copia** como Markdown de Tisty, listas para pegar en otro documento, y ofrece los mismos formatos.
 
 ## El menú `/`
 
@@ -35,6 +37,7 @@ Escribe `/` al empezar una línea, en una línea en blanco o después de un espa
 
 - Títulos, listas, etapas y citas.
 - Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado, y la nota adhesiva de Idea.
+- Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador.
 - Un icono, buscado por lo que dibuja.
 - Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código. Lo que se escribe como texto, como una fórmula o un widget, abre la vista Markdown con el cursor dentro.
 - Una tabla, que se abre en su primer título.
@@ -59,15 +62,14 @@ El **⋯** de la cinta, arriba del documento, cambia entre las dos, y `Ctrl`/`�
 
 En la vista Markdown:
 
-- **El menú `/` y una barra pequeña** ofrecen lo mismo que en la página.
-- **Las etiquetas se ofrecen después de `#`.** Las que ya usas aparecen mientras escribes, para que una etiqueta nunca se escriba de dos maneras. Lo que escribiste queda primero, así que Enter guarda una etiqueta nueva tal como está.
+- **El menú `/`, una barra pequeña, los atajos y las etiquetas** funcionan igual que en la página.
 - **Un elemento vacío termina la lista.** Enter en una viñeta, un número o una casilla vacíos sale de la lista con una línea en blanco.
 - **Retroceso justo después de la marca de una línea** (el `#` de un título, una viñeta, el `>` de una cita) vuelve la línea a texto.
-- **Más atajos:** `Ctrl`/`⌘` + `Shift` + `X` tacha, `Ctrl`/`⌘` + `Shift` + `C` marca código, `Ctrl`/`⌘` + `K` pone un enlace y `Ctrl`/`⌘` + `Enter` escribe un salto de página.
 
 ## Mientras escribes
 
-- **Adjunta un archivo** arrastrándolo a la página o eligiendo **Adjuntar un archivo** en el menú `/`; en la vista Markdown también se pega, y sirve una captura en el portapapeles. Queda después del bloque donde lo sueltas, o donde está el cursor, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
+- **Las etiquetas se ofrecen después de `#`.** Las que ya usas aparecen bajo el cursor, para que una etiqueta nunca se escriba de dos maneras. ↑ ↓ elige una y Tab o Enter la escribe; Esc cierra la lista, y Enter sin elegir sigue empezando un párrafo.
+- **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Adjuntar un archivo** en el menú `/`. Queda después del bloque donde lo sueltas, o donde está el cursor, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
 - **Pega con su formato.** Lo que copias de una página web, un correo o un procesador de texto conserva sus títulos, listas, negritas, enlaces, tablas y palabras de color, escrito en el Markdown de Tisty: un color pasa al rotulador más cercano de la paleta. El texto plano también conserva su forma: una tabla que una terminal dibujó con líneas (`┌ │ ├`) pasa a ser una tabla, y las líneas que se leen como código, copiadas de un editor de código o de una terminal, entran como bloque de código, salvo que el cursor ya esté dentro de uno.
 - **Tab y Shift + Tab recorren las celdas de una tabla**, y Tab pasada la última empieza una fila nueva.
 - **Arrastra el borde de una columna** de la tabla en la página para ensancharla o angostarla. El ancho se escribe como los guiones de su raya, diez píxeles cada uno.
@@ -82,8 +84,8 @@ En la vista Markdown:
 | `Ctrl`/`⌘` + `/` | Abrir el menú de bloques donde está el cursor |
 | `Alt` + ↑ ↓ | Subir o bajar el bloque o el elemento donde está el cursor |
 | `Ctrl`/`⌘` + `E` | Cambiar entre Enriquecido y Markdown |
-| `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` (en Markdown) | Tachado · código · enlace |
-| `Ctrl`/`⌘` + `Enter` (en Markdown) | Salto de página |
+| `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Tachado · código · enlace |
+| `Ctrl`/`⌘` + `Enter` | Salto de página |
 
 El texto va sobre una hoja iluminada. Cuando la ventana es lo bastante ancha, se abre una columna al lado con qué es el documento, sus etiquetas, su índice y el camino a su PDF.
 
