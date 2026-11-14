@@ -121,7 +121,11 @@ export function useWindow() {
   };
 
   const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
-  const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
+  // Words already said plainly are shown as they are, or each would carry a second «something failed».
+  const told = useCallback(
+    (problem: unknown) => setError(typeof problem === "string" ? problem : saidPlainly(problem)),
+    [],
+  );
 
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);

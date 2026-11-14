@@ -27,12 +27,14 @@ export const wornLaid = (
     sheet.append(one);
     return mark;
   });
-  if (reach.onDiagram || reach.onDiagramExport)
+  if (reach.onDiagram || reach.onDiagramExport || reach.onSource)
     diagramBars(staging, {
       open: Boolean(reach.onDiagram),
       out: Boolean(reach.onDiagramExport),
-      words: false,
+      words: Boolean(reach.onSource),
     });
+  // Rows are numbered before their cells are drawn, as on the whole page, or each cell names no row.
+  if (reach.onTable) tabled(staging);
   let held: (() => void)[] = [];
   const read = readAs(staging, {
     say: SAY,
