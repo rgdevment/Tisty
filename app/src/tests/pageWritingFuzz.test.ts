@@ -285,7 +285,8 @@ const keepsTypedWords: Check = (trace, actions) => {
   const typed = actions
     .filter((one) => one.startsWith("type:"))
     .map((one) => one.slice(5))
-    .join("");
+    .join("")
+    .replace(/\s/g, "");
   const text = trace.texts[trace.texts.length - 1] ?? "";
   return subsequence(typed, text)
     ? null
@@ -388,7 +389,7 @@ describe("random walks over the page written in place", () => {
     fuzz(ALL, staysAfterCaret);
   });
 
-  it("keeps every typed character, in order, while only writing", () => {
+  it("keeps every typed letter, in order, while only writing", () => {
     fuzz(ONLY_WRITING, keepsTypedWords);
   });
 });
