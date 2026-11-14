@@ -9,12 +9,13 @@
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
     "en/diagrams.png": "cd987fbda9c2a512ee2db98ff174754f0811074b52fd49f9d40305ee9070ba6b",
     "en/guide.md": "c86f3d5c55ce73ab8e1195e645a395a8aed359cbfe0c9249fba6d780f7139f5e",
+    "en/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "en/languages.png": "fdee3e20366d705de2ec6f3781cebf9508111808b2269ca16902f0407d7d484c",
     "en/page.md": "864b067c1331a669d9bf2c7d27f95719593aeda3cd964206b7b56cbaf078909f",
     "en/priorities.png": "6750282458067540a182c7aad4d288d6b082ab0fd975b4c8c170bdec34406a59",
     "en/rina.jpg": "acce9605109bd0e6e43bbe7b3cafb6765fa6cc95269b3759f4fd8d4ad47ffc7a",
     "en/roger.jpg": "6e00cc22cadb538b5d89c080eb12f2f8d50fd9de22169d1eb6bcb99128bac35f",
-    "en/sample.md": "faee1c7113402f5fd4adf676fccfdae239a04594cd55152754e3f92585a1b806",
+    "en/sample.md": "fdc92551007aef38c7a87dd83c15acb608f571b65eb5a49ef559f284a680927d",
     "en/vet-card.pdf": "5902c26d194fcc5580c036ce56fcb98ef54154d214b3f5e989f1f2b0705393ed",
     "en/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565",
     "en/walks.csv": "a3ed6dec159496854234fbd70110fcde8831f637b0dff3a0b7de2504dda4195d",
@@ -27,9 +28,10 @@
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "25b8ba7bbcaaf119b5b570a49a7c95e1c59dd8a399f7c943191dc7944cf96826",
     "es/guia.md": "cd5d63220b9cbc24c8467dc88f356048da9920fe774d80e96b240e99b0c73cc0",
+    "es/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "es/ideas.png": "613d2a80bec55aa6db78f3429611b00864635a3bae36aa7aebd4a558f85bc69d",
     "es/idiomas.png": "5ef67e72c4e4d90eae156e250a62afa94dcca6a48344e7754dcc3646129ced63",
-    "es/muestra.md": "5f151d49ae2d2e830f7a8adc82d7aeffe49932e9e6a3462095f1e5c51c576e88",
+    "es/muestra.md": "a910039d832c187324f971918f4af4dc5cf72b8fe0f7af489b8413df390a082f",
     "es/pagina.md": "a5d5aea1284ed3a2b6fed7759e1114e1042102577756a559a698992b468cf2c5",
     "es/paseos.csv": "f997f09d292d415f3c74e9ed8f2ef21fa2b4e945cd7f9e2541afd2ecb002e2c4",
     "es/paseos.html": "2d78e2bf0fe8444537fdcad2a80d216fbb5ad7341116eeb2f4e91f38e12c69f0",
@@ -45,6 +47,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "iSWDzvKYnQBlqXdEMjeruDbVBfHruTFEn8Hb77Fwjv-fcKTSrO6MH95SMBoFfRv94dGQfD3dxAzI2eI6Op_5DQ"
+    "sig": "JweVhfyHK6m_6zRDzkACKLp2rwsPCw_6pu6IduJEUqocDlFUxmEtYv8Gh16Gwa2sfF1u_JpbAMO8F7JNj4nCDQ"
   }
 }
