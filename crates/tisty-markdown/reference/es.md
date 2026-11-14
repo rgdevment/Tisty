@@ -665,7 +665,7 @@ Esto ya está en la otra.
 
 Deja una línea en blanco encima: justo debajo de una línea con palabras, `---` convierte esa línea en un título.
 
-Con **Hojas** encendido, una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel; un salto se respeta siempre, con hojas o sin ellas. `Ctrl`/`⌘` + `Enter` escribe uno mientras escribes. Un `\newpage`, `\pagebreak` o `\clearpage` solo en su línea, y un salto de página escrito en una página web o en un documento de Word, entran como una raya.
+Con **Hojas** encendido, una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel; un salto se respeta siempre, con hojas o sin ellas. El menú `/` inserta uno mientras escribes; en la vista Markdown, también `Ctrl`/`⌘` + `Enter`. Un `\newpage`, `\pagebreak` o `\clearpage` solo en su línea, y un salto de página escrito en una página web o en un documento de Word, entran como una raya.
 
 ## Comentarios y entidades
 

@@ -665,7 +665,7 @@ This is already on the next one.
 
 Leave a blank line above it: right under a line of words, `---` turns that line into a heading.
 
-With **Sheets** on, a sheet that fills up turns on its own, on screen as on paper; a break always holds, sheets or not. `Ctrl`/`⌘` + `Enter` writes one while you write. A `\newpage`, `\pagebreak` or `\clearpage` on a line of its own, and a page break written in a web page or a Word document, come in as a rule.
+With **Sheets** on, a sheet that fills up turns on its own, on screen as on paper; a break always holds, sheets or not. The `/` menu inserts one while you write; in the Markdown view, so does `Ctrl`/`⌘` + `Enter`. A `\newpage`, `\pagebreak` or `\clearpage` on a line of its own, and a page break written in a web page or a Word document, come in as a rule.
 
 ## Comments and entities
 

@@ -682,10 +682,10 @@ width rides in how long its rule is drawn, which every other reader ignores and
 draws the same. Where Markdown has no word for a thing, Tisty adds a few short
 ones of its own, never HTML: `==words==` is a highlight and `==words=={green}`
 one in another colour, `++words++` is underlined, `::star::` is an icon, and an
-attachment is named by its own name, `![plan](plan-0006bf09.png)`. The editor
-writes the file a block at a time with its marks out of sight until you ask for
-them, and `Ctrl`/`⌘` + `E` opens the whole of it as text, so what is on disk is
-always yours to read. **Copy as Markdown** and taking a document out say
+attachment is named by its own name, `![plan](plan-0006bf09.png)`. You write on
+the page itself, the one the core draws, with the marks out of sight, and the
+**⋯** menu or `Ctrl`/`⌘` + `E` turns it to Markdown, every mark in view, so what
+is on disk is always yours to read. **Copy as Markdown** and taking a document out say
 those few words the way any other reader understands them, and an older file, an
 import or an assistant writing in plain Markdown is turned into them on the way
 in.
