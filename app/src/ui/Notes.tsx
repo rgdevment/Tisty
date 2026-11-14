@@ -476,7 +476,7 @@ function Sticky({
 }
 
 function Pin() {
-  const id = useId().replace(/[^\w-]/g, "");
+  const id = useId();
   const held = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (held.current) held.current.innerHTML = pinMarkup(`pin-${id}`);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pinned } from "../src/ideas";
+import { pinMarkup, pinned } from "../src/ideas";
 
 const drawn = (html: string) => {
   const page = document.implementation.createHTMLDocument();
@@ -53,5 +53,16 @@ describe("a sticky note held on the sheet", () => {
     expect(Math.max(...leans)).toBeLessThanOrEqual(1.75);
     expect(new Set(notes.map((one) => one.dataset.hold)).size).toBe(4);
     expect(note?.dataset.hold).toBeUndefined();
+  });
+
+  it("wears a pin whose names keep only what an id may hold, whatever it is handed", () => {
+    const held = document.createElement("span");
+    held.innerHTML = pinMarkup('pin-:r1:"><img src=x onerror=alert(1)>');
+
+    expect(held.querySelector("img")).toBeNull();
+    expect(held.querySelector("radialGradient")?.id).toBe("pin-r1imgsrcxonerroralert1-cap");
+    expect(held.querySelector("ellipse[fill]")?.getAttribute("fill")).toBe(
+      "url(#pin-r1imgsrcxonerroralert1-cap)",
+    );
   });
 });
