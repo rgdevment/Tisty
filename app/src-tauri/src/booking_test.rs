@@ -258,18 +258,27 @@ fn a_booking_the_system_dropped_is_booked_again_at_the_next_check() {
 }
 
 #[test]
-fn once_retired_nothing_is_booked_or_held() {
+fn once_the_system_was_emptied_nothing_is_held_and_a_tisty_still_open_books_again() {
     let book = Arc::new(Fake::default());
     let booking = booking(&book);
     let pan = ring("comprar pan", "2026-08-12T13:00:00Z");
     booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:00:00Z"));
-
-    booking.retire();
     book.pending.lock().unwrap().clear();
-    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:30:00Z"));
 
-    assert!(book.held().is_empty());
+    booking.forgotten();
     assert!(!booking.holds(&due(&pan), moment("2026-08-12T13:00:20Z")));
+
+    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:01:00Z"));
+    assert_eq!(book.held(), vec![pan.key()]);
+}
+
+#[test]
+fn two_reminders_of_one_task_at_the_same_second_are_one_ring() {
+    let pan = ring("comprar pan", "2026-08-12T13:00:00Z");
+
+    let rings = rings(vec![due(&pan), due(&pan)], "Recordatorio", true);
+
+    assert_eq!(rings, vec![pan]);
 }
 
 #[test]

@@ -50,8 +50,13 @@ pub fn task_of(key: &str) -> Option<&str> {
 }
 
 pub fn rings(coming: Vec<Due>, heading: &str, heard: bool) -> Vec<Ring> {
+    let mut seen = HashSet::new();
     coming
         .into_iter()
+        .filter(|one| match &one.what {
+            Happening::Due { task, .. } => seen.insert((task.clone(), one.at)),
+            _ => true,
+        })
         .filter_map(|one| match one.what {
             Happening::Due { title, task } => Some(Ring {
                 task,
@@ -121,7 +126,6 @@ struct Held {
     settled: Option<(Vec<String>, jiff::Timestamp)>,
     warned: Option<Vec<String>>,
     rings: Vec<Ring>,
-    retired: bool,
 }
 
 pub struct Booking {
@@ -167,7 +171,7 @@ impl Booking {
         let fresh = |(settled, at): &(Vec<String>, jiff::Timestamp)| {
             *settled == keys && now.duration_since(*at) < RECHECK
         };
-        if held.retired || held.settled.as_ref().is_some_and(fresh) {
+        if held.settled.as_ref().is_some_and(fresh) {
             return;
         }
         let done = reconciled(book, wanted);
@@ -191,10 +195,9 @@ impl Booking {
         held.settled = done.whole.then_some((keys, now));
     }
 
-    /// Leaving takes the bookings with it, and from then on the window rings everything itself.
-    pub fn retire(&self) {
+    /// After `forget` emptied the system, nothing is held, and a Tisty still open books afresh.
+    pub fn forgotten(&self) {
         let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
-        held.retired = true;
         held.settled = None;
         held.rings.clear();
     }

@@ -731,10 +731,10 @@ async fn leave_here(
     anyway: Option<bool>,
 ) -> Answer<Vec<String>> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
-    booking.retire();
     let reached = tauri::async_runtime::spawn_blocking(unreach_system)
         .await
         .map_err(|_| Refusal::of("internal"))?;
+    booking.forgotten();
     let mut session = held(&session);
     // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
     session.cache = None;
