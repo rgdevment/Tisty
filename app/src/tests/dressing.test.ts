@@ -485,6 +485,15 @@ describe("a sheet with nothing written yet", () => {
     expect(drawn.querySelectorAll(".page > p")).toHaveLength(1);
   });
 
+  it("begins past the block that is last on the page, whatever its kind", () => {
+    const drawn = page('<h1 data-at="0-6">Hola</h1><p data-at="8-13">Leche</p>');
+    const under: (Element | undefined)[] = [];
+    const { reach } = writer("# Hola\n\nLeche");
+    wired(drawn, () => ({ ...reach, onBegin: (_at, _seed, near) => under.push(near) }));
+    press(drawn.querySelector(".page"));
+    expect(under).toEqual([drawn.querySelector("p")]);
+  });
+
   it("ends the block being written on a press in an empty spot, never on one inside it", () => {
     const drawn = page('<p data-at="0-5">Leche</p><div class="editing"><span>x</span></div>');
     const { reach, away } = writer("Leche");

@@ -358,11 +358,16 @@ describe("Enter on a list item or a quote line with nothing written", () => {
     ["a quote line with no space", "> a\n>", "> a\n"],
     ["a bullet in a quote", "> - a\n> - ", "> - a\n"],
     ["a number in a quote", "> 1. a\n> 2. ", "> 1. a\n"],
-    ["a nested bullet", "- a\n  - ", "- a\n"],
   ])("takes away %s", (_, body, expected) => {
     open(body, body.length);
     enter();
     expect(text()).toBe(expected);
+  });
+
+  it("brings an empty nested bullet up to its parent's level instead of leaving the list", () => {
+    open("- a\n  - ", 8);
+    enter();
+    expect(text()).toBe("- a\n- ");
   });
 
   it("begins a paragraph after a blank line with the next key", async () => {

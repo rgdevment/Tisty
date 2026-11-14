@@ -73,7 +73,7 @@ const FIELDS = "input, textarea, select";
 const LITERAL = "pre, code, kbd, figure.code > figcaption";
 
 const WRITABLE =
-  ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote)";
+  ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote, details)";
 const PAIRS: Record<string, string> = {
   formatBold: "**",
   formatItalic: "*",
@@ -264,6 +264,26 @@ const trimmed = (text: string, one: { from: number; to: number } | null) => {
   while (from < to && /\s/.test(text[from] ?? "")) from++;
   while (to > from && /\s/.test(text[to - 1] ?? "")) to--;
   return from < to ? { from, to } : null;
+};
+
+const ITEM_LEAD = /^(\s*)((?:[-*+]|\d+[.)])\s+)/;
+
+// An empty item nested in another goes up to its parent's level instead of leaving the whole list.
+const outdented = (text: string, at: number): { edit: Edit; caret: number } | null => {
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const ends = text.indexOf("\n", at);
+  const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+  const lead = ITEM_LEAD.exec(line)?.[1].length ?? 0;
+  if (!lead || at < start + line.length || !EMPTY_ITEM.test(line)) return null;
+  const above = text.slice(0, start).split("\n").reverse();
+  const parent = above.find(
+    (one) => ITEM_LEAD.test(one) && (ITEM_LEAD.exec(one)?.[1].length ?? 0) < lead,
+  );
+  const to = parent ? (ITEM_LEAD.exec(parent)?.[1].length ?? 0) : 0;
+  return {
+    edit: { from: start, to: start + lead, insert: " ".repeat(to) },
+    caret: start + to + line.length - lead,
+  };
 };
 
 const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])(?:\s+(?:\[[ xX]\]\s*)?)?$/;
@@ -603,6 +623,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       (one.from >= text.length || /[\r\n]/.test(text[one.from] ?? ""));
     if (kind === "insertParagraph" && one.from === one.to && blankLine) return;
     if (kind === "insertParagraph" && one.from === one.to && !inCode(range.startContainer)) {
+      const up = outdented(text, one.from);
+      if (up) return put(up.edit, up.caret);
       const left = leftBehind(text, one.from);
       if (left) {
         put({ from: left.from, to: left.to, insert: "" }, left.from);
@@ -781,13 +803,33 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     for (const one of sheet.querySelectorAll(LITERAL)) one.setAttribute("spellcheck", "false");
   };
 
+  // A collapsible's name is drawn in its summary with no place marked in the text, so the caret is counted there.
+  const summaryAt = (found: [Node, number], at: number): [Node, number] | null => {
+    const node = found[0];
+    const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    const box = element?.closest("details[data-at]");
+    const summary = box?.querySelector(":scope > summary");
+    const span = spanned(box?.getAttribute("data-at") ?? null);
+    if (!summary || !span) return null;
+    const text = hands.text();
+    const start = charsAt(text, span[0]);
+    const ends = text.indexOf("\n", start);
+    const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+    const name = start + (/^:::\s*details\s?/.exec(line)?.[0].length ?? line.length);
+    if (at < name || at > start + line.length) return null;
+    const words = summary.firstChild;
+    if (words?.nodeType !== Node.TEXT_NODE) return [summary, 0];
+    return [words, Math.min(at - name, (words as Text).length)];
+  };
+
   const caretLaid = () => {
     if (!kept) return;
     const unwritten = kept.lead !== undefined || !spotOf(page, hands.text(), kept.at);
     const ghost = unwritten ? ghostAt(page, hands.text(), kept.at) : null;
-    const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
-    if (!spot) return;
+    const found: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
+    if (!found) return;
     focused();
+    const spot = summaryAt(found, kept.at) ?? found;
     // A block drawn empty, as a heading just begun, holds no line for the caret, so it gets one.
     const [holder] = spot;
     const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
@@ -1134,8 +1176,52 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     };
   };
 
+  // Tab nests a list item under the one above and Shift+Tab takes it back out; in code it indents.
+  const tabbed = (event: KeyboardEvent) => {
+    event.preventDefault();
+    const at = caretSpan()?.from;
+    const range = chosen();
+    if (at === undefined || !range) return;
+    if (inCode(range.startContainer)) {
+      if (!event.shiftKey) put({ from: at, to: at, insert: "  " });
+      return;
+    }
+    const text = hands.text();
+    const start = text.lastIndexOf("\n", at - 1) + 1;
+    const ends = text.indexOf("\n", at);
+    const line = text.slice(start, ends < 0 ? text.length : ends);
+    const own = ITEM_LEAD.exec(line);
+    if (!own) return;
+    const lead = own[1].length;
+    if (event.shiftKey) {
+      const above = text.slice(0, start).split("\n").reverse();
+      const parent = above.find(
+        (one) => ITEM_LEAD.test(one) && (ITEM_LEAD.exec(one)?.[1].length ?? 0) < lead,
+      );
+      const to = parent ? (ITEM_LEAD.exec(parent)?.[1].length ?? 0) : 0;
+      if (to === lead) return;
+      put(
+        { from: start, to: start + lead, insert: " ".repeat(to) },
+        Math.max(start, at - (lead - to)),
+      );
+      return;
+    }
+    const before =
+      text
+        .slice(0, Math.max(0, start - 1))
+        .split("\n")
+        .pop() ?? "";
+    const prior = ITEM_LEAD.exec(before);
+    if (!prior) return;
+    const to = (prior[1].length ?? 0) + (prior[2].length ?? 0);
+    if (to <= lead) return;
+    put({ from: start, to: start + lead, insert: " ".repeat(to) }, at + (to - lead));
+  };
+
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(event)) return;
+    if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
+      return tabbed(event);
     if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown"))
       return stepped(event);
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;

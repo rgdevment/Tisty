@@ -39,11 +39,13 @@ const Room = ({
   seen,
   turned,
   whole,
+  passed,
 }: {
   page: Document;
   seen: Seen;
   turned: number;
   whole: (next: string) => void;
+  passed?: (end: number) => void;
 }) => {
   const tables = useTables({
     latest: { current: BODY },
@@ -51,6 +53,7 @@ const Room = ({
     page: () => page,
     frame: () => ({ left: 0, top: 0 }) as DOMRect,
     whole,
+    passed,
     writing: () => false,
     leave: () => {},
     markdown: () => {},
@@ -67,10 +70,11 @@ const made = (html = NAMED) => {
   tabled(page);
   const seen: Seen = { onTable: () => {} };
   const whole = vi.fn();
-  const view = render(<Room page={page} seen={seen} turned={1} whole={whole} />);
+  const passed = vi.fn();
+  const view = render(<Room page={page} seen={seen} turned={1} whole={whole} passed={passed} />);
   const turn = (turned: number) =>
-    view.rerender(<Room page={page} seen={seen} turned={turned} whole={whole} />);
-  return { page, seen, whole, turn };
+    view.rerender(<Room page={page} seen={seen} turned={turned} whole={whole} passed={passed} />);
+  return { page, seen, whole, turn, passed };
 };
 
 const asked = (act_: TableWent["act"], row: number, column: number): TableWent => ({
@@ -264,6 +268,25 @@ describe("Tab and Shift+Tab across the heads", () => {
     press(input(page), "Enter");
     await settle();
     expect(input(page)).toBeNull();
+  });
+
+  it("leaves the table with Enter on the last row, to a line begun under it", async () => {
+    const { page, seen, passed } = made();
+    await open(seen, 0, 1);
+    press(input(page), "Enter");
+    await settle();
+    expect(passed).not.toHaveBeenCalled();
+    press(input(page), "Enter");
+    await settle();
+    expect(passed).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the first row with Enter from a head", async () => {
+    const { page, seen } = made(NAMELESS);
+    await open(seen, -1, 2);
+    press(input(page), "Enter");
+    await settle();
+    expect(input(page)?.closest("td")).toBe(cellOf(page, 0, 2));
   });
 });
 

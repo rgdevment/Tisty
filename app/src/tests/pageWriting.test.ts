@@ -894,3 +894,64 @@ describe("what a second look found writing on the page", () => {
     expect(last(said)).toBe("Uno!\n\nDos\n");
   });
 });
+
+describe("Tab on the page written in place", () => {
+  const key = (name: string, more: KeyboardEventInit = {}) =>
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...more }),
+      );
+  const last = (said: string[]) => said[said.length - 1] ?? "";
+  const LIST =
+    '<ul data-at="0-8"><li data-at="0-4"><span data-src="2-3">a</span></li><li data-at="4-8"><span data-src="6-7">b</span></li></ul>';
+
+  it("nests an item under the one above, and Shift with Tab takes it back out", () => {
+    const said = writer("- a\n- b\n");
+    pageOf(LIST);
+    writing?.drawn();
+    caretIn("b", 1);
+    key("Tab");
+    expect(last(said)).toBe("- a\n  - b\n");
+    key("Tab", { shiftKey: true });
+    expect(last(said)).toBe("- a\n- b\n");
+  });
+
+  it("keeps the focus on the page when Tab comes outside a list", () => {
+    writer();
+    caretIn("Hola", 2);
+    const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    document.querySelector(".page")?.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(true);
+  });
+
+  it("indents inside code with two spaces", () => {
+    const said = writer("```\nuno\n```\n");
+    pageOf('<pre data-at="0-12"><code><span data-src="4-7">uno</span></code></pre>');
+    writing?.drawn();
+    caretIn("uno", 0);
+    key("Tab");
+    expect(last(said)).toBe("```\n  uno\n```\n");
+  });
+});
+
+describe("a collapsible written on the page", () => {
+  const FOLD = ":::details \n\nx\n\n:::\n";
+  const drawnFold = (name: string) =>
+    pageOf(
+      `<details data-at="0-${19 + name.length}"><summary>${name}</summary>` +
+        `<p data-at="${13 + name.length}-${14 + name.length}"><span data-src="${13 + name.length}-${14 + name.length}">x</span></p></details>`,
+    );
+
+  it("writes its name in the summary, letter after letter across each redraw", () => {
+    const said = writer(FOLD);
+    drawnFold("");
+    writing?.placeAt(11);
+    asked("insertText", "R");
+    expect(said[said.length - 1]).toBe(":::details R\n\nx\n\n:::\n");
+    drawnFold("R");
+    writing?.drawn();
+    asked("insertText", "e");
+    expect(said[said.length - 1]).toBe(":::details Re\n\nx\n\n:::\n");
+  });
+});

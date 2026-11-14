@@ -207,6 +207,7 @@ alt+ArrowDown   => down
       expect(said, line).toBe(to);
     }
     expect(beside([2, 0, 1], 4, 2, 0, "enter")).toEqual({ row: 0, column: 0 });
+    expect(beside([2, 0, 1], 4, -1, 3, "enter")).toEqual({ row: 2, column: 3 });
   });
 });
 

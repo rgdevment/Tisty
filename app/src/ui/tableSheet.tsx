@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { tablesIn, today } from "tisty-editor/read";
+import { charsAt, tablesIn, today } from "tisty-editor/read";
 import { fill, t } from "../locales";
 import {
   refused,
@@ -37,6 +37,8 @@ type Ways = {
   readonly page: () => Document | null;
   readonly frame: () => DOMRect | undefined;
   readonly whole: (next: string) => void;
+  /** Enter on the last row leaves the table: a line begins under it, at this place in the text. */
+  readonly passed?: (end: number) => void;
   readonly writing: () => boolean;
   readonly leave: () => void;
   readonly markdown: (at: [number, number], box: HTMLElement) => void;
@@ -76,6 +78,12 @@ const moved = (view: Viewing, to: (column: number) => number | null): Viewing =>
 };
 
 /** What the page's tables do when they are written in place: cells, rows, columns, and how each is shown. */
+const BYTES = new TextEncoder();
+
+// The table's end in the text after its own edit, the only change between the two.
+const endAfter = (was: string, next: string, at: [number, number]) =>
+  charsAt(next, at[1] + BYTES.encode(next).length - BYTES.encode(was).length);
+
 export const useTables = (
   ways: Ways,
 ): {
@@ -119,15 +127,18 @@ export const useTables = (
     edits: TableEdit[],
     then: Place | null = null,
     settled?: () => void,
+    passing = false,
   ) => {
     if (!fresh()) return;
     saving.current += 1;
-    tableEdit(said.current.latest.current, at, ...edits)
+    const was = said.current.latest.current;
+    tableEdit(was, at, ...edits)
       .then((next) => {
         settled?.();
         pending.current = then ?? wanted.current;
         wanted.current = null;
         said.current.whole(next);
+        if (passing) said.current.passed?.(endAfter(was, next, at));
       })
       .catch((why) => {
         said.current.fail(refused(why));
@@ -289,8 +300,10 @@ export const useTables = (
     }
     const then = next && how !== "blur" ? { nth, ...next } : null;
     if (!then) ahead.current?.stop();
-    if (cell.length) edited(at, cell, then);
+    const passing = !then && how === "enter";
+    if (cell.length) edited(at, cell, then, undefined, passing);
     else if (then) opened(then);
+    else if (passing) said.current.passed?.(charsAt(said.current.latest.current, at[1]));
   };
 
   const opened = (place: Place) => {

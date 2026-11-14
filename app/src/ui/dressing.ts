@@ -399,7 +399,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     if (slot) reach.onBegin(0, "# ", slot);
   }
   if (asked.kind === "end" && reach.onBegin) {
-    const last = page.querySelector(".page > [data-at]:last-of-type");
+    const last = Array.from(page.querySelectorAll(".page > [data-at]")).pop();
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
   // The properties are kept out of the page, so asking for them, as the column's Edit does, opens the Markdown there.

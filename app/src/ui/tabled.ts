@@ -233,8 +233,10 @@ export const beside = (
     if (column > 0) return { row, column: column - 1 };
     return at > 0 ? { row: shown[at - 1], column: heads - 1 } : null;
   }
-  if (how === "enter")
+  if (how === "enter") {
+    if (row < 0) return shown.length ? { row: shown[0], column } : null;
     return at >= 0 && at + 1 < shown.length ? { row: shown[at + 1], column } : null;
+  }
   return null;
 };
 

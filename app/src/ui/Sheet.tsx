@@ -452,6 +452,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (at !== null) requestAnimationFrame(() => cameTo(open.current?.view));
   }, [writable, markdown, ready, turned, drawn]);
 
+  const startedOn = useRef<string | undefined>(undefined);
   const [viewedFile, setViewedFile] = useState(file);
   if (viewedFile !== file) {
     setViewedFile(file);
@@ -592,6 +593,7 @@ export default function Sheet(props: Readonly<Props>) {
       shown.current?.focus();
       const next = spokenIn(latest.current, from, language);
       if (next !== null && next !== latest.current) rewritten(next);
+      pageWriter.current?.hands.placeAt(sourceIn(latest.current, from));
     };
     const plain = !now || now === "text";
     setMenu({
@@ -794,6 +796,13 @@ export default function Sheet(props: Readonly<Props>) {
     page: () => shown.current?.document ?? null,
     frame: () => shown.current?.frameElement?.getBoundingClientRect(),
     whole: rewritten,
+    passed: (end) => {
+      const writer = pageWriter.current?.hands;
+      const near = shown.current?.document.querySelector(".page > .table");
+      if (!writer || !near) return;
+      shown.current?.focus();
+      writer.begin(Math.min(end, latest.current.length), "", near);
+    },
     writing: () => Boolean(open.current),
     leave: left,
     markdown: (at) => markdownOn(charsAt(latest.current, at[0])),
@@ -865,6 +874,13 @@ export default function Sheet(props: Readonly<Props>) {
     if (!page || !onPage) return;
     pageWriter.current ??= { page, hands: writtenOn(page, pageHands) };
     pageWriter.current.hands.drawn();
+    // A page with nothing written yet waits at its title, so the first keys after making it are not lost.
+    const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
+    if (slot && !latest.current.trim() && startedOn.current !== file) {
+      startedOn.current = file;
+      page.defaultView?.focus();
+      pageWriter.current.hands.begin(0, "# ", slot);
+    }
   };
 
   const pictures = usePictures({
