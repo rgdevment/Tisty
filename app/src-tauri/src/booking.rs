@@ -454,7 +454,7 @@ mod there {
     pub const MOST: usize = 64;
 
     pub const PAGE: Option<&str> =
-        Some("x-apple.systempreferences:com.apple.Focus-Settings.extension");
+        Some("x-apple.systempreferences:com.apple.Notifications-Settings.extension");
 
     const WAIT: Duration = Duration::from_secs(2);
 

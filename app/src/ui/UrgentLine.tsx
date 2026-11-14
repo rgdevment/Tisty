@@ -26,7 +26,9 @@ export default function UrgentLine({ kept, held, said, trouble, remember }: Prop
   return (
     <Line
       title={t("noticeUrgent")}
-      why={t(offered === false ? "noticeUrgentAway" : "noticeUrgentWhy")}
+      why={t(
+        offered === false ? "noticeUrgentAway" : shown ? "noticeUrgentWhy" : "noticeUrgentScreen",
+      )}
       which="notices"
       said={said}
       trouble={trouble}

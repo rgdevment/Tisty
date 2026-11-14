@@ -478,6 +478,8 @@ const en = {
     "A reminder may come through «Do not disturb» once you allow it in the system. Off unless you turn it on.",
   noticeUrgentAway:
     "This system or this copy of Tisty cannot let a reminder through «Do not disturb».",
+  noticeUrgentScreen:
+    "Turn on «A notification from the system» first: without it no reminder reaches the system.",
   noticeUrgentWindows:
     "The first important reminder brings a notice from Windows asking whether Tisty may send important notifications: allow it. You can change it later under Settings → System → Notifications → Tisty.",
   noticeUrgentMac:
@@ -3640,6 +3642,8 @@ const es: Catalog = {
     "Un recordatorio puede atravesar «No molestar» cuando lo permites en el sistema. Apagado a menos que lo enciendas.",
   noticeUrgentAway:
     "Este sistema o esta copia de Tisty no puede hacer que un recordatorio atraviese «No molestar».",
+  noticeUrgentScreen:
+    "Primero enciende «Una notificación del sistema»: sin ella ningún recordatorio llega al sistema.",
   noticeUrgentWindows:
     "Con el primer recordatorio importante, Windows te pregunta en un aviso si Tisty puede enviar notificaciones importantes: permítelo. Después lo cambias en Configuración → Sistema → Notificaciones → Tisty.",
   noticeUrgentMac:

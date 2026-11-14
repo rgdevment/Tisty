@@ -73,5 +73,6 @@ describe("the switch for important reminders", () => {
     await waitFor(() => expect(ipc.sent).toContain("urgent_offered"));
 
     expect(knob().hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText(/turn on «a notification from the system» first/i)).toBeTruthy();
   });
 });
