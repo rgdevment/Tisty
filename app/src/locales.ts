@@ -473,6 +473,16 @@ const en = {
   noticesWhy: "How Tisty tells you a reminder came due.",
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
+  noticeUrgent: "Important reminders",
+  noticeUrgentWhy:
+    "A reminder may come through «Do not disturb» once you allow it in the system. Off unless you turn it on.",
+  noticeUrgentAway:
+    "This system or this copy of Tisty cannot let a reminder through «Do not disturb».",
+  noticeUrgentWindows:
+    "Under Settings → System → Notifications → Set priority notifications, add Tisty to the apps allowed during «Do not disturb».",
+  noticeUrgentMac:
+    "In System Settings → Focus, open each focus you use and allow time-sensitive notifications, or add Tisty to the allowed apps.",
+  noticeUrgentOpen: "Open the system settings",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy: "Tisto looks over the bar while you write a task.",
   cheerKept: "{name} · kept in the archive",
@@ -3625,6 +3635,16 @@ const es: Catalog = {
   noticesWhy: "Cómo te avisa Tisty de que vence un recordatorio.",
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
+  noticeUrgent: "Recordatorios importantes",
+  noticeUrgentWhy:
+    "Un recordatorio puede atravesar «No molestar» cuando lo permites en el sistema. Apagado a menos que lo enciendas.",
+  noticeUrgentAway:
+    "Este sistema o esta copia de Tisty no puede hacer que un recordatorio atraviese «No molestar».",
+  noticeUrgentWindows:
+    "En Configuración → Sistema → Notificaciones → Establecer notificaciones prioritarias, agrega Tisty a las apps permitidas en «No molestar».",
+  noticeUrgentMac:
+    "En Ajustes del Sistema → Concentración, abre cada modo que uses y permite las notificaciones urgentes, o agrega Tisty a las apps permitidas.",
+  noticeUrgentOpen: "Abrir la configuración del sistema",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy: "Tisto se asoma sobre la barra mientras escribes una tarea.",
   cheerKept: "{name} · queda en el archivo",
