@@ -445,8 +445,8 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
 // Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
 export const DOUBLE_MS = 300;
 
-// Bold, italic, underline and link belong to the words written on the page, never to the window's own keys.
-const WRITTEN_KEYS = new Set(["b", "i", "u", "k"]);
+// Formats, links, undo and redo belong to the words written on the page, never to the window's own keys.
+const WRITTEN_KEYS = new Set(["b", "i", "u", "k", "z", "y"]);
 const WRITTEN_ON = '.page[contenteditable="true"]';
 
 export const wired = (page: Document, reach: () => Reaching) => {

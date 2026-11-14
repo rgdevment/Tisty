@@ -55,7 +55,10 @@ export const swappedItem = (body: string, item: Element, way: -1 | 1): Moved | n
   const up = spanOf(upper);
   const low = spanOf(lower);
   if (!up || !low) return null;
-  const [a0, a1, b0, b1] = [up[0], up[1], low[0], low[1]].map((one) => charsAt(body, one));
+  const [a0, wideA, b0, wideB] = [up[0], up[1], low[0], low[1]].map((one) => charsAt(body, one));
+  // An item's place runs over the blank lines after it, which stay where they are when it moves.
+  const a1 = a0 + body.slice(a0, wideA).replace(/[\r\n]+$/, "").length;
+  const b1 = b0 + body.slice(b0, wideB).replace(/[\r\n]+$/, "").length;
   const said = body.slice(a0, a1);
   const other = body.slice(b0, b1);
   const markA = LIST_MARK.exec(said)?.[1] ?? "";

@@ -717,3 +717,95 @@ describe("Enter at the end of formatted words on the page", () => {
     expect(bold[bold.length - 1]).toContain("Uno **dos**\n\n tres");
   });
 });
+
+describe("what a person found writing on the page", () => {
+  const key = (name: string, more: KeyboardEventInit = {}) =>
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...more }),
+      );
+  const last = (said: string[]) => said[said.length - 1] ?? "";
+
+  it("takes a change back with Ctrl and Z, and again with Ctrl and Y", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    asked("insertText", "x");
+    key("z", { ctrlKey: true });
+    expect(last(said)).toBe(BODY);
+    key("y", { ctrlKey: true });
+    expect(last(said).startsWith("# Holax\n")).toBe(true);
+    key("z", { ctrlKey: true });
+    key("Z", { ctrlKey: true, shiftKey: true });
+    expect(last(said).startsWith("# Holax\n")).toBe(true);
+  });
+
+  it("leaves a list with Enter on an item with nothing written", () => {
+    const said = writer("- Uno\n");
+    pageOf('<ul data-at="0-6"><li data-at="0-6"><span data-src="2-5">Uno</span></li></ul>');
+    writing?.drawn();
+    caretIn("Uno", 3);
+    asked("insertParagraph");
+    asked("insertParagraph");
+    writing?.drawn();
+    asked("insertText", "x");
+    expect(last(said)).toBe("- Uno\n\nx\n");
+  });
+
+  it("leaves a quote with Enter on a quote line with nothing written", () => {
+    const said = writer("> cita\n");
+    pageOf('<blockquote data-at="0-7"><p><span data-src="2-6">cita</span></p></blockquote>');
+    writing?.drawn();
+    caretIn("cita", 4);
+    asked("insertParagraph");
+    asked("insertParagraph");
+    writing?.drawn();
+    asked("insertText", "x");
+    expect(last(said)).toBe("> cita\n\nx\n");
+  });
+
+  it("writes under a page break just put with Ctrl and Enter", () => {
+    const said = writer();
+    caretIn("dos", 1);
+    key("Enter", { ctrlKey: true });
+    writing?.drawn();
+    asked("insertText", "S");
+    expect(last(said)).toContain("Uno **dos** tres\n\n---\n\nS\n\n- primero");
+  });
+
+  it("takes away the space the page does not show at a paragraph's end, not the letter before it", () => {
+    const said = writer("Hola mundo\n");
+    pageOf('<p data-at="0-10"><span data-src="0-10">Hola mundo</span></p>');
+    writing?.drawn();
+    caretIn("Hola mundo", 10);
+    asked("insertText", " ");
+    pageOf('<p data-at="0-11"><span data-src="0-10">Hola mundo</span></p>');
+    writing?.drawn();
+    asked("deleteContentBackward");
+    expect(last(said)).toBe("Hola mundo\n");
+  });
+
+  it("leaves out the space a double click takes with a word when it formats it", () => {
+    const said = writer();
+    const range = document.createRange();
+    range.setStart(piece("Uno "), 0);
+    range.setEnd(piece("Uno "), 4);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    key("b", { ctrlKey: true });
+    expect(last(said)).toContain("**Uno** **dos** tres");
+  });
+
+  it("keeps a format typed with nothing chosen going across spaces until it is pressed again", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    key("b", { ctrlKey: true });
+    asked("insertText", "uno");
+    asked("insertText", " ");
+    asked("insertText", "dos");
+    key("b", { ctrlKey: true });
+    asked("insertText", " ");
+    asked("insertText", "tres");
+    expect(last(said).startsWith("# Hola**uno dos** tres\n")).toBe(true);
+  });
+});

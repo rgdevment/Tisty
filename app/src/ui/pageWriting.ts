@@ -255,6 +255,29 @@ const linedAs = (text: string, one: Edit, caret: number): [Edit, number] => {
   return [{ ...one, insert }, caret + past];
 };
 
+const trimmed = (text: string, one: { from: number; to: number } | null) => {
+  if (!one) return null;
+  let { from, to } = one;
+  while (from < to && /\s/.test(text[from] ?? "")) from++;
+  while (to > from && /\s/.test(text[to - 1] ?? "")) to--;
+  return from < to ? { from, to } : null;
+};
+
+const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?$/;
+const EMPTY_QUOTE = /^\s*(?:>\s?)+$/;
+
+// Enter on an item or a quote line with nothing written leaves the list or the quote, taking that line away.
+const leftBehind = (text: string, at: number): { from: number; to: number } | null => {
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const ends = text.indexOf("\n", at);
+  const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+  if (at < start + line.length || !(EMPTY_ITEM.test(line) || EMPTY_QUOTE.test(line))) return null;
+  const above = text.slice(0, Math.max(0, start - 1));
+  const before = above.lastIndexOf("\n") + 1;
+  const bare = EMPTY_QUOTE.test(line) && EMPTY_QUOTE.test(above.slice(before).replace(/\r$/, ""));
+  return { from: bare ? before : start, to: start + line.length };
+};
+
 const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
 
@@ -265,6 +288,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     readonly at: number;
     readonly marks: readonly (readonly [string, string])[];
   } | null = null;
+  let carried: { readonly from: number; readonly close: string; readonly caret: number } | null =
+    null;
   const openOf = (wait: NonNullable<typeof pending>) => wait.marks.map(([open]) => open).join("");
   const closeOf = (wait: NonNullable<typeof pending>) =>
     wait.marks
@@ -277,7 +302,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
   const waited = (kind: string): { from: number; to: number } | null => {
-    if (!kept || kept.offset >= 0) return null;
+    if (!kept) return null;
+    if (kept.offset >= 0) {
+      if (kept.lead !== undefined) return null;
+      const caret = chosen();
+      const here =
+        caret?.collapsed && caret.startContainer === kept.node && caret.startOffset === kept.offset;
+      if (!here || (kind !== "deleteContentBackward" && kind !== "deleteContentForward"))
+        return null;
+    }
     const { at } = kept;
     if (kind.startsWith("deleteContentBackward") || kind.startsWith("deleteWordBackward"))
       return { from: Math.max(0, at - 1), to: at };
@@ -457,7 +490,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (broken) return put({ ...broken, insert: "" }, broken.from);
     const [target] = event.getTargetRanges?.() ?? [];
     const range = target ?? chosen();
-    const whole = range && !range.collapsed;
+    const picked = chosen();
+    const whole = Boolean(picked && !picked.collapsed);
     // A caret dropped on a table, a picture or a widget has no words under it to write among.
     if (range && !whole && unwritable(range.startContainer)) return;
     const one = (!whole && waited(kind)) || (range && (unbegun(kind, range) ?? spanOfRange(range)));
@@ -471,11 +505,43 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       return hands.blocks(caretPoint(), true);
     if (kind === "insertText" && one.from === one.to) {
       if (pending?.at === one.from) return pendingKey(one.from, typed);
+      const carry = carried?.caret === one.from ? carried : null;
+      carried = null;
+      if (carry && !typed.trim()) {
+        carried = { ...carry, caret: one.from + typed.length };
+        return put({ ...one, insert: typed });
+      }
+      if (carry) {
+        const spaces = text.slice(carry.from + carry.close.length, one.from);
+        return put(
+          { from: carry.from, to: one.from, insert: `${spaces}${typed}${carry.close}` },
+          carry.from + spaces.length + typed.length,
+        );
+      }
       const past = typed.trim() ? null : pastClose(text, one.from);
-      if (past !== null) return put({ from: past, to: past, insert: typed });
+      if (past !== null) {
+        carried = { from: one.from, close: text.slice(one.from, past), caret: past + typed.length };
+        return put({ from: past, to: past, insert: typed });
+      }
     }
+    carried = null;
     if (kind === "insertText" || kind === "insertReplacementText")
       return put({ ...one, insert: typed });
+    if (kind === "insertParagraph" && one.from === one.to && !inCode(range.startContainer)) {
+      const left = leftBehind(text, one.from);
+      if (left) {
+        put({ from: left.from, to: left.to, insert: "" }, left.from);
+        const now = hands.text();
+        kept = {
+          node: page.body,
+          offset: -1,
+          at: left.from,
+          lead: opening(now, left.from, ""),
+          tail: closing(now, left.from),
+        };
+        return;
+      }
+    }
     if (kind === "insertParagraph" || kind === "insertLineBreak") {
       const coded = inCode(range.startContainer);
       const at = one.from === one.to && !coded ? closedRun(text, one.from) : one.from;
@@ -534,7 +600,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const format = (open: string, close: string) => {
     if (unformattable(page)) return;
-    const one = chosenNow();
+    carried = null;
+    const one = trimmed(hands.text(), chosenNow());
     if (close === "]()") {
       const span = one ?? caretSpan();
       if (span) linked(span);
@@ -642,6 +709,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
     if (!spot) return;
     focused();
+    // A block drawn empty, as a heading just begun, holds no line for the caret, so it gets one.
+    const [holder] = spot;
+    const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
+    if (bare && !bare.textContent && !bare.querySelector("br"))
+      bare.append(page.createElement("br"));
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
     kept = { ...kept, node: spot[0], offset: spot[1] };
@@ -917,7 +989,18 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     event.preventDefault();
     const range = chosen();
     const rule = SLASHED.find((one) => one.key === "rule");
-    if (range && rule && !inCode(range.startContainer)) slashed(rule);
+    if (!range || !rule || inCode(range.startContainer)) return;
+    const laid = slashed(rule);
+    if (!laid) return;
+    const text = hands.text();
+    const at = Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
+    kept = {
+      node: page.body,
+      offset: -1,
+      at,
+      lead: opening(text, at, ""),
+      tail: closing(text, at),
+    };
   };
 
   const keyed = (event: KeyboardEvent) => {
@@ -926,7 +1009,14 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       return stepped(event);
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     if (event.key === "Enter") return broke(event);
-    const pair = KEYED[`${event.shiftKey ? "shift " : ""}${event.key.toLowerCase()}`];
+    const named = `${event.shiftKey ? "shift " : ""}${event.key.toLowerCase()}`;
+    if (named === "z" || named === "shift z" || named === "y") {
+      event.preventDefault();
+      pending = null;
+      carried = null;
+      return named === "z" ? turned(undone, redone) : turned(redone, undone);
+    }
+    const pair = KEYED[named];
     if (pair) {
       event.preventDefault();
       return format(pair[0], pair[1]);
@@ -980,6 +1070,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;
     kept = null;
     pending = null;
+    carried = null;
     typing = false;
     tags.hide();
   };
