@@ -47,7 +47,7 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: auto 3lh;
 }
-.page > blockquote[data-callout="idea"] {
+.page > :is(ul, ol, blockquote[data-callout="idea"]) {
   content-visibility: visible;
 }
 html:not(.tall) {
