@@ -201,6 +201,9 @@ label[for] {
     width: 100%;
     transform: none;
   }
+  .arrive {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -204,7 +204,7 @@ describe("writing on the page the core draws", () => {
 });
 
 describe("the blocks put on the page written in place", () => {
-  it("offers the blocks at a slash on a line just begun, and writes it anywhere else", () => {
+  it("offers the blocks at a slash on a line just begun, and writes it inside a word", () => {
     const said = writer();
     caretIn("Hola", 4);
     asked("insertParagraph");
@@ -215,6 +215,13 @@ describe("the blocks put on the page written in place", () => {
     caretIn("dos", 1);
     asked("insertText", "/");
     expect(said[said.length - 1]).toContain("**d/os**");
+  });
+
+  it("offers the blocks at a slash after a space too, as a word could start there", () => {
+    writer();
+    caretIn(" tres", 1);
+    asked("insertText", "/");
+    expect(menus).toEqual([true]);
   });
 
   it("turns the line the caret stands in into a title, its list mark gone", () => {

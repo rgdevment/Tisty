@@ -129,7 +129,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="scroller fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
+      className="scroller arrive fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail p-1 shadow-lg"
     >
       {sifting && (
         <input
@@ -175,7 +175,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
               onClose();
               one.onPick?.();
             }}
-            className={`group flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
+            className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
               one.danger ? "text-urgent" : "text-ink"
             }${one.on ? " font-semibold" : ""}`}
           >

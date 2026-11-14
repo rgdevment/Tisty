@@ -267,6 +267,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .catch(() => put({ ...one, insert: plain }));
   };
 
+  // A slash opens the blocks where a word could start, as it always did; inside code it is only a slash.
+  const slashes = (text: string, one: { from: number; to: number }, range: AbstractRange) =>
+    one.from === one.to &&
+    !inCode(range.startContainer) &&
+    (blank(text, one.from) || /(^|\s)$/.test(text.slice(0, one.from).split("\n").pop() ?? ""));
+
   // A field laid over the page or inside it, as a link's address or a table's cell, writes its own words.
   const onSheet = (event: Event) => {
     const target = event.target as Element | null;
@@ -317,7 +323,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const begun = kept?.lead !== undefined && ghostly(range.startContainer) ? kept : null;
     if (begun && kind !== "insertText" && kind !== "insertReplacementText") return;
     if (begun) return firstKey(begun, typed);
-    if (kind === "insertText" && typed === "/" && one.from === one.to && blank(text, one.from))
+    if (kind === "insertText" && typed === "/" && slashes(text, one, range))
       return hands.blocks(caretPoint(), true);
     if (kind === "insertText" || kind === "insertReplacementText")
       return put({ ...one, insert: typed });
@@ -508,7 +514,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const frame = page.defaultView?.frameElement?.getBoundingClientRect();
     return {
       x: (frame?.left ?? 0) + (box?.left ?? 0),
-      y: (frame?.top ?? 0) + (box?.bottom ?? 0) + 4,
+      y: (frame?.top ?? 0) + (box?.bottom ?? 0) + 10,
     };
   };
 

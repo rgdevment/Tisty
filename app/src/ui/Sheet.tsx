@@ -704,12 +704,21 @@ export default function Sheet(props: Readonly<Props>) {
     return takesFiles(box, (text, at) => dropping.current(text, at));
   }, [reading]);
 
+  // On the page written in place a change from beside it is laid block by block, so nothing above it moves.
+  const rewritten = (next: string) => {
+    const writer = pageWriter.current?.hands;
+    if (!onPage || !writer) return whole(next);
+    const before = latest.current;
+    writer.rewrite(next);
+    settled(before, next);
+  };
+
   // A block the translator would say otherwise is mended only on the page it was found on.
   const mended = (one: Mend, body: string) => {
     if (open.current) return left();
     if (reading || latest.current !== body || showing.current !== body) return;
     const next = mendedText(body, [one]);
-    whole(next);
+    rewritten(next);
   };
 
   const ticked = ([from, end]: [number, number]) => {
@@ -723,7 +732,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (!/^\[[ xX]\]/.test(said.slice(bracket))) return;
     const at = from + bracket;
     const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
-    whole(next);
+    rewritten(next);
   };
 
   const restuck = (note: [number, number], to: number) => {
@@ -731,7 +740,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (reading || showing.current !== latest.current) return;
     const now = latest.current;
     const next = movedBlock(now, note, to);
-    if (next !== now) whole(next, bytesAt(now, note[0]));
+    if (next !== now) rewritten(next);
   };
 
   const parted = (at: [number, number]) => {
@@ -749,7 +758,7 @@ export default function Sheet(props: Readonly<Props>) {
         const after = now.slice(at[0] + line.length);
         const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
         if (!id || !still || open.current || showing.current !== now) return;
-        whole(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
+        rewritten(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
       })
       .catch((e) => said.current.onFail?.(e))
       .finally(() => {
@@ -767,13 +776,6 @@ export default function Sheet(props: Readonly<Props>) {
     const before = now.slice(0, from).replace(/(\r?\n)+$/, "");
     const after = now.slice(end).replace(/^(\r?\n)+/, "");
     whole(`${before}${before && after ? line + line : before ? line : ""}${after}`);
-  };
-
-  // On the page written in place a change from beside it is laid block by block, so nothing above it moves.
-  const rewritten = (next: string) => {
-    const writer = pageWriter.current?.hands;
-    if (onPage && writer) writer.rewrite(next);
-    else whole(next);
   };
 
   const tables = useTables({
@@ -810,7 +812,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (askedOn.current !== latest.current) return;
     const next = reshaped(latest.current, one.at, one.target, how);
     if (next === null) return;
-    whole(next);
+    rewritten(next);
   };
 
   const keepCopy = (reference: string) =>
