@@ -8,8 +8,8 @@ This page is the guide's sample sheet: one of everything a document can hold, wi
 
 Three ways to read it:
 
-- Click any block and it opens with its marks showing; `Esc` puts it back on the page.
-- `Ctrl`/`⌘` + `E` shows the whole sheet as text: that is how each example is written.
+- Write on the sheet itself: click anywhere and type there, with no marks in sight.
+- The **⋯** at the top, or `Ctrl`/`⌘` + `E`, shows it in **Markdown**: that is how each example is written.
 - The `/` key inserts all of it without learning a single mark. Each section says what it is called in that menu.
 
 ## Properties

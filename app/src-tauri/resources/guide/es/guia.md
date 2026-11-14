@@ -182,7 +182,7 @@ Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a or
 
 Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas, como `**negrita**`, que cualquier programa abre. No hace falta aprenderlas: la tecla `/` te las ofrece todas. Y lo que importa es el archivo: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
 
-**Pruébalo:** haz clic en este mismo párrafo. Se abre para escribir, con sus marcas a la vista; `Esc` lo devuelve a la página.
+**Pruébalo:** haz clic en este mismo párrafo y escribe. Escribes sobre la misma página que lees, sin marcas a la vista.
 
 **Para hacer uno**, usa el **+** del encabezado de la **Biblioteca**, en la barra lateral: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
 
@@ -190,9 +190,10 @@ La primera línea del documento es su título: no hay que ponerle nombre en ning
 
 Para escribir:
 
-- Haz clic en un párrafo y se abre para escribir; `Esc` lo devuelve a la página.
-- Elige unas palabras y una barra pequeña te ofrece negrita, cursiva, un enlace o el resaltador; el botón derecho ofrece lo mismo, más copiar y editar el bloque.
-- `Ctrl`/`⌘` + `Shift` + `M` muestra las marcas del bloque, y `Ctrl`/`⌘` + `E` abre el documento entero como un solo texto.
+- Haz clic donde quieras y escribe: la página que lees es la que escribes.
+- Elige unas palabras y una barra pequeña te ofrece negrita, cursiva, subrayado, tachado, código, un enlace o el resaltador; el botón derecho, además, las corta o las copia como Markdown.
+- La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ también lo mueve.
+- El **⋯** de arriba del documento lo pasa a **Markdown**, el texto con todas sus marcas a la vista; `Ctrl`/`⌘` + `E` también, y **Enriquecido** te devuelve a la página.
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
 
@@ -484,11 +485,11 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea sin abrir la ventana |
 | `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la Lluvia de ideas |
-| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
+| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en Markdown, un salto de página |
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |
-| `Ctrl`/`⌘` + `Shift` + `M` | Mostrar u ocultar las marcas del bloque |
-| `Ctrl`/`⌘` + `E` | Abrir o dejar el documento entero como texto |
+| `Alt` + ↑ ↓ | Mover el bloque o el elemento donde está el cursor |
+| `Ctrl`/`⌘` + `E` | Cambiar el documento entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty en lo que estás escribiendo |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral |
 | `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla |

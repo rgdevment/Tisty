@@ -8,8 +8,8 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 Tres maneras de leerla:
 
-- Haz clic en cualquier bloque y se abre con sus marcas a la vista; `Esc` lo devuelve a la página.
-- `Ctrl`/`⌘` + `E` muestra la hoja entera como texto: así está escrito cada ejemplo.
+- Escribe sobre la hoja misma: un clic en cualquier parte y escribes ahí, sin marcas a la vista.
+- El **⋯** de arriba, o `Ctrl`/`⌘` + `E`, la muestra en **Markdown**: así está escrito cada ejemplo.
 - La tecla `/` lo inserta todo sin aprender ninguna marca. Cada sección dice cómo se llama en ese menú.
 
 ## Propiedades

@@ -182,7 +182,7 @@ Your AI agent can also brainstorm with you and help you sort them out: **Your AI
 
 A document is yours and is kept as Markdown: plain text with a few marks, like `**bold**`, that any program opens. You do not need to learn them: the `/` key offers you all of them. And what matters is the file: if you delete Tisty tomorrow, your documents still open in any text editor.
 
-**Try it:** click this very paragraph. It opens for writing, with its marks in view; `Esc` turns it back into the page.
+**Try it:** click this very paragraph and type. You write on the same page you read, with no marks in sight.
 
 **To make one**, use the **+** in the header of the **Library**, in the sidebar: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
 
@@ -190,9 +190,10 @@ The first line of the document is its title: there is no name to fill in anywher
 
 To write:
 
-- Click a paragraph and it opens for writing; `Esc` turns it back into the page.
-- Select a few words and a small bar offers bold, italic, a link or the highlighter; right-click offers the same, plus copying and editing the block.
-- `Ctrl`/`⌘` + `Shift` + `M` shows the block's marks, and `Ctrl`/`⌘` + `E` opens the whole document as one text.
+- Click wherever you like and type: the page you read is the page you write.
+- Select a few words and a small bar offers bold, italic, underline, strikethrough, code, a link or the highlighter; right-click also cuts or copies them as Markdown.
+- The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ moves it too.
+- The **⋯** at the top of the document turns it to **Markdown**, the text with all its marks in view; so does `Ctrl`/`⌘` + `E`, and **Rich text** takes you back to the page.
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
 
@@ -484,11 +485,11 @@ None of this is needed to get started. It is here for when you need it.
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture a task without opening the window |
 | `Tab` (in the quick capture) | Switch between a task and an idea for Brainstorm |
-| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
+| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in Markdown, a page break |
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` | Break the line without starting a paragraph |
-| `Ctrl`/`⌘` + `Shift` + `M` | Show or hide the block's marks |
-| `Ctrl`/`⌘` + `E` | Open or leave the whole document as text |
+| `Alt` + ↑ ↓ | Move the block or the item the caret is in |
+| `Ctrl`/`⌘` + `E` | Switch the document between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide on what you are writing |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar |
 | `Tab` · `Shift` + `Tab` | Walk the cells of a table |
