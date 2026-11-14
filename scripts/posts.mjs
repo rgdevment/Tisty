@@ -139,6 +139,8 @@ export function pick(posts, what, released) {
     if (!posts.pinned) return { wrong: `${POSTS} has no pinned post` };
     return { post: posts.pinned, said: `the pinned post, ${posts.pinned.id}` };
   }
+  const named = posts.queue.find((one) => one?.id === what);
+  if (named) return { post: named, said: `${what}, asked for by name` };
   if (!stable(what)) return { skip: `${what} is a candidate, and a candidate posts nothing` };
   const turn = turnOf(what, released, posts.since);
   if (turn === 0) return { skip: `${what} is not past ${posts.since}, where the queue starts` };
@@ -428,7 +430,7 @@ const COMMANDS = { check, preview, send };
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [what, version] = process.argv.slice(2);
   if (!version || !COMMANDS[what]) {
-    console.log("usage: node scripts/posts.mjs check|preview|send <version without the v, or pinned>");
+    console.log("usage: node scripts/posts.mjs check|preview|send <version without the v, pinned, or a post id>");
     process.exit(2);
   }
   try {

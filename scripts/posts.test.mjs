@@ -105,6 +105,7 @@ test("each stable release since «since» takes the next post in the queue", () 
   assert.match(pick(posts, "9.1.0-rc.2", RELEASED).skip, /candidate/);
   assert.match(pick(posts, "8.9.0", RELEASED).skip, /not past 9\.0\.0/);
   assert.equal(pick(file({ pinned: post("pin") }), "pinned", RELEASED).post.id, "pin");
+  assert.equal(pick(posts, "second", RELEASED).post.id, "second");
 });
 
 test("a post needs an id of its own, and its English text", () => {

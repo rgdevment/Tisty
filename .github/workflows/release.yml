@@ -1921,7 +1921,7 @@ jobs:
           ./komac update rgdevment.Tisty --version "$VERSION" --submit             --urls "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/tisty-installer-$VERSION-windows-x86_64.exe"
 
   posts:
-    name: Did you know, on X and Bluesky
+    name: The next post, on X and Bluesky
     needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -1929,14 +1929,15 @@ jobs:
       && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-24.04
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
+    # Its own environment keeps the social keys apart from the signing keys, and lets posts.yml run them from main.
+    environment: posts
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Tell one thing Tisty does, in Spanish and in English
+      - name: Post the next one in the queue
         env:
           VERSION: ${{ needs.version.outputs.version }}
           X_API_KEY: ${{ secrets.X_API_KEY }}

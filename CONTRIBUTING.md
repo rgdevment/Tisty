@@ -224,10 +224,11 @@ release after `since` takes the next one, counted from the stable tags, so
 nothing has to be marked as sent; X gets it without its closing link, which
 would cost its API about thirteen times more. A candidate posts nothing, and in
 CI an empty queue only turns that last job red: the release itself goes out.
-`node scripts/posts.mjs preview <version>` shows what each network would get,
-and `send pinned` posts the pinned post with its reply. Nothing slower goes in
-any of them: the suite, the build and the markdown lint are minutes, and they
-belong to CI.
+`node scripts/posts.mjs preview <version>` shows what each network would get.
+The Posts workflow, run by hand from main, sends the pinned post with its reply,
+or any post of the queue by its id, with the keys of the `posts` environment.
+Nothing slower goes in any of them: the suite, the build and the markdown lint
+are minutes, and they belong to CI.
 
 One of those rules keeps a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is
