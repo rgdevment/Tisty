@@ -215,6 +215,53 @@ fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
 }
 
 #[test]
+fn a_page_of_the_guide_names_the_guide_and_its_other_pages_as_the_documents_they_became() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let mut session = Session::at(paths.clone()).unwrap();
+
+    let cover = sown(&mut session, "es", "Guía", WRITTEN_BY, shipped).unwrap();
+
+    let kept = session
+        .state
+        .papers()
+        .find(|one| one.file == cover.id)
+        .unwrap();
+    let pages = session.state.pages_of(kept.id);
+    assert_eq!(
+        pages[0].title.as_deref(),
+        Some("Uno de cada cosa"),
+        "the pages keep the order they ship in"
+    );
+    let sample = tisty_core::docs::read(&paths.docs(), &pages[0].file).unwrap();
+    let named = tisty_core::refs::papers(&sample);
+    assert_eq!(named.len(), 2, "the sample shows a document and a page");
+    assert!(named.contains(&cover.id), "the document is the guide");
+    assert!(
+        pages[1..].iter().any(|one| named.contains(&one.file)),
+        "the page is one of the guide's"
+    );
+    assert!(
+        tisty_core::untouched::untouched(&paths.store(), &paths.docs()),
+        "a page told where the cover is still reads as sown"
+    );
+    for file in pages
+        .iter()
+        .map(|one| &one.file)
+        .chain(std::iter::once(&cover.id))
+    {
+        let body = tisty_core::docs::read(&paths.docs(), file).unwrap();
+        assert_eq!(
+            body.matches("](tisty:").count(),
+            body.matches(&format!("]({}", tisty_core::refs::DOC))
+                .count(),
+            "{file} still names a page by its marker"
+        );
+    }
+}
+
+#[test]
 fn the_guide_tisty_ships_is_signed_by_the_makers_root() {
     assert!(
         super::signed_author(&shipped).is_some(),

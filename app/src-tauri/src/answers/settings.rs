@@ -9,6 +9,7 @@ pub const ATTACHED: &[&str] = &[
     "priorities.png",
     "rina.jpg",
     "roger.jpg",
+    "hill.jpg",
     "cartilla.pdf",
     "vet-card.pdf",
     "bark.mp3",
@@ -26,6 +27,8 @@ pub const ATTACHED: &[&str] = &[
     "archivo.png",
     "archive.png",
 ];
+
+pub const GUIDE_COVER: &str = "tisty:guide";
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
     (
