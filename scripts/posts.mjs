@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const POSTS = "docs/posts.json";
-const TONGUES = ["es", "en"];
+// X and Bluesky translate a post for whoever reads it, so English alone reaches everyone.
+const TONGUES = ["en"];
 const PINNED = "pinned";
 const X_MOST = 280;
 const X_LINK = 23;
