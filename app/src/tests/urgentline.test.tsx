@@ -31,6 +31,14 @@ beforeEach(() => {
 });
 
 describe("the switch for important reminders", () => {
+  it("says nothing about the system until the system has answered", () => {
+    ipc.offered = false;
+    shown(kept());
+
+    expect(screen.queryByText(/cannot let a reminder through/i)).toBeNull();
+    expect(knob().hasAttribute("disabled")).toBe(true);
+  });
+
   it("comes off and turns on only by the person's hand", async () => {
     const remembered = shown(kept());
     await waitFor(() => expect(knob().hasAttribute("disabled")).toBe(false));

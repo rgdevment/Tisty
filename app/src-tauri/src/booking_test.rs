@@ -372,6 +372,14 @@ fn another_task_at_the_same_hour_is_not_held() {
 }
 
 #[test]
+fn a_system_that_cannot_let_reminders_through_never_marks_one_urgent() {
+    let booking = Booking::new(Some(Box::new(Arc::new(Fake::default()))), 64);
+
+    assert!(!booking.marks_urgent(true));
+    assert!(!booking.marks_urgent(false));
+}
+
+#[test]
 fn without_a_system_to_book_with_the_window_rings_everything() {
     let booking = Booking::new(None, 64);
     let pan = ring("comprar pan", "2026-08-12T13:00:00Z");

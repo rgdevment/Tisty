@@ -479,9 +479,9 @@ const en = {
   noticeUrgentAway:
     "This system or this copy of Tisty cannot let a reminder through «Do not disturb».",
   noticeUrgentWindows:
-    "Under Settings → System → Notifications → Set priority notifications, add Tisty to the apps allowed during «Do not disturb».",
+    "The first important reminder brings a notice from Windows asking whether Tisty may send important notifications: allow it. You can change it later under Settings → System → Notifications → Tisty.",
   noticeUrgentMac:
-    "In System Settings → Focus, open each focus you use and allow time-sensitive notifications, or add Tisty to the allowed apps.",
+    "Under System Settings → Notifications → Tisty, keep time-sensitive notifications on; then, in Focus, allow time-sensitive notifications in each focus you use.",
   noticeUrgentOpen: "Open the system settings",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy: "Tisto looks over the bar while you write a task.",
@@ -3641,9 +3641,9 @@ const es: Catalog = {
   noticeUrgentAway:
     "Este sistema o esta copia de Tisty no puede hacer que un recordatorio atraviese «No molestar».",
   noticeUrgentWindows:
-    "En Configuración → Sistema → Notificaciones → Establecer notificaciones prioritarias, agrega Tisty a las apps permitidas en «No molestar».",
+    "Con el primer recordatorio importante, Windows te pregunta en un aviso si Tisty puede enviar notificaciones importantes: permítelo. Después lo cambias en Configuración → Sistema → Notificaciones → Tisty.",
   noticeUrgentMac:
-    "En Ajustes del Sistema → Concentración, abre cada modo que uses y permite las notificaciones urgentes, o agrega Tisty a las apps permitidas.",
+    "En Ajustes del Sistema → Notificaciones → Tisty, deja encendidas las notificaciones urgentes; después, en Concentración, permite las urgentes en cada modo que uses.",
   noticeUrgentOpen: "Abrir la configuración del sistema",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy: "Tisto se asoma sobre la barra mientras escribes una tarea.",

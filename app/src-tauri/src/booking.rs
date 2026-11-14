@@ -166,6 +166,10 @@ impl Booking {
         self.urgent
     }
 
+    pub fn marks_urgent(&self, wanted: bool) -> bool {
+        wanted && self.urgent
+    }
+
     pub fn books(&self) -> bool {
         self.book.is_some()
     }

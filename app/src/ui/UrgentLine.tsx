@@ -14,19 +14,19 @@ interface Props {
 }
 
 export default function UrgentLine({ kept, held, said, trouble, remember }: Props) {
-  const [offered, setOffered] = useState(false);
+  const [offered, setOffered] = useState<boolean | null>(null);
   useEffect(() => {
     urgentOffered()
       .then(setOffered)
       .catch(() => {});
   }, []);
   const shown = !kept.quiet.includes("screen");
-  const on = offered && shown && !!kept.urgent;
+  const on = offered === true && shown && !!kept.urgent;
 
   return (
     <Line
       title={t("noticeUrgent")}
-      why={t(offered ? "noticeUrgentWhy" : "noticeUrgentAway")}
+      why={t(offered === false ? "noticeUrgentAway" : "noticeUrgentWhy")}
       which="notices"
       said={said}
       trouble={trouble}
@@ -52,7 +52,7 @@ export default function UrgentLine({ kept, held, said, trouble, remember }: Prop
       <Knob
         on={on}
         label={t("noticeUrgent")}
-        disabled={held || !offered || !shown}
+        disabled={held || offered !== true || !shown}
         onPress={() => remember({ ...kept, urgent: !kept.urgent }, "notices")}
       />
     </Line>

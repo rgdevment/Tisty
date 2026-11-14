@@ -333,7 +333,7 @@ fn planned<R: tauri::Runtime>(
             tisty_core::herald::coming(state, now, &jiff::tz::TimeZone::system(), booking.most()),
             &speaking.words.due,
             voices.heard,
-            voices.urgent && booking.urgent(),
+            booking.marks_urgent(voices.urgent),
         ),
         false => Vec::new(),
     })
