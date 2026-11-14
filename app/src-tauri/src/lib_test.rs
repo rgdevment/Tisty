@@ -1284,14 +1284,20 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
                 told.contains(&format!("]({marker})")),
                 "the {tongue} guide never names {marker}"
             );
+            let past = tisty_markdown::front::span(leaf).map_or(0, |at| at.end);
             assert!(
-                leaf.starts_with("# "),
+                leaf[past..].trim_start().starts_with("# "),
                 "a {tongue} page has no title: {marker}"
             );
             assert!(
                 tisty_core::docs::speaks(leaf).is_ok(),
                 "the {tongue} page {marker} would open read-only: {:?}",
                 tisty_core::docs::speaks(leaf)
+            );
+            assert_eq!(
+                tisty_core::docs::widgets_hold(leaf),
+                Ok(()),
+                "the {tongue} page {marker} shows a widget that is none"
             );
         }
         assert!(
