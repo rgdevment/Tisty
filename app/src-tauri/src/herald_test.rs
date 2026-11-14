@@ -291,7 +291,7 @@ fn what_the_system_holds_leaves_the_window_before_it_is_gathered() {
     };
     let owed: Vec<Due> = ["A", "B", "C", "D"].into_iter().map(due).collect();
     let booking = crate::booking::Booking::new(Some(Box::new(Takes)), 64);
-    let held = crate::booking::rings(owed[..3].to_vec(), "Recordatorio", true);
+    let held = crate::booking::rings(owed[..3].to_vec(), "Recordatorio", true, false);
     booking.keep(&held, "2026-08-12T10:00:00Z".parse().unwrap());
     let now = "2026-08-12T13:00:20Z".parse().unwrap();
 

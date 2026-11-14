@@ -883,12 +883,19 @@ pub(crate) fn opened(
     let watched = session.paths.clone();
     let nudge = session.nudge.clone();
     let quiet = session.config.muted().to_vec();
+    let urgent = session.config.urgent == Some(true);
     let session_keys = session.config.quick_keys.clone();
     let idea_keys = session.config.idea_keys.clone();
     let came_back = back_from_an_update(&mut session);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
-    app.manage(herald::Speaking::new(app, telling, &quiet, nudge.clone()));
+    app.manage(herald::Speaking::new(
+        app,
+        telling,
+        &quiet,
+        urgent,
+        nudge.clone(),
+    ));
     herald::watch(app.clone(), watched, nudge);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
@@ -1199,6 +1206,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::settings::licences,
         answers::settings::settings,
         answers::settings::keep_settings,
+        answers::settings::urgent_offered,
+        answers::settings::open_notice_settings,
         answers::reporting::facts,
         answers::reporting::keep_report,
         answers::tasks::note_trouble,

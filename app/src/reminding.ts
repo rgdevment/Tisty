@@ -7,6 +7,8 @@ import type { Chosen } from "./views";
 const taskWaiting = (): Promise<string | null> => invoke("task_waiting");
 const wakeDue = (): Promise<Waking | null> => invoke("wake_due");
 export const wakeAsked = (): Promise<void> => invoke("wake_asked");
+export const urgentOffered = (): Promise<boolean> => invoke("urgent_offered");
+export const openNoticeSettings = (): Promise<void> => invoke("open_notice_settings");
 
 interface Seeing {
   setChosen: (chosen: Chosen) => void;

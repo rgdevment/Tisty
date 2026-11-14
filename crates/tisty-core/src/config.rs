@@ -410,6 +410,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_to_wake: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub urgent: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub knock_heard: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub door_chosen: Option<bool>,
@@ -483,6 +485,7 @@ impl Config {
             asked_for_a_star: None,
             asked_to_wire: None,
             asked_to_wake: None,
+            urgent: None,
             knock_heard: None,
             door_chosen: None,
             quick_keys: None,

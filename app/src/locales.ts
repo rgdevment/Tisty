@@ -473,6 +473,18 @@ const en = {
   noticesWhy: "How Tisty tells you a reminder came due.",
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
+  noticeUrgent: "Important reminders",
+  noticeUrgentWhy:
+    "A reminder may come through «Do not disturb» once you allow it in the system. Off unless you turn it on.",
+  noticeUrgentAway:
+    "This system or this copy of Tisty cannot let a reminder through «Do not disturb».",
+  noticeUrgentScreen:
+    "Turn on «A notification from the system» first: without it no reminder reaches the system.",
+  noticeUrgentWindows:
+    "Under Settings → System → Notifications → Tisty, allow important notifications. Windows may also ask you in a notice the first time: allow it there too.",
+  noticeUrgentMac:
+    "Under System Settings → Notifications → Tisty, keep time-sensitive notifications on; then, in Focus, allow time-sensitive notifications in each focus you use.",
+  noticeUrgentOpen: "Open the system settings",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy: "Tisto looks over the bar while you write a task.",
   cheerKept: "{name} · kept in the archive",
@@ -3625,6 +3637,18 @@ const es: Catalog = {
   noticesWhy: "Cómo te avisa Tisty de que vence un recordatorio.",
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
+  noticeUrgent: "Recordatorios importantes",
+  noticeUrgentWhy:
+    "Un recordatorio puede atravesar «No molestar» cuando lo permites en el sistema. Apagado a menos que lo enciendas.",
+  noticeUrgentAway:
+    "Este sistema o esta copia de Tisty no puede hacer que un recordatorio atraviese «No molestar».",
+  noticeUrgentScreen:
+    "Primero enciende «Una notificación del sistema»: sin ella ningún recordatorio llega al sistema.",
+  noticeUrgentWindows:
+    "En Configuración → Sistema → Notificaciones → Tisty, permite las notificaciones importantes. Windows también puede preguntártelo en un aviso la primera vez: permítelo ahí también.",
+  noticeUrgentMac:
+    "En Ajustes del Sistema → Notificaciones → Tisty, deja encendidas las notificaciones urgentes; después, en Concentración, permite las urgentes en cada modo que uses.",
+  noticeUrgentOpen: "Abrir la configuración del sistema",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy: "Tisto se asoma sobre la barra mientras escribes una tarea.",
   cheerKept: "{name} · queda en el archivo",
