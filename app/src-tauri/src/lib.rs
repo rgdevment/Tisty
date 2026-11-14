@@ -727,9 +727,11 @@ fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
 async fn leave_here(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
+    booking: tauri::State<'_, booking::Booking>,
     anyway: Option<bool>,
 ) -> Answer<Vec<String>> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
+    booking.retire();
     let reached = tauri::async_runtime::spawn_blocking(unreach_system)
         .await
         .map_err(|_| Refusal::of("internal"))?;
@@ -760,6 +762,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());
     app.state::<viewing::Views>().started(&mut wanted);
+    app.manage(booking::Booking::here(app.handle()));
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
         viewing::show(app.handle(), wanted);
@@ -886,7 +889,6 @@ pub(crate) fn opened(
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(app, telling, &quiet, nudge.clone()));
-    app.manage(booking::Booking::here(app));
     herald::watch(app.clone(), watched, nudge);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());

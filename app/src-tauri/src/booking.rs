@@ -6,6 +6,9 @@ use tisty_core::witness::{self, Fact, channel};
 // Windows lets a booked toast go once the machine was off five minutes past its hour.
 pub const FRESH: jiff::SignedDuration = jiff::SignedDuration::from_mins(5);
 
+// The system can drop what it held, so a settled plan is checked against it again after a while.
+const RECHECK: jiff::SignedDuration = jiff::SignedDuration::from_mins(10);
+
 const MARK: &str = "tisty-";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,9 +118,10 @@ pub fn reconciled(book: &dyn Book, wanted: &[Ring]) -> Reconciled {
 
 #[derive(Default)]
 struct Held {
-    settled: Option<Vec<String>>,
+    settled: Option<(Vec<String>, jiff::Timestamp)>,
     warned: Option<Vec<String>>,
     rings: Vec<Ring>,
+    retired: bool,
 }
 
 pub struct Booking {
@@ -160,7 +164,10 @@ impl Booking {
         };
         let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
         let keys: Vec<String> = wanted.iter().map(Ring::key).collect();
-        if held.settled.as_ref() == Some(&keys) {
+        let fresh = |(settled, at): &(Vec<String>, jiff::Timestamp)| {
+            *settled == keys && now.duration_since(*at) < RECHECK
+        };
+        if held.retired || held.settled.as_ref().is_some_and(fresh) {
             return;
         }
         let done = reconciled(book, wanted);
@@ -181,7 +188,15 @@ impl Booking {
             .collect();
         rings.extend(done.held);
         held.rings = rings;
-        held.settled = done.whole.then_some(keys);
+        held.settled = done.whole.then_some((keys, now));
+    }
+
+    /// Leaving takes the bookings with it, and from then on the window rings everything itself.
+    pub fn retire(&self) {
+        let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
+        held.retired = true;
+        held.settled = None;
+        held.rings.clear();
     }
 
     pub fn holds(&self, due: &Due, now: jiff::Timestamp) -> bool {

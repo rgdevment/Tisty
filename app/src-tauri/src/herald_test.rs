@@ -265,3 +265,43 @@ fn a_reminder_the_window_sets_is_read_again_for_the_system_at_once() {
     );
     assert_eq!(coming.len(), 1, "{coming:?}");
 }
+
+#[test]
+fn what_the_system_holds_leaves_the_window_before_it_is_gathered() {
+    struct Takes;
+    impl crate::booking::Book for Takes {
+        fn shows(&self) -> bool {
+            true
+        }
+        fn pending(&self) -> Option<Vec<String>> {
+            Some(Vec::new())
+        }
+        fn cancel(&self, _keys: &[String]) {}
+        fn add(&self, _ring: &crate::booking::Ring) -> bool {
+            true
+        }
+    }
+    let at: jiff::Timestamp = "2026-08-12T13:00:00Z".parse().unwrap();
+    let due = |task: &str| Due {
+        at,
+        what: Happening::Due {
+            title: "comprar pan".into(),
+            task: task.into(),
+        },
+    };
+    let owed: Vec<Due> = ["A", "B", "C", "D"].into_iter().map(due).collect();
+    let booking = crate::booking::Booking::new(Some(Box::new(Takes)), 64);
+    let held = crate::booking::rings(owed[..3].to_vec(), "Recordatorio", true);
+    booking.keep(&held, "2026-08-12T10:00:00Z".parse().unwrap());
+    let now = "2026-08-12T13:00:20Z".parse().unwrap();
+
+    let left = unheld(owed.clone(), Some(&booking), now);
+
+    assert_eq!(left, vec![due("D")]);
+    assert_eq!(
+        tisty_core::herald::gathered(left),
+        vec![due("D").what],
+        "one left rings by name, never as a missed four"
+    );
+    assert_eq!(unheld(owed.clone(), None, now), owed);
+}

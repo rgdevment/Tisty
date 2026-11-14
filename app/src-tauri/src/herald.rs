@@ -186,7 +186,7 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
-            let Some((mut owed, read, stirred)) = survived(
+            let Some((owed, read, stirred)) = survived(
                 || watching.owed(&paths, since, now),
                 "the watch could not read what was owed",
             ) else {
@@ -201,9 +201,8 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
             if stirred {
                 let _ = app.emit("stirred", ());
             }
-            if let Some(booking) = app.try_state::<crate::booking::Booking>() {
-                owed.retain(|one| !booking.holds(one, now));
-            }
+            let booking = app.try_state::<crate::booking::Booking>();
+            let owed = unheld(owed, booking.as_deref(), now);
             let oldest = owed.iter().map(|one| one.at).min();
             for what in tisty_core::herald::gathered(owed) {
                 if told(&app, what).lost() {
@@ -297,36 +296,74 @@ fn booked<R: tauri::Runtime>(
     state: &tisty_core::State,
     now: jiff::Timestamp,
 ) {
-    let (Some(booking), Some(speaking)) = (
-        app.try_state::<crate::booking::Booking>(),
-        app.try_state::<Speaking>(),
-    ) else {
+    let Some(wanted) = planned(app, state, now) else {
         return;
     };
+    if let Some(booking) = app.try_state::<crate::booking::Booking>() {
+        booking.keep(&wanted, now);
+    }
+}
+
+fn planned<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    state: &tisty_core::State,
+    now: jiff::Timestamp,
+) -> Option<Vec<crate::booking::Ring>> {
+    let booking = app.try_state::<crate::booking::Booking>()?;
+    let speaking = app.try_state::<Speaking>()?;
     if !booking.books() {
-        return;
+        return None;
     }
     let voices = speaking.voices();
-    let wanted = match voices.shown {
+    Some(match voices.shown {
         true => crate::booking::rings(
             tisty_core::herald::coming(state, now, &jiff::tz::TimeZone::system(), booking.most()),
             &speaking.words.due,
             voices.heard,
         ),
         false => Vec::new(),
-    };
-    booking.keep(&wanted, now);
+    })
 }
 
+const LEAVING_WAITS: std::time::Duration = std::time::Duration::from_secs(3);
+
+// Quitting runs on the window's thread, so the system is told from another and waited on for a short while only.
 pub fn book_before_leaving<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    let now = jiff::Timestamp::now();
     let Some(session) = app.try_state::<std::sync::Mutex<crate::Session>>() else {
         return;
     };
-    let session = crate::held(&session);
-    survived(
-        || booked(app, &session.state, jiff::Timestamp::now()),
-        "the reminders could not be booked on the way out",
-    );
+    let Some(wanted) = planned(app, &crate::held(&session).state, now) else {
+        return;
+    };
+    let (done, finished) = std::sync::mpsc::channel();
+    let app = app.clone();
+    std::thread::spawn(move || {
+        survived(
+            || {
+                if let Some(booking) = app.try_state::<crate::booking::Booking>() {
+                    booking.keep(&wanted, now);
+                }
+            },
+            "the reminders could not be booked on the way out",
+        );
+        let _ = done.send(());
+    });
+    let _ = finished.recv_timeout(LEAVING_WAITS);
+}
+
+fn unheld(
+    owed: Vec<Due>,
+    booking: Option<&crate::booking::Booking>,
+    now: jiff::Timestamp,
+) -> Vec<Due> {
+    match booking {
+        Some(booking) => owed
+            .into_iter()
+            .filter(|one| !booking.holds(one, now))
+            .collect(),
+        None => owed,
+    }
 }
 
 fn onward(now: jiff::Timestamp, kept: Option<jiff::Timestamp>) -> jiff::Timestamp {

@@ -91,13 +91,19 @@ pub fn reminded(state: &tisty_core::State) -> bool {
         .any(|task| task.status == tisty_core::model::Status::Open && !task.reminders.is_empty())
 }
 
-#[tauri::command]
+// Asking the machine can wait on Windows, so it is done off the window's thread and without holding the session.
+#[tauri::command(async)]
 pub fn wake_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<waking::Waking>> {
-    let mut session = held(&session);
-    let asked = session.config.asked_to_wake == Some(true);
-    match wake_offer(asked, reminded(&session.state), waking::waking) {
+    let (asked, reminded) = {
+        let session = held(&session);
+        (
+            session.config.asked_to_wake == Some(true),
+            reminded(&session.state),
+        )
+    };
+    match wake_offer(asked, reminded, waking::waking) {
         WakeOffer::Ask(now) => Ok(Some(now)),
-        WakeOffer::Settled => session
+        WakeOffer::Settled => held(&session)
             .keep(|c| c.asked_to_wake = Some(true))
             .map(|()| None),
         WakeOffer::Not => Ok(None),

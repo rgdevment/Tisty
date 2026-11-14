@@ -232,6 +232,47 @@ fn the_same_rings_again_need_no_word_with_the_system() {
 }
 
 #[test]
+fn a_settled_plan_is_checked_with_the_system_again_after_a_while() {
+    let book = Arc::new(Fake::default());
+    let booking = booking(&book);
+    let wanted = [ring("comprar pan", "2026-08-12T13:00:00Z")];
+
+    booking.keep(&wanted, moment("2026-08-12T10:00:00Z"));
+    booking.keep(&wanted, moment("2026-08-12T10:05:00Z"));
+    booking.keep(&wanted, moment("2026-08-12T10:11:00Z"));
+
+    assert_eq!(book.asked(), 2);
+}
+
+#[test]
+fn a_booking_the_system_dropped_is_booked_again_at_the_next_check() {
+    let book = Arc::new(Fake::default());
+    let booking = booking(&book);
+    let pan = ring("comprar pan", "2026-08-12T13:00:00Z");
+    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:00:00Z"));
+    book.pending.lock().unwrap().clear();
+
+    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:11:00Z"));
+
+    assert_eq!(book.held(), vec![pan.key()]);
+}
+
+#[test]
+fn once_retired_nothing_is_booked_or_held() {
+    let book = Arc::new(Fake::default());
+    let booking = booking(&book);
+    let pan = ring("comprar pan", "2026-08-12T13:00:00Z");
+    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:00:00Z"));
+
+    booking.retire();
+    book.pending.lock().unwrap().clear();
+    booking.keep(std::slice::from_ref(&pan), moment("2026-08-12T10:30:00Z"));
+
+    assert!(book.held().is_empty());
+    assert!(!booking.holds(&due(&pan), moment("2026-08-12T13:00:20Z")));
+}
+
+#[test]
 fn a_booking_left_half_done_is_tried_again() {
     let book = Arc::new(Fake {
         refused: vec!["comprar pan".to_string()],
