@@ -492,7 +492,7 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | `Ctrl`/`⌘` + `E` | Cambiar el documento entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty en lo que estás escribiendo |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral |
-| `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla |
+| `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla; en una lista, meter o sacar un elemento |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |
 

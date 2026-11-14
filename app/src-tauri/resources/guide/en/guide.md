@@ -492,7 +492,7 @@ None of this is needed to get started. It is here for when you need it.
 | `Ctrl`/`⌘` + `E` | Switch the document between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide on what you are writing |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar |
-| `Tab` · `Shift` + `Tab` | Walk the cells of a table |
+| `Tab` · `Shift` + `Tab` | Walk the cells of a table; in a list, put an item in or take it out |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |
 
