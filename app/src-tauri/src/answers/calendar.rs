@@ -190,13 +190,12 @@ pub fn ics_take(
     })
 }
 
-/// False when no calendar is chosen yet: the window asks which one, and nothing opens.
 #[tauri::command(async)]
 pub fn save_to_calendar(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     session.reload()?;
-    let Some(chosen) = session.config.calendar else {
+    let Some(chosen) = session.config.calendar.filter(|one| opens_here(*one)) else {
         return Ok(false);
     };
     let task = session
@@ -219,23 +218,47 @@ pub fn save_to_calendar(session: tauri::State<'_, Mutex<Session>>, id: String) -
     Ok(true)
 }
 
+// Calendar, the app an Apple calendar file opens in, is only on a Mac.
+pub(crate) fn opens_here(calendar: Calendar) -> bool {
+    calendar != Calendar::Apple || cfg!(target_os = "macos")
+}
+
 fn opened(page: &str) -> Answer<()> {
     tauri_plugin_opener::open_url(page, None::<&str>)
         .map_err(|_| Refusal::about("cannotOpen", page.to_string()))
 }
 
-// One file at a time: the folder never piles up the titles of every task saved before.
 fn handed(
     kept_in: &std::path::Path,
     entry: &tisty_core::calendar::Entry,
     stamp: jiff::Timestamp,
 ) -> Answer<()> {
     let at = kept_in.join(format!("{}.ics", entry.id));
-    let _ = std::fs::remove_dir_all(kept_in);
     std::fs::create_dir_all(kept_in)
         .and_then(|()| std::fs::write(&at, ics::written(entry, stamp)))
         .map_err(|_| Refusal::of("cannotWrite"))?;
+    let _ = forget_read(kept_in, &at);
     let with = cfg!(target_os = "macos").then_some("Calendar");
     tauri_plugin_opener::open_path(&at, with)
         .map_err(|_| Refusal::about("cannotOpen", at.display().to_string()))
 }
+
+// Calendar reads a file after `open` returns, so only those it long finished with go.
+fn forget_read(kept_in: &std::path::Path, kept: &std::path::Path) -> std::io::Result<()> {
+    for one in std::fs::read_dir(kept_in)?.flatten() {
+        let old = one
+            .metadata()
+            .and_then(|facts| facts.modified())
+            .is_ok_and(|at| at.elapsed().is_ok_and(|age| age > READ_WITHIN));
+        if old && one.path() != kept {
+            std::fs::remove_file(one.path())?;
+        }
+    }
+    Ok(())
+}
+
+const READ_WITHIN: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+
+#[cfg(test)]
+#[path = "calendar_test.rs"]
+mod tests;

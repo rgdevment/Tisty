@@ -110,6 +110,42 @@ fn without_a_day_the_deadline_is_the_day_and_without_either_there_is_nothing_to_
     assert_eq!(entry(&task("Someday"), LINK, &now()), None);
 }
 
+#[test]
+fn a_deadline_at_an_hour_is_the_half_hour_that_ends_when_it_is_due() {
+    let mut rent = task("Pay the rent");
+    rent.deadline = Some(at(30, 18, 0));
+
+    let said = saved(&rent);
+
+    assert_eq!(
+        said.when,
+        When::Hours {
+            from: "2026-11-30T20:30:00Z".parse().unwrap(),
+            to: "2026-11-30T21:00:00Z".parse().unwrap(),
+        }
+    );
+    assert_eq!(said.minutes_before, vec![30]);
+}
+
+#[test]
+fn a_task_already_past_carries_no_alarm_that_could_never_ring() {
+    let mut late = task("Call Yisset");
+    late.date = Some(at(13, 10, 0));
+    assert!(saved(&late).minutes_before.is_empty());
+
+    let mut tonight = task("Feed Roger");
+    tonight.date = Some(at(14, 12, 20));
+    assert!(saved(&tonight).minutes_before.is_empty());
+
+    let mut tomorrow = task("Marisol's lunch");
+    tomorrow.date = Some(DateSpec::all_day(date(2026, 11, 15), "America/Santiago"));
+    assert_eq!(saved(&tomorrow).minutes_before, vec![6 * 60]);
+
+    let mut today = task("Lucas's homework");
+    today.date = Some(DateSpec::all_day(date(2026, 11, 14), "America/Santiago"));
+    assert!(saved(&today).minutes_before.is_empty());
+}
+
 fn odd_title() -> Task {
     let mut odd = task("  Vet & «booster» #2 + 50% off, Rina; ok? 🐶\\  ");
     odd.date = Some(at(20, 10, 0));

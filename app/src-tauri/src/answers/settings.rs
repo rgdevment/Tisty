@@ -368,7 +368,6 @@ pub fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> A
     Ok(())
 }
 
-// Calendar, the app an Apple calendar file opens in, is only on a Mac.
 #[tauri::command]
 pub fn keep_calendar(
     session: tauri::State<'_, Mutex<Session>>,
@@ -381,7 +380,7 @@ pub fn keep_calendar(
                 .map_err(|_| Refusal::of("notACalendar"))?,
         ),
     };
-    if wanted == Some(tisty_core::config::Calendar::Apple) && !cfg!(target_os = "macos") {
+    if wanted.is_some_and(|one| !crate::answers::calendar::opens_here(one)) {
         return Err(Refusal::of("notACalendar"));
     }
     held(&session).keep(|config| config.calendar = wanted)?;

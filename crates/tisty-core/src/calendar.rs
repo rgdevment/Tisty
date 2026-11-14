@@ -22,11 +22,20 @@ pub struct Entry {
 }
 
 pub fn entry(task: &Task, link: &str, now: &Zoned) -> Option<Entry> {
-    let on = task.date.as_ref().or(task.deadline.as_ref())?;
+    let (on, due) = match (&task.date, &task.deadline) {
+        (Some(day), _) => (day, false),
+        (None, Some(deadline)) => (deadline, true),
+        (None, None) => return None,
+    };
     let here = now.time_zone();
+    let lasts = Span::new().minutes(LASTS_MINUTES);
     let (when, start) = if on.has_time {
-        let from = on.instant(here).ok()?;
-        let to = from.checked_add(Span::new().minutes(LASTS_MINUTES)).ok()?;
+        let at = on.instant(here).ok()?;
+        let (from, to) = if due {
+            (at.checked_sub(lasts).ok()?, at)
+        } else {
+            (at, at.checked_add(lasts).ok()?)
+        };
         (When::Hours { from, to }, from)
     } else {
         let from = on.date();
@@ -45,13 +54,19 @@ pub fn entry(task: &Task, link: &str, now: &Zoned) -> Option<Entry> {
     minutes_before.sort_unstable();
     minutes_before.dedup();
     if minutes_before.is_empty() {
-        minutes_before.push(match when {
-            When::Hours { .. } => TIMED_BEFORE,
-            When::Days { from, .. } => {
-                let eve = from.yesterday().ok()?.to_datetime(EVE_AT);
-                minutes(eve.to_zoned(here.clone()).ok()?.timestamp())?
-            }
-        });
+        let fallback = match when {
+            When::Hours { .. } => start.checked_sub(Span::new().minutes(TIMED_BEFORE)).ok()?,
+            When::Days { from, .. } => from
+                .yesterday()
+                .ok()?
+                .to_datetime(EVE_AT)
+                .to_zoned(here.clone())
+                .ok()?
+                .timestamp(),
+        };
+        if fallback > now.timestamp() {
+            minutes_before.push(minutes(fallback)?);
+        }
     }
     Some(Entry {
         id: task.id.to_string(),
