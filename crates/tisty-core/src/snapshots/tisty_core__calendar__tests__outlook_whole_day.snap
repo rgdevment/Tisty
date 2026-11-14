@@ -1,0 +1,5 @@
+---
+source: crates/tisty-core/src/calendar_test.rs
+expression: outlook(&saved(&whole_day()))
+---
+https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=Marisol%27s%20birthday&startdt=2026-11-20&enddt=2026-11-21&allday=true&body=tisty%3A%2F%2Ftask%3Fid%3D01KA7B3VJ9RZ0Q8M5N2X4Y6W1T

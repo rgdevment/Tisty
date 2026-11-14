@@ -5758,6 +5758,7 @@ dependencies = [
  "fs4",
  "hmac",
  "htmd",
+ "insta",
  "jiff",
  "machine-uid",
  "markup5ever_rcdom",

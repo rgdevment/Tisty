@@ -1,0 +1,5 @@
+---
+source: crates/tisty-core/src/calendar_test.rs
+expression: google(&saved(&whole_day()))
+---
+https://calendar.google.com/calendar/render?action=TEMPLATE&text=Marisol%27s%20birthday&dates=20261120/20261121&details=tisty%3A%2F%2Ftask%3Fid%3D01KA7B3VJ9RZ0Q8M5N2X4Y6W1T
