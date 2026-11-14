@@ -335,6 +335,9 @@ De dónde sale el ahorro:
 - **El índice dice cuánto pesa cada sección** antes de abrir nada.
 - **Retomar trae solo lo que cambió** desde la última vez.
 - **Lo terminado se archiva**, y no cuesta nada hasta que alguien lo busca.
+- **Una búsqueda trae diez tareas y diez documentos por vez**, cada uno con la
+  línea que lo dice recortada a 120 caracteres alrededor de la palabra, o solo
+  los títulos cuando al agente le basta con eso.
 - **El índice señala temas y títulos repetidos**, para consolidarlos en vez de
   leerlos dos veces.
 

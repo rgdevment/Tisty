@@ -81,14 +81,14 @@ export const toSql = (schema: Schema): string =>
 
 // DBML reads a bare name only when it is a plain word; anything else goes in double quotes.
 const quotedDbml = (name: string) =>
-  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : `"${name.replace(/"/g, '\\"')}"`;
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : `"${name.replace(/["\\]/g, "\\$&")}"`;
 
 const dbmlColumn = (one: Column): string => {
   const settings = [
     one.keys.includes("PK") && "pk",
     one.keys.includes("UK") && "unique",
     one.required && !one.keys.includes("PK") && "not null",
-    one.comment && `note: '${one.comment.replace(/'/g, "\\'")}'`,
+    one.comment && `note: '${one.comment.replace(/['\\]/g, "\\$&")}'`,
   ].filter(Boolean);
   return `  ${quotedDbml(one.name)} ${one.type}${settings.length ? ` [${settings.join(", ")}]` : ""}`;
 };
