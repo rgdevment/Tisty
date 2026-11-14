@@ -205,7 +205,7 @@ pasa en cambio cuando la memoria vive en Tisty.
 | El problema | Con Tisty |
 | --- | --- |
 | **Desarrollo:** en cada sesión nueva le vuelves a explicar el proyecto a tu agente | Pregunta qué cambió desde la última vez, abre la tarea *Migrar pagos a v2* con sus pasos marcados y lee lo que anotó ayer: *el webhook falla con firmas viejas; reintentar, descartado*. Sigue desde ahí. |
-| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 94 % menos que el archivo entero. |
+| **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 97 % menos que el archivo entero. |
 | **Cualquiera:** resolviste esto hace ocho meses y no recuerdas cómo | Buscar *timeouts al guardar* trae la tarea archivada tal como quedó: sus pasos, su bitácora y la línea que dice que la causa era un índice que faltaba. |
 | **PM:** un mes después alguien pregunta «¿por qué decidimos esto?» | Un documento vivo por tema, *Decisiones de checkout*, con cada decisión fechada y su porqué. El agente lo encuentra y lo cita en vez de reabrir el debate. |
 | **QA:** la misma pantalla vuelve a fallar y nadie recuerda los casos de la vez anterior | La tarea de regresión archivada guarda los casos como pasos, con lo que se vio en cada uno. |
@@ -242,6 +242,9 @@ espera en la Lluvia de ideas.
   las reordenas arrastrándolas.
 - **Las ordenas después** — cada idea se convierte en tarea o va al documento
   que le corresponde, y la biblioteca cuenta las que siguen esperando.
+- **Una idea en cualquier documento** — la misma nota adhesiva, con su fecha y
+  su color, cabe en cualquier documento desde el menú `/`, y anexar una idea la
+  lleva entera.
 - **También con tu agente de IA** — pídele una lluvia de ideas y anota las que
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
@@ -259,10 +262,11 @@ espera en la Lluvia de ideas.
   pasos y su día.
 - **Trabajo compartido, dueños claros** — lo que anota tu agente es suyo para
   mantenerlo al día: lo describe, planifica los pasos, marca cada uno al
-  terminarlo y anota lo que aprende. Lo que escribiste tú sigue siendo tuyo: el
-  agente solo agrega — una nota en la bitácora, un recordatorio, un archivo — y
-  da su palabra de que un paso o la tarea entera están hechos, para que tú lo
-  confirmes. Cerrar siempre es tuyo, y cada entrada dice qué agente la escribió.
+  terminarlo y anota lo que aprende. En lo que escribiste tú trabaja como en un
+  documento — la descripción, la página, los pasos abiertos, el título y la
+  lista —, pero un paso que da por listo espera a que lo marques, el día sigue
+  siendo tuyo y cerrar siempre es tuyo, y cada entrada dice qué agente la
+  escribió.
 - **Una bitácora** — notas con fecha que nunca se reescriben: lo que se probó,
   lo que se descartó y por qué.
 - **Una página por tarea** — *Descripción*, *Para estar lista*, *Pasos*,
@@ -315,14 +319,15 @@ cada sesión:
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
 | Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 3 %, 12 % en el peor caso | 88–97 % menos |
 
 De dónde sale el ahorro:
 
-- **Ningún documento pasa de 64 000 caracteres**, así que una bitácora de ese
-  tamaño queda en temas y páginas, nunca como un muro de texto.
-- **Ninguna lectura trae más de unos 12 000 caracteres.** Pasado eso, un
-  documento pedido entero vuelve como su índice.
+- **Ninguna escritura lleva más de 64 000 caracteres**, así que una bitácora
+  larga queda en temas y páginas, nunca como un muro de texto.
+- **Ninguna lectura trae más de unos 12 000 caracteres**, salvo que el agente
+  pida un documento entero para llevarlo a otra parte. Pasado eso, un documento
+  pedido entero vuelve como su índice.
 - **La página de una tarea llega entera solo mientras es corta**, unos 4000
   caracteres. Pasado eso llegan sus secciones, el resumen que abre las notas
   del agente y su última nota; su bitácora llega por tamaño, las últimas notas
@@ -330,6 +335,9 @@ De dónde sale el ahorro:
 - **El índice dice cuánto pesa cada sección** antes de abrir nada.
 - **Retomar trae solo lo que cambió** desde la última vez.
 - **Lo terminado se archiva**, y no cuesta nada hasta que alguien lo busca.
+- **Una búsqueda trae diez tareas y diez documentos por vez**, cada uno con la
+  línea que lo dice recortada a 120 caracteres alrededor de la palabra, o solo
+  los títulos cuando al agente le basta con eso.
 - **El índice señala temas y títulos repetidos**, para consolidarlos en vez de
   leerlos dos veces.
 
@@ -395,7 +403,7 @@ Tisty dos veces, y reinicia el asistente después. Más en
 Cosas que puedes pedirle una vez conectado:
 
 - "Agrega una tarea para renovar el pasaporte antes de marzo, con sus pasos."
-- "¿Qué tengo pendiente esta semana y qué está atrasado?"
+- "¿Qué tengo pendiente esta semana y qué está vencido?"
 - "¿Cómo arreglé los timeouts al guardar el año pasado? Busca en el archivo."
 - "Escribe un documento con mis notas de la llamada de hoy y archívalo en
   Clientes."
@@ -557,11 +565,11 @@ siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
 apuntar a él, y la búsqueda encuentra a los dos.
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
-importante, las dos o ninguna — *hacer*, *decidir*, *delegar*, *dejar*. Eso
-nombra la decisión en vez de esconderla tras un número, y es la diferencia entre
-una lista que ordena y una lista que te ayuda a elegir. Alrededor: listas para
-dónde va el trabajo, etiquetas para lo que lo cruza, pasos para las partes, y una
-bitácora para lo que aprendes por el camino.
+importante, las dos o ninguna — *hacer*, *planificar*, *delegar*,
+*prescindible*. Eso nombra la decisión en vez de esconderla tras un número, y es
+la diferencia entre una lista que ordena y una lista que te ayuda a elegir.
+Alrededor: listas para dónde va el trabajo, etiquetas para lo que lo cruza,
+pasos para las partes, y una bitácora para lo que aprendes por el camino.
 
 **Terminar es donde empieza.** Casi todos los gestores tratan una tarea cumplida
 como basura que esconder. Aquí pasa a un archivo que se lee en tres capas: las
@@ -1168,8 +1176,8 @@ Quitarles la voz saca esa carpeta del PATH otra vez. Reinicia un asistente que
 ya estaba abierto para que vea el cambio.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
-fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
-mismo, dar por hecha una tarea, también una tuya —que la marca para que la
+fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó un
+agente, dar por hecha una tarea, también una tuya —que la marca para que la
 confirmes y no cierra nada—, agregar a la bitácora, trabajar cualquier tarea
 como trabaja un documento, escribir un documento, agregar a uno que ya está ahí
 —al final o bajo un título—, corregir un pasaje de uno, escribir uno entero de
@@ -1178,7 +1186,8 @@ decir en qué orden se leen sus páginas, lo que escribe y mueve en el texto de 
 documento las líneas que las nombran y nada más, marcar un documento que ya
 cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
 una copia de un archivo que le señales —en una tarea o dentro de un documento,
-que admite el archivo más grande de los dos— y leer lo que ya está. Lo que no
+igual—, anotar ideas en tu Lluvia de ideas y ordenarlas contigo, y leer lo que
+ya está. Lo que no
 puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
 tuya, mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
 carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
@@ -1561,5 +1570,10 @@ cuál aplica a lo que tengas, y por qué. En ningún caso se retiene nada del c�
     <img
       src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
       alt="Cobertura"/>
+  </a>
+  <a href="https://github.com/rgdevment/Tisty/actions/workflows/github-code-scanning/codeql">
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/github-code-scanning/codeql?style=flat-square&logo=github&label=CodeQL"
+      alt="Análisis de CodeQL"/>
   </a>
 </p>

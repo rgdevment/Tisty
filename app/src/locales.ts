@@ -732,6 +732,7 @@ const en = {
   tongueTaken: "That language is already one of its languages",
   notOneOwnDoc: "Only what is your own can be shared",
   onlyADocumentShared: "A page goes with its document, and a task's words stay with the task",
+  brainstormStaysHere: "Brainstorm stays here; an idea travels in the document it goes into",
   noIdentityToSign: "This computer has no identity to sign with yet",
   cannotSeal: "This document could not be made ready to share",
   folioUnreached: "Folio could not be reached. Check your connection and try again.",
@@ -3885,6 +3886,7 @@ const es: Catalog = {
   notOneOwnDoc: "Solo se puede compartir lo propio",
   onlyADocumentShared:
     "Una página va con su documento, y las palabras de una tarea se quedan con la tarea",
+  brainstormStaysHere: "La Lluvia de ideas se queda aquí; una idea viaja en el documento al que va",
   noIdentityToSign: "Este computador todavía no tiene una identidad con la que firmar",
   cannotSeal: "Este documento no se pudo dejar listo para compartir",
   folioUnreached: "No se pudo llegar a Folio. Revisa tu conexión e inténtalo de nuevo.",

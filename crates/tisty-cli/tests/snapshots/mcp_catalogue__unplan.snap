@@ -5,7 +5,7 @@ expression: tool
 {
   "annotations": {
     "destructiveHint": true,
-    "idempotentHint": true,
+    "idempotentHint": false,
     "openWorldHint": false,
     "readOnlyHint": false
   },
@@ -18,7 +18,7 @@ expression: tool
         "type": "string"
       },
       "steps": {
-        "description": "The steps to take off, by their text as `read` shows it; case and accents do not matter",
+        "description": "The steps to take off, by their text as `read` shows it",
         "items": {
           "type": "string"
         },

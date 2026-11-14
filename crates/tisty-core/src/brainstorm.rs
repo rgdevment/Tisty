@@ -16,10 +16,7 @@ pub const IDEA_AT_MOST: usize = 140;
 pub const COLOURS: [&str; 12] = tisty_markdown::IDEA_HUES;
 
 pub fn jotted(idea: &str, at: jiff::civil::DateTime, colour: &str) -> String {
-    stuck(
-        &format!("{} · {colour}", at.strftime("%Y-%m-%d %H:%M")),
-        idea,
-    )
+    stuck(&format!("{} · {colour}", minute_of(at)), idea)
 }
 
 fn stuck(head: &str, idea: &str) -> String {
@@ -79,8 +76,76 @@ fn fences(line: &str) -> bool {
     bare.starts_with("```") || bare.starts_with("~~~")
 }
 
-pub fn coloured(body: &str, roll: u32) -> &'static str {
-    picked(last_hue(body), roll)
+type Taken = std::collections::HashSet<(String, &'static str)>;
+
+pub fn jotted_next(
+    was: &str,
+    used: &[String],
+    idea: &str,
+    at: jiff::civil::DateTime,
+    roll: u32,
+) -> String {
+    jotted_all(was, used, &[idea.to_string()], at, || roll)
+}
+
+fn minute_of(when: jiff::civil::DateTime) -> String {
+    when.strftime("%Y-%m-%d %H:%M").to_string()
+}
+
+// An idea gone into a task still names its source, so a new one never takes its heading.
+pub fn proposed_from(state: &State, file: &str) -> Vec<String> {
+    state
+        .sourced
+        .keys()
+        .filter_map(|source| {
+            let (doc, heading) = source.split_once('#')?;
+            (doc.trim() == file).then(|| heading_named(heading).to_string())
+        })
+        .collect()
+}
+
+// An idea is named by its heading, with or without the callout's marks in front of it.
+pub fn heading_named(heading: &str) -> &str {
+    let heading = heading.trim();
+    let marked = heading
+        .get(..7)
+        .filter(|marker| marker.eq_ignore_ascii_case("[!idea]"))
+        .map(|_| heading[7..].trim());
+    tisty_markdown::idea_words(heading)
+        .or(marked)
+        .unwrap_or(heading)
+}
+
+fn taken_on(was: &str, used: &[String]) -> Taken {
+    let on_the_sheet = ideas_on(was).into_iter().map(|one| one.heading);
+    on_the_sheet
+        .chain(used.iter().cloned())
+        .filter_map(|heading| {
+            let head = tisty_markdown::idea_parts(&heading);
+            Some((head.when?.to_string(), head.hue?))
+        })
+        .collect()
+}
+
+// A note is named by its minute and colour, so no two on one sheet may share both.
+fn free_slot(
+    taken: &Taken,
+    last: Option<&str>,
+    at: jiff::civil::DateTime,
+    roll: u32,
+) -> (jiff::civil::DateTime, &'static str) {
+    let mut when = at;
+    loop {
+        let minute = minute_of(when);
+        let free: Vec<&'static str> = COLOURS
+            .into_iter()
+            .filter(|hue| !taken.contains(&(minute.clone(), *hue)))
+            .collect();
+        if !free.is_empty() {
+            return (when, picked(&free, last, roll));
+        }
+        when = when.saturating_add(jiff::Span::new().minutes(1));
+    }
 }
 
 fn last_hue(body: &str) -> Option<&'static str> {
@@ -91,13 +156,13 @@ fn last_hue(body: &str) -> Option<&'static str> {
         .and_then(|line| tisty_markdown::idea_head(line).hue)
 }
 
-fn picked(last: Option<&str>, roll: u32) -> &'static str {
-    let many = COLOURS.len();
+fn picked(from: &[&'static str], last: Option<&str>, roll: u32) -> &'static str {
+    let many = from.len();
     let mut at = roll as usize % many;
-    if last == Some(COLOURS[at]) {
+    if many > 1 && last == Some(from[at]) {
         at = (at + 1 + (roll as usize / many) % (many - 1)) % many;
     }
-    COLOURS[at]
+    from[at]
 }
 
 pub fn filed(idea: &str, heading: &str) -> String {
@@ -213,17 +278,20 @@ pub fn quoted(note: &str) -> Option<String> {
 
 pub fn jotted_all(
     was: &str,
+    used: &[String],
     each: &[String],
     at: jiff::civil::DateTime,
     mut roll: impl FnMut() -> u32,
 ) -> String {
+    let mut taken = taken_on(was, used);
     let mut last = last_hue(was);
     let added: Vec<String> = each
         .iter()
         .map(|idea| {
-            let colour = picked(last, roll());
+            let (when, colour) = free_slot(&taken, last, at, roll());
+            taken.insert((minute_of(when), colour));
             last = Some(colour);
-            jotted(idea, at, colour)
+            jotted(idea, when, colour)
         })
         .collect();
     added.join("\n\n")

@@ -201,7 +201,7 @@ and what happens instead when the memory lives in Tisty.
 | The problem | With Tisty |
 | --- | --- |
 | **Developer:** every new session you explain the project to your agent again | It asks what moved since last time, opens the task *Move payments to v2* with its ticked steps, and reads what it noted yesterday: *the webhook fails on old signatures; retrying ruled out*. It carries on from there. |
-| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 94% less than the whole file. |
+| **Developer:** your `NOTES.md` grew to 256 KB and the agent rereads it every time | It lives as documents split by subject, in pages. The agent reads the outline and the one section it needs — about 97% less than the whole file. |
 | **Anyone:** you solved this eight months ago and cannot remember how | A search for *timeouts on save* brings back the archived task as it was left: its steps, its journal, and the line saying the cause was a missing index. |
 | **PM:** a month later somebody asks «why did we decide this?» | One living document per subject, *Checkout decisions*, each decision dated with its why. The agent finds it and quotes it instead of reopening the debate. |
 | **QA:** the same screen breaks again and nobody remembers last time's cases | The archived regression task keeps its cases as steps, with what was seen in each. |
@@ -238,6 +238,9 @@ waits in Brainstorm.
   dragging.
 - **Sorted out later** — each idea becomes a task or goes into the document it
   belongs to, and the Library counts the ones still waiting.
+- **An idea in any document** — the same sticky note, with its date and colour,
+  fits in any document from the `/` menu, and filing an idea carries it there
+  whole.
 - **With your AI agent too** — ask it to brainstorm with you and it jots the
   ideas you keep; ask it to sort them and it groups them, turns one into a task
   or files it in its document, and only marks the old ones, for you to delete.
@@ -246,18 +249,18 @@ waits in Brainstorm.
 
 ### Tasks: what to do, who does it, how it was solved
 
-- **Priority, by its name** — the Eisenhower matrix: *do*, *decide*,
-  *delegate*, *drop*. A date and a deadline are kept apart, so a planned day
+- **Priority, by its name** — the Eisenhower matrix: *do*, *schedule*,
+  *delegate*, *minor*. A date and a deadline are kept apart, so a planned day
   that slipped is late and only a deadline that passed is overdue. Lists, tags,
   and a reminder for what cannot wait.
 - **Steps and parts** — a big job splits into parts, each with its own steps
   and its own day.
 - **Shared work, clear ownership** — what your agent files is its own to keep
   true: it describes it, plans the steps, ticks each one when it is done and
-  notes what it learns. What you wrote stays yours: the agent only adds — a
-  journal entry, a reminder, a file — and gives its word that a step or the
-  whole task is done, for you to confirm. Closing is always yours, and every
-  entry says which agent wrote it.
+  notes what it learns. On what you wrote it works as in a document — the
+  description, the page, the open steps, the title and the list — but a step it
+  calls done waits for you to tick it, the day stays yours and closing is always
+  yours, and every entry says which agent wrote it.
 - **A journal** — dated notes that are never rewritten: what was tried, what
   was ruled out, and why.
 - **A page per task** — *Description*, *Done when*, *Steps*, *Notes* and *When
@@ -309,14 +312,15 @@ agent that rereads the whole file every session:
 | Picks up the work, with nothing new | about 1% | 99% less |
 | Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
-| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
+| Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
 Where the saving comes from:
 
-- **No document holds more than 64,000 characters**, so a log that size is kept
+- **No single write carries more than 64,000 characters**, so a long log is kept
   as subjects in pages, never as one wall of text.
-- **No read brings more than about 12,000 characters.** Past that, a document
-  asked for whole comes back as its outline.
+- **No read brings more than about 12,000 characters** unless the agent asks for
+  a document whole to carry elsewhere. Past that, a document asked for whole
+  comes back as its outline.
 - **A task's page comes whole only while it is short**, about 4,000 characters.
   Past that come its sections, the digest that opens the agent's notes and its
   latest note; its journal comes by size, the latest notes up to about 3,000
@@ -324,6 +328,9 @@ Where the saving comes from:
 - **The outline says what each section weighs** before anything is opened.
 - **Picking up again brings only what moved** since the last time.
 - **What is finished is archived**, and costs nothing until it is searched.
+- **A search brings ten tasks and ten documents at a time**, each with the line
+  that says it cut to 120 characters around the word, or titles alone when that
+  is all the agent needs.
 - **The outline points at repeated subjects and headings**, so they can be
   consolidated rather than read twice.
 
@@ -545,7 +552,7 @@ and makes its own PDF — and it stays Markdown that GitHub, any editor or `cat`
 read the same. A task can point at it, and search finds both.
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
-both or neither — *do*, *decide*, *delegate*, *drop*. That names the decision
+both or neither — *do*, *schedule*, *delegate*, *minor*. That names the decision
 instead of hiding it behind a number, and it is the difference between a list
 that sorts and a list that helps you choose. Around it: lists for where work
 belongs, tags for what cuts across, steps for the parts, and a journal for what
@@ -1140,7 +1147,7 @@ takes that folder off the PATH again. Restart an assistant that was already
 open so it sees the change.
 
 What it may do is deliberately small: file a task with its steps and its date,
-set an hour for it to ring at, move the day of a task it filed itself, say that
+set an hour for it to ring at, move the day of a task an agent filed, say that
 a task is done, yours too — which marks it for you to confirm and closes nothing
 — add to the journal, work any task the way it works a document, write a
 document, add to one that is already there — at the end or under a heading —
@@ -1148,8 +1155,9 @@ correct a passage of one, write one again whole, file documents into folders,
 make one document a page of another and say the order its pages are read in,
 which writes and moves the lines naming them in your document's text and nothing
 else, mark a document that had its day, for you to delete, put away or unmark,
-keep a copy of a file you point it at — on a task or inside a document, which
-takes the larger file of the two — and read what is already there. What it may
+keep a copy of a file you point it at — on a task or inside a document alike —
+jot ideas on your Brainstorm and sort them with you, and read what is already
+there. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
 yours, move a day you set, delete a document, rename or empty a folder, reach a
 task you folded away, take files from anywhere but Downloads, Documents,
@@ -1527,5 +1535,10 @@ applies to what you have, and why. Nothing is withheld from the source either wa
     <img
       src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
       alt="Coverage"/>
+  </a>
+  <a href="https://github.com/rgdevment/Tisty/actions/workflows/github-code-scanning/codeql">
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/github-code-scanning/codeql?style=flat-square&logo=github&label=CodeQL"
+      alt="CodeQL analysis"/>
   </a>
 </p>

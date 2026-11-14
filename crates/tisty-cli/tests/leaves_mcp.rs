@@ -2868,6 +2868,14 @@ fn an_edit_can_hand_back_what_it_reads_like_now_instead_of_being_read_again() {
         around["body"].as_str().unwrap().contains("Trece."),
         "the change is in what came back: {said}"
     );
+    assert!(
+        around["body"]
+            .as_str()
+            .unwrap()
+            .lines()
+            .all(|line| !line.starts_with(' ')),
+        "an echoed line is never indented into code: {said}"
+    );
     assert!(around["from"].as_u64().unwrap() >= 1, "{said}");
 
     let said = served.call(
@@ -3106,7 +3114,7 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     )["result"]["structuredContent"]["lines"][0]["around"]
         .clone();
     assert_eq!(
-        around, "- uno\n- dos\n- tres",
+        around, "- uno\n(line 4)\n- tres",
         "the line before and the line after, no more"
     );
     let reach = |lines: u64| {
@@ -3119,8 +3127,59 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     assert!(reach(0).is_null(), "none asked for, none given");
     assert_eq!(
         reach(2),
-        "\n- uno\n- dos\n- tres\n",
+        "\n- uno\n(line 4)\n- tres\n",
         "two on each side when asked"
+    );
+
+    let close = served.wrote(
+        "# Lista\n\n- uno\n- dos riego\n- tres\n- cuatro riego\n- cinco\n",
+        None,
+    );
+    let near = served.call(
+        "find",
+        serde_json::json!({ "doc": &close, "query": "riego", "around": 2 }),
+    )["result"]["structuredContent"]["lines"]
+        .clone();
+    assert_eq!(
+        near[0]["around"], "\n- uno\n(line 4)\n- tres",
+        "the first hit stops short of the second: {near}"
+    );
+    assert_eq!(
+        near[1]["around"], "(line 6)\n- cinco",
+        "and the second starts after what the first already showed: {near}"
+    );
+
+    let long: String = (0..20)
+        .map(|n| format!("- riego-{n} {}\n- vecino {n}\n", "x".repeat(890)))
+        .collect();
+    let heavy = served.wrote(&format!("# Patio\n\n{long}"), None);
+    let kept = served.call(
+        "find",
+        serde_json::json!({ "doc": &heavy, "query": "riego", "around": 2, "limit": 100 }),
+    )["result"]["structuredContent"]["lines"]
+        .as_array()
+        .unwrap()
+        .clone();
+    let weight: usize = kept
+        .iter()
+        .map(|one| {
+            let of = |key: &str| one[key].as_str().unwrap_or_default().chars().count();
+            of("text") + of("around")
+        })
+        .sum();
+    assert!(
+        kept.len() < 20 && weight <= 12_000,
+        "{} hits, {weight}",
+        kept.len()
+    );
+    let next = format!("riego-{} ", kept.len());
+    assert!(
+        !kept[kept.len() - 1]["around"]
+            .as_str()
+            .unwrap()
+            .contains(&next),
+        "a hit left out for room is not shown again as the neighbour of the last one: {}",
+        kept[kept.len() - 1]
     );
 
     assert_eq!(
@@ -4620,10 +4679,10 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
         said[0]["result"]["instructions"]
             .as_str()
             .unwrap_or_default(),
-        rules["result"]["structuredContent"]["rules"]
+        rules["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or_default(),
-        tidying["result"]["structuredContent"]["rules"]
+        tidying["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or_default()
     );

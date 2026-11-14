@@ -14,7 +14,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "archived": {
-        "description": "True, the default, puts it away; false brings it back",
+        "description": "True, the default, puts it away",
         "type": "boolean"
       },
       "doc": {

@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Rewrite a note in the journal of an open task, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty.",
+  "description": "Rewrite a note in the journal of an open task, named by the id `read` shows beside it. The new body replaces it whole and cannot be empty. To add one, `note`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

@@ -10,11 +10,11 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `rules` | The rules for working here, one guide at a time («tasks», «documents», «tidying», «ideas»); alone, the basics and an index. Assistants ask for the one they need first |
+| `rules` | The rules for working here, one guide at a time («tasks», «documents», «tidying», «ideas», or «all»); alone, the basics and an index. Assistants ask for the one they need first |
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
-| `catch_up` | Where things stand, with the lists, folders and most used tags; the open tasks that press, by title and list, for it to tell you and `read` — overdue, then due soon, for today and late, five at most, the rest counted — leaving out what an assistant already said is done, which waits for you; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. When **Brainstorm** has ideas, it says how many wait and how many it marked |
-| `find` | Search tasks and documents, the archive included; documents marked as having had their day come after the live ones, saying so |
+| `catch_up` | Where things stand, with the lists, folders and most used tags; the open tasks that press, by title and list, for it to tell you and `read` — overdue, then due soon, for today and late, five at most, the rest counted — leaving out what an assistant already said is done or not to be done, which waits for you, and what you hid; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. It names **Brainstorm**, and says how many ideas wait and how many are marked |
+| `find` | Search tasks and documents, the archive included: ten of each at a time, more when it asks for them. One found by what its page, steps or notes say comes with the line that says it, cut around the word, or by its title alone when that is enough; inside one document, the lines that say it with those around each. Documents marked as having had their day come after the live ones, saying so |
 | `read` | Read a task: its page, its steps and its latest notes, with who wrote each. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings the latest notes up to about 3,000 characters, more when asked |
 
 `lists` and `tags` still answer an assistant that asks for them by name, but they are no longer offered: `catch_up` already brings both.
@@ -25,15 +25,15 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | :-- | :-- |
 | `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields. A task made from an idea on **Brainstorm** names the idea as its source, and the idea leaves the sheet, as it does when you turn it into a task |
 | `remind` | Set a task to ring at an hour |
-| `reschedule` | Move the day of a task it filed |
-| `describe` | Write the description of a task it may work on, replacing the old one |
-| `rename` | Rename a task an agent filed |
+| `reschedule` | Move the day of a task an agent filed |
+| `describe` | Write the description of an open task, yours too, replacing the old one |
+| `rename` | Rename any open task, yours too |
 | `note` | Add to a task's journal: up to 4,000 characters a note; longer goes on the task's page |
 | `reword_note` | Rewrite a note in a task's journal |
 | `plan` | Add steps to a task |
 | `reword_step` | Rewrite an open step |
 | `unplan` | Take open steps off a task — or, with `to`, hand them to the task they belong on |
-| `move` | Hang a task under another as a part, let a part go, or move a task it filed to another list |
+| `move` | Hang a task under another as a part, let a part go, or move a task to another list |
 | `tick` | Tick the steps it did; on a task of yours they wait for you to confirm |
 | `untick` | Take back a tick it gave by mistake |
 | `say_done` | Say a task is finished, yours too — for you to confirm |
@@ -49,7 +49,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. On **Brainstorm**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; the idea itself, its `> [!IDEA]` line and its words as the sheet has them, added to another document takes it off the sheet, as filing it from the window does, and an `[!IDEA]` note that names no idea there stays a sticky note of its own |
-| `edit_doc` | Change one passage of a document |
+| `edit_doc` | Change one passage of a document, or of a task's page |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
 | `restore_doc` | Put a document back the way it was, from the copy kept beside the documents; with a task, put back the notes a digest replaced |
 | `folder` | Make a folder |

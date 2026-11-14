@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Keeper } from "../core";
 import { stamped } from "../format";
 import { warningOf } from "../keepers";
@@ -24,24 +26,62 @@ export function Band({ label }: { label: string }) {
   );
 }
 
+const BUBBLE = 300;
+const MARGIN = 8;
+
+// The bubble lives at the end of the page, so a dialog that scrolls never cuts it nor grows a scrollbar for it.
+const bubbleAt = (mark: DOMRect, tall: number, end?: boolean) => {
+  const left = end ? mark.right - BUBBLE : mark.left;
+  const below = mark.bottom + MARGIN;
+  const fits = below + tall <= window.innerHeight - MARGIN;
+  return {
+    left: Math.max(MARGIN, Math.min(left, window.innerWidth - BUBBLE - MARGIN)),
+    top: fits ? below : Math.max(MARGIN, mark.top - MARGIN - tall),
+  };
+};
+
 /** `end` opens the bubble leftward, for a mark near the right edge of the window. */
 export function Ask({ said, end }: { said: string; end?: boolean }) {
+  const mark = useRef<HTMLButtonElement>(null);
+  const bubble = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState<{ left: number; top: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const box = mark.current?.getBoundingClientRect();
+    if (!open || !box) return setAt(null);
+    setAt(bubbleAt(box, bubble.current?.offsetHeight ?? 0, end));
+  }, [open, end]);
+
   return (
-    <span className="relative inline-flex">
+    <>
       <button
+        ref={mark}
         type="button"
         aria-label={said}
-        className="peer flex h-[15px] w-[15px] items-center justify-center rounded-md text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={(e) => {
+          if (e.currentTarget.matches(":focus-visible")) setOpen(true);
+        }}
+        onBlur={() => setOpen(false)}
+        className="flex h-[15px] w-[15px] items-center justify-center rounded-md text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
       >
         ?
       </button>
-      <span
-        aria-hidden
-        className={`pointer-events-none absolute top-6 ${end ? "right-0" : "left-0"} z-20 w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft opacity-0 shadow-lift transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 motion-reduce:transition-none`}
-      >
-        {said}
-      </span>
-    </span>
+      {open &&
+        createPortal(
+          <span
+            ref={bubble}
+            aria-hidden
+            style={at ?? { left: 0, top: 0, visibility: "hidden" }}
+            className="pointer-events-none fixed z-[80] w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft shadow-lift"
+          >
+            {said}
+          </span>,
+          document.body,
+        )}
+    </>
   );
 }
 

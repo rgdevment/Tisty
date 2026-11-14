@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 
 use super::{pointed_at, reachable_or};
+use tisty_core::docs::Heading;
 use tisty_core::{Paths, State, Store};
 
 use super::super::asked::strings;
@@ -14,7 +15,11 @@ use super::super::{
 };
 
 // A task the person put out of sight keeps its words out of sight too, as `read` does.
-fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
+pub(in crate::mcp) fn in_sight(
+    state: &State,
+    kept: &tisty_core::model::Kept,
+    which: &str,
+) -> Result<(), Refused> {
     match state.doc_in_sight(kept) {
         true => Ok(()),
         false => Err(Refused::Missing(no_document_called(state, which))),
@@ -203,7 +208,10 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     let mislabeled = super::alike::mislabeled(&whole, &page_cards);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
-    kept_of.insert("title".into(), json!(card.title));
+    kept_of.insert(
+        "title".into(),
+        json!(super::super::title_of(&state, &which, card.title.clone())),
+    );
     kept_of.insert("by".into(), json!(super::alike::by(&state, kept)));
     if !alike.is_empty() {
         kept_of.insert("alike".into(), json!(alike));
@@ -221,7 +229,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     kept_of.insert("lines".into(), json!(card.lines));
     kept_of.insert("words".into(), json!(card.words));
     kept_of.insert("print".into(), json!(card.print));
-    kept_of.insert("outline".into(), json!(card.outline));
+    let (outline, left) = outline_into(&card.outline, &mut kept_of);
     if !pointing.is_empty() {
         kept_of.insert("pointed_at".into(), json!(pointing));
     }
@@ -251,8 +259,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         kept_of.insert("locked".into(), json!(true));
     }
 
-    let mut shown = card
-        .outline
+    let mut shown = outline
         .iter()
         .map(|one| {
             format!(
@@ -268,10 +275,12 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .join("\n");
     if shown.is_empty() {
         shown = format!(
-            "{:?} holds no headings — {} words in all.",
-            card.title, card.words
+            "{} holds no headings — {} words in all.",
+            super::super::named_as(&state, &which, &card.title),
+            card.words
         );
     }
+    shown.push_str(&left);
     if !rows.is_empty() {
         shown.push_str(&pages_told(&rows));
     }
@@ -424,7 +433,10 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
 
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
-    kept_of.insert("title".into(), json!(tisty_core::docs::titled(&body)));
+    kept_of.insert(
+        "title".into(),
+        json!(super::super::written_title(&state, &which, &body)),
+    );
     kept_of.insert("chars".into(), json!(body.chars().count()));
     kept_of.insert("lines".into(), json!(body.lines().count()));
     kept_of.insert(
@@ -501,7 +513,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         (false, None) => None,
     };
     if super::outward::asked(args)? {
-        return super::outward::carried(&body, standing, &pages, kept_of);
+        let named = match super::super::written_title(&state, &which, &body).is_empty() {
+            true => "This document".to_string(),
+            false => super::super::written_name(&state, &which, &body),
+        };
+        return super::outward::carried(&body, &named, standing, &pages, kept_of);
     }
     let warned = match &standing {
         Some(standing) => {
@@ -521,15 +537,16 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     match part_asked(&body, args)? {
         Part::Outline => {
             kept_of.insert("whole".into(), json!(false));
-            kept_of.insert("outline".into(), json!(outline_of(&body)));
+            let all = tisty_core::docs::outlined(&body);
+            let (_, left) = outline_into(&all, &mut kept_of);
             Ok(told(
                 format!(
                     "{warned}{}\n\nThis one holds {} characters, so here is what is in it rather \
                      than the whole of it. Ask for a part with `section`, with `from` and `to`, or \
                      with `chars`. To change a passage, `edit_doc` takes the words to replace and \
                      the ones to put there: reading it whole to send it back whole costs many \
-                     times more, and risks writing over what the person did meanwhile.",
-                    tisty_core::docs::titled(&body),
+                     times more, and risks writing over what the person did meanwhile.{left}",
+                    super::super::written_title(&state, &which, &body),
                     body.chars().count()
                 ),
                 Value::Object(kept_of),
@@ -540,20 +557,30 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             from,
             to,
             next,
+            cut,
         } => {
             kept_of.insert("body".into(), json!(part));
             kept_of.insert("from".into(), json!(from));
             kept_of.insert("to".into(), json!(to));
             let mut more = String::new();
+            if cut {
+                kept_of.insert("cut".into(), json!(true));
+                kept_of.insert("whole".into(), json!(false));
+                more = format!(
+                    "\n\n(Line {to} runs past what one read holds, so it ends cut where the … \
+                     stands: change it with `edit_doc` by the words you see.)"
+                );
+            }
             if let Some(next) = next {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
-                if kept_of.contains_key("brainstorm") {
-                    more = format!(
+                more += &match kept_of.contains_key("brainstorm") {
+                    true => format!(
                         "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
                          {next} and this `print`.)"
-                    );
-                }
+                    ),
+                    false => format!("\n\n(More from line {next}: `read_doc` with `from` {next}.)"),
+                };
             }
             Ok(mirrored(
                 format!("{warned}{part}{more}"),
@@ -761,6 +788,9 @@ pub(super) fn beside_ready(
 }
 
 fn away_words(state: &State, kept: &tisty_core::model::Kept) -> String {
+    if state.closed_with_its_task(kept) {
+        return "This is the page of a closed task, put away with it".to_string();
+    }
     match (
         kept.archived,
         kept.page_of.and_then(|up| up_named(state, up)),
@@ -774,11 +804,58 @@ fn away_words(state: &State, kept: &tisty_core::model::Kept) -> String {
     }
 }
 
-fn outline_of(body: &str) -> Vec<Value> {
-    tisty_core::docs::outlined(body)
-        .iter()
-        .map(|one| json!(one))
-        .collect()
+const OUTLINE_AT_MOST: usize = 120;
+
+// A dated log grows a heading a day, and an outline of every one costs more than the log.
+fn outline_held(all: &[Heading]) -> (Vec<&Heading>, usize) {
+    let upto =
+        |level: usize| -> Vec<&Heading> { all.iter().filter(|one| one.level <= level).collect() };
+    let top = all.iter().map(|one| one.level).min().unwrap_or(1);
+    let deepest = (top..=6)
+        .rev()
+        .find(|level| upto(*level).len() <= OUTLINE_AT_MOST);
+    let held = match deepest {
+        Some(6) => upto(6),
+        Some(level) => {
+            // Every chapter stays, and the room left shows the first and last of the level under them.
+            let mut held = upto(level);
+            let under: Vec<&Heading> = all.iter().filter(|one| one.level == level + 1).collect();
+            held.extend(ends_of(under, OUTLINE_AT_MOST - held.len()));
+            held.sort_by_key(|one| one.line);
+            held
+        }
+        None => ends_of(upto(top), OUTLINE_AT_MOST),
+    };
+    let left = all.len() - held.len();
+    (held, left)
+}
+
+fn ends_of(many: Vec<&Heading>, room: usize) -> Vec<&Heading> {
+    if many.len() <= room {
+        return many;
+    }
+    let head = room / 2;
+    let tail = &many[many.len() - (room - head)..];
+    many[..head].iter().chain(tail).copied().collect()
+}
+
+fn outline_into<'a>(
+    all: &'a [Heading],
+    into: &mut serde_json::Map<String, Value>,
+) -> (Vec<&'a Heading>, String) {
+    let (held, left) = outline_held(all);
+    into.insert("outline".into(), json!(held));
+    if left > 0 {
+        into.insert("outline_left".into(), json!(left));
+    }
+    let said = match left {
+        0 => String::new(),
+        n => format!(
+            "\n\n{n} more headings, deeper or in between, are left out: read a stretch with \
+             `from` and `to`, or a `section` by its `at`."
+        ),
+    };
+    (held, said)
 }
 
 pub(super) fn placed(

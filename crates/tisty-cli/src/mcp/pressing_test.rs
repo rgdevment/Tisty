@@ -138,7 +138,7 @@ fn catching_up_names_the_five_that_slipped_longest_ago_and_how_to_find_the_rest(
     );
     assert!(said.contains("`read` one before you take it up"), "{said}");
     assert!(
-        said.contains("2 more: `find` with `scope` «open» and `to` 2026-10-30"),
+        said.contains("2 more: `find` with `scope` «open», `said_done` false and `to` 2026-10-30"),
         "{said}"
     );
 }

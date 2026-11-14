@@ -22,7 +22,7 @@ expression: tool
         "type": "string"
       },
       "path": {
-        "description": "A path to a file on this machine",
+        "description": "A file under Downloads, Documents, Pictures, Desktop or the temporary folder",
         "type": "string"
       },
       "task": {

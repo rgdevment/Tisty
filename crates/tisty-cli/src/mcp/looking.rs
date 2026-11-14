@@ -5,7 +5,7 @@ use tisty_core::State;
 use tisty_core::model::{Priority, Tag, Task, TaskId};
 use tisty_core::standing::Standing;
 
-use super::asked::{strings, text};
+use super::asked::{how_many, strings, text};
 use super::jsonrpc::{mirrored, told};
 use super::mistaken::{named_document, no_document_called, not_a_task_id};
 use super::pressing::{name_pressing, pressed, pressing, tallied};
@@ -14,7 +14,7 @@ use super::resuming::{
     whose,
 };
 use super::task_reading::{Page, widened, window};
-use super::unpathing::{fenced_in, unpathed_body};
+use super::unpathing::{PATH_MARK, fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
 };
@@ -37,6 +37,18 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                  new filing from this source takes `again`, and only if they want it back."
                     .into(),
                 json!({ "found": { "id": id.to_string(), "erased": true } }),
+            ));
+        }
+        if let Some(task) = filed
+            .and_then(|id| state.tasks.get(&id))
+            .filter(|one| one.hidden)
+        {
+            return Ok(told(
+                format!(
+                    "Already proposed from that source, and the person put it out of sight. {}",
+                    super::chores::out_of_sight_again(task)
+                ),
+                json!({ "found": { "hidden": true } }),
             ));
         }
         let held = filed.and_then(|id| state.tasks.get(&id));
@@ -71,11 +83,12 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     }
     let scope = scoped(args)?;
-    let most = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(20)
-        .clamp(1, 100) as usize;
+    let most = how_many(args, FOUND_BY_DEFAULT, FOUND_AT_MOST);
+    let with_lines = args.get("lines").and_then(Value::as_bool) != Some(false);
+    let terms = query
+        .as_deref()
+        .map(tisty_core::text::terms)
+        .unwrap_or_default();
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     // Counting what it cannot see would still say the thing exists.
@@ -119,16 +132,20 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let wheres: Vec<Option<(&str, String)>> = hits
         .iter()
         .map(|task| {
-            let (kind, line, kept) = match lined.get(&task.id) {
-                Some(line) => ("document", line.clone(), kept_here(line)),
+            if !with_lines {
+                return None;
+            }
+            let (kind, (shown, unpathed)) = match lined.get(&task.id) {
+                Some(line) => ("document", quoted(line, kept_here(line), &terms)),
                 None => {
                     let (kind, line) = tisty_core::view::mentioned_where(task, query.as_deref()?)?;
                     let kept = kept_where(task, kind, &line);
-                    (kind, line, kept)
+                    let by = tisty_core::view::unnamed(task, &terms);
+                    (kind, quoted(&line, kept, &by))
                 }
             };
-            hid |= kept != line;
-            Some((kind, kept))
+            hid |= unpathed;
+            Some((kind, shown))
         })
         .collect();
     let found: Vec<Value> = hits
@@ -148,19 +165,23 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         Some(said) => Some(super::folder_found(&state, &said)?),
         None => None,
     };
-    let papers = match (&query, sifted.none()) {
-        (Some(_), true) => papers_matching(&state, &seen, scope, within),
-        _ => Vec::new(),
+    let (papers, papers_all) = match (&query, sifted.none()) {
+        (Some(_), true) => papers_matching(&state, &seen, scope, within, most),
+        _ => (Vec::new(), 0),
     };
-    let papers_all = papers.len();
     let papers: Vec<Value> = papers
         .into_iter()
-        .take(most)
         .map(|mut one| {
-            let line = said(&one, "line").to_string();
-            let kept = kept_here(&line);
-            hid |= kept != line;
-            one["line"] = json!(kept);
+            let shown = match with_lines {
+                true => {
+                    let line = said(&one, "line").to_string();
+                    let (shown, unpathed) = quoted(&line, kept_here(&line), &terms);
+                    hid |= unpathed;
+                    shown
+                }
+                false => String::new(),
+            };
+            one["line"] = json!(shown);
             one
         })
         .collect();
@@ -172,14 +193,14 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "{:?} {} ({}) [{}]\n  {kind}: {line}",
                 task.title,
                 placed(&state, task),
-                standing(task),
+                standing_said(task, today),
                 task.id
             ),
             None => format!(
                 "{:?} {} ({}) [{}]",
                 task.title,
                 placed(&state, task),
-                standing(task),
+                standing_said(task, today),
                 task.id
             ),
         })
@@ -269,11 +290,7 @@ pub(super) fn inside_a_doc(
     }
     let named = doc_named(state, which);
     let body = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
-    let most = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(20)
-        .clamp(1, 100) as usize;
+    let most = how_many(args, FOUND_BY_DEFAULT, FOUND_AT_MOST);
 
     let terms = tisty_core::text::terms(&query);
     if terms.is_empty() {
@@ -305,18 +322,30 @@ pub(super) fn inside_a_doc(
         .get("around")
         .and_then(Value::as_u64)
         .map_or(AROUND_A_HIT, |asked| (asked as usize).min(AROUND_AT_MOST));
-    let found: Vec<Value> = at
-        .iter()
-        .take(most)
-        .map(|n| {
-            let first = n.saturating_sub(reach);
-            let last = (n + reach).min(lines.len().saturating_sub(1));
+    let shown: Vec<usize> = at.iter().copied().take(most).collect();
+    let mut room = 0usize;
+    let found: Vec<Value> = neighbourhoods(&shown, reach, lines.len())
+        .into_iter()
+        .map(|(n, around)| {
             let mut hit = serde_json::Map::new();
             hit.insert("line".into(), json!(n + 1));
-            hit.insert("text".into(), json!(lines[*n]));
-            if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
-                let around: Vec<String> = (first..=last)
-                    .map(|at| tisty_core::view::clipped(lines[at]))
+            hit.insert(
+                "text".into(),
+                json!(tisty_core::docs::cut_around(
+                    lines[n].to_string(),
+                    &terms,
+                    HIT_AT_MOST
+                )),
+            );
+            if around
+                .clone()
+                .any(|at| at != n && !lines[at].trim().is_empty())
+            {
+                let around: Vec<String> = around
+                    .map(|at| match at == n {
+                        true => format!("(line {})", n + 1),
+                        false => tisty_core::view::clipped(lines[at]),
+                    })
                     .collect();
                 hit.insert("around".into(), json!(around.join("\n")));
             }
@@ -325,27 +354,42 @@ pub(super) fn inside_a_doc(
             }
             Value::Object(hit)
         })
+        .take_while(|one| {
+            let first = room == 0;
+            room += said(one, "text").chars().count() + said(one, "around").chars().count();
+            first || room <= super::WHOLE_UP_TO
+        })
         .collect();
 
     let said = match all {
         0 => format!("Nothing in {named} says {query:?}."),
         _ => format!(
-            "{all} line(s) of {named} say {query:?}; showing {}.\n{}",
+            "{all} line(s) of {named} say {query:?}; showing {}.\n{}{}",
             found.len(),
             found
                 .iter()
-                .map(|one| match one["section"].is_object() {
-                    true => format!(
-                        "line {} (section {}, {}) — {}",
-                        one["line"],
-                        one["section"]["at"],
-                        said(&one["section"], "title"),
-                        said(one, "text")
-                    ),
-                    false => format!("line {} — {}", one["line"], said(one, "text")),
+                .map(|one| {
+                    let head = match one["section"].is_object() {
+                        true => format!(
+                            "line {} (section {}, {}) — {}",
+                            one["line"],
+                            one["section"]["at"],
+                            said(&one["section"], "title"),
+                            said(one, "text")
+                        ),
+                        false => format!("line {} — {}", one["line"], said(one, "text")),
+                    };
+                    match said(one, "around") {
+                        "" => head,
+                        around => format!("{head}\n  around it:\n{}", indented(around)),
+                    }
                 })
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n"),
+            match all > found.len() {
+                true => "\nThe rest: narrow the words, or read on with `read_doc` `from` a line.",
+                false => "",
+            }
         ),
     };
     Ok(mirrored(
@@ -410,8 +454,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .then(|| {
             let kept = tisty_core::task_docs::of(&state, owner)?;
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
-            let (body, boxed) =
-                tisty_core::task_front::dressed_boxes(&body, task, list_of(&state, task));
+            // The page comes back as it is stored, so it can be written back as it came.
+            let (body, boxed) = tisty_core::stages::ticked_boxes(task, &body);
             let yours = task.is_open();
             let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
                 .filter(|slot| !slot.undone)
@@ -624,9 +668,12 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             None if task.is_dropped() => "the person dropped it",
             None => "it is closed",
         };
+        let named = match task.hidden {
+            true => String::new(),
+            false => format!(", {},", named_task(&state, task)),
+        };
         said.push(format!(
-            "The task you were last on, {}, is not open to pick up: {how}.",
-            named_task(&state, task)
+            "The task you were last on{named} is not open to pick up: {how}."
         ));
     }
     let asked = match text(args, "since") {
@@ -749,6 +796,7 @@ fn counted_tags(state: &State) -> Vec<(&str, usize)> {
     for one in state
         .tasks
         .values()
+        .filter(|task| !task.hidden)
         .flat_map(|task| &task.tags)
         .chain(state.papers().flat_map(|one| &one.tags))
     {
@@ -888,13 +936,13 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Kept what {:?} is about, against the text as it reads now. It stays on this \
+            "Kept what {} is about, against the text as it reads now. It stays on this \
              machine, and the next reader is told if the document has moved since.",
-            card.title
+            super::named_as(&state, &which, &card.title)
         ),
         json!({
             "doc": which,
-            "title": card.title,
+            "title": super::title_of(&state, &which, card.title.clone()),
             "print": card.print,
             "kept": true,
         }),
@@ -903,6 +951,54 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 const AROUND_A_HIT: usize = 1;
 const AROUND_AT_MOST: usize = 10;
+const HIT_AT_MOST: usize = 1_000;
+const FOUND_BY_DEFAULT: u64 = 10;
+const FOUND_AT_MOST: u64 = 100;
+const LINE_FOUND_AT_MOST: usize = 120;
+
+// Paths go before the cut, so none is left half shown; a word that was only in one is sought at its mark.
+fn quoted(line: &str, kept: String, by: &[String]) -> (String, bool) {
+    let unpathed = kept != line;
+    let lost = unpathed && {
+        let flat = tisty_core::text::folded(&kept);
+        !by.iter().any(|term| flat.contains(term.as_str()))
+    };
+    let shown = match lost {
+        true => tisty_core::docs::cut_around(kept, &[PATH_MARK.to_string()], LINE_FOUND_AT_MOST),
+        false => tisty_core::docs::cut_around(kept, by, LINE_FOUND_AT_MOST),
+    };
+    let marked = unpathed && shown.contains(PATH_MARK);
+    (shown, marked)
+}
+
+// A line two hits share is shown once, with the earlier of them, so hits close together do not pay for it twice.
+fn neighbourhoods(
+    hits: &[usize],
+    reach: usize,
+    lines: usize,
+) -> Vec<(usize, std::ops::RangeInclusive<usize>)> {
+    let mut free_from = 0;
+    hits.iter()
+        .enumerate()
+        .map(|(nth, &hit)| {
+            let first = hit.saturating_sub(reach).max(free_from);
+            let reached = (hit + reach).min(lines.saturating_sub(1));
+            let last = hits
+                .get(nth + 1)
+                .map_or(reached, |next| reached.min(next - 1));
+            free_from = last + 1;
+            (hit, first..=last)
+        })
+        .collect()
+}
+
+fn indented(lines: &str) -> String {
+    lines
+        .lines()
+        .map(|line| format!("    {line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;
@@ -1003,7 +1099,8 @@ fn papers_matching(
     seen: &[tisty_core::docs::Sighting],
     scope: tisty_core::view::Scope,
     within: Option<tisty_core::model::FolderId>,
-) -> Vec<Value> {
+    most: usize,
+) -> (Vec<Value>, usize) {
     let inside = |one: &tisty_core::model::Kept| {
         within.is_none_or(|at| {
             one.folder
@@ -1045,7 +1142,10 @@ fn papers_matching(
         let marked = here.get(&one.id).is_some_and(|(_, _, how)| how.is_some());
         (marked, !one.line.is_empty())
     });
-    seen.into_iter()
+    let all = seen.len();
+    let shown = seen
+        .into_iter()
+        .take(most)
         .map(|one| {
             let (archived, page_of, marked) =
                 here.get(&one.id).cloned().unwrap_or((false, None, None));
@@ -1062,7 +1162,8 @@ fn papers_matching(
             }
             hit
         })
-        .collect()
+        .collect();
+    (shown, all)
 }
 
 fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sighting> {
@@ -1075,13 +1176,13 @@ fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sighting> {
 }
 
 // A task found by its document's words answers as the task, with the line that said it.
-fn documented(
+fn documented<'a>(
     state: &State,
-    seen: &[tisty_core::docs::Sighting],
-) -> Vec<(tisty_core::model::TaskId, String)> {
+    seen: &'a [tisty_core::docs::Sighting],
+) -> Vec<(tisty_core::model::TaskId, &'a str)> {
     let behind = tisty_core::task_docs::behind(state);
     seen.iter()
-        .filter_map(|one| Some((*behind.get(&one.id)?, one.line.clone())))
+        .filter_map(|one| Some((*behind.get(&one.id)?, one.line.as_str())))
         .collect()
 }
 
@@ -1315,6 +1416,17 @@ impl Sifted {
             }
         }
         true
+    }
+}
+
+// A reader of the text alone still learns what presses, not only what `structuredContent` says.
+fn standing_said(task: &Task, today: jiff::civil::Date) -> String {
+    let status = standing(task);
+    match standing_of(task, today)
+        .and_then(|how| json!(how).as_str().map(|one| one.replace('_', " ")))
+    {
+        Some(how) => format!("{status}, {how}"),
+        None => status,
     }
 }
 

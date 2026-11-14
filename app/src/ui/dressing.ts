@@ -1,4 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import type { Widths } from "tisty-editor/edit";
 import type { PartCarded } from "tisty-editor/read";
 import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
 import { openLink } from "../core";
@@ -45,7 +46,7 @@ export type Reaching = Carding & {
   readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
-  readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
+  readonly onWiden?: (at: [number, number], widths: Widths) => void;
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
@@ -524,8 +525,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const now = reach();
     const widen = now.onWiden;
     if (!widen) return undefined;
-    return (at, column, dashes) =>
-      widen([charsAt(now.body, at[0]), charsAt(now.body, at[1])], column, dashes);
+    return (at, widths) => widen([charsAt(now.body, at[0]), charsAt(now.body, at[1])], widths);
   });
   quickly(page, () => {
     const now = reach();

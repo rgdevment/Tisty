@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use tisty_core::Paths;
 
-use super::super::asked::text;
+use super::super::asked::{how_many, text};
 use super::super::jsonrpc::told;
 use super::super::mistaken::not_a_document;
 use super::super::{
@@ -31,10 +31,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
     }
     let under = match text(args, "page_of") {
         Some(said) => Some(
-            state
-                .docs
-                .values()
-                .find(|one| one.file == said)
+            super::super::mistaken::named_document(&state, &said)
                 .map(|one| one.id)
                 .ok_or_else(|| {
                     Refused::Tool(not_a_document(&state, &said).unwrap_or_else(|| {
@@ -47,11 +44,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
         ),
         None => None,
     };
-    let most = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .unwrap_or(50)
-        .clamp(1, LISTED_AT_MOST as u64) as usize;
+    let most = how_many(args, 50, LISTED_AT_MOST as u64);
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     let reading = under.is_some();

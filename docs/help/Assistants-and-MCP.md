@@ -106,17 +106,17 @@ You do not have to remember this step. When an assistant tries to work with Tist
 
 ## What it can do, in short
 
-File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task it filed is done, **for you to confirm**.
+File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task is done, yours too, **for you to confirm**.
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it only says what it did — a step or the whole task is done — as its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 
 ## Ready-made requests and @-mentions
 
-Since 1.46.0, the memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
+The memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
 **Seven ready-made requests.** Tisty hands your assistant seven requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
@@ -145,7 +145,7 @@ What an agent connected to Tisty does on a real piece of work:
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
-Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. What you wrote stays yours: the agent only adds — a journal entry, a reminder, a file — and gives its word that a step or the task is done, for you to confirm. Closing is always yours.
+Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours.
 
 ## Signed by name
 
@@ -164,9 +164,9 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | Picks up the work, with nothing new | about 1% | 99% less |
 | Picks up and opens the task it was on | under 3% | over 97% less |
 | Looks for something solved months ago | about 3% | 97% less |
-| Looks up one subject: the outline and one section | about 6%, 12% at worst | 88–94% less |
+| Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
-No document holds more than 64,000 characters, so a log that size is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
+No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters unless the agent asks for a document whole to carry elsewhere, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; what is finished costs nothing until it is searched; and a search brings ten tasks and ten documents at a time, each with the line that says it cut to 120 characters around the word.
 
 Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 

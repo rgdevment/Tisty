@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.10.0";
+pub const VERSION: &str = "1.11.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

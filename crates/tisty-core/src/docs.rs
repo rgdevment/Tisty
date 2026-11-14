@@ -337,12 +337,31 @@ pub fn amend(
     id: &str,
     make: impl FnOnce(&str) -> Option<String>,
 ) -> Result<Option<String>> {
+    amended(root, Some(data), id, make)
+}
+
+pub fn amend_unkept(
+    root: &Path,
+    id: &str,
+    make: impl FnOnce(&str) -> Option<String>,
+) -> Result<Option<String>> {
+    amended(root, None, id, make)
+}
+
+fn amended(
+    root: &Path,
+    data: Option<&Path>,
+    id: &str,
+    make: impl FnOnce(&str) -> Option<String>,
+) -> Result<Option<String>> {
     alone(root, || {
         let was = read(root, id)?;
         let Some(whole) = make(&was) else {
             return Ok(None);
         };
-        kept_before(data, id, &was, &whole)?;
+        if let Some(data) = data {
+            kept_before(data, id, &was, &whole)?;
+        }
         written(root, id, &whole)?;
         Ok(Some(settled(&whole)))
     })
@@ -964,9 +983,9 @@ fn bared(body: &str) -> String {
 }
 
 // A long line is cut around the words it was found by, or the match falls past the cut.
-fn cut(said: String, terms: &[String]) -> String {
+pub fn cut_around(said: String, terms: &[String], most: usize) -> String {
     let chars: Vec<char> = said.chars().collect();
-    if chars.len() <= SAID_AT_MOST {
+    if chars.len() <= most {
         return said;
     }
     // Folding can drop or add characters, so each folded one keeps the place it came from.
@@ -988,21 +1007,19 @@ fn cut(said: String, terms: &[String]) -> String {
         .min()
         .and_then(|at| from.get(at).copied())
         .unwrap_or(0);
-    let start = found
-        .saturating_sub(SAID_AT_MOST / 3)
-        .min(chars.len() - SAID_AT_MOST);
-    let end = start + SAID_AT_MOST;
+    let start = found.saturating_sub(most / 3).min(chars.len() - most);
+    let end = start + most;
     let mut shown: Vec<char> = chars[start..end].to_vec();
     if start > 0 {
         shown[0] = '…';
     }
     if end < chars.len() {
-        shown[SAID_AT_MOST - 1] = '…';
+        shown[most - 1] = '…';
     }
     shown.into_iter().collect()
 }
 
-fn shown_around(body: &str, terms: &[String]) -> Option<String> {
+fn line_saying(body: &str, terms: &[String]) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     let mut backup: Option<(usize, String)> = None;
     let mut fence = Fencing::default();
@@ -1031,7 +1048,7 @@ fn shown_around(body: &str, terms: &[String]) -> Option<String> {
             break;
         }
     }
-    best.or(backup).map(|(_, said)| cut(said, terms))
+    best.or(backup).map(|(_, said)| said)
 }
 
 pub const CORPUS_AT_MOST: usize = 64 * 1024 * 1024;
@@ -1145,7 +1162,7 @@ impl Corpus {
             let Ok(body) = read(root, &doc.id) else {
                 continue;
             };
-            if let Some(line) = shown_around(&body, &terms) {
+            if let Some(line) = line_saying(&body, &terms) {
                 found.push(Sighting {
                     id: doc.id,
                     title,

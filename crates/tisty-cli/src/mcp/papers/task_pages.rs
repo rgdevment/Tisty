@@ -4,8 +4,10 @@ use tisty_core::model::TaskId;
 use tisty_core::{Op, Paths, State, Store};
 
 use super::super::asked::text;
+use super::super::task_notes::left_as_assistants;
 use super::super::{Refused, history, hitch, moved, opened, retold};
 use super::importing::{as_an_assistant, broken_rule};
+use super::reading::in_sight;
 
 const WRITE_A_PAGE: [&str; 5] = [
     "write_doc",
@@ -42,6 +44,9 @@ pub(in crate::mcp) fn on_its_page(
     let Some(id) = tisty_core::task_docs::behind(&state).get(file).copied() else {
         return write();
     };
+    if let Some(kept) = state.docs.values().find(|one| one.file == file) {
+        in_sight(&state, kept, file)?;
+    }
     if let Some(task) = state.tasks.get(&id).filter(|one| !one.is_open()) {
         return Err(history(task));
     }
@@ -59,8 +64,23 @@ pub(in crate::mcp) fn on_its_page(
         };
         let settled = settled(paths, id, &page)?;
         told_also(&mut said, &settled);
+        noted_as_assistants(paths, &page);
+        let now = tisty_core::docs::read(&root, file).map_err(hitch)?;
+        if now != page.after
+            && let Some(print) = said.pointer_mut("/structuredContent/print")
+        {
+            *print = Value::String(tisty_core::attach::printed(now.as_bytes()));
+        }
     }
     Ok(said)
+}
+
+// Written by the page's name, an assistant's notes are still theirs when a digest sorts them.
+fn noted_as_assistants(paths: &Paths, page: &PageWrite) {
+    let section = tisty_core::assistant_notes::section;
+    if section(&page.before) != section(&page.after) {
+        left_as_assistants(paths, page.file, &page.before, &page.after);
+    }
 }
 
 fn told_also(said: &mut Value, more: &str) {
@@ -80,13 +100,15 @@ fn settled(paths: &Paths, id: TaskId, page: &PageWrite) -> Result<String, Refuse
         return Ok(String::new());
     };
     let (before, after) = (page.before.as_str(), page.after.as_str());
-    let named = tisty_core::task_docs::task_in;
-    if named(after) != named(before) {
+    let fields = tisty_markdown::front::fields;
+    if fields(after) != fields(before) {
         undone(paths, &state, &mut store, page)?;
         return Err(Refused::Tool(format!(
-            "the lines between `---` at the top of {:?}'s page name its task, and this write \
-             changed them, so the page was put back as it was. Write again keeping those lines \
-             as they are.",
+            "the lines between `---` at the top of {:?}'s page belong to Tisty, and this write \
+             changed them, so the page was put back as it was. A task's day, list, priority and \
+             reminders never change from its page: `rules` «tasks» says which tool changes each, \
+             and which are the person's alone. Write again keeping those lines as `read` and \
+             `read_doc` give them.",
             task.title
         )));
     }

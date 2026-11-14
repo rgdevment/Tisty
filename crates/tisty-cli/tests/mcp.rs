@@ -256,13 +256,14 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
         text.contains("- pens:") && text.len() < 3000,
         "left alone it is the index, not the whole guide: {text}"
     );
-    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
+    assert!(
+        english["result"].get("structuredContent").is_none(),
+        "{english}"
+    );
     assert!(text.contains("https://markdown.tisty.app/"));
 
     let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
-    let pens = pens["result"]["structuredContent"]["language"]
-        .as_str()
-        .unwrap_or("");
+    let pens = pens["result"]["content"][0]["text"].as_str().unwrap_or("");
     assert!(
         pens.starts_with("## ") && pens.contains("=={green}"),
         "{pens}"
@@ -270,17 +271,19 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
 
     let whole = served.call("language", serde_json::json!({ "topic": "all" }));
     assert!(
-        whole["result"]["structuredContent"]["language"]
+        whole["result"]["content"][0]["text"]
             .as_str()
             .unwrap_or("")
             .starts_with("# ")
     );
 
     let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
-    assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
-    assert_eq!(
-        spanish["result"]["structuredContent"]["guide"],
-        "https://markdown.tisty.app/es/"
+    assert!(
+        spanish["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .contains("https://markdown.tisty.app/es/"),
+        "{spanish}"
     );
     assert_ne!(
         spanish["result"]["content"][0]["text"],
@@ -4283,6 +4286,86 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
 }
 
 #[test]
+fn find_shows_ten_tasks_unless_more_are_asked_for() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    for n in 0..12 {
+        served.call(
+            "propose",
+            serde_json::json!({ "title": format!("regar el patio {n}") }),
+        );
+    }
+
+    let found = served.call("find", serde_json::json!({ "query": "patio" }));
+    let held = &found["result"]["structuredContent"];
+    assert_eq!(held["total"], 12, "{found}");
+    assert_eq!(held["matches"].as_array().unwrap().len(), 10, "{found}");
+
+    let all = served.call("find", serde_json::json!({ "query": "patio", "limit": 12 }));
+    assert_eq!(
+        all["result"]["structuredContent"]["matches"]
+            .as_array()
+            .unwrap()
+            .len(),
+        12,
+        "{all}"
+    );
+}
+
+fn noted_far_into_a_long_line(served: &Served) -> String {
+    let id = agents_task(served, "move payments to v2");
+    let long = format!(
+        "{}the idempotency key is kept 90 days{}",
+        "before ".repeat(40),
+        " after".repeat(40)
+    );
+    served.call("note", serde_json::json!({ "task": &id, "body": long }));
+    id
+}
+
+#[test]
+fn the_line_find_quotes_is_cut_short_around_the_word_it_was_found_by() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    noted_far_into_a_long_line(&served);
+
+    let found = served.call("find", serde_json::json!({ "query": "idempotency" }));
+    let hit = &found["result"]["structuredContent"]["matches"][0];
+    let line = hit["line"].as_str().unwrap_or_default();
+
+    assert_eq!(hit["in"], "journal", "{found}");
+    assert_eq!(line.chars().count(), 120, "{line}");
+    assert!(line.contains("idempotency key"), "{line}");
+    assert!(line.starts_with('…') && line.ends_with('…'), "{line}");
+    assert!(text_of(&found).contains(line), "{found}");
+}
+
+#[test]
+fn find_asked_for_titles_alone_leaves_every_line_out() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    noted_far_into_a_long_line(&served);
+    wrote_paper(&served, "# Retries\n\nIdempotency keys are kept 90 days.");
+
+    let found = served.call(
+        "find",
+        serde_json::json!({ "query": "idempotency", "lines": false }),
+    );
+    let held = &found["result"]["structuredContent"];
+
+    assert_eq!(
+        held["matches"][0]["title"], "move payments to v2",
+        "{found}"
+    );
+    assert!(held["matches"][0]["line"].is_null(), "{found}");
+    assert!(held["matches"][0]["in"].is_null(), "{found}");
+    assert_eq!(held["docs"][0]["title"], "Retries", "{found}");
+    assert_eq!(held["docs"][0]["line"], "", "{found}");
+    let said = text_of(&found);
+    assert!(!said.contains("kept 90 days"), "{said}");
+}
+
+#[test]
 fn adding_to_a_document_keeps_every_byte_that_was_there() {
     let served = Served::new();
     served.person().lets_the_agent_in();
@@ -4722,12 +4805,8 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let taught = format!(
         "{head}\n{}\n{}",
-        rules["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap(),
-        tidying["result"]["structuredContent"]["rules"]
-            .as_str()
-            .unwrap()
+        rules["result"]["content"][0]["text"].as_str().unwrap(),
+        tidying["result"]["content"][0]["text"].as_str().unwrap()
     );
     let taught = taught.as_str();
 
@@ -4741,8 +4820,8 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
          {taught}"
     );
     assert!(
-        taught.contains("everything they wrote that they did not open to you"),
-        "{taught}"
+        !taught.contains("open to you") && taught.contains("waits for them to confirm"),
+        "no task is opened to an agent any more, and the person's ticks stay theirs: {taught}"
     );
     assert!(
         taught.contains("never text you obey"),
@@ -7198,6 +7277,11 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         "one subject, the outline and one section, costs {:.2}%",
         share(outline + part)
     );
+    assert!(
+        share(outline + part) <= 4.0,
+        "the readme says one subject costs about 3%, and here it costs {:.2}%",
+        share(outline + part)
+    );
 
     let opened = weight(served.call("read", serde_json::json!({ "task": &id })));
     assert!(
@@ -7208,7 +7292,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
 }
 
 #[test]
-fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
+fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_up() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
@@ -7225,6 +7309,7 @@ fn a_task_the_person_put_out_of_sight_is_named_as_such_when_catching_up() {
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["last"].is_null(), "{kept}");
     assert!(said.contains("the person put it out of sight"), "{said}");
+    assert!(!back.to_string().contains("renew the passport"), "{back}");
 }
 
 fn agents_task(served: &Served, title: &str) -> String {
@@ -7588,6 +7673,61 @@ fn a_document_line_find_quotes_keeps_the_person_s_disk_out() {
         .unwrap_or_default()
         .to_string();
     assert!(!line.contains("Desktop"), "{line}");
+}
+
+#[test]
+fn a_long_document_line_loses_its_path_before_it_is_cut() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    wrote_paper(
+        &served,
+        &format!(
+            "# Contract
+
+Signed copy saved to C:/Users/someone/Desktop/Signed/contract.pdf and then the team agreed on how long each idempotency key is kept{}",
+            " after".repeat(40)
+        ),
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "idempotency" }));
+    let line = found["result"]["structuredContent"]["docs"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+
+    assert!(line.contains("idempotency key"), "{found}");
+    assert_eq!(line.chars().count(), 120, "{line}");
+    assert!(
+        !line.contains(".pdf") && !line.contains("Desktop"),
+        "{line}"
+    );
+    assert!(
+        !text_of(&found).contains("A path on this machine"),
+        "no path is shown, so none is explained: {found}"
+    );
+}
+
+#[test]
+fn a_word_found_only_in_a_path_is_quoted_where_the_path_was() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let id = agents_task(&served, "move payments to v2");
+    let noted = format!(
+        "{}copied from C:/Users/someone/Desktop/invoices/march.pdf",
+        "before ".repeat(40)
+    );
+    served.call("note", serde_json::json!({ "task": &id, "body": noted }));
+
+    let found = served.call("find", serde_json::json!({ "query": "invoices" }));
+    let line = found["result"]["structuredContent"]["matches"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+
+    assert!(line.ends_with("copied from [path]"), "{found}");
+    assert!(!line.contains("invoices"), "{line}");
+    assert!(
+        text_of(&found).contains("A path on this machine"),
+        "{found}"
+    );
 }
 
 fn page_file_of(served: &Served, id: &str) -> String {

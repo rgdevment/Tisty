@@ -9,12 +9,12 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "The rules for working here, one guide at a time; alone, the basics and an index.",
+  "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,000 characters each, 31,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "topic": {
-        "description": "The guide; left out, the basics and the index",
+        "description": "The guide",
         "enum": [
           "tasks",
           "documents",
@@ -28,5 +28,5 @@ expression: tool
     "type": "object"
   },
   "name": "rules",
-  "title": "The rules for working here, by topic"
+  "title": "Read the rules for working here, by topic"
 }

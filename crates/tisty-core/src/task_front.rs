@@ -168,7 +168,7 @@ pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
     dressed_boxes(body, task, list).0
 }
 
-pub fn dressed_boxes(
+fn dressed_boxes(
     body: &str,
     task: &Task,
     list: Option<&str>,

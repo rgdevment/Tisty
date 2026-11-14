@@ -24,6 +24,7 @@ import {
   putBlock,
   SLASHED,
   stagesIn,
+  type Widths,
   WRITTEN,
   widened,
   wrapped,
@@ -955,10 +956,10 @@ export default function Sheet(props: Readonly<Props>) {
     turned,
   });
 
-  const widen = (at: [number, number], column: number, dashes: number) => {
+  const widen = (at: [number, number], widths: Widths) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
-    const next = widened(latest.current, at, column, dashes);
+    const next = widened(latest.current, at, widths);
     if (next === null) return;
     whole(next);
   };

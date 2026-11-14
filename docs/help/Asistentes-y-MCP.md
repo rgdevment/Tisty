@@ -106,17 +106,17 @@ No tienes que acordarte de este paso. Cuando un asistente intenta trabajar con T
 
 ## Qué puede hacer, en corto
 
-Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, anotar ideas en la Lluvia de ideas y ordenarlas contigo, buscar y leer lo que hay, y decir que una tarea que anotó está hecha, **para que tú lo confirmes**.
+Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la bitácora de una tarea, escribir y editar documentos, ordenarlos en carpetas y páginas, guardar una copia de un archivo que le indiques, anotar ideas en la Lluvia de ideas y ordenarlas contigo, buscar y leer lo que hay, y decir que una tarea está hecha, también una tuya, **para que tú lo confirmes**.
 
 Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías tú: por su título y dónde está, la lista o la carpeta. Nunca te muestra un identificador.
 
-**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de la Lluvia de ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. En una tarea que escribiste tú solo dice lo que hizo (que un paso o la tarea entera está hecha) como su palabra, que tú tomas o no.
+**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de la Lluvia de ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. En una tarea que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), y que un paso o la tarea entera están hechos es solo su palabra, que tú tomas o no.
 
 Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]].
 
 ## Pedidos listos y menciones con @
 
-Desde la 1.46.0, la memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
+La memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
 
 **Siete pedidos listos.** Tisty le entrega a tu asistente siete pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
@@ -145,7 +145,7 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
-Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. Lo que escribiste tú sigue siendo tuyo: el agente solo agrega (una nota en la bitácora, un recordatorio, un archivo) y da su palabra de que un paso o la tarea están hechos, para que tú lo confirmes. Cerrar siempre es tuyo.
+Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. En lo que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo.
 
 ## Firmado con su nombre
 
@@ -164,9 +164,9 @@ Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una
 | Retoma el trabajo, sin novedades | cerca de un 1 % | 99 % menos |
 | Retoma y abre la tarea en la que estaba | menos de un 3 % | más de un 97 % menos |
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
-| Consulta un tema: el índice y una sección | cerca de un 6 %, 12 % en el peor caso | 88–94 % menos |
+| Consulta un tema: el índice y una sección | cerca de un 3 %, 12 % en el peor caso | 88–97 % menos |
 
-Ningún documento pasa de 64 000 caracteres, así que una bitácora de ese tamaño queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; y lo terminado no cuesta nada hasta que alguien lo busca.
+Ninguna escritura lleva más de 64 000 caracteres, así que una bitácora larga queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, salvo que el agente pida un documento entero para llevarlo a otra parte, y pasado eso un documento pedido entero vuelve como su índice; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; lo terminado no cuesta nada hasta que alguien lo busca; y una búsqueda trae diez tareas y diez documentos por vez, cada uno con la línea que lo dice recortada a 120 caracteres alrededor de la palabra.
 
 Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test impide que vuelva a crecer. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
 

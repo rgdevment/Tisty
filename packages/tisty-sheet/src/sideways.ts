@@ -1,10 +1,12 @@
+import { fittedIn } from "./fitting";
 import type { Say } from "./words";
 
-// Only a table that scrolls takes a keyboard stop, so its hidden columns are reached without a mouse.
+// Only a table still wider than its sheet scrolls, and takes a keyboard stop so its hidden columns are reached without a mouse.
 export const sideways = (page: Document, say: Say): (() => void)[] => {
   const boxes = Array.from(page.querySelectorAll<HTMLElement>(".page > .table[data-at]"));
   const marked = () => {
     for (const box of boxes) {
+      fittedIn(box);
       if (box.scrollWidth > box.clientWidth) {
         box.tabIndex = 0;
         box.setAttribute("role", "region");

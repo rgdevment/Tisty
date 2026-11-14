@@ -10,7 +10,7 @@ pub(super) fn task_named(state: &State, which: &str) -> Option<TaskId> {
     which
         .parse::<TaskId>()
         .ok()
-        .filter(|id| state.tasks.contains_key(id))
+        .filter(|id| state.tasks.get(id).is_some_and(|one| !one.hidden))
 }
 
 pub(super) fn noted_on_page(
@@ -65,7 +65,7 @@ pub(super) fn noted_on_page(
         .as_deref()
         .and_then(|file| tisty_core::docs::read_notes_left(paths.data(), file));
     let mut left = None;
-    let written = tisty_core::task_docs::wrote(paths, store, id, |was, _| {
+    let written = tisty_core::task_docs::noted_beside(paths, store, id, |was, _| {
         let now = match replace {
             true => tisty_core::assistant_notes::rewritten(was, &note, spanish),
             false => tisty_core::assistant_notes::noted(was, &note, spanish),
@@ -203,9 +203,21 @@ fn notes_left(paths: &Paths, owner: TaskId, page: Option<&str>, words: Option<&s
         let (state, _) = super::opened(paths).ok()?;
         tisty_core::task_docs::of(&state, owner).map(|kept| kept.file.clone())
     });
-    if let (Some(file), Some(words)) = (file, words)
-        && let Err(e) = tisty_core::docs::keep_notes_left(paths.data(), &file, words)
+    if let (Some(file), Some(words)) = (file, words) {
+        kept_left(paths, &file, words);
+    }
+}
+
+pub(super) fn left_as_assistants(paths: &Paths, file: &str, was: &str, now: &str) {
+    let known = tisty_core::docs::read_notes_left(paths.data(), file);
+    if let Some(words) = tisty_core::assistant_notes::left_by_assistants(was, now, known.as_deref())
     {
+        kept_left(paths, file, &words);
+    }
+}
+
+fn kept_left(paths: &Paths, file: &str, words: &str) {
+    if let Err(e) = tisty_core::docs::keep_notes_left(paths.data(), file, words) {
         tisty_core::witness::warn(
             tisty_core::witness::channel::DOOR,
             "the notes an assistant left could not be kept aside",

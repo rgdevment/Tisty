@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes.",
+  "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes. For another tool, `read_doc` with `as`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

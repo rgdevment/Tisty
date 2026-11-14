@@ -257,11 +257,15 @@ pub(super) fn standing_out(body: &str) -> Vec<String> {
         .collect();
 
     let mut times: std::collections::HashMap<String, usize> = Default::default();
-    for word in crate::text::terms(body) {
-        if word.chars().count() < A_WORD_AT_LEAST {
+    let folded = crate::text::folded(body);
+    for raw in folded.split_whitespace() {
+        // Markdown's own marks, as a card's `![doc](…)`, are no word the text is about.
+        let word = raw.trim_matches(|c: char| !c.is_alphanumeric());
+        let spoken = word.chars().all(|c| c.is_alphanumeric() || c == '-');
+        if word.chars().count() < A_WORD_AT_LEAST || !spoken {
             continue;
         }
-        *times.entry(word).or_default() += 1;
+        *times.entry(word.to_string()).or_default() += 1;
     }
     let mut said: Vec<(String, usize)> = times.into_iter().filter(|(_, n)| *n > 1).collect();
     said.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));

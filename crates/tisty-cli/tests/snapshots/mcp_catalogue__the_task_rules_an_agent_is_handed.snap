@@ -2,6 +2,17 @@
 source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: "rules(Some(\"tasks\"))"
 ---
+## Write it to be read
+
+Whatever you write or edit — a task's description, a journal note, a task's page, a document — the person reads in the window, so make it visual, readable and in order, never a wall of plain text:
+- A heading for each part when there is more than one, and short paragraphs, one line each. A task's page keeps the sections it has, so write under them; Brainstorm takes ideas alone, a few words each.
+- A list for findings, options or what is left, numbered when the order matters; a table to compare.
+- **Bold** for the one thing to see first; `code` for commands, paths and names; a link where it leads.
+- A callout for what must stand out — `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` — and a pen or an icon where it helps the eye, sparingly.
+- A box `- [ ]` only for a step: on a task's page it becomes one.
+
+When you edit, leave the passage at least as ordered as you found it. `language` gives Tisty's marks one topic at a time.
+
 ## What a task is made of
 
 A task has a title, and only what someone actually knows besides: a description of what it is; steps, a checklist ticked as each one is done; parts, tasks of their own hung under it one level deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a date and a deadline, which are not the same; a reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when someone said so; tags for its subjects, in the person's plain words — a word that merely appears in the title is no subject; and a `source`, where you read it. Its page holds its words, notes, pictures and files. A task goes from open, to said done or said not doing by you, to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on answering «how was this solved?».
@@ -12,11 +23,11 @@ A date alone is the day it is meant to be done on. With a deadline, the date is 
 
 ## The archive is history to consult
 
-`find` searches the open tasks and the archive together unless you narrow `scope`, and a task found by what its page, steps or notes say comes with the `line` that says it, so a past decision often reads without opening the task. `read` brings a closed task whole, with `closed` set to when it ended, and `find` with `part_of` brings its parts. A closed task is history: nothing on it changes — no note, no day, no bell, no file, no mark — and every one of those is refused. When the same work comes back, that is a new task: `read` how the closed one ended and propose the new one with a description that says so, naming the closed one by its title and the day it closed. Search the archive before you propose or write: what was solved once is often the answer.
+`find` searches the open tasks and the archive together unless you narrow `scope`, and a task found by what its page, steps or notes say comes with the `line` that says it, so a past decision often reads without opening the task. It shows ten tasks and ten documents: `limit` brings more, and `lines` false brings titles alone, enough to see whether something was already filed. `read` brings a closed task whole, with `closed` set to when it ended, and `find` with `part_of` brings its parts. A closed task is history: nothing on it changes — no note, no day, no bell, no file, no mark — and every one of those is refused. When the same work comes back, that is a new task: `read` how the closed one ended and propose the new one with a description that says so, naming the closed one by its title and the day it closed. Search the archive before you propose or write: what was solved once is often the answer.
 
 ## Filing tasks
 
-Always pass `source` when you have one: a message id, a thread link, anything stable enough to recognise the same thing twice. Tisty refuses a second filing from the same source and hands back the task that already exists, so you cannot duplicate by mistake; however the source is written, «sereno#1», «sereno: #1» and «Sereno #1» are one. Without a source, `find` by text first. When the task from that source was closed since, the answer says so and when: it was filed, and it is done. When the person erased it, it stays erased. Only if the person asks you in this conversation for it to be done again, propose it once more with `again`, saying in the description how the last one ended.
+Always pass `source` when you have one: a message id, a thread link, anything stable enough to recognise the same thing twice. Tisty refuses a second filing from the same source and hands back the task that already exists, so you cannot duplicate by mistake; however the source is written, «sereno#1», «sereno: #1» and «Sereno #1» are one. Without a source, `find` by text first. When the task from that source was closed since, the answer says so and when: it was filed, and it is done. When the person erased it, it stays erased; when they put it out of sight, the answer says only that and names nothing. Only if the person asks you in this conversation for it to be done again, propose it once more with `again`, saying in the description how the last one ended.
 
 Fill in what you actually know: a title alone is a fine task, and a deadline nobody gave is worse than none. Write in the language the person writes in. Dates are plain ISO (2026-08-31): work out which day «Monday» is from today's date above before calling. Name the list it belongs in — `catch_up` says which, and you cannot make one; a task stays in the inbox only when the person asks for that or no list fits, and then say which list you would have wanted. Tisty tags what you propose #agent by itself.
 

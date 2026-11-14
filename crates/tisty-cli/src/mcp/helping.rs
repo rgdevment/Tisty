@@ -1,6 +1,6 @@
-use serde_json::{Value, json};
+use serde_json::Value;
 
-use super::jsonrpc::mirrored;
+use super::jsonrpc::said_alone;
 
 fn page_of(spanish: bool, topic: &str) -> Option<&'static tisty_help::Page> {
     let slug = if topic == "index" { "" } else { topic };
@@ -42,14 +42,7 @@ pub(super) fn help(args: &Value) -> Value {
             None => format!("No topic is called {topic:?}.\n\n{}", indexed(spanish)),
         },
     };
-    mirrored(
-        said.clone(),
-        json!({
-            "help": said,
-            "topic": asked.unwrap_or("index"),
-            "lang": if spanish { "es" } else { "en" },
-        }),
-    )
+    said_alone(said)
 }
 
 #[cfg(test)]

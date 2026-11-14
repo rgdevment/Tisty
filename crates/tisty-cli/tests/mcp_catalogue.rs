@@ -44,7 +44,7 @@ fn rules(topic: Option<&str>) -> String {
         "tools/call",
         &json!({ "name": "rules", "arguments": arguments }),
     )]);
-    said[0]["result"]["structuredContent"]["rules"]
+    said[0]["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
         .to_string()
@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 41_341;
+const DOOR_AT_MOST: usize = 41_200;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -107,6 +107,22 @@ fn the_task_rules_an_agent_is_handed() {
 #[test]
 fn the_document_rules_an_agent_is_handed() {
     insta::assert_snapshot!(rules(Some("documents")));
+}
+
+#[test]
+fn the_guides_weigh_what_the_rules_tool_says_they_do() {
+    for topic in ["tasks", "documents", "tidying", "ideas"] {
+        let size = rules(Some(topic)).chars().count();
+        assert!(
+            (3_000..=11_000).contains(&size),
+            "«{topic}» is {size} characters, and `rules` says 3,000 to 11,000: say the new size there"
+        );
+    }
+    let all = rules(Some("all")).chars().count();
+    assert!(
+        all <= 31_000,
+        "`all` is {all} characters, and `rules` says 31,000: say the new size there"
+    );
 }
 
 #[test]

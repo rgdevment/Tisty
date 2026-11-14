@@ -190,6 +190,9 @@ fn sharable<'a>(
     if kept.page_of.is_some() || kept.task_of.is_some() {
         return Err(Unshared::NotADocument);
     }
+    if kept.brainstorm {
+        return Err(Unshared::Brainstorm);
+    }
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(Remembered::edited_through_a_link);
