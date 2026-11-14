@@ -685,10 +685,10 @@ one in another colour, `++words++` is underlined, `::star::` is an icon, and an
 attachment is named by its own name, `![plan](plan-0006bf09.png)`. You write on
 the page itself, the one the core draws, with the marks out of sight, and the
 **⋯** menu or `Ctrl`/`⌘` + `E` turns it to Markdown, every mark in view, so what
-is on disk is always yours to read. **Copy as Markdown** and taking a document out say
-those few words the way any other reader understands them, and an older file, an
-import or an assistant writing in plain Markdown is turned into them on the way
-in.
+is on disk is always yours to read. **Copy as Markdown** and taking a document
+out say those few words the way any other reader understands them, and an older
+file, an import or an assistant writing in plain Markdown is turned into them on
+the way in.
 
 The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to
