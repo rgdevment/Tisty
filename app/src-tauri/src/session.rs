@@ -23,6 +23,7 @@ pub struct Session {
     writes: u64,
     behind: bool,
     pub reach: crate::reaching::Reaching,
+    pub nudge: crate::herald::Nudge,
 }
 
 pub struct Projected {
@@ -118,6 +119,7 @@ impl Session {
             written: std::collections::HashMap::new(),
             writes: 0,
             behind: false,
+            nudge: crate::herald::Nudge::default(),
         };
         session.tidy_up(true);
         session.dress_if_due();
@@ -1030,6 +1032,7 @@ impl Session {
         self.writes += 1;
         self.state.apply(&event);
         self.print = self.carry(std::slice::from_ref(&event));
+        self.nudge.give();
         Ok(())
     }
 
@@ -1040,6 +1043,7 @@ impl Session {
             self.state.apply(event);
         }
         self.print = self.carry(&events);
+        self.nudge.give();
         Ok(())
     }
 

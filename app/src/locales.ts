@@ -475,6 +475,18 @@ const en = {
   noticesWhy: "How Tisty tells you a reminder came due.",
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
+  noticeUrgent: "Important reminders",
+  noticeUrgentWhy:
+    "A reminder may come through «Do not disturb» once you allow it in the system. Off unless you turn it on.",
+  noticeUrgentAway:
+    "This system or this copy of Tisty cannot let a reminder through «Do not disturb».",
+  noticeUrgentScreen:
+    "Turn on «A notification from the system» first: without it no reminder reaches the system.",
+  noticeUrgentWindows:
+    "Under Settings → System → Notifications → Tisty, allow important notifications. Windows may also ask you in a notice the first time: allow it there too.",
+  noticeUrgentMac:
+    "Under System Settings → Notifications → Tisty, keep time-sensitive notifications on; then, in Focus, allow time-sensitive notifications in each focus you use.",
+  noticeUrgentOpen: "Open the system settings",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy: "Tisto looks over the bar while you write a task.",
   cheerKept: "{name} · kept in the archive",
@@ -1538,6 +1550,14 @@ const en = {
   wakeFresh: "Ready the next time you sign in",
   wakeGone: "It will not open on its own",
   wakeTheirs: "Windows holds this switch now. Turn Tisty back on under Settings → Apps → Startup.",
+  wakeOfferLabel: "Reminders with Tisty closed",
+  wakeOfferTitle: "Open Tisty when you sign in?",
+  wakeOfferWhy:
+    "Your reminders ring even with Tisty closed, while the computer is on. Opening at sign-in keeps them up to date, including the ones an assistant or another computer adds.",
+  wakeOfferGo: "Open at sign-in",
+  wakeOfferNo: "No, thanks",
+  wakeOfferSeen: "Got it",
+  wakeOfferLater: "Not now",
   noHits: "Nothing matched. Try a shorter word, or widen the scope above.",
   noHitsHere: "Nothing in the archive matched. Try a shorter word.",
   searchInvite: "Type to search. It looks in the archive too.",
@@ -3638,6 +3658,18 @@ const es: Catalog = {
   noticesWhy: "Cómo te avisa Tisty de que vence un recordatorio.",
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
+  noticeUrgent: "Recordatorios importantes",
+  noticeUrgentWhy:
+    "Un recordatorio puede atravesar «No molestar» cuando lo permites en el sistema. Apagado a menos que lo enciendas.",
+  noticeUrgentAway:
+    "Este sistema o esta copia de Tisty no puede hacer que un recordatorio atraviese «No molestar».",
+  noticeUrgentScreen:
+    "Primero enciende «Una notificación del sistema»: sin ella ningún recordatorio llega al sistema.",
+  noticeUrgentWindows:
+    "En Configuración → Sistema → Notificaciones → Tisty, permite las notificaciones importantes. Windows también puede preguntártelo en un aviso la primera vez: permítelo ahí también.",
+  noticeUrgentMac:
+    "En Ajustes del Sistema → Notificaciones → Tisty, deja encendidas las notificaciones urgentes; después, en Concentración, permite las urgentes en cada modo que uses.",
+  noticeUrgentOpen: "Abrir la configuración del sistema",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy: "Tisto se asoma sobre la barra mientras escribes una tarea.",
   cheerKept: "{name} · queda en el archivo",
@@ -4714,6 +4746,14 @@ const es: Catalog = {
   wakeGone: "Ya no se abrirá solo",
   wakeTheirs:
     "Ahora ese interruptor lo tiene Windows. Vuelve a activarlo en Configuración → Aplicaciones → Inicio.",
+  wakeOfferLabel: "Recordatorios con Tisty cerrado",
+  wakeOfferTitle: "¿Abrir Tisty al iniciar sesión?",
+  wakeOfferWhy:
+    "Tus recordatorios suenan aunque Tisty esté cerrado, mientras el equipo esté encendido. Si se abre al iniciar sesión, también quedan al día los que agregue un asistente u otro equipo.",
+  wakeOfferGo: "Abrirlo al iniciar sesión",
+  wakeOfferNo: "No, gracias",
+  wakeOfferSeen: "Entendido",
+  wakeOfferLater: "Ahora no",
   noHits:
     "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
   noHitsHere: "No coincide nada en el archivo. Prueba con una palabra más corta.",

@@ -296,3 +296,73 @@ fn a_plain_reminder_still_rings_only_the_once() {
         .is_empty()
     );
 }
+
+#[test]
+fn what_is_still_ahead_is_coming_soonest_first() {
+    let state = with(vec![at("2026-08-12T18:00:00"), at("2026-08-12T09:00:00")]);
+
+    let coming = coming(&state, moment("2026-08-11T10:00:00"), &zone(), 64);
+
+    assert_eq!(coming.len(), 2);
+    assert_eq!(coming[0].at, moment("2026-08-12T09:00:00"));
+    assert_eq!(coming[1].at, moment("2026-08-12T18:00:00"));
+}
+
+#[test]
+fn a_ring_already_past_is_not_coming() {
+    let state = with(vec![at("2026-08-11T09:45:00")]);
+
+    assert!(coming(&state, moment("2026-08-11T09:46:00"), &zone(), 64).is_empty());
+}
+
+#[test]
+fn a_ring_months_away_waits_for_a_later_look() {
+    let state = with(vec![at("2026-12-24T20:00:00")]);
+
+    assert!(coming(&state, moment("2026-08-11T09:00:00"), &zone(), 64).is_empty());
+}
+
+#[test]
+fn a_habit_is_coming_once_for_each_day_ahead() {
+    let state = every_day(vec![at("2026-08-01T09:00:00")]);
+
+    let coming = coming(&state, moment("2026-08-11T10:00:00"), &zone(), 64);
+
+    assert_eq!(coming.len(), 30, "{coming:?}");
+    assert_eq!(coming[0].at, moment("2026-08-12T09:00:00"));
+}
+
+#[test]
+fn only_the_soonest_fit_under_the_cap() {
+    let state = every_day(vec![at("2026-08-01T09:00:00")]);
+
+    let coming = coming(&state, moment("2026-08-11T10:00:00"), &zone(), 3);
+
+    assert_eq!(coming.len(), 3);
+    assert_eq!(coming[2].at, moment("2026-08-14T09:00:00"));
+}
+
+#[test]
+fn a_closed_task_has_nothing_coming() {
+    let mut state = with(vec![at("2026-08-12T09:00:00")]);
+    let id = *state.tasks.keys().next().unwrap();
+    state.apply(&fired(crate::Op::TaskDone { id, filled: false }));
+
+    assert!(coming(&state, moment("2026-08-11T10:00:00"), &zone(), 64).is_empty());
+}
+
+#[test]
+fn what_is_coming_names_its_task() {
+    let state = with(vec![at("2026-08-12T09:00:00")]);
+    let id = state.tasks.keys().next().unwrap().to_string();
+
+    let coming = coming(&state, moment("2026-08-11T10:00:00"), &zone(), 64);
+
+    assert_eq!(
+        coming[0].what,
+        Happening::Due {
+            title: "tomar la pastilla".into(),
+            task: id,
+        }
+    );
+}

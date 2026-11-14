@@ -16,6 +16,7 @@ import type { Run, Which, Word } from "./Card";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
 import ShortcutLine from "./ShortcutLine";
 import Signing, { type Signs } from "./Signing";
+import UrgentLine from "./UrgentLine";
 
 interface Props {
   kept: Settings | null;
@@ -267,6 +268,9 @@ export default function General({
               />
             </Line>
           ))}
+        {kept && (
+          <UrgentLine kept={kept} held={held} said={said} trouble={trouble} remember={remember} />
+        )}
       </div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>
 

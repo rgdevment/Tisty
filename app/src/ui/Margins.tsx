@@ -5,6 +5,7 @@ import Detail from "./Detail";
 import Door from "./Door";
 import Pulse from "./Pulse";
 import Star from "./Star";
+import Wake from "./Wake";
 
 export default function Margins() {
   const {
@@ -25,6 +26,8 @@ export default function Margins() {
     setStarring,
     quiet,
     setError,
+    waking,
+    settleWaking,
   } = useDesk();
   return (
     <>
@@ -76,7 +79,22 @@ export default function Margins() {
         />
       )}
 
-      {starring && !offering && quiet && (aside || chosen.named === "docs") && (
+      {waking && !offering && quiet && (
+        <Wake
+          apart={
+            aside
+              ? "right-3 @min-[884px]:right-[324px]"
+              : chosen.named === "docs"
+                ? "right-3 @min-[1440px]:right-[344px]"
+                : "right-3"
+          }
+          due={waking}
+          onSettled={settleWaking}
+          onError={(problem) => setError(saidPlainly(problem))}
+        />
+      )}
+
+      {starring && !offering && !waking && quiet && (aside || chosen.named === "docs") && (
         <Star
           apart={
             aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"

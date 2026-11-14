@@ -27,7 +27,27 @@ pub fn owed(
     now: jiff::Timestamp,
     here: &jiff::tz::TimeZone,
 ) -> Vec<Due> {
-    let from = since.max(now - LOOKBACK);
+    between(state, since.max(now - LOOKBACK), now, here)
+}
+
+/// The rings still ahead, soonest first and no more than `most`: what the system holds while Tisty is closed.
+pub fn coming(
+    state: &crate::State,
+    now: jiff::Timestamp,
+    here: &jiff::tz::TimeZone,
+    most: usize,
+) -> Vec<Due> {
+    let mut coming = between(state, now, now + AHEAD, here);
+    coming.truncate(most);
+    coming
+}
+
+fn between(
+    state: &crate::State,
+    from: jiff::Timestamp,
+    to: jiff::Timestamp,
+    here: &jiff::tz::TimeZone,
+) -> Vec<Due> {
     let mut owed: Vec<Due> = state
         .tasks
         .values()
@@ -35,7 +55,7 @@ pub fn owed(
         .flat_map(|task| {
             task.reminders
                 .iter()
-                .flat_map(|one| rings(task, one, here, from, now))
+                .flat_map(|one| rings(task, one, here, from, to))
                 .map(|at| Due {
                     at,
                     what: Happening::Due {
@@ -54,13 +74,13 @@ fn rings(
     one: &crate::DateSpec,
     here: &jiff::tz::TimeZone,
     from: jiff::Timestamp,
-    now: jiff::Timestamp,
+    to: jiff::Timestamp,
 ) -> Vec<jiff::Timestamp> {
     let Ok(first) = one.instant(here) else {
         return Vec::new();
     };
     let Some(repeat) = task.repeat else {
-        return match first > from && first <= now {
+        return match first > from && first <= to {
             true => vec![first],
             false => Vec::new(),
         };
@@ -75,7 +95,7 @@ fn rings(
         let Ok(stamp) = one.moved(at).instant(here) else {
             break;
         };
-        if stamp > now {
+        if stamp > to {
             break;
         }
         if stamp > from {
@@ -99,6 +119,8 @@ fn rings(
 const STEPS: usize = 4_000;
 
 const LOOKBACK: jiff::SignedDuration = jiff::SignedDuration::from_hours(12);
+
+const AHEAD: jiff::SignedDuration = jiff::SignedDuration::from_hours(24 * 30);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Due {
