@@ -518,6 +518,15 @@ fn only_the_tags_the_core_files_are_marked() {
     assert_eq!(found, tisty_markdown::tags::tags_in(&many));
 }
 
+#[cfg(feature = "tags")]
+#[test]
+fn a_hash_behind_a_backslash_is_neither_filed_nor_marked() {
+    let said = "\\#hola y un \\#plan";
+    assert!(tisty_markdown::tags::tags_in(said).is_empty());
+    assert!(tag_names(said).is_empty());
+    assert_eq!(tag_names("una barra \\\\#plan"), vec!["plan"]);
+}
+
 #[cfg(all(feature = "tags", feature = "refs"))]
 #[test]
 fn a_tag_inside_a_reference_is_part_of_the_reference() {
