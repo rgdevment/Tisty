@@ -26,4 +26,11 @@ How to write a repeat — `every tuesday`, `every 3 days`, `until september 30` 
 
 ## Reminders
 
-A reminder is an hour you choose, and it rings **on this machine and nowhere else**: a system notification and a short sound you can turn off.
+A reminder is an hour you choose, and it rings **on this machine and nowhere else**, even with Tisty closed: a system notification and a short sound you can turn off under **Settings › General › Notices**.
+
+- **With Tisty closed**, the system gives the notice. Each time you open Tisty, and with every reminder you set, change or remove, Tisty books the next month's notices with Windows or macOS, and the system shows each at its hour. No internet and no server.
+- **The computer has to be on.** With it off nothing rings, and Windows drops the notice if the computer is still off five minutes after its hour.
+- **It rings once.** With Tisty open, the notice is the system's own and the window does not repeat it. If the computer was asleep at that hour, Tisty gives it to you when it wakes.
+- **A click on the notice** opens Tisty on that task.
+- **What arrives with Tisty closed**, such as a reminder your assistant sets or one from another computer, is booked the next time Tisty opens. That is why, when you set your first reminder, Tisty offers to open when you sign in; change it any time under **Settings › General › Start with the computer**.
+- **The sound** is the system's notification sound. Turn the short tone off and the notice comes silently; turn the system notification off and Tisty books nothing.
