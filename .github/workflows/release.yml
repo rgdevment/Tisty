@@ -864,9 +864,9 @@ jobs:
             *usernotifications.time-sensitive*) ;;
             *) echo "::error::$app was signed without time-sensitive notifications"; exit 1 ;;
           esac
-          # The Intel build runs under Rosetta here, installed first so its absence fails nothing.
+          # The Intel build runs under Rosetta here, installed only when the image lacks it.
           cpu=x86_64; [ "$ARCH" = aarch64 ] && cpu=arm64
-          if [ "$cpu" = x86_64 ] && [ "$(uname -m)" = arm64 ]; then
+          if [ "$cpu" = x86_64 ] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
             sudo softwareupdate --install-rosetta --agree-to-license
           fi
           perl -e 'alarm 30; exec @ARGV' arch "-$cpu" "$app/Contents/MacOS/tisty" --version
