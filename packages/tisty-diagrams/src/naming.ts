@@ -1,9 +1,9 @@
 // A hyphen is plain outside a class; escaping it would break a `u` pattern.
-const escaped = (said: string) => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const literal = (said: string) => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // A name stands alone when nothing that could be part of a name touches it.
 const nameIn = (name: string) =>
-  new RegExp(`(?<![\\p{L}\\p{N}_*-])${escaped(name)}(?![\\p{L}\\p{N}_*-])`, "gu");
+  new RegExp(`(?<![\\p{L}\\p{N}_*-])${literal(name)}(?![\\p{L}\\p{N}_*-])`, "gu");
 
 /** Whether a line names something as a word of its own, outside quotes. */
 export const names = (line: string, name: string): boolean =>

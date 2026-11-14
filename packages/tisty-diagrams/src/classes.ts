@@ -1,5 +1,6 @@
 import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
+import { literal } from "./naming";
 import { type Place, placesApart, tidied } from "./places";
 
 export interface Member {
@@ -67,7 +68,7 @@ export const ARROWS = [
   "--",
   "..",
 ];
-const ARROW = ARROWS.map((one) => one.replace(/[|*.]/g, "\\$&")).join("|");
+const ARROW = ARROWS.map(literal).join("|");
 const LINK = new RegExp(
   String.raw`^\s*(${NAME})\s*(?:"([^"]*)"\s*)?(${ARROW})\s*(?:"([^"]*)"\s*)?(${NAME})\s*(?::\s*(.*?))?\s*$`,
   "u",

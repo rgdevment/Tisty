@@ -380,4 +380,11 @@ describe("what the second review of the schema found", () => {
     expect(dbml).toContain('  "correo_electrónico" text');
     expect(dbml).toContain('Ref: pedidos.alta_id > "fecha-alta".id');
   });
+
+  it("keeps a backslash in a DBML name or note from closing its quotes early", () => {
+    const schema = readSchema('erDiagram\n  pedidos {\n    text ruta "en C:\\"\n  }') as Schema;
+    const dbml = toDbml(columnChanged(schema, "pedidos", 0, { name: "C:\\" }).schema);
+
+    expect(dbml).toContain(`  "C:\\\\" text [note: 'en C:\\\\']`);
+  });
 });

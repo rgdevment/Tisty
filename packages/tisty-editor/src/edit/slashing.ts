@@ -455,7 +455,7 @@ export const offered =
 
 const STEPPED = /\[\[#\d*$/;
 
-export const BOX = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/;
+export const BOX = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(\S.*|)$/;
 
 // The boxes a page holds, counted as they are read, which is how `[[#2]]` names the second.
 export const stagesIn = (text: string): string[] => {

@@ -86,8 +86,10 @@ export const ideaWhen = (heading: string, locale: string): string => {
 
 const shade = (mix: string) => `stop-color: color-mix(in srgb, var(--pin), ${mix})`;
 
-export const pinMarkup = (id: string): string =>
-  `<svg aria-hidden="true" viewBox="0 0 24 44" class="sticky-pin"><defs><radialGradient id="${id}-cap" cx="0.35" cy="0.3" r="0.8"><stop offset="0" style="${shade("white 45%")}"/><stop offset="0.45" style="stop-color: var(--pin)"/><stop offset="1" style="${shade("black 45%")}"/></radialGradient><linearGradient id="${id}-neck" x1="0" x2="1"><stop offset="0" style="${shade("black 35%")}"/><stop offset="0.35" style="${shade("white 25%")}"/><stop offset="1" style="${shade("black 45%")}"/></linearGradient></defs><line x1="12" y1="30" x2="14.5" y2="43" style="stroke: var(--tisty-idea-needle)" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="12" cy="28.5" rx="9" ry="3.6" fill="url(#${id}-cap)"/><path d="M8 9 L16 9 L14.2 27 L9.8 27 Z" fill="url(#${id}-neck)"/><ellipse cx="12" cy="8" rx="8" ry="6.5" fill="url(#${id}-cap)"/><ellipse cx="9.5" cy="5.5" rx="2.6" ry="1.6" fill="white" opacity="0.6"/></svg>`;
+export const pinMarkup = (named: string): string => {
+  const id = named.replace(/[^\w-]/g, "");
+  return `<svg aria-hidden="true" viewBox="0 0 24 44" class="sticky-pin"><defs><radialGradient id="${id}-cap" cx="0.35" cy="0.3" r="0.8"><stop offset="0" style="${shade("white 45%")}"/><stop offset="0.45" style="stop-color: var(--pin)"/><stop offset="1" style="${shade("black 45%")}"/></radialGradient><linearGradient id="${id}-neck" x1="0" x2="1"><stop offset="0" style="${shade("black 35%")}"/><stop offset="0.35" style="${shade("white 25%")}"/><stop offset="1" style="${shade("black 45%")}"/></linearGradient></defs><line x1="12" y1="30" x2="14.5" y2="43" style="stroke: var(--tisty-idea-needle)" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="12" cy="28.5" rx="9" ry="3.6" fill="url(#${id}-cap)"/><path d="M8 9 L16 9 L14.2 27 L9.8 27 Z" fill="url(#${id}-neck)"/><ellipse cx="12" cy="8" rx="8" ry="6.5" fill="url(#${id}-cap)"/><ellipse cx="9.5" cy="5.5" rx="2.6" ry="1.6" fill="white" opacity="0.6"/></svg>`;
+};
 
 // A note in a document leans a quarter of what one on the board does, so its words stay easy to read.
 export const pinned = (page: Document, locale: string) => {

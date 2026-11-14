@@ -20,12 +20,16 @@ export const staged = (page: Document) => {
   }
 };
 
+const unbroken = (said: string): string => {
+  const bare = said.trimEnd();
+  let end = bare.length;
+  while (bare[end - 1] === "\\") end -= 1;
+  return bare.slice(0, end);
+};
+
 export const steppedTitle = (line: string): string | null => {
-  const found = /^[-*+]\s+\[ \]\s+(.+)$/.exec(line);
-  const title = found?.[1]
-    .replace(/\\+\s*$/, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  const found = /^[-*+]\s+\[ \]\s+(\S.*)$/.exec(line);
+  const title = found && unbroken(found[1]).replace(/\s+/g, " ").trim();
   return title || null;
 };
 
