@@ -21,7 +21,8 @@ export interface Choice {
 }
 
 interface Props {
-  at: { x: number; y: number };
+  /** `top` is where the line the menu answers begins, so a menu put above it never covers it. */
+  at: { x: number; y: number; top?: number };
   choices: Choice[];
   label: string;
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
@@ -35,6 +36,7 @@ interface Props {
 
 const EDGE = 6;
 const TALLEST = 0.8;
+const SHORTEST = 120;
 
 export default function Menu({ at, choices, label, up, keeps, find, foot, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
@@ -53,18 +55,19 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
     const own = card.current;
     if (!own) return;
     const box = own.getBoundingClientRect();
-    const room = window.innerHeight - EDGE * 2;
     const edges = own.offsetHeight - own.clientHeight;
     const tall = Math.min(own.scrollHeight + edges, Math.round(window.innerHeight * TALLEST));
-    const below = at.y + tall <= window.innerHeight - EDGE;
-    const above = at.y - tall >= EDGE;
-    const y = (up || !below) && above ? at.y - tall : at.y;
-    setWhere({
-      x: Math.max(EDGE, Math.min(at.x, window.innerWidth - box.width - EDGE)),
-      y: Math.max(EDGE, Math.min(y, window.innerHeight - tall - EDGE)),
-      tall: Math.min(tall, room),
-    });
-  }, [at, deeper, up]);
+    const top = at.top ?? at.y;
+    const below = window.innerHeight - EDGE - at.y;
+    const above = top - EDGE;
+    const x = Math.max(EDGE, Math.min(at.x, window.innerWidth - box.width - EDGE));
+    if ((up || tall > below) && tall <= above) return setWhere({ x, y: top - tall, tall });
+    if (tall <= below) return setWhere({ x, y: at.y, tall });
+    const roomy = Math.max(below, above);
+    if (roomy < SHORTEST)
+      return setWhere({ x, y: Math.max(EDGE, window.innerHeight - tall - EDGE), tall });
+    setWhere(below >= above ? { x, y: at.y, tall: below } : { x, y: top - above, tall: above });
+  }, [at, deeper, up, live.length]);
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;

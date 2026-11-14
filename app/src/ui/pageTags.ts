@@ -70,7 +70,8 @@ export const tagList = (page: Document, pick: (match: TagMatch, tag: string) => 
     if (!box || !view) return hide();
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     list.style.top = `${(box.bottom + view.scrollY) / zoom + 6}px`;
-    list.style.left = `${Math.max(4, (box.left + view.scrollX) / zoom)}px`;
+    const widest = (view.innerWidth + view.scrollX) / zoom - list.offsetWidth - 4;
+    list.style.left = `${Math.max(4, Math.min((box.left + view.scrollX) / zoom, widest))}px`;
   };
 
   const offer = (next: TagMatch | null) => {

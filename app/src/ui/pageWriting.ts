@@ -39,13 +39,13 @@ export type Hands = {
   readonly dressed: (sheet: Element, laid: readonly Element[]) => void;
   readonly translated: (html: string | null, plain: string) => Promise<string>;
   readonly ask: Asking["ask"];
-  readonly blocks: (at: { x: number; y: number }, slash: boolean) => void;
+  readonly blocks: (at: Point, slash: boolean) => void;
   readonly acts: (at: { x: number; y: number }, top: Element) => void;
   readonly tags?: () => readonly string[];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
 };
 
-type Point = { readonly x: number; readonly y: number };
+type Point = { readonly x: number; readonly y: number; readonly top?: number };
 
 const BYTES = new TextEncoder();
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
@@ -740,18 +740,29 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     });
   };
 
+  // A caret on an empty line measures nothing, so the line's own element stands for it, never the whole sheet.
+  const lineOfCaret = (range: Range | null | undefined): Element | null => {
+    const node = range?.startContainer;
+    if (!node) return null;
+    const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    const inside = element?.matches(".page") ? element.childNodes[range.startOffset] : null;
+    const line = inside?.nodeType === Node.ELEMENT_NODE ? (inside as Element) : element;
+    return line && !line.matches(".page") ? line : null;
+  };
+
   // Where the menu of blocks opens: under the caret, on the window's own screen.
   const caretPoint = (): Point => {
     const held = page.getSelection();
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const ghost = page.querySelector(GHOST);
     let box = range?.getBoundingClientRect();
-    if ((!box || (box.width === 0 && box.height === 0)) && ghost)
-      box = ghost.getBoundingClientRect();
+    if (!box || (box.width === 0 && box.height === 0))
+      box = (ghost ?? lineOfCaret(range))?.getBoundingClientRect() ?? box;
     const frame = page.defaultView?.frameElement?.getBoundingClientRect();
     return {
       x: (frame?.left ?? 0) + (box?.left ?? 0),
       y: (frame?.top ?? 0) + (box?.bottom ?? 0) + 10,
+      top: (frame?.top ?? 0) + (box?.top ?? 0) - 4,
     };
   };
 
@@ -814,20 +825,24 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   plus.addEventListener("click", () => hands.blocks(caretPoint(), false));
   page.body.append(plus);
 
-  const besideLine = () => {
+  const placedBeside = () => {
     const held = page.getSelection();
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const sheet = page.querySelector<HTMLElement>(".page");
-    if (!range || !sheet?.contains(range.startContainer) || !roomy(page)) {
+    const field = page.activeElement?.closest?.(FIELDS);
+    if (!range || !sheet?.contains(range.startContainer) || field || !roomy(page)) {
       plus.hidden = true;
       return;
     }
     const ghost = page.querySelector(GHOST);
     let box = range.getBoundingClientRect();
     if (box.width === 0 && box.height === 0) {
-      const node = range.startContainer;
-      const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
-      box = (ghost ?? element)?.getBoundingClientRect() ?? box;
+      const line = ghost ?? lineOfCaret(range);
+      if (!line) {
+        plus.hidden = true;
+        return;
+      }
+      box = line.getBoundingClientRect();
     }
     const view = page.defaultView;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
@@ -835,6 +850,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     plus.hidden = false;
     plus.style.top = `${(box.top + (view?.scrollY ?? 0)) / zoom}px`;
     plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 18}px`;
+  };
+
+  // A block just drawn is measured at its placeholder size until the next frame lays it out.
+  let measuring = 0;
+  const besideLine = () => {
+    placedBeside();
+    const view = page.defaultView;
+    view?.cancelAnimationFrame(measuring);
+    measuring = view?.requestAnimationFrame(placedBeside) ?? 0;
   };
 
   // The caret goes with the words it stood in, as far into them as it was.

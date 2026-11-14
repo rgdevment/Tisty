@@ -366,6 +366,7 @@ export const edited = (
         hosted.of(owner),
         gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,
+        EditorView.scrollMargins.of(() => ({ top: 16, bottom: 64 })),
         pairsKept,
         lively,
         latelyMarked,

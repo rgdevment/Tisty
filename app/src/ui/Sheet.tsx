@@ -226,6 +226,7 @@ export default function Sheet(props: Readonly<Props>) {
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
+    top?: number;
     choices: Choice[];
     label?: string;
     find?: string;
@@ -527,7 +528,7 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   // The blocks the `/` menu offers, put where the caret stands on the page; a slash left unanswered is written.
-  const blockMenu = (at: { x: number; y: number }, slash: boolean) => {
+  const blockMenu = (at: { x: number; y: number; top?: number }, slash: boolean) => {
     const writer = pageWriter.current?.hands;
     if (!writer) return;
     const kinds = said.current.asking?.kinds ?? [];
@@ -1162,7 +1163,7 @@ export default function Sheet(props: Readonly<Props>) {
       )}
       {menu && (
         <Menu
-          at={{ x: menu.x, y: menu.y }}
+          at={{ x: menu.x, y: menu.y, top: menu.top }}
           label={menu.label ?? t("formatting")}
           choices={menu.choices}
           find={menu.find}

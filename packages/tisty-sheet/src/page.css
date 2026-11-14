@@ -1772,7 +1772,7 @@ html.lively:not(.sheeted) .page {
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--tisty-hair);
+  border: 1px solid var(--tisty-line);
   border-radius: 6px;
   background: var(--tisty-sheet);
   color: var(--tisty-faint);
@@ -1781,6 +1781,10 @@ html.lively:not(.sheeted) .page {
   line-height: 1;
   cursor: pointer;
   user-select: none;
+}
+.page-plus[hidden],
+.page-grip[hidden] {
+  display: none;
 }
 .page-plus:hover {
   border-color: var(--tisty-accent);

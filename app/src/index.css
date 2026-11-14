@@ -491,6 +491,13 @@ label[for] {
   margin-inline: auto;
 }
 /* The whole-document editor's sheet leaves room around it, and what frames it above keeps its width. */
+.lively-room > .ribbon {
+  padding-inline: 56px;
+}
+.lively-room.stuck > .ribbon {
+  padding-block: 12px;
+  border-radius: 10px 10px 0 0;
+}
 .lively-room > .ribbon,
 .lively-room > .leaves,
 .lively-room > .onward {

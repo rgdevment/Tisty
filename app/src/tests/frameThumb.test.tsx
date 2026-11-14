@@ -20,13 +20,13 @@ describe("the thumb laid over the edge of a sheet written in place", () => {
     const { sheet, frame, heard } = framed(2000, 500);
     const view = render(<FrameThumb frame={frame} ready turned={1} />);
     const thumb = thumbOf(view.container);
-    expect(thumb?.style.height).toBe("125px");
+    expect(thumb?.style.height).toBe("123px");
     expect(thumb?.className).toContain("opacity-0");
     sheet.scrollTop = 1500;
     act(() => {
       heard.dispatchEvent(new Event("scroll"));
     });
-    expect(thumbOf(view.container)?.style.top).toBe("375px");
+    expect(thumbOf(view.container)?.style.top).toBe("373px");
     expect(thumbOf(view.container)?.className).toContain("opacity-100");
   });
 
@@ -38,7 +38,7 @@ describe("the thumb laid over the edge of a sheet written in place", () => {
     fireEvent.pointerDown(thumb, { clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(thumb, { clientY: 175, pointerId: 1 });
     fireEvent.pointerUp(thumb, { pointerId: 1 });
-    expect(sheet.scrollTop).toBe(300);
+    expect(sheet.scrollTop).toBeCloseTo((75 * 1500) / 369, 3);
   });
 
   it("draws nothing for a page that fits its frame", () => {

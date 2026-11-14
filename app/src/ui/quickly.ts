@@ -107,7 +107,8 @@ export const quickly = (page: Document, reach: () => Quick) => {
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     const top = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
     bar.style.top = `${Math.max(view.scrollY / zoom + 4, top)}px`;
-    bar.style.left = `${Math.max(4, (box.left + view.scrollX) / zoom)}px`;
+    const widest = (view.innerWidth + view.scrollX) / zoom - bar.offsetWidth - 4;
+    bar.style.left = `${Math.max(4, Math.min((box.left + view.scrollX) / zoom, widest))}px`;
   };
   page.addEventListener("mouseup", (event) => {
     if (bar?.contains(event.target as Node)) return;

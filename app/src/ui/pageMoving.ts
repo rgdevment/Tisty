@@ -149,7 +149,11 @@ export const gripped = (page: Document, hands: Gripping): (() => void) => {
     if (held) return;
     const target = event.target as Element | null;
     if (target === grip) return;
-    const top = target?.closest?.(".page > [data-at]");
+    if (!target?.closest?.(".page")) {
+      grip.hidden = true;
+      return;
+    }
+    const top = target.closest(".page > [data-at]");
     // A page break is only taken away, never carried, so it has no grip.
     if (!top || top.matches(".front, hr")) return;
     if (!roomy(page)) return;

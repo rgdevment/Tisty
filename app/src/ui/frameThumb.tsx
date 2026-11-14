@@ -11,11 +11,15 @@ type Thumbing = {
 
 type Seen = { readonly top: number; readonly tall: number };
 
+// The track stands off the frame's ends, so the sheet's curved corners never cut the thumb.
+const INSET = 4;
+
 const placed = (sheet: Element): Seen | null => {
   const { scrollTop, scrollHeight, clientHeight } = sheet;
   if (scrollHeight <= clientHeight + 1) return null;
-  const tall = Math.max(SHORTEST, (clientHeight / scrollHeight) * clientHeight);
-  return { top: (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - tall), tall };
+  const track = clientHeight - INSET * 2;
+  const tall = Math.max(SHORTEST, (clientHeight / scrollHeight) * track);
+  return { top: INSET + (scrollTop / (scrollHeight - clientHeight)) * (track - tall), tall };
 };
 
 // The frame's own scrollbar takes a column beside the sheet and cuts its page breaks short, so a thumb is laid over its edge.
@@ -73,7 +77,7 @@ export function FrameThumb({ frame, ready, turned }: Thumbing) {
         onPointerMove={(event) => {
           const one = sheet();
           if (!held.current || !one) return;
-          const room = one.clientHeight - seen.tall;
+          const room = one.clientHeight - INSET * 2 - seen.tall;
           const by = room > 0 ? (one.scrollHeight - one.clientHeight) / room : 0;
           one.scrollTop = held.current.at + (event.clientY - held.current.y) * by;
         }}
