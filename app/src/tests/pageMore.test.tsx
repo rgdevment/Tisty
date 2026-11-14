@@ -25,22 +25,22 @@ describe("the page's own choices", () => {
     const { button } = await opened(false);
 
     const rich = screen.getByRole("menuitem", { name: new RegExp(t("viewRich")) });
-    const plain = screen.getByRole("menuitem", { name: new RegExp(t("viewPlain")) });
+    const written = screen.getByRole("menuitem", { name: new RegExp(t("viewMarkdown")) });
     expect(button.getAttribute("aria-expanded")).toBe("true");
     expect(rich.className).toContain("font-semibold");
-    expect(plain.className).not.toContain("font-semibold");
+    expect(written.className).not.toContain("font-semibold");
   });
 
-  it("turn the page to plain text and close", async () => {
+  it("turn the page to Markdown and close", async () => {
     const { onTurn } = await opened(false);
 
-    await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("viewPlain")) }));
+    await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("viewMarkdown")) }));
 
     expect(onTurn).toHaveBeenCalledWith(true);
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("turn plain text back to the rich page", async () => {
+  it("turn Markdown back to the rich page", async () => {
     const { onTurn } = await opened(true);
 
     await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("viewRich")) }));
@@ -51,7 +51,7 @@ describe("the page's own choices", () => {
   it("leave the page as it is when the way in use is picked again", async () => {
     const { onTurn } = await opened(true);
 
-    await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("viewPlain")) }));
+    await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("viewMarkdown")) }));
 
     expect(onTurn).not.toHaveBeenCalled();
   });

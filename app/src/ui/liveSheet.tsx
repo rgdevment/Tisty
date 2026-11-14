@@ -88,8 +88,8 @@ export function PageMore({ markdown, onTurn }: Viewing) {
     const box = button.getBoundingClientRect();
     setAt(at ? null : { x: box.right - 210, y: box.bottom + 6 });
   };
-  const seen = (plain: boolean) => () => {
-    if (plain !== markdown) onTurn(plain);
+  const seen = (asMarkdown: boolean) => () => {
+    if (asMarkdown !== markdown) onTurn(asMarkdown);
   };
   return (
     <>
@@ -124,9 +124,9 @@ export function PageMore({ markdown, onTurn }: Viewing) {
               onPick: seen(false),
             },
             {
-              key: "plain",
+              key: "markdown",
               glyph: "hash",
-              label: t("viewPlain"),
+              label: t("viewMarkdown"),
               on: markdown,
               keys: markdown ? undefined : `${onMac ? "⌘" : "Ctrl"} E`,
               onPick: seen(true),
@@ -148,7 +148,7 @@ export function ViewTurn({ markdown, onTurn }: Viewing) {
       onClick={() => onTurn(!markdown)}
       className="-mr-1.5 ml-auto flex items-center rounded-md px-1.5 py-0.5 text-[11.5px] text-faint transition-colors hover:bg-hover hover:text-ink"
     >
-      {t(markdown ? "viewAsRich" : "viewAsPlain")}
+      {t(markdown ? "viewAsRich" : "viewAsMarkdown")}
     </button>
   );
 }
