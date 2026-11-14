@@ -202,6 +202,17 @@ describe("writing on the page the core draws", () => {
     expect(document.querySelector("hr")?.getAttribute("contenteditable")).toBe("false");
     expect(document.querySelector("p")?.hasAttribute("contenteditable")).toBe(false);
   });
+
+  it("keeps the caret off a step's box and its ↗, so ↑ and ↓ go from step to step", () => {
+    writer("- [ ] uno\n");
+    pageOf(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span><p data-at="6-9"><span data-src="6-9">uno</span></p><button class="to-part">↗</button></li></ul>',
+    );
+    writing?.drawn();
+    expect(document.querySelector(".check")?.getAttribute("contenteditable")).toBe("false");
+    expect(document.querySelector(".to-part")?.getAttribute("contenteditable")).toBe("false");
+    expect(document.querySelector("li p")?.hasAttribute("contenteditable")).toBe(false);
+  });
 });
 
 describe("the blocks put on the page written in place", () => {
@@ -273,6 +284,17 @@ describe("a line begun on a task's page written in place", () => {
     expect(said[said.length - 1]).toBe(
       "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
     );
+  });
+
+  it("joins a step asked past the blank line that ends the list, so the list stays tight", () => {
+    const said = writer("- [ ] uno\n\n## Notas\n");
+    pageOf(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li></ul><h2 data-at="11-19"><span data-src="14-19">Notas</span></h2>',
+    );
+    writing?.drawn();
+    writing?.begin(11, "- [ ] ", document.querySelector("ul") as Element);
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe("- [ ] uno\n- [ ] x\n\n## Notas\n");
   });
 
   it("stands a line apart from the block above, and leaves it unwritten on a press back", () => {

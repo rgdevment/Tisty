@@ -143,6 +143,15 @@ const opening = (text: string, at: number, seed: string) => {
   return "\n".repeat(Math.max(0, (joins ? 1 : 2) - have));
 };
 
+// An item begun past the blank line that ends a list goes back to the list, so the list stays tight.
+const joinedAt = (text: string, at: number, seed: string) => {
+  const blank = /(?:\r?\n){2,}$/.exec(text.slice(0, at))?.[0];
+  if (!blank || !LIST_ITEM.test(seed)) return at;
+  const lines = text.slice(0, at - blank.length).split("\n");
+  if (!LIST_ITEM.test(lines[lines.length - 1] ?? "")) return at;
+  return at - blank.length + (blank.startsWith("\r") ? 2 : 1);
+};
+
 const closing = (text: string, at: number) => {
   const after = text.slice(at);
   if (!after.trim()) return "";
@@ -827,7 +836,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       if (free) one.removeAttribute("contenteditable");
       else one.setAttribute("contenteditable", "false");
     }
-    for (const one of sheet.querySelectorAll(".drop-section, .doc-card"))
+    // A step's box and its ↗ are no place for the caret, so ↑ and ↓ go from step to step.
+    for (const one of sheet.querySelectorAll(".drop-section, .doc-card, .check, .to-part"))
       one.setAttribute("contenteditable", "false");
     // Code is spelled as the language wants it, so the system's speller has nothing to say there.
     for (const one of sheet.querySelectorAll(LITERAL)) one.setAttribute("spellcheck", "false");
@@ -951,8 +961,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     page.getSelection()?.collapse(ghost, 0);
   };
 
-  const begin = (at: number, seed: string, near: Element) => {
+  const begin = (asked: number, seed: string, near: Element) => {
     const text = hands.text();
+    const at = joinedAt(text, asked, seed);
     laidGhost(near, false, at, `${opening(text, at, seed)}${seed}`, closing(text, at));
   };
 
