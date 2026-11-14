@@ -7,6 +7,11 @@ use tisty_core::event::{Body, ListAdd, LogAdd, StepAdd, StepRef, TaskPatch};
 use tisty_core::{Config, Op, Paths, State, Store, Tag, TaskId};
 use ulid::Ulid;
 
+// The served tisty runs in Santiago, so what the person says «today» has to be Santiago's today too.
+fn here() -> jiff::Zoned {
+    jiff::Zoned::now().in_tz("America/Santiago").unwrap()
+}
+
 const PHONE: &str = "dev_phone001";
 
 pub fn task(said: &str) -> TaskId {
@@ -61,7 +66,7 @@ impl Person {
     }
 
     pub fn captures(&self, text: &str) -> TaskId {
-        let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
+        let read = tisty_nl::parse(text, &here(), "en");
         let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))
             .unwrap();
         self.wrote(plan.ops);
@@ -137,7 +142,7 @@ impl Person {
         let closing = tisty_core::round::closing_words(&self.paths, &mut store, &state, id, None);
         self.wrote(closing.ops);
         let state = self.state();
-        self.wrote(state.completing(id, jiff::Zoned::now()));
+        self.wrote(state.completing(id, here()));
         if let Some(said) = &closing.said {
             let state = self.state();
             tisty_core::round::round_cleared(&self.paths, &mut self.store(), &state, id, said);
@@ -198,7 +203,7 @@ impl Person {
     }
 
     pub fn dates(&self, id: TaskId, day: &str) {
-        let date = tisty_nl::parse_date(day, &jiff::Zoned::now(), "en").unwrap();
+        let date = tisty_nl::parse_date(day, &here(), "en").unwrap();
         self.patches(
             id,
             TaskPatch {
@@ -231,7 +236,7 @@ impl Person {
     }
 
     pub fn repeats(&self, id: TaskId, said: &str) {
-        let read = tisty_nl::parse(&format!("· {said}"), &jiff::Zoned::now(), "en");
+        let read = tisty_nl::parse(&format!("· {said}"), &here(), "en");
         let over = read
             .repeat
             .unwrap_or_else(|| panic!("{said:?} is not a cadence"));
@@ -320,7 +325,7 @@ impl Person {
     }
 
     pub fn captures_on_a_machine_not_synced_yet(&self, text: &str, aside: &Path) -> TaskId {
-        let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
+        let read = tisty_nl::parse(text, &here(), "en");
         let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))
             .unwrap();
         Store::open(aside, tisty_core::DeviceId(PHONE.into()))
