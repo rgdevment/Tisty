@@ -16,6 +16,7 @@ import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
+import type { Viewing } from "./liveSheet";
 import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
@@ -34,6 +35,7 @@ interface Props {
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   shaping?: boolean;
+  view?: Viewing;
   onHeld?: (held: boolean) => void;
   papers?: readonly Filed[];
   onTask?: (id: string) => void;
@@ -55,6 +57,7 @@ export default function TaskWords({
   onError,
   onDoc,
   shaping,
+  view,
   onHeld,
   papers,
   onTask,
@@ -134,6 +137,7 @@ export default function TaskWords({
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
         shaping={shaping}
+        view={view}
         asking={doc.held ? undefined : asking}
         dates={dates}
         onTask={onTask}
@@ -159,6 +163,7 @@ function Written({
   onDoc,
   onMoved,
   shaping,
+  view,
   asking,
   dates,
   onTask,
@@ -178,6 +183,7 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
+  view?: Viewing;
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
   onTask?: (id: string) => void;
@@ -358,6 +364,7 @@ function Written({
         allAsked={allAsked}
         inline
         shaping={shaping}
+        view={view}
         onWrite={wrote}
         onSettle={onSettle ? settled : undefined}
         onFail={onError}

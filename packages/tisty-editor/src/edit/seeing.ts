@@ -35,8 +35,11 @@ export const keepShown = (on: boolean) => {
   } catch {}
 };
 
+// The Markdown view is the words as written, whatever the marks were last left as elsewhere.
+export const writtenPlain = Facet.define<boolean, boolean>({ combine: (all) => all.some(Boolean) });
+
 export const marksShown = StateField.define<boolean>({
-  create: shownBefore,
+  create: (state) => state.facet(writtenPlain) || shownBefore(),
   update: (was, done) => {
     for (const one of done.effects) if (one.is(showMarks)) return one.value;
     return was;

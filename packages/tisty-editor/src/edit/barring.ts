@@ -10,7 +10,7 @@ import { outOfPairs } from "./pairing";
 import { pending } from "./pending";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
-import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
+import { type Asking, lineEndOf, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
 import { TYPES } from "./tableTypes";
 import { type Retable, retable, tableHere } from "./tabling";
 
@@ -311,6 +311,7 @@ export const barred = (
   onWhole?: () => void,
   tabling?: () => void,
   asking?: () => Asking | undefined,
+  live = false,
 ): Barred => {
   const page = view.dom.ownerDocument;
   const say = view.state.facet(hosted).say;
@@ -421,18 +422,32 @@ export const barred = (
   tableIt?.append(drawnIn(page, "table"));
 
   // In a block the bar waits folded and opens with a selection; the whole document keeps it as it was left.
-  let keptOpen = whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
+  let keptOpen = live ? false : whole ? !remembered(FOLDED) : remembered(KEPT_OPEN);
   let chosen = false;
   let shutOver = false;
-  const opened = () => keptOpen || (!whole && (chosen || tabled) && !shutOver);
+  const opened = () => keptOpen || (!whole && !live && (chosen || tabled) && !shutOver);
   const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => {
     const was = opened();
     keptOpen = !was;
     shutOver = was && (chosen || tabled);
     if (whole) remember(FOLDED, !keptOpen);
-    else remember(KEPT_OPEN, keptOpen);
+    else if (!live) remember(KEPT_OPEN, keptOpen);
     folding();
   });
+  // Writing again is a press in the words, and the bar opened for a moment folds out of their way.
+  if (live)
+    view.contentDOM.addEventListener("mousedown", () => {
+      if (!keptOpen) return;
+      keptOpen = false;
+      folding();
+    });
+  // A word taken with a double press is a word about to be shaped, so the bar opens over it.
+  if (live)
+    view.contentDOM.addEventListener("dblclick", () => {
+      if (view.state.selection.main.empty) return;
+      keptOpen = true;
+      folding();
+    });
   const folding = () => {
     const now = !opened();
     bar.classList.toggle("folded", now);
@@ -453,12 +468,12 @@ export const barred = (
   wide?.append(drawnIn(page, whole ? "shrink" : "expand"));
   wide?.setAttribute("aria-pressed", String(whole));
 
-  // A diagram is a block of its own, so it goes in at the caret like the `/` menu's, never over a selection.
+  // A diagram is a block of its own, so it goes after the caret's line and never over a selection.
   const drawing = SLASHED.find((one) => one.key === "diagram");
   const diagram =
     drawing && asking?.()?.kinds.includes("diagram")
       ? button("cm-bar-button cm-bar-diagram", say("diagramBar"), () => {
-          const at = view.state.selection.main.to;
+          const at = lineEndOf(view);
           put(view, drawing, at, at, asking?.());
         })
       : null;
@@ -484,10 +499,16 @@ export const barred = (
       some = marked(state);
     }
     marks.setAttribute("aria-pressed", String(on));
-    marks.hidden = !on && !some;
+    marks.hidden = live || (!on && !some);
     marksKey.hidden = marks.hidden;
   };
 
+  if (live) {
+    bar.classList.add("live");
+    const grip = made("span", "cm-bar-drag", "⠿");
+    grip.setAttribute("aria-hidden", "true");
+    bar.append(grip);
+  }
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
   if (tableIt) bar.append(tableIt);

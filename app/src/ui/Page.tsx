@@ -15,11 +15,13 @@ type Props = Reaching & {
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
-  readonly onShown?: (page: Window | null) => void;
+  readonly onShown?: (page: Window | null, body?: string) => void;
   readonly sheet?: Sheet;
   readonly again?: string;
   readonly cards?: string;
   readonly draw?: (body: string) => Promise<string>;
+  readonly already?: string | null;
+  readonly onDresser?: (dress: (blocks: readonly Element[]) => void) => void;
   readonly onMend?: (one: Mend, body: string) => void;
 };
 
@@ -59,8 +61,14 @@ export default function Page(props: Readonly<Props>) {
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
+  const { draw } = props;
   useEffect(() => {
     let live = true;
+    // The page written on in place already shows these words, so only what the handlers read moves on.
+    if (reach.current.already === body && turns.current > 0) {
+      setDrawing((was) => was && { ...was, body });
+      return;
+    }
     const drawn = (html: string) => {
       if (!live) return;
       turns.current += 1;
@@ -71,13 +79,13 @@ export default function Page(props: Readonly<Props>) {
           .then((said) => said ?? [])
           .catch(() => [])
       : Promise.resolve([]);
-    (reach.current.draw ?? docDrawn)(body)
+    void (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
       .then(drawn);
     return () => {
       live = false;
     };
-  }, [body, again]);
+  }, [body, again, draw]);
 
   useEffect(() => () => reach.current.onShown?.(null), []);
 
@@ -93,7 +101,7 @@ export default function Page(props: Readonly<Props>) {
         if (showing.current === turn) lay();
       })
       .catch(() => {});
-    reach.current.onShown?.(frame.contentWindow);
+    reach.current.onShown?.(frame.contentWindow, said);
   };
 
   const current = <K extends keyof Reaching>(asked: K): Reaching[K] | undefined =>
@@ -120,20 +128,23 @@ export default function Page(props: Readonly<Props>) {
             ...reach.current,
             body: drawing.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
-            onBlock: current("onBlock"),
+            onBegin: current("onBegin"),
+            onHintWords: current("onHintWords"),
+            onSource: current("onSource"),
+            onLanguage: current("onLanguage"),
             onTick: current("onTick"),
             onStick: current("onStick"),
             onPart: current("onPart"),
             onCut: current("onCut"),
             onWiden: current("onWiden"),
             onFormat: current("onFormat"),
-            onChoose: current("onChoose"),
             onMenu: current("onMenu"),
             onMore: current("onMore"),
             onDiagram: current("onDiagram"),
             onDiagramExport: current("onDiagramExport"),
             onTable: current("onTable"),
           })}
+          onDresser={(dress) => reach.current.onDresser?.(dress)}
           onReady={(frame) => ready(drawing, frame)}
         />
       )}

@@ -21,28 +21,32 @@ export type Menued = {
   readonly picture: number | null;
 };
 
-// What a key pressed over chosen words does to them once the block opens: null keeps them chosen.
-export type Chosen = Omit<Formatting, "open" | "close"> & { readonly typed: string | null };
-
 export type Bar = { readonly buttons: typeof formatButtons; readonly css: string };
 
 export type Quick = {
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
-  readonly onChoose?: (asked: Chosen) => void;
-};
-
-const typedOver = (event: KeyboardEvent): string | null | undefined => {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return undefined;
-  if (event.key === "Enter") return null;
-  if (event.key === "Backspace" || event.key === "Delete") return "";
-  return [...event.key].length === 1 ? event.key : undefined;
 };
 
 const blockOf = (node: Node | null): HTMLElement | null => {
   const element = node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null);
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
+};
+
+const inCode = (node: Node | null | undefined) =>
+  Boolean(
+    (node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null))?.closest(
+      "pre, code",
+    ),
+  );
+
+// Code is written as it stands and a field writes its own words, so neither takes a format.
+export const unformattable = (page: Document): boolean => {
+  if (page.activeElement?.closest("input, textarea, select")) return true;
+  const chosen = page.getSelection();
+  const range = chosen?.rangeCount ? chosen.getRangeAt(0) : null;
+  return inCode(range?.startContainer) || inCode(range?.endContainer);
 };
 
 export const picked = (page: Document): Omit<Formatting, "open" | "close"> | null => {
@@ -93,7 +97,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
   };
   const show = () => {
     const writing = page.querySelector(".editing") !== null;
-    chosen = reach().onFormat && !writing ? picked(page) : null;
+    chosen = reach().onFormat && !writing && !unformattable(page) ? picked(page) : null;
     if (!chosen || !bar) return hide();
     const box = page.getSelection()?.getRangeAt(0).getBoundingClientRect();
     const view = page.defaultView;
@@ -108,17 +112,6 @@ export const quickly = (page: Document, reach: () => Quick) => {
   page.addEventListener("mouseup", (event) => {
     if (bar?.contains(event.target as Node)) return;
     setTimeout(show);
-  });
-  // Words chosen on the page are written over as they would be in any editor, the block opening around them.
-  page.addEventListener("keydown", (event) => {
-    const choose = reach().onChoose;
-    const typed = typedOver(event);
-    if (!choose || typed === undefined || page.querySelector(".editing")) return;
-    const asked = picked(page);
-    if (!asked) return;
-    event.preventDefault();
-    hide();
-    choose({ ...asked, typed });
   });
   page.addEventListener("keyup", () => {
     if (!page.getSelection()?.isCollapsed) show();

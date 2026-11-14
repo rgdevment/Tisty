@@ -8,11 +8,12 @@ The whole window works from the keyboard.
 | `Enter` (in the quick capture) | File the task |
 | `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
 | `Tab` (in the quick capture) | Switch between a task and an idea for [Brainstorm](Documents#brainstorm) |
-| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document you are writing, a page break |
+| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document's Markdown view, a page break |
 | `/` | Insert something inside a document |
-| `Shift` + `Enter` (writing a block) | Break the line without starting a paragraph |
-| `Ctrl`/`⌘` + `Shift` + `M` (writing a block) | Show or hide every mark |
-| `Ctrl`/`⌘` + `E` (in a document) | Open or leave the whole document |
+| `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
+| `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |
+| `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down |
+| `Ctrl`/`⌘` + `E` (in a document) | Switch between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide, without a connection |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
 | `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width. When the column on the right does not fit beside it, the sidebar folds to its icons by itself; opened by hand, it stays open until you change view or the window's size |
@@ -24,7 +25,7 @@ The whole window works from the keyboard.
 | `Ctrl`/`⌘` + click · `Shift` + drag (in the diagram window) | Choose several shapes, classes or tables |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Alt` + arrow (on a page's row) | Move a page up or down in its document |
-| `Alt` + arrow (in a table, writing its text) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
+| `Alt` + arrow (in a table, in the Markdown view) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
 | `Esc` | Close whatever is open |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.

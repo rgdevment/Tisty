@@ -15,8 +15,6 @@ const ipc = vi.hoisted(() => ({
   }[],
   left: 0,
   kept: [] as boolean[],
-  wrapped: [] as [string, string][],
-  flipped: 0,
   copied: [] as string[],
   picked: { from: 0, to: 0 },
   cut: [] as [number, number][],
@@ -36,31 +34,18 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   },
 }));
 
-vi.mock("tisty-editor/edit", async (original) => ({
-  ...(await original<typeof import("tisty-editor/edit")>()),
-  wrapped: (_: unknown, open: string, close: string) => {
-    ipc.wrapped.push([open, close]);
-    return true;
-  },
-  caretAt: (source: string, read: string) => (read ? source.indexOf(read) + read.length : 0),
-  flipped: () => {
-    ipc.flipped += 1;
-    return true;
-  },
-}));
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
-    if (cmd === "doc_drawn") return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
+    if (cmd === "doc_drawn" || cmd === "doc_placed")
+      return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
     if (cmd === "mends_in") return Promise.resolve(ipc.mends);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => path,
 }));
 
-vi.mock("../ui/hosting", async (original) => ({
-  ...(await original<typeof import("../ui/hosting")>()),
-  edited: (
+vi.mock("../ui/hosting", async (original) => {
+  const standIn = (
     block: HTMLElement,
     said: string,
     change: (text: string) => void,
@@ -83,6 +68,7 @@ vi.mock("../ui/hosting", async (original) => ({
             },
           },
           doc: said,
+          field: () => false,
           lineBreak: "\n",
           replaceSelection: (insert: string) => ({ changes: { from: 0, to: 0, insert } }),
         },
@@ -102,8 +88,13 @@ vi.mock("../ui/hosting", async (original) => ({
       },
       kept: (yes: boolean) => ipc.kept.push(yes),
     };
-  },
-}));
+  };
+  return {
+    ...(await original<typeof import("../ui/hosting")>()),
+    edited: standIn,
+    editedLive: (_drawn: unknown, ...rest: Parameters<typeof standIn>) => standIn(...rest),
+  };
+});
 
 const BODY = "# Compras\n\nleche\n\npan\n";
 const DRAWN =
@@ -136,8 +127,6 @@ beforeEach(() => {
   ipc.opened = [];
   ipc.left = 0;
   ipc.kept = [];
-  ipc.wrapped = [];
-  ipc.flipped = 0;
   ipc.copied = [];
   ipc.picked = { from: 0, to: 0 };
   ipc.cut = [];
@@ -145,190 +134,17 @@ beforeEach(() => {
   ipc.mends = [];
 });
 
-const pick = (page: Document, from: number, to: number) => {
-  // The page's frame has a Range of its own, which the test window's polyfill never reached.
-  const measured = page.defaultView?.Range.prototype as unknown as {
-    getBoundingClientRect?: () => unknown;
-  };
-  measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, width: 0, height: 0 });
-  const words = page.querySelector('p[data-at="11-17"]')?.firstChild as Node;
-  const range = page.createRange();
-  range.setStart(words, from);
-  range.setEnd(words, to);
-  page.getSelection()?.removeAllRanges();
-  page.getSelection()?.addRange(range);
-  return words;
-};
+// A choice's name, without the mark or the keys beside it.
+const named = (one: Element) => one.querySelector(".truncate")?.textContent?.trim();
 
-const offered = () =>
-  Array.from(document.querySelectorAll('[role="menuitem"]')).map((one) => one.textContent?.trim());
+const offered = () => Array.from(document.querySelectorAll('[role="menuitem"]')).map(named);
 
 const chosen = (label: string) =>
   Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]'))
-    .find((one) => one.textContent?.trim() === label)
+    .find((one) => named(one) === label)
     ?.click();
 
-describe("words picked on the sheet", () => {
-  it("writes a quick format around them and goes back to reading, but a link stays open for its address", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    pick(page, 0, 5);
-    page.dispatchEvent(new MouseEvent("mouseup"));
-    await waitFor(() => expect(page.querySelector<HTMLElement>(".quick-bar")?.hidden).toBe(false));
-    page.querySelector<HTMLButtonElement>(".quick-bar button")?.click();
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
-    expect(ipc.wrapped).toEqual([["**", "**"]]);
-    expect(ipc.left).toBe(1);
-  });
-
-  it("keeps a link's block open so its address can be written", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    pick(page, 0, 5);
-    page.dispatchEvent(new MouseEvent("mouseup"));
-    await waitFor(() => expect(page.querySelector<HTMLElement>(".quick-bar")?.hidden).toBe(false));
-    page.querySelectorAll<HTMLButtonElement>(".quick-bar button")[5]?.click();
-    expect(ipc.wrapped).toEqual([["[", "]()"]]);
-    expect(ipc.left).toBe(0);
-  });
-
-  it("offers copy, the formats and the block on a right click, and only copy where it is read", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    const words = pick(page, 0, 5);
-    words.parentElement?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    await waitFor(() => expect(offered()).toContain("Edit this block"));
-    expect(offered()).toEqual(expect.arrayContaining(["Copy", "Bold"]));
-    chosen("Copy");
-    await waitFor(() => expect(ipc.copied).toEqual(["leche"]));
-    words.parentElement?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    await waitFor(() => expect(offered()).toContain("Edit this block"));
-    chosen("Edit this block");
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
-    view.unmount();
-
-    const read = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
-    const quiet = await loaded(await shown(read.container));
-    pick(quiet, 0, 5).parentElement?.dispatchEvent(
-      new MouseEvent("contextmenu", { bubbles: true }),
-    );
-    await waitFor(() => expect(offered()).toEqual(["Copy"]));
-  });
-
-  it("offers cut, copy, the formats and the marks inside a block being written", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.picked = { from: 0, to: 5 };
-    const writing = () =>
-      page
-        .querySelector(".editing")
-        ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    writing();
-    await waitFor(() => expect(offered()).toContain("Show every mark"));
-    expect(offered()).toEqual(expect.arrayContaining(["Cut", "Copy", "Bold"]));
-    chosen("Bold");
-    expect(ipc.wrapped).toEqual([["**", "**"]]);
-    writing();
-    await waitFor(() => expect(offered()).toContain("Show every mark"));
-    chosen("Show every mark");
-    expect(ipc.flipped).toBe(1);
-    writing();
-    await waitFor(() => expect(offered()).toContain("Cut"));
-    chosen("Cut");
-    await waitFor(() => expect(ipc.cut).toEqual([[0, 5]]));
-    expect(ipc.copied).toEqual(["leche"]);
-    expect(ipc.left).toBe(0);
-  });
-});
-
 describe("the sheet in the main window", () => {
-  it("writes a block where it was clicked, and draws the page again once it is left", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
-    expect(page.querySelector(".editing")).not.toBeNull();
-
-    ipc.opened[0].change("leche y fruta");
-    expect(writes).toEqual(["# Compras\n\nleche y fruta\n\npan\n"]);
-
-    ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-25">leche y fruta</p>';
-    ipc.opened[0].leave("leche y fruta");
-    await shown(view.container, "leche y fruta");
-  });
-
-  it("tells nothing for a block left as it was", async () => {
-    const settled: [string, string][] = [];
-    const view = render(
-      <Sheet
-        value={BODY}
-        label="Compras"
-        onWrite={() => {}}
-        onSettle={(before, now) => settled.push([before, now])}
-      />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].leave("leche");
-    expect(settled).toEqual([]);
-  });
-
-  it("tells the text before and after a block it left", async () => {
-    const settled: [string, string][] = [];
-    const view = render(
-      <Sheet
-        value={BODY}
-        label="Compras"
-        onWrite={() => {}}
-        onSettle={(before, now) => settled.push([before, now])}
-      />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("leche y fruta");
-    ipc.opened[0].leave("leche y fruta");
-    expect(settled).toEqual([[BODY, "# Compras\n\nleche y fruta\n\npan\n"]]);
-  });
-
-  it("keeps the blank line a list's span ends with, so the words after it stay apart", async () => {
-    const list = "# Compras\n\n- uno\n\npan\n";
-    ipc.drawn =
-      '<h1 data-at="0-11">Compras</h1><ul data-at="11-18"><li>uno</li></ul><p data-at="18-22">pan</p>';
-    const said: string[] = [];
-    const view = render(<Sheet value={list} label="Compras" onWrite={(text) => said.push(text)} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('ul[data-at="11-18"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("- dos");
-    expect(said[said.length - 1]).toBe("# Compras\n\n- dos\n\npan\n");
-  });
-
-  it("leaves the block open when another is clicked, instead of opening a second one", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    page
-      .querySelector('p[data-at="18-22"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(ipc.opened).toHaveLength(1);
-    expect(ipc.left).toBe(1);
-  });
-
   it("mends a block outside the Tisty language from the line under it, without opening it", async () => {
     const writes: string[] = [];
     const body = "# Compras\n\nleche <b>fresca</b>\n";
@@ -411,108 +227,21 @@ describe("the sheet in the main window", () => {
     expect(puts.every((one) => one === null)).toBe(true);
   });
 
-  it("splices each change into the latest text, however many come", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("leche y");
-    ipc.opened[0].change("leche y fruta");
-    ipc.opened[0].change("l");
-    expect(writes).toEqual([
-      "# Compras\n\nleche y\n\npan\n",
-      "# Compras\n\nleche y fruta\n\npan\n",
-      "# Compras\n\nl\n\npan\n",
-    ]);
-  });
-
-  it("keeps the block open when its own words come back late, as they do under fast typing", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("leche y");
-    ipc.opened[0].change("leche y pan");
-    ipc.opened[0].change("leche y pan y fruta");
-    view.rerender(
-      <Sheet value={writes[0]} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    view.rerender(
-      <Sheet value={writes[1]} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    expect(ipc.left).toBe(0);
-    expect(page.querySelector(".editing")).not.toBeNull();
-    view.rerender(
-      <Sheet value={writes[2]} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    ipc.opened[0].change("leche y pan y fruta fresca");
-    expect(writes[writes.length - 1]).toBe("# Compras\n\nleche y pan y fruta fresca\n\npan\n");
-  });
-
-  it("ends the block when words from outside match an older text of its own once it went past it", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("leche y");
-    ipc.opened[0].change("leche y pan");
-    ipc.opened[0].change("leche y pan y fruta");
-    view.rerender(<Sheet value={writes[1]} label="Compras" onWrite={() => {}} />);
-    expect(ipc.left).toBe(0);
-    view.rerender(<Sheet value={writes[0]} label="Compras" onWrite={() => {}} />);
-    expect(ipc.left).toBe(1);
-  });
-
-  it("opens the whole document in one editor when asked, and gives the blocks back as it is left", async () => {
+  it("opens a document as the core's own page to write on, and its key turns it to its Markdown", async () => {
     const sheet = (n: number) => (
       <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
     const view = render(sheet(0));
     const page = await loaded(await shown(view.container));
-    view.rerender(sheet(1));
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
-    view.rerender(sheet(2));
-    expect(ipc.left).toBe(1);
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
-    // The stand-in editor stays where it was put; only the whole editor's placeholder must be gone.
-    expect(page.querySelectorAll(".page > div:not([data-at], .editing)")).toHaveLength(0);
-  });
-
-  it("never opens a task's page whole, from a key or from the menu", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={0} />);
-    const page = await loaded(await shown(view.container));
-    view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={1} />);
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
     expect(ipc.opened).toHaveLength(0);
-    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    await waitFor(() => expect(offered()).toContain("Edit this block"));
-    expect(offered()).not.toContain("Edit the whole document");
-  });
-
-  it("offers a document's whole in the menu beside its block", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
-    await waitFor(() => expect(offered()).toContain("Edit the whole document"));
-    chosen("Edit the whole document");
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    view.rerender(sheet(1));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet(2));
+    await waitFor(() => expect(ipc.left).toBe(1));
+    expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true");
   });
 
   it("chooses every word of the page as read when select-all is handed to it", async () => {
@@ -526,134 +255,40 @@ describe("the sheet in the main window", () => {
     expect(ipc.opened).toHaveLength(0);
   });
 
-  it("takes words written from outside into the whole document without leaving it", async () => {
-    const sheet = (value: string, n: number) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+  it("takes words written from outside into the Markdown view without leaving it", async () => {
+    const sheet = (value: string) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={1} />
     );
-    const view = render(sheet(BODY, 0));
+    const view = render(sheet(BODY));
     await loaded(await shown(view.container));
-    view.rerender(sheet(BODY, 1));
-    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-    view.rerender(sheet(`${BODY}\nfruta\n`, 1));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet(`${BODY}\nfruta\n`));
     expect(ipc.left).toBe(0);
     expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
   });
 
-  it("takes words from outside into the whole document with Windows line ends too", async () => {
-    const sheet = (value: string, n: number) => (
-      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+  it("takes words from outside into the Markdown view with Windows line ends too", async () => {
+    const sheet = (value: string) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={1} />
     );
-    const view = render(sheet(BODY, 0));
+    const view = render(sheet(BODY));
     await loaded(await shown(view.container));
-    view.rerender(sheet(BODY, 1));
-    view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    view.rerender(sheet("# Compras\r\n\r\nleche\r\n"));
     expect(ipc.left).toBe(0);
     expect(ipc.cut.length).toBeGreaterThan(0);
   });
 
-  it("opens the block over words picked on the page and writes the key pressed over them", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+  it("never opens a block's own editor on a document written on as its page", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
     const page = await loaded(await shown(view.container));
-    pick(page, 0, 5);
-    page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
-    expect(ipc.opened[0].caret).toBe(0);
-    expect(ipc.typed).toEqual(["x"]);
-  });
-
-  it("still writes the key when the words picked cross a mark the page does not show", async () => {
-    ipc.drawn =
-      '<h1 data-at="0-10">Compras</h1><p data-at="11-21"><b>le</b>che</p><p data-at="22-26">pan</p>';
-    const view = render(
-      <Sheet value={"# Compras\n\n**le**che\n\npan\n"} label="Compras" onWrite={() => {}} />,
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
     );
-    const page = await loaded(await shown(view.container));
-    const measured = page.defaultView?.Range.prototype as unknown as {
-      getBoundingClientRect?: () => unknown;
-    };
-    measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, width: 0, height: 0 });
-    const words = page.querySelector('p[data-at="11-21"]') as HTMLElement;
-    const range = page.createRange();
-    range.setStart(words.firstChild?.firstChild as Node, 0);
-    range.setEnd(words.lastChild as Node, 3);
-    page.getSelection()?.removeAllRanges();
-    page.getSelection()?.addRange(range);
-    page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
-    expect(ipc.opened.map((one) => one.said)).toEqual(["**le**che\n"]);
-    expect(ipc.typed).toEqual(["x"]);
-  });
-
-  it("opens the whole document where the block being written stood, not at its start", async () => {
-    ipc.picked = { from: 2, to: 2, head: 2 } as typeof ipc.picked;
-    const sheet = (n: number) => (
-      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
-    );
-    const view = render(sheet(0));
-    const page = await loaded(await shown(view.container));
     page
       .querySelector('p[data-at="11-17"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    view.rerender(sheet(1));
-    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n", BODY]);
-    expect(ipc.opened[1].caret).toBe(13);
-  });
-
-  it("keeps the block being written open when words from outside land elsewhere", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    view.rerender(
-      <Sheet
-        value={"# Compras de hoy\n\nleche\n\npan\n\nfruta\n"}
-        label="Compras"
-        onWrite={(text) => writes.push(text)}
-      />,
-    );
-    expect(ipc.left).toBe(0);
-    ipc.opened[0].change("leche fresca");
-    expect(writes[writes.length - 1]).toBe("# Compras de hoy\n\nleche fresca\n\npan\n\nfruta\n");
-  });
-
-  it("ends the block being written when its words change from outside", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.drawn = '<p data-at="0-6">Otra</p>';
-    view.rerender(<Sheet value="Otra.\n" label="Compras" onWrite={() => {}} />);
-    expect(ipc.left).toBe(1);
-    await shown(view.container, "Otra");
-  });
-
-  it("ends the block being written before a page's card goes in, and keeps what was typed", async () => {
-    const writes: string[] = [];
-    const got: { put?: ((file: string, title: string) => boolean) | null } = {};
-    const view = render(
-      <Sheet
-        value={BODY}
-        label="Compras"
-        onWrite={(text) => writes.push(text)}
-        onInsert={(one) => {
-          got.put = one;
-        }}
-      />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("leche y fruta");
-    expect(got.put?.("a3f1-0002", "Fruta")).toBe(true);
-    expect(ipc.left).toBe(1);
-    expect(writes[writes.length - 1]).toBe(
-      "# Compras\n\nleche y fruta\n\npan\n\n![Fruta](tisty:doc/a3f1-0002)\n",
-    );
+    expect(ipc.opened).toHaveLength(0);
   });
 
   it("keeps the last document's page in view until the next one is drawn in its place", async () => {
@@ -669,46 +304,6 @@ describe("the sheet in the main window", () => {
     expect(Array.from(view.container.querySelectorAll("iframe"))).toEqual([frame]);
     expect(frame.classList.contains("invisible")).toBe(false);
     expect(room.scrollTop).toBe(0);
-  });
-
-  it("ends the block being written when another document comes in", async () => {
-    const view = render(<Sheet file="a3f1-0001" value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    view.rerender(<Sheet file="a3f1-0002" value="Otra.\n" label="Otra" onWrite={() => {}} />);
-    expect(ipc.left).toBe(1);
-  });
-
-  it("opens a block exactly as the file holds it and writes back exactly what was typed", async () => {
-    const writes: string[] = [];
-    const body = "# Compras\n\n++leche++ y ==pan=={green}\n";
-    ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-38">leche y pan</p>';
-    const view = render(
-      <Sheet value={body} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-38"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(ipc.opened[0].said).toBe("++leche++ y ==pan=={green}\n");
-    ipc.opened[0].change("++leche++ y ==pan=={blue}");
-    expect(writes).toEqual(["# Compras\n\n++leche++ y ==pan=={blue}\n"]);
-  });
-
-  it("takes the blank line of a block left empty along with it", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("");
-    ipc.opened[0].leave("");
-    expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
   });
 
   it("lays files dropped on the page after the block they land on, or at the end", async () => {
@@ -771,45 +366,6 @@ describe("the sheet in the main window", () => {
     expect(writes).toEqual(["# Plan\n\n> - [x] uno\n"]);
   });
 
-  it("only ends the block being written when a box is pressed meanwhile, ticking nothing", async () => {
-    const writes: string[] = [];
-    const body = "# Plan\n\nnota\n\n- [ ] uno\n";
-    ipc.drawn =
-      '<h1 data-at="0-6">Plan</h1><p data-at="8-13">nota</p><ul data-at="14-24"><li class="task" data-at="14-24"><span class="check" data-done="false"></span>uno</li></ul>';
-    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
-    const page = await loaded(await shown(view.container));
-    page.querySelector("p")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("nota larga\n");
-    const before = writes.length;
-    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(ipc.left).toBe(1);
-    expect(writes.length).toBe(before);
-  });
-
-  it("writes nothing more when words from outside end a block left empty", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    ipc.opened[0].change("");
-    const before = writes.length;
-    view.rerender(
-      <Sheet
-        value={"# Compras\n\n  \n\npan\n"}
-        label="Compras"
-        onWrite={(text) => writes.push(text)}
-      />,
-    );
-    expect(ipc.left).toBe(1);
-    expect(writes.length).toBe(before);
-    view.unmount();
-    expect(writes.length).toBe(before);
-  });
-
   it("marks its room once the page runs under the bar at the top, and unmarks it back at the top", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));
@@ -828,78 +384,6 @@ describe("the sheet in the main window", () => {
     ipc.drawn = '<p data-at="0-6">Otra</p>';
     view.rerender(<Sheet value="Otra.\n" label="Compras" onWrite={() => {}} />);
     await shown(view.container, "Otra");
-  });
-
-  it("writes a title from its empty slot, and nothing while only its mark is there", async () => {
-    const writes: string[] = [];
-    ipc.drawn = "";
-    const view = render(<Sheet value="" label="" onWrite={(text) => writes.push(text)} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector(".page > h1[data-title]")
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(ipc.opened.map((one) => [one.said, one.caret])).toEqual([["# ", 2]]);
-    ipc.opened[0].change("# ");
-    ipc.opened[0].change("# Plan");
-    expect(writes).toEqual(["", "# Plan"]);
-  });
-
-  it("begins a block past the last one, apart from it by a blank line", async () => {
-    const writes: string[] = [];
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector(".page")
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: 9999 }));
-    expect(ipc.opened.map((one) => one.said)).toEqual([""]);
-    ipc.opened[0].change("fruta");
-    expect(writes).toEqual(["# Compras\n\nleche\n\npan\n\nfruta"]);
-  });
-
-  it("ends the block on a press elsewhere in the window, but not on a picker it opened", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    const picker = document.createElement("div");
-    picker.dataset.keepsWriting = "";
-    document.body.append(picker);
-    picker.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    expect(ipc.left).toBe(0);
-    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    expect(ipc.left).toBe(1);
-    picker.remove();
-  });
-
-  it("tells the window a card would come first only when nothing is written before the block", async () => {
-    const firsts: boolean[] = [];
-    const asking = {
-      kinds: ["doc"] as const,
-      ask: (_: unknown, __: unknown, ___: unknown, first: boolean) => firsts.push(first),
-    };
-    const view = render(
-      <Sheet value={BODY} label="Compras" onWrite={() => {}} asking={asking as never} />,
-    );
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    const handed = ipc.opened[0].asking?.() as typeof asking;
-    handed.ask("doc", { x: 0, y: 0 }, () => true, true);
-    expect(firsts).toEqual([false]);
-  });
-
-  it("tells the block being written whether its words are kept yet", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} kept={false} />);
-    const page = await loaded(await shown(view.container));
-    page
-      .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} kept />);
-    expect(ipc.kept).toEqual([false, true]);
   });
 });
 
@@ -928,5 +412,137 @@ describe("a block laid at a point of the text", () => {
     expect(laid("uno\n", 4, "![a](a.png)")).toBe("uno\n\n![a](a.png)\n");
     expect(laid("", 0, "![a](a.png)")).toBe("![a](a.png)\n");
     expect(laid("a\r\n\r\nb", 3, "x")).toBe("a\r\n\r\nx\r\n\r\nb");
+  });
+});
+
+describe("the whole-document sheet", () => {
+  it("folds the pages under it into one line that opens on a press, whatever stands above", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        above={<p>the languages</p>}
+        belowFolds
+        below={<p>under the sheet</p>}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
+    expect(view.queryByText("under the sheet")).toBeNull();
+    view.getByRole("button", { name: "Pages" }).click();
+    await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
+  });
+
+  it("shows the link to the next page as it is, folding nothing on a page", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        above={<p>the book</p>}
+        below={<p>next page</p>}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
+    expect(view.getByText("next page")).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Pages" })).toBeNull();
+  });
+});
+
+const PLACED =
+  '<h1 data-at="0-10"><span data-src="2-9">Compras</span></h1>' +
+  '<p data-at="11-17"><span data-src="11-16">leche</span></p>' +
+  '<p data-at="18-22"><span data-src="18-21">pan</span></p>';
+
+describe("the menus of a document written on as its page", () => {
+  const opened = async () => {
+    ipc.drawn = PLACED;
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} wholeable />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    const measured = page.defaultView?.Range.prototype as unknown as {
+      getBoundingClientRect?: () => unknown;
+    };
+    measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, bottom: 0, width: 0, height: 0 });
+    const words = page.querySelector('[data-src="11-16"]') as HTMLElement;
+    const range = page.createRange();
+    range.setStart(words.firstChild as Node, 0);
+    range.setEnd(words.firstChild as Node, 3);
+    page.getSelection()?.removeAllRanges();
+    page.getSelection()?.addRange(range);
+    return { page, words, writes };
+  };
+
+  it("cuts and copies the Markdown of the words chosen, and formats them", async () => {
+    const { words, writes } = await opened();
+    words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await waitFor(() => expect(offered()).toContain("Copy"));
+    expect(offered()).toEqual(expect.arrayContaining(["Cut", "Copy", "Bold", "Italic"]));
+    chosen("Copy");
+    await waitFor(() => expect(ipc.copied).toContain("lec"));
+    words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await waitFor(() => expect(offered()).toContain("Bold"));
+    chosen("Bold");
+    await waitFor(() => expect(writes[writes.length - 1]).toBe("# Compras\n\n**lec**he\n\npan\n"));
+  });
+
+  it("offers the blocks with Ctrl and a slash, searched by name", async () => {
+    const { page, writes } = await opened();
+    page
+      .querySelector(".page")
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "/", ctrlKey: true, bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Table"));
+    expect(document.querySelector('input[placeholder="Find a block"]')).not.toBeNull();
+    expect(offered()).not.toContain("Bold");
+    expect(writes).toHaveLength(0);
+  });
+});
+
+describe("the Markdown view of a document", () => {
+  const opened = async (props: Partial<Parameters<typeof Sheet>[0]> = {}) => {
+    const writes: string[] = [];
+    const sheet = (more: Partial<Parameters<typeof Sheet>[0]>) => (
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={(text) => writes.push(text)}
+        wholeable
+        wholeAsked={1}
+        {...props}
+        {...more}
+      />
+    );
+    const view = render(sheet({}));
+    await loaded(await shown(view.container));
+    await waitFor(() => expect(ipc.opened.map((one) => one.said)).toEqual([BODY]));
+    return { view, sheet, writes };
+  };
+
+  it("writes back what is typed, the file's own last line end kept", async () => {
+    const { writes } = await opened();
+    ipc.opened[0]?.change("# Compras\n\nleche\n\npan y vino");
+    expect(writes).toEqual(["# Compras\n\nleche\n\npan y vino\n"]);
+  });
+
+  it("tells the view whether its words are kept yet", async () => {
+    const { view, sheet } = await opened({ kept: false });
+    expect(ipc.kept).toContain(false);
+    view.rerender(sheet({ kept: true }));
+    expect(ipc.kept[ipc.kept.length - 1]).toBe(true);
+  });
+
+  it("leaves the view when another document comes in", async () => {
+    const { view, sheet } = await opened({ file: "a.md" });
+    view.rerender(sheet({ file: "b.md", value: "# Otra\n" }));
+    expect(ipc.left).toBe(1);
   });
 });

@@ -201,6 +201,9 @@ label[for] {
     width: 100%;
     transform: none;
   }
+  .arrive {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -487,6 +490,31 @@ label[for] {
   max-width: var(--sheet-wide, none);
   margin-inline: auto;
 }
+/* The whole-document editor's sheet leaves room around it, and what frames it above keeps its width. */
+.lively-room > .ribbon,
+.lively-room > .leaves,
+.lively-room > .onward {
+  width: round(down, 85%, 1px);
+  max-width: 1100px;
+}
+.ribbon-more {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  margin-left: auto;
+  border-radius: 6px;
+  color: var(--tisty-faint);
+}
+.ribbon-more:hover,
+.ribbon-more[aria-expanded="true"] {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.ribbon > :is(.ribbon-arrows, .tongues) + .ribbon-more {
+  margin-left: 8px;
+}
 /* On sheets the paper's own margin opens the page, so the bar stands apart instead of seeming part of it. */
 .on-sheets > .ribbon {
   margin-bottom: 14px;
@@ -529,6 +557,22 @@ label[for] {
 .ribbon-arrows + .tongues {
   margin-left: 8px;
 }
+.ribbon-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tisty-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s;
+}
+.title-gone > .ribbon > .ribbon-title {
+  visibility: visible;
+  opacity: 1;
+}
 .ribbon-back {
   display: flex;
   min-width: 0;
@@ -569,15 +613,7 @@ label[for] {
 }
 
 .leaves,
-.onward {
-  position: relative;
-  margin-top: 46px;
-  padding: 22px 30px 26px;
-  border-radius: 0 0 10px 10px;
-  background-color: var(--tisty-sheet);
-}
-.leaves::before,
-.onward::before {
+.leaves::before {
   content: "";
   position: absolute;
   right: 0;
@@ -586,8 +622,7 @@ label[for] {
   height: 46px;
   background: var(--tisty-desk);
 }
-.leaves::after,
-.onward::after {
+.leaves::after {
   content: "";
   position: absolute;
   right: 0;
@@ -756,11 +791,12 @@ label[for] {
 .onward {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: flex-end;
+  gap: 6px;
   width: 100%;
-  padding: 18px 40px 22px;
-  text-align: left;
-  font-size: 12.5px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  font-size: 11.5px;
   color: var(--tisty-faint);
 }
 .onward:hover .onward-name {
@@ -770,12 +806,10 @@ label[for] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 550;
   color: var(--tisty-soft);
 }
 .onward-go {
-  margin-left: auto;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1;
 }
 .widget-menu {

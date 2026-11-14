@@ -288,6 +288,9 @@ const KNOWN = [
   "settingsUnborn",
   "wslShut",
   "wslUnread",
+  "tableRefused",
+  "tableRefusedMoved",
+  "tableRefusedLastColumn",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

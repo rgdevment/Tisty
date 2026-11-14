@@ -48,7 +48,7 @@ fuente: la libreta de la veterinaria
 ---
 ```
 
-- Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Sobre este documento**, donde **Editar** abre el bloque arriba de la página tal como está escrito.
+- Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Sobre este documento**, donde **Editar** lo abre en la vista Markdown, tal como está escrito.
 - `title:` es el [título](#el-título) del documento.
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
@@ -665,7 +665,7 @@ Esto ya está en la otra.
 
 Deja una línea en blanco encima: justo debajo de una línea con palabras, `---` convierte esa línea en un título.
 
-Con **Hojas** encendido, una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel; un salto se respeta siempre, con hojas o sin ellas. `Ctrl`/`⌘` + `Enter` escribe uno mientras escribes. Un `\newpage`, `\pagebreak` o `\clearpage` solo en su línea, y un salto de página escrito en una página web o en un documento de Word, entran como una raya.
+Con **Hojas** encendido, una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel; un salto se respeta siempre, con hojas o sin ellas. El menú `/` inserta uno mientras escribes; en la vista Markdown, también `Ctrl`/`⌘` + `Enter`. Un `\newpage`, `\pagebreak` o `\clearpage` solo en su línea, y un salto de página escrito en una página web o en un documento de Word, entran como una raya.
 
 ## Comentarios y entidades
 

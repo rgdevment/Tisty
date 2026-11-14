@@ -81,21 +81,43 @@ const narrowest = (table: HTMLElement): number => {
   return needs;
 };
 
+const blocksOf = (page: Document | Element | null | undefined, kind: string): HTMLElement[] => {
+  if (!page) return [];
+  const scope = page.nodeType === 1 ? ":scope" : ".page";
+  return Array.from(page.querySelectorAll<HTMLElement>(`${scope} > ${kind}`));
+};
+
 // The page as it is drawn on screen: where its sheets turn, which folds are open, which tables outgrow the paper.
 export const seenIn = (
-  page: Document | null | undefined,
+  page: Document | Element | null | undefined,
   across = Number.POSITIVE_INFINITY,
 ): Seen => ({
-  turns: placed(
-    Array.from(page?.querySelectorAll(".page > .sheet-turn") ?? []).map(
-      (one) => one.nextElementSibling,
-    ),
-  ),
-  opened: placed(page?.querySelectorAll(".page > details[open]") ?? []),
+  turns: placed(blocksOf(page, ".sheet-turn").map((one) => one.nextElementSibling)),
+  opened: placed(blocksOf(page, "details[open]")),
   wide: placed(
-    Array.from(page?.querySelectorAll<HTMLElement>(".page > .table") ?? []).filter((one) => {
+    blocksOf(page, ".table").filter((one) => {
       const table = one.querySelector<HTMLElement>(":scope > table");
       return table !== null && narrowest(table) > across;
     }),
   ),
 });
+
+// The whole-document editor hides the page drawn when it opened, so what the PDF needs is drawn again from the words now.
+export const seenNow = async (
+  page: Document | null | undefined,
+  body: string,
+  draw: (body: string) => Promise<string>,
+  across = Number.POSITIVE_INFINITY,
+): Promise<Seen> => {
+  if (!page?.querySelector(".page.whole")) return seenIn(page, across);
+  const apart = page.createElement("div");
+  apart.className = "page";
+  apart.style.cssText = "position:absolute;left:-100000px;top:0;visibility:hidden";
+  apart.innerHTML = await draw(body);
+  page.body.append(apart);
+  try {
+    return seenIn(apart, across);
+  } finally {
+    apart.remove();
+  }
+};

@@ -208,11 +208,11 @@ describe("exporting a diagram from the page", () => {
 describe("writing a diagram as Markdown from the page", () => {
   it("opens the words of the figure asked, even the one inside a quote", () => {
     const own = page(BODY);
-    const heard: [[number, number], Element][] = [];
+    const heard: number[] = [];
     const reach: Reaching = {
       ...reaching(false).reach,
       body: "x".repeat(80),
-      onBlock: (at, block) => heard.push([at, block]),
+      onSource: (at) => heard.push(at),
     };
     worn(own, () => true, reach);
 
@@ -224,6 +224,6 @@ describe("writing a diagram as Markdown from the page", () => {
     answered(own, asked, reach);
     answered(own, { kind: "diagramMarkdown", at: [1, 2] }, reach);
 
-    expect(heard).toEqual([[[34, 78], own.querySelectorAll("figure.diagram")[1]]]);
+    expect(heard).toEqual([34]);
   });
 });

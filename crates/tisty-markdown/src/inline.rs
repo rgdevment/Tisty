@@ -6,6 +6,11 @@ use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
 pub fn inline(spans: &[Span], text: &str, out: &mut String) {
+    sourced(spans, text, false, out);
+}
+
+// Each piece of words says where it is written, so an editor on the page changes the Markdown and never the html.
+pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, out: &mut String) {
     debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let atoms: Vec<&Span> = spans.iter().filter(|one| atom(&one.mark)).collect();
     let mut items: Vec<(usize, Item)> = atoms
@@ -37,7 +42,13 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
             next += 1;
         }
         match item {
+            Item::Words(piece) if placed => placed_words(piece, text, out),
             Item::Words(piece) => words(&text[piece], out),
+            Item::Atom(one) if placed => {
+                let mut drawn = String::new();
+                atomic(one, spans, text, &kept, &mut drawn);
+                placed_atom(&drawn, &one.at, out);
+            }
             Item::Atom(one) => atomic(one, spans, text, &kept, out),
         }
     }
@@ -180,15 +191,100 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
     }
 }
 
-// An entity arrives as its own piece, already valid html; everything else is escaped.
-fn words(said: &str, out: &mut String) {
-    let entity = said.len() > 2
+// An atom drawn as one element carries its place itself, so the page keeps the shape it has when only read.
+fn placed_atom(drawn: &str, at: &Range<usize>, out: &mut String) {
+    let place = format!(
+        " data-src=\"{}-{}\" contenteditable=\"false\"",
+        at.start, at.end
+    );
+    match lone_tag(drawn) {
+        Some(end) => {
+            out.push_str(&drawn[..end]);
+            out.push_str(&place);
+            out.push_str(&drawn[end..]);
+        }
+        None => {
+            let _ = write!(out, "<span{place}>");
+            out.push_str(drawn);
+            out.push_str("</span>");
+        }
+    }
+}
+
+const VOID: [&str; 4] = ["img", "br", "hr", "wbr"];
+
+// Where the attributes of the one element `drawn` is go, or None when it is words or several elements.
+fn lone_tag(drawn: &str) -> Option<usize> {
+    let rest = drawn.strip_prefix('<')?;
+    let name: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric())
+        .collect();
+    if name.is_empty() || !name.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        return None;
+    }
+    let shut = drawn.find('>')?;
+    let end = if drawn[..shut].ends_with('/') {
+        shut - 1
+    } else {
+        shut
+    };
+    if VOID.contains(&name.as_str()) {
+        return (shut + 1 == drawn.len()).then_some(end);
+    }
+    let close = format!("</{name}>");
+    if !drawn.ends_with(&close) {
+        return None;
+    }
+    let open = format!("<{name}");
+    let mut depth = 0usize;
+    let mut at = 0;
+    while at < drawn.len() {
+        let here = &drawn[at..];
+        if here.starts_with(&close) {
+            depth = depth.checked_sub(1)?;
+            at += close.len();
+            if depth == 0 && at < drawn.len() {
+                return None;
+            }
+            continue;
+        }
+        if here.starts_with(&open) && here[open.len()..].starts_with(['>', ' ', '/']) {
+            depth += 1;
+        }
+        at += here.chars().next().map_or(1, char::len_utf8);
+    }
+    (depth == 0).then_some(end)
+}
+
+// An entity shows other letters than it is written with, so it is moved whole like a picture.
+fn placed_words(piece: Range<usize>, text: &str, out: &mut String) {
+    let solid = if entity(&text[piece.clone()]) {
+        " contenteditable=\"false\""
+    } else {
+        ""
+    };
+    let _ = write!(
+        out,
+        "<span data-src=\"{}-{}\"{solid}>",
+        piece.start, piece.end
+    );
+    words(&text[piece], out);
+    out.push_str("</span>");
+}
+
+fn entity(said: &str) -> bool {
+    said.len() > 2
         && said.starts_with('&')
         && said.ends_with(';')
         && said[1..said.len() - 1]
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '#');
-    if entity {
+            .all(|c| c.is_ascii_alphanumeric() || c == '#')
+}
+
+// An entity arrives as its own piece, already valid html; everything else is escaped.
+fn words(said: &str, out: &mut String) {
+    if entity(said) {
         out.push_str(said);
     } else {
         out.push_str(&escaped(said));

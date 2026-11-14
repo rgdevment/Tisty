@@ -1,15 +1,19 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { folded } from "../folding";
+import Glyph from "./Glyph";
 
 export interface Choice {
   key: string;
   label: string;
   icon?: string;
+  glyph?: string;
+  mark?: string;
   danger?: boolean;
   apart?: boolean;
   off?: boolean;
   hint?: string;
+  keys?: string;
   code?: string;
   on?: boolean;
   into?: { label: string; choices: Choice[] };
@@ -24,13 +28,15 @@ interface Props {
   up?: boolean;
   keeps?: boolean;
   find?: string;
+  /** A line under the choices on how the keys walk them. */
+  foot?: string;
   onClose: () => void;
 }
 
 const EDGE = 6;
 const TALLEST = 0.8;
 
-export default function Menu({ at, choices, label, up, keeps, find, onClose }: Props) {
+export default function Menu({ at, choices, label, up, keeps, find, foot, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
   const [where, setWhere] = useState<{ x: number; y: number; tall?: number }>(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
@@ -48,7 +54,8 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
     if (!own) return;
     const box = own.getBoundingClientRect();
     const room = window.innerHeight - EDGE * 2;
-    const tall = Math.min(own.scrollHeight, Math.round(window.innerHeight * TALLEST));
+    const edges = own.offsetHeight - own.clientHeight;
+    const tall = Math.min(own.scrollHeight + edges, Math.round(window.innerHeight * TALLEST));
     const below = at.y + tall <= window.innerHeight - EDGE;
     const above = at.y - tall >= EDGE;
     const y = (up || !below) && above ? at.y - tall : at.y;
@@ -122,7 +129,7 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="scroller fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
+      className="scroller arrive fixed z-[70] max-h-[80vh] min-w-[210px] rounded-[10px] border border-hair bg-rail p-1 shadow-lg"
     >
       {sifting && (
         <input
@@ -168,11 +175,16 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
               onClose();
               one.onPick?.();
             }}
-            className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
+            className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
               one.danger ? "text-urgent" : "text-ink"
             }${one.on ? " font-semibold" : ""}`}
           >
-            {one.code ? (
+            {one.glyph ? (
+              <Glyph
+                name={one.glyph}
+                className="h-[15px] w-[15px] text-faint group-hover:text-accent group-focus:text-accent"
+              />
+            ) : one.code ? (
               <span aria-hidden className="w-9 shrink-0 text-[10.5px] tracking-[0.04em] text-faint">
                 {one.code}
               </span>
@@ -182,6 +194,16 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
               </span>
             )}
             <span className="truncate">{one.label}</span>
+            {one.mark && (
+              <span aria-hidden className="ml-auto pl-4 font-mono text-[10.5px] text-faint">
+                {one.mark}
+              </span>
+            )}
+            {one.keys && (
+              <span aria-hidden className="ml-auto pl-4 text-[11.5px] text-faint">
+                {one.keys}
+              </span>
+            )}
             {one.on && (
               <span aria-hidden className="ml-auto pl-3 text-[11.5px] text-faint">
                 ✓
@@ -195,6 +217,11 @@ export default function Menu({ at, choices, label, up, keeps, find, onClose }: P
           </button>
         </div>
       ))}
+      {foot && (
+        <p className="mx-1 mt-1 border-hair border-t px-2 pt-1.5 pb-0.5 text-[10.5px] leading-snug text-faint">
+          {foot}
+        </p>
+      )}
     </div>,
     document.body,
   );

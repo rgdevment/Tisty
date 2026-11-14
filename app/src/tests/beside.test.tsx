@@ -57,6 +57,7 @@ vi.mock("../ui/printing", () => ({
   },
   factsCard: () => Promise.resolve(undefined),
   seenIn: () => ({ turns: [], opened: [] }),
+  seenNow: () => Promise.resolve({ turns: [], opened: [] }),
 }));
 
 vi.mock("../ui/Sheet", () => ({
@@ -351,7 +352,7 @@ describe("where the document rests", () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
-    expect(sheetOf()?.style.maxWidth).toBe("842px");
+    expect(sheetOf()?.style.maxWidth).toBe("");
   });
 });
 

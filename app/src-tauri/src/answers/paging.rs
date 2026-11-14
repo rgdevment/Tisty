@@ -13,6 +13,33 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
     tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
+// The page being written changes with each key, so it is drawn fresh and never kept on disk.
+#[tauri::command(async)]
+pub fn doc_placed(body: String) -> tauri::ipc::Response {
+    tauri::ipc::Response::new(
+        tisty_markdown::html_placed(&tisty_markdown::read(&body)).into_bytes(),
+    )
+}
+
+#[derive(serde::Serialize)]
+pub struct PlacedNear {
+    spans: Vec<[usize; 2]>,
+    from: usize,
+    to: usize,
+    html: String,
+}
+
+#[tauri::command(async)]
+pub fn doc_placed_near(body: String, from: usize, to: usize) -> PlacedNear {
+    let near = tisty_markdown::placed_near(&tisty_markdown::read(&body), from, to);
+    PlacedNear {
+        spans: near.spans,
+        from: near.drawn.start,
+        to: near.drawn.end,
+        html: near.html,
+    }
+}
+
 // A journal is never rewritten, so what it said before Tisty had its own words is turned as drawn.
 #[tauri::command(async)]
 pub fn note_drawn(body: String) -> String {

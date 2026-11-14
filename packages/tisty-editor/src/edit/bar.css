@@ -201,3 +201,79 @@
 .cm-hint-kept.on {
   color: var(--tisty-hue-green);
 }
+.cm-bar.live {
+  flex-wrap: nowrap;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--tisty-ink) 10%, transparent);
+  background: color-mix(in srgb, var(--tisty-rail) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 12px 32px -10px var(--tisty-cast),
+    0 2px 6px var(--tisty-cast);
+}
+.cm-bar.live button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 7px;
+  color: var(--tisty-soft);
+  font-weight: 500;
+}
+.cm-bar.live button:hover {
+  color: var(--tisty-ink);
+  background: var(--tisty-hover);
+}
+.cm-bar.live .cm-bar-sep {
+  height: 18px;
+  margin: 0 4px;
+  background: color-mix(in srgb, var(--tisty-ink) 10%, transparent);
+}
+.cm-bar.live .cm-bar-glyph svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.75;
+}
+.cm-bar.live .cm-bar-pen {
+  width: 13px;
+  height: 13px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tisty-ink) 18%, transparent);
+}
+.cm-bar.live.folded {
+  padding: 0;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.cm-bar.live.folded .cm-bar-fold {
+  min-width: 24px;
+  height: 24px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 999px;
+  color: var(--tisty-faint);
+  font-size: 11px;
+  opacity: 0.55;
+}
+.cm-bar.live.folded .cm-bar-fold:hover {
+  color: var(--tisty-ink);
+  opacity: 1;
+}
+.cm-bar.live .cm-bar-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 28px;
+  color: var(--tisty-faint);
+  cursor: grab;
+  user-select: none;
+}
+.cm-bar.live .cm-bar-fold {
+  cursor: grab;
+}
+.cm-bar.live.asleep {
+  visibility: hidden;
+}

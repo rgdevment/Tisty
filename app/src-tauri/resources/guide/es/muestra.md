@@ -8,13 +8,13 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 Tres maneras de leerla:
 
-- Haz clic en cualquier bloque y se abre con sus marcas a la vista; `Esc` lo devuelve a la página.
-- `Ctrl`/`⌘` + `E` muestra la hoja entera como texto: así está escrito cada ejemplo.
-- La tecla `/` lo inserta todo sin aprender ninguna marca. Cada sección dice cómo se llama en ese menú.
+- Escribe sobre la hoja misma: un clic en cualquier parte y escribes ahí, sin marcas a la vista.
+- El **⋯** de arriba, o `Ctrl`/`⌘` + `E`, la muestra en **Markdown**: así está escrito cada ejemplo.
+- La tecla `/` inserta cada bloque sin aprender ninguna marca, y la barra pone los formatos. Cada sección dice cómo se llama en ese menú.
 
 ## Propiedades
 
-Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Sobre este documento**, donde **Editar** lo abre tal como está escrito.
+Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Sobre este documento**, donde **Editar** lo abre en la vista Markdown, tal como está escrito.
 
 ```yaml title="Las primeras líneas de esta hoja"
 ---
@@ -29,16 +29,16 @@ fuente: la guía de Tisty
 
 ## Palabras
 
-Lo que marca unas palabras dentro de una frase. Elige las palabras y una barra pequeña te ofrece lo más usado, igual que el botón derecho; el menú `/` tiene el resto.
+Lo que marca unas palabras dentro de una frase. Elige las palabras y una barra pequeña te ofrece los formatos y el resaltador, igual que el botón derecho; el menú `/` pone un icono o un paso.
 
 | Qué | Se escribe | Se ve | Atajo |
 | :--- | :--- | :--- | :--- |
 | Negrita | `**negrita**` | **negrita** | `Ctrl`/`⌘` + `B` |
 | Cursiva | `*cursiva*` | *cursiva* | `Ctrl`/`⌘` + `I` |
 | Subrayado | `++subrayado++` | ++subrayado++ | `Ctrl`/`⌘` + `U` |
-| Tachado | `~~tachado~~` | ~~tachado~~ | `Ctrl`/`⌘` + `Shift` + `X` |
-| Código | `` `código` `` | `código` | `Ctrl`/`⌘` + `Shift` + `C` |
-| Enlace | `[enlace](https://www.tisty.app)` | [enlace](https://www.tisty.app) | `Ctrl`/`⌘` + `K` |
+| Tachado | `~~tachado~~` | ~~tachado~~ | la barra; en Markdown, `Ctrl`/`⌘` + `Shift` + `X` |
+| Código | `` `código` `` | `código` | la barra; en Markdown, `Ctrl`/`⌘` + `Shift` + `C` |
+| Enlace | `[enlace](https://www.tisty.app)` | [enlace](https://www.tisty.app) | la barra; en Markdown, `Ctrl`/`⌘` + `K` |
 | Destacar | `==destacado==` | ==destacado== | la barra |
 | Un icono | `::dog orange::` | ::dog orange:: | el menú `/` |
 | Un paso, por su número | `[[#2]]` | [[#2]] | el menú `/` |
@@ -813,7 +813,7 @@ https://www.tisty.app
 
 ## Hojas y saltos de página
 
-**Salto de página**, en el menú `/`, o `Ctrl`/`⌘` + `Enter`: una línea con solo `---`. En pantalla se ve como un corte, y al imprimir o en el PDF lo que sigue empieza en la hoja siguiente. Esta hoja tiene uno entre cada parte, y aquí va otro. Enciende **Hojas**, en el panel de al lado, y mira dónde cae la última línea.
+**Salto de página**, en el menú `/`, o `Ctrl`/`⌘` + `Enter` en Markdown: una línea con solo `---`. En pantalla se ve como un corte, y al imprimir o en el PDF lo que sigue empieza en la hoja siguiente. Esta hoja tiene uno entre cada parte, y aquí va otro. Enciende **Hojas**, en el panel de al lado, y mira dónde cae la última línea.
 
 ---
 

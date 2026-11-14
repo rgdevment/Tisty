@@ -8,11 +8,12 @@ Toda la ventana funciona con el teclado.
 | `Enter` (en la captura rápida) | Guardar la tarea |
 | `Ctrl` + `Alt` + `I` (si lo eliges en Configuración) | Anotar una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) desde cualquier parte |
 | `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) |
-| `Ctrl`/`⌘` + `Enter` | Terminar la tarea en que estás; en un documento que estás escribiendo, un salto de página |
+| `Ctrl`/`⌘` + `Enter` | Terminar la tarea en que estás; en la vista Markdown de un documento, un salto de página |
 | `/` | Insertar algo dentro de un documento |
-| `Shift` + `Enter` (escribiendo un bloque) | Saltar de línea sin empezar un párrafo |
-| `Ctrl`/`⌘` + `Shift` + `M` (escribiendo un bloque) | Mostrar u ocultar todas las marcas |
-| `Ctrl`/`⌘` + `E` (en un documento) | Abrir o dejar todo el documento |
+| `Shift` + `Enter` (escribiendo un documento) | Saltar de línea sin empezar un párrafo |
+| `Ctrl`/`⌘` + `/` (escribiendo un documento) | Abrir el menú de bloques donde está el cursor |
+| `Alt` + ↑ ↓ (escribiendo un documento) | Subir o bajar el bloque o el elemento donde está el cursor |
+| `Ctrl`/`⌘` + `E` (en un documento) | Cambiar entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |
 | `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho. Cuando la columna de la derecha no cabe a su lado, la barra lateral se pliega sola a sus iconos; si la abres a mano, queda abierta hasta que cambias de vista o de tamaño de ventana |
@@ -24,7 +25,7 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + clic · `Shift` + arrastrar (en la ventana de diagramas) | Elegir varias formas, clases o tablas |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Alt` + flecha (sobre la fila de una página) | Subir o bajar una página dentro de su documento |
-| `Alt` + flecha (en una tabla, escribiendo su texto) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |
+| `Alt` + flecha (en una tabla, en la vista Markdown) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |
 | `Esc` | Cerrar lo que esté abierto |
 
 Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en Configuración.

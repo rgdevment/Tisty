@@ -1,5 +1,5 @@
 export { type Carded, type Cards, cardBox, carded, drawnGlyph, glyph, piece } from "./cards";
-export { celled, hueOf, sayingDays, today } from "./cells";
+export { celled, celledBox, hueOf, sayingDays, today } from "./cells";
 export { colored, coloredAll } from "./coloring";
 export { diagramShot, diagrams, drawing, sourceOf } from "./diagrams";
 export { type Head, heads } from "./heads";

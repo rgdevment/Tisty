@@ -1,4 +1,5 @@
 import dressed from "./bar.css?raw";
+import { MOVED } from "./barMoving";
 
 const REST = 2;
 const LEFT = 6;
@@ -63,15 +64,17 @@ export const docked = (
     under.after(hint);
   } else (sheet ?? page.body).append(hint);
   const place = () => {
-    if (!sheet || !view) return;
+    if (!sheet || !view || bar.dataset[MOVED] !== undefined) return;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     const box = sheet.getBoundingClientRect();
     const scroller = scrollerOf(frame);
     const clip = scroller?.getBoundingClientRect().top ?? 0;
     const seen = Math.max(0, clip - (frame?.getBoundingClientRect().top ?? 0));
-    const top = (box.top + view.scrollY) / zoom;
+    const tabs = sheet.querySelector<HTMLElement>(".cm-panels-top");
+    const below = tabs ? (tabs.getBoundingClientRect().bottom - box.top) / zoom + STUCK : 0;
+    const top = (box.top + view.scrollY) / zoom + below;
     const bottom = (box.bottom + view.scrollY) / zoom - bar.offsetHeight;
-    const stuck = (seen + view.scrollY) / zoom + STUCK;
+    const stuck = (seen + view.scrollY) / zoom + STUCK + (tabs?.offsetHeight ?? 0);
     const look = view.getComputedStyle(sheet);
     const slot = side ? slotIn(frame?.ownerDocument, 40) : null;
     if (slot) {
@@ -98,10 +101,10 @@ export const docked = (
     }
     const line = aim?.();
     const margin = (Number.parseFloat(look.paddingLeft) || 0) - bar.offsetWidth - RAIL;
-    // Folded it waits in the margin beside the line, where it covers none of the words above.
-    if (bar.classList.contains("folded") && line != null && margin >= 0) {
+    // Folded it waits on the sheet's left edge beside the line, however narrow the sheet is.
+    if (bar.classList.contains("folded") && line != null) {
       bar.style.top = `${Math.min(bottom, Math.max(top, stuck, (line + view.scrollY) / zoom + 2))}px`;
-      bar.style.left = `${(box.left + view.scrollX) / zoom + margin}px`;
+      bar.style.left = `${(box.left + view.scrollX) / zoom + Math.max(0, margin)}px`;
       return;
     }
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;

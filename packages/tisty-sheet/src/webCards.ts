@@ -108,14 +108,18 @@ export const webCarded = (page: Document, say: Say, live: () => boolean, glimpse
     const held = link.parentElement;
     const at = link.getAttribute("href") ?? "";
     const host = hosting(at);
-    if (!held || !host || held.children.length !== 1 || link.children.length) continue;
+    // A page written in place holds the link's words in pieces of their own, which are still only words.
+    const words = Array.from(link.children).every(
+      (one) => one.matches("span[data-src]") && one.children.length === 0,
+    );
+    if (!held || !host || held.children.length !== 1 || !words) continue;
     if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const box = page.createElement("a");
     box.className = "doc-card is-web is-bare";
     box.href = at;
     const tile = lettered(page, host);
-    const words = link.textContent?.trim() ?? "";
-    const name = piece(page, "card-name", !words || words === at ? readable(at, host) : words);
+    const said = link.textContent?.trim() ?? "";
+    const name = piece(page, "card-name", !said || said === at ? readable(at, host) : said);
     const blurb = piece(page, "card-blurb");
     const meta = piece(page, "card-meta");
     meta.append(piece(page, "kind", host));

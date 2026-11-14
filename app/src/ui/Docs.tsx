@@ -11,6 +11,7 @@ import {
   docBack,
   docBackable,
   docCompactedLast,
+  docDrawn,
   docExport,
   docKeepCompacted,
   docLock,
@@ -45,12 +46,13 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
 import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
-import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
+import { pdfOf, STAMPING, type Stamp, type Stamping, seenNow, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
@@ -130,6 +132,7 @@ const listed = (chosen: string | string[] | null): string[] => {
 const LANDING_MS = 3000;
 
 const NOTES_ROOM = { maxWidth: "95%" };
+const FREE_ROOM = {};
 
 export default function Docs({
   open: asked,
@@ -663,6 +666,12 @@ export default function Docs({
   const brainstorm = noted && brainstormIn(body);
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const beside = Boolean(open) && !onNotes && (shown ?? fits);
+  const [markdownOf, setMarkdownOf] = useState<string | null>(null);
+  const viewing: Viewing = {
+    markdown: Boolean(open) && markdownOf === open?.file,
+    onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
+  };
+  const pageMore = bolted ? null : <PageMore {...viewing} />;
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -676,7 +685,7 @@ export default function Docs({
     [leaf, sheets, landscape],
   );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
-  const sheetRoom = { maxWidth: `${across + 48}px` };
+  const sheetRoom = sheets ? { maxWidth: `${across + 48}px` } : FREE_ROOM;
 
   useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 
@@ -699,7 +708,12 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    const seen = seenIn(drawn.current?.document, writtenAcrossOf(leaf, landscape));
+    const seen = await seenNow(
+      drawn.current?.document,
+      body,
+      docDrawn,
+      writtenAcrossOf(leaf, landscape),
+    );
     return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
   };
 
@@ -907,6 +921,7 @@ export default function Docs({
                   file={open.file}
                   place={place}
                   wholeable
+                  view={viewing}
                   wholeAsked={wholeAsked}
                   allAsked={allAsked}
                   lately={stirred ? lately : null}
@@ -941,21 +956,22 @@ export default function Docs({
                         told={aboveTold}
                         here={open.file}
                         onOpen={(doc) => onDoc?.(doc.file)}
+                        view={pageMore}
                       >
                         {!beside && spoken}
                       </Ribbon>
-                    ) : spoken && !beside ? (
-                      <nav aria-label={t("tonguesOf")} className="ribbon">
-                        {spoken}
-                      </nav>
                     ) : (
-                      own?.tongueApart && (
-                        <p role="note" className="ribbon">
-                          {t("tongueApart")}
-                        </p>
+                      ((spoken && !beside) || own?.tongueApart || pageMore) && (
+                        <div className="ribbon">
+                          <span className="ribbon-title">{called || t("untitledDoc")}</span>
+                          {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
+                          {!beside && spoken}
+                          {pageMore}
+                        </div>
                       )
                     )
                   }
+                  belowFolds={!above}
                   below={
                     above
                       ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
