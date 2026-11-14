@@ -18,6 +18,7 @@ import { useListening } from "./listening";
 import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
+import { useCalledTasks, useWakeOffer } from "./reminding";
 import { asksShape, type ShapeChoice } from "./reshaping";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
@@ -146,6 +147,8 @@ export function useWindow() {
     acted,
     setError,
   });
+  useCalledTasks({ setChosen, setHeld, setSelected });
+  const { waking, settleWaking } = useWakeOffer(data);
   useOnlyAlive(data?.lists, chosen, setChosen);
 
   useListening({
@@ -278,6 +281,8 @@ export function useWindow() {
     data,
     load,
     latest,
+    waking,
+    settleWaking,
     settling,
     stuck,
     setStuck,
