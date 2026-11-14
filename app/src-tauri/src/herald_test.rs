@@ -234,3 +234,34 @@ fn a_round_that_panics_does_not_take_the_watch_with_it() {
 fn a_round_that_finishes_hands_back_what_it_found() {
     assert_eq!(survived(|| 41 + 1, "unused"), Some(42));
 }
+
+#[test]
+fn a_reminder_the_window_sets_is_read_again_for_the_system_at_once() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let mut session = crate::Session::at(paths.clone()).unwrap();
+    let mut watching = Watching::default();
+    assert!(watching.reread(&paths));
+    let mut add = tisty_core::event::TaskAdd::new("comprar pan", "a0");
+    add.reminders = vec![tisty_core::DateSpec::floating(
+        "2026-08-12T09:00:00".parse().unwrap(),
+        "America/Santiago",
+    )];
+
+    session
+        .commit(tisty_core::Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: add,
+        })
+        .unwrap();
+
+    assert!(session.nudge.taken(), "the commit nudges the watch");
+    assert!(watching.reread(&paths));
+    let coming = tisty_core::herald::coming(
+        &watching.state,
+        "2026-08-11T12:00:00Z".parse().unwrap(),
+        &jiff::tz::TimeZone::get("America/Santiago").unwrap(),
+        64,
+    );
+    assert_eq!(coming.len(), 1, "{coming:?}");
+}

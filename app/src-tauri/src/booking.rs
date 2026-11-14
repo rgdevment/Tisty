@@ -240,7 +240,7 @@ mod there {
 
     // A thread that never joined COM still reaches WinRT while the process keeps its shared apartment alive.
     #[allow(unsafe_code)]
-    fn joined() {
+    pub fn joined() {
         let _ = unsafe { windows::Win32::System::Com::CoIncrementMTAUsage() };
     }
 
@@ -311,13 +311,19 @@ mod there {
     }
 
     fn booked(notifier: &ToastNotifier, ring: &Ring) -> windows::core::Result<()> {
-        let page = XmlDocument::new()?;
-        page.LoadXml(&HSTRING::from(toast(ring)))?;
-        let one =
-            ScheduledToastNotification::CreateScheduledToastNotification(&page, ticks(ring.at))?;
+        let one = ScheduledToastNotification::CreateScheduledToastNotification(
+            &page(ring)?,
+            ticks(ring.at),
+        )?;
         one.SetTag(&HSTRING::from(ring.key()))?;
         one.SetGroup(&HSTRING::from(GROUP))?;
         notifier.AddToSchedule(&one)
+    }
+
+    pub fn page(ring: &Ring) -> windows::core::Result<XmlDocument> {
+        let page = XmlDocument::new()?;
+        page.LoadXml(&HSTRING::from(toast(ring)))?;
+        Ok(page)
     }
 
     pub fn toast(ring: &Ring) -> String {
@@ -374,6 +380,7 @@ mod there {
         UNNotificationTrigger, UNUserNotificationCenter, UNUserNotificationCenterDelegate,
     };
     use std::ptr::NonNull;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::mpsc;
     use std::time::Duration;
 
@@ -385,14 +392,18 @@ mod there {
     pub fn book() -> Option<Box<dyn Book>> {
         let exe = std::env::current_exe().ok()?;
         crate::waking::bundle_of(&exe)?;
-        Some(Box::new(Center))
+        Some(Box::new(Center {
+            asked: AtomicBool::new(false),
+        }))
     }
 
     fn center() -> Retained<UNUserNotificationCenter> {
         UNUserNotificationCenter::currentNotificationCenter()
     }
 
-    struct Center;
+    struct Center {
+        asked: AtomicBool,
+    }
 
     impl Book for Center {
         fn shows(&self) -> bool {
@@ -404,7 +415,9 @@ mod there {
             center().getNotificationSettingsWithCompletionHandler(&answer);
             match heard.recv_timeout(WAIT) {
                 Ok(status) if status == UNAuthorizationStatus::NotDetermined => {
-                    asked();
+                    if !self.asked.swap(true, Ordering::Relaxed) {
+                        ask();
+                    }
                     false
                 }
                 Ok(status) => {
@@ -473,7 +486,7 @@ mod there {
         parts
     }
 
-    fn asked() {
+    fn ask() {
         let answer = RcBlock::new(|_granted: Bool, _trouble: *mut NSError| {});
         center().requestAuthorizationWithOptions_completionHandler(
             UNAuthorizationOptions::Alert | UNAuthorizationOptions::Sound,

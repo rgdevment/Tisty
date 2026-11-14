@@ -325,7 +325,7 @@ fn without_a_system_to_book_with_the_window_rings_everything() {
 #[cfg(windows)]
 mod toasts {
     use super::ring;
-    use crate::booking::there::{NAMED, ticks, toast};
+    use crate::booking::there::{NAMED, joined, page, ticks, toast};
 
     #[test]
     fn a_title_with_markup_stays_text_in_the_toast() {
@@ -353,6 +353,25 @@ mod toasts {
 
         assert!(toast(&quiet).contains(r#"<audio silent="true"/>"#));
         assert!(!toast(&ring("comprar pan", "2026-08-12T13:00:00Z")).contains("<audio"));
+    }
+
+    #[test]
+    fn windows_reads_the_toast_whatever_the_title_holds() {
+        joined();
+        for title in [
+            "comprar pan",
+            "pan & <queso> \"rico\" 'ya'",
+            "comprar\u{1}pan",
+            "café ☕ 🍞",
+        ] {
+            let mut quiet = ring(title, "2026-08-12T13:00:00Z");
+            quiet.heard = false;
+            assert!(
+                page(&ring(title, "2026-08-12T13:00:00Z")).is_ok(),
+                "{title}"
+            );
+            assert!(page(&quiet).is_ok(), "{title}");
+        }
     }
 
     #[test]

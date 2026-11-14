@@ -170,19 +170,14 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
         let mut since = jiff::Timestamp::now();
         let mut heard = tisty_core::stirring::rung(&paths);
         let mut round = std::time::Instant::now();
+        rebooked(&app, &mut watching, &paths);
         loop {
             std::thread::sleep(LISTENS);
             let bell = tisty_core::stirring::rung(&paths);
             let nudged = nudge.taken();
             if bell == heard && round.elapsed() < EVERY {
                 if nudged {
-                    survived(
-                        || {
-                            watching.reread(&paths);
-                            booked(&app, &watching.state, jiff::Timestamp::now());
-                        },
-                        "the watch could not book what the window changed",
-                    );
+                    rebooked(&app, &mut watching, &paths);
                 }
                 continue;
             }
@@ -192,15 +187,17 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
             let mut kept: Option<jiff::Timestamp> = None;
 
             let Some((mut owed, read, stirred)) = survived(
-                || {
-                    let found = watching.owed(&paths, since, now);
-                    booked(&app, &watching.state, now);
-                    found
-                },
+                || watching.owed(&paths, since, now),
                 "the watch could not read what was owed",
             ) else {
                 continue;
             };
+            if read && watching.known {
+                survived(
+                    || booked(&app, &watching.state, now),
+                    "the watch could not book the coming reminders",
+                );
+            }
             if stirred {
                 let _ = app.emit("stirred", ());
             }
@@ -221,6 +218,18 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
     });
 }
 
+// A state that could not be read is empty, and booking from it would cancel what the system holds.
+fn rebooked(app: &tauri::AppHandle, watching: &mut Watching, paths: &tisty_core::Paths) {
+    survived(
+        || {
+            if watching.reread(paths) {
+                booked(app, &watching.state, jiff::Timestamp::now());
+            }
+        },
+        "the watch could not book the reminders it read",
+    );
+}
+
 fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)) {
         Ok(done) => Some(done),
@@ -237,6 +246,7 @@ struct Watching {
     papers: String,
     state: tisty_core::State,
     looked: bool,
+    known: bool,
 }
 
 impl Watching {
@@ -254,6 +264,7 @@ impl Watching {
             match tisty_core::cache::summarised(&paths.store(), paths.cache()) {
                 Ok(state) => {
                     self.state = state;
+                    self.known = true;
                     stirred = self.looked;
                     self.print = print;
                 }
@@ -271,10 +282,13 @@ impl Watching {
     }
 
     // The window's own write may leave the print where it was, so its reminders are read again without waking the window.
-    fn reread(&mut self, paths: &tisty_core::Paths) {
-        if let Ok(state) = tisty_core::cache::summarised(&paths.store(), paths.cache()) {
-            self.state = state;
-        }
+    fn reread(&mut self, paths: &tisty_core::Paths) -> bool {
+        let Ok(state) = tisty_core::cache::summarised(&paths.store(), paths.cache()) else {
+            return false;
+        };
+        self.state = state;
+        self.known = true;
+        true
     }
 }
 
