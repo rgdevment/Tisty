@@ -449,6 +449,9 @@ html.ticking .page > blockquote[data-callout="idea"][data-at] {
   cursor: grab;
   touch-action: none;
 }
+html.ticking .page > blockquote[data-callout="idea"][data-at] [data-src] {
+  cursor: text;
+}
 html.carrying,
 html.carrying * {
   -webkit-user-select: none;
