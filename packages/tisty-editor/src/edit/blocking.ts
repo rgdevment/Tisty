@@ -1,6 +1,6 @@
 import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
-import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import {
   EditorState,
   type Line,
@@ -27,7 +27,6 @@ import { known } from "tisty-sheet/glyphs";
 import { movable } from "./barMoving";
 import { barred, blockKeys, flipped, paragraphKeys } from "./barring";
 import { chooseOrLet } from "./blocks";
-import { type Crossing, crossingKeys } from "./crossing";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { type Hosted, hosted } from "./hosted";
@@ -36,7 +35,7 @@ import { lively, livelyKeys } from "./living";
 import { GRAMMAR, pairsKept } from "./pairing";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
-import { revealing, visual } from "./seeing";
+import { visual } from "./seeing";
 import { type Asking, BOX, pickOnEnter, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
@@ -241,35 +240,10 @@ export const caretAt = (source: string, read: string): number => {
   return source.length;
 };
 
-const LABEL = 20;
-
-// A task's section name is a short label, so the template refuses a longer one as it is typed.
-const named = (doc: Text): number =>
-  [...(/^#{1,6}\s+(.*)$/.exec(doc.line(1).text)?.[1] ?? "")].length;
-
-// Composing skips the filter, so a label is held to its limit once more as it is left.
-const held = (view: EditorView, was: string) => {
-  const head = view.state.doc.line(1);
-  const words = /^(#{1,6}\s+)(.*)$/.exec(head.text);
-  const most = Math.max(LABEL, named(EditorState.create({ doc: was }).doc));
-  if (!words || [...words[2]].length <= most) return;
-  const kept = [...words[2]].slice(0, most).join("");
-  view.dispatch({ changes: { from: head.from + words[1].length, to: head.to, insert: kept } });
-};
-
-const labelled = EditorState.transactionFilter.of((tr) => {
-  if (!tr.docChanged || tr.isUserEvent("input.type.compose")) return tr;
-  // A label or a hint is one line, so a pasted break would start words under it.
-  if (tr.newDoc.lines > tr.startState.doc.lines) return [];
-  // A name already longer than the limit can still be shortened, never grown.
-  const now = named(tr.newDoc);
-  return now > LABEL && now > named(tr.startState.doc) ? [] : tr;
-});
-
 const EMPTY_STEP = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s*$/;
 
 // A step with no words is no step, and a blank line between steps splits them into two lists.
-export const tightened = (state: EditorState, keepsGaps = false): string => {
+export const tightened = (state: EditorState): string => {
   const { doc } = state;
   const lines: Line[] = [];
   for (let at = 1; at <= doc.lines; at++) {
@@ -277,17 +251,12 @@ export const tightened = (state: EditorState, keepsGaps = false): string => {
     if (coded(state, line.from) || !EMPTY_STEP.test(line.text)) lines.push(line);
   }
   const blank = (line: Line) => !line.text.trim() && !coded(state, line.from);
-  const inHtml = (line: Line) => syntaxTree(state).resolve(line.from, 1).name === "HTMLBlock";
   const kept = lines.filter((line, at) => {
     if (!blank(line)) return true;
-    // Enter leaves a blank line behind it, and one left unwritten must not reach the file as a wider gap.
-    const before = lines[at - 1];
-    if (!keepsGaps && before && blank(before) && !inHtml(line)) return false;
     const back = lines
       .slice(0, at)
       .reverse()
       .find((one) => !blank(one));
-    if (!keepsGaps && !back) return false;
     const ahead = lines.slice(at + 1).find((one) => !blank(one));
     if (!ahead) return false;
     return !(back && BOX.test(back.text) && BOX.test(ahead.text));
@@ -321,29 +290,13 @@ export const edited = (
   onChange: (text: string) => void,
   onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
-  oneLine = false,
-  whole: boolean | "live" = false,
-  onWhole?: (all: boolean) => void,
-  onCross?: (one: Crossing) => void,
 ): Editing => {
-  const live = whole === "live";
   const page = block.ownerDocument;
   const host = page.createElement("div");
-  host.className = live ? "editing whole live" : whole ? "editing whole" : "editing";
-  // The block is written where it is read, so it keeps the room and the look the page gave it.
+  host.className = "editing whole live";
+  // The editor is laid where the page was read, so it keeps the room the page gave it.
   const look = page.defaultView?.getComputedStyle(block);
   if (look) host.style.margin = look.margin;
-  const first = block.parentElement?.firstElementChild;
-  const heads = first === block || (first?.matches(".front") && first.nextElementSibling === block);
-  if (!whole && heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
-    host.classList.add("titled");
-  }
-  if (block.matches(".page > .front:first-child")) host.classList.add("fronted");
-  // A task's steps are a plain list: no bar over them, and an empty step ends the writing.
-  const stepping = block.matches(
-    "html.untitled .page > :is(.add-step, .step-hint, :is(ul, ol):has(> li.task))",
-  );
-  if (stepping) host.classList.add("stepping");
   block.replaceWith(host);
   let gone = false;
   let follow = (_: EditorView) => {};
@@ -360,14 +313,9 @@ export const edited = (
   const leave = () => {
     if (gone) return;
     gone = true;
-    if (oneLine) held(view, said);
     settle(view);
-    const untouched = view.state.doc.eq(opening);
-    // A document only looked at is left as it came; one written in is tidied as a block always was.
-    const tight =
-      live && untouched
-        ? view.state.sliceDoc()
-        : tightened(view.state, Boolean(whole) || untouched);
+    // A document only looked at is left as it came; one written in loses its empty steps.
+    const tight = view.state.doc.eq(opening) ? view.state.sliceDoc() : tightened(view.state);
     if (tight !== view.state.sliceDoc()) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: tight } });
     }
@@ -394,45 +342,17 @@ export const edited = (
               key: "Escape",
               run: (one) => {
                 if (completionStatus(one.state) === "active") return closeCompletion(one);
-                if (live) return chooseOrLet(one);
-                leave();
-                return true;
+                return chooseOrLet(one);
               },
             },
-            // The / menu or the steps in sight take Enter before a paragraph, a list or a label can.
+            // The / menu or the steps in sight take Enter before a paragraph or a list can.
             { key: "Enter", run: pickOnEnter },
-            // A template's label or hint is one line, so Enter ends it instead of starting words below.
-            {
-              key: "Enter",
-              run: (one) => {
-                const { main } = one.state.selection;
-                const line = one.state.doc.lineAt(main.head);
-                const ends =
-                  stepping && main.empty && main.head === line.to && EMPTY_STEP.test(line.text);
-                if (oneLine || ends) leave();
-                return oneLine || ends;
-              },
-            },
-            // A block already chosen whole is chosen past, so the next Ctrl+A takes the whole document.
-            {
-              key: "Mod-a",
-              run: (one) => {
-                const chosen = one.state.selection.main;
-                const length = one.state.doc.length;
-                if (whole || !onWhole || !length || chosen.from !== 0 || chosen.to !== length) {
-                  return false;
-                }
-                onWhole(true);
-                return true;
-              },
-            },
             ...pendingKeys,
             ...blockKeys,
             ...gridKeys,
             ...tableKeys,
-            ...(live ? livelyKeys : []),
-            ...((whole && !live) || stepping ? [] : paragraphKeys),
-            ...(onCross && !whole && !stepping ? crossingKeys(host, onCross) : []),
+            ...livelyKeys,
+            ...paragraphKeys,
             { key: "Mod-Shift-z", run: redo },
           ]),
         ),
@@ -446,29 +366,28 @@ export const edited = (
         hosted.of(owner),
         gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,
-        whole && !live ? revealing.of(true) : pairsKept,
-        live ? lively : [],
+        pairsKept,
+        lively,
         latelyMarked,
         pendingFormat,
         syntaxHighlighting(inked),
         marked,
-        slashing(owner.say, asking, oneLine),
+        slashing(owner.say, asking),
         EditorView.domEventHandlers({
           paste: (event, view) => pasting(event, view, asking),
         }),
         dressing,
         EditorView.lineWrapping,
         boxed,
-        oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
           // Words taken in from outside are already the sheet's; only the person's are handed back.
           const theirs = update.transactions.every((one) => one.isUserEvent("outside"));
-          if (update.docChanged && !theirs && live) {
+          if (update.docChanged && !theirs) {
             clearTimeout(due);
             due = setTimeout(flush, HANDED_AFTER_MS);
-          } else if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
+          }
           if (update.transactions.length > 0) follow(update.view);
-          if (live && update.focusChanged) asleep(!update.view.hasFocus);
+          if (update.focusChanged) asleep(!update.view.hasFocus);
           // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
           if (update.selectionSet || update.docChanged)
             page.defaultView?.requestAnimationFrame(() => {
@@ -479,33 +398,24 @@ export const edited = (
     }),
   });
   const opening = view.state.doc;
-  const bar = barred(
-    view,
-    whole === true,
-    live ? undefined : onWhole && (() => onWhole(false)),
-    () => putTable(view, asking?.()),
-    asking,
-    live,
-  );
-  if (stepping) bar.bar.style.display = "none";
+  const bar = barred(view, false, undefined, () => putTable(view, asking?.()), asking, true);
   follow = bar.follow;
   asleep = (yes) => bar.bar.classList.toggle("asleep", yes);
-  asleep(live && !view.hasFocus);
+  asleep(!view.hasFocus);
   const dock = docked(
     bar.bar,
     bar.hint,
-    () => aimed(view, page.documentElement.classList.contains("untitled"), live),
+    () => aimed(view, page.documentElement.classList.contains("untitled"), true),
     host,
-    whole === true,
-    live ? () => besideChosen(view, bar.bar) : undefined,
+    false,
+    () => besideChosen(view, bar.bar),
   );
-  const unmovable = live ? movable(bar.bar) : () => {};
+  const unmovable = movable(bar.bar);
   undock = () => {
     unmovable();
     dock.stop();
   };
   replace = dock.place;
-  if (live) bar.hint.style.display = "none";
-  if (!live) view.focus();
+  bar.hint.style.display = "none";
   return { view, leave, kept: bar.kept, flush };
 };

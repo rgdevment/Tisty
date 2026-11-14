@@ -14,7 +14,6 @@ export {
 } from "./edit/barring";
 export { aimed, caretAt, type Editing, edited, shaped, worded } from "./edit/blocking";
 export { chooseOrLet, doubled, droppedBlock, moving } from "./edit/blocks";
-export { type Crossing, crossingKeys, enteredAt, WRITTEN } from "./edit/crossing";
 export { docked } from "./edit/docking";
 export {
   anchored,

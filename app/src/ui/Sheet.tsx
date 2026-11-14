@@ -387,8 +387,6 @@ export default function Sheet(props: Readonly<Props>) {
           steps: () => stagesIn(latest.current),
         };
       },
-      false,
-      "live",
     );
     follows.current = (_, now) => {
       // The words come in place, the caret carried along, instead of the view ending.

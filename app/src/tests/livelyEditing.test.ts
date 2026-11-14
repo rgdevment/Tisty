@@ -13,7 +13,7 @@ const opened = (doc: string) => {
   document.body.append(page);
   const change = vi.fn();
   const leave = vi.fn();
-  const editing = edited(block, doc, change, leave, undefined, false, "live");
+  const editing = edited(block, doc, change, leave);
   return { editing, change, leave };
 };
 

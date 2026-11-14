@@ -123,14 +123,6 @@ html.sheeted .page > .sheet-turn {
     animation: none;
   }
 }
-.editing.titled .cm-line:first-child {
-  font-size: 1.65em;
-  font-weight: 640;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--tisty-hair);
-}
 .page > [data-at] {
   cursor: text;
   transition:

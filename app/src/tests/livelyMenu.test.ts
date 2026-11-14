@@ -34,9 +34,6 @@ const viewOf = (doc: string, anchor: number, head = anchor) => {
     doc,
     () => {},
     () => {},
-    undefined,
-    false,
-    "live",
   );
   opened.push(editing);
   editing.view.dispatch({ selection: { anchor, head } });

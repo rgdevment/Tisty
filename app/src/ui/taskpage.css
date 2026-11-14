@@ -123,9 +123,6 @@ html.untitled .page > ul > li.task > .check {
   left: 0;
   top: calc(5px + (1lh - 15px) / 2);
 }
-html.untitled .page > .editing.stepping .cm-check {
-  margin-right: 10px;
-}
 html.untitled .page > .add-step,
 html.untitled .page > .hint.step-hint {
   display: flex;
