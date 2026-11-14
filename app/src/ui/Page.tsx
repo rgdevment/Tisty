@@ -21,6 +21,7 @@ type Props = Reaching & {
   readonly cards?: string;
   readonly draw?: (body: string) => Promise<string>;
   readonly already?: string | null;
+  readonly onDresser?: (dress: (blocks: readonly Element[]) => void) => void;
   readonly onMend?: (one: Mend, body: string) => void;
 };
 
@@ -141,6 +142,7 @@ export default function Page(props: Readonly<Props>) {
             onDiagramExport: current("onDiagramExport"),
             onTable: current("onTable"),
           })}
+          onDresser={(dress) => reach.current.onDresser?.(dress)}
           onReady={(frame) => ready(drawing, frame)}
         />
       )}

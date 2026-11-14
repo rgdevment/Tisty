@@ -1732,6 +1732,9 @@ html.lively:not(.sheeted) .page {
   box-shadow: 0 8px 24px -10px var(--tisty-cast);
   outline: none;
 }
+.page[contenteditable="true"] {
+  outline: none;
+}
 .page-plus {
   position: absolute;
   z-index: 15;

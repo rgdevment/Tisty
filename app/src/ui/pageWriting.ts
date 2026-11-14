@@ -10,6 +10,7 @@ import {
   gripped,
   type Moved,
   movedTo,
+  roomy,
   swappedItem,
   topsOf,
   unitOf,
@@ -318,9 +319,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     }
   };
 
-  const drawn = () => {
-    whole = false;
-    opened();
+  const caretLaid = () => {
     if (!kept) return;
     const ghost = spotOf(page, hands.text(), kept.at) ? null : ghostAt(page, hands.text(), kept.at);
     const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
@@ -329,6 +328,21 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     held?.collapse(spot[0], spot[1]);
     kept = { node: spot[0], offset: spot[1], at: kept.at };
   };
+
+  const drawn = () => {
+    whole = false;
+    opened();
+    caretLaid();
+  };
+
+  // Colours, icons and cards land after a block is drawn and take the place of its words, the caret with them.
+  const Watching = page.defaultView?.MutationObserver;
+  const watching =
+    Watching &&
+    new Watching(() => {
+      if (kept && kept.offset >= 0 && !kept.node.isConnected) caretLaid();
+    });
+  watching?.observe(page.body, { childList: true, subtree: true });
 
   // Where the menu of blocks opens: under the caret, on the window's own screen.
   const caretPoint = (): Point => {
@@ -408,7 +422,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const held = page.getSelection();
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const sheet = page.querySelector<HTMLElement>(".page");
-    if (!range || !sheet || !sheet.contains(range.startContainer)) {
+    if (!range || !sheet || !sheet.contains(range.startContainer) || !roomy(page)) {
       plus.hidden = true;
       return;
     }
@@ -511,6 +525,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     },
     stop: () => {
       told();
+      watching?.disconnect();
       page.removeEventListener("selectionchange", noted);
       page.removeEventListener("keydown", keyed);
       plus.remove();

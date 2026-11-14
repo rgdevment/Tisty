@@ -62,9 +62,14 @@ export function LivelyBelow({ children, folds, width }: Below) {
   );
 }
 
-type Turning = { readonly markdown: boolean; readonly onTurn: (markdown: boolean) => void };
+type Turning = {
+  readonly markdown: boolean;
+  readonly onTurn: (markdown: boolean) => void;
+  /** On a task's page it stands on a row of its own, since nothing above the words leaves it room. */
+  readonly inRow?: boolean;
+};
 
-export function ViewSwitch({ markdown, onTurn }: Turning) {
+export function ViewSwitch({ markdown, onTurn, inRow = false }: Turning) {
   const tab = (plainly: boolean, word: "viewPreview" | "viewMarkdown") => (
     <button
       type="button"
@@ -79,7 +84,9 @@ export function ViewSwitch({ markdown, onTurn }: Turning) {
     </button>
   );
   return (
-    <div className="absolute top-3 right-4 z-10 flex gap-0.5 rounded-full border border-hair bg-hover p-0.5">
+    <div
+      className={`${inRow ? "mb-2 ml-auto w-fit" : "absolute top-3 right-4 z-10"} flex gap-0.5 rounded-full border border-hair bg-hover p-0.5`}
+    >
       {tab(false, "viewPreview")}
       {tab(true, "viewMarkdown")}
     </div>

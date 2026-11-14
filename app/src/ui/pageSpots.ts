@@ -13,10 +13,24 @@ const pointIn = (page: Document, node: Node, offset: number) => {
 };
 
 // A point between pieces of words takes the nearest one in its own block, or the block's end when it has none.
+// A point on the sheet outside every block, as its margin or a page with nothing yet, writes after the block before it.
+const between = (body: string, sheet: Element, node: Node, offset: number): number => {
+  const page = sheet.ownerDocument;
+  let end = 0;
+  for (const one of sheet.querySelectorAll(":scope > [data-at]")) {
+    const start = page.createRange();
+    start.setStartBefore(one);
+    if (start.comparePoint(node, offset) <= 0) break;
+    end = spanned(one.getAttribute("data-at"))?.[1] ?? end;
+  }
+  return end > 0 ? charsAt(body, end) : 0;
+};
+
 const nearest = (body: string, node: Node, offset: number): number | null => {
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
   const block = element?.closest(BLOCK);
-  if (!block) return null;
+  const sheet = element?.closest(".page");
+  if (!block) return sheet ? between(body, sheet, node, offset) : null;
   const page = block.ownerDocument;
   let before: Element | null = null;
   for (const one of block.querySelectorAll(PLACED)) {

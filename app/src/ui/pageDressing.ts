@@ -1,35 +1,60 @@
-import { celledBox, diagrams, HUES, today } from "tisty-sheet";
+import { readAs } from "tisty-editor/read";
+import { staged } from "tisty-sheet";
 import { locale } from "../locales";
-import { diagramBar, picturesWithin } from "./dressing";
+import { cardsFor } from "./carding";
+import { datedSteps, diagramBars, pictures, type Reaching } from "./dressing";
 import { SAY } from "./saying";
-import { dressedTable } from "./tabled";
-import { darkNow } from "./theming";
-import { gripsOn } from "./widening";
+import { tabled } from "./tabled";
+import { GLIMPSES } from "./webcarding";
+import { gripped } from "./widening";
 
-const tableDressed = (page: Document, box: Element) => {
-  dressedTable(page, box);
-  celledBox(page, box, {
-    today: today(),
-    locale: locale(),
-    hues: HUES,
-    live: true,
-    say: SAY,
+// The blocks the core drew again while the page is written on are read on a page of their own, as the whole
+// page is read, and laid back; what counts across the page, as its stages, is counted again on the page.
+export const wornLaid = (
+  page: Document,
+  laid: readonly Element[],
+  live: () => boolean,
+  reach: Reaching,
+): (() => void)[] => {
+  const staging = page.implementation.createHTMLDocument("");
+  staging.documentElement.className = page.documentElement.className;
+  const sheet = staging.createElement("article");
+  sheet.className = "page";
+  staging.body.append(sheet);
+  const marks = laid.map((one) => {
+    const mark = page.createComment("");
+    one.replaceWith(mark);
+    sheet.append(one);
+    return mark;
   });
-  gripsOn(page, box.querySelectorAll<HTMLElement>("thead th"));
-};
-
-const within = (laid: readonly Element[], selector: string) =>
-  laid.flatMap((one) => [
-    ...(one.matches(selector) ? [one] : []),
-    ...one.querySelectorAll(selector),
-  ]);
-
-// Blocks drawn again while the page is written on are dressed alone; a diagram already drawn is left as it is.
-export const dressedLaid = (sheet: Element, laid: readonly Element[]) => {
-  const live = () => sheet.isConnected;
-  for (const one of laid) picturesWithin(one, live);
-  for (const figure of within(laid, "figure.diagram"))
-    diagramBar(figure as HTMLElement, { open: true, out: true, words: false });
-  for (const box of within(laid, ".table")) tableDressed(sheet.ownerDocument, box);
-  void diagrams(sheet, darkNow(), live);
+  if (reach.onDiagram || reach.onDiagramExport)
+    diagramBars(staging, {
+      open: Boolean(reach.onDiagram),
+      out: Boolean(reach.onDiagramExport),
+      words: false,
+    });
+  let held: (() => void)[] = [];
+  const read = readAs(staging, {
+    say: SAY,
+    locale: locale(),
+    live,
+    writable: Boolean(reach.onTable),
+    brought: () => {
+      held = pictures(staging, live, { more: Boolean(reach.onMore) });
+    },
+    cards: cardsFor(page, reach),
+    parts: reach.part,
+    sites: { glimpses: GLIMPSES },
+  });
+  marks.forEach((mark, at) => {
+    const one = laid[at];
+    if (one) mark.replaceWith(one);
+  });
+  if (reach.onTable) tabled(page);
+  if (reach.onWiden) gripped(page);
+  for (const one of page.querySelectorAll('.page li.task[id^="stage--"]'))
+    one.removeAttribute("id");
+  staged(page);
+  datedSteps(page, reach.stepDates);
+  return [...held, ...read.kept];
 };

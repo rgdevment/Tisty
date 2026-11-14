@@ -109,6 +109,18 @@ type Gripping = {
 };
 
 const STILL_PX = 4;
+// The grip and the + stand in the sheet's left margin, so a sheet with less than this keeps them away.
+const MARGIN_AT_LEAST = 38;
+
+export const roomy = (page: Document) => {
+  const sheet = page.querySelector(".page");
+  const view = page.defaultView;
+  return Boolean(
+    sheet &&
+      view &&
+      (Number.parseFloat(view.getComputedStyle(sheet).paddingLeft) || 0) >= MARGIN_AT_LEAST,
+  );
+};
 
 // A block is moved by the grip that stands beside it on the sheet's left edge; a press on the grip asks what to do with it.
 export const gripped = (page: Document, hands: Gripping): (() => void) => {
@@ -139,6 +151,7 @@ export const gripped = (page: Document, hands: Gripping): (() => void) => {
     if (target === grip) return;
     const top = target?.closest?.(".page > [data-at]");
     if (!top || top.matches(".front")) return;
+    if (!roomy(page)) return;
     over = top;
     grip.hidden = false;
     placeOn(grip, top.getBoundingClientRect().top + 2, 1);

@@ -48,7 +48,6 @@ import { LivelyBelow, useFrameScroll, ViewSwitch } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import { dressedLaid } from "./pageDressing";
 import type { Act } from "./pageMoving";
 import { type Hands, type PageWriting, writtenOn } from "./pageWriting";
 import type { Went } from "./paging";
@@ -193,9 +192,12 @@ export default function Sheet(props: Readonly<Props>) {
   const [ready, setReady] = useState(false);
   const [markdown, setMarkdown] = useState(false);
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
-  const onPage = lively && !markdown && !reading && !fixed;
+  // A document and a task's page are both written on as the core draws them.
+  const writable = !reading && !fixed && (lively || Boolean(props.inline));
+  const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
   const alreadyShown = useRef<string | null>(null);
+  const dresser = useRef<((blocks: readonly Element[]) => void) | null>(null);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
   turnedNow.current = turned;
@@ -516,10 +518,10 @@ export default function Sheet(props: Readonly<Props>) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` reads only refs, so each drawing alone decides.
   useEffect(() => {
-    if (!lively || !markdown || !ready || reading || fixed || open.current || !framed()) return;
+    if (!writable || !markdown || !ready || open.current || !framed()) return;
     if (drawn !== latest.current || showing.current !== latest.current) return;
     wholly(0, false, true);
-  }, [lively, markdown, ready, turned, drawn, reading]);
+  }, [writable, markdown, ready, turned, drawn]);
 
   const [viewedFile, setViewedFile] = useState(file);
   if (viewedFile !== file) {
@@ -542,7 +544,7 @@ export default function Sheet(props: Readonly<Props>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the count alone decides.
   useEffect(() => {
     if (!wholeAsked) return;
-    if (lively) {
+    if (writable) {
       setMarkdown((was) => !was);
       return;
     }
@@ -581,7 +583,7 @@ export default function Sheet(props: Readonly<Props>) {
 
   // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
   const wholly = (asked?: number, all = false, lively = false) => {
-    if (reading || fixed || !said.current.wholeable) return;
+    if (reading || fixed || !(said.current.wholeable || said.current.inline)) return;
     const caret = asked ?? (open.current ? caretNow.current?.() : undefined) ?? 0;
     if (open.current) left();
     const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
@@ -996,7 +998,7 @@ export default function Sheet(props: Readonly<Props>) {
       setDrawn(now);
     },
     near: docPlacedNear,
-    dressed: dressedLaid,
+    dressed: (_sheet, laid) => dresser.current?.(laid),
     ask: (kind, at, put, first) => said.current.asking?.ask(kind, at, put, first),
     blocks: (at, slash) => blockMenu(at, slash),
     acts: blockActs,
@@ -1009,7 +1011,7 @@ export default function Sheet(props: Readonly<Props>) {
       pageWriter.current.hands.stop();
       pageWriter.current = null;
     }
-    if (!page || !said.current.wholeable || !onPage) return;
+    if (!page || !onPage) return;
     pageWriter.current ??= { page, hands: writtenOn(page, pageHands) };
     pageWriter.current.hands.drawn();
   };
@@ -1240,8 +1242,8 @@ export default function Sheet(props: Readonly<Props>) {
         className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
-        {lively && !reading && !fixed && ready && (
-          <ViewSwitch markdown={markdown} onTurn={setMarkdown} />
+        {writable && ready && (
+          <ViewSwitch markdown={markdown} onTurn={setMarkdown} inRow={!lively} />
         )}
         <Page
           bar={BAR}
@@ -1254,8 +1256,11 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
-          draw={lively && !reading && !fixed ? docPlaced : undefined}
+          draw={writable ? docPlaced : undefined}
           already={alreadyShown.current}
+          onDresser={(dress) => {
+            dresser.current = dress;
+          }}
           onBlock={reading || onPage ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
