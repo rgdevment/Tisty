@@ -52,6 +52,7 @@ pub struct Views {
     ready: std::sync::atomic::AtomicBool,
     early: Mutex<Vec<PathBuf>>,
     calendars: Mutex<Vec<PathBuf>>,
+    task_owed: Mutex<Option<String>>,
     unsaved: Mutex<std::collections::HashSet<String>>,
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
@@ -251,6 +252,54 @@ pub fn asked_to_edit(said: &str, private: &str) -> Option<url::Url> {
     (web.scheme() == "https" && ours).then_some(web)
 }
 
+pub fn task_link(id: &str) -> String {
+    format!("tisty://task?id={id}")
+}
+
+// Any page can fire this address too, so all it ever does is open a task by its id.
+pub fn asked_for_task(said: &str) -> Option<String> {
+    let link = url::Url::parse(said.trim()).ok()?;
+    if link.scheme() != "tisty"
+        || link.host_str() != Some("task")
+        || !matches!(link.path(), "" | "/")
+        || link.fragment().is_some()
+    {
+        return None;
+    }
+    let mut parameters = link.query_pairs();
+    let (name, value) = parameters.next()?;
+    if name != "id" || parameters.next().is_some() {
+        return None;
+    }
+    value.parse::<ulid::Ulid>().ok().map(|id| id.to_string())
+}
+
+pub fn told_of_tasks(app: &AppHandle, argv: &[String]) -> bool {
+    let Some(task) = argv
+        .iter()
+        .skip(1)
+        .rev()
+        .find_map(|one| asked_for_task(one))
+    else {
+        return false;
+    };
+    to_task(app, task);
+    true
+}
+
+pub fn to_task(app: &AppHandle, task: String) {
+    if let Ok(mut owed) = app.state::<Views>().task_owed.lock() {
+        *owed = Some(task);
+    }
+    crate::tray::surface(app);
+    let _ = app.emit_to("main", "showtask", ());
+}
+
+#[tauri::command]
+pub fn task_waiting(views: tauri::State<'_, Views>) -> Option<String> {
+    views.task_owed.lock().ok().and_then(|mut owed| owed.take())
+}
+
 // A first copy would make the store look used before the welcome has said where the copies go, so a link waits for it.
 pub fn told_of_edits(app: &AppHandle, argv: &[String]) -> bool {
     let private = app.try_state::<Mutex<Session>>().map_or_else(
@@ -365,10 +414,11 @@ pub fn ics_waiting(views: tauri::State<'_, Views>) -> Vec<String> {
 
 pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
     told_of_edits(app, argv);
+    let tasked = told_of_tasks(app, argv);
     let found = wanted(argv, cwd);
     let any = !found.is_empty();
     show(app, found);
-    any
+    any || tasked
 }
 
 #[cfg(target_os = "macos")]
@@ -376,7 +426,7 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     let said: Vec<String> = std::iter::once(String::new())
         .chain(links.iter().map(|one| one.to_string()))
         .collect();
-    let edits = told_of_edits(app, &said);
+    let edits = told_of_edits(app, &said) | told_of_tasks(app, &said);
     let views = app.state::<Views>();
     let found = wanted(&said, None);
     if let Ok(mut held) = views.early.lock()

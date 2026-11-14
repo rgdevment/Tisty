@@ -3,6 +3,7 @@ use std::sync::Mutex;
 mod admitting;
 mod answers;
 mod asked;
+mod booking;
 mod command;
 mod desktop;
 mod diagramming;
@@ -689,6 +690,7 @@ fn unreach_system() -> std::io::Result<bool> {
         return Ok(false);
     }
     let _ = waking::wake(false);
+    booking::forget();
     let reached = command::out_of_reach();
     if let Some(home) = command::beside() {
         for at in tisty_core::Paths::shims()
@@ -765,6 +767,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
     opened(app.handle(), !wanted.is_empty())?;
     viewing::told_of_edits(app.handle(), &argv);
+    viewing::told_of_tasks(app.handle(), &argv);
     viewing::show(app.handle(), wanted);
     Ok(())
 }
@@ -875,14 +878,16 @@ pub(crate) fn opened(
         missed: worded(&session.locale, "missed"),
     };
     let watched = session.paths.clone();
+    let nudge = session.nudge.clone();
     let quiet = session.config.muted().to_vec();
     let session_keys = session.config.quick_keys.clone();
     let idea_keys = session.config.idea_keys.clone();
     let came_back = back_from_an_update(&mut session);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
-    app.manage(herald::Speaking::new(app, telling, &quiet));
-    herald::watch(app.clone(), watched);
+    app.manage(herald::Speaking::new(app, telling, &quiet, nudge.clone()));
+    app.manage(booking::Booking::here(app));
+    herald::watch(app.clone(), watched, nudge);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
     answers::papers::tags_once(app.clone());
@@ -1091,6 +1096,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::wired::unwire,
         answers::wired::waking,
         answers::wired::wake_for,
+        answers::wired::wake_due,
+        answers::wired::wake_asked,
         answers::settings::keep_locale,
         answers::settings::keep_closing,
         answers::settings::keep_theme,
@@ -1310,6 +1317,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         light_view::view_picture_far,
         light_view::view_follow,
         viewing::ics_waiting,
+        viewing::task_waiting,
         answers::calendar::ics_read,
         answers::calendar::ics_take,
         viewing::view_facts,

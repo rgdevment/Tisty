@@ -75,16 +75,37 @@ fn tone_for(what: &Happening) -> Option<&'static str> {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct Nudge(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
+impl Nudge {
+    pub fn give(&self) {
+        self.0.store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    fn taken(&self) -> bool {
+        self.0.swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+}
+
 pub struct Speaking {
     words: Words,
     now: std::sync::Mutex<Heralds>,
+    nudge: Nudge,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Voices {
+    pub shown: bool,
+    pub heard: bool,
 }
 
 impl Speaking {
-    pub fn new(app: &tauri::AppHandle, words: Words, quiet: &[String]) -> Self {
+    pub fn new(app: &tauri::AppHandle, words: Words, quiet: &[String], nudge: Nudge) -> Self {
         Self {
             now: std::sync::Mutex::new(built(app, &words, quiet)),
             words,
+            nudge,
         }
     }
 
@@ -92,6 +113,17 @@ impl Speaking {
         match self.now.lock() {
             Ok(heralds) => heralds.tell(what),
             Err(held) => held.into_inner().tell(what),
+        }
+    }
+
+    fn voices(&self) -> Voices {
+        let names = match self.now.lock() {
+            Ok(heralds) => heralds.names(),
+            Err(held) => held.into_inner().names(),
+        };
+        Voices {
+            shown: names.contains(&"screen"),
+            heard: names.contains(&"chime"),
         }
     }
 }
@@ -105,6 +137,7 @@ pub fn respeak(app: &tauri::AppHandle, quiet: &[String]) {
         Ok(mut now) => *now = fresh,
         Err(held) => *held.into_inner() = fresh,
     }
+    speaking.nudge.give();
 }
 
 fn built(app: &tauri::AppHandle, words: &Words, quiet: &[String]) -> Heralds {
@@ -131,7 +164,7 @@ const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
 // An agent's bell is a hint, so the round above still runs whether it rings or not.
 const LISTENS: std::time::Duration = std::time::Duration::from_secs(1);
 
-pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
+pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
     std::thread::spawn(move || {
         let mut watching = Watching::default();
         let mut since = jiff::Timestamp::now();
@@ -140,7 +173,17 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
         loop {
             std::thread::sleep(LISTENS);
             let bell = tisty_core::stirring::rung(&paths);
+            let nudged = nudge.taken();
             if bell == heard && round.elapsed() < EVERY {
+                if nudged {
+                    survived(
+                        || {
+                            watching.reread(&paths);
+                            booked(&app, &watching.state, jiff::Timestamp::now());
+                        },
+                        "the watch could not book what the window changed",
+                    );
+                }
                 continue;
             }
             heard = bell;
@@ -148,14 +191,21 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
-            let Some((owed, read, stirred)) = survived(
-                || watching.owed(&paths, since, now),
+            let Some((mut owed, read, stirred)) = survived(
+                || {
+                    let found = watching.owed(&paths, since, now);
+                    booked(&app, &watching.state, now);
+                    found
+                },
                 "the watch could not read what was owed",
             ) else {
                 continue;
             };
             if stirred {
                 let _ = app.emit("stirred", ());
+            }
+            if let Some(booking) = app.try_state::<crate::booking::Booking>() {
+                owed.retain(|one| !booking.holds(one, now));
             }
             let oldest = owed.iter().map(|one| one.at).min();
             for what in tisty_core::herald::gathered(owed) {
@@ -219,6 +269,50 @@ impl Watching {
         let owed = tisty_core::herald::owed(&self.state, since, now, &jiff::tz::TimeZone::system());
         (owed, read, stirred)
     }
+
+    // The window's own write may leave the print where it was, so its reminders are read again without waking the window.
+    fn reread(&mut self, paths: &tisty_core::Paths) {
+        if let Ok(state) = tisty_core::cache::summarised(&paths.store(), paths.cache()) {
+            self.state = state;
+        }
+    }
+}
+
+fn booked<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    state: &tisty_core::State,
+    now: jiff::Timestamp,
+) {
+    let (Some(booking), Some(speaking)) = (
+        app.try_state::<crate::booking::Booking>(),
+        app.try_state::<Speaking>(),
+    ) else {
+        return;
+    };
+    if !booking.books() {
+        return;
+    }
+    let voices = speaking.voices();
+    let wanted = match voices.shown {
+        true => crate::booking::rings(
+            tisty_core::herald::coming(state, now, &jiff::tz::TimeZone::system(), booking.most()),
+            &speaking.words.due,
+            voices.heard,
+        ),
+        false => Vec::new(),
+    };
+    booking.keep(&wanted, now);
+}
+
+pub fn book_before_leaving<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    let Some(session) = app.try_state::<std::sync::Mutex<crate::Session>>() else {
+        return;
+    };
+    let session = crate::held(&session);
+    survived(
+        || booked(app, &session.state, jiff::Timestamp::now()),
+        "the reminders could not be booked on the way out",
+    );
 }
 
 fn onward(now: jiff::Timestamp, kept: Option<jiff::Timestamp>) -> jiff::Timestamp {

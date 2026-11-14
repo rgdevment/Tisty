@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 357 crates named in
+The licence texts of the 358 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 243 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -5230,7 +5230,7 @@ SOFTWARE.
 
 ## Text 63
 
-Written out for `dispatch2` 0.3.1, `mac-notification-sys` 0.6.15, `objc2-app-kit` 0.3.2, `objc2-core-foundation` 0.3.2, `objc2-core-graphics` 0.3.2, `objc2-exception-helper` 0.1.1, `objc2-osa-kit` 0.3.2, `objc2-quartz-core` 0.3.2, `objc2-web-kit` 0.3.2, from the licence the manifest declares: the crate ships no licence file.
+Written out for `dispatch2` 0.3.1, `mac-notification-sys` 0.6.15, `objc2-app-kit` 0.3.2, `objc2-core-foundation` 0.3.2, `objc2-core-graphics` 0.3.2, `objc2-exception-helper` 0.1.1, `objc2-osa-kit` 0.3.2, `objc2-quartz-core` 0.3.2, `objc2-user-notifications` 0.3.2, `objc2-web-kit` 0.3.2, from the licence the manifest declares: the crate ships no licence file.
 
 ```text
 Apache License
