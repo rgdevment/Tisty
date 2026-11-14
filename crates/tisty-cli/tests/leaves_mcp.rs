@@ -3131,6 +3131,57 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         "two on each side when asked"
     );
 
+    let close = served.wrote(
+        "# Lista\n\n- uno\n- dos riego\n- tres\n- cuatro riego\n- cinco\n",
+        None,
+    );
+    let near = served.call(
+        "find",
+        serde_json::json!({ "doc": &close, "query": "riego", "around": 2 }),
+    )["result"]["structuredContent"]["lines"]
+        .clone();
+    assert_eq!(
+        near[0]["around"], "\n- uno\n(line 4)\n- tres",
+        "the first hit stops short of the second: {near}"
+    );
+    assert_eq!(
+        near[1]["around"], "(line 6)\n- cinco",
+        "and the second starts after what the first already showed: {near}"
+    );
+
+    let long: String = (0..20)
+        .map(|n| format!("- riego-{n} {}\n- vecino {n}\n", "x".repeat(890)))
+        .collect();
+    let heavy = served.wrote(&format!("# Patio\n\n{long}"), None);
+    let kept = served.call(
+        "find",
+        serde_json::json!({ "doc": &heavy, "query": "riego", "around": 2, "limit": 100 }),
+    )["result"]["structuredContent"]["lines"]
+        .as_array()
+        .unwrap()
+        .clone();
+    let weight: usize = kept
+        .iter()
+        .map(|one| {
+            let of = |key: &str| one[key].as_str().unwrap_or_default().chars().count();
+            of("text") + of("around")
+        })
+        .sum();
+    assert!(
+        kept.len() < 20 && weight <= 12_000,
+        "{} hits, {weight}",
+        kept.len()
+    );
+    let next = format!("riego-{} ", kept.len());
+    assert!(
+        !kept[kept.len() - 1]["around"]
+            .as_str()
+            .unwrap()
+            .contains(&next),
+        "a hit left out for room is not shown again as the neighbour of the last one: {}",
+        kept[kept.len() - 1]
+    );
+
     assert_eq!(
         inside("\"macos va\"")["total"],
         1,

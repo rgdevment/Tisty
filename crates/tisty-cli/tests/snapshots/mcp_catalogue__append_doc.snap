@@ -34,7 +34,7 @@ expression: tool
         "type": "boolean"
       },
       "under": {
-        "description": "A heading, as it reads: adds at the end of what it holds. Left out, at the end of the document",
+        "description": "A heading, as it reads: adds at the end of what it holds",
         "type": "string"
       }
     },
