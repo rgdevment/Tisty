@@ -236,6 +236,7 @@ export default function Sheet(props: Readonly<Props>) {
   const landing = useRef<Landing | null>(null);
   const holdingNow = useRef(() => {});
   const [stuck, setStuck] = useState(false);
+  const [titleGone, setTitleGone] = useState(false);
 
   const written = useCallback((text: string) => {
     latest.current = text;
@@ -454,6 +455,7 @@ export default function Sheet(props: Readonly<Props>) {
   if (viewedFile !== file) {
     setViewedFile(file);
     setOwnMarkdown(false);
+    setTitleGone(false);
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pageWritten` reads only refs, so the view alone decides.
@@ -981,6 +983,7 @@ export default function Sheet(props: Readonly<Props>) {
     frame: framed,
     putting,
     onStuck: setStuck,
+    onTitleGone: setTitleGone,
     onSeen: (at) => said.current.onSeen?.(at),
     ready,
     turned,
@@ -1062,7 +1065,7 @@ export default function Sheet(props: Readonly<Props>) {
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}${lively && !props.sheet ? " lively-room" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${titleGone ? " title-gone" : ""}${props.sheet ? " on-sheets" : ""}${lively && !props.sheet ? " lively-room" : ""}`}
       style={{
         ...(props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)),
         ...(lively && framed() ? { overflow: "hidden" } : {}),

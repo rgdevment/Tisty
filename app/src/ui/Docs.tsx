@@ -963,6 +963,7 @@ export default function Docs({
                     ) : (
                       ((spoken && !beside) || own?.tongueApart || pageMore) && (
                         <div className="ribbon">
+                          <span className="ribbon-title">{called || t("untitledDoc")}</span>
                           {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
                           {!beside && spoken}
                           {pageMore}

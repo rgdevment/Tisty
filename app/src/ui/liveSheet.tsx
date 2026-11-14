@@ -8,9 +8,18 @@ type Framing = {
   readonly frame: () => Window | null;
   readonly putting: RefObject<number>;
   readonly onStuck: (stuck: boolean) => void;
+  readonly onTitleGone: (gone: boolean) => void;
   readonly onSeen: (at: number) => void;
   readonly ready: boolean;
   readonly turned: number;
+};
+
+// A page that opens with its title says what the ribbon would, so the ribbon names it only once it has scrolled away.
+const titleOf = (page: Document) => {
+  const first = Array.from(page.querySelector(".page")?.children ?? []).find(
+    (one) => !one.matches(".front"),
+  );
+  return first?.tagName === "H1" ? first : null;
 };
 
 export const useFrameScroll = ({
@@ -18,6 +27,7 @@ export const useFrameScroll = ({
   frame,
   putting,
   onStuck,
+  onTitleGone,
   onSeen,
   ready,
   turned,
@@ -31,6 +41,8 @@ export const useFrameScroll = ({
       const sheet = inner.document.scrollingElement;
       if (!sheet) return;
       onStuck(sheet.scrollTop > 8);
+      const title = titleOf(inner.document);
+      onTitleGone(title ? title.getBoundingClientRect().bottom < 0 : sheet.scrollTop > 8);
       if (putting.current >= 0 || sheet.scrollHeight <= sheet.clientHeight) return;
       onSeen(sheet.scrollTop);
     };
