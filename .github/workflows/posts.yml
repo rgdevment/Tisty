@@ -1,0 +1,39 @@
+name: Posts
+
+# By hand: the pinned post with its reply, or one post of the queue by its id, on X and Bluesky.
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: "pinned, or the id of a post in docs/posts.json"
+        required: true
+        default: pinned
+
+permissions:
+  contents: read
+
+concurrency:
+  group: posts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    name: Post ${{ inputs.what }}
+    runs-on: ubuntu-24.04
+    environment: posts
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Post it
+        env:
+          WHAT: ${{ inputs.what }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: node scripts/posts.mjs send "$WHAT"

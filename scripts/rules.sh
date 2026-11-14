@@ -402,6 +402,18 @@ few_earlier_releases_are_met() {
   fi
 }
 
+the_posts_can_go_out() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the posts were not looked at"
+    return
+  fi
+  if node --test scripts/posts.test.mjs > /dev/null; then
+    went_well "every post in docs/posts.json can go out to X and Bluesky"
+  else
+    amiss "a post in docs/posts.json would not go out, or its check does not do what its tests say"
+  fi
+}
+
 every_package_says_its_licence() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the licences were not looked at"
@@ -455,6 +467,7 @@ the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 few_earlier_releases_are_met
+the_posts_can_go_out
 every_package_says_its_licence
 the_contracts_hold
 no_token_kept_in_the_tree
