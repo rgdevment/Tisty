@@ -16,7 +16,7 @@ import {
   unitOf,
 } from "./pageMoving";
 import { patched } from "./pagePatching";
-import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+import { endIn, endOf, GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 import { tagList, tagMatch } from "./pageTags";
 import { unformattable } from "./quickly";
 
@@ -30,7 +30,15 @@ type Kept = {
   readonly tail?: string;
 };
 
+type Turn = { readonly text: string; readonly at: number; readonly after?: number };
+
+/** What Ctrl+Z walks back through, kept by whoever shows the page so a turn to the Markdown keeps it. */
+export type Turns = { readonly undone: Turn[]; readonly redone: Turn[]; left?: string };
+
+export const turnsAnew = (): Turns => ({ undone: [], redone: [] });
+
 export type Hands = {
+  readonly turns?: Turns;
   readonly text: () => string;
   readonly write: (next: string) => void;
   readonly shown: (now: string) => void;
@@ -362,8 +370,14 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .reverse()
       .join("");
   let typing = false;
-  const undone: { text: string; at: number; after?: number }[] = [];
-  const redone: { text: string; at: number; after?: number }[] = [];
+  const turns = hands.turns ?? turnsAnew();
+  const { undone, redone } = turns;
+  // What was written in the Markdown since the page was left is one step back.
+  if (turns.left !== undefined && turns.left !== hands.text()) {
+    undone.push({ text: turns.left, at: changeOf(turns.left, hands.text()).from });
+    redone.length = 0;
+  }
+  turns.left = undefined;
 
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
   const waited = (kind: string): { from: number; to: number } | null => {
@@ -655,13 +669,26 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   let lastChosen: { from: number; to: number } | null = null;
+  // A piece drawn whole, as code or a tag, takes no keys, so a caret dropped inside it stands right after it.
+  const outOfSolid = (range: AbstractRange) => {
+    const node = range.startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    const atom = element?.closest('.page [data-src][contenteditable="false"]');
+    if (!atom?.parentElement || atom.parentElement.closest('[contenteditable="false"]')) return;
+    const [holder, offset] = endOf(atom);
+    page.getSelection()?.collapse(holder, offset);
+  };
+
   const noted = () => {
     besideLine();
     const range = chosen();
     const sheet = page.querySelector(".page");
     if (range && !range.collapsed && sheet?.contains(range.startContainer))
       lastChosen = spanOfRange(range);
-    else if (range?.collapsed) lastChosen = null;
+    else if (range?.collapsed) {
+      lastChosen = null;
+      outOfSolid(range);
+    }
   };
 
   const chosenNow = () => {
@@ -1218,8 +1245,38 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     put({ from: start, to: start + lead, insert: " ".repeat(to) }, at + (to - lead));
   };
 
+  const blockOfCaret = () => {
+    const node = chosen()?.startContainer;
+    const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    return element?.closest(".page [data-at]") ?? null;
+  };
+
+  const laidAt = (spot: [Node, number]) => {
+    page.getSelection()?.collapse(spot[0], spot[1]);
+    inSight(spot[0]);
+  };
+
+  // A tag or other piece drawn whole at a line's end leaves the browser no place after it, so End is placed here.
+  const toEnd = (event: KeyboardEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      const last = Array.from(page.querySelectorAll(".page [data-at]"))
+        .filter((one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'))
+        .pop();
+      if (!last) return;
+      event.preventDefault();
+      laidAt(endIn(last));
+      return;
+    }
+    const from = blockOfCaret();
+    if (!from) return;
+    setTimeout(() => {
+      if (blockOfCaret() !== from && from.isConnected) laidAt(endIn(from));
+    });
+  };
+
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(event)) return;
+    if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
     if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown"))
@@ -1340,6 +1397,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       if (one) put({ ...one, insert: "" }, one.from);
     },
     stop: () => {
+      turns.left = hands.text();
       told();
       watching?.disconnect();
       page.removeEventListener("selectionchange", noted);

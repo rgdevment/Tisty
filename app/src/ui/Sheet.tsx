@@ -46,7 +46,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
-import { type Hands, type PageWriting, writtenOn } from "./pageWriting";
+import { type Hands, type PageWriting, type Turns, turnsAnew, writtenOn } from "./pageWriting";
 import type { Went } from "./paging";
 import { laid } from "./parting";
 import type { Formatting, Menued } from "./quickly";
@@ -214,7 +214,8 @@ export default function Sheet(props: Readonly<Props>) {
   // A document and a task's page are both written on as the core draws them.
   const writable = !reading;
   const onPage = writable && !markdown;
-  const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
+  const pageWriter = useRef<{ page: Document; file?: string; hands: PageWriting } | null>(null);
+  const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
   const alreadyShown = useRef<string | null>(null);
   const shownBody = useRef<string | null>(null);
   const dresser = useRef<((blocks: readonly Element[]) => void) | null>(null);
@@ -321,6 +322,8 @@ export default function Sheet(props: Readonly<Props>) {
     pending.current = null;
     // Another document keeps this sheet, so its page stays in view until the next one is drawn.
     onFile.current = file;
+    pageWriter.current?.hands.stop();
+    pageWriter.current = null;
     left();
     latest.current = value;
     echoes.current = [];
@@ -867,12 +870,16 @@ export default function Sheet(props: Readonly<Props>) {
   };
   // The page is drawn anew after every key, so its listeners stay and only the caret is laid again.
   const pageWritten = (page: Document | null) => {
-    if (pageWriter.current && pageWriter.current.page !== page) {
-      pageWriter.current.hands.stop();
+    const was = pageWriter.current;
+    if (was && (was.page !== page || was.file !== file)) {
+      was.hands.stop();
       pageWriter.current = null;
     }
     if (!page || !onPage) return;
-    pageWriter.current ??= { page, hands: writtenOn(page, pageHands) };
+    // Each document walks back only through its own changes.
+    if (turnsOn.current.file !== file) turnsOn.current = { file, turns: turnsAnew() };
+    const turns = turnsOn.current.turns;
+    pageWriter.current ??= { page, file, hands: writtenOn(page, { ...pageHands, turns }) };
     pageWriter.current.hands.drawn();
     // A page with nothing written yet waits at its title, so the first keys after making it are not lost.
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");

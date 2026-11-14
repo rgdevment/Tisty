@@ -115,10 +115,19 @@ export const spotOf = (page: Document, body: string, chars: number): [Node, numb
 
 const indexOf = (one: Node) => Array.prototype.indexOf.call(one.parentNode?.childNodes ?? [], one);
 
-const endOf = (one: Element): [Node, number] =>
+export const endOf = (one: Element): [Node, number] =>
   solid(one) && one.parentNode
     ? [one.parentNode, indexOf(one) + 1]
     : textAt(one, Number.MAX_SAFE_INTEGER);
+
+// Where a block's own words end, past a piece drawn whole, as a tag at the end of its line.
+export const endIn = (block: Element): [Node, number] => {
+  const own = Array.from(block.querySelectorAll(PLACED)).filter(
+    (one) => one.closest(BLOCK) === block,
+  );
+  const last = own.pop();
+  return last ? endOf(last) : [block, block.childNodes.length];
+};
 
 export const GHOST = "[data-ghost]";
 

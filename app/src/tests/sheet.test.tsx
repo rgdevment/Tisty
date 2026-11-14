@@ -306,6 +306,40 @@ describe("the sheet in the main window", () => {
     expect(room.scrollTop).toBe(0);
   });
 
+  it("walks back with Ctrl+Z only through the changes of the document in view", async () => {
+    const writes: string[] = [];
+    ipc.drawn = '<h1 data-at="0-9"><span data-src="2-9">Compras</span></h1>';
+    const sheet = (file: string, value: string) => (
+      <Sheet file={file} value={value} label="Compras" onWrite={(text) => writes.push(text)} />
+    );
+    const view = render(sheet("a3f1-0001", "# Compras\n"));
+    const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    page.getSelection()?.collapse(page.querySelector("[data-src]")?.firstChild as Text, 7);
+    page.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "s",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await waitFor(() => expect(writes).toContain("# Comprass\n"));
+    ipc.drawn = '<p data-at="0-6"><span data-src="0-5">Otra.</span></p>';
+    view.rerender(sheet("a3f1-0002", "Otra.\n"));
+    await waitFor(() => expect(page.querySelector(".page")?.textContent).toContain("Otra"));
+    const before = writes.length;
+    page
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    await new Promise((done) => setTimeout(done, 400));
+    expect(writes.slice(before)).toEqual([]);
+  });
+
   it("lays files dropped on the page after the block they land on, or at the end", async () => {
     const writes: string[] = [];
     const view = render(

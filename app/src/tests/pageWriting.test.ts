@@ -1,7 +1,7 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
 import { sourceAt, spotOf } from "../ui/pageSpots";
-import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
+import { type Hands, type PageWriting, turnsAnew, writtenOn } from "../ui/pageWriting";
 
 const BODY = "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n";
 const PLACED =
@@ -953,5 +953,94 @@ describe("a collapsible written on the page", () => {
     writing?.drawn();
     asked("insertText", "e");
     expect(said[said.length - 1]).toBe(":::details Re\n\nx\n\n:::\n");
+  });
+});
+
+describe("pieces drawn whole on the page", () => {
+  const key = (name: string, more: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", {
+      key: name,
+      bubbles: true,
+      cancelable: true,
+      ...more,
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    return event;
+  };
+  const TAGGED =
+    '<p data-at="0-8"><span data-src="0-4">Uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span></p>' +
+    '<h2 data-at="10-16"><span data-src="13-16">Sub</span></h2>';
+
+  it("ends a line that ends in a tag after the tag, not in the next block", async () => {
+    writer("Uno #eti\n\n## Sub\n");
+    pageOf(TAGGED);
+    writing?.drawn();
+    caretIn("Uno ", 0);
+    key("End");
+    document.getSelection()?.collapse(piece("Sub"), 0);
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect(held?.anchorNode).toBe(document.querySelector("p"));
+    expect(held?.anchorOffset).toBe(2);
+  });
+
+  it("takes Ctrl with End to the end of the last block written", () => {
+    writer("Uno #eti\n\n## Sub\n");
+    pageOf(TAGGED);
+    writing?.drawn();
+    caretIn("Uno ", 0);
+    expect(key("End", { ctrlKey: true }).defaultPrevented).toBe(true);
+    const held = document.getSelection();
+    expect(held?.anchorNode).toBe(piece("Sub"));
+    expect(held?.anchorOffset).toBe(3);
+  });
+
+  it("stands a caret dropped inside code just after it, where keys are written", () => {
+    writer("Texto `cod` fin\n");
+    pageOf(
+      '<p data-at="0-15"><span data-src="0-6">Texto </span><code data-src="6-11" contenteditable="false">cod</code><span data-src="11-15"> fin</span></p>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelector("code")?.firstChild as Text, 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    const held = document.getSelection();
+    expect(held?.anchorNode).toBe(document.querySelector("p"));
+    expect(held?.anchorOffset).toBe(2);
+  });
+});
+
+describe("Ctrl+Z across a turn to the Markdown", () => {
+  const undo = () =>
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+
+  it("walks back what the Markdown wrote as one step, then what the page wrote", () => {
+    const turns = turnsAnew();
+    writer("Uno\n", { turns });
+    pageOf('<p data-at="0-3"><span data-src="0-3">Uno</span></p>');
+    writing?.drawn();
+    caretIn("Uno", 3);
+    asked("insertText", "s");
+    writing?.stop();
+    const said = writer("Unos dos\n", { turns });
+    pageOf('<p data-at="0-8"><span data-src="0-8">Unos dos</span></p>');
+    writing?.drawn();
+    undo();
+    expect(said[said.length - 1]).toBe("Unos\n");
+    undo();
+    expect(said[said.length - 1]).toBe("Uno\n");
+  });
+
+  it("walks back nothing of another document", () => {
+    writer("Uno\n");
+    caretIn("primero", 7);
+    asked("insertText", "s");
+    writing?.stop();
+    const said = writer("Otro\n", { turns: turnsAnew() });
+    undo();
+    expect(said).toEqual([]);
   });
 });
