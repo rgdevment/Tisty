@@ -48,7 +48,7 @@ source: the vet's card
 ---
 ```
 
-- It is kept exactly as written. The page leaves it out and shows the properties in the panel beside it, under **About this document**, where **Edit** opens the block at the top of the page as it is written.
+- It is kept exactly as written. The page leaves it out and shows the properties in the panel beside it, under **About this document**, where **Edit** opens it in the Markdown view, as it is written.
 - `title:` is the document's [title](#the-title).
 - `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
