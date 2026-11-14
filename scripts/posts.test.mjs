@@ -317,3 +317,45 @@ test("a preview shows what each network gets, and posts nothing", () => {
   assert.match(shown, /Bluesky, \d+\/300:\n {4}Tisty keeps what you finish \(first\)\. https:\/\/tisty\.app/);
   assert.equal(calls.length, 0);
 });
+
+function refusing({ me, feedDown = false }) {
+  const calls = networksThatAnswer();
+  const answer = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (url.endsWith("/2/media/upload")) return new Response(JSON.stringify({ title: "Unauthorized" }), { status: 401 });
+    if (url.endsWith("/2/users/me")) {
+      calls.push({ url, init });
+      return me ? new Response(JSON.stringify({ data: { username: "rgdevment" } })) : new Response("{}", { status: 401 });
+    }
+    if (feedDown && url.includes("getAuthorFeed")) {
+      calls.push({ url, init });
+      return new Response('{"error":"UpstreamFailure"}', { status: 502 });
+    }
+    return answer(url, init);
+  };
+  return calls;
+}
+
+test("a 401 from X says whether the keys are wrong or only that endpoint refuses them", async () => {
+  refusing({ me: false });
+  const wrong = listening();
+  assert.equal(await send("9.0.1", { env: ONLY_X, root: home(file()), say: wrong.say, released }), 1);
+  assert.ok(wrong.lines.some((one) => /X took no picture: X does not take these keys at all: X_API_KEY and X_API_SECRET are the Consumer Key/.test(one)));
+
+  const calls = refusing({ me: true });
+  const endpoint = listening();
+  assert.equal(await send("9.0.1", { env: ONLY_X, root: home(file()), say: endpoint.say, released }), 1);
+  assert.ok(endpoint.lines.some((one) => /these keys sign in as rgdevment, so it is this endpoint that refuses them/.test(one)));
+  assert.ok(calls.find((one) => one.url.endsWith("/2/users/me")).init.headers.Authorization.startsWith("OAuth "));
+});
+
+test("Bluesky posts anyway when its feed cannot be read, and says it skipped the twin check", async () => {
+  const calls = refusing({ me: true, feedDown: true });
+  const { lines, say } = listening();
+  assert.equal(await send("9.0.1", { env: ONLY_BLUESKY, root: home(file()), say, released }), 0);
+  assert.equal(made(calls, "createRecord").length, 1);
+  assert.ok(lines.some((one) => /::warning::Bluesky showed no earlier posts: 502 .*without looking for a twin/.test(one)));
+  const looked = calls.filter((one) => one.url.includes("getAuthorFeed"));
+  assert.equal(looked.length, 2);
+  assert.ok(looked.every((one) => one.url.startsWith("https://public.api.bsky.app/")));
+});

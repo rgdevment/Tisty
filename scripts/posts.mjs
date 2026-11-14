@@ -188,6 +188,7 @@ function oauthHeader(method, url, keys) {
 class Refused extends Error {
   constructor(what, status, body) {
     super(`${what}: ${status} ${body.slice(0, 300)}`);
+    this.status = status;
     this.body = body;
   }
 }
@@ -226,6 +227,21 @@ export function webpSize(bytes) {
 // X refuses a post it already holds, so a run tried again finds it out instead of posting twice.
 const alreadyOnX = (why) => why instanceof Refused && /duplicate/i.test(why.body);
 
+const X_KEYS_HINT =
+  "X_API_KEY and X_API_SECRET are the Consumer Key and its secret under «OAuth 1.0 Keys», not the OAuth 2.0 Client ID," +
+  " and X_ACCESS_TOKEN with X_ACCESS_SECRET were generated after the app was set to Read and write";
+
+// A 401 says nothing of which half failed, so one look at who the keys belong to tells the keys from the endpoint.
+async function whyRefused(keys, why) {
+  if (!(why instanceof Refused) || why.status !== 401) return why;
+  const url = "https://api.x.com/2/users/me";
+  const me = await fetch(url, { headers: { Authorization: oauthHeader("GET", url, keys) } });
+  const said = me.ok
+    ? `these keys sign in as ${(await me.json()).data?.username}, so it is this endpoint that refuses them`
+    : `X does not take these keys at all: ${X_KEYS_HINT}`;
+  return new Error(`${why.message.split(":")[0]}: ${said}`);
+}
+
 async function openX(keys) {
   const call = async (url, body, what) =>
     answered(
@@ -235,7 +251,9 @@ async function openX(keys) {
         body: JSON.stringify(body),
       }),
       what,
-    );
+    ).catch(async (why) => {
+      throw await whyRefused(keys, why);
+    });
   return async ({ text, said, picture, under }) => {
     const post = { text };
     if (picture) {
@@ -258,7 +276,7 @@ async function openX(keys) {
   };
 }
 
-async function openBluesky(keys) {
+async function openBluesky(keys, say) {
   const host = "https://bsky.social/xrpc";
   const session = await answered(
     await fetch(`${host}/com.atproto.server.createSession`, {
@@ -271,15 +289,24 @@ async function openBluesky(keys) {
   const signedIn = { Authorization: `Bearer ${session.accessJwt}` };
   const linkOf = (uri) => `https://bsky.app/profile/${session.did}/post/${uri.split("/").pop()}`;
   let recent;
+  // The public AppView answers a feed without the PDS proxying it, which is what failed upstream.
+  const feed = async () => {
+    const url = `https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(session.did)}&limit=${BLUESKY_LOOKED_BACK}`;
+    for (let tried = 1; ; tried++) {
+      try {
+        return (await answered(await fetch(url), "Bluesky showed no earlier posts")).feed ?? [];
+      } catch (why) {
+        if (tried >= 2) {
+          say(`::warning::${why.message}, so this goes out without looking for a twin`);
+          return [];
+        }
+      }
+    }
+  };
   const lately = async () => {
-    recent ??= answered(
-      await fetch(`${host}/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(session.did)}&limit=${BLUESKY_LOOKED_BACK}`, {
-        headers: signedIn,
-      }),
-      "Bluesky showed no earlier posts",
-    );
+    recent ??= feed();
     const since = Date.now() - RERUN_WITHIN_MS;
-    return ((await recent).feed ?? []).map((one) => one.post).filter((one) => Date.parse(one?.record?.createdAt) >= since);
+    return (await recent).map((one) => one.post).filter((one) => Date.parse(one?.record?.createdAt) >= since);
   };
   return async ({ text, said, tongue, picture, type, under }) => {
     const earlier = (await lately()).find((one) => one.record.text === text);
@@ -366,7 +393,7 @@ export async function send(what, { env = process.env, root = ROOT, say = console
     }
     let post;
     try {
-      post = await network.open(network.keys);
+      post = await network.open(network.keys, say);
     } catch (why) {
       failed = true;
       say(`::error::${network.name}: ${why.message}`);
