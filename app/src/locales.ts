@@ -1519,6 +1519,14 @@ const en = {
   wakeFresh: "Ready the next time you sign in",
   wakeGone: "It will not open on its own",
   wakeTheirs: "Windows holds this switch now. Turn Tisty back on under Settings → Apps → Startup.",
+  wakeOfferLabel: "Reminders with Tisty closed",
+  wakeOfferTitle: "Open Tisty when you sign in?",
+  wakeOfferWhy:
+    "Your reminders ring even with Tisty closed, while the computer is on. Opening at sign-in keeps them up to date, including the ones an assistant or another computer adds.",
+  wakeOfferGo: "Open at sign-in",
+  wakeOfferNo: "No, thanks",
+  wakeOfferSeen: "Got it",
+  wakeOfferLater: "Not now",
   noHits: "Nothing matched. Try a shorter word, or widen the scope above.",
   noHitsHere: "Nothing in the archive matched. Try a shorter word.",
   searchInvite: "Type to search. It looks in the archive too.",
@@ -4676,6 +4684,14 @@ const es: Catalog = {
   wakeGone: "Ya no se abrirá solo",
   wakeTheirs:
     "Ahora ese interruptor lo tiene Windows. Vuelve a activarlo en Configuración → Aplicaciones → Inicio.",
+  wakeOfferLabel: "Recordatorios con Tisty cerrado",
+  wakeOfferTitle: "¿Abrir Tisty al iniciar sesión?",
+  wakeOfferWhy:
+    "Tus recordatorios suenan aunque Tisty esté cerrado, mientras el equipo esté encendido. Si se abre al iniciar sesión, también quedan al día los que agregue un asistente u otro equipo.",
+  wakeOfferGo: "Abrirlo al iniciar sesión",
+  wakeOfferNo: "No, gracias",
+  wakeOfferSeen: "Entendido",
+  wakeOfferLater: "Ahora no",
   noHits:
     "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
   noHitsHere: "No coincide nada en el archivo. Prueba con una palabra más corta.",

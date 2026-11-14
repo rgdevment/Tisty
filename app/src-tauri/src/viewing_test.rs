@@ -1,4 +1,4 @@
-use super::{LinkQuestion, Views, asked, asked_to_edit, wanted};
+use super::{LinkQuestion, Views, asked, asked_for_task, asked_to_edit, task_link, wanted};
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
     let at = room.path().join(name);
@@ -292,4 +292,32 @@ fn an_answer_with_no_question_standing_goes_nowhere() {
     views.link_answered(0, true);
 
     assert_eq!(views.link_standing(), None);
+}
+
+const TASK: &str = "01KA7B3VJ9RZ0Q8M5N2X4Y6W1T";
+
+#[test]
+fn a_reminder_s_address_opens_its_task() {
+    assert_eq!(asked_for_task(&task_link(TASK)).as_deref(), Some(TASK));
+}
+
+#[test]
+fn a_task_address_carries_nothing_but_a_task_id() {
+    for said in [
+        "tisty://task?id=not-a-task".to_string(),
+        format!("tisty://task?id={TASK}&path=C:/x.md"),
+        format!("tisty://task?path={TASK}"),
+        format!("tisty://task/elsewhere?id={TASK}"),
+        format!("tisty://task?id={TASK}#more"),
+        format!("tisty://open?id={TASK}"),
+        format!("https://task?id={TASK}"),
+        "tisty://task".to_string(),
+    ] {
+        assert_eq!(asked_for_task(&said), None, "{said}");
+    }
+}
+
+#[test]
+fn a_task_address_is_no_file_to_open() {
+    assert!(wanted(&["tisty".to_string(), task_link(TASK)], None).is_empty());
 }

@@ -367,6 +367,7 @@ pub(crate) fn leave<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     {
         return;
     }
+    crate::herald::book_before_leaving(app);
     app.exit(0);
 }
 

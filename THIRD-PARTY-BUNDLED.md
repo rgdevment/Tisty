@@ -171,7 +171,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (357 crates)
+## In the core (358 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -356,6 +356,7 @@ written once with the crates that carry it.
 | `objc2-foundation` | 0.3.2 | MIT |
 | `objc2-osa-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-user-notifications` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
 | `open` | 5.4.4 | MIT |
