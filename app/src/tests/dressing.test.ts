@@ -273,6 +273,20 @@ describe("dressing a drawn page", () => {
     expect(sources).toEqual([4]);
   });
 
+  it("opens the properties in the Markdown view when they are asked for", () => {
+    const sources: number[] = [];
+    const written = page('<dl class="front" data-at="0-14"></dl><p data-at="15-20">Pan.</p>');
+    const reach = {
+      body: "---\ntags: [a]\n---\n\nPan.\n",
+      onDoc: () => {},
+      onSource: (at: number) => sources.push(at),
+    };
+    answered(written, { kind: "block", at: [15, 20] }, reach);
+    expect(sources).toEqual([]);
+    answered(written, { kind: "block", at: [0, 14] }, reach);
+    expect(sources).toEqual([0]);
+  });
+
   it("dresses the whole page in one go", () => {
     const drawn = page(
       '<blockquote class="callout" data-callout="note"><p>x</p></blockquote><figure class="code" data-at="1-2"><pre><code class="language-widget">w</code></pre></figure><p><img src="attachments/a.png" alt=""></p>',
@@ -389,6 +403,32 @@ describe("a drawn page wired to the window", () => {
     );
     window.removeEventListener("keydown", listen);
     expect(heard).toEqual(["w"]);
+  });
+
+  it("keeps bold, italic and underline to the page written in place, and the rest for the window", () => {
+    const drawn = page('<div class="page" contenteditable="true"><p>x</p></div>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const heard: string[] = [];
+    const listen = (e: KeyboardEvent) => {
+      heard.push(e.key);
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", listen);
+    const inside = drawn.querySelector(".page p") as HTMLElement;
+    const pressed = ["b", "I", "u", "e"].map((key) => {
+      const one = new KeyboardEvent("keydown", {
+        key,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      inside.dispatchEvent(one);
+      return one.defaultPrevented;
+    });
+    window.removeEventListener("keydown", listen);
+    expect(heard).toEqual(["e"]);
+    expect(pressed).toEqual([false, false, false, true]);
   });
 });
 

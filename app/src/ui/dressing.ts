@@ -402,6 +402,12 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     const last = page.querySelector(".page > [data-at]:last-of-type");
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
+  // The properties are kept out of the page, so asking for them, as the column's Edit does, opens the Markdown there.
+  if (
+    asked.kind === "block" &&
+    page.querySelector(`.page > .front[data-at="${asked.at[0]}-${asked.at[1]}"]`)
+  )
+    reach.onSource?.(charsAt(reach.body, asked.at[0]));
   if (asked.kind === "block" && reach.onHintWords) {
     const hint = page.querySelector<HTMLElement>(
       `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
@@ -438,6 +444,10 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
 
 // Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
 export const DOUBLE_MS = 300;
+
+// Bold, italic and underline belong to the words written on the page, never to the window's own keys.
+const WRITTEN_KEYS = new Set(["b", "i", "u"]);
+const WRITTEN_ON = '.page[contenteditable="true"]';
 
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
@@ -548,9 +558,11 @@ export const wired = (page: Document, reach: () => Reaching) => {
   }
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
   page.addEventListener("keydown", (event) => {
-    const writing = (event.target as Element | null)?.closest?.(".editing");
+    const target = event.target as Element | null;
+    const writing = target?.closest?.(".editing");
     const asked = event.ctrlKey || event.metaKey || event.key === "F1";
     if (writing && (event.defaultPrevented || !asked)) return;
+    if (asked && WRITTEN_KEYS.has(event.key.toLowerCase()) && target?.closest?.(WRITTEN_ON)) return;
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();
