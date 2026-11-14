@@ -4,7 +4,9 @@ use tisty_core::Op;
 use tisty_core::model::DocId;
 use tisty_core::untouched::{GUIDE_HUE, GUIDE_ICON};
 
-use super::settings::{ATTACHED, GUIDE_EN, GUIDE_ES, GUIDE_PAGES_EN, GUIDE_PAGES_ES, WRITTEN_BY};
+use super::settings::{
+    ATTACHED, GUIDE_COVER, GUIDE_EN, GUIDE_ES, GUIDE_PAGES_EN, GUIDE_PAGES_ES, WRITTEN_BY,
+};
 use crate::{Answer, Refusal, Session};
 
 /// One language the guide ships in: its cover, and its pages behind the markers the cover names them by.
@@ -233,20 +235,41 @@ fn one_language(
 ) -> Answer<(DocId, tisty_core::docs::Doc)> {
     let root = session.paths.docs();
     let device = session.store.device().clone();
-    let mut body = pointed(one.told, shots);
+    let named = |text: String, known: &[(String, String)]| {
+        known
+            .iter()
+            .fold(text, |text, (marker, doc)| text.replace(marker, doc))
+    };
+    // A page names only the pages listed after it, so those are written first and it learns where they are.
+    let mut known: Vec<(String, String)> = Vec::new();
     let mut leafed = Vec::new();
-    for (marker, leaf) in one.leaves {
-        let leaf = pointed(leaf, shots);
+    for (marker, leaf) in one.leaves.iter().rev() {
+        let leaf = named(pointed(leaf, shots), &known);
         let made = tisty_core::docs::create(&root, &device, &leaf)
             .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-        body = body.replace(
-            &format!("]({marker})"),
-            &format!("]({}{})", tisty_core::refs::DOC, made.id),
-        );
+        known.push((
+            format!("]({marker})"),
+            format!("]({}{})", tisty_core::refs::DOC, made.id),
+        ));
         leafed.push((made.id, leaf));
     }
+    leafed.reverse();
+    let body = named(pointed(one.told, shots), &known);
     let made = tisty_core::docs::create(&root, &device, &body)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    // The cover is written last, so a page that names it is told where it is once it is there.
+    let covered = [(
+        format!("]({GUIDE_COVER})"),
+        format!("]({}{})", tisty_core::refs::DOC, made.id),
+    )];
+    for (file, leaf) in &mut leafed {
+        let told = named(leaf.clone(), &covered);
+        if told != *leaf {
+            tisty_core::docs::write(&root, file, &told)
+                .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+            *leaf = told;
+        }
+    }
     let sorted = tisty_core::order::last_of(
         session
             .state
