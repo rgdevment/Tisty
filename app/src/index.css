@@ -497,48 +497,23 @@ label[for] {
   width: round(down, 85%, 1px);
   max-width: 1100px;
 }
-/* Tabs, not a box: the chosen one is lit and stands on the ribbon's own edge. */
-.view-tabs {
-  display: inline-flex;
+.ribbon-more {
+  display: grid;
   flex: none;
-  align-self: stretch;
-  gap: 16px;
-  margin-block: -12px;
-}
-.stuck > .ribbon > .view-tabs {
-  margin-block: -8px;
-}
-.view-tab {
-  position: relative;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--tisty-faint);
-  transition: color 0.15s;
-}
-.view-tab:hover {
-  color: var(--tisty-ink);
-}
-.view-tab[aria-pressed="true"] {
-  color: var(--tisty-ink);
-}
-.view-tab[aria-pressed="true"]::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--tisty-accent);
-}
-.ribbon > .view-tabs {
+  place-items: center;
+  width: 26px;
+  height: 22px;
   margin-left: auto;
+  border-radius: 6px;
+  color: var(--tisty-faint);
 }
-.ribbon > .view-tabs + .ribbon-arrows {
-  margin-left: 14px;
+.ribbon-more:hover,
+.ribbon-more[aria-expanded="true"] {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
 }
-.ribbon > .tongues + .view-tabs {
-  margin-left: 14px;
+.ribbon > :is(.ribbon-arrows, .tongues) + .ribbon-more {
+  margin-left: 8px;
 }
 /* On sheets the paper's own margin opens the page, so the bar stands apart instead of seeming part of it. */
 .on-sheets > .ribbon {

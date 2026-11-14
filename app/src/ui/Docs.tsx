@@ -46,7 +46,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import { type Viewing, ViewTabs } from "./liveSheet";
+import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
 import PdfTicks from "./PdfTicks";
@@ -671,7 +671,7 @@ export default function Docs({
     markdown: Boolean(open) && markdownOf === open?.file,
     onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
   };
-  const viewTabs = bolted ? null : <ViewTabs {...viewing} />;
+  const pageMore = bolted ? null : <PageMore {...viewing} />;
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -956,16 +956,16 @@ export default function Docs({
                         told={aboveTold}
                         here={open.file}
                         onOpen={(doc) => onDoc?.(doc.file)}
-                        view={viewTabs}
+                        view={pageMore}
                       >
                         {!beside && spoken}
                       </Ribbon>
                     ) : (
-                      ((spoken && !beside) || own?.tongueApart || viewTabs) && (
+                      ((spoken && !beside) || own?.tongueApart || pageMore) && (
                         <div className="ribbon">
                           {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
                           {!beside && spoken}
-                          {viewTabs}
+                          {pageMore}
                         </div>
                       )
                     )

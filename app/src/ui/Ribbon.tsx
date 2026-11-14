@@ -38,7 +38,6 @@ export default function Ribbon({ of, sisters, told, here, onOpen, view, children
           {at >= 0 ? fill("leafOfMany", String(at + 1), String(read.length)) : t("looseLeafIs")}
         </span>
       )}
-      {view}
       <span className="ribbon-arrows">
         <button
           type="button"
@@ -60,6 +59,7 @@ export default function Ribbon({ of, sisters, told, here, onOpen, view, children
         </button>
       </span>
       {children}
+      {view}
     </nav>
   );
 }
