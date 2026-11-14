@@ -131,6 +131,7 @@ export default function Page(props: Readonly<Props>) {
             onBegin: current("onBegin"),
             onHintWords: current("onHintWords"),
             onSource: current("onSource"),
+            onLanguage: current("onLanguage"),
             onTick: current("onTick"),
             onStick: current("onStick"),
             onPart: current("onPart"),

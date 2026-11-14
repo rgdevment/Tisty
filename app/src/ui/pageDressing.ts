@@ -2,7 +2,7 @@ import { readAs } from "tisty-editor/read";
 import { staged } from "tisty-sheet";
 import { locale } from "../locales";
 import { cardsFor } from "./carding";
-import { datedSteps, diagramBars, pictures, type Reaching } from "./dressing";
+import { datedSteps, diagramBars, languaged, pictures, type Reaching } from "./dressing";
 import { SAY } from "./saying";
 import { tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
@@ -54,6 +54,7 @@ export const wornLaid = (
   });
   if (reach.onTable) tabled(page);
   if (reach.onWiden) gripped(page);
+  if (reach.onLanguage) languaged(page);
   for (const one of page.querySelectorAll('.page li.task[id^="stage--"]'))
     one.removeAttribute("id");
   staged(page);

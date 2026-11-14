@@ -544,6 +544,31 @@ figure.code {
   overflow: hidden;
   background: var(--tisty-hover);
 }
+figure.code:has(> .code-lang) {
+  position: relative;
+}
+.code-lang {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  padding: 1px 7px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  opacity: 0.7;
+}
+figure.code:hover > .code-lang {
+  opacity: 1;
+}
+.code-lang:hover {
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+}
 figure.code figcaption {
   padding: 6px 14px;
   font-size: 12px;
@@ -764,24 +789,6 @@ a.card:hover,
   color: var(--tisty-faint);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-.card-edit {
-  border: 0;
-  border-radius: 6px;
-  padding: 2px 8px;
-  background: transparent;
-  color: var(--tisty-faint);
-  font: inherit;
-  cursor: pointer;
-  opacity: 0;
-}
-.doc-card:hover .card-edit,
-.card-edit:focus-visible {
-  opacity: 1;
-}
-.card-edit:hover {
-  background: var(--tisty-hover);
-  color: var(--tisty-ink);
 }
 .card-go {
   font-size: 1.4em;
@@ -1704,11 +1711,7 @@ figure.widget:hover .card-more,
   text-decoration: none;
 }
 html.lively:not(.tall) {
-  background: var(--tisty-desk);
-  scrollbar-color: transparent var(--tisty-desk);
-}
-html.lively:not(.tall):hover {
-  scrollbar-color: var(--tisty-line) var(--tisty-desk);
+  background: var(--tisty-sheet);
 }
 html.lively:not(.tall) body {
   padding: 0;
@@ -1793,6 +1796,7 @@ html.lively:not(.sheeted) .page {
   pointer-events: none;
 }
 @media print {
+  .code-lang,
   .page-plus,
   .page-grip,
   .page-drop,

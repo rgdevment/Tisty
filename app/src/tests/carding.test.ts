@@ -80,7 +80,6 @@ describe("a card drawn on the page", () => {
       {
         card: cardsOf(known, "libro", ["cap1", "cap2"]),
         blurb: () => Promise.resolve("Hola."),
-        onSource: () => {},
       },
       () => true,
     );
@@ -90,7 +89,7 @@ describe("a card drawn on the page", () => {
     expect(card?.className).toBe("doc-card is-page");
     expect(card?.querySelector(".card-name")?.textContent).toBe("cap1");
     expect(card?.querySelector(".card-meta .chip")?.textContent).toBe("Page 1 of 2");
-    expect(card?.querySelector<HTMLElement>(".card-edit")?.dataset.asked).toBe("code");
+    expect(card?.querySelector(".card-edit")).toBeNull();
     let opened = 0;
     card?.addEventListener("click", () => {
       opened += 1;

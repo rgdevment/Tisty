@@ -51,7 +51,6 @@ export const blurbing = () => {
 export type Carding = {
   readonly card?: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
-  readonly onSource?: unknown;
   readonly onMore?: unknown;
 };
 
@@ -72,14 +71,6 @@ export const cardsFor = (page: Document, reach: Carding): Omit<Cards, "say"> | u
   if (!reach.card) return undefined;
   const controls = (file: string): Node[] => {
     const made: Node[] = [];
-    if (reach.onSource) {
-      const edit = page.createElement("button");
-      edit.type = "button";
-      edit.className = "card-edit";
-      edit.dataset.asked = "code";
-      edit.textContent = t("cardEdit");
-      made.push(edit);
-    }
     if (reach.onMore) made.push(more(page, `${DOC}${file}`));
     return made;
   };

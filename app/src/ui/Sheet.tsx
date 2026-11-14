@@ -35,6 +35,7 @@ import { docPlaced, docPlacedNear } from "../placing";
 import { named } from "../previews";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
+import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
@@ -570,6 +571,35 @@ export default function Sheet(props: Readonly<Props>) {
     });
   };
 
+  // The languages a code block may be coloured in, the one it names now marked.
+  const languageMenu = ([from]: [number, number], near: { x: number; y: number }) => {
+    const now = languageAt(latest.current, from);
+    if (now === null) return;
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    const spoken = (language: string) => () => {
+      shown.current?.focus();
+      const next = spokenIn(latest.current, from, language);
+      if (next !== null && next !== latest.current) rewritten(next);
+    };
+    const plain = !now || now === "text";
+    setMenu({
+      x: (frame?.left ?? 0) + near.x,
+      y: (frame?.top ?? 0) + near.y + 4,
+      label: t("codeLanguage"),
+      find: t("codeLanguageFind"),
+      choices: [
+        { key: "none", label: t("codeLangNone"), on: plain, onPick: spoken("") },
+        ...LANGUAGES.map(([tag, name], index) => ({
+          key: tag,
+          label: name,
+          apart: index === 0,
+          on: now === tag,
+          onPick: spoken(tag),
+        })),
+      ],
+    });
+  };
+
   // What the grip beside a block offers: moving it, a copy under it, or taking it away.
   const blockActs = (at: { x: number; y: number }, top: Element) => {
     const writer = pageWriter.current?.hands;
@@ -1068,6 +1098,7 @@ export default function Sheet(props: Readonly<Props>) {
             onPage ? (at, seed, near) => pageWriter.current?.hands.begin(at, seed, near) : undefined
           }
           onSource={onPage ? (at) => markdownOn(sourceIn(latest.current, at)) : undefined}
+          onLanguage={onPage ? languageMenu : undefined}
           onHintWords={
             onPage && fixed
               ? (at, hint) => pageWriter.current?.hands.hintWords(at, hint)

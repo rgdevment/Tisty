@@ -12,6 +12,7 @@ export type Went =
   | { kind: "attachment"; reference: string }
   | { kind: "block"; at: [number, number] }
   | { kind: "code"; at: [number, number] }
+  | { kind: "codeLang"; at: [number, number]; x: number; y: number }
   | { kind: "tag"; name: string }
   | { kind: "tick"; at: [number, number] }
   | { kind: "part"; at: [number, number] }
@@ -153,6 +154,11 @@ const pressedIn = (asked: HTMLElement): Went => {
   if (asked.dataset.asked === "more") {
     const box = asked.getBoundingClientRect();
     return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
+  }
+  if (asked.dataset.asked === "codeLang") {
+    const fenced = spanned(asked.closest<HTMLElement>("figure.code[data-at]")?.dataset.at ?? null);
+    const box = asked.getBoundingClientRect();
+    return fenced ? { kind: "codeLang", at: fenced, x: box.left, y: box.bottom } : null;
   }
   if (asked.dataset.asked === "code") {
     const widget = spanned(

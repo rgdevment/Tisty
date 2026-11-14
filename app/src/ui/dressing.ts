@@ -32,6 +32,8 @@ export type Reaching = Carding & {
   readonly onApart?: (source: string) => void;
   // A block whose drawing hides its words is written in the Markdown view, opened at this char.
   readonly onSource?: (at: number) => void;
+  // A code block's language, chosen from a menu that opens at this point of the page.
+  readonly onLanguage?: (at: [number, number], near: { x: number; y: number }) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
   // Where on the window's own screen its choices open, under the bar of the figure.
@@ -50,6 +52,19 @@ export type Reaching = Carding & {
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
   readonly onTable?: (asked: TableWent) => void;
+};
+
+// Each code block on a page written in place says its language, and a press on it offers the others.
+export const languaged = (page: Document) => {
+  for (const figure of page.querySelectorAll<HTMLElement>(".page figure.code[data-at]")) {
+    if (figure.querySelector(":scope > .code-lang")) continue;
+    const tongue = /language-(\S+)/.exec(figure.querySelector("pre > code")?.className ?? "")?.[1];
+    const button = asking(page, "codeLang", tongue ?? t("codeLangNone"));
+    button.className = "code-lang";
+    button.title = t("codeLanguage");
+    button.setAttribute("contenteditable", "false");
+    figure.append(button);
+  }
 };
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
@@ -256,6 +271,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   if (reach?.onStick) stickable(page);
   if (reach?.onWiden) gripped(page);
+  if (reach?.onLanguage) languaged(page);
   const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);
   if (reach?.onDiagram || reach?.onDiagramExport || reach?.onSource)
@@ -398,6 +414,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
     });
   if (asked.kind === "code" && reach.onSource) reach.onSource(charsAt(reach.body, asked.at[0]));
+  if (asked.kind === "codeLang")
+    reach.onLanguage?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])], {
+      x: asked.x,
+      y: asked.y,
+    });
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
