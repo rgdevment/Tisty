@@ -45,9 +45,9 @@ export const kindName = (kind: DiagramKind, locale: string): string =>
 // Its own title, from the front matter or the `title` line many kinds take, names it best in a list.
 export const titleOf = (source: string): string => {
   const front = /^\s*---[ \t]*\r?\n([\s\S]*?)\n[ \t]*---/.exec(source);
-  const said = front && /^title:\s*(\S.*)$/m.exec(front[1]);
+  const said = front && /^title:[ \t]*(\S.*)$/m.exec(front[1]);
   if (said) return said[1].trim().replace(/^["']|["']$/g, "");
-  return /^[ \t]*(?:pie\s+)?title\s+(\S.*)$/m.exec(source)?.[1].trim() ?? "";
+  return /^[^\S\r\n\u2028\u2029]*(?:pie[ \t]+)?title[ \t]+(\S.*)$/m.exec(source)?.[1].trim() ?? "";
 };
 
 // The line after the header tells two diagrams of one kind apart in a list.

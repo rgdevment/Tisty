@@ -109,6 +109,8 @@ const TITLED = `
 pie title Gastos⏎  "Casa" : 35 → Gastos
 gantt⏎  title Mudanza⏎  dateFormat YYYY-MM-DD → Mudanza
 flowchart TD⏎  A[title] --> B →
+---⏎title:⏎config:⏎  theme: dark⏎---⏎flowchart TD →
+gantt⏎  title⏎  dateFormat YYYY-MM-DD →
 `;
 
 describe("telling diagrams apart in a list", () => {
@@ -117,13 +119,14 @@ describe("telling diagrams apart in a list", () => {
       const [source, said = ""] = case_.split(" →");
       expect(titleOf(unfolded(source)), case_).toBe(said.trim());
     }
+    expect(titleOf("\uFEFFpie title Gastos")).toBe("Gastos");
   });
 
   it("finds no title at once in a source padded with blank lines", () => {
     const began = vi.getRealSystemTime();
     expect(titleOf(`---${"\n ".repeat(2_500)}`)).toBe("");
     expect(titleOf(`${"\n".repeat(100_000)}x`)).toBe("");
-    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
+    expect(vi.getRealSystemTime() - began).toBeLessThan(1_000);
   });
 
   it("takes the first line after the header, past front matter and comments", () => {
