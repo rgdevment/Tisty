@@ -1,4 +1,6 @@
-use crate::{Answer, Refusal, waking, wiring};
+use std::sync::Mutex;
+
+use crate::{Answer, Refusal, Session, held, waking, wiring};
 
 #[tauri::command]
 pub fn wiring() -> Vec<wiring::Seen> {
@@ -58,3 +60,61 @@ pub fn waking() -> waking::Waking {
 pub fn wake_for(wanted: bool) -> Answer<waking::Waking> {
     waking::wake(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum WakeOffer {
+    Not,
+    Ask(waking::Waking),
+    Settled,
+}
+
+pub fn wake_offer(
+    asked: bool,
+    reminded: bool,
+    looked: impl FnOnce() -> waking::Waking,
+) -> WakeOffer {
+    if asked || !reminded {
+        return WakeOffer::Not;
+    }
+    let now = looked();
+    match (now.offered, now.wakes) {
+        (true, false) => WakeOffer::Ask(now),
+        (true, true) => WakeOffer::Settled,
+        (false, _) => WakeOffer::Not,
+    }
+}
+
+pub fn reminded(state: &tisty_core::State) -> bool {
+    state
+        .tasks
+        .values()
+        .any(|task| task.status == tisty_core::model::Status::Open && !task.reminders.is_empty())
+}
+
+// Asking the machine can wait on Windows, so it is done off the window's thread and without holding the session.
+#[tauri::command(async)]
+pub fn wake_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<waking::Waking>> {
+    let (asked, reminded) = {
+        let session = held(&session);
+        (
+            session.config.asked_to_wake == Some(true),
+            reminded(&session.state),
+        )
+    };
+    match wake_offer(asked, reminded, waking::waking) {
+        WakeOffer::Ask(now) => Ok(Some(now)),
+        WakeOffer::Settled => held(&session)
+            .keep(|c| c.asked_to_wake = Some(true))
+            .map(|()| None),
+        WakeOffer::Not => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub fn wake_asked(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    held(&session).keep(|c| c.asked_to_wake = Some(true))
+}
+
+#[cfg(test)]
+#[path = "wired_test.rs"]
+mod tests;

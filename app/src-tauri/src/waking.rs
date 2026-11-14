@@ -68,8 +68,13 @@ fn stays_off_the_machine(dev: bool, sandbox: Option<&str>) -> bool {
     dev || sandbox.is_some()
 }
 
-fn off_the_machine() -> bool {
+pub(crate) fn off_the_machine() -> bool {
     stays_off_the_machine(tauri::is_dev(), tisty_core::paths::profile().as_deref())
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn bundle_of(exe: &std::path::Path) -> Option<std::path::PathBuf> {
+    there::within(exe)
 }
 
 pub fn waking() -> Waking {

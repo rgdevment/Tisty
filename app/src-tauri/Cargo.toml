@@ -38,6 +38,9 @@ windows = { version = "0.62", features = [
   "Win32_System_Variant",
   "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",
+  "Data_Xml_Dom",
+  "Foundation_Collections",
+  "UI_Notifications",
 ] }
 windows-future = "0.3"
 webview2-com = "0.39"
@@ -88,5 +91,7 @@ windows = { version = "0.62", features = ["Win32_Graphics_Gdi", "Win32_System_Th
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSDictionary", "NSGeometry", "NSObject", "NSString", "NSURL", "objc2-core-foundation"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSCalendar", "NSDictionary", "NSEnumerator", "NSError", "NSGeometry", "NSObject", "NSString", "NSURL", "objc2-core-foundation"] }
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPrintInfo", "NSPrintOperation", "NSResponder", "NSWindow", "NSWorkspace"] }
+objc2-user-notifications = { version = "0.3", default-features = false, features = ["std", "block2", "bitflags", "UNNotification", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationSound", "UNNotificationTrigger", "UNUserNotificationCenter"] }
+block2 = "0.6"
