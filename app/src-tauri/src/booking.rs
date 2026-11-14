@@ -18,6 +18,7 @@ pub struct Ring {
     pub heading: String,
     pub title: String,
     pub heard: bool,
+    pub urgent: bool,
 }
 
 impl Ring {
@@ -28,7 +29,7 @@ impl Ring {
             .chain_update(self.heading.as_bytes())
             .chain_update([0])
             .chain_update(self.title.as_bytes())
-            .chain_update([u8::from(self.heard)])
+            .chain_update([u8::from(self.heard), u8::from(self.urgent)])
             .finalize();
         let short: String = digest
             .iter()
@@ -49,7 +50,7 @@ pub fn task_of(key: &str) -> Option<&str> {
     (!task.is_empty()).then_some(task)
 }
 
-pub fn rings(coming: Vec<Due>, heading: &str, heard: bool) -> Vec<Ring> {
+pub fn rings(coming: Vec<Due>, heading: &str, heard: bool, urgent: bool) -> Vec<Ring> {
     let mut seen = HashSet::new();
     coming
         .into_iter()
@@ -64,6 +65,7 @@ pub fn rings(coming: Vec<Due>, heading: &str, heard: bool) -> Vec<Ring> {
                 heading: heading.to_string(),
                 title,
                 heard,
+                urgent,
             }),
             _ => None,
         })
@@ -131,6 +133,7 @@ struct Held {
 pub struct Booking {
     book: Option<Box<dyn Book>>,
     most: usize,
+    urgent: bool,
     held: Mutex<Held>,
 }
 
@@ -139,6 +142,7 @@ impl Booking {
         Self {
             book,
             most,
+            urgent: false,
             held: Mutex::new(Held::default()),
         }
     }
@@ -151,7 +155,15 @@ impl Booking {
         if book.is_some() {
             there::listen(app);
         }
-        Self::new(book, there::MOST)
+        Self {
+            urgent: there::urgent(),
+            ..Self::new(book, there::MOST)
+        }
+    }
+
+    /// Whether this system can let a reminder through «Do not disturb» at all.
+    pub fn urgent(&self) -> bool {
+        self.urgent
     }
 
     pub fn books(&self) -> bool {
@@ -218,6 +230,10 @@ impl Booking {
     }
 }
 
+pub fn settings_page() -> Option<&'static str> {
+    there::PAGE
+}
+
 pub fn forget() {
     if crate::waking::off_the_machine() {
         return;
@@ -246,6 +262,30 @@ mod there {
     const GROUP: &str = "reminders";
 
     pub const NAMED: &str = "dev.rgdevment.tisty";
+
+    pub const PAGE: Option<&str> = Some("ms-settings:notifications");
+
+    // Microsoft lets an important toast through «Do not disturb» from this build on.
+    const URGENT_SINCE: u32 = 22_546;
+
+    pub fn urgent() -> bool {
+        build().is_some_and(urgent_on)
+    }
+
+    pub fn urgent_on(build: u32) -> bool {
+        build >= URGENT_SINCE
+    }
+
+    fn build() -> Option<u32> {
+        winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
+            .open_subkey(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion")
+            .ok()?
+            .get_value::<String, _>("CurrentBuildNumber")
+            .ok()?
+            .trim()
+            .parse()
+            .ok()
+    }
 
     pub fn book() -> Option<Box<dyn Book>> {
         joined();
@@ -349,8 +389,12 @@ mod there {
             true => "",
             false => r#"<audio silent="true"/>"#,
         };
+        let scenario = match ring.urgent {
+            true => r#" scenario="urgent""#,
+            false => "",
+        };
         format!(
-            r#"<toast launch="{}" activationType="protocol"><visual><binding template="ToastGeneric"><text>{}</text><text>{}</text></binding></visual>{quiet}</toast>"#,
+            r#"<toast launch="{}" activationType="protocol"{scenario}><visual><binding template="ToastGeneric"><text>{}</text><text>{}</text></binding></visual>{quiet}</toast>"#,
             escaped(&crate::viewing::task_link(&ring.task)),
             escaped(&ring.heading),
             escaped(&ring.title),
@@ -393,9 +437,10 @@ mod there {
     use objc2_foundation::{NSArray, NSDateComponents, NSError, NSString};
     use objc2_user_notifications::{
         UNAuthorizationOptions, UNAuthorizationStatus, UNCalendarNotificationTrigger,
-        UNMutableNotificationContent, UNNotification, UNNotificationPresentationOptions,
-        UNNotificationRequest, UNNotificationResponse, UNNotificationSettings, UNNotificationSound,
-        UNNotificationTrigger, UNUserNotificationCenter, UNUserNotificationCenterDelegate,
+        UNMutableNotificationContent, UNNotification, UNNotificationInterruptionLevel,
+        UNNotificationPresentationOptions, UNNotificationRequest, UNNotificationResponse,
+        UNNotificationSettings, UNNotificationSound, UNNotificationTrigger,
+        UNUserNotificationCenter, UNUserNotificationCenterDelegate,
     };
     use std::ptr::NonNull;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -404,7 +449,25 @@ mod there {
 
     pub const MOST: usize = 64;
 
+    pub const PAGE: Option<&str> =
+        Some("x-apple.systempreferences:com.apple.Focus-Settings.extension");
+
     const WAIT: Duration = Duration::from_secs(2);
+
+    // A copy signed to let reminders through carries the profile that grants it; without it macOS refuses the mark.
+    pub fn urgent() -> bool {
+        std::env::current_exe()
+            .ok()
+            .and_then(|exe| crate::waking::bundle_of(&exe))
+            .is_some_and(|bundle| provisioned(&bundle))
+    }
+
+    pub fn provisioned(bundle: &std::path::Path) -> bool {
+        bundle
+            .join("Contents")
+            .join("embedded.provisionprofile")
+            .is_file()
+    }
 
     // Outside a bundle the centre throws instead of answering.
     pub fn book() -> Option<Box<dyn Book>> {
@@ -472,6 +535,9 @@ mod there {
             content.setBody(&NSString::from_str(&ring.title));
             if ring.heard {
                 content.setSound(Some(&UNNotificationSound::defaultSound()));
+            }
+            if ring.urgent {
+                content.setInterruptionLevel(UNNotificationInterruptionLevel::TimeSensitive);
             }
             let trigger = UNCalendarNotificationTrigger::triggerWithDateMatchingComponents_repeats(
                 &parts(ring.at),
@@ -572,6 +638,12 @@ mod there {
     use super::Book;
 
     pub const MOST: usize = 0;
+
+    pub const PAGE: Option<&str> = None;
+
+    pub fn urgent() -> bool {
+        false
+    }
 
     pub fn book() -> Option<Box<dyn Book>> {
         None

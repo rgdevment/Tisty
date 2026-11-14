@@ -91,6 +91,7 @@ impl Nudge {
 pub struct Speaking {
     words: Words,
     now: std::sync::Mutex<Heralds>,
+    urgent: std::sync::atomic::AtomicBool,
     nudge: Nudge,
 }
 
@@ -98,13 +99,21 @@ pub struct Speaking {
 pub struct Voices {
     pub shown: bool,
     pub heard: bool,
+    pub urgent: bool,
 }
 
 impl Speaking {
-    pub fn new(app: &tauri::AppHandle, words: Words, quiet: &[String], nudge: Nudge) -> Self {
+    pub fn new(
+        app: &tauri::AppHandle,
+        words: Words,
+        quiet: &[String],
+        urgent: bool,
+        nudge: Nudge,
+    ) -> Self {
         Self {
             now: std::sync::Mutex::new(built(app, &words, quiet)),
             words,
+            urgent: std::sync::atomic::AtomicBool::new(urgent),
             nudge,
         }
     }
@@ -124,11 +133,12 @@ impl Speaking {
         Voices {
             shown: names.contains(&"screen"),
             heard: names.contains(&"chime"),
+            urgent: self.urgent.load(std::sync::atomic::Ordering::Acquire),
         }
     }
 }
 
-pub fn respeak(app: &tauri::AppHandle, quiet: &[String]) {
+pub fn respeak(app: &tauri::AppHandle, quiet: &[String], urgent: bool) {
     let Some(speaking) = app.try_state::<Speaking>() else {
         return;
     };
@@ -137,6 +147,9 @@ pub fn respeak(app: &tauri::AppHandle, quiet: &[String]) {
         Ok(mut now) => *now = fresh,
         Err(held) => *held.into_inner() = fresh,
     }
+    speaking
+        .urgent
+        .store(urgent, std::sync::atomic::Ordering::Release);
     speaking.nudge.give();
 }
 
@@ -320,6 +333,7 @@ fn planned<R: tauri::Runtime>(
             tisty_core::herald::coming(state, now, &jiff::tz::TimeZone::system(), booking.most()),
             &speaking.words.due,
             voices.heard,
+            voices.urgent && booking.urgent(),
         ),
         false => Vec::new(),
     })

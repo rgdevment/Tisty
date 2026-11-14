@@ -66,6 +66,7 @@ fn ring(title: &str, when: &str) -> Ring {
         heading: "Recordatorio".to_string(),
         title: title.to_string(),
         heard: true,
+        urgent: false,
     }
 }
 
@@ -177,6 +178,8 @@ fn a_renamed_task_a_moved_hour_or_a_muted_sound_is_another_booking() {
     let first = ring("comprar pan", "2026-08-12T13:00:00Z");
     let mut quiet = first.clone();
     quiet.heard = false;
+    let mut urgent = first.clone();
+    urgent.urgent = true;
 
     assert_ne!(
         first.key(),
@@ -187,6 +190,11 @@ fn a_renamed_task_a_moved_hour_or_a_muted_sound_is_another_booking() {
         ring("comprar pan", "2026-08-12T13:30:00Z").key()
     );
     assert_ne!(first.key(), quiet.key());
+    assert_ne!(
+        first.key(),
+        urgent.key(),
+        "turning important on books again"
+    );
     assert_eq!(first.key(), first.clone().key());
 }
 
@@ -211,11 +219,12 @@ fn only_reminders_become_rings_with_the_words_they_show() {
         },
     ];
 
-    let rings = rings(coming, "Recordatorio", false);
+    let rings = rings(coming, "Recordatorio", false, true);
 
     assert_eq!(rings.len(), 1);
     assert_eq!(rings[0].heading, "Recordatorio");
     assert!(!rings[0].heard);
+    assert!(rings[0].urgent);
 }
 
 #[test]
@@ -276,7 +285,7 @@ fn once_the_system_was_emptied_nothing_is_held_and_a_tisty_still_open_books_agai
 fn two_reminders_of_one_task_at_the_same_second_are_one_ring() {
     let pan = ring("comprar pan", "2026-08-12T13:00:00Z");
 
-    let rings = rings(vec![due(&pan), due(&pan)], "Recordatorio", true);
+    let rings = rings(vec![due(&pan), due(&pan)], "Recordatorio", true, false);
 
     assert_eq!(rings, vec![pan]);
 }
@@ -375,7 +384,7 @@ fn without_a_system_to_book_with_the_window_rings_everything() {
 #[cfg(windows)]
 mod toasts {
     use super::ring;
-    use crate::booking::there::{NAMED, joined, page, ticks, toast};
+    use crate::booking::there::{NAMED, joined, page, ticks, toast, urgent_on};
 
     #[test]
     fn a_title_with_markup_stays_text_in_the_toast() {
@@ -425,6 +434,33 @@ mod toasts {
     }
 
     #[test]
+    fn an_important_reminder_is_an_urgent_toast_windows_reads() {
+        joined();
+        let mut important = ring("tomar la pastilla", "2026-08-12T13:00:00Z");
+        important.urgent = true;
+
+        assert!(toast(&important).contains(r#"scenario="urgent""#));
+        assert!(!toast(&ring("comprar pan", "2026-08-12T13:00:00Z")).contains("scenario"));
+        assert!(page(&important).is_ok());
+    }
+
+    #[test]
+    fn important_toasts_come_with_the_build_microsoft_names() {
+        assert!(!urgent_on(19_045));
+        assert!(!urgent_on(22_000));
+        assert!(urgent_on(22_546));
+        assert!(urgent_on(26_100));
+    }
+
+    #[test]
+    fn the_page_tisty_opens_is_the_notifications_one() {
+        assert_eq!(
+            crate::booking::settings_page(),
+            Some("ms-settings:notifications")
+        );
+    }
+
+    #[test]
     fn a_title_with_control_characters_still_makes_a_toast() {
         let page = toast(&ring("comprar\u{1}pan", "2026-08-12T13:00:00Z"));
 
@@ -444,5 +480,25 @@ mod toasts {
         let config = include_str!("../tauri.conf.json");
 
         assert!(config.contains(&format!("\"identifier\": \"{NAMED}\"")));
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod center {
+    use crate::booking::there::provisioned;
+
+    #[test]
+    fn only_a_bundle_carrying_its_profile_may_mark_a_reminder_urgent() {
+        let room = tempfile::tempdir().unwrap();
+        let bundle = room.path().join("Tisty.app");
+        std::fs::create_dir_all(bundle.join("Contents")).unwrap();
+        assert!(!provisioned(&bundle));
+
+        std::fs::write(
+            bundle.join("Contents/embedded.provisionprofile"),
+            b"profile",
+        )
+        .unwrap();
+        assert!(provisioned(&bundle));
     }
 }
