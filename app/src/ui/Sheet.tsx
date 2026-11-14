@@ -536,9 +536,7 @@ export default function Sheet(props: Readonly<Props>) {
     const back = () => shown.current?.focus();
     const choices: Choice[] = SLASHED.filter(
       (one) =>
-        !("wrap" in one.put) &&
-        (!("ask" in one.put) || kinds.includes(one.put.ask)) &&
-        (one.key !== "step" || steps),
+        (!("ask" in one.put) || kinds.includes(one.put.ask)) && (one.key !== "step" || steps),
     ).map((one) => ({
       key: one.key,
       label: t(one.label),
@@ -841,6 +839,8 @@ export default function Sheet(props: Readonly<Props>) {
     ask: (kind, at, put, first) => said.current.asking?.ask(kind, at, put, first),
     blocks: (at, slash) => blockMenu(at, slash),
     acts: blockActs,
+    tags: () => said.current.asking?.tags ?? [],
+    pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };

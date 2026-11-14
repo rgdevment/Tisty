@@ -1,4 +1,4 @@
-import type { Asking, Slashed } from "tisty-editor/edit";
+import { type Asking, SLASHED, type Slashed } from "tisty-editor/edit";
 import { bytesAt, charsAt, spanned } from "tisty-editor/read";
 import { t } from "../locales";
 import type { PlacedNear } from "../placing";
@@ -17,6 +17,7 @@ import {
 } from "./pageMoving";
 import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+import { tagList, tagMatch } from "./pageTags";
 import { unformattable } from "./quickly";
 
 type Edit = { readonly from: number; readonly to: number; readonly insert: string };
@@ -40,6 +41,8 @@ export type Hands = {
   readonly ask: Asking["ask"];
   readonly blocks: (at: { x: number; y: number }, slash: boolean) => void;
   readonly acts: (at: { x: number; y: number }, top: Element) => void;
+  readonly tags?: () => readonly string[];
+  readonly pasted?: (files: readonly File[]) => Promise<string>;
 };
 
 type Point = { readonly x: number; readonly y: number };
@@ -75,6 +78,15 @@ const PAIRS: Record<string, string> = {
   formatStrikeThrough: "~~",
   formatUnderline: "++",
 };
+const KEYED: Record<string, readonly [string, string]> = {
+  b: ["**", "**"],
+  i: ["*", "*"],
+  u: ["++", "++"],
+  "shift x": ["~~", "~~"],
+  "shift c": ["`", "`"],
+  k: ["[", "]()"],
+};
+const MARKS = ["**", "__", "++", "~~", "==", "*", "_"];
 const QUOTED = /^(\s*(?:>\s?)*)/;
 const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
 
@@ -126,12 +138,33 @@ const closing = (text: string, at: number) => {
   return "\n".repeat(Math.max(0, 2 - (/^\n*/.exec(after)?.[0].length ?? 0)));
 };
 
+// A space typed at the end of formatted words goes past their closing marks, as Markdown ends a format at a word.
+const pastClose = (text: string, at: number): number | null => {
+  if (!/\S/.test(text[at - 1] ?? "")) return null;
+  const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
+  if ((line.match(/`/g)?.length ?? 0) % 2) return null;
+  const mark = MARKS.find((one) => text.startsWith(one, at));
+  if (!mark) return null;
+  const opened = line.lastIndexOf(mark);
+  if (opened < 0 || /\s/.test(line[opened + mark.length] ?? " ")) return null;
+  const close = mark === "==" ? (/^==(?:\{[a-z]+\})?/.exec(text.slice(at))?.[0] ?? mark) : mark;
+  return at + close.length;
+};
+
+const CLOSERS =
+  /^(?:\*\*|__|\*|_|\+\+|~~|==(?:\{[a-z]+\})?|`+|\]\([^)\s]*(?:\s+"[^"]*")?\))+(?=\r?\n|$)/;
+
+const lineEndPast = (text: string, at: number) =>
+  at + (CLOSERS.exec(text.slice(at))?.[0].length ?? 0);
+
 const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
 
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   let kept: Kept | null = null;
   let composing: { from: number; to: number } | null = null;
+  let pending: { readonly at: number; readonly open: string; readonly close: string } | null = null;
+  let typing = false;
   const undone: { text: string; at: number }[] = [];
   const redone: { text: string; at: number }[] = [];
 
@@ -244,6 +277,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const turned = (from: typeof undone, to: typeof undone) => {
     const back = from.pop();
     if (!back) return;
+    pending = null;
     to.push({ text: hands.text(), at: back.at });
     kept = { node: page.body, offset: -1, at: back.at };
     hands.write(back.text);
@@ -307,6 +341,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
     event.preventDefault();
     const kind = event.inputType;
+    typing = kind === "insertText" || kind.startsWith("delete");
+    if (kind !== "insertText" && !kind.startsWith("format")) pending = null;
     if (kind === "historyUndo") return turned(undone, redone);
     if (kind === "historyRedo") return turned(redone, undone);
     const broken = pastBreak(kind);
@@ -325,10 +361,18 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (begun) return firstKey(begun, typed);
     if (kind === "insertText" && typed === "/" && slashes(text, one, range))
       return hands.blocks(caretPoint(), true);
+    if (kind === "insertText" && one.from === one.to) {
+      if (pending?.at === one.from) return pendingKey(one.from, typed);
+      const past = typed.trim() ? null : pastClose(text, one.from);
+      if (past !== null) return put({ from: past, to: past, insert: typed });
+    }
     if (kind === "insertText" || kind === "insertReplacementText")
       return put({ ...one, insert: typed });
-    if (kind === "insertParagraph")
-      return put({ ...one, insert: parted(text, one.from, inCode(range.startContainer)) });
+    if (kind === "insertParagraph") {
+      const coded = inCode(range.startContainer);
+      const at = one.from === one.to && !coded ? lineEndPast(text, one.from) : one.from;
+      return put({ from: at, to: Math.max(at, one.to), insert: parted(text, at, coded) });
+    }
     if (kind === "insertLineBreak") return put({ ...one, insert: "\n" });
     if (kind === "insertFromPaste") return pasted(one, event.dataTransfer);
     if (kind.startsWith("delete")) return put({ ...one, insert: "" }, one.from);
@@ -343,6 +387,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const sheet = page.querySelector(".page");
     if (range && !range.collapsed && sheet?.contains(range.startContainer))
       lastChosen = spanOfRange(range);
+    else if (range?.collapsed) lastChosen = null;
   };
 
   const chosenNow = () => {
@@ -370,7 +415,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!near) return;
     void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((to) => {
       if (!to) return;
-      const inner = hands.text().slice(one.from, one.to);
+      const inner = hands.text().slice(one.from, one.to) || to;
       put({ ...one, insert: `[${inner}](${to})` });
     });
   };
@@ -378,10 +423,47 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const format = (open: string, close: string) => {
     if (unformattable(page)) return;
     const one = chosenNow();
-    if (!one) return;
-    if (close === "]()") return linked(one);
+    if (close === "]()") {
+      const span = one ?? caretSpan();
+      if (span) linked(span);
+      return;
+    }
+    if (!one) return waitFor(open, close);
+    pending = null;
     const change = worn(one, open, close);
     put(change, change.from + change.insert.length);
+  };
+
+  const waitFor = (open: string, close: string) => {
+    const at = caretSpan()?.from;
+    if (at === undefined) return;
+    const text = hands.text();
+    if (pending?.at === at && pending.open === open) {
+      pending = null;
+      return;
+    }
+    if (text.startsWith(close, at) && !(close === "*" && text.startsWith("**", at))) {
+      pending = null;
+      kept = { node: page.body, offset: -1, at: at + close.length };
+      return;
+    }
+    pending = { at, open, close };
+    focused();
+  };
+
+  const pendingKey = (at: number, typed: string) => {
+    const wait = pending;
+    if (!wait) return;
+    if (!typed.trim()) {
+      put({ from: at, to: at, insert: typed });
+      pending = { ...wait, at: at + typed.length };
+      return;
+    }
+    pending = null;
+    put(
+      { from: at, to: at, insert: `${wait.open}${typed}${wait.close}` },
+      at + wait.open.length + typed.length,
+    );
   };
 
   const started = (event: CompositionEvent) => {
@@ -393,7 +475,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!onSheet(event)) return;
     const one = composing;
     composing = null;
+    typing = true;
     if (kept?.lead !== undefined && one?.from === kept.at) return firstKey(kept, event.data ?? "");
+    if (one && one.from === one.to && pending?.at === one.from)
+      return pendingKey(one.from, event.data ?? "");
     if (one) put({ ...one, insert: event.data ?? "" });
   };
 
@@ -425,15 +510,29 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const ghost = unwritten ? ghostAt(page, hands.text(), kept.at) : null;
     const spot: [Node, number] | null = ghost ? [ghost, 0] : spotOf(page, hands.text(), kept.at);
     if (!spot) return;
+    focused();
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
     kept = { ...kept, node: spot[0], offset: spot[1] };
+  };
+
+  // A menu of the window hands the focus back to the frame, not to the words, so the sheet takes it again.
+  const focused = () => {
+    const sheet = page.querySelector<HTMLElement>(".page");
+    if (!page.hasFocus() || !sheet || sheet.contains(page.activeElement)) return;
+    const held = page.getSelection();
+    const caret = held?.rangeCount ? held.getRangeAt(0).cloneRange() : null;
+    sheet.focus({ preventScroll: true });
+    if (!caret || !sheet.contains(caret.startContainer)) return;
+    held?.removeAllRanges();
+    held?.addRange(caret);
   };
 
   const drawn = () => {
     whole = false;
     opened();
     caretLaid();
+    offerTags();
   };
 
   // Colours, icons and cards land after a block is drawn and take the place of its words, the caret with them.
@@ -450,9 +549,16 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   // A line begun from a hint, a label or a button takes what it opens with and its blank lines with its first key.
   const firstKey = (begun: Kept, typed: string) => {
     const lead = begun.lead ?? "";
+    const wait = pending?.at === begun.at && typed.trim() ? pending : null;
+    pending = null;
+    const open = wait?.open ?? "";
     put(
-      { from: begun.at, to: begun.at, insert: `${lead}${typed}${begun.tail ?? ""}` },
-      begun.at + lead.length + typed.length,
+      {
+        from: begun.at,
+        to: begun.at,
+        insert: `${lead}${open}${typed}${wait?.close ?? ""}${begun.tail ?? ""}`,
+      },
+      begun.at + lead.length + open.length + typed.length,
     );
   };
 
@@ -519,9 +625,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   const caretSpan = () => {
+    if (kept && kept.offset < 0) return { from: kept.at, to: kept.at };
     const range = chosen();
-    if (!range) return kept && kept.offset < 0 ? { from: kept.at, to: kept.at } : null;
-    return unbegun("insertText", range) ?? spanOfRange(range);
+    return range && (unbegun("insertText", range) ?? spanOfRange(range));
   };
 
   const blockEnd = (at: number) => {
@@ -597,7 +703,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const edge = sheet.getBoundingClientRect().left;
     plus.hidden = false;
     plus.style.top = `${(box.top + (view?.scrollY ?? 0)) / zoom}px`;
-    plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 16}px`;
+    plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 18}px`;
   };
 
   // The caret goes with the words it stood in, as far into them as it was.
@@ -609,6 +715,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     undone.push({ text, at: one.from });
     redone.length = 0;
     kept = null;
+    pending = null;
     hands.write(next);
     laidOut(text, next, one);
   };
@@ -651,13 +758,62 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (top) unitActed(top, way < 0 ? "up" : "down");
   };
 
+  const broke = (event: KeyboardEvent) => {
+    event.preventDefault();
+    const range = chosen();
+    const rule = SLASHED.find((one) => one.key === "rule");
+    if (range && rule && !inCode(range.startContainer)) slashed(rule);
+  };
+
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(event)) return;
     if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown"))
       return stepped(event);
-    if (event.key !== "/" || !(event.ctrlKey || event.metaKey)) return;
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    if (event.key === "Enter") return broke(event);
+    const pair = KEYED[`${event.shiftKey ? "shift " : ""}${event.key.toLowerCase()}`];
+    if (pair) {
+      event.preventDefault();
+      return format(pair[0], pair[1]);
+    }
+    if (event.key !== "/") return;
     event.preventDefault();
     hands.blocks(caretPoint(), false);
+  };
+
+  const tags = tagList(page, (match, tag) => {
+    typing = false;
+    const text = hands.text();
+    const to = Math.min(match.to, text.length);
+    put({ from: Math.min(match.from, to), to, insert: `#${tag}` });
+  });
+
+  const offerTags = () => {
+    const at = kept?.at;
+    const range = chosen();
+    const known = hands.tags;
+    const open = typing && at !== undefined && known && !(range && inCode(range.startContainer));
+    tags.offer(open && known ? tagMatch(hands.text(), at, known()) : null);
+  };
+
+  const pastedFiles = (event: ClipboardEvent) => {
+    const files = Array.from(event.clipboardData?.files ?? []);
+    const attach = hands.pasted;
+    if (!onSheet(event) || !files.length || !attach || event.clipboardData?.getData("text/plain"))
+      return;
+    event.preventDefault();
+    const span = caretSpan();
+    if (!span) return;
+    const end = Math.max(span.to, blockEnd(span.to));
+    attach(files)
+      .then((said) => {
+        if (!said) return;
+        const now = hands.text();
+        const at = Math.min(span.from, now.length);
+        const laid = blockPlaced(now, at, Math.min(end, now.length), said, said.length);
+        put(laid.edit, laid.caret);
+      })
+      .catch(() => {});
   };
 
   const ungrip = gripped(page, { moved: movedOnto, asked: (top, at) => hands.acts(at, top) });
@@ -666,7 +822,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
     if (key !== null && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key)) return;
+    if ((event.target as Element | null)?.closest?.(".tag-list")) return;
     kept = null;
+    pending = null;
+    typing = false;
+    tags.hide();
   };
 
   page.addEventListener("beforeinput", asked);
@@ -677,6 +837,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("keydown", moved);
   page.addEventListener("selectionchange", noted);
   page.addEventListener("keydown", keyed);
+  page.addEventListener("paste", pastedFiles);
   opened();
   return {
     drawn,
@@ -704,6 +865,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       watching?.disconnect();
       page.removeEventListener("selectionchange", noted);
       page.removeEventListener("keydown", keyed);
+      page.removeEventListener("paste", pastedFiles);
+      tags.stop();
       plus.remove();
       ungrip();
       page.removeEventListener("mousedown", moved);

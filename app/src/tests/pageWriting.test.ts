@@ -1,7 +1,7 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
 import { sourceAt, spotOf } from "../ui/pageSpots";
-import { type PageWriting, writtenOn } from "../ui/pageWriting";
+import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
 
 const BODY = "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n";
 const PLACED =
@@ -46,7 +46,7 @@ const asked = (inputType: string, data: string | null = null) =>
 const menus: boolean[] = [];
 const answers: string[] = [];
 
-const writer = (body = BODY) => {
+const writer = (body = BODY, more: Partial<Hands> = {}) => {
   const said: string[] = [];
   let text = body;
   menus.length = 0;
@@ -67,6 +67,7 @@ const writer = (body = BODY) => {
     },
     blocks: (_at, slash) => menus.push(slash),
     acts: () => {},
+    ...more,
   });
   return said;
 };
@@ -507,5 +508,212 @@ describe("the speller on the page written in place", () => {
     for (const one of document.querySelectorAll("pre, code, figcaption"))
       expect(one.getAttribute("spellcheck")).toBe("false");
     expect(document.querySelector("p")?.hasAttribute("spellcheck")).toBe(false);
+  });
+});
+
+describe("the keys and words the Markdown view had, on the page", () => {
+  const key = (name: string, more: KeyboardEventInit = {}) =>
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true, ...more }),
+      );
+  const choose = (said: string, from: number, to: number) => {
+    const range = document.createRange();
+    range.setStart(piece(said), from);
+    range.setEnd(piece(said), to);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+  };
+  const last = (said: string[]) => said[said.length - 1] ?? "";
+
+  it("never wraps words chosen before the caret moved away", () => {
+    const said = writer();
+    choose("primero", 0, 7);
+    caretIn("Hola", 4);
+    document.dispatchEvent(new Event("selectionchange"));
+    asked("formatBold");
+    expect(said).toEqual([]);
+    asked("insertText", "x");
+    expect(last(said).startsWith("# Hola**x**\n")).toBe(true);
+  });
+
+  it("starts a format with nothing chosen at the first key, and lets it go when pressed again", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    key("b", { ctrlKey: true });
+    key("b", { ctrlKey: true });
+    asked("insertText", "x");
+    expect(last(said).startsWith("# Holax\n")).toBe(true);
+  });
+
+  it("keeps a space before the first key plain, and the format waiting after it", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    key("i", { ctrlKey: true });
+    asked("insertText", " ");
+    asked("insertText", "x");
+    expect(last(said).startsWith("# Hola *x*\n")).toBe(true);
+  });
+
+  it("steps past a format's marks when it is pressed again after its words", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    key("b", { ctrlKey: true });
+    asked("insertText", "x");
+    key("b", { ctrlKey: true });
+    asked("insertText", "y");
+    expect(last(said).startsWith("# Hola**x**y\n")).toBe(true);
+  });
+
+  it("puts a space typed at the end of bold words past their marks", () => {
+    const said = writer();
+    caretIn("dos", 3);
+    asked("insertText", " ");
+    expect(last(said)).toContain("Uno **dos**  tres");
+  });
+
+  it("strikes and codes the words chosen with Ctrl, Shift and a letter", () => {
+    const said = writer();
+    choose("primero", 0, 7);
+    key("X", { ctrlKey: true, shiftKey: true });
+    expect(last(said)).toContain("- ~~primero~~");
+    writing?.stop();
+    const coded = writer();
+    choose("segundo", 0, 7);
+    key("C", { ctrlKey: true, shiftKey: true });
+    expect(last(coded)).toContain("- `segundo`");
+  });
+
+  it("links with Ctrl and K, the address standing for words when none were chosen", async () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    key("k", { ctrlKey: true });
+    const field = document.querySelector<HTMLInputElement>(".page-address");
+    if (field) field.value = "https://tisty.app";
+    field?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await Promise.resolve();
+    expect(last(said).startsWith("# Hola[https://tisty.app](https://tisty.app)\n")).toBe(true);
+  });
+
+  it("breaks the page after the block with Ctrl and Enter, never inside code", () => {
+    const said = writer();
+    caretIn("dos", 1);
+    key("Enter", { ctrlKey: true });
+    expect(last(said)).toContain("Uno **dos** tres\n\n---\n");
+    writing?.stop();
+    const coded = writer("```\nuno\n```\n");
+    pageOf('<pre data-at="0-12"><code><span data-src="4-7">uno</span></code></pre>');
+    writing?.drawn();
+    caretIn("uno", 1);
+    key("Enter", { ctrlKey: true });
+    expect(coded).toEqual([]);
+  });
+
+  it("formats from the slash menu as from the bar, at the next key", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    writing?.slashed(block("bold"));
+    asked("insertText", "x");
+    expect(last(said).startsWith("# Hola**x**\n")).toBe(true);
+  });
+
+  it("offers the tags in use after a hash, and writes the one lit with Tab", () => {
+    const said = writer(BODY, { tags: () => ["rina", "roger", "casa"] });
+    caretIn(" tres", 5);
+    asked("insertText", " #r");
+    writing?.drawn();
+    const shown = Array.from(document.querySelectorAll(".tag-list [role=option]")).map(
+      (one) => one.textContent,
+    );
+    expect(shown).toEqual(["#rina", "#roger"]);
+    key("ArrowDown");
+    key("ArrowDown");
+    key("Tab");
+    expect(last(said)).toContain("Uno **dos** tres #roger\n");
+    expect(document.querySelector<HTMLElement>(".tag-list")?.hidden).toBe(true);
+  });
+
+  it("lets Enter end the line while no tag is lit, and Escape put the list away", () => {
+    const said = writer(BODY, { tags: () => ["rina"] });
+    caretIn(" tres", 5);
+    asked("insertText", " #r");
+    writing?.drawn();
+    const list = document.querySelector<HTMLElement>(".tag-list");
+    expect(list?.hidden).toBe(false);
+    key("Escape");
+    expect(list?.hidden).toBe(true);
+    asked("insertText", "i");
+    writing?.drawn();
+    expect(list?.hidden).toBe(false);
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    document.querySelector(".page")?.dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+    expect(last(said)).toContain("tres #ri\n");
+  });
+
+  it("offers no tags for one already in use, or inside code", () => {
+    writer(BODY, { tags: () => ["rina"] });
+    caretIn(" tres", 5);
+    asked("insertText", " #rina");
+    writing?.drawn();
+    expect(document.querySelector<HTMLElement>(".tag-list")?.hidden).toBe(true);
+    asked("insertText", " `#r");
+    writing?.drawn();
+    expect(document.querySelector<HTMLElement>(".tag-list")?.hidden).toBe(true);
+  });
+
+  it("attaches a picture alone on the clipboard after the block the caret stands in", async () => {
+    const files: File[] = [];
+    const said = writer(BODY, {
+      pasted: (given) => {
+        files.push(...given);
+        return Promise.resolve("![captura](captura.png)");
+      },
+    });
+    caretIn("dos", 1);
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    const picture = new File(["x"], "captura.png", { type: "image/png" });
+    Object.defineProperty(event, "clipboardData", {
+      value: { files: [picture], getData: () => "" },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(files).toEqual([picture]);
+    expect(last(said)).toContain("Uno **dos** tres\n\n![captura](captura.png)");
+  });
+
+  it("leaves words on the clipboard to the paste that translates them", () => {
+    const said = writer(BODY, { pasted: () => Promise.resolve("![x](x.png)") });
+    caretIn("dos", 1);
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: { files: [new File(["x"], "x.png")], getData: () => "palabras" },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(said).toEqual([]);
+  });
+});
+
+describe("Enter at the end of formatted words on the page", () => {
+  it("starts the paragraph past the marks that close a link or a format", () => {
+    const linked = "Ver [la guía](https://tisty.app)\n";
+    const said = writer(linked);
+    pageOf(
+      '<p data-at="0-33"><span data-src="0-4">Ver </span><a href="https://tisty.app"><span data-src="5-13">la guía</span></a></p>',
+    );
+    writing?.drawn();
+    caretIn("la guía", 7);
+    asked("insertParagraph");
+    expect(said[said.length - 1]).toBe("Ver [la guía](https://tisty.app)\n\n\n");
+    writing?.stop();
+    const bold = writer();
+    caretIn("dos", 3);
+    asked("insertParagraph");
+    expect(bold[bold.length - 1]).toContain("Uno **dos\n\n** tres");
   });
 });

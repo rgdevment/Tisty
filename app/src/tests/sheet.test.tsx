@@ -495,14 +495,14 @@ describe("the menus of a document written on as its page", () => {
     await waitFor(() => expect(writes[writes.length - 1]).toBe("# Compras\n\n**lec**he\n\npan\n"));
   });
 
-  it("offers the blocks with Ctrl and a slash, searched by name", async () => {
+  it("offers the blocks and the formats with Ctrl and a slash, searched by name", async () => {
     const { page, writes } = await opened();
     page
       .querySelector(".page")
       ?.dispatchEvent(new KeyboardEvent("keydown", { key: "/", ctrlKey: true, bubbles: true }));
     await waitFor(() => expect(offered()).toContain("Table"));
     expect(document.querySelector('input[placeholder="Find a block"]')).not.toBeNull();
-    expect(offered()).not.toContain("Bold");
+    expect(offered()).toContain("Bold");
     expect(writes).toHaveLength(0);
   });
 });

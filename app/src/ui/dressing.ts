@@ -445,8 +445,8 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
 // Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
 export const DOUBLE_MS = 300;
 
-// Bold, italic and underline belong to the words written on the page, never to the window's own keys.
-const WRITTEN_KEYS = new Set(["b", "i", "u"]);
+// Bold, italic, underline and link belong to the words written on the page, never to the window's own keys.
+const WRITTEN_KEYS = new Set(["b", "i", "u", "k"]);
 const WRITTEN_ON = '.page[contenteditable="true"]';
 
 export const wired = (page: Document, reach: () => Reaching) => {
@@ -469,7 +469,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
       pressedIn = false;
       return;
     }
-    if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
+    if (target.closest(".quick-bar, .tag-list, .mend-said, .cm-dock")) return;
     // The whole document is the only thing written: a press beside or under it goes to its end.
     const whole = page.querySelector<HTMLElement>(".page.whole .cm-content");
     if (whole && !target.closest(".editing")) {
