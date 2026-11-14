@@ -180,7 +180,7 @@ Your AI agent can also brainstorm with you and help you sort them out: **Your AI
 
 ### Yours, in Markdown
 
-A document is yours and is kept as Markdown: plain text with a few marks, like `**bold**`, that any program opens. You do not need to learn them: the `/` key offers you all of them. And what matters is the file: if you delete Tisty tomorrow, your documents still open in any text editor.
+A document is yours and is kept as Markdown: plain text with a few marks, like `**bold**`, that any program opens. You do not need to learn them: the bar that comes up over selected words and the `/` key offer them to you. And what matters is the file: if you delete Tisty tomorrow, your documents still open in any text editor.
 
 **Try it:** click this very paragraph and type. You write on the same page you read, with no marks in sight.
 

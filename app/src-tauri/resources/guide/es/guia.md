@@ -180,7 +180,7 @@ Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a or
 
 ### Tuyo y en Markdown
 
-Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas, como `**negrita**`, que cualquier programa abre. No hace falta aprenderlas: la tecla `/` te las ofrece todas. Y lo que importa es el archivo: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
+Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas, como `**negrita**`, que cualquier programa abre. No hace falta aprenderlas: la barra que aparece al elegir unas palabras y la tecla `/` te las ofrecen. Y lo que importa es el archivo: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
 
 **Pruébalo:** haz clic en este mismo párrafo y escribe. Escribes sobre la misma página que lees, sin marcas a la vista.
 

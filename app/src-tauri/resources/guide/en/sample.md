@@ -10,11 +10,11 @@ Three ways to read it:
 
 - Write on the sheet itself: click anywhere and type there, with no marks in sight.
 - The **⋯** at the top, or `Ctrl`/`⌘` + `E`, shows it in **Markdown**: that is how each example is written.
-- The `/` key inserts all of it without learning a single mark. Each section says what it is called in that menu.
+- The `/` key inserts every block without learning a single mark, and the bar puts on the formats. Each section says what it is called in that menu.
 
 ## Properties
 
-This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it as it is written.
+This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it in the Markdown view, as it is written.
 
 ```yaml title="The first lines of this sheet"
 ---
@@ -29,16 +29,16 @@ source: the Tisty guide
 
 ## Words
 
-What marks a few words inside a sentence. Select the words and a small bar offers the most used, as the right button does; the `/` menu has the rest.
+What marks a few words inside a sentence. Select the words and a small bar offers the formats and the highlighter, as the right button does; the `/` menu puts in an icon or a step.
 
 | What | Written | Looks like | Shortcut |
 | :--- | :--- | :--- | :--- |
 | Bold | `**bold**` | **bold** | `Ctrl`/`⌘` + `B` |
 | Italic | `*italic*` | *italic* | `Ctrl`/`⌘` + `I` |
 | Underline | `++underlined++` | ++underlined++ | `Ctrl`/`⌘` + `U` |
-| Strikethrough | `~~struck~~` | ~~struck~~ | `Ctrl`/`⌘` + `Shift` + `X` |
-| Code | `` `code` `` | `code` | `Ctrl`/`⌘` + `Shift` + `C` |
-| Link | `[a link](https://www.tisty.app)` | [a link](https://www.tisty.app) | `Ctrl`/`⌘` + `K` |
+| Strikethrough | `~~struck~~` | ~~struck~~ | the bar; in Markdown, `Ctrl`/`⌘` + `Shift` + `X` |
+| Code | `` `code` `` | `code` | the bar; in Markdown, `Ctrl`/`⌘` + `Shift` + `C` |
+| Link | `[a link](https://www.tisty.app)` | [a link](https://www.tisty.app) | the bar; in Markdown, `Ctrl`/`⌘` + `K` |
 | Highlight | `==highlighted==` | ==highlighted== | the bar |
 | An icon | `::dog orange::` | ::dog orange:: | the `/` menu |
 | A step, by its number | `[[#2]]` | [[#2]] | the `/` menu |
@@ -813,7 +813,7 @@ https://www.tisty.app
 
 ## Sheets and page breaks
 
-**Page break**, in the `/` menu, or `Ctrl`/`⌘` + `Enter`: a line with only `---`. On screen it shows as a cut, and when printed or in the PDF what follows starts on the next sheet. This sheet has one between each part, and here goes another. Turn on **Sheets**, in the panel beside the page, and see where the last line lands.
+**Page break**, in the `/` menu, or `Ctrl`/`⌘` + `Enter` in Markdown: a line with only `---`. On screen it shows as a cut, and when printed or in the PDF what follows starts on the next sheet. This sheet has one between each part, and here goes another. Turn on **Sheets**, in the panel beside the page, and see where the last line lands.
 
 ---
 
