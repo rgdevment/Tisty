@@ -389,6 +389,62 @@ describe("the sheet in the main window", () => {
     expect(settled).toEqual([[body, "# Plan\n\n- [x] uno\n"]]);
   });
 
+  describe("a task's page written on", () => {
+    const BODY_PLAN = "# Plan\n\n- [ ] uno\n";
+    const DRAWN_PLAN =
+      '<h1 data-at="0-6"><span data-src="2-6">Plan</span></h1><ul data-at="8-18"><li class="task" data-at="8-18"><span class="check" data-done="false"></span><span data-src="14-17">uno</span></li></ul>';
+    const typedOn = async (settled: [string, string][], file = "a3f1-0001") => {
+      ipc.drawn = DRAWN_PLAN;
+      const sheet = (one: string, value: string) => (
+        <Sheet
+          file={one}
+          value={value}
+          label="Plan"
+          onWrite={() => {}}
+          onSettle={(before, now) => settled.push([before, now])}
+        />
+      );
+      const view = render(sheet(file, BODY_PLAN));
+      const page = await loaded(await shown(view.container));
+      await waitFor(() =>
+        expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+      );
+      const input = (inputType: string, data: string | null = null) =>
+        page
+          .querySelector(".page")
+          ?.dispatchEvent(
+            new InputEvent("beforeinput", { inputType, data, bubbles: true, cancelable: true }),
+          );
+      page
+        .getSelection()
+        ?.collapse(page.querySelector('[data-src="14-17"]')?.firstChild as Text, 3);
+      input("insertText", "s");
+      return { view, input, sheet };
+    };
+
+    it("tells the words of a block once it is left, never at each key", async () => {
+      const settled: [string, string][] = [];
+      const { input } = await typedOn(settled);
+      expect(settled).toEqual([]);
+      input("insertParagraph");
+      expect(settled).toEqual([[BODY_PLAN, "# Plan\n\n- [ ] unos\n"]]);
+    });
+
+    it("tells what is left unsaid when the page goes away", async () => {
+      const settled: [string, string][] = [];
+      const { view } = await typedOn(settled);
+      view.unmount();
+      expect(settled).toEqual([[BODY_PLAN, "# Plan\n\n- [ ] unos\n"]]);
+    });
+
+    it("tells nothing of one task as another one's when the page turns to it", async () => {
+      const settled: [string, string][] = [];
+      const { view, sheet } = await typedOn(settled);
+      view.rerender(sheet("a3f1-0002", "# Otra\n"));
+      expect(settled).toEqual([]);
+    });
+  });
+
   it("ticks a stage inside a quote as well", async () => {
     const writes: string[] = [];
     const body = "# Plan\n\n> - [ ] uno\n";

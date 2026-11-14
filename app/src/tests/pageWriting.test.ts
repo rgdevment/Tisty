@@ -1044,3 +1044,33 @@ describe("Ctrl+Z across a turn to the Markdown", () => {
     expect(said).toEqual([]);
   });
 });
+
+describe("telling what was written once a block is left", () => {
+  it("tells at Enter, a click, a line up or down, the window left and the end, never along the line", () => {
+    let told = 0;
+    writer(BODY, {
+      settle: () => {
+        told += 1;
+      },
+    });
+    const key = (name: string) =>
+      document
+        .querySelector(".page")
+        ?.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+    caretIn("dos", 1);
+    asked("insertText", "x");
+    key("ArrowLeft");
+    expect(told).toBe(0);
+    key("ArrowDown");
+    expect(told).toBe(1);
+    document.querySelector(".page")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(told).toBe(2);
+    asked("insertParagraph");
+    expect(told).toBe(3);
+    window.dispatchEvent(new Event("blur"));
+    expect(told).toBe(4);
+    writing?.stop();
+    writing = null;
+    expect(told).toBe(5);
+  });
+});

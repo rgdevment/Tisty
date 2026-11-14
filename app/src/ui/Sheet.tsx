@@ -246,12 +246,13 @@ export default function Sheet(props: Readonly<Props>) {
     said.current.onWrite(text);
   }, []);
 
-  const settled = useCallback(
-    (before: string, now: string, renamed?: readonly [string, string][]) => {
-      if (before !== now) said.current.onSettle?.(before, now, renamed);
-    },
-    [],
-  );
+  // Every change told is weighed against the last one told, so words written between them are never skipped.
+  const settledOn = useRef(value);
+  const settled = useCallback((now: string, renamed?: readonly [string, string][]) => {
+    const before = settledOn.current;
+    settledOn.current = now;
+    if (before !== now) said.current.onSettle?.(before, now, renamed);
+  }, []);
 
   // The first block in sight, found again in the new words, so a page drawn anew keeps it where it was.
   const inSight = useCallback((before: string, next: string, moving?: number): Landing | null => {
@@ -283,7 +284,7 @@ export default function Sheet(props: Readonly<Props>) {
         (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
       written(next);
       setDrawn(next);
-      settled(before, next);
+      settled(next);
     },
     [written, settled, inSight],
   );
@@ -326,6 +327,7 @@ export default function Sheet(props: Readonly<Props>) {
     pageWriter.current = null;
     left();
     latest.current = value;
+    settledOn.current = value;
     echoes.current = [];
     wanted.current = said.current.seek;
     marked.current = said.current.anchor;
@@ -350,6 +352,7 @@ export default function Sheet(props: Readonly<Props>) {
     // Words from outside end the block being written only when they reach it: it spoke of the old ones.
     const was = latest.current;
     latest.current = value;
+    settledOn.current = value;
     if (!open.current) setDrawn(value);
     else if (!follows.current?.(was, value)) left();
   }, [value, left]);
@@ -361,7 +364,6 @@ export default function Sheet(props: Readonly<Props>) {
     const tail = /(\r?\n)+$/.exec(latest.current)?.[0] ?? "";
     const home = onFile.current;
     let end = latest.current.length;
-    let before = latest.current;
     let mine = latest.current;
     const spliced = (text: string) => {
       const next = `${text}${tail}${latest.current.slice(end)}`;
@@ -381,7 +383,7 @@ export default function Sheet(props: Readonly<Props>) {
         // Only words left by the person are told: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
         setDrawn(latest.current);
-        if (ours) settled(before, latest.current, renamed);
+        if (ours) settled(latest.current, renamed);
       },
       () => {
         const asking = said.current.asking;
@@ -410,7 +412,6 @@ export default function Sheet(props: Readonly<Props>) {
         insert: span.insert,
       };
       end = now.length;
-      before = now;
       mine = now;
       // Not the person's to undo: Ctrl+Z takes back their words, never the agent's.
       if (changes.from !== changes.to || changes.insert) {
@@ -723,9 +724,8 @@ export default function Sheet(props: Readonly<Props>) {
   const rewritten = (next: string) => {
     const writer = pageWriter.current?.hands;
     if (!onPage || !writer) return whole(next);
-    const before = latest.current;
     writer.rewrite(next);
-    settled(before, next);
+    settled(next);
   };
 
   // A block the translator would say otherwise is mended only on the page it was found on.
@@ -879,7 +879,15 @@ export default function Sheet(props: Readonly<Props>) {
     // Each document walks back only through its own changes.
     if (turnsOn.current.file !== file) turnsOn.current = { file, turns: turnsAnew() };
     const turns = turnsOn.current.turns;
-    pageWriter.current ??= { page, file, hands: writtenOn(page, { ...pageHands, turns }) };
+    // A writer stopped as another document comes in tells nothing: what it holds is not the new one's.
+    const settle = () => {
+      if (onFile.current === file) settled(latest.current);
+    };
+    pageWriter.current ??= {
+      page,
+      file,
+      hands: writtenOn(page, { ...pageHands, turns, settle }),
+    };
     pageWriter.current.hands.drawn();
     // A page with nothing written yet waits at its title, so the first keys after making it are not lost.
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
@@ -1064,6 +1072,7 @@ export default function Sheet(props: Readonly<Props>) {
   }, [turned, drawn]);
 
   useEffect(() => () => holdingNow.current(), []);
+  useEffect(() => () => pageWriter.current?.hands.stop(), []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {

@@ -39,6 +39,8 @@ export const turnsAnew = (): Turns => ({ undone: [], redone: [] });
 
 export type Hands = {
   readonly turns?: Turns;
+  /** A block, the window or the page was left: what was written there is told once, never each key. */
+  readonly settle?: () => void;
   readonly text: () => string;
   readonly write: (next: string) => void;
   readonly shown: (now: string) => void;
@@ -570,6 +572,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
     event.preventDefault();
     const kind = event.inputType;
+    if (kind === "insertParagraph") hands.settle?.();
     typing = kind === "insertText" || kind.startsWith("delete");
     if (kind !== "insertText" && !kind.startsWith("format")) pending = null;
     if (kind === "historyUndo") return turned(undone, redone);
@@ -1183,6 +1186,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const broke = (event: KeyboardEvent) => {
     event.preventDefault();
+    hands.settle?.();
     const range = chosen();
     const rule = SLASHED.find((one) => one.key === "rule");
     if (!range || !rule || inCode(range.startContainer)) return;
@@ -1347,6 +1351,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const key = "key" in event ? String(event.key) : null;
     if (key !== null && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key)) return;
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;
+    const held = event as KeyboardEvent;
+    const across = key !== null && Boolean(held.ctrlKey || held.metaKey);
+    if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across) hands.settle?.();
     kept = null;
     pending = null;
     carried = null;
@@ -1364,6 +1371,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("selectionchange", noted);
   page.addEventListener("keydown", keyed);
   page.addEventListener("paste", pastedFiles);
+  const away = () => hands.settle?.();
+  page.defaultView?.addEventListener("blur", away);
   opened();
   return {
     drawn,
@@ -1399,6 +1408,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     stop: () => {
       turns.left = hands.text();
       told();
+      hands.settle?.();
+      page.defaultView?.removeEventListener("blur", away);
       watching?.disconnect();
       page.removeEventListener("selectionchange", noted);
       page.removeEventListener("keydown", keyed);
