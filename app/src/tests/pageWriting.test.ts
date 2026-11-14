@@ -488,3 +488,17 @@ describe("a page break on the page written in place", () => {
     expect(said).toEqual(["Uno\n\n## Dos\n"]);
   });
 });
+
+describe("the speller on the page written in place", () => {
+  it("leaves code, its name and the keys alone, and words to it", () => {
+    writer('```rs title="a.rs"\nfn a() {}\n```\n\nUna `b` frase\n');
+    pageOf(
+      '<figure class="code" data-at="0-30"><figcaption>a.rs</figcaption><pre><code data-src="20-30">fn a() {}</code></pre></figure>' +
+        '<p data-at="32-46"><span data-src="32-36">Una </span><code data-src="36-39" contenteditable="false">b</code><span data-src="39-45"> frase</span></p>',
+    );
+    writing?.drawn();
+    for (const one of document.querySelectorAll("pre, code, figcaption"))
+      expect(one.getAttribute("spellcheck")).toBe("false");
+    expect(document.querySelector("p")?.hasAttribute("spellcheck")).toBe(false);
+  });
+});

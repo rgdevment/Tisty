@@ -65,6 +65,8 @@ export type PageWriting = {
 
 const FIELDS = "input, textarea, select";
 
+const LITERAL = "pre, code, kbd, figure.code > figcaption";
+
 const WRITABLE =
   ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote)";
 const PAIRS: Record<string, string> = {
@@ -407,6 +409,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     }
     for (const one of sheet.querySelectorAll(".drop-section, .doc-card"))
       one.setAttribute("contenteditable", "false");
+    // Code is spelled as the language wants it, so the system's speller has nothing to say there.
+    for (const one of sheet.querySelectorAll(LITERAL)) one.setAttribute("spellcheck", "false");
   };
 
   const caretLaid = () => {
