@@ -17,6 +17,13 @@ describe("list items moved in and out by their indent", () => {
     expect(applied(text, nested(text, at, out))).toBe(expected);
   });
 
+  it("reads a line of many quote marks and no item at once, not in a time that doubles with each mark", () => {
+    const line = `>${" >".repeat(28)} x`;
+    const started = performance.now();
+    expect(nested(line, line.length, false)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("brings an empty nested item up a level, its caret at the line's end", () => {
     const moved = outdented("- a\n  - ", 8);
     expect(applied("- a\n  - ", moved)).toBe("- a\n- ");

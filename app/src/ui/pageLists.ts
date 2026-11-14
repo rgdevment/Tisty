@@ -1,7 +1,7 @@
 type Edit = { readonly from: number; readonly to: number; readonly insert: string };
 type Moved = { readonly edit: Edit; readonly caret: number };
 
-const ITEM = /^((?:\s*>\s?)*)(\s*)((?:[-*+]|\d+[.)])\s+)/;
+const ITEM = /^((?:\s*>)*(?:(?<=>)\s)?)(\s*)((?:[-*+]|\d+[.)])\s+)/;
 const ITEM_START = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
 const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])(?:\s+(?:\[[ xX]\]\s*)?)?$/;
 const EMPTY_QUOTE = /^\s*(?:>\s?)+$/;
