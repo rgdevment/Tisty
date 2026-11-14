@@ -1,5 +1,5 @@
 import mermaid from "mermaid";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { readClasses } from "../src/classes";
 import { readFlow } from "../src/flow";
 import { kindOf } from "../src/framing";
@@ -117,6 +117,13 @@ describe("telling diagrams apart in a list", () => {
       const [source, said = ""] = case_.split(" →");
       expect(titleOf(unfolded(source)), case_).toBe(said.trim());
     }
+  });
+
+  it("finds no title at once in a source padded with blank lines", () => {
+    const began = vi.getRealSystemTime();
+    expect(titleOf(`---${"\n ".repeat(2_500)}`)).toBe("");
+    expect(titleOf(`${"\n".repeat(100_000)}x`)).toBe("");
+    expect(vi.getRealSystemTime() - began).toBeLessThan(250);
   });
 
   it("takes the first line after the header, past front matter and comments", () => {
