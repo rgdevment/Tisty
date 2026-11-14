@@ -113,6 +113,8 @@ pub struct Settings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     on_close: Option<tisty_core::config::Closing>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    calendar: Option<tisty_core::config::Calendar>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     quick_keys: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     idea_keys: Option<String>,
@@ -134,6 +136,7 @@ fn as_settings(session: &Session) -> Settings {
         shares: session.config.shares(),
         only_shared_above: session.config.only_shared_above(),
         on_close: session.config.on_close,
+        calendar: session.config.calendar,
         quick_keys: session.config.quick_keys.clone(),
         idea_keys: session.config.idea_keys.clone(),
     }
@@ -363,6 +366,26 @@ pub fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> A
     };
     held(&session).keep(|config| config.on_close = how)?;
     Ok(())
+}
+
+// Calendar, the app an Apple calendar file opens in, is only on a Mac.
+#[tauri::command]
+pub fn keep_calendar(
+    session: tauri::State<'_, Mutex<Session>>,
+    calendar: Option<String>,
+) -> Answer<Option<tisty_core::config::Calendar>> {
+    let wanted = match calendar.as_deref() {
+        None | Some("") => None,
+        Some(said) => Some(
+            said.parse::<tisty_core::config::Calendar>()
+                .map_err(|_| Refusal::of("notACalendar"))?,
+        ),
+    };
+    if wanted == Some(tisty_core::config::Calendar::Apple) && !cfg!(target_os = "macos") {
+        return Err(Refusal::of("notACalendar"));
+    }
+    held(&session).keep(|config| config.calendar = wanted)?;
+    Ok(wanted)
 }
 
 #[tauri::command]

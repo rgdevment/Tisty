@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { begun } from "tisty-editor/read";
 import { useAttended } from "../attended";
+import { keepCalendar, offered, saveToCalendar } from "../calendaring";
 import type { Change, List, Task } from "../core";
 import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
 import { placed, QUADRANTS, said } from "../quadrants";
 import { useEdge } from "./edge";
 import Recall from "./Recall";
+import { ON_MAC } from "./Rows";
 import When from "./When";
 
 interface Props {
@@ -14,11 +16,12 @@ interface Props {
   lists: List[];
   known: string[];
   onPatch: (change: Change) => void;
+  onError?: (problem: unknown) => void;
 }
 
 type Slot = "date" | "deadline" | "priority" | "list" | "tags" | "recall" | "repeat";
 
-export default function Fields({ task, lists, known, onPatch }: Props) {
+export default function Fields({ task, lists, known, onPatch, onError }: Props) {
   const [open, setOpen] = useState<Slot | null>(null);
   const cycle = task.repeat;
   const [until, setUntil] = useState(false);
@@ -203,7 +206,53 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
           />
         </Sheet>
       </Held>
+
+      {(task.date ?? task.deadline) && <Saving task={task.id} onError={onError} />}
     </div>
+  );
+}
+
+function Saving({ task, onError }: { task: string; onError?: (problem: unknown) => void }) {
+  const [asking, setAsking] = useState(false);
+  const fail = (problem: unknown) => onError?.(problem);
+  const save = () =>
+    saveToCalendar(task)
+      .then((saved) => setAsking(!saved))
+      .catch(fail);
+
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        title={t("calendarSaveWhy")}
+        onClick={() => {
+          void save();
+        }}
+        className="inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+      >
+        <span aria-hidden="true">📅</span>
+        {t("calendarSave")}
+      </button>
+      {asking && (
+        <Sheet onClose={() => setAsking(false)}>
+          <p className="px-2.5 pt-1.5 pb-1 text-[11.5px] text-faint">{t("calendarWhich")}</p>
+          {offered(ON_MAC)
+            .filter((one) => !one.away)
+            .map((one) => (
+              <Row
+                key={one.choice}
+                onPick={() => {
+                  setAsking(false);
+                  keepCalendar(one.choice).then(save).catch(fail);
+                }}
+              >
+                {t(one.label)}
+              </Row>
+            ))}
+          <p className="px-2.5 pt-1 pb-1.5 text-[11.5px] text-faint">{t("calendarWhichLater")}</p>
+        </Sheet>
+      )}
+    </span>
   );
 }
 

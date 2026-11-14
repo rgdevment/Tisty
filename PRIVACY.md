@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 12, 2026
+**Last updated:** November 14, 2026
 
 ## The short version
 
@@ -71,6 +71,7 @@ What you can choose, and what each implies:
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier. Once you have your identity it is signed with this computer's key, so it carries your root's public key, which reads as your fingerprint, this computer's own public key with the certificate that ties it to your root, and the name you sign with, and no longer your store's name. That computer key is the same in every parcel it signs, so whoever holds two of them can tell they came from the same computer. For each document you shared through Folio it also carries the Folio document's identifier and who edited it there: their names, keys and fingerprints, as Folio handed them to you |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive. Inside it carries the same as an open one, and it is signed on the same terms: only once you have your identity |
 | **A document you share by link through Folio** | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
+| **A task you save to your calendar** | Google, Microsoft or Apple, under their terms and their jurisdiction, depending on the calendar you chose. Only the task you pressed the button on, and only what [Saving a task to your calendar](#saving-a-task-to-your-calendar) lists |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -423,6 +424,30 @@ copy that owns the folder it lives in gets a button.
 That button is the only thing that fetches an installer, and what it does is
 described above. If you never press it, nothing is downloaded and the line just
 sits there.
+
+## Saving a task to your calendar
+
+**Save to my calendar**, on a task with a date, hands that one task to the
+calendar you chose under *Settings › General › Your calendar*. Tisty keeps the
+choice in its local settings and nothing else: no account, no key, no
+connection to your calendar.
+
+With Google Calendar or Outlook, Tisty opens your browser on that provider's
+page for a new event, with the task's title, its day and hour, and its link in
+Tisty (`tisty://task?id=…`) written into the address. That identifier names the
+task, and since it is a ULID, it also tells when the task was made. Tisty
+makes no request of its own: your browser loads the page, so the provider
+receives that address, as any page you open does, and your browser keeps it in
+its history. The event is stored only if you press
+**Save** on that page. The task's description, steps and notes never go.
+
+With Apple Calendar, on a Mac, Tisty writes the same event as a `.ics` file in
+its cache and hands it to the Calendar app. Nothing leaves through Tisty; what
+Calendar does with the event, such as syncing it through iCloud, is up to
+Calendar. The file stays until the next task you save replaces it.
+
+The event does not change when the task does: moving the date in Tisty later
+moves nothing in your calendar.
 
 ## Syncing with your own Google Drive
 

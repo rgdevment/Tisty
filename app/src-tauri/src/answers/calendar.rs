@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use tisty_core::config::Calendar;
 use tisty_core::ics::{self, Kind, Odd, Taken, Unread};
 use tisty_core::model::Repeat;
 use tisty_core::{DateSpec, Op};
@@ -187,4 +188,54 @@ pub fn ics_take(
         made,
         missed: wanted - made,
     })
+}
+
+/// False when no calendar is chosen yet: the window asks which one, and nothing opens.
+#[tauri::command(async)]
+pub fn save_to_calendar(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let Some(chosen) = session.config.calendar else {
+        return Ok(false);
+    };
+    let task = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    let now = jiff::Zoned::now();
+    let link = crate::viewing::task_link(&id.to_string());
+    let entry = tisty_core::calendar::entry(task, &link, &now)
+        .ok_or_else(|| Refusal::of("calendarUndated"))?;
+    let kept_in = session.paths.cache().join("calendar");
+    drop(session);
+    match chosen {
+        Calendar::Google => opened(&tisty_core::calendar::google(&entry)),
+        Calendar::Outlook => opened(&tisty_core::calendar::outlook(&entry)),
+        Calendar::OutlookWork => opened(&tisty_core::calendar::outlook_work(&entry)),
+        Calendar::Apple => handed(&kept_in, &entry, now.timestamp()),
+    }?;
+    Ok(true)
+}
+
+fn opened(page: &str) -> Answer<()> {
+    tauri_plugin_opener::open_url(page, None::<&str>)
+        .map_err(|_| Refusal::about("cannotOpen", page.to_string()))
+}
+
+// One file at a time: the folder never piles up the titles of every task saved before.
+fn handed(
+    kept_in: &std::path::Path,
+    entry: &tisty_core::calendar::Entry,
+    stamp: jiff::Timestamp,
+) -> Answer<()> {
+    let at = kept_in.join(format!("{}.ics", entry.id));
+    let _ = std::fs::remove_dir_all(kept_in);
+    std::fs::create_dir_all(kept_in)
+        .and_then(|()| std::fs::write(&at, ics::written(entry, stamp)))
+        .map_err(|_| Refusal::of("cannotWrite"))?;
+    let with = cfg!(target_os = "macos").then_some("Calendar");
+    tauri_plugin_opener::open_path(&at, with)
+        .map_err(|_| Refusal::about("cannotOpen", at.display().to_string()))
 }

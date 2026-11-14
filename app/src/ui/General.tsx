@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { type CalendarChoice, keepCalendar, offered } from "../calendaring";
 import {
   guide,
   keepClosing,
@@ -270,6 +271,35 @@ export default function General({
           ))}
         {kept && (
           <UrgentLine kept={kept} held={held} said={said} trouble={trouble} remember={remember} />
+        )}
+        {kept && (
+          <Line
+            title={t("calendarSetting")}
+            why={t("calendarSettingWhy")}
+            which="calendar"
+            said={said}
+            trouble={trouble}
+          >
+            <select
+              aria-label={t("calendarSetting")}
+              value={kept.calendar ?? ""}
+              disabled={held}
+              onChange={(e) => {
+                const wanted = (e.target.value || undefined) as CalendarChoice | undefined;
+                run("calendar", keepCalendar(wanted), (now) =>
+                  setKept({ ...kept, calendar: now ?? undefined }),
+                );
+              }}
+              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+            >
+              <option value="">{t("calendarAsk")}</option>
+              {offered(ON_MAC).map((one) => (
+                <option key={one.choice} value={one.choice} disabled={one.away}>
+                  {t(one.label)}
+                </option>
+              ))}
+            </select>
+          </Line>
         )}
       </div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>

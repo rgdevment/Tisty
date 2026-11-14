@@ -26,7 +26,7 @@ Cómo escribir una repetición (`cada martes`, `cada 3 días`, `hasta el 30 de s
 
 ## Recordatorios
 
-Un recordatorio es una hora que eliges, y suena **en este equipo y en ningún otro**, aunque Tisty esté cerrado: una notificación del sistema y un sonido corto que puedes apagar en **Configuración › General › Avisos**.
+Un recordatorio es una hora que eliges, y suena **en este equipo y en ningún otro**, aunque Tisty esté cerrado: una notificación del sistema y un sonido corto que puedes apagar en **Configuración › General › Avisos**. Para que te avise también en el teléfono, [guarda la tarea en tu calendario](#en-tu-calendario).
 
 - **Con Tisty cerrado**, el aviso lo da el sistema. Cada vez que abres Tisty, y con cada recordatorio que pones, cambias o quitas, Tisty deja agendados en Windows o macOS los avisos de hasta un mes, primero los más cercanos, y el sistema los muestra a su hora. Sin internet y sin servidor.
 - **El equipo tiene que estar encendido.** Con el equipo apagado no suena nada, y Windows descarta el aviso si el equipo sigue apagado cinco minutos después de su hora.
@@ -38,3 +38,16 @@ Un recordatorio es una hora que eliges, y suena **en este equipo y en ningún ot
   - **Windows 11** (build 22546 o más nuevo): en Configuración › Sistema › Notificaciones › Tisty, permite las notificaciones importantes. Windows también puede preguntártelo en un aviso la primera vez; permítelo ahí también.
   - **macOS**: en Ajustes del Sistema › Notificaciones › Tisty, deja encendidas las notificaciones urgentes, y en Concentración permite las urgentes en cada modo que uses.
   - Si la opción sale como no disponible, este equipo o esta copia de Tisty no lo permite. Tisty no usa **alertas críticas**, las que suenan incluso en silencio: Apple las reserva a apps de salud, seguridad y emergencias.
+
+## En tu calendario
+
+Una tarea con fecha se guarda en tu calendario con un botón, y desde ahí te avisa tu calendario, también en el teléfono.
+
+- **Elige tu calendario una vez**, en **Configuración › General › Tu calendario**: Google Calendar, Outlook.com o Hotmail, Outlook del trabajo o la escuela, o el Calendario de Apple. Si no eliges ninguno, Tisty te lo pregunta la primera vez.
+- **En la tarea, pulsa Guardar en mi calendario.** Con Google y Outlook, tu navegador abre el evento ya lleno: el título, el día y la hora, y el enlace de la tarea en Tisty. Tú pulsas **Guardar** ahí. El aviso es el que tu calendario pone a cada evento.
+- **El Calendario de Apple**, solo en un Mac, abre el evento en la app Calendario con los recordatorios de la tarea. Si la tarea no tiene, avisa media hora antes, o la tarde anterior si es de día completo.
+- **Qué fecha usa:** el día de la tarea, o su vencimiento si no tiene día. Con hora, queda como un evento de media hora; sin hora, como uno de día completo. Una tarea que se repite guarda solo su próxima vez.
+- **Sin cuentas ni claves:** Tisty no se conecta a tu calendario y solo recuerda cuál elegiste.
+
+> [!NOTE]
+> **El evento no sigue a la tarea.** Si después cambias la fecha en Tisty, el evento se queda donde estaba: muévelo tú en tu calendario.

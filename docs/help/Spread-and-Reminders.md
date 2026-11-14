@@ -26,7 +26,7 @@ How to write a repeat — `every tuesday`, `every 3 days`, `until september 30` 
 
 ## Reminders
 
-A reminder is an hour you choose, and it rings **on this machine and nowhere else**, even with Tisty closed: a system notification and a short sound you can turn off under **Settings › General › Notices**.
+A reminder is an hour you choose, and it rings **on this machine and nowhere else**, even with Tisty closed: a system notification and a short sound you can turn off under **Settings › General › Notices**. To be reminded on your phone too, [save the task to your calendar](#in-your-calendar).
 
 - **With Tisty closed**, the system gives the notice. Each time you open Tisty, and with every reminder you set, change or remove, Tisty books up to a month of notices with Windows or macOS, the nearest first, and the system shows each at its hour. No internet and no server.
 - **The computer has to be on.** With it off nothing rings, and Windows drops the notice if the computer is still off five minutes after its hour.
@@ -38,3 +38,16 @@ A reminder is an hour you choose, and it rings **on this machine and nowhere els
   - **Windows 11** (build 22546 or newer): under Settings › System › Notifications › Tisty, allow important notifications. Windows may also ask you in a notice the first time; allow it there too.
   - **macOS**: under System Settings › Notifications › Tisty, keep time-sensitive notifications on, and in Focus allow time-sensitive notifications in each focus you use.
   - If the option shows as unavailable, this computer or this copy of Tisty cannot do it. Tisty does not use **critical alerts**, the ones that ring even on silent: Apple keeps them for health, safety and emergency apps.
+
+## In your calendar
+
+A task with a date goes to your calendar with one button, and from there your calendar reminds you, on your phone too.
+
+- **Choose your calendar once**, under **Settings › General › Your calendar**: Google Calendar, Outlook.com or Hotmail, Outlook for work or school, or Apple Calendar. If you choose none, Tisty asks you the first time.
+- **On the task, press Save to my calendar.** With Google and Outlook, your browser opens the event already filled in: the title, the day and the hour, and the task's link in Tisty. You press **Save** there. The notice is the one your calendar gives every event.
+- **Apple Calendar**, on a Mac only, opens the event in the Calendar app with the task's reminders. If the task has none, it reminds you half an hour before, or the evening before for a whole day.
+- **Which date it takes:** the task's day, or its deadline when it has no day. With an hour, it becomes a half-hour event; without one, a whole-day event. A repeating task saves only its next time.
+- **No accounts, no keys:** Tisty does not connect to your calendar and only remembers which one you chose.
+
+> [!NOTE]
+> **The event does not follow the task.** If you change the date in Tisty later, the event stays where it was: move it yourself in your calendar.

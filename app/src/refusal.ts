@@ -29,6 +29,8 @@ const KNOWN = [
   "listStillOpen",
   "notAClosing",
   "notATheme",
+  "notACalendar",
+  "calendarUndated",
   "storyStays",
   "routineStays",
   "partsStay",
