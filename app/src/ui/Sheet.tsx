@@ -355,6 +355,7 @@ export default function Sheet(props: Readonly<Props>) {
     settled(was);
     latest.current = value;
     settledOn.current = value;
+    // Words from another hand are not the person's to take back, so what Ctrl+Z held before them is let go.
     if (turnsOn.current.file === file) {
       const { turns } = turnsOn.current;
       turns.undone.length = 0;

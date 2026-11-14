@@ -13,6 +13,27 @@ describe("list items moved in and out by their indent", () => {
     ["an item back out inside a quote", "> - a\n>   - b\n", 12, true, "> - a\n> - b\n"],
     ["a first item, which has nothing above", "- a\n", 2, false, "- a\n"],
     ["a line that is no item", "uno\n", 2, false, "uno\n"],
+    [
+      "an item one level down, past the deeper items above it",
+      "- a\n  - b\n- c\n",
+      12,
+      false,
+      "- a\n  - b\n  - c\n",
+    ],
+    [
+      "an item under one in a quote written without its space",
+      "> - a\n>- b\n",
+      9,
+      false,
+      "> - a\n>  - b\n",
+    ],
+    [
+      "an item back out under a quote written without its space",
+      "> - a\n>  - b\n",
+      11,
+      true,
+      "> - a\n> - b\n",
+    ],
   ])("moves %s", (_, text, at, out, expected) => {
     expect(applied(text, nested(text, at, out))).toBe(expected);
   });

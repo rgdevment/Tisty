@@ -1,6 +1,5 @@
 import { ideaOpened, type Slashed } from "tisty-editor/edit";
-
-type Edit = { readonly from: number; readonly to: number; readonly insert: string };
+import type { Edit } from "./pageEdits";
 
 export type Placing =
   | { readonly edit: Edit; readonly caret: number }

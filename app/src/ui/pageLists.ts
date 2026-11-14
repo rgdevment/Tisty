@@ -1,10 +1,13 @@
-type Edit = { readonly from: number; readonly to: number; readonly insert: string };
+import type { Edit } from "./pageEdits";
+
 type Moved = { readonly edit: Edit; readonly caret: number };
 
 const ITEM = /^((?:\s*>)*(?:(?<=>)\s)?)(\s*)((?:[-*+]|\d+[.)])\s+)/;
 const ITEM_START = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
 const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])(?:\s+(?:\[[ xX]\]\s*)?)?$/;
 const EMPTY_QUOTE = /^\s*(?:>\s?)+$/;
+const QUOTED = /^(\s*(?:>\s?)*)/;
+const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
 
 export const isItem = (line: string) => ITEM_START.test(line);
 
@@ -14,26 +17,41 @@ const lineAt = (text: string, at: number) => {
   return { start, line: text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "") };
 };
 
+function* linesAbove(text: string, start: number) {
+  for (let end = start - 1; end >= 0; ) {
+    const from = end > 0 ? text.lastIndexOf("\n", end - 1) + 1 : 0;
+    yield text.slice(from, end).replace(/\r$/, "");
+    end = from - 1;
+  }
+}
+
 const indentOf = (line: string) => {
   const found = ITEM.exec(line);
-  return found ? { quote: found[1], lead: found[2].length, mark: found[3].length } : null;
+  if (!found) return null;
+  const quote = found[1];
+  const quotes = quote.split(">").length - 1;
+  return { quote, quotes, lead: found[2].length, mark: found[3].length };
 };
 
-const parentIndent = (text: string, start: number, quote: string, lead: number) => {
-  for (const one of text.slice(0, start).split("\n").reverse()) {
-    const it = indentOf(one.replace(/\r$/, ""));
-    if (it && it.quote === quote && it.lead < lead) return it.lead;
+type Indent = NonNullable<ReturnType<typeof indentOf>>;
+
+const parentIndent = (text: string, start: number, it: Indent) => {
+  for (const one of linesAbove(text, start)) {
+    const above = indentOf(one);
+    if (above && above.quotes === it.quotes && above.lead < it.lead) return above.lead;
   }
   return 0;
 };
 
-const lineBefore = (text: string, start: number) =>
-  (
-    text
-      .slice(0, Math.max(0, start - 1))
-      .split("\n")
-      .pop() ?? ""
-  ).replace(/\r$/, "");
+// The items nested deeper in the one above are passed over, so Tab goes down a single level.
+const sameLevelAbove = (text: string, start: number, it: Indent) => {
+  for (const one of linesAbove(text, start)) {
+    const above = indentOf(one);
+    if (!above || above.quotes !== it.quotes) return null;
+    if (above.lead <= it.lead) return above;
+  }
+  return null;
+};
 
 const newlines = (run: string | undefined) => (run?.match(/\n/g) ?? []).length;
 
@@ -66,7 +84,7 @@ export const outdented = (text: string, at: number): Moved | null => {
   const it = indentOf(line);
   if (!it?.lead || at < start + line.length || !EMPTY_ITEM.test(line)) return null;
   const from = start + it.quote.length;
-  const to = parentIndent(text, start, it.quote, it.lead);
+  const to = parentIndent(text, start, it);
   return {
     edit: { from, to: from + it.lead, insert: " ".repeat(to) },
     caret: start + line.length - it.lead + to,
@@ -78,14 +96,28 @@ export const nested = (text: string, at: number, out: boolean): Moved | null => 
   const it = indentOf(line);
   if (!it) return null;
   const from = start + it.quote.length;
-  const above = indentOf(lineBefore(text, start));
-  const under = above && above.quote === it.quote ? above.lead + above.mark : it.lead;
-  const to = out ? parentIndent(text, start, it.quote, it.lead) : under;
+  const above = sameLevelAbove(text, start, it);
+  const under = above ? above.lead + above.mark : it.lead;
+  const to = out ? parentIndent(text, start, it) : under;
   if (out ? to === it.lead : to <= it.lead) return null;
   return {
     edit: { from, to: from + it.lead, insert: " ".repeat(to) },
     caret: Math.max(from, at + to - it.lead),
   };
+};
+
+// A new paragraph keeps what the line it leaves stands in: the quote, the list and its kind of item.
+export const parted = (text: string, at: number, inCode: boolean): string => {
+  if (inCode) return "\n";
+  const { line } = lineAt(text, at);
+  const item = LISTED.exec(line);
+  if (item) {
+    const [, quote, , number, close, gap, box] = item;
+    const mark = number ? `${Number(number) + 1}${close}` : item[2];
+    return `\n${quote}${mark}${gap}${box ? "[ ] " : ""}`;
+  }
+  const quote = QUOTED.exec(line)?.[1] ?? "";
+  return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
 };
 
 export const leftBehind = (text: string, at: number): { from: number; to: number } | null => {

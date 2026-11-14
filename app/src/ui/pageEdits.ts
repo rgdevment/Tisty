@@ -1,29 +1,6 @@
 export type Span = { from: number; to: number };
 export type Edit = { readonly from: number; readonly to: number; readonly insert: string };
 
-const QUOTED = /^(\s*(?:>\s?)*)/;
-const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
-
-const lineOf = (text: string, at: number) => {
-  const start = text.lastIndexOf("\n", at - 1) + 1;
-  const end = text.indexOf("\n", at);
-  return text.slice(start, end < 0 ? text.length : end);
-};
-
-// A new paragraph keeps what the line it leaves stands in: the quote, the list and its kind of item.
-export const parted = (text: string, at: number, inCode: boolean): string => {
-  if (inCode) return "\n";
-  const line = lineOf(text, at);
-  const item = LISTED.exec(line);
-  if (item) {
-    const [, quote, , number, close, gap, box] = item;
-    const mark = number ? `${Number(number) + 1}${close}` : item[2];
-    return `\n${quote}${mark}${gap}${box ? "[ ] " : ""}`;
-  }
-  const quote = QUOTED.exec(line)?.[1] ?? "";
-  return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
-};
-
 // A change made whole, as a block moved, is laid as the one stretch of words it altered.
 export const changeOf = (was: string, now: string): Edit => {
   const most = Math.min(was.length, now.length);

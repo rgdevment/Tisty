@@ -51,12 +51,9 @@ export const historyOn = (writer: Writer, caret: Caret, laying: Laying) => {
     laying.laidOut(text, next, one);
   };
 
-  // Words from another hand are not the person's to take back, so what Ctrl+Z held before them is let go.
   const outside = (was: string, next: string) => {
     if (next === was) return;
     const one = changeOf(was, next);
-    undone.length = 0;
-    redone.length = 0;
     keptAcross(one);
     laying.laidOut(was, next, one);
   };
