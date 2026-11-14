@@ -8,6 +8,7 @@ interface Props {
   told?: string[];
   here: string;
   onOpen: (doc: Filed) => void;
+  view?: ReactNode;
   children?: ReactNode;
 }
 
@@ -16,7 +17,7 @@ const named = (one: Filed) =>
     ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
     : one.title || t("untitledDoc");
 
-export default function Ribbon({ of, sisters, told, here, onOpen, children }: Props) {
+export default function Ribbon({ of, sisters, told, here, onOpen, view, children }: Props) {
   const read = told
     ? told
         .map((file) => sisters.find((one) => one.file === file))
@@ -37,6 +38,7 @@ export default function Ribbon({ of, sisters, told, here, onOpen, children }: Pr
           {at >= 0 ? fill("leafOfMany", String(at + 1), String(read.length)) : t("looseLeafIs")}
         </span>
       )}
+      {view}
       <span className="ribbon-arrows">
         <button
           type="button"

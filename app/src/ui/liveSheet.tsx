@@ -65,26 +65,23 @@ export function LivelyBelow({ children, folds, width }: Below) {
 export type Viewing = {
   readonly markdown: boolean;
   readonly onTurn: (markdown: boolean) => void;
-  // Turned from beside the page, so the page wears no switch of its own.
-  readonly beside?: boolean;
 };
 
-export function ViewSwitch({ markdown, onTurn }: Viewing) {
+// Above the sheet, beside where it says where it sits: the page as drawn or as written.
+export function ViewTabs({ markdown, onTurn }: Viewing) {
   const tab = (plainly: boolean, word: "viewPreview" | "viewMarkdown") => (
     <button
       type="button"
       aria-pressed={markdown === plainly}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => onTurn(plainly)}
-      className={`rounded-full px-3 py-1 font-medium text-[12.5px] transition-colors ${
-        markdown === plainly ? "bg-sheet text-ink shadow-sm" : "text-faint hover:text-ink"
-      }`}
+      className="view-tab"
     >
       {t(word)}
     </button>
   );
   return (
-    <div className="absolute top-3 right-4 z-10 flex gap-0.5 rounded-full border border-hair bg-hover p-0.5">
+    <div role="group" aria-label={t("viewOf")} className="view-tabs">
       {tab(false, "viewPreview")}
       {tab(true, "viewMarkdown")}
     </div>

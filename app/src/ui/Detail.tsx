@@ -133,7 +133,6 @@ export default function Detail({
   const view: Viewing = {
     markdown: turnable && markdownOf === task.id,
     onTurn: (markdown) => setMarkdownOf(markdown ? task.id : null),
-    beside: true,
   };
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });

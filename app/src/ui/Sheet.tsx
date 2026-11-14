@@ -41,7 +41,7 @@ import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
 import { ALT, livelyChoices } from "./livelyMenu";
-import { LivelyBelow, useFrameScroll, type Viewing, ViewSwitch } from "./liveSheet";
+import { LivelyBelow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -95,7 +95,7 @@ type Props = {
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
-  // Whoever holds the page turns its view from beside it; left out, the page wears its own switch.
+  // Whoever holds the page turns its view; left out, only Ctrl+E turns it.
   readonly view?: Viewing;
   readonly sheet?: SheetSize;
   /** The page as it is drawn, for whoever prints it the way it is seen. */
@@ -143,7 +143,8 @@ export default function Sheet(props: Readonly<Props>) {
   const said = useRef(props);
   said.current = props;
   const lively = !props.inline && Boolean(props.wholeable);
-  const widthOf = lively && !props.sheet ? "w-[85%] max-w-[1100px]" : "w-full";
+  // A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge.
+  const widthOf = lively && !props.sheet ? "w-[round(down,85%,1px)] max-w-[1100px]" : "w-full";
   const diagram = (at: number, nth: number, source: string) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
@@ -1076,9 +1077,6 @@ export default function Sheet(props: Readonly<Props>) {
         className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
-        {writable && !fixed && ready && !props.view?.beside && (
-          <ViewSwitch markdown={markdown} onTurn={setMarkdown} />
-        )}
         {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
         <Page
           bar={BAR}

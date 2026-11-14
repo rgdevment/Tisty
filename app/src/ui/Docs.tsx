@@ -46,7 +46,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import type { Viewing } from "./liveSheet";
+import { type Viewing, ViewTabs } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
 import PdfTicks from "./PdfTicks";
@@ -670,8 +670,8 @@ export default function Docs({
   const viewing: Viewing = {
     markdown: Boolean(open) && markdownOf === open?.file,
     onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
-    beside,
   };
+  const viewTabs = bolted ? null : <ViewTabs {...viewing} />;
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -956,18 +956,17 @@ export default function Docs({
                         told={aboveTold}
                         here={open.file}
                         onOpen={(doc) => onDoc?.(doc.file)}
+                        view={viewTabs}
                       >
                         {!beside && spoken}
                       </Ribbon>
-                    ) : spoken && !beside ? (
-                      <nav aria-label={t("tonguesOf")} className="ribbon">
-                        {spoken}
-                      </nav>
                     ) : (
-                      own?.tongueApart && (
-                        <p role="note" className="ribbon">
-                          {t("tongueApart")}
-                        </p>
+                      ((spoken && !beside) || own?.tongueApart || viewTabs) && (
+                        <div className="ribbon">
+                          {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
+                          {!beside && spoken}
+                          {viewTabs}
+                        </div>
                       )
                     )
                   }
@@ -1265,8 +1264,6 @@ export default function Docs({
           onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
-          markdown={viewing.markdown}
-          onMarkdown={bolted ? undefined : viewing.onTurn}
           sheets={sheets}
           landscape={landscape}
           onSheets={

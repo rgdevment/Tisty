@@ -581,26 +581,3 @@ describe("the panels beside a sheet", () => {
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);
   });
 });
-
-describe("how the page is seen, from the column", () => {
-  it("offers the page as drawn and as written side by side, and turns only to the other", () => {
-    const side = document.createElement("aside");
-    const turned: boolean[] = [];
-    sided(side, say, [
-      {
-        kind: "title",
-        title: "Guía",
-        view: { on: false, onTurn: (on) => turned.push(on) },
-      },
-    ]);
-    const [drawn, written] = Array.from(
-      side.querySelectorAll<HTMLButtonElement>(".side-title-row .side-leaf"),
-    );
-    expect(drawn?.textContent).toBe("viewPreview");
-    expect(written?.textContent).toBe("viewMarkdown");
-    expect(drawn?.getAttribute("aria-pressed")).toBe("true");
-    drawn?.click();
-    written?.click();
-    expect(turned).toEqual([true]);
-  });
-});

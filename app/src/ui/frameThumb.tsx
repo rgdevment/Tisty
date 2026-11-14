@@ -58,6 +58,8 @@ export function FrameThumb({ frame, ready, turned }: Thumbing) {
       onPointerLeave={() => {
         if (!held.current) setAwake(false);
       }}
+      // The strip lies over the frame's edge, so a wheel turned on it still rolls the page.
+      onWheel={(event) => sheet()?.scrollBy({ top: event.deltaY })}
       className="absolute inset-y-0 right-0 z-10 w-3"
     >
       <div

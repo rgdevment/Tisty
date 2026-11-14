@@ -76,8 +76,6 @@ interface Props {
   doc?: string;
   onError?: (problem: unknown) => void;
   onKeep?: () => Promise<unknown> | undefined;
-  markdown?: boolean;
-  onMarkdown?: (markdown: boolean) => void;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -161,7 +159,6 @@ export default function Beside(props: Props) {
   latest.current = props;
   const canSheets = props.onSheets !== undefined;
   const canTurn = props.onLandscape !== undefined;
-  const canRaw = props.onMarkdown !== undefined;
   // Arrays a render makes anew are compared by what they say, or every key pressed would draw the column again.
   const trailSaid = trail.map((one) => `${one.id}:${one.name}`).join("|");
   const pagesSaid = pages.map((one) => `${one.id}:${one.file}:${one.title}`).join("|");
@@ -188,12 +185,6 @@ export default function Beside(props: Props) {
           away: one.away,
           onPick: () => latest.current.onTongue?.(one),
         })),
-        view: canRaw
-          ? {
-              on: props.markdown ?? false,
-              onTurn: (on) => latest.current.onMarkdown?.(on),
-            }
-          : undefined,
         onApart: () => latest.current.onApart(),
         onShut: () => latest.current.onShut(),
       },
@@ -236,8 +227,6 @@ export default function Beside(props: Props) {
       props.leaf,
       canSheets,
       canTurn,
-      canRaw,
-      props.markdown,
       sheets,
       props.landscape,
       props.making,
