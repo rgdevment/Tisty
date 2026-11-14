@@ -3,16 +3,34 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
-import { blueskyLength, check, forX, judged, linkFacets, oauthSignature, preview, readPosts, send, webpSize, xLength } from "./posts.mjs";
+import {
+  blueskyLength,
+  check,
+  forX,
+  judged,
+  linkFacets,
+  newer,
+  oauthSignature,
+  pick,
+  preview,
+  readPosts,
+  send,
+  turnOf,
+  webpSize,
+  xLength,
+} from "./posts.mjs";
 
 const picture = "assets/screens/readme/en-01-archive.webp";
-const said = (text) => ({ text, picture, shows: "The Archive" });
-const entry = (more = {}) => ({
-  version: "9.9.0",
-  es: said("¿Sabías que Tisty guarda lo que terminas? https://tisty.app"),
-  en: said("Did you know Tisty keeps what you finish? https://tisty.app"),
+const pictured = (text) => ({ text, picture, shows: "The Archive" });
+const post = (id, more = {}) => ({
+  id,
+  es: pictured(`Tisty guarda lo que terminas (${id}). https://tisty.app`),
+  en: pictured(`Tisty keeps what you finish (${id}). https://tisty.app`),
   ...more,
 });
+const file = (more = {}) => ({ since: "9.0.0", queue: [post("first"), post("second")], ...more });
+const RELEASED = ["9.0.0", "9.0.1", "9.1.0-rc.1"];
+const released = () => RELEASED;
 
 const KEYS = {
   X_API_KEY: "k",
@@ -39,20 +57,21 @@ afterEach(() => {
 
 function networksThatAnswer({ xDuplicate = false, earlier = [] } = {}) {
   const calls = [];
+  let made = 0;
   globalThis.fetch = async (url, init = {}) => {
-    calls.push({ url, init });
+    calls.push({ url, init, body: init.body && typeof init.body === "string" ? JSON.parse(init.body) : undefined });
     const json = (status, body) => new Response(JSON.stringify(body), { status });
     if (url.endsWith("/2/media/upload")) return json(200, { data: { id: "77" } });
     if (url.endsWith("/2/media/metadata")) return json(200, { data: { id: "77" } });
     if (url.endsWith("/2/tweets")) {
       return xDuplicate
         ? json(403, { detail: "You are not allowed to create a Tweet with duplicate content." })
-        : json(201, { data: { id: "1001" } });
+        : json(201, { data: { id: `10${++made}` } });
     }
     if (url.endsWith("createSession")) return json(200, { accessJwt: "jwt", did: "did:plc:tisty" });
-    if (url.includes("getAuthorFeed")) return json(200, { feed: earlier.map((post) => ({ post })) });
+    if (url.includes("getAuthorFeed")) return json(200, { feed: earlier.map((one) => ({ post: one })) });
     if (url.endsWith("uploadBlob")) return json(200, { blob: { $type: "blob", ref: "b" } });
-    if (url.endsWith("createRecord")) return json(200, { uri: "at://did:plc:tisty/app.bsky.feed.post/3abc" });
+    if (url.endsWith("createRecord")) return json(200, { uri: `at://did:plc:tisty/app.bsky.feed.post/3a${++made}`, cid: `c${made}` });
     return json(404, {});
   };
   return calls;
@@ -63,39 +82,72 @@ const listening = () => {
   return { lines, say: (line) => lines.push(line) };
 };
 
-test("every post in the file holds for its own version", () => {
-  for (const one of readPosts()) assert.deepEqual(judged(readPosts(), one.version), [], one.version);
+test("the posts in the repo hold, and the queue has a next one", () => {
+  const posts = readPosts();
+  assert.deepEqual(judged(posts), []);
+  assert.ok(posts.queue.length > 0);
 });
 
-test("a version with no post is told what to add", () => {
-  assert.match(judged([entry()], "9.9.1")[0], /nothing in docs\/posts\.json tells what to post for 9\.9\.1/);
+test("versions compare by number, not by text", () => {
+  assert.ok(newer("1.10.0", "1.9.9"));
+  assert.ok(newer("1.47.1", "1.47.0"));
+  assert.ok(!newer("1.47.0", "1.47.0"));
 });
 
-test("each language opens with its own question, and both are there", () => {
-  assert.deepEqual(judged([entry()], "9.9.0"), []);
-  assert.match(judged([entry({ en: said("Tisty keeps what you finish") })], "9.9.0").join(), /en: it opens with «Did you know»/);
-  assert.match(judged([entry({ es: undefined })], "9.9.0").join(), /9\.9\.0 es: no text/);
+test("each stable release since «since» takes the next post in the queue", () => {
+  assert.equal(turnOf("9.0.0", RELEASED, "9.0.0"), 0);
+  assert.equal(turnOf("9.0.1", RELEASED, "9.0.0"), 1);
+  assert.equal(turnOf("9.1.0", RELEASED, "9.0.0"), 2);
+  assert.equal(turnOf("9.0.1", [...RELEASED, "9.0.1"], "9.0.0"), 1);
+  const posts = file();
+  assert.equal(pick(posts, "9.0.1", RELEASED).post.id, "first");
+  assert.equal(pick(posts, "9.1.0", RELEASED).post.id, "second");
+  assert.match(pick(posts, "9.2.0", [...RELEASED, "9.1.0"]).wrong, /release 3 since 9\.0\.0 and the queue .* holds 2/);
+  assert.match(pick(posts, "9.1.0-rc.2", RELEASED).skip, /candidate/);
+  assert.match(pick(posts, "8.9.0", RELEASED).skip, /not past 9\.0\.0/);
+  assert.equal(pick(file({ pinned: post("pin") }), "pinned", RELEASED).post.id, "pin");
 });
 
-test("a picture outside the repo or of another kind is refused", () => {
-  const missing = { ...said("Did you know"), picture: "assets/nowhere.webp" };
-  assert.match(judged([entry({ en: missing })], "9.9.0").join(), /not in the repo/);
-  const gif = { ...said("Did you know"), picture: "assets/a.gif" };
-  assert.match(judged([entry({ en: gif })], "9.9.0").join(), /\.webp, \.png or \.jpg/);
+test("a post needs an id of its own, and both languages", () => {
+  assert.match(judged(file({ queue: [post("same"), post("same")] })).join(), /same is in the queue twice/);
+  assert.match(judged(file({ queue: [{ es: pictured("a"), en: pictured("b") }] })).join(), /every post has an id/);
+  assert.match(judged(file({ queue: [post("half", { es: undefined })] })).join(), /half es: no text/);
+});
+
+test("a picture is optional, but one that is named has to be there with its words", () => {
+  assert.deepEqual(judged(file({ queue: [post("plain", { es: { text: "Sin foto" }, en: { text: "No picture" } })] })), []);
+  const missing = { ...pictured("a"), picture: "assets/nowhere.webp" };
+  assert.match(judged(file({ queue: [post("p", { en: missing })] })).join(), /not in the repo/);
+  const gif = { ...pictured("a"), picture: "assets/a.gif" };
+  assert.match(judged(file({ queue: [post("p", { en: gif })] })).join(), /\.webp, \.png or \.jpg/);
+  assert.match(judged(file({ queue: [post("p", { en: { text: "a", picture } })] })).join(), /«shows» says what the picture shows/);
+});
+
+test("a post without a picture passes the check with a word that one is recommended", () => {
+  const root = home(file({ queue: [post("plain", { es: { text: "Sin foto" }, en: { text: "No picture" } })] }));
+  const { lines, say } = listening();
+  assert.equal(check("9.0.1", { root, say, released }), 0);
+  assert.ok(lines.some((one) => /plain goes without a picture: one is recommended/.test(one)));
 });
 
 test("X gets the text without the link at its end, and nothing else is taken out", () => {
-  assert.equal(forX("¿Sabías que Tisty guarda lo que terminas? https://tisty.app"), "¿Sabías que Tisty guarda lo que terminas?");
-  assert.equal(forX("Did you know Node.js and NOTES.md stay? https://tisty.app"), "Did you know Node.js and NOTES.md stay?");
-  assert.equal(xLength(forX("Did you know? https://tisty.app")), "Did you know?".length);
+  assert.equal(forX("Tisty guarda lo que terminas. https://tisty.app"), "Tisty guarda lo que terminas.");
+  assert.equal(forX("Node.js and NOTES.md stay?\n\nhttps://tisty.app"), "Node.js and NOTES.md stay?");
+  assert.equal(xLength(forX("Is it? https://tisty.app")), "Is it?".length);
 });
 
 test("a link anywhere but the end, or a domain without its scheme, is refused", () => {
-  const middle = said("Did you know https://tisty.app is free?");
-  assert.match(judged([entry({ en: middle })], "9.9.0").join(), /https:\/\/tisty\.app goes at the end/);
-  const bare = said("Did you know tisty.app is free?");
-  assert.match(judged([entry({ en: bare })], "9.9.0").join(), /tisty\.app needs its https:\/\//);
-  assert.deepEqual(judged([entry({ en: said("Did you know NOTES.md and Node.js stay? https://tisty.app") })], "9.9.0"), []);
+  const middle = post("m", { en: pictured("Try https://tisty.app today") });
+  assert.match(judged(file({ queue: [middle] })).join(), /https:\/\/tisty\.app goes at the end/);
+  const bare = post("b", { en: pictured("Try tisty.app today") });
+  assert.match(judged(file({ queue: [bare] })).join(), /tisty\.app needs its https:\/\//);
+  assert.deepEqual(judged(file({ queue: [post("ok", { en: pictured("winget install rgdevment.Tisty, NOTES.md") })] })), []);
+});
+
+test("a reply keeps its link on X, and counts it as 23", () => {
+  const reply = { es: { text: "Pruébalo:\n\nhttps://www.tisty.app" }, en: { text: "Try it:\n\nhttps://www.tisty.app" } };
+  assert.deepEqual(judged(file({ pinned: post("pin", { reply }) })), []);
+  assert.equal(xLength("Try it:\n\nhttps://www.tisty.app"), "Try it:\n\n".length + 23);
 });
 
 test("X weighs an emoji, an ellipsis and a CJK character as 2, and accents as 1", () => {
@@ -104,8 +156,8 @@ test("X weighs an emoji, an ellipsis and a CJK character as 2, and accents as 1"
   assert.equal(xLength("…"), 2);
   assert.equal(xLength("漢"), 2);
   assert.equal(xLength("—"), 1);
-  const heavy = said(`Did you know ${"…".repeat(134)}`);
-  assert.match(judged([entry({ en: heavy })], "9.9.0").join(), /on X, which takes 280/);
+  const heavy = post("heavy", { en: pictured("…".repeat(141)) });
+  assert.match(judged(file({ queue: [heavy] })).join(), /on X, which takes 280/);
 });
 
 test("Bluesky counts what a reader sees as one character", () => {
@@ -161,59 +213,79 @@ test("a picture's size is read from each kind of WebP header", () => {
   assert.equal(webpSize(Buffer.from("not a picture at all")), undefined);
 });
 
-test("a broken file is told in one line, not a stack", () => {
+test("a broken or old-shaped file is told in one line, not a stack", () => {
   const { lines, say } = listening();
-  assert.equal(check("9.9.0", { root: home("[{,]"), say, inActions: false }), 1);
+  assert.equal(check("9.0.1", { root: home("[{,]"), say, released }), 1);
   assert.match(lines[0], /^x {2}docs\/posts\.json could not be read/);
+  assert.equal(check("9.0.1", { root: home([{ version: "9.0.1" }]), say, released }), 1);
+  assert.match(lines[1], /holds «since»/);
 });
 
-test("a candidate is exempt, a stable version needs its post", () => {
-  const root = home([entry()]);
-  assert.equal(check("9.9.1-rc.1", { root, say: () => {} }), 0);
-  assert.equal(check("9.9.0", { root, say: () => {} }), 0);
-  assert.equal(check("9.9.1", { root, say: () => {} }), 1);
-});
-
-test("both languages go to X with their picture and alt text, signed", async () => {
+test("both languages go to X with their picture and alt text, signed, and without the link", async () => {
   const calls = networksThatAnswer();
   const { lines, say } = listening();
   const env = { ...KEYS, BLUESKY_HANDLE: "" };
-  assert.equal(await send("9.9.0", { env, root: home([entry()]), say }), 0);
-  const posted = calls.filter((one) => one.url.endsWith("/2/tweets")).map((one) => JSON.parse(one.init.body));
+  assert.equal(await send("9.0.1", { env, root: home(file()), say, released }), 0);
+  const posted = calls.filter((one) => one.url.endsWith("/2/tweets")).map((one) => one.body);
   assert.deepEqual(
     posted.map((one) => one.text),
-    ["¿Sabías que Tisty guarda lo que terminas?", "Did you know Tisty keeps what you finish?"],
+    ["Tisty guarda lo que terminas (first).", "Tisty keeps what you finish (first)."],
   );
   assert.deepEqual(posted[0].media, { media_ids: ["77"] });
-  const alt = JSON.parse(calls.find((one) => one.url.endsWith("/2/media/metadata")).init.body);
+  const alt = calls.find((one) => one.url.endsWith("/2/media/metadata")).body;
   assert.deepEqual(alt, { id: "77", metadata: { alt_text: { text: "The Archive" } } });
   assert.ok(calls.every((one) => one.init.headers.Authorization.startsWith("OAuth ")));
   assert.ok(lines.some((one) => /Bluesky has no keys here/.test(one)));
+});
+
+test("a post without a picture goes to X with no upload at all", async () => {
+  const calls = networksThatAnswer();
+  const plain = file({ queue: [post("plain", { es: { text: "Sin foto" }, en: { text: "No picture" } })] });
+  const env = { ...KEYS, BLUESKY_HANDLE: "" };
+  assert.equal(await send("9.0.1", { env, root: home(plain), say: () => {}, released }), 0);
+  assert.equal(calls.filter((one) => one.url.includes("/2/media/")).length, 0);
+  assert.equal(calls.filter((one) => one.url.endsWith("/2/tweets"))[0].body.media, undefined);
+});
+
+test("the pinned post goes out with its reply under it, on X and on Bluesky", async () => {
+  const calls = networksThatAnswer();
+  const reply = { es: { text: "Pruébalo: https://www.tisty.app" }, en: { text: "Try it: https://www.tisty.app" } };
+  const { lines, say } = listening();
+  assert.equal(await send("pinned", { env: KEYS, root: home(file({ pinned: post("pin", { reply }) })), say, released }), 0);
+  const tweets = calls.filter((one) => one.url.endsWith("/2/tweets")).map((one) => one.body);
+  assert.equal(tweets.length, 4);
+  assert.equal(tweets[1].text, "Pruébalo: https://www.tisty.app");
+  assert.deepEqual(tweets[1].reply, { in_reply_to_tweet_id: "101" });
+  const records = calls.filter((one) => one.url.endsWith("createRecord")).map((one) => one.body.record);
+  assert.equal(records.length, 4);
+  assert.deepEqual(records[1].reply.parent, { uri: records[1].reply.root.uri, cid: records[1].reply.root.cid });
+  assert.equal(records[1].embed, undefined);
+  assert.ok(lines.some((one) => /ok X en reply:/.test(one)));
 });
 
 test("X refusing a post it already holds counts as posted", async () => {
   networksThatAnswer({ xDuplicate: true });
   const { lines, say } = listening();
   const env = { ...KEYS, BLUESKY_HANDLE: "" };
-  assert.equal(await send("9.9.0", { env, root: home([entry()]), say }), 0);
+  assert.equal(await send("9.0.1", { env, root: home(file()), say, released }), 0);
   assert.equal(lines.filter((one) => one.includes("already posted")).length, 2);
 });
 
-test("Bluesky signs in once, skips a post made days ago, and posts again a tip told months ago", async () => {
+test("Bluesky signs in once, skips a post made days ago, and posts again one told months ago", async () => {
   const lately = new Date().toISOString();
   const months = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const earlier = [
-    { uri: "at://did:plc:tisty/app.bsky.feed.post/old", record: { text: entry().es.text, createdAt: lately } },
-    { uri: "at://did:plc:tisty/app.bsky.feed.post/older", record: { text: entry().en.text, createdAt: months } },
+    { uri: "at://did:plc:tisty/app.bsky.feed.post/old", cid: "c0", record: { text: post("first").es.text, createdAt: lately } },
+    { uri: "at://did:plc:tisty/app.bsky.feed.post/older", cid: "c9", record: { text: post("first").en.text, createdAt: months } },
   ];
   const calls = networksThatAnswer({ earlier });
   const { lines, say } = listening();
   const env = { ...KEYS, X_API_KEY: "" };
-  assert.equal(await send("9.9.0", { env, root: home([entry()]), say }), 0);
+  assert.equal(await send("9.0.1", { env, root: home(file()), say, released }), 0);
   assert.equal(calls.filter((one) => one.url.endsWith("createSession")).length, 1);
-  const records = calls.filter((one) => one.url.endsWith("createRecord")).map((one) => JSON.parse(one.init.body).record);
+  const records = calls.filter((one) => one.url.endsWith("createRecord")).map((one) => one.body.record);
   assert.equal(records.length, 1);
-  assert.equal(records[0].text, entry().en.text);
+  assert.equal(records[0].text, post("first").en.text);
   assert.deepEqual(records[0].langs, ["en"]);
   assert.equal(records[0].embed.images[0].alt, "The Archive");
   assert.ok(records[0].embed.images[0].aspectRatio.width > 0);
@@ -221,12 +293,13 @@ test("Bluesky signs in once, skips a post made days ago, and posts again a tip t
   assert.ok(lines.some((one) => /ok Bluesky es: already posted/.test(one)));
 });
 
-test("a version with no post posts nothing anywhere", async () => {
+test("a release with nothing left in the queue posts nothing anywhere", async () => {
   const calls = networksThatAnswer();
   const { lines, say } = listening();
-  assert.equal(await send("9.9.1", { env: KEYS, root: home([entry()]), say }), 1);
+  const later = () => [...RELEASED, "9.1.0"];
+  assert.equal(await send("9.2.0", { env: KEYS, root: home(file()), say, released: later }), 1);
   assert.equal(calls.length, 0);
-  assert.ok(lines.some((one) => /nothing was posted for 9\.9\.1/.test(one)));
+  assert.ok(lines.some((one) => /nothing was posted for 9\.2\.0/.test(one)));
 });
 
 test("a network that fails leaves the other one to post", async () => {
@@ -235,7 +308,7 @@ test("a network that fails leaves the other one to post", async () => {
   globalThis.fetch = async (url, init) =>
     url.endsWith("/2/media/upload") ? new Response("down", { status: 503 }) : answer(url, init);
   const { lines, say } = listening();
-  assert.equal(await send("9.9.0", { env: KEYS, root: home([entry()]), say }), 1);
+  assert.equal(await send("9.0.1", { env: KEYS, root: home(file()), say, released }), 1);
   assert.equal(calls.filter((one) => one.url.endsWith("createRecord")).length, 2);
   assert.ok(lines.some((one) => /::error::X es: X took no picture: 503/.test(one)));
 });
@@ -243,9 +316,10 @@ test("a network that fails leaves the other one to post", async () => {
 test("a preview shows what each network gets, and posts nothing", () => {
   const calls = networksThatAnswer();
   const { lines, say } = listening();
-  assert.equal(preview("9.9.0", { root: home([entry()]), say }), 0);
+  assert.equal(preview("9.0.1", { root: home(file()), say, released }), 0);
   const shown = lines.join("\n");
-  assert.match(shown, /X, \d+\/280:\n {4}¿Sabías que Tisty guarda lo que terminas\?\n/);
-  assert.match(shown, /Bluesky, \d+\/300:\n {4}¿Sabías que Tisty guarda lo que terminas\? https:\/\/tisty\.app/);
+  assert.match(shown, /9\.0\.1 posts first, number 1 in the queue/);
+  assert.match(shown, /X, \d+\/280:\n {4}Tisty guarda lo que terminas \(first\)\.\n/);
+  assert.match(shown, /Bluesky, \d+\/300:\n {4}Tisty guarda lo que terminas \(first\)\. https:\/\/tisty\.app/);
   assert.equal(calls.length, 0);
 });

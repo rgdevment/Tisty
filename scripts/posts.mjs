@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -6,8 +7,9 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const POSTS = "docs/posts.json";
 const TONGUES = ["es", "en"];
-const OPENING = { es: "¿Sabías que", en: "Did you know" };
+const PINNED = "pinned";
 const X_MOST = 280;
+const X_LINK = 23;
 const BLUESKY_MOST = 300;
 const BLUESKY_PICTURE_MOST = 976_560;
 const BLUESKY_LOOKED_BACK = 50;
@@ -28,6 +30,14 @@ const PICTURE_TYPES = { ".webp": "image/webp", ".png": "image/png", ".jpg": "ima
 
 export const stable = (version) => /^\d+\.\d+\.\d+$/.test(version);
 
+const parts = (version) => version.split(".").map(Number);
+
+export function newer(one, other) {
+  const [a, b] = [parts(one), parts(other)];
+  for (let at = 0; at < 3; at++) if (a[at] !== b[at]) return a[at] > b[at];
+  return false;
+}
+
 export function readPosts(root = ROOT) {
   let posts;
   try {
@@ -35,8 +45,21 @@ export function readPosts(root = ROOT) {
   } catch (why) {
     throw new Error(`${POSTS} could not be read: ${why.message}`);
   }
-  if (!Array.isArray(posts)) throw new Error(`${POSTS} is not a list of versions`);
+  if (!posts || !stable(posts.since ?? "") || !Array.isArray(posts.queue)) {
+    throw new Error(`${POSTS} holds «since», the version the queue starts after, and «queue», the posts in order`);
+  }
   return posts;
+}
+
+export function releasedVersions(root = ROOT) {
+  const listed = execFileSync("git", ["ls-remote", "--tags", "origin", "v*"], { cwd: root, encoding: "utf8" });
+  return [...listed.matchAll(/refs\/tags\/v(\d+\.\d+\.\d+)$/gm)].map((found) => found[1]);
+}
+
+// The queue keeps no record of what went out: the stable releases since «since» say whose turn it is.
+export function turnOf(version, released, since) {
+  if (!newer(version, since)) return 0;
+  return 1 + new Set(released.filter((one) => stable(one) && newer(one, since) && newer(version, one))).size;
 }
 
 const graphemesOf = (text) => [...new Intl.Segmenter("en", { granularity: "grapheme" }).segment(text)].map((one) => one.segment);
@@ -51,15 +74,18 @@ const xWeight = (grapheme) =>
         return sum + (X_LIGHT.some(([from, to]) => at >= from && at <= to) ? 1 : 2);
       }, 0);
 
+export const xLength = (text) => {
+  const links = text.match(LINK) ?? [];
+  return links.length * X_LINK + graphemesOf(text.replace(LINK, "")).reduce((sum, one) => sum + xWeight(one), 0);
+};
+
 // A post with a link costs X's API about thirteen times more, and tisty.app is already on the profile.
 export const forX = (text) => text.replace(LAST_LINK, "");
-
-export const xLength = (text) => graphemesOf(text).reduce((sum, one) => sum + xWeight(one), 0);
 
 const typeOf = (path) => PICTURE_TYPES[path.slice(path.lastIndexOf(".")).toLowerCase()];
 
 function pictureWrong(picture, root) {
-  if (!picture || !typeOf(picture)) return "the picture is a .webp, .png or .jpg in the repo";
+  if (!typeOf(picture)) return "the picture is a .webp, .png or .jpg in the repo";
   let size;
   try {
     size = statSync(join(root, picture)).size;
@@ -69,32 +95,61 @@ function pictureWrong(picture, root) {
   return size > BLUESKY_PICTURE_MOST ? `${picture} weighs ${size} bytes and Bluesky takes ${BLUESKY_PICTURE_MOST}` : undefined;
 }
 
-function saidWrong(said, tongue, root) {
+function saidWrong(said, root, { linkStays = false } = {}) {
   if (!said?.text) return ["no text"];
-  const onX = xLength(forX(said.text));
-  const onBluesky = blueskyLength(said.text);
-  const linked = forX(said.text).match(LINK) ?? [];
+  const onX = linkStays ? said.text : forX(said.text);
+  const xCount = xLength(onX);
+  const blueskyCount = blueskyLength(said.text);
+  const inside = linkStays ? [] : (onX.match(LINK) ?? []);
   const bare = said.text.replace(LINK, "").match(BARE_DOMAIN) ?? [];
   return [
-    !said.text.startsWith(OPENING[tongue]) && `it opens with «${OPENING[tongue]}»`,
-    linked.length > 0 && `${linked.join(", ")} goes at the end, the one place X leaves a link out`,
+    inside.length > 0 && `${inside.join(", ")} goes at the end, the one place X leaves a link out`,
     bare.length > 0 && `${bare.join(", ")} needs its https:// and the end of the text, or X makes it a paid link`,
-    onX > X_MOST && `${onX} characters on X, which takes ${X_MOST}`,
-    onBluesky > BLUESKY_MOST && `${onBluesky} characters on Bluesky, which takes ${BLUESKY_MOST}`,
-    (!said.shows || said.shows.length > SHOWS_MOST) && `«shows» says what the picture shows, in ${SHOWS_MOST} characters at most`,
-    pictureWrong(said.picture, root),
+    xCount > X_MOST && `${xCount} characters on X, which takes ${X_MOST}`,
+    blueskyCount > BLUESKY_MOST && `${blueskyCount} characters on Bluesky, which takes ${BLUESKY_MOST}`,
+    said.picture && pictureWrong(said.picture, root),
+    said.picture && (!said.shows || said.shows.length > SHOWS_MOST) && `«shows» says what the picture shows, in ${SHOWS_MOST} characters at most`,
   ].filter(Boolean);
 }
 
-export function judged(posts, version, root = ROOT) {
-  const entry = posts.find((one) => one?.version === version);
-  if (!entry) {
-    return [
-      `nothing in ${POSTS} tells what to post for ${version}: add a «¿Sabías que…?» in Spanish` +
-        " and a «Did you know…?» in English before the tag goes out",
-    ];
+function postWrong(post, root) {
+  const name = post?.id ?? "a post with no id";
+  const wrong = TONGUES.flatMap((tongue) => saidWrong(post?.[tongue], root).map((one) => `${name} ${tongue}: ${one}`));
+  const reply = post?.reply
+    ? TONGUES.flatMap((tongue) => saidWrong(post.reply[tongue], root, { linkStays: true }).map((one) => `${name} reply ${tongue}: ${one}`))
+    : [];
+  return [...(post?.id ? [] : [`${name}: every post has an id`]), ...wrong, ...reply];
+}
+
+export function judged(posts, root = ROOT) {
+  const ids = posts.queue.map((one) => one?.id);
+  const twice = ids.filter((one, at) => one && ids.indexOf(one) !== at);
+  return [
+    ...(posts.pinned ? postWrong(posts.pinned, root) : []),
+    ...posts.queue.flatMap((one) => postWrong(one, root)),
+    ...twice.map((one) => `${one} is in the queue twice`),
+  ];
+}
+
+export const withoutPicture = (post) => (TONGUES.some((tongue) => !post[tongue]?.picture) ? post.id : undefined);
+
+export function pick(posts, what, released) {
+  if (what === PINNED) {
+    if (!posts.pinned) return { wrong: `${POSTS} has no pinned post` };
+    return { post: posts.pinned, said: `the pinned post, ${posts.pinned.id}` };
   }
-  return TONGUES.flatMap((tongue) => saidWrong(entry[tongue], tongue, root).map((one) => `${version} ${tongue}: ${one}`));
+  if (!stable(what)) return { skip: `${what} is a candidate, and a candidate posts nothing` };
+  const turn = turnOf(what, released, posts.since);
+  if (turn === 0) return { skip: `${what} is not past ${posts.since}, where the queue starts` };
+  const post = posts.queue[turn - 1];
+  if (!post) {
+    return {
+      wrong:
+        `${what} is release ${turn} since ${posts.since} and the queue in ${POSTS} holds ${posts.queue.length}:` +
+        " add the next post at its end before the tag goes out",
+    };
+  }
+  return { post, said: `${what} posts ${post.id}, number ${turn} in the queue` };
 }
 
 const encoded = (value) =>
@@ -178,19 +233,23 @@ async function openX(keys) {
       }),
       what,
     );
-  return async ({ said, picture }) => {
-    const media = await call(
-      "https://api.x.com/2/media/upload",
-      { media: picture.toString("base64"), media_category: "tweet_image" },
-      "X took no picture",
-    );
-    const id = media.data.id;
-    await call("https://api.x.com/2/media/metadata", { id, metadata: { alt_text: { text: said.shows } } }, "X took no alt text");
+  return async ({ text, said, picture, under }) => {
+    const post = { text };
+    if (picture) {
+      const media = await call(
+        "https://api.x.com/2/media/upload",
+        { media: picture.toString("base64"), media_category: "tweet_image" },
+        "X took no picture",
+      );
+      await call("https://api.x.com/2/media/metadata", { id: media.data.id, metadata: { alt_text: { text: said.shows } } }, "X took no alt text");
+      post.media = { media_ids: [media.data.id] };
+    }
+    if (under) post.reply = { in_reply_to_tweet_id: under };
     try {
-      const post = await call("https://api.x.com/2/tweets", { text: forX(said.text), media: { media_ids: [id] } }, "X took no post");
-      return `https://x.com/i/status/${post.data.id}`;
+      const made = await call("https://api.x.com/2/tweets", post, "X took no post");
+      return { link: `https://x.com/i/status/${made.data.id}`, ref: made.data.id };
     } catch (why) {
-      if (alreadyOnX(why)) return "already posted";
+      if (alreadyOnX(why)) return { link: "already posted" };
       throw why;
     }
   };
@@ -219,29 +278,32 @@ async function openBluesky(keys) {
     const since = Date.now() - RERUN_WITHIN_MS;
     return ((await recent).feed ?? []).map((one) => one.post).filter((one) => Date.parse(one?.record?.createdAt) >= since);
   };
-  return async ({ said, tongue, picture, type }) => {
-    const earlier = (await lately()).find((one) => one.record.text === said.text);
-    if (earlier) return `already posted, ${linkOf(earlier.uri)}`;
-    const blob = await answered(
-      await fetch(`${host}/com.atproto.repo.uploadBlob`, {
-        method: "POST",
-        headers: { ...signedIn, "Content-Type": type },
-        body: picture,
-      }),
-      "Bluesky took no picture",
-    );
-    const sized = webpSize(picture);
+  return async ({ text, said, tongue, picture, type, under }) => {
+    const earlier = (await lately()).find((one) => one.record.text === text);
+    if (earlier) return { link: `already posted, ${linkOf(earlier.uri)}`, ref: { uri: earlier.uri, cid: earlier.cid } };
     const record = {
       $type: "app.bsky.feed.post",
-      text: said.text,
+      text,
       createdAt: new Date().toISOString(),
       langs: [tongue],
-      facets: linkFacets(said.text),
-      embed: {
+      facets: linkFacets(text),
+    };
+    if (picture) {
+      const blob = await answered(
+        await fetch(`${host}/com.atproto.repo.uploadBlob`, {
+          method: "POST",
+          headers: { ...signedIn, "Content-Type": type },
+          body: picture,
+        }),
+        "Bluesky took no picture",
+      );
+      const sized = webpSize(picture);
+      record.embed = {
         $type: "app.bsky.embed.images",
         images: [{ alt: said.shows, image: blob.blob, ...(sized ? { aspectRatio: sized } : {}) }],
-      },
-    };
+      };
+    }
+    if (under) record.reply = { root: under, parent: under };
     const made = await answered(
       await fetch(`${host}/com.atproto.repo.createRecord`, {
         method: "POST",
@@ -250,7 +312,7 @@ async function openBluesky(keys) {
       }),
       "Bluesky took no post",
     );
-    return linkOf(made.uri);
+    return { link: linkOf(made.uri), ref: { uri: made.uri, cid: made.cid } };
   };
 }
 
@@ -258,26 +320,41 @@ function networks(env) {
   const x = { apiKey: env.X_API_KEY, apiSecret: env.X_API_SECRET, accessToken: env.X_ACCESS_TOKEN, accessSecret: env.X_ACCESS_SECRET };
   const bluesky = { handle: env.BLUESKY_HANDLE, password: env.BLUESKY_APP_PASSWORD };
   return [
-    { name: "X", keys: x, open: openX },
-    { name: "Bluesky", keys: bluesky, open: openBluesky },
+    { name: "X", keys: x, open: openX, shaped: forX },
+    { name: "Bluesky", keys: bluesky, open: openBluesky, shaped: (text) => text },
   ];
 }
 
-export async function send(version, { env = process.env, root = ROOT, say = console.log } = {}) {
+function going(post, root) {
+  return TONGUES.map((tongue) => {
+    const said = post[tongue];
+    return {
+      tongue,
+      said,
+      picture: said.picture ? readFileSync(join(root, said.picture)) : undefined,
+      type: said.picture ? typeOf(said.picture) : undefined,
+      reply: post.reply?.[tongue],
+    };
+  });
+}
+
+function opened(root, what, released, say) {
   const posts = readPosts(root);
-  const wrong = judged(posts, version, root);
-  if (wrong.length > 0) {
-    for (const one of wrong) say(`::error::${one}`);
-    say(`::error::nothing was posted for ${version}`);
+  const wrong = judged(posts, root);
+  const chosen = wrong.length > 0 ? { wrong: wrong.join("\n") } : pick(posts, what, released());
+  if (chosen.wrong) for (const one of chosen.wrong.split("\n")) say(`::error::${one}`);
+  if (chosen.skip) say(`ok ${chosen.skip}`);
+  return chosen;
+}
+
+export async function send(what, { env = process.env, root = ROOT, say = console.log, released = () => releasedVersions(root) } = {}) {
+  const chosen = opened(root, what, released, say);
+  if (chosen.wrong) {
+    say(`::error::nothing was posted for ${what}`);
     return 1;
   }
-  const entry = posts.find((one) => one.version === version);
-  const going = TONGUES.map((tongue) => ({
-    tongue,
-    said: entry[tongue],
-    picture: readFileSync(join(root, entry[tongue].picture)),
-    type: typeOf(entry[tongue].picture),
-  }));
+  if (chosen.skip) return 0;
+  say(`ok ${chosen.said}`);
   let failed = false;
   for (const network of networks(env)) {
     if (Object.values(network.keys).some((one) => !one)) {
@@ -292,9 +369,14 @@ export async function send(version, { env = process.env, root = ROOT, say = cons
       say(`::error::${network.name}: ${why.message}`);
       continue;
     }
-    for (const one of going) {
+    for (const one of going(chosen.post, root)) {
       try {
-        say(`ok ${network.name} ${one.tongue}: ${await post(one)}`);
+        const made = await post({ ...one, text: network.shaped(one.said.text) });
+        say(`ok ${network.name} ${one.tongue}: ${made.link}`);
+        if (!one.reply) continue;
+        if (!made.ref) throw new Error("the post was already there and its id is unknown here, so post the reply by hand");
+        const answer = await post({ tongue: one.tongue, text: one.reply.text, under: made.ref });
+        say(`ok ${network.name} ${one.tongue} reply: ${answer.link}`);
       } catch (why) {
         failed = true;
         say(`::error::${network.name} ${one.tongue}: ${why.message}`);
@@ -304,35 +386,40 @@ export async function send(version, { env = process.env, root = ROOT, say = cons
   return failed ? 1 : 0;
 }
 
-export function check(version, { root = ROOT, say = console.log, inActions = Boolean(process.env.GITHUB_ACTIONS) } = {}) {
-  if (!stable(version)) {
-    say(`ok ${version} is a candidate, and a candidate posts nothing`);
-    return 0;
-  }
-  let wrong;
+export function check(what, { root = ROOT, say = console.log, released = () => releasedVersions(root) } = {}) {
+  let chosen;
   try {
-    wrong = judged(readPosts(root), version, root);
+    chosen = opened(root, what, released, (line) => say(line.replace("::error::", "x  ")));
   } catch (why) {
-    wrong = [why.message];
-  }
-  for (const one of wrong) say(inActions ? `::error::${one}` : `x  ${one}`);
-  if (wrong.length === 0) say(`ok ${version} has its post in ${POSTS}, in both languages`);
-  return wrong.length === 0 ? 0 : 1;
-}
-
-export function preview(version, { root = ROOT, say = console.log } = {}) {
-  const entry = readPosts(root).find((one) => one.version === version);
-  if (!entry) {
-    say(`x  nothing in ${POSTS} for ${version}`);
+    say(`x  ${why.message}`);
     return 1;
   }
-  for (const tongue of TONGUES) {
-    const said = entry[tongue];
-    say(`\n${tongue} · picture ${said.picture}\n  alt: ${said.shows}`);
-    say(`  X, ${xLength(forX(said.text))}/${X_MOST}:\n    ${forX(said.text)}`);
-    say(`  Bluesky, ${blueskyLength(said.text)}/${BLUESKY_MOST}:\n    ${said.text}`);
+  if (chosen.wrong) return 1;
+  if (chosen.post) {
+    say(`ok ${chosen.said}`);
+    const bare = withoutPicture(chosen.post);
+    if (bare) say(`!  ${bare} goes without a picture: one is recommended`);
   }
-  return check(version, { root, say });
+  return 0;
+}
+
+export function preview(what, { root = ROOT, say = console.log, released = () => releasedVersions(root) } = {}) {
+  const posts = readPosts(root);
+  const chosen = pick(posts, what, released());
+  if (!chosen.post) {
+    say(chosen.wrong ? `x  ${chosen.wrong}` : `ok ${chosen.skip}`);
+    return chosen.wrong ? 1 : 0;
+  }
+  say(chosen.said);
+  for (const tongue of TONGUES) {
+    const said = chosen.post[tongue];
+    say(`\n${tongue} · ${said.picture ? `picture ${said.picture}\n  alt: ${said.shows}` : "no picture"}`);
+    say(`  X, ${xLength(forX(said.text))}/${X_MOST}:\n${forX(said.text).replace(/^/gm, "    ")}`);
+    say(`  Bluesky, ${blueskyLength(said.text)}/${BLUESKY_MOST}:\n${said.text.replace(/^/gm, "    ")}`);
+    const reply = chosen.post.reply?.[tongue];
+    if (reply) say(`  reply, ${xLength(reply.text)}/${X_MOST} on X:\n${reply.text.replace(/^/gm, "    ")}`);
+  }
+  return check(what, { root, say: (line) => !line.startsWith("ok ") && say(line), released });
 }
 
 const COMMANDS = { check, preview, send };
@@ -340,7 +427,7 @@ const COMMANDS = { check, preview, send };
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [what, version] = process.argv.slice(2);
   if (!version || !COMMANDS[what]) {
-    console.log("usage: node scripts/posts.mjs check|preview|send <version, without the v>");
+    console.log("usage: node scripts/posts.mjs check|preview|send <version without the v, or pinned>");
     process.exit(2);
   }
   try {

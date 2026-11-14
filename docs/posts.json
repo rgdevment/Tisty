@@ -1,15 +1,128 @@
-[
-  {
-    "version": "1.47.0",
+{
+  "since": "1.47.0",
+  "pinned": {
+    "id": "why-tisty",
     "es": {
-      "text": "¿Sabías que en Tisty guardas una idea sin soltar lo que estás haciendo? Ctrl + Shift + Espacio abre la captura rápida, Tab la vuelve idea, la escribes y sigues. Te espera en la Lluvia de ideas como una nota adhesiva, con su fecha y su color, hasta que llegue su momento. https://tisty.app",
-      "picture": "assets/screens/readme/es-03-ideas.webp",
-      "shows": "La Lluvia de ideas de Tisty: ideas del momento como notas adhesivas de colores, cada una con su fecha y hora, sujetas con cinta o chinche"
+      "text": "Me cansé de explicarle mi proyecto a mi agente de IA cada mañana.\n\nAsí que hice Tisty: tareas, documentos y notas en Markdown en tu propio disco, y un servidor MCP local para que Claude Code, Copilot o Cursor retomen donde quedaron.\n\nGratis, open source, sin cuenta.",
+      "picture": "assets/screens/readme/es-07-dia.webp",
+      "shows": "Las tareas del día en Tisty: vencidas y por vencer, con sus listas, prioridades y etiquetas, y al lado lo que viene en la semana"
     },
     "en": {
-      "text": "Did you know Tisty lets you save an idea without dropping what you are doing? Ctrl + Shift + Space opens the quick capture, Tab turns it into an idea, you type it and carry on. It waits in Brainstorm as a sticky note, with its date and colour, until its moment comes. https://tisty.app",
-      "picture": "assets/screens/readme/en-03-brainstorm.webp",
-      "shows": "Brainstorm in Tisty: ideas of the moment as coloured sticky notes, each with its date and time, held by tape or a pin"
+      "text": "I got tired of explaining my project to my AI agent every morning.\n\nSo I built Tisty: tasks, documents and notes in Markdown on your own disk, and a local MCP server so Claude Code, Copilot or Cursor pick up where they left off.\n\nFree, open source, no account.",
+      "picture": "assets/screens/readme/en-07-day.webp",
+      "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+    },
+    "reply": {
+      "es": { "text": "Pruébalo:\n\nWindows: winget install rgdevment.Tisty\nmacOS: Homebrew o el .dmg\n\nhttps://www.tisty.app" },
+      "en": { "text": "Try it:\n\nWindows: winget install rgdevment.Tisty\nmacOS: Homebrew or the .dmg\n\nhttps://www.tisty.app" }
     }
-  }
-]
+  },
+  "queue": [
+    {
+      "id": "save-an-idea",
+      "es": {
+        "text": "¿Sabías que en Tisty guardas una idea sin soltar lo que estás haciendo? Ctrl + Shift + Espacio abre la captura rápida, Tab la vuelve idea, la escribes y sigues. Te espera en la Lluvia de ideas como una nota adhesiva, con su fecha y su color, hasta que llegue su momento. https://tisty.app",
+        "picture": "assets/screens/readme/es-03-ideas.webp",
+        "shows": "La Lluvia de ideas de Tisty: ideas del momento como notas adhesivas de colores, cada una con su fecha y hora, sujetas con cinta o chinche"
+      },
+      "en": {
+        "text": "Did you know Tisty lets you save an idea without dropping what you are doing? Ctrl + Shift + Space opens the quick capture, Tab turns it into an idea, you type it and carry on. It waits in Brainstorm as a sticky note, with its date and colour, until its moment comes. https://tisty.app",
+        "picture": "assets/screens/readme/en-03-brainstorm.webp",
+        "shows": "Brainstorm in Tisty: ideas of the moment as coloured sticky notes, each with its date and time, held by tape or a pin"
+      }
+    },
+    {
+      "id": "leave-off-habit",
+      "es": {
+        "text": "Un hábito chico que arregló mis mañanas con agentes de IA:\n\nAntes de cerrar la sesión le digo al agente: «anota lo que hicimos, lo que falló y lo que falta».\n\nAl día siguiente parte de ahí, no de un chat en blanco. Sirve con cualquier archivo de notas."
+      },
+      "en": {
+        "text": "A small habit that fixed my mornings with AI agents:\n\nBefore closing a session I tell the agent: \"note what we did, what failed and what's left.\"\n\nNext day it starts from there, not from a blank chat. Works with any notes file."
+      }
+    },
+    {
+      "id": "how-did-we-fix-it",
+      "es": {
+        "text": "«¿Cómo lo arreglamos la última vez?»\n\nPor esa pregunta, en Tisty una tarea terminada nunca se pierde. Se va entera al Archivo: pasos, notas, fechas.\n\nMeses después, la respuesta está a una búsqueda.",
+        "picture": "assets/screens/readme/es-01-archivo.webp",
+        "shows": "El Archivo de Tisty: las rutinas con su racha, como Llamar a la abuela y Regar las plantas, y al lado la serie de Revisión semanal con cada vuelta cumplida"
+      },
+      "en": {
+        "text": "\"How did we fix this last time?\"\n\nThat question is why a finished task in Tisty is never thrown away. It goes to the Archive whole: steps, journal, dates.\n\nMonths later, the answer is one search away.",
+        "picture": "assets/screens/readme/en-01-archive.webp",
+        "shows": "The Archive in Tisty: routines with their streaks, such as Call grandma and Water the plants, and beside them the Weekly review series with every round kept"
+      }
+    },
+    {
+      "id": "write-down-why",
+      "es": {
+        "text": "Un tip para trabajar con agentes de IA: anota el porqué, no solo el qué.\n\nEl agente puede leer tu código. No puede leer por qué descartaste la opción B hace tres meses.\n\nUna línea con la razón te ahorra la discusión entera la próxima vez."
+      },
+      "en": {
+        "text": "Tip for working with AI agents: write down why, not only what.\n\nThe agent can read your code. It can't read why you rejected option B three months ago.\n\nOne line with the reason saves the whole argument next time."
+      }
+    },
+    {
+      "id": "not-only-code",
+      "es": {
+        "text": "La lista que más abro en Tisty no es de código.\n\nEs la del súper. Después la del veterinario, y los trámites que sigo postergando.\n\nPrimero es una app de notas y tareas. El agente de IA es un extra, no un requisito.",
+        "picture": "assets/screens/readme/es-07-dia.webp",
+        "shows": "Las tareas del día en Tisty: vencidas y por vencer, con sus listas, prioridades y etiquetas, y al lado lo que viene en la semana"
+      },
+      "en": {
+        "text": "The list I open most in Tisty isn't code.\n\nIt's groceries. Then the vet, then the paperwork I keep putting off.\n\nIt's a notes and tasks app first. The AI agent is a plus, not a requirement.",
+        "picture": "assets/screens/readme/en-07-day.webp",
+        "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+      }
+    },
+    {
+      "id": "what-pickup-costs",
+      "es": {
+        "text": "Medí cuánto le cuesta a un agente retomar el trabajo de ayer desde una bitácora de 256 KB.\n\nReleyendo el archivo entero: 100 %.\nCon Tisty, si nada cambió: cerca de un 1 %.\n\nPregunta qué se movió y lee solo eso."
+      },
+      "en": {
+        "text": "I measured what it costs an agent to pick up yesterday's work from a 256 KB work log.\n\nRereading the whole file: 100%.\nWith Tisty, when nothing changed: about 1%.\n\nIt asks what moved, then reads only that."
+      }
+    },
+    {
+      "id": "one-page-per-subject",
+      "es": {
+        "text": "Antes tenía un archivo de notas por sesión. Se acumulaban y quedaban viejos.\n\nAhora es una página por tema, corregida en su lugar. Menos archivos, y tanto el agente como yo podemos confiar en lo que dice.",
+        "picture": "assets/screens/readme/es-06-documentos.webp",
+        "shows": "Un documento en Tisty con su índice al lado, sus idiomas y el tamaño de hoja"
+      },
+      "en": {
+        "text": "I used to keep one notes file per session. They piled up and went stale.\n\nNow it's one page per subject, corrected in place. Fewer files, and both the agent and I can trust what's there.",
+        "picture": "assets/screens/readme/en-06-documents.webp",
+        "shows": "A document in Tisty with its outline beside it, its languages and its sheet size"
+      }
+    },
+    {
+      "id": "context-between-sessions",
+      "es": {
+        "text": "¿Cómo mantienes el contexto entre sesiones con un agente de IA?\n\nYo tenía un NOTES.md que quedaba viejo en una semana, y después un TASKS.md que nadie actualizaba. Nadie = yo.\n\n¿Y tú?"
+      },
+      "en": {
+        "text": "How do you keep context between AI coding sessions?\n\nMine was a NOTES.md that went stale in a week, then a TASKS.md nobody updated. Nobody = me.\n\nWhat's yours?"
+      }
+    },
+    {
+      "id": "honest-note",
+      "es": {
+        "text": "Nota honesta sobre mi propia app: si tus notas pesan menos de unos 50 KB, un archivo Markdown simple le puede salir más barato a tu agente que Tisty.\n\nLo medí. Empieza a convenir cuando la bitácora crece."
+      },
+      "en": {
+        "text": "Honest note about my own app: if your notes are under ~50 KB, a plain Markdown file can be cheaper for your agent than Tisty.\n\nI measured it. It starts paying off when the log grows."
+      }
+    },
+    {
+      "id": "no-server",
+      "es": {
+        "text": "Soy un desarrollador, no una empresa.\n\nPor eso Tisty no tiene servidor, ni cuenta, ni suscripción: nada que yo tenga que mantener, nada que tú tengas que pagar.\n\nTus notas se quedan en tu disco, en Markdown."
+      },
+      "en": {
+        "text": "I'm one developer, not a company.\n\nSo Tisty has no server, no account and no subscription: nothing for me to run, nothing for you to pay.\n\nYour notes stay on your disk, in Markdown."
+      }
+    }
+  ]
+}
