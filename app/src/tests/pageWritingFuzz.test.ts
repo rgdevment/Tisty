@@ -272,7 +272,9 @@ const staysAfterCaret: Check = (trace, actions) => {
     if (action === "bs") back++;
     const text = trace.texts[index] ?? "";
     const kept = prefixLength(text, trace.start);
-    const floor = Math.max(0, trace.caret - back);
+    const marks =
+      /[*_+~=`]*$/.exec(trace.start.slice(0, Math.max(0, trace.caret - back)))?.[0].length ?? 0;
+    const floor = Math.max(0, trace.caret - back - marks);
     if (kept < Math.min(floor, trace.start.length))
       return `after action ${index}: the text changed at ${kept}, before ${floor}`;
   }
@@ -419,7 +421,7 @@ describe("random walks over the edges of a body", () => {
 });
 
 const lastOf = (setup: Setup, said: string, at: number, actions: readonly string[]) =>
-  run({ ...setup, place: { said, at } }, actions).texts.at(-1);
+  run({ ...setup, place: { said, at } }, actions).texts.slice(-1)[0];
 
 const FORMATS: Record<string, readonly [string, string]> = {
   "ctrl:b": ["**", "**"],
@@ -430,6 +432,12 @@ const FORMATS: Record<string, readonly [string, string]> = {
 };
 
 describe("a format pressed with nothing chosen", () => {
+  it("goes on inside the same format closed just before the caret", () => {
+    expect(lastOf(standard, " tres", 0, ["ctrl:b", "type:e", "type:f"])).toBe(
+      BODY.replace("**dos**", "**dosef**"),
+    );
+  });
+
   it("wraps exactly the words typed next in a balanced pair", () => {
     for (let seed = 1; seed <= SEEDS; seed++) {
       const random = mulberry32(seed);
@@ -443,7 +451,9 @@ describe("a format pressed with nothing chosen", () => {
       const caret = caretOf(setup);
       const steps =
         BODY.startsWith(close, caret) && !(close === "*" && BODY.startsWith("**", caret));
-      if (steps) continue;
+      const rejoins =
+        BODY.slice(0, caret).endsWith(close) && /\S/.test(BODY[caret - close.length - 1] ?? "");
+      if (steps || rejoins) continue;
       const got = lastOf(setup, place.said, place.at, [key, ...word.map((one) => `type:${one}`)]);
       const want = `${BODY.slice(0, caret)}${open}${word.join("")}${close}${BODY.slice(caret)}`;
       expect(got, `seed ${seed}, ${JSON.stringify(place)}, ${key}`).toBe(want);
@@ -519,7 +529,7 @@ describe("the edges of a body", () => {
   it("writes nothing, and throws nothing, when the page has no words to put a caret in", () => {
     const trace = run(layout("", []), ["type:a", "enter", "bs", "ctrl:b", "undo", "redo"]);
     expect(trace.errors).toEqual([]);
-    expect(trace.texts.at(-1)).toBe("");
+    expect(trace.texts.slice(-1)[0]).toBe("");
   });
 
   it("writes the first words of an empty body into the line begun for them", () => {
@@ -540,31 +550,31 @@ describe("the edges of a body", () => {
   });
 });
 
-describe("what the page written in place still gets wrong", () => {
-  it.fails("takes the marks away with the last character deleted from a format", () => {
+describe("what random walks once caught on the page written in place", () => {
+  it("takes the marks away with the last character deleted from a format", () => {
     expect(lastOf(standard, "Hola", 4, ["ctrl:b", "type:x", "bs"])).toBe(BODY);
   });
 
-  it.fails("takes the marks of an italic away with its last character deleted", () => {
+  it("takes the marks of an italic away with its last character deleted", () => {
     expect(lastOf(standard, "Hola", 4, ["ctrl:i", "type:x", "bs"])).toBe(BODY);
   });
 
-  it.fails("keeps both formats when two are pressed before the first key", () => {
+  it("keeps both formats when two are pressed before the first key", () => {
     const got = lastOf(standard, "Hola", 4, ["ctrl:b", "ctrl:i", "type:a"]) ?? "";
     expect(got.split("\n")[0]?.match(/\*/g)?.length).toBe(6);
   });
 
-  it.fails("keeps the CRLF line ends of a body when Enter starts a new item", () => {
+  it("keeps the CRLF line ends of a body when Enter starts a new item", () => {
     const crlf = EDGES.crlf as Setup;
     expect(lastOf(crlf, "primero", 7, ["enter", "type:x"])).not.toMatch(/(?<!\r)\n/);
   });
 
-  it.fails("keeps the CRLF line ends of a body when Shift and Enter break a line", () => {
+  it("keeps the CRLF line ends of a body when Shift and Enter break a line", () => {
     const crlf = EDGES.crlf as Setup;
     expect(lastOf(crlf, "Hola", 2, ["br", "type:x"])).not.toMatch(/(?<!\r)\n/);
   });
 
-  it.fails("deletes a whole CRLF line end with one backspace", () => {
+  it("deletes a whole CRLF line end with one backspace", () => {
     const crlf = EDGES.crlf as Setup;
     expect(lastOf(crlf, "Uno dos", 0, ["type:x", "bs", "bs"])).not.toMatch(/\r(?!\n)/);
   });

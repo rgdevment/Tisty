@@ -714,6 +714,6 @@ describe("Enter at the end of formatted words on the page", () => {
     const bold = writer();
     caretIn("dos", 3);
     asked("insertParagraph");
-    expect(bold[bold.length - 1]).toContain("Uno **dos\n\n** tres");
+    expect(bold[bold.length - 1]).toContain("Uno **dos**\n\n tres");
   });
 });

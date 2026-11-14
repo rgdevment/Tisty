@@ -86,7 +86,6 @@ const KEYED: Record<string, readonly [string, string]> = {
   "shift c": ["`", "`"],
   k: ["[", "]()"],
 };
-const RUN = /^(?:\*+|_+|\+\+|~~|==(?:\{[a-z]+\})?)+/;
 const QUOTED = /^(\s*(?:>\s?)*)/;
 const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
 
@@ -138,21 +137,49 @@ const closing = (text: string, at: number) => {
   return "\n".repeat(Math.max(0, 2 - (/^\n*/.exec(after)?.[0].length ?? 0)));
 };
 
-// A space typed at the end of formatted words goes past the marks that close them, never ones a next word opens.
+const MARK = /\*\*|__|\+\+|~~|==|\*|_|`|\[|\]/g;
+const LINK_END = /^\]\([^)\s]*(?:\s+"[^"]*")?\)/;
+
+// Marks right after the caret close the words before it only when the line opened them, never a next word's.
+const closedTokens = (text: string, at: number): string[] => {
+  const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
+  const seen = new Map<string, number>();
+  const count = (kind: string) => seen.get(kind) ?? 0;
+  for (const [token] of line.matchAll(MARK)) seen.set(token, count(token) + 1);
+  const found: string[] = [];
+  let end = at;
+  for (;;) {
+    const link = LINK_END.exec(text.slice(end))?.[0];
+    if (link && count("[") > count("]")) {
+      seen.set("]", count("]") + 1);
+      found.push(link);
+      end += link.length;
+      continue;
+    }
+    const stars = /^(?:\*+|_+)/.exec(text.slice(end))?.[0];
+    const star = stars?.[0] ?? "";
+    const twice = star + star;
+    const pick =
+      stars && stars.length > 1 && count(twice) % 2 ? twice : count(star) % 2 ? star : "";
+    CLOSER.lastIndex = end;
+    const token = stars ? pick : CLOSER.exec(text)?.[0];
+    const kind = token?.startsWith("==") ? "==" : token;
+    if (!token || !kind || count(kind) % 2 === 0) return found;
+    seen.set(kind, count(kind) + 1);
+    found.push(token);
+    end += token.length;
+  }
+};
+
+const closedRun = (text: string, at: number) => at + closedTokens(text, at).join("").length;
+
 const pastClose = (text: string, at: number): number | null => {
   if (!/\S/.test(text[at - 1] ?? "")) return null;
   const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
   if ((line.match(/`/g)?.length ?? 0) % 2) return null;
-  const run = RUN.exec(text.slice(at))?.[0];
-  if (!run || /[\p{L}\p{N}]/u.test(text[at + run.length] ?? "")) return null;
-  return line.includes(run.slice(0, 1)) ? at + run.length : null;
+  const end = closedRun(text, at);
+  return end > at ? end : null;
 };
-
-const CLOSERS =
-  /^(?:\*\*|__|\*|_|\+\+|~~|==(?:\{[a-z]+\})?|`+|\]\([^)\s]*(?:\s+"[^"]*")?\))+(?=\r?\n|$)/;
-
-const lineEndPast = (text: string, at: number) =>
-  at + (CLOSERS.exec(text.slice(at))?.[0].length ?? 0);
 
 // Stars and underscores stack, so a run of three is bold and italic at once and two alone are only bold.
 const starred = (text: string, one: { from: number; to: number }, open: string) => {
@@ -165,13 +192,85 @@ const starred = (text: string, one: { from: number; to: number }, open: string) 
   return open.length === 1 ? most % 2 === 1 : most >= 2;
 };
 
+const CLOSER = /\*\*|__|\+\+|~~|==(?:\{[a-z]+\})?|\*|_|`/y;
+
+type Marks = readonly (readonly [string, string])[];
+
+const starsBefore = (text: string, at: number, star: string) => {
+  let many = 0;
+  while (text[at - many - 1] === star) many++;
+  return many;
+};
+
+// A format closed just before the caret is entered again rather than opened anew, so no marks stand back to back.
+const rejoined = (text: string, at: number, marks: Marks): [number, Marks] => {
+  let from = at;
+  let left = marks;
+  for (;;) {
+    const found = left.findIndex(([, close]) => {
+      const star = /^(\*|_)\1?$/.test(close) ? (close[0] ?? "") : "";
+      const run = star ? starsBefore(text, from, star) : 0;
+      const shut = star
+        ? close.length === 1
+          ? run % 2 === 1
+          : run >= 2
+        : text.slice(from - close.length, from) === close;
+      const edge = text[from - (star ? run : close.length) - 1] ?? "";
+      return shut && /\S/.test(edge);
+    });
+    if (found < 0) return [from, left];
+    from -= left[found]?.[1].length ?? 0;
+    left = left.filter((_, index) => index !== found);
+  }
+};
+
+const PAIRED = ["**", "__", "++", "~~", "==", "*", "_", "`"];
+
+const unpaired = (text: string, one: { from: number; to: number }) => {
+  let { from, to } = one;
+  if (from === to) return one;
+  for (;;) {
+    const mark = PAIRED.find(
+      (one) => text.slice(from - one.length, from) === one && text.startsWith(one, to),
+    );
+    if (!mark) return { from, to };
+    const close = mark === "==" ? (/^==(?:\{[a-z]+\})?/.exec(text.slice(to))?.[0] ?? mark) : mark;
+    from -= mark.length;
+    to += close.length;
+  }
+};
+
+const unsplit = (text: string, one: { from: number; to: number }) => ({
+  from: text[one.from - 1] === "\r" && text[one.from] === "\n" ? one.from - 1 : one.from,
+  to: text[one.to - 1] === "\r" && text[one.to] === "\n" ? one.to + 1 : one.to,
+});
+
+// A body written with CRLF keeps it, so a key never leaves a bare line feed among its lines.
+const linedAs = (text: string, one: Edit, caret: number): [Edit, number] => {
+  if (!text.includes("\r\n") || !/(?<!\r)\n/.test(one.insert)) return [one, caret];
+  const insert = one.insert.replace(/\r?\n/g, "\r\n");
+  const within = Math.max(0, Math.min(caret - one.from, one.insert.length));
+  const added = one.insert.slice(0, within).match(/(?<!\r)\n/g)?.length ?? 0;
+  const past = caret - one.from > one.insert.length ? insert.length - one.insert.length : added;
+  return [{ ...one, insert }, caret + past];
+};
+
 const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
 
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   let kept: Kept | null = null;
   let composing: { from: number; to: number } | null = null;
-  let pending: { readonly at: number; readonly open: string; readonly close: string } | null = null;
+  let pending: {
+    readonly at: number;
+    readonly marks: readonly (readonly [string, string])[];
+  } | null = null;
+  const openOf = (wait: NonNullable<typeof pending>) => wait.marks.map(([open]) => open).join("");
+  const closeOf = (wait: NonNullable<typeof pending>) =>
+    wait.marks
+      .map(([, close]) => close)
+      .reverse()
+      .join("");
   let typing = false;
   const undone: { text: string; at: number }[] = [];
   const redone: { text: string; at: number }[] = [];
@@ -270,8 +369,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     });
   };
 
-  const put = (one: Edit, caret = one.from + one.insert.length, drawnWhole = false) => {
+  const put = (asked: Edit, at = asked.from + asked.insert.length, drawnWhole = false) => {
     const text = hands.text();
+    const [one, caret] = linedAs(text, asked, at);
     const next = applied(text, one);
     if (next === text) return;
     undone.push({ text, at: one.from });
@@ -376,14 +476,17 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     }
     if (kind === "insertText" || kind === "insertReplacementText")
       return put({ ...one, insert: typed });
-    if (kind === "insertParagraph") {
+    if (kind === "insertParagraph" || kind === "insertLineBreak") {
       const coded = inCode(range.startContainer);
-      const at = one.from === one.to && !coded ? lineEndPast(text, one.from) : one.from;
-      return put({ from: at, to: Math.max(at, one.to), insert: parted(text, at, coded) });
+      const at = one.from === one.to && !coded ? closedRun(text, one.from) : one.from;
+      const insert = kind === "insertLineBreak" ? "\n" : parted(text, at, coded);
+      return put({ from: at, to: Math.max(at, one.to), insert });
     }
-    if (kind === "insertLineBreak") return put({ ...one, insert: "\n" });
     if (kind === "insertFromPaste") return pasted(one, event.dataTransfer);
-    if (kind.startsWith("delete")) return put({ ...one, insert: "" }, one.from);
+    if (kind.startsWith("delete")) {
+      const gone = unpaired(text, unsplit(text, one));
+      return put({ ...gone, insert: "" }, gone.from);
+    }
     const pair = PAIRS[kind];
     if (pair) format(pair, pair);
   };
@@ -447,16 +550,29 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const at = caretSpan()?.from;
     if (at === undefined) return;
     const text = hands.text();
-    if (pending?.at === at && pending.open === open) {
-      pending = null;
+    const marks = pending?.at === at ? pending.marks : [];
+    if (marks.some(([one]) => one === open)) {
+      const rest = marks.filter(([one]) => one !== open);
+      pending = rest.length ? { at, marks: rest } : null;
       return;
     }
-    if (text.startsWith(close, at) && !(close === "*" && text.startsWith("**", at))) {
-      pending = null;
-      kept = { node: page.body, offset: -1, at: at + close.length };
+    const closers = closedTokens(text, at);
+    const shut = closers.findIndex(
+      (one) => one === close || (open === "==" && one.startsWith("==")),
+    );
+    if (shut >= 0) {
+      const passed = closers.slice(0, shut + 1);
+      const reopened = passed
+        .slice(0, shut)
+        .reverse()
+        .map((one) => [one.startsWith("==") ? "==" : one, one] as const);
+      const past = at + passed.join("").length;
+      const next = [...reopened, ...marks];
+      kept = { node: page.body, offset: -1, at: past };
+      pending = next.length ? { at: past, marks: next } : null;
       return;
     }
-    pending = { at, open, close };
+    pending = { at, marks: [...marks, [open, close]] };
     focused();
   };
 
@@ -472,9 +588,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const lead = /^\s*/.exec(typed)?.[0] ?? "";
     const words = typed.trim();
     const trail = typed.slice(lead.length + words.length);
+    const [from, marks] = lead ? [at, wait.marks] : rejoined(hands.text(), at, wait.marks);
+    const left = { at: from, marks };
+    const open = openOf(left);
     put(
-      { from: at, to: at, insert: `${lead}${wait.open}${words}${wait.close}${trail}` },
-      at + lead.length + wait.open.length + words.length,
+      { from, to: from, insert: `${lead}${open}${words}${closeOf(left)}${trail}` },
+      from + lead.length + open.length + words.length,
     );
   };
 
@@ -563,12 +682,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const lead = begun.lead ?? "";
     const wait = pending?.at === begun.at && typed.trim() ? pending : null;
     pending = null;
-    const open = wait?.open ?? "";
+    const open = wait ? openOf(wait) : "";
     put(
       {
         from: begun.at,
         to: begun.at,
-        insert: `${lead}${open}${typed}${wait?.close ?? ""}${begun.tail ?? ""}`,
+        insert: `${lead}${open}${typed}${wait ? closeOf(wait) : ""}${begun.tail ?? ""}`,
       },
       begun.at + lead.length + open.length + typed.length,
     );

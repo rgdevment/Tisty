@@ -693,7 +693,7 @@ describe("Enter at the end of a line whose rest is closing marks", () => {
   it("starts the paragraph past the marks of a line that ends in a return and a newline", () => {
     const said = lineAt("**dos**\r\nnext", 5);
     asked("insertParagraph");
-    expect(last(said)).toBe("**dos**\n\n\r\nnext");
+    expect(last(said)).toBe("**dos**\r\n\r\n\r\nnext");
   });
 
   it("splits the line in the middle of the words", () => {
@@ -702,16 +702,16 @@ describe("Enter at the end of a line whose rest is closing marks", () => {
     expect(last(said)).toBe("**dos \n\ntres**");
   });
 
-  it("splits the line before marks that words follow", () => {
+  it("starts the paragraph past marks that words follow", () => {
     const said = lineAt("**dos** tres", 5);
     asked("insertParagraph");
-    expect(last(said)).toBe("**dos\n\n** tres");
+    expect(last(said)).toBe("**dos**\n\n tres");
   });
 
-  it("splits the line before a link's address when words follow it", () => {
+  it("starts the paragraph past a link's address when words follow it", () => {
     const said = lineAt("[dos](u) tres", 4);
     asked("insertParagraph");
-    expect(last(said)).toBe("[dos\n\n](u) tres");
+    expect(last(said)).toBe("[dos](u)\n\n tres");
   });
 
   it("leaves a link's address alone when it holds a space", () => {
