@@ -80,13 +80,15 @@ export const acted = (
 ): Moved | null => {
   const unit = unitOf(body, tops, at);
   if (!unit) return null;
+  const ended = (moved: Moved | null) =>
+    moved && { ...moved, text: moved.text.replace(/(\r?\n)(?:\r?\n)+$/, "$1") };
   if (act === "up") {
     const above = at > 0 ? spanOf(tops[at - 1]) : null;
-    return above ? movedTo(body, unit, charsAt(body, above[0])) : null;
+    return above ? ended(movedTo(body, unit, charsAt(body, above[0]))) : null;
   }
   if (act === "down") {
     const below = unitOf(body, tops, unit.last + 1);
-    return below ? movedTo(body, unit, below.to) : null;
+    return below ? ended(movedTo(body, unit, below.to)) : null;
   }
   const said = body.slice(unit.from, unit.to).replace(/[\r\n]+$/, "");
   const end = unit.from + said.length;

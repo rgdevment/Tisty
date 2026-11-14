@@ -373,7 +373,7 @@ describe("Enter on a list item or a quote line with nothing written", () => {
     expect(text()).toBe("- a\n\nx");
   });
 
-  it.fails("keeps the blank line when the next key comes before the page is drawn again", () => {
+  it("keeps the blank line when the next key comes before the page is drawn again", () => {
     open("- a\n- ", 6);
     enter();
     type("x");
@@ -492,7 +492,7 @@ describe("a line just begun, left with Backspace", () => {
     expect(text()).toBe("Uno\n\n---\n");
   });
 
-  it.fails("joins the block above when a paragraph begun with Enter gets a Backspace", async () => {
+  it("joins the block above when a paragraph begun with Enter gets a Backspace", async () => {
     open("# Hola\n\nUno\n", 6);
     enter();
     await settle();
@@ -508,7 +508,7 @@ describe("Ctrl+Enter puts a page break after the caret's block", () => {
     expect(text()).toBe("Uno\n\n---\n\nDos\n");
   });
 
-  it.fails("writes the next key under the break when it comes before the page is drawn again", () => {
+  it("writes the next key under the break when it comes before the page is drawn again", () => {
     open("Uno\n\nDos\n", 3);
     ctrl("Enter");
     type("x");
@@ -532,7 +532,7 @@ describe("Ctrl+Enter puts a page break after the caret's block", () => {
     expect(text()).toBe("Uno\n\n---\n\nx\n");
   });
 
-  it.fails("never glues the key to the rule when it comes before the page is drawn again", () => {
+  it("never glues the key to the rule when it comes before the page is drawn again", () => {
     open("Uno", 3);
     ctrl("Enter");
     type("x");
@@ -563,7 +563,7 @@ describe("Ctrl+Enter puts a page break after the caret's block", () => {
     expect(text()).toBe("# Hola\n\n---\n\nUno\n");
   });
 
-  it.fails("keeps CRLF in the lines it adds", async () => {
+  it("keeps CRLF in the lines it adds", async () => {
     open("Uno\r\n\r\nDos\r\n", 3);
     ctrl("Enter");
     await settle();
@@ -1353,7 +1353,7 @@ type Check = (
   walk: Walk,
   trace: Trace,
   again: (steps: readonly string[]) => Promise<Trace>,
-) => string | null;
+) => string | null | Promise<string | null>;
 
 const noThrow: Check = (_, trace) => trace.errors[0] ?? null;
 
@@ -1488,7 +1488,7 @@ describe("random walks over the second round's keys", () => {
 });
 
 describe("what the second round found on keys and blocks", () => {
-  it.fails("ends a format pressed again after a space has been carried past its closing marks", () => {
+  it("ends a format pressed again after a space has been carried past its closing marks", () => {
     open("\n", 0);
     ctrl("b");
     type("a ");
@@ -1497,7 +1497,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).toBe("**a** b\n");
   });
 
-  it.fails("ends that format the same way when the page is drawn again after each key", async () => {
+  it("ends that format the same way when the page is drawn again after each key", async () => {
     open("\n", 0);
     ctrl("b");
     await typeSlowly("a ");
@@ -1506,7 +1506,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).toBe("**a** b\n");
   });
 
-  it.fails("opens the block menu at a slash typed on a line begun by leaving a list", async () => {
+  it("opens the block menu at a slash typed on a line begun by leaving a list", async () => {
     open("- a\n- ", 6);
     enter();
     await settle();
@@ -1515,7 +1515,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).toBe("- a\n");
   });
 
-  it.fails("opens the block menu at a slash typed on a line begun under a page break", async () => {
+  it("opens the block menu at a slash typed on a line begun under a page break", async () => {
     open("Uno\n\nDos\n", 3);
     ctrl("Enter");
     await settle();
@@ -1531,7 +1531,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(menus).toEqual([true]);
   });
 
-  it.fails("keeps the next key off the rule after the line under a break is cancelled with Backspace", async () => {
+  it("keeps the next key off the rule after the line under a break is cancelled with Backspace", async () => {
     open("Uno\n\nDos\n", 3);
     ctrl("Enter");
     await settle();
@@ -1541,7 +1541,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).not.toContain("---x");
   });
 
-  it.fails("keeps the next key off the rule after the line under a break is cancelled with Delete", async () => {
+  it("keeps the next key off the rule after the line under a break is cancelled with Delete", async () => {
     open("Uno\n\nDos\n", 3);
     ctrl("Enter");
     await settle();
@@ -1551,7 +1551,7 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).not.toContain("---x");
   });
 
-  it.fails("puts the caret after the bullet when the Enter that left a list is taken back", async () => {
+  it("puts the caret after the bullet when the Enter that left a list is taken back", async () => {
     open("- a\n- \n", 6);
     enter();
     await settle();
@@ -1561,19 +1561,19 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).toBe("- a\n- x\n");
   });
 
-  it.fails("leaves a list from an item whose marker has no space after it", () => {
+  it("leaves a list from an item whose marker has no space after it", () => {
     open("- a\n-", 5);
     enter();
     expect(text()).toBe("- a\n");
   });
 
-  it.fails("leaves a numbered list from an item whose number has no space after it", () => {
+  it("leaves a numbered list from an item whose number has no space after it", () => {
     open("1. a\n2.", 7);
     enter();
     expect(text()).toBe("1. a\n");
   });
 
-  it.fails("moves the last block of a page with no newline at its end up without a blank line left at the end", () => {
+  it("moves the last block of a page with no newline at its end up without a blank line left at the end", () => {
     open("a\n\nb", 0);
     writing?.unitActed(sheet().children[1] as Element, "up");
     expect(text()).toBe("b\n\na\n");
@@ -1646,12 +1646,12 @@ describe("what the second round found on keys and blocks", () => {
     expect(text()).toBe("- a\n## ");
   });
 
-  it("puts a page break on the line begun by leaving a list", async () => {
+  it("puts a page break a blank line under the list just left", async () => {
     open("- a\n- ", 6);
     enter();
     await settle();
     ctrl("Enter");
-    expect(text()).toBe("- a\n---\n");
+    expect(text()).toBe("- a\n\n---\n");
   });
 
   it("holds Enter on a line just begun without writing anything", async () => {
@@ -1665,28 +1665,28 @@ describe("what the second round found on keys and blocks", () => {
 });
 
 describe("a selection that starts or ends inside a format", () => {
-  it.fails("makes a selection that starts in bold and ends past it wholly bold with no marks doubled", () => {
+  it("makes a selection that starts in bold and ends past it wholly bold with no marks doubled", () => {
     open("a **b** c\n", 0);
     choose(4, 9);
     writing?.format("**", "**");
     expect(text()).not.toContain("****");
   });
 
-  it.fails("makes a selection that starts before bold and ends inside it wholly bold with no marks doubled", () => {
+  it("makes a selection that starts before bold and ends inside it wholly bold with no marks doubled", () => {
     open("a **b** c\n", 0);
     choose(0, 5);
     writing?.format("**", "**");
     expect(text()).not.toContain("****");
   });
 
-  it.fails("does the same for a selection that starts inside a strike and ends past it", () => {
+  it("does the same for a selection that starts inside a strike and ends past it", () => {
     open("a ~~b~~ c\n", 0);
     choose(0, 6);
     writing?.format("~~", "~~");
     expect(text()).not.toContain("~~~~");
   });
 
-  it.fails("does the same for a selection that starts in a word already bold and ends in another", () => {
+  it("does the same for a selection that starts in a word already bold and ends in another", () => {
     open("**a** b\n", 0);
     choose(2, 7);
     writing?.format("**", "**");
@@ -1716,7 +1716,7 @@ describe("a selection that starts or ends inside a format", () => {
 });
 
 describe("a page break laid after a line broken inside a paragraph", () => {
-  it.fails("never turns the paragraph above into a setext title", async () => {
+  it("never turns the paragraph above into a setext title", async () => {
     open("Uno", 3);
     shiftEnter();
     await settle();
@@ -1725,7 +1725,7 @@ describe("a page break laid after a line broken inside a paragraph", () => {
     expect(text()).not.toMatch(/Uno\n---/);
   });
 
-  it.fails("never turns the paragraph above into a setext title when the key just typed is the line", async () => {
+  it("never turns the paragraph above into a setext title when the key just typed is the line", async () => {
     open("Uno\n", 3);
     ctrl("Enter");
     await settle();

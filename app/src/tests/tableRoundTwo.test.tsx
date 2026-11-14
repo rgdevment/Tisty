@@ -446,7 +446,7 @@ describe("keys typed while the next cell is saved and opened", () => {
     expect(input(page)?.value).toBe("z");
   });
 
-  it.fails("lets keys go to the page when the cell left was the last one and nothing opens", async () => {
+  it("lets keys go to the page when the cell left was the last one and nothing opens", async () => {
     const { page, seen } = made();
     await open(seen, 1, 0);
     press(input(page), "Enter");
@@ -455,7 +455,7 @@ describe("keys typed while the next cell is saved and opened", () => {
     expect(press(page.body, "x").defaultPrevented).toBe(false);
   });
 
-  it.fails("lets keys go to the page when Shift+Tab leaves the first cell and nothing opens", async () => {
+  it("lets keys go to the page when Shift+Tab leaves the first cell and nothing opens", async () => {
     const { page, seen } = made();
     await open(seen, 0, 0);
     press(input(page), "Tab", { shiftKey: true });

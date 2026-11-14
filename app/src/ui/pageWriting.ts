@@ -129,14 +129,15 @@ const opening = (text: string, at: number, seed: string) => {
   if (!before.trim()) return "";
   const lines = before.replace(/\s+$/, "").split("\n");
   const joins = LIST_ITEM.test(seed) && LIST_ITEM.test(lines[lines.length - 1] ?? "");
-  const have = /\n*$/.exec(before)?.[0].length ?? 0;
+  const have = (/(?:\r?\n)*$/.exec(before)?.[0].match(/\n/g) ?? []).length;
   return "\n".repeat(Math.max(0, (joins ? 1 : 2) - have));
 };
 
 const closing = (text: string, at: number) => {
   const after = text.slice(at);
   if (!after.trim()) return "";
-  return "\n".repeat(Math.max(0, 2 - (/^\n*/.exec(after)?.[0].length ?? 0)));
+  const have = (/^(?:\r?\n)*/.exec(after)?.[0].match(/\n/g) ?? []).length;
+  return "\n".repeat(Math.max(0, 2 - have));
 };
 
 const MARK = /\*\*|__|\+\+|~~|==|\*|_|`|\[|\]/g;
@@ -265,7 +266,7 @@ const trimmed = (text: string, one: { from: number; to: number } | null) => {
   return from < to ? { from, to } : null;
 };
 
-const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?$/;
+const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])(?:\s+(?:\[[ xX]\]\s*)?)?$/;
 const EMPTY_QUOTE = /^\s*(?:>\s?)+$/;
 
 // Enter on an item or a quote line with nothing written leaves the list or the quote, taking that line away.
@@ -286,6 +287,40 @@ const bareOf = (inner: string, open: string) => {
   if (open === "_") return inner.replace(/(?<!_)_(?!_)/g, "");
   if (open.startsWith("==")) return inner.replace(/==(?:\{[a-z]+\})?/g, "");
   return inner.split(open).join("");
+};
+
+// A choice that starts or ends inside a format takes that format whole, so no mark is left without its partner.
+const MARK_CHAR = /[*_~+=`]/;
+
+const covered = (text: string, cut: { from: number; to: number }, open: string) => {
+  const one = { ...cut };
+  while (
+    one.from > 0 &&
+    MARK_CHAR.test(text[one.from - 1] ?? "") &&
+    MARK_CHAR.test(text[one.from] ?? "")
+  )
+    one.from--;
+  while (
+    one.to < text.length &&
+    MARK_CHAR.test(text[one.to - 1] ?? "") &&
+    MARK_CHAR.test(text[one.to] ?? "")
+  )
+    one.to++;
+  const mark = open.startsWith("==") ? "==" : open;
+  const single = mark === "*" || mark === "_";
+  const lone = single ? new RegExp(`(?<!\\${mark})\\${mark}(?!\\${mark})`, "g") : null;
+  const count = (said: string) =>
+    lone ? (said.match(lone)?.length ?? 0) : said.split(mark).length - 1;
+  if (!mark || count(text.slice(one.from, one.to)) % 2 === 0) return one;
+  const start = text.lastIndexOf("\n", one.from - 1) + 1;
+  if (count(text.slice(start, one.from)) % 2 === 1) {
+    const before = text.slice(start, one.from);
+    const at = lone ? [...before.matchAll(lone)].pop()?.index : before.lastIndexOf(mark);
+    return at === undefined || at < 0 ? one : { from: start + at, to: one.to };
+  }
+  const after = text.slice(one.to);
+  const at = lone ? after.search(lone) : after.indexOf(mark);
+  return at < 0 ? one : { from: one.from, to: one.to + at + mark.length };
 };
 
 const applied = (text: string, one: Edit) =>
@@ -312,9 +347,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
   const waited = (kind: string): { from: number; to: number } | null => {
-    if (!kept) return null;
+    if (!kept || kept.lead !== undefined) return null;
     if (kept.offset >= 0) {
-      if (kept.lead !== undefined) return null;
       const caret = chosen();
       const here =
         caret?.collapsed && caret.startContainer === kept.node && caret.startOffset === kept.offset;
@@ -322,10 +356,23 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         return null;
     }
     const { at } = kept;
+    const text = hands.text();
+    const bare = text[at - 1] === "\n" && (at >= text.length || /[\r\n]/.test(text[at] ?? ""));
+    if (kind === "deleteContentBackward" && bare) {
+      let from = at - 1;
+      while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;
+      return { from, to: at };
+    }
     if (kind.startsWith("deleteContentBackward") || kind.startsWith("deleteWordBackward"))
       return { from: Math.max(0, at - 1), to: at };
     if (kind.startsWith("delete")) return { from: at, to: Math.min(hands.text().length, at + 1) };
     return { from: at, to: at };
+  };
+
+  // A line begun and not written loses its stand-in on a press back, and the next key still begins it there.
+  const dropBegun = () => {
+    for (const one of page.querySelectorAll(GHOST)) one.remove();
+    if (kept) kept = { ...kept, node: page.body, offset: -1 };
   };
 
   const ghostly = (node: Node) =>
@@ -344,13 +391,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   // Out of a paragraph not yet written, going back leaves it and joins the block before.
   const unbegun = (kind: string, range: AbstractRange): { from: number; to: number } | null => {
-    if (!kept || !range.collapsed || !ghostly(range.startContainer)) return null;
+    const unlaid = kept?.lead !== undefined && kept.offset < 0;
+    if (!kept || !range.collapsed || !(unlaid || ghostly(range.startContainer))) return null;
     const { at } = kept;
-    if (kept.lead !== undefined && kind.startsWith("delete")) {
-      for (const one of page.querySelectorAll(GHOST)) one.remove();
-      kept = null;
-      return null;
-    }
     if (!kind.startsWith("delete") || kind.includes("Forward")) return { from: at, to: at };
     const text = hands.text();
     let from = at;
@@ -417,7 +460,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const [one, caret] = linedAs(text, asked, at);
     const next = applied(text, one);
     if (next === text) return;
-    undone.push({ text, at: one.from });
+    const stood = kept && kept.offset < 0 ? kept.at : (caretSpan()?.from ?? one.from);
+    undone.push({ text, at: Math.min(stood, text.length) });
     redone.length = 0;
     kept = { node: page.body, offset: -1, at: caret };
     hands.write(next);
@@ -504,12 +548,19 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const whole = Boolean(picked && !picked.collapsed);
     // A caret dropped on a table, a picture or a widget has no words under it to write among.
     if (range && !whole && unwritable(range.startContainer)) return;
-    const one = (!whole && waited(kind)) || (range && (unbegun(kind, range) ?? spanOfRange(range)));
+    const held = picked ?? range;
+    const begunNow =
+      kept?.lead !== undefined &&
+      (kept.offset < 0 || Boolean(held && ghostly(held.startContainer)));
+    if (begunNow && kind.startsWith("delete")) return dropBegun();
+    const one =
+      (!whole && waited(kind)) || (range && ((held && unbegun(kind, held)) ?? spanOfRange(range)));
     if (!range || !one) return;
     const text = hands.text();
     const typed = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
-    const begun = kept?.lead !== undefined && ghostly(range.startContainer) ? kept : null;
+    const begun = begunNow ? kept : null;
     if (begun && kind !== "insertText" && kind !== "insertReplacementText") return;
+    if (begun && kind === "insertText" && typed === "/") return hands.blocks(caretPoint(), true);
     if (begun) return firstKey(begun, typed);
     if (kind === "insertText" && typed === "/" && slashes(text, one, range))
       return hands.blocks(caretPoint(), true);
@@ -610,8 +661,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const format = (open: string, close: string) => {
     if (unformattable(page)) return;
+    const carry = carried;
     carried = null;
-    const one = trimmed(hands.text(), chosenNow());
+    const text = hands.text();
+    const chosenSpan = trimmed(text, chosenNow());
+    const one = chosenSpan && close !== "]()" ? covered(text, chosenSpan, open) : chosenSpan;
+    if (!one && carry && carry.caret === caretSpan()?.from && carry.close.startsWith(close)) return;
     if (close === "]()") {
       const span = one ?? caretSpan();
       if (span) linked(span);
@@ -896,6 +951,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   const slashed = (one: Slashed, drawnWhole = false): Edit | null => {
+    if (kept?.lead !== undefined && kept.at > 0 && hands.text()[kept.at - 1] !== "\n")
+      firstKey(kept, "");
     const span = caretSpan();
     if (!span) return null;
     const text = hands.text();
@@ -1042,7 +1099,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const laid = slashed(rule);
     if (!laid) return;
     const text = hands.text();
-    const at = Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
+    let at =
+      kept && kept.offset < 0
+        ? kept.at
+        : Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
+    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
     kept = {
       node: page.body,
       offset: -1,
@@ -1157,6 +1218,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     begin,
     hintWords,
     typed: (said) => {
+      if (kept?.lead !== undefined) return firstKey(kept, said);
       const span = caretSpan();
       if (span) put({ ...span, insert: said });
     },

@@ -28,8 +28,13 @@ export const blockPlaced = (
 ) => {
   if (blank(text, at)) {
     const start = lineStart(text, at);
+    const above = text.slice(0, start);
+    const lead = above.trim() && !/\n[ \t]*\r?\n$/.test(above) ? "\n" : "";
     const tail = text.slice(start).startsWith("\n") || start >= text.length ? "" : "\n\n";
-    return { edit: { from: start, to: start, insert: `${block}${tail}` }, caret: start + inside };
+    return {
+      edit: { from: start, to: start, insert: `${lead}${block}${tail}` },
+      caret: start + lead.length + inside,
+    };
   }
   let from = end;
   while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;

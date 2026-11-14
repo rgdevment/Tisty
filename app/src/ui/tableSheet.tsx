@@ -265,6 +265,7 @@ export const useTables = (
     if (how !== "blur" && how !== "cancel") awaited(page);
     const { nth, row, column } = place;
     if ((how === "up" || how === "down") && row < 0) {
+      ahead.current?.stop();
       if (cell.length) edited(at, cell);
       return;
     }
@@ -287,6 +288,7 @@ export const useTables = (
       return;
     }
     const then = next && how !== "blur" ? { nth, ...next } : null;
+    if (!then) ahead.current?.stop();
     if (cell.length) edited(at, cell, then);
     else if (then) opened(then);
   };
